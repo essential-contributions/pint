@@ -64,13 +64,17 @@ Naturally, it's virtually impossible to search through the space of execution tr
 
 ## Intents in the DSL
 
-Given the above, our DSL (or API) should be able to express a more precise variation of the general optimization problem described in the previous section. The first task would be to figure out a way to represent **state** in our program. Of course, there is no sense in modeling the _full_ state of the blockchain in each program. It should be sufficient to only model the states that are impacted. For example, in the case of a simple `Eth` transfer from account `a` to account `b`, there are only two state variables we're interested in: the `Eth` balance of `a` and the `Eth` balance of `b`. If we were to describe a simple transfer in the style of a constraint programming language like [MiniZinc](https://www.minizinc.org/doc-2.7.3/en/index.html), we would get the following:
+Given the above, our DSL (or API) should be able to express a more precise variation of the general optimization problem described in the previous section. The first task would be to figure out a way to represent **state** in our program. Of course, there is no sense in modeling the _full_ state of the blockchain in each program. It should be sufficient to only model the states that are impacted.
+
+### Example 1
+
+In the case of a simple `Eth` transfer from account `a` to account `b`, there are only two state variables we're interested in: the `Eth` balance of `a` and the `Eth` balance of `b`. If we were to describe a simple transfer in the style of a constraint programming language like [MiniZinc](https://www.minizinc.org/doc-2.7.3/en/index.html), we would get the following:
 
 ```solidity
 /* These are constants */
 int: amount = 3e18;
-address: a = 0x1111111111111111111111111111111111111111
-address: b = 0x2222222222222222222222222222222222222222
+address: a = 0x1111111111111111111111111111111111111111;
+address: b = 0x2222222222222222222222222222222222222222;
 
 /* These are decision variables */
 var float: eth_a;
@@ -82,8 +86,8 @@ var transaction: t;
 /* These are our constraints */
 constraint eth_a - eth_a_next = amount;
 constraint eth_b_next - eth_b = amount;
-constraint eth_a = eth_balance(a);
-constraint eth_b = eth_balance(b);
+constraint eth_a = eth.balance(a);
+constraint eth_b = eth.balance(b);
 constraint eth_a_next = eth_transition(eth_a, t);
 constraint eth_b_next = eth_transition(eth_b, t);
 
@@ -94,7 +98,99 @@ solve satisfy;
 Now there are a few ambiguous elements in the program above:
 
 1. The `transaction` type: it is not yet clear whether transactions need their own type or whether they can be described using a vector of parameters for a given chain.
-1. The method `eth_balance` is an external call to a specific chain (in this case Ethereum). In the case of an ERC20 token this becomes a call to `balanceOf` from the ERC20 token contract. This may present a challenge to the solvers.
+1. The method `eth.balance` is an external call to a specific chain (in this case Ethereum). In the case of an ERC20 token this becomes a call to `balanceOf` from the ERC20 token contract. This may present a challenge to the solvers.
 1. The method `eth_transition` is the most ambiguous and represents the state transition function $\tau$ described in the previous section. The whole purpose of calling `eth_transition` is to enforce the fact that `eth_a_next` is the result of executing transaction `t` on the Ethereum blockchain starting with `eth_a`.
 
+### Example 2
+
+Another simple and common example is a token swap. Consider a user with address `a` who would like to swap some `Eth` in exchange for a minimum amount of `DAI`.
+
+```solidity
+/* These are constants */
+int: eth_amount = 3e18;
+int: min_dai_amount = 5400_000_000; // $1800 per ETH
+address: a = 0x1111111111111111111111111111111111111111;
+
+/* These are decision variables */
+var float: eth_a;
+var float: eth_a_next;
+var float: dai_a;
+var float: dai_a_next;
+var transaction: t;
+
+/* These are our constraints */
+constraint eth_a - eth_a_next = eth_amount;
+constraint dai_a_next - dai_a >= min_dai_amount;
+constraint eth_a = eth.balance(a);
+constraint dai_a = dai.balanceOf(a);
+constraint eth_a_next = eth_transition(eth_a, t);
+constraint dai_a_next = eth_transition(dai_a, t);
+
+/* Maximize the amount of DAI received */
+solve maximize dai_a_next - dai_a;
+```
+
+Note that the above is from the point of view of user `a` and does not enforce any specific DEXs to interact with. It is the responsibility of the _solver_ to figure out the best solution to the intent above: this could be interacting with a CFMM or matching the user with other users who are willing to be on the other side of this trade.
+
 ## Satisfying Intents
+
+Satisfying an intent is the process of solving the constraint programming problem that the user wrote to express the intent. A solver may decide to solve each intent individually or combine some of them into a single problem.
+
+A solution that satisfies an intent is a _valid_ assignment of all the decision variables in the constraint program. The most important decision variables are the transactions that have to be signed and submitted in order to achieve the state transition requested by the user. Other decision variable may serve as a certificate that shows that indeed the solution provided by the solver satisfies the constraints. In the case where the intent is an optimization problem, the [_dual solution_](<https://en.wikipedia.org/wiki/Duality_(optimization)>) may be used to show optimality when strong duality holds.
+
+### Batching Intents
+
+As we mentioned earlier, a solver may decide to combine multiple intents and solve them simultaneously. Consider the simple case of swaps with $m$ users and $n$ tokens. Each users $i$ submits an intent to trade $x_{ij_i}$ amount of token $j$ with at least $y_{ik_i}$ amount of token $k$. The constraint satisfaction problem submitted by user $i$ may look like:
+
+$$
+\begin{aligned}
+e(i, j_i) - s(i, j_i) = x_{ij_i}\\
+e(i, k_i) - s(i, k_i) \geq y_{ik_i}\\
+\end{aligned}
+$$
+
+where $s$ and $e$ are functions that return the "start" and "end" balances respectively. That is, $s(i, j_i)$ is the start $j$ token balance of user $i$ _before_ the intent is submitted and $e(i, j)$ is the $j$ token balance of user $i$ after the intent is satisfied.
+
+A solver can then combine all $m$ intents from the users into a single optimization problem as follows:
+
+$$
+\begin{aligned}
+& \text{maximize}   && u(e(1, k_1), \ldots, e(m, k_m))  \\
+& \text{subject to} && e(i, j_i) - s(i, j_i) = x_{ij_i}, & i = 1, \ldots, m \\
+&                   && e(i, k_i) - s(i, k_i) \geq y_{ik_i} & i = 1, \ldots, m \\
+\end{aligned}
+$$
+
+where $u$ is some utility function. A reasonable and simple utility function would be the linear function $u(e) = \pi^T e$ where $e$ is the vector of all $e(i, k_i)$. Here, $\pi_i$ could, for example, represent the price of token $k_i$ in USD so that $u$ is the total value, in USD, accrued to all the users. The solver can then attempt to figure out a sequence of transactions that satisfy the intent of each user while trying to maximize the "social welfare".
+
+It is not too difficult to figure out how to represent the optimization problem above using the DSL by following examples 1 and 2 from the previous section. We may find that additional primitives are needed, such as arrays, in order to make the DSL more ergonomic. Note that this combined program is written by the solver.
+
+## Required Language Primitives
+
+### Syntax Overview
+
+Character set, comments, identifiers.
+
+### Literals
+
+Integers, Boolean literals, string literals, etc.
+
+### Types
+
+Booleans, integers, floats, range types, enum types, `address`, arrays, etc.
+
+### Expressions
+
+operators (unary, binary), `if` expressions, etc.
+
+#### External calls
+
+Mostly required to inspect the state of the chain via calls to view functions for example.
+
+### Items
+
+include, variable declaration, enum items, assignment, type aliases, **constraint items**, **solve items**, etc.
+
+## Language Backend
+
+The backend of the DSL (or API) that we're building is effectively a "solver" (not to be confused with the "solver" agent in the network). Many commercial solvers exist that can be targeted. We could decide an a standardized JSON output that is generated by the compiler and that can be read and then _solved_ by network participants using any solver (not all solvers are created equal!).
