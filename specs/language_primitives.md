@@ -20,7 +20,7 @@ operators (unary, binary), `if` expressions, etc.
 
 ## External calls
 
-Mostly required to inspect the state of the chain via calls to view functions for example.
+Mostly required to inspect the state of the chain via static calls for example.
 
 ## Items
 

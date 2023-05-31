@@ -2,7 +2,7 @@
 
 The state transition function, which we called $tau$ in the [introduction](introduction.md), is the function that maps a given state $s_0$ to another state $s_1$ by executing a transaction $t$. That is, $s_1 = \tau(s_0, t)$. On Ethereum, $\tau$ is basically the process of validating and executing $t$ using the EVM. Every user intent requires $\tau$ in order to express an actual state transition.
 
-In the DSL examples presented in [introduction](introduction.md), we've used `eth_transition` to refer to the state transition function of Ethereum which takes a particular state (e.g. `Eth` balance of some address `a`) and an arbitrary transaction $t$, and returns the new `Eth` balance of `a` after a successful execution of $t$. This definition of `eth_transition` is quite vague and informal. We need to further specify what it will actually look and how solvers should handle it.
+In the DSL examples presented in [introduction](introduction.md), we've used `eth_transition` to refer to the state transition function of Ethereum which takes a particular state (e.g. `Eth` balance of some address `a`) and an arbitrary transaction $t$, and returns the new `Eth` balance of `a` after a successful execution of $t$. Mathematically, this definition of `eth_transition` is quite vague and informal. We need to further specify what it will actually look and how solvers should handle it.
 
 ## Expressing `eth_transition`
 
@@ -14,7 +14,9 @@ One viable option is to restrict the space of feasible transactions to contract 
 
 ![Flow of Intents](./assets/intent_flow.png "Flow of Intents")
 
-Solvers will now compete by providing the best "expansion" of `eth_transition`. Solvers who are able to include more trusted contracts in their solution space will likely achieve higher satisfaction scores, hence receiving higher rewards.
+Solvers will now compete by providing the best "expansion" of `eth_transition`. Solvers who are able to include more contracts in their solution space will likely achieve higher satisfaction scores, hence receiving higher rewards.
+
+Expanding the search space is largely a question of domain knowledge. For example, in the case of swaps, a solver should be aware of as many swap venues and pairs as possible. They should also run an order matching algorithm to match swaps where possible, as this will bypass a lot of expensive state access and contract calls. This also means that solvers will also compete on compute power, since a larger search space is more expensive to explore.
 
 This flow of intents above can be combined with intent batching that was explained in the [introduction](introduction.md) to make the process more efficient and to explore user matching opportunities.
 
@@ -34,7 +36,7 @@ where:
 - $e_0$ and $d_0$ are the starting `Eth` and `Dai` balances of the user, respectively.
 - $e_1$ and $d_1$ are the final `Eth` and `Dai` balances of the user, respectively.
 
-These constraints on the change in state are then broadcasted to the network of solvers. Solvers will then attempt to provide a solution to the intent above by exploring the list of contracts they are willing to interact with. For CFMM contracts, the trading semantics rely on a trading function $\varphi$ such that:
+These constraints on the change in state are then broadcast to the network of solvers. Solvers will then attempt to provide a solution to the intent above by exploring the list of contracts they are willing to interact with. For CFMM contracts, the trading semantics rely on a trading function $\varphi$ such that:
 
 $$\varphi(R_e + \gamma\delta_e, R_d - \delta_d) = \varphi(R_e, R_d)$$
 

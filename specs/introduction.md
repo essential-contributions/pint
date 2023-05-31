@@ -130,7 +130,7 @@ constraint dai_next = eth_transition(dai, t);
 solve maximize dai_next - dai;
 ```
 
-Note that the above is from the point of view of user `a` and does not enforce the exchange mechanism or entity. It is the responsibility of the _solver_ to figure out the best solution to the intent above: this could be interacting with a CFMM or matching the user with other users who are willing to be on the other side of this trade.
+Note that the above is from the point of view of user `a` and does not enforce the exchange mechanism or entity. It is the responsibility of the _solver_ to figure out the best solution to the intent above: this could be interacting with a CFMM, matching the user with other users who are willing to be on the other side of this trade, or even taking the other side of the trade themselves. This also allows solvers to act as market makers if they are willing to take the other side of a swap which cannot be hedged immediately. This is closer to how market makers operate in traditional finance where they typically only reveal their liquidity on-demand.
 
 ## Satisfying Intents
 
@@ -198,4 +198,4 @@ $$
 
 where $u$ is some utility function. A reasonable and simple utility function would be the linear function $u(e) = \pi^T e$ where $e$ is the vector of all $e(i, k_i)$. Here, $\pi_i$ could, for example, represent the price of token $k_i$ in USD so that $u$ is the total value, in USD, accrued to all the users. The solver can then attempt to figure out a sequence of transactions that satisfy the intent of each user while trying to maximize the "social welfare".
 
-It is not too difficult to figure out how to represent the optimization problem above using the DSL by following examples 1 and 2 from the previous section. We may find that additional primitives are needed, such as arrays, in order to make the DSL more ergonomic. Note that this batched constraint is composed by the solver as part of their algorithm.
+The optimization problem above is expressible using the DSL by following examples 1 and 2 from the previous section. We may find that additional primitives are needed, such as arrays, in order to make the DSL more ergonomic. Note that this batched constraint is composed by the solver as part of their algorithm.

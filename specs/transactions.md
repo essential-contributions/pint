@@ -1,6 +1,8 @@
 # Transactions
 
-A transaction is a cryptographically signed message that changes the state of a blockchain. Solving an intent boils down to finding a sequence of transactions (aka an execution trace) that satisfies the intent. In order to express intents using our DSL, we need to be able to model transactions using the primitive types offered by the language such as integers, floats, etc.
+A transaction is a cryptographically signed message that changes the state of a blockchain. Solving an intent boils down to finding a sequence of transactions (aka an execution trace) that satisfies the intent. A given transaction may also satisfy more than one intent and solvers should be incentivize to find such efficient solutions.
+
+In order to express intents using our DSL, we need to be able to model transactions using the primitive types offered by the language such as integers, floats, etc.
 
 We will limit the scope of this document to [Ethereum transactions](https://ethereum.org/en/developers/docs/transactions/), but the concepts discussed should apply to most, if not all, transaction formats.
 
@@ -35,8 +37,8 @@ The data field is only relevant for transactions that access a contract:
 1. The first four bytes specify which contract function to call.
 1. The rest of the data represent the arguments [encoded as specified in the ABI specs](https://docs.soliditylang.org/en/latest/abi-spec.html#formal-specification-of-the-encoding).
 
-Searching through arbitrary bytes is, of course, not reasonable. Instead, each feasible `recipient` has its own valid data field "template" which restricts its own search space. For each valid function (and therefore a function selector), valid function arguments can themselves be decision variables that contribute to the `data` field. For example, the values of `amountOut` and `amountInMax` in the Uniswap V2 router contract method [`swapTokensForExactTokens`](https://github.com/Uniswap/v2-periphery/blob/master/contracts/interfaces/IUniswapV2Router01.sol#L68-L74) can be decision variables (of type `float`) _when_ `recipient` is the address of the Uniswap V2 router contract.
+Searching through arbitrary bytes is intractable. Instead, each feasible `recipient` has its own valid data field "template" which restricts its own search space. For each valid function (and therefore a function selector), valid function arguments can themselves be decision variables that contribute to the `data` field. For example, the values of `amountOut` and `amountInMax` in the Uniswap V2 router contract method [`swapTokensForExactTokens`](https://github.com/Uniswap/v2-periphery/blob/master/contracts/interfaces/IUniswapV2Router01.sol#L68-L74) can be decision variables (of type `float`) _when_ `recipient` is the address of the Uniswap V2 router contract.
 
 ## Use Model
 
-In most cases, users will not care about limiting any transaction parameters, except potentially for transaction costs. Most of the fields described in [Modeling Transaction Fields](#modeling-transaction-fields) need to be constrained by the solver, particularly the `recipient` and the `data` fields. Solver will compete in how "wide" they can make their search spaces (e.g. support more CFMMs) while still being able to solve for a satisfactory execution trace efficiently.
+In most cases, users will not care about limiting any transaction parameters, except potentially for transaction costs. Most of the fields described in [Modeling Transaction Fields](#modeling-transaction-fields) need to be constrained by the solver, particularly the `recipient` and the `data` fields. Solvers will compete in how "wide" they can make their search spaces (e.g. support more CFMMs) while still being able to solve for a satisfactory execution trace efficiently.
