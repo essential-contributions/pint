@@ -1,6 +1,6 @@
 # Transactions
 
-A transaction is a cryptographically signed message that changes the state of a blockchain. Solving an intent boils down to finding a sequence of transactions (aka an execution trace) that satisfies the intent. A given transaction may also satisfy more than one intent and solvers should be incentivize to find such efficient solutions.
+A transaction is a cryptographically signed message that changes the state of a blockchain. Solving an intent boils down to finding a sequence of transactions (aka an execution trace) that satisfies the intent. A single transaction may satisfy multiple intents. Incentives should be structured to encourage solvers to identify these opportunities for efficiency.
 
 In order to express intents using our DSL, we need to be able to model transactions using the primitive types offered by the language such as integers, floats, etc.
 
@@ -12,15 +12,18 @@ An Ethereum transaction includes several fields with different data types. We wi
 
 ### `from`
 
-This is the address of the sender and will usually be the address of the user (or contract) submitting the intent and is _not_ a decision variable. However, we still need to model this address using the DSL because it will be required for specifying a state access list.
+This is the address of the sender and will usually be the address of the user (or contract) submitting the intent and is _not_ a decision variable. However, we still need to model this address using the DSL because it is required for specifying a state access list.
+
+> **Note**
+> Recall that decision variables are the variables that the solver has to choose values for such that the problem constraints are satisfied and the objective function, if present, is optimal.
 
 ### `recipient`
 
-This is the receiving address which could be an externally-owned account (EOA) or a contract. This will usually be a decision variable. That being said, it is not reasonable to expect solvers to search through all possible $2^{160}$ 20-byte addresses when solving for an execution trace. Instead, solvers need to impose additional constraints on `recipient` that restrict the search space as much as possible. For example, a solver may decide to include a list of CFMM contract addresses in their search space. More addresses could be added to the search space by inspecting the submitted intent (e.g. address `b` in [Example 1](introduction.md#example-1)).
+This is the receiving address which can be an externally-owned account (EOA) or a contract. This will usually be a decision variable. That being said, it is not reasonable to expect solvers to search through all possible $2^{160}$ 20-byte addresses when solving for an execution trace. Instead, solvers need to impose additional constraints on `recipient` that restrict the search space as much as possible. For example, a solver may decide to include a list of CFMM contract addresses in their search space. More addresses could be added to the search space by inspecting the submitted intent (e.g. address `b` in [Example 1](introduction.md#example-1)).
 
 ### `value`
 
-This is the amount of `Eth` to transfer from `sender` to `recipient`. This value is a decision variable and can simply be modeled with a `float` variable. The result can then be rounded down to an integer in the final solution.
+This is the amount of ETH to transfer from `sender` to `recipient`. This value is a decision variable and can simply be modeled with a `float` variable. The result can then be rounded down to an integer in the final solution.
 
 ### `gasLimit`, `maxPriorityFeePerGas`, `maxFeePerGas`
 

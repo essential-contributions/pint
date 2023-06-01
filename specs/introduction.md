@@ -28,7 +28,7 @@ With the above in mind, there are a few crucial questions that we need to answer
 
 Below is an attempt to formalize "intents" that is mostly inspired by the discussion in [this thread from Skip](https://ideas.skip.money/t/a-formal-ish-definition-for-intents/73). We hope that a formal definition will help answer the questions presented in the previous section.
 
-For simplicity, we start by limiting the scope of the problem to a single blockchain. Each sequence of transactions $t_1, \ldots, t_k$ on a given blockchain is effectively a transition from some state $s_0$ to some other state $s_k$ such that transaction $t_j$ transitions the state from state $s_{j-1}$ to state $s_j$. In this context, the state refers to the **full** state of the blockchain. For Ethereum, this would be the `Eth` balance of each account as well as its _storage_, if the account is a "contract account".
+For simplicity, we start by limiting the scope of the problem to a single blockchain. Each sequence of transactions $t_1, \ldots, t_k$ on a given blockchain is effectively a transition from some state $s_0$ to some other state $s_k$ such that transaction $t_j$ transitions the state from state $s_{j-1}$ to state $s_j$. In this context, the state refers to the **full** state of the blockchain. For Ethereum, this would be the ETH balance of each account as well as its _storage_, if the account is a "contract account".
 
 Following the definition of the previous section, an intent can be specified as follows:
 
@@ -68,7 +68,7 @@ Given the above, our DSL (or API) should be able to express a more precise varia
 
 ### Example 1
 
-In the case of a simple `Eth` transfer from account `a` to account `b`, there are only two state variables we're interested in: the `Eth` balance of `a` and the `Eth` balance of `b`. If we were to describe a simple transfer in the style of a constraint programming language like [MiniZinc](https://www.minizinc.org/doc-2.7.3/en/index.html), we would get the following:
+In the case of a simple ETH transfer from account `a` to account `b`, there are only two state variables we're interested in: the ETH balance of `a` and the ETH balance of `b`. If we were to describe a simple transfer in the style of a constraint programming language like [MiniZinc](https://www.minizinc.org/doc-2.7.3/en/index.html), we would get the following:
 
 ```solidity
 /* These are constants */
@@ -103,7 +103,7 @@ Now there are a few ambiguous elements in the program above:
 
 ### Example 2
 
-Another simple and common example is a token swap. Consider a user with address `a` who would like to swap some `Eth` in exchange for a minimum amount of `DAI`.
+Another simple and common example is a token swap. Consider a user with address `a` who would like to swap some ETH in exchange for a minimum amount of DAI.
 
 ```solidity
 /* These are constants */
