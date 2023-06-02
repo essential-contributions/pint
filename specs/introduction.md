@@ -28,7 +28,7 @@ With the above in mind, there are a few crucial questions that we need to answer
 
 Below is an attempt to formalize "intents" that is mostly inspired by the discussion in [this thread from Skip](https://ideas.skip.money/t/a-formal-ish-definition-for-intents/73). We hope that a formal definition will help answer the questions presented in the previous section.
 
-For simplicity, we start by limiting the scope of the problem to a single blockchain. Each sequence of transactions $t_1, \ldots, t_k$ on a given blockchain is effectively a transition from some state $s_0$ to some other state $s_k$ such that transaction $t_j$ transitions the state from state $s_{j-1}$ to state $s_j$. In this context, the state refers to the **full** state of the blockchain. For Ethereum, this would be the `Eth` balance of each account as well as its _storage_, if the account is a "contract account".
+For simplicity, we start by limiting the scope of the problem to a single blockchain. Each sequence of transactions $t_1, \ldots, t_k$ on a given blockchain is effectively a transition from some state $s_0$ to some other state $s_k$ such that transaction $t_j$ transitions the state from state $s_{j-1}$ to state $s_j$. In this context, the state refers to the **full** state of the blockchain. For Ethereum, this would be the ETH balance of each account as well as its _storage_, if the account is a "contract account".
 
 Following the definition of the previous section, an intent can be specified as follows:
 
@@ -68,7 +68,7 @@ Given the above, our DSL (or API) should be able to express a more precise varia
 
 ### Example 1
 
-In the case of a simple `Eth` transfer from account `a` to account `b`, there are only two state variables we're interested in: the `Eth` balance of `a` and the `Eth` balance of `b`. If we were to describe a simple transfer in the style of a constraint programming language like [MiniZinc](https://www.minizinc.org/doc-2.7.3/en/index.html), we would get the following:
+In the case of a simple ETH transfer from account `a` to account `b`, there are only two state variables we're interested in: the ETH balance of `a` and the ETH balance of `b`. If we were to describe a simple transfer in the style of a constraint programming language like [MiniZinc](https://www.minizinc.org/doc-2.7.3/en/index.html), we would get the following:
 
 ```solidity
 /* These are constants */
@@ -103,7 +103,7 @@ Now there are a few ambiguous elements in the program above:
 
 ### Example 2
 
-Another simple and common example is a token swap. Consider a user with address `a` who would like to swap some `Eth` in exchange for a minimum amount of `DAI`.
+Another simple and common example is a token swap. Consider a user with address `a` who would like to swap some ETH in exchange for a minimum amount of DAI.
 
 ```solidity
 /* These are constants */
@@ -112,25 +112,25 @@ int: min_dai_amount = 5400_000_000; // $1800 per ETH
 address: a = 0x1111111111111111111111111111111111111111;
 
 /* These are decision variables */
-var float: eth_a;
-var float: eth_a_next;
-var float: dai_a;
-var float: dai_a_next;
+var float: eth;
+var float: eth_next;
+var float: dai;
+var float: dai_next;
 var transaction: t;
 
 /* These are our constraints */
-constraint eth_a - eth_a_next = eth_amount;
-constraint dai_a_next - dai_a >= min_dai_amount;
-constraint eth_a = eth.balance(a);
-constraint dai_a = dai.balanceOf(a);
-constraint eth_a_next = eth_transition(eth_a, t);
-constraint dai_a_next = eth_transition(dai_a, t);
+constraint eth - eth_next = eth_amount;
+constraint dai_next - dai >= min_dai_amount;
+constraint eth = eth.balance(a);
+constraint dai = dai.balanceOf(a);
+constraint eth_next = eth_transition(eth, t);
+constraint dai_next = eth_transition(dai, t);
 
 /* Maximize the amount of DAI received */
-solve maximize dai_a_next - dai_a;
+solve maximize dai_next - dai;
 ```
 
-Note that the above is from the point of view of user `a` and does not enforce the exchange mechanism or entity. It is the responsibility of the _solver_ to figure out the best solution to the intent above: this could be interacting with a CFMM or matching the user with other users who are willing to be on the other side of this trade.
+Note that the above is from the point of view of user `a` and does not enforce the exchange mechanism or entity. It is the responsibility of the _solver_ to figure out the best solution to the intent above: this could be interacting with a CFMM, matching the user with other users who are willing to be on the other side of this trade, or even taking the other side of the trade themselves. This also allows solvers to act as market makers if they are willing to take the other side of a swap which cannot be hedged immediately. This is closer to how market makers operate in traditional finance where they typically only reveal their liquidity on-demand.
 
 ## Satisfying Intents
 
@@ -198,34 +198,4 @@ $$
 
 where $u$ is some utility function. A reasonable and simple utility function would be the linear function $u(e) = \pi^T e$ where $e$ is the vector of all $e(i, k_i)$. Here, $\pi_i$ could, for example, represent the price of token $k_i$ in USD so that $u$ is the total value, in USD, accrued to all the users. The solver can then attempt to figure out a sequence of transactions that satisfy the intent of each user while trying to maximize the "social welfare".
 
-It is not too difficult to figure out how to represent the optimization problem above using the DSL by following examples 1 and 2 from the previous section. We may find that additional primitives are needed, such as arrays, in order to make the DSL more ergonomic. Note that this batched constraint is composed by the solver as a part of its algorithm.
-
-## Required Language Primitives
-
-### Syntax Overview
-
-Character set, comments, identifiers.
-
-### Literals
-
-Integers, Boolean literals, string literals, etc.
-
-### Types
-
-Booleans, integers, floats, range types, enum types, `address`, arrays, etc.
-
-### Expressions
-
-operators (unary, binary), `if` expressions, etc.
-
-#### External calls
-
-Mostly required to inspect the state of the chain via calls to view functions for example.
-
-### Items
-
-include, variable declaration, enum items, assignment, type aliases, **constraint items**, **solve items**, etc.
-
-## Language Backend
-
-The backend of the DSL (or API) that we're building is effectively a "solver" (not to be confused with the "solver" agent in the network). Many commercial solvers exist that can be targeted. We could decide an a standardized JSON output that is generated by the compiler and that can be read and then _solved_ by network participants using any solver (not all solvers are created equal!).
+The optimization problem above is expressible using the DSL by following examples 1 and 2 from the previous section. We may find that additional primitives are needed, such as arrays, in order to make the DSL more ergonomic. Note that this batched constraint is composed by the solver as part of their algorithm.
