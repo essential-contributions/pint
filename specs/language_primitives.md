@@ -18,13 +18,13 @@ TODO
 
 ### Character set
 
-Yurt input files must be encoded as TODO and must have the extension `*.yrt`.
+Yurt input files must be encoded as UTF-8 and may have the extension `*.yrt`.
 
 Yurt is case sensitive and has no layout restrictions. That is, pieces of whitespace containing spaces, tabs, and newlines are all equivalent to each other.
 
 ### Comments
 
-A `//` indicates that the rest of the line is a comment. Block comments are also supported using `/*` and `*/` to mark the beginning and end of a comment.
+A `//` indicates that the rest of the line is a comment.
 
 ### Identifiers
 
@@ -34,11 +34,11 @@ Identifiers have the following syntax:
 <ident> ::= _?[A-Za-z][A-Za-z0-9]*     % excluding keywords
 ```
 
-A number of keywords are reserved and cannot be used as identifiers. The keywords are: `bool`, `constraint`, `else`, `enum`, `false`, `float`, `fn`, `if`, `int`, `let`, `maximize`, `minimize`, `par`, `satisfy`, `solve`, `true`, `type`, `var`.
+A number of keywords are reserved and cannot be used as identifiers. The keywords are: `bool`, `constraint`, `else`, `enum`, `false`, `float`, `fn`, `if`, `int`, `let`, `maximize`, `minimize`, `satisfy`, `solve`, `true`, `type`.
 
 ## High-level Intent Structure
 
-A Yurt intent consists of multiple `items`:
+A Yurt intent consists of one or more semicolon separated `items`:
 
 ```ebnf
 <intent> ::= [ <item> ";" ... ]
@@ -106,7 +106,7 @@ Expressions represent values and have the following syntax:
               | <tuple-literal>
               | <call-expr>
 
-<bin-op> ::= "->" | "<-" | "<" | ">" | "<=" | ">=" | "==" | "!="
+<bin-op> ::= "<" | ">" | "<=" | ">=" | "==" | "!="
            | "+" | "-" | "*" | "/" | "%"
 
 <bool-literal> ::= "false" | "true"
@@ -127,12 +127,22 @@ Expressions represent values and have the following syntax:
 
 TODO - more expressions
 
+### Operator Precedence
+
+The operators have the following precedence, from highest to lowest.
+
+| Class          | Operators                        |
+| -------------- | -------------------------------- |
+| Multiplicative | `*`, `/`, `%`                    |
+| Additive       | `+`, `-`                         |
+| Comparison     | `<`, `>`, `<=`, `>=`, `==`, `!=` |
+
 ### Variable Declaration Items
 
 Variable declarations have the following syntax:
 
 ```ebnf
-<var-decl-item> ::= <ident> ( "var" | "par" ) [ ":" <ty> ] [ "=" <expr> ]
+<var-decl-item> ::= "let" <ident> [ ":" <ty> ] [ "=" <expr> ]
 ```
 
 For example:
@@ -150,6 +160,8 @@ a = 10;
 let b;
 b = 5;
 ```
+
+Variables can only be assigned once in an intent.
 
 ### Assignment Items
 
@@ -203,20 +215,20 @@ Function items describe user defined operations. They have the following syntax:
 ```ebnf
 <function-item> ::= "fn" <ident> "(" ( <param> "," ... ) ")" "->" <ty> <block-exp>
 
-<param> ::= <ident> ":" ( "var" | "par" ) <ty>
+<param> ::= <ident> ":" <ty>
 ```
 
 For example, the following function checks that its argument is an even number:
 
 ```rust
-fn even(x: var int) -> bool {
+fn even(x: int) -> bool {
     x % 2 == 0
 }
 ```
 
 ### Transition Items
 
-Transition items represent a relationship between two decision variables (`var`) that represent the state of a blockchain such as balances. Transition items have the following syntax:
+Transition items represent a relationship between two decision variables that represent the state of a blockchain such as balances. Transition items have the following syntax:
 
 ```ebnf
 <transition-item> ::= <ident> "~>" <ident>
