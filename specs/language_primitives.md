@@ -118,7 +118,7 @@ Expressions represent values and have the following syntax:
                   | [0-9]+"."[0-9]+[Ee][-+]?[0-9]+
                   | [0-9]+[Ee][-+]?[0-9]+
 
-<string-literal> ::= """ ([^"\n\] | \x[0-9a-fA-F][0-9a-fA-F]? | \n | \t | \" | \\) """
+<string-literal> ::= "\"" ([^"\n] | "\\" (x[0-9a-fA-F][0-9a-fA-F] | "n" | "t" | "\"" | "\\")) "\""
 
 <tuple-literal> ::= "(" <expr> "," [ <expr> "," ... ] ")"
 
