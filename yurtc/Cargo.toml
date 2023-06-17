@@ -1,0 +1,13 @@
+[package]
+name = "yurtc"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+astmaker = "0.2"
+chumsky = "0.9"
+clap = { version = "4.3", features = ["cargo"] }
+logos = "0.13"
