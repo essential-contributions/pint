@@ -165,40 +165,21 @@ constraint mid < high_val;
 solve minimize mid;
 "#;
 
+    // This is still a bit crude for larger ASTs.
     let res = parse_str_to_ast_inner(src);
-    assert!(res.is_ok());
-    let res = res.unwrap();
-    assert_eq!(res.len(), 5);
-    assert!(res
-        .into_iter()
-        .zip([
-            ast::Decl::Value {
-                name: ast::Ident("low_val".to_owned()),
-                ty: Some(ast::Type::Real),
-                init: ast::Expr::Immediate(ast::Immediate::Real(1.23))
-            },
-            ast::Decl::Value {
-                name: ast::Ident("high_val".to_owned()),
-                ty: None,
-                init: ast::Expr::Immediate(ast::Immediate::Real(4.56))
-            },
-            ast::Decl::Constraint(ast::Expr::BinaryOp {
-                op: ast::BinaryOp::GreaterThan,
-                lhs: Box::new(ast::Expr::Ident(ast::Ident("mid".to_string()))),
-                rhs: Box::new(ast::Expr::BinaryOp {
-                    op: ast::BinaryOp::Mul,
-                    lhs: Box::new(ast::Expr::Ident(ast::Ident("low_val".to_string()))),
-                    rhs: Box::new(ast::Expr::Immediate(ast::Immediate::Real(2.0)))
-                })
-            }),
-            ast::Decl::Constraint(ast::Expr::BinaryOp {
-                op: ast::BinaryOp::LessThan,
-                lhs: Box::new(ast::Expr::Ident(ast::Ident("mid".to_string()))),
-                rhs: Box::new(ast::Expr::Ident(ast::Ident("high_val".to_string()))),
-            }),
-            ast::Decl::Solve(ast::SolveFunc::Minimize(ast::Ident("mid".to_string()))),
-        ])
-        .all(|(a, b)| a == b));
+    assert_eq!(format!("{res:?}"),
+        [ r#"Ok(["#
+        , r#"Value { name: Ident("low_val"), ty: Some(Real), init: Immediate(Real(1.23)) }, "#
+        , r#"Value { name: Ident("high_val"), ty: None, init: Immediate(Real(4.56)) }, "#
+        , r#"Constraint(BinaryOp { "#
+            , r#"op: GreaterThan, "#
+            , r#"lhs: Ident(Ident("mid")), "#
+            , r#"rhs: BinaryOp { op: Mul, lhs: Ident(Ident("low_val")), rhs: Immediate(Real(2.0)) } "#
+        , r#"}), "#
+        , r#"Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident("mid")), rhs: Ident(Ident("high_val")) }), "#
+        , r#"Solve(Minimize(Ident("mid")))"#
+        , r#"])"#
+        ].concat());
 }
 
 #[test]
