@@ -3,11 +3,11 @@ use std::{fs::read_to_string, path::Path};
 use chumsky::{prelude::*, Stream};
 
 use crate::{
-    ast::*,
+    ast,
     lexer::{self, Token},
 };
 
-type Ast = Vec<AstDecl>;
+type Ast = Vec<ast::Decl>;
 
 pub(super) fn parse_path_to_ast(path: &Path) -> anyhow::Result<Ast> {
     parse_str_to_ast(&read_to_string(path)?)
@@ -29,52 +29,58 @@ fn parse_str_to_ast(source: &str) -> anyhow::Result<Ast> {
     })
 }
 
-fn parser() -> impl Parser<Token, Ast, Error = Simple<Token>> + Clone {
+fn parser<'sc>() -> impl Parser<Token<'sc>, Ast, Error = Simple<Token<'sc>>> + Clone {
     choice((value_decl(), constraint_decl(), solve_decl()))
         .then_ignore(just(Token::Semi))
         .repeated()
         .then_ignore(end())
 }
 
-fn value_decl() -> impl Parser<Token, AstDecl, Error = Simple<Token>> + Clone {
+fn value_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = Simple<Token<'sc>>> + Clone {
     let type_spec = just(Token::Colon).ignore_then(type_());
     just(Token::Let)
         .ignore_then(ident())
         .then(type_spec.or_not())
         .then_ignore(just(Token::Eq))
         .then(expr())
-        .map(|((name, ty), init)| AstDecl::Value { name, ty, init })
+        .map(|((name, ty), init)| ast::Decl::Value { name, ty, init })
 }
 
-fn constraint_decl() -> impl Parser<Token, AstDecl, Error = Simple<Token>> + Clone {
+fn constraint_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = Simple<Token<'sc>>> + Clone
+{
     just(Token::Constraint)
         .ignore_then(expr())
-        .map(AstDecl::Constraint)
+        .map(ast::Decl::Constraint)
 }
 
-fn solve_decl() -> impl Parser<Token, AstDecl, Error = Simple<Token>> + Clone {
-    let solve_satisfy = just(Token::Satisfy).to(AstSolveFunc::Satisfy);
+fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = Simple<Token<'sc>>> + Clone {
+    let solve_satisfy = just(Token::Satisfy).to(ast::SolveFunc::Satisfy);
     let solve_minimize = just(Token::Minimize)
         .ignore_then(ident())
-        .map(AstSolveFunc::Minimize);
+        .map(ast::SolveFunc::Minimize);
     let solve_maximize = just(Token::Maximize)
         .ignore_then(ident())
-        .map(AstSolveFunc::Maximize);
+        .map(ast::SolveFunc::Maximize);
 
     just(Token::Solve)
         .ignore_then(choice((solve_satisfy, solve_minimize, solve_maximize)))
-        .map(AstDecl::Solve)
+        .map(ast::Decl::Solve)
 }
 
-fn expr() -> impl Parser<Token, AstExpr, Error = Simple<Token>> + Clone {
-    let imm = immediate().map(AstExpr::Immediate);
-    let id = ident().map(AstExpr::Ident);
+fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone {
+    let imm = immediate().map(ast::Expr::Immediate);
+    let id = ident().map(ast::Expr::Ident);
     let atom = imm.or(id);
 
     let multiplicative_op = atom
         .clone()
-        .then(just(Token::Star).to(AstBinaryOp::Mul).then(atom).repeated())
-        .foldl(|lhs, (op, rhs)| AstExpr::BinaryOp {
+        .then(
+            just(Token::Star)
+                .to(ast::BinaryOp::Mul)
+                .then(atom)
+                .repeated(),
+        )
+        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
             op,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
@@ -85,28 +91,28 @@ fn expr() -> impl Parser<Token, AstExpr, Error = Simple<Token>> + Clone {
         .clone()
         .then(
             just(Token::Gt)
-                .to(AstBinaryOp::GreaterThan)
-                .or(just(Token::Lt).to(AstBinaryOp::LessThan))
+                .to(ast::BinaryOp::GreaterThan)
+                .or(just(Token::Lt).to(ast::BinaryOp::LessThan))
                 .then(multiplicative_op)
                 .repeated(),
         )
-        .foldl(|lhs, (op, rhs)| AstExpr::BinaryOp {
+        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
             op,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         })
 }
 
-fn ident() -> impl Parser<Token, AstIdent, Error = Simple<Token>> + Clone {
-    select! { Token::Ident(id) => AstIdent(id) }
+fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = Simple<Token<'sc>>> + Clone {
+    select! { Token::Ident(id) => ast::Ident(id.to_owned()) }
 }
 
-fn type_() -> impl Parser<Token, AstType, Error = Simple<Token>> + Clone {
-    just(Token::Real).to(AstType::Real)
+fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>> + Clone {
+    just(Token::Real).to(ast::Type::Real)
 }
 
-fn immediate() -> impl Parser<Token, AstImmediate, Error = Simple<Token>> + Clone {
-    select! { Token::Number(num_str) => AstImmediate::Real(num_str.parse().unwrap()) }
+fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Simple<Token<'sc>>> + Clone {
+    select! { Token::Number(num_str) => ast::Immediate::Real(num_str.parse().unwrap()) }
 }
 
 // To-do tests:
@@ -141,31 +147,31 @@ solve minimize mid;
     assert!(res
         .into_iter()
         .zip([
-            AstDecl::Value {
-                name: AstIdent("low_val".to_owned()),
-                ty: Some(AstType::Real),
-                init: AstExpr::Immediate(AstImmediate::Real(1.23))
+            ast::Decl::Value {
+                name: ast::Ident("low_val".to_owned()),
+                ty: Some(ast::Type::Real),
+                init: ast::Expr::Immediate(ast::Immediate::Real(1.23))
             },
-            AstDecl::Value {
-                name: AstIdent("high_val".to_owned()),
+            ast::Decl::Value {
+                name: ast::Ident("high_val".to_owned()),
                 ty: None,
-                init: AstExpr::Immediate(AstImmediate::Real(4.56))
+                init: ast::Expr::Immediate(ast::Immediate::Real(4.56))
             },
-            AstDecl::Constraint(AstExpr::BinaryOp {
-                op: AstBinaryOp::GreaterThan,
-                lhs: Box::new(AstExpr::Ident(AstIdent("mid".to_string()))),
-                rhs: Box::new(AstExpr::BinaryOp {
-                    op: AstBinaryOp::Mul,
-                    lhs: Box::new(AstExpr::Ident(AstIdent("low_val".to_string()))),
-                    rhs: Box::new(AstExpr::Immediate(AstImmediate::Real(2.0)))
+            ast::Decl::Constraint(ast::Expr::BinaryOp {
+                op: ast::BinaryOp::GreaterThan,
+                lhs: Box::new(ast::Expr::Ident(ast::Ident("mid".to_string()))),
+                rhs: Box::new(ast::Expr::BinaryOp {
+                    op: ast::BinaryOp::Mul,
+                    lhs: Box::new(ast::Expr::Ident(ast::Ident("low_val".to_string()))),
+                    rhs: Box::new(ast::Expr::Immediate(ast::Immediate::Real(2.0)))
                 })
             }),
-            AstDecl::Constraint(AstExpr::BinaryOp {
-                op: AstBinaryOp::LessThan,
-                lhs: Box::new(AstExpr::Ident(AstIdent("mid".to_string()))),
-                rhs: Box::new(AstExpr::Ident(AstIdent("high_val".to_string()))),
+            ast::Decl::Constraint(ast::Expr::BinaryOp {
+                op: ast::BinaryOp::LessThan,
+                lhs: Box::new(ast::Expr::Ident(ast::Ident("mid".to_string()))),
+                rhs: Box::new(ast::Expr::Ident(ast::Ident("high_val".to_string()))),
             }),
-            AstDecl::Solve(AstSolveFunc::Minimize(AstIdent("mid".to_string()))),
+            ast::Decl::Solve(ast::SolveFunc::Minimize(ast::Ident("mid".to_string()))),
         ])
         .all(|(a, b)| a == b));
 }

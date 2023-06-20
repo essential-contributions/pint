@@ -4,7 +4,7 @@ type Span = std::ops::Range<usize>;
 
 #[derive(Clone, Debug, Eq, Hash, Logos, PartialEq)]
 #[logos(skip r"[ \t\n\r\f]+")]
-pub(super) enum Token {
+pub(super) enum Token<'sc> {
     #[token(":")]
     Colon,
     #[token("=")]
@@ -34,10 +34,10 @@ pub(super) enum Token {
     #[token("satisfy")]
     Satisfy,
 
-    #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice().to_owned())]
-    Ident(String),
-    #[regex(r"-?[0-9]+(\.[0-9]+)?", |lex| lex.slice().to_owned())]
-    Number(String),
+    #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice())]
+    Ident(&'sc str),
+    #[regex(r"-?[0-9]+(\.[0-9]+)?", |lex| lex.slice())]
+    Number(&'sc str),
 
     #[regex(r"//[^\n\r]*", logos::skip)]
     Comment,
