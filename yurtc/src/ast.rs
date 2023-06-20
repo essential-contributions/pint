@@ -1,35 +1,35 @@
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum AstDecl {
+pub(super) enum Decl {
     Value {
-        name: AstIdent,
-        ty: Option<AstType>,
-        init: AstExpr,
+        name: Ident,
+        ty: Option<Type>,
+        init: Expr,
     },
-    Constraint(AstExpr),
-    Solve(AstSolveFunc),
+    Constraint(Expr),
+    Solve(SolveFunc),
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct AstIdent(pub(super) String);
+pub(super) struct Ident(pub(super) String);
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum AstType {
+pub(super) enum Type {
     Real,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum AstExpr {
-    Immediate(AstImmediate),
-    Ident(AstIdent),
+pub(super) enum Expr {
+    Immediate(Immediate),
+    Ident(Ident),
     BinaryOp {
-        op: AstBinaryOp,
-        lhs: Box<AstExpr>,
-        rhs: Box<AstExpr>,
+        op: BinaryOp,
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
     },
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum AstBinaryOp {
+pub(super) enum BinaryOp {
     Mul,
 
     LessThan,
@@ -37,13 +37,13 @@ pub(super) enum AstBinaryOp {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum AstImmediate {
+pub(super) enum Immediate {
     Real(f64),
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum AstSolveFunc {
+pub(super) enum SolveFunc {
     Satisfy,
-    Minimize(AstIdent),
-    Maximize(AstIdent),
+    Minimize(Ident),
+    Maximize(Ident),
 }
