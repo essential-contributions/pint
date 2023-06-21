@@ -1,0 +1,12 @@
+[book]
+authors = ["Essential Contributions <contact@essentialcontributions.com> "]
+language = "en"
+multilingual = false
+src = "src"
+title = "Yurt Specification"
+
+[output.html]
+git-repository-url = "https://github.com/essential-contributions/yurt"
+
+[preprocessor.katex]
+after = ["links"]
