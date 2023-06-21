@@ -50,7 +50,7 @@ pub(super) fn print_on_failure(filename: &str, source: &str, errs: &Vec<CompileE
     errs.len()
 }
 
-/// A simple warpper around `anyhow::bail!` that prints a different messages based on a the number
+/// A simple warpper around `anyhow::bail!` that prints a different message based on a the number
 /// of compiler errors.
 macro_rules! yurtc_bail {
     ($number_of_errors: expr, $filename: expr) => {
