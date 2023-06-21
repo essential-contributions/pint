@@ -1,32 +1,57 @@
-use std::{fs::read_to_string, path::Path};
-
-use chumsky::{prelude::*, Stream};
-
 use crate::{
     ast,
+    error::{print_on_failure, CompileError},
     lexer::{self, Token},
 };
+use chumsky::{prelude::*, Stream};
+use std::{fs::read_to_string, path::Path};
 
 type Ast = Vec<ast::Decl>;
 
-pub(super) fn parse_path_to_ast(path: &Path) -> anyhow::Result<Ast> {
-    parse_str_to_ast(&read_to_string(path)?)
+pub(super) fn parse_path_to_ast(path: &Path, filename: &str) -> anyhow::Result<Ast> {
+    parse_str_to_ast(&read_to_string(path)?, filename)
 }
 
-fn parse_str_to_ast(source: &str) -> anyhow::Result<Ast> {
-    // Lex the input into tokens and spans.
-    let tokens = lexer::lex(source).map_err(|_| anyhow::anyhow!("TODO lexer errors"))?;
+/// Parse `source` and returns an AST. Upon failure, print all compile errors and exit.
+fn parse_str_to_ast(source: &str, filename: &str) -> anyhow::Result<Ast> {
+    match parse_str_to_ast_inner(source) {
+        Ok(ast) => Ok(ast),
+        Err(errors) => {
+            print_on_failure(filename, source, &errors);
+            yurtc_bail!(errors.len(), filename)
+        }
+    }
+}
+
+/// Parse `source` and returns an AST. Upon failure, return a vector of all compile errors
+/// encountered.
+fn parse_str_to_ast_inner(source: &str) -> Result<Ast, Vec<CompileError>> {
+    let mut errors = vec![];
+
+    // Lex the input into tokens and spans. Also collect any lex errors encountered.
+    let (tokens, lex_errors) = lexer::lex(source);
+    errors.extend(lex_errors);
 
     // Provide a token stream
     let eoi_span = source.len()..source.len();
     let token_stream = Stream::from_iter(eoi_span, tokens.into_iter());
 
-    parser().parse(token_stream).map_err(|errs| {
-        for err in errs {
-            println!("parse error: {:?}", err)
+    // Parse the token stream
+    match parser().parse(token_stream) {
+        Ok(_) if !errors.is_empty() => Err(errors),
+        Err(parsing_errors) => {
+            let parsing_errors: Vec<_> = parsing_errors
+                .iter()
+                .map(|error| CompileError::ParseError {
+                    error: error.clone(),
+                })
+                .collect();
+
+            errors.extend(parsing_errors);
+            Err(errors)
         }
-        anyhow::anyhow!("fixme")
-    })
+        Ok(ast) => Ok(ast),
+    }
 }
 
 fn parser<'sc>() -> impl Parser<Token<'sc>, Ast, Error = Simple<Token<'sc>>> + Clone {
@@ -140,7 +165,7 @@ constraint mid < high_val;
 solve minimize mid;
 "#;
 
-    let res = parse_str_to_ast(src);
+    let res = parse_str_to_ast_inner(src);
     assert!(res.is_ok());
     let res = res.unwrap();
     assert_eq!(res.len(), 5);
@@ -174,4 +199,16 @@ solve minimize mid;
             ast::Decl::Solve(ast::SolveFunc::Minimize(ast::Ident("mid".to_string()))),
         ])
         .all(|(a, b)| a == b));
+}
+
+#[test]
+fn parse_with_errors() {
+    let src = r#"
+let low_val: bad = 1.23;
+"#;
+
+    let res = parse_str_to_ast_inner(src);
+    assert!(res.is_err());
+    let errs = res.unwrap_err();
+    assert!(matches!(errs[0], CompileError::ParseError { .. }));
 }

@@ -8,6 +8,9 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0"
 astmaker = "0.2"
+ariadne = "0.3.0"
+itertools = "0.10.5"
 chumsky = "0.9"
 clap = { version = "4.3", features = ["cargo"] }
 logos = "0.13"
+thiserror = "1.0"
