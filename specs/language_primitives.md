@@ -4,15 +4,43 @@
 
 This document defines the Yurt programming language and its primitives. It serves as a reference for the syntax and the semantics for each of its elements.
 
-TODO
+Yurt is a high-level, typed, intent expression and modeling language. It provides:
+
+- mathematical notation-like syntax;
+- expressive constraints;
+- support for different kinds of problems (satisfaction, explicit optimization);
+- extensibility (user-defined functions);
+- reliability (type checking);
+- solver-independent modeling;
+- simple, declarative semantics.
+
+Yurt's design is inspired by both [MiniZinc](https://www.minizinc.org/) and [Rust](https://www.rust-lang.org/).
+
+This document has the following structure. [Notation](#notation) introduces the syntax notation used throughout the specification. [Overview of an Intent Model](#overview-of-an-intent-model) provides a high-level overview of Yurt intent models. [Syntax Overview](#syntax-overview) covers syntax basics. [High-level Intent Structure](#high-level-intent-structure) covers high-level structure: items, multi-file models, namespaces, and scopes. [Types](#types) introduces available types. [Expressions](#expressions) covers expressions. [Items](#items) describes the top-level items in detail.
 
 ## Notation
 
-TODO - EBNF
+The specification of the Yurt programming language presented in this document follows the [EBNF format](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form). The basics of the EBNF used are as follows:
 
-## Overview of an Intent
+- Non-terminals are written between angle brackets, e.g. `<item>`.
+- Terminals are written in double quotes, e.g. `"solve"`. A double quote terminal is written as a sequence of three double quotes: `"""`.
+- Optional items are written in square bracket, e.g. `[ "," ]`
+- Sequences of zero or more items are written with parentheses and a star, e.g. `( "," <ident> )*`
+- Sequences of one or more items are written with parentheses and a plus, e.g. `( "," <ident> )+`.
+- Non-empty lists are written with an item, a separator/terminator terminal, and three dots. For example, `<expr> "," ...` is short for `<expr> ( "," <expr> )* [ "," ]`.
 
-TODO
+## Overview of an Intent Model
+
+Conceptually, a Yurt problem specification has two parts:
+
+1. The _model_: the main part of the problem specification, which describes the structure of a particular class of problems.
+1. The data: the input data for the model, which specifies one particular problem with this class of problems.
+
+The pairing of a model with a particular data set is a _model instance_.
+
+The model and data may be separated, or the data may be "hard-wired" into the model.
+
+There are two broad classes of problems: satisfaction and optimization. In satisfaction problems all solutions are considered equally good, whereas in optimization problems the solutions are ordered according to an objective and the ai is to find a solution whose objective is optimal. [Solve Items](#solve-items) specifies how the class of problem is chosen.
 
 ## Syntax Overview
 
@@ -34,7 +62,7 @@ Identifiers have the following syntax:
 <ident> ::= _?[A-Za-z][A-Za-z0-9]*     % excluding keywords
 ```
 
-A number of keywords are reserved and cannot be used as identifiers. The keywords are: `bool`, `constraint`, `else`, `enum`, `false`, `float`, `fn`, `if`, `int`, `let`, `maximize`, `minimize`, `satisfy`, `solve`, `true`, `type`.
+A number of keywords are reserved and cannot be used as identifiers. The keywords are: `bool`, `constraint`, `else`, `false`, `real`, `fn`, `if`, `int`, `let`, `maximize`, `minimize`, `satisfy`, `solve`, `true`, `type`.
 
 ## High-level Intent Structure
 
@@ -47,7 +75,7 @@ A Yurt intent consists of one or more semicolon separated `items`:
 Items can occur in any order; identifiers need not be declared before they are used. Items have the following top-level syntax:
 
 ```ebnf
-<item> ::= <var-decl-item>
+<item> ::= <let-item>
          | <assign-item>
          | <constraint-item>
          | <function-item>
@@ -55,7 +83,7 @@ Items can occur in any order; identifiers need not be declared before they are u
          | <transition-item>
 ```
 
-Variable declaration items introduce new decision variables and possible bind them to a value ([Variable Declaration Items](#variable-declaration-items)).
+Variable declaration items (`<let-item>`) introduce variables and bind them to a value ([Variable Declaration Items](#variable-declaration-items)).
 
 Assignment items bind values to variables ([Assignment Items](#assignment-items)).
 
@@ -67,8 +95,6 @@ Solve items specify exact what kind of solution the user is interested in: plain
 
 Transition items describe the state transition function of a blockchain ([Transition Items](#transition-items))
 
-TODO - more items
-
 ### Multi-file Intents
 
 TODO
@@ -79,16 +105,25 @@ TODO
 
 ## Types
 
-Yurt provies 4 scalar types built-in: Booleans, integers, floats, and strings. Yurt also provides
+Yurt provides 4 scalar types built-in: Booleans, integers, reals and strings. Yurt also provides tuples as a compound built-int type.
 
-- Two compound built-in types: arrays and tuples
-- Structs (`struct`)
-- Enumerated types (`enum`)
-- Type aliases (`type`)
+The syntax for a types is as follows:
 
-TODO - lots more details
+```ebnf
+<ty> ::= "bool"
+       | "int"
+       | "real"
+       | "string"
+       | <tuple-ty>
+
+<tuple-ty> ::= "(" ( <ty> "," ... ) ")"
+```
+
+For example, in `let var: (int, real, string) = (5, 3.0, "foo")`, `(int, real, string)` is a tuple type.
 
 ## Expressions
+
+### Expressions Overview
 
 Expressions represent values and have the following syntax:
 
@@ -97,52 +132,166 @@ Expressions represent values and have the following syntax:
 
 <expr-binop-tail> ::= [ <bin-op> <expr> ]
 
-<expr-atom> ::= "(" <expr> ")"
+<expr-atom> ::= <un-op> <expr-atom>
+              | <block-expr>
+              | "(" <expr> ")"
               | <ident>
               | <bool-literal>
               | <int-literal>
-              | <float-literal>
+              | <real-literal>
               | <string-literal>
               | <tuple-literal>
+              | <if-expr>
               | <call-expr>
+```
+
+Expressions can be composed from sub-expressions with operators. All unary and binary operators are described in [Operators
+](#operators). All unary operators bind more tightly than all binary operators. Expressions can also be contained within parentheses.
+
+### Operators
+
+Operators are functions that are distinguished by their syntax:
+
+1. They mostly contain non-alphanumeric characters that normal functions do not (e.g. `+`).
+1. Their application may be written differently than normal functions.
+
+There are two kinds of operators:
+
+1. Unary operators which can be applied in a prefix manner without parentheses, e.g. `-x`.
+1. Binary operator which can be applied in an infix manner, e.g. `3 + 4`.
+
+```ebnf
+<un-op> ::= "+" | "-" | "!"
 
 <bin-op> ::= "<" | ">" | "<=" | ">=" | "==" | "!="
            | "+" | "-" | "*" | "/" | "%"
-
-<bool-literal> ::= "false" | "true"
-
-<int-literal> ::= [0-9]+
-                | 0x[0-9A-Fa-f]+
-
-<float-literal> ::= [0-9]+"."[0-9]+
-                  | [0-9]+"."[0-9]+[Ee][-+]?[0-9]+
-                  | [0-9]+[Ee][-+]?[0-9]+
-
-<string-literal> ::= "\"" ([^"\n] | "\\" (x[0-9a-fA-F][0-9a-fA-F] | "n" | "t" | "\"" | "\\")) "\""
-
-<tuple-literal> ::= "(" <expr> "," [ <expr> "," ... ] ")"
-
-<call-expr> ::= <ident> "(" [ <expr>, "," ... ] ")"
 ```
 
-TODO - more expressions
-
-### Operator Precedence
+#### Operator Precedence
 
 The operators have the following precedence, from highest to lowest.
 
 | Class          | Operators                        |
 | -------------- | -------------------------------- |
 | Multiplicative | `*`, `/`, `%`                    |
-| Additive       | `+`, `-`                         |
+| Additive       | `+` (binary), `-` (binary)       |
 | Comparison     | `<`, `>`, `<=`, `>=`, `==`, `!=` |
+
+### Expression Atoms
+
+#### Block Expressions
+
+Block expressions are expressions that contains a list of _statements_ followed by an expression within curly bracket `{ .. }`. Formally:
+
+```ebnf
+<block-expr> ::= "{" [ <block-statement> ";" ... ] <expr> "}"
+
+<block-statement> ::= <let-item> | <assign-item> | <if-expr>
+```
+
+The type of the block expression is the type of the final expression. For example:
+
+```rust
+let x: int = {
+    let y: int = 2;
+    y + 1
+}
+```
+
+#### Boolean Literals
+
+Boolean literals have this syntax:
+
+```ebnf
+<bool-literal> ::= "false" | "true"
+```
+
+#### Integer and Real literals
+
+There are three forms of integer literals: decimal, hexadecimal, and binary:
+
+```ebnf
+<int-literal> ::= [0-9]+
+                | 0x[0-9A-Fa-f]+
+                | 0b[0-1]+
+```
+
+For example: `1`, `0030`, `0x333`, `0b1010`.
+
+Real literals have the following form:
+
+```ebnf
+<real-literal> ::= [0-9]+"."[0-9]+
+                  | [0-9]+"."[0-9]+[Ee][-+]?[0-9]+
+                  | [0-9]+[Ee][-+]?[0-9]+
+```
+
+For example: `1.05`, `2.5e-4`, `1.3E5`.
+
+A `-` preceding an integer or real literal is parsed as a unary minus, not as part of the literal.
+
+#### String Literals
+
+String literals are written as:
+
+```ebnf
+<string-literal> ::= "\"" ([^"\n] | "\\" ("x" [0-9a-fA-F][0-9a-fA-F] | "n" | "t" | "\"" | "\\")) "\""
+```
+
+For example: `"Hello, world!\n"`.
+
+String literals can be broken across multiple lines by escaping the newline and leading whitespace with a `\`. For example:
+
+```rust
+let string = "first line\
+             second line\
+             third line";
+```
+
+#### Tuple Literals
+
+Tuple literals are written as:
+
+```ebnf
+<tuple-literal> ::= "(" <expr> "," [ <expr> "," ... ] ")"
+```
+
+For example: `let t = (5, 3, "foo")`;
+
+#### "If" Expressions
+
+Yurt provides `if` expressions which provide selection from two alternatives based on a condition. They have this syntax:
+
+```ebnf
+<if-expr> ::= "if" <expr> <block-expr> "else" [ <block-expr> | <if-expr> ]
+```
+
+The condition `<expr>` above must be of type `bool`. The "then" and "else" block expressions must have the same type or be coercible to the same type, which is also the type of the whole `if` expression.
+
+#### Call Expressions
+
+Call expressions are used to call functions and have the following syntax:
+
+```ebnf
+<call-expr> ::= <ident> "(" ( <expr> "," ... ) ")"
+```
+
+For example, `x = foo(5, 2);`
+
+The type of the expressions passed as arguments must match the argument types of the called function. The return type of the function must also be appropriate for the calling context.
+
+The order of argument evaluation is not specified.
+
+## Items
+
+This section describes the top-level program items.
 
 ### Variable Declaration Items
 
 Variable declarations have the following syntax:
 
 ```ebnf
-<var-decl-item> ::= "let" <ident> [ ":" <ty> ] [ "=" <expr> ]
+<let-item> ::= "let" <ident> [ ":" <ty> ] [ "=" <expr> ]
 ```
 
 For example:
@@ -213,7 +362,7 @@ The solve item determines whether the intent represents a constraint satisfactio
 Function items describe user defined operations. They have the following syntax:
 
 ```ebnf
-<function-item> ::= "fn" <ident> "(" ( <param> "," ... ) ")" "->" <ty> <block-exp>
+<function-item> ::= "fn" <ident> "(" ( <param> "," ... ) ")" "->" <ty> <block-expr>
 
 <param> ::= <ident> ":" <ty>
 ```
