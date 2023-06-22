@@ -24,6 +24,129 @@ jobs:
       - name: Trunk Check
         uses: trunk-io/trunk-action@v1
 
+  build:
+    name: Cargo Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --release
+        working-directory: yurtc
+
+  cargo-unused-deps-check:
+    name: Cargo Unused Dependencies Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.NIGHTLY_RUST_VERSION }} # `cargo-udeps` requires nightly to run
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-udeps
+        run: cargo install --locked cargo-udeps
+
+      - name: Check Unused Deps
+        run: cargo udeps --locked --all-targets
+        working-directory: yurtc
+
+  cargo-outdated-deps-check:
+    name: Cargo Outdated Dependencies Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-outdated
+        run: cargo install --locked cargo-outdated
+        working-directory: yurtc
+
+      - name: Check Outdated Deps
+        run: cargo outdated --root-deps-only --exit-code 1
+        working-directory: yurtc
+
+  cargo-toml-lint-check:
+    name: Cargo.toml Link Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Cargo.toml linter
+        run: cargo install --locked cargo-toml-lint
+        working-directory: yurtc
+
+      - name: Run Cargo.toml linter
+        run: git ls-files | grep Cargo.toml$ | xargs --verbose -n 1 cargo-toml-lint
+        working-directory: yurtc
+
+  cargo-test-workspace:
+    name: Cargo Test Workspace
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Run workspace tests
+        run: cargo test --locked
+        working-directory: yurtc
+
+  generate-docs:
+    name: Generate Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Generate Docs
+        run: cargo doc --no-deps
+        working-directory: yurtc
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./yurtc/target/doc
+
   generate-docs:
     name: Generate Documentation
     runs-on: ubuntu-latest
