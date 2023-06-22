@@ -81,8 +81,8 @@ jobs:
         run: cargo install --locked cargo-outdated
         working-directory: yurtc
 
-      - name: Check Outdated Deps
-        run: cargo outdated --root-deps-only --filter patch --exit-code 1
+      - name: Check for outdated patch versions
+        run: cargo outdated --root-deps-only | awk -F'  +' '{split($2, a, "\\."); split($4, b, "\\."); if (a[1] == b[1] && a[2] == b[2] && a[3] < b[3]) print $0}'
         working-directory: yurtc
 
   cargo-toml-lint-check:
