@@ -37,7 +37,7 @@ fn parse_str_to_ast_inner(source: &str) -> Result<Ast, Vec<CompileError>> {
     let token_stream = Stream::from_iter(eoi_span, tokens.into_iter());
 
     // Parse the token stream
-    match parser().parse(token_stream) {
+    match yurt_program().parse(token_stream) {
         Ok(_) if !errors.is_empty() => Err(errors),
         Err(parsing_errors) => {
             let parsing_errors: Vec<_> = parsing_errors
@@ -54,7 +54,7 @@ fn parse_str_to_ast_inner(source: &str) -> Result<Ast, Vec<CompileError>> {
     }
 }
 
-fn parser<'sc>() -> impl Parser<Token<'sc>, Ast, Error = Simple<Token<'sc>>> + Clone {
+fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = Simple<Token<'sc>>> + Clone {
     choice((value_decl(), constraint_decl(), solve_decl()))
         .then_ignore(just(Token::Semi))
         .repeated()
@@ -152,6 +152,16 @@ fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Simple<To
 //
 // - errors (currently Simple, need to switch to Rich)
 
+#[cfg(test)]
+macro_rules! run_parser {
+    ($parser: expr, $source: expr) => {{
+        let (toks, errs) = lexer::lex($source);
+        assert!(errs.is_empty());
+        let token_stream = Stream::from_iter($source.len()..$source.len(), toks.into_iter());
+        $parser.parse(token_stream)
+    }};
+}
+
 #[test]
 fn parse_00() {
     let src = r#"
@@ -166,7 +176,7 @@ solve minimize mid;
 "#;
 
     // This is still a bit crude for larger ASTs.
-    let res = parse_str_to_ast_inner(src);
+    let res = run_parser!(yurt_program(), src);
     assert_eq!(format!("{res:?}"),
         [ r#"Ok(["#
         , r#"Value { name: Ident("low_val"), ty: Some(Real), init: Immediate(Real(1.23)) }, "#
@@ -188,8 +198,8 @@ fn parse_with_errors() {
 let low_val: bad = 1.23;
 "#;
 
-    let res = parse_str_to_ast_inner(src);
+    let res = run_parser!(value_decl(), src);
     assert!(res.is_err());
     let errs = res.unwrap_err();
-    assert!(matches!(errs[0], CompileError::ParseError { .. }));
+    assert!(matches!(errs[0], Simple { .. }));
 }
