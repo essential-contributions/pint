@@ -17,11 +17,26 @@ pub(super) enum Token<'sc> {
     Lt,
     #[token(";")]
     Semi,
+    #[token(",")]
+    Comma,
     #[token("*")]
     Star,
+    #[token("{")]
+    BraceOpen,
+    #[token("}")]
+    BraceClose,
+    #[token("(")]
+    ParenOpen,
+    #[token(")")]
+    ParenClose,
+    #[token("->")]
+    Arrow,
 
     #[token("real")]
     Real,
+
+    #[token("fn")]
+    Fn,
 
     #[token("let")]
     Let,
@@ -53,8 +68,15 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Gt => write!(f, ">"),
             Token::Lt => write!(f, "<"),
             Token::Semi => write!(f, ";"),
+            Token::Comma => write!(f, ","),
             Token::Star => write!(f, "*"),
+            Token::BraceOpen => write!(f, "{{"),
+            Token::BraceClose => write!(f, "}}"),
+            Token::ParenOpen => write!(f, "("),
+            Token::ParenClose => write!(f, ")"),
+            Token::Arrow => write!(f, "->"),
             Token::Real => write!(f, "real"),
+            Token::Fn => write!(f, "Fn"),
             Token::Let => write!(f, "let"),
             Token::Constraint => write!(f, "constraint"),
             Token::Maximize => write!(f, "maximize"),
@@ -111,6 +133,11 @@ fn reals() {
         format!("{:?}", lex_one_error("12.")),
         r#"Lex { span: 2..3, error: InvalidToken }"#
     );
+}
+
+#[test]
+fn func() {
+    assert_eq!(lex_one_success("fn"), Token::Fn);
 }
 
 #[test]
