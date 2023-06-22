@@ -6,6 +6,10 @@ on:
     branches: [master]
   pull_request: null
 
+env:
+  RUST_VERSION: 1.69.0
+  NIGHTLY_RUST_VERSION: nightly-2023-02-08
+
 jobs:
   trunk-check:
     name: Trunk Check
@@ -19,3 +23,98 @@ jobs:
 
       - name: Trunk Check
         uses: trunk-io/trunk-action@v1
+    
+  build:
+    name: Cargo Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --release
+  
+  cargo-unused-deps-check:
+    name: Cargo Unused Dependencies Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.NIGHTLY_RUST_VERSION }} # `cargo-udeps` requires nightly to run
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-udeps
+        run: cargo install --locked cargo-udeps
+
+      - name: Check Unused Deps
+        run: cargo udeps --locked --all-targets
+
+  cargo-outdated-deps-check:
+    name: Cargo Outdated Dependencies Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-outdated
+        run: cargo install --locked cargo-outdated
+
+      - name: Check Outdated Deps
+        run: cargo outdated --root-deps-only --exit-code 1
+
+  cargo-toml-lint-check:
+    name: Cargo.toml Link Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Cargo.toml linter
+        run: cargo install --locked cargo-toml-lint
+
+      - name: Run Cargo.toml linter
+        run: git ls-files | grep Cargo.toml$ | xargs --verbose -n 1 cargo-toml-lint
+
+  cargo-test-workspace:
+    name: Cargo Test Workspace
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Run workspace tests
+        run: cargo test --locked
+      
