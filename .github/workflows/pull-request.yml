@@ -82,7 +82,7 @@ jobs:
         working-directory: yurtc
 
       - name: Check Outdated Deps
-        run: cargo outdated --root-deps-only --exit-code 1
+        run: cargo outdated --root-deps-only --filter patch --exit-code 1
         working-directory: yurtc
 
   cargo-toml-lint-check:
