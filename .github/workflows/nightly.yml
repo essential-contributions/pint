@@ -5,7 +5,7 @@ on:
   schedule:
     # * is a special character in YAML so you have to quote this string
     - cron: "0 0 * * *" # yamllint disable-line rule:quoted-strings
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 env:
   NIGHTLY_RUST_VERSION: nightly-2023-02-08
