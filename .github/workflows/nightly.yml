@@ -1,0 +1,26 @@
+name: nightly
+run-name: Checks once every evening
+
+on:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron: "0 0 * * *" # yamllint disable-line rule:quoted-strings
+
+env:
+  NIGHTLY_RUST_VERSION: nightly-2023-02-08
+
+jobs:
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-audit
+        run: cargo install --locked cargo-audit
+
+      - name: Run security audit
+        run: cargo audit
