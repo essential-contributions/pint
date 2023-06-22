@@ -6,6 +6,10 @@ on:
     branches: [master]
   pull_request: null
 
+env:
+  RUST_VERSION: 1.69.0
+  NIGHTLY_RUST_VERSION: nightly-2023-02-08
+
 jobs:
   trunk-check:
     name: Trunk Check
@@ -19,3 +23,26 @@ jobs:
 
       - name: Trunk Check
         uses: trunk-io/trunk-action@v1
+
+  generate-docs:
+    name: Generate Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Generate Docs
+        run: cargo doc --no-deps
+        working-directory: yurtc
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./yurtc/target/doc
+      
