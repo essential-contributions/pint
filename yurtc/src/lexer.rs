@@ -79,8 +79,42 @@ pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<CompileError>) {
         })
 }
 
+#[cfg(test)]
+fn lex_one_success(src: &str) -> Token<'_> {
+    // Tokenise src, assume success and that we produce a single token.
+    let (toks, errs) = lex(src);
+    assert!(errs.is_empty(), "Testing for success only.");
+    assert_eq!(toks.len(), 1, "Testing for single token only.");
+    toks[0].0.clone()
+}
+
+#[cfg(test)]
+fn lex_one_error(src: &str) -> CompileError {
+    // Tokenise src, assume a single error.
+    let (_, errs) = lex(src);
+    assert_eq!(errs.len(), 1, "Testing for single error only.");
+    errs[0].clone()
+}
+
 #[test]
-fn lex_with_error() {
+fn reals() {
+    assert_eq!(lex_one_success("12"), Token::Number("12"));
+    assert_eq!(lex_one_success("0012"), Token::Number("0012"));
+    assert_eq!(lex_one_success("12.34"), Token::Number("12.34"));
+    assert_eq!(lex_one_success("0.34"), Token::Number("0.34"));
+    assert_eq!(lex_one_success("-0.34"), Token::Number("-0.34"));
+    assert_eq!(
+        format!("{:?}", lex_one_error(".34")),
+        r#"Lex { span: 0..1, error: InvalidToken }"#
+    );
+    assert_eq!(
+        format!("{:?}", lex_one_error("12.")),
+        r#"Lex { span: 2..3, error: InvalidToken }"#
+    );
+}
+
+#[test]
+fn with_error() {
     let src = r#"
 let low_val: int = 5.0;
 constraint mid > low_val # 2;

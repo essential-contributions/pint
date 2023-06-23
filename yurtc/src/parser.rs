@@ -141,14 +141,12 @@ fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Simple<To
 }
 
 // To-do tests:
-// - out of order decls.
 // - block - constraints { .. }
-// - all ops
-// - all satisfies
 // - all floats
 // - hex
 // - parens in expressions
 // - unary negation, boolean not
+// - can't have keywords as idents
 //
 // - errors (currently Simple, need to switch to Rich)
 
@@ -163,7 +161,209 @@ macro_rules! run_parser {
 }
 
 #[test]
-fn parse_00() {
+fn value_decls() {
+    assert_eq!(
+        format!("{:?}", run_parser!(value_decl(), "let blah = 1")),
+        r#"Ok(Value { name: Ident("blah"), ty: None, init: Immediate(Real(1.0)) })"#
+    );
+
+    assert_eq!(
+        format!("{:?}", run_parser!(value_decl(), "let blah: real = 1")),
+        r#"Ok(Value { name: Ident("blah"), ty: Some(Real), init: Immediate(Real(1.0)) })"#
+    );
+
+    assert_eq!(
+        format!("{:?}", run_parser!(value_decl(), "let blah: real")),
+        r#"Err([Simple { span: 14..14, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"#
+    );
+}
+
+#[test]
+fn constraint_decls() {
+    // Argument just needs to be any expression, as far as the parser is concerned.
+    assert_eq!(
+        format!("{:?}", run_parser!(constraint_decl(), "constraint blah")),
+        r#"Ok(Constraint(Ident(Ident("blah"))))"#
+    );
+}
+
+#[test]
+fn solve_decls() {
+    assert_eq!(
+        format!("{:?}", run_parser!(solve_decl(), "solve satisfy")),
+        r#"Ok(Solve(Satisfy))"#
+    );
+
+    assert_eq!(
+        format!("{:?}", run_parser!(solve_decl(), "solve minimize foo")),
+        r#"Ok(Solve(Minimize(Ident("foo"))))"#
+    );
+
+    assert_eq!(
+        format!("{:?}", run_parser!(solve_decl(), "solve maximize foo")),
+        r#"Ok(Solve(Maximize(Ident("foo"))))"#
+    );
+
+    let res = run_parser!(solve_decl(), "solve world hunger");
+    assert!(res.is_err());
+    let simple = &res.unwrap_err()[0];
+    assert_eq!(simple.reason(), &chumsky::error::SimpleReason::Unexpected);
+    assert_eq!(simple.found(), Some(&Token::Ident("world")));
+}
+
+#[test]
+fn exprs() {
+    assert_eq!(
+        format!("{:?}", run_parser!(expr(), "123")),
+        r#"Ok(Immediate(Real(123.0)))"#,
+    );
+    assert_eq!(
+        format!("{:?}", run_parser!(expr(), "foo")),
+        r#"Ok(Ident(Ident("foo")))"#,
+    );
+    assert_eq!(
+        format!("{:?}", run_parser!(expr(), "a * 2")),
+        r#"Ok(BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#,
+    );
+    assert_eq!(
+        format!("{:?}", run_parser!(expr(), "2 * b * 3")),
+        [
+            r#"Ok("#,
+            r#"BinaryOp { op: Mul, "#,
+            r#"lhs: BinaryOp { op: Mul, lhs: Immediate(Real(2.0)), rhs: Ident(Ident("b")) }, "#,
+            r#"rhs: Immediate(Real(3.0)) "#,
+            r#"})"#,
+        ]
+        .concat()
+    );
+    assert_eq!(
+        format!("{:?}", run_parser!(expr(), "2 < b * 3")),
+        [
+            // Mul binds tighter than the less-than.
+            r#"Ok(BinaryOp { "#,
+            r#"op: LessThan, "#,
+            r#"lhs: Immediate(Real(2.0)), "#,
+            r#"rhs: BinaryOp { "#,
+            r#"op: Mul, "#,
+            r#"lhs: Ident(Ident("b")), "#,
+            r#"rhs: Immediate(Real(3.0)) "#,
+            r#"} "#,
+            r#"})"#,
+        ]
+        .concat()
+    );
+    assert_eq!(
+        format!("{:?}", run_parser!(expr(), "2 > b * 3")),
+        [
+            // Mul binds tighter than the greater-than.
+            r#"Ok(BinaryOp { "#,
+            r#"op: GreaterThan, "#,
+            r#"lhs: Immediate(Real(2.0)), "#,
+            r#"rhs: BinaryOp { "#,
+            r#"op: Mul, "#,
+            r#"lhs: Ident(Ident("b")), "#,
+            r#"rhs: Immediate(Real(3.0)) "#,
+            r#"} "#,
+            r#"})"#,
+        ]
+        .concat()
+    );
+    assert_eq!(
+        format!("{:?}", run_parser!(expr(), "2 * b < 3")),
+        [
+            // Mul binds tighter, putting the less-than on the outside.
+            r#"Ok(BinaryOp { op: LessThan, "#,
+            r#"lhs: BinaryOp { "#,
+            r#"op: Mul, "#,
+            r#"lhs: Immediate(Real(2.0)), "#,
+            r#"rhs: Ident(Ident("b")) "#,
+            r#"}, "#,
+            r#"rhs: Immediate(Real(3.0)) "#,
+            r#"})"#,
+        ]
+        .concat()
+    );
+    assert_eq!(
+        format!("{:?}", run_parser!(expr(), "2 > b < 3")),
+        [
+            // Parses OK, but should be a type error.
+            r#"Ok(BinaryOp { "#,
+            r#"op: LessThan, "#,
+            r#"lhs: BinaryOp { "#,
+            r#"op: GreaterThan, "#,
+            r#"lhs: Immediate(Real(2.0)), "#,
+            r#"rhs: Ident(Ident("b")) "#,
+            r#"}, "#,
+            r#"rhs: Immediate(Real(3.0)) "#,
+            r#"})"#
+        ]
+        .concat()
+    );
+    assert_eq!(
+        format!("{:?}", run_parser!(expr(), "a > b * c < d")),
+        [
+            // Ditto, type error.  But the mul binds the tightest.
+            r#"Ok(BinaryOp { "#,
+            r#"op: LessThan, "#,
+            r#"lhs: BinaryOp { "#,
+            r#"op: GreaterThan, "#,
+            r#"lhs: Ident(Ident("a")), "#,
+            r#"rhs: BinaryOp { "#,
+            r#"op: Mul, "#,
+            r#"lhs: Ident(Ident("b")), "#,
+            r#"rhs: Ident(Ident("c")) "#,
+            r#"} "#,
+            r#"}, "#,
+            r#"rhs: Ident(Ident("d")) "#,
+            r#"})"#,
+        ]
+        .concat()
+    );
+}
+
+#[test]
+fn idents() {
+    assert_eq!(
+        format!("{:?}", run_parser!(ident(), "foobar")),
+        r#"Ok(Ident("foobar"))"#
+    );
+    assert_eq!(
+        format!("{:?}", run_parser!(ident(), "foo_bar")),
+        r#"Ok(Ident("foo_bar"))"#
+    );
+    assert_eq!(
+        format!("{:?}", run_parser!(ident(), "FOO_bar")),
+        r#"Ok(Ident("FOO_bar"))"#
+    );
+    assert_eq!(
+        format!("{:?}", run_parser!(ident(), "__FOO")),
+        r#"Ok(Ident("__FOO"))"#
+    );
+    assert_eq!(
+        format!("{:?}", run_parser!(ident(), "_2_FOO1")),
+        r#"Ok(Ident("_2_FOO1"))"#
+    );
+    assert_eq!(
+        format!("{:?}", run_parser!(ident(), "_")),
+        r#"Ok(Ident("_"))"#
+    );
+    assert_eq!(
+        format!("{:?}", run_parser!(ident(), "12_ab")),
+        [
+            r#"Err([Simple { span: 0..2, reason: Unexpected, expected: {}, "#,
+            r#"found: Some(Number("12")), label: None }])"#
+        ]
+        .concat()
+    );
+    assert_eq!(
+        // Lexer will split this into 3 tokens, ident() will parse the first one.
+        format!("{:?}", run_parser!(ident(), "ab*cd")),
+        r#"Ok(Ident("ab"))"#
+    );
+}
+
+#[test]
+fn basic_program() {
     let src = r#"
 let low_val: real = 1.23;
 let high_val = 4.56;        // Implicit type.
@@ -177,29 +377,66 @@ solve minimize mid;
 
     // This is still a bit crude for larger ASTs.
     let res = run_parser!(yurt_program(), src);
-    assert_eq!(format!("{res:?}"),
-        [ r#"Ok(["#
-        , r#"Value { name: Ident("low_val"), ty: Some(Real), init: Immediate(Real(1.23)) }, "#
-        , r#"Value { name: Ident("high_val"), ty: None, init: Immediate(Real(4.56)) }, "#
-        , r#"Constraint(BinaryOp { "#
-            , r#"op: GreaterThan, "#
-            , r#"lhs: Ident(Ident("mid")), "#
-            , r#"rhs: BinaryOp { op: Mul, lhs: Ident(Ident("low_val")), rhs: Immediate(Real(2.0)) } "#
-        , r#"}), "#
-        , r#"Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident("mid")), rhs: Ident(Ident("high_val")) }), "#
-        , r#"Solve(Minimize(Ident("mid")))"#
-        , r#"])"#
-        ].concat());
+    assert_eq!(
+        format!("{res:?}"),
+        [
+            r#"Ok(["#,
+            r#"Value { name: Ident("low_val"), ty: Some(Real), init: Immediate(Real(1.23)) }, "#,
+            r#"Value { name: Ident("high_val"), ty: None, init: Immediate(Real(4.56)) }, "#,
+            r#"Constraint(BinaryOp { "#,
+            r#"op: GreaterThan, "#,
+            r#"lhs: Ident(Ident("mid")), "#,
+            r#"rhs: BinaryOp { "#,
+            r#"op: Mul, "#,
+            r#"lhs: Ident(Ident("low_val")), "#,
+            r#"rhs: Immediate(Real(2.0)) } "#,
+            r#"}), "#,
+            r#"Constraint(BinaryOp { "#,
+            r#"op: LessThan, "#,
+            r#"lhs: Ident(Ident("mid")), "#,
+            r#"rhs: Ident(Ident("high_val")) }), "#,
+            r#"Solve(Minimize(Ident("mid")))"#,
+            r#"])"#
+        ]
+        .concat()
+    );
 }
 
 #[test]
-fn parse_with_errors() {
-    let src = r#"
-let low_val: bad = 1.23;
-"#;
+fn with_errors() {
+    let src = r#"let low_val: bad = 1.23"#;
 
     let res = run_parser!(value_decl(), src);
     assert!(res.is_err());
     let errs = res.unwrap_err();
     assert!(matches!(errs[0], Simple { .. }));
+}
+
+#[test]
+fn out_of_order_decls() {
+    let src = r#"
+solve maximize low;
+constraint low < high;
+let high = 2;
+solve satisfy;
+let low = 1;
+"#;
+
+    let res = run_parser!(yurt_program(), src);
+    assert_eq!(
+        format!("{res:?}"),
+        [
+            r#"Ok(["#,
+            r#"Solve(Maximize(Ident("low"))), "#,
+            r#"Constraint(BinaryOp { "#,
+            r#"op: LessThan, "#,
+            r#"lhs: Ident(Ident("low")), "#,
+            r#"rhs: Ident(Ident("high")) }), "#,
+            r#"Value { name: Ident("high"), ty: None, init: Immediate(Real(2.0)) }, "#,
+            r#"Solve(Satisfy), "#,
+            r#"Value { name: Ident("low"), ty: None, init: Immediate(Real(1.0)) }"#,
+            r#"])"#
+        ]
+        .concat()
+    );
 }
