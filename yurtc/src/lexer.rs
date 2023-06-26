@@ -22,6 +22,10 @@ pub(super) enum Token<'sc> {
 
     #[token("real")]
     Real,
+    #[token("true")]
+    True,
+    #[token("false")]
+    False,
 
     #[token("let")]
     Let,
@@ -55,6 +59,8 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Semi => write!(f, ";"),
             Token::Star => write!(f, "*"),
             Token::Real => write!(f, "real"),
+            Token::True => write!(f, "true"),
+            Token::False => write!(f, "false"),
             Token::Let => write!(f, "let"),
             Token::Constraint => write!(f, "constraint"),
             Token::Maximize => write!(f, "maximize"),
@@ -111,6 +117,14 @@ fn reals() {
         format!("{:?}", lex_one_error("12.")),
         r#"Lex { span: 2..3, error: InvalidToken }"#
     );
+}
+
+#[test]
+fn bools() {
+    assert_eq!(lex_one_success("true"), Token::True);
+    assert_eq!(lex_one_success("false"), Token::False);
+    assert_ne!(lex_one_success("false"), Token::True);
+    assert_ne!(lex_one_success("true"), Token::False);
 }
 
 #[test]
