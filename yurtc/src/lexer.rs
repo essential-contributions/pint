@@ -44,6 +44,8 @@ pub(super) enum Token<'sc> {
     Ident(&'sc str),
     #[regex(r"-?[0-9]+(\.[0-9]+)?", |lex| lex.slice())]
     Number(&'sc str),
+    #[regex(r#""([^"\\]|\\(x[0-9a-fA-F]{2}|n|t|"|\\|\n))*""#, |lex| lex.slice())]
+    String(&'sc str),
 
     #[regex(r"//[^\n\r]*", logos::skip)]
     Comment,
@@ -69,6 +71,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Satisfy => write!(f, "satisfy"),
             Token::Ident(ident) => write!(f, "{ident}"),
             Token::Number(ident) => write!(f, "{ident}"),
+            Token::String(ident) => write!(f, "{ident}"),
             Token::Comment => write!(f, "comment"),
         }
     }
@@ -125,6 +128,29 @@ fn bools() {
     assert_eq!(lex_one_success("false"), Token::False);
     assert_ne!(lex_one_success("false"), Token::True);
     assert_ne!(lex_one_success("true"), Token::False);
+}
+
+#[test]
+fn strings() {
+    assert_eq!(
+        lex_one_success(r#""Hello, world!""#),
+        Token::String(r#""Hello, world!""#)
+    );
+    assert_eq!(
+        lex_one_success(
+            r#"
+            "first line\
+            second line\
+            third line"
+            "#
+        ),
+        Token::String("\"first line\\\n            second line\\\n            third line\"")
+    );
+
+    assert_eq!(
+        lex_one_success(r#""Hello, world!\\n""#),
+        Token::String(r#""Hello, world!\\n""#)
+    );
 }
 
 #[test]
