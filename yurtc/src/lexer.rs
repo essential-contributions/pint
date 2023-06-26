@@ -44,8 +44,11 @@ pub(super) enum Token<'sc> {
     Ident(&'sc str),
     #[regex(r"-?[0-9]+(\.[0-9]+)?", |lex| lex.slice())]
     Number(&'sc str),
-    #[regex(r#""([^"\\]|\\(x[0-9a-fA-F]{2}|n|t|"|\\|\n))*""#, |lex| lex.slice())]
-    String(&'sc str),
+    #[regex(
+        r#""([^"\\]|\\(x[0-9a-fA-F]{2}|n|t|"|\\|\n[\t ]*))*""#,
+        process_string_literal
+    )]
+    String(String),
 
     #[regex(r"//[^\n\r]*", logos::skip)]
     Comment,
@@ -71,7 +74,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Satisfy => write!(f, "satisfy"),
             Token::Ident(ident) => write!(f, "{ident}"),
             Token::Number(ident) => write!(f, "{ident}"),
-            Token::String(ident) => write!(f, "{ident}"),
+            Token::String(contents) => write!(f, "{}", contents),
             Token::Comment => write!(f, "comment"),
         }
     }
@@ -86,6 +89,27 @@ pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<CompileError>) {
             Ok(v) => Either::Left((v, span)),
             Err(v) => Either::Right(CompileError::Lex { span, error: v }),
         })
+}
+
+fn process_string_literal<'sc>(lex: &mut logos::Lexer<'sc, Token<'sc>>) -> String {
+    let raw_string = lex.slice();
+    let mut processed_string = String::new();
+    let mut escape_newline = false;
+    for c in raw_string.chars() {
+        if escape_newline {
+            if c.is_whitespace() {
+                continue;
+            } else {
+                escape_newline = false;
+            }
+        }
+        if c == '\\' {
+            escape_newline = true;
+        } else {
+            processed_string.push(c);
+        }
+    }
+    processed_string
 }
 
 #[cfg(test)]
@@ -134,22 +158,21 @@ fn bools() {
 fn strings() {
     assert_eq!(
         lex_one_success(r#""Hello, world!""#),
-        Token::String(r#""Hello, world!""#)
+        Token::String(r#""Hello, world!""#.to_string())
     );
     assert_eq!(
         lex_one_success(
             r#"
-            "first line\
-            second line\
+            "first line \
+            second line \
             third line"
             "#
         ),
-        Token::String("\"first line\\\n            second line\\\n            third line\"")
+        Token::String(r#""first line second line third line""#.to_string())
     );
-
     assert_eq!(
         lex_one_success(r#""Hello, world!\\n""#),
-        Token::String(r#""Hello, world!\\n""#)
+        Token::String(r#""Hello, world!\\n""#.to_string())
     );
 }
 
