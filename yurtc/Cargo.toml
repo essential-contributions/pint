@@ -10,6 +10,6 @@ anyhow = "1.0"
 ariadne = "0.3.0"
 chumsky = "0.9"
 clap = { version = "4.3", features = ["cargo"] }
-itertools = "=0.10.4"
+itertools = "=0.10"
 logos = "0.13"
 thiserror = "1.0"
