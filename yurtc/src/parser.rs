@@ -137,7 +137,7 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>
 }
 
 fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Simple<Token<'sc>>> + Clone {
-    select! { Token::Number(num_str) => ast::Immediate::Real(num_str.parse().unwrap()) }
+    select! { Token::RealNumber(num_str) => ast::Immediate::Real(num_str.parse().unwrap()) }
 }
 
 // To-do tests:
