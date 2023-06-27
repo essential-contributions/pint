@@ -226,42 +226,58 @@ fn check(actual: &str, expect: expect_test::Expect) {
 fn value_decls() {
     check(
         &format!("{:?}", run_parser!(value_decl(), "let blah = 1;")),
-        expect_test::expect![[r#"Ok(Value(ValueDeclStatement { kind: Config, name: Ident("blah"), ty: None, init: Some(Immediate(Real(1.0))) }))"#]]
+        expect_test::expect![[
+            r#"Ok(Value(ValueDeclStatement { kind: Config, name: Ident("blah"), ty: None, init: Some(Immediate(Real(1.0))) }))"#
+        ]],
     );
 
     check(
         &format!("{:?}", run_parser!(value_decl(), "let blah: real = 1;")),
-        expect_test::expect![[r#"Ok(Value(ValueDeclStatement { kind: Config, name: Ident("blah"), ty: Some(Real), init: Some(Immediate(Real(1.0))) }))"#]]
+        expect_test::expect![[
+            r#"Ok(Value(ValueDeclStatement { kind: Config, name: Ident("blah"), ty: Some(Real), init: Some(Immediate(Real(1.0))) }))"#
+        ]],
     );
 
     check(
         &format!("{:?}", run_parser!(value_decl(), "let blah: real;")),
-        expect_test::expect![[r#"Ok(Value(ValueDeclStatement { kind: Config, name: Ident("blah"), ty: Some(Real), init: None }))"#]]
+        expect_test::expect![[
+            r#"Ok(Value(ValueDeclStatement { kind: Config, name: Ident("blah"), ty: Some(Real), init: None }))"#
+        ]],
     );
 
     check(
         &format!("{:?}", run_parser!(value_decl(), "let blah;")),
-        expect_test::expect![[r#"Ok(Value(ValueDeclStatement { kind: Config, name: Ident("blah"), ty: None, init: None }))"#]]
+        expect_test::expect![[
+            r#"Ok(Value(ValueDeclStatement { kind: Config, name: Ident("blah"), ty: None, init: None }))"#
+        ]],
     );
 
     check(
         &format!("{:?}", run_parser!(value_decl(), "var blah = 1;")),
-        expect_test::expect![[r#"Ok(Value(ValueDeclStatement { kind: Var, name: Ident("blah"), ty: None, init: Some(Immediate(Real(1.0))) }))"#]]
+        expect_test::expect![[
+            r#"Ok(Value(ValueDeclStatement { kind: Var, name: Ident("blah"), ty: None, init: Some(Immediate(Real(1.0))) }))"#
+        ]],
     );
 
     check(
         &format!("{:?}", run_parser!(value_decl(), "var blah: real = 1;")),
-        expect_test::expect![[r#"Ok(Value(ValueDeclStatement { kind: Var, name: Ident("blah"), ty: Some(Real), init: Some(Immediate(Real(1.0))) }))"#]]
+        expect_test::expect![[
+            r#"Ok(Value(ValueDeclStatement { kind: Var, name: Ident("blah"), ty: Some(Real), init: Some(Immediate(Real(1.0))) }))"#
+        ]],
     );
 
     check(
         &format!("{:?}", run_parser!(value_decl(), "var blah: real;")),
-        expect_test::expect![[r#"Ok(Value(ValueDeclStatement { kind: Var, name: Ident("blah"), ty: Some(Real), init: None }))"#]]
+        expect_test::expect![[
+            r#"Ok(Value(ValueDeclStatement { kind: Var, name: Ident("blah"), ty: Some(Real), init: None }))"#
+        ]],
     );
 
     check(
         &format!("{:?}", run_parser!(value_decl(), "var blah;")),
-        expect_test::expect![[r#"Ok(Value(ValueDeclStatement { kind: Var, name: Ident("blah"), ty: None, init: None }))"#]]
+        expect_test::expect![[
+            r#"Ok(Value(ValueDeclStatement { kind: Var, name: Ident("blah"), ty: None, init: None }))"#
+        ]],
     );
 }
 
@@ -403,7 +419,9 @@ fn foo(x: real, y: real) -> real {
 
     check(
         &format!("{:?}", run_parser!(yurt_program(), src)),
-        expect_test::expect![[r#"Ok([Fn { name: Ident("foo"), params: [(Ident("x"), Real), (Ident("y"), Real)], return_type: Real, body: CodeBlock { statements: [ValueDeclStatement { kind: Config, name: Ident("z"), ty: None, init: Some(Immediate(Real(5.0))) }, ValueDeclStatement { kind: Var, name: Ident("t"), ty: None, init: None }], final_expr: Ident(Ident("z")) } }])"#]],
+        expect_test::expect![[
+            r#"Ok([Fn { name: Ident("foo"), params: [(Ident("x"), Real), (Ident("y"), Real)], return_type: Real, body: CodeBlock { statements: [ValueDeclStatement { kind: Config, name: Ident("z"), ty: None, init: Some(Immediate(Real(5.0))) }, ValueDeclStatement { kind: Var, name: Ident("t"), ty: None, init: None }], final_expr: Ident(Ident("z")) } }])"#
+        ]],
     );
 }
 
@@ -415,7 +433,9 @@ let x = foo(a*3, c);
 
     check(
         &format!("{:?}", run_parser!(yurt_program(), src)),
-        expect_test::expect![[r#"Ok([Value(ValueDeclStatement { kind: Config, name: Ident("x"), ty: None, init: Some(Call { name: Ident("foo"), args: [BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(3.0)) }, Ident(Ident("c"))] }) })])"#]],
+        expect_test::expect![[
+            r#"Ok([Value(ValueDeclStatement { kind: Config, name: Ident("x"), ty: None, init: Some(Call { name: Ident("foo"), args: [BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(3.0)) }, Ident(Ident("c"))] }) })])"#
+        ]],
     );
 }
 
@@ -434,7 +454,9 @@ solve minimize mid;
 
     check(
         &format!("{:?}", run_parser!(yurt_program(), src)),
-        expect_test::expect![[r#"Ok([Value(ValueDeclStatement { kind: Config, name: Ident("low_val"), ty: Some(Real), init: Some(Immediate(Real(1.23))) }), Value(ValueDeclStatement { kind: Config, name: Ident("high_val"), ty: None, init: Some(Immediate(Real(4.56))) }), Constraint(BinaryOp { op: GreaterThan, lhs: Ident(Ident("mid")), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("low_val")), rhs: Immediate(Real(2.0)) } }), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident("mid")), rhs: Ident(Ident("high_val")) }), Solve(Minimize(Ident("mid")))])"#]],
+        expect_test::expect![[
+            r#"Ok([Value(ValueDeclStatement { kind: Config, name: Ident("low_val"), ty: Some(Real), init: Some(Immediate(Real(1.23))) }), Value(ValueDeclStatement { kind: Config, name: Ident("high_val"), ty: None, init: Some(Immediate(Real(4.56))) }), Constraint(BinaryOp { op: GreaterThan, lhs: Ident(Ident("mid")), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("low_val")), rhs: Immediate(Real(2.0)) } }), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident("mid")), rhs: Ident(Ident("high_val")) }), Solve(Minimize(Ident("mid")))])"#
+        ]],
     );
 }
 
@@ -486,6 +508,8 @@ let low = 1;
 
     check(
         &format!("{:?}", run_parser!(yurt_program(), src)),
-        expect_test::expect![[r#"Ok([Solve(Maximize(Ident("low"))), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident("low")), rhs: Ident(Ident("high")) }), Value(ValueDeclStatement { kind: Config, name: Ident("high"), ty: None, init: Some(Immediate(Real(2.0))) }), Solve(Satisfy), Value(ValueDeclStatement { kind: Config, name: Ident("low"), ty: None, init: Some(Immediate(Real(1.0))) })])"#]],
+        expect_test::expect![[
+            r#"Ok([Solve(Maximize(Ident("low"))), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident("low")), rhs: Ident(Ident("high")) }), Value(ValueDeclStatement { kind: Config, name: Ident("high"), ty: None, init: Some(Immediate(Real(2.0))) }), Solve(Satisfy), Value(ValueDeclStatement { kind: Config, name: Ident("low"), ty: None, init: Some(Immediate(Real(1.0))) })])"#
+        ]],
     );
 }

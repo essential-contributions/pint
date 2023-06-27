@@ -144,13 +144,13 @@ fn reals() {
 }
 
 #[test]
-fn func() {
+fn variables() {
     assert_eq!(lex_one_success("var"), Token::Var);
     assert_eq!(lex_one_success("let"), Token::Let);
 }
 
 #[test]
-fn variables() {
+fn func() {
     assert_eq!(lex_one_success("fn"), Token::Fn);
 }
 
