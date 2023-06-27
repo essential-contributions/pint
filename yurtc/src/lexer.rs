@@ -90,6 +90,11 @@ impl<'sc> fmt::Display for Token<'sc> {
     }
 }
 
+#[cfg(test)]
+fn check(actual: &str, expect: expect_test::Expect) {
+    expect.assert_eq(actual);
+}
+
 /// Lex a stream of characters. Return a list of discovered tokens and a list of errors encountered
 /// along the way.
 pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<CompileError>) {
@@ -125,13 +130,13 @@ fn reals() {
     assert_eq!(lex_one_success("12.34"), Token::Number("12.34"));
     assert_eq!(lex_one_success("0.34"), Token::Number("0.34"));
     assert_eq!(lex_one_success("-0.34"), Token::Number("-0.34"));
-    assert_eq!(
-        format!("{:?}", lex_one_error(".34")),
-        r#"Lex { span: 0..1, error: InvalidToken }"#
+    check(
+        &format!("{:?}", lex_one_error(".34")),
+        expect_test::expect![[r#"Lex { span: 0..1, error: InvalidToken }"#]],
     );
-    assert_eq!(
-        format!("{:?}", lex_one_error("12.")),
-        r#"Lex { span: 2..3, error: InvalidToken }"#
+    check(
+        &format!("{:?}", lex_one_error("12.")),
+        expect_test::expect!["Lex { span: 2..3, error: InvalidToken }"],
     );
 }
 

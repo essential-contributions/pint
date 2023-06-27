@@ -210,48 +210,59 @@ macro_rules! run_parser {
     }};
 }
 
+#[cfg(test)]
+fn check(actual: &str, expect: expect_test::Expect) {
+    expect.assert_eq(actual);
+}
+
 #[test]
 fn value_decls() {
-    assert_eq!(
-        format!("{:?}", run_parser!(value_decl(), "let blah = 1;")),
-        r#"Ok(Value(LetStatement { name: Ident("blah"), ty: None, init: Immediate(Real(1.0)) }))"#
+    check(
+        &format!("{:?}", run_parser!(value_decl(), "let blah = 1;")),
+        expect_test::expect![[
+            r#"Ok(Value(LetStatement { name: Ident("blah"), ty: None, init: Immediate(Real(1.0)) }))"#
+        ]],
     );
 
-    assert_eq!(
-        format!("{:?}", run_parser!(value_decl(), "let blah: real = 1;")),
-        r#"Ok(Value(LetStatement { name: Ident("blah"), ty: Some(Real), init: Immediate(Real(1.0)) }))"#
+    check(
+        &format!("{:?}", run_parser!(value_decl(), "let blah: real = 1;")),
+        expect_test::expect![[
+            r#"Ok(Value(LetStatement { name: Ident("blah"), ty: Some(Real), init: Immediate(Real(1.0)) }))"#
+        ]],
     );
 
-    assert_eq!(
-        format!("{:?}", run_parser!(value_decl(), "let blah: real")),
-        r#"Err([Simple { span: 14..14, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"#
+    check(
+        &format!("{:?}", run_parser!(value_decl(), "let blah: real")),
+        expect_test::expect![[
+            r#"Err([Simple { span: 14..14, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"#
+        ]],
     );
 }
 
 #[test]
 fn constraint_decls() {
     // Argument just needs to be any expression, as far as the parser is concerned.
-    assert_eq!(
-        format!("{:?}", run_parser!(constraint_decl(), "constraint blah;")),
-        r#"Ok(Constraint(Ident(Ident("blah"))))"#
+    check(
+        &format!("{:?}", run_parser!(constraint_decl(), "constraint blah;")),
+        expect_test::expect![[r#"Ok(Constraint(Ident(Ident("blah"))))"#]],
     );
 }
 
 #[test]
 fn solve_decls() {
-    assert_eq!(
-        format!("{:?}", run_parser!(solve_decl(), "solve satisfy;")),
-        r#"Ok(Solve(Satisfy))"#
+    check(
+        &format!("{:?}", run_parser!(solve_decl(), "solve satisfy;")),
+        expect_test::expect![[r#"Ok(Solve(Satisfy))"#]],
     );
 
-    assert_eq!(
-        format!("{:?}", run_parser!(solve_decl(), "solve minimize foo;")),
-        r#"Ok(Solve(Minimize(Ident("foo"))))"#
+    check(
+        &format!("{:?}", run_parser!(solve_decl(), "solve minimize foo;")),
+        expect_test::expect![[r#"Ok(Solve(Minimize(Ident("foo"))))"#]],
     );
 
-    assert_eq!(
-        format!("{:?}", run_parser!(solve_decl(), "solve maximize foo;")),
-        r#"Ok(Solve(Maximize(Ident("foo"))))"#
+    check(
+        &format!("{:?}", run_parser!(solve_decl(), "solve maximize foo;")),
+        expect_test::expect![[r#"Ok(Solve(Maximize(Ident("foo"))))"#]],
     );
 
     let res = run_parser!(solve_decl(), "solve world hunger;");
@@ -263,152 +274,94 @@ fn solve_decls() {
 
 #[test]
 fn exprs() {
-    assert_eq!(
-        format!("{:?}", run_parser!(expr(), "123")),
-        r#"Ok(Immediate(Real(123.0)))"#,
+    check(
+        &format!("{:?}", run_parser!(expr(), "123")),
+        expect_test::expect![[r#"Ok(Immediate(Real(123.0)))"#]],
     );
-    assert_eq!(
-        format!("{:?}", run_parser!(expr(), "foo")),
-        r#"Ok(Ident(Ident("foo")))"#,
+    check(
+        &format!("{:?}", run_parser!(expr(), "foo")),
+        expect_test::expect![[r#"Ok(Ident(Ident("foo")))"#]],
     );
-    assert_eq!(
-        format!("{:?}", run_parser!(expr(), "a * 2")),
-        r#"Ok(BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#,
+    check(
+        &format!("{:?}", run_parser!(expr(), "a * 2")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
     );
-    assert_eq!(
-        format!("{:?}", run_parser!(expr(), "2 * b * 3")),
-        [
-            r#"Ok("#,
-            r#"BinaryOp { op: Mul, "#,
-            r#"lhs: BinaryOp { op: Mul, lhs: Immediate(Real(2.0)), rhs: Ident(Ident("b")) }, "#,
-            r#"rhs: Immediate(Real(3.0)) "#,
-            r#"})"#,
-        ]
-        .concat()
+    check(
+        &format!("{:?}", run_parser!(expr(), "2 * b * 3")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Mul, lhs: BinaryOp { op: Mul, lhs: Immediate(Real(2.0)), rhs: Ident(Ident("b")) }, rhs: Immediate(Real(3.0)) })"#
+        ]],
     );
-    assert_eq!(
-        format!("{:?}", run_parser!(expr(), "2 < b * 3")),
-        [
-            // Mul binds tighter than the less-than.
-            r#"Ok(BinaryOp { "#,
-            r#"op: LessThan, "#,
-            r#"lhs: Immediate(Real(2.0)), "#,
-            r#"rhs: BinaryOp { "#,
-            r#"op: Mul, "#,
-            r#"lhs: Ident(Ident("b")), "#,
-            r#"rhs: Immediate(Real(3.0)) "#,
-            r#"} "#,
-            r#"})"#,
-        ]
-        .concat()
+    check(
+        &format!("{:?}", run_parser!(expr(), "2 < b * 3")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: LessThan, lhs: Immediate(Real(2.0)), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("b")), rhs: Immediate(Real(3.0)) } })"#
+        ]],
     );
-    assert_eq!(
-        format!("{:?}", run_parser!(expr(), "2 > b * 3")),
-        [
-            // Mul binds tighter than the greater-than.
-            r#"Ok(BinaryOp { "#,
-            r#"op: GreaterThan, "#,
-            r#"lhs: Immediate(Real(2.0)), "#,
-            r#"rhs: BinaryOp { "#,
-            r#"op: Mul, "#,
-            r#"lhs: Ident(Ident("b")), "#,
-            r#"rhs: Immediate(Real(3.0)) "#,
-            r#"} "#,
-            r#"})"#,
-        ]
-        .concat()
+    check(
+        &format!("{:?}", run_parser!(expr(), "2 > b * 3")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: GreaterThan, lhs: Immediate(Real(2.0)), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("b")), rhs: Immediate(Real(3.0)) } })"#
+        ]],
     );
-    assert_eq!(
-        format!("{:?}", run_parser!(expr(), "2 * b < 3")),
-        [
-            // Mul binds tighter, putting the less-than on the outside.
-            r#"Ok(BinaryOp { op: LessThan, "#,
-            r#"lhs: BinaryOp { "#,
-            r#"op: Mul, "#,
-            r#"lhs: Immediate(Real(2.0)), "#,
-            r#"rhs: Ident(Ident("b")) "#,
-            r#"}, "#,
-            r#"rhs: Immediate(Real(3.0)) "#,
-            r#"})"#,
-        ]
-        .concat()
+    check(
+        &format!("{:?}", run_parser!(expr(), "2 * b < 3")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: Mul, lhs: Immediate(Real(2.0)), rhs: Ident(Ident("b")) }, rhs: Immediate(Real(3.0)) })"#
+        ]],
     );
-    assert_eq!(
-        format!("{:?}", run_parser!(expr(), "2 > b < 3")),
-        [
-            // Parses OK, but should be a type error.
-            r#"Ok(BinaryOp { "#,
-            r#"op: LessThan, "#,
-            r#"lhs: BinaryOp { "#,
-            r#"op: GreaterThan, "#,
-            r#"lhs: Immediate(Real(2.0)), "#,
-            r#"rhs: Ident(Ident("b")) "#,
-            r#"}, "#,
-            r#"rhs: Immediate(Real(3.0)) "#,
-            r#"})"#
-        ]
-        .concat()
+    check(
+        &format!("{:?}", run_parser!(expr(), "2 > b < 3")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: GreaterThan, lhs: Immediate(Real(2.0)), rhs: Ident(Ident("b")) }, rhs: Immediate(Real(3.0)) })"#
+        ]],
     );
-    assert_eq!(
-        format!("{:?}", run_parser!(expr(), "a > b * c < d")),
-        [
-            // Ditto, type error.  But the mul binds the tightest.
-            r#"Ok(BinaryOp { "#,
-            r#"op: LessThan, "#,
-            r#"lhs: BinaryOp { "#,
-            r#"op: GreaterThan, "#,
-            r#"lhs: Ident(Ident("a")), "#,
-            r#"rhs: BinaryOp { "#,
-            r#"op: Mul, "#,
-            r#"lhs: Ident(Ident("b")), "#,
-            r#"rhs: Ident(Ident("c")) "#,
-            r#"} "#,
-            r#"}, "#,
-            r#"rhs: Ident(Ident("d")) "#,
-            r#"})"#,
-        ]
-        .concat()
+    check(
+        &format!("{:?}", run_parser!(expr(), "a > b * c < d")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: GreaterThan, lhs: Ident(Ident("a")), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("b")), rhs: Ident(Ident("c")) } }, rhs: Ident(Ident("d")) })"#
+        ]],
     );
 }
 
 #[test]
 fn idents() {
-    assert_eq!(
-        format!("{:?}", run_parser!(ident(), "foobar")),
-        r#"Ok(Ident("foobar"))"#
+    check(
+        &format!("{:?}", run_parser!(ident(), "foobar")),
+        expect_test::expect![[r#"Ok(Ident("foobar"))"#]],
     );
-    assert_eq!(
-        format!("{:?}", run_parser!(ident(), "foo_bar")),
-        r#"Ok(Ident("foo_bar"))"#
+    check(
+        &format!("{:?}", run_parser!(ident(), "foo_bar")),
+        expect_test::expect![[r#"Ok(Ident("foo_bar"))"#]],
     );
-    assert_eq!(
-        format!("{:?}", run_parser!(ident(), "FOO_bar")),
-        r#"Ok(Ident("FOO_bar"))"#
+    check(
+        &format!("{:?}", run_parser!(ident(), "FOO_bar")),
+        expect_test::expect![[r#"Ok(Ident("FOO_bar"))"#]],
     );
-    assert_eq!(
-        format!("{:?}", run_parser!(ident(), "__FOO")),
-        r#"Ok(Ident("__FOO"))"#
+    check(
+        &format!("{:?}", run_parser!(ident(), "__FOO")),
+        expect_test::expect![[r#"Ok(Ident("__FOO"))"#]],
     );
-    assert_eq!(
-        format!("{:?}", run_parser!(ident(), "_2_FOO1")),
-        r#"Ok(Ident("_2_FOO1"))"#
+    check(
+        &format!("{:?}", run_parser!(ident(), "_2_FOO1")),
+        expect_test::expect![[r#"Ok(Ident("_2_FOO1"))"#]],
     );
-    assert_eq!(
-        format!("{:?}", run_parser!(ident(), "_")),
-        r#"Ok(Ident("_"))"#
+    check(
+        &format!("{:?}", run_parser!(ident(), "_")),
+        expect_test::expect![[r#"Ok(Ident("_"))"#]],
     );
-    assert_eq!(
-        format!("{:?}", run_parser!(ident(), "12_ab")),
-        [
-            r#"Err([Simple { span: 0..2, reason: Unexpected, expected: {}, "#,
-            r#"found: Some(Number("12")), label: None }])"#
-        ]
-        .concat()
+    check(
+        &format!("{:?}", run_parser!(ident(), "12_ab")),
+        expect_test::expect![[
+            r#"Err([Simple { span: 0..2, reason: Unexpected, expected: {}, found: Some(Number("12")), label: None }])"#
+        ]],
     );
-    assert_eq!(
+    check(
         // Lexer will split this into 3 tokens, ident() will parse the first one.
-        format!("{:?}", run_parser!(ident(), "ab*cd")),
-        r#"Ok(Ident("ab"))"#
+        &format!("{:?}", run_parser!(ident(), "ab*cd")),
+        expect_test::expect![[r#"Ok(Ident("ab"))"#]],
     );
 }
 
@@ -421,23 +374,11 @@ fn foo(x: real, y: real) -> real {
 }
 "#;
 
-    // This is still a bit crude for larger ASTs.
-    let res = run_parser!(yurt_program(), src);
-    assert_eq!(
-        format!("{res:?}"),
-        [
-            r#"Ok(["#,
-            r#"Fn { "#,
-            r#"name: Ident("foo"), "#,
-            r#"params: "#,
-            r#"[(Ident("x"), Real), "#,
-            r#"(Ident("y"), Real)], "#,
-            r#"return_type: Real, "#,
-            r#"body: CodeBlock { "#,
-            r#"statements: [LetStatement { name: Ident("z"), ty: None, init: Immediate(Real(5.0)) }], "#,
-            r#"final_expr: Ident(Ident("z")) } }])"#
-        ]
-        .concat()
+    check(
+        &format!("{:?}", run_parser!(yurt_program(), src)),
+        expect_test::expect![[
+            r#"Ok([Fn { name: Ident("foo"), params: [(Ident("x"), Real), (Ident("y"), Real)], return_type: Real, body: CodeBlock { statements: [LetStatement { name: Ident("z"), ty: None, init: Immediate(Real(5.0)) }], final_expr: Ident(Ident("z")) } }])"#
+        ]],
     );
 }
 
@@ -447,20 +388,11 @@ fn fn_call() {
 let x = foo(a*3, c);
 "#;
 
-    // This is still a bit crude for larger ASTs.
-    let res = run_parser!(yurt_program(), src);
-    assert_eq!(
-        format!("{res:?}"),
-        [
-            r#"Ok("#,
-            r#"[Value(LetStatement { name: Ident("x"), ty: None, init: "#,
-            r#"Call { "#,
-            r#"name: Ident("foo"), "#,
-            r#"args: "#,
-            r#"[BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(3.0)) }, "#,
-            r#"Ident(Ident("c"))] } })])"#
-        ]
-        .concat()
+    check(
+        &format!("{:?}", run_parser!(yurt_program(), src)),
+        expect_test::expect![[
+            r#"Ok([Value(LetStatement { name: Ident("x"), ty: None, init: Call { name: Ident("foo"), args: [BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(3.0)) }, Ident(Ident("c"))] } })])"#
+        ]],
     );
 }
 
@@ -477,30 +409,11 @@ constraint mid < high_val;
 solve minimize mid;
 "#;
 
-    // This is still a bit crude for larger ASTs.
-    let res = run_parser!(yurt_program(), src);
-    assert_eq!(
-        format!("{res:?}"),
-        [
-            r#"Ok(["#,
-            r#"Value(LetStatement { name: Ident("low_val"), ty: Some(Real), init: Immediate(Real(1.23)) }), "#,
-            r#"Value(LetStatement { name: Ident("high_val"), ty: None, init: Immediate(Real(4.56)) }), "#,
-            r#"Constraint(BinaryOp { "#,
-            r#"op: GreaterThan, "#,
-            r#"lhs: Ident(Ident("mid")), "#,
-            r#"rhs: BinaryOp { "#,
-            r#"op: Mul, "#,
-            r#"lhs: Ident(Ident("low_val")), "#,
-            r#"rhs: Immediate(Real(2.0)) } "#,
-            r#"}), "#,
-            r#"Constraint(BinaryOp { "#,
-            r#"op: LessThan, "#,
-            r#"lhs: Ident(Ident("mid")), "#,
-            r#"rhs: Ident(Ident("high_val")) }), "#,
-            r#"Solve(Minimize(Ident("mid")))"#,
-            r#"])"#
-        ]
-        .concat()
+    check(
+        &format!("{:?}", run_parser!(yurt_program(), src)),
+        expect_test::expect![[
+            r#"Ok([Value(LetStatement { name: Ident("low_val"), ty: Some(Real), init: Immediate(Real(1.23)) }), Value(LetStatement { name: Ident("high_val"), ty: None, init: Immediate(Real(4.56)) }), Constraint(BinaryOp { op: GreaterThan, lhs: Ident(Ident("mid")), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("low_val")), rhs: Immediate(Real(2.0)) } }), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident("mid")), rhs: Ident(Ident("high_val")) }), Solve(Minimize(Ident("mid")))])"#
+        ]],
     );
 }
 
@@ -546,21 +459,10 @@ solve satisfy;
 let low = 1;
 "#;
 
-    let res = run_parser!(yurt_program(), src);
-    assert_eq!(
-        format!("{res:?}"),
-        [
-            r#"Ok(["#,
-            r#"Solve(Maximize(Ident("low"))), "#,
-            r#"Constraint(BinaryOp { "#,
-            r#"op: LessThan, "#,
-            r#"lhs: Ident(Ident("low")), "#,
-            r#"rhs: Ident(Ident("high")) }), "#,
-            r#"Value(LetStatement { name: Ident("high"), ty: None, init: Immediate(Real(2.0)) }), "#,
-            r#"Solve(Satisfy), "#,
-            r#"Value(LetStatement { name: Ident("low"), ty: None, init: Immediate(Real(1.0)) })"#,
-            r#"])"#
-        ]
-        .concat()
+    check(
+        &format!("{:?}", run_parser!(yurt_program(), src)),
+        expect_test::expect![[
+            r#"Ok([Solve(Maximize(Ident("low"))), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident("low")), rhs: Ident(Ident("high")) }), Value(LetStatement { name: Ident("high"), ty: None, init: Immediate(Real(2.0)) }), Solve(Satisfy), Value(LetStatement { name: Ident("low"), ty: None, init: Immediate(Real(1.0)) })])"#
+        ]],
     );
 }
