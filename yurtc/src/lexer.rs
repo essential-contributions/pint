@@ -17,8 +17,20 @@ pub(super) enum Token<'sc> {
     Lt,
     #[token(";")]
     Semi,
+    #[token(",")]
+    Comma,
     #[token("*")]
     Star,
+    #[token("{")]
+    BraceOpen,
+    #[token("}")]
+    BraceClose,
+    #[token("(")]
+    ParenOpen,
+    #[token(")")]
+    ParenClose,
+    #[token("->")]
+    Arrow,
 
     #[token("real")]
     Real,
@@ -28,6 +40,9 @@ pub(super) enum Token<'sc> {
     True,
     #[token("false")]
     False,
+
+    #[token("fn")]
+    Fn,
 
     #[token("let")]
     Let,
@@ -66,11 +81,18 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Gt => write!(f, ">"),
             Token::Lt => write!(f, "<"),
             Token::Semi => write!(f, ";"),
+            Token::Comma => write!(f, ","),
             Token::Star => write!(f, "*"),
+            Token::BraceOpen => write!(f, "{{"),
+            Token::BraceClose => write!(f, "}}"),
+            Token::ParenOpen => write!(f, "("),
+            Token::ParenClose => write!(f, ")"),
+            Token::Arrow => write!(f, "->"),
             Token::Real => write!(f, "real"),
             Token::Int => write!(f, "int"),
             Token::True => write!(f, "true"),
             Token::False => write!(f, "false"),
+            Token::Fn => write!(f, "Fn"),
             Token::Let => write!(f, "let"),
             Token::Constraint => write!(f, "constraint"),
             Token::Maximize => write!(f, "maximize"),
@@ -84,6 +106,11 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Comment => write!(f, "comment"),
         }
     }
+}
+
+#[cfg(test)]
+fn check(actual: &str, expect: expect_test::Expect) {
+    expect.assert_eq(actual);
 }
 
 /// Lex a stream of characters. Return a list of discovered tokens and a list of errors encountered
@@ -166,17 +193,17 @@ fn reals() {
     assert_eq!(lex_one_success("2.5e-4"), Token::RealNumber("2.5e-4"));
     assert_eq!(lex_one_success("1.3E5"), Token::RealNumber("1.3E5"));
     assert_eq!(lex_one_success("0.34"), Token::RealNumber("0.34"));
-    assert_eq!(
-        format!("{:?}", lex_one_error("-0.34")),
-        r#"Lex { span: 0..1, error: InvalidToken }"#
+    check(
+        &format!("{:?}", lex_one_error("-0.34")),
+        expect_test::expect![[r#"Lex { span: 0..1, error: InvalidToken }"#]],
     );
-    assert_eq!(
-        format!("{:?}", lex_one_error(".34")),
-        r#"Lex { span: 0..1, error: InvalidToken }"#
+    check(
+        &format!("{:?}", lex_one_error(".34")),
+        expect_test::expect![[r#"Lex { span: 0..1, error: InvalidToken }"#]],
     );
-    assert_eq!(
-        format!("{:?}", lex_one_error("12.")),
-        r#"Lex { span: 2..3, error: InvalidToken }"#
+    check(
+        &format!("{:?}", lex_one_error("12.")),
+        expect_test::expect!["Lex { span: 2..3, error: InvalidToken }"],
     );
 }
 
@@ -216,6 +243,11 @@ fn strings() {
         lex_one_success("\"Hello, world!\n\""),
         Token::String("\"Hello, world!\n\"".to_string())
     );
+}
+
+#[test]
+fn func() {
+    assert_eq!(lex_one_success("fn"), Token::Fn);
 }
 
 #[test]
