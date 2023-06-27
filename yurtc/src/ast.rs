@@ -1,11 +1,26 @@
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct LetStatement {
+    pub(super) name: Ident,
+    pub(super) ty: Option<Type>,
+    pub(super) init: Expr,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct CodeBlock {
+    pub(super) statements: Vec<LetStatement>,
+    pub(super) final_expr: Expr,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) enum Decl {
-    Value {
-        name: Ident,
-        ty: Option<Type>,
-        init: Expr,
-    },
+    Value(LetStatement),
     Constraint(Expr),
+    Fn {
+        name: Ident,
+        params: Vec<(Ident, Type)>,
+        return_type: Type,
+        body: CodeBlock,
+    },
     Solve(SolveFunc),
 }
 
@@ -25,6 +40,10 @@ pub(super) enum Expr {
         op: BinaryOp,
         lhs: Box<Expr>,
         rhs: Box<Expr>,
+    },
+    Call {
+        name: Ident,
+        args: Vec<Expr>,
     },
 }
 

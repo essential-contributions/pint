@@ -55,26 +55,32 @@ fn parse_str_to_ast_inner(source: &str) -> Result<Ast, Vec<CompileError>> {
 }
 
 fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = Simple<Token<'sc>>> + Clone {
-    choice((value_decl(), constraint_decl(), solve_decl()))
-        .then_ignore(just(Token::Semi))
+    choice((value_decl(), constraint_decl(), solve_decl(), fn_decl()))
         .repeated()
         .then_ignore(end())
 }
 
 fn value_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = Simple<Token<'sc>>> + Clone {
+    let_statement().map(ast::Decl::Value)
+}
+
+fn let_statement<'sc>(
+) -> impl Parser<Token<'sc>, ast::LetStatement, Error = Simple<Token<'sc>>> + Clone {
     let type_spec = just(Token::Colon).ignore_then(type_());
     just(Token::Let)
         .ignore_then(ident())
         .then(type_spec.or_not())
         .then_ignore(just(Token::Eq))
         .then(expr())
-        .map(|((name, ty), init)| ast::Decl::Value { name, ty, init })
+        .then_ignore(just(Token::Semi))
+        .map(|((name, ty), init)| ast::LetStatement { name, ty, init })
 }
 
 fn constraint_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = Simple<Token<'sc>>> + Clone
 {
     just(Token::Constraint)
         .ignore_then(expr())
+        .then_ignore(just(Token::Semi))
         .map(ast::Decl::Constraint)
 }
 
@@ -89,43 +95,87 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = Simple<Token<
 
     just(Token::Solve)
         .ignore_then(choice((solve_satisfy, solve_minimize, solve_maximize)))
+        .then_ignore(just(Token::Semi))
         .map(ast::Decl::Solve)
+}
+
+fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = Simple<Token<'sc>>> + Clone {
+    let type_spec = just(Token::Colon).ignore_then(type_());
+
+    let params = ident()
+        .then(type_spec)
+        .separated_by(just(Token::Comma))
+        .allow_trailing()
+        .delimited_by(just(Token::ParenOpen), just(Token::ParenClose));
+
+    let return_type = just(Token::Arrow).ignore_then(type_());
+
+    let body = let_statement().repeated().then(expr());
+
+    just(Token::Fn)
+        .ignore_then(ident())
+        .then(params)
+        .then(return_type)
+        .then(body.delimited_by(just(Token::BraceOpen), just(Token::BraceClose)))
+        .map(
+            |(((name, params), return_type), (statements, expr))| ast::Decl::Fn {
+                name,
+                params,
+                return_type,
+                body: ast::CodeBlock {
+                    statements,
+                    final_expr: expr,
+                },
+            },
+        )
 }
 
 fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone {
     let imm = immediate().map(ast::Expr::Immediate);
     let id = ident().map(ast::Expr::Ident);
-    let atom = imm.or(id);
 
-    let multiplicative_op = atom
-        .clone()
-        .then(
-            just(Token::Star)
-                .to(ast::BinaryOp::Mul)
-                .then(atom)
-                .repeated(),
-        )
-        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
-            op,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        });
+    recursive(|expr| {
+        let args = expr
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .delimited_by(just(Token::ParenOpen), just(Token::ParenClose));
 
-    // Comparison op.
-    multiplicative_op
-        .clone()
-        .then(
-            just(Token::Gt)
-                .to(ast::BinaryOp::GreaterThan)
-                .or(just(Token::Lt).to(ast::BinaryOp::LessThan))
-                .then(multiplicative_op)
-                .repeated(),
-        )
-        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
-            op,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        })
+        let call = ident()
+            .then(args)
+            .map(|(name, args)| ast::Expr::Call { name, args });
+
+        let atom = imm.or(call).or(id);
+
+        let multiplicative_op = atom
+            .clone()
+            .then(
+                just(Token::Star)
+                    .to(ast::BinaryOp::Mul)
+                    .then(atom)
+                    .repeated(),
+            )
+            .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
+                op,
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+            });
+
+        // Comparison op.
+        multiplicative_op
+            .clone()
+            .then(
+                just(Token::Gt)
+                    .to(ast::BinaryOp::GreaterThan)
+                    .or(just(Token::Lt).to(ast::BinaryOp::LessThan))
+                    .then(multiplicative_op)
+                    .repeated(),
+            )
+            .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
+                op,
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+            })
+    })
 }
 
 fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = Simple<Token<'sc>>> + Clone {
@@ -163,13 +213,13 @@ macro_rules! run_parser {
 #[test]
 fn value_decls() {
     assert_eq!(
-        format!("{:?}", run_parser!(value_decl(), "let blah = 1")),
-        r#"Ok(Value { name: Ident("blah"), ty: None, init: Immediate(Real(1.0)) })"#
+        format!("{:?}", run_parser!(value_decl(), "let blah = 1;")),
+        r#"Ok(Value(LetStatement { name: Ident("blah"), ty: None, init: Immediate(Real(1.0)) }))"#
     );
 
     assert_eq!(
-        format!("{:?}", run_parser!(value_decl(), "let blah: real = 1")),
-        r#"Ok(Value { name: Ident("blah"), ty: Some(Real), init: Immediate(Real(1.0)) })"#
+        format!("{:?}", run_parser!(value_decl(), "let blah: real = 1;")),
+        r#"Ok(Value(LetStatement { name: Ident("blah"), ty: Some(Real), init: Immediate(Real(1.0)) }))"#
     );
 
     assert_eq!(
@@ -182,7 +232,7 @@ fn value_decls() {
 fn constraint_decls() {
     // Argument just needs to be any expression, as far as the parser is concerned.
     assert_eq!(
-        format!("{:?}", run_parser!(constraint_decl(), "constraint blah")),
+        format!("{:?}", run_parser!(constraint_decl(), "constraint blah;")),
         r#"Ok(Constraint(Ident(Ident("blah"))))"#
     );
 }
@@ -190,21 +240,21 @@ fn constraint_decls() {
 #[test]
 fn solve_decls() {
     assert_eq!(
-        format!("{:?}", run_parser!(solve_decl(), "solve satisfy")),
+        format!("{:?}", run_parser!(solve_decl(), "solve satisfy;")),
         r#"Ok(Solve(Satisfy))"#
     );
 
     assert_eq!(
-        format!("{:?}", run_parser!(solve_decl(), "solve minimize foo")),
+        format!("{:?}", run_parser!(solve_decl(), "solve minimize foo;")),
         r#"Ok(Solve(Minimize(Ident("foo"))))"#
     );
 
     assert_eq!(
-        format!("{:?}", run_parser!(solve_decl(), "solve maximize foo")),
+        format!("{:?}", run_parser!(solve_decl(), "solve maximize foo;")),
         r#"Ok(Solve(Maximize(Ident("foo"))))"#
     );
 
-    let res = run_parser!(solve_decl(), "solve world hunger");
+    let res = run_parser!(solve_decl(), "solve world hunger;");
     assert!(res.is_err());
     let simple = &res.unwrap_err()[0];
     assert_eq!(simple.reason(), &chumsky::error::SimpleReason::Unexpected);
@@ -363,6 +413,58 @@ fn idents() {
 }
 
 #[test]
+fn fn_decl_test() {
+    let src = r#"
+fn foo(x: real, y: real) -> real {
+    let z = 5;
+    z
+}
+"#;
+
+    // This is still a bit crude for larger ASTs.
+    let res = run_parser!(yurt_program(), src);
+    assert_eq!(
+        format!("{res:?}"),
+        [
+            r#"Ok(["#,
+            r#"Fn { "#,
+            r#"name: Ident("foo"), "#,
+            r#"params: "#,
+            r#"[(Ident("x"), Real), "#,
+            r#"(Ident("y"), Real)], "#,
+            r#"return_type: Real, "#,
+            r#"body: CodeBlock { "#,
+            r#"statements: [LetStatement { name: Ident("z"), ty: None, init: Immediate(Real(5.0)) }], "#,
+            r#"final_expr: Ident(Ident("z")) } }])"#
+        ]
+        .concat()
+    );
+}
+
+#[test]
+fn fn_call() {
+    let src = r#"
+let x = foo(a*3, c);
+"#;
+
+    // This is still a bit crude for larger ASTs.
+    let res = run_parser!(yurt_program(), src);
+    assert_eq!(
+        format!("{res:?}"),
+        [
+            r#"Ok("#,
+            r#"[Value(LetStatement { name: Ident("x"), ty: None, init: "#,
+            r#"Call { "#,
+            r#"name: Ident("foo"), "#,
+            r#"args: "#,
+            r#"[BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(3.0)) }, "#,
+            r#"Ident(Ident("c"))] } })])"#
+        ]
+        .concat()
+    );
+}
+
+#[test]
 fn basic_program() {
     let src = r#"
 let low_val: real = 1.23;
@@ -381,8 +483,8 @@ solve minimize mid;
         format!("{res:?}"),
         [
             r#"Ok(["#,
-            r#"Value { name: Ident("low_val"), ty: Some(Real), init: Immediate(Real(1.23)) }, "#,
-            r#"Value { name: Ident("high_val"), ty: None, init: Immediate(Real(4.56)) }, "#,
+            r#"Value(LetStatement { name: Ident("low_val"), ty: Some(Real), init: Immediate(Real(1.23)) }), "#,
+            r#"Value(LetStatement { name: Ident("high_val"), ty: None, init: Immediate(Real(4.56)) }), "#,
             r#"Constraint(BinaryOp { "#,
             r#"op: GreaterThan, "#,
             r#"lhs: Ident(Ident("mid")), "#,
@@ -413,6 +515,28 @@ fn with_errors() {
 }
 
 #[test]
+fn fn_errors() {
+    let src = r#"fn foo() {5}"#;
+    let res = run_parser!(fn_decl(), src);
+    assert!(res.is_err());
+    let err = &res.unwrap_err()[0];
+    assert_eq!(err.reason(), &chumsky::error::SimpleReason::Unexpected);
+    assert_eq!(err.found(), Some(&Token::BraceOpen));
+    assert_eq!(
+        err.expected().collect::<Vec<_>>(),
+        vec![&Some(Token::Arrow)]
+    );
+
+    let src = r#"fn foo() -> real {}"#;
+    let res = run_parser!(fn_decl(), src);
+    assert!(res.is_err());
+    let err = &res.unwrap_err()[0];
+    assert_eq!(err.reason(), &chumsky::error::SimpleReason::Unexpected);
+    assert_eq!(err.found(), Some(&Token::BraceClose));
+    assert_eq!(err.expected().collect::<Vec<_>>(), vec![&Some(Token::Let)]);
+}
+
+#[test]
 fn out_of_order_decls() {
     let src = r#"
 solve maximize low;
@@ -432,9 +556,9 @@ let low = 1;
             r#"op: LessThan, "#,
             r#"lhs: Ident(Ident("low")), "#,
             r#"rhs: Ident(Ident("high")) }), "#,
-            r#"Value { name: Ident("high"), ty: None, init: Immediate(Real(2.0)) }, "#,
+            r#"Value(LetStatement { name: Ident("high"), ty: None, init: Immediate(Real(2.0)) }), "#,
             r#"Solve(Satisfy), "#,
-            r#"Value { name: Ident("low"), ty: None, init: Immediate(Real(1.0)) }"#,
+            r#"Value(LetStatement { name: Ident("low"), ty: None, init: Immediate(Real(1.0)) })"#,
             r#"])"#
         ]
         .concat()
