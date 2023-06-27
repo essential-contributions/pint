@@ -92,24 +92,49 @@ pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<CompileError>) {
 }
 
 fn process_string_literal<'sc>(lex: &mut logos::Lexer<'sc, Token<'sc>>) -> String {
-    let raw_string = lex.slice();
-    let mut processed_string = String::new();
-    let mut escape_newline = false;
-    for c in raw_string.chars() {
-        if escape_newline {
-            if c.is_whitespace() {
-                continue;
-            } else {
-                escape_newline = false;
+    let raw_string = lex.slice().to_string();
+    let mut final_string = String::new();
+    let mut chars = raw_string.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' => {
+                if let Some(&next_char) = chars.peek() {
+                    match next_char {
+                        'n' => {
+                            final_string.push('\n');
+                            chars.next();
+                        }
+                        't' => {
+                            final_string.push('\t');
+                            chars.next();
+                        }
+                        '\\' => {
+                            final_string.push('\\');
+                            chars.next();
+                        }
+                        '"' => {
+                            final_string.push('"');
+                            chars.next();
+                        }
+                        '\n' => {
+                            chars.next();
+                            while let Some(&next_char) = chars.peek() {
+                                if next_char.is_whitespace() {
+                                    chars.next();
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                        _ => final_string.push(c),
+                    }
+                }
             }
-        }
-        if c == '\\' {
-            escape_newline = true;
-        } else {
-            processed_string.push(c);
+            _ => final_string.push(c),
         }
     }
-    processed_string
+    final_string
 }
 
 #[cfg(test)]
@@ -171,8 +196,8 @@ fn strings() {
         Token::String(r#""first line second line third line""#.to_string())
     );
     assert_eq!(
-        lex_one_success(r#""Hello, world!\\n""#),
-        Token::String(r#""Hello, world!\\n""#.to_string())
+        lex_one_success("\"Hello, world!\n\""),
+        Token::String("\"Hello, world!\n\"".to_string())
     );
 }
 
