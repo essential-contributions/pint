@@ -369,7 +369,7 @@ fn idents() {
 fn fn_decl_test() {
     let src = r#"
 fn foo(x: real, y: real) -> real {
-    let z = 5;
+    let z = 5.0;
     z
 }
 "#;
@@ -403,7 +403,7 @@ let low_val: real = 1.23;
 let high_val = 4.56;        // Implicit type.
 
 // Here's the constraints.
-constraint mid > low_val * 2;
+constraint mid > low_val * 2.0;
 constraint mid < high_val;
 
 solve minimize mid;
@@ -454,9 +454,9 @@ fn out_of_order_decls() {
     let src = r#"
 solve maximize low;
 constraint low < high;
-let high = 2;
+let high = 2.0;
 solve satisfy;
-let low = 1;
+let low = 1.0;
 "#;
 
     check(
