@@ -434,7 +434,7 @@ let x = foo(a*3, c);
     check(
         &format!("{:?}", run_parser!(yurt_program(), src)),
         expect_test::expect![[
-            r#"Ok([Value(LetStatement { name: Ident("x"), ty: None, init: Call { name: Ident("foo"), args: [BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(3.0)) }, Ident(Ident("c"))] } })])"#
+            r#"Ok([Value(LetStatement { name: Ident("x"), ty: None, init: Call { name: Ident("foo"), args: [BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Integer(3)) }, Ident(Ident("c"))] } })])"#
         ]],
     );
 }
