@@ -186,12 +186,15 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>
     just(Token::Real)
         .to(ast::Type::Real)
         .or(just(Token::Int).to(ast::Type::Int))
+        .or(just(Token::Bool).to(ast::Type::Bool))
 }
 
 fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Simple<Token<'sc>>> + Clone {
     select! {
         Token::RealNumber(num_str) => ast::Immediate::Real(num_str.parse().unwrap()),
-        Token::Integer(num_str) => ast::Immediate::Integer(num_str.parse().unwrap())
+        Token::Integer(num_str) => ast::Immediate::Integer(num_str.parse().unwrap()),
+        Token::True => ast::Immediate::Boolean(true),
+        Token::False => ast::Immediate::Boolean(false)
     }
 }
 
@@ -261,6 +264,20 @@ fn value_decls() {
         &format!("{:?}", run_parser!(value_decl(), "let blah: int")),
         expect_test::expect![[
             r#"Err([Simple { span: 13..13, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"#
+        ]],
+    );
+
+    check(
+        &format!("{:?}", run_parser!(value_decl(), "let blah = true;")),
+        expect_test::expect![[
+            r#"Ok(Value(LetStatement { name: Ident("blah"), ty: None, init: Immediate(Boolean(true)) }))"#
+        ]],
+    );
+
+    check(
+        &format!("{:?}", run_parser!(value_decl(), "let blah: bool = false;")),
+        expect_test::expect![[
+            r#"Ok(Value(LetStatement { name: Ident("blah"), ty: Some(Bool), init: Immediate(Boolean(false)) }))"#
         ]],
     );
 }

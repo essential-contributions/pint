@@ -36,6 +36,8 @@ pub(super) enum Token<'sc> {
     Real,
     #[token("int")]
     Int,
+    #[token("bool")]
+    Bool,
     #[token("true")]
     True,
     #[token("false")]
@@ -90,6 +92,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Arrow => write!(f, "->"),
             Token::Real => write!(f, "real"),
             Token::Int => write!(f, "int"),
+            Token::Bool => write!(f, "bool"),
             Token::True => write!(f, "true"),
             Token::False => write!(f, "false"),
             Token::Fn => write!(f, "Fn"),
