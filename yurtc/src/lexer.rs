@@ -300,14 +300,14 @@ solve minimize mid;
     assert!(matches!(tokens[8].0, Ident("mid")));
     assert!(matches!(tokens[9].0, Gt));
     assert!(matches!(tokens[10].0, Ident("low_val")));
-    assert!(matches!(tokens[11].0, RealNumber("2")));
+    assert!(matches!(tokens[11].0, Integer("2")));
     assert!(matches!(tokens[12].0, Semi));
 
     assert!(matches!(tokens[13].0, Constraint));
     assert!(matches!(tokens[14].0, Ident("mid")));
     assert!(matches!(tokens[15].0, Lt));
     assert!(matches!(tokens[16].0, Ident("low_val")));
-    assert!(matches!(tokens[17].0, RealNumber("2")));
+    assert!(matches!(tokens[17].0, Integer("2")));
     assert!(matches!(tokens[18].0, Semi));
 
     assert!(matches!(tokens[19].0, Solve));
