@@ -30,6 +30,7 @@ pub(super) struct Ident(pub(super) String);
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Type {
     Real,
+    Int,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -58,6 +59,7 @@ pub(super) enum BinaryOp {
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Immediate {
     Real(f64),
+    Integer(i64),
 }
 
 #[derive(Clone, Debug, PartialEq)]

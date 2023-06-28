@@ -183,11 +183,16 @@ fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = Simple<Token<'sc>
 }
 
 fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>> + Clone {
-    just(Token::Real).to(ast::Type::Real)
+    just(Token::Real)
+        .to(ast::Type::Real)
+        .or(just(Token::Int).to(ast::Type::Int))
 }
 
 fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Simple<Token<'sc>>> + Clone {
-    select! { Token::RealNumber(num_str) => ast::Immediate::Real(num_str.parse().unwrap()) }
+    select! {
+        Token::RealNumber(num_str) => ast::Immediate::Real(num_str.parse().unwrap()),
+        Token::Integer(num_str) => ast::Immediate::Integer(num_str.parse().unwrap())
+    }
 }
 
 // To-do tests:
@@ -235,6 +240,27 @@ fn value_decls() {
         &format!("{:?}", run_parser!(value_decl(), "let blah: real")),
         expect_test::expect![[
             r#"Err([Simple { span: 14..14, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"#
+        ]],
+    );
+
+    check(
+        &format!("{:?}", run_parser!(value_decl(), "let blah = 1;")),
+        expect_test::expect![[
+            r#"Ok(Value(LetStatement { name: Ident("blah"), ty: None, init: Immediate(Integer(1)) }))"#
+        ]],
+    );
+
+    check(
+        &format!("{:?}", run_parser!(value_decl(), "let blah: int = 1;")),
+        expect_test::expect![[
+            r#"Ok(Value(LetStatement { name: Ident("blah"), ty: Some(Int), init: Immediate(Integer(1)) }))"#
+        ]],
+    );
+
+    check(
+        &format!("{:?}", run_parser!(value_decl(), "let blah: int")),
+        expect_test::expect![[
+            r#"Err([Simple { span: 13..13, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"#
         ]],
     );
 }
@@ -355,7 +381,7 @@ fn idents() {
     check(
         &format!("{:?}", run_parser!(ident(), "12_ab")),
         expect_test::expect![[
-            r#"Err([Simple { span: 0..2, reason: Unexpected, expected: {}, found: Some(Number("12")), label: None }])"#
+            r#"Err([Simple { span: 0..2, reason: Unexpected, expected: {}, found: Some(Integer("12")), label: None }])"#
         ]],
     );
     check(
