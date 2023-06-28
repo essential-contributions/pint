@@ -17,11 +17,26 @@ pub(super) enum Token<'sc> {
     Lt,
     #[token(";")]
     Semi,
+    #[token(",")]
+    Comma,
     #[token("*")]
     Star,
+    #[token("{")]
+    BraceOpen,
+    #[token("}")]
+    BraceClose,
+    #[token("(")]
+    ParenOpen,
+    #[token(")")]
+    ParenClose,
+    #[token("->")]
+    Arrow,
 
     #[token("real")]
     Real,
+
+    #[token("fn")]
+    Fn,
 
     #[token("let")]
     Let,
@@ -53,8 +68,15 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Gt => write!(f, ">"),
             Token::Lt => write!(f, "<"),
             Token::Semi => write!(f, ";"),
+            Token::Comma => write!(f, ","),
             Token::Star => write!(f, "*"),
+            Token::BraceOpen => write!(f, "{{"),
+            Token::BraceClose => write!(f, "}}"),
+            Token::ParenOpen => write!(f, "("),
+            Token::ParenClose => write!(f, ")"),
+            Token::Arrow => write!(f, "->"),
             Token::Real => write!(f, "real"),
+            Token::Fn => write!(f, "Fn"),
             Token::Let => write!(f, "let"),
             Token::Constraint => write!(f, "constraint"),
             Token::Maximize => write!(f, "maximize"),
@@ -68,6 +90,11 @@ impl<'sc> fmt::Display for Token<'sc> {
     }
 }
 
+#[cfg(test)]
+fn check(actual: &str, expect: expect_test::Expect) {
+    expect.assert_eq(actual);
+}
+
 /// Lex a stream of characters. Return a list of discovered tokens and a list of errors encountered
 /// along the way.
 pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<CompileError>) {
@@ -79,8 +106,47 @@ pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<CompileError>) {
         })
 }
 
+#[cfg(test)]
+fn lex_one_success(src: &str) -> Token<'_> {
+    // Tokenise src, assume success and that we produce a single token.
+    let (toks, errs) = lex(src);
+    assert!(errs.is_empty(), "Testing for success only.");
+    assert_eq!(toks.len(), 1, "Testing for single token only.");
+    toks[0].0.clone()
+}
+
+#[cfg(test)]
+fn lex_one_error(src: &str) -> CompileError {
+    // Tokenise src, assume a single error.
+    let (_, errs) = lex(src);
+    assert_eq!(errs.len(), 1, "Testing for single error only.");
+    errs[0].clone()
+}
+
 #[test]
-fn lex_with_error() {
+fn reals() {
+    assert_eq!(lex_one_success("12"), Token::Number("12"));
+    assert_eq!(lex_one_success("0012"), Token::Number("0012"));
+    assert_eq!(lex_one_success("12.34"), Token::Number("12.34"));
+    assert_eq!(lex_one_success("0.34"), Token::Number("0.34"));
+    assert_eq!(lex_one_success("-0.34"), Token::Number("-0.34"));
+    check(
+        &format!("{:?}", lex_one_error(".34")),
+        expect_test::expect![[r#"Lex { span: 0..1, error: InvalidToken }"#]],
+    );
+    check(
+        &format!("{:?}", lex_one_error("12.")),
+        expect_test::expect!["Lex { span: 2..3, error: InvalidToken }"],
+    );
+}
+
+#[test]
+fn func() {
+    assert_eq!(lex_one_success("fn"), Token::Fn);
+}
+
+#[test]
+fn with_error() {
     let src = r#"
 let low_val: int = 5.0;
 constraint mid > low_val # 2;
