@@ -42,6 +42,8 @@ pub(super) enum Token<'sc> {
     True,
     #[token("false")]
     False,
+    #[token("string")]
+    String,
 
     #[token("fn")]
     Fn,
@@ -69,7 +71,7 @@ pub(super) enum Token<'sc> {
         r#""([^"\\]|\\(x[0-9a-fA-F]{2}|n|t|"|\\|\n[\t ]*))*""#,
         process_string_literal
     )]
-    String(String),
+    StringLiteral(String),
 
     #[regex(r"//[^\n\r]*", logos::skip)]
     Comment,
@@ -95,6 +97,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Bool => write!(f, "bool"),
             Token::True => write!(f, "true"),
             Token::False => write!(f, "false"),
+            Token::String => write!(f, "string"),
             Token::Fn => write!(f, "Fn"),
             Token::Let => write!(f, "let"),
             Token::Constraint => write!(f, "constraint"),
@@ -105,7 +108,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Ident(ident) => write!(f, "{ident}"),
             Token::RealNumber(ident) => write!(f, "{ident}"),
             Token::Integer(ident) => write!(f, "{ident}"),
-            Token::String(contents) => write!(f, "{}", contents),
+            Token::StringLiteral(contents) => write!(f, "{}", contents),
             Token::Comment => write!(f, "comment"),
         }
     }
@@ -167,6 +170,7 @@ fn process_string_literal<'sc>(lex: &mut logos::Lexer<'sc, Token<'sc>>) -> Strin
                     }
                 }
             }
+            '"' => {}
             _ => final_string.push(c),
         }
     }
@@ -231,7 +235,7 @@ fn bools() {
 fn strings() {
     assert_eq!(
         lex_one_success(r#""Hello, world!""#),
-        Token::String(r#""Hello, world!""#.to_string())
+        Token::StringLiteral("Hello, world!".to_string())
     );
     assert_eq!(
         lex_one_success(
@@ -241,11 +245,11 @@ fn strings() {
             third line"
             "#
         ),
-        Token::String(r#""first line second line third line""#.to_string())
+        Token::StringLiteral("first line second line third line".to_string())
     );
     assert_eq!(
         lex_one_success("\"Hello, world!\n\""),
-        Token::String("\"Hello, world!\n\"".to_string())
+        Token::StringLiteral("Hello, world!\n".to_string())
     );
 }
 

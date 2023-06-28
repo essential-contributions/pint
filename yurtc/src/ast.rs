@@ -32,6 +32,7 @@ pub(super) enum Type {
     Real,
     Int,
     Bool,
+    String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -62,6 +63,7 @@ pub(super) enum Immediate {
     Real(f64),
     Integer(i64),
     Boolean(bool),
+    String(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]

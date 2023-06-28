@@ -12,7 +12,6 @@ pub(super) fn parse_path_to_ast(path: &Path, filename: &str) -> anyhow::Result<A
     parse_str_to_ast(&read_to_string(path)?, filename)
 }
 
-/// Parse `source` and returns an AST. Upon failure, print all compile errors and exit.
 fn parse_str_to_ast(source: &str, filename: &str) -> anyhow::Result<Ast> {
     match parse_str_to_ast_inner(source) {
         Ok(ast) => Ok(ast),
@@ -23,20 +22,15 @@ fn parse_str_to_ast(source: &str, filename: &str) -> anyhow::Result<Ast> {
     }
 }
 
-/// Parse `source` and returns an AST. Upon failure, return a vector of all compile errors
-/// encountered.
 fn parse_str_to_ast_inner(source: &str) -> Result<Ast, Vec<CompileError>> {
     let mut errors = vec![];
 
-    // Lex the input into tokens and spans. Also collect any lex errors encountered.
     let (tokens, lex_errors) = lexer::lex(source);
     errors.extend(lex_errors);
 
-    // Provide a token stream
     let eoi_span = source.len()..source.len();
     let token_stream = Stream::from_iter(eoi_span, tokens.into_iter());
 
-    // Parse the token stream
     match yurt_program().parse(token_stream) {
         Ok(_) if !errors.is_empty() => Err(errors),
         Err(parsing_errors) => {
@@ -187,6 +181,7 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>
         .to(ast::Type::Real)
         .or(just(Token::Int).to(ast::Type::Int))
         .or(just(Token::Bool).to(ast::Type::Bool))
+        .or(just(Token::String).to(ast::Type::String))
 }
 
 fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Simple<Token<'sc>>> + Clone {
@@ -194,7 +189,8 @@ fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Simple<To
         Token::RealNumber(num_str) => ast::Immediate::Real(num_str.parse().unwrap()),
         Token::Integer(num_str) => ast::Immediate::Integer(num_str.parse().unwrap()),
         Token::True => ast::Immediate::Boolean(true),
-        Token::False => ast::Immediate::Boolean(false)
+        Token::False => ast::Immediate::Boolean(false),
+        Token::StringLiteral(str_val) => ast::Immediate::String(str_val)
     }
 }
 
@@ -231,53 +227,73 @@ fn value_decls() {
             r#"Ok(Value(LetStatement { name: Ident("blah"), ty: None, init: Immediate(Real(1.0)) }))"#
         ]],
     );
-
     check(
         &format!("{:?}", run_parser!(value_decl(), "let blah: real = 1.0;")),
         expect_test::expect![[
             r#"Ok(Value(LetStatement { name: Ident("blah"), ty: Some(Real), init: Immediate(Real(1.0)) }))"#
         ]],
     );
-
     check(
         &format!("{:?}", run_parser!(value_decl(), "let blah: real")),
         expect_test::expect![[
             r#"Err([Simple { span: 14..14, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"#
         ]],
     );
-
     check(
         &format!("{:?}", run_parser!(value_decl(), "let blah = 1;")),
         expect_test::expect![[
             r#"Ok(Value(LetStatement { name: Ident("blah"), ty: None, init: Immediate(Integer(1)) }))"#
         ]],
     );
-
     check(
         &format!("{:?}", run_parser!(value_decl(), "let blah: int = 1;")),
         expect_test::expect![[
             r#"Ok(Value(LetStatement { name: Ident("blah"), ty: Some(Int), init: Immediate(Integer(1)) }))"#
         ]],
     );
-
     check(
         &format!("{:?}", run_parser!(value_decl(), "let blah: int")),
         expect_test::expect![[
             r#"Err([Simple { span: 13..13, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"#
         ]],
     );
-
     check(
         &format!("{:?}", run_parser!(value_decl(), "let blah = true;")),
         expect_test::expect![[
             r#"Ok(Value(LetStatement { name: Ident("blah"), ty: None, init: Immediate(Boolean(true)) }))"#
         ]],
     );
-
     check(
         &format!("{:?}", run_parser!(value_decl(), "let blah: bool = false;")),
         expect_test::expect![[
             r#"Ok(Value(LetStatement { name: Ident("blah"), ty: Some(Bool), init: Immediate(Boolean(false)) }))"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(value_decl(), "let blah: bool")),
+        expect_test::expect![[
+            r#"Err([Simple { span: 14..14, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(value_decl(), r#"let blah = "hello";"#)),
+        expect_test::expect![[
+            r#"Ok(Value(LetStatement { name: Ident("blah"), ty: None, init: Immediate(String("hello")) }))"#
+        ]],
+    );
+    check(
+        &format!(
+            "{:?}",
+            run_parser!(value_decl(), r#"let blah: string = "hello";"#)
+        ),
+        expect_test::expect![[
+            r#"Ok(Value(LetStatement { name: Ident("blah"), ty: Some(String), init: Immediate(String("hello")) }))"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(value_decl(), r#"let blah: string"#)),
+        expect_test::expect![[
+            r#"Err([Simple { span: 16..16, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"#
         ]],
     );
 }
@@ -297,12 +313,10 @@ fn solve_decls() {
         &format!("{:?}", run_parser!(solve_decl(), "solve satisfy;")),
         expect_test::expect![[r#"Ok(Solve(Satisfy))"#]],
     );
-
     check(
         &format!("{:?}", run_parser!(solve_decl(), "solve minimize foo;")),
         expect_test::expect![[r#"Ok(Solve(Minimize(Ident("foo"))))"#]],
     );
-
     check(
         &format!("{:?}", run_parser!(solve_decl(), "solve maximize foo;")),
         expect_test::expect![[r#"Ok(Solve(Maximize(Ident("foo"))))"#]],
