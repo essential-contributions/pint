@@ -319,14 +319,14 @@ fn solve_decls() {
 fn exprs() {
     check(
         &format!("{:?}", run_parser!(expr(), "123")),
-        expect_test::expect![[r#"Ok(Immediate(Real(123.0)))"#]],
+        expect_test::expect![[r#"Ok(Immediate(Integer(123)))"#]],
     );
     check(
         &format!("{:?}", run_parser!(expr(), "foo")),
         expect_test::expect![[r#"Ok(Ident(Ident("foo")))"#]],
     );
     check(
-        &format!("{:?}", run_parser!(expr(), "a * 2")),
+        &format!("{:?}", run_parser!(expr(), "a * 2.0")),
         expect_test::expect![[
             r#"Ok(BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
         ]],
@@ -334,23 +334,23 @@ fn exprs() {
     check(
         &format!("{:?}", run_parser!(expr(), "2 * b * 3")),
         expect_test::expect![[
-            r#"Ok(BinaryOp { op: Mul, lhs: BinaryOp { op: Mul, lhs: Immediate(Real(2.0)), rhs: Ident(Ident("b")) }, rhs: Immediate(Real(3.0)) })"#
+            r#"Ok(BinaryOp { op: Mul, lhs: BinaryOp { op: Mul, lhs: Immediate(Integer(2)), rhs: Ident(Ident("b")) }, rhs: Immediate(Integer(3)) })"#
         ]],
     );
     check(
         &format!("{:?}", run_parser!(expr(), "2 < b * 3")),
         expect_test::expect![[
-            r#"Ok(BinaryOp { op: LessThan, lhs: Immediate(Real(2.0)), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("b")), rhs: Immediate(Real(3.0)) } })"#
+            r#"Ok(BinaryOp { op: LessThan, lhs: Immediate(Integer(2)), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("b")), rhs: Immediate(Integer(3)) } })"#
         ]],
     );
     check(
-        &format!("{:?}", run_parser!(expr(), "2 > b * 3")),
+        &format!("{:?}", run_parser!(expr(), "2.0 > b * 3.0")),
         expect_test::expect![[
             r#"Ok(BinaryOp { op: GreaterThan, lhs: Immediate(Real(2.0)), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("b")), rhs: Immediate(Real(3.0)) } })"#
         ]],
     );
     check(
-        &format!("{:?}", run_parser!(expr(), "2 * b < 3")),
+        &format!("{:?}", run_parser!(expr(), "2.0 * b < 3.0")),
         expect_test::expect![[
             r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: Mul, lhs: Immediate(Real(2.0)), rhs: Ident(Ident("b")) }, rhs: Immediate(Real(3.0)) })"#
         ]],
@@ -358,7 +358,7 @@ fn exprs() {
     check(
         &format!("{:?}", run_parser!(expr(), "2 > b < 3")),
         expect_test::expect![[
-            r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: GreaterThan, lhs: Immediate(Real(2.0)), rhs: Ident(Ident("b")) }, rhs: Immediate(Real(3.0)) })"#
+            r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: GreaterThan, lhs: Immediate(Integer(2)), rhs: Ident(Ident("b")) }, rhs: Immediate(Integer(3)) })"#
         ]],
     );
     check(
