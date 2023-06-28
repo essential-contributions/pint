@@ -144,7 +144,7 @@ fn fn_decl<'sc>(
 
 fn code_block_expr<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
-) -> impl Parser<Token<'sc>, ast::CodeBlock, Error = Simple<Token<'sc>>> + Clone {
+) -> impl Parser<Token<'sc>, ast::Block, Error = Simple<Token<'sc>>> + Clone {
     let code_block_body = choice((
         var_decl(expr.clone()),
         let_decl(expr.clone()),
@@ -152,11 +152,31 @@ fn code_block_expr<'sc>(
     ))
     .repeated()
     .then(expr);
+
     code_block_body
         .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
-        .map(|(statements, expr)| ast::CodeBlock {
+        .map(|(statements, expr)| ast::Block {
             statements,
             final_expr: Box::new(expr),
+        })
+}
+
+fn if_expr<'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone {
+    let then_block = code_block_expr(expr.clone());
+    let else_block = just(Token::Else).ignore_then(code_block_expr(expr.clone()));
+
+    just(Token::If)
+        .ignore_then(expr)
+        .then(then_block)
+        .then(else_block.or_not())
+        .map(|((condition, then_block), else_block)| {
+            ast::Expr::If(ast::IfExpr {
+                condition: Box::new(condition),
+                then_block,
+                else_block,
+            })
         })
 }
 
@@ -175,9 +195,10 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>>
             .then(args)
             .map(|(name, args)| ast::Expr::Call { name, args });
 
-        let code_block = code_block_expr(expr.clone()).map(ast::Expr::CodeBlock);
+        let code_block = code_block_expr(expr.clone()).map(ast::Expr::Block);
 
-        let atom = imm.or(code_block).or(call).or(id);
+        // The order of these choices is important
+        let atom = choice((imm, code_block, if_expr(expr), call, id));
 
         let multiplicative_op = atom
             .clone()
@@ -442,7 +463,7 @@ fn foo(x: real, y: real) -> real {
     check(
         &format!("{:?}", run_parser!(yurt_program(), src)),
         expect_test::expect![[
-            r#"Ok([Fn { name: Ident("foo"), params: [(Ident("x"), Real), (Ident("y"), Real)], return_type: Real, body: CodeBlock { statements: [Let(LetStatement { name: Ident("z"), ty: None, init: Immediate(Real(5.0)) })], final_expr: Ident(Ident("z")) } }])"#
+            r#"Ok([Fn { name: Ident("foo"), params: [(Ident("x"), Real), (Ident("y"), Real)], return_type: Real, body: Block { statements: [Let(LetStatement { name: Ident("z"), ty: None, init: Immediate(Real(5.0)) })], final_expr: Ident(Ident("z")) } }])"#
         ]],
     );
 }
@@ -466,7 +487,7 @@ fn code_blocks() {
     check(
         &format!("{:?}", run_parser!(let_decl(expr()), "let x = { 0 };")),
         expect_test::expect![[
-            r#"Ok(Let(LetStatement { name: Ident("x"), ty: None, init: CodeBlock(CodeBlock { statements: [], final_expr: Immediate(Real(0.0)) }) }))"#
+            r#"Ok(Let(LetStatement { name: Ident("x"), ty: None, init: Block(Block { statements: [], final_expr: Immediate(Real(0.0)) }) }))"#
         ]],
     );
 
@@ -476,7 +497,7 @@ fn code_blocks() {
             run_parser!(let_decl(expr()), "let x = { constraint x > 0; 0 };")
         ),
         expect_test::expect![[
-            r#"Ok(Let(LetStatement { name: Ident("x"), ty: None, init: CodeBlock(CodeBlock { statements: [Constraint(BinaryOp { op: GreaterThan, lhs: Ident(Ident("x")), rhs: Immediate(Real(0.0)) })], final_expr: Immediate(Real(0.0)) }) }))"#
+            r#"Ok(Let(LetStatement { name: Ident("x"), ty: None, init: Block(Block { statements: [Constraint(BinaryOp { op: GreaterThan, lhs: Ident(Ident("x")), rhs: Immediate(Real(0.0)) })], final_expr: Immediate(Real(0.0)) }) }))"#
         ]],
     );
 
@@ -489,7 +510,7 @@ fn code_blocks() {
             )
         ),
         expect_test::expect![[
-            r#"Ok(Constraint(CodeBlock(CodeBlock { statements: [Constraint(CodeBlock(CodeBlock { statements: [], final_expr: Ident(Ident("true")) }))], final_expr: BinaryOp { op: GreaterThan, lhs: Ident(Ident("x")), rhs: Immediate(Real(0.0)) } })))"#
+            r#"Ok(Constraint(Block(Block { statements: [Constraint(Block(Block { statements: [], final_expr: Ident(Ident("true")) }))], final_expr: BinaryOp { op: GreaterThan, lhs: Ident(Ident("x")), rhs: Immediate(Real(0.0)) } })))"#
         ]],
     );
 
@@ -499,7 +520,7 @@ fn code_blocks() {
             run_parser!(let_decl(expr()), "let x = { 1 } * { 2 };")
         ),
         expect_test::expect![[
-            r#"Ok(Let(LetStatement { name: Ident("x"), ty: None, init: BinaryOp { op: Mul, lhs: CodeBlock(CodeBlock { statements: [], final_expr: Immediate(Real(1.0)) }), rhs: CodeBlock(CodeBlock { statements: [], final_expr: Immediate(Real(2.0)) }) } }))"#
+            r#"Ok(Let(LetStatement { name: Ident("x"), ty: None, init: BinaryOp { op: Mul, lhs: Block(Block { statements: [], final_expr: Immediate(Real(1.0)) }), rhs: Block(Block { statements: [], final_expr: Immediate(Real(2.0)) }) } }))"#
         ]],
     );
 
@@ -515,6 +536,36 @@ fn code_blocks() {
     assert!(err_expected.contains(&Some(Token::Let)));
     assert!(err_expected.contains(&Some(Token::Constraint)));
     assert!(err_expected.contains(&Some(Token::BraceOpen)));
+}
+
+#[test]
+fn if_exprs() {
+    check(
+        &format!("{:?}", run_parser!(if_expr(expr()), "if cond { 1 }")),
+        expect_test::expect![[
+            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Real(1.0)) }, else_block: None }))"#
+        ]],
+    );
+
+    check(
+        &format!(
+            "{:?}",
+            run_parser!(if_expr(expr()), "if cond { 1 } else { 0 }")
+        ),
+        expect_test::expect![[
+            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Real(1.0)) }, else_block: Some(Block { statements: [], final_expr: Immediate(Real(0.0)) }) }))"#
+        ]],
+    );
+
+    check(
+        &format!(
+            "{:?}",
+            run_parser!(if_expr(expr()), "if cond { if cond { 1 } else { 0 } }")
+        ),
+        expect_test::expect![[
+            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Real(1.0)) }, else_block: Some(Block { statements: [], final_expr: Immediate(Real(0.0)) }) }) }, else_block: None }))"#
+        ]],
+    );
 }
 
 #[test]
