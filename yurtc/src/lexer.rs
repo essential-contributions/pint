@@ -217,45 +217,71 @@ fn reals() {
 
 #[test]
 fn ints() {
-    assert_eq!(lex_one_success("1"), Token::Integer("1"));
-    assert_eq!(lex_one_success("0030"), Token::Integer("0030"));
-    assert_eq!(lex_one_success("0x333"), Token::Integer("0x333"));
-    assert_eq!(lex_one_success("0b1010"), Token::Integer("0b1010"));
+    check(
+        &format!("{:?}", lex_one_success("1")),
+        expect_test::expect!["Integer(\"1\")"],
+    );
+    check(
+        &format!("{:?}", lex_one_success("0030")),
+        expect_test::expect!["Integer(\"0030\")"],
+    );
+    check(
+        &format!("{:?}", lex_one_success("0x333")),
+        expect_test::expect!["Integer(\"0x333\")"],
+    );
+    check(
+        &format!("{:?}", lex_one_success("0b1010")),
+        expect_test::expect!["Integer(\"0b1010\")"],
+    );
 }
 
 #[test]
 fn bools() {
-    assert_eq!(lex_one_success("true"), Token::True);
-    assert_eq!(lex_one_success("false"), Token::False);
-    assert_ne!(lex_one_success("false"), Token::True);
-    assert_ne!(lex_one_success("true"), Token::False);
+    check(
+        &format!("{:?}", lex_one_success("true")),
+        expect_test::expect!["True"],
+    );
+    check(
+        &format!("{:?}", lex_one_success("false")),
+        expect_test::expect!["False"],
+    );
+    check(
+        &format!("{:?}", lex_one_success("bool")),
+        expect_test::expect!["Bool"],
+    );
 }
 
 #[test]
 fn strings() {
-    assert_eq!(
-        lex_one_success(r#""Hello, world!""#),
-        Token::StringLiteral("Hello, world!".to_string())
+    check(
+        &format!("{:?}", lex_one_success(r#""Hello, world!""#)),
+        expect_test::expect!["StringLiteral(\"Hello, world!\")"],
     );
-    assert_eq!(
-        lex_one_success(
-            r#"
-            "first line \
-            second line \
-            third line"
-            "#
+    check(
+        &format!(
+            "{:?}",
+            lex_one_success(
+                r#"
+                "first line \
+                second line \
+                third line"
+                "#
+            )
         ),
-        Token::StringLiteral("first line second line third line".to_string())
+        expect_test::expect!["StringLiteral(\"first line second line third line\")"],
     );
-    assert_eq!(
-        lex_one_success("\"Hello, world!\n\""),
-        Token::StringLiteral("Hello, world!\n".to_string())
+    check(
+        &format!("{:?}", lex_one_success("\"Hello, world!\n\"")),
+        expect_test::expect!["StringLiteral(\"Hello, world!\\n\")"],
     );
 }
 
 #[test]
 fn func() {
-    assert_eq!(lex_one_success("fn"), Token::Fn);
+    check(
+        &format!("{:?}", lex_one_success("fn")),
+        expect_test::expect!["Fn"],
+    );
 }
 
 #[test]
