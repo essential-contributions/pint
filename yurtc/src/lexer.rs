@@ -38,10 +38,10 @@ pub(super) enum Token<'sc> {
     #[token("fn")]
     Fn,
 
-    #[token("let")]
-    Let,
     #[token("var")]
     Var,
+    #[token("let")]
+    Let,
     #[token("constraint")]
     Constraint,
     #[token("maximize")]

@@ -77,16 +77,13 @@ Items can occur in any order; identifiers need not be declared before they are u
 ```ebnf
 <item> ::= <let-item>
          | <var-item>
-         | <assign-item>
          | <constraint-item>
          | <function-item>
          | <solve-item>
          | <transition-item>
 ```
 
-Variable declaration items (`<let-item>` and `<var-item`) introduce variables and optinoally bind them to a value ([Variable Declaration Items](#variable-declaration-items)).
-
-Assignment items bind values to variables ([Assignment Items](#assignment-items)).
+Variable declaration items (`<let-item>` and `<var-item`) introduce variables and optionally bind them to a value ([Variable Declaration Items](#variable-declaration-items)).
 
 Constraint items describe intent constraints ([Constraint Items](#constraint-items)).
 
@@ -189,7 +186,6 @@ Block expressions are expressions that contains a list of _statements_ followed 
 
 <block-statement> ::= <let-item>
                     | <var-item>
-                    | <assign-item>
                     | <constraint-item>
                     | <if-expr>
 ```
@@ -302,7 +298,7 @@ These are variables whose values are fixed for each given _instance_ of an inten
 Configuration variables have the following syntax:
 
 ```ebnf
-<let-item> ::= "let" <ident> [ ":" <ty> ] [ "=" <expr> ]
+<let-item> ::= "let" <ident> [ ":" <ty> ] "=" <expr>
 ```
 
 For example:
@@ -311,17 +307,6 @@ For example:
 let a:int = 10;
 let b = 5;
 ```
-
-A variable whose declaration does not include an assignment can be initialized by a separate assignment item ([Assignment Items](#assignment-items)). For example, the above items can be separated into the following items:
-
-```rust
-let a:int;
-a = 10;
-let b;
-b = 5;
-```
-
-Variables can only be assigned once in an intent.
 
 #### Decision variables
 
@@ -336,11 +321,11 @@ Decision variables have the following syntax:
 For example:
 
 ```rust
-var x:int;
+var x: int;
 let y = 5;
 ```
 
-Similarly to configuration variables, decision variables can also be assigned, at most once, by a separate assignment item. Values used for initialization or assignment enforce an equality constraint on the decision variable. For example, the following:
+The optional value used for initializing a decision variable enforce an equality constraint on the variable. For example, the following:
 
 ```rust
 var x: int = 5;
@@ -351,14 +336,6 @@ is equivalent to
 ```rust
 var x: int;
 constraint x == 5;
-```
-
-### Assignment Items
-
-Assignments have this syntax:
-
-```ebnf
-<assign-item> ::= <ident> "=" <expr>
 ```
 
 ### Constraint Items

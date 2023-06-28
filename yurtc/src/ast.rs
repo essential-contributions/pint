@@ -1,26 +1,27 @@
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord)]
-pub(super) enum ValueKind {
-    Var,
-    Config,
-}
-
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct ValueDeclStatement {
-    pub(super) kind: ValueKind,
+pub(super) struct VarStatement {
     pub(super) name: Ident,
     pub(super) ty: Option<Type>,
     pub(super) init: Option<Expr>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct LetStatement {
+    pub(super) name: Ident,
+    pub(super) ty: Option<Type>,
+    pub(super) init: Expr,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) struct CodeBlock {
-    pub(super) statements: Vec<ValueDeclStatement>,
+    pub(super) statements: Vec<LetStatement>,
     pub(super) final_expr: Expr,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Decl {
-    Value(ValueDeclStatement),
+    Var(VarStatement),
+    Let(LetStatement),
     Constraint(Expr),
     Fn {
         name: Ident,
