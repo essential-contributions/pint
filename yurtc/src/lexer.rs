@@ -190,6 +190,7 @@ fn lex_one_error(src: &str) -> CompileError {
 #[test]
 fn reals() {
     assert_eq!(lex_one_success("1.05"), Token::RealNumber("1.05"));
+    assert_eq!(lex_one_success("1.0"), Token::RealNumber("1.0"));
     assert_eq!(lex_one_success("2.5e-4"), Token::RealNumber("2.5e-4"));
     assert_eq!(lex_one_success("1.3E5"), Token::RealNumber("1.3E5"));
     assert_eq!(lex_one_success("0.34"), Token::RealNumber("0.34"));

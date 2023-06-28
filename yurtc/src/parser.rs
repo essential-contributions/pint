@@ -218,14 +218,14 @@ fn check(actual: &str, expect: expect_test::Expect) {
 #[test]
 fn value_decls() {
     check(
-        &format!("{:?}", run_parser!(value_decl(), "let blah = 1;")),
+        &format!("{:?}", run_parser!(value_decl(), "let blah = 1.0;")),
         expect_test::expect![[
             r#"Ok(Value(LetStatement { name: Ident("blah"), ty: None, init: Immediate(Real(1.0)) }))"#
         ]],
     );
 
     check(
-        &format!("{:?}", run_parser!(value_decl(), "let blah: real = 1;")),
+        &format!("{:?}", run_parser!(value_decl(), "let blah: real = 1.0;")),
         expect_test::expect![[
             r#"Ok(Value(LetStatement { name: Ident("blah"), ty: Some(Real), init: Immediate(Real(1.0)) }))"#
         ]],
