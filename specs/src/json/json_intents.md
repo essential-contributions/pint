@@ -60,7 +60,7 @@ The following is a list of supported operators:
 
 ## A Simple Example
 
-Below is a simple example showing how the JSON object for the [simple swap intent](introduction.md#example-2) from the [introduction](introduction.md) would look like:
+Below is a simple example showing how the JSON object for the [simple swap intent](../intro/introduction.md#example-2) from the [introduction](../intro/introduction.md) would look like:
 
 ```json
 {
