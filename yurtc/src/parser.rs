@@ -12,6 +12,7 @@ pub(super) fn parse_path_to_ast(path: &Path, filename: &str) -> anyhow::Result<A
     parse_str_to_ast(&read_to_string(path)?, filename)
 }
 
+/// Parse `source` and returns an AST. Upon failure, print all compile errors and exit.
 fn parse_str_to_ast(source: &str, filename: &str) -> anyhow::Result<Ast> {
     match parse_str_to_ast_inner(source) {
         Ok(ast) => Ok(ast),
@@ -22,15 +23,20 @@ fn parse_str_to_ast(source: &str, filename: &str) -> anyhow::Result<Ast> {
     }
 }
 
+/// Parse `source` and returns an AST. Upon failure, return a vector of all compile errors
+/// encountered.
 fn parse_str_to_ast_inner(source: &str) -> Result<Ast, Vec<CompileError>> {
     let mut errors = vec![];
 
+    // Lex the input into tokens and spans. Also collect any lex errors encountered.
     let (tokens, lex_errors) = lexer::lex(source);
     errors.extend(lex_errors);
 
+    // Provide a token stream
     let eoi_span = source.len()..source.len();
     let token_stream = Stream::from_iter(eoi_span, tokens.into_iter());
 
+    // Parse the token stream
     match yurt_program().parse(token_stream) {
         Ok(_) if !errors.is_empty() => Err(errors),
         Err(parsing_errors) => {
