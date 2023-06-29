@@ -38,6 +38,8 @@ pub(super) enum Token<'sc> {
     #[token("fn")]
     Fn,
 
+    #[token("var")]
+    Var,
     #[token("let")]
     Let,
     #[token("constraint")]
@@ -78,6 +80,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Real => write!(f, "real"),
             Token::Fn => write!(f, "Fn"),
             Token::Let => write!(f, "let"),
+            Token::Var => write!(f, "var"),
             Token::Constraint => write!(f, "constraint"),
             Token::Maximize => write!(f, "maximize"),
             Token::Minimize => write!(f, "minimize"),
@@ -138,6 +141,12 @@ fn reals() {
         &format!("{:?}", lex_one_error("12.")),
         expect_test::expect!["Lex { span: 2..3, error: InvalidToken }"],
     );
+}
+
+#[test]
+fn variables() {
+    assert_eq!(lex_one_success("var"), Token::Var);
+    assert_eq!(lex_one_success("let"), Token::Let);
 }
 
 #[test]
