@@ -205,11 +205,12 @@ fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = Simple<Token<'sc>
 }
 
 fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>> + Clone {
-    just(Token::Real)
-        .to(ast::Type::Real)
-        .or(just(Token::Int).to(ast::Type::Int))
-        .or(just(Token::Bool).to(ast::Type::Bool))
-        .or(just(Token::String).to(ast::Type::String))
+    choice((
+        just(Token::Real).to(ast::Type::Real),
+        just(Token::Int).to(ast::Type::Int),
+        just(Token::Bool).to(ast::Type::Bool),
+        just(Token::String).to(ast::Type::String),
+    ))
 }
 
 fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Simple<Token<'sc>>> + Clone {
