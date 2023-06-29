@@ -1,6 +1,6 @@
 use crate::{
     ast,
-    error::{print_on_failure, CompileError},
+    error::{print_on_failure, CompileError, ParseError},
     lexer::{self, Token},
 };
 use chumsky::{prelude::*, Stream};
@@ -42,7 +42,7 @@ fn parse_str_to_ast_inner(source: &str) -> Result<Ast, Vec<CompileError>> {
         Err(parsing_errors) => {
             let parsing_errors: Vec<_> = parsing_errors
                 .iter()
-                .map(|error| CompileError::ParseError {
+                .map(|error| CompileError::Parse {
                     error: error.clone(),
                 })
                 .collect();
@@ -54,7 +54,7 @@ fn parse_str_to_ast_inner(source: &str) -> Result<Ast, Vec<CompileError>> {
     }
 }
 
-fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = Simple<Token<'sc>>> + Clone {
+fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> + Clone {
     choice((
         var_decl(expr()),
         let_decl(expr()),
@@ -67,8 +67,8 @@ fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = Simple<Token<'sc>
 }
 
 fn var_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = Simple<Token<'sc>>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     let type_spec = just(Token::Colon).ignore_then(type_());
     let init = just(Token::Eq).ignore_then(expr);
     just(Token::Var)
@@ -80,8 +80,8 @@ fn var_decl<'sc>(
 }
 
 fn let_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = Simple<Token<'sc>>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     let type_spec = just(Token::Colon).ignore_then(type_());
     let init = just(Token::Eq).ignore_then(expr);
     just(Token::Let)
@@ -93,15 +93,15 @@ fn let_decl<'sc>(
 }
 
 fn constraint_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = Simple<Token<'sc>>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     just(Token::Constraint)
         .ignore_then(expr)
         .then_ignore(just(Token::Semi))
         .map(ast::Decl::Constraint)
 }
 
-fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = Simple<Token<'sc>>> + Clone {
+fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     let solve_satisfy = just(Token::Satisfy).to(ast::SolveFunc::Satisfy);
     let solve_minimize = just(Token::Minimize)
         .ignore_then(ident())
@@ -117,8 +117,8 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = Simple<Token<
 }
 
 fn fn_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = Simple<Token<'sc>>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     let type_spec = just(Token::Colon).ignore_then(type_());
 
     let params = ident()
@@ -143,8 +143,8 @@ fn fn_decl<'sc>(
 }
 
 fn code_block_expr<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
-) -> impl Parser<Token<'sc>, ast::Block, Error = Simple<Token<'sc>>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+) -> impl Parser<Token<'sc>, ast::Block, Error = ParseError<'sc>> + Clone {
     let code_block_body = choice((
         var_decl(expr.clone()),
         let_decl(expr.clone()),
@@ -162,8 +162,8 @@ fn code_block_expr<'sc>(
 }
 
 fn unary_op<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone {
     choice((
         just(Token::Plus).to(ast::UnaryOp::Pos),
         just(Token::Minus).to(ast::UnaryOp::Neg),
@@ -177,8 +177,8 @@ fn unary_op<'sc>(
 }
 
 fn if_expr<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone {
     let then_block = code_block_expr(expr.clone());
     let else_block = just(Token::Else).ignore_then(code_block_expr(expr.clone()));
 
@@ -195,7 +195,7 @@ fn if_expr<'sc>(
         })
 }
 
-fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone {
+fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone {
     recursive(|expr| {
         let args = expr
             .clone()
@@ -222,9 +222,9 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>>
 
 fn multiplicative_op<'sc, P>(
     parser: P,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
 where
-    P: Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
 {
     parser
         .clone()
@@ -245,9 +245,9 @@ where
 
 fn additive_op<'sc, P>(
     parser: P,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
 where
-    P: Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
 {
     parser
         .clone()
@@ -267,9 +267,9 @@ where
 
 fn comparison_op<'sc, P>(
     parser: P,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
 where
-    P: Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
 {
     parser
         .clone()
@@ -291,11 +291,11 @@ where
         })
 }
 
-fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = Simple<Token<'sc>>> + Clone {
+fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError<'sc>> + Clone {
     select! { Token::Ident(id) => ast::Ident(id.to_owned()) }
 }
 
-fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>> + Clone {
+fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError<'sc>> + Clone {
     choice((
         just(Token::Real).to(ast::Type::Real),
         just(Token::Int).to(ast::Type::Int),
@@ -304,7 +304,7 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>
     ))
 }
 
-fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Simple<Token<'sc>>> + Clone {
+fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseError<'sc>> + Clone {
     select! {
         Token::RealLiteral(num_str) => ast::Immediate::Real(num_str.parse().unwrap()),
         Token::IntLiteral(num_str) => ast::Immediate::Int(num_str.parse().unwrap()),
@@ -358,7 +358,9 @@ fn let_decls() {
     );
     check(
         &format!("{:?}", run_parser!(let_decl(expr()), "let blah: real")),
-        expect_test::expect!["Err([Simple { span: 14..14, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"],
+        expect_test::expect![
+            "Err([ExpectedFound { span: 14..14, expected: [Some(Eq)], found: None }])"
+        ],
     );
     check(
         &format!("{:?}", run_parser!(let_decl(expr()), "let blah = 1;")),
@@ -374,7 +376,9 @@ fn let_decls() {
     );
     check(
         &format!("{:?}", run_parser!(let_decl(expr()), "let blah: int")),
-        expect_test::expect!["Err([Simple { span: 13..13, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"],
+        expect_test::expect![
+            "Err([ExpectedFound { span: 13..13, expected: [Some(Eq)], found: None }])"
+        ],
     );
     check(
         &format!("{:?}", run_parser!(let_decl(expr()), "let blah = true;")),
@@ -393,9 +397,9 @@ fn let_decls() {
     );
     check(
         &format!("{:?}", run_parser!(let_decl(expr()), "let blah: bool")),
-        expect_test::expect![[
-            r#"Err([Simple { span: 14..14, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"#
-        ]],
+        expect_test::expect![
+            "Err([ExpectedFound { span: 14..14, expected: [Some(Eq)], found: None }])"
+        ],
     );
     check(
         &format!(
@@ -417,9 +421,9 @@ fn let_decls() {
     );
     check(
         &format!("{:?}", run_parser!(let_decl(expr()), r#"let blah: string"#)),
-        expect_test::expect![[
-            r#"Err([Simple { span: 16..16, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"#
-        ]],
+        expect_test::expect![
+            "Err([ExpectedFound { span: 16..16, expected: [Some(Eq)], found: None }])"
+        ],
     );
 }
 
@@ -547,11 +551,12 @@ fn solve_decls() {
         expect_test::expect![[r#"Ok(Solve(Maximize(Ident("foo"))))"#]],
     );
 
-    let res = run_parser!(solve_decl(), "solve world hunger;");
-    assert!(res.is_err());
-    let simple = &res.unwrap_err()[0];
-    assert_eq!(simple.reason(), &chumsky::error::SimpleReason::Unexpected);
-    assert_eq!(simple.found(), Some(&Token::Ident("world")));
+    check(
+        &format!("{:?}", run_parser!(solve_decl(), "solve world hunger;")),
+        expect_test::expect![[
+            r#"Err([ExpectedFound { span: 6..11, expected: [Some(Maximize), Some(Minimize), Some(Satisfy)], found: Some(Ident("world")) }])"#
+        ]],
+    );
 }
 
 #[test]
@@ -769,7 +774,7 @@ fn idents() {
     check(
         &format!("{:?}", run_parser!(ident(), "12_ab")),
         expect_test::expect![[
-            r#"Err([Simple { span: 0..2, reason: Unexpected, expected: {}, found: Some(IntLiteral("12")), label: None }])"#
+            r#"Err([ExpectedFound { span: 0..2, expected: [], found: Some(IntLiteral("12")) }])"#
         ]],
     );
     check(
@@ -852,25 +857,22 @@ fn code_blocks() {
         ]],
     );
 
-    let res = run_parser!(let_decl(expr()), "let x = {};");
-    assert!(res.is_err());
-    let err = &res.unwrap_err()[0];
-    assert_eq!(err.reason(), &chumsky::error::SimpleReason::Unexpected);
-    assert_eq!(err.found(), Some(&Token::BraceClose));
-
-    // The tokens in `err.found()` are stored in a non-deterministic order.
-    let err_expected: std::collections::HashSet<_> = err.expected().collect();
-    assert!(err_expected.contains(&Some(Token::Var)));
-    assert!(err_expected.contains(&Some(Token::Let)));
-    assert!(err_expected.contains(&Some(Token::Constraint)));
-    assert!(err_expected.contains(&Some(Token::BraceOpen)));
+    check(
+        &format!(
+            "{:?}",
+            run_parser!(let_decl(expr()), "let x = {};")
+        ),
+        expect_test::expect!["Err([ExpectedFound { span: 9..10, expected: [Some(If), Some(BraceOpen), Some(Bang), Some(Minus), Some(Plus), Some(Constraint), Some(Let), Some(Var)], found: Some(BraceClose) }])"],
+    );
 }
 
 #[test]
 fn if_exprs() {
     check(
         &format!("{:?}", run_parser!(if_expr(expr()), "if cond { 1 }")),
-        expect_test::expect!["Err([Simple { span: 13..13, reason: Unexpected, expected: {Some(Else)}, found: None, label: None }])"],
+        expect_test::expect![
+            "Err([ExpectedFound { span: 13..13, expected: [Some(Else)], found: None }])"
+        ],
     );
 
     check(
@@ -933,40 +935,30 @@ solve minimize mid;
 
 #[test]
 fn with_errors() {
-    let src = r#"let low_val: bad = 1.23"#;
-
-    let res = run_parser!(var_decl(expr()), src);
-    assert!(res.is_err());
-    let errs = res.unwrap_err();
-    assert!(matches!(errs[0], Simple { .. }));
+    check(
+        &format!(
+            "{:?}",
+            run_parser!(yurt_program(), "let low_val: bad = 1.23")
+        ),
+        expect_test::expect![[
+            r#"Err([ExpectedFound { span: 13..16, expected: [Some(String), Some(Bool), Some(Int), Some(Real)], found: Some(Ident("bad")) }])"#
+        ]],
+    );
 }
 
 #[test]
 fn fn_errors() {
-    let src = r#"fn foo() {5}"#;
-    let res = run_parser!(fn_decl(expr()), src);
-    assert!(res.is_err());
-    let err = &res.unwrap_err()[0];
-    assert_eq!(err.reason(), &chumsky::error::SimpleReason::Unexpected);
-    assert_eq!(err.found(), Some(&Token::BraceOpen));
-    assert_eq!(
-        err.expected().collect::<Vec<_>>(),
-        vec![&Some(Token::Arrow)]
+    check(
+        &format!("{:?}", run_parser!(yurt_program(), "fn foo() {5}")),
+        expect_test::expect![
+            "Err([ExpectedFound { span: 9..10, expected: [Some(Arrow)], found: Some(BraceOpen) }])"
+        ],
     );
 
-    let src = r#"fn foo() -> real {}"#;
-    let res = run_parser!(fn_decl(expr()), src);
-    assert!(res.is_err());
-    let err = &res.unwrap_err()[0];
-    assert_eq!(err.reason(), &chumsky::error::SimpleReason::Unexpected);
-    assert_eq!(err.found(), Some(&Token::BraceClose));
-
-    // The tokens in `err.found()` are stored in a non-deterministic order.
-    let err_expected: std::collections::HashSet<_> = err.expected().collect();
-    assert!(err_expected.contains(&Some(Token::Var)));
-    assert!(err_expected.contains(&Some(Token::Let)));
-    assert!(err_expected.contains(&Some(Token::Constraint)));
-    assert!(err_expected.contains(&Some(Token::BraceOpen)));
+    check(
+        &format!("{:?}", run_parser!(yurt_program(), "fn foo() -> real {}")),
+        expect_test::expect!["Err([ExpectedFound { span: 18..19, expected: [Some(If), Some(BraceOpen), Some(Bang), Some(Minus), Some(Plus), Some(Constraint), Some(Let), Some(Var)], found: Some(BraceClose) }])"],
+    );
 }
 
 #[test]

@@ -3,7 +3,7 @@ use itertools::{Either, Itertools};
 use logos::Logos;
 use std::fmt;
 
-#[derive(Clone, Debug, Eq, Hash, Logos, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, Logos, PartialEq, Ord, PartialOrd)]
 #[logos(skip r"[ \t\n\r\f]+")]
 #[logos(error = LexError)]
 pub(super) enum Token<'sc> {
