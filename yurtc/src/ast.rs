@@ -1,4 +1,11 @@
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct VarStatement {
+    pub(super) name: Ident,
+    pub(super) ty: Option<Type>,
+    pub(super) init: Option<Expr>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) struct LetStatement {
     pub(super) name: Ident,
     pub(super) ty: Option<Type>,
@@ -7,13 +14,14 @@ pub(super) struct LetStatement {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct CodeBlock {
-    pub(super) statements: Vec<LetStatement>,
-    pub(super) final_expr: Expr,
+    pub(super) statements: Vec<Decl>,
+    pub(super) final_expr: Box<Expr>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Decl {
-    Value(LetStatement),
+    Var(VarStatement),
+    Let(LetStatement),
     Constraint(Expr),
     Fn {
         name: Ident,
@@ -45,6 +53,7 @@ pub(super) enum Expr {
         name: Ident,
         args: Vec<Expr>,
     },
+    CodeBlock(CodeBlock),
 }
 
 #[derive(Clone, Debug, PartialEq)]
