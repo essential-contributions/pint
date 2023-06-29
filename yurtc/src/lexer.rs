@@ -254,6 +254,18 @@ fn strings() {
         lex_one_success("\"Hello, world!\n\""),
         Token::StringLiteral("Hello, world!\n".to_string())
     );
+    assert_eq!(
+        lex_one_success("\"Hello, world!\t\""),
+        Token::StringLiteral("Hello, world!\t".to_string())
+    );
+    assert_eq!(
+        lex_one_success(r#""Hello, \" world\"!""#),
+        Token::StringLiteral("Hello, \" world\"!".to_string())
+    );
+    assert_eq!(
+        lex_one_success(r#""Hello, \\ world!""#),
+        Token::StringLiteral("Hello, \\ world!".to_string())
+    );
 }
 
 #[test]
