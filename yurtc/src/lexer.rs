@@ -66,9 +66,9 @@ pub(super) enum Token<'sc> {
     #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice())]
     Ident(&'sc str),
     #[regex(r"[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+", |lex| lex.slice())]
-    RealNumber(&'sc str),
+    RealLiteral(&'sc str),
     #[regex(r"0x[0-9A-Fa-f]+|0b[0-1]+|[0-9]+", |lex| lex.slice())]
-    Integer(&'sc str),
+    IntLiteral(&'sc str),
     #[regex(
         r#""([^"\\]|\\(x[0-9a-fA-F]{2}|n|t|"|\\|\n[\t ]*))*""#,
         process_string_literal
@@ -109,8 +109,8 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Solve => write!(f, "solve"),
             Token::Satisfy => write!(f, "satisfy"),
             Token::Ident(ident) => write!(f, "{ident}"),
-            Token::RealNumber(ident) => write!(f, "{ident}"),
-            Token::Integer(ident) => write!(f, "{ident}"),
+            Token::RealLiteral(ident) => write!(f, "{ident}"),
+            Token::IntLiteral(ident) => write!(f, "{ident}"),
             Token::StringLiteral(contents) => write!(f, "{}", contents),
             Token::Comment => write!(f, "comment"),
         }
@@ -199,11 +199,11 @@ fn lex_one_error(src: &str) -> CompileError {
 
 #[test]
 fn reals() {
-    assert_eq!(lex_one_success("1.05"), Token::RealNumber("1.05"));
-    assert_eq!(lex_one_success("1.0"), Token::RealNumber("1.0"));
-    assert_eq!(lex_one_success("2.5e-4"), Token::RealNumber("2.5e-4"));
-    assert_eq!(lex_one_success("1.3E5"), Token::RealNumber("1.3E5"));
-    assert_eq!(lex_one_success("0.34"), Token::RealNumber("0.34"));
+    assert_eq!(lex_one_success("1.05"), Token::RealLiteral("1.05"));
+    assert_eq!(lex_one_success("1.0"), Token::RealLiteral("1.0"));
+    assert_eq!(lex_one_success("2.5e-4"), Token::RealLiteral("2.5e-4"));
+    assert_eq!(lex_one_success("1.3E5"), Token::RealLiteral("1.3E5"));
+    assert_eq!(lex_one_success("0.34"), Token::RealLiteral("0.34"));
     check(
         &format!("{:?}", lex_one_error("-0.34")),
         expect_test::expect![[r#"Lex { span: 0..1, error: InvalidToken }"#]],
@@ -220,10 +220,10 @@ fn reals() {
 
 #[test]
 fn ints() {
-    assert_eq!(lex_one_success("1"), Token::Integer("1"));
-    assert_eq!(lex_one_success("0030"), Token::Integer("0030"));
-    assert_eq!(lex_one_success("0x333"), Token::Integer("0x333"));
-    assert_eq!(lex_one_success("0b1010"), Token::Integer("0b1010"));
+    assert_eq!(lex_one_success("1"), Token::IntLiteral("1"));
+    assert_eq!(lex_one_success("0030"), Token::IntLiteral("0030"));
+    assert_eq!(lex_one_success("0x333"), Token::IntLiteral("0x333"));
+    assert_eq!(lex_one_success("0b1010"), Token::IntLiteral("0b1010"));
 }
 
 #[test]
@@ -302,21 +302,21 @@ solve minimize mid;
     assert!(matches!(tokens[2].0, Colon));
     assert!(matches!(tokens[3].0, Int));
     assert!(matches!(tokens[4].0, Eq));
-    assert!(matches!(tokens[5].0, RealNumber("5.0")));
+    assert!(matches!(tokens[5].0, RealLiteral("5.0")));
     assert!(matches!(tokens[6].0, Semi));
 
     assert!(matches!(tokens[7].0, Constraint));
     assert!(matches!(tokens[8].0, Ident("mid")));
     assert!(matches!(tokens[9].0, Gt));
     assert!(matches!(tokens[10].0, Ident("low_val")));
-    assert!(matches!(tokens[11].0, Integer("2")));
+    assert!(matches!(tokens[11].0, IntLiteral("2")));
     assert!(matches!(tokens[12].0, Semi));
 
     assert!(matches!(tokens[13].0, Constraint));
     assert!(matches!(tokens[14].0, Ident("mid")));
     assert!(matches!(tokens[15].0, Lt));
     assert!(matches!(tokens[16].0, Ident("low_val")));
-    assert!(matches!(tokens[17].0, Integer("2")));
+    assert!(matches!(tokens[17].0, IntLiteral("2")));
     assert!(matches!(tokens[18].0, Semi));
 
     assert!(matches!(tokens[19].0, Solve));

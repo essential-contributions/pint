@@ -69,8 +69,8 @@ pub(super) enum BinaryOp {
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Immediate {
     Real(f64),
-    Integer(i64),
-    Boolean(bool),
+    Int(i64),
+    Bool(bool),
     String(String),
 }
 
