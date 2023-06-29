@@ -21,30 +21,6 @@ jobs:
       - name: Run trunk upgrade
         run: trunk upgrade --ci-progress --monitor=false
 
-  cargo-update:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          components: rustfmt, clippy
-
-      - name: Cache cargo registry
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
-
-      - name: Run cargo update
-        run: cargo update
-
       - name: Commit and push changes
         run: |
           git config --global user.name "GitHub Actions Bot"
