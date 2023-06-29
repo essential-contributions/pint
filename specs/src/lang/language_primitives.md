@@ -76,16 +76,14 @@ Items can occur in any order; identifiers need not be declared before they are u
 
 ```ebnf
 <item> ::= <let-item>
-         | <assign-item>
+         | <var-item>
          | <constraint-item>
          | <function-item>
          | <solve-item>
          | <transition-item>
 ```
 
-Variable declaration items (`<let-item>`) introduce variables and bind them to a value ([Variable Declaration Items](#variable-declaration-items)).
-
-Assignment items bind values to variables ([Assignment Items](#assignment-items)).
+Variable declaration items (`<let-item>` and `<var-item`) introduce variables and optionally bind them to a value ([Variable Declaration Items](#variable-declaration-items)).
 
 Constraint items describe intent constraints ([Constraint Items](#constraint-items)).
 
@@ -119,7 +117,7 @@ The syntax for a types is as follows:
 <tuple-ty> ::= "(" ( <ty> "," ... ) ")"
 ```
 
-For example, in `let var: (int, real, string) = (5, 3.0, "foo")`, `(int, real, string)` is a tuple type.
+For example, in `let t: (int, real, string) = (5, 3.0, "foo")`, `(int, real, string)` is a tuple type.
 
 ## Expressions
 
@@ -186,7 +184,10 @@ Block expressions are expressions that contains a list of _statements_ followed 
 ```ebnf
 <block-expr> ::= "{" [ <block-statement> ";" ... ] <expr> "}"
 
-<block-statement> ::= <let-item> | <assign-item> | <if-expr>
+<block-statement> ::= <let-item>
+                    | <var-item>
+                    | <constraint-item>
+                    | <if-expr>
 ```
 
 The type of the block expression is the type of the final expression. For example:
@@ -288,10 +289,16 @@ This section describes the top-level program items.
 
 ### Variable Declaration Items
 
-Variable declarations have the following syntax:
+There are two types of variable declarations:
+
+#### Configuration variables
+
+These are variables whose values are fixed for each given _instance_ of an intent.
+
+Configuration variables have the following syntax:
 
 ```ebnf
-<let-item> ::= "let" <ident> [ ":" <ty> ] [ "=" <expr> ]
+<let-item> ::= "let" <ident> [ ":" <ty> ] "=" <expr>
 ```
 
 For example:
@@ -301,23 +308,34 @@ let a:int = 10;
 let b = 5;
 ```
 
-A variable whose declaration does not include an assignment can be initialized by a separate assignment item ([Assignment Items](#assignment-items)). For example, the above items can be separated into the following items:
+#### Decision variables
 
-```rust
-let a:int;
-a = 10;
-let b;
-b = 5;
-```
+These are variables whose values can be unknown for a given _instance_ for an intent. Solver are required to find appropriate values for these variables.
 
-Variables can only be assigned once in an intent.
-
-### Assignment Items
-
-Assignments have this syntax:
+Decision variables have the following syntax:
 
 ```ebnf
-<assign-item> ::= <ident> "=" <expr>
+<var-item> ::= "var" <ident> [ ":" <ty> ] [ "=" <expr> ]
+```
+
+For example:
+
+```rust
+var x: int;
+let y = 5;
+```
+
+The optional value used for initializing a decision variable enforce an equality constraint on the variable. For example, the following:
+
+```rust
+var x: int = 5;
+```
+
+is equivalent to
+
+```rust
+var x: int;
+constraint x == 5;
 ```
 
 ### Constraint Items
