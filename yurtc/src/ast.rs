@@ -61,7 +61,6 @@ pub(super) enum Expr {
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum BinaryOp {
     Mul,
-
     LessThan,
     GreaterThan,
 }

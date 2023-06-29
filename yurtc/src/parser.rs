@@ -362,10 +362,12 @@ fn var_decls() {
             r#"Ok(Var(VarStatement { name: Ident("blah"), ty: Some(Int), init: Some(Immediate(Int(1))) }))"#
         ]],
     );
-    // check(
-    //     &format!("{:?}", run_parser!(var_decl(), "var blah: int")),
-    //     expect_test::expect!["Err([Simple { span: 13..13, reason: Unexpected, expected: {Some(Semi), Some(Eq)}, found: None, label: None }])"],
-    // );
+    check(
+        &format!("{:?}", run_parser!(var_decl(), "var blah: int;")),
+        expect_test::expect![
+            r#"Ok(Var(VarStatement { name: Ident("blah"), ty: Some(Int), init: None }))"#
+        ],
+    );
     check(
         &format!("{:?}", run_parser!(var_decl(), "var blah = true;")),
         expect_test::expect![[
@@ -378,12 +380,12 @@ fn var_decls() {
             r#"Ok(Var(VarStatement { name: Ident("blah"), ty: Some(Bool), init: Some(Immediate(Bool(false))) }))"#
         ]],
     );
-    // check(
-    //     &format!("{:?}", run_parser!(var_decl(), "var blah: bool")),
-    //     expect_test::expect![[
-    //         r#"Err([Simple { span: 14..14, reason: Unexpected, expected: {Some(Eq), Some(Semi)}, found: None, label: None }])"#
-    //     ]],
-    // );
+    check(
+        &format!("{:?}", run_parser!(var_decl(), "var blah: bool;")),
+        expect_test::expect![[
+            r#"Ok(Var(VarStatement { name: Ident("blah"), ty: Some(Bool), init: None }))"#
+        ]],
+    );
     check(
         &format!("{:?}", run_parser!(var_decl(), r#"var blah = "hello";"#)),
         expect_test::expect![[
@@ -399,12 +401,12 @@ fn var_decls() {
             r#"Ok(Var(VarStatement { name: Ident("blah"), ty: Some(String), init: Some(Immediate(String("hello"))) }))"#
         ]],
     );
-    // check(
-    //     &format!("{:?}", run_parser!(var_decl(), r#"var blah: string"#)),
-    //     expect_test::expect![[
-    //         r#"Err([Simple { span: 16..16, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"#
-    //     ]],
-    // );
+    check(
+        &format!("{:?}", run_parser!(var_decl(), r#"var blah: string;"#)),
+        expect_test::expect![[
+            r#"Ok(Var(VarStatement { name: Ident("blah"), ty: Some(String), init: None }))"#
+        ]],
+    );
 }
 
 #[test]
