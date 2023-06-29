@@ -14,8 +14,8 @@ pub(super) struct LetStatement {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct CodeBlock {
-    pub(super) statements: Vec<LetStatement>,
-    pub(super) final_expr: Expr,
+    pub(super) statements: Vec<Decl>,
+    pub(super) final_expr: Box<Expr>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -56,6 +56,7 @@ pub(super) enum Expr {
         name: Ident,
         args: Vec<Expr>,
     },
+    CodeBlock(CodeBlock),
 }
 
 #[derive(Clone, Debug, PartialEq)]
