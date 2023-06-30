@@ -264,10 +264,12 @@ For example: `let t = (5, 3, "foo")`;
 Yurt provides `if` expressions which provide selection from two alternatives based on a condition. They have this syntax:
 
 ```ebnf
-<if-expr> ::= "if" <expr> <block-expr> "else" [ <block-expr> | <if-expr> ]
+<if-expr> ::= "if" <expr> <block-expr> "else" <block-expr>
 ```
 
 The condition `<expr>` above must be of type `bool`. The "then" and "else" block expressions must have the same type or be coercible to the same type, which is also the type of the whole `if` expression.
+
+Note that the `else` block is not optional and the `else if { .. }` syntax is not supported.
 
 #### Call Expressions
 

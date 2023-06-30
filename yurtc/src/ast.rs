@@ -81,5 +81,5 @@ pub(super) enum SolveFunc {
 pub(super) struct IfExpr {
     pub(super) condition: Box<Expr>,
     pub(super) then_block: Block,
-    pub(super) else_block: Option<Block>,
+    pub(super) else_block: Block,
 }

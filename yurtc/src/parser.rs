@@ -170,7 +170,7 @@ fn if_expr<'sc>(
     just(Token::If)
         .ignore_then(expr)
         .then(then_block)
-        .then(else_block.or_not())
+        .then(else_block)
         .map(|((condition, then_block), else_block)| {
             ast::Expr::If(ast::IfExpr {
                 condition: Box::new(condition),
@@ -542,9 +542,7 @@ fn code_blocks() {
 fn if_exprs() {
     check(
         &format!("{:?}", run_parser!(if_expr(expr()), "if cond { 1 }")),
-        expect_test::expect![[
-            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Real(1.0)) }, else_block: None }))"#
-        ]],
+        expect_test::expect!["Err([Simple { span: 13..13, reason: Unexpected, expected: {Some(Else)}, found: None, label: None }])"],
     );
 
     check(
@@ -553,17 +551,33 @@ fn if_exprs() {
             run_parser!(if_expr(expr()), "if cond { 1 } else { 0 }")
         ),
         expect_test::expect![[
-            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Real(1.0)) }, else_block: Some(Block { statements: [], final_expr: Immediate(Real(0.0)) }) }))"#
+            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Real(1.0)) }, else_block: Block { statements: [], final_expr: Immediate(Real(0.0)) } }))"#
         ]],
     );
 
     check(
         &format!(
             "{:?}",
-            run_parser!(if_expr(expr()), "if cond { if cond { 1 } else { 0 } }")
+            run_parser!(
+                if_expr(expr()),
+                "if cond { if cond { 1 } else { 0 } } else { 2 }"
+            )
         ),
         expect_test::expect![[
-            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Real(1.0)) }, else_block: Some(Block { statements: [], final_expr: Immediate(Real(0.0)) }) }) }, else_block: None }))"#
+            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Real(1.0)) }, else_block: Block { statements: [], final_expr: Immediate(Real(0.0)) } }) }, else_block: Block { statements: [], final_expr: Immediate(Real(2.0)) } }))"#
+        ]],
+    );
+
+    check(
+        &format!(
+            "{:?}",
+            run_parser!(
+                if_expr(expr()),
+                "if cond { 1 } else { if cond { 2 } else { 3 } }"
+            )
+        ),
+        expect_test::expect![[
+            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Real(1.0)) }, else_block: Block { statements: [], final_expr: If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Real(2.0)) }, else_block: Block { statements: [], final_expr: Immediate(Real(3.0)) } }) } }))"#
         ]],
     );
 }
