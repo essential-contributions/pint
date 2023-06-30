@@ -63,28 +63,6 @@ jobs:
         run: cargo udeps --locked --all-targets
         working-directory: yurtc
 
-  cargo-outdated-deps-check:
-    name: Cargo Outdated Dependencies Check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Install cargo-outdated
-        run: cargo install --locked cargo-outdated
-        working-directory: yurtc
-
-      - name: Check Outdated Deps
-        run: cargo outdated --root-deps-only --exit-code 1
-        working-directory: yurtc
-
   cargo-toml-lint-check:
     name: Cargo.toml Link Check
     runs-on: ubuntu-latest
