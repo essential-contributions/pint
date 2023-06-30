@@ -261,7 +261,6 @@ fn check(actual: &str, expect: expect_test::Expect) {
 
 #[test]
 fn let_decls() {
-    // let blah
     check(
         &format!("{:?}", run_parser!(let_decl(expr()), "let blah = 1.0;")),
         expect_test::expect![[
