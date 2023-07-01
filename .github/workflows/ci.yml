@@ -86,7 +86,7 @@ jobs:
         working-directory: yurtc
 
   cargo-test-workspace:
-    name: Cargo Test Workspace Using Nextest
+    name: Cargo Test Workspace Using nextest
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
