@@ -38,6 +38,11 @@ pub(super) enum Token<'sc> {
     #[token("fn")]
     Fn,
 
+    #[token("if")]
+    If,
+    #[token("else")]
+    Else,
+
     #[token("var")]
     Var,
     #[token("let")]
@@ -79,6 +84,8 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Arrow => write!(f, "->"),
             Token::Real => write!(f, "real"),
             Token::Fn => write!(f, "Fn"),
+            Token::If => write!(f, "If"),
+            Token::Else => write!(f, "Else"),
             Token::Let => write!(f, "let"),
             Token::Var => write!(f, "var"),
             Token::Constraint => write!(f, "constraint"),
@@ -152,6 +159,12 @@ fn variables() {
 #[test]
 fn func() {
     assert_eq!(lex_one_success("fn"), Token::Fn);
+}
+
+#[test]
+fn if_and_else() {
+    assert_eq!(lex_one_success("if"), Token::If);
+    assert_eq!(lex_one_success("else"), Token::Else);
 }
 
 #[test]

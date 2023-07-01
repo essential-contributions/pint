@@ -13,7 +13,7 @@ pub(super) struct LetStatement {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct CodeBlock {
+pub(super) struct Block {
     pub(super) statements: Vec<Decl>,
     pub(super) final_expr: Box<Expr>,
 }
@@ -27,7 +27,7 @@ pub(super) enum Decl {
         name: Ident,
         params: Vec<(Ident, Type)>,
         return_type: Type,
-        body: CodeBlock,
+        body: Block,
     },
     Solve(SolveFunc),
 }
@@ -53,7 +53,8 @@ pub(super) enum Expr {
         name: Ident,
         args: Vec<Expr>,
     },
-    CodeBlock(CodeBlock),
+    Block(Block),
+    If(IfExpr),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -74,4 +75,11 @@ pub(super) enum SolveFunc {
     Satisfy,
     Minimize(Ident),
     Maximize(Ident),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct IfExpr {
+    pub(super) condition: Box<Expr>,
+    pub(super) then_block: Block,
+    pub(super) else_block: Block,
 }
