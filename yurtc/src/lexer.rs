@@ -70,7 +70,7 @@ pub(super) enum Token<'sc> {
 
     #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice())]
     Ident(&'sc str),
-    #[regex(r"[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+", |lex| lex.slice())]
+    #[regex(r"[+-]?[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+", |lex| lex.slice())]
     RealLiteral(&'sc str),
     #[regex(r"0x[0-9A-Fa-f]+|0b[0-1]+|[0-9]+", |lex| lex.slice())]
     IntLiteral(&'sc str),
@@ -211,10 +211,7 @@ fn reals() {
     assert_eq!(lex_one_success("2.5e-4"), Token::RealLiteral("2.5e-4"));
     assert_eq!(lex_one_success("1.3E5"), Token::RealLiteral("1.3E5"));
     assert_eq!(lex_one_success("0.34"), Token::RealLiteral("0.34"));
-    check(
-        &format!("{:?}", lex_one_error("-0.34")),
-        expect_test::expect![[r#"Lex { span: 0..1, error: InvalidToken }"#]],
-    );
+    assert_eq!(lex_one_success("-0.34"), Token::RealLiteral("-0.34"));
     check(
         &format!("{:?}", lex_one_error(".34")),
         expect_test::expect![[r#"Lex { span: 0..1, error: InvalidToken }"#]],
