@@ -70,7 +70,7 @@ pub(super) enum Token<'sc> {
     #[regex(r"0x[0-9A-Fa-f]+|0b[0-1]+|[0-9]+", |lex| lex.slice())]
     IntLiteral(&'sc str),
     #[regex(
-        r#""([^"\\]|\\(x[0-9a-fA-F]{2}|n|t|"|\\|\n[\t ]*))*""#,
+        r#""([^"\\]|\\(x[0-9a-fA-F]{2}|[nt"]|\\|\n))*""#,
         process_string_literal
     )]
     StringLiteral(String),
