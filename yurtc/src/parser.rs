@@ -688,7 +688,7 @@ fn if_exprs() {
             run_parser!(if_expr(expr()), "if cond { 1 } else { 0 }")
         ),
         expect_test::expect![[
-            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Real(1.0)) }, else_block: Block { statements: [], final_expr: Immediate(Real(0.0)) } }))"#
+            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } }))"#
         ]],
     );
 
@@ -701,7 +701,7 @@ fn if_exprs() {
             )
         ),
         expect_test::expect![[
-            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Real(1.0)) }, else_block: Block { statements: [], final_expr: Immediate(Real(0.0)) } }) }, else_block: Block { statements: [], final_expr: Immediate(Real(2.0)) } }))"#
+            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } }) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }))"#
         ]],
     );
 
@@ -710,7 +710,7 @@ fn if_exprs() {
             "{:?}",
             run_parser!(
                 if_expr(expr()),
-                "if cond { 1 } else { if cond { 2 } else { 3 } }"
+                "if cond { 1.0 } else { if cond { 2.0 } else { 3.0 } }"
             )
         ),
         expect_test::expect![[
