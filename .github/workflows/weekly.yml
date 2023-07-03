@@ -1,0 +1,30 @@
+name: Weekly Update
+
+on:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron: "0 0 * * 0" # yamllint disable-line rule:quoted-strings
+  workflow_dispatch: {}
+
+jobs:
+  trunk-upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Trunk
+        run: |
+          curl -LsSf https://trunk.io/install.sh | sh
+          echo "$HOME/.trunk/bin" >> $GITHUB_PATH
+
+      - name: Run trunk upgrade
+        run: trunk upgrade --ci-progress --monitor=false
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Update dependencies and trunk [skip ci]"
+          git push
