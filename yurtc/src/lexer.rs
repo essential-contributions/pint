@@ -111,7 +111,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Ident(ident) => write!(f, "{ident}"),
             Token::RealLiteral(ident) => write!(f, "{ident}"),
             Token::IntLiteral(ident) => write!(f, "{ident}"),
-            Token::StringLiteral(contents) => write!(f, "{}", contents),
+            Token::StringLiteral(contents) => write!(f, "{contents}"),
             Token::Comment => write!(f, "comment"),
         }
     }
