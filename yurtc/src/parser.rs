@@ -237,11 +237,22 @@ fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = Simple<Token<'sc>
 }
 
 fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>> + Clone {
-    just(Token::Real).to(ast::Type::Real)
+    choice((
+        just(Token::Real).to(ast::Type::Real),
+        just(Token::Int).to(ast::Type::Int),
+        just(Token::Bool).to(ast::Type::Bool),
+        just(Token::String).to(ast::Type::String),
+    ))
 }
 
 fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Simple<Token<'sc>>> + Clone {
-    select! { Token::Number(num_str) => ast::Immediate::Real(num_str.parse().unwrap()) }
+    select! {
+        Token::RealLiteral(num_str) => ast::Immediate::Real(num_str.parse().unwrap()),
+        Token::IntLiteral(num_str) => ast::Immediate::Int(num_str.parse().unwrap()),
+        Token::True => ast::Immediate::Bool(true),
+        Token::False => ast::Immediate::Bool(false),
+        Token::StringLiteral(str_val) => ast::Immediate::String(str_val)
+    }
 }
 
 // To-do tests:
@@ -272,52 +283,180 @@ fn check(actual: &str, expect: expect_test::Expect) {
 #[test]
 fn let_decls() {
     check(
-        &format!("{:?}", run_parser!(let_decl(expr()), "let blah = 1;")),
+        &format!("{:?}", run_parser!(let_decl(expr()), "let blah = 1.0;")),
         expect_test::expect![[
             r#"Ok(Let(LetStatement { name: Ident("blah"), ty: None, init: Immediate(Real(1.0)) }))"#
         ]],
     );
-
     check(
-        &format!("{:?}", run_parser!(let_decl(expr()), "let blah: real = 1;")),
+        &format!(
+            "{:?}",
+            run_parser!(let_decl(expr()), "let blah: real = 1.0;")
+        ),
         expect_test::expect![[
             r#"Ok(Let(LetStatement { name: Ident("blah"), ty: Some(Real), init: Immediate(Real(1.0)) }))"#
         ]],
     );
-
     check(
         &format!("{:?}", run_parser!(let_decl(expr()), "let blah: real")),
         expect_test::expect!["Err([Simple { span: 14..14, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"],
+    );
+    check(
+        &format!("{:?}", run_parser!(let_decl(expr()), "let blah = 1;")),
+        expect_test::expect![[
+            r#"Ok(Let(LetStatement { name: Ident("blah"), ty: None, init: Immediate(Int(1)) }))"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(let_decl(expr()), "let blah: int = 1;")),
+        expect_test::expect![[
+            r#"Ok(Let(LetStatement { name: Ident("blah"), ty: Some(Int), init: Immediate(Int(1)) }))"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(let_decl(expr()), "let blah: int")),
+        expect_test::expect!["Err([Simple { span: 13..13, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"],
+    );
+    check(
+        &format!("{:?}", run_parser!(let_decl(expr()), "let blah = true;")),
+        expect_test::expect![[
+            r#"Ok(Let(LetStatement { name: Ident("blah"), ty: None, init: Immediate(Bool(true)) }))"#
+        ]],
+    );
+    check(
+        &format!(
+            "{:?}",
+            run_parser!(let_decl(expr()), "let blah: bool = false;")
+        ),
+        expect_test::expect![[
+            r#"Ok(Let(LetStatement { name: Ident("blah"), ty: Some(Bool), init: Immediate(Bool(false)) }))"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(let_decl(expr()), "let blah: bool")),
+        expect_test::expect![[
+            r#"Err([Simple { span: 14..14, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"#
+        ]],
+    );
+    check(
+        &format!(
+            "{:?}",
+            run_parser!(let_decl(expr()), r#"let blah = "hello";"#)
+        ),
+        expect_test::expect![[
+            r#"Ok(Let(LetStatement { name: Ident("blah"), ty: None, init: Immediate(String("hello")) }))"#
+        ]],
+    );
+    check(
+        &format!(
+            "{:?}",
+            run_parser!(let_decl(expr()), r#"let blah: string = "hello";"#)
+        ),
+        expect_test::expect![[
+            r#"Ok(Let(LetStatement { name: Ident("blah"), ty: Some(String), init: Immediate(String("hello")) }))"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(let_decl(expr()), r#"let blah: string"#)),
+        expect_test::expect![[
+            r#"Err([Simple { span: 16..16, reason: Unexpected, expected: {Some(Eq)}, found: None, label: None }])"#
+        ]],
     );
 }
 
 #[test]
 fn var_decls() {
     check(
-        &format!("{:?}", run_parser!(var_decl(expr()), "var blah = 1;")),
+        &format!("{:?}", run_parser!(var_decl(expr()), "var blah;")),
+        expect_test::expect![[
+            r#"Ok(Var(VarStatement { name: Ident("blah"), ty: None, init: None }))"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(var_decl(expr()), "var blah = 1.0;")),
         expect_test::expect![[
             r#"Ok(Var(VarStatement { name: Ident("blah"), ty: None, init: Some(Immediate(Real(1.0))) }))"#
         ]],
     );
-
     check(
-        &format!("{:?}", run_parser!(var_decl(expr()), "var blah: real = 1;")),
+        &format!(
+            "{:?}",
+            run_parser!(var_decl(expr()), "var blah: real = 1.0;")
+        ),
         expect_test::expect![[
             r#"Ok(Var(VarStatement { name: Ident("blah"), ty: Some(Real), init: Some(Immediate(Real(1.0))) }))"#
         ]],
     );
-
     check(
         &format!("{:?}", run_parser!(var_decl(expr()), "var blah: real;")),
         expect_test::expect![[
             r#"Ok(Var(VarStatement { name: Ident("blah"), ty: Some(Real), init: None }))"#
         ]],
     );
-
     check(
-        &format!("{:?}", run_parser!(var_decl(expr()), "var blah;")),
+        &format!("{:?}", run_parser!(var_decl(expr()), "var blah = 1;")),
         expect_test::expect![[
-            r#"Ok(Var(VarStatement { name: Ident("blah"), ty: None, init: None }))"#
+            r#"Ok(Var(VarStatement { name: Ident("blah"), ty: None, init: Some(Immediate(Int(1))) }))"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(var_decl(expr()), "var blah: int = 1;")),
+        expect_test::expect![[
+            r#"Ok(Var(VarStatement { name: Ident("blah"), ty: Some(Int), init: Some(Immediate(Int(1))) }))"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(var_decl(expr()), "var blah: int;")),
+        expect_test::expect![
+            r#"Ok(Var(VarStatement { name: Ident("blah"), ty: Some(Int), init: None }))"#
+        ],
+    );
+    check(
+        &format!("{:?}", run_parser!(var_decl(expr()), "var blah = true;")),
+        expect_test::expect![[
+            r#"Ok(Var(VarStatement { name: Ident("blah"), ty: None, init: Some(Immediate(Bool(true))) }))"#
+        ]],
+    );
+    check(
+        &format!(
+            "{:?}",
+            run_parser!(var_decl(expr()), "var blah: bool = false;")
+        ),
+        expect_test::expect![[
+            r#"Ok(Var(VarStatement { name: Ident("blah"), ty: Some(Bool), init: Some(Immediate(Bool(false))) }))"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(var_decl(expr()), "var blah: bool;")),
+        expect_test::expect![[
+            r#"Ok(Var(VarStatement { name: Ident("blah"), ty: Some(Bool), init: None }))"#
+        ]],
+    );
+    check(
+        &format!(
+            "{:?}",
+            run_parser!(var_decl(expr()), r#"var blah = "hello";"#)
+        ),
+        expect_test::expect![[
+            r#"Ok(Var(VarStatement { name: Ident("blah"), ty: None, init: Some(Immediate(String("hello"))) }))"#
+        ]],
+    );
+    check(
+        &format!(
+            "{:?}",
+            run_parser!(var_decl(expr()), r#"var blah: string = "hello";"#)
+        ),
+        expect_test::expect![[
+            r#"Ok(Var(VarStatement { name: Ident("blah"), ty: Some(String), init: Some(Immediate(String("hello"))) }))"#
+        ]],
+    );
+    check(
+        &format!(
+            "{:?}",
+            run_parser!(var_decl(expr()), r#"var blah: string;"#)
+        ),
+        expect_test::expect![[
+            r#"Ok(Var(VarStatement { name: Ident("blah"), ty: Some(String), init: None }))"#
         ]],
     );
 }
@@ -340,12 +479,10 @@ fn solve_decls() {
         &format!("{:?}", run_parser!(solve_decl(), "solve satisfy;")),
         expect_test::expect![[r#"Ok(Solve(Satisfy))"#]],
     );
-
     check(
         &format!("{:?}", run_parser!(solve_decl(), "solve minimize foo;")),
         expect_test::expect![[r#"Ok(Solve(Minimize(Ident("foo"))))"#]],
     );
-
     check(
         &format!("{:?}", run_parser!(solve_decl(), "solve maximize foo;")),
         expect_test::expect![[r#"Ok(Solve(Maximize(Ident("foo"))))"#]],
@@ -362,14 +499,14 @@ fn solve_decls() {
 fn exprs() {
     check(
         &format!("{:?}", run_parser!(expr(), "123")),
-        expect_test::expect![[r#"Ok(Immediate(Real(123.0)))"#]],
+        expect_test::expect![[r#"Ok(Immediate(Int(123)))"#]],
     );
     check(
         &format!("{:?}", run_parser!(expr(), "foo")),
         expect_test::expect![[r#"Ok(Ident(Ident("foo")))"#]],
     );
     check(
-        &format!("{:?}", run_parser!(expr(), "a * 2")),
+        &format!("{:?}", run_parser!(expr(), "a * 2.0")),
         expect_test::expect![[
             r#"Ok(BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
         ]],
@@ -377,23 +514,23 @@ fn exprs() {
     check(
         &format!("{:?}", run_parser!(expr(), "2 * b * 3")),
         expect_test::expect![[
-            r#"Ok(BinaryOp { op: Mul, lhs: BinaryOp { op: Mul, lhs: Immediate(Real(2.0)), rhs: Ident(Ident("b")) }, rhs: Immediate(Real(3.0)) })"#
+            r#"Ok(BinaryOp { op: Mul, lhs: BinaryOp { op: Mul, lhs: Immediate(Int(2)), rhs: Ident(Ident("b")) }, rhs: Immediate(Int(3)) })"#
         ]],
     );
     check(
         &format!("{:?}", run_parser!(expr(), "2 < b * 3")),
         expect_test::expect![[
-            r#"Ok(BinaryOp { op: LessThan, lhs: Immediate(Real(2.0)), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("b")), rhs: Immediate(Real(3.0)) } })"#
+            r#"Ok(BinaryOp { op: LessThan, lhs: Immediate(Int(2)), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("b")), rhs: Immediate(Int(3)) } })"#
         ]],
     );
     check(
-        &format!("{:?}", run_parser!(expr(), "2 > b * 3")),
+        &format!("{:?}", run_parser!(expr(), "2.0 > b * 3.0")),
         expect_test::expect![[
             r#"Ok(BinaryOp { op: GreaterThan, lhs: Immediate(Real(2.0)), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("b")), rhs: Immediate(Real(3.0)) } })"#
         ]],
     );
     check(
-        &format!("{:?}", run_parser!(expr(), "2 * b < 3")),
+        &format!("{:?}", run_parser!(expr(), "2.0 * b < 3.0")),
         expect_test::expect![[
             r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: Mul, lhs: Immediate(Real(2.0)), rhs: Ident(Ident("b")) }, rhs: Immediate(Real(3.0)) })"#
         ]],
@@ -401,7 +538,7 @@ fn exprs() {
     check(
         &format!("{:?}", run_parser!(expr(), "2 > b < 3")),
         expect_test::expect![[
-            r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: GreaterThan, lhs: Immediate(Real(2.0)), rhs: Ident(Ident("b")) }, rhs: Immediate(Real(3.0)) })"#
+            r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: GreaterThan, lhs: Immediate(Int(2)), rhs: Ident(Ident("b")) }, rhs: Immediate(Int(3)) })"#
         ]],
     );
     check(
@@ -441,7 +578,7 @@ fn idents() {
     check(
         &format!("{:?}", run_parser!(ident(), "12_ab")),
         expect_test::expect![[
-            r#"Err([Simple { span: 0..2, reason: Unexpected, expected: {}, found: Some(Number("12")), label: None }])"#
+            r#"Err([Simple { span: 0..2, reason: Unexpected, expected: {}, found: Some(IntLiteral("12")), label: None }])"#
         ]],
     );
     check(
@@ -455,7 +592,7 @@ fn idents() {
 fn fn_decl_test() {
     let src = r#"
 fn foo(x: real, y: real) -> real {
-    let z = 5;
+    let z = 5.0;
     z
 }
 "#;
@@ -477,7 +614,7 @@ let x = foo(a*3, c);
     check(
         &format!("{:?}", run_parser!(yurt_program(), src)),
         expect_test::expect![[
-            r#"Ok([Let(LetStatement { name: Ident("x"), ty: None, init: Call { name: Ident("foo"), args: [BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(3.0)) }, Ident(Ident("c"))] } })])"#
+            r#"Ok([Let(LetStatement { name: Ident("x"), ty: None, init: Call { name: Ident("foo"), args: [BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Int(3)) }, Ident(Ident("c"))] } })])"#
         ]],
     );
 }
@@ -487,14 +624,14 @@ fn code_blocks() {
     check(
         &format!("{:?}", run_parser!(let_decl(expr()), "let x = { 0 };")),
         expect_test::expect![[
-            r#"Ok(Let(LetStatement { name: Ident("x"), ty: None, init: Block(Block { statements: [], final_expr: Immediate(Real(0.0)) }) }))"#
+            r#"Ok(Let(LetStatement { name: Ident("x"), ty: None, init: Block(Block { statements: [], final_expr: Immediate(Int(0)) }) }))"#
         ]],
     );
 
     check(
         &format!(
             "{:?}",
-            run_parser!(let_decl(expr()), "let x = { constraint x > 0; 0 };")
+            run_parser!(let_decl(expr()), "let x = { constraint x > 0.0; 0.0 };")
         ),
         expect_test::expect![[
             r#"Ok(Let(LetStatement { name: Ident("x"), ty: None, init: Block(Block { statements: [Constraint(BinaryOp { op: GreaterThan, lhs: Ident(Ident("x")), rhs: Immediate(Real(0.0)) })], final_expr: Immediate(Real(0.0)) }) }))"#
@@ -510,14 +647,14 @@ fn code_blocks() {
             )
         ),
         expect_test::expect![[
-            r#"Ok(Constraint(Block(Block { statements: [Constraint(Block(Block { statements: [], final_expr: Ident(Ident("true")) }))], final_expr: BinaryOp { op: GreaterThan, lhs: Ident(Ident("x")), rhs: Immediate(Real(0.0)) } })))"#
+            r#"Ok(Constraint(Block(Block { statements: [Constraint(Block(Block { statements: [], final_expr: Immediate(Bool(true)) }))], final_expr: BinaryOp { op: GreaterThan, lhs: Ident(Ident("x")), rhs: Immediate(Int(0)) } })))"#
         ]],
     );
 
     check(
         &format!(
             "{:?}",
-            run_parser!(let_decl(expr()), "let x = { 1 } * { 2 };")
+            run_parser!(let_decl(expr()), "let x = { 1.0 } * { 2.0 };")
         ),
         expect_test::expect![[
             r#"Ok(Let(LetStatement { name: Ident("x"), ty: None, init: BinaryOp { op: Mul, lhs: Block(Block { statements: [], final_expr: Immediate(Real(1.0)) }), rhs: Block(Block { statements: [], final_expr: Immediate(Real(2.0)) }) } }))"#
@@ -551,7 +688,7 @@ fn if_exprs() {
             run_parser!(if_expr(expr()), "if cond { 1 } else { 0 }")
         ),
         expect_test::expect![[
-            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Real(1.0)) }, else_block: Block { statements: [], final_expr: Immediate(Real(0.0)) } }))"#
+            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } }))"#
         ]],
     );
 
@@ -564,7 +701,7 @@ fn if_exprs() {
             )
         ),
         expect_test::expect![[
-            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Real(1.0)) }, else_block: Block { statements: [], final_expr: Immediate(Real(0.0)) } }) }, else_block: Block { statements: [], final_expr: Immediate(Real(2.0)) } }))"#
+            r#"Ok(If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } }) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }))"#
         ]],
     );
 
@@ -573,7 +710,7 @@ fn if_exprs() {
             "{:?}",
             run_parser!(
                 if_expr(expr()),
-                "if cond { 1 } else { if cond { 2 } else { 3 } }"
+                "if cond { 1.0 } else { if cond { 2.0 } else { 3.0 } }"
             )
         ),
         expect_test::expect![[
@@ -589,7 +726,7 @@ var low_val: real = 1.23;
 let high_val = 4.56;        // Implicit type.
 
 // Here's the constraints.
-constraint mid > low_val * 2;
+constraint mid > low_val * 2.0;
 constraint mid < high_val;
 
 solve minimize mid;
@@ -646,9 +783,9 @@ fn out_of_order_decls() {
     let src = r#"
 solve maximize low;
 constraint low < high;
-let high = 2;
+let high = 2.0;
 solve satisfy;
-let low = 1;
+let low = 1.0;
 "#;
 
     check(

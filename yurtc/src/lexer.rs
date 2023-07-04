@@ -34,6 +34,16 @@ pub(super) enum Token<'sc> {
 
     #[token("real")]
     Real,
+    #[token("int")]
+    Int,
+    #[token("bool")]
+    Bool,
+    #[token("true")]
+    True,
+    #[token("false")]
+    False,
+    #[token("string")]
+    String,
 
     #[token("fn")]
     Fn,
@@ -60,8 +70,15 @@ pub(super) enum Token<'sc> {
 
     #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice())]
     Ident(&'sc str),
-    #[regex(r"-?[0-9]+(\.[0-9]+)?", |lex| lex.slice())]
-    Number(&'sc str),
+    #[regex(r"[+-]?[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+", |lex| lex.slice())]
+    RealLiteral(&'sc str),
+    #[regex(r"0x[0-9A-Fa-f]+|0b[0-1]+|[0-9]+", |lex| lex.slice())]
+    IntLiteral(&'sc str),
+    #[regex(
+        r#""([^"\\]|\\(x[0-9a-fA-F]{2}|[nt"]|\\|\n))*""#,
+        process_string_literal
+    )]
+    StringLiteral(String),
 
     #[regex(r"//[^\n\r]*", logos::skip)]
     Comment,
@@ -83,6 +100,11 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::ParenClose => write!(f, ")"),
             Token::Arrow => write!(f, "->"),
             Token::Real => write!(f, "real"),
+            Token::Int => write!(f, "int"),
+            Token::Bool => write!(f, "bool"),
+            Token::True => write!(f, "true"),
+            Token::False => write!(f, "false"),
+            Token::String => write!(f, "string"),
             Token::Fn => write!(f, "Fn"),
             Token::If => write!(f, "If"),
             Token::Else => write!(f, "Else"),
@@ -94,7 +116,9 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Solve => write!(f, "solve"),
             Token::Satisfy => write!(f, "satisfy"),
             Token::Ident(ident) => write!(f, "{ident}"),
-            Token::Number(ident) => write!(f, "{ident}"),
+            Token::RealLiteral(ident) => write!(f, "{ident}"),
+            Token::IntLiteral(ident) => write!(f, "{ident}"),
+            Token::StringLiteral(contents) => write!(f, "{contents}"),
             Token::Comment => write!(f, "comment"),
         }
     }
@@ -116,6 +140,53 @@ pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<CompileError>) {
         })
 }
 
+fn process_string_literal<'sc>(lex: &mut logos::Lexer<'sc, Token<'sc>>) -> String {
+    let raw_string = lex.slice().to_string();
+    let mut final_string = String::new();
+    let mut chars = raw_string.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' => {
+                if let Some(&next_char) = chars.peek() {
+                    match next_char {
+                        'n' => {
+                            final_string.push('\n');
+                            chars.next();
+                        }
+                        't' => {
+                            final_string.push('\t');
+                            chars.next();
+                        }
+                        '\\' => {
+                            final_string.push('\\');
+                            chars.next();
+                        }
+                        '"' => {
+                            final_string.push('"');
+                            chars.next();
+                        }
+                        '\n' => {
+                            chars.next();
+                            while let Some(&next_char) = chars.peek() {
+                                if next_char.is_whitespace() {
+                                    chars.next();
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                        _ => final_string.push(c),
+                    }
+                }
+            }
+            '"' => {}
+            _ => final_string.push(c),
+        }
+    }
+    final_string
+}
+
 #[cfg(test)]
 fn lex_one_success(src: &str) -> Token<'_> {
     // Tokenise src, assume success and that we produce a single token.
@@ -135,11 +206,12 @@ fn lex_one_error(src: &str) -> CompileError {
 
 #[test]
 fn reals() {
-    assert_eq!(lex_one_success("12"), Token::Number("12"));
-    assert_eq!(lex_one_success("0012"), Token::Number("0012"));
-    assert_eq!(lex_one_success("12.34"), Token::Number("12.34"));
-    assert_eq!(lex_one_success("0.34"), Token::Number("0.34"));
-    assert_eq!(lex_one_success("-0.34"), Token::Number("-0.34"));
+    assert_eq!(lex_one_success("1.05"), Token::RealLiteral("1.05"));
+    assert_eq!(lex_one_success("1.0"), Token::RealLiteral("1.0"));
+    assert_eq!(lex_one_success("2.5e-4"), Token::RealLiteral("2.5e-4"));
+    assert_eq!(lex_one_success("1.3E5"), Token::RealLiteral("1.3E5"));
+    assert_eq!(lex_one_success("0.34"), Token::RealLiteral("0.34"));
+    assert_eq!(lex_one_success("-0.34"), Token::RealLiteral("-0.34"));
     check(
         &format!("{:?}", lex_one_error(".34")),
         expect_test::expect![[r#"Lex { span: 0..1, error: InvalidToken }"#]],
@@ -147,6 +219,56 @@ fn reals() {
     check(
         &format!("{:?}", lex_one_error("12.")),
         expect_test::expect!["Lex { span: 2..3, error: InvalidToken }"],
+    );
+}
+
+#[test]
+fn ints() {
+    assert_eq!(lex_one_success("1"), Token::IntLiteral("1"));
+    assert_eq!(lex_one_success("0030"), Token::IntLiteral("0030"));
+    assert_eq!(lex_one_success("0x333"), Token::IntLiteral("0x333"));
+    assert_eq!(lex_one_success("0b1010"), Token::IntLiteral("0b1010"));
+}
+
+#[test]
+fn bools() {
+    assert_eq!(lex_one_success("true"), Token::True);
+    assert_eq!(lex_one_success("false"), Token::False);
+    assert_ne!(lex_one_success("false"), Token::True);
+    assert_ne!(lex_one_success("true"), Token::False);
+}
+
+#[test]
+fn strings() {
+    assert_eq!(
+        lex_one_success(r#""Hello, world!""#),
+        Token::StringLiteral("Hello, world!".to_string())
+    );
+    assert_eq!(
+        lex_one_success(
+            r#"
+            "first line \
+            second line \
+            third line"
+            "#
+        ),
+        Token::StringLiteral("first line second line third line".to_string())
+    );
+    assert_eq!(
+        lex_one_success("\"Hello, world!\n\""),
+        Token::StringLiteral("Hello, world!\n".to_string())
+    );
+    assert_eq!(
+        lex_one_success("\"Hello, world!\t\""),
+        Token::StringLiteral("Hello, world!\t".to_string())
+    );
+    assert_eq!(
+        lex_one_success(r#""Hello, \" world\"!""#),
+        Token::StringLiteral("Hello, \" world\"!".to_string())
+    );
+    assert_eq!(
+        lex_one_success(r#""Hello, \\ world!""#),
+        Token::StringLiteral("Hello, \\ world!".to_string())
     );
 }
 
@@ -200,23 +322,23 @@ solve minimize mid;
     assert!(matches!(tokens[0].0, Let));
     assert!(matches!(tokens[1].0, Ident("low_val")));
     assert!(matches!(tokens[2].0, Colon));
-    assert!(matches!(tokens[3].0, Ident("int")));
+    assert!(matches!(tokens[3].0, Int));
     assert!(matches!(tokens[4].0, Eq));
-    assert!(matches!(tokens[5].0, Number("5.0")));
+    assert!(matches!(tokens[5].0, RealLiteral("5.0")));
     assert!(matches!(tokens[6].0, Semi));
 
     assert!(matches!(tokens[7].0, Constraint));
     assert!(matches!(tokens[8].0, Ident("mid")));
     assert!(matches!(tokens[9].0, Gt));
     assert!(matches!(tokens[10].0, Ident("low_val")));
-    assert!(matches!(tokens[11].0, Number("2")));
+    assert!(matches!(tokens[11].0, IntLiteral("2")));
     assert!(matches!(tokens[12].0, Semi));
 
     assert!(matches!(tokens[13].0, Constraint));
     assert!(matches!(tokens[14].0, Ident("mid")));
     assert!(matches!(tokens[15].0, Lt));
     assert!(matches!(tokens[16].0, Ident("low_val")));
-    assert!(matches!(tokens[17].0, Number("2")));
+    assert!(matches!(tokens[17].0, IntLiteral("2")));
     assert!(matches!(tokens[18].0, Semi));
 
     assert!(matches!(tokens[19].0, Solve));
