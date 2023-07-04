@@ -1,7 +1,7 @@
 use crate::{
     ast,
     error::{print_on_failure, CompileError, ParseError},
-    lexer::{self, Token},
+    lexer::{self, Token, KEYWORDS},
 };
 use chumsky::{prelude::*, Stream};
 use std::{fs::read_to_string, path::Path};
@@ -292,7 +292,23 @@ where
 }
 
 fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError<'sc>> + Clone {
-    select! { Token::Ident(id) => ast::Ident(id.to_owned()) }
+    filter_map(|span, token| match token {
+        // Accept detected identifier. The lexer makes sure that these are not keywords.
+        Token::Ident(id) => Ok(ast::Ident(id.to_owned())),
+
+        // Tokens that represent keywords are not allowed
+        _ if KEYWORDS.contains(&token) => Err(ParseError::KeywordAsIdent {
+            span,
+            keyword: token,
+        }),
+
+        // Other tokens are not allowed either
+        _ => Err(ParseError::ExpectedFound {
+            span,
+            expected: vec![],
+            found: Some(token),
+        }),
+    })
 }
 
 fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError<'sc>> + Clone {
@@ -562,51 +578,75 @@ fn exprs() {
     );
     check(
         &run_parser!(expr(), "a * 2.0"),
-        expect_test::expect![[r#"BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#]],
+        expect_test::expect![[
+            r#"BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
+        ]],
     );
     check(
         &run_parser!(expr(), "a / 2.0"),
-        expect_test::expect![[r#"BinaryOp { op: Div, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#]],
+        expect_test::expect![[
+            r#"BinaryOp { op: Div, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
+        ]],
     );
     check(
         &run_parser!(expr(), "a % 2.0"),
-        expect_test::expect![[r#"BinaryOp { op: Mod, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#]],
+        expect_test::expect![[
+            r#"BinaryOp { op: Mod, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
+        ]],
     );
     check(
         &run_parser!(expr(), "a + 2.0"),
-        expect_test::expect![[r#"BinaryOp { op: Add, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#]],
+        expect_test::expect![[
+            r#"BinaryOp { op: Add, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
+        ]],
     );
     check(
         &run_parser!(expr(), "a - 2.0"),
-        expect_test::expect![[r#"BinaryOp { op: Sub, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#]],
+        expect_test::expect![[
+            r#"BinaryOp { op: Sub, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
+        ]],
     );
     check(
         &run_parser!(expr(), "a < 2.0"),
-        expect_test::expect![[r#"BinaryOp { op: LessThan, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#]],
+        expect_test::expect![[
+            r#"BinaryOp { op: LessThan, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
+        ]],
     );
     check(
         &run_parser!(expr(), "a > 2.0"),
-        expect_test::expect![[r#"BinaryOp { op: GreaterThan, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#]],
+        expect_test::expect![[
+            r#"BinaryOp { op: GreaterThan, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
+        ]],
     );
     check(
         &run_parser!(expr(), "a <= 2.0"),
-        expect_test::expect![[r#"BinaryOp { op: LessThanOrEqual, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#]],
+        expect_test::expect![[
+            r#"BinaryOp { op: LessThanOrEqual, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
+        ]],
     );
     check(
         &run_parser!(expr(), "a >= 2.0"),
-        expect_test::expect![[r#"BinaryOp { op: GreaterThanOrEqual, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#]],
+        expect_test::expect![[
+            r#"BinaryOp { op: GreaterThanOrEqual, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
+        ]],
     );
     check(
         &run_parser!(expr(), "a == 2.0"),
-        expect_test::expect![[r#"BinaryOp { op: Equal, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#]],
+        expect_test::expect![[
+            r#"BinaryOp { op: Equal, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
+        ]],
     );
     check(
         &run_parser!(expr(), "a != 2.0"),
-        expect_test::expect![[r#"BinaryOp { op: NotEqual, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#]],
+        expect_test::expect![[
+            r#"BinaryOp { op: NotEqual, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
+        ]],
     );
     check(
         &run_parser!(expr(), "2 * b * 3"),
-        expect_test::expect![[r#"BinaryOp { op: Mul, lhs: BinaryOp { op: Mul, lhs: Immediate(Int(2)), rhs: Ident(Ident("b")) }, rhs: Immediate(Int(3)) }"#]],
+        expect_test::expect![[
+            r#"BinaryOp { op: Mul, lhs: BinaryOp { op: Mul, lhs: Immediate(Int(2)), rhs: Ident(Ident("b")) }, rhs: Immediate(Int(3)) }"#
+        ]],
     );
     check(
         &run_parser!(expr(), "2 < b * 3"),
@@ -634,15 +674,21 @@ fn exprs() {
     );
     check(
         &run_parser!(expr(), "2 != b < 3"),
-        expect_test::expect![[r#"BinaryOp { op: LessThan, lhs: BinaryOp { op: NotEqual, lhs: Immediate(Int(2)), rhs: Ident(Ident("b")) }, rhs: Immediate(Int(3)) }"#]],
+        expect_test::expect![[
+            r#"BinaryOp { op: LessThan, lhs: BinaryOp { op: NotEqual, lhs: Immediate(Int(2)), rhs: Ident(Ident("b")) }, rhs: Immediate(Int(3)) }"#
+        ]],
     );
     check(
         &run_parser!(expr(), "2 < b != 3"),
-        expect_test::expect![[r#"BinaryOp { op: NotEqual, lhs: BinaryOp { op: LessThan, lhs: Immediate(Int(2)), rhs: Ident(Ident("b")) }, rhs: Immediate(Int(3)) }"#]],
+        expect_test::expect![[
+            r#"BinaryOp { op: NotEqual, lhs: BinaryOp { op: LessThan, lhs: Immediate(Int(2)), rhs: Ident(Ident("b")) }, rhs: Immediate(Int(3)) }"#
+        ]],
     );
     check(
         &run_parser!(expr(), "a > b * c < d"),
-        expect_test::expect![[r#"BinaryOp { op: LessThan, lhs: BinaryOp { op: GreaterThan, lhs: Ident(Ident("a")), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("b")), rhs: Ident(Ident("c")) } }, rhs: Ident(Ident("d")) }"#]],
+        expect_test::expect![[
+            r#"BinaryOp { op: LessThan, lhs: BinaryOp { op: GreaterThan, lhs: Ident(Ident("a")), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("b")), rhs: Ident(Ident("c")) } }, rhs: Ident(Ident("d")) }"#
+        ]],
     );
     check(
         &run_parser!(expr(), "2 + 3 * 4"),
@@ -782,11 +828,10 @@ fn code_blocks() {
     );
 
     check(
-        &format!(
-            "{:?}",
-            run_parser!(let_decl(expr()), "let x = {};")
-        ),
-        expect_test::expect![[r#""@9..10: found \"}\" but expected \"!\", \"+\", \"-\", \"{\", \"If\", \"var\", \"let\",  or \"constraint\"\n""#]],
+        &format!("{:?}", run_parser!(let_decl(expr()), "let x = {};")),
+        expect_test::expect![[
+            r#""@9..10: found \"}\" but expected \"!\", \"+\", \"-\", \"{\", \"if\", \"var\", \"let\",  or \"constraint\"\n""#
+        ]],
     );
 }
 
@@ -795,7 +840,7 @@ fn if_exprs() {
     check(
         &run_parser!(if_expr(expr()), "if cond { 1 }"),
         expect_test::expect![[r#"
-            @13..13: found end of input but expected "Else"
+            @13..13: found end of input but expected "else"
         "#]],
     );
 
@@ -869,7 +914,9 @@ fn fn_errors() {
 
     check(
         &run_parser!(yurt_program(), "fn foo() -> real {}"),
-        expect_test::expect!["Err([ExpectedFound { span: 18..19, expected: [Some(If), Some(BraceOpen), Some(Bang), Some(Minus), Some(Plus), Some(Constraint), Some(Let), Some(Var)], found: Some(BraceClose) }])"],
+        expect_test::expect![[r#"
+            @18..19: found "}" but expected "!", "+", "-", "{", "if", "var", "let",  or "constraint"
+        "#]],
     );
 }
 
@@ -889,4 +936,20 @@ let low = 1.0;
             r#"[Solve(Maximize(Ident("low"))), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident("low")), rhs: Ident(Ident("high")) }), Let(LetStatement { name: Ident("high"), ty: None, init: Immediate(Real(2.0)) }), Solve(Satisfy), Let(LetStatement { name: Ident("low"), ty: None, init: Immediate(Real(1.0)) })]"#
         ]],
     );
+}
+
+#[test]
+fn keywords_as_identifiers_errors() {
+    for keyword in KEYWORDS {
+        let src = format!("let {keyword} = 5;");
+        assert_eq!(
+            &run_parser!(yurt_program(), &src),
+            &format!(
+                "@4..{}: expected identifier, found keyword \"{keyword}\"\n",
+                4 + format!("{keyword}").len() // End of the error span
+            ),
+            "Check \"identifier as keyword\" error for  keyword \"{}\"",
+            keyword
+        );
+    }
 }
