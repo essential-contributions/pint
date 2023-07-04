@@ -105,7 +105,7 @@ impl<'a> chumsky::Error<Token<'a>> for ParseError<'a> {
 }
 
 impl<'a> CompileError<'a> {
-    fn span(&self) -> Span {
+    pub(super) fn span(&self) -> Span {
         use CompileError::*;
         match self {
             Lex { span, .. } => span.clone(),
