@@ -181,71 +181,102 @@ fn if_expr<'sc>(
 }
 
 fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone {
-    let imm = immediate().map(ast::Expr::Immediate);
-    let id = ident().map(ast::Expr::Ident);
-
     recursive(|expr| {
         let args = expr
             .clone()
             .separated_by(just(Token::Comma))
             .allow_trailing()
             .delimited_by(just(Token::ParenOpen), just(Token::ParenClose));
+
         let call = ident()
             .then(args)
             .map(|(name, args)| ast::Expr::Call { name, args });
-        let code_block = code_block_expr(expr.clone()).map(ast::Expr::Block);
 
-        let atom = choice((imm, code_block, if_expr(expr), call, id));
+        let atom = choice((
+            immediate().map(ast::Expr::Immediate),
+            ident().map(ast::Expr::Ident),
+            code_block_expr(expr.clone()).map(ast::Expr::Block),
+            if_expr(expr.clone()),
+            call,
+        ));
 
-        let term = atom
-            .clone()
-            .then(
-                just(Token::Star)
-                    .to(ast::BinaryOp::Mul)
-                    .or(just(Token::Div).to(ast::BinaryOp::Div))
-                    .or(just(Token::Mod).to(ast::BinaryOp::Mod))
-                    .then(atom.clone())
-                    .repeated(),
-            )
-            .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
-                op,
-                lhs: Box::new(lhs),
-                rhs: Box::new(rhs),
-            });
+        let multiplicative_op = multiplicative_op(atom.clone());
+        let additive_op = additive_op(multiplicative_op.clone());
+        let comparison_op = comparison_op(additive_op.clone());
 
-        let expr = term
-            .clone()
-            .then(
-                just(Token::Plus)
-                    .to(ast::BinaryOp::Add)
-                    .or(just(Token::Minus).to(ast::BinaryOp::Sub))
-                    .then(term.clone())
-                    .repeated(),
-            )
-            .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
-                op,
-                lhs: Box::new(lhs),
-                rhs: Box::new(rhs),
-            });
-
-        expr.clone()
-            .then(
-                just(Token::Lt)
-                    .to(ast::BinaryOp::LessThan)
-                    .or(just(Token::Gt).to(ast::BinaryOp::GreaterThan))
-                    .or(just(Token::LtEq).to(ast::BinaryOp::LessThanOrEqual))
-                    .or(just(Token::GtEq).to(ast::BinaryOp::GreaterThanOrEqual))
-                    .or(just(Token::EqEq).to(ast::BinaryOp::Equal))
-                    .or(just(Token::NotEq).to(ast::BinaryOp::NotEqual))
-                    .then(expr.clone())
-                    .repeated(),
-            )
-            .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
-                op,
-                lhs: Box::new(lhs),
-                rhs: Box::new(rhs),
-            })
+        comparison_op
     })
+}
+
+fn multiplicative_op<'sc, P>(
+    parser: P,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
+{
+    parser
+        .clone()
+        .then(
+            just(Token::Star)
+                .to(ast::BinaryOp::Mul)
+                .or(just(Token::Div).to(ast::BinaryOp::Div))
+                .or(just(Token::Mod).to(ast::BinaryOp::Mod))
+                .then(parser)
+                .repeated(),
+        )
+        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
+            op,
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        })
+}
+
+fn additive_op<'sc, P>(
+    parser: P,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
+{
+    parser
+        .clone()
+        .then(
+            just(Token::Plus)
+                .to(ast::BinaryOp::Add)
+                .or(just(Token::Minus).to(ast::BinaryOp::Sub))
+                .then(parser)
+                .repeated(),
+        )
+        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
+            op,
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        })
+}
+
+fn comparison_op<'sc, P>(
+    parser: P,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
+{
+    parser
+        .clone()
+        .then(
+            just(Token::Lt)
+                .to(ast::BinaryOp::LessThan)
+                .or(just(Token::Gt).to(ast::BinaryOp::GreaterThan))
+                .or(just(Token::LtEq).to(ast::BinaryOp::LessThanOrEqual))
+                .or(just(Token::GtEq).to(ast::BinaryOp::GreaterThanOrEqual))
+                .or(just(Token::EqEq).to(ast::BinaryOp::Equal))
+                .or(just(Token::NotEq).to(ast::BinaryOp::NotEqual))
+                .then(parser)
+                .repeated(),
+        )
+        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
+            op,
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        })
 }
 
 fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = Simple<Token<'sc>>> + Clone {

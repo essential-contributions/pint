@@ -10,7 +10,7 @@ pub(super) enum Token<'sc> {
     #[token(":")]
     Colon,
     #[token("!")]
-    Not,
+    Bang,
     #[token("+")]
     Plus,
     #[token("-")]
@@ -106,7 +106,7 @@ impl<'sc> fmt::Display for Token<'sc> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Token::Colon => write!(f, ":"),
-            Token::Not => write!(f, "!"),
+            Token::Bang => write!(f, "!"),
             Token::Plus => write!(f, "+"),
             Token::Minus => write!(f, "-"),
             Token::Div => write!(f, "/"),
@@ -307,7 +307,7 @@ fn variables() {
 
 #[test]
 fn operators() {
-    assert_eq!(lex_one_success("!"), Token::Not);
+    assert_eq!(lex_one_success("!"), Token::Bang);
     assert_eq!(lex_one_success("+"), Token::Plus);
     assert_eq!(lex_one_success("-"), Token::Minus);
     assert_eq!(lex_one_success("*"), Token::Star);
