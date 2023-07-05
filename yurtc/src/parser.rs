@@ -618,9 +618,69 @@ fn exprs() {
         ]],
     );
     check(
+        &format!("{:?}", run_parser!(expr(), "2 != b < 3")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: NotEqual, lhs: Immediate(Int(2)), rhs: Ident(Ident("b")) }, rhs: Immediate(Int(3)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "2 < b != 3")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: NotEqual, lhs: BinaryOp { op: LessThan, lhs: Immediate(Int(2)), rhs: Ident(Ident("b")) }, rhs: Immediate(Int(3)) })"#
+        ]],
+    );
+    check(
         &format!("{:?}", run_parser!(expr(), "a > b * c < d")),
         expect_test::expect![[
             r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: GreaterThan, lhs: Ident(Ident("a")), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("b")), rhs: Ident(Ident("c")) } }, rhs: Ident(Ident("d")) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "2 + 3 * 4")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: BinaryOp { op: Mul, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "10 - 8 / 4")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Sub, lhs: Immediate(Int(10)), rhs: BinaryOp { op: Div, lhs: Immediate(Int(8)), rhs: Immediate(Int(4)) } })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "10 + 8 % 4")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Add, lhs: Immediate(Int(10)), rhs: BinaryOp { op: Mod, lhs: Immediate(Int(8)), rhs: Immediate(Int(4)) } })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "2 + 3 * 4 < 5")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: BinaryOp { op: Mul, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }, rhs: Immediate(Int(5)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "2 * 3 / 4 < 5")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: Div, lhs: BinaryOp { op: Mul, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }, rhs: Immediate(Int(4)) }, rhs: Immediate(Int(5)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "10 - 5 + 3 > 7")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: GreaterThan, lhs: BinaryOp { op: Add, lhs: BinaryOp { op: Sub, lhs: Immediate(Int(10)), rhs: Immediate(Int(5)) }, rhs: Immediate(Int(3)) }, rhs: Immediate(Int(7)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "10 % 2 * 4 < 3")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: Mul, lhs: BinaryOp { op: Mod, lhs: Immediate(Int(10)), rhs: Immediate(Int(2)) }, rhs: Immediate(Int(4)) }, rhs: Immediate(Int(3)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "2 + 3 * 4 - 5 / 2 > 1")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: GreaterThan, lhs: BinaryOp { op: Sub, lhs: BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: BinaryOp { op: Mul, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }, rhs: BinaryOp { op: Div, lhs: Immediate(Int(5)), rhs: Immediate(Int(2)) } }, rhs: Immediate(Int(1)) })"#
         ]],
     );
 }
