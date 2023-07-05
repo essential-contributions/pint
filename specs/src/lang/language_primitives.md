@@ -317,7 +317,7 @@ These are variables whose values can be unknown for a given _instance_ for an in
 Decision variables have the following syntax:
 
 ```ebnf
-<var-item> ::= "var" <ident> [ ":" <ty> ] [ "=" <expr> ]
+<var-item> ::= "var" <ident> ( ( ":" <ty> ) | ("=" <expr> ) | ( ":" <ty> "=" <expr> )
 ```
 
 For example:
@@ -339,6 +339,8 @@ is equivalent to
 var x: int;
 constraint x == 5;
 ```
+
+Note that at least one of the type annotation and the initializing expression has to be present so that the type of the variable can be determined. This implies that `var x;` is not a valid variable declaration.
 
 ### Constraint Items
 

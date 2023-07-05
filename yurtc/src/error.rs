@@ -1,4 +1,4 @@
-use crate::lexer::Token;
+use crate::{ast, lexer::Token};
 use ariadne::{Color, Fmt, Label, Report, ReportKind, Source};
 use chumsky::prelude::*;
 use thiserror::Error;
@@ -24,6 +24,10 @@ pub(super) enum ParseError<'a> {
     },
     #[error("expected identifier, found keyword \"{keyword}\"")]
     KeywordAsIdent { span: Span, keyword: Token<'a> },
+    #[error(
+        "type annotation or initializer needed for decision variable \"{}\"", name.0
+    )]
+    UntypedDecisionVar { span: Span, name: ast::Ident },
 }
 
 fn format_expected_found_error<'a>(
@@ -115,6 +119,7 @@ impl<'a> CompileError<'a> {
             Parse { error } => match error {
                 ParseError::ExpectedFound { span, .. } => span.clone(),
                 ParseError::KeywordAsIdent { span, .. } => span.clone(),
+                ParseError::UntypedDecisionVar { span, .. } => span.clone(),
             },
         }
     }
