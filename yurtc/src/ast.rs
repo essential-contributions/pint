@@ -47,6 +47,10 @@ pub(super) enum Type {
 pub(super) enum Expr {
     Immediate(Immediate),
     Ident(Ident),
+    UnaryOp {
+        op: UnaryOp,
+        expr: Box<Expr>,
+    },
     BinaryOp {
         op: BinaryOp,
         lhs: Box<Expr>,
@@ -61,10 +65,25 @@ pub(super) enum Expr {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) enum UnaryOp {
+    Pos,
+    Neg,
+    Not,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) enum BinaryOp {
     Mul,
+    Div,
+    Add,
+    Sub,
+    Mod,
     LessThan,
+    LessThanOrEqual,
     GreaterThan,
+    GreaterThanOrEqual,
+    Equal,
+    NotEqual,
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -190,22 +190,21 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>>
             .separated_by(just(Token::Comma))
             .allow_trailing()
             .delimited_by(just(Token::ParenOpen), just(Token::ParenClose));
-
         let call = ident()
             .then(args)
             .map(|(name, args)| ast::Expr::Call { name, args });
-
         let code_block = code_block_expr(expr.clone()).map(ast::Expr::Block);
 
-        // The order of these choices is important
         let atom = choice((imm, code_block, if_expr(expr), call, id));
 
-        let multiplicative_op = atom
+        let term = atom
             .clone()
             .then(
                 just(Token::Star)
                     .to(ast::BinaryOp::Mul)
-                    .then(atom)
+                    .or(just(Token::Div).to(ast::BinaryOp::Div))
+                    .or(just(Token::Mod).to(ast::BinaryOp::Mod))
+                    .then(atom.clone())
                     .repeated(),
             )
             .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
@@ -214,14 +213,31 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>>
                 rhs: Box::new(rhs),
             });
 
-        // Comparison op.
-        multiplicative_op
+        let expr = term
             .clone()
             .then(
-                just(Token::Gt)
-                    .to(ast::BinaryOp::GreaterThan)
-                    .or(just(Token::Lt).to(ast::BinaryOp::LessThan))
-                    .then(multiplicative_op)
+                just(Token::Plus)
+                    .to(ast::BinaryOp::Add)
+                    .or(just(Token::Minus).to(ast::BinaryOp::Sub))
+                    .then(term.clone())
+                    .repeated(),
+            )
+            .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
+                op,
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+            });
+
+        expr.clone()
+            .then(
+                just(Token::Lt)
+                    .to(ast::BinaryOp::LessThan)
+                    .or(just(Token::Gt).to(ast::BinaryOp::GreaterThan))
+                    .or(just(Token::LtEq).to(ast::BinaryOp::LessThanOrEqual))
+                    .or(just(Token::GtEq).to(ast::BinaryOp::GreaterThanOrEqual))
+                    .or(just(Token::EqEq).to(ast::BinaryOp::Equal))
+                    .or(just(Token::NotEq).to(ast::BinaryOp::NotEqual))
+                    .then(expr.clone())
                     .repeated(),
             )
             .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
@@ -509,6 +525,66 @@ fn exprs() {
         &format!("{:?}", run_parser!(expr(), "a * 2.0")),
         expect_test::expect![[
             r#"Ok(BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a / 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Div, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a % 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Mod, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a + 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Add, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a - 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Sub, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a < 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: LessThan, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a > 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: GreaterThan, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a <= 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: LessThanOrEqual, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a >= 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: GreaterThanOrEqual, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a == 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Equal, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a != 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: NotEqual, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
         ]],
     );
     check(
