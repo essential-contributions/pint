@@ -209,11 +209,11 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>>
 
         let atom = choice((
             immediate().map(ast::Expr::Immediate),
-            ident().map(ast::Expr::Ident),
             unary_op(expr.clone()),
             code_block_expr(expr.clone()).map(ast::Expr::Block),
             if_expr(expr.clone()),
             call,
+            ident().map(ast::Expr::Ident),
         ));
 
         let multiplicative_op = multiplicative_op(atom.clone());
