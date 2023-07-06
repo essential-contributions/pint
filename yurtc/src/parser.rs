@@ -962,3 +962,21 @@ fn keywords_as_identifiers_errors() {
         );
     }
 }
+
+#[test]
+fn test_parse_str_to_ast() {
+    check(
+        &format!("{:?}", parse_str_to_ast("let x = 5;", "my_file")),
+        expect_test::expect![[
+            r#"Ok([Let(LetStatement { name: Ident("x"), ty: None, init: Immediate(Int(5)) })])"#
+        ]],
+    );
+    check(
+        &format!("{:?}", parse_str_to_ast("let x = 5", "my_file")),
+        expect_test::expect![[r#"Err(could not compile "my_file" due to previous error)"#]],
+    );
+    check(
+        &format!("{:?}", parse_str_to_ast("@ @", "my_file")),
+        expect_test::expect![[r#"Err(could not compile "my_file" due to 2 previous errors)"#]],
+    );
+}

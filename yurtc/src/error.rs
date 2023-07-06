@@ -148,10 +148,10 @@ pub(super) fn print_on_failure(filename: &str, source: &str, errs: &Vec<CompileE
 macro_rules! yurtc_bail {
     ($number_of_errors: expr, $filename: expr) => {
         if $number_of_errors == 1 {
-            anyhow::bail!("could not compile {} due to previous error", $filename)
+            anyhow::bail!("could not compile \"{}\" due to previous error", $filename)
         } else {
             anyhow::bail!(
-                "could not compile {} due to {} previous errors",
+                "could not compile \"{}\" due to {} previous errors",
                 $filename,
                 $number_of_errors
             )
