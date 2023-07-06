@@ -1,4 +1,4 @@
-name: pull-request
+name: ci
 run-name: Checks on pull request
 
 on:
@@ -79,7 +79,6 @@ jobs:
 
       - name: Install Cargo.toml linter
         run: cargo install --locked cargo-toml-lint
-        working-directory: yurtc
 
       - name: Run Cargo.toml linter
         run: git ls-files | grep Cargo.toml$ | xargs --verbose -n 1 cargo-toml-lint
@@ -99,9 +98,11 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Install nextest
-        run: cargo install cargo-nextest
-        working-directory: yurtc
+      - name: Install cargo-nextest
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: cargo-nextest
+          locked: true
 
       - name: Run workspace tests
         run: cargo nextest run --locked
