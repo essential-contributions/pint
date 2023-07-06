@@ -161,6 +161,21 @@ fn code_block_expr<'sc>(
         })
 }
 
+fn unary_op<'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone {
+    choice((
+        just(Token::Plus).to(ast::UnaryOp::Pos),
+        just(Token::Minus).to(ast::UnaryOp::Neg),
+        just(Token::Bang).to(ast::UnaryOp::Not),
+    ))
+    .then(expr)
+    .map(|(op, expr)| ast::Expr::UnaryOp {
+        op,
+        expr: Box::new(expr),
+    })
+}
+
 fn if_expr<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
 ) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone {
@@ -195,6 +210,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>>
         let atom = choice((
             immediate().map(ast::Expr::Immediate),
             ident().map(ast::Expr::Ident),
+            unary_op(expr.clone()),
             code_block_expr(expr.clone()).map(ast::Expr::Block),
             if_expr(expr.clone()),
             call,
@@ -551,6 +567,18 @@ fn exprs() {
     check(
         &format!("{:?}", run_parser!(expr(), "foo")),
         expect_test::expect![[r#"Ok(Ident(Ident("foo")))"#]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "!a")),
+        expect_test::expect![[r#"Ok(UnaryOp { op: Not, expr: Ident(Ident("a")) })"#]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "+a")),
+        expect_test::expect![[r#"Ok(UnaryOp { op: Pos, expr: Ident(Ident("a")) })"#]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "-a")),
+        expect_test::expect![[r#"Ok(UnaryOp { op: Neg, expr: Ident(Ident("a")) })"#]],
     );
     check(
         &format!("{:?}", run_parser!(expr(), "a * 2.0")),
