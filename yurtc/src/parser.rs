@@ -216,11 +216,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>>
             ident().map(ast::Expr::Ident),
         ));
 
-        let multiplicative_op = multiplicative_op(atom.clone());
-        let additive_op = additive_op(multiplicative_op.clone());
-        let comparison_op = comparison_op(additive_op.clone());
-
-        comparison_op
+        comparison_op(additive_op(multiplicative_op(atom)))
     })
 }
 
