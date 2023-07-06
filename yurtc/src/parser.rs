@@ -161,6 +161,21 @@ fn code_block_expr<'sc>(
         })
 }
 
+fn unary_op<'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone {
+    choice((
+        just(Token::Plus).to(ast::UnaryOp::Pos),
+        just(Token::Minus).to(ast::UnaryOp::Neg),
+        just(Token::Bang).to(ast::UnaryOp::Not),
+    ))
+    .then(expr)
+    .map(|(op, expr)| ast::Expr::UnaryOp {
+        op,
+        expr: Box::new(expr),
+    })
+}
+
 fn if_expr<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
 ) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone {
@@ -181,9 +196,6 @@ fn if_expr<'sc>(
 }
 
 fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone {
-    let imm = immediate().map(ast::Expr::Immediate);
-    let id = ident().map(ast::Expr::Ident);
-
     recursive(|expr| {
         let args = expr
             .clone()
@@ -195,41 +207,88 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>>
             .then(args)
             .map(|(name, args)| ast::Expr::Call { name, args });
 
-        let code_block = code_block_expr(expr.clone()).map(ast::Expr::Block);
+        let atom = choice((
+            immediate().map(ast::Expr::Immediate),
+            unary_op(expr.clone()),
+            code_block_expr(expr.clone()).map(ast::Expr::Block),
+            if_expr(expr.clone()),
+            call,
+            ident().map(ast::Expr::Ident),
+        ));
 
-        // The order of these choices is important
-        let atom = choice((imm, code_block, if_expr(expr), call, id));
-
-        let multiplicative_op = atom
-            .clone()
-            .then(
-                just(Token::Star)
-                    .to(ast::BinaryOp::Mul)
-                    .then(atom)
-                    .repeated(),
-            )
-            .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
-                op,
-                lhs: Box::new(lhs),
-                rhs: Box::new(rhs),
-            });
-
-        // Comparison op.
-        multiplicative_op
-            .clone()
-            .then(
-                just(Token::Gt)
-                    .to(ast::BinaryOp::GreaterThan)
-                    .or(just(Token::Lt).to(ast::BinaryOp::LessThan))
-                    .then(multiplicative_op)
-                    .repeated(),
-            )
-            .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
-                op,
-                lhs: Box::new(lhs),
-                rhs: Box::new(rhs),
-            })
+        comparison_op(additive_op(multiplicative_op(atom)))
     })
+}
+
+fn multiplicative_op<'sc, P>(
+    parser: P,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
+{
+    parser
+        .clone()
+        .then(
+            just(Token::Star)
+                .to(ast::BinaryOp::Mul)
+                .or(just(Token::Div).to(ast::BinaryOp::Div))
+                .or(just(Token::Mod).to(ast::BinaryOp::Mod))
+                .then(parser)
+                .repeated(),
+        )
+        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
+            op,
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        })
+}
+
+fn additive_op<'sc, P>(
+    parser: P,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
+{
+    parser
+        .clone()
+        .then(
+            just(Token::Plus)
+                .to(ast::BinaryOp::Add)
+                .or(just(Token::Minus).to(ast::BinaryOp::Sub))
+                .then(parser)
+                .repeated(),
+        )
+        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
+            op,
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        })
+}
+
+fn comparison_op<'sc, P>(
+    parser: P,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone,
+{
+    parser
+        .clone()
+        .then(
+            just(Token::Lt)
+                .to(ast::BinaryOp::LessThan)
+                .or(just(Token::Gt).to(ast::BinaryOp::GreaterThan))
+                .or(just(Token::LtEq).to(ast::BinaryOp::LessThanOrEqual))
+                .or(just(Token::GtEq).to(ast::BinaryOp::GreaterThanOrEqual))
+                .or(just(Token::EqEq).to(ast::BinaryOp::Equal))
+                .or(just(Token::NotEq).to(ast::BinaryOp::NotEqual))
+                .then(parser)
+                .repeated(),
+        )
+        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
+            op,
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        })
 }
 
 fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = Simple<Token<'sc>>> + Clone {
@@ -506,9 +565,81 @@ fn exprs() {
         expect_test::expect![[r#"Ok(Ident(Ident("foo")))"#]],
     );
     check(
+        &format!("{:?}", run_parser!(expr(), "!a")),
+        expect_test::expect![[r#"Ok(UnaryOp { op: Not, expr: Ident(Ident("a")) })"#]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "+a")),
+        expect_test::expect![[r#"Ok(UnaryOp { op: Pos, expr: Ident(Ident("a")) })"#]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "-a")),
+        expect_test::expect![[r#"Ok(UnaryOp { op: Neg, expr: Ident(Ident("a")) })"#]],
+    );
+    check(
         &format!("{:?}", run_parser!(expr(), "a * 2.0")),
         expect_test::expect![[
             r#"Ok(BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a / 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Div, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a % 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Mod, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a + 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Add, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a - 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Sub, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a < 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: LessThan, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a > 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: GreaterThan, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a <= 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: LessThanOrEqual, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a >= 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: GreaterThanOrEqual, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a == 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Equal, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "a != 2.0")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: NotEqual, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) })"#
         ]],
     );
     check(
@@ -542,9 +673,69 @@ fn exprs() {
         ]],
     );
     check(
+        &format!("{:?}", run_parser!(expr(), "2 != b < 3")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: NotEqual, lhs: Immediate(Int(2)), rhs: Ident(Ident("b")) }, rhs: Immediate(Int(3)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "2 < b != 3")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: NotEqual, lhs: BinaryOp { op: LessThan, lhs: Immediate(Int(2)), rhs: Ident(Ident("b")) }, rhs: Immediate(Int(3)) })"#
+        ]],
+    );
+    check(
         &format!("{:?}", run_parser!(expr(), "a > b * c < d")),
         expect_test::expect![[
             r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: GreaterThan, lhs: Ident(Ident("a")), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("b")), rhs: Ident(Ident("c")) } }, rhs: Ident(Ident("d")) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "2 + 3 * 4")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: BinaryOp { op: Mul, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "10 - 8 / 4")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Sub, lhs: Immediate(Int(10)), rhs: BinaryOp { op: Div, lhs: Immediate(Int(8)), rhs: Immediate(Int(4)) } })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "10 + 8 % 4")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: Add, lhs: Immediate(Int(10)), rhs: BinaryOp { op: Mod, lhs: Immediate(Int(8)), rhs: Immediate(Int(4)) } })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "2 + 3 * 4 < 5")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: BinaryOp { op: Mul, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }, rhs: Immediate(Int(5)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "2 * 3 / 4 < 5")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: Div, lhs: BinaryOp { op: Mul, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }, rhs: Immediate(Int(4)) }, rhs: Immediate(Int(5)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "10 - 5 + 3 > 7")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: GreaterThan, lhs: BinaryOp { op: Add, lhs: BinaryOp { op: Sub, lhs: Immediate(Int(10)), rhs: Immediate(Int(5)) }, rhs: Immediate(Int(3)) }, rhs: Immediate(Int(7)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "10 % 2 * 4 < 3")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: LessThan, lhs: BinaryOp { op: Mul, lhs: BinaryOp { op: Mod, lhs: Immediate(Int(10)), rhs: Immediate(Int(2)) }, rhs: Immediate(Int(4)) }, rhs: Immediate(Int(3)) })"#
+        ]],
+    );
+    check(
+        &format!("{:?}", run_parser!(expr(), "2 + 3 * 4 - 5 / 2 > 1")),
+        expect_test::expect![[
+            r#"Ok(BinaryOp { op: GreaterThan, lhs: BinaryOp { op: Sub, lhs: BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: BinaryOp { op: Mul, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }, rhs: BinaryOp { op: Div, lhs: Immediate(Int(5)), rhs: Immediate(Int(2)) } }, rhs: Immediate(Int(1)) })"#
         ]],
     );
 }

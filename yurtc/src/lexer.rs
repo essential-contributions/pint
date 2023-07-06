@@ -9,12 +9,30 @@ use std::fmt;
 pub(super) enum Token<'sc> {
     #[token(":")]
     Colon,
+    #[token("!")]
+    Bang,
+    #[token("+")]
+    Plus,
+    #[token("-")]
+    Minus,
+    #[token("/")]
+    Div,
+    #[token("%")]
+    Mod,
     #[token("=")]
     Eq,
     #[token(">")]
     Gt,
     #[token("<")]
     Lt,
+    #[token("<=")]
+    LtEq,
+    #[token(">=")]
+    GtEq,
+    #[token("==")]
+    EqEq,
+    #[token("!=")]
+    NotEq,
     #[token(";")]
     Semi,
     #[token(",")]
@@ -88,9 +106,18 @@ impl<'sc> fmt::Display for Token<'sc> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Token::Colon => write!(f, ":"),
+            Token::Bang => write!(f, "!"),
+            Token::Plus => write!(f, "+"),
+            Token::Minus => write!(f, "-"),
+            Token::Div => write!(f, "/"),
+            Token::Mod => write!(f, "%"),
             Token::Eq => write!(f, "="),
             Token::Gt => write!(f, ">"),
             Token::Lt => write!(f, "<"),
+            Token::LtEq => write!(f, "<="),
+            Token::GtEq => write!(f, ">="),
+            Token::EqEq => write!(f, "=="),
+            Token::NotEq => write!(f, "!="),
             Token::Semi => write!(f, ";"),
             Token::Comma => write!(f, ","),
             Token::Star => write!(f, "*"),
@@ -276,6 +303,22 @@ fn strings() {
 fn variables() {
     assert_eq!(lex_one_success("var"), Token::Var);
     assert_eq!(lex_one_success("let"), Token::Let);
+}
+
+#[test]
+fn operators() {
+    assert_eq!(lex_one_success("!"), Token::Bang);
+    assert_eq!(lex_one_success("+"), Token::Plus);
+    assert_eq!(lex_one_success("-"), Token::Minus);
+    assert_eq!(lex_one_success("*"), Token::Star);
+    assert_eq!(lex_one_success("/"), Token::Div);
+    assert_eq!(lex_one_success("%"), Token::Mod);
+    assert_eq!(lex_one_success(">"), Token::Gt);
+    assert_eq!(lex_one_success("<"), Token::Lt);
+    assert_eq!(lex_one_success("<="), Token::LtEq);
+    assert_eq!(lex_one_success(">="), Token::GtEq);
+    assert_eq!(lex_one_success("=="), Token::EqEq);
+    assert_eq!(lex_one_success("!="), Token::NotEq);
 }
 
 #[test]
