@@ -13,21 +13,109 @@ pub(super) enum LexError {
     InvalidToken,
 }
 
+/// An error originating from the parser
+#[derive(Error, Debug, PartialEq, Clone)]
+pub(super) enum ParseError<'a> {
+    #[error("{}", format_expected_found_error(&mut expected.clone(), found))]
+    ExpectedFound {
+        span: Span,
+        expected: Vec<Option<Token<'a>>>,
+        found: Option<Token<'a>>,
+    },
+    #[error("expected identifier, found keyword \"{keyword}\"")]
+    KeywordAsIdent { span: Span, keyword: Token<'a> },
+}
+
+fn format_expected_found_error<'a>(
+    expected: &mut Vec<Option<Token<'a>>>,
+    found: &Option<Token<'a>>,
+) -> String {
+    let format_optional_token = |token: &Option<Token>| match &token {
+        Some(token) => format!("\"{token}\""),
+        None => "end of input".to_string(),
+    };
+
+    format!(
+        "found {} but expected {}",
+        format_optional_token(found),
+        match &expected[..] {
+            [] => "something else".to_string(),
+            [expected] => format_optional_token(expected),
+            _ => {
+                // Make sure that the list of expected tokens is printed in a deterministic order
+                expected.sort();
+
+                let mut token_list = "".to_string();
+                for expected in &expected[..expected.len() - 1] {
+                    token_list = format!("{token_list}{}, ", format_optional_token(expected));
+                }
+                format!(
+                    "{token_list} or {}",
+                    format_optional_token(expected.last().unwrap())
+                )
+            }
+        }
+    )
+}
+
+/// Implement the `ParseError` trait from Chumsky for `ParseError`
+impl<'a> chumsky::Error<Token<'a>> for ParseError<'a> {
+    type Span = Span;
+    type Label = ();
+
+    fn expected_input_found<Iter: IntoIterator<Item = Option<Token<'a>>>>(
+        span: Span,
+        expected: Iter,
+        found: Option<Token<'a>>,
+    ) -> Self {
+        Self::ExpectedFound {
+            span,
+            expected: expected.into_iter().collect(),
+            found,
+        }
+    }
+
+    // Not currently doing anything with the label
+    fn with_label(self, _: Self::Label) -> Self {
+        self
+    }
+
+    // Merge two errors that point to the same input together, combining their information. Only
+    // relevant for the `ExpectedFound` error for now.
+    fn merge(mut self, mut other: Self) -> Self {
+        #[allow(clippy::single_match)]
+        match (&mut self, &mut other) {
+            (
+                Self::ExpectedFound { expected, .. },
+                Self::ExpectedFound {
+                    expected: expected_other,
+                    ..
+                },
+            ) => expected.append(expected_other),
+            _ => {}
+        }
+        self
+    }
+}
+
 /// A general compile error
 #[derive(Error, Debug, Clone, PartialEq)]
 pub(super) enum CompileError<'a> {
     #[error("{}", error)]
     Lex { span: Span, error: LexError },
     #[error("{}", error)]
-    ParseError { error: Simple<Token<'a>> },
+    Parse { error: ParseError<'a> },
 }
 
 impl<'a> CompileError<'a> {
-    fn span(&self) -> Span {
+    pub(super) fn span(&self) -> Span {
         use CompileError::*;
         match self {
             Lex { span, .. } => span.clone(),
-            ParseError { error } => error.span(),
+            Parse { error } => match error {
+                ParseError::ExpectedFound { span, .. } => span.clone(),
+                ParseError::KeywordAsIdent { span, .. } => span.clone(),
+            },
         }
     }
 }

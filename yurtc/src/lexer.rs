@@ -3,7 +3,7 @@ use itertools::{Either, Itertools};
 use logos::Logos;
 use std::fmt;
 
-#[derive(Clone, Debug, Eq, Hash, Logos, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, Logos, PartialEq, Ord, PartialOrd)]
 #[logos(skip r"[ \t\n\r\f]+")]
 #[logos(error = LexError)]
 pub(super) enum Token<'sc> {
@@ -102,6 +102,25 @@ pub(super) enum Token<'sc> {
     Comment,
 }
 
+pub(super) static KEYWORDS: &[Token] = &[
+    Token::Real,
+    Token::Int,
+    Token::Bool,
+    Token::True,
+    Token::False,
+    Token::String,
+    Token::Fn,
+    Token::If,
+    Token::Else,
+    Token::Var,
+    Token::Let,
+    Token::Constraint,
+    Token::Maximize,
+    Token::Minimize,
+    Token::Solve,
+    Token::Satisfy,
+];
+
 impl<'sc> fmt::Display for Token<'sc> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -132,9 +151,9 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::True => write!(f, "true"),
             Token::False => write!(f, "false"),
             Token::String => write!(f, "string"),
-            Token::Fn => write!(f, "Fn"),
-            Token::If => write!(f, "If"),
-            Token::Else => write!(f, "Else"),
+            Token::Fn => write!(f, "fn"),
+            Token::If => write!(f, "if"),
+            Token::Else => write!(f, "else"),
             Token::Let => write!(f, "let"),
             Token::Var => write!(f, "var"),
             Token::Constraint => write!(f, "constraint"),
