@@ -99,7 +99,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Install cargo-nextest
-        uses: baptiste0928/cargo-install@v1
+        uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-nextest
           locked: true
