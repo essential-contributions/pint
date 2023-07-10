@@ -76,6 +76,15 @@ fn var_decl<'sc>(
         .then(type_spec.or_not())
         .then(init.or_not())
         .then_ignore(just(Token::Semi))
+        .validate(|((name, ty), init), span, emit| {
+            if ty.is_none() && init.is_none() {
+                emit(ParseError::UntypedDecisionVar {
+                    span,
+                    name: name.clone(),
+                })
+            }
+            ((name, ty), init)
+        })
         .map(|((name, ty), init)| ast::Decl::Var(ast::VarStatement { name, ty, init }))
 }
 
@@ -444,9 +453,9 @@ fn let_decls() {
 fn var_decls() {
     check(
         &run_parser!(var_decl(expr()), "var blah;"),
-        expect_test::expect![[
-            r#"Var(VarStatement { name: Ident("blah"), ty: None, init: None })"#
-        ]],
+        expect_test::expect![[r#"
+            @0..9: type annotation or initializer needed for decision variable "blah"
+        "#]],
     );
     check(
         &run_parser!(var_decl(expr()), "var blah = 1.0;"),
