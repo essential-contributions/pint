@@ -25,3 +25,4 @@ jobs:
 
       - name: Run security audit
         run: cargo audit
+        working-directory: yurtc
