@@ -213,8 +213,10 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             .delimited_by(just(Token::ParenOpen), just(Token::ParenClose));
 
         let call = ident()
-            .then(args)
+            .then(args.clone())
             .map(|(name, args)| ast::Expr::Call { name, args });
+
+        let tuple = args.map(ast::Expr::Tuple);
 
         let atom = choice((
             immediate().map(ast::Expr::Immediate),
@@ -222,11 +224,35 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             code_block_expr(expr.clone()).map(ast::Expr::Block),
             if_expr(expr.clone()),
             call,
+            tuple,
             ident().map(ast::Expr::Ident),
         ));
 
-        comparison_op(additive_op(multiplicative_op(atom)))
+        comparison_op(additive_op(multiplicative_op(tuple_index(atom))))
     })
+}
+
+fn tuple_index<'sc, P>(
+    parser: P,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+{
+    // This extracts a `usize` index. Fails for everything else (therefore, `t.0.0` is not
+    // supported - but `t.0 .0` is fine).
+    let index = filter_map(|span, token| match token {
+        Token::IntLiteral(num_str) => num_str
+            .parse::<usize>()
+            .map_err(|_| ParseError::InvalidIntegerForTupleIndex { span, index: token }),
+        _ => Err(ParseError::InvalidTupleIndex { span, index: token }),
+    });
+
+    parser
+        .then(just(Token::Dot).ignore_then(index).repeated())
+        .foldl(|expr, index| ast::Expr::TupleIndex {
+            tuple: Box::new(expr),
+            index,
+        })
 }
 
 fn multiplicative_op<'sc, P>(
@@ -321,12 +347,20 @@ fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError<'sc>> 
 }
 
 fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError<'sc>> + Clone {
-    choice((
-        just(Token::Real).to(ast::Type::Real),
-        just(Token::Int).to(ast::Type::Int),
-        just(Token::Bool).to(ast::Type::Bool),
-        just(Token::String).to(ast::Type::String),
-    ))
+    recursive(|type_| {
+        let tuple = type_
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .delimited_by(just(Token::ParenOpen), just(Token::ParenClose));
+
+        choice((
+            just(Token::Real).to(ast::Type::Real),
+            just(Token::Int).to(ast::Type::Int),
+            just(Token::Bool).to(ast::Type::Bool),
+            just(Token::String).to(ast::Type::String),
+            tuple.map(ast::Type::Tuple),
+        ))
+    })
 }
 
 fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseError<'sc>> + Clone {
@@ -371,6 +405,25 @@ macro_rules! run_parser {
 #[cfg(test)]
 fn check(actual: &str, expect: expect_test::Expect) {
     expect.assert_eq(actual);
+}
+
+#[test]
+fn types() {
+    check(&run_parser!(type_(), "int"), expect_test::expect!["Int"]);
+    check(&run_parser!(type_(), "real"), expect_test::expect!["Real"]);
+    check(&run_parser!(type_(), "bool"), expect_test::expect!["Bool"]);
+    check(
+        &run_parser!(type_(), "string"),
+        expect_test::expect!["String"],
+    );
+    check(
+        &run_parser!(type_(), "(int, real, string)"),
+        expect_test::expect!["Tuple([Int, Real, String])"],
+    );
+    check(
+        &run_parser!(type_(), "(int, (real, int), string)"),
+        expect_test::expect!["Tuple([Int, Tuple([Real, Int]), String])"],
+    );
 }
 
 #[test]
@@ -839,7 +892,7 @@ fn code_blocks() {
     check(
         &format!("{:?}", run_parser!(let_decl(expr()), "let x = {};")),
         expect_test::expect![[
-            r#""@9..10: found \"}\" but expected \"!\", \"+\", \"-\", \"{\", \"if\", \"var\", \"let\",  or \"constraint\"\n""#
+            r#""@9..10: found \"}\" but expected \"!\", \"+\", \"-\", \"{\", \"(\", \"if\", \"var\", \"let\",  or \"constraint\"\n""#
         ]],
     );
 }
@@ -882,6 +935,93 @@ fn if_exprs() {
 }
 
 #[test]
+fn tuple_expressions() {
+    check(
+        &run_parser!(expr(), r#"(0,)"#),
+        expect_test::expect!["Tuple([Immediate(Int(0))])"],
+    );
+
+    check(
+        &run_parser!(expr(), r#"(0, 1.0, "foo")"#),
+        expect_test::expect![[
+            r#"Tuple([Immediate(Int(0)), Immediate(Real(1.0)), Immediate(String("foo"))])"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"(0, (1.0, "bar"), "foo")"#),
+        expect_test::expect![[
+            r#"Tuple([Immediate(Int(0)), Tuple([Immediate(Real(1.0)), Immediate(String("bar"))]), Immediate(String("foo"))])"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"( { 42 }, if cond { 2 } else { 3 }, foo() )"#),
+        expect_test::expect![[
+            r#"Tuple([Block(Block { statements: [], final_expr: Immediate(Int(42)) }), If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } }), Call { name: Ident("foo"), args: [] }])"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"t.0 + t.9999999"#),
+        expect_test::expect![[
+            r#"BinaryOp { op: Add, lhs: TupleIndex { tuple: Ident(Ident("t")), index: 0 }, rhs: TupleIndex { tuple: Ident(Ident("t")), index: 9999999 } }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"(0, 1).0"#),
+        expect_test::expect![
+            "TupleIndex { tuple: Tuple([Immediate(Int(0)), Immediate(Int(1))]), index: 0 }"
+        ],
+    );
+
+    check(
+        &run_parser!(expr(), r#"t.0 .0"#),
+        expect_test::expect![[
+            r#"TupleIndex { tuple: TupleIndex { tuple: Ident(Ident("t")), index: 0 }, index: 0 }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"foo().0"#),
+        expect_test::expect![[
+            r#"TupleIndex { tuple: Call { name: Ident("foo"), args: [] }, index: 0 }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"{ (0, 0) }.0"#),
+        expect_test::expect!["TupleIndex { tuple: Block(Block { statements: [], final_expr: Tuple([Immediate(Int(0)), Immediate(Int(0))]) }), index: 0 }"],
+    );
+
+    check(
+        &run_parser!(expr(), r#"if true { (0, 0) } else { (0, 0) }.0"#),
+        expect_test::expect!["TupleIndex { tuple: If(IfExpr { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Tuple([Immediate(Int(0)), Immediate(Int(0))]) }, else_block: Block { statements: [], final_expr: Tuple([Immediate(Int(0)), Immediate(Int(0))]) } }), index: 0 }"],
+    );
+
+    // This parses because `1 + 2` is an expression, but it should fail in semantic analysis.
+    check(
+        &run_parser!(expr(), "1 + 2 .3"),
+        expect_test::expect!["BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: TupleIndex { tuple: Immediate(Int(2)), index: 3 } }"],
+    );
+
+    check(
+        &run_parser!(let_decl(expr()), "let x = t.0xa;"),
+        expect_test::expect![[r#"
+            @10..13: Invalid integer value "0xa" for tuple index
+        "#]],
+    );
+
+    check(
+        &run_parser!(let_decl(expr()), "let x = t.xx;"),
+        expect_test::expect![[r#"
+            @10..12: Invalid value "xx" for tuple index
+        "#]],
+    );
+}
+
+#[test]
 fn basic_program() {
     let src = r#"
 var low_val: real = 1.23;
@@ -907,7 +1047,7 @@ fn with_errors() {
     check(
         &run_parser!(yurt_program(), "let low_val: bad = 1.23"),
         expect_test::expect![[r#"
-            @13..16: found "bad" but expected "real", "int", "bool",  or "string"
+            @13..16: found "bad" but expected "(", "real", "int", "bool",  or "string"
         "#]],
     );
 }
@@ -924,7 +1064,7 @@ fn fn_errors() {
     check(
         &run_parser!(yurt_program(), "fn foo() -> real {}"),
         expect_test::expect![[r#"
-            @18..19: found "}" but expected "!", "+", "-", "{", "if", "var", "let",  or "constraint"
+            @18..19: found "}" but expected "!", "+", "-", "{", "(", "if", "var", "let",  or "constraint"
         "#]],
     );
 }

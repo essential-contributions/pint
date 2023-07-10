@@ -41,6 +41,7 @@ pub(super) enum Type {
     Int,
     Bool,
     String,
+    Tuple(Vec<Type>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -62,6 +63,11 @@ pub(super) enum Expr {
     },
     Block(Block),
     If(IfExpr),
+    Tuple(Vec<Expr>),
+    TupleIndex {
+        tuple: Box<Expr>,
+        index: usize,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -62,7 +62,7 @@ Identifiers have the following syntax:
 <ident> ::= _?[A-Za-z][A-Za-z0-9]*     % excluding keywords
 ```
 
-A number of keywords are reserved and cannot be used as identifiers. The keywords are: `bool`, `constraint`, `else`, `false`, `real`, `fn`, `if`, `int`, `let`, `maximize`, `minimize`, `satisfy`, `solve`, `true`, `type`.
+A number of keywords are reserved and cannot be used as identifiers. The keywords are: `bool`, `constraint`, `else`, `false`, `real`, `fn`, `if`, `int`, `let`, `maximize`, `minimize`, `satisfy`, `solve`, `true`.
 
 ## High-level Intent Structure
 
@@ -138,7 +138,8 @@ Expressions represent values and have the following syntax:
               | <int-literal>
               | <real-literal>
               | <string-literal>
-              | <tuple-literal>
+              | <tuple-expr>
+              | <tuple-index-expr>
               | <if-expr>
               | <call-expr>
 ```
@@ -249,15 +250,23 @@ let string = "first line\
              third line";
 ```
 
-#### Tuple Literals
+#### Tuple Expressions and Tuple Indexing Expressions
 
-Tuple literals are written as:
+Tuple Expressions are written as:
 
 ```ebnf
-<tuple-literal> ::= "(" <expr> "," [ <expr> "," ... ] ")"
+<tuple-expr> ::= "(" <expr> "," [ <expr> "," ... ] ")"
 ```
 
-For example: `let t = (5, 3, "foo")`;
+For example: `let t = (5, 3, "foo");`.
+
+Tuple indexing expressions are written as:
+
+```ebnf
+<tuple-index-expr> ::= <expr-atom> "." [0-9]+
+```
+
+For example: `let second = t.1;` which extracts the second element of tuple `t` and stores it into `second`.
 
 #### "If" Expressions
 
@@ -279,7 +288,7 @@ Call expressions are used to call functions and have the following syntax:
 <call-expr> ::= <ident> "(" ( <expr> "," ... ) ")"
 ```
 
-For example, `x = foo(5, 2);`
+For example: `x = foo(5, 2);`.
 
 The type of the expressions passed as arguments must match the argument types of the called function. The return type of the function must also be appropriate for the calling context.
 

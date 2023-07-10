@@ -28,6 +28,10 @@ pub(super) enum ParseError<'a> {
         "type annotation or initializer needed for decision variable \"{}\"", name.0
     )]
     UntypedDecisionVar { span: Span, name: ast::Ident },
+    #[error("Invalid integer value \"{}\" for tuple index", index)]
+    InvalidIntegerForTupleIndex { span: Span, index: Token<'a> },
+    #[error("Invalid value \"{}\" for tuple index", index)]
+    InvalidTupleIndex { span: Span, index: Token<'a> },
 }
 
 fn format_expected_found_error<'a>(
@@ -120,6 +124,8 @@ impl<'a> CompileError<'a> {
                 ParseError::ExpectedFound { span, .. } => span.clone(),
                 ParseError::KeywordAsIdent { span, .. } => span.clone(),
                 ParseError::UntypedDecisionVar { span, .. } => span.clone(),
+                ParseError::InvalidIntegerForTupleIndex { span, .. } => span.clone(),
+                ParseError::InvalidTupleIndex { span, .. } => span.clone(),
             },
         }
     }
