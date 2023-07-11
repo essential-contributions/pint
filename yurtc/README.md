@@ -34,7 +34,7 @@ cargo run --bin yurtc -- --help
 
 ### Running Unit Tests
 
-Unit tests can be run using `cargo run` in the `yurt/yurtc` directory. However, it is recommended that the tests are run using the [`cargo-nextest`](https://nexte.st/) package instead. To install `cargo-nextest`:
+Unit tests can be run using `cargo test` in the `yurt/yurtc` directory. However, it is recommended that the tests are run using the [`cargo-nextest`](https://nexte.st/) package instead. To install `cargo-nextest`:
 
 ```sh
 cargo install cargo-nextest
