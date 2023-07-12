@@ -52,6 +52,23 @@ fn ints() {
     assert_eq!(lex_one_success("0030"), Token::IntLiteral("0030"));
     assert_eq!(lex_one_success("0x333"), Token::IntLiteral("0x333"));
     assert_eq!(lex_one_success("0b1010"), Token::IntLiteral("0b1010"));
+
+    assert_eq!(
+        lex_one_success("1111111111222222222233333333334444444444"),
+        Token::IntLiteral("1111111111222222222233333333334444444444")
+    );
+    assert_eq!(
+        lex_one_success("0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd"),
+        Token::IntLiteral("0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd")
+    );
+    assert_eq!(
+        lex_one_success(
+            "0b11111111110000000000111111111100000000001111111111000000000011111111110000000000"
+        ),
+        Token::IntLiteral(
+            "0b11111111110000000000111111111100000000001111111111000000000011111111110000000000"
+        )
+    );
 }
 
 #[test]

@@ -752,3 +752,37 @@ fn test_parse_str_to_ast() {
         expect_test::expect![[r#"Err(could not compile "my_file" due to 2 previous errors)"#]],
     );
 }
+
+#[test]
+fn big_ints() {
+    check(
+        &run_parser!(
+            let_decl(expr()),
+            "let blah = 1234567890123456789012345678901234567890;"
+        ),
+        expect_test::expect![[
+            r#"Let(LetStatement { name: Ident("blah"), ty: None, init: Immediate(BigInt(1234567890123456789012345678901234567890)) })"#
+        ]],
+    );
+    check(
+        &run_parser!(
+            let_decl(expr()),
+            "let blah = 0xfeedbadf00d2adeadcafed00dbabeface;"
+        ),
+        // Confirmed by using the Python REPL to convert from hex to dec...
+        expect_test::expect![[
+            r#"Let(LetStatement { name: Ident("blah"), ty: None, init: Immediate(BigInt(5421732407698601623698172315373246806734)) })"#
+        ]],
+    );
+    check(
+        &run_parser!(
+            expr(),
+            "0b110100101001010101010101010101010011010011010101010101010101010101010101010 + \
+            0b01001001010110101010101001010101010010100100101001010010100100100001010"
+        ),
+        // Again confirmed using the Python REPL.  Handy.
+        expect_test::expect![
+            "BinaryOp { op: Add, lhs: Immediate(BigInt(31076614848392666458794)), rhs: Immediate(BigInt(676572722683907229962)) }"
+        ],
+    );
+}

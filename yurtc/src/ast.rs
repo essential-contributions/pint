@@ -96,6 +96,7 @@ pub(super) enum BinaryOp {
 pub(super) enum Immediate {
     Real(f64),
     Int(i64),
+    BigInt(num_bigint::BigInt),
     Bool(bool),
     String(String),
 }
