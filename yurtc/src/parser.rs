@@ -367,11 +367,31 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError<'sc>> +
 }
 
 fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseError<'sc>> + Clone {
+    let integer_parser = |num_str: &str| {
+        // Try an i64 first, if it'll fit, and return ast::Immediate::Int.
+        num_str
+            .parse::<i64>()
+            .map(ast::Immediate::Int)
+            .or_else(|_| {
+                // Try a big-int if that fails and return an ast::Immedate::BigInt.  The BigInt
+                // FromStr::from_str() isn't smart about radices though.
+                use num_traits::Num;
+                let (radix, offs) = match num_str.chars().nth(1) {
+                    Some('b') => (2, 2),
+                    Some('x') => (16, 2),
+                    _ => (10, 0),
+                };
+                num_bigint::BigInt::from_str_radix(&num_str[offs..], radix)
+                    .map(ast::Immediate::BigInt)
+            })
+            .unwrap()
+    };
+
     select! {
         Token::RealLiteral(num_str) => ast::Immediate::Real(num_str.parse().unwrap()),
-        Token::IntLiteral(num_str) => ast::Immediate::Int(num_str.parse().unwrap()),
+        Token::IntLiteral(num_str) => integer_parser(num_str),
         Token::True => ast::Immediate::Bool(true),
         Token::False => ast::Immediate::Bool(false),
-        Token::StringLiteral(str_val) => ast::Immediate::String(str_val)
+        Token::StringLiteral(str_val) => ast::Immediate::String(str_val),
     }
 }
