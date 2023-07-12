@@ -49,6 +49,8 @@ pub(super) enum Token<'sc> {
     ParenClose,
     #[token("->")]
     Arrow,
+    #[token(".")]
+    Dot,
 
     #[token("real")]
     Real,
@@ -150,6 +152,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::ParenOpen => write!(f, "("),
             Token::ParenClose => write!(f, ")"),
             Token::Arrow => write!(f, "->"),
+            Token::Dot => write!(f, "."),
             Token::Real => write!(f, "real"),
             Token::Int => write!(f, "int"),
             Token::Bool => write!(f, "bool"),
@@ -258,12 +261,17 @@ fn lex_one_success(src: &str) -> Token<'_> {
     toks[0].0.clone()
 }
 
-#[cfg(test)]
-fn lex_one_error(src: &str) -> CompileError {
-    // Tokenise src, assume a single error.
-    let (_, errs) = lex(src);
-    assert_eq!(errs.len(), 1, "Testing for single error only.");
-    errs[0].clone()
+#[test]
+fn control_tokens() {
+    assert_eq!(lex_one_success(":"), Token::Colon);
+    assert_eq!(lex_one_success(";"), Token::Semi);
+    assert_eq!(lex_one_success(","), Token::Comma);
+    assert_eq!(lex_one_success("{"), Token::BraceOpen);
+    assert_eq!(lex_one_success("}"), Token::BraceClose);
+    assert_eq!(lex_one_success("("), Token::ParenOpen);
+    assert_eq!(lex_one_success(")"), Token::ParenClose);
+    assert_eq!(lex_one_success("->"), Token::Arrow);
+    assert_eq!(lex_one_success("."), Token::Dot);
 }
 
 #[test]
@@ -275,12 +283,12 @@ fn reals() {
     assert_eq!(lex_one_success("0.34"), Token::RealLiteral("0.34"));
     assert_eq!(lex_one_success("-0.34"), Token::RealLiteral("-0.34"));
     check(
-        &format!("{:?}", lex_one_error(".34")),
-        expect_test::expect![[r#"Lex { span: 0..1, error: InvalidToken }"#]],
+        &format!("{:?}", lex(".34")),
+        expect_test::expect![[r#"([(Dot, 0..1), (IntLiteral("34"), 1..3)], [])"#]],
     );
     check(
-        &format!("{:?}", lex_one_error("12.")),
-        expect_test::expect!["Lex { span: 2..3, error: InvalidToken }"],
+        &format!("{:?}", lex("12.")),
+        expect_test::expect![[r#"([(IntLiteral("12"), 0..2), (Dot, 2..3)], [])"#]],
     );
 }
 
