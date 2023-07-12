@@ -8,8 +8,10 @@ pub(super) type Span = std::ops::Range<usize>;
 /// An error originating from the lexer
 #[derive(Error, Debug, Clone, PartialEq, Default)]
 pub(super) enum LexError {
+    #[error("invalid use of the dot operator")]
+    InvalidDotOperator,
     #[default]
-    #[error("Invalid token")]
+    #[error("invalid token")]
     InvalidToken,
 }
 
@@ -28,8 +30,6 @@ pub(super) enum ParseError<'a> {
         "type annotation or initializer needed for decision variable \"{}\"", name.0
     )]
     UntypedDecisionVar { span: Span, name: ast::Ident },
-    #[error("Invalid integer value \"{}\" for tuple index", index)]
-    InvalidIntegerForTupleIndex { span: Span, index: Token<'a> },
     #[error("Invalid value \"{}\" for tuple index", index)]
     InvalidTupleIndex { span: Span, index: Token<'a> },
 }
@@ -124,7 +124,6 @@ impl<'a> CompileError<'a> {
                 ParseError::ExpectedFound { span, .. } => span.clone(),
                 ParseError::KeywordAsIdent { span, .. } => span.clone(),
                 ParseError::UntypedDecisionVar { span, .. } => span.clone(),
-                ParseError::InvalidIntegerForTupleIndex { span, .. } => span.clone(),
                 ParseError::InvalidTupleIndex { span, .. } => span.clone(),
             },
         }

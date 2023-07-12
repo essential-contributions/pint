@@ -616,9 +616,16 @@ fn tuple_expressions() {
     );
 
     check(
-        &run_parser!(expr(), r#"foo().0"#),
+        &run_parser!(expr(), "t \r .1 .2.2. \n 3 . \t 13"),
         expect_test::expect![[
-            r#"TupleIndex { tuple: Call { name: Ident("foo"), args: [] }, index: 0 }"#
+            r#"TupleIndex { tuple: TupleIndex { tuple: TupleIndex { tuple: TupleIndex { tuple: TupleIndex { tuple: Ident(Ident("t")), index: 1 }, index: 2 }, index: 2 }, index: 3 }, index: 13 }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"foo().0.1"#),
+        expect_test::expect![[
+            r#"TupleIndex { tuple: TupleIndex { tuple: Call { name: Ident("foo"), args: [] }, index: 0 }, index: 1 }"#
         ]],
     );
 
@@ -641,14 +648,7 @@ fn tuple_expressions() {
     check(
         &run_parser!(let_decl(expr()), "let x = t.0xa;"),
         expect_test::expect![[r#"
-            @10..13: Invalid integer value "0xa" for tuple index
-        "#]],
-    );
-
-    check(
-        &run_parser!(let_decl(expr()), "let x = t.xx;"),
-        expect_test::expect![[r#"
-            @10..12: Invalid value "xx" for tuple index
+            @11..13: found "xa" but expected "+", "-", "/", "%", ">", "<", "<=", ">=", "==", "!=", ";",  or "*"
         "#]],
     );
 }

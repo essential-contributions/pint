@@ -241,17 +241,18 @@ fn tuple_index<'sc, P>(
 where
     P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
 {
-    // This extracts a `usize` index. Fails for everything else (therefore, `t.0.0` is not
-    // supported - but `t.0 .0` is fine).
-    let index = filter_map(|span, token| match token {
-        Token::IntLiteral(num_str) => num_str
-            .parse::<usize>()
-            .map_err(|_| ParseError::InvalidIntegerForTupleIndex { span, index: token }),
+    let indices = filter_map(|span, token| match token {
+        Token::TupleIndex(indices) => Ok(indices
+            .iter()
+            .map(|index| index.parse::<usize>().unwrap())
+            .collect::<Vec<usize>>()),
         _ => Err(ParseError::InvalidTupleIndex { span, index: token }),
     });
 
+    // Matches patterns like `t.0.0.0` and `t  .0.0  .0` etc. The call to `flatten` consolidates
+    // all the indices into a single vector.
     parser
-        .then(just(Token::Dot).ignore_then(index).repeated())
+        .then(indices.repeated().flatten())
         .foldl(|expr, index| ast::Expr::TupleIndex {
             tuple: Box::new(expr),
             index,
