@@ -73,6 +73,12 @@ fn let_decls() {
         ]],
     );
     check(
+        &run_parser!(let_decl(expr()), "let blah: real = -1.0;"),
+        expect_test::expect![[
+            r#"Let(LetStatement { name: Ident("blah"), ty: Some(Real), init: Immediate(Real(-1.0)) })"#
+        ]],
+    );
+    check(
         &run_parser!(let_decl(expr()), "let blah: real"),
         expect_test::expect![[r#"
             @14..14: found end of input but expected "="
@@ -88,6 +94,12 @@ fn let_decls() {
         &run_parser!(let_decl(expr()), "let blah: int = 1;"),
         expect_test::expect![[
             r#"Let(LetStatement { name: Ident("blah"), ty: Some(Int), init: Immediate(Int(1)) })"#
+        ]],
+    );
+    check(
+        &run_parser!(let_decl(expr()), "let blah: int = -1;"),
+        expect_test::expect![[
+            r#"Let(LetStatement { name: Ident("blah"), ty: Some(Int), init: Immediate(Int(-1)) })"#
         ]],
     );
     check(
