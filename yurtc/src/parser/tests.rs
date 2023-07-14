@@ -103,6 +103,18 @@ fn let_decls() {
         ]],
     );
     check(
+        &run_parser!(let_decl(expr()), "let blah: int = 0x111;"),
+        expect_test::expect![[
+            r#"Let(LetStatement { name: Ident("blah"), ty: Some(Int), init: Immediate(BigInt(273)) })"#
+        ]],
+    );
+    check(
+        &run_parser!(let_decl(expr()), "let blah: int = 0b111;"),
+        expect_test::expect![[
+            r#"Let(LetStatement { name: Ident("blah"), ty: Some(Int), init: Immediate(BigInt(7)) })"#
+        ]],
+    );
+    check(
         &run_parser!(let_decl(expr()), "let blah: int"),
         expect_test::expect![[r#"
             @13..13: found end of input but expected "="
