@@ -76,14 +76,13 @@ Items can occur in any order; identifiers need not be declared before they are u
 
 ```ebnf
 <item> ::= <let-item>
-         | <var-item>
          | <constraint-item>
          | <function-item>
          | <solve-item>
          | <transition-item>
 ```
 
-Variable declaration items (`<let-item>` and `<var-item`) introduce variables and optionally bind them to a value ([Variable Declaration Items](#variable-declaration-items)).
+Variable declaration items (`<let-item>`) introduce variables and optionally bind them to a value ([Variable Declaration Items](#variable-declaration-items)).
 
 Constraint items describe intent constraints ([Constraint Items](#constraint-items)).
 
@@ -183,7 +182,6 @@ Block expressions are expressions that contains a list of _statements_ followed 
 <block-expr> ::= "{" [ <block-statement> ";" ... ] <expr> "}"
 
 <block-statement> ::= <let-item>
-                    | <var-item>
                     | <constraint-item>
                     | <if-expr>
 ```
@@ -297,56 +295,22 @@ This section describes the top-level program items.
 
 ### Variable Declaration Items
 
-There are two types of variable declarations:
+These are variables whose values may or may not be unknown for a given _instance_ for an intent. Solvers are required to find appropriate values for those variables with unknown values at compile-time.
 
-#### Configuration variables
-
-These are variables whose values are fixed for each given _instance_ of an intent.
-
-Configuration variables have the following syntax:
+Variable declaration items have the following syntax:
 
 ```ebnf
-<let-item> ::= "let" <ident> [ ":" <ty> ] "=" <expr>
+<let-item> ::= "let" <ident> ( ( ":" <ty> ) | ("=" <expr> ) | ( ":" <ty> "=" <expr> )
 ```
 
 For example:
 
 ```rust
-let a:int = 10;
-let b = 5;
-```
-
-#### Decision variables
-
-These are variables whose values can be unknown for a given _instance_ for an intent. Solver are required to find appropriate values for these variables.
-
-Decision variables have the following syntax:
-
-```ebnf
-<var-item> ::= "var" <ident> ( ( ":" <ty> ) | ("=" <expr> ) | ( ":" <ty> "=" <expr> )
-```
-
-For example:
-
-```rust
-var x: int;
+let x: int;
 let y = 5;
 ```
 
-The optional value used for initializing a decision variable enforce an equality constraint on the variable. For example, the following:
-
-```rust
-var x: int = 5;
-```
-
-is equivalent to
-
-```rust
-var x: int;
-constraint x == 5;
-```
-
-Note that at least one of the type annotation and the initializing expression has to be present so that the type of the variable can be determined. This implies that `var x;` is not a valid variable declaration.
+Note that at least one of the type annotation and the initializing expression has to be present so that the type of the variable can be determined. This implies that `let x;` is not a valid variable declaration.
 
 ### Constraint Items
 
@@ -405,7 +369,7 @@ fn even(x: int) -> bool {
 
 ### Transition Items
 
-Transition items represent a relationship between two decision variables that represent the state of a blockchain such as balances. Transition items have the following syntax:
+Transition items represent a relationship between two variables that represent the state of a blockchain such as balances. Transition items have the following syntax:
 
 ```ebnf
 <transition-item> ::= <ident> "~>" <ident>

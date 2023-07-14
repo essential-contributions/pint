@@ -62,7 +62,6 @@ fn parse_str_to_ast_inner(source: &str) -> Result<Ast, Vec<CompileError>> {
 
 fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> + Clone {
     choice((
-        var_decl(expr()),
         let_decl(expr()),
         constraint_decl(expr()),
         solve_decl(),
@@ -70,28 +69,6 @@ fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> 
     ))
     .repeated()
     .then_ignore(end())
-}
-
-fn var_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
-    let type_spec = just(Token::Colon).ignore_then(type_());
-    let init = just(Token::Eq).ignore_then(expr);
-    just(Token::Var)
-        .ignore_then(ident())
-        .then(type_spec.or_not())
-        .then(init.or_not())
-        .then_ignore(just(Token::Semi))
-        .validate(|((name, ty), init), span, emit| {
-            if ty.is_none() && init.is_none() {
-                emit(ParseError::UntypedDecisionVar {
-                    span,
-                    name: name.clone(),
-                })
-            }
-            ((name, ty), init)
-        })
-        .map(|((name, ty), init)| ast::Decl::Var(ast::VarStatement { name, ty, init }))
 }
 
 fn let_decl<'sc>(
@@ -102,9 +79,18 @@ fn let_decl<'sc>(
     just(Token::Let)
         .ignore_then(ident())
         .then(type_spec.or_not())
-        .then(init)
+        .then(init.or_not())
         .then_ignore(just(Token::Semi))
-        .map(|((name, ty), init)| ast::Decl::Let(ast::LetStatement { name, ty, init }))
+        .validate(|((name, ty), init), span, emit| {
+            if ty.is_none() && init.is_none() {
+                emit(ParseError::UntypedVariable {
+                    span,
+                    name: name.clone(),
+                })
+            }
+            ((name, ty), init)
+        })
+        .map(|((name, ty), init)| ast::Decl::Let(ast::LetDecl { name, ty, init }))
 }
 
 fn constraint_decl<'sc>(
@@ -160,13 +146,9 @@ fn fn_decl<'sc>(
 fn code_block_expr<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
 ) -> impl Parser<Token<'sc>, ast::Block, Error = ParseError<'sc>> + Clone {
-    let code_block_body = choice((
-        var_decl(expr.clone()),
-        let_decl(expr.clone()),
-        constraint_decl(expr.clone()),
-    ))
-    .repeated()
-    .then(expr);
+    let code_block_body = choice((let_decl(expr.clone()), constraint_decl(expr.clone())))
+        .repeated()
+        .then(expr);
 
     code_block_body
         .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))

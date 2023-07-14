@@ -61,157 +61,81 @@ fn types() {
 #[test]
 fn let_decls() {
     check(
+        &run_parser!(let_decl(expr()), "let blah;"),
+        expect_test::expect![[r#"
+            @0..9: type annotation or initializer needed for variable "blah"
+        "#]],
+    );
+    check(
         &run_parser!(let_decl(expr()), "let blah = 1.0;"),
         expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("blah"), ty: None, init: Immediate(Real(1.0)) })"#
+            r#"Let(LetDecl { name: Ident("blah"), ty: None, init: Some(Immediate(Real(1.0))) })"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: real = 1.0;"),
         expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("blah"), ty: Some(Real), init: Immediate(Real(1.0)) })"#
+            r#"Let(LetDecl { name: Ident("blah"), ty: Some(Real), init: Some(Immediate(Real(1.0))) })"#
         ]],
     );
     check(
-        &run_parser!(let_decl(expr()), "let blah: real"),
-        expect_test::expect![[r#"
-            @14..14: found end of input but expected "="
-        "#]],
+        &run_parser!(let_decl(expr()), "let blah: real;"),
+        expect_test::expect![[
+            r#"Let(LetDecl { name: Ident("blah"), ty: Some(Real), init: None })"#
+        ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah = 1;"),
         expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("blah"), ty: None, init: Immediate(Int(1)) })"#
+            r#"Let(LetDecl { name: Ident("blah"), ty: None, init: Some(Immediate(Int(1))) })"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: int = 1;"),
         expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("blah"), ty: Some(Int), init: Immediate(Int(1)) })"#
+            r#"Let(LetDecl { name: Ident("blah"), ty: Some(Int), init: Some(Immediate(Int(1))) })"#
         ]],
     );
     check(
-        &run_parser!(let_decl(expr()), "let blah: int"),
-        expect_test::expect![[r#"
-            @13..13: found end of input but expected "="
-        "#]],
+        &run_parser!(let_decl(expr()), "let blah: int;"),
+        expect_test::expect![[
+            r#"Let(LetDecl { name: Ident("blah"), ty: Some(Int), init: None })"#
+        ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah = true;"),
         expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("blah"), ty: None, init: Immediate(Bool(true)) })"#
+            r#"Let(LetDecl { name: Ident("blah"), ty: None, init: Some(Immediate(Bool(true))) })"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: bool = false;"),
         expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("blah"), ty: Some(Bool), init: Immediate(Bool(false)) })"#
+            r#"Let(LetDecl { name: Ident("blah"), ty: Some(Bool), init: Some(Immediate(Bool(false))) })"#
         ]],
     );
     check(
-        &run_parser!(let_decl(expr()), "let blah: bool"),
-        expect_test::expect![[r#"
-            @14..14: found end of input but expected "="
-        "#]],
+        &run_parser!(let_decl(expr()), "let blah: bool;"),
+        expect_test::expect![[
+            r#"Let(LetDecl { name: Ident("blah"), ty: Some(Bool), init: None })"#
+        ]],
     );
     check(
         &run_parser!(let_decl(expr()), r#"let blah = "hello";"#),
         expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("blah"), ty: None, init: Immediate(String("hello")) })"#
+            r#"Let(LetDecl { name: Ident("blah"), ty: None, init: Some(Immediate(String("hello"))) })"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), r#"let blah: string = "hello";"#),
         expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("blah"), ty: Some(String), init: Immediate(String("hello")) })"#
+            r#"Let(LetDecl { name: Ident("blah"), ty: Some(String), init: Some(Immediate(String("hello"))) })"#
         ]],
     );
     check(
-        &run_parser!(let_decl(expr()), r#"let blah: string"#),
-        expect_test::expect![[r#"
-            @16..16: found end of input but expected "="
-        "#]],
-    );
-}
-
-#[test]
-fn var_decls() {
-    check(
-        &run_parser!(var_decl(expr()), "var blah;"),
-        expect_test::expect![[r#"
-            @0..9: type annotation or initializer needed for decision variable "blah"
-        "#]],
-    );
-    check(
-        &run_parser!(var_decl(expr()), "var blah = 1.0;"),
+        &run_parser!(let_decl(expr()), r#"let blah: string;"#),
         expect_test::expect![[
-            r#"Var(VarStatement { name: Ident("blah"), ty: None, init: Some(Immediate(Real(1.0))) })"#
-        ]],
-    );
-    check(
-        &run_parser!(var_decl(expr()), "var blah: real = 1.0;"),
-        expect_test::expect![[
-            r#"Var(VarStatement { name: Ident("blah"), ty: Some(Real), init: Some(Immediate(Real(1.0))) })"#
-        ]],
-    );
-    check(
-        &run_parser!(var_decl(expr()), "var blah: real;"),
-        expect_test::expect![[
-            r#"Var(VarStatement { name: Ident("blah"), ty: Some(Real), init: None })"#
-        ]],
-    );
-    check(
-        &run_parser!(var_decl(expr()), "var blah = 1;"),
-        expect_test::expect![[
-            r#"Var(VarStatement { name: Ident("blah"), ty: None, init: Some(Immediate(Int(1))) })"#
-        ]],
-    );
-    check(
-        &run_parser!(var_decl(expr()), "var blah: int = 1;"),
-        expect_test::expect![[
-            r#"Var(VarStatement { name: Ident("blah"), ty: Some(Int), init: Some(Immediate(Int(1))) })"#
-        ]],
-    );
-    check(
-        &run_parser!(var_decl(expr()), "var blah: int;"),
-        expect_test::expect![[
-            r#"Var(VarStatement { name: Ident("blah"), ty: Some(Int), init: None })"#
-        ]],
-    );
-    check(
-        &run_parser!(var_decl(expr()), "var blah = true;"),
-        expect_test::expect![[
-            r#"Var(VarStatement { name: Ident("blah"), ty: None, init: Some(Immediate(Bool(true))) })"#
-        ]],
-    );
-    check(
-        &run_parser!(var_decl(expr()), "var blah: bool = false;"),
-        expect_test::expect![[
-            r#"Var(VarStatement { name: Ident("blah"), ty: Some(Bool), init: Some(Immediate(Bool(false))) })"#
-        ]],
-    );
-    check(
-        &run_parser!(var_decl(expr()), "var blah: bool;"),
-        expect_test::expect![[
-            r#"Var(VarStatement { name: Ident("blah"), ty: Some(Bool), init: None })"#
-        ]],
-    );
-    check(
-        &run_parser!(var_decl(expr()), r#"var blah = "hello";"#),
-        expect_test::expect![[
-            r#"Var(VarStatement { name: Ident("blah"), ty: None, init: Some(Immediate(String("hello"))) })"#
-        ]],
-    );
-    check(
-        &run_parser!(var_decl(expr()), r#"var blah: string = "hello";"#),
-        expect_test::expect![[
-            r#"Var(VarStatement { name: Ident("blah"), ty: Some(String), init: Some(Immediate(String("hello"))) })"#
-        ]],
-    );
-    check(
-        &run_parser!(var_decl(expr()), r#"var blah: string;"#),
-        expect_test::expect![[
-            r#"Var(VarStatement { name: Ident("blah"), ty: Some(String), init: None })"#
+            r#"Let(LetDecl { name: Ident("blah"), ty: Some(String), init: None })"#
         ]],
     );
 }
@@ -469,7 +393,7 @@ fn foo(x: real, y: real) -> real {
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Fn { name: Ident("foo"), params: [(Ident("x"), Real), (Ident("y"), Real)], return_type: Real, body: Block { statements: [Let(LetStatement { name: Ident("z"), ty: None, init: Immediate(Real(5.0)) })], final_expr: Ident(Ident("z")) } }]"#
+            r#"[Fn { name: Ident("foo"), params: [(Ident("x"), Real), (Ident("y"), Real)], return_type: Real, body: Block { statements: [Let(LetDecl { name: Ident("z"), ty: None, init: Some(Immediate(Real(5.0))) })], final_expr: Ident(Ident("z")) } }]"#
         ]],
     );
 }
@@ -483,7 +407,7 @@ let x = foo(a*3, c);
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Let(LetStatement { name: Ident("x"), ty: None, init: Call { name: Ident("foo"), args: [BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Int(3)) }, Ident(Ident("c"))] } })]"#
+            r#"[Let(LetDecl { name: Ident("x"), ty: None, init: Some(Call { name: Ident("foo"), args: [BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Int(3)) }, Ident(Ident("c"))] }) })]"#
         ]],
     );
 }
@@ -493,14 +417,14 @@ fn code_blocks() {
     check(
         &run_parser!(let_decl(expr()), "let x = { 0 };"),
         expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("x"), ty: None, init: Block(Block { statements: [], final_expr: Immediate(Int(0)) }) })"#
+            r#"Let(LetDecl { name: Ident("x"), ty: None, init: Some(Block(Block { statements: [], final_expr: Immediate(Int(0)) })) })"#
         ]],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = { constraint x > 0.0; 0.0 };"),
         expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("x"), ty: None, init: Block(Block { statements: [Constraint(BinaryOp { op: GreaterThan, lhs: Ident(Ident("x")), rhs: Immediate(Real(0.0)) })], final_expr: Immediate(Real(0.0)) }) })"#
+            r#"Let(LetDecl { name: Ident("x"), ty: None, init: Some(Block(Block { statements: [Constraint(BinaryOp { op: GreaterThan, lhs: Ident(Ident("x")), rhs: Immediate(Real(0.0)) })], final_expr: Immediate(Real(0.0)) })) })"#
         ]],
     );
 
@@ -517,14 +441,14 @@ fn code_blocks() {
     check(
         &run_parser!(let_decl(expr()), "let x = { 1.0 } * { 2.0 };"),
         expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("x"), ty: None, init: BinaryOp { op: Mul, lhs: Block(Block { statements: [], final_expr: Immediate(Real(1.0)) }), rhs: Block(Block { statements: [], final_expr: Immediate(Real(2.0)) }) } })"#
+            r#"Let(LetDecl { name: Ident("x"), ty: None, init: Some(BinaryOp { op: Mul, lhs: Block(Block { statements: [], final_expr: Immediate(Real(1.0)) }), rhs: Block(Block { statements: [], final_expr: Immediate(Real(2.0)) }) }) })"#
         ]],
     );
 
     check(
         &format!("{:?}", run_parser!(let_decl(expr()), "let x = {};")),
         expect_test::expect![[
-            r#""@9..10: found \"}\" but expected \"!\", \"+\", \"-\", \"{\", \"(\", \"if\", \"var\", \"let\",  or \"constraint\"\n""#
+            r#""@9..10: found \"}\" but expected \"!\", \"+\", \"-\", \"{\", \"(\", \"if\", \"let\",  or \"constraint\"\n""#
         ]],
     );
 }
@@ -701,7 +625,7 @@ fn tuple_expressions() {
 #[test]
 fn basic_program() {
     let src = r#"
-var low_val: real = 1.23;
+let low_val: real = 1.23;
 let high_val = 4.56;        // Implicit type.
 
 // Here's the constraints.
@@ -714,7 +638,7 @@ solve minimize mid;
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Var(VarStatement { name: Ident("low_val"), ty: Some(Real), init: Some(Immediate(Real(1.23))) }), Let(LetStatement { name: Ident("high_val"), ty: None, init: Immediate(Real(4.56)) }), Constraint(BinaryOp { op: GreaterThan, lhs: Ident(Ident("mid")), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("low_val")), rhs: Immediate(Real(2.0)) } }), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident("mid")), rhs: Ident(Ident("high_val")) }), Solve(Minimize(Ident("mid")))]"#
+            r#"[Let(LetDecl { name: Ident("low_val"), ty: Some(Real), init: Some(Immediate(Real(1.23))) }), Let(LetDecl { name: Ident("high_val"), ty: None, init: Some(Immediate(Real(4.56))) }), Constraint(BinaryOp { op: GreaterThan, lhs: Ident(Ident("mid")), rhs: BinaryOp { op: Mul, lhs: Ident(Ident("low_val")), rhs: Immediate(Real(2.0)) } }), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident("mid")), rhs: Ident(Ident("high_val")) }), Solve(Minimize(Ident("mid")))]"#
         ]],
     );
 }
@@ -741,7 +665,7 @@ fn fn_errors() {
     check(
         &run_parser!(yurt_program(), "fn foo() -> real {}"),
         expect_test::expect![[r#"
-            @18..19: found "}" but expected "!", "+", "-", "{", "(", "if", "var", "let",  or "constraint"
+            @18..19: found "}" but expected "!", "+", "-", "{", "(", "if", "let",  or "constraint"
         "#]],
     );
 }
@@ -759,7 +683,7 @@ let low = 1.0;
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Solve(Maximize(Ident("low"))), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident("low")), rhs: Ident(Ident("high")) }), Let(LetStatement { name: Ident("high"), ty: None, init: Immediate(Real(2.0)) }), Solve(Satisfy), Let(LetStatement { name: Ident("low"), ty: None, init: Immediate(Real(1.0)) })]"#
+            r#"[Solve(Maximize(Ident("low"))), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident("low")), rhs: Ident(Ident("high")) }), Let(LetDecl { name: Ident("high"), ty: None, init: Some(Immediate(Real(2.0))) }), Solve(Satisfy), Let(LetDecl { name: Ident("low"), ty: None, init: Some(Immediate(Real(1.0))) })]"#
         ]],
     );
 }
@@ -785,7 +709,7 @@ fn test_parse_str_to_ast() {
     check(
         &format!("{:?}", parse_str_to_ast("let x = 5;", "my_file")),
         expect_test::expect![[
-            r#"Ok([Let(LetStatement { name: Ident("x"), ty: None, init: Immediate(Int(5)) })])"#
+            r#"Ok([Let(LetDecl { name: Ident("x"), ty: None, init: Some(Immediate(Int(5))) })])"#
         ]],
     );
     check(
@@ -806,7 +730,7 @@ fn big_ints() {
             "let blah = 1234567890123456789012345678901234567890;"
         ),
         expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("blah"), ty: None, init: Immediate(BigInt(1234567890123456789012345678901234567890)) })"#
+            r#"Let(LetDecl { name: Ident("blah"), ty: None, init: Some(Immediate(BigInt(1234567890123456789012345678901234567890))) })"#
         ]],
     );
     check(
@@ -816,7 +740,7 @@ fn big_ints() {
         ),
         // Confirmed by using the Python REPL to convert from hex to dec...
         expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("blah"), ty: None, init: Immediate(BigInt(5421732407698601623698172315373246806734)) })"#
+            r#"Let(LetDecl { name: Ident("blah"), ty: None, init: Some(Immediate(BigInt(5421732407698601623698172315373246806734))) })"#
         ]],
     );
     check(
