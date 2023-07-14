@@ -373,6 +373,14 @@ fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseErro
             .parse::<i64>()
             .map(ast::Immediate::Int)
             .or_else(|_| {
+                let (radix, offs) = match num_str.chars().nth(1) {
+                    Some('b') => (2, 2),
+                    Some('x') => (16, 2),
+                    _ => (10, 0),
+                };
+                i64::from_str_radix(&num_str[offs..], radix).map(ast::Immediate::Int)
+            })
+            .or_else(|_| {
                 // Try a big-int if that fails and return an ast::Immedate::BigInt.  The BigInt
                 // FromStr::from_str() isn't smart about radices though.
                 use num_traits::Num;

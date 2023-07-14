@@ -105,13 +105,13 @@ fn let_decls() {
     check(
         &run_parser!(let_decl(expr()), "let blah: int = 0x111;"),
         expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("blah"), ty: Some(Int), init: Immediate(BigInt(273)) })"#
+            r#"Let(LetStatement { name: Ident("blah"), ty: Some(Int), init: Immediate(Int(273)) })"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: int = 0b111;"),
         expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("blah"), ty: Some(Int), init: Immediate(BigInt(7)) })"#
+            r#"Let(LetStatement { name: Ident("blah"), ty: Some(Int), init: Immediate(Int(7)) })"#
         ]],
     );
     check(
