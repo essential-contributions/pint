@@ -59,6 +59,26 @@ fn types() {
 }
 
 #[test]
+fn immediates() {
+    check(
+        &run_parser!(immediate(), "0x88;"),
+        expect_test::expect![[r#"Int(136)"#]],
+    );
+    check(
+        &run_parser!(immediate(), "0b111;"),
+        expect_test::expect![[r#"Int(7)"#]],
+    );
+    check(
+        &run_parser!(immediate(), "-1;"),
+        expect_test::expect![[r#"Int(-1)"#]],
+    );
+    check(
+        &run_parser!(immediate(), "-1.3;"),
+        expect_test::expect![[r#"Real(-1.3)"#]],
+    );
+}
+
+#[test]
 fn let_decls() {
     check(
         &run_parser!(let_decl(expr()), "let blah = 1.0;"),
@@ -70,12 +90,6 @@ fn let_decls() {
         &run_parser!(let_decl(expr()), "let blah: real = 1.0;"),
         expect_test::expect![[
             r#"Let(LetStatement { name: Ident("blah"), ty: Some(Real), init: Immediate(Real(1.0)) })"#
-        ]],
-    );
-    check(
-        &run_parser!(let_decl(expr()), "let blah: real = -1.0;"),
-        expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("blah"), ty: Some(Real), init: Immediate(Real(-1.0)) })"#
         ]],
     );
     check(
@@ -94,24 +108,6 @@ fn let_decls() {
         &run_parser!(let_decl(expr()), "let blah: int = 1;"),
         expect_test::expect![[
             r#"Let(LetStatement { name: Ident("blah"), ty: Some(Int), init: Immediate(Int(1)) })"#
-        ]],
-    );
-    check(
-        &run_parser!(let_decl(expr()), "let blah: int = -1;"),
-        expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("blah"), ty: Some(Int), init: Immediate(Int(-1)) })"#
-        ]],
-    );
-    check(
-        &run_parser!(let_decl(expr()), "let blah: int = 0x111;"),
-        expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("blah"), ty: Some(Int), init: Immediate(Int(273)) })"#
-        ]],
-    );
-    check(
-        &run_parser!(let_decl(expr()), "let blah: int = 0b111;"),
-        expect_test::expect![[
-            r#"Let(LetStatement { name: Ident("blah"), ty: Some(Int), init: Immediate(Int(7)) })"#
         ]],
     );
     check(
