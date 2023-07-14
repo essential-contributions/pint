@@ -69,8 +69,28 @@ fn immediates() {
         expect_test::expect![[r#"Int(7)"#]],
     );
     check(
+        &run_parser!(immediate(), "1;"),
+        expect_test::expect![[r#"Int(1)"#]],
+    );
+    check(
         &run_parser!(immediate(), "-1;"),
         expect_test::expect![[r#"Int(-1)"#]],
+    );
+    check(
+        &run_parser!(immediate(), "0x4f3f4f3f4f3f4f3f4f3f4f3f4f;"),
+        expect_test::expect![[r#"BigInt(6278618198356320102092284837711)"#]],
+    );
+    check(
+        &run_parser!(immediate(), "0b1000000000000000000000000000000000000000000000000000000000000000000000000000000000000;"),
+        expect_test::expect![[r#"BigInt(19342813113834066795298816)"#]],
+    );
+    check(
+        &run_parser!(immediate(), "9223372036854775808;"),
+        expect_test::expect![[r#"BigInt(9223372036854775808)"#]],
+    );
+    check(
+        &run_parser!(immediate(), "-9223372036854775809;"),
+        expect_test::expect![[r#"BigInt(-9223372036854775809)"#]],
     );
     check(
         &run_parser!(immediate(), "-1.3;"),
