@@ -4,6 +4,7 @@ use crate::{
     lexer::{self, Token, KEYWORDS},
 };
 use chumsky::{prelude::*, Stream};
+use regex::Regex;
 use std::{fs::read_to_string, path::Path};
 
 #[cfg(test)]
@@ -241,18 +242,57 @@ fn tuple_index<'sc, P>(
 where
     P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
 {
-    let indices = filter_map(|span, token| match token {
-        Token::TupleIndex(indices) => Ok(indices
-            .iter()
-            .map(|index| index.parse::<usize>().unwrap())
-            .collect::<Vec<usize>>()),
-        _ => Err(ParseError::InvalidTupleIndex { span, index: token }),
-    });
+    let indices =
+        filter_map(|span, token| match &token {
+            Token::IntLiteral(num_str) => num_str
+                .parse::<usize>()
+                .map(|index| vec![index])
+                .map_err(|_| ParseError::InvalidIntegerTupleIndex {
+                    span,
+                    index: num_str,
+                }),
 
-    // Matches patterns like `t.0.0.0` and `t  .0.0  .0` etc. The call to `flatten` consolidates
-    // all the indices into a single vector.
+            // If the next token is of the form `<int>.<int>` which, to the lexer, looks like a real,
+            // break it apart manually.
+            Token::RealLiteral(num_str) => {
+                match Regex::new(r"[0-9]+\.[0-9]+")
+                    .expect("valid regex")
+                    .captures(num_str)
+                {
+                    Some(_) => {
+                        // Collect the spans for the two integers
+                        let dot_index = num_str
+                            .chars()
+                            .position(|c| c == '.')
+                            .expect("guaranteed by regex");
+                        let spans = [
+                            span.start..span.start + dot_index,
+                            span.start + dot_index + 1..span.end,
+                        ];
+
+                        // Split at `.` then collect the two indices as `usize`. Report errors as
+                        // needed
+                        num_str
+                            .split('.')
+                            .zip(spans.iter())
+                            .map(|(index, span)| {
+                                index.parse::<usize>().map_err(|_| {
+                                    ParseError::InvalidIntegerTupleIndex {
+                                        span: span.clone(),
+                                        index,
+                                    }
+                                })
+                            })
+                            .collect::<Result<Vec<usize>, _>>()
+                    }
+                    None => Err(ParseError::InvalidTupleIndex { span, index: token }),
+                }
+            }
+            _ => Err(ParseError::InvalidTupleIndex { span, index: token }),
+        });
+
     parser
-        .then(indices.repeated().flatten())
+        .then(just(Token::Dot).ignore_then(indices).repeated().flatten())
         .foldl(|expr, index| ast::Expr::TupleIndex {
             tuple: Box::new(expr),
             index,

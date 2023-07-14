@@ -52,11 +52,8 @@ pub(super) enum Token<'sc> {
     ParenClose,
     #[token("->")]
     Arrow,
-    #[token(".", |_| Err(LexError::InvalidDotOperator))]
+    #[token(".")]
     Dot,
-    #[regex(r"(\.[ \t\n\r\f]*[0-9]+[ \t\n\r\f]*)+", 
-            |lex| lex.slice()[1..].split('.').map(|str| str.trim()).collect::<Vec<_>>())]
-    TupleIndex(Vec<&'sc str>),
 
     #[token("real")]
     Real,
@@ -159,7 +156,6 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::ParenClose => write!(f, ")"),
             Token::Arrow => write!(f, "->"),
             Token::Dot => write!(f, "."),
-            Token::TupleIndex(_) => write!(f, "vec"),
             Token::Real => write!(f, "real"),
             Token::Int => write!(f, "int"),
             Token::Bool => write!(f, "bool"),

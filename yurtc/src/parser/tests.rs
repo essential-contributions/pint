@@ -616,9 +616,9 @@ fn tuple_expressions() {
     );
 
     check(
-        &run_parser!(expr(), "t \r .1 .2.2. \n 3 . \t 13"),
+        &run_parser!(expr(), "t \r .1 .2.2. \n 3 . \t 13 . 1.1"),
         expect_test::expect![[
-            r#"TupleIndex { tuple: TupleIndex { tuple: TupleIndex { tuple: TupleIndex { tuple: TupleIndex { tuple: Ident(Ident("t")), index: 1 }, index: 2 }, index: 2 }, index: 3 }, index: 13 }"#
+            r#"TupleIndex { tuple: TupleIndex { tuple: TupleIndex { tuple: TupleIndex { tuple: TupleIndex { tuple: TupleIndex { tuple: TupleIndex { tuple: Ident(Ident("t")), index: 1 }, index: 2 }, index: 2 }, index: 3 }, index: 13 }, index: 1 }, index: 1 }"#
         ]],
     );
 
@@ -648,7 +648,52 @@ fn tuple_expressions() {
     check(
         &run_parser!(let_decl(expr()), "let x = t.0xa;"),
         expect_test::expect![[r#"
-            @11..13: found "xa" but expected "+", "-", "/", "%", ">", "<", "<=", ">=", "==", "!=", ";",  or "*"
+            @10..13: invalid integer value "0xa" for tuple index
+        "#]],
+    );
+
+    check(
+        &run_parser!(let_decl(expr()), "let x = t.111111111111111111111111111;"),
+        expect_test::expect![[r#"
+            @10..37: invalid integer value "111111111111111111111111111" for tuple index
+        "#]],
+    );
+
+    check(
+        &run_parser!(let_decl(expr()), "let x = t.111111111111111111111111111.2;"),
+        expect_test::expect![[r#"
+            @10..37: invalid integer value "111111111111111111111111111" for tuple index
+        "#]],
+    );
+
+    check(
+        &run_parser!(let_decl(expr()), "let x = t.2.111111111111111111111111111;"),
+        expect_test::expect![[r#"
+            @12..39: invalid integer value "111111111111111111111111111" for tuple index
+        "#]],
+    );
+
+    check(
+        &run_parser!(
+            let_decl(expr()),
+            "let x = t.222222222222222222222.111111111111111111111111111;"
+        ),
+        expect_test::expect![[r#"
+            @10..31: invalid integer value "222222222222222222222" for tuple index
+        "#]],
+    );
+
+    check(
+        &run_parser!(let_decl(expr()), "let x = t.1e5;"),
+        expect_test::expect![[r#"
+            @10..13: invalid value "1e5" for tuple index
+        "#]],
+    );
+
+    check(
+        &run_parser!(let_decl(expr()), "let x = t.a;"),
+        expect_test::expect![[r#"
+            @10..11: invalid value "a" for tuple index
         "#]],
     );
 }

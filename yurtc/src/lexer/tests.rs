@@ -25,16 +25,7 @@ fn control_tokens() {
     assert_eq!(lex_one_success("("), Token::ParenOpen);
     assert_eq!(lex_one_success(")"), Token::ParenClose);
     assert_eq!(lex_one_success("->"), Token::Arrow);
-    check(
-        &format!("{:?}", lex(".")),
-        expect_test::expect!["([], [Lex { span: 0..1, error: InvalidDotOperator }])"],
-    );
-    check(
-        &format!("{:?}", lex("t.xx")),
-        expect_test::expect![[
-            r#"([(Ident("t"), 0..1), (Ident("xx"), 2..4)], [Lex { span: 1..2, error: InvalidDotOperator }])"#
-        ]],
-    );
+    assert_eq!(lex_one_success("."), Token::Dot);
 }
 
 #[test]
@@ -47,13 +38,11 @@ fn reals() {
     assert_eq!(lex_one_success("-0.34"), Token::RealLiteral("-0.34"));
     check(
         &format!("{:?}", lex(".34")),
-        expect_test::expect![[r#"([(TupleIndex(["34"]), 0..3)], [])"#]],
+        expect_test::expect![[r#"([(Dot, 0..1), (IntLiteral("34"), 1..3)], [])"#]],
     );
     check(
         &format!("{:?}", lex("12.")),
-        expect_test::expect![[
-            r#"([(IntLiteral("12"), 0..2)], [Lex { span: 2..3, error: InvalidDotOperator }])"#
-        ]],
+        expect_test::expect![[r#"([(IntLiteral("12"), 0..2), (Dot, 2..3)], [])"#]],
     );
 }
 
