@@ -311,6 +311,14 @@ fn exprs() {
         expect_test::expect![[r#"UnaryOp { op: Neg, expr: Ident(Ident("a")) }"#]],
     );
     check(
+        &run_parser!(expr(), "-0x111"),
+        expect_test::expect![[r#"UnaryOp { op: Neg, expr: Immediate(Int(273)) }"#]],
+    );
+    check(
+        &run_parser!(expr(), "-0b111"),
+        expect_test::expect![[r#"UnaryOp { op: Neg, expr: Immediate(Int(7)) }"#]],
+    );
+    check(
         &run_parser!(expr(), "a * 2.0"),
         expect_test::expect![[
             r#"BinaryOp { op: Mul, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
