@@ -126,22 +126,19 @@ For example, in `let t: (int, real, string) = (5, 3.0, "foo")`, `(int, real, str
 Expressions represent values and have the following syntax:
 
 ```ebnf
-<expr> ::= <expr-atom> <expr-binop-tail>
-
-<expr-binop-tail> ::= [ <bin-op> <expr> ]
-
-<expr-atom> ::= <un-op> <expr-atom>
-              | <block-expr>
-              | "(" <expr> ")"
-              | <ident>
-              | <bool-literal>
-              | <int-literal>
-              | <real-literal>
-              | <string-literal>
-              | <tuple-expr>
-              | <tuple-index-expr>
-              | <if-expr>
-              | <call-expr>
+<expr> ::= <un-op> <expr>
+         | <expr> <bin-op> <expr>
+         | <block-expr>
+         | "(" <expr> ")"
+         | <ident>
+         | <bool-literal>
+         | <int-literal>
+         | <real-literal>
+         | <string-literal>
+         | <tuple-expr>
+         | <tuple-index-expr>
+         | <if-expr>
+         | <call-expr>
 ```
 
 Expressions can be composed from sub-expressions with operators. All unary and binary operators are described in [Operators
@@ -263,7 +260,7 @@ For example: `let t = (5, 3, "foo");`.
 Tuple indexing expressions are written as:
 
 ```ebnf
-<tuple-index-expr> ::= <expr-atom> "." [0-9]+
+<tuple-index-expr> ::= <expr> "." [0-9]+
 ```
 
 For example: `let second = t.1;` which extracts the second element of tuple `t` and stores it into `second`.
