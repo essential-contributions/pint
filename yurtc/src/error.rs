@@ -9,7 +9,7 @@ pub(super) type Span = std::ops::Range<usize>;
 #[derive(Error, Debug, Clone, PartialEq, Default)]
 pub(super) enum LexError {
     #[default]
-    #[error("Invalid token")]
+    #[error("invalid token")]
     InvalidToken,
 }
 
@@ -28,9 +28,9 @@ pub(super) enum ParseError<'a> {
         "type annotation or initializer needed for decision variable \"{}\"", name.0
     )]
     UntypedDecisionVar { span: Span, name: ast::Ident },
-    #[error("Invalid integer value \"{}\" for tuple index", index)]
-    InvalidIntegerForTupleIndex { span: Span, index: Token<'a> },
-    #[error("Invalid value \"{}\" for tuple index", index)]
+    #[error("invalid integer value \"{}\" for tuple index", index)]
+    InvalidIntegerTupleIndex { span: Span, index: &'a str },
+    #[error("invalid value \"{}\" for tuple index", index)]
     InvalidTupleIndex { span: Span, index: Token<'a> },
 }
 
@@ -124,7 +124,7 @@ impl<'a> CompileError<'a> {
                 ParseError::ExpectedFound { span, .. } => span.clone(),
                 ParseError::KeywordAsIdent { span, .. } => span.clone(),
                 ParseError::UntypedDecisionVar { span, .. } => span.clone(),
-                ParseError::InvalidIntegerForTupleIndex { span, .. } => span.clone(),
+                ParseError::InvalidIntegerTupleIndex { span, .. } => span.clone(),
                 ParseError::InvalidTupleIndex { span, .. } => span.clone(),
             },
         }
