@@ -696,6 +696,14 @@ fn tuple_expressions() {
             @10..11: invalid value "a" for tuple index
         "#]],
     );
+
+    check(
+        &run_parser!(let_decl(expr()), "let bad_typle:() = ();"),
+        expect_test::expect![[r#"
+            @14..16: empty tuple types are not allowed
+            @19..21: empty tuple expressions are not allowed
+        "#]],
+    );
 }
 
 #[test]
