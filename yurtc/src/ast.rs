@@ -1,4 +1,13 @@
 #[derive(Clone, Debug, PartialEq)]
+pub(super) enum UseTree {
+    Glob,
+    Name { name: Ident },
+    Path { prefix: Ident, suffix: Box<UseTree> },
+    Group { imports: Vec<UseTree> },
+    Alias { name: Ident, alias: Ident },
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) struct LetDecl {
     pub(super) name: Ident,
     pub(super) ty: Option<Type>,
@@ -13,6 +22,10 @@ pub(super) struct Block {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Decl {
+    Use {
+        is_absolute: bool,
+        use_tree: UseTree,
+    },
     Let(LetDecl),
     Constraint(Expr),
     Fn {

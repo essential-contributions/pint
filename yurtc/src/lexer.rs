@@ -12,6 +12,8 @@ mod tests;
 pub(super) enum Token<'sc> {
     #[token(":")]
     Colon,
+    #[token("::")]
+    DoubleColon,
     #[token("!")]
     Bang,
     #[token("+")]
@@ -89,6 +91,11 @@ pub(super) enum Token<'sc> {
     #[token("satisfy")]
     Satisfy,
 
+    #[token("use")]
+    Use,
+    #[token("as")]
+    As,
+
     #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice())]
     Ident(&'sc str),
     #[regex(r"[+-]?[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+", |lex| lex.slice())]
@@ -126,12 +133,15 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Minimize,
     Token::Solve,
     Token::Satisfy,
+    Token::Use,
+    Token::As,
 ];
 
 impl<'sc> fmt::Display for Token<'sc> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Token::Colon => write!(f, ":"),
+            Token::DoubleColon => write!(f, "::"),
             Token::Bang => write!(f, "!"),
             Token::Plus => write!(f, "+"),
             Token::Minus => write!(f, "-"),
@@ -168,6 +178,8 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Minimize => write!(f, "minimize"),
             Token::Solve => write!(f, "solve"),
             Token::Satisfy => write!(f, "satisfy"),
+            Token::Use => write!(f, "use"),
+            Token::As => write!(f, "as"),
             Token::Ident(ident) => write!(f, "{ident}"),
             Token::RealLiteral(ident) => write!(f, "{ident}"),
             Token::IntLiteral(ident) => write!(f, "{ident}"),

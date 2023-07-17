@@ -59,6 +59,97 @@ fn types() {
 }
 
 #[test]
+fn use_statements() {
+    check(
+        &run_parser!(yurt_program(), "use *; use ::*;"),
+        expect_test::expect!["[Use { is_absolute: false, use_tree: Glob }, Use { is_absolute: true, use_tree: Glob }]"],
+    );
+
+    check(
+        &run_parser!(yurt_program(), "use {}; use ::{};"),
+        expect_test::expect!["[Use { is_absolute: false, use_tree: Group { imports: [] } }, Use { is_absolute: true, use_tree: Group { imports: [] } }]"],
+    );
+
+    check(
+        &run_parser!(yurt_program(), "use a; use ::a; use ::a as b;"),
+        expect_test::expect![[
+            r#"[Use { is_absolute: false, use_tree: Name { name: Ident("a") } }, Use { is_absolute: true, use_tree: Name { name: Ident("a") } }, Use { is_absolute: true, use_tree: Alias { name: Ident("a"), alias: Ident("b") } }]"#
+        ]],
+    );
+
+    check(
+        &run_parser!(yurt_program(), "use a::b; use ::a::b; use ::a::b as c;"),
+        expect_test::expect![[
+            r#"[Use { is_absolute: false, use_tree: Path { prefix: Ident("a"), suffix: Name { name: Ident("b") } } }, Use { is_absolute: true, use_tree: Path { prefix: Ident("a"), suffix: Name { name: Ident("b") } } }, Use { is_absolute: true, use_tree: Path { prefix: Ident("a"), suffix: Alias { name: Ident("b"), alias: Ident("c") } } }]"#
+        ]],
+    );
+
+    check(
+        &run_parser!(yurt_program(), "use a::{b, c as d};"),
+        expect_test::expect![[
+            r#"[Use { is_absolute: false, use_tree: Path { prefix: Ident("a"), suffix: Group { imports: [Name { name: Ident("b") }, Alias { name: Ident("c"), alias: Ident("d") }] } } }]"#
+        ]],
+    );
+
+    check(
+        &run_parser!(yurt_program(), "use ::a::{*, c as d};"),
+        expect_test::expect![[
+            r#"[Use { is_absolute: true, use_tree: Path { prefix: Ident("a"), suffix: Group { imports: [Glob, Alias { name: Ident("c"), alias: Ident("d") }] } } }]"#
+        ]],
+    );
+
+    check(
+        &run_parser!(yurt_program(), "use ::a::{*, c as d};"),
+        expect_test::expect![[
+            r#"[Use { is_absolute: true, use_tree: Path { prefix: Ident("a"), suffix: Group { imports: [Glob, Alias { name: Ident("c"), alias: Ident("d") }] } } }]"#
+        ]],
+    );
+
+    check(
+        &run_parser!(yurt_program(), "use a::{{*}, {c as d, { e as f, * }}};"),
+        expect_test::expect![[
+            r#"[Use { is_absolute: false, use_tree: Path { prefix: Ident("a"), suffix: Group { imports: [Group { imports: [Glob] }, Group { imports: [Alias { name: Ident("c"), alias: Ident("d") }, Group { imports: [Alias { name: Ident("e"), alias: Ident("f") }, Glob] }] }] } } }]"#
+        ]],
+    );
+
+    // Errors - TODO: imporve these
+    check(
+        &run_parser!(use_statement(), "use ;"),
+        expect_test::expect![[r#"
+            @4..5: found ";" but expected "::", "*",  or "{"
+        "#]],
+    );
+
+    check(
+        &run_parser!(use_statement(), "use ::;"),
+        expect_test::expect![[r#"
+            @6..7: found ";" but expected "*",  or "{"
+        "#]],
+    );
+
+    check(
+        &run_parser!(use_statement(), "use a::;"),
+        expect_test::expect![[r#"
+            @5..7: found "::" but expected ";"
+        "#]],
+    );
+
+    check(
+        &run_parser!(use_statement(), "use * as b;"),
+        expect_test::expect![[r#"
+            @6..8: found "as" but expected ";"
+        "#]],
+    );
+
+    check(
+        &run_parser!(use_statement(), "use a::{* as d};"),
+        expect_test::expect![[r#"
+            @5..7: found "::" but expected ";"
+        "#]],
+    );
+}
+
+#[test]
 fn let_decls() {
     check(
         &run_parser!(let_decl(expr()), "let blah;"),
