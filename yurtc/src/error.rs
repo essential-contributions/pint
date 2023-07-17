@@ -32,6 +32,10 @@ pub(super) enum ParseError<'a> {
     InvalidIntegerTupleIndex { span: Span, index: &'a str },
     #[error("invalid value \"{}\" for tuple index", index)]
     InvalidTupleIndex { span: Span, index: Token<'a> },
+    #[error("empty tuple expressions are not allowed")]
+    EmptyTupleExpr { span: Span },
+    #[error("empty tuple types are not allowed")]
+    EmptyTupleType { span: Span },
 }
 
 fn format_expected_found_error<'a>(
@@ -126,6 +130,8 @@ impl<'a> CompileError<'a> {
                 ParseError::UntypedVariable { span, .. } => span.clone(),
                 ParseError::InvalidIntegerTupleIndex { span, .. } => span.clone(),
                 ParseError::InvalidTupleIndex { span, .. } => span.clone(),
+                ParseError::EmptyTupleExpr { span } => span.clone(),
+                ParseError::EmptyTupleType { span } => span.clone(),
             },
         }
     }

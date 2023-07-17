@@ -204,7 +204,14 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             .then(args.clone())
             .map(|(name, args)| ast::Expr::Call { name, args });
 
-        let tuple = args.map(ast::Expr::Tuple);
+        let tuple = args
+            .validate(|args, span, emit| {
+                if args.is_empty() {
+                    emit(ParseError::EmptyTupleExpr { span })
+                }
+                args
+            })
+            .map(ast::Expr::Tuple);
 
         let atom = choice((
             immediate().map(ast::Expr::Immediate),
@@ -379,7 +386,13 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError<'sc>> +
         let tuple = type_
             .separated_by(just(Token::Comma))
             .allow_trailing()
-            .delimited_by(just(Token::ParenOpen), just(Token::ParenClose));
+            .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
+            .validate(|args, span, emit| {
+                if args.is_empty() {
+                    emit(ParseError::EmptyTupleType { span })
+                }
+                args
+            });
 
         choice((
             just(Token::Real).to(ast::Type::Real),
