@@ -21,7 +21,9 @@ fn parse_str_to_ast(source: &str, filename: &str) -> anyhow::Result<Ast> {
     match parse_str_to_ast_inner(source) {
         Ok(ast) => Ok(ast),
         Err(errors) => {
-            print_on_failure(filename, source, &errors);
+            if !cfg!(test) {
+                print_on_failure(filename, source, &errors);
+            }
             yurtc_bail!(errors.len(), filename)
         }
     }
