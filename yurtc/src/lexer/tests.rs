@@ -123,7 +123,6 @@ fn strings() {
 
 #[test]
 fn variables() {
-    assert_eq!(lex_one_success("var"), Token::Var);
     assert_eq!(lex_one_success("let"), Token::Let);
 }
 

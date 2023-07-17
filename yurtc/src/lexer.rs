@@ -76,8 +76,6 @@ pub(super) enum Token<'sc> {
     #[token("else")]
     Else,
 
-    #[token("var")]
-    Var,
     #[token("let")]
     Let,
     #[token("constraint")]
@@ -122,7 +120,6 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Fn,
     Token::If,
     Token::Else,
-    Token::Var,
     Token::Let,
     Token::Constraint,
     Token::Maximize,
@@ -166,7 +163,6 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::If => write!(f, "if"),
             Token::Else => write!(f, "else"),
             Token::Let => write!(f, "let"),
-            Token::Var => write!(f, "var"),
             Token::Constraint => write!(f, "constraint"),
             Token::Maximize => write!(f, "maximize"),
             Token::Minimize => write!(f, "minimize"),
