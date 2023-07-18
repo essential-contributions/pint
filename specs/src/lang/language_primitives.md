@@ -84,7 +84,7 @@ x;
 
 Paths can be used in [Import Items](#import-items). They can also be used in expressions to directly refer to an item in a different module.
 
-Path that start with `::` are absolute paths from the root of the project. Paths that don't start with `::` are relative paths.
+Paths that start with `::` are absolute paths from the root of the project. Paths that don't start with `::` are relative paths.
 
 ## High-level Intent Structure
 
@@ -97,8 +97,7 @@ A Yurt intent consists of one or more semicolon separated `items`:
 Items can occur in any order; identifiers need not be declared before they are used. Items have the following top-level syntax:
 
 ```ebnf
-<item> ::= <mod-item>
-         | <import-item>
+<item> ::= <import-item>
          | <let-item>
          | <constraint-item>
          | <function-item>
@@ -106,11 +105,9 @@ Items can occur in any order; identifiers need not be declared before they are u
          | <transition-item>
 ```
 
-Module items declare new modules or submodules ([Module Items](#module-items)).
-
 Import items (`<import-item>`) import new items from a module/submodule or external library into the current module ([Import Items](#import-items)).
 
-Variable declaration items (`<let-item>` and `<var-item`) introduce variables and optionally bind them to a value ([Variable Declaration Items](#variable-declaration-items)).
+Variable declaration items (`<let-item>`) introduce variables and optionally bind them to a value ([Variable Declaration Items](#variable-declaration-items)).
 
 Constraint items describe intent constraints ([Constraint Items](#constraint-items)).
 
@@ -122,7 +119,23 @@ Transition items describe the state transition function of a blockchain ([Transi
 
 ### Multi-file Intents
 
-TODO
+An intent can be spread across multiple files. Each file implicitly declares a local module or submodule dependency.
+
+#### Declaring modules
+
+In the project root directory, new modules can be created as follows:
+
+- A single-file module must be defined in a file that has the same name as the module itself. For example, module `single_mod` must be defined in `src/single_mod.yrt`. The absolute [path](#paths) to items in `single_mod.yrt` is `::single_mod::<item>`.
+- A multi-file module must be defined inside a directory that has the same name as the module itself. Moreover, the entry file of the module must also have the same name as the module. For example, multi-file module `multi_mod` must be defined in `src/multi_mod/multi_mod.yrt` and its submodule dependencies must live in `src/multi_mod/`. The absolute [path](#paths) to items in `multi_mod.yrt` is `::multi_mod::<item>`.
+
+#### Declaring submodules
+
+In any directory other than the project root directory, new submodules can be created as follows:
+
+- A single-file submodule must be defined in a file that has the same name as the submodule itself. For example, submodule `single_submod` of module `multi_mod` must be defined in `src/multi_mod/single_submod.yrt`. The absolute [path](#paths) to items in `single_submod.yrt` is `::multi_mod::single_submod::<item>`.
+- A multi-file submodule must be defined inside a directory that has the same name as the submodule itself. Moreover, the entry file of the submodule must also have the same name as the submodule. For example, multi-file submodule `multi_submod` must be defined in `src/multi_mod/multi_submod/multi_submod.yrt` and its own submodule dependencies must live in `src/multi_mod/multi_submod/`. The absolute [path](#paths) to items in `multi_submod.yrt` is `::multi_mod::multi_submod::<item>`.
+
+Note that it is not allowed to have a file and a folder with the same name in any of the project's subdirectories. For example, a project that contains both `src/my_mod.yrt` and `src/my_mod/...` should not compile. Moreover, having a single file in a subdirectory is allowed even though subdirectories are typically used for multi-file modules. For example, having a single file in `src/my_mod/` is allowed as long as the name of that file is `my_mod.yrt`. This is equivalent to having the module live in `src/my_mod.yrt` and skipping the subdirectory `src/my_mod/` altogether.
 
 ### Namespaces and Scopes
 
@@ -157,7 +170,6 @@ Expressions represent values and have the following syntax:
          | <expr> <bin-op> <expr>
          | <block-expr>
          | "(" <expr> ")"
-         | <ident>
          | <path>
          | <bool-literal>
          | <int-literal>
@@ -309,7 +321,7 @@ Note that the `else` block is not optional and the `else if { .. }` syntax is no
 Call expressions are used to call functions and have the following syntax:
 
 ```ebnf
-<call-expr> ::= <ident> "(" [ <expr> "," ... ] ")"
+<call-expr> ::= <path> "(" [ <expr> "," ... ] ")"
 ```
 
 For example: `x = foo(5, 2);`.
@@ -321,26 +333,6 @@ The order of argument evaluation is not specified.
 ## Items
 
 This section describes the top-level program items.
-
-### Module Items
-
-Module items declare modules and submodules. They have the following syntax:
-
-```ebnf
-<mod-item> ::= "mod" <ident>
-```
-
-1. **Declaring modules**: In the project root file (i.e. the entry file for the project), new modules can be declared such as `mod garden;`. The compiler will look for the module's code in the following places:
-
-- In the file `src/garden.yrt` if the module `garden` consists of only a 1 file.
-- In the file `src/garden/garden.yrt` if the module `garden` consists of multiple files that live under `src/garden/`.
-
-1. **Declaring submodules**: In any file other than the project root file, new submodules can be declared such as `mod vegetables;` in `src/garden/garden.yrt`. The compiler will look for the submodule's code within the directory named for the parent module in the following places:
-
-- In the file `src/garden/vegetables.yrt` if the submodule `vegetables` consists of only 1 file.
-- In the file `src/garden/vegetables/vegetables.yrt` if the submodule `vegetables` consists of multiple files that live under `src/garden/vegetables/`.
-
-Note that it is not allowed to have a file and a folder with the same name in any of the project's subdirectory. For example, a project that contains both `src/garden.yrt` and `src/garden/...` should not compile.
 
 ### Import Items
 
@@ -354,7 +346,7 @@ Within a scope, import items create shortcuts to items defined in other files. I
 <import-item> ::= "use" <use-tree>
 ```
 
-An import item creates one ore more local name bindings synonymous with some other path. Useually a `use` item is used to shorten the path required to refer to a module item. These items may appear in modules and blocks, usually at the top.
+An import item creates one ore more local name bindings synonymous with some other path. Usually a `use` item is used to shorten the path required to refer to a module item. These items may appear in modules and blocks, usually at the top.
 
 Use declarations support a number of convenient shortcuts:
 
