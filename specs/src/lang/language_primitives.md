@@ -27,7 +27,7 @@ The specification of the Yurt programming language presented in this document fo
 - Optional items are written in square bracket, e.g. `[ "," ]`
 - Sequences of zero or more items are written with parentheses and a star, e.g. `( "," <ident> )*`
 - Sequences of one or more items are written with parentheses and a plus, e.g. `( "," <ident> )+`.
-- Non-empty lists are written with an item, a separator/terminator terminal, and three dots. For example, `<expr> "," ...` is short for `<expr> ( "," <expr> )* [ "," ]`.
+- Non-empty lists are written with an item, a separator/terminator terminal, and three dots. For example, `<expr> "," ...` is short for `<expr> ( "," <expr> )* [ "," ]`. The final terminal is always optional in non-empty lists.
 
 ## Overview of an Intent Model
 
@@ -64,23 +64,48 @@ Identifiers have the following syntax:
 
 A number of keywords are reserved and cannot be used as identifiers. The keywords are: `bool`, `constraint`, `else`, `false`, `real`, `fn`, `if`, `int`, `let`, `maximize`, `minimize`, `satisfy`, `solve`, `true`.
 
+### Paths
+
+A path is a sequence of one ore more path segments logically separated by a namespace qualifier (`::`). If a path consists of only one segment, it refers to either an item or a variable in a local control scope. If a path has multiple segments, it always refers to an item.
+
+Paths have the following syntax:
+
+```ebnf
+<path> ::= [ "::" ] <ident> ( "::" <ident> )*
+```
+
+For example:
+
+```rust
+::x;
+x::y::z;
+x;
+```
+
+Paths can be used in [Import Items](#import-items). They can also be used in expressions to directly refer to an item in a different module.
+
+Paths that start with `::` are absolute paths from the root of the project. Paths that don't start with `::` are relative paths.
+
 ## High-level Intent Structure
 
 A Yurt intent consists of one or more semicolon separated `items`:
 
 ```ebnf
-<intent> ::= [ <item> ";" ... ]
+<intent> ::= ( <item> ";" )*
 ```
 
 Items can occur in any order; identifiers need not be declared before they are used. Items have the following top-level syntax:
 
 ```ebnf
-<item> ::= <let-item>
+<item> ::= <import-item>
+         | <let-item>
          | <constraint-item>
          | <function-item>
          | <solve-item>
          | <transition-item>
 ```
+
+Import items (`<import-item>`) import new items from a module/submodule or external library into the current module ([Import Items](#import-items)).
 
 Variable declaration items (`<let-item>`) introduce variables and optionally bind them to a value ([Variable Declaration Items](#variable-declaration-items)).
 
@@ -94,7 +119,23 @@ Transition items describe the state transition function of a blockchain ([Transi
 
 ### Multi-file Intents
 
-TODO
+An intent can be spread across multiple files. Each file implicitly declares a local module or submodule dependency.
+
+#### Declaring modules
+
+In the project root directory, new modules can be created as follows:
+
+- A single-file module must be defined in a file that has the same name as the module itself. For example, module `single_mod` must be defined in `src/single_mod.yrt`. The absolute [path](#paths) to items in `single_mod.yrt` is `::single_mod::<item>`.
+- A multi-file module must be defined inside a directory that has the same name as the module itself. Moreover, the entry file of the module must also have the same name as the module. For example, multi-file module `multi_mod` must be defined in `src/multi_mod/multi_mod.yrt` and its submodule dependencies must live in `src/multi_mod/`. The absolute [path](#paths) to items in `multi_mod.yrt` is `::multi_mod::<item>`.
+
+#### Declaring submodules
+
+In any directory other than the project root directory, new submodules can be created as follows:
+
+- A single-file submodule must be defined in a file that has the same name as the submodule itself. For example, submodule `single_submod` of module `multi_mod` must be defined in `src/multi_mod/single_submod.yrt`. The absolute [path](#paths) to items in `single_submod.yrt` is `::multi_mod::single_submod::<item>`.
+- A multi-file submodule must be defined inside a directory that has the same name as the submodule itself. Moreover, the entry file of the submodule must also have the same name as the submodule. For example, multi-file submodule `multi_submod` must be defined in `src/multi_mod/multi_submod/multi_submod.yrt` and its own submodule dependencies must live in `src/multi_mod/multi_submod/`. The absolute [path](#paths) to items in `multi_submod.yrt` is `::multi_mod::multi_submod::<item>`.
+
+Note that it is not allowed to have a file and a folder with the same name in any of the project's subdirectories. For example, a project that contains both `src/my_mod.yrt` and `src/my_mod/...` should not compile. Moreover, having a single file in a subdirectory is allowed even though subdirectories are typically used for multi-file modules. For example, having a single file in `src/my_mod/` is allowed as long as the name of that file is `my_mod.yrt`. This is equivalent to having the module live in `src/my_mod.yrt` and skipping the subdirectory `src/my_mod/` altogether.
 
 ### Namespaces and Scopes
 
@@ -129,7 +170,7 @@ Expressions represent values and have the following syntax:
          | <expr> <bin-op> <expr>
          | <block-expr>
          | "(" <expr> ")"
-         | <ident>
+         | <path>
          | <bool-literal>
          | <int-literal>
          | <real-literal>
@@ -179,7 +220,7 @@ The operators have the following precedence, from highest to lowest.
 Block expressions are expressions that contains a list of _statements_ followed by an expression within curly bracket `{ .. }`. Formally:
 
 ```ebnf
-<block-expr> ::= "{" [ <block-statement> ";" ... ] <expr> "}"
+<block-expr> ::= "{" ( <block-statement> ";" )* <expr> "}"
 
 <block-statement> ::= <let-item>
                     | <constraint-item>
@@ -250,7 +291,7 @@ let string = "first line\
 Tuple Expressions are written as:
 
 ```ebnf
-<tuple-expr> ::= "(" <expr> "," [ <expr> "," ... ] ")"
+<tuple-expr> ::= "(" ( <expr> "," ... ) ")"
 ```
 
 For example: `let t = (5, 3, "foo");`.
@@ -280,7 +321,7 @@ Note that the `else` block is not optional and the `else if { .. }` syntax is no
 Call expressions are used to call functions and have the following syntax:
 
 ```ebnf
-<call-expr> ::= <ident> "(" ( <expr> "," ... ) ")"
+<call-expr> ::= <path> "(" [ <expr> "," ... ] ")"
 ```
 
 For example: `x = foo(5, 2);`.
@@ -292,6 +333,28 @@ The order of argument evaluation is not specified.
 ## Items
 
 This section describes the top-level program items.
+
+### Import Items
+
+Within a scope, import items create shortcuts to items defined in other files. Import items have the following syntax:
+
+```ebnf
+<use-tree> ::= [ [ <path> ] "::" ] "*"
+             | [ [ <path> ] "::" ] "{" [ <use-tree> "," ... ] "}"
+             | <path> [ "as" <ident> ]
+
+<import-item> ::= "use" <use-tree>
+```
+
+An import item creates one ore more local name bindings synonymous with some other path. Usually a `use` item is used to shorten the path required to refer to a module item. These items may appear in modules and blocks, usually at the top.
+
+Use declarations support a number of convenient shortcuts:
+
+- Simultaneously binding a list of paths with a common prefix, using the glob-like brace syntax `use a::b::{c, d, e::f, g::h::i};`
+- Simultaneously binding a list of paths with a common prefix and their common parent module, using the `self` keyword, such as use `a::b::{self, c, d::e};`.
+- Rebinding the target name as a new local name, using the syntax `use p::q::r as x;`. This can also be used with the last two features: `use a::b::{self as ab, c as abc};`.
+- Binding all paths matching a given prefix, using the asterisk wildcard syntax `use a::b::*;`.
+- Nesting groups of the previous features multiple times, such as use `a::b::{self as ab, c, d::{*, e::f}};`.
 
 ### Variable Declaration Items
 
@@ -354,7 +417,7 @@ The solve item determines whether the intent represents a constraint satisfactio
 Function items describe user defined operations. They have the following syntax:
 
 ```ebnf
-<function-item> ::= "fn" <ident> "(" ( <param> "," ... ) ")" "->" <ty> <block-expr>
+<function-item> ::= "fn" <ident> "(" [ <param> "," ... ] ")" "->" <ty> <block-expr>
 
 <param> ::= <ident> ":" <ty>
 ```
