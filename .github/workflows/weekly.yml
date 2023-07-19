@@ -23,3 +23,10 @@ jobs:
         uses: trunk-io/trunk-action/upgrade@v1
         with:
           base: master
+
+      - name: Notify Slack
+        if: failure()
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          MSG_TEXT="Weekly job failed! Check the run here: $RUN_URL"
+          curl -X POST -H 'Content-type: application/json' --data '{"text":"'$MSG_TEXT'"}' ${{ secrets.SLACK_WEBHOOK_URL }}

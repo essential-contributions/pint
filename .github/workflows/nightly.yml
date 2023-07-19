@@ -26,3 +26,10 @@ jobs:
       - name: Run security audit
         run: cargo audit
         working-directory: yurtc
+
+      - name: Notify Slack
+        if: failure()
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          MSG_TEXT="Nightly job failed! Check the run here: $RUN_URL"
+          curl -X POST -H 'Content-type: application/json' --data '{"text":"'$MSG_TEXT'"}' ${{ secrets.SLACK_WEBHOOK_URL }}
