@@ -18,6 +18,7 @@ fn lex_one_success(src: &str) -> Token<'_> {
 #[test]
 fn control_tokens() {
     assert_eq!(lex_one_success(":"), Token::Colon);
+    assert_eq!(lex_one_success("::"), Token::DoubleColon);
     assert_eq!(lex_one_success(";"), Token::Semi);
     assert_eq!(lex_one_success(","), Token::Comma);
     assert_eq!(lex_one_success("{"), Token::BraceOpen);
@@ -151,6 +152,16 @@ fn func() {
 fn if_and_else() {
     assert_eq!(lex_one_success("if"), Token::If);
     assert_eq!(lex_one_success("else"), Token::Else);
+}
+
+#[test]
+fn r#use() {
+    assert_eq!(lex_one_success("use"), Token::Use);
+}
+
+#[test]
+fn r#as() {
+    assert_eq!(lex_one_success("as"), Token::As);
 }
 
 #[test]

@@ -62,6 +62,7 @@ fn parse_str_to_ast_inner(source: &str) -> Result<Ast, Vec<CompileError>> {
 
 fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> + Clone {
     choice((
+        use_statement(),
         let_decl(expr()),
         constraint_decl(expr()),
         solve_decl(),
@@ -69,6 +70,46 @@ fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> 
     ))
     .repeated()
     .then_ignore(end())
+}
+
+fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError<'sc>> + Clone {
+    recursive(|use_tree| {
+        let path = ident()
+            .then_ignore(just(Token::DoubleColon))
+            .then(use_tree.clone())
+            .map(|(prefix, suffix)| ast::UseTree::Path {
+                prefix,
+                suffix: Box::new(suffix),
+            });
+
+        let glob = just(Token::Star).to(ast::UseTree::Glob);
+
+        let group = use_tree
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+            .map(|imports| ast::UseTree::Group { imports });
+
+        let alias = ident()
+            .then_ignore(just(Token::As))
+            .then(ident())
+            .map(|(name, alias)| ast::UseTree::Alias { name, alias });
+
+        let name = ident().map(|name| ast::UseTree::Name { name });
+
+        choice((path, alias, name, glob, group))
+    })
+}
+
+fn use_statement<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+    just(Token::Use)
+        .ignore_then(just(Token::DoubleColon).or_not())
+        .then(use_tree())
+        .then_ignore(just(Token::Semi))
+        .map(|(double_colon, use_tree)| ast::Decl::Use {
+            is_absolute: double_colon.is_some(),
+            use_tree,
+        })
 }
 
 fn let_decl<'sc>(
