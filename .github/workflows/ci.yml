@@ -120,4 +120,4 @@ jobs:
         run: |
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           MSG_TEXT="Test Failure job failed! Check the run here: $RUN_URL"
-          curl -X POST -H 'Content-type: application/json' --data '{"text":"'$MSG_TEXT'"}' ${{ secrets.SLACK_WEBHOOK_URL }}
+          curl -X POST -H 'Content-type: application/json' --data '{"text":"'"$MSG_TEXT"'"}' ${{ secrets.SLACK_WEBHOOK_URL }}
