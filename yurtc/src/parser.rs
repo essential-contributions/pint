@@ -4,6 +4,7 @@ use crate::{
     lexer::{self, Token, KEYWORDS},
 };
 use chumsky::{prelude::*, Stream};
+use regex::Regex;
 use std::{fs::read_to_string, path::Path};
 
 #[cfg(test)]
@@ -20,7 +21,9 @@ fn parse_str_to_ast(source: &str, filename: &str) -> anyhow::Result<Ast> {
     match parse_str_to_ast_inner(source) {
         Ok(ast) => Ok(ast),
         Err(errors) => {
-            print_on_failure(filename, source, &errors);
+            if !cfg!(test) {
+                print_on_failure(filename, source, &errors);
+            }
             yurtc_bail!(errors.len(), filename)
         }
     }
@@ -59,7 +62,7 @@ fn parse_str_to_ast_inner(source: &str) -> Result<Ast, Vec<CompileError>> {
 
 fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> + Clone {
     choice((
-        var_decl(expr()),
+        use_statement(),
         let_decl(expr()),
         constraint_decl(expr()),
         solve_decl(),
@@ -69,26 +72,44 @@ fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> 
     .then_ignore(end())
 }
 
-fn var_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
-    let type_spec = just(Token::Colon).ignore_then(type_());
-    let init = just(Token::Eq).ignore_then(expr);
-    just(Token::Var)
-        .ignore_then(ident())
-        .then(type_spec.or_not())
-        .then(init.or_not())
+fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError<'sc>> + Clone {
+    recursive(|use_tree| {
+        let path = ident()
+            .then_ignore(just(Token::DoubleColon))
+            .then(use_tree.clone())
+            .map(|(prefix, suffix)| ast::UseTree::Path {
+                prefix,
+                suffix: Box::new(suffix),
+            });
+
+        let glob = just(Token::Star).to(ast::UseTree::Glob);
+
+        let group = use_tree
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+            .map(|imports| ast::UseTree::Group { imports });
+
+        let alias = ident()
+            .then_ignore(just(Token::As))
+            .then(ident())
+            .map(|(name, alias)| ast::UseTree::Alias { name, alias });
+
+        let name = ident().map(|name| ast::UseTree::Name { name });
+
+        choice((path, alias, name, glob, group))
+    })
+}
+
+fn use_statement<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+    just(Token::Use)
+        .ignore_then(just(Token::DoubleColon).or_not())
+        .then(use_tree())
         .then_ignore(just(Token::Semi))
-        .validate(|((name, ty), init), span, emit| {
-            if ty.is_none() && init.is_none() {
-                emit(ParseError::UntypedDecisionVar {
-                    span,
-                    name: name.clone(),
-                })
-            }
-            ((name, ty), init)
+        .map(|(double_colon, use_tree)| ast::Decl::Use {
+            is_absolute: double_colon.is_some(),
+            use_tree,
         })
-        .map(|((name, ty), init)| ast::Decl::Var(ast::VarStatement { name, ty, init }))
 }
 
 fn let_decl<'sc>(
@@ -99,9 +120,18 @@ fn let_decl<'sc>(
     just(Token::Let)
         .ignore_then(ident())
         .then(type_spec.or_not())
-        .then(init)
+        .then(init.or_not())
         .then_ignore(just(Token::Semi))
-        .map(|((name, ty), init)| ast::Decl::Let(ast::LetStatement { name, ty, init }))
+        .validate(|((name, ty), init), span, emit| {
+            if ty.is_none() && init.is_none() {
+                emit(ParseError::UntypedVariable {
+                    span,
+                    name: name.clone(),
+                })
+            }
+            ((name, ty), init)
+        })
+        .map(|((name, ty), init)| ast::Decl::Let(ast::LetDecl { name, ty, init }))
 }
 
 fn constraint_decl<'sc>(
@@ -157,13 +187,9 @@ fn fn_decl<'sc>(
 fn code_block_expr<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
 ) -> impl Parser<Token<'sc>, ast::Block, Error = ParseError<'sc>> + Clone {
-    let code_block_body = choice((
-        var_decl(expr.clone()),
-        let_decl(expr.clone()),
-        constraint_decl(expr.clone()),
-    ))
-    .repeated()
-    .then(expr);
+    let code_block_body = choice((let_decl(expr.clone()), constraint_decl(expr.clone())))
+        .repeated()
+        .then(expr);
 
     code_block_body
         .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
@@ -219,7 +245,14 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             .then(args.clone())
             .map(|(name, args)| ast::Expr::Call { name, args });
 
-        let tuple = args.map(ast::Expr::Tuple);
+        let tuple = args
+            .validate(|args, span, emit| {
+                if args.is_empty() {
+                    emit(ParseError::EmptyTupleExpr { span })
+                }
+                args
+            })
+            .map(ast::Expr::Tuple);
 
         let atom = choice((
             immediate().map(ast::Expr::Immediate),
@@ -241,17 +274,57 @@ fn tuple_index<'sc, P>(
 where
     P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
 {
-    // This extracts a `usize` index. Fails for everything else (therefore, `t.0.0` is not
-    // supported - but `t.0 .0` is fine).
-    let index = filter_map(|span, token| match token {
-        Token::IntLiteral(num_str) => num_str
-            .parse::<usize>()
-            .map_err(|_| ParseError::InvalidIntegerForTupleIndex { span, index: token }),
-        _ => Err(ParseError::InvalidTupleIndex { span, index: token }),
-    });
+    let indices =
+        filter_map(|span, token| match &token {
+            Token::IntLiteral(num_str) => num_str
+                .parse::<usize>()
+                .map(|index| vec![index])
+                .map_err(|_| ParseError::InvalidIntegerTupleIndex {
+                    span,
+                    index: num_str,
+                }),
+
+            // If the next token is of the form `<int>.<int>` which, to the lexer, looks like a real,
+            // break it apart manually.
+            Token::RealLiteral(num_str) => {
+                match Regex::new(r"[0-9]+\.[0-9]+")
+                    .expect("valid regex")
+                    .captures(num_str)
+                {
+                    Some(_) => {
+                        // Collect the spans for the two integers
+                        let dot_index = num_str
+                            .chars()
+                            .position(|c| c == '.')
+                            .expect("guaranteed by regex");
+                        let spans = [
+                            span.start..span.start + dot_index,
+                            span.start + dot_index + 1..span.end,
+                        ];
+
+                        // Split at `.` then collect the two indices as `usize`. Report errors as
+                        // needed
+                        num_str
+                            .split('.')
+                            .zip(spans.iter())
+                            .map(|(index, span)| {
+                                index.parse::<usize>().map_err(|_| {
+                                    ParseError::InvalidIntegerTupleIndex {
+                                        span: span.clone(),
+                                        index,
+                                    }
+                                })
+                            })
+                            .collect::<Result<Vec<usize>, _>>()
+                    }
+                    None => Err(ParseError::InvalidTupleIndex { span, index: token }),
+                }
+            }
+            _ => Err(ParseError::InvalidTupleIndex { span, index: token }),
+        });
 
     parser
-        .then(just(Token::Dot).ignore_then(index).repeated())
+        .then(just(Token::Dot).ignore_then(indices).repeated().flatten())
         .foldl(|expr, index| ast::Expr::TupleIndex {
             tuple: Box::new(expr),
             index,
@@ -354,7 +427,13 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError<'sc>> +
         let tuple = type_
             .separated_by(just(Token::Comma))
             .allow_trailing()
-            .delimited_by(just(Token::ParenOpen), just(Token::ParenClose));
+            .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
+            .validate(|args, span, emit| {
+                if args.is_empty() {
+                    emit(ParseError::EmptyTupleType { span })
+                }
+                args
+            });
 
         choice((
             just(Token::Real).to(ast::Type::Real),
