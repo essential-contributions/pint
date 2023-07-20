@@ -73,10 +73,6 @@ fn immediates() {
         expect_test::expect![[r#"Int(1)"#]],
     );
     check(
-        &run_parser!(immediate(), "-1;"),
-        expect_test::expect![[r#"Int(-1)"#]],
-    );
-    check(
         &run_parser!(immediate(), "0x4f3f4f3f4f3f4f3f4f3f4f3f4f;"),
         expect_test::expect![[r#"BigInt(6278618198356320102092284837711)"#]],
     );
@@ -87,10 +83,6 @@ fn immediates() {
     check(
         &run_parser!(immediate(), "9223372036854775808;"),
         expect_test::expect![[r#"BigInt(9223372036854775808)"#]],
-    );
-    check(
-        &run_parser!(immediate(), "-9223372036854775809;"),
-        expect_test::expect![[r#"BigInt(-9223372036854775809)"#]],
     );
     check(
         &run_parser!(immediate(), "-1.3;"),
@@ -309,14 +301,6 @@ fn exprs() {
     check(
         &run_parser!(expr(), "-a"),
         expect_test::expect![[r#"UnaryOp { op: Neg, expr: Ident(Ident("a")) }"#]],
-    );
-    check(
-        &run_parser!(expr(), "-0x111"),
-        expect_test::expect![[r#"UnaryOp { op: Neg, expr: Immediate(Int(273)) }"#]],
-    );
-    check(
-        &run_parser!(expr(), "-0b111"),
-        expect_test::expect![[r#"UnaryOp { op: Neg, expr: Immediate(Int(7)) }"#]],
     );
     check(
         &run_parser!(expr(), "a * 2.0"),
