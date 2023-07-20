@@ -68,6 +68,7 @@ pub(super) enum Expr {
     },
     Block(Block),
     If(IfExpr),
+    Cond(CondExpr),
     Tuple(Vec<Expr>),
     TupleIndex {
         tuple: Box<Expr>,
@@ -118,4 +119,16 @@ pub(super) struct IfExpr {
     pub(super) condition: Box<Expr>,
     pub(super) then_block: Block,
     pub(super) else_block: Block,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct CondBranch {
+    pub(super) condition: Box<Expr>,
+    pub(super) result: Box<Expr>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct CondExpr {
+    pub(super) branches: Vec<CondBranch>,
+    pub(super) else_result: Box<Expr>,
 }

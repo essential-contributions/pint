@@ -26,6 +26,7 @@ fn control_tokens() {
     assert_eq!(lex_one_success("("), Token::ParenOpen);
     assert_eq!(lex_one_success(")"), Token::ParenClose);
     assert_eq!(lex_one_success("->"), Token::Arrow);
+    assert_eq!(lex_one_success("=>"), Token::HeavyArrow);
     assert_eq!(lex_one_success("."), Token::Dot);
 }
 
@@ -149,9 +150,10 @@ fn func() {
 }
 
 #[test]
-fn if_and_else() {
+fn if_else_cond() {
     assert_eq!(lex_one_success("if"), Token::If);
     assert_eq!(lex_one_success("else"), Token::Else);
+    assert_eq!(lex_one_success("cond"), Token::Cond);
 }
 
 #[test]

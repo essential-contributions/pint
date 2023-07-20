@@ -539,7 +539,7 @@ fn code_blocks() {
     check(
         &format!("{:?}", run_parser!(let_decl(expr()), "let x = {};")),
         expect_test::expect![[
-            r#""@9..10: found \"}\" but expected \"!\", \"+\", \"-\", \"{\", \"(\", \"if\", \"let\",  or \"constraint\"\n""#
+            r#""@9..10: found \"}\" but expected \"!\", \"+\", \"-\", \"{\", \"(\", \"if\", \"cond\", \"let\",  or \"constraint\"\n""#
         ]],
     );
 }
@@ -547,36 +547,30 @@ fn code_blocks() {
 #[test]
 fn if_exprs() {
     check(
-        &run_parser!(if_expr(expr()), "if cond { 1 }"),
+        &run_parser!(if_expr(expr()), "if c { 1 }"),
         expect_test::expect![[r#"
-            @13..13: found end of input but expected "else"
+            @10..10: found end of input but expected "else"
         "#]],
     );
 
     check(
-        &run_parser!(if_expr(expr()), "if cond { 1 } else { 0 }"),
+        &run_parser!(if_expr(expr()), "if c { 1 } else { 0 }"),
         expect_test::expect![[
-            r#"If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } })"#
+            r#"If(IfExpr { condition: Ident(Ident("c")), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } })"#
         ]],
     );
 
     check(
-        &run_parser!(
-            if_expr(expr()),
-            "if cond { if cond { 1 } else { 0 } } else { 2 }"
-        ),
+        &run_parser!(if_expr(expr()), "if c { if c { 1 } else { 0 } } else { 2 }"),
         expect_test::expect![[
-            r#"If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } }) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } })"#
+            r#"If(IfExpr { condition: Ident(Ident("c")), then_block: Block { statements: [], final_expr: If(IfExpr { condition: Ident(Ident("c")), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } }) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } })"#
         ]],
     );
 
     check(
-        &run_parser!(
-            if_expr(expr()),
-            "if cond { 1.0 } else { if cond { 2.0 } else { 3.0 } }"
-        ),
+        &run_parser!(if_expr(expr()), "if c { if c { 1 } else { 0 } } else { 2 }"),
         expect_test::expect![[
-            r#"If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Real(1.0)) }, else_block: Block { statements: [], final_expr: If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Real(2.0)) }, else_block: Block { statements: [], final_expr: Immediate(Real(3.0)) } }) } })"#
+            r#"If(IfExpr { condition: Ident(Ident("c")), then_block: Block { statements: [], final_expr: If(IfExpr { condition: Ident(Ident("c")), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } }) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } })"#
         ]],
     );
 }
@@ -603,9 +597,9 @@ fn tuple_expressions() {
     );
 
     check(
-        &run_parser!(expr(), r#"( { 42 }, if cond { 2 } else { 3 }, foo() )"#),
+        &run_parser!(expr(), r#"( { 42 }, if c { 2 } else { 3 }, foo() )"#),
         expect_test::expect![[
-            r#"Tuple([Block(Block { statements: [], final_expr: Immediate(Int(42)) }), If(IfExpr { condition: Ident(Ident("cond")), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } }), Call { name: Ident("foo"), args: [] }])"#
+            r#"Tuple([Block(Block { statements: [], final_expr: Immediate(Int(42)) }), If(IfExpr { condition: Ident(Ident("c")), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } }), Call { name: Ident("foo"), args: [] }])"#
         ]],
     );
 
@@ -722,6 +716,61 @@ fn tuple_expressions() {
 }
 
 #[test]
+fn cond_exprs() {
+    check(
+        &run_parser!(cond_expr(expr()), r#"cond { else => a }"#),
+        expect_test::expect![[
+            r#"Cond(CondExpr { branches: [], else_result: Ident(Ident("a")) })"#
+        ]],
+    );
+
+    check(
+        &run_parser!(cond_expr(expr()), r#"cond { else => { a } }"#),
+        expect_test::expect![[
+            r#"Cond(CondExpr { branches: [], else_result: Block(Block { statements: [], final_expr: Ident(Ident("a")) }) })"#
+        ]],
+    );
+
+    check(
+        &run_parser!(cond_expr(expr()), r#"cond { a => b, else => c }"#),
+        expect_test::expect![[
+            r#"Cond(CondExpr { branches: [CondBranch { condition: Ident(Ident("a")), result: Ident(Ident("b")) }], else_result: Ident(Ident("c")) })"#
+        ]],
+    );
+
+    check(
+        &run_parser!(cond_expr(expr()), r#"cond { a => { b }, else => c, }"#),
+        expect_test::expect![[
+            r#"Cond(CondExpr { branches: [CondBranch { condition: Ident(Ident("a")), result: Block(Block { statements: [], final_expr: Ident(Ident("b")) }) }], else_result: Ident(Ident("c")) })"#
+        ]],
+    );
+
+    check(
+        &run_parser!(
+            cond_expr(expr()),
+            r#"cond { a => b, { true } => d, else => f, }"#
+        ),
+        expect_test::expect![[
+            r#"Cond(CondExpr { branches: [CondBranch { condition: Ident(Ident("a")), result: Ident(Ident("b")) }, CondBranch { condition: Block(Block { statements: [], final_expr: Immediate(Bool(true)) }), result: Ident(Ident("d")) }], else_result: Ident(Ident("f")) })"#
+        ]],
+    );
+
+    check(
+        &run_parser!(cond_expr(expr()), r#"cond { a => b, }"#),
+        expect_test::expect![[r#"
+            @15..16: found "}" but expected "!", "+", "-", "{", "(", "if", "else",  or "cond"
+        "#]],
+    );
+
+    check(
+        &run_parser!(cond_expr(expr()), r#"cond { else => a, b => c }"#),
+        expect_test::expect![[r#"
+            @18..19: found "b" but expected "}"
+        "#]],
+    );
+}
+
+#[test]
 fn basic_program() {
     let src = r#"
 let low_val: real = 1.23;
@@ -764,7 +813,7 @@ fn fn_errors() {
     check(
         &run_parser!(yurt_program(), "fn foo() -> real {}"),
         expect_test::expect![[r#"
-            @18..19: found "}" but expected "!", "+", "-", "{", "(", "if", "let",  or "constraint"
+            @18..19: found "}" but expected "!", "+", "-", "{", "(", "if", "cond", "let",  or "constraint"
         "#]],
     );
 }

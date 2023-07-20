@@ -178,6 +178,7 @@ Expressions represent values and have the following syntax:
          | <tuple-expr>
          | <tuple-index-expr>
          | <if-expr>
+         | <cond-expr>
          | <call-expr>
 ```
 
@@ -224,7 +225,6 @@ Block expressions are expressions that contains a list of _statements_ followed 
 
 <block-statement> ::= <let-item>
                     | <constraint-item>
-                    | <if-expr>
 ```
 
 The type of the block expression is the type of the final expression. For example:
@@ -306,15 +306,33 @@ For example: `let second = t.1;` which extracts the second element of tuple `t` 
 
 #### "If" Expressions
 
-Yurt provides `if` expressions which provide selection from two alternatives based on a condition. They have this syntax:
+Yurt has `if` expressions which provide selection from two alternatives based on a condition. They have this syntax:
 
 ```ebnf
 <if-expr> ::= "if" <expr> <block-expr> "else" <block-expr>
 ```
 
-The condition `<expr>` above must be of type `bool`. The "then" and "else" block expressions must have the same type or be coercible to the same type, which is also the type of the whole `if` expression.
+The condition `<expr>` above must be of type `bool`. The "then" and "else" block expressions must have the same type or have types that are coercible to the same type, which determines the type of the whole `if` expression.
 
 Note that the `else` block is not optional and the `else if { .. }` syntax is not supported.
+
+#### "Cond" Expressions
+
+Yurt provides `cond` expressions which are generalized `if` expressions with more than two branches. That is, they provide selection from multiple alternatives, each based on some condition. They have the following syntax:
+
+```ebnf
+<cond-branch> ::= <expr> "=>" <expr>
+
+<else-branch> ::= "else" "=>" <expr>
+
+<cond-expr> ::= cond "{" ( <cond-branch> "," )* <else-branch> [ "," ] "}"
+```
+
+The first `<expr>` in `<cond-branch>` must be of type `bool`. If it evaluates to `true`, then the branch is active which means that the whole `cond` expression takes the value of the second `<expr>` in `<cond-branch>`.
+
+The branches are evaluated in order. The first one to become active determines the value of the `cond` expression. If all branches fail, then the `cond` expression takes the value of the `<expr>` in the `<else-branch>`.
+
+Similarly to `if` expressions, all candidate expressions must have the same type or have types that are coercible to the same type, which determines the type of the whole `cond` expression.
 
 #### Call Expressions
 
