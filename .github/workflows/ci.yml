@@ -107,17 +107,3 @@ jobs:
       - name: Run workspace tests
         run: cargo nextest run --locked
         working-directory: yurtc
-
-  test-fail:
-    name: Test Failure
-    runs-on: ubuntu-latest
-    steps:
-      - name: Fail
-        run: exit 1
-
-      - name: Notify Slack
-        if: failure()
-        run: |
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          MSG_TEXT="Test Failure job failed! Check the run here: $RUN_URL"
-          curl -X POST -H 'Content-type: application/json' --data '{"text":"'"$MSG_TEXT"'"}' ${{ secrets.SLACK_WEBHOOK_URL }}
