@@ -49,8 +49,6 @@ fn reals() {
 #[test]
 fn ints() {
     assert_eq!(lex_one_success("1"), Token::IntLiteral("1"));
-    assert_eq!(lex_one_success("-1"), Token::IntLiteral("-1"));
-    assert_eq!(lex_one_success("+1"), Token::IntLiteral("+1"));
     assert_eq!(lex_one_success("0030"), Token::IntLiteral("0030"));
     assert_eq!(lex_one_success("0x333"), Token::IntLiteral("0x333"));
     assert_eq!(lex_one_success("0b1010"), Token::IntLiteral("0b1010"));
