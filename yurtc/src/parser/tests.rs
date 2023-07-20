@@ -85,8 +85,8 @@ fn immediates() {
         expect_test::expect![[r#"BigInt(9223372036854775808)"#]],
     );
     check(
-        &run_parser!(immediate(), "-1.3;"),
-        expect_test::expect![[r#"Real(-1.3)"#]],
+        &run_parser!(immediate(), "1.3;"),
+        expect_test::expect![[r#"Real(1.3)"#]],
     );
 }
 
