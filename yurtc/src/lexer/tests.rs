@@ -37,7 +37,6 @@ fn reals() {
     assert_eq!(lex_one_success("2.5e-4"), Token::RealLiteral("2.5e-4"));
     assert_eq!(lex_one_success("1.3E5"), Token::RealLiteral("1.3E5"));
     assert_eq!(lex_one_success("0.34"), Token::RealLiteral("0.34"));
-    assert_eq!(lex_one_success("-0.34"), Token::RealLiteral("-0.34"));
     check(
         &format!("{:?}", lex(".34")),
         expect_test::expect![[r#"([(Dot, 0..1), (IntLiteral("34"), 1..3)], [])"#]],

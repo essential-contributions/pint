@@ -59,6 +59,38 @@ fn types() {
 }
 
 #[test]
+fn immediates() {
+    check(
+        &run_parser!(immediate(), "0x88;"),
+        expect_test::expect![[r#"Int(136)"#]],
+    );
+    check(
+        &run_parser!(immediate(), "0b111;"),
+        expect_test::expect![[r#"Int(7)"#]],
+    );
+    check(
+        &run_parser!(immediate(), "1;"),
+        expect_test::expect![[r#"Int(1)"#]],
+    );
+    check(
+        &run_parser!(immediate(), "0x4f3f4f3f4f3f4f3f4f3f4f3f4f;"),
+        expect_test::expect![[r#"BigInt(6278618198356320102092284837711)"#]],
+    );
+    check(
+        &run_parser!(immediate(), "0b1000000000000000000000000000000000000000000000000000000000000000000000000000000000000;"),
+        expect_test::expect![[r#"BigInt(19342813113834066795298816)"#]],
+    );
+    check(
+        &run_parser!(immediate(), "9223372036854775808;"),
+        expect_test::expect![[r#"BigInt(9223372036854775808)"#]],
+    );
+    check(
+        &run_parser!(immediate(), "1.3;"),
+        expect_test::expect![[r#"Real(1.3)"#]],
+    );
+}
+
+#[test]
 fn use_statements() {
     check(
         &run_parser!(yurt_program(), "use *; use ::*;"),
@@ -264,7 +296,7 @@ fn solve_decls() {
 }
 
 #[test]
-fn exprs() {
+fn basic_exprs() {
     check(
         &run_parser!(expr(), "123"),
         expect_test::expect!["Immediate(Int(123))"],
@@ -273,6 +305,10 @@ fn exprs() {
         &run_parser!(expr(), "foo"),
         expect_test::expect![[r#"Ident(Ident("foo"))"#]],
     );
+}
+
+#[test]
+fn unary_op_exprs() {
     check(
         &run_parser!(expr(), "!a"),
         expect_test::expect![[r#"UnaryOp { op: Not, expr: Ident(Ident("a")) }"#]],
@@ -285,6 +321,60 @@ fn exprs() {
         &run_parser!(expr(), "-a"),
         expect_test::expect![[r#"UnaryOp { op: Neg, expr: Ident(Ident("a")) }"#]],
     );
+    check(
+        &run_parser!(expr(), "+7"),
+        expect_test::expect![[r#"UnaryOp { op: Pos, expr: Immediate(Int(7)) }"#]],
+    );
+    check(
+        &run_parser!(expr(), "+3.4"),
+        expect_test::expect![[r#"UnaryOp { op: Pos, expr: Immediate(Real(3.4)) }"#]],
+    );
+    check(
+        &run_parser!(expr(), "+0x456"),
+        expect_test::expect![[r#"UnaryOp { op: Pos, expr: Immediate(Int(1110)) }"#]],
+    );
+    check(
+        &run_parser!(expr(), "+0b01010101"),
+        expect_test::expect![[r#"UnaryOp { op: Pos, expr: Immediate(Int(85)) }"#]],
+    );
+    check(
+        &run_parser!(
+            expr(),
+            "+0b1101000000001100101010101010101111111111101010101101010101010101"
+        ),
+        expect_test::expect![[
+            r#"UnaryOp { op: Pos, expr: Immediate(BigInt(14991544915315053909)) }"#
+        ]],
+    );
+    check(
+        &run_parser!(expr(), "-1.0"),
+        expect_test::expect![[r#"UnaryOp { op: Neg, expr: Immediate(Real(1.0)) }"#]],
+    );
+    check(
+        &run_parser!(expr(), "-1"),
+        expect_test::expect![[r#"UnaryOp { op: Neg, expr: Immediate(Int(1)) }"#]],
+    );
+    check(
+        &run_parser!(expr(), "-0x133"),
+        expect_test::expect![[r#"UnaryOp { op: Neg, expr: Immediate(Int(307)) }"#]],
+    );
+    check(
+        &run_parser!(expr(), "-0b1101"),
+        expect_test::expect![[r#"UnaryOp { op: Neg, expr: Immediate(Int(13)) }"#]],
+    );
+    check(
+        &run_parser!(
+            expr(),
+            "-0b1101000000001100101010101010101010101010101010101101010101010101"
+        ),
+        expect_test::expect![[
+            r#"UnaryOp { op: Neg, expr: Immediate(BigInt(14991544909594023253)) }"#
+        ]],
+    );
+}
+
+#[test]
+fn binary_op_exprs() {
     check(
         &run_parser!(expr(), "a * 2.0"),
         expect_test::expect![[
@@ -311,6 +401,18 @@ fn exprs() {
     );
     check(
         &run_parser!(expr(), "a - 2.0"),
+        expect_test::expect![[
+            r#"BinaryOp { op: Sub, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
+        ]],
+    );
+    check(
+        &run_parser!(expr(), "a+2.0"),
+        expect_test::expect![[
+            r#"BinaryOp { op: Add, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
+        ]],
+    );
+    check(
+        &run_parser!(expr(), "a-2.0"),
         expect_test::expect![[
             r#"BinaryOp { op: Sub, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
         ]],
@@ -351,6 +453,10 @@ fn exprs() {
             r#"BinaryOp { op: NotEqual, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
         ]],
     );
+}
+
+#[test]
+fn complex_exprs() {
     check(
         &run_parser!(expr(), "2 * b * 3"),
         expect_test::expect![[

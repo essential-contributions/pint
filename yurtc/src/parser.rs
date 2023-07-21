@@ -481,20 +481,20 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError<'sc>> +
 
 fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseError<'sc>> + Clone {
     let integer_parser = |num_str: &str| {
-        // Try an i64 first, if it'll fit, and return ast::Immediate::Int.
-        num_str
-            .parse::<i64>()
+        use num_traits::Num;
+        let (radix, offset) = match num_str.chars().nth(1) {
+            Some('b') => (2, 2),
+            Some('x') => (16, 2),
+            _ => (10, 0),
+        };
+
+        // Try to parse as an i64 first
+        i64::from_str_radix(&num_str[offset..], radix)
             .map(ast::Immediate::Int)
             .or_else(|_| {
                 // Try a big-int if that fails and return an ast::Immedate::BigInt.  The BigInt
                 // FromStr::from_str() isn't smart about radices though.
-                use num_traits::Num;
-                let (radix, offs) = match num_str.chars().nth(1) {
-                    Some('b') => (2, 2),
-                    Some('x') => (16, 2),
-                    _ => (10, 0),
-                };
-                num_bigint::BigInt::from_str_radix(&num_str[offs..], radix)
+                num_bigint::BigInt::from_str_radix(&num_str[offset..], radix)
                     .map(ast::Immediate::BigInt)
             })
             .unwrap()
