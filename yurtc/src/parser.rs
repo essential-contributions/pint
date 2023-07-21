@@ -457,13 +457,13 @@ fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseErro
         // Try to parse as an i64 first
         i64::from_str_radix(&num_str[offset..], radix)
             .map(ast::Immediate::Int)
-            .unwrap_or_else(|_| {
+            .or_else(|_| {
                 // Try a big-int if that fails and return an ast::Immedate::BigInt.  The BigInt
                 // FromStr::from_str() isn't smart about radices though.
                 num_bigint::BigInt::from_str_radix(&num_str[offset..], radix)
                     .map(ast::Immediate::BigInt)
-                    .unwrap()
             })
+            .unwrap()
     };
 
     select! {
