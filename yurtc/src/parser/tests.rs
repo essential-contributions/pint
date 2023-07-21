@@ -338,8 +338,13 @@ fn unary_op_exprs() {
         expect_test::expect![[r#"UnaryOp { op: Pos, expr: Immediate(Int(85)) }"#]],
     );
     check(
-        &run_parser!(expr(), "+0b1101000000001100101010101010101111111111101010101101010101010101"),
-        expect_test::expect![[r#"UnaryOp { op: Pos, expr: Immediate(BigInt(14991544915315053909)) }"#]],
+        &run_parser!(
+            expr(),
+            "+0b1101000000001100101010101010101111111111101010101101010101010101"
+        ),
+        expect_test::expect![[
+            r#"UnaryOp { op: Pos, expr: Immediate(BigInt(14991544915315053909)) }"#
+        ]],
     );
     check(
         &run_parser!(expr(), "-1.0"),
@@ -358,8 +363,13 @@ fn unary_op_exprs() {
         expect_test::expect![[r#"UnaryOp { op: Neg, expr: Immediate(Int(13)) }"#]],
     );
     check(
-        &run_parser!(expr(), "-0b1101000000001100101010101010101010101010101010101101010101010101"),
-        expect_test::expect![[r#"UnaryOp { op: Neg, expr: Immediate(BigInt(14991544909594023253)) }"#]],
+        &run_parser!(
+            expr(),
+            "-0b1101000000001100101010101010101010101010101010101101010101010101"
+        ),
+        expect_test::expect![[
+            r#"UnaryOp { op: Neg, expr: Immediate(BigInt(14991544909594023253)) }"#
+        ]],
     );
 }
 
