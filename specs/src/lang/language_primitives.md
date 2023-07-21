@@ -121,6 +121,10 @@ Transition items describe the state transition function of a blockchain ([Transi
 
 An intent can be spread across multiple files. Each file implicitly declares a local module or submodule dependency.
 
+#### Entry File
+
+Each multi-file Yurt project has an entry file. Compiling the entry file (e.g. using `yurtc <filename>`) should also compile all local modules and submodules that the entry file directly or indirectly depends on.
+
 #### Declaring modules
 
 In the project root directory, new modules can be created as follows:
