@@ -233,6 +233,39 @@ fn if_expr<'sc>(
         })
 }
 
+fn cond_expr<'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone {
+    let cond_branch = expr
+        .clone()
+        .then_ignore(just(Token::HeavyArrow))
+        .then(expr.clone())
+        .then_ignore(just(Token::Comma))
+        .map(|(condition, result)| ast::CondBranch {
+            condition: Box::new(condition),
+            result: Box::new(result),
+        });
+
+    let else_branch = just(Token::Else)
+        .ignore_then(just(Token::HeavyArrow))
+        .ignore_then(expr);
+
+    let body = cond_branch
+        .repeated()
+        .then(else_branch)
+        .then_ignore(just(Token::Comma).or_not())
+        .delimited_by(just(Token::BraceOpen), just(Token::BraceClose));
+
+    just(Token::Cond)
+        .ignore_then(body)
+        .map(|(branches, else_result)| {
+            ast::Expr::Cond(ast::CondExpr {
+                branches,
+                else_result: Box::new(else_result),
+            })
+        })
+}
+
 fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone {
     recursive(|expr| {
         let args = expr
@@ -259,6 +292,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             unary_op(expr.clone()),
             code_block_expr(expr.clone()).map(ast::Expr::Block),
             if_expr(expr.clone()),
+            cond_expr(expr.clone()),
             call,
             tuple,
             ident().map(ast::Expr::Ident),

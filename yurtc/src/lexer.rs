@@ -54,6 +54,8 @@ pub(super) enum Token<'sc> {
     ParenClose,
     #[token("->")]
     Arrow,
+    #[token("=>")]
+    HeavyArrow,
     #[token(".")]
     Dot,
 
@@ -77,6 +79,8 @@ pub(super) enum Token<'sc> {
     If,
     #[token("else")]
     Else,
+    #[token("cond")]
+    Cond,
 
     #[token("let")]
     Let,
@@ -127,6 +131,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Fn,
     Token::If,
     Token::Else,
+    Token::Cond,
     Token::Let,
     Token::Constraint,
     Token::Maximize,
@@ -162,6 +167,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::ParenOpen => write!(f, "("),
             Token::ParenClose => write!(f, ")"),
             Token::Arrow => write!(f, "->"),
+            Token::HeavyArrow => write!(f, "=>"),
             Token::Dot => write!(f, "."),
             Token::Real => write!(f, "real"),
             Token::Int => write!(f, "int"),
@@ -172,6 +178,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Fn => write!(f, "fn"),
             Token::If => write!(f, "if"),
             Token::Else => write!(f, "else"),
+            Token::Cond => write!(f, "cond"),
             Token::Let => write!(f, "let"),
             Token::Constraint => write!(f, "constraint"),
             Token::Maximize => write!(f, "maximize"),
