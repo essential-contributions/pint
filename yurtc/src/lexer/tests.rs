@@ -18,6 +18,7 @@ fn lex_one_success(src: &str) -> Token<'_> {
 #[test]
 fn control_tokens() {
     assert_eq!(lex_one_success(":"), Token::Colon);
+    assert_eq!(lex_one_success("::"), Token::DoubleColon);
     assert_eq!(lex_one_success(";"), Token::Semi);
     assert_eq!(lex_one_success(","), Token::Comma);
     assert_eq!(lex_one_success("{"), Token::BraceOpen);
@@ -25,6 +26,7 @@ fn control_tokens() {
     assert_eq!(lex_one_success("("), Token::ParenOpen);
     assert_eq!(lex_one_success(")"), Token::ParenClose);
     assert_eq!(lex_one_success("->"), Token::Arrow);
+    assert_eq!(lex_one_success("=>"), Token::HeavyArrow);
     assert_eq!(lex_one_success("."), Token::Dot);
 }
 
@@ -35,7 +37,6 @@ fn reals() {
     assert_eq!(lex_one_success("2.5e-4"), Token::RealLiteral("2.5e-4"));
     assert_eq!(lex_one_success("1.3E5"), Token::RealLiteral("1.3E5"));
     assert_eq!(lex_one_success("0.34"), Token::RealLiteral("0.34"));
-    assert_eq!(lex_one_success("-0.34"), Token::RealLiteral("-0.34"));
     check(
         &format!("{:?}", lex(".34")),
         expect_test::expect![[r#"([(Dot, 0..1), (IntLiteral("34"), 1..3)], [])"#]],
@@ -123,7 +124,6 @@ fn strings() {
 
 #[test]
 fn variables() {
-    assert_eq!(lex_one_success("var"), Token::Var);
     assert_eq!(lex_one_success("let"), Token::Let);
 }
 
@@ -149,9 +149,20 @@ fn func() {
 }
 
 #[test]
-fn if_and_else() {
+fn if_else_cond() {
     assert_eq!(lex_one_success("if"), Token::If);
     assert_eq!(lex_one_success("else"), Token::Else);
+    assert_eq!(lex_one_success("cond"), Token::Cond);
+}
+
+#[test]
+fn r#use() {
+    assert_eq!(lex_one_success("use"), Token::Use);
+}
+
+#[test]
+fn r#as() {
+    assert_eq!(lex_one_success("as"), Token::As);
 }
 
 #[test]

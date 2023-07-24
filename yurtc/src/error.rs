@@ -9,7 +9,7 @@ pub(super) type Span = std::ops::Range<usize>;
 #[derive(Error, Debug, Clone, PartialEq, Default)]
 pub(super) enum LexError {
     #[default]
-    #[error("Invalid token")]
+    #[error("invalid token")]
     InvalidToken,
 }
 
@@ -25,13 +25,17 @@ pub(super) enum ParseError<'a> {
     #[error("expected identifier, found keyword \"{keyword}\"")]
     KeywordAsIdent { span: Span, keyword: Token<'a> },
     #[error(
-        "type annotation or initializer needed for decision variable \"{}\"", name.0
+        "type annotation or initializer needed for variable \"{}\"", name.0
     )]
-    UntypedDecisionVar { span: Span, name: ast::Ident },
-    #[error("Invalid integer value \"{}\" for tuple index", index)]
-    InvalidIntegerForTupleIndex { span: Span, index: Token<'a> },
-    #[error("Invalid value \"{}\" for tuple index", index)]
+    UntypedVariable { span: Span, name: ast::Ident },
+    #[error("invalid integer value \"{}\" for tuple index", index)]
+    InvalidIntegerTupleIndex { span: Span, index: &'a str },
+    #[error("invalid value \"{}\" for tuple index", index)]
     InvalidTupleIndex { span: Span, index: Token<'a> },
+    #[error("empty tuple expressions are not allowed")]
+    EmptyTupleExpr { span: Span },
+    #[error("empty tuple types are not allowed")]
+    EmptyTupleType { span: Span },
 }
 
 fn format_expected_found_error<'a>(
@@ -123,9 +127,11 @@ impl<'a> CompileError<'a> {
             Parse { error } => match error {
                 ParseError::ExpectedFound { span, .. } => span.clone(),
                 ParseError::KeywordAsIdent { span, .. } => span.clone(),
-                ParseError::UntypedDecisionVar { span, .. } => span.clone(),
-                ParseError::InvalidIntegerForTupleIndex { span, .. } => span.clone(),
+                ParseError::UntypedVariable { span, .. } => span.clone(),
+                ParseError::InvalidIntegerTupleIndex { span, .. } => span.clone(),
                 ParseError::InvalidTupleIndex { span, .. } => span.clone(),
+                ParseError::EmptyTupleExpr { span } => span.clone(),
+                ParseError::EmptyTupleType { span } => span.clone(),
             },
         }
     }

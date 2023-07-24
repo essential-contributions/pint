@@ -12,6 +12,8 @@ mod tests;
 pub(super) enum Token<'sc> {
     #[token(":")]
     Colon,
+    #[token("::")]
+    DoubleColon,
     #[token("!")]
     Bang,
     #[token("+")]
@@ -52,6 +54,8 @@ pub(super) enum Token<'sc> {
     ParenClose,
     #[token("->")]
     Arrow,
+    #[token("=>")]
+    HeavyArrow,
     #[token(".")]
     Dot,
 
@@ -75,9 +79,9 @@ pub(super) enum Token<'sc> {
     If,
     #[token("else")]
     Else,
+    #[token("cond")]
+    Cond,
 
-    #[token("var")]
-    Var,
     #[token("let")]
     Let,
     #[token("constraint")]
@@ -91,9 +95,14 @@ pub(super) enum Token<'sc> {
     #[token("satisfy")]
     Satisfy,
 
+    #[token("use")]
+    Use,
+    #[token("as")]
+    As,
+
     #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice())]
     Ident(&'sc str),
-    #[regex(r"[+-]?[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+", |lex| lex.slice())]
+    #[regex(r"[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+", |lex| lex.slice())]
     RealLiteral(&'sc str),
     #[regex(r"0x[0-9A-Fa-f]+|0b[0-1]+|[0-9]+", |lex| lex.slice())]
     IntLiteral(&'sc str),
@@ -122,19 +131,22 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Fn,
     Token::If,
     Token::Else,
-    Token::Var,
+    Token::Cond,
     Token::Let,
     Token::Constraint,
     Token::Maximize,
     Token::Minimize,
     Token::Solve,
     Token::Satisfy,
+    Token::Use,
+    Token::As,
 ];
 
 impl<'sc> fmt::Display for Token<'sc> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Token::Colon => write!(f, ":"),
+            Token::DoubleColon => write!(f, "::"),
             Token::Bang => write!(f, "!"),
             Token::Plus => write!(f, "+"),
             Token::Minus => write!(f, "-"),
@@ -155,6 +167,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::ParenOpen => write!(f, "("),
             Token::ParenClose => write!(f, ")"),
             Token::Arrow => write!(f, "->"),
+            Token::HeavyArrow => write!(f, "=>"),
             Token::Dot => write!(f, "."),
             Token::Real => write!(f, "real"),
             Token::Int => write!(f, "int"),
@@ -165,13 +178,15 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Fn => write!(f, "fn"),
             Token::If => write!(f, "if"),
             Token::Else => write!(f, "else"),
+            Token::Cond => write!(f, "cond"),
             Token::Let => write!(f, "let"),
-            Token::Var => write!(f, "var"),
             Token::Constraint => write!(f, "constraint"),
             Token::Maximize => write!(f, "maximize"),
             Token::Minimize => write!(f, "minimize"),
             Token::Solve => write!(f, "solve"),
             Token::Satisfy => write!(f, "satisfy"),
+            Token::Use => write!(f, "use"),
+            Token::As => write!(f, "as"),
             Token::Ident(ident) => write!(f, "{ident}"),
             Token::RealLiteral(ident) => write!(f, "{ident}"),
             Token::IntLiteral(ident) => write!(f, "{ident}"),

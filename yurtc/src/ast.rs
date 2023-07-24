@@ -1,15 +1,17 @@
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct VarStatement {
-    pub(super) name: Ident,
-    pub(super) ty: Option<Type>,
-    pub(super) init: Option<Expr>,
+pub(super) enum UseTree {
+    Glob,
+    Name { name: Ident },
+    Path { prefix: Ident, suffix: Box<UseTree> },
+    Group { imports: Vec<UseTree> },
+    Alias { name: Ident, alias: Ident },
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct LetStatement {
+pub(super) struct LetDecl {
     pub(super) name: Ident,
     pub(super) ty: Option<Type>,
-    pub(super) init: Expr,
+    pub(super) init: Option<Expr>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -20,8 +22,11 @@ pub(super) struct Block {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Decl {
-    Var(VarStatement),
-    Let(LetStatement),
+    Use {
+        is_absolute: bool,
+        use_tree: UseTree,
+    },
+    Let(LetDecl),
     Constraint(Expr),
     Fn {
         name: Ident,
@@ -63,6 +68,7 @@ pub(super) enum Expr {
     },
     Block(Block),
     If(IfExpr),
+    Cond(CondExpr),
     Tuple(Vec<Expr>),
     TupleIndex {
         tuple: Box<Expr>,
@@ -113,4 +119,16 @@ pub(super) struct IfExpr {
     pub(super) condition: Box<Expr>,
     pub(super) then_block: Block,
     pub(super) else_block: Block,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct CondBranch {
+    pub(super) condition: Box<Expr>,
+    pub(super) result: Box<Expr>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct CondExpr {
+    pub(super) branches: Vec<CondBranch>,
+    pub(super) else_result: Box<Expr>,
 }
