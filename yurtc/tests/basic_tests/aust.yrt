@@ -1,0 +1,46 @@
+// Colouring Australia using nc colours
+
+let nc: int = 3;
+
+let wa: int;
+let nt: int;
+let sa: int;
+let q: int;
+let nsw: int;
+let v: int;
+let t: int;
+
+constraint wa >= 1; 
+constraint wa <= nc;
+
+constraint nt >= 1; 
+constraint nt <= nc;
+
+constraint sa >= 1; 
+constraint sa <= nc;
+
+constraint q >= 1; 
+constraint q <= nc;
+
+constraint nsw >= 1; 
+constraint nsw <= nc;
+
+constraint v >= 1; 
+constraint v <= nc;
+
+constraint t >= 1; 
+constraint t <= nc;
+
+// Make sure that no two neighboring states/territories share a colour
+constraint wa != nt;
+constraint wa != sa;
+constraint nt != sa;
+constraint nt != q;
+constraint sa != q;
+constraint sa != nsw;
+constraint sa != v;
+constraint q != nsw;
+constraint nsw != v;
+
+// We're just looking for a satisfying assignment of colours
+solve satisfy;

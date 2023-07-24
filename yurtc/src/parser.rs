@@ -12,7 +12,7 @@ mod tests;
 
 type Ast = Vec<ast::Decl>;
 
-pub(super) fn parse_path_to_ast(path: &Path, filename: &str) -> anyhow::Result<Ast> {
+pub fn parse_path_to_ast(path: &Path, filename: &str) -> anyhow::Result<Ast> {
     parse_str_to_ast(&read_to_string(path)?, filename)
 }
 

@@ -1,5 +1,5 @@
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum UseTree {
+pub enum UseTree {
     Glob,
     Name { name: Ident },
     Path { prefix: Ident, suffix: Box<UseTree> },
@@ -8,20 +8,20 @@ pub(super) enum UseTree {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct LetDecl {
+pub struct LetDecl {
     pub(super) name: Ident,
     pub(super) ty: Option<Type>,
     pub(super) init: Option<Expr>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct Block {
+pub struct Block {
     pub(super) statements: Vec<Decl>,
     pub(super) final_expr: Box<Expr>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Decl {
+pub enum Decl {
     Use {
         is_absolute: bool,
         use_tree: UseTree,
@@ -37,11 +37,11 @@ pub(super) enum Decl {
     Solve(SolveFunc),
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub(super) struct Ident(pub(super) String);
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Ident(pub(super) String);
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Type {
+pub enum Type {
     Real,
     Int,
     Bool,
@@ -50,7 +50,7 @@ pub(super) enum Type {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Expr {
+pub enum Expr {
     Immediate(Immediate),
     Ident(Ident),
     UnaryOp {
@@ -76,15 +76,15 @@ pub(super) enum Expr {
     },
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub(super) enum UnaryOp {
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum UnaryOp {
     Pos,
     Neg,
     Not,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub(super) enum BinaryOp {
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum BinaryOp {
     Mul,
     Div,
     Add,
@@ -101,7 +101,7 @@ pub(super) enum BinaryOp {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Immediate {
+pub enum Immediate {
     Real(f64),
     Int(i64),
     BigInt(num_bigint::BigInt),
@@ -109,15 +109,15 @@ pub(super) enum Immediate {
     String(String),
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub(super) enum SolveFunc {
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SolveFunc {
     Satisfy,
     Minimize(Ident),
     Maximize(Ident),
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct IfExpr {
+pub struct IfExpr {
     pub(super) condition: Box<Expr>,
     pub(super) then_block: Block,
     pub(super) else_block: Block,
@@ -130,7 +130,7 @@ pub(super) struct CondBranch {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct CondExpr {
+pub struct CondExpr {
     pub(super) branches: Vec<CondBranch>,
     pub(super) else_result: Box<Expr>,
 }
