@@ -298,7 +298,9 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             ident().map(ast::Expr::Ident),
         ));
 
-        comparison_op(additive_op(multiplicative_op(tuple_index(atom))))
+        or_op(and_op(comparison_op(additive_op(multiplicative_op(
+            tuple_index(atom),
+        )))))
     })
 }
 
@@ -426,6 +428,44 @@ where
                 .or(just(Token::GtEq).to(ast::BinaryOp::GreaterThanOrEqual))
                 .or(just(Token::EqEq).to(ast::BinaryOp::Equal))
                 .or(just(Token::NotEq).to(ast::BinaryOp::NotEqual))
+                .then(parser)
+                .repeated(),
+        )
+        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
+            op,
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        })
+}
+
+fn and_op<'sc, P>(parser: P) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+{
+    parser
+        .clone()
+        .then(
+            just(Token::DoubleAmpersandToken)
+                .to(ast::BinaryOp::LogicalAnd)
+                .then(parser)
+                .repeated(),
+        )
+        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
+            op,
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        })
+}
+
+fn or_op<'sc, P>(parser: P) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+{
+    parser
+        .clone()
+        .then(
+            just(Token::DoublePipeToken)
+                .to(ast::BinaryOp::LogicalOr)
                 .then(parser)
                 .repeated(),
         )
