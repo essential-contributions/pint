@@ -453,6 +453,26 @@ fn binary_op_exprs() {
             r#"BinaryOp { op: NotEqual, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
         ]],
     );
+    check(
+        &run_parser!(expr(), "a && b"),
+        expect_test::expect![[
+            r#"BinaryOp { op: LogicalAnd, lhs: Ident(Ident("a")), rhs: Ident(Ident("b")) }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), "a || b"),
+        expect_test::expect![[
+            r#"BinaryOp { op: LogicalOr, lhs: Ident(Ident("a")), rhs: Ident(Ident("b")) }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), "a || b && c || d && !e"),
+        expect_test::expect![[
+            r#"BinaryOp { op: LogicalOr, lhs: BinaryOp { op: LogicalOr, lhs: Ident(Ident("a")), rhs: BinaryOp { op: LogicalAnd, lhs: Ident(Ident("b")), rhs: Ident(Ident("c")) } }, rhs: BinaryOp { op: LogicalAnd, lhs: Ident(Ident("d")), rhs: UnaryOp { op: Not, expr: Ident(Ident("e")) } } }"#
+        ]],
+    );
 }
 
 #[test]

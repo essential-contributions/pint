@@ -96,6 +96,8 @@ pub(super) enum BinaryOp {
     GreaterThanOrEqual,
     Equal,
     NotEqual,
+    LogicalAnd,
+    LogicalOr,
 }
 
 #[derive(Clone, Debug, PartialEq)]

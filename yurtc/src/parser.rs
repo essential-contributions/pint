@@ -298,7 +298,15 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             ident().map(ast::Expr::Ident),
         ));
 
-        comparison_op(additive_op(multiplicative_op(tuple_index(atom))))
+        and_or_op(
+            Token::DoublePipe,
+            ast::BinaryOp::LogicalOr,
+            and_or_op(
+                Token::DoubleAmpersand,
+                ast::BinaryOp::LogicalAnd,
+                comparison_op(additive_op(multiplicative_op(tuple_index(atom)))),
+            ),
+        )
     })
 }
 
@@ -429,6 +437,24 @@ where
                 .then(parser)
                 .repeated(),
         )
+        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
+            op,
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        })
+}
+
+fn and_or_op<'sc, P>(
+    token: Token<'sc>,
+    logical_op: ast::BinaryOp,
+    parser: P,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+{
+    parser
+        .clone()
+        .then(just(token).to(logical_op).then(parser).repeated())
         .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
             op,
             lhs: Box::new(lhs),

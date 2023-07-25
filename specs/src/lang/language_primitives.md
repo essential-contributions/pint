@@ -206,17 +206,8 @@ There are two kinds of operators:
 
 <bin-op> ::= "<" | ">" | "<=" | ">=" | "==" | "!="
            | "+" | "-" | "*" | "/" | "%"
+           | "&&" | "||"
 ```
-
-#### Operator Precedence
-
-The operators have the following precedence, from highest to lowest.
-
-| Class          | Operators                        |
-| -------------- | -------------------------------- |
-| Multiplicative | `*`, `/`, `%`                    |
-| Additive       | `+` (binary), `-` (binary)       |
-| Comparison     | `<`, `>`, `<=`, `>=`, `==`, `!=` |
 
 ### Expression Atoms
 
@@ -351,6 +342,20 @@ For example: `x = foo(5, 2);`.
 The type of the expressions passed as arguments must match the argument types of the called function. The return type of the function must also be appropriate for the calling context.
 
 The order of argument evaluation is not specified.
+
+#### Expression Precedence
+
+The precedence of Yurt operators and expressions is ordered as follows, going from strong to weak. Binary Operators at the same precedence level are grouped in the order given by their associativity.
+
+| Operator                         | Associativity        |
+| -------------------------------- | -------------------- |
+| Tuple index expressions          | left to right        |
+| Unary `-`, Unary `+`, `!`        |                      |
+| `*`, `/`, `%`                    | left to right        |
+| Binary `+`, Binary `-`           | left to right        |
+| `==`, `!=`, `<`, `>`, `<=`, `>=` | Requires parentheses |
+| `&&`                             | left to right        |
+| `\|\|`                           | left to right        |
 
 ## Items
 
