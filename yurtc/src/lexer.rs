@@ -39,9 +39,9 @@ pub(super) enum Token<'sc> {
     #[token("!=")]
     NotEq,
     #[token("&&")]
-    DoubleAmpersandToken,
+    DoubleAmpersand,
     #[token("||")]
-    DoublePipeToken,
+    DoublePipe,
 
     #[token(";")]
     Semi,
@@ -164,8 +164,8 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::GtEq => write!(f, ">="),
             Token::EqEq => write!(f, "=="),
             Token::NotEq => write!(f, "!="),
-            Token::DoubleAmpersandToken => write!(f, "&&"),
-            Token::DoublePipeToken => write!(f, "||"),
+            Token::DoubleAmpersand => write!(f, "&&"),
+            Token::DoublePipe => write!(f, "||"),
             Token::Semi => write!(f, ";"),
             Token::Comma => write!(f, ","),
             Token::Star => write!(f, "*"),
