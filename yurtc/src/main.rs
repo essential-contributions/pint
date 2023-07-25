@@ -1,8 +1,15 @@
+mod ast;
+
+#[macro_use]
+mod error;
+mod lexer;
+mod parser;
+
 fn main() -> anyhow::Result<()> {
     let srcs = parse_cli();
     let asts = srcs
         .iter()
-        .map(|src| yurtc::parser::parse_path_to_ast(std::path::Path::new(src), src))
+        .map(|src| parser::parse_path_to_ast(std::path::Path::new(src), src))
         .collect::<anyhow::Result<Vec<_>>>()?;
 
     dbg!(asts);

@@ -10,26 +10,13 @@ let nsw: int;
 let v: int;
 let t: int;
 
-constraint wa >= 1; 
-constraint wa <= nc;
-
-constraint nt >= 1; 
-constraint nt <= nc;
-
-constraint sa >= 1; 
-constraint sa <= nc;
-
-constraint q >= 1; 
-constraint q <= nc;
-
-constraint nsw >= 1; 
-constraint nsw <= nc;
-
-constraint v >= 1; 
-constraint v <= nc;
-
-constraint t >= 1; 
-constraint t <= nc;
+constraint wa >= 1 && wa <= nc;
+constraint nt >= 1 &&  nt <= nc;
+constraint sa >= 1 && sa <= nc;
+constraint q >= 1 && q <= nc;
+constraint nsw >= 1 && nsw <= nc;
+constraint v >= 1 && v <= nc;
+constraint t >= 1 && t <= nc;
 
 // Make sure that no two neighboring states/territories share a colour
 constraint wa != nt;

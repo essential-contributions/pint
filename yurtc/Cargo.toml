@@ -3,15 +3,10 @@ name = "yurtc"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-name = "yurtc"
-path = "src/lib.rs"
-
-[[bin]]
-name = "yurtc"
-path = "src/main.rs"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ansi_term = "0.12"
 anyhow = "1.0"
 ariadne = "0.3"
 chumsky = "0.9"
@@ -22,4 +17,5 @@ logos = "0.13"
 num-bigint = "0.4"
 num-traits = "0.2"
 regex = "1.9"
+test_bin = "0.4"
 thiserror = "1.0"
