@@ -1,0 +1,2 @@
+# Syntax highlighting of Yurt files as rust
+*.yrt linguist-language=Rust

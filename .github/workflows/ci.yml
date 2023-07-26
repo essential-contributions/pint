@@ -105,5 +105,5 @@ jobs:
           locked: true
 
       - name: Run workspace tests
-        run: cargo nextest run --locked
+        run: cargo nextest run --release --locked
         working-directory: yurtc
