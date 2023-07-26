@@ -12,7 +12,7 @@ Conversely, solvers need to "expand" `eth_transition` to something more concrete
 
 One viable option is to restrict the space of feasible transactions to contract calls to specific contracts with well-defined mathematical models such as Uniswap. For each trusted contract, the solver has to replace calls to `eth_transition` with actual equations representing the state transition function **for that contract**. The result is a modified version of the user's initial intent, with the solver introducing additional constraints alongside those specified by the user. By applying more restrictive constraints to `eth_transition`, solvers reduce the transaction space, making it easier to navigate. This approach enables solvers to provide users with valid solutions in a timely manner.
 
-![Flow of Intents](./assets/intent_flow.png "Flow of Intents")
+![Flow of Intents](../assets/intent_flow.png "Flow of Intents")
 
 Solvers compete by delivering the best "expansion" of `eth_transition`, striving to provide a solution that is more optimal relative to those proposed by other solvers. Solvers who are able to include more contracts in their solution space will likely achieve higher satisfaction scores, hence receiving higher rewards.
 
