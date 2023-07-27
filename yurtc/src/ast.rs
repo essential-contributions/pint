@@ -1,3 +1,5 @@
+use itertools::Either;
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum UseTree {
     Glob,
@@ -46,7 +48,7 @@ pub(super) enum Type {
     Int,
     Bool,
     String,
-    Tuple(Vec<Type>),
+    Tuple(Vec<(Option<Ident>, Type)>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -69,10 +71,10 @@ pub(super) enum Expr {
     Block(Block),
     If(IfExpr),
     Cond(CondExpr),
-    Tuple(Vec<Expr>),
-    TupleIndex {
+    Tuple(Vec<(Option<Ident>, Expr)>),
+    TupleFieldAccess {
         tuple: Box<Expr>,
-        index: usize,
+        field: Either<usize, Ident>,
     },
 }
 

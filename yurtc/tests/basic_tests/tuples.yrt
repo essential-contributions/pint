@@ -1,0 +1,26 @@
+let t0 = { 0, }; let t0_0 = t0.0;
+let t1 = { x: 0 }; let t1_0 = t1.0; let t1_x = t1.x;
+let t2 = { x: 0, }; let t2_0 = t2.0; let t2_x = t2.x;
+let t3: { x: int } = { 0, }; let t3_0 = t3.0; let t3_x = t3.x;
+let t3: { x: int } = { x: 0, }; let t4_0 = t4.0; let t4_x = t4.x;
+let t4: { x: int, } = { x: 0 }; let t5_0 = t5.0; let t5_x = t5.x;
+
+let t5 = { 0, 5.0 }; let t5_0 = t5.0; let t5_1 = t5.1;
+let t6 = { x: 0, 5.0 }; let t6_0 = t6.0; let t6_x = t6.x; let t6_1 = t6.1;
+let t7: { x: int, real } = { 0, 5.0 }; let t7_0 = t7.0; let t7_x = t7.x; let t7_1 = t7.1;
+let t8: { x: int, real } = { x: 0, 5.0 }; let t8_0 = t8.0; let t8_x = t8.x; let t8_1 = t8.1;
+let t9 = { x: 0, y: 5.0 }; let t9_0 = t9.0; let t9_x = t9.x; let t9_1 = t9.1; let t9_y = t9.x;
+let t10: { x: int, y: real } = { 0, 5.0 }; let t10_0 = t10.0; let t10_x = t10.x; let t10_1 = t10.1; let t10_y = t10.x;
+let t11: { x: int, y: real } = { x: 0, 5.0 }; let t11_0 = t11.0; let t11_x = t11.x; let t11_1 = t11.1; let t11_y = t11.x;
+let t12: { x: int, y: real } = { x: 0, y: 5.0 }; let t12_0 = t12.0; let t12_x = t12.x; let t12_1 = t12.1; let t12_x = t12.x;
+let t13: { x: int, y: real } = { y: 5.0, x: 0 }; let t13_0 = t13.0; let t13_x = t13.x; let t13_1 = t13.1; let t13_y = t11.x;
+
+let t14: { x: int, y: real, z: { int, real, w: string } } = { z: { 0, 6.0, "yurt" }, y: 5.0, x: 0, }; 
+let t14_2_0 = t14.2.0;
+let t14_2_1 = t14.2.1;
+let t14_2_2 = t14.2.2;
+let t14_2_2 = t14.2.2;
+let t14_z_0 = t14.z.0;
+let t14_z_1 = t14.z.1;
+let t14_z_2 = t14.z.2;
+let t14_z_w = t14.z.w;

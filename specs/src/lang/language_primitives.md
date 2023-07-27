@@ -149,7 +149,7 @@ TODO
 
 Yurt provides 4 scalar types built-in: Booleans, integers, reals and strings. Yurt also provides tuples as a compound built-int type.
 
-The syntax for a types is as follows:
+The syntax for types is as follows:
 
 ```ebnf
 <ty> ::= "bool"
@@ -158,10 +158,14 @@ The syntax for a types is as follows:
        | "string"
        | <tuple-ty>
 
-<tuple-ty> ::= "(" ( <ty> "," ... ) ")"
+<tuple-ty> ::= "{" ( [ <ident> ":" ] <ty> "," ... ) "}"
 ```
 
-For example, in `let t: (int, real, string) = (5, 3.0, "foo")`, `(int, real, string)` is a tuple type.
+For example, in `let t: { int, real, string } = { 5, 3.0, "foo" }`, `{ int, real, string }` is a tuple type. `{x: int, y: real, string }` is also a tuple tuple type where some of the fields are named.
+
+Names of tuple fields modify the type of the tuple. That is, `{ x: int }` and `{ y: int }` are different types. However they both coerce to `{ int }`.
+
+Note that the grammar disallows empty tuple types `{ }`.
 
 ## Expressions
 
@@ -180,7 +184,7 @@ Expressions represent values and have the following syntax:
          | <real-literal>
          | <string-literal>
          | <tuple-expr>
-         | <tuple-index-expr>
+         | <tuple-field-access-expr>
          | <if-expr>
          | <cond-expr>
          | <call-expr>
@@ -281,23 +285,49 @@ let string = "first line\
              third line";
 ```
 
-#### Tuple Expressions and Tuple Indexing Expressions
+#### Tuple Expressions and Tuple Field Access Expressions
 
 Tuple Expressions are written as:
 
 ```ebnf
-<tuple-expr> ::= "(" ( <expr> "," ... ) ")"
+<tuple-expr> ::= "{" ( [ <ident> ":" ] <expr> "," ... ) "}"
 ```
 
-For example: `let t = (5, 3, "foo");`.
+For example: `let t = { x: 5, 3, "foo" };`. The type of this tuple can be inferred by the compiler to be `{ x: int, int, string }`.
 
-Tuple indexing expressions are written as:
+The following is another example:
+
+```rust
+let t: { x: int, real } = { 6, 5.0 }
+```
+
+where the type of the tuple is indicated by the type annotation and has a named field `x`, but that named field is not actually used in the tuple expression. This is allowed because `{ x: int, real }` and `{ int, real }` coerce into each other.
+
+Tuple fields can be initialized out of order only if all the fields have names and their names are used in the tuple expression. For example, the following is allowed:
+
+```rust
+let t: { x: int, y: real } = { y: 5.0, x: 6 };
+```
+
+while the following are not:
+
+```rust
+let t: { x: int, real } = { 5.0, x: 6 };
+let t: { x: int, y: real } = { 5.0, x: 6 };
+let t: { x: int, y: real } = { 5.0, 6 }; // This is a type mismatch!
+```
+
+Tuple expressions that contain a single _unnamed_ field require the trailing `,` as in `let t = { 4.0, };`. Otherwise, the expression becomes a code block that simply evaluates to its contained expression. Tuple expressions that contain a single _named_ field do not require the trailing `,`.
+
+Note that the grammar disallows empty tuple expressions `{ }`.
+
+Tuple field access expressions are written as:
 
 ```ebnf
-<tuple-index-expr> ::= <expr> "." [0-9]+
+<tuple-field-access-expr> ::= <expr> "." ( [0-9]+ | <ident> )
 ```
 
-For example: `let second = t.1;` which extracts the second element of tuple `t` and stores it into `second`.
+For example: `let second = t.1;` which extracts the second element of tuple `t` and stores it into `second`. Named field can be accessed using their names or their index. For example, if `x` is the third field of tuple `t`, then `t.2` and `t.x` are equivalent.
 
 #### "If" Expressions
 
@@ -349,7 +379,7 @@ The precedence of Yurt operators and expressions is ordered as follows, going fr
 
 | Operator                         | Associativity        |
 | -------------------------------- | -------------------- |
-| Tuple index expressions          | left to right        |
+| Tuple field access expressions   | left to right        |
 | Unary `-`, Unary `+`, `!`        |                      |
 | `*`, `/`, `%`                    | left to right        |
 | Binary `+`, Binary `-`           | left to right        |
