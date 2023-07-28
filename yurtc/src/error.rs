@@ -26,6 +26,8 @@ pub(super) enum ParseError<'a> {
     KeywordAsIdent { span: Span, keyword: Token<'a> },
     #[error("type annotation or initializer needed for variable \"{name}\"")]
     UntypedVariable { span: Span, name: String },
+    #[error("empty array expressions are not allowed")]
+    EmptyArrayExpr { span: Span },
     #[error("invalid integer value \"{}\" for tuple index", index)]
     InvalidIntegerTupleIndex { span: Span, index: &'a str },
     #[error("invalid value \"{}\" for tuple index", index)]
@@ -126,6 +128,7 @@ impl<'a> CompileError<'a> {
                 ParseError::ExpectedFound { span, .. } => span.clone(),
                 ParseError::KeywordAsIdent { span, .. } => span.clone(),
                 ParseError::UntypedVariable { span, .. } => span.clone(),
+                ParseError::EmptyArrayExpr { span } => span.clone(),
                 ParseError::InvalidIntegerTupleIndex { span, .. } => span.clone(),
                 ParseError::InvalidTupleIndex { span, .. } => span.clone(),
                 ParseError::EmptyTupleExpr { span } => span.clone(),
