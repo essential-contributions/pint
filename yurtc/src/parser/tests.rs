@@ -41,19 +41,19 @@ fn check(actual: &str, expect: expect_test::Expect) {
 
 #[test]
 fn types() {
-    check(&run_parser!(type_(), "int"), expect_test::expect!["Int"]);
-    check(&run_parser!(type_(), "real"), expect_test::expect!["Real"]);
-    check(&run_parser!(type_(), "bool"), expect_test::expect!["Bool"]);
+    check(&run_parser!(type_(expr()), "int"), expect_test::expect!["Int"]);
+    check(&run_parser!(type_(expr()), "real"), expect_test::expect!["Real"]);
+    check(&run_parser!(type_(expr()), "bool"), expect_test::expect!["Bool"]);
     check(
-        &run_parser!(type_(), "string"),
+        &run_parser!(type_(expr()), "string"),
         expect_test::expect!["String"],
     );
     check(
-        &run_parser!(type_(), "{int, real, string}"),
+        &run_parser!(type_(expr()), "{int, real, string}"),
         expect_test::expect!["Tuple([(None, Int), (None, Real), (None, String)])"],
     );
     check(
-        &run_parser!(type_(), "{int, {real, int}, string}"),
+        &run_parser!(type_(expr()), "{int, {real, int}, string}"),
         expect_test::expect![
             "Tuple([(None, Int), (None, Tuple([(None, Real), (None, Int)])), (None, String)])"
         ],
@@ -790,6 +790,70 @@ fn if_exprs() {
         expect_test::expect![[
             r#"If(IfExpr { condition: Ident(Ident("c")), then_block: Block { statements: [], final_expr: If(IfExpr { condition: Ident(Ident("c")), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } }) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } })"#
         ]],
+    );
+}
+
+#[test]
+fn array_type() {
+    check(
+        &run_parser!(type_(expr()), r#"int[5]"#),
+        expect_test::expect!["Array { ty: Int, range: Immediate(Int(5)) }"],
+    );
+
+    check(
+        &run_parser!(type_(expr()), r#"int[N]"#),
+        expect_test::expect![[r#"Array { ty: Int, range: Ident(Ident("N")) }"#]],
+    );
+
+    check(
+        &run_parser!(type_(expr()), r#"string[foo()][{ 7 }][if true { 1 } else { 2 }"#),
+        expect_test::expect![[r#"Array { ty: Array { ty: String, range: Block(Block { statements: [], final_expr: Immediate(Int(7)) }) }, range: Call { name: Ident("foo"), args: [] } }"#]],
+    );
+
+    check(
+        &run_parser!(type_(expr()), r#"real[N][9][M][3]"#),
+        expect_test::expect![[r#"Array { ty: Array { ty: Array { ty: Array { ty: Real, range: Immediate(Int(3)) }, range: Ident(Ident("M")) }, range: Immediate(Int(9)) }, range: Ident(Ident("N")) }"#]],
+    );
+
+    check(
+        &run_parser!(
+            type_(expr()),
+            r#"{int, { real, string }}[N][9]"#
+        ),
+        expect_test::expect![[r#"Array { ty: Array { ty: Tuple([(None, Int), (None, Tuple([(None, Real), (None, String)]))]), range: Immediate(Int(9)) }, range: Ident(Ident("N")) }"#]],
+    );
+
+    check(
+        &run_parser!(
+            let_decl(expr()),
+            r#"let a: int[];"#
+        ),
+        expect_test::expect![[r#"
+            @11..12: found "]" but expected "!", "+", "-", "{", "{", "(", "if",  or "cond"
+        "#]],
+    );
+}
+
+#[test]
+fn array_access() {
+    check(
+        &run_parser!(expr(), r#"a[5]"#),
+        expect_test::expect![[r#"ArrayElementAccess { array: Ident(Ident("a")), index: Immediate(Int(5)) }"#]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"{ a }[N][foo()][M][4]"#),
+        expect_test::expect![[r#"ArrayElementAccess { array: ArrayElementAccess { array: ArrayElementAccess { array: ArrayElementAccess { array: Block(Block { statements: [], final_expr: Ident(Ident("a")) }), index: Immediate(Int(4)) }, index: Ident(Ident("M")) }, index: Call { name: Ident("foo"), args: [] } }, index: Ident(Ident("N")) }"#]],
+    );
+    check(
+        &run_parser!(expr(), r#"foo()[{ M }][if true { 1 } else { 3 }]"#),
+        expect_test::expect![[r#"ArrayElementAccess { array: ArrayElementAccess { array: Call { name: Ident("foo"), args: [] }, index: If(IfExpr { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } }) }, index: Block(Block { statements: [], final_expr: Ident(Ident("M")) }) }"#]],
+    );
+    check(
+        &run_parser!(let_decl(expr()), r#"let x = a[];"#),
+        expect_test::expect![[r#"
+            @10..11: found "]" but expected "!", "+", "-", "{", "{", "(", "if",  or "cond"
+        "#]],
     );
 }
 

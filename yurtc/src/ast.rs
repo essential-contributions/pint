@@ -48,6 +48,7 @@ pub(super) enum Type {
     Int,
     Bool,
     String,
+    Array { ty: Box<Type>, range: Expr },
     Tuple(Vec<(Option<Ident>, Type)>),
 }
 
@@ -71,6 +72,10 @@ pub(super) enum Expr {
     Block(Block),
     If(IfExpr),
     Cond(CondExpr),
+    ArrayElementAccess {
+        array: Box<Expr>,
+        index: Box<Expr>,
+    },
     Tuple(Vec<(Option<Ident>, Expr)>),
     TupleFieldAccess {
         tuple: Box<Expr>,

@@ -114,9 +114,9 @@ fn use_statement<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError
 }
 
 fn let_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
-    let type_spec = just(Token::Colon).ignore_then(type_());
+    let type_spec = just(Token::Colon).ignore_then(type_(expr.clone()));
     let init = just(Token::Eq).ignore_then(expr);
     just(Token::Let)
         .ignore_then(ident())
@@ -160,9 +160,9 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'s
 }
 
 fn fn_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
-    let type_spec = just(Token::Colon).ignore_then(type_());
+    let type_spec = just(Token::Colon).ignore_then(type_(expr.clone()));
 
     let params = ident()
         .then(type_spec)
@@ -170,7 +170,7 @@ fn fn_decl<'sc>(
         .allow_trailing()
         .delimited_by(just(Token::ParenOpen), just(Token::ParenClose));
 
-    let return_type = just(Token::Arrow).ignore_then(type_());
+    let return_type = just(Token::Arrow).ignore_then(type_(expr.clone()));
 
     just(Token::Fn)
         .ignore_then(ident())
@@ -186,7 +186,7 @@ fn fn_decl<'sc>(
 }
 
 fn code_block_expr<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Block, Error = ParseError<'sc>> + Clone {
     let code_block_body = choice((let_decl(expr.clone()), constraint_decl(expr.clone())))
         .repeated()
@@ -216,7 +216,7 @@ fn unary_op<'sc>(
 }
 
 fn if_expr<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone {
     let then_block = code_block_expr(expr.clone());
     let else_block = just(Token::Else).ignore_then(code_block_expr(expr.clone()));
@@ -317,10 +317,33 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             and_or_op(
                 Token::DoubleAmpersand,
                 ast::BinaryOp::LogicalAnd,
-                comparison_op(additive_op(multiplicative_op(tuple_field_access(atom)))),
+                comparison_op(additive_op(multiplicative_op(tuple_field_access(
+                    array_element_access(atom, expr.clone()),
+                )))),
             ),
         )
     })
+}
+
+fn array_element_access<'sc, P>(
+    parser: P,
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+{
+    // Multi-dimensional arrays have their innermost dimension on the far right. Hence, we need
+    // a `foldr` here instead of a `foldl`. This mirrors the behavior of the array type parser.
+    parser
+        .then(
+            expr.delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
+                .repeated(),
+        )
+        .map(|(expr, indices)| (indices, expr))
+        .foldr(|index, expr| ast::Expr::ArrayElementAccess {
+            array: Box::new(expr),
+            index: Box::new(index),
+        })
 }
 
 fn tuple_field_access<'sc, P>(
@@ -501,7 +524,9 @@ fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError<'sc>> 
     })
 }
 
-fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError<'sc>> + Clone {
+fn type_<'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Type, Error = ParseError<'sc>> + Clone {
     recursive(|type_| {
         let tuple = (ident().then_ignore(just(Token::Colon)))
             .or_not()
@@ -516,13 +541,29 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError<'sc>> +
                 args
             });
 
-        choice((
+        let type_atom = choice((
             just(Token::Real).to(ast::Type::Real),
             just(Token::Int).to(ast::Type::Int),
             just(Token::Bool).to(ast::Type::Bool),
             just(Token::String).to(ast::Type::String),
             tuple.map(ast::Type::Tuple),
-        ))
+        ));
+
+        // Multi-dimensional arrays have their innermost dimension on the far right. Hence, we need
+        // a `foldr` here instead of a `foldl`. For example, `int[3][5]` is actually an array of
+        // size 3 that contains arrays of size 5 of `int`s.
+        type_atom
+            .clone()
+            .then(
+                expr//array_range
+                    .delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
+                    .repeated(),
+            )
+            .map(|(type_atom, array_range)| (array_range, type_atom))
+            .foldr(|range, ty| ast::Type::Array {
+                ty: Box::new(ty),
+                range,
+            })
     })
 }
 
