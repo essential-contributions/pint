@@ -559,9 +559,45 @@ fn complex_exprs() {
         &run_parser!(expr(), "2 + 3 * 4 - 5 / 2 > 1"),
         expect_test::expect!["BinaryOp { op: GreaterThan, lhs: BinaryOp { op: Sub, lhs: BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: BinaryOp { op: Mul, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }, rhs: BinaryOp { op: Div, lhs: Immediate(Int(5)), rhs: Immediate(Int(2)) } }, rhs: Immediate(Int(1)) }"],
     );
+}
+
+#[test]
+fn parens_exprs() {
     check(
-        &run_parser!(expr(), "1 + (2 * 3);"),
-        expect_test::expect!["BinaryOp { op: GreaterThan, lhs: BinaryOp { op: Sub, lhs: BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: BinaryOp { op: Mul, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }, rhs: BinaryOp { op: Div, lhs: Immediate(Int(5)), rhs: Immediate(Int(2)) } }, rhs: Immediate(Int(1)) }"],
+        &run_parser!(expr(), "(1 + 2) * 3"),
+        expect_test::expect!["BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }), rhs: Immediate(Int(3)) }"],
+    );
+    check(
+        &run_parser!(expr(), "1 * (2 + 3)"),
+        expect_test::expect!["BinaryOp { op: Mul, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }"],
+    );
+    check(
+        &run_parser!(expr(), "(1 + 2) * (3 + 4)"),
+        expect_test::expect!["BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }), rhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) }) }"],
+    );
+    check(
+        &run_parser!(expr(), "(1 + (2 * 3)) * 4"),
+        expect_test::expect!["BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: Mul, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }), rhs: Immediate(Int(4)) }"],
+    );
+    check(
+        &run_parser!(expr(), "(1 * (2 + 3)) * 4"),
+        expect_test::expect!["BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Mul, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }), rhs: Immediate(Int(4)) }"],
+    );
+    check(
+        &run_parser!(expr(), "((1 + 2) * 3) * 4"),
+        expect_test::expect!["BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }), rhs: Immediate(Int(3)) }), rhs: Immediate(Int(4)) }"],
+    );
+    check(
+        &run_parser!(expr(), "((1 + 2) * (3 + 4)) * 5"),
+        expect_test::expect!["BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }), rhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) }) }), rhs: Immediate(Int(5)) }"],
+    );
+    check(
+        &run_parser!(expr(), "(1 + 2) * 3 / 4"),
+        expect_test::expect!["BinaryOp { op: Div, lhs: BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }), rhs: Immediate(Int(3)) }, rhs: Immediate(Int(4)) }"],
+    );
+    check(
+        &run_parser!(expr(), "1 / (2 + 3) * 4"),
+        expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Div, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }, rhs: Immediate(Int(4)) }"],
     );
 }
 
@@ -968,7 +1004,7 @@ fn cond_exprs() {
     check(
         &run_parser!(cond_expr(expr()), r#"cond { a => b, }"#),
         expect_test::expect![[r#"
-            @15..16: found "}" but expected "!", "+", "-", "{", "{", "if", "else",  or "cond"
+            @15..16: found "}" but expected "!", "+", "-", "{", "{", "(", "if", "else",  or "cond"
         "#]],
     );
 
@@ -1023,7 +1059,7 @@ fn fn_errors() {
     check(
         &run_parser!(yurt_program(), "fn foo() -> real {}"),
         expect_test::expect![[r#"
-            @18..19: found "}" but expected "!", "+", "-", "{", "{", "if", "cond", "let",  or "constraint"
+            @18..19: found "}" but expected "!", "+", "-", "{", "{", "(", "if", "cond", "let",  or "constraint"
         "#]],
     );
 }
