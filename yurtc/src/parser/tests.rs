@@ -599,6 +599,53 @@ fn parens_exprs() {
         &run_parser!(expr(), "1 / (2 + 3) * 4"),
         expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Div, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }, rhs: Immediate(Int(4)) }"],
     );
+    check(
+        &run_parser!(expr(), "(1 < 2) && (3 > 4)"),
+        expect_test::expect!["BinaryOp { op: LogicalAnd, lhs: Parens(BinaryOp { op: LessThan, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }), rhs: Parens(BinaryOp { op: GreaterThan, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) }) }"],
+    );
+    check(
+        &run_parser!(expr(), "(1 == 2) || (3 != 4)"),
+        expect_test::expect!["BinaryOp { op: LogicalOr, lhs: Parens(BinaryOp { op: Equal, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }), rhs: Parens(BinaryOp { op: NotEqual, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) }) }"],
+    );
+    check(
+        &run_parser!(expr(), "1 < (2 && 3) > 4"),
+        expect_test::expect!["BinaryOp { op: GreaterThan, lhs: BinaryOp { op: LessThan, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: LogicalAnd, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }, rhs: Immediate(Int(4)) }"],
+    );
+    check(
+        &run_parser!(expr(), "1 == (2 || 3) != 4"),
+        expect_test::expect!["BinaryOp { op: NotEqual, lhs: BinaryOp { op: Equal, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: LogicalOr, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }, rhs: Immediate(Int(4)) }"],
+    );
+    check(
+        &run_parser!(expr(), "-(1 + 2)"),
+        expect_test::expect!["UnaryOp { op: Neg, expr: Parens(BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }) }"],
+    );
+    check(
+        &run_parser!(expr(), "!(a < b)"),
+        expect_test::expect!["UnaryOp { op: Not, expr: Parens(BinaryOp { op: LessThan, lhs: Ident(Ident(\"a\")), rhs: Ident(Ident(\"b\")) }) }"],
+    );
+    check(
+        &run_parser!(expr(), "(1)"),
+        expect_test::expect!["Parens(Immediate(Int(1)))"],
+    );
+    check(
+        &run_parser!(expr(), "(a)"),
+        expect_test::expect!["Parens(Ident(Ident(\"a\")))"],
+    );
+    check(
+        &run_parser!(expr(), "()"),
+        expect_test::expect![[r#"
+            @1..2: found ")" but expected "!", "+", "-", "{", "{", "(", "if",  or "cond"
+            "#]],
+    );
+    check(
+        &run_parser!(expr(), "(if a < b { 1 } else { 2 })"),
+        expect_test::expect![[r#"
+        Parens(If(IfExpr { condition: BinaryOp { op: LessThan, lhs: Ident(Ident("a")), rhs: Ident(Ident("b")) }, then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }))"#]],
+    );
+    check(
+        &run_parser!(expr(), "(foo(a, b, c))"),
+        expect_test::expect!["Parens(FunctionCall { function: Ident(Ident(\"foo\")), arguments: [Ident(Ident(\"a\")), Ident(Ident(\"b\")), Ident(Ident(\"c\"))] })"],
+    );
 }
 
 #[test]
