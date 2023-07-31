@@ -612,6 +612,10 @@ fn parens_exprs() {
         expect_test::expect!["BinaryOp { op: GreaterThan, lhs: BinaryOp { op: LessThan, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: LogicalAnd, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }, rhs: Immediate(Int(4)) }"],
     );
     check(
+        &run_parser!(expr(), "1 && (2 || 3)"),
+        expect_test::expect!["BinaryOp { op: LogicalAnd, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: LogicalOr, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }"],
+    );
+    check(
         &run_parser!(expr(), "1 == (2 || 3) != 4"),
         expect_test::expect!["BinaryOp { op: NotEqual, lhs: BinaryOp { op: Equal, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: LogicalOr, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }, rhs: Immediate(Int(4)) }"],
     );
