@@ -49,12 +49,14 @@ fn types() {
         expect_test::expect!["String"],
     );
     check(
-        &run_parser!(type_(), "(int, real, string)"),
-        expect_test::expect!["Tuple([Int, Real, String])"],
+        &run_parser!(type_(), "{int, real, string}"),
+        expect_test::expect!["Tuple([(None, Int), (None, Real), (None, String)])"],
     );
     check(
-        &run_parser!(type_(), "(int, (real, int), string)"),
-        expect_test::expect!["Tuple([Int, Tuple([Real, Int]), String])"],
+        &run_parser!(type_(), "{int, {real, int}, string}"),
+        expect_test::expect![
+            "Tuple([(None, Int), (None, Tuple([(None, Real), (None, Int)])), (None, String)])"
+        ],
     );
 }
 
@@ -453,6 +455,26 @@ fn binary_op_exprs() {
             r#"BinaryOp { op: NotEqual, lhs: Ident(Ident("a")), rhs: Immediate(Real(2.0)) }"#
         ]],
     );
+    check(
+        &run_parser!(expr(), "a && b"),
+        expect_test::expect![[
+            r#"BinaryOp { op: LogicalAnd, lhs: Ident(Ident("a")), rhs: Ident(Ident("b")) }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), "a || b"),
+        expect_test::expect![[
+            r#"BinaryOp { op: LogicalOr, lhs: Ident(Ident("a")), rhs: Ident(Ident("b")) }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), "a || b && c || d && !e"),
+        expect_test::expect![[
+            r#"BinaryOp { op: LogicalOr, lhs: BinaryOp { op: LogicalOr, lhs: Ident(Ident("a")), rhs: BinaryOp { op: LogicalAnd, lhs: Ident(Ident("b")), rhs: Ident(Ident("c")) } }, rhs: BinaryOp { op: LogicalAnd, lhs: Ident(Ident("d")), rhs: UnaryOp { op: Not, expr: Ident(Ident("e")) } } }"#
+        ]],
+    );
 }
 
 #[test]
@@ -648,9 +670,7 @@ fn code_blocks() {
 
     check(
         &format!("{:?}", run_parser!(let_decl(expr()), "let x = {};")),
-        expect_test::expect![[
-            r#""@9..10: found \"}\" but expected \"!\", \"+\", \"-\", \"{\", \"(\", \"if\", \"cond\", \"let\",  or \"constraint\"\n""#
-        ]],
+        expect_test::expect![[r#""@8..10: empty tuple expressions are not allowed\n""#]],
     );
 }
 
@@ -688,80 +708,167 @@ fn if_exprs() {
 #[test]
 fn tuple_expressions() {
     check(
-        &run_parser!(expr(), r#"(0,)"#),
-        expect_test::expect!["Tuple([Immediate(Int(0))])"],
+        &run_parser!(expr(), r#"{0}"#), // This is not a tuple. It is a code block expr.
+        expect_test::expect!["Block(Block { statements: [], final_expr: Immediate(Int(0)) })"],
     );
 
     check(
-        &run_parser!(expr(), r#"(0, 1.0, "foo")"#),
+        &run_parser!(expr(), r#"{x: 0}"#), // This is a tuple because the field is named so there is no ambiguity
+        expect_test::expect![[r#"Tuple([(Some(Ident("x")), Immediate(Int(0)))])"#]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"{0,}"#), // This is a tuple
+        expect_test::expect!["Tuple([(None, Immediate(Int(0)))])"],
+    );
+
+    check(
+        &run_parser!(expr(), r#"{x: 0,}"#), // This is a tuple
+        expect_test::expect![[r#"Tuple([(Some(Ident("x")), Immediate(Int(0)))])"#]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"{0, 1.0, "foo"}"#),
         expect_test::expect![[
-            r#"Tuple([Immediate(Int(0)), Immediate(Real(1.0)), Immediate(String("foo"))])"#
+            r#"Tuple([(None, Immediate(Int(0))), (None, Immediate(Real(1.0))), (None, Immediate(String("foo")))])"#
         ]],
     );
 
     check(
-        &run_parser!(expr(), r#"(0, (1.0, "bar"), "foo")"#),
+        &run_parser!(expr(), r#"{x: 0, y: 1.0, z: "foo"}"#),
         expect_test::expect![[
-            r#"Tuple([Immediate(Int(0)), Tuple([Immediate(Real(1.0)), Immediate(String("bar"))]), Immediate(String("foo"))])"#
+            r#"Tuple([(Some(Ident("x")), Immediate(Int(0))), (Some(Ident("y")), Immediate(Real(1.0))), (Some(Ident("z")), Immediate(String("foo")))])"#
         ]],
     );
 
     check(
-        &run_parser!(expr(), r#"( { 42 }, if c { 2 } else { 3 }, foo() )"#),
+        &run_parser!(expr(), r#"{0, {1.0, "bar"}, "foo"}"#),
         expect_test::expect![[
-            r#"Tuple([Block(Block { statements: [], final_expr: Immediate(Int(42)) }), If(IfExpr { condition: Ident(Ident("c")), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } }), Call { name: Ident("foo"), args: [] }])"#
+            r#"Tuple([(None, Immediate(Int(0))), (None, Tuple([(None, Immediate(Real(1.0))), (None, Immediate(String("bar")))])), (None, Immediate(String("foo")))])"#
         ]],
     );
 
     check(
-        &run_parser!(expr(), r#"t.0 + t.9999999"#),
+        &run_parser!(expr(), r#"{x: 0, {y: 1.0, "bar"}, z: "foo"}"#),
         expect_test::expect![[
-            r#"BinaryOp { op: Add, lhs: TupleIndex { tuple: Ident(Ident("t")), index: 0 }, rhs: TupleIndex { tuple: Ident(Ident("t")), index: 9999999 } }"#
+            r#"Tuple([(Some(Ident("x")), Immediate(Int(0))), (None, Tuple([(Some(Ident("y")), Immediate(Real(1.0))), (None, Immediate(String("bar")))])), (Some(Ident("z")), Immediate(String("foo")))])"#
         ]],
     );
 
     check(
-        &run_parser!(expr(), r#"(0, 1).0"#),
-        expect_test::expect![
-            "TupleIndex { tuple: Tuple([Immediate(Int(0)), Immediate(Int(1))]), index: 0 }"
-        ],
+        &run_parser!(expr(), r#"{ { 42 }, if c { 2 } else { 3 }, foo() }"#),
+        expect_test::expect![[
+            r#"Tuple([(None, Block(Block { statements: [], final_expr: Immediate(Int(42)) })), (None, If(IfExpr { condition: Ident(Ident("c")), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } })), (None, Call { name: Ident("foo"), args: [] })])"#
+        ]],
+    );
+
+    check(
+        &run_parser!(
+            expr(),
+            r#"{ x: { 42 }, y: if c { 2 } else { 3 }, z: foo() }"#
+        ),
+        expect_test::expect![[
+            r#"Tuple([(Some(Ident("x")), Block(Block { statements: [], final_expr: Immediate(Int(42)) })), (Some(Ident("y")), If(IfExpr { condition: Ident(Ident("c")), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } })), (Some(Ident("z")), Call { name: Ident("foo"), args: [] })])"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"t.0 + t.9999999 + t.x"#),
+        expect_test::expect![[
+            r#"BinaryOp { op: Add, lhs: BinaryOp { op: Add, lhs: TupleFieldAccess { tuple: Ident(Ident("t")), field: Left(0) }, rhs: TupleFieldAccess { tuple: Ident(Ident("t")), field: Left(9999999) } }, rhs: TupleFieldAccess { tuple: Ident(Ident("t")), field: Right(Ident("x")) } }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"{0, 1}.0"#),
+        expect_test::expect!["TupleFieldAccess { tuple: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(1)))]), field: Left(0) }"],
+    );
+
+    check(
+        &run_parser!(expr(), r#"{0, 1}.x"#),
+        expect_test::expect![[
+            r#"TupleFieldAccess { tuple: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(1)))]), field: Right(Ident("x")) }"#
+        ]],
     );
 
     check(
         &run_parser!(expr(), r#"t.0 .0"#),
         expect_test::expect![[
-            r#"TupleIndex { tuple: TupleIndex { tuple: Ident(Ident("t")), index: 0 }, index: 0 }"#
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Ident(Ident("t")), field: Left(0) }, field: Left(0) }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"t.x .y"#),
+        expect_test::expect![[
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Ident(Ident("t")), field: Right(Ident("x")) }, field: Right(Ident("y")) }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), "t \r .1 .2.2. \n 3 . \t 13 . 1.1"),
         expect_test::expect![[
-            r#"TupleIndex { tuple: TupleIndex { tuple: TupleIndex { tuple: TupleIndex { tuple: TupleIndex { tuple: TupleIndex { tuple: TupleIndex { tuple: Ident(Ident("t")), index: 1 }, index: 2 }, index: 2 }, index: 3 }, index: 13 }, index: 1 }, index: 1 }"#
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Ident(Ident("t")), field: Left(1) }, field: Left(2) }, field: Left(2) }, field: Left(3) }, field: Left(13) }, field: Left(1) }, field: Left(1) }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), "t \r .x .1.2. \n w . \t t. 3.4"),
+        expect_test::expect![[
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Ident(Ident("t")), field: Right(Ident("x")) }, field: Left(1) }, field: Left(2) }, field: Right(Ident("w")) }, field: Right(Ident("t")) }, field: Left(3) }, field: Left(4) }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"foo().0.1"#),
         expect_test::expect![[
-            r#"TupleIndex { tuple: TupleIndex { tuple: Call { name: Ident("foo"), args: [] }, index: 0 }, index: 1 }"#
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Call { name: Ident("foo"), args: [] }, field: Left(0) }, field: Left(1) }"#
         ]],
     );
 
     check(
-        &run_parser!(expr(), r#"{ (0, 0) }.0"#),
-        expect_test::expect!["TupleIndex { tuple: Block(Block { statements: [], final_expr: Tuple([Immediate(Int(0)), Immediate(Int(0))]) }), index: 0 }"],
+        &run_parser!(expr(), r#"foo().a.b.0.1"#),
+        expect_test::expect![[
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Call { name: Ident("foo"), args: [] }, field: Right(Ident("a")) }, field: Right(Ident("b")) }, field: Left(0) }, field: Left(1) }"#
+        ]],
     );
 
     check(
-        &run_parser!(expr(), r#"if true { (0, 0) } else { (0, 0) }.0"#),
-        expect_test::expect!["TupleIndex { tuple: If(IfExpr { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Tuple([Immediate(Int(0)), Immediate(Int(0))]) }, else_block: Block { statements: [], final_expr: Tuple([Immediate(Int(0)), Immediate(Int(0))]) } }), index: 0 }"],
+        &run_parser!(expr(), r#"{ {0, 0} }.0"#),
+        expect_test::expect!["TupleFieldAccess { tuple: Block(Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) }), field: Left(0) }"],
+    );
+
+    check(
+        &run_parser!(expr(), r#"{ {0, 0} }.a"#),
+        expect_test::expect![[
+            r#"TupleFieldAccess { tuple: Block(Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) }), field: Right(Ident("a")) }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"if true { {0, 0} } else { {0, 0} }.0"#),
+        expect_test::expect!["TupleFieldAccess { tuple: If(IfExpr { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) }, else_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) } }), field: Left(0) }"],
+    );
+
+    check(
+        &run_parser!(expr(), r#"if true { {0, 0} } else { {0, 0} }.x"#),
+        expect_test::expect![[
+            r#"TupleFieldAccess { tuple: If(IfExpr { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) }, else_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) } }), field: Right(Ident("x")) }"#
+        ]],
     );
 
     // This parses because `1 + 2` is an expression, but it should fail in semantic analysis.
     check(
         &run_parser!(expr(), "1 + 2 .3"),
-        expect_test::expect!["BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: TupleIndex { tuple: Immediate(Int(2)), index: 3 } }"],
+        expect_test::expect!["BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: TupleFieldAccess { tuple: Immediate(Int(2)), field: Left(3) } }"],
+    );
+
+    // This parses because `1 + 2` is an expression, but it should fail in semantic analysis.
+    check(
+        &run_parser!(expr(), "1 + 2 .a"),
+        expect_test::expect![[
+            r#"BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: TupleFieldAccess { tuple: Immediate(Int(2)), field: Right(Ident("a")) } }"#
+        ]],
     );
 
     check(
@@ -810,14 +917,7 @@ fn tuple_expressions() {
     );
 
     check(
-        &run_parser!(let_decl(expr()), "let x = t.a;"),
-        expect_test::expect![[r#"
-            @10..11: invalid value "a" for tuple index
-        "#]],
-    );
-
-    check(
-        &run_parser!(let_decl(expr()), "let bad_typle:() = ();"),
+        &run_parser!(let_decl(expr()), "let bad_tuple:{} = {};"),
         expect_test::expect![[r#"
             @14..16: empty tuple types are not allowed
             @19..21: empty tuple expressions are not allowed
@@ -868,7 +968,7 @@ fn cond_exprs() {
     check(
         &run_parser!(cond_expr(expr()), r#"cond { a => b, }"#),
         expect_test::expect![[r#"
-            @15..16: found "}" but expected "!", "+", "-", "{", "(", "if", "else",  or "cond"
+            @15..16: found "}" but expected "!", "+", "-", "{", "{", "if", "else",  or "cond"
         "#]],
     );
 
@@ -906,7 +1006,7 @@ fn with_errors() {
     check(
         &run_parser!(yurt_program(), "let low_val: bad = 1.23"),
         expect_test::expect![[r#"
-            @13..16: found "bad" but expected "(", "real", "int", "bool",  or "string"
+            @13..16: found "bad" but expected "{", "real", "int", "bool",  or "string"
         "#]],
     );
 }
@@ -923,7 +1023,7 @@ fn fn_errors() {
     check(
         &run_parser!(yurt_program(), "fn foo() -> real {}"),
         expect_test::expect![[r#"
-            @18..19: found "}" but expected "!", "+", "-", "{", "(", "if", "cond", "let",  or "constraint"
+            @18..19: found "}" but expected "!", "+", "-", "{", "{", "if", "cond", "let",  or "constraint"
         "#]],
     );
 }

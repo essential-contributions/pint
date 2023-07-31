@@ -1,0 +1,19 @@
+// Model for determining relationships between a 1 year loan repaying every quarter
+
+// variables
+let r: real;  // quarterly repayment
+let p: real;  // principal initially borrowed
+let i: real;  // interest rate (per quarter)
+
+// intermediate variables
+let b1: real; // balance after one quarter
+let b2: real; // balance after two quarters
+let b3: real; // balance after three quarters
+let b4: real; // balance owing at end
+
+constraint b1 == p + p * i - r;
+constraint b2 == b1 + b1 * i - r;
+constraint b3 == b2 + b2 * i - r; 
+constraint b4 == b3 + b3 * i - r;
+
+solve satisfy;

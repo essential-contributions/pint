@@ -141,6 +141,8 @@ fn operators() {
     assert_eq!(lex_one_success(">="), Token::GtEq);
     assert_eq!(lex_one_success("=="), Token::EqEq);
     assert_eq!(lex_one_success("!="), Token::NotEq);
+    assert_eq!(lex_one_success("&&"), Token::DoubleAmpersand);
+    assert_eq!(lex_one_success("||"), Token::DoublePipe);
 }
 
 #[test]

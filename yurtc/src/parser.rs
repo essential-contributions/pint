@@ -4,6 +4,7 @@ use crate::{
     lexer::{self, Token, KEYWORDS},
 };
 use chumsky::{prelude::*, Stream};
+use itertools::Either;
 use regex::Regex;
 use std::{fs::read_to_string, path::Path};
 
@@ -278,12 +279,19 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             .then(args.clone())
             .map(|(name, args)| ast::Expr::Call { name, args });
 
-        let tuple = args
-            .validate(|args, span, emit| {
-                if args.is_empty() {
+        let tuple_fields = (ident().then_ignore(just(Token::Colon)))
+            .or_not()
+            .then(expr.clone())
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose));
+
+        let tuple = tuple_fields
+            .validate(|tuple_fields, span, emit| {
+                if tuple_fields.is_empty() {
                     emit(ParseError::EmptyTupleExpr { span })
                 }
-                args
+                tuple_fields
             })
             .map(ast::Expr::Tuple);
 
@@ -298,70 +306,84 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             ident().map(ast::Expr::Ident),
         ));
 
-        comparison_op(additive_op(multiplicative_op(tuple_index(atom))))
+        and_or_op(
+            Token::DoublePipe,
+            ast::BinaryOp::LogicalOr,
+            and_or_op(
+                Token::DoubleAmpersand,
+                ast::BinaryOp::LogicalAnd,
+                comparison_op(additive_op(multiplicative_op(tuple_field_access(atom)))),
+            ),
+        )
     })
 }
 
-fn tuple_index<'sc, P>(
+fn tuple_field_access<'sc, P>(
     parser: P,
 ) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
 where
     P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
 {
-    let indices =
-        filter_map(|span, token| match &token {
-            Token::IntLiteral(num_str) => num_str
-                .parse::<usize>()
-                .map(|index| vec![index])
-                .map_err(|_| ParseError::InvalidIntegerTupleIndex {
-                    span,
-                    index: num_str,
-                }),
+    let indices = filter_map(|span, token| match &token {
+        // Field access with an identifier
+        Token::Ident(ident) => Ok(vec![Either::Right(ast::Ident(
+            ident.to_owned().to_string(),
+        ))]),
 
-            // If the next token is of the form `<int>.<int>` which, to the lexer, looks like a real,
-            // break it apart manually.
-            Token::RealLiteral(num_str) => {
-                match Regex::new(r"[0-9]+\.[0-9]+")
-                    .expect("valid regex")
-                    .captures(num_str)
-                {
-                    Some(_) => {
-                        // Collect the spans for the two integers
-                        let dot_index = num_str
-                            .chars()
-                            .position(|c| c == '.')
-                            .expect("guaranteed by regex");
-                        let spans = [
-                            span.start..span.start + dot_index,
-                            span.start + dot_index + 1..span.end,
-                        ];
+        // Field access with an integer
+        Token::IntLiteral(num_str) => num_str
+            .parse::<usize>()
+            .map(|index| vec![Either::Left(index)])
+            .map_err(|_| ParseError::InvalidIntegerTupleIndex {
+                span,
+                index: num_str,
+            }),
 
-                        // Split at `.` then collect the two indices as `usize`. Report errors as
-                        // needed
-                        num_str
-                            .split('.')
-                            .zip(spans.iter())
-                            .map(|(index, span)| {
-                                index.parse::<usize>().map_err(|_| {
-                                    ParseError::InvalidIntegerTupleIndex {
-                                        span: span.clone(),
-                                        index,
-                                    }
+        // If the next token is of the form `<int>.<int>` which, to the lexer, looks like a real,
+        // break it apart manually.
+        Token::RealLiteral(num_str) => {
+            match Regex::new(r"[0-9]+\.[0-9]+")
+                .expect("valid regex")
+                .captures(num_str)
+            {
+                Some(_) => {
+                    // Collect the spans for the two integers
+                    let dot_index = num_str
+                        .chars()
+                        .position(|c| c == '.')
+                        .expect("guaranteed by regex");
+                    let spans = [
+                        span.start..span.start + dot_index,
+                        span.start + dot_index + 1..span.end,
+                    ];
+
+                    // Split at `.` then collect the two indices as `usize`. Report errors as
+                    // needed
+                    num_str
+                        .split('.')
+                        .zip(spans.iter())
+                        .map(|(index, span)| {
+                            index
+                                .parse::<usize>()
+                                .map_err(|_| ParseError::InvalidIntegerTupleIndex {
+                                    span: span.clone(),
+                                    index,
                                 })
-                            })
-                            .collect::<Result<Vec<usize>, _>>()
-                    }
-                    None => Err(ParseError::InvalidTupleIndex { span, index: token }),
+                                .map(Either::Left)
+                        })
+                        .collect::<Result<Vec<Either<usize, ast::Ident>>, _>>()
                 }
+                None => Err(ParseError::InvalidTupleIndex { span, index: token }),
             }
-            _ => Err(ParseError::InvalidTupleIndex { span, index: token }),
-        });
+        }
+        _ => Err(ParseError::InvalidTupleIndex { span, index: token }),
+    });
 
     parser
         .then(just(Token::Dot).ignore_then(indices).repeated().flatten())
-        .foldl(|expr, index| ast::Expr::TupleIndex {
+        .foldl(|expr, field| ast::Expr::TupleFieldAccess {
             tuple: Box::new(expr),
-            index,
+            field,
         })
 }
 
@@ -436,6 +458,24 @@ where
         })
 }
 
+fn and_or_op<'sc, P>(
+    token: Token<'sc>,
+    logical_op: ast::BinaryOp,
+    parser: P,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+{
+    parser
+        .clone()
+        .then(just(token).to(logical_op).then(parser).repeated())
+        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
+            op,
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        })
+}
+
 fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError<'sc>> + Clone {
     filter_map(|span, token| match token {
         // Accept detected identifier. The lexer makes sure that these are not keywords.
@@ -458,10 +498,12 @@ fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError<'sc>> 
 
 fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError<'sc>> + Clone {
     recursive(|type_| {
-        let tuple = type_
+        let tuple = (ident().then_ignore(just(Token::Colon)))
+            .or_not()
+            .then(type_)
             .separated_by(just(Token::Comma))
             .allow_trailing()
-            .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
+            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
             .validate(|args, span, emit| {
                 if args.is_empty() {
                     emit(ParseError::EmptyTupleType { span })
