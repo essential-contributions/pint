@@ -644,7 +644,8 @@ fn parens_exprs() {
     );
     check(
         &run_parser!(expr(), "(foo(a, b, c))"),
-        expect_test::expect!["Parens(FunctionCall { function: Ident(Ident(\"foo\")), arguments: [Ident(Ident(\"a\")), Ident(Ident(\"b\")), Ident(Ident(\"c\"))] })"],
+        expect_test::expect![[r#"
+        Parens(Call { name: Ident("foo"), args: [Ident(Ident("a")), Ident(Ident("b")), Ident(Ident("c"))] })"#]],
     );
 }
 
