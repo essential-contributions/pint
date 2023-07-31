@@ -295,6 +295,11 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             })
             .map(ast::Expr::Tuple);
 
+        let parens = expr
+            .clone()
+            .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
+            .map(|expr| ast::Expr::Parens(Box::new(expr)));
+
         let atom = choice((
             immediate().map(ast::Expr::Immediate),
             unary_op(expr.clone()),
@@ -303,6 +308,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             cond_expr(expr.clone()),
             call,
             tuple,
+            parens,
             ident().map(ast::Expr::Ident),
         ));
 
