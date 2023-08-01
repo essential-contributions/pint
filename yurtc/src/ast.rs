@@ -76,7 +76,6 @@ pub(super) enum Expr {
         tuple: Box<Expr>,
         field: Either<usize, Ident>,
     },
-    Parens(Box<Expr>),
 }
 
 #[derive(Clone, Debug, PartialEq)]

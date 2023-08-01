@@ -565,75 +565,75 @@ fn complex_exprs() {
 fn parens_exprs() {
     check(
         &run_parser!(expr(), "(1 + 2) * 3"),
-        expect_test::expect!["BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }), rhs: Immediate(Int(3)) }"],
+        expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }, rhs: Immediate(Int(3)) }"],
     );
     check(
         &run_parser!(expr(), "1 * (2 + 3)"),
-        expect_test::expect!["BinaryOp { op: Mul, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }"],
+        expect_test::expect!["BinaryOp { op: Mul, lhs: Immediate(Int(1)), rhs: BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) } }"],
     );
     check(
         &run_parser!(expr(), "(1 + 2) * (3 + 4)"),
-        expect_test::expect!["BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }), rhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) }) }"],
+        expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }, rhs: BinaryOp { op: Add, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }"],
     );
     check(
         &run_parser!(expr(), "(1 + (2 * 3)) * 4"),
-        expect_test::expect!["BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: Mul, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }), rhs: Immediate(Int(4)) }"],
+        expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: BinaryOp { op: Mul, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) } }, rhs: Immediate(Int(4)) }"],
     );
     check(
         &run_parser!(expr(), "(1 * (2 + 3)) * 4"),
-        expect_test::expect!["BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Mul, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }), rhs: Immediate(Int(4)) }"],
+        expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Mul, lhs: Immediate(Int(1)), rhs: BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) } }, rhs: Immediate(Int(4)) }"],
     );
     check(
         &run_parser!(expr(), "((1 + 2) * 3) * 4"),
-        expect_test::expect!["BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }), rhs: Immediate(Int(3)) }), rhs: Immediate(Int(4)) }"],
+        expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Mul, lhs: BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }, rhs: Immediate(Int(3)) }, rhs: Immediate(Int(4)) }"],
     );
     check(
         &run_parser!(expr(), "((1 + 2) * (3 + 4)) * 5"),
-        expect_test::expect!["BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }), rhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) }) }), rhs: Immediate(Int(5)) }"],
+        expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Mul, lhs: BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }, rhs: BinaryOp { op: Add, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }, rhs: Immediate(Int(5)) }"],
     );
     check(
         &run_parser!(expr(), "(1 + 2) * 3 / 4"),
-        expect_test::expect!["BinaryOp { op: Div, lhs: BinaryOp { op: Mul, lhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }), rhs: Immediate(Int(3)) }, rhs: Immediate(Int(4)) }"],
+        expect_test::expect!["BinaryOp { op: Div, lhs: BinaryOp { op: Mul, lhs: BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }, rhs: Immediate(Int(3)) }, rhs: Immediate(Int(4)) }"],
     );
     check(
         &run_parser!(expr(), "1 / (2 + 3) * 4"),
-        expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Div, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }, rhs: Immediate(Int(4)) }"],
+        expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Div, lhs: Immediate(Int(1)), rhs: BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) } }, rhs: Immediate(Int(4)) }"],
     );
     check(
         &run_parser!(expr(), "(1 < 2) && (3 > 4)"),
-        expect_test::expect!["BinaryOp { op: LogicalAnd, lhs: Parens(BinaryOp { op: LessThan, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }), rhs: Parens(BinaryOp { op: GreaterThan, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) }) }"],
+        expect_test::expect!["BinaryOp { op: LogicalAnd, lhs: BinaryOp { op: LessThan, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }, rhs: BinaryOp { op: GreaterThan, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }"],
     );
     check(
         &run_parser!(expr(), "(1 == 2) || (3 != 4)"),
-        expect_test::expect!["BinaryOp { op: LogicalOr, lhs: Parens(BinaryOp { op: Equal, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }), rhs: Parens(BinaryOp { op: NotEqual, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) }) }"],
+        expect_test::expect!["BinaryOp { op: LogicalOr, lhs: BinaryOp { op: Equal, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }, rhs: BinaryOp { op: NotEqual, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }"],
     );
     check(
         &run_parser!(expr(), "1 < (2 && 3) > 4"),
-        expect_test::expect!["BinaryOp { op: GreaterThan, lhs: BinaryOp { op: LessThan, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: LogicalAnd, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }, rhs: Immediate(Int(4)) }"],
+        expect_test::expect!["BinaryOp { op: GreaterThan, lhs: BinaryOp { op: LessThan, lhs: Immediate(Int(1)), rhs: BinaryOp { op: LogicalAnd, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) } }, rhs: Immediate(Int(4)) }"],
     );
     check(
         &run_parser!(expr(), "1 && (2 || 3)"),
-        expect_test::expect!["BinaryOp { op: LogicalAnd, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: LogicalOr, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }"],
+        expect_test::expect!["BinaryOp { op: LogicalAnd, lhs: Immediate(Int(1)), rhs: BinaryOp { op: LogicalOr, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) } }"],
     );
     check(
         &run_parser!(expr(), "1 == (2 || 3) != 4"),
-        expect_test::expect!["BinaryOp { op: NotEqual, lhs: BinaryOp { op: Equal, lhs: Immediate(Int(1)), rhs: Parens(BinaryOp { op: LogicalOr, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }) }, rhs: Immediate(Int(4)) }"],
+        expect_test::expect!["BinaryOp { op: NotEqual, lhs: BinaryOp { op: Equal, lhs: Immediate(Int(1)), rhs: BinaryOp { op: LogicalOr, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) } }, rhs: Immediate(Int(4)) }"],
     );
     check(
         &run_parser!(expr(), "-(1 + 2)"),
-        expect_test::expect!["UnaryOp { op: Neg, expr: Parens(BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }) }"],
+        expect_test::expect!["UnaryOp { op: Neg, expr: BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) } }"],
     );
     check(
         &run_parser!(expr(), "!(a < b)"),
-        expect_test::expect!["UnaryOp { op: Not, expr: Parens(BinaryOp { op: LessThan, lhs: Ident(Ident(\"a\")), rhs: Ident(Ident(\"b\")) }) }"],
+        expect_test::expect!["UnaryOp { op: Not, expr: BinaryOp { op: LessThan, lhs: Ident(Ident(\"a\")), rhs: Ident(Ident(\"b\")) } }"],
     );
     check(
         &run_parser!(expr(), "(1)"),
-        expect_test::expect!["Parens(Immediate(Int(1)))"],
+        expect_test::expect!["Immediate(Int(1))"],
     );
     check(
         &run_parser!(expr(), "(a)"),
-        expect_test::expect!["Parens(Ident(Ident(\"a\")))"],
+        expect_test::expect!["Ident(Ident(\"a\"))"],
     );
     check(
         &run_parser!(expr(), "()"),
@@ -644,12 +644,12 @@ fn parens_exprs() {
     check(
         &run_parser!(expr(), "(if a < b { 1 } else { 2 })"),
         expect_test::expect![[r#"
-        Parens(If(IfExpr { condition: BinaryOp { op: LessThan, lhs: Ident(Ident("a")), rhs: Ident(Ident("b")) }, then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }))"#]],
+        If(IfExpr { condition: BinaryOp { op: LessThan, lhs: Ident(Ident("a")), rhs: Ident(Ident("b")) }, then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } })"#]],
     );
     check(
         &run_parser!(expr(), "(foo(a, b, c))"),
         expect_test::expect![[r#"
-        Parens(Call { name: Ident("foo"), args: [Ident(Ident("a")), Ident(Ident("b")), Ident(Ident("c"))] })"#]],
+        Call { name: Ident("foo"), args: [Ident(Ident("a")), Ident(Ident("b")), Ident(Ident("c"))] }"#]],
     );
 }
 

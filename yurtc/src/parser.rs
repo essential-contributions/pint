@@ -297,8 +297,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
 
         let parens = expr
             .clone()
-            .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
-            .map(|expr| ast::Expr::Parens(Box::new(expr)));
+            .delimited_by(just(Token::ParenOpen), just(Token::ParenClose));
 
         let atom = choice((
             immediate().map(ast::Expr::Immediate),
