@@ -3,15 +3,25 @@ use itertools::Either;
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum UseTree {
     Glob,
-    Name { name: Ident },
-    Path { prefix: Ident, suffix: Box<UseTree> },
-    Group { imports: Vec<UseTree> },
-    Alias { name: Ident, alias: Ident },
+    Name {
+        name: String,
+    },
+    Path {
+        prefix: String,
+        suffix: Box<UseTree>,
+    },
+    Group {
+        imports: Vec<UseTree>,
+    },
+    Alias {
+        name: String,
+        alias: String,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct LetDecl {
-    pub(super) name: Ident,
+    pub(super) name: String,
     pub(super) ty: Option<Type>,
     pub(super) init: Option<Expr>,
 }
@@ -31,8 +41,8 @@ pub(super) enum Decl {
     Let(LetDecl),
     Constraint(Expr),
     Fn {
-        name: Ident,
-        params: Vec<(Ident, Type)>,
+        name: String,
+        params: Vec<(String, Type)>,
         return_type: Type,
         body: Block,
     },
@@ -40,7 +50,10 @@ pub(super) enum Decl {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct Ident(pub(super) String);
+pub(super) struct Ident {
+    pub(super) path: Vec<String>,
+    pub(super) is_absolute: bool,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Type {
@@ -48,7 +61,7 @@ pub(super) enum Type {
     Int,
     Bool,
     String,
-    Tuple(Vec<(Option<Ident>, Type)>),
+    Tuple(Vec<(Option<String>, Type)>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -71,10 +84,10 @@ pub(super) enum Expr {
     Block(Block),
     If(IfExpr),
     Cond(CondExpr),
-    Tuple(Vec<(Option<Ident>, Expr)>),
+    Tuple(Vec<(Option<String>, Expr)>),
     TupleFieldAccess {
         tuple: Box<Expr>,
-        field: Either<usize, Ident>,
+        field: Either<usize, String>,
     },
 }
 
