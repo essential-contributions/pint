@@ -1,4 +1,4 @@
-use crate::{ast, lexer::Token};
+use crate::lexer::Token;
 use ariadne::{Color, Fmt, Label, Report, ReportKind, Source};
 use chumsky::prelude::*;
 use thiserror::Error;
@@ -24,10 +24,8 @@ pub(super) enum ParseError<'a> {
     },
     #[error("expected identifier, found keyword \"{keyword}\"")]
     KeywordAsIdent { span: Span, keyword: Token<'a> },
-    #[error(
-        "type annotation or initializer needed for variable \"{}\"", name.0
-    )]
-    UntypedVariable { span: Span, name: ast::Ident },
+    #[error("type annotation or initializer needed for variable \"{name}\"")]
+    UntypedVariable { span: Span, name: String },
     #[error("invalid integer value \"{}\" for tuple index", index)]
     InvalidIntegerTupleIndex { span: Span, index: &'a str },
     #[error("invalid value \"{}\" for tuple index", index)]

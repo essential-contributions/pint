@@ -147,10 +147,10 @@ fn constraint_decl<'sc>(
 fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     let solve_satisfy = just(Token::Satisfy).to(ast::SolveFunc::Satisfy);
     let solve_minimize = just(Token::Minimize)
-        .ignore_then(ident())
+        .ignore_then(ident_path())
         .map(ast::SolveFunc::Minimize);
     let solve_maximize = just(Token::Maximize)
-        .ignore_then(ident())
+        .ignore_then(ident_path())
         .map(ast::SolveFunc::Maximize);
 
     just(Token::Solve)
@@ -275,7 +275,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             .allow_trailing()
             .delimited_by(just(Token::ParenOpen), just(Token::ParenClose));
 
-        let call = ident()
+        let call = ident_path()
             .then(args.clone())
             .map(|(name, args)| ast::Expr::Call { name, args });
 
@@ -308,7 +308,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             call,
             tuple,
             parens,
-            ident().map(ast::Expr::Ident),
+            ident_path().map(ast::Expr::Ident),
         ));
 
         and_or_op(
@@ -331,9 +331,7 @@ where
 {
     let indices = filter_map(|span, token| match &token {
         // Field access with an identifier
-        Token::Ident(ident) => Ok(vec![Either::Right(ast::Ident(
-            ident.to_owned().to_string(),
-        ))]),
+        Token::Ident(ident) => Ok(vec![Either::Right((*ident).to_owned())]),
 
         // Field access with an integer
         Token::IntLiteral(num_str) => num_str
@@ -376,7 +374,7 @@ where
                                 })
                                 .map(Either::Left)
                         })
-                        .collect::<Result<Vec<Either<usize, ast::Ident>>, _>>()
+                        .collect::<Result<Vec<Either<usize, String>>, _>>()
                 }
                 None => Err(ParseError::InvalidTupleIndex { span, index: token }),
             }
@@ -481,10 +479,10 @@ where
         })
 }
 
-fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError<'sc>> + Clone {
+fn ident<'sc>() -> impl Parser<Token<'sc>, String, Error = ParseError<'sc>> + Clone {
     filter_map(|span, token| match token {
         // Accept detected identifier. The lexer makes sure that these are not keywords.
-        Token::Ident(id) => Ok(ast::Ident(id.to_owned())),
+        Token::Ident(id) => Ok(id.to_owned()),
 
         // Tokens that represent keywords are not allowed
         _ if KEYWORDS.contains(&token) => Err(ParseError::KeywordAsIdent {
@@ -499,6 +497,20 @@ fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError<'sc>> 
             found: Some(token),
         }),
     })
+}
+
+fn ident_path<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError<'sc>> + Clone {
+    let relative_path = ident().then((just(Token::DoubleColon).ignore_then(ident())).repeated());
+    just(Token::DoubleColon)
+        .or_not()
+        .then(relative_path)
+        .map(|(pre_colons, (id, mut path))| {
+            path.insert(0, id);
+            ast::Ident {
+                path,
+                is_absolute: pre_colons.is_some(),
+            }
+        })
 }
 
 fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError<'sc>> + Clone {
