@@ -1,46 +1,29 @@
 // Generate a random 18-hole golf course.
 
-let h1: int;
-let h2: int;
-let h3: int;
-let h4: int;
-let h5: int;
-let h6: int;
-let h7: int;
-let h8: int;
-let h9: int;
-let h10: int;
-let h11: int;
-let h12: int;
-let h13: int;
-let h14: int;
-let h15: int;
-let h16: int;
-let h17: int;
-let h18: int;
+let h1: int[18];
 
-constraint h1 >= 3 && h1 <= 5;
-constraint h2 >= 3 && h2 <= 5;
-constraint h3 >= 3 && h3 <= 5;
-constraint h4 >= 3 && h4 <= 5;
-constraint h5 >= 3 && h5 <= 5;
-constraint h6 >= 3 && h6 <= 5;
-constraint h7 >= 3 && h7 <= 5;
-constraint h8 >= 3 && h8 <= 5;
-constraint h9 >= 3 && h9 <= 5;
-constraint h10 >= 3 && h10 <= 5;
-constraint h11 >= 3 && h11 <= 5;
-constraint h12 >= 3 && h12 <= 5;
-constraint h13 >= 3 && h13 <= 5;
-constraint h14 >= 3 && h14 <= 5;
-constraint h15 >= 3 && h15 <= 5;
-constraint h16 >= 3 && h16 <= 5;
-constraint h17 >= 3 && h17 <= 5;
-constraint h18 >= 3 && h18 <= 5;
+constraint h[0] >= 3 && h[0] <= 5;
+constraint h[1] >= 3 && h[1] <= 5;
+constraint h[2] >= 3 && h[2] <= 5;
+constraint h[3] >= 3 && h[3] <= 5;
+constraint h[4] >= 3 && h[4] <= 5;
+constraint h[5] >= 3 && h[5] <= 5;
+constraint h[6] >= 3 && h[6] <= 5;
+constraint h[7] >= 3 && h[7] <= 5;
+constraint h[8] >= 3 && h[8] <= 5;
+constraint h[9] >= 3 && h[9] <= 5;
+constraint h[10] >= 3 && h[10] <= 5;
+constraint h[11] >= 3 && h[11] <= 5;
+constraint h[12] >= 3 && h[12] <= 5;
+constraint h[13] >= 3 && h[13] <= 5;
+constraint h[14] >= 3 && h[14] <= 5;
+constraint h[15] >= 3 && h[15] <= 5;
+constraint h[16] >= 3 && h[16] <= 5;
+constraint h[17] >= 3 && h[17] <= 5;
 
-let sum: int = h1 + h2 + h3 + h4 + h5 + h6 + h7
-             + h8 + h9 + h10 + h11 + h12 + h13 + h14
-             + h15 + h16 + h17 + h18;
+let sum: int = h[0] + h[1] + h[2] + h[3] + h[4] + h[5] + h[6]
+             + h[7] + h[8] + h[9] + h[10] + h[11] + h[12] + h[13]
+             + h[14] + h[15] + h[16] + h[17];
 
 constraint sum == 72;
 

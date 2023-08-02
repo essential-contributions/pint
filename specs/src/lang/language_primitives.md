@@ -147,7 +147,7 @@ TODO
 
 ## Types
 
-Yurt provides 4 scalar types built-in: Booleans, integers, reals and strings. Yurt also provides tuples as a compound built-int type.
+Yurt provides 4 scalar types built-in: Booleans, integers, reals and strings. Yurt also provides tuples and arrays as a compound built-int type.
 
 The syntax for types is as follows:
 
@@ -157,15 +157,34 @@ The syntax for types is as follows:
        | "real"
        | "string"
        | <tuple-ty>
+       | <array-ty>
+```
 
+### Tuple Type
+
+A tuple type represents a collection of items that may have different types. Tuple types have the following syntax:
+
+```ebnf
 <tuple-ty> ::= "{" ( [ <ident> ":" ] <ty> "," ... ) "}"
 ```
 
-For example, in `let t: { int, real, string } = { 5, 3.0, "foo" }`, `{ int, real, string }` is a tuple type. `{x: int, y: real, string }` is also a tuple tuple type where some of the fields are named.
+For example, in `let t: { int, real, string };`, `{ int, real, string }` is a tuple type. `{x: int, y: real, string }` is also a tuple type where some of the fields are named.
 
 Names of tuple fields modify the type of the tuple. That is, `{ x: int }` and `{ y: int }` are different types. However they both coerce to `{ int }`.
 
 Note that the grammar disallows empty tuple types `{ }`.
+
+### Array Type
+
+An array type represents a collection of items that share the same type. Arrays can be multi-dimensional. Array types have the following syntax:
+
+```ebnf
+<array-ty> ::= <ty> ( "[" expr "]" )+
+```
+
+For example, in `let a: real[5];`, `a` is an array that contains 5 real values. In `let a: int[3][N]`, `a` is a 2-dimensional array of size `3*N`.
+
+Yurt requires that each array dimension is known (i.e. evaluatable) at compile-time. In addition, Yurt requires that each dimension evaluates to a **strictly positive** integer. Otherwise, the compiler should emit an error.
 
 ## Expressions
 
@@ -185,6 +204,8 @@ Expressions represent values and have the following syntax:
          | <string-literal>
          | <tuple-expr>
          | <tuple-field-access-expr>
+         | <array-expr>
+         | <array-element-access-expr>
          | <if-expr>
          | <cond-expr>
          | <call-expr>
@@ -287,7 +308,7 @@ let string = "first line\
 
 #### Tuple Expressions and Tuple Field Access Expressions
 
-Tuple Expressions are written as:
+Tuple expressions are written as:
 
 ```ebnf
 <tuple-expr> ::= "{" ( [ <ident> ":" ] <expr> "," ... ) "}"
@@ -327,7 +348,41 @@ Tuple field access expressions are written as:
 <tuple-field-access-expr> ::= <expr> "." ( [0-9]+ | <ident> )
 ```
 
-For example: `let second = t.1;` which extracts the second element of tuple `t` and stores it into `second`. Named field can be accessed using their names or their index. For example, if `x` is the third field of tuple `t`, then `t.2` and `t.x` are equivalent.
+For example, `t.1;` refers to the second field of tuple `t`. Named field can be accessed using their names or their index. For example, if `x` is the third field of tuple `t`, then `t.2` and `t.x` are equivalent.
+
+#### Array Expressions and Array Element Access Expressions
+
+Array expressions are written as:
+
+```ebnf
+<array-expr> ::= "[" ( <expr> "," ... ) "]"
+```
+
+For example: `let a = [ 1, 2, 3 ];`. The type of this array can be inferred by the compiler to be `int[3]`.
+
+The following is another example:
+
+```rust
+let b: real[2][3] = [ [ 1.0, 2.0, 3.0], [4.0, 5.0, 6.0] ];
+```
+
+where the type of the array is indicated by the type annotation. Note that the initializers of `b` is an array expression that contains other array expressions to reflect the fact that `b` is two dimensional. Also note that `real[2][3]` is an array that contains 2 elements where each element is of size 3, and not the other way around.
+
+The grammar disallows empty array expressions `[ ]` because arrays of size 0 are not allowed.
+
+All element expressions used in an array expression must have the exact same type and that type must match the type indicated in the array type annotation, if available.
+
+Array element access expressions are written as:
+
+```ebnf
+<array-element-access-expr> ::= <expr> ( "[" expr "]" )+
+```
+
+For example, `a[1];` refers to the second element of array `a` in the example above. Therefore, `a[1]` should be equal to `2`. Similarly, `b[0][2]` in the example above refers to the third elements from the first inner array of `b`. That is, `b[0][2]` should be equal to `3.0`.
+
+Yurt requires that the expression used to index into is an array. For example, in `foo()[5]`, `foo()` must return array.
+
+Yurt also requires that each array index is known (i.e. evaluatable) at compile-time. In addition, Yurt requires that each index evaluates to a **non-negative** integer that is **strictly smaller** than the corresponding dimension (i.e. within bounds). Otherwise, the compiler should emit an error.
 
 #### "If" Expressions
 
