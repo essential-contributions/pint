@@ -16,6 +16,8 @@ pub(super) enum Token<'sc> {
     DoubleColon,
     #[token("!")]
     Bang,
+    #[token("|")]
+    Pipe,
     #[token("+")]
     Plus,
     #[token("-")]
@@ -153,6 +155,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Colon => write!(f, ":"),
             Token::DoubleColon => write!(f, "::"),
             Token::Bang => write!(f, "!"),
+            Token::Pipe => write!(f, "|"),
             Token::Plus => write!(f, "+"),
             Token::Minus => write!(f, "-"),
             Token::Div => write!(f, "/"),
