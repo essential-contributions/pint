@@ -658,6 +658,10 @@ fn enums() {
         expect_test::expect![[
             r#"Enum(EnumDecl { name: "MyEnum", variants: ["Variant1", "Variant2"] })"#
         ]],
+    );
+    check(
+        &run_parser!(expr(), "let e = MyEnum::Variant1;"),
+        expect_test::expect![[r#""#]],
     )
 }
 
