@@ -91,6 +91,8 @@ pub(super) enum Token<'sc> {
 
     #[token("let")]
     Let,
+    #[token("enum")]
+    Enum,
     #[token("constraint")]
     Constraint,
     #[token("maximize")]
@@ -190,6 +192,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Else => write!(f, "else"),
             Token::Cond => write!(f, "cond"),
             Token::Let => write!(f, "let"),
+            Token::Enum => write!(f, "enum"),
             Token::Constraint => write!(f, "constraint"),
             Token::Maximize => write!(f, "maximize"),
             Token::Minimize => write!(f, "minimize"),

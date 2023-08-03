@@ -652,6 +652,16 @@ fn parens_exprs() {
 }
 
 #[test]
+fn enums() {
+    check(
+        &run_parser!(enum_decl(expr()), "enum MyEnum = Variant1 | Variant2;"),
+        expect_test::expect![[
+            r#"Enum(EnumDecl { name: "MyEnum", variants: ["Variant1", "Variant2"] })"#
+        ]],
+    )
+}
+
+#[test]
 fn idents() {
     check(
         &run_parser!(ident(), "foobar"),

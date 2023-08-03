@@ -68,6 +68,7 @@ fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> 
         constraint_decl(expr()),
         solve_decl(),
         fn_decl(expr()),
+        enum_decl(expr()),
     ))
     .repeated()
     .then_ignore(end())
@@ -133,6 +134,17 @@ fn let_decl<'sc>(
             ((name, ty), init)
         })
         .map(|((name, ty), init)| ast::Decl::Let(ast::LetDecl { name, ty, init }))
+}
+
+fn enum_decl<'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+    just(Token::Enum)
+        .ignore_then(ident())
+        .then_ignore(just(Token::Eq))
+        .then(ident().separated_by(just(Token::Pipe)))
+        .then_ignore(just(Token::Semi))
+        .map(|(name, variants)| ast::Decl::Enum(ast::EnumDecl { name, variants }))
 }
 
 fn constraint_decl<'sc>(

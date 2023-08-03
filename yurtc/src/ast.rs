@@ -27,6 +27,12 @@ pub(super) struct LetDecl {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct EnumDecl {
+    pub(super) name: String,
+    pub(super) variants: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) struct Block {
     pub(super) statements: Vec<Decl>,
     pub(super) final_expr: Box<Expr>,
@@ -47,6 +53,7 @@ pub(super) enum Decl {
         body: Block,
     },
     Solve(SolveFunc),
+    Enum(EnumDecl),
 }
 
 #[derive(Clone, Debug, PartialEq)]
