@@ -35,19 +35,28 @@ fn check(actual: &str, expect: expect_test::Expect) {
 
 #[test]
 fn types() {
-    check(&run_parser!(type_(), "int"), expect_test::expect!["Int"]);
-    check(&run_parser!(type_(), "real"), expect_test::expect!["Real"]);
-    check(&run_parser!(type_(), "bool"), expect_test::expect!["Bool"]);
     check(
-        &run_parser!(type_(), "string"),
+        &run_parser!(type_(expr()), "int"),
+        expect_test::expect!["Int"],
+    );
+    check(
+        &run_parser!(type_(expr()), "real"),
+        expect_test::expect!["Real"],
+    );
+    check(
+        &run_parser!(type_(expr()), "bool"),
+        expect_test::expect!["Bool"],
+    );
+    check(
+        &run_parser!(type_(expr()), "string"),
         expect_test::expect!["String"],
     );
     check(
-        &run_parser!(type_(), "{int, real, string}"),
+        &run_parser!(type_(expr()), "{int, real, string}"),
         expect_test::expect!["Tuple([(None, Int), (None, Real), (None, String)])"],
     );
     check(
-        &run_parser!(type_(), "{int, {real, int}, string}"),
+        &run_parser!(type_(expr()), "{int, {real, int}, string}"),
         expect_test::expect![
             "Tuple([(None, Int), (None, Tuple([(None, Real), (None, Int)])), (None, String)])"
         ],
@@ -634,7 +643,7 @@ fn parens_exprs() {
     check(
         &run_parser!(expr(), "()"),
         expect_test::expect![[r#"
-            @1..2: found ")" but expected "::", "::", "!", "+", "-", "{", "{", "(", "if",  or "cond"
+            @1..2: found ")" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if",  or "cond"
         "#]],
     );
     check(
@@ -841,6 +850,124 @@ fn if_exprs() {
 }
 
 #[test]
+fn array_type() {
+    check(
+        &run_parser!(type_(expr()), r#"int[5]"#),
+        expect_test::expect!["Array { ty: Int, range: Immediate(Int(5)) }"],
+    );
+
+    check(
+        &run_parser!(type_(expr()), r#"int[N]"#),
+        expect_test::expect![[
+            r#"Array { ty: Int, range: Ident(Ident { path: ["N"], is_absolute: false }) }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(
+            type_(expr()),
+            r#"string[foo()][{ 7 }][if true { 1 } else { 2 }"#
+        ),
+        expect_test::expect![[
+            r#"Array { ty: Array { ty: String, range: Block(Block { statements: [], final_expr: Immediate(Int(7)) }) }, range: Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] } }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(type_(expr()), r#"real[N][9][M][3]"#),
+        expect_test::expect![[
+            r#"Array { ty: Array { ty: Array { ty: Array { ty: Real, range: Immediate(Int(3)) }, range: Ident(Ident { path: ["M"], is_absolute: false }) }, range: Immediate(Int(9)) }, range: Ident(Ident { path: ["N"], is_absolute: false }) }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(type_(expr()), r#"{int, { real, string }}[N][9]"#),
+        expect_test::expect![[
+            r#"Array { ty: Array { ty: Tuple([(None, Int), (None, Tuple([(None, Real), (None, String)]))]), range: Immediate(Int(9)) }, range: Ident(Ident { path: ["N"], is_absolute: false }) }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(let_decl(expr()), r#"let a: int[];"#),
+        expect_test::expect![[r#"
+            @11..12: found "]" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if",  or "cond"
+        "#]],
+    );
+}
+#[test]
+fn array_expressions() {
+    check(
+        &run_parser!(expr(), r#"[5]"#),
+        expect_test::expect!["Array([Immediate(Int(5))])"],
+    );
+
+    check(
+        &run_parser!(expr(), r#"[5,]"#),
+        expect_test::expect!["Array([Immediate(Int(5))])"],
+    );
+
+    check(
+        &run_parser!(expr(), r#"[5, 4]"#),
+        expect_test::expect!["Array([Immediate(Int(5)), Immediate(Int(4))])"],
+    );
+
+    check(
+        &run_parser!(expr(), r#"[[ 1 ],]"#),
+        expect_test::expect!["Array([Array([Immediate(Int(1))])])"],
+    );
+
+    check(
+        &run_parser!(expr(), r#"[[1, 2], 3]"#), // This should fail in semantic analysis
+        expect_test::expect![
+            "Array([Array([Immediate(Int(1)), Immediate(Int(2))]), Immediate(Int(3))])"
+        ],
+    );
+
+    check(
+        &run_parser!(expr(), r#"[[1, 2], [3, 4]]"#),
+        expect_test::expect!["Array([Array([Immediate(Int(1)), Immediate(Int(2))]), Array([Immediate(Int(3)), Immediate(Int(4))])])"],
+    );
+    check(
+        &run_parser!(
+            expr(),
+            r#"[[foo(), { 2 }], [if true { 1 } else { 2 }, t.0]]"#
+        ),
+        expect_test::expect![[
+            r#"Array([Array([Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] }, Block(Block { statements: [], final_expr: Immediate(Int(2)) })]), Array([If(IfExpr { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }), TupleFieldAccess { tuple: Ident(Ident { path: ["t"], is_absolute: false }), field: Left(0) }])])"#
+        ]],
+    );
+}
+
+#[test]
+fn array_field_accesss() {
+    check(
+        &run_parser!(expr(), r#"a[5]"#),
+        expect_test::expect![[
+            r#"ArrayElementAccess { array: Ident(Ident { path: ["a"], is_absolute: false }), index: Immediate(Int(5)) }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"{ a }[N][foo()][M][4]"#),
+        expect_test::expect![[
+            r#"ArrayElementAccess { array: ArrayElementAccess { array: ArrayElementAccess { array: ArrayElementAccess { array: Block(Block { statements: [], final_expr: Ident(Ident { path: ["a"], is_absolute: false }) }), index: Immediate(Int(4)) }, index: Ident(Ident { path: ["M"], is_absolute: false }) }, index: Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] } }, index: Ident(Ident { path: ["N"], is_absolute: false }) }"#
+        ]],
+    );
+    check(
+        &run_parser!(expr(), r#"foo()[{ M }][if true { 1 } else { 3 }]"#),
+        expect_test::expect![[
+            r#"ArrayElementAccess { array: ArrayElementAccess { array: Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] }, index: If(IfExpr { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } }) }, index: Block(Block { statements: [], final_expr: Ident(Ident { path: ["M"], is_absolute: false }) }) }"#
+        ]],
+    );
+    check(
+        &run_parser!(let_decl(expr()), r#"let x = a[];"#),
+        expect_test::expect![[r#"
+            @10..11: found "]" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if",  or "cond"
+        "#]],
+    );
+}
+
+#[test]
 fn tuple_expressions() {
     check(
         &run_parser!(expr(), r#"{0}"#), // This is not a tuple. It is a code block expr.
@@ -906,7 +1033,10 @@ fn tuple_expressions() {
             r#"Tuple([(Some("x"), Block(Block { statements: [], final_expr: Immediate(Int(42)) })), (Some("y"), If(IfExpr { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } })), (Some("z"), Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] })])"#
         ]],
     );
+}
 
+#[test]
+fn tuple_field_accesses() {
     check(
         &run_parser!(expr(), r#"t.0 + t.9999999 + t.x"#),
         expect_test::expect![[
@@ -1103,7 +1233,7 @@ fn cond_exprs() {
     check(
         &run_parser!(cond_expr(expr()), r#"cond { a => b, }"#),
         expect_test::expect![[r#"
-            @15..16: found "}" but expected "::", "::", "!", "+", "-", "{", "{", "(", "if", "else",  or "cond"
+            @15..16: found "}" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if", "else",  or "cond"
         "#]],
     );
 
@@ -1158,7 +1288,7 @@ fn fn_errors() {
     check(
         &run_parser!(yurt_program(), "fn foo() -> real {}"),
         expect_test::expect![[r#"
-            @18..19: found "}" but expected "::", "::", "!", "+", "-", "{", "{", "(", "if", "cond", "let",  or "constraint"
+            @18..19: found "}" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if", "cond", "let",  or "constraint"
         "#]],
     );
 }

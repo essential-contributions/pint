@@ -25,6 +25,8 @@ fn control_tokens() {
     assert_eq!(lex_one_success("}"), Token::BraceClose);
     assert_eq!(lex_one_success("("), Token::ParenOpen);
     assert_eq!(lex_one_success(")"), Token::ParenClose);
+    assert_eq!(lex_one_success("["), Token::BracketOpen);
+    assert_eq!(lex_one_success("]"), Token::BracketClose);
     assert_eq!(lex_one_success("->"), Token::Arrow);
     assert_eq!(lex_one_success("=>"), Token::HeavyArrow);
     assert_eq!(lex_one_success("."), Token::Dot);
