@@ -61,6 +61,10 @@ fn types() {
             "Tuple([(None, Int), (None, Tuple([(None, Real), (None, Int)])), (None, String)])"
         ],
     );
+    check(
+        &run_parser!(type_(expr()), "custom_type"),
+        expect_test::expect![r#"CustomType("custom_type")"#],
+    );
 }
 
 #[test]
@@ -683,6 +687,17 @@ fn enums() {
             r#"[Let(LetDecl { name: "x", ty: None, init: Some(Enum { name: "MyEnum", variant: "Variant3" }) })]"#
         ]],
     );
+    check(
+        &run_parser!(
+            yurt_program(),
+            r#"
+            let e: MyEnum;
+            "#
+        ),
+        expect_test::expect![[
+            r#"[Let(LetDecl { name: "e", ty: Some(CustomType("MyEnum")), init: None })]"#
+        ]],
+    );
 }
 
 #[test]
@@ -1282,7 +1297,7 @@ fn with_errors() {
     check(
         &run_parser!(yurt_program(), "let low_val: bad = 1.23"),
         expect_test::expect![[r#"
-            @13..16: found "bad" but expected "{", "real", "int", "bool",  or "string"
+            @23..23: found end of input but expected "+", "-", "/", "%", ">", "<", "<=", ">=", "==", "!=", "&&", "||", ";", "*", "[",  or "."
         "#]],
     );
 }
