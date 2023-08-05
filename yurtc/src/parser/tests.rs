@@ -671,7 +671,18 @@ fn enums() {
     check(
         &run_parser!(expr(), "MyEnum::Variant1;"),
         expect_test::expect![[r#"Enum { name: "MyEnum", variant: "Variant1" }"#]],
-    )
+    );
+    check(
+        &run_parser!(
+            yurt_program(),
+            r#"
+            let x = MyEnum::Variant3;
+            "#
+        ),
+        expect_test::expect![[
+            r#"[Let(LetDecl { name: "x", ty: None, init: Some(Enum { name: "MyEnum", variant: "Variant3" }) })]"#
+        ]],
+    );
 }
 
 #[test]
