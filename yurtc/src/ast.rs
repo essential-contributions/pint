@@ -102,6 +102,10 @@ pub(super) enum Expr {
         tuple: Box<Expr>,
         field: Either<usize, String>,
     },
+    Enum {
+        name: String,
+        variant: String,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]

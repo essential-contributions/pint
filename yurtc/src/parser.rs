@@ -324,6 +324,14 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             .clone()
             .delimited_by(just(Token::ParenOpen), just(Token::ParenClose));
 
+        let enumeration = ident()
+            .then_ignore(just(Token::DoubleColon))
+            .then(ident())
+            .map(|(enum_name, variant_name)| ast::Expr::Enum {
+                name: enum_name,
+                variant: variant_name,
+            });
+
         let atom = choice((
             immediate().map(ast::Expr::Immediate),
             unary_op(expr.clone()),
@@ -334,6 +342,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             array,
             tuple,
             parens,
+            enumeration,
             ident_path().map(ast::Expr::Ident),
         ));
 

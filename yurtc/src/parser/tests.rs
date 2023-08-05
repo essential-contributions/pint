@@ -669,8 +669,8 @@ fn enums() {
         ]],
     );
     check(
-        &run_parser!(expr(), "let e = MyEnum::Variant1;"),
-        expect_test::expect![[r#""#]],
+        &run_parser!(expr(), "MyEnum::Variant1;"),
+        expect_test::expect![[r#"Enum { name: "MyEnum", variant: "Variant1" }"#]],
     )
 }
 
