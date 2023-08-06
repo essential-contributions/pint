@@ -195,7 +195,6 @@ Variables can be assigned enum variants using the following syntax:
 
 For example, `let e: MyEnum` where `MyEnum` has been declared as `enum MyEnum = Variant1 | Variant2;`.
 
-
 ### Array Type
 
 An array type represents a collection of items that share the same type. Arrays can be multi-dimensional. Array types have the following syntax:
