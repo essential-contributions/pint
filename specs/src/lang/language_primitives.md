@@ -158,6 +158,7 @@ The syntax for types is as follows:
        | "string"
        | <tuple-ty>
        | <array-ty>
+       | <enum-ty>
 ```
 
 ### Tuple Type
@@ -173,6 +174,27 @@ For example, in `let t: { int, real, string };`, `{ int, real, string }` is a tu
 Names of tuple fields modify the type of the tuple. That is, `{ x: int }` and `{ y: int }` are different types. However they both coerce to `{ int }`.
 
 Note that the grammar disallows empty tuple types `{ }`.
+
+### Enum Type
+
+An enum type represents a set of named variants. Each variant can optionally hold data of different types. Enum types have the following syntax:
+
+```ebnf
+<enum-ty> ::= "enum" <ident> "=" <variant-name> ( "|" <variant-name> )*
+```
+
+For example, in `enum MyEnum = Variant1 | Variant2;`, both `Variant1` and `Variant2` are distinct named types within the MyEnum enumeration.
+
+Note that the grammar disallows declaring an enum using unnamed variant types. For instance, `enum MyEnum = { 1, 3 } | {1 , 3 , 2};` is invalid.
+
+Variables can be assigned enum variants using the following syntax:
+
+```ebnf
+<enum-assign> ::= "let" <ident> "=" <enum-ty>
+```
+
+For example, `let e: MyEnum` where `MyEnum` has been declared as `enum MyEnum = Variant1 | Variant2;`.
+
 
 ### Array Type
 
@@ -204,6 +226,8 @@ Expressions represent values and have the following syntax:
          | <string-literal>
          | <tuple-expr>
          | <tuple-field-access-expr>
+         | <enum-expr>
+         | <enum-variant-access-expr>
          | <array-expr>
          | <array-element-access-expr>
          | <if-expr>
@@ -349,6 +373,32 @@ Tuple field access expressions are written as:
 ```
 
 For example, `t.1;` refers to the second field of tuple `t`. Named field can be accessed using their names or their index. For example, if `x` is the third field of tuple `t`, then `t.2` and `t.x` are equivalent.
+
+#### Enum Expressions and Enum Variant Access Expressions
+
+Enum expressions are used to instantiate and assign a specific variant of an enum to a variable:
+
+```ebnf
+<enum-expr> ::= "let" <ident> "=" <enum-variant-access-expr>
+```
+
+For example, `let e: MyEnum::Variant1` given the enumeration `enum MyEnum = Variant 1 | Variant 2 | Variant 3`.
+
+The following is another more illustrative example:
+
+```rust
+let e: Shape = Circle | Square | Rectangle
+```
+
+Note that the grammar disallows declaring an enum using unnamed variant types. For instance, `enum MyEnum = { 1, 3 } | {1 , 3 , 2};` is invalid.
+
+Specific enum variant access expressions are written as:
+
+```ebnf
+<enum-variant-access-expr> ::= <ident> "::" <ident>
+```
+
+For example, the expression `MyEnum::Variant1` refers to the `Variant1` variant of the `MyEnum` enum. Variants are always accessed using their names, not their values or definitions. As an example, if `MyTuple` is defined as `let MyTuple = {4.0, 5.0}`, and `MyEnum` has a variant as `enum MyEnum = MyTuple | MyArray`, then `MyTuple` cannot be accessed with `MyEnum::{4.0, 5.0}`, but should be accessed as `MyEnum::MyTuple`.
 
 #### Array Expressions and Array Element Access Expressions
 
