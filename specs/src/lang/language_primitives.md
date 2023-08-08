@@ -177,23 +177,17 @@ Note that the grammar disallows empty tuple types `{ }`.
 
 ### Enum Type
 
-An enum type represents a set of named variants. Each variant can optionally hold data of different types. Enum types have the following syntax:
+In Yurt, an enum type is a named enumeration of integer constants. Unlike sum types found in some functional languages, each member of an enum in Yurt is associated with an integer, making it similar to C-style enums. The syntax for defining an enum is:
 
 ```ebnf
-<enum-ty> ::= "enum" <ident> "=" <variant-name> ( "|" <variant-name> )*
+<enum-ty> ::= "enum" <ident> "=" <ident> ( "|" <ident> )*
 ```
 
-For example, in `enum MyEnum = Variant1 | Variant2;`, both `Variant1` and `Variant2` are distinct named types within the MyEnum enumeration.
+For example, `enum MyEnum = Variant1 | Variant2;` declares two named constants, `Variant1` and `Variant2`, within the `MyEnum` enumeration. Here, `MyEnum` is the type which is functionally equivalent to an integer, while `Variant1` and `Variant2` are distinct values of that type.
 
-Note that the grammar disallows declaring an enum using unnamed variant types. For instance, `enum MyEnum = { 1, 3 } | {1 , 3 , 2};` is invalid.
+In Yurt, a function that expects an argument of type `MyEnum` would only accept a value that's one of the defined constants (e.g., `fn display_enum_value(e: MyEnum)` will only accept `Variant1` or `Variant2`) and not any integer. However, since enums in Yurt are also equivalent to integers, they can be used in contexts where integers are expected, such as array indices (e.g., `let value = array[Variant1];`).
 
-Variables can be assigned enum variants using the following syntax:
-
-```ebnf
-<enum-assign> ::= "let" <ident> "=" <enum-ty>
-```
-
-For example, `let e: MyEnum` where `MyEnum` has been declared as `enum MyEnum = Variant1 | Variant2;`.
+Note that the grammar disallows declaring an enum using unnamed variant types. For instance, `enum MyEnum = 1 | 3 | 2;` is invalid.
 
 ### Array Type
 
