@@ -674,7 +674,9 @@ fn enums() {
     );
     check(
         &run_parser!(expr(), "MyEnum::Variant1;"),
-        expect_test::expect![[r#"Enum { name: "MyEnum", variant: "Variant1" }"#]],
+        expect_test::expect![[
+            r#"Ident(Ident { path: ["MyEnum", "Variant1"], is_absolute: false })"#
+        ]],
     );
     check(
         &run_parser!(

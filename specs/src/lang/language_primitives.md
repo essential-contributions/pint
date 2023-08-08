@@ -62,7 +62,7 @@ Identifiers have the following syntax:
 <ident> ::= _?[A-Za-z][A-Za-z0-9]*     % excluding keywords
 ```
 
-A number of keywords are reserved and cannot be used as identifiers. The keywords are: `bool`, `constraint`, `else`, `false`, `real`, `fn`, `if`, `int`, `let`, `maximize`, `minimize`, `satisfy`, `solve`, `true`.
+A number of keywords are reserved and cannot be used as identifiers. The keywords are: `bool`, `constraint`, `else`, `enum`, `false`, `real`, `fn`, `if`, `int`, `let`, `maximize`, `minimize`, `satisfy`, `solve`, `true`.
 
 ### Paths
 
@@ -187,6 +187,10 @@ For example, `enum MyEnum = Variant1 | Variant2;` declares two named constants, 
 
 In Yurt, a function that expects an argument of type `MyEnum` would only accept a value that's one of the defined constants (e.g., `fn display_enum_value(e: MyEnum)` will only accept `Variant1` or `Variant2`) and not any integer. However, since enums in Yurt are also equivalent to integers, they can be used in contexts where integers are expected, such as array indices (e.g., `let value = array[Variant1];`).
 
+A variable can be constrained to a specific enum type. For example, if you declare a variable with `let e: MyEnum;`, the variable `e` will be constrained to only accept values from the `MyEnum` enumeration.
+
+A variable can be further constrained by initializing wiht a specific enum variant. For instance, `let e: MyEnum = MyEnum::Variant1;` not only declares `e` to be of type `MyEnum` but also initializes it with the value `Variant1` from the `MyEnum` enumeration.
+
 Note that the grammar disallows declaring an enum using unnamed variant types. For instance, `enum MyEnum = 1 | 3 | 2;` is invalid.
 
 ### Array Type
@@ -219,8 +223,6 @@ Expressions represent values and have the following syntax:
          | <string-literal>
          | <tuple-expr>
          | <tuple-field-access-expr>
-         | <enum-expr>
-         | <enum-variant-access-expr>
          | <array-expr>
          | <array-element-access-expr>
          | <if-expr>
@@ -366,32 +368,6 @@ Tuple field access expressions are written as:
 ```
 
 For example, `t.1;` refers to the second field of tuple `t`. Named field can be accessed using their names or their index. For example, if `x` is the third field of tuple `t`, then `t.2` and `t.x` are equivalent.
-
-#### Enum Expressions and Enum Variant Access Expressions
-
-Enum expressions are used to instantiate and assign a specific variant of an enum to a variable:
-
-```ebnf
-<enum-expr> ::= "let" <ident> "=" <enum-variant-access-expr>
-```
-
-For example, `let e: MyEnum::Variant1` given the enumeration `enum MyEnum = Variant 1 | Variant 2 | Variant 3`.
-
-The following is another more illustrative example:
-
-```rust
-let e: Shape = Circle | Square | Rectangle
-```
-
-Note that the grammar disallows declaring an enum using unnamed variant types. For instance, `enum MyEnum = { 1, 3 } | {1 , 3 , 2};` is invalid.
-
-Specific enum variant access expressions are written as:
-
-```ebnf
-<enum-variant-access-expr> ::= <ident> "::" <ident>
-```
-
-For example, the expression `MyEnum::Variant1` refers to the `Variant1` variant of the `MyEnum` enum. Variants are always accessed using their names, not their values or definitions. As an example, if `MyTuple` is defined as `let MyTuple = {4.0, 5.0}`, and `MyEnum` has a variant as `enum MyEnum = MyTuple | MyArray`, then `MyTuple` cannot be accessed with `MyEnum::{4.0, 5.0}`, but should be accessed as `MyEnum::MyTuple`.
 
 #### Array Expressions and Array Element Access Expressions
 
