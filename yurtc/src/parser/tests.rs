@@ -686,7 +686,7 @@ fn enums() {
             "#
         ),
         expect_test::expect![[
-            r#"[Let(LetDecl { name: "x", ty: None, init: Some(Enum { name: "MyEnum", variant: "Variant3" }) })]"#
+            r#"[Let(LetDecl { name: "x", ty: None, init: Some(Ident(Ident { path: ["MyEnum", "Variant3"], is_absolute: false })) })]"#
         ]],
     );
     check(
