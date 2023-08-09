@@ -81,7 +81,8 @@ fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError<'
             .map(|(prefix, suffix)| ast::UseTree::Path {
                 prefix,
                 suffix: Box::new(suffix),
-            });
+            })
+            .boxed();
 
         let glob = just(Token::Star).to(ast::UseTree::Glob);
 
@@ -89,16 +90,18 @@ fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError<'
             .separated_by(just(Token::Comma))
             .allow_trailing()
             .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
-            .map(|imports| ast::UseTree::Group { imports });
+            .map(|imports| ast::UseTree::Group { imports })
+            .boxed();
 
         let alias = ident()
             .then_ignore(just(Token::As))
             .then(ident())
-            .map(|(name, alias)| ast::UseTree::Alias { name, alias });
+            .map(|(name, alias)| ast::UseTree::Alias { name, alias })
+            .boxed();
 
         let name = ident().map(|name| ast::UseTree::Name { name });
 
-        choice((path, alias, name, glob, group))
+        choice((path, alias, name, glob, group)).boxed()
     })
 }
 
@@ -111,6 +114,7 @@ fn use_statement<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError
             is_absolute: double_colon.is_some(),
             use_tree,
         })
+        .boxed()
 }
 
 fn let_decl<'sc>(
@@ -133,15 +137,17 @@ fn let_decl<'sc>(
             ((name, ty), init)
         })
         .map(|((name, ty), init)| ast::Decl::Let(ast::LetDecl { name, ty, init }))
+        .boxed()
 }
 
 fn constraint_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     just(Token::Constraint)
         .ignore_then(expr)
         .then_ignore(just(Token::Semi))
         .map(ast::Decl::Constraint)
+        .boxed()
 }
 
 fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
@@ -157,6 +163,7 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'s
         .ignore_then(choice((solve_satisfy, solve_minimize, solve_maximize)))
         .then_ignore(just(Token::Semi))
         .map(ast::Decl::Solve)
+        .boxed()
 }
 
 fn fn_decl<'sc>(
@@ -168,7 +175,8 @@ fn fn_decl<'sc>(
         .then(type_spec)
         .separated_by(just(Token::Comma))
         .allow_trailing()
-        .delimited_by(just(Token::ParenOpen), just(Token::ParenClose));
+        .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
+        .boxed();
 
     let return_type = just(Token::Arrow).ignore_then(type_(expr.clone()));
 
@@ -183,6 +191,7 @@ fn fn_decl<'sc>(
             return_type,
             body,
         })
+        .boxed()
 }
 
 fn code_block_expr<'sc>(
@@ -190,7 +199,8 @@ fn code_block_expr<'sc>(
 ) -> impl Parser<Token<'sc>, ast::Block, Error = ParseError<'sc>> + Clone {
     let code_block_body = choice((let_decl(expr.clone()), constraint_decl(expr.clone())))
         .repeated()
-        .then(expr);
+        .then(expr)
+        .boxed();
 
     code_block_body
         .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
@@ -198,10 +208,11 @@ fn code_block_expr<'sc>(
             statements,
             final_expr: Box::new(expr),
         })
+        .boxed()
 }
 
 fn unary_op<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone {
     choice((
         just(Token::Plus).to(ast::UnaryOp::Pos),
@@ -213,6 +224,7 @@ fn unary_op<'sc>(
         op,
         expr: Box::new(expr),
     })
+    .boxed()
 }
 
 fn if_expr<'sc>(
@@ -232,10 +244,11 @@ fn if_expr<'sc>(
                 else_block,
             })
         })
+        .boxed()
 }
 
 fn cond_expr<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone {
     let cond_branch = expr
         .clone()
@@ -245,17 +258,20 @@ fn cond_expr<'sc>(
         .map(|(condition, result)| ast::CondBranch {
             condition: Box::new(condition),
             result: Box::new(result),
-        });
+        })
+        .boxed();
 
     let else_branch = just(Token::Else)
         .ignore_then(just(Token::HeavyArrow))
-        .ignore_then(expr);
+        .ignore_then(expr)
+        .boxed();
 
     let body = cond_branch
         .repeated()
         .then(else_branch)
         .then_ignore(just(Token::Comma).or_not())
-        .delimited_by(just(Token::BraceOpen), just(Token::BraceClose));
+        .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+        .boxed();
 
     just(Token::Cond)
         .ignore_then(body)
@@ -265,6 +281,7 @@ fn cond_expr<'sc>(
                 else_result: Box::new(else_result),
             })
         })
+        .boxed()
 }
 
 fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone {
@@ -273,17 +290,20 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             .clone()
             .separated_by(just(Token::Comma))
             .allow_trailing()
-            .delimited_by(just(Token::ParenOpen), just(Token::ParenClose));
+            .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
+            .boxed();
 
         let call = ident_path()
             .then(call_args.clone())
-            .map(|(name, args)| ast::Expr::Call { name, args });
+            .map(|(name, args)| ast::Expr::Call { name, args })
+            .boxed();
 
         let array_elements = expr
             .clone()
             .separated_by(just(Token::Comma))
             .allow_trailing()
-            .delimited_by(just(Token::BracketOpen), just(Token::BracketClose));
+            .delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
+            .boxed();
 
         let array = array_elements
             .validate(|array_elements, span, emit| {
@@ -292,14 +312,16 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
                 }
                 array_elements
             })
-            .map(ast::Expr::Array);
+            .map(ast::Expr::Array)
+            .boxed();
 
         let tuple_fields = (ident().then_ignore(just(Token::Colon)))
             .or_not()
             .then(expr.clone())
             .separated_by(just(Token::Comma))
             .allow_trailing()
-            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose));
+            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+            .boxed();
 
         let tuple = tuple_fields
             .validate(|tuple_fields, span, emit| {
@@ -308,11 +330,13 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
                 }
                 tuple_fields
             })
-            .map(ast::Expr::Tuple);
+            .map(ast::Expr::Tuple)
+            .boxed();
 
         let parens = expr
             .clone()
-            .delimited_by(just(Token::ParenOpen), just(Token::ParenClose));
+            .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
+            .boxed();
 
         let atom = choice((
             immediate().map(ast::Expr::Immediate),
@@ -325,109 +349,8 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             tuple,
             parens,
             ident_path().map(ast::Expr::Ident),
-        ));
-
-        let array_element_access = atom
-            .then(
-                expr.delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
-                    .repeated(),
-            )
-            .map(|(expr, indices)| (indices, expr))
-            .foldr(|index, expr| ast::Expr::ArrayElementAccess {
-                array: Box::new(expr),
-                index: Box::new(index),
-            });
-
-        let indices = filter_map(|span, token| match &token {
-            // Field access with an identifier
-            Token::Ident(ident) => Ok(vec![Either::Right((*ident).to_owned())]),
-
-            // Field access with an integer
-            Token::IntLiteral(num_str) => num_str
-                .parse::<usize>()
-                .map(|index| vec![Either::Left(index)])
-                .map_err(|_| ParseError::InvalidIntegerTupleIndex {
-                    span,
-                    index: num_str,
-                }),
-
-            // If the next token is of the form `<int>.<int>` which, to the lexer, looks like a real,
-            // break it apart manually.
-            Token::RealLiteral(num_str) => {
-                match Regex::new(r"[0-9]+\.[0-9]+")
-                    .expect("valid regex")
-                    .captures(num_str)
-                {
-                    Some(_) => {
-                        // Collect the spans for the two integers
-                        let dot_index = num_str
-                            .chars()
-                            .position(|c| c == '.')
-                            .expect("guaranteed by regex");
-                        let spans = [
-                            span.start..span.start + dot_index,
-                            span.start + dot_index + 1..span.end,
-                        ];
-
-                        // Split at `.` then collect the two indices as `usize`. Report errors as
-                        // needed
-                        num_str
-                            .split('.')
-                            .zip(spans.iter())
-                            .map(|(index, span)| {
-                                index
-                                    .parse::<usize>()
-                                    .map_err(|_| ParseError::InvalidIntegerTupleIndex {
-                                        span: span.clone(),
-                                        index,
-                                    })
-                                    .map(Either::Left)
-                            })
-                            .collect::<Result<Vec<Either<usize, String>>, _>>()
-                    }
-                    None => Err(ParseError::InvalidTupleIndex { span, index: token }),
-                }
-            }
-            _ => Err(ParseError::InvalidTupleIndex { span, index: token }),
-        });
-
-        let tuple_field_access = array_element_access
-            .then(just(Token::Dot).ignore_then(indices).repeated().flatten())
-            .foldl(|expr, field| ast::Expr::TupleFieldAccess {
-                tuple: Box::new(expr),
-                field,
-            });
-
-        let multiplicative_op = tuple_field_access
-            .clone()
-            .then(
-                just(Token::Star)
-                    .to(ast::BinaryOp::Mul)
-                    .or(just(Token::Div).to(ast::BinaryOp::Div))
-                    .or(just(Token::Mod).to(ast::BinaryOp::Mod))
-                    .then(tuple_field_access)
-                    .repeated(),
-            )
-            .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
-                op,
-                lhs: Box::new(lhs),
-                rhs: Box::new(rhs),
-            });
-
-        let additive_op = multiplicative_op
-            .clone()
-            .then(
-                just(Token::Plus)
-                    .to(ast::BinaryOp::Add)
-                    .or(just(Token::Minus).to(ast::BinaryOp::Sub))
-                    .then(multiplicative_op)
-                    .repeated(),
-            )
-            .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
-                op,
-                lhs: Box::new(lhs),
-                rhs: Box::new(rhs),
-            });
+        ))
+        .boxed();
 
         and_or_op(
             Token::DoublePipe,
@@ -435,17 +358,156 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             and_or_op(
                 Token::DoubleAmpersand,
                 ast::BinaryOp::LogicalAnd,
-                comparison_op(additive_op),
+                comparison_op(additive_op(multiplicative_op(tuple_field_access(
+                    array_element_access(atom, expr.clone()),
+                )))),
             ),
         )
+        .boxed()
     })
+}
+
+fn array_element_access<'sc, P>(
+    parser: P,
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+{
+    parser
+        .then(
+            expr.delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
+                .repeated(),
+        )
+        .map(|(expr, indices)| (indices, expr))
+        .foldr(|index, expr| ast::Expr::ArrayElementAccess {
+            array: Box::new(expr),
+            index: Box::new(index),
+        })
+        .boxed()
+}
+
+fn tuple_field_access<'sc, P>(
+    parser: P,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+{
+    let indices = filter_map(|span, token| match &token {
+        // Field access with an identifier
+        Token::Ident(ident) => Ok(vec![Either::Right((*ident).to_owned())]),
+
+        // Field access with an integer
+        Token::IntLiteral(num_str) => num_str
+            .parse::<usize>()
+            .map(|index| vec![Either::Left(index)])
+            .map_err(|_| ParseError::InvalidIntegerTupleIndex {
+                span,
+                index: num_str,
+            }),
+
+        // If the next token is of the form `<int>.<int>` which, to the lexer, looks like a real,
+        // break it apart manually.
+        Token::RealLiteral(num_str) => {
+            match Regex::new(r"[0-9]+\.[0-9]+")
+                .expect("valid regex")
+                .captures(num_str)
+            {
+                Some(_) => {
+                    // Collect the spans for the two integers
+                    let dot_index = num_str
+                        .chars()
+                        .position(|c| c == '.')
+                        .expect("guaranteed by regex");
+                    let spans = [
+                        span.start..span.start + dot_index,
+                        span.start + dot_index + 1..span.end,
+                    ];
+
+                    // Split at `.` then collect the two indices as `usize`. Report errors as
+                    // needed
+                    num_str
+                        .split('.')
+                        .zip(spans.iter())
+                        .map(|(index, span)| {
+                            index
+                                .parse::<usize>()
+                                .map_err(|_| ParseError::InvalidIntegerTupleIndex {
+                                    span: span.clone(),
+                                    index,
+                                })
+                                .map(Either::Left)
+                        })
+                        .collect::<Result<Vec<Either<usize, String>>, _>>()
+                }
+                None => Err(ParseError::InvalidTupleIndex { span, index: token }),
+            }
+        }
+        _ => Err(ParseError::InvalidTupleIndex { span, index: token }),
+    })
+    .boxed();
+
+    parser
+        .then(just(Token::Dot).ignore_then(indices).repeated().flatten())
+        .foldl(|expr, field| ast::Expr::TupleFieldAccess {
+            tuple: Box::new(expr),
+            field,
+        })
+        .boxed()
+}
+
+fn multiplicative_op<'sc, P>(
+    parser: P,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+{
+    parser
+        .clone()
+        .then(
+            just(Token::Star)
+                .to(ast::BinaryOp::Mul)
+                .or(just(Token::Div).to(ast::BinaryOp::Div))
+                .or(just(Token::Mod).to(ast::BinaryOp::Mod))
+                .then(parser)
+                .repeated(),
+        )
+        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
+            op,
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        })
+        .boxed()
+}
+
+fn additive_op<'sc, P>(
+    parser: P,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+{
+    parser
+        .clone()
+        .then(
+            just(Token::Plus)
+                .to(ast::BinaryOp::Add)
+                .or(just(Token::Minus).to(ast::BinaryOp::Sub))
+                .then(parser)
+                .repeated(),
+        )
+        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
+            op,
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        })
+        .boxed()
 }
 
 fn comparison_op<'sc, P>(
     parser: P,
 ) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
 where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 {
     parser
         .clone()
@@ -466,6 +528,7 @@ where
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         })
+        .boxed()
 }
 
 fn and_or_op<'sc, P>(
@@ -474,7 +537,7 @@ fn and_or_op<'sc, P>(
     parser: P,
 ) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
 where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone,
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 {
     parser
         .clone()
@@ -484,6 +547,7 @@ where
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         })
+        .boxed()
 }
 
 fn ident<'sc>() -> impl Parser<Token<'sc>, String, Error = ParseError<'sc>> + Clone {
@@ -518,6 +582,7 @@ fn ident_path<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError<'
                 is_absolute: pre_colons.is_some(),
             }
         })
+        .boxed()
 }
 
 fn type_<'sc>(
@@ -535,7 +600,8 @@ fn type_<'sc>(
                     emit(ParseError::EmptyTupleType { span })
                 }
                 args
-            });
+            })
+            .boxed();
 
         let type_atom = choice((
             just(Token::Real).to(ast::Type::Real),
@@ -543,7 +609,8 @@ fn type_<'sc>(
             just(Token::Bool).to(ast::Type::Bool),
             just(Token::String).to(ast::Type::String),
             tuple.map(ast::Type::Tuple),
-        ));
+        ))
+        .boxed();
 
         // Multi-dimensional arrays have their innermost dimension on the far right. Hence, we need
         // a `foldr` here instead of a `foldl`. For example, `int[3][5]` is actually an array of
@@ -559,7 +626,7 @@ fn type_<'sc>(
             .foldr(|range, ty| ast::Type::Array {
                 ty: Box::new(ty),
                 range,
-            })
+            }).boxed()
     })
 }
 
