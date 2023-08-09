@@ -1,0 +1,17 @@
+// Interface of the ERC20 standard as defined in the EIP. Only `view` functions can be added here.
+// Incorrect types are used for the moment, until we have type aliases
+
+interface IERC20 {
+    fn totalSupply() -> int;
+    fn balanceOf(account: int) -> int;
+    fn allowance(owner: int, spender: int) -> int;
+}
+
+interface Ownable {
+    fn owner() -> int;
+
+}
+
+contract MyToken(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) implements IERC20, Ownable {
+    fn custom_function() -> int;
+}

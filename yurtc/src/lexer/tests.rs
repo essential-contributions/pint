@@ -170,6 +170,13 @@ fn r#as() {
 }
 
 #[test]
+fn blockchain_items() {
+    assert_eq!(lex_one_success("interface"), Token::Interface);
+    assert_eq!(lex_one_success("contract"), Token::Contract);
+    assert_eq!(lex_one_success("implements"), Token::Implements);
+}
+
+#[test]
 fn with_error() {
     let src = r#"
 let low_val: int = 5.0;
