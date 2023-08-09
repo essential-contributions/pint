@@ -1,5 +1,5 @@
 use crate::{
-    error::CompileError,
+    error::Error,
     lexer::{self, KEYWORDS},
     parser::*,
 };
@@ -17,7 +17,7 @@ macro_rules! run_parser {
                 "{}",
                 // Print each error on one line. For each error, start with the span.
                 errors.iter().fold(String::new(), |acc, error| {
-                    let span = CompileError::Parse {
+                    let span = Error::Parse {
                         error: error.clone(),
                     }
                     .span();

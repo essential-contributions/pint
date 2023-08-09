@@ -1,6 +1,6 @@
 use crate::{
     ast,
-    error::{print_on_failure, CompileError, ParseError},
+    error::{print_on_failure, Error, ParseError},
     expr,
     lexer::{self, Token, KEYWORDS},
 };
@@ -33,7 +33,7 @@ fn parse_str_to_ast(source: &str, filename: &str) -> anyhow::Result<Ast> {
 
 /// Parse `source` and returns an AST. Upon failure, return a vector of all compile errors
 /// encountered.
-fn parse_str_to_ast_inner(source: &str) -> Result<Ast, Vec<CompileError>> {
+fn parse_str_to_ast_inner(source: &str) -> Result<Ast, Vec<Error>> {
     let mut errors = vec![];
 
     // Lex the input into tokens and spans. Also collect any lex errors encountered.
@@ -50,7 +50,7 @@ fn parse_str_to_ast_inner(source: &str) -> Result<Ast, Vec<CompileError>> {
         Err(parsing_errors) => {
             let parsing_errors: Vec<_> = parsing_errors
                 .iter()
-                .map(|error| CompileError::Parse {
+                .map(|error| Error::Parse {
                     error: error.clone(),
                 })
                 .collect();

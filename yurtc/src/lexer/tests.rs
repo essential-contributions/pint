@@ -1,4 +1,4 @@
-use crate::error::{CompileError, LexError};
+use crate::error::{Error, LexError};
 use crate::lexer::*;
 
 #[cfg(test)]
@@ -205,11 +205,11 @@ solve minimize mid;
     assert!(matches!(
         (&errors[0], &errors[1]),
         (
-            CompileError::Lex {
+            Error::Lex {
                 error: LexError::InvalidToken,
                 ..
             },
-            CompileError::Lex {
+            Error::Lex {
                 error: LexError::InvalidToken,
                 ..
             }
