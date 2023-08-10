@@ -183,16 +183,6 @@ In Yurt, an enum type is a named enumeration of integer constants. Unlike sum ty
 <enum-ty> ::= "enum" <ident> "=" <ident> ( "|" <ident> )*
 ```
 
-For example, `enum MyEnum = Variant1 | Variant2;` declares two named constants, `Variant1` and `Variant2`, within the `MyEnum` enumeration. Here, `MyEnum` is the type which is functionally equivalent to an integer, while `Variant1` and `Variant2` are distinct values of that type.
-
-In Yurt, a function that expects an argument of type `MyEnum` would only accept a value that's one of the defined constants (e.g., `fn display_enum_value(e: MyEnum)` will only accept `Variant1` or `Variant2`) and not any integer. However, since enums in Yurt are also equivalent to integers, they can be used in contexts where integers are expected, such as array indices (e.g., `let value = array[Variant1];`).
-
-A variable can be constrained to a specific enum type. For example, if you declare a variable with `let e: MyEnum;`, the variable `e` will be constrained to only accept values from the `MyEnum` enumeration.
-
-A variable can be further constrained by initializing wiht a specific enum variant. For instance, `let e: MyEnum = MyEnum::Variant1;` not only declares `e` to be of type `MyEnum` but also initializes it with the value `Variant1` from the `MyEnum` enumeration.
-
-Note that the grammar disallows declaring an enum using unnamed variant types. For instance, `enum MyEnum = 1 | 3 | 2;` is invalid.
-
 ### Array Type
 
 An array type represents a collection of items that share the same type. Arrays can be multi-dimensional. Array types have the following syntax:
