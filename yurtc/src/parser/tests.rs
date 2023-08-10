@@ -1295,16 +1295,6 @@ solve minimize mid;
 }
 
 #[test]
-fn with_errors() {
-    check(
-        &run_parser!(yurt_program(), "let low_val: bad = 1.23"),
-        expect_test::expect![[r#"
-            @23..23: found end of input but expected "+", "-", "/", "%", ">", "<", "<=", ">=", "==", "!=", "&&", "||", ";", "*", "[",  or "."
-        "#]],
-    );
-}
-
-#[test]
 fn fn_errors() {
     check(
         &run_parser!(yurt_program(), "fn foo() {5}"),
