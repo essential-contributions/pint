@@ -103,6 +103,7 @@ Items can occur in any order; identifiers need not be declared before they are u
          | <function-item>
          | <solve-item>
          | <transition-item>
+         | <enum-decl>
 ```
 
 Import items (`<import-item>`) import new items from a module/submodule or external library into the current module ([Import Items](#import-items)).
@@ -180,7 +181,11 @@ Note that the grammar disallows empty tuple types `{ }`.
 In Yurt, an enum type is a named enumeration of integer constants. Unlike sum types found in some functional languages, each member of an enum in Yurt is associated with an integer, making it similar to C-style enums. The syntax for defining an enum is:
 
 ```ebnf
-<enum-ty> ::= "enum" <ident> "=" <ident> ( "|" <ident> )*
+<enum-decl> ::= "enum" <ident> "=" <ident> ( "|" <ident> )*
+```
+
+```
+<enum-ty> ::= <ident>
 ```
 
 ### Array Type
