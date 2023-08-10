@@ -472,7 +472,7 @@ Within a scope, import items create shortcuts to items defined in other files. I
 <import-item> ::= "use" <use-tree>
 ```
 
-An import item creates one ore more local name bindings synonymous with some other path. Usually a `use` item is used to shorten the path required to refer to a module item. These items may appear in modules and blocks, usually at the top.
+An import item creates one or more local name bindings synonymous with some other path. Usually a `use` item is used to shorten the path required to refer to a module item. These items may appear in modules and blocks, usually at the top.
 
 Use declarations support a number of convenient shortcuts:
 
