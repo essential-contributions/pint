@@ -614,15 +614,13 @@ fn type_<'sc>(
             })
             .boxed();
 
-        let custom_type = ident().map(ast::Type::CustomType);
-
         let type_atom = choice((
             just(Token::Real).to(ast::Type::Real),
             just(Token::Int).to(ast::Type::Int),
             just(Token::Bool).to(ast::Type::Bool),
             just(Token::String).to(ast::Type::String),
             tuple.map(ast::Type::Tuple),
-            custom_type,
+            ident().map(ast::Type::CustomType),
         ))
         .boxed();
 
