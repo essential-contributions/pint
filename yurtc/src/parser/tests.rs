@@ -684,24 +684,24 @@ fn enums() {
     );
     check(
         &run_parser!(
-            yurt_program(),
+            let_decl(expr()),
             r#"
             let x = MyEnum::Variant3;
             "#
         ),
         expect_test::expect![[
-            r#"[Let(LetDecl { name: "x", ty: None, init: Some(Ident(Ident { path: ["MyEnum", "Variant3"], is_absolute: false })) })]"#
+            r#"Let(LetDecl { name: "x", ty: None, init: Some(Ident(Ident { path: ["MyEnum", "Variant3"], is_absolute: false })) })"#
         ]],
     );
     check(
         &run_parser!(
-            yurt_program(),
+            let_decl(expr()),
             r#"
             let e: MyEnum;
             "#
         ),
         expect_test::expect![[
-            r#"[Let(LetDecl { name: "e", ty: Some(CustomType("MyEnum")), init: None })]"#
+            r#"Let(LetDecl { name: "e", ty: Some(CustomType("MyEnum")), init: None })"#
         ]],
     );
 }
