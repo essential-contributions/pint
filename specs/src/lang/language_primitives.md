@@ -178,7 +178,7 @@ Note that the grammar disallows empty tuple types `{ }`.
 
 ### Enum Type
 
-In Yurt, an enum type is a named enumeration of integer constants. Unlike sum types found in some functional languages, each member of an enum in Yurt is associated with an integer, making it similar to C-style enums. The syntax for defining an enum is:
+In Yurt, an enum type is a named enumeration of integer constants. Unlike sum types found in some functional languages, each member of an enum in Yurt is associated with an integer, making it similar to C-style enums. The syntax for declaring an enum is:
 
 ```ebnf
 <enum-decl> ::= "enum" <ident> "=" <ident> ( "|" <ident> )*
