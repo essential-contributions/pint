@@ -673,6 +673,10 @@ fn enums() {
         ]],
     );
     check(
+        &run_parser!(enum_decl(), "enum MyEnum = Variant1;"),
+        expect_test::expect![[r#"Enum(EnumDecl { name: "MyEnum", variants: ["Variant1"] })"#]],
+    );
+    check(
         &run_parser!(expr(), "MyEnum::Variant1;"),
         expect_test::expect![[
             r#"Ident(Ident { path: ["MyEnum", "Variant1"], is_absolute: false })"#
