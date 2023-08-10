@@ -148,15 +148,7 @@ fn enum_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc
         .then(ident().separated_by(just(Token::Pipe)))
         .then_ignore(just(Token::Semi))
         .map(|(name, variants)| ast::Decl::Enum(ast::EnumDecl { name, variants }))
-}
-
-fn enum_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
-    just(Token::Enum)
-        .ignore_then(ident())
-        .then_ignore(just(Token::Eq))
-        .then(ident().separated_by(just(Token::Pipe)))
-        .then_ignore(just(Token::Semi))
-        .map(|(name, variants)| ast::Decl::Enum(ast::EnumDecl { name, variants }))
+        .boxed()
 }
 
 fn constraint_decl<'sc>(
@@ -621,8 +613,6 @@ fn type_<'sc>(
                 args
             })
             .boxed();
-
-        let custom_type = ident().map(ast::Type::CustomType);
 
         let custom_type = ident().map(ast::Type::CustomType);
 
