@@ -184,7 +184,7 @@ In Yurt, an enum type is a named enumeration of integer constants. Unlike sum ty
 <enum-decl> ::= "enum" <ident> "=" <ident> ( "|" <ident> )*
 ```
 
-```
+```ebnf
 <enum-ty> ::= <ident>
 ```
 
