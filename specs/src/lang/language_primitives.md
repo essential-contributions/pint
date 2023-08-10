@@ -159,7 +159,7 @@ The syntax for types is as follows:
        | "string"
        | <tuple-ty>
        | <array-ty>
-       | <enum-ty>
+       | <custom-ty>
 ```
 
 ### Tuple Type
@@ -176,18 +176,6 @@ Names of tuple fields modify the type of the tuple. That is, `{ x: int }` and `{
 
 Note that the grammar disallows empty tuple types `{ }`.
 
-### Enum Type
-
-In Yurt, an enum type is a named enumeration of integer constants. Unlike sum types found in some functional languages, each member of an enum in Yurt is associated with an integer, making it similar to C-style enums. The syntax for declaring an enum is:
-
-```ebnf
-<enum-decl> ::= "enum" <ident> "=" <ident> ( "|" <ident> )*
-```
-
-```ebnf
-<enum-ty> ::= <ident>
-```
-
 ### Array Type
 
 An array type represents a collection of items that share the same type. Arrays can be multi-dimensional. Array types have the following syntax:
@@ -199,6 +187,20 @@ An array type represents a collection of items that share the same type. Arrays 
 For example, in `let a: real[5];`, `a` is an array that contains 5 real values. In `let a: int[3][N]`, `a` is a 2-dimensional array of size `3*N`.
 
 Yurt requires that each array dimension is known (i.e. evaluatable) at compile-time. In addition, Yurt requires that each dimension evaluates to a **strictly positive** integer. Otherwise, the compiler should emit an error.
+
+### Enum Type
+
+In Yurt, an enum type is a named enumeration of integer constants. Unlike sum types found in some functional languages, each member of an enum in Yurt is associated with an integer, making it similar to C-style enums. The syntax for declaring an enum is:
+
+```ebnf
+<enum-decl> ::= "enum" <ident> "=" <ident> ( "|" <ident> )*
+```
+
+### Custom Type
+
+```ebnf
+<custom-ty> ::= <ident>
+```
 
 ## Expressions
 
