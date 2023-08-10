@@ -153,6 +153,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Satisfy,
     Token::Use,
     Token::As,
+    Token::Enum,
 ];
 
 impl<'sc> fmt::Display for Token<'sc> {
