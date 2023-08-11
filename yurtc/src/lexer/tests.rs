@@ -127,11 +127,13 @@ fn strings() {
 #[test]
 fn variables() {
     assert_eq!(lex_one_success("let"), Token::Let);
+    assert_eq!(lex_one_success("enum"), Token::Enum);
 }
 
 #[test]
 fn operators() {
     assert_eq!(lex_one_success("!"), Token::Bang);
+    assert_eq!(lex_one_success("|"), Token::Pipe);
     assert_eq!(lex_one_success("+"), Token::Plus);
     assert_eq!(lex_one_success("-"), Token::Minus);
     assert_eq!(lex_one_success("*"), Token::Star);

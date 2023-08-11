@@ -26,6 +26,11 @@ pub(super) enum Decl {
         directive: SolveFunc,
         span: Span,
     },
+    Enum {
+        name: String,
+        variants: Vec<String>,
+        name_span: Span,
+    },
     Interface {
         name: String,
         functions: Vec<FnSig>,
@@ -87,6 +92,7 @@ pub(super) enum Type {
     String,
     Array { ty: Box<Type>, range: Expr },
     Tuple(Vec<(Option<String>, Type)>),
+    CustomType(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]

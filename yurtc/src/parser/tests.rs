@@ -61,6 +61,10 @@ fn types() {
             "Tuple([(None, Int), (None, Tuple([(None, Real), (None, Int)])), (None, String)])"
         ],
     );
+    check(
+        &run_parser!(type_(expr()), "custom_type"),
+        expect_test::expect![r#"CustomType("custom_type")"#],
+    );
 }
 
 #[test]
@@ -667,6 +671,50 @@ fn parens_exprs() {
 }
 
 #[test]
+fn enums() {
+    check(
+        &run_parser!(enum_decl(), "enum MyEnum = Variant1 | Variant2;"),
+        expect_test::expect![[
+            r#"Enum { name: "MyEnum", variants: ["Variant1", "Variant2"], name_span: 5..11 }"#
+        ]],
+    );
+    check(
+        &run_parser!(enum_decl(), "enum MyEnum = Variant1;"),
+        expect_test::expect![[
+            r#"Enum { name: "MyEnum", variants: ["Variant1"], name_span: 5..11 }"#
+        ]],
+    );
+    check(
+        &run_parser!(expr(), "MyEnum::Variant1;"),
+        expect_test::expect![[
+            r#"Ident(Ident { path: ["MyEnum", "Variant1"], is_absolute: false })"#
+        ]],
+    );
+    check(
+        &run_parser!(
+            let_decl(expr()),
+            r#"
+            let x = MyEnum::Variant3;
+            "#
+        ),
+        expect_test::expect![[
+            r#"Let { name: "x", ty: None, init: Some(Ident(Ident { path: ["MyEnum", "Variant3"], is_absolute: false })), span: 13..38 }"#
+        ]],
+    );
+    check(
+        &run_parser!(
+            let_decl(expr()),
+            r#"
+            let e: MyEnum;
+            "#
+        ),
+        expect_test::expect![[
+            r#"Let { name: "e", ty: Some(CustomType("MyEnum")), init: None, span: 13..27 }"#
+        ]],
+    );
+}
+
+#[test]
 fn idents() {
     check(
         &run_parser!(ident(), "foobar"),
@@ -1262,16 +1310,6 @@ solve minimize mid;
         expect_test::expect![[
             r#"[Let { name: "low_val", ty: Some(Real), init: Some(Immediate(Real(1.23))), span: 1..26 }, Let { name: "high_val", ty: None, init: Some(Immediate(Real(4.56))), span: 27..47 }, Constraint { expr: BinaryOp { op: GreaterThan, lhs: Ident(Ident { path: ["mid"], is_absolute: false }), rhs: BinaryOp { op: Mul, lhs: Ident(Ident { path: ["low_val"], is_absolute: false }), rhs: Immediate(Real(2.0)) } }, span: 101..132 }, Constraint { expr: BinaryOp { op: LessThan, lhs: Ident(Ident { path: ["mid"], is_absolute: false }), rhs: Ident(Ident { path: ["high_val"], is_absolute: false }) }, span: 133..159 }, Solve { directive: Minimize(Ident { path: ["mid"], is_absolute: false }), span: 161..180 }]"#
         ]],
-    );
-}
-
-#[test]
-fn with_errors() {
-    check(
-        &run_parser!(yurt_program(), "let low_val: bad = 1.23"),
-        expect_test::expect![[r#"
-            @13..16: found "bad" but expected "{", "real", "int", "bool",  or "string"
-        "#]],
     );
 }
 
