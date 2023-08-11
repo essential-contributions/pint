@@ -792,7 +792,7 @@ fn foo(x: real, y: real) -> real {
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Fn { name: "foo", params: [("x", Real), ("y", Real)], return_type: Real, body: Block { statements: [Let(LetDecl { name: "z", ty: None, init: Some(Immediate(Real(5.0))) })], final_expr: Ident(Ident { path: ["z"], is_absolute: false }) } }]"#
+            r#"[Fn { fn_sig: FnSig { name: "foo", params: [("x", Real), ("y", Real)], return_type: Real }, body: Block { statements: [Let(LetDecl { name: "z", ty: None, init: Some(Immediate(Real(5.0))) })], final_expr: Ident(Ident { path: ["z"], is_absolute: false }) } }]"#
         ]],
     );
 }
@@ -807,6 +807,13 @@ let x = foo(a*3, c);
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
             r#"[Let(LetDecl { name: "x", ty: None, init: Some(Call { name: Ident { path: ["foo"], is_absolute: false }, args: [BinaryOp { op: Mul, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Int(3)) }, Ident(Ident { path: ["c"], is_absolute: false })] }) })]"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), "A::B::foo(-a, b+c)"),
+        expect_test::expect![[
+            r#"Call { name: Ident { path: ["A", "B", "foo"], is_absolute: false }, args: [UnaryOp { op: Neg, expr: Ident(Ident { path: ["a"], is_absolute: false }) }, BinaryOp { op: Add, lhs: Ident(Ident { path: ["b"], is_absolute: false }), rhs: Ident(Ident { path: ["c"], is_absolute: false }) }] }"#
         ]],
     );
 }
@@ -1398,5 +1405,82 @@ fn big_ints() {
         expect_test::expect![
             "BinaryOp { op: Add, lhs: Immediate(BigInt(31076614848392666458794)), rhs: Immediate(BigInt(676572722683907229962)) }"
         ],
+    );
+}
+
+#[test]
+fn interface_test() {
+    let src = r#"
+interface Foo {
+    fn foo(x: real, y: int[5]) -> real;
+    fn bar(x: bool,) -> real;
+    fn baz() -> { int, real };
+}
+"#;
+
+    check(
+        &run_parser!(interface_decl(expr()), src),
+        expect_test::expect![[
+            r#"Interface { name: "Foo", functions: [FnSig { name: "foo", params: [("x", Real), ("y", Array { ty: Int, range: Immediate(Int(5)) })], return_type: Real }, FnSig { name: "bar", params: [("x", Bool)], return_type: Real }, FnSig { name: "baz", params: [], return_type: Tuple([(None, Int), (None, Real)]) }] }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(interface_decl(expr()), "interface Foo {}"),
+        expect_test::expect![[r#"Interface { name: "Foo", functions: [] }"#]],
+    );
+}
+
+#[test]
+fn contract_test() {
+    check(
+        &run_parser!(contract_decl(expr()), "contract Foo(0) {}"),
+        expect_test::expect![[
+            r#"Contract { name: "Foo", id: Immediate(Int(0)), interfaces: [], functions: [] }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(
+            contract_decl(expr()),
+            "contract Foo(if true {0} else {1}) {}"
+        ),
+        expect_test::expect![[
+            r#"Contract { name: "Foo", id: If(IfExpr { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(0)) }, else_block: Block { statements: [], final_expr: Immediate(Int(1)) } }), interfaces: [], functions: [] }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(
+            contract_decl(expr()),
+            "contract Foo(0) implements X::Bar, ::Y::Baz {}"
+        ),
+        expect_test::expect![[
+            r#"Contract { name: "Foo", id: Immediate(Int(0)), interfaces: [Ident { path: ["X", "Bar"], is_absolute: false }, Ident { path: ["Y", "Baz"], is_absolute: true }], functions: [] }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(
+            contract_decl(expr()),
+            "contract Foo(0) implements Bar { fn baz(x: real) -> int; }"
+        ),
+        expect_test::expect![[
+            r#"Contract { name: "Foo", id: Immediate(Int(0)), interfaces: [Ident { path: ["Bar"], is_absolute: false }], functions: [FnSig { name: "baz", params: [("x", Real)], return_type: Int }] }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(contract_decl(expr()), "contract Foo { }"),
+        expect_test::expect![[r#"
+            @13..14: found "{" but expected "("
+        "#]],
+    );
+
+    check(
+        &run_parser!(contract_decl(expr()), "contract Foo(0) implements { }"),
+        expect_test::expect![[r#"
+            @27..28: found "{" but expected "::"
+        "#]],
     );
 }

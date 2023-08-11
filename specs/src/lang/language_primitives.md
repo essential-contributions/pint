@@ -62,7 +62,7 @@ Identifiers have the following syntax:
 <ident> ::= _?[A-Za-z][A-Za-z0-9]*     % excluding keywords
 ```
 
-A number of keywords are reserved and cannot be used as identifiers. The keywords are: `bool`, `constraint`, `else`, `enum`, `false`, `real`, `fn`, `if`, `int`, `let`, `maximize`, `minimize`, `satisfy`, `solve`, `true`.
+A number of keywords are reserved and cannot be used as identifiers. The keywords are: `as`, `bool`, `constraint`, `contract`, `else`, `enum`, `false`, `fn`, `if`, `implements`, `interface`, `int`, `let`, `maximize`, `minimize`, `real`, `satisfy`, `solve`, `string`, `true`, `use`.
 
 ### Paths
 
@@ -82,7 +82,7 @@ x::y::z;
 x;
 ```
 
-Paths can be used in [Import Items](#import-items). They can also be used in expressions to directly refer to an item in a different module.
+Paths can be used in [Import Items](#import-items). They can also be used in expressions to directly refer to an item in a different module or [contract](#contract-items).
 
 Paths that start with `::` are absolute paths from the root of the project. Paths that don't start with `::` are relative paths.
 
@@ -104,6 +104,8 @@ Items can occur in any order; identifiers need not be declared before they are u
          | <solve-item>
          | <transition-item>
          | <enum-decl>
+         | <interface-item>
+         | <contract-item>
 ```
 
 Import items (`<import-item>`) import new items from a module/submodule or external library into the current module ([Import Items](#import-items)).
@@ -117,6 +119,10 @@ Function items introduce new user-defined functions which can be called in expre
 Solve items specify exact what kind of solution the user is interested in: plain satisfaction, or the minimization/maximization of an expression. Each intent must have at most one solve item ([Solve Items](#solve-items)).
 
 Transition items describe the state transition function of a blockchain ([Transition Items](#transition-items))
+
+Interface items contain lists of smart contract methods that a [contract](#contract-items) can have ([Interface Items](#interface-items))
+
+Contract items describe actual deployed contracts with a known contract ID and a list of available methods ([contract Items](#contract-items))
 
 ### Multi-file Intents
 
@@ -545,7 +551,9 @@ The solve item determines whether the intent represents a constraint satisfactio
 Function items describe user defined operations. They have the following syntax:
 
 ```ebnf
-<function-item> ::= "fn" <ident> "(" [ <param> "," ... ] ")" "->" <ty> <block-expr>
+<function-sig> ::= "fn" <ident> "(" [ <param> "," ... ] ")" "->" <ty>
+
+<function-item> ::= <function-sig> <block-expr>
 
 <param> ::= <ident> ":" <ty>
 ```
@@ -573,6 +581,55 @@ bal0 ~> bal1
 ```
 
 Here, `bal1` represents the _next_ value of `bal0` based on the state transition function of the blockchain where `bal0` lives.
+
+### Interface Items
+
+Interface items contain lists of smart contract functions that a smart [contract](#contract-items) can have ([Interface Items](#interface-items))
+
+Interface items describe lists of smart contract functions, in the form of function signatures, that a contract can have. An interface item has the following syntax:
+
+```ebnf
+<interface-item> ::= "interface" <ident> "{" ( <function-sig> ";" )* "}"
+```
+
+For example, the following is a simple interface with 3 functions:
+
+```rust
+interface IERC20 {
+    fn totalSupply() -> int;
+    fn balanceOf(account: int) -> int;
+    fn allowance(owner: int, spender: int) -> int;
+}
+```
+
+Interface functions are not callable directly. Instead, they have to be called through a [contract](#contract-items).
+
+### Contract Items
+
+Contract items describe actual deployed contracts with a known contract ID and a list of available functions. Contract items require a known integer ID and a list of function signatures. Contract can also "inherit" functions from [interfaces](#interface-items). Contract items have the following syntax:
+
+```ebnf
+<contract-item> ::= "contract" <ident> "(" <expr> ")"
+                    [ "implements" <path> ( "," <path> )* ]
+                    "{" ( <function-sig> ";" )* "}"
+```
+
+For example, consider the contract item below:
+
+```rust
+contract MyToken(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) implements IERC20, Ownable {
+    fn foo() -> int;
+    fn bar() -> int;
+}
+```
+
+This contract is called `MyToken` and has an integer ID of `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`. The contract has the following functions:
+
+1. All the functions declared in the `IERC20` interface.
+1. All the functions declared in the `Ownable` interface.
+1. All the functions declared in the body of the contract, namely `foo()` and `bar()`.
+
+A call to any of these functions can be made using a `<call-expr>` with the name of the contract used in `<path>`. For example, `MyToken::foo()`.
 
 ## Language Backend
 

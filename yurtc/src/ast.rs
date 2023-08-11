@@ -47,13 +47,28 @@ pub(super) enum Decl {
     Let(LetDecl),
     Constraint(Expr),
     Fn {
-        name: String,
-        params: Vec<(String, Type)>,
-        return_type: Type,
+        fn_sig: FnSig,
         body: Block,
     },
     Solve(SolveFunc),
     Enum(EnumDecl),
+    Interface {
+        name: String,
+        functions: Vec<FnSig>,
+    },
+    Contract {
+        name: String,
+        id: Expr,
+        interfaces: Vec<Ident>,
+        functions: Vec<FnSig>,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct FnSig {
+    pub(super) name: String,
+    pub(super) params: Vec<(String, Type)>,
+    pub(super) return_type: Type,
 }
 
 #[derive(Clone, Debug, PartialEq)]
