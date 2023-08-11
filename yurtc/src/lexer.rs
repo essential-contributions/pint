@@ -16,6 +16,8 @@ pub(super) enum Token<'sc> {
     DoubleColon,
     #[token("!")]
     Bang,
+    #[token("|")]
+    Pipe,
     #[token("+")]
     Plus,
     #[token("-")]
@@ -93,6 +95,8 @@ pub(super) enum Token<'sc> {
 
     #[token("let")]
     Let,
+    #[token("enum")]
+    Enum,
     #[token("constraint")]
     Constraint,
     #[token("maximize")]
@@ -156,6 +160,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Satisfy,
     Token::Use,
     Token::As,
+    Token::Enum,
     Token::Interface,
     Token::Contract,
     Token::Implements,
@@ -167,6 +172,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Colon => write!(f, ":"),
             Token::DoubleColon => write!(f, "::"),
             Token::Bang => write!(f, "!"),
+            Token::Pipe => write!(f, "|"),
             Token::Plus => write!(f, "+"),
             Token::Minus => write!(f, "-"),
             Token::Div => write!(f, "/"),
@@ -203,6 +209,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Else => write!(f, "else"),
             Token::Cond => write!(f, "cond"),
             Token::Let => write!(f, "let"),
+            Token::Enum => write!(f, "enum"),
             Token::Constraint => write!(f, "constraint"),
             Token::Maximize => write!(f, "maximize"),
             Token::Minimize => write!(f, "minimize"),

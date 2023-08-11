@@ -68,6 +68,7 @@ fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> 
         constraint_decl(expr()),
         solve_decl(),
         fn_decl(expr()),
+        enum_decl(),
         interface_decl(expr()),
         contract_decl(expr()),
     ))
@@ -139,6 +140,16 @@ fn let_decl<'sc>(
             ((name, ty), init)
         })
         .map(|((name, ty), init)| ast::Decl::Let(ast::LetDecl { name, ty, init }))
+        .boxed()
+}
+
+fn enum_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+    just(Token::Enum)
+        .ignore_then(ident())
+        .then_ignore(just(Token::Eq))
+        .then(ident().separated_by(just(Token::Pipe)))
+        .then_ignore(just(Token::Semi))
+        .map(|(name, variants)| ast::Decl::Enum(ast::EnumDecl { name, variants }))
         .boxed()
 }
 
@@ -662,6 +673,7 @@ fn type_<'sc>(
             just(Token::Bool).to(ast::Type::Bool),
             just(Token::String).to(ast::Type::String),
             tuple.map(ast::Type::Tuple),
+            ident().map(ast::Type::CustomType),
         ))
         .boxed();
 
