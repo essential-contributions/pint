@@ -109,6 +109,13 @@ pub(super) enum Token<'sc> {
     #[token("as")]
     As,
 
+    #[token("interface")]
+    Interface,
+    #[token("contract")]
+    Contract,
+    #[token("implements")]
+    Implements,
+
     #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice())]
     Ident(&'sc str),
     #[regex(r"[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+", |lex| lex.slice())]
@@ -149,6 +156,9 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Satisfy,
     Token::Use,
     Token::As,
+    Token::Interface,
+    Token::Contract,
+    Token::Implements,
 ];
 
 impl<'sc> fmt::Display for Token<'sc> {
@@ -200,6 +210,9 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Satisfy => write!(f, "satisfy"),
             Token::Use => write!(f, "use"),
             Token::As => write!(f, "as"),
+            Token::Interface => write!(f, "interface"),
+            Token::Contract => write!(f, "contract"),
+            Token::Implements => write!(f, "implements"),
             Token::Ident(ident) => write!(f, "{ident}"),
             Token::RealLiteral(ident) => write!(f, "{ident}"),
             Token::IntLiteral(ident) => write!(f, "{ident}"),
