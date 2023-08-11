@@ -139,17 +139,26 @@ fn let_decl<'sc>(
             }
             ((name, ty), init)
         })
-        .map(|((name, ty), init)| ast::Decl::Let(ast::LetDecl { name, ty, init }))
+        .map_with_span(|((name, ty), init), span| ast::Decl::Let {
+            name,
+            ty,
+            init,
+            span,
+        })
         .boxed()
 }
 
 fn enum_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     just(Token::Enum)
-        .ignore_then(ident())
+        .ignore_then(ident().map_with_span(|id, span| (id, span)))
         .then_ignore(just(Token::Eq))
         .then(ident().separated_by(just(Token::Pipe)))
         .then_ignore(just(Token::Semi))
-        .map(|(name, variants)| ast::Decl::Enum(ast::EnumDecl { name, variants }))
+        .map(|((name, name_span), variants)| ast::Decl::Enum {
+            name,
+            variants,
+            name_span,
+        })
         .boxed()
 }
 
@@ -159,7 +168,7 @@ fn constraint_decl<'sc>(
     just(Token::Constraint)
         .ignore_then(expr)
         .then_ignore(just(Token::Semi))
-        .map(ast::Decl::Constraint)
+        .map_with_span(|expr, span| ast::Decl::Constraint { expr, span })
         .boxed()
 }
 
@@ -175,7 +184,7 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'s
     just(Token::Solve)
         .ignore_then(choice((solve_satisfy, solve_minimize, solve_maximize)))
         .then_ignore(just(Token::Semi))
-        .map(ast::Decl::Solve)
+        .map_with_span(|directive, span| ast::Decl::Solve { directive, span })
         .boxed()
 }
 
@@ -206,10 +215,11 @@ fn fn_sig<'sc>(
         .ignore_then(ident())
         .then(params)
         .then(return_type)
-        .map(|((name, params), return_type)| ast::FnSig {
+        .map_with_span(|((name, params), return_type), span| ast::FnSig {
             name,
             params,
             return_type,
+            span,
         })
         .boxed()
 }
@@ -218,13 +228,17 @@ fn interface_decl<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     just(Token::Interface)
-        .ignore_then(ident())
+        .ignore_then(ident().map_with_span(|id, span| (id, span)))
         .then(
             (fn_sig(expr).then_ignore(just(Token::Semi)))
                 .repeated()
                 .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
         )
-        .map(|(name, functions)| ast::Decl::Interface { name, functions })
+        .map(|((name, name_span), functions)| ast::Decl::Interface {
+            name,
+            functions,
+            name_span,
+        })
         .boxed()
 }
 
@@ -232,7 +246,7 @@ fn contract_decl<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     just(Token::Contract)
-        .ignore_then(ident())
+        .ignore_then(ident().map_with_span(|id, span| (id, span)))
         .then(
             expr.clone()
                 .delimited_by(just(Token::ParenOpen), just(Token::ParenClose)),
@@ -248,11 +262,12 @@ fn contract_decl<'sc>(
                 .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
         )
         .map(
-            |(((name, id), interfaces), functions)| ast::Decl::Contract {
+            |((((name, name_span), id), interfaces), functions)| ast::Decl::Contract {
                 name,
                 id,
                 interfaces: interfaces.unwrap_or_default(),
                 functions,
+                name_span,
             },
         )
         .boxed()
