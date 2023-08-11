@@ -1,3 +1,5 @@
+use crate::error::Span;
+
 use itertools::Either;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -10,22 +12,31 @@ pub(super) enum Decl {
         name: String,
         ty: Option<Type>,
         init: Option<Expr>,
+        span: Span,
     },
-    Constraint(Expr),
+    Constraint {
+        expr: Expr,
+        span: Span,
+    },
     Fn {
         fn_sig: FnSig,
         body: Block,
     },
-    Solve(SolveFunc),
+    Solve {
+        directive: SolveFunc,
+        span: Span,
+    },
     Interface {
         name: String,
         functions: Vec<FnSig>,
+        name_span: Span,
     },
     Contract {
         name: String,
         id: Expr,
         interfaces: Vec<Ident>,
         functions: Vec<FnSig>,
+        name_span: Span,
     },
 }
 
@@ -59,6 +70,7 @@ pub(super) struct FnSig {
     pub(super) name: String,
     pub(super) params: Vec<(String, Type)>,
     pub(super) return_type: Type,
+    pub(super) span: Span,
 }
 
 #[derive(Clone, Debug, PartialEq)]

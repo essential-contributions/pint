@@ -197,66 +197,68 @@ fn let_decls() {
     check(
         &run_parser!(let_decl(expr()), "let blah = 1.0;"),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: None, init: Some(Immediate(Real(1.0))) }"#
+            r#"Let { name: "blah", ty: None, init: Some(Immediate(Real(1.0))), span: 0..15 }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: real = 1.0;"),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: Some(Real), init: Some(Immediate(Real(1.0))) }"#
+            r#"Let { name: "blah", ty: Some(Real), init: Some(Immediate(Real(1.0))), span: 0..21 }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: real;"),
-        expect_test::expect![[r#"Let { name: "blah", ty: Some(Real), init: None }"#]],
+        expect_test::expect![[r#"Let { name: "blah", ty: Some(Real), init: None, span: 0..15 }"#]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah = 1;"),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: None, init: Some(Immediate(Int(1))) }"#
+            r#"Let { name: "blah", ty: None, init: Some(Immediate(Int(1))), span: 0..13 }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: int = 1;"),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: Some(Int), init: Some(Immediate(Int(1))) }"#
+            r#"Let { name: "blah", ty: Some(Int), init: Some(Immediate(Int(1))), span: 0..18 }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: int;"),
-        expect_test::expect![[r#"Let { name: "blah", ty: Some(Int), init: None }"#]],
+        expect_test::expect![[r#"Let { name: "blah", ty: Some(Int), init: None, span: 0..14 }"#]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah = true;"),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: None, init: Some(Immediate(Bool(true))) }"#
+            r#"Let { name: "blah", ty: None, init: Some(Immediate(Bool(true))), span: 0..16 }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: bool = false;"),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: Some(Bool), init: Some(Immediate(Bool(false))) }"#
+            r#"Let { name: "blah", ty: Some(Bool), init: Some(Immediate(Bool(false))), span: 0..23 }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: bool;"),
-        expect_test::expect![[r#"Let { name: "blah", ty: Some(Bool), init: None }"#]],
+        expect_test::expect![[r#"Let { name: "blah", ty: Some(Bool), init: None, span: 0..15 }"#]],
     );
     check(
         &run_parser!(let_decl(expr()), r#"let blah = "hello";"#),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: None, init: Some(Immediate(String("hello"))) }"#
+            r#"Let { name: "blah", ty: None, init: Some(Immediate(String("hello"))), span: 0..19 }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), r#"let blah: string = "hello";"#),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: Some(String), init: Some(Immediate(String("hello"))) }"#
+            r#"Let { name: "blah", ty: Some(String), init: Some(Immediate(String("hello"))), span: 0..27 }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), r#"let blah: string;"#),
-        expect_test::expect![[r#"Let { name: "blah", ty: Some(String), init: None }"#]],
+        expect_test::expect![[
+            r#"Let { name: "blah", ty: Some(String), init: None, span: 0..17 }"#
+        ]],
     );
 }
 
@@ -266,7 +268,7 @@ fn constraint_decls() {
     check(
         &run_parser!(constraint_decl(expr()), "constraint blah;"),
         expect_test::expect![[
-            r#"Constraint(Ident(Ident { path: ["blah"], is_absolute: false }))"#
+            r#"Constraint { expr: Ident(Ident { path: ["blah"], is_absolute: false }), span: 0..16 }"#
         ]],
     );
 }
@@ -275,15 +277,19 @@ fn constraint_decls() {
 fn solve_decls() {
     check(
         &run_parser!(solve_decl(), "solve satisfy;"),
-        expect_test::expect!["Solve(Satisfy)"],
+        expect_test::expect!["Solve { directive: Satisfy, span: 0..14 }"],
     );
     check(
         &run_parser!(solve_decl(), "solve minimize foo;"),
-        expect_test::expect![[r#"Solve(Minimize(Ident { path: ["foo"], is_absolute: false }))"#]],
+        expect_test::expect![[
+            r#"Solve { directive: Minimize(Ident { path: ["foo"], is_absolute: false }), span: 0..19 }"#
+        ]],
     );
     check(
         &run_parser!(solve_decl(), "solve maximize foo;"),
-        expect_test::expect![[r#"Solve(Maximize(Ident { path: ["foo"], is_absolute: false }))"#]],
+        expect_test::expect![[
+            r#"Solve { directive: Maximize(Ident { path: ["foo"], is_absolute: false }), span: 0..19 }"#
+        ]],
     );
 
     check(
@@ -746,7 +752,7 @@ fn foo(x: real, y: real) -> real {
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Fn { fn_sig: FnSig { name: "foo", params: [("x", Real), ("y", Real)], return_type: Real }, body: Block { statements: [Let { name: "z", ty: None, init: Some(Immediate(Real(5.0))) }], final_expr: Ident(Ident { path: ["z"], is_absolute: false }) } }]"#
+            r#"[Fn { fn_sig: FnSig { name: "foo", params: [("x", Real), ("y", Real)], return_type: Real, span: 1..33 }, body: Block { statements: [Let { name: "z", ty: None, init: Some(Immediate(Real(5.0))), span: 40..52 }], final_expr: Ident(Ident { path: ["z"], is_absolute: false }) } }]"#
         ]],
     );
 }
@@ -760,7 +766,7 @@ let x = foo(a*3, c);
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Let { name: "x", ty: None, init: Some(Call { name: Ident { path: ["foo"], is_absolute: false }, args: [BinaryOp { op: Mul, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Int(3)) }, Ident(Ident { path: ["c"], is_absolute: false })] }) }]"#
+            r#"[Let { name: "x", ty: None, init: Some(Call { name: Ident { path: ["foo"], is_absolute: false }, args: [BinaryOp { op: Mul, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Int(3)) }, Ident(Ident { path: ["c"], is_absolute: false })] }), span: 1..21 }]"#
         ]],
     );
 
@@ -777,14 +783,14 @@ fn code_blocks() {
     check(
         &run_parser!(let_decl(expr()), "let x = { 0 };"),
         expect_test::expect![[
-            r#"Let { name: "x", ty: None, init: Some(Block(Block { statements: [], final_expr: Immediate(Int(0)) })) }"#
+            r#"Let { name: "x", ty: None, init: Some(Block(Block { statements: [], final_expr: Immediate(Int(0)) })), span: 0..14 }"#
         ]],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = { constraint x > 0.0; 0.0 };"),
         expect_test::expect![[
-            r#"Let { name: "x", ty: None, init: Some(Block(Block { statements: [Constraint(BinaryOp { op: GreaterThan, lhs: Ident(Ident { path: ["x"], is_absolute: false }), rhs: Immediate(Real(0.0)) })], final_expr: Immediate(Real(0.0)) })) }"#
+            r#"Let { name: "x", ty: None, init: Some(Block(Block { statements: [Constraint { expr: BinaryOp { op: GreaterThan, lhs: Ident(Ident { path: ["x"], is_absolute: false }), rhs: Immediate(Real(0.0)) }, span: 10..29 }], final_expr: Immediate(Real(0.0)) })), span: 0..36 }"#
         ]],
     );
 
@@ -794,14 +800,14 @@ fn code_blocks() {
             "constraint { constraint { true }; x > 0 };"
         ),
         expect_test::expect![[
-            r#"Constraint(Block(Block { statements: [Constraint(Block(Block { statements: [], final_expr: Immediate(Bool(true)) }))], final_expr: BinaryOp { op: GreaterThan, lhs: Ident(Ident { path: ["x"], is_absolute: false }), rhs: Immediate(Int(0)) } }))"#
+            r#"Constraint { expr: Block(Block { statements: [Constraint { expr: Block(Block { statements: [], final_expr: Immediate(Bool(true)) }), span: 13..33 }], final_expr: BinaryOp { op: GreaterThan, lhs: Ident(Ident { path: ["x"], is_absolute: false }), rhs: Immediate(Int(0)) } }), span: 0..42 }"#
         ]],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = { 1.0 } * { 2.0 };"),
         expect_test::expect![[
-            r#"Let { name: "x", ty: None, init: Some(BinaryOp { op: Mul, lhs: Block(Block { statements: [], final_expr: Immediate(Real(1.0)) }), rhs: Block(Block { statements: [], final_expr: Immediate(Real(2.0)) }) }) }"#
+            r#"Let { name: "x", ty: None, init: Some(BinaryOp { op: Mul, lhs: Block(Block { statements: [], final_expr: Immediate(Real(1.0)) }), rhs: Block(Block { statements: [], final_expr: Immediate(Real(2.0)) }) }), span: 0..26 }"#
         ]],
     );
 
@@ -1254,7 +1260,7 @@ solve minimize mid;
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Let { name: "low_val", ty: Some(Real), init: Some(Immediate(Real(1.23))) }, Let { name: "high_val", ty: None, init: Some(Immediate(Real(4.56))) }, Constraint(BinaryOp { op: GreaterThan, lhs: Ident(Ident { path: ["mid"], is_absolute: false }), rhs: BinaryOp { op: Mul, lhs: Ident(Ident { path: ["low_val"], is_absolute: false }), rhs: Immediate(Real(2.0)) } }), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident { path: ["mid"], is_absolute: false }), rhs: Ident(Ident { path: ["high_val"], is_absolute: false }) }), Solve(Minimize(Ident { path: ["mid"], is_absolute: false }))]"#
+            r#"[Let { name: "low_val", ty: Some(Real), init: Some(Immediate(Real(1.23))), span: 1..26 }, Let { name: "high_val", ty: None, init: Some(Immediate(Real(4.56))), span: 27..47 }, Constraint { expr: BinaryOp { op: GreaterThan, lhs: Ident(Ident { path: ["mid"], is_absolute: false }), rhs: BinaryOp { op: Mul, lhs: Ident(Ident { path: ["low_val"], is_absolute: false }), rhs: Immediate(Real(2.0)) } }, span: 101..132 }, Constraint { expr: BinaryOp { op: LessThan, lhs: Ident(Ident { path: ["mid"], is_absolute: false }), rhs: Ident(Ident { path: ["high_val"], is_absolute: false }) }, span: 133..159 }, Solve { directive: Minimize(Ident { path: ["mid"], is_absolute: false }), span: 161..180 }]"#
         ]],
     );
 }
@@ -1299,7 +1305,7 @@ let low = 1.0;
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Solve(Maximize(Ident { path: ["low"], is_absolute: false })), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident { path: ["low"], is_absolute: false }), rhs: Ident(Ident { path: ["high"], is_absolute: false }) }), Let { name: "high", ty: None, init: Some(Immediate(Real(2.0))) }, Solve(Satisfy), Let { name: "low", ty: None, init: Some(Immediate(Real(1.0))) }]"#
+            r#"[Solve { directive: Maximize(Ident { path: ["low"], is_absolute: false }), span: 1..20 }, Constraint { expr: BinaryOp { op: LessThan, lhs: Ident(Ident { path: ["low"], is_absolute: false }), rhs: Ident(Ident { path: ["high"], is_absolute: false }) }, span: 21..43 }, Let { name: "high", ty: None, init: Some(Immediate(Real(2.0))), span: 44..59 }, Solve { directive: Satisfy, span: 60..74 }, Let { name: "low", ty: None, init: Some(Immediate(Real(1.0))), span: 75..89 }]"#
         ]],
     );
 }
@@ -1325,7 +1331,7 @@ fn test_parse_str_to_ast() {
     check(
         &format!("{:?}", parse_str_to_ast("let x = 5;", "my_file")),
         expect_test::expect![[
-            r#"Ok([Let { name: "x", ty: None, init: Some(Immediate(Int(5))) }])"#
+            r#"Ok([Let { name: "x", ty: None, init: Some(Immediate(Int(5))), span: 0..10 }])"#
         ]],
     );
     check(
@@ -1346,7 +1352,7 @@ fn big_ints() {
             "let blah = 1234567890123456789012345678901234567890;"
         ),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: None, init: Some(Immediate(BigInt(1234567890123456789012345678901234567890))) }"#
+            r#"Let { name: "blah", ty: None, init: Some(Immediate(BigInt(1234567890123456789012345678901234567890))), span: 0..52 }"#
         ]],
     );
     check(
@@ -1356,7 +1362,7 @@ fn big_ints() {
         ),
         // Confirmed by using the Python REPL to convert from hex to dec...
         expect_test::expect![[
-            r#"Let { name: "blah", ty: None, init: Some(Immediate(BigInt(5421732407698601623698172315373246806734))) }"#
+            r#"Let { name: "blah", ty: None, init: Some(Immediate(BigInt(5421732407698601623698172315373246806734))), span: 0..47 }"#
         ]],
     );
     check(
@@ -1385,13 +1391,13 @@ interface Foo {
     check(
         &run_parser!(interface_decl(expr()), src),
         expect_test::expect![[
-            r#"Interface { name: "Foo", functions: [FnSig { name: "foo", params: [("x", Real), ("y", Array { ty: Int, range: Immediate(Int(5)) })], return_type: Real }, FnSig { name: "bar", params: [("x", Bool)], return_type: Real }, FnSig { name: "baz", params: [], return_type: Tuple([(None, Int), (None, Real)]) }] }"#
+            r#"Interface { name: "Foo", functions: [FnSig { name: "foo", params: [("x", Real), ("y", Array { ty: Int, range: Immediate(Int(5)) })], return_type: Real, span: 21..55 }, FnSig { name: "bar", params: [("x", Bool)], return_type: Real, span: 61..85 }, FnSig { name: "baz", params: [], return_type: Tuple([(None, Int), (None, Real)]), span: 91..116 }], name_span: 11..14 }"#
         ]],
     );
 
     check(
         &run_parser!(interface_decl(expr()), "interface Foo {}"),
-        expect_test::expect![[r#"Interface { name: "Foo", functions: [] }"#]],
+        expect_test::expect![[r#"Interface { name: "Foo", functions: [], name_span: 10..13 }"#]],
     );
 }
 
@@ -1400,7 +1406,7 @@ fn contract_test() {
     check(
         &run_parser!(contract_decl(expr()), "contract Foo(0) {}"),
         expect_test::expect![[
-            r#"Contract { name: "Foo", id: Immediate(Int(0)), interfaces: [], functions: [] }"#
+            r#"Contract { name: "Foo", id: Immediate(Int(0)), interfaces: [], functions: [], name_span: 9..12 }"#
         ]],
     );
 
@@ -1410,7 +1416,7 @@ fn contract_test() {
             "contract Foo(if true {0} else {1}) {}"
         ),
         expect_test::expect![[
-            r#"Contract { name: "Foo", id: If(IfExpr { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(0)) }, else_block: Block { statements: [], final_expr: Immediate(Int(1)) } }), interfaces: [], functions: [] }"#
+            r#"Contract { name: "Foo", id: If(IfExpr { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(0)) }, else_block: Block { statements: [], final_expr: Immediate(Int(1)) } }), interfaces: [], functions: [], name_span: 9..12 }"#
         ]],
     );
 
@@ -1420,7 +1426,7 @@ fn contract_test() {
             "contract Foo(0) implements X::Bar, ::Y::Baz {}"
         ),
         expect_test::expect![[
-            r#"Contract { name: "Foo", id: Immediate(Int(0)), interfaces: [Ident { path: ["X", "Bar"], is_absolute: false }, Ident { path: ["Y", "Baz"], is_absolute: true }], functions: [] }"#
+            r#"Contract { name: "Foo", id: Immediate(Int(0)), interfaces: [Ident { path: ["X", "Bar"], is_absolute: false }, Ident { path: ["Y", "Baz"], is_absolute: true }], functions: [], name_span: 9..12 }"#
         ]],
     );
 
@@ -1430,7 +1436,7 @@ fn contract_test() {
             "contract Foo(0) implements Bar { fn baz(x: real) -> int; }"
         ),
         expect_test::expect![[
-            r#"Contract { name: "Foo", id: Immediate(Int(0)), interfaces: [Ident { path: ["Bar"], is_absolute: false }], functions: [FnSig { name: "baz", params: [("x", Real)], return_type: Int }] }"#
+            r#"Contract { name: "Foo", id: Immediate(Int(0)), interfaces: [Ident { path: ["Bar"], is_absolute: false }], functions: [FnSig { name: "baz", params: [("x", Real)], return_type: Int, span: 33..55 }], name_span: 9..12 }"#
         ]],
     );
 
