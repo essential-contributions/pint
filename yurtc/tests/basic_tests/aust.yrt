@@ -1,22 +1,14 @@
-// Colouring Australia using nc colours
+// Colouring Australia using 3 colours
 
-let nc: int = 3;
+enum Colour = Red | Green | Blue;
 
-let wa: int;
-let nt: int;
-let sa: int;
-let q: int;
-let nsw: int;
-let v: int;
-let t: int;
-
-constraint wa >= 1 && wa <= nc;
-constraint nt >= 1 &&  nt <= nc;
-constraint sa >= 1 && sa <= nc;
-constraint q >= 1 && q <= nc;
-constraint nsw >= 1 && nsw <= nc;
-constraint v >= 1 && v <= nc;
-constraint t >= 1 && t <= nc;
+let wa: Colour;
+let nt: Colour;
+let sa: Colour;
+let q: Colour;
+let nsw: Colour;
+let v: Colour;
+let t: Colour;
 
 // Make sure that no two neighboring states/territories share a colour
 constraint wa != nt;

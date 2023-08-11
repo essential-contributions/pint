@@ -92,7 +92,7 @@ pub(super) enum Type {
     String,
     Array { ty: Box<Type>, range: Expr },
     Tuple(Vec<(Option<String>, Type)>),
-    CustomType(String),
+    CustomType(Ident),
 }
 
 #[derive(Clone, Debug, PartialEq)]

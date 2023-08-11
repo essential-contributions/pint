@@ -688,7 +688,7 @@ fn type_<'sc>(
             just(Token::Bool).to(ast::Type::Bool),
             just(Token::String).to(ast::Type::String),
             tuple.map(ast::Type::Tuple),
-            ident().map(ast::Type::CustomType),
+            ident_path().map(ast::Type::CustomType),
         ))
         .boxed();
 
@@ -698,15 +698,15 @@ fn type_<'sc>(
         type_atom
             .clone()
             .then(
-                expr//array_range
-                    .delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
+                expr.delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
                     .repeated(),
             )
             .map(|(type_atom, array_range)| (array_range, type_atom))
             .foldr(|range, ty| ast::Type::Array {
                 ty: Box::new(ty),
                 range,
-            }).boxed()
+            })
+            .boxed()
     })
 }
 
