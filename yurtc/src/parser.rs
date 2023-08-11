@@ -138,7 +138,7 @@ fn let_decl<'sc>(
             }
             ((name, ty), init)
         })
-        .map(|((name, ty), init)| ast::Decl::Let(ast::LetDecl { name, ty, init }))
+        .map(|((name, ty), init)| ast::Decl::Let { name, ty, init })
         .boxed()
 }
 

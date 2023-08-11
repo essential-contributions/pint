@@ -1,6 +1,35 @@
 use itertools::Either;
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) enum Decl {
+    Use {
+        is_absolute: bool,
+        use_tree: UseTree,
+    },
+    Let {
+        name: String,
+        ty: Option<Type>,
+        init: Option<Expr>,
+    },
+    Constraint(Expr),
+    Fn {
+        fn_sig: FnSig,
+        body: Block,
+    },
+    Solve(SolveFunc),
+    Interface {
+        name: String,
+        functions: Vec<FnSig>,
+    },
+    Contract {
+        name: String,
+        id: Expr,
+        interfaces: Vec<Ident>,
+        functions: Vec<FnSig>,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) enum UseTree {
     Glob,
     Name {
@@ -20,41 +49,9 @@ pub(super) enum UseTree {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct LetDecl {
-    pub(super) name: String,
-    pub(super) ty: Option<Type>,
-    pub(super) init: Option<Expr>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
 pub(super) struct Block {
     pub(super) statements: Vec<Decl>,
     pub(super) final_expr: Box<Expr>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(super) enum Decl {
-    Use {
-        is_absolute: bool,
-        use_tree: UseTree,
-    },
-    Let(LetDecl),
-    Constraint(Expr),
-    Fn {
-        fn_sig: FnSig,
-        body: Block,
-    },
-    Solve(SolveFunc),
-    Interface {
-        name: String,
-        functions: Vec<FnSig>,
-    },
-    Contract {
-        name: String,
-        id: Expr,
-        interfaces: Vec<Ident>,
-        functions: Vec<FnSig>,
-    },
 }
 
 #[derive(Clone, Debug, PartialEq)]

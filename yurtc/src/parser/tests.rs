@@ -197,66 +197,66 @@ fn let_decls() {
     check(
         &run_parser!(let_decl(expr()), "let blah = 1.0;"),
         expect_test::expect![[
-            r#"Let(LetDecl { name: "blah", ty: None, init: Some(Immediate(Real(1.0))) })"#
+            r#"Let { name: "blah", ty: None, init: Some(Immediate(Real(1.0))) }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: real = 1.0;"),
         expect_test::expect![[
-            r#"Let(LetDecl { name: "blah", ty: Some(Real), init: Some(Immediate(Real(1.0))) })"#
+            r#"Let { name: "blah", ty: Some(Real), init: Some(Immediate(Real(1.0))) }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: real;"),
-        expect_test::expect![[r#"Let(LetDecl { name: "blah", ty: Some(Real), init: None })"#]],
+        expect_test::expect![[r#"Let { name: "blah", ty: Some(Real), init: None }"#]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah = 1;"),
         expect_test::expect![[
-            r#"Let(LetDecl { name: "blah", ty: None, init: Some(Immediate(Int(1))) })"#
+            r#"Let { name: "blah", ty: None, init: Some(Immediate(Int(1))) }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: int = 1;"),
         expect_test::expect![[
-            r#"Let(LetDecl { name: "blah", ty: Some(Int), init: Some(Immediate(Int(1))) })"#
+            r#"Let { name: "blah", ty: Some(Int), init: Some(Immediate(Int(1))) }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: int;"),
-        expect_test::expect![[r#"Let(LetDecl { name: "blah", ty: Some(Int), init: None })"#]],
+        expect_test::expect![[r#"Let { name: "blah", ty: Some(Int), init: None }"#]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah = true;"),
         expect_test::expect![[
-            r#"Let(LetDecl { name: "blah", ty: None, init: Some(Immediate(Bool(true))) })"#
+            r#"Let { name: "blah", ty: None, init: Some(Immediate(Bool(true))) }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: bool = false;"),
         expect_test::expect![[
-            r#"Let(LetDecl { name: "blah", ty: Some(Bool), init: Some(Immediate(Bool(false))) })"#
+            r#"Let { name: "blah", ty: Some(Bool), init: Some(Immediate(Bool(false))) }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: bool;"),
-        expect_test::expect![[r#"Let(LetDecl { name: "blah", ty: Some(Bool), init: None })"#]],
+        expect_test::expect![[r#"Let { name: "blah", ty: Some(Bool), init: None }"#]],
     );
     check(
         &run_parser!(let_decl(expr()), r#"let blah = "hello";"#),
         expect_test::expect![[
-            r#"Let(LetDecl { name: "blah", ty: None, init: Some(Immediate(String("hello"))) })"#
+            r#"Let { name: "blah", ty: None, init: Some(Immediate(String("hello"))) }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), r#"let blah: string = "hello";"#),
         expect_test::expect![[
-            r#"Let(LetDecl { name: "blah", ty: Some(String), init: Some(Immediate(String("hello"))) })"#
+            r#"Let { name: "blah", ty: Some(String), init: Some(Immediate(String("hello"))) }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), r#"let blah: string;"#),
-        expect_test::expect![[r#"Let(LetDecl { name: "blah", ty: Some(String), init: None })"#]],
+        expect_test::expect![[r#"Let { name: "blah", ty: Some(String), init: None }"#]],
     );
 }
 
@@ -746,7 +746,7 @@ fn foo(x: real, y: real) -> real {
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Fn { fn_sig: FnSig { name: "foo", params: [("x", Real), ("y", Real)], return_type: Real }, body: Block { statements: [Let(LetDecl { name: "z", ty: None, init: Some(Immediate(Real(5.0))) })], final_expr: Ident(Ident { path: ["z"], is_absolute: false }) } }]"#
+            r#"[Fn { fn_sig: FnSig { name: "foo", params: [("x", Real), ("y", Real)], return_type: Real }, body: Block { statements: [Let { name: "z", ty: None, init: Some(Immediate(Real(5.0))) }], final_expr: Ident(Ident { path: ["z"], is_absolute: false }) } }]"#
         ]],
     );
 }
@@ -760,7 +760,7 @@ let x = foo(a*3, c);
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Let(LetDecl { name: "x", ty: None, init: Some(Call { name: Ident { path: ["foo"], is_absolute: false }, args: [BinaryOp { op: Mul, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Int(3)) }, Ident(Ident { path: ["c"], is_absolute: false })] }) })]"#
+            r#"[Let { name: "x", ty: None, init: Some(Call { name: Ident { path: ["foo"], is_absolute: false }, args: [BinaryOp { op: Mul, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Int(3)) }, Ident(Ident { path: ["c"], is_absolute: false })] }) }]"#
         ]],
     );
 
@@ -777,14 +777,14 @@ fn code_blocks() {
     check(
         &run_parser!(let_decl(expr()), "let x = { 0 };"),
         expect_test::expect![[
-            r#"Let(LetDecl { name: "x", ty: None, init: Some(Block(Block { statements: [], final_expr: Immediate(Int(0)) })) })"#
+            r#"Let { name: "x", ty: None, init: Some(Block(Block { statements: [], final_expr: Immediate(Int(0)) })) }"#
         ]],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = { constraint x > 0.0; 0.0 };"),
         expect_test::expect![[
-            r#"Let(LetDecl { name: "x", ty: None, init: Some(Block(Block { statements: [Constraint(BinaryOp { op: GreaterThan, lhs: Ident(Ident { path: ["x"], is_absolute: false }), rhs: Immediate(Real(0.0)) })], final_expr: Immediate(Real(0.0)) })) })"#
+            r#"Let { name: "x", ty: None, init: Some(Block(Block { statements: [Constraint(BinaryOp { op: GreaterThan, lhs: Ident(Ident { path: ["x"], is_absolute: false }), rhs: Immediate(Real(0.0)) })], final_expr: Immediate(Real(0.0)) })) }"#
         ]],
     );
 
@@ -801,7 +801,7 @@ fn code_blocks() {
     check(
         &run_parser!(let_decl(expr()), "let x = { 1.0 } * { 2.0 };"),
         expect_test::expect![[
-            r#"Let(LetDecl { name: "x", ty: None, init: Some(BinaryOp { op: Mul, lhs: Block(Block { statements: [], final_expr: Immediate(Real(1.0)) }), rhs: Block(Block { statements: [], final_expr: Immediate(Real(2.0)) }) }) })"#
+            r#"Let { name: "x", ty: None, init: Some(BinaryOp { op: Mul, lhs: Block(Block { statements: [], final_expr: Immediate(Real(1.0)) }), rhs: Block(Block { statements: [], final_expr: Immediate(Real(2.0)) }) }) }"#
         ]],
     );
 
@@ -1254,7 +1254,7 @@ solve minimize mid;
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Let(LetDecl { name: "low_val", ty: Some(Real), init: Some(Immediate(Real(1.23))) }), Let(LetDecl { name: "high_val", ty: None, init: Some(Immediate(Real(4.56))) }), Constraint(BinaryOp { op: GreaterThan, lhs: Ident(Ident { path: ["mid"], is_absolute: false }), rhs: BinaryOp { op: Mul, lhs: Ident(Ident { path: ["low_val"], is_absolute: false }), rhs: Immediate(Real(2.0)) } }), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident { path: ["mid"], is_absolute: false }), rhs: Ident(Ident { path: ["high_val"], is_absolute: false }) }), Solve(Minimize(Ident { path: ["mid"], is_absolute: false }))]"#
+            r#"[Let { name: "low_val", ty: Some(Real), init: Some(Immediate(Real(1.23))) }, Let { name: "high_val", ty: None, init: Some(Immediate(Real(4.56))) }, Constraint(BinaryOp { op: GreaterThan, lhs: Ident(Ident { path: ["mid"], is_absolute: false }), rhs: BinaryOp { op: Mul, lhs: Ident(Ident { path: ["low_val"], is_absolute: false }), rhs: Immediate(Real(2.0)) } }), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident { path: ["mid"], is_absolute: false }), rhs: Ident(Ident { path: ["high_val"], is_absolute: false }) }), Solve(Minimize(Ident { path: ["mid"], is_absolute: false }))]"#
         ]],
     );
 }
@@ -1299,7 +1299,7 @@ let low = 1.0;
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Solve(Maximize(Ident { path: ["low"], is_absolute: false })), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident { path: ["low"], is_absolute: false }), rhs: Ident(Ident { path: ["high"], is_absolute: false }) }), Let(LetDecl { name: "high", ty: None, init: Some(Immediate(Real(2.0))) }), Solve(Satisfy), Let(LetDecl { name: "low", ty: None, init: Some(Immediate(Real(1.0))) })]"#
+            r#"[Solve(Maximize(Ident { path: ["low"], is_absolute: false })), Constraint(BinaryOp { op: LessThan, lhs: Ident(Ident { path: ["low"], is_absolute: false }), rhs: Ident(Ident { path: ["high"], is_absolute: false }) }), Let { name: "high", ty: None, init: Some(Immediate(Real(2.0))) }, Solve(Satisfy), Let { name: "low", ty: None, init: Some(Immediate(Real(1.0))) }]"#
         ]],
     );
 }
@@ -1325,7 +1325,7 @@ fn test_parse_str_to_ast() {
     check(
         &format!("{:?}", parse_str_to_ast("let x = 5;", "my_file")),
         expect_test::expect![[
-            r#"Ok([Let(LetDecl { name: "x", ty: None, init: Some(Immediate(Int(5))) })])"#
+            r#"Ok([Let { name: "x", ty: None, init: Some(Immediate(Int(5))) }])"#
         ]],
     );
     check(
@@ -1346,7 +1346,7 @@ fn big_ints() {
             "let blah = 1234567890123456789012345678901234567890;"
         ),
         expect_test::expect![[
-            r#"Let(LetDecl { name: "blah", ty: None, init: Some(Immediate(BigInt(1234567890123456789012345678901234567890))) })"#
+            r#"Let { name: "blah", ty: None, init: Some(Immediate(BigInt(1234567890123456789012345678901234567890))) }"#
         ]],
     );
     check(
@@ -1356,7 +1356,7 @@ fn big_ints() {
         ),
         // Confirmed by using the Python REPL to convert from hex to dec...
         expect_test::expect![[
-            r#"Let(LetDecl { name: "blah", ty: None, init: Some(Immediate(BigInt(5421732407698601623698172315373246806734))) })"#
+            r#"Let { name: "blah", ty: None, init: Some(Immediate(BigInt(5421732407698601623698172315373246806734))) }"#
         ]],
     );
     check(
