@@ -101,9 +101,9 @@ Items can occur in any order; identifiers need not be declared before they are u
          | <let-item>
          | <constraint-item>
          | <function-item>
+         | <enum-decl-item>
          | <solve-item>
          | <transition-item>
-         | <enum-decl>
          | <interface-item>
          | <contract-item>
 ```
@@ -116,13 +116,13 @@ Constraint items describe intent constraints ([Constraint Items](#constraint-ite
 
 Function items introduce new user-defined functions which can be called in expressions ([Function Items](#function-items)).
 
+Enum declaration items describe C-style enumerations ([Enum Declaration Items](#enum-declaration-items)).
+
 Solve items specify exact what kind of solution the user is interested in: plain satisfaction, or the minimization/maximization of an expression. Each intent must have at most one solve item ([Solve Items](#solve-items)).
 
-Transition items describe the state transition function of a blockchain ([Transition Items](#transition-items))
+Interface items contain lists of smart contract methods that a [contract](#contract-items) can have ([Interface Items](#interface-items)).
 
-Interface items contain lists of smart contract methods that a [contract](#contract-items) can have ([Interface Items](#interface-items))
-
-Contract items describe actual deployed contracts with a known contract ID and a list of available methods ([contract Items](#contract-items))
+Contract items describe actual deployed contracts with a known contract ID and a list of available methods ([contract Items](#contract-items)).
 
 ### Multi-file Intents
 
@@ -165,7 +165,7 @@ The syntax for types is as follows:
        | "string"
        | <tuple-ty>
        | <array-ty>
-       | <custom-ty>
+       | <enum-ty>
 ```
 
 ### Tuple Type
@@ -184,28 +184,34 @@ Note that the grammar disallows empty tuple types `{ }`.
 
 ### Array Type
 
-An array type represents a collection of items that share the same type. Arrays can be multi-dimensional. Array types have the following syntax:
+An array type represents a collection of items that share the same type. Arrays can be multi-dimensional and have the following syntax:
 
 ```ebnf
-<array-ty> ::= <ty> ( "[" expr "]" )+
+<array-ty> ::= <ty> ( "[" <expr> | <enum-ty> "]" )+
 ```
 
-For example, in `let a: real[5];`, `a` is an array that contains 5 real values. In `let a: int[3][N]`, `a` is a 2-dimensional array of size `3*N`.
+An array dimension can be indexed using integers or using enum variants of a single enum type, depending on how the dimension is specified in the array type.
 
-Yurt requires that each array dimension is known (i.e. evaluatable) at compile-time. In addition, Yurt requires that each dimension evaluates to a **strictly positive** integer. Otherwise, the compiler should emit an error.
+- An array dimension that can be indexed using an integer requires that the corresponding dimension size is specified in between brackets as an expression that is evaluatable, **at compile-time**, to a **strictly positive** integer. Otherwise, the compiler should emit an error.
+
+- An array dimension that can be indexed using an enum variant requires that the corresponding dimension size is specified in between brackets as the appropriate enum type.
+
+For example, in:
+
+```rust
+let N = 5;
+enum Colour = Red | Green | Blue;
+let a: real[N][Colour];`
+```
+
+`a` is a two dimensional array that contains `N` arrays of size 3 each (because `Colour` is an enum that has 3 variants). An element of `a` can be [accessed](#array-expressions-and-array-element-access-expressions) using `a[3][Colour::Green]`, which accesses the second element of the fourth array in `a`.
 
 ### Enum Type
 
-In Yurt, an enum type is a named enumeration of integer constants. Unlike sum types found in some functional languages, each member of an enum in Yurt is associated with an integer, making it similar to C-style enums. The syntax for declaring an enum is:
+An enum type refers to an [enum declaration](#enum-declaration-items) using its path and has the following syntax:
 
 ```ebnf
-<enum-decl> ::= "enum" <ident> "=" <ident> ( "|" <ident> )*
-```
-
-### Custom Type
-
-```ebnf
-<custom-ty> ::= <ident>
+<enum-ty> ::= <path>
 ```
 
 ## Expressions
@@ -402,9 +408,22 @@ Array element access expressions are written as:
 
 For example, `a[1];` refers to the second element of array `a` in the example above. Therefore, `a[1]` should be equal to `2`. Similarly, `b[0][2]` in the example above refers to the third elements from the first inner array of `b`. That is, `b[0][2]` should be equal to `3.0`.
 
-Yurt requires that the expression used to index into is an array. For example, in `foo()[5]`, `foo()` must return array.
+Yurt requires that the expression used to index into is an array. For example, in `foo()[5]`, `foo()` must return array of the appropriate size.
 
-Yurt also requires that each array index is known (i.e. evaluatable) at compile-time. In addition, Yurt requires that each index evaluates to a **non-negative** integer that is **strictly smaller** than the corresponding dimension (i.e. within bounds). Otherwise, the compiler should emit an error.
+Yurt also requires that each array index is known (i.e. evaluatable) at compile-time. In addition, Yurt requires that each index evaluates to:
+
+1. A **non-negative** integer that is **strictly smaller** than the corresponding dimension (i.e. within bounds), if the dimension has a size that is specified using an integer in the array type definition.
+1. A path to an enum variant of some enum type, if the dimension size is specified using that enum type in the array type definition.
+
+Below is an example where both an integer and an enum variant are used to index into an two-dimensional array:
+
+```rust
+let N = 5;
+enum Colour = Red | Green | Blue;
+let a: real[N][Colour];`
+
+let a_3_g = a[3][Colour::Green];
+```
 
 #### "If" Expressions
 
@@ -527,25 +546,6 @@ constraint a + b <= c
 
 The expression in a constraint item must be of type `bool`.
 
-### Solve Items
-
-Every intent must have at most one solve item. Solve items have the following syntax:
-
-```ebnf
-<solve-item> ::= "solve" "satisfy"
-               | "solve" "minimize" <expr>
-               | "solve" "maximize" <expr>
-```
-
-Example solve items:
-
-```rust
-solve satisfy;
-solve maximize a + b - c;
-```
-
-The solve item determines whether the intent represents a constraint satisfaction problem or an optimization problem. If a solve item is not present, the intent is assumed to be a satisfaction problem. For optimization problems, the given expression is the one to be minimized/maximized.
-
 ### Function Items
 
 Function items describe user defined operations. They have the following syntax:
@@ -566,21 +566,36 @@ fn even(x: int) -> bool {
 }
 ```
 
-### Transition Items
+### Enum Declaration Items
 
-Transition items represent a relationship between two variables that represent the state of a blockchain such as balances. Transition items have the following syntax:
+In Yurt, an enum type is a named enumeration of integer constants. Unlike sum types found in some functional languages, each member of an enum in Yurt is associated with an integer discriminant, making it similar to C-style enums. The syntax for declaring an enum is:
 
 ```ebnf
-<transition-item> ::= <ident> "~>" <ident>
+<enum-decl-item> ::= "enum" <ident> "=" <ident> ( "|" <ident> )*
 ```
 
-For example:
+For example, `enum Colour = Red | Green | Blue;` declares an enum with three variants. An instantiation of a `Colour` can be created using a path that includes the name of the enum, as in `Colour::Green;`.
+
+Each enum variant must be assigned a discriminant that matches the index of its location, starting with `0`, in the sequence of variants as they appear in the enum declaration. An enum variant can be converted to an integer that is equal to its assigned discriminant using `as`.
+
+### Solve Items
+
+Every intent must have at most one solve item. Solve items have the following syntax:
+
+```ebnf
+<solve-item> ::= "solve" "satisfy"
+               | "solve" "minimize" <expr>
+               | "solve" "maximize" <expr>
+```
+
+Example solve items:
 
 ```rust
-bal0 ~> bal1
+solve satisfy;
+solve maximize a + b - c;
 ```
 
-Here, `bal1` represents the _next_ value of `bal0` based on the state transition function of the blockchain where `bal0` lives.
+The solve item determines whether the intent represents a constraint satisfaction problem or an optimization problem. If a solve item is not present, the intent is assumed to be a satisfaction problem. For optimization problems, the given expression is the one to be minimized/maximized.
 
 ### Interface Items
 

@@ -1,0 +1,12 @@
+let a: real[5];
+let a1 = a[1];
+
+enum Colour = Red | Green | Blue;
+let b: real[Colour][3];
+let b_r_2 = b[Colour::Red][2];
+
+fn nums() -> int[4] {
+    [0, 1, 2, 3]
+}
+
+let one = nums()[1];

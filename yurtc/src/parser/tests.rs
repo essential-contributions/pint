@@ -63,7 +63,9 @@ fn types() {
     );
     check(
         &run_parser!(type_(expr()), "custom_type"),
-        expect_test::expect![r#"CustomType("custom_type")"#],
+        expect_test::expect![[
+            r#"CustomType(Ident { path: ["custom_type"], is_absolute: false })"#
+        ]],
     );
 }
 
@@ -705,11 +707,11 @@ fn enums() {
         &run_parser!(
             let_decl(expr()),
             r#"
-            let e: MyEnum;
+            let e: ::path::to::MyEnum;
             "#
         ),
         expect_test::expect![[
-            r#"Let { name: "e", ty: Some(CustomType("MyEnum")), init: None, span: 13..27 }"#
+            r#"Let { name: "e", ty: Some(CustomType(Ident { path: ["path", "to", "MyEnum"], is_absolute: true })), init: None, span: 13..39 }"#
         ]],
     );
 }
@@ -904,6 +906,13 @@ fn array_type() {
     );
 
     check(
+        &run_parser!(type_(expr()), r#"int[MyEnum]"#),
+        expect_test::expect![[
+            r#"Array { ty: Int, range: Ident(Ident { path: ["MyEnum"], is_absolute: false }) }"#
+        ]],
+    );
+
+    check(
         &run_parser!(type_(expr()), r#"int[N]"#),
         expect_test::expect![[
             r#"Array { ty: Int, range: Ident(Ident { path: ["N"], is_absolute: false }) }"#
@@ -974,6 +983,7 @@ fn array_expressions() {
         &run_parser!(expr(), r#"[[1, 2], [3, 4]]"#),
         expect_test::expect!["Array([Array([Immediate(Int(1)), Immediate(Int(2))]), Array([Immediate(Int(3)), Immediate(Int(4))])])"],
     );
+
     check(
         &run_parser!(
             expr(),
@@ -1000,17 +1010,26 @@ fn array_field_accesss() {
             r#"ArrayElementAccess { array: ArrayElementAccess { array: ArrayElementAccess { array: ArrayElementAccess { array: Block(Block { statements: [], final_expr: Ident(Ident { path: ["a"], is_absolute: false }) }), index: Immediate(Int(4)) }, index: Ident(Ident { path: ["M"], is_absolute: false }) }, index: Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] } }, index: Ident(Ident { path: ["N"], is_absolute: false }) }"#
         ]],
     );
+
     check(
         &run_parser!(expr(), r#"foo()[{ M }][if true { 1 } else { 3 }]"#),
         expect_test::expect![[
             r#"ArrayElementAccess { array: ArrayElementAccess { array: Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] }, index: If(IfExpr { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } }) }, index: Block(Block { statements: [], final_expr: Ident(Ident { path: ["M"], is_absolute: false }) }) }"#
         ]],
     );
+
     check(
         &run_parser!(let_decl(expr()), r#"let x = a[];"#),
         expect_test::expect![[r#"
             @10..11: found "]" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if",  or "cond"
         "#]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"a[MyEnum::Variant1];"#),
+        expect_test::expect![[
+            r#"ArrayElementAccess { array: Ident(Ident { path: ["a"], is_absolute: false }), index: Ident(Ident { path: ["MyEnum", "Variant1"], is_absolute: false }) }"#
+        ]],
     );
 }
 
