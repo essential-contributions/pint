@@ -237,6 +237,7 @@ Expressions represent values and have the following syntax:
          | <if-expr>
          | <cond-expr>
          | <call-expr>
+         | <cast-expr>
 ```
 
 Expressions can be composed from sub-expressions with operators. All unary and binary operators are described in [Operators
@@ -463,11 +464,50 @@ Call expressions are used to call functions and have the following syntax:
 <call-expr> ::= <path> "(" [ <expr> "," ... ] ")"
 ```
 
-For example: `x = foo(5, 2);`.
+For example: `let x = foo(5, 2);`.
 
 The type of the expressions passed as arguments must match the argument types of the called function. The return type of the function must also be appropriate for the calling context.
 
 The order of argument evaluation is not specified.
+
+#### Cast Expressions
+
+Cast expressions are used to cast one value to a different type. They have the following syntax:
+
+```ebnf
+<cast-expr> ::= <expr> "as" <ty>
+```
+
+Executing an `as` expression casts the value on the left-hand side to the type on the right-hand side.
+
+For example: `let x: real = 5 as real;`.
+
+Note that there is no implicit casting in Yurt, hence the need for an explicit casting mechanism using `as`.
+
+Any cast that does not fit an entry in the table below is a compiler error:
+
+| Type of LHS | RHS    | Cast performed                      |
+| ----------- | ------ | ----------------------------------- |
+| `int`       | `int`  | No-op                               |
+| `int`       | `real` | Produce the closest possible `real` |
+| `real`      | `real` | No-op                               |
+| `enum`      | `int`  | Enum cast                           |
+| `bool`      | `int`  | Boolean to integer cast             |
+
+##### Enum Cast
+
+Casts an enum to its discriminant. For example:
+
+```rust
+enum MyEnum = V0 | V1 | V2;
+
+let d = MyEnum::V1 as int; // `d` is equal to `1`.
+```
+
+##### Boolean to Integer Cast
+
+- `false` casts to `0`.
+- `true` casts to `1`.
 
 #### Expression Precedence
 
@@ -475,8 +515,11 @@ The precedence of Yurt operators and expressions is ordered as follows, going fr
 
 | Operator                         | Associativity        |
 | -------------------------------- | -------------------- |
+| Paths                            |                      |
 | Tuple field access expressions   | left to right        |
+| Function calls, array indexing   |                      |
 | Unary `-`, Unary `+`, `!`        |                      |
+| `as`                             | left to right        |
 | `*`, `/`, `%`                    | left to right        |
 | Binary `+`, Binary `-`           | left to right        |
 | `==`, `!=`, `<`, `>`, `<=`, `>=` | Requires parentheses |

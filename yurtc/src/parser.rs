@@ -437,8 +437,9 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             and_or_op(
                 Token::DoubleAmpersand,
                 ast::BinaryOp::LogicalAnd,
-                comparison_op(additive_op(multiplicative_op(tuple_field_access(
-                    array_element_access(atom, expr.clone()),
+                comparison_op(additive_op(multiplicative_op(cast(
+                    tuple_field_access(array_element_access(atom, expr.clone())),
+                    expr.clone(),
                 )))),
             ),
         )
@@ -531,6 +532,22 @@ where
         .foldl(|expr, field| ast::Expr::TupleFieldAccess {
             tuple: Box::new(expr),
             field,
+        })
+        .boxed()
+}
+
+fn cast<'sc, P>(
+    parser: P,
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+{
+    parser
+        .then(just(Token::As).ignore_then(type_(expr)).repeated())
+        .foldl(|value, ty| ast::Expr::Cast {
+            value: Box::new(value),
+            ty: Box::new(ty),
         })
         .boxed()
 }

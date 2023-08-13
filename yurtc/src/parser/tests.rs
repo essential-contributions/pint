@@ -1312,6 +1312,38 @@ fn cond_exprs() {
 }
 
 #[test]
+fn casting() {
+    check(
+        &run_parser!(expr(), r#"(5 as int) as real as int"#),
+        expect_test::expect!["Cast { value: Cast { value: Cast { value: Immediate(Int(5)), ty: Int }, ty: Real }, ty: Int }"],
+    );
+
+    check(
+        &run_parser!(expr(), r#"t.0.1 as real * a[5][3] as int"#),
+        expect_test::expect![[
+            r#"BinaryOp { op: Mul, lhs: Cast { value: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Ident(Ident { path: ["t"], is_absolute: false }), field: Left(0) }, field: Left(1) }, ty: Real }, rhs: Cast { value: ArrayElementAccess { array: ArrayElementAccess { array: Ident(Ident { path: ["a"], is_absolute: false }), index: Immediate(Int(3)) }, index: Immediate(Int(5)) }, ty: Int } }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(
+            let_decl(expr()),
+            r#"let x = foo() as real as { int, real };"#
+        ),
+        expect_test::expect![[
+            r#"Let { name: "x", ty: None, init: Some(Cast { value: Cast { value: Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] }, ty: Real }, ty: Tuple([(None, Int), (None, Real)]) }), span: 0..39 }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(let_decl(expr()), r#"let x = 5 as;"#),
+        expect_test::expect![[r#"
+            @12..13: found ";" but expected "::", "{", "real", "int", "bool",  or "string"
+        "#]],
+    );
+}
+
+#[test]
 fn basic_program() {
     let src = r#"
 let low_val: real = 1.23;
