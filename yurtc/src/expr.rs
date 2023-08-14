@@ -39,6 +39,10 @@ pub(super) enum Expr<Ident, BlockExpr> {
         value: Box<Self>,
         ty: Box<super::types::Type<Ident, Self>>,
     },
+    In {
+        value: Box<Self>,
+        collection: Box<Self>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]

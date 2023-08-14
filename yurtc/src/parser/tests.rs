@@ -1344,6 +1344,44 @@ fn casting() {
 }
 
 #[test]
+fn in_expr() {
+    check(
+        &run_parser!(expr(), r#"x in { 1, 2 }"#),
+        expect_test::expect![[
+            r#"In { value: Ident(Ident { path: ["x"], is_absolute: false }), collection: Tuple([(None, Immediate(Int(1))), (None, Immediate(Int(2)))]) }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"x in [ 1, 2 ] in { true, false }"#),
+        expect_test::expect![[
+            r#"In { value: Ident(Ident { path: ["x"], is_absolute: false }), collection: In { value: Array([Immediate(Int(1)), Immediate(Int(2))]), collection: Tuple([(None, Immediate(Bool(true))), (None, Immediate(Bool(false)))]) } }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"x as int in { 1, 2 }"#),
+        expect_test::expect![[
+            r#"In { value: Cast { value: Ident(Ident { path: ["x"], is_absolute: false }), ty: Int }, collection: Tuple([(None, Immediate(Int(1))), (None, Immediate(Int(2)))]) }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(expr(), r#"[1] in foo() in [[1]]"#),
+        expect_test::expect![[
+            r#"In { value: Array([Immediate(Int(1))]), collection: In { value: Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] }, collection: Array([Array([Immediate(Int(1))])]) } }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(let_decl(expr()), r#"let x = 5 in;"#),
+        expect_test::expect![[r#"
+            @12..13: found ";" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if",  or "cond"
+        "#]],
+    );
+}
+
+#[test]
 fn basic_program() {
     let src = r#"
 let low_val: real = 1.23;

@@ -238,6 +238,7 @@ Expressions represent values and have the following syntax:
          | <cond-expr>
          | <call-expr>
          | <cast-expr>
+         | <in-expr>
 ```
 
 Expressions can be composed from sub-expressions with operators. All unary and binary operators are described in [Operators
@@ -509,6 +510,32 @@ let d = MyEnum::V1 as int; // `d` is equal to `1`.
 - `false` casts to `0`.
 - `true` casts to `1`.
 
+#### "In" Expressions
+
+"In" expressions are used to detect whether a value belongs to an array. They have the following syntax:
+
+```ebnf
+<in-expr> ::= <expr> "in" <expr>
+```
+
+An "in" expression returns a `bool` that indicates whether the left-hand side belongs to the right-hand side. For example, in `let x: bool = 5 in [3, 4, 5];`, `x` should be `true`.
+
+The right-hand side of an "in" expression must be an array and the type of the left-hand side must match the array elements type. Otherwise, a compiler error should be emitted.
+
+A value belongs to an array if and only if it is "equal" to one of its entries. Equality for various types is defined as follows:
+
+| Type     | Equality Criterion                                       |
+| -------- | -------------------------------------------------------- |
+| `int`    | Identical values                                         |
+| `real`   | Identical values                                         |
+| `bool`   | Identical values                                         |
+| `string` | Identical lengths and characters in the same order       |
+| `enum`   | Identical variants                                       |
+| array    | Identical lengths and _equal_ elements in the same order |
+| array    | Identical lengths and _equal_ elements in the same order |
+
+Note that two values of different types cannot be compared and should result in a compile error.
+
 #### Expression Precedence
 
 The precedence of Yurt operators and expressions is ordered as follows, going from strong to weak. Binary Operators at the same precedence level are grouped in the order given by their associativity.
@@ -520,6 +547,7 @@ The precedence of Yurt operators and expressions is ordered as follows, going fr
 | Function calls, array indexing   |                      |
 | Unary `-`, Unary `+`, `!`        |                      |
 | `as`                             | left to right        |
+| `in`                             | left to right        |
 | `*`, `/`, `%`                    | left to right        |
 | Binary `+`, Binary `-`           | left to right        |
 | `==`, `!=`, `<`, `>`, `<=`, `>=` | Requires parentheses |
