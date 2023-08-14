@@ -661,7 +661,7 @@ fn parens_exprs() {
     check(
         &run_parser!(expr(), "(if a < b { 1 } else { 2 })"),
         expect_test::expect![[
-            r#"If(IfExpr { condition: BinaryOp { op: LessThan, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Ident(Ident { path: ["b"], is_absolute: false }) }, then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } })"#
+            r#"If { condition: BinaryOp { op: LessThan, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Ident(Ident { path: ["b"], is_absolute: false }) }, then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }"#
         ]],
     );
     check(
@@ -879,21 +879,21 @@ fn if_exprs() {
     check(
         &run_parser!(if_expr(expr()), "if c { 1 } else { 0 }"),
         expect_test::expect![[
-            r#"If(IfExpr { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } })"#
+            r#"If { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } }"#
         ]],
     );
 
     check(
         &run_parser!(if_expr(expr()), "if c { if c { 1 } else { 0 } } else { 2 }"),
         expect_test::expect![[
-            r#"If(IfExpr { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: If(IfExpr { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } }) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } })"#
+            r#"If { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: If { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } } }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }"#
         ]],
     );
 
     check(
         &run_parser!(if_expr(expr()), "if c { if c { 1 } else { 0 } } else { 2 }"),
         expect_test::expect![[
-            r#"If(IfExpr { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: If(IfExpr { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } }) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } })"#
+            r#"If { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: If { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } } }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }"#
         ]],
     );
 }
@@ -990,7 +990,7 @@ fn array_expressions() {
             r#"[[foo(), { 2 }], [if true { 1 } else { 2 }, t.0]]"#
         ),
         expect_test::expect![[
-            r#"Array([Array([Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] }, Block(Block { statements: [], final_expr: Immediate(Int(2)) })]), Array([If(IfExpr { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }), TupleFieldAccess { tuple: Ident(Ident { path: ["t"], is_absolute: false }), field: Left(0) }])])"#
+            r#"Array([Array([Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] }, Block(Block { statements: [], final_expr: Immediate(Int(2)) })]), Array([If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }, TupleFieldAccess { tuple: Ident(Ident { path: ["t"], is_absolute: false }), field: Left(0) }])])"#
         ]],
     );
 }
@@ -1014,7 +1014,7 @@ fn array_field_accesss() {
     check(
         &run_parser!(expr(), r#"foo()[{ M }][if true { 1 } else { 3 }]"#),
         expect_test::expect![[
-            r#"ArrayElementAccess { array: ArrayElementAccess { array: Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] }, index: If(IfExpr { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } }) }, index: Block(Block { statements: [], final_expr: Ident(Ident { path: ["M"], is_absolute: false }) }) }"#
+            r#"ArrayElementAccess { array: ArrayElementAccess { array: Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] }, index: If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } } }, index: Block(Block { statements: [], final_expr: Ident(Ident { path: ["M"], is_absolute: false }) }) }"#
         ]],
     );
 
@@ -1086,7 +1086,7 @@ fn tuple_expressions() {
     check(
         &run_parser!(expr(), r#"{ { 42 }, if c { 2 } else { 3 }, foo() }"#),
         expect_test::expect![[
-            r#"Tuple([(None, Block(Block { statements: [], final_expr: Immediate(Int(42)) })), (None, If(IfExpr { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } })), (None, Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] })])"#
+            r#"Tuple([(None, Block(Block { statements: [], final_expr: Immediate(Int(42)) })), (None, If { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } }), (None, Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] })])"#
         ]],
     );
 
@@ -1096,7 +1096,7 @@ fn tuple_expressions() {
             r#"{ x: { 42 }, y: if c { 2 } else { 3 }, z: foo() }"#
         ),
         expect_test::expect![[
-            r#"Tuple([(Some("x"), Block(Block { statements: [], final_expr: Immediate(Int(42)) })), (Some("y"), If(IfExpr { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } })), (Some("z"), Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] })])"#
+            r#"Tuple([(Some("x"), Block(Block { statements: [], final_expr: Immediate(Int(42)) })), (Some("y"), If { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } }), (Some("z"), Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] })])"#
         ]],
     );
 }
@@ -1178,13 +1178,13 @@ fn tuple_field_accesses() {
 
     check(
         &run_parser!(expr(), r#"if true { {0, 0} } else { {0, 0} }.0"#),
-        expect_test::expect!["TupleFieldAccess { tuple: If(IfExpr { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) }, else_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) } }), field: Left(0) }"],
+        expect_test::expect!["TupleFieldAccess { tuple: If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) }, else_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) } }, field: Left(0) }"],
     );
 
     check(
         &run_parser!(expr(), r#"if true { {0, 0} } else { {0, 0} }.x"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: If(IfExpr { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) }, else_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) } }), field: Right("x") }"#
+            r#"TupleFieldAccess { tuple: If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) }, else_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) } }, field: Right("x") }"#
         ]],
     );
 
@@ -1261,28 +1261,28 @@ fn cond_exprs() {
     check(
         &run_parser!(cond_expr(expr()), r#"cond { else => a }"#),
         expect_test::expect![[
-            r#"Cond(CondExpr { branches: [], else_result: Ident(Ident { path: ["a"], is_absolute: false }) })"#
+            r#"Cond { branches: [], else_result: Ident(Ident { path: ["a"], is_absolute: false }) }"#
         ]],
     );
 
     check(
         &run_parser!(cond_expr(expr()), r#"cond { else => { a } }"#),
         expect_test::expect![[
-            r#"Cond(CondExpr { branches: [], else_result: Block(Block { statements: [], final_expr: Ident(Ident { path: ["a"], is_absolute: false }) }) })"#
+            r#"Cond { branches: [], else_result: Block(Block { statements: [], final_expr: Ident(Ident { path: ["a"], is_absolute: false }) }) }"#
         ]],
     );
 
     check(
         &run_parser!(cond_expr(expr()), r#"cond { a => b, else => c }"#),
         expect_test::expect![[
-            r#"Cond(CondExpr { branches: [CondBranch { condition: Ident(Ident { path: ["a"], is_absolute: false }), result: Ident(Ident { path: ["b"], is_absolute: false }) }], else_result: Ident(Ident { path: ["c"], is_absolute: false }) })"#
+            r#"Cond { branches: [CondBranch { condition: Ident(Ident { path: ["a"], is_absolute: false }), result: Ident(Ident { path: ["b"], is_absolute: false }) }], else_result: Ident(Ident { path: ["c"], is_absolute: false }) }"#
         ]],
     );
 
     check(
         &run_parser!(cond_expr(expr()), r#"cond { a => { b }, else => c, }"#),
         expect_test::expect![[
-            r#"Cond(CondExpr { branches: [CondBranch { condition: Ident(Ident { path: ["a"], is_absolute: false }), result: Block(Block { statements: [], final_expr: Ident(Ident { path: ["b"], is_absolute: false }) }) }], else_result: Ident(Ident { path: ["c"], is_absolute: false }) })"#
+            r#"Cond { branches: [CondBranch { condition: Ident(Ident { path: ["a"], is_absolute: false }), result: Block(Block { statements: [], final_expr: Ident(Ident { path: ["b"], is_absolute: false }) }) }], else_result: Ident(Ident { path: ["c"], is_absolute: false }) }"#
         ]],
     );
 
@@ -1292,7 +1292,7 @@ fn cond_exprs() {
             r#"cond { a => b, { true } => d, else => f, }"#
         ),
         expect_test::expect![[
-            r#"Cond(CondExpr { branches: [CondBranch { condition: Ident(Ident { path: ["a"], is_absolute: false }), result: Ident(Ident { path: ["b"], is_absolute: false }) }, CondBranch { condition: Block(Block { statements: [], final_expr: Immediate(Bool(true)) }), result: Ident(Ident { path: ["d"], is_absolute: false }) }], else_result: Ident(Ident { path: ["f"], is_absolute: false }) })"#
+            r#"Cond { branches: [CondBranch { condition: Ident(Ident { path: ["a"], is_absolute: false }), result: Ident(Ident { path: ["b"], is_absolute: false }) }, CondBranch { condition: Block(Block { statements: [], final_expr: Immediate(Bool(true)) }), result: Ident(Ident { path: ["d"], is_absolute: false }) }], else_result: Ident(Ident { path: ["f"], is_absolute: false }) }"#
         ]],
     );
 
@@ -1505,7 +1505,7 @@ fn contract_test() {
             "contract Foo(if true {0} else {1}) {}"
         ),
         expect_test::expect![[
-            r#"Contract { name: "Foo", id: If(IfExpr { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(0)) }, else_block: Block { statements: [], final_expr: Immediate(Int(1)) } }), interfaces: [], functions: [], name_span: 9..12 }"#
+            r#"Contract { name: "Foo", id: If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(0)) }, else_block: Block { statements: [], final_expr: Immediate(Int(1)) } }, interfaces: [], functions: [], name_span: 9..12 }"#
         ]],
     );
 

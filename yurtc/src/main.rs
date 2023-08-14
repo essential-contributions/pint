@@ -2,8 +2,10 @@ mod ast;
 
 #[macro_use]
 mod error;
+mod expr;
 mod lexer;
 mod parser;
+mod types;
 
 fn main() -> anyhow::Result<()> {
     let srcs = parse_cli();

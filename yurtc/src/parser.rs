@@ -1,6 +1,7 @@
 use crate::{
     ast,
     error::{print_on_failure, CompileError, ParseError},
+    expr,
     lexer::{self, Token, KEYWORDS},
 };
 use chumsky::{prelude::*, Stream};
@@ -294,9 +295,9 @@ fn unary_op<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone {
     choice((
-        just(Token::Plus).to(ast::UnaryOp::Pos),
-        just(Token::Minus).to(ast::UnaryOp::Neg),
-        just(Token::Bang).to(ast::UnaryOp::Not),
+        just(Token::Plus).to(expr::UnaryOp::Pos),
+        just(Token::Minus).to(expr::UnaryOp::Neg),
+        just(Token::Bang).to(expr::UnaryOp::Not),
     ))
     .then(expr)
     .map(|(op, expr)| ast::Expr::UnaryOp {
@@ -316,12 +317,10 @@ fn if_expr<'sc>(
         .ignore_then(expr)
         .then(then_block)
         .then(else_block)
-        .map(|((condition, then_block), else_block)| {
-            ast::Expr::If(ast::IfExpr {
-                condition: Box::new(condition),
-                then_block,
-                else_block,
-            })
+        .map(|((condition, then_block), else_block)| ast::Expr::If {
+            condition: Box::new(condition),
+            then_block,
+            else_block,
         })
         .boxed()
 }
@@ -334,7 +333,7 @@ fn cond_expr<'sc>(
         .then_ignore(just(Token::HeavyArrow))
         .then(expr.clone())
         .then_ignore(just(Token::Comma))
-        .map(|(condition, result)| ast::CondBranch {
+        .map(|(condition, result)| expr::CondBranch {
             condition: Box::new(condition),
             result: Box::new(result),
         })
@@ -354,11 +353,9 @@ fn cond_expr<'sc>(
 
     just(Token::Cond)
         .ignore_then(body)
-        .map(|(branches, else_result)| {
-            ast::Expr::Cond(ast::CondExpr {
-                branches,
-                else_result: Box::new(else_result),
-            })
+        .map(|(branches, else_result)| ast::Expr::Cond {
+            branches,
+            else_result: Box::new(else_result),
         })
         .boxed()
 }
@@ -433,10 +430,10 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
 
         and_or_op(
             Token::DoublePipe,
-            ast::BinaryOp::LogicalOr,
+            expr::BinaryOp::LogicalOr,
             and_or_op(
                 Token::DoubleAmpersand,
-                ast::BinaryOp::LogicalAnd,
+                expr::BinaryOp::LogicalAnd,
                 comparison_op(additive_op(multiplicative_op(cast(
                     tuple_field_access(array_element_access(atom, expr.clone())),
                     expr.clone(),
@@ -562,9 +559,9 @@ where
         .clone()
         .then(
             just(Token::Star)
-                .to(ast::BinaryOp::Mul)
-                .or(just(Token::Div).to(ast::BinaryOp::Div))
-                .or(just(Token::Mod).to(ast::BinaryOp::Mod))
+                .to(expr::BinaryOp::Mul)
+                .or(just(Token::Div).to(expr::BinaryOp::Div))
+                .or(just(Token::Mod).to(expr::BinaryOp::Mod))
                 .then(parser)
                 .repeated(),
         )
@@ -586,8 +583,8 @@ where
         .clone()
         .then(
             just(Token::Plus)
-                .to(ast::BinaryOp::Add)
-                .or(just(Token::Minus).to(ast::BinaryOp::Sub))
+                .to(expr::BinaryOp::Add)
+                .or(just(Token::Minus).to(expr::BinaryOp::Sub))
                 .then(parser)
                 .repeated(),
         )
@@ -609,12 +606,12 @@ where
         .clone()
         .then(
             choice((
-                just(Token::Lt).to(ast::BinaryOp::LessThan),
-                just(Token::Gt).to(ast::BinaryOp::GreaterThan),
-                just(Token::LtEq).to(ast::BinaryOp::LessThanOrEqual),
-                just(Token::GtEq).to(ast::BinaryOp::GreaterThanOrEqual),
-                just(Token::EqEq).to(ast::BinaryOp::Equal),
-                just(Token::NotEq).to(ast::BinaryOp::NotEqual),
+                just(Token::Lt).to(expr::BinaryOp::LessThan),
+                just(Token::Gt).to(expr::BinaryOp::GreaterThan),
+                just(Token::LtEq).to(expr::BinaryOp::LessThanOrEqual),
+                just(Token::GtEq).to(expr::BinaryOp::GreaterThanOrEqual),
+                just(Token::EqEq).to(expr::BinaryOp::Equal),
+                just(Token::NotEq).to(expr::BinaryOp::NotEqual),
             ))
             .then(parser)
             .repeated(),
@@ -629,7 +626,7 @@ where
 
 fn and_or_op<'sc, P>(
     token: Token<'sc>,
-    logical_op: ast::BinaryOp,
+    logical_op: expr::BinaryOp,
     parser: P,
 ) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
 where
@@ -727,7 +724,7 @@ fn type_<'sc>(
     })
 }
 
-fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseError<'sc>> + Clone {
+fn immediate<'sc>() -> impl Parser<Token<'sc>, expr::Immediate, Error = ParseError<'sc>> + Clone {
     let integer_parser = |num_str: &str| {
         use num_traits::Num;
         let (radix, offset) = match num_str.chars().nth(1) {
@@ -738,21 +735,21 @@ fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseErro
 
         // Try to parse as an i64 first
         i64::from_str_radix(&num_str[offset..], radix)
-            .map(ast::Immediate::Int)
+            .map(expr::Immediate::Int)
             .or_else(|_| {
-                // Try a big-int if that fails and return an ast::Immedate::BigInt.  The BigInt
+                // Try a big-int if that fails and return an expr::Immedate::BigInt.  The BigInt
                 // FromStr::from_str() isn't smart about radices though.
                 num_bigint::BigInt::from_str_radix(&num_str[offset..], radix)
-                    .map(ast::Immediate::BigInt)
+                    .map(expr::Immediate::BigInt)
             })
             .unwrap()
     };
 
     select! {
-        Token::RealLiteral(num_str) => ast::Immediate::Real(num_str.parse().unwrap()),
+        Token::RealLiteral(num_str) => expr::Immediate::Real(num_str.parse().unwrap()),
         Token::IntLiteral(num_str) => integer_parser(num_str),
-        Token::True => ast::Immediate::Bool(true),
-        Token::False => ast::Immediate::Bool(false),
-        Token::StringLiteral(str_val) => ast::Immediate::String(str_val),
+        Token::True => expr::Immediate::Bool(true),
+        Token::False => expr::Immediate::Bool(false),
+        Token::StringLiteral(str_val) => expr::Immediate::String(str_val),
     }
 }

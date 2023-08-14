@@ -1,6 +1,7 @@
-use crate::error::Span;
+use crate::{error::Span, expr::Expr as E, types::Type as T};
 
-use itertools::Either;
+pub(super) type Expr = E<Ident, Block>;
+pub(super) type Type = T<Ident, Expr>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Decl {
@@ -85,107 +86,8 @@ pub(super) struct Ident {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Type {
-    Real,
-    Int,
-    Bool,
-    String,
-    Array { ty: Box<Type>, range: Expr },
-    Tuple(Vec<(Option<String>, Type)>),
-    CustomType(Ident),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(super) enum Expr {
-    Immediate(Immediate),
-    Ident(Ident),
-    UnaryOp {
-        op: UnaryOp,
-        expr: Box<Expr>,
-    },
-    BinaryOp {
-        op: BinaryOp,
-        lhs: Box<Expr>,
-        rhs: Box<Expr>,
-    },
-    Call {
-        name: Ident,
-        args: Vec<Expr>,
-    },
-    Block(Block),
-    If(IfExpr),
-    Cond(CondExpr),
-    Array(Vec<Expr>),
-    ArrayElementAccess {
-        array: Box<Expr>,
-        index: Box<Expr>,
-    },
-    Tuple(Vec<(Option<String>, Expr)>),
-    TupleFieldAccess {
-        tuple: Box<Expr>,
-        field: Either<usize, String>,
-    },
-    Cast {
-        value: Box<Expr>,
-        ty: Box<Type>,
-    },
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(super) enum UnaryOp {
-    Pos,
-    Neg,
-    Not,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(super) enum BinaryOp {
-    Mul,
-    Div,
-    Add,
-    Sub,
-    Mod,
-    LessThan,
-    LessThanOrEqual,
-    GreaterThan,
-    GreaterThanOrEqual,
-    Equal,
-    NotEqual,
-    LogicalAnd,
-    LogicalOr,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(super) enum Immediate {
-    Real(f64),
-    Int(i64),
-    BigInt(num_bigint::BigInt),
-    Bool(bool),
-    String(String),
-}
-
-#[derive(Clone, Debug, PartialEq)]
 pub(super) enum SolveFunc {
     Satisfy,
     Minimize(Ident),
     Maximize(Ident),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(super) struct IfExpr {
-    pub(super) condition: Box<Expr>,
-    pub(super) then_block: Block,
-    pub(super) else_block: Block,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(super) struct CondBranch {
-    pub(super) condition: Box<Expr>,
-    pub(super) result: Box<Expr>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(super) struct CondExpr {
-    pub(super) branches: Vec<CondBranch>,
-    pub(super) else_result: Box<Expr>,
 }
