@@ -125,6 +125,10 @@ pub(super) enum Expr {
         tuple: Box<Expr>,
         field: Either<usize, String>,
     },
+    Cast {
+        value: Box<Expr>,
+        ty: Box<Type>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
