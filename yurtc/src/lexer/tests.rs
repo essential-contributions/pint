@@ -128,6 +128,7 @@ fn strings() {
 fn variables() {
     assert_eq!(lex_one_success("let"), Token::Let);
     assert_eq!(lex_one_success("enum"), Token::Enum);
+    assert_eq!(lex_one_success("type"), Token::Type);
 }
 
 #[test]

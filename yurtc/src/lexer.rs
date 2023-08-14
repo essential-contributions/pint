@@ -97,6 +97,8 @@ pub(super) enum Token<'sc> {
     Let,
     #[token("enum")]
     Enum,
+    #[token("type")]
+    Type,
     #[token("constraint")]
     Constraint,
     #[token("maximize")]
@@ -164,6 +166,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Interface,
     Token::Contract,
     Token::Implements,
+    Token::Type,
 ];
 
 impl<'sc> fmt::Display for Token<'sc> {
@@ -210,6 +213,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Cond => write!(f, "cond"),
             Token::Let => write!(f, "let"),
             Token::Enum => write!(f, "enum"),
+            Token::Type => write!(f, "type"),
             Token::Constraint => write!(f, "constraint"),
             Token::Maximize => write!(f, "maximize"),
             Token::Minimize => write!(f, "minimize"),
