@@ -32,6 +32,11 @@ pub(super) enum Decl {
         variants: Vec<String>,
         name_span: Span,
     },
+    NewType {
+        name: String,
+        ty: Type,
+        name_span: Span,
+    },
     Interface {
         name: String,
         functions: Vec<FnSig>,
