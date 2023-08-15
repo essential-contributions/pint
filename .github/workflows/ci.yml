@@ -38,9 +38,13 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Build
+      - name: Build yurtc
         run: cargo build --release
         working-directory: yurtc
+
+      - name: Build yurtfmt
+        run: cargo build --release
+        working-directory: yurtfmt
 
   cargo-unused-deps-check:
     name: Cargo Unused Dependencies Check
@@ -59,9 +63,13 @@ jobs:
       - name: Install cargo-udeps
         run: cargo install --locked cargo-udeps
 
-      - name: Check Unused Deps
+      - name: Check Unused Deps in yurtc
         run: cargo udeps --locked --all-targets
         working-directory: yurtc
+
+      - name: Check Unused Deps in yurtfmt
+        run: cargo udeps --locked --all-targets
+        working-directory: yurtfmt
 
   cargo-toml-lint-check:
     name: Cargo.toml Link Check
@@ -80,9 +88,13 @@ jobs:
       - name: Install Cargo.toml linter
         run: cargo install --locked cargo-toml-lint
 
-      - name: Run Cargo.toml linter
+      - name: Run Cargo.toml linter in yurtc
         run: git ls-files | grep Cargo.toml$ | xargs --verbose -n 1 cargo-toml-lint
         working-directory: yurtc
+
+      - name: Run Cargo.toml linter in yurtfmt
+        run: git ls-files | grep Cargo.toml$ | xargs --verbose -n 1 cargo-toml-lint
+        working-directory: yurtfmt
 
   cargo-test-workspace:
     name: Cargo Test Workspace Using nextest
@@ -104,6 +116,10 @@ jobs:
           crate: cargo-nextest
           locked: true
 
-      - name: Run workspace tests
+      - name: Run workspace tests in yurtc
         run: cargo nextest run --release --locked
         working-directory: yurtc
+
+      - name: Run workspace tests in yurtfmt
+        run: cargo nextest run --release --locked
+        working-directory: yurtfmt
