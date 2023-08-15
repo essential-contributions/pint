@@ -445,19 +445,22 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
         ))
         .boxed();
 
-        and_or_op(
-            Token::DoublePipe,
-            expr::BinaryOp::LogicalOr,
-            and_or_op(
-                Token::DoubleAmpersand,
-                expr::BinaryOp::LogicalAnd,
-                comparison_op(additive_op(multiplicative_op(cast(
-                    tuple_field_access(array_element_access(atom, expr.clone())),
-                    expr.clone(),
-                )))),
-            ),
-        )
-        .boxed()
+        // This order enforces the procedence rules in Yurt expressions
+        let array_element_access = array_element_access(atom, expr.clone());
+        let tuple_field_access = tuple_field_access(array_element_access);
+        let cast = cast(tuple_field_access, expr.clone());
+        let in_expr = in_expr(cast, expr.clone());
+        let multiplicative_op = multiplicative_op(in_expr);
+        let additive_op = additive_op(multiplicative_op);
+        let comparison_op = comparison_op(additive_op);
+        let and = and_or_op(
+            Token::DoubleAmpersand,
+            expr::BinaryOp::LogicalAnd,
+            comparison_op,
+        );
+        let or = and_or_op(Token::DoublePipe, expr::BinaryOp::LogicalOr, and);
+
+        or.boxed()
     })
 }
 
@@ -562,6 +565,22 @@ where
         .foldl(|value, ty| ast::Expr::Cast {
             value: Box::new(value),
             ty: Box::new(ty),
+        })
+        .boxed()
+}
+
+fn in_expr<'sc, P>(
+    parser: P,
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+{
+    parser
+        .then(just(Token::In).ignore_then(expr).repeated())
+        .foldl(|value, collection| ast::Expr::In {
+            value: Box::new(value),
+            collection: Box::new(collection),
         })
         .boxed()
 }

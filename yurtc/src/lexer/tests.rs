@@ -173,6 +173,11 @@ fn r#as() {
 }
 
 #[test]
+fn r#in() {
+    assert_eq!(lex_one_success("in"), Token::In);
+}
+
+#[test]
 fn blockchain_items() {
     assert_eq!(lex_one_success("interface"), Token::Interface);
     assert_eq!(lex_one_success("contract"), Token::Contract);
