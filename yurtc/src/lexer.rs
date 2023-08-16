@@ -44,6 +44,8 @@ pub(super) enum Token<'sc> {
     DoubleAmpersand,
     #[token("||")]
     DoublePipe,
+    #[token("'")]
+    Prime,
 
     #[token(";")]
     Semi,
@@ -95,6 +97,8 @@ pub(super) enum Token<'sc> {
 
     #[token("let")]
     Let,
+    #[token("state")]
+    State,
     #[token("enum")]
     Enum,
     #[token("constraint")]
@@ -156,6 +160,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Else,
     Token::Cond,
     Token::Let,
+    Token::State,
     Token::Constraint,
     Token::Maximize,
     Token::Minimize,
@@ -190,6 +195,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::NotEq => write!(f, "!="),
             Token::DoubleAmpersand => write!(f, "&&"),
             Token::DoublePipe => write!(f, "||"),
+            Token::Prime => write!(f, "'"),
             Token::Semi => write!(f, ";"),
             Token::Comma => write!(f, ","),
             Token::Star => write!(f, "*"),
@@ -213,6 +219,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Else => write!(f, "else"),
             Token::Cond => write!(f, "cond"),
             Token::Let => write!(f, "let"),
+            Token::State => write!(f, "state"),
             Token::Enum => write!(f, "enum"),
             Token::Constraint => write!(f, "constraint"),
             Token::Maximize => write!(f, "maximize"),

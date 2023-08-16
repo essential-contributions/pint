@@ -66,6 +66,7 @@ fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> 
     choice((
         use_statement(),
         let_decl(expr()),
+        state_decl(expr()),
         constraint_decl(expr()),
         solve_decl(),
         fn_decl(expr()),
@@ -141,6 +142,25 @@ fn let_decl<'sc>(
             ((name, ty), init)
         })
         .map_with_span(|((name, ty), init), span| ast::Decl::Let {
+            name,
+            ty,
+            init,
+            span,
+        })
+        .boxed()
+}
+
+fn state_decl<'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+    let type_spec = just(Token::Colon).ignore_then(type_(expr.clone()));
+    let init = just(Token::Eq).ignore_then(expr);
+    just(Token::State)
+        .ignore_then(ident())
+        .then(type_spec.or_not())
+        .then(init)
+        .then_ignore(just(Token::Semi))
+        .map_with_span(|((name, ty), init), span| ast::Decl::State {
             name,
             ty,
             init,
@@ -277,10 +297,14 @@ fn contract_decl<'sc>(
 fn code_block_expr<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Block, Error = ParseError<'sc>> + Clone {
-    let code_block_body = choice((let_decl(expr.clone()), constraint_decl(expr.clone())))
-        .repeated()
-        .then(expr)
-        .boxed();
+    let code_block_body = choice((
+        let_decl(expr.clone()),
+        state_decl(expr.clone()),
+        constraint_decl(expr.clone()),
+    ))
+    .repeated()
+    .then(expr)
+    .boxed();
 
     code_block_body
         .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
@@ -291,7 +315,7 @@ fn code_block_expr<'sc>(
         .boxed()
 }
 
-fn unary_op<'sc>(
+fn prefix_unary_op<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone {
     choice((
@@ -416,7 +440,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
 
         let atom = choice((
             immediate().map(ast::Expr::Immediate),
-            unary_op(expr.clone()),
+            prefix_unary_op(expr.clone()),
             code_block_expr(expr.clone()).map(ast::Expr::Block),
             if_expr(expr.clone()),
             cond_expr(expr.clone()),
@@ -429,7 +453,8 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
         .boxed();
 
         // This order enforces the procedence rules in Yurt expressions
-        let array_element_access = array_element_access(atom, expr.clone());
+        let suffix_unary_op = suffix_unary_op(atom);
+        let array_element_access = array_element_access(suffix_unary_op, expr.clone());
         let tuple_field_access = tuple_field_access(array_element_access);
         let cast = cast(tuple_field_access, expr.clone());
         let in_expr = in_expr(cast, expr.clone());
@@ -445,6 +470,21 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
 
         or.boxed()
     })
+}
+
+fn suffix_unary_op<'sc, P>(
+    parser: P,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+{
+    parser
+        .then((just(Token::Prime).to(expr::UnaryOp::Prime)).repeated())
+        .foldl(|expr, prime| ast::Expr::UnaryOp {
+            op: prime,
+            expr: Box::new(expr),
+        })
+        .boxed()
 }
 
 fn array_element_access<'sc, P>(
