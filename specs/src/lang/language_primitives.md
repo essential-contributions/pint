@@ -62,7 +62,7 @@ Identifiers have the following syntax:
 <ident> ::= _?[A-Za-z][A-Za-z0-9]*     % excluding keywords
 ```
 
-A number of keywords are reserved and cannot be used as identifiers. The keywords are: `as`, `bool`, `constraint`, `contract`, `else`, `enum`, `false`, `fn`, `if`, `implements`, `interface`, `int`, `let`, `maximize`, `minimize`, `real`, `satisfy`, `solve`, `state`, `string`, `true`, `use`.
+A number of keywords are reserved and cannot be used as identifiers. The keywords are: `as`, `bool`, `constraint`, `contract`, `else`, `enum`, `extern`, `false`, `fn`, `if`, `implements`, `interface`, `int`, `let`, `maximize`, `minimize`, `real`, `satisfy`, `solve`, `state`, `string`, `true`, `use`.
 
 ### Paths
 
@@ -106,6 +106,7 @@ Items can occur in any order; identifiers need not be declared before they are u
          | <solve-item>
          | <interface-item>
          | <contract-item>
+         | <extern-item>
 ```
 
 Import items (`<import-item>`) import new items from a module/submodule or external library into the current module ([Import Items](#import-items)).
@@ -125,6 +126,8 @@ Solve items specify exact what kind of solution the user is interested in: plain
 Interface items contain lists of smart contract methods that a [contract](#contract-items) can have ([Interface Items](#interface-items)).
 
 Contract items describe actual deployed contracts with a known contract ID and a list of available methods ([contract Items](#contract-items)).
+
+"Extern" items contain lists of external functions that allow accessing data on a blockchain (["Extern" Items](#extern-items)).
 
 ### Multi-file Intents
 
@@ -755,6 +758,30 @@ This contract is called `MyToken` and has an integer ID of `0xA0b86991c6218b36c1
 1. All the functions declared in the body of the contract, namely `foo()` and `bar()`.
 
 A call to any of these functions can be made using a `<call-expr>` with the name of the contract used in `<path>`. For example, `MyToken::foo()`. Contract function calls _always_ return values which must be bound to [state variables](#state-declaration-items), such as `state u = MyToken::foo()`.
+
+### "Extern" Items
+
+"Extern" items contain lists of function signatures that represent external APIs that can access data on a blockchain. More specifically, for the Ethereum blockchain, the functions should match the [JSON-RPC methods](https://ethereum.github.io/execution-apis/api-documentation/) that all Ethereum clients must implement.
+
+The syntax for extern items is as follows:
+
+```ebnf
+<extern-item> ::= "extern" "{" ( <function-sig> ";" )* "}"
+```
+
+For example:
+
+```rust
+extern {
+    fn eth_getBalance(address: string) -> string;
+
+    fn eth_gasPrice() -> string;
+}
+```
+
+The types used in the signature of `extern` functions depend on the types used by the external APIs. In the case of Ethereum JSON-RPC, a string is used to encode all values, hence a `string` type must be used in the `extern` block.
+
+Extern functions are available directly without any special scoping. The only requirement is that the functions are called in the same file where the `extern` block is declared or that the functions are imported using an [import item](#import-items), similarly to regular functions.
 
 ## Language Backend
 

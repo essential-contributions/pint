@@ -123,6 +123,8 @@ pub(super) enum Token<'sc> {
     Contract,
     #[token("implements")]
     Implements,
+    #[token("extern")]
+    Extern,
 
     #[token("in")]
     In,
@@ -172,6 +174,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Interface,
     Token::Contract,
     Token::Implements,
+    Token::Extern,
     Token::In,
 ];
 
@@ -231,6 +234,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Interface => write!(f, "interface"),
             Token::Contract => write!(f, "contract"),
             Token::Implements => write!(f, "implements"),
+            Token::Extern => write!(f, "extern"),
             Token::In => write!(f, "in"),
             Token::Ident(ident) => write!(f, "{ident}"),
             Token::RealLiteral(ident) => write!(f, "{ident}"),

@@ -73,6 +73,7 @@ fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> 
         enum_decl(),
         interface_decl(expr()),
         contract_decl(expr()),
+        extern_decl(expr()),
     ))
     .repeated()
     .then_ignore(end())
@@ -291,6 +292,19 @@ fn contract_decl<'sc>(
                 name_span,
             },
         )
+        .boxed()
+}
+
+fn extern_decl<'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+    just(Token::Extern)
+        .ignore_then(
+            (fn_sig(expr).then_ignore(just(Token::Semi)))
+                .repeated()
+                .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
+        )
+        .map(|functions| ast::Decl::Extern { functions })
         .boxed()
 }
 
