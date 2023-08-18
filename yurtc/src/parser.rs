@@ -479,7 +479,7 @@ where
     P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 {
     parser
-        .then((just(Token::Prime).to(expr::UnaryOp::Prime)).repeated())
+        .then((just(Token::SingleQuote).to(expr::UnaryOp::NextState)).repeated())
         .foldl(|expr, prime| ast::Expr::UnaryOp {
             op: prime,
             expr: Box::new(expr),

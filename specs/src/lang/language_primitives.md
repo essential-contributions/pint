@@ -62,7 +62,7 @@ Identifiers have the following syntax:
 <ident> ::= _?[A-Za-z][A-Za-z0-9]*     % excluding keywords
 ```
 
-A number of keywords are reserved and cannot be used as identifiers. The keywords are: `as`, `bool`, `constraint`, `contract`, `else`, `enum`, `false`, `fn`, `if`, `implements`, `interface`, `int`, `let`, `maximize`, `minimize`, `real`, `satisfy`, `solve`, `string`, `true`, `use`.
+A number of keywords are reserved and cannot be used as identifiers. The keywords are: `as`, `bool`, `constraint`, `contract`, `else`, `enum`, `false`, `fn`, `if`, `implements`, `interface`, `int`, `let`, `maximize`, `minimize`, `real`, `satisfy`, `solve`, `state`, `string`, `true`, `use`.
 
 ### Paths
 
@@ -104,16 +104,15 @@ Items can occur in any order; identifiers need not be declared before they are u
          | <function-item>
          | <enum-decl-item>
          | <solve-item>
-         | <transition-item>
          | <interface-item>
          | <contract-item>
 ```
 
 Import items (`<import-item>`) import new items from a module/submodule or external library into the current module ([Import Items](#import-items)).
 
-Let declaration items introduce decision variables and optionally bind them to values ([Let Declaration Items](#let-declaration-items)).
+Let declaration items introduce decision variables and optionally constrain them to values ([Let Declaration Items](#let-declaration-items)).
 
-State declaration items (`<state-item>`) introduce _state_ variables and bind them to values ([State Declaration Items](#state-declaration-items)).
+State declaration items (`<state-item>`) introduce _state_ variables and constrain them to values ([State Declaration Items](#state-declaration-items)).
 
 Constraint items describe intent constraints ([Constraint Items](#constraint-items)).
 
@@ -755,7 +754,7 @@ This contract is called `MyToken` and has an integer ID of `0xA0b86991c6218b36c1
 1. All the functions declared in the `Ownable` interface.
 1. All the functions declared in the body of the contract, namely `foo()` and `bar()`.
 
-A call to any of these functions can be made using a `<call-expr>` with the name of the contract used in `<path>`. For example, `MyToken::foo()`.
+A call to any of these functions can be made using a `<call-expr>` with the name of the contract used in `<path>`. For example, `MyToken::foo()`. Contract function calls _always_ return values which must be bound to [state variables](#state-declaration-items), such as `state u = MyToken::foo()`.
 
 ## Language Backend
 

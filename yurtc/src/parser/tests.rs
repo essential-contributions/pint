@@ -395,7 +395,7 @@ fn unary_op_exprs() {
     check(
         &run_parser!(expr(), "+ {- x} '  '  "),
         expect_test::expect![[
-            r#"UnaryOp { op: Pos, expr: UnaryOp { op: Prime, expr: UnaryOp { op: Prime, expr: Block(Block { statements: [], final_expr: UnaryOp { op: Neg, expr: Ident(Ident { path: ["x"], is_absolute: false }) } }) } } }"#
+            r#"UnaryOp { op: Pos, expr: UnaryOp { op: NextState, expr: UnaryOp { op: NextState, expr: Block(Block { statements: [], final_expr: UnaryOp { op: Neg, expr: Ident(Ident { path: ["x"], is_absolute: false }) } }) } } }"#
         ]],
     );
 }
