@@ -46,7 +46,7 @@ pub(super) enum Expr<Ident, BlockExpr> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Immediate {
+pub enum Immediate {
     Real(f64),
     Int(i64),
     BigInt(num_bigint::BigInt),
@@ -61,7 +61,7 @@ pub(super) struct CondBranch<E> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum UnaryOp {
+pub enum UnaryOp {
     Pos,
     Neg,
     Not,
@@ -69,7 +69,7 @@ pub(super) enum UnaryOp {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum BinaryOp {
+pub enum BinaryOp {
     Mul,
     Div,
     Add,

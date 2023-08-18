@@ -1,13 +1,22 @@
-use crate::{error::Span, expr::Expr as E, types::Type as T};
+use crate::{
+    contract::{ContractDecl as CD, InterfaceDecl as ID},
+    error::Span,
+    expr::Expr as E,
+    types::{EnumDecl, FnSig as F, Type as T},
+};
 
 pub(super) type Expr = E<Ident, Block>;
 pub(super) type Type = T<Ident, Expr>;
+pub(super) type FnSig = F<Type>;
+pub(super) type InterfaceDecl = ID<Type>;
+pub(super) type ContractDecl = CD<Ident, Expr, Type>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Decl {
     Use {
         is_absolute: bool,
         use_tree: UseTree,
+        span: Span,
     },
     Let {
         name: String,
@@ -33,25 +42,12 @@ pub(super) enum Decl {
         directive: SolveFunc,
         span: Span,
     },
-    Enum {
-        name: String,
-        variants: Vec<String>,
-        name_span: Span,
-    },
-    Interface {
-        name: String,
-        functions: Vec<FnSig>,
-        name_span: Span,
-    },
-    Contract {
-        name: String,
-        id: Expr,
-        interfaces: Vec<Ident>,
-        functions: Vec<FnSig>,
-        name_span: Span,
-    },
+    Enum(EnumDecl),
+    Interface(InterfaceDecl),
+    Contract(ContractDecl),
     Extern {
         functions: Vec<FnSig>,
+        extern_keyword_span: Span,
     },
 }
 
@@ -81,17 +77,10 @@ pub(super) struct Block {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct FnSig {
-    pub(super) name: String,
-    pub(super) params: Vec<(String, Type)>,
-    pub(super) return_type: Type,
-    pub(super) span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq)]
 pub(super) struct Ident {
     pub(super) path: Vec<String>,
     pub(super) is_absolute: bool,
+    pub(super) span: Span,
 }
 
 #[derive(Clone, Debug, PartialEq)]
