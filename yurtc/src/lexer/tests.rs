@@ -127,6 +127,11 @@ fn strings() {
 #[test]
 fn variables() {
     assert_eq!(lex_one_success("let"), Token::Let);
+    assert_eq!(lex_one_success("state"), Token::State);
+}
+
+#[test]
+fn r#types() {
     assert_eq!(lex_one_success("enum"), Token::Enum);
 }
 

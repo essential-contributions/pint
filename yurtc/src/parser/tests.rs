@@ -388,6 +388,16 @@ fn unary_op_exprs() {
             r#"UnaryOp { op: Neg, expr: Immediate(BigInt(14991544909594023253)) }"#
         ]],
     );
+    check(
+        &run_parser!(expr(), "! - - !  -+  -1"),
+        expect_test::expect!["UnaryOp { op: Not, expr: UnaryOp { op: Neg, expr: UnaryOp { op: Neg, expr: UnaryOp { op: Not, expr: UnaryOp { op: Neg, expr: UnaryOp { op: Pos, expr: UnaryOp { op: Neg, expr: Immediate(Int(1)) } } } } } } }"],
+    );
+    check(
+        &run_parser!(expr(), "+ {- x} '  '  "),
+        expect_test::expect![[
+            r#"UnaryOp { op: Pos, expr: UnaryOp { op: NextState, expr: UnaryOp { op: NextState, expr: Block(Block { statements: [], final_expr: UnaryOp { op: Neg, expr: Ident(Ident { path: ["x"], is_absolute: false }) } }) } } }"#
+        ]],
+    );
 }
 
 #[test]
@@ -1414,7 +1424,7 @@ fn fn_errors() {
     check(
         &run_parser!(yurt_program(), "fn foo() -> real {}"),
         expect_test::expect![[r#"
-            @18..19: found "}" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if", "cond", "let",  or "constraint"
+            @18..19: found "}" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if", "cond", "let", "state",  or "constraint"
         "#]],
     );
 }

@@ -65,6 +65,7 @@ pub(super) enum UnaryOp {
     Pos,
     Neg,
     Not,
+    NextState,
 }
 
 #[derive(Clone, Debug, PartialEq)]

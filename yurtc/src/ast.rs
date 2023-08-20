@@ -15,6 +15,12 @@ pub(super) enum Decl {
         init: Option<Expr>,
         span: Span,
     },
+    State {
+        name: String,
+        ty: Option<Type>,
+        init: Expr,
+        span: Span,
+    },
     Constraint {
         expr: Expr,
         span: Span,
