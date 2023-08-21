@@ -82,10 +82,14 @@ use crate::expr;
 #[test]
 fn single_let() {
     let ast = vec![ast::Decl::Let {
-        name: "foo".to_owned(),
+        // `let foo: real;`
+        name: ast::Ident {
+            name: "foo".to_owned(),
+            span: 4..7,
+        },
         ty: Some(ast::Type::Real),
         init: None,
-        span: 0..3,
+        span: 0..14,
     }];
 
     assert!(IntermediateIntent::from_ast(&ast).is_ok());
@@ -95,16 +99,24 @@ fn single_let() {
 fn double_let_clash() {
     let ast = vec![
         ast::Decl::Let {
-            name: "foo".to_owned(),
+            // `let foo: real;`
+            name: ast::Ident {
+                name: "foo".to_owned(),
+                span: 4..7,
+            },
             ty: Some(ast::Type::Real),
             init: None,
-            span: 0..3,
+            span: 0..14,
         },
         ast::Decl::Let {
-            name: "foo".to_owned(),
+            // `let foo: real;`
+            name: ast::Ident {
+                name: "foo".to_owned(),
+                span: 19..22,
+            },
             ty: Some(ast::Type::Real),
             init: None,
-            span: 3..6,
+            span: 15..29,
         },
     ];
 
@@ -114,7 +126,7 @@ fn double_let_clash() {
     assert!(res.is_err_and(|e| {
         assert_eq!(
             format!("{e:?}"),
-            r#"NameClash { sym: "foo", span: 3..6, prev_span: 0..3 }"#
+            r#"NameClash { sym: "foo", span: 19..22, prev_span: 4..7 }"#
         );
         true
     }));
@@ -124,22 +136,31 @@ fn double_let_clash() {
 fn let_fn_clash() {
     let ast = vec![
         ast::Decl::Let {
-            name: "bar".to_owned(),
+            // `let bar: real;`
+            name: ast::Ident {
+                name: "bar".to_owned(),
+                span: 4..7,
+            },
             ty: Some(ast::Type::Real),
             init: None,
-            span: 0..3,
+            span: 0..14,
         },
         ast::Decl::Fn {
             fn_sig: ast::FnSig {
-                name: "bar".to_owned(),
+                // `fn bar() -> bool { false }`
+                name: ast::Ident {
+                    name: "bar".to_owned(),
+                    span: 18..21,
+                },
                 params: Vec::new(),
                 return_type: ast::Type::Bool,
-                span: 3..6,
+                span: 15..31,
             },
             body: ast::Block {
                 statements: Vec::new(),
                 final_expr: Box::new(ast::Expr::Immediate(expr::Immediate::Bool(false))),
             },
+            span: 15..41,
         },
     ];
 
@@ -148,7 +169,7 @@ fn let_fn_clash() {
     assert!(res.is_err_and(|e| {
         assert_eq!(
             format!("{e:?}"),
-            r#"NameClash { sym: "bar", span: 3..6, prev_span: 0..3 }"#
+            r#"NameClash { sym: "bar", span: 18..21, prev_span: 4..7 }"#
         );
         true
     }));

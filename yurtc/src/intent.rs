@@ -44,7 +44,7 @@ pub struct Variable {
 #[derive(Debug)]
 pub enum Expression {
     Immediate(expr::Immediate),
-    Ident(Path),
+    Path(Path),
     UnaryOp {
         op: expr::UnaryOp,
         expr: Box<Self>,

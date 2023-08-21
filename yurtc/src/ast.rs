@@ -5,11 +5,11 @@ use crate::{
     types::{EnumDecl, FnSig as F, Type as T},
 };
 
-pub(super) type Expr = E<Ident, Block>;
-pub(super) type Type = T<Ident, Expr>;
+pub(super) type Expr = E<Path, Block>;
+pub(super) type Type = T<Path, Expr>;
 pub(super) type FnSig = F<Type>;
 pub(super) type InterfaceDecl = ID<Type>;
-pub(super) type ContractDecl = CD<Ident, Expr, Type>;
+pub(super) type ContractDecl = CD<Path, Expr, Type>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Decl {
@@ -19,13 +19,13 @@ pub(super) enum Decl {
         span: Span,
     },
     Let {
-        name: String,
+        name: Ident,
         ty: Option<Type>,
         init: Option<Expr>,
         span: Span,
     },
     State {
-        name: String,
+        name: Ident,
         ty: Option<Type>,
         init: Expr,
         span: Span,
@@ -37,6 +37,7 @@ pub(super) enum Decl {
     Fn {
         fn_sig: FnSig,
         body: Block,
+        span: Span,
     },
     Solve {
         directive: SolveFunc,
@@ -47,27 +48,17 @@ pub(super) enum Decl {
     Contract(ContractDecl),
     Extern {
         functions: Vec<FnSig>,
-        extern_keyword_span: Span,
+        span: Span,
     },
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum UseTree {
     Glob,
-    Name {
-        name: String,
-    },
-    Path {
-        prefix: String,
-        suffix: Box<UseTree>,
-    },
-    Group {
-        imports: Vec<UseTree>,
-    },
-    Alias {
-        name: String,
-        alias: String,
-    },
+    Name { name: Ident },
+    Path { prefix: Ident, suffix: Box<UseTree> },
+    Group { imports: Vec<UseTree> },
+    Alias { name: Ident, alias: Ident },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -78,7 +69,13 @@ pub(super) struct Block {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Ident {
-    pub(super) path: Vec<String>,
+    pub(super) name: String,
+    pub(super) span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct Path {
+    pub(super) path: Vec<Ident>,
     pub(super) is_absolute: bool,
     pub(super) span: Span,
 }
@@ -86,6 +83,6 @@ pub(super) struct Ident {
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum SolveFunc {
     Satisfy,
-    Minimize(Ident),
-    Maximize(Ident),
+    Minimize(Path),
+    Maximize(Path),
 }
