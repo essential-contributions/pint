@@ -1,4 +1,4 @@
-use crate::error::{CompileError, LexError, Span};
+use crate::error::{Error, LexError, Span};
 use itertools::{Either, Itertools};
 use logos::Logos;
 use std::fmt;
@@ -247,12 +247,12 @@ impl<'sc> fmt::Display for Token<'sc> {
 
 /// Lex a stream of characters. Return a list of discovered tokens and a list of errors encountered
 /// along the way.
-pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<CompileError>) {
+pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<Error>) {
     Token::lexer(src)
         .spanned()
         .partition_map(|(r, span)| match r {
             Ok(v) => Either::Left((v, span)),
-            Err(v) => Either::Right(CompileError::Lex { span, error: v }),
+            Err(v) => Either::Right(Error::Lex { span, error: v }),
         })
 }
 
