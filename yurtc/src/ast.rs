@@ -50,6 +50,9 @@ pub(super) enum Decl {
         functions: Vec<FnSig>,
         name_span: Span,
     },
+    Extern {
+        functions: Vec<FnSig>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]

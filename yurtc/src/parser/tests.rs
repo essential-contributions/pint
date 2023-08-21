@@ -1591,3 +1591,41 @@ fn contract_test() {
         "#]],
     );
 }
+
+#[test]
+fn extern_test() {
+    check(
+        &run_parser!(extern_decl(expr()), "extern {}"),
+        expect_test::expect!["Extern { functions: [] }"],
+    );
+    check(
+        &run_parser!(extern_decl(expr()), "extern { fn foo() -> string; }"),
+        expect_test::expect![[
+            r#"Extern { functions: [FnSig { name: "foo", params: [], return_type: String, span: 9..27 }] }"#
+        ]],
+    );
+    check(
+        &run_parser!(
+            extern_decl(expr()),
+            "extern { fn foo(x: int, y: real) -> int; }"
+        ),
+        expect_test::expect![[
+            r#"Extern { functions: [FnSig { name: "foo", params: [("x", Int), ("y", Real)], return_type: Int, span: 9..39 }] }"#
+        ]],
+    );
+    check(
+        &run_parser!(
+            extern_decl(expr()),
+            "extern { fn foo() -> int; fn bar() -> real; }"
+        ),
+        expect_test::expect![[
+            r#"Extern { functions: [FnSig { name: "foo", params: [], return_type: Int, span: 9..24 }, FnSig { name: "bar", params: [], return_type: Real, span: 26..42 }] }"#
+        ]],
+    );
+    check(
+        &run_parser!(extern_decl(expr()), "extern { fn foo(); }"),
+        expect_test::expect![[r#"
+            @17..18: found ";" but expected "->"
+        "#]],
+    );
+}
