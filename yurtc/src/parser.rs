@@ -139,7 +139,7 @@ fn let_decl<'sc>(
             if ty.is_none() && init.is_none() {
                 emit(ParseError::UntypedVariable {
                     span,
-                    name: name.clone(),
+                    name: name.name.clone(),
                 })
             }
             ((name, ty), init)
@@ -174,15 +174,15 @@ fn state_decl<'sc>(
 
 fn enum_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     just(Token::Enum)
-        .ignore_then(ident().map_with_span(|id, span| (id, span)))
+        .ignore_then(ident())
         .then_ignore(just(Token::Eq))
         .then(ident().separated_by(just(Token::Pipe)))
         .then_ignore(just(Token::Semi))
-        .map(|((name, name_span), variants)| {
+        .map_with_span(|(name, variants), span| {
             ast::Decl::Enum(EnumDecl {
                 name,
                 variants,
-                name_span,
+                span,
             })
         })
         .boxed()
@@ -201,10 +201,10 @@ fn constraint_decl<'sc>(
 fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     let solve_satisfy = just(Token::Satisfy).to(ast::SolveFunc::Satisfy);
     let solve_minimize = just(Token::Minimize)
-        .ignore_then(ident_path())
+        .ignore_then(path())
         .map(ast::SolveFunc::Minimize);
     let solve_maximize = just(Token::Maximize)
-        .ignore_then(ident_path())
+        .ignore_then(path())
         .map(ast::SolveFunc::Maximize);
 
     just(Token::Solve)
@@ -219,7 +219,7 @@ fn fn_decl<'sc>(
 ) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     fn_sig(expr.clone())
         .then(code_block_expr(expr))
-        .map(|(fn_sig, body)| ast::Decl::Fn { fn_sig, body })
+        .map_with_span(|(fn_sig, body), span| ast::Decl::Fn { fn_sig, body, span })
         .boxed()
 }
 
@@ -254,17 +254,17 @@ fn interface_decl<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     just(Token::Interface)
-        .ignore_then(ident().map_with_span(|id, span| (id, span)))
+        .ignore_then(ident())
         .then(
             (fn_sig(expr).then_ignore(just(Token::Semi)))
                 .repeated()
                 .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
         )
-        .map(|((name, name_span), functions)| {
+        .map_with_span(|(name, functions), span| {
             ast::Decl::Interface(contract::InterfaceDecl {
                 name,
                 functions,
-                name_span,
+                span,
             })
         })
         .boxed()
@@ -274,14 +274,14 @@ fn contract_decl<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     just(Token::Contract)
-        .ignore_then(ident().map_with_span(|id, span| (id, span)))
+        .ignore_then(ident())
         .then(
             expr.clone()
                 .delimited_by(just(Token::ParenOpen), just(Token::ParenClose)),
         )
         .then(
             (just(Token::Implements)
-                .ignore_then(ident_path().separated_by(just(Token::Comma)).at_least(1)))
+                .ignore_then(path().separated_by(just(Token::Comma)).at_least(1)))
             .or_not(),
         )
         .then(
@@ -289,13 +289,13 @@ fn contract_decl<'sc>(
                 .repeated()
                 .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
         )
-        .map(|((((name, name_span), id), interfaces), functions)| {
+        .map_with_span(|(((name, id), interfaces), functions), span| {
             ast::Decl::Contract(contract::ContractDecl {
                 name,
                 id,
                 interfaces: interfaces.unwrap_or_default(),
                 functions,
-                name_span,
+                span,
             })
         })
         .boxed()
@@ -305,16 +305,12 @@ fn extern_decl<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     just(Token::Extern)
-        .map_with_span(|_, tok_span| tok_span)
-        .then(
+        .ignore_then(
             (fn_sig(expr).then_ignore(just(Token::Semi)))
                 .repeated()
                 .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
         )
-        .map(|(extern_keyword_span, functions)| ast::Decl::Extern {
-            functions,
-            extern_keyword_span,
-        })
+        .map_with_span(|functions, span| ast::Decl::Extern { functions, span })
         .boxed()
 }
 
@@ -417,7 +413,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
             .boxed();
 
-        let call = ident_path()
+        let call = path()
             .then(call_args.clone())
             .map(|(name, args)| ast::Expr::Call { name, args })
             .boxed();
@@ -472,7 +468,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             array,
             tuple,
             parens,
-            ident_path().map(ast::Expr::Ident),
+            path().map(ast::Expr::Path),
         ))
         .boxed();
 
@@ -539,7 +535,10 @@ where
 {
     let indices = filter_map(|span, token| match &token {
         // Field access with an identifier
-        Token::Ident(ident) => Ok(vec![Either::Right((*ident).to_owned())]),
+        Token::Ident(ident) => Ok(vec![Either::Right(ast::Ident {
+            name: (*ident).to_owned(),
+            span,
+        })]),
 
         // Field access with an integer
         Token::IntLiteral(num_str) => num_str
@@ -582,7 +581,7 @@ where
                                 })
                                 .map(Either::Left)
                         })
-                        .collect::<Result<Vec<Either<usize, String>>, _>>()
+                        .collect::<Result<Vec<Either<usize, ast::Ident>>, _>>()
                 }
                 None => Err(ParseError::InvalidTupleIndex { span, index: token }),
             }
@@ -726,10 +725,13 @@ where
         .boxed()
 }
 
-fn ident<'sc>() -> impl Parser<Token<'sc>, String, Error = ParseError<'sc>> + Clone {
+fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError<'sc>> + Clone {
     filter_map(|span, token| match token {
         // Accept detected identifier. The lexer makes sure that these are not keywords.
-        Token::Ident(id) => Ok(id.to_owned()),
+        Token::Ident(id) => Ok(ast::Ident {
+            name: id.to_owned(),
+            span,
+        }),
 
         // Tokens that represent keywords are not allowed
         _ if KEYWORDS.contains(&token) => Err(ParseError::KeywordAsIdent {
@@ -746,14 +748,14 @@ fn ident<'sc>() -> impl Parser<Token<'sc>, String, Error = ParseError<'sc>> + Cl
     })
 }
 
-fn ident_path<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError<'sc>> + Clone {
+fn path<'sc>() -> impl Parser<Token<'sc>, ast::Path, Error = ParseError<'sc>> + Clone {
     let relative_path = ident().then((just(Token::DoubleColon).ignore_then(ident())).repeated());
     just(Token::DoubleColon)
         .or_not()
         .then(relative_path)
         .map_with_span(|(pre_colons, (id, mut path)), span| {
             path.insert(0, id);
-            ast::Ident {
+            ast::Path {
                 path,
                 is_absolute: pre_colons.is_some(),
                 span,
@@ -786,7 +788,7 @@ fn type_<'sc>(
             just(Token::Bool).to(ast::Type::Bool),
             just(Token::String).to(ast::Type::String),
             tuple.map(ast::Type::Tuple),
-            ident_path().map(ast::Type::CustomType),
+            path().map(ast::Type::CustomType),
         ))
         .boxed();
 

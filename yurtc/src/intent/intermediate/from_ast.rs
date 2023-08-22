@@ -32,24 +32,14 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
                 });
             }
 
-            ast::Decl::Let {
-                name,
-                ty,
-                init,
-                span,
-            } => {
-                expr_ctx.check_unique_symbol(name, span)?;
-                expr_ctx.unpack_let_decl(name, ty, init, span)?;
+            ast::Decl::Let { name, ty, init, .. } => {
+                expr_ctx.check_unique_symbol(name)?;
+                expr_ctx.unpack_let_decl(name, ty, init)?;
             }
 
-            ast::Decl::State {
-                name,
-                ty,
-                init,
-                span,
-            } => {
-                expr_ctx.check_unique_symbol(name, span)?;
-                expr_ctx.convert_state(name, ty, init, span)?;
+            ast::Decl::State { name, ty, init, .. } => {
+                expr_ctx.check_unique_symbol(name)?;
+                expr_ctx.convert_state(name, ty, init)?;
             }
 
             ast::Decl::Enum(enum_decl) => {
@@ -61,8 +51,8 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
                 expr_ctx.constraints.push((expr, span.clone()));
             }
 
-            ast::Decl::Fn { fn_sig, body } => {
-                expr_ctx.check_unique_symbol(&fn_sig.name, &fn_sig.span)?;
+            ast::Decl::Fn { fn_sig, body, .. } => {
+                expr_ctx.check_unique_symbol(&fn_sig.name)?;
 
                 let mut local_expr_ctx = ExprContext::default();
                 let returned_constraint = local_expr_ctx.convert_block(body)?;
@@ -94,13 +84,10 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
             ast::Decl::Contract(contract_decl) => {
                 contracts.push(expr_ctx.convert_contract(contract_decl)?);
             }
-            ast::Decl::Extern {
-                functions,
-                extern_keyword_span: top_span,
-            } => {
+            ast::Decl::Extern { functions, span } => {
                 externs.push((
                     convert_vec(functions, |fnsig| expr_ctx.convert_fn_sig(fnsig))?,
-                    top_span.clone(),
+                    span.clone(),
                 ));
             }
         }
@@ -129,18 +116,18 @@ struct ExprContext {
 }
 
 impl ExprContext {
-    fn check_unique_symbol(&mut self, sym: &Path, span: &Span) -> super::Result<()> {
+    fn check_unique_symbol(&mut self, sym: &ast::Ident) -> super::Result<()> {
         self.names
-            .get(sym)
+            .get(&sym.name)
             .map(|prev_span| {
                 Err(CompileError::NameClash {
-                    sym: sym.clone(),
-                    span: span.clone(),
+                    sym: sym.name.clone(),
+                    span: sym.span.clone(),
                     prev_span: prev_span.clone(),
                 })
             })
             .unwrap_or_else(|| {
-                self.names.insert(sym.clone(), span.clone());
+                self.names.insert(sym.name.clone(), sym.span.clone());
                 Ok(())
             })
     }
@@ -148,7 +135,7 @@ impl ExprContext {
     fn convert_expr(&mut self, ast_expr: &ast::Expr) -> super::Result<Expr> {
         Ok(match ast_expr {
             ast::Expr::Immediate(imm) => Expr::Immediate(imm.clone()),
-            ast::Expr::Ident(id) => Expr::Ident(convert_ident(id)?),
+            ast::Expr::Path(id) => Expr::Path(convert_ident(id)?),
             ast::Expr::UnaryOp { op, expr } => Expr::UnaryOp {
                 op: op.clone(),
                 expr: Box::new(self.convert_expr(expr)?),
@@ -252,23 +239,13 @@ impl ExprContext {
 
         for statement in statements {
             match statement {
-                ast::Decl::State {
-                    name,
-                    ty,
-                    init,
-                    span,
-                } => {
-                    self.check_unique_symbol(name, span)?;
-                    self.convert_state(name, ty, init, span)?;
+                ast::Decl::State { name, ty, init, .. } => {
+                    self.check_unique_symbol(name)?;
+                    self.convert_state(name, ty, init)?;
                 }
-                ast::Decl::Let {
-                    name,
-                    ty,
-                    init,
-                    span,
-                } => {
-                    self.check_unique_symbol(name, span)?;
-                    self.unpack_let_decl(name, ty, init, span)?;
+                ast::Decl::Let { name, ty, init, .. } => {
+                    self.check_unique_symbol(name)?;
+                    self.unpack_let_decl(name, ty, init)?;
                 }
                 ast::Decl::Constraint { expr, span } => {
                     let constraint = self.convert_expr(expr)?;
@@ -282,19 +259,10 @@ impl ExprContext {
                     ..
                 }
                 | ast::Decl::Solve { span, .. }
-                | ast::Decl::Enum(types::EnumDecl {
-                    name_span: span, ..
-                })
-                | ast::Decl::Interface(contract::InterfaceDecl {
-                    name_span: span, ..
-                })
-                | ast::Decl::Contract(contract::ContractDecl {
-                    name_span: span, ..
-                })
-                | ast::Decl::Extern {
-                    extern_keyword_span: span,
-                    ..
-                } => {
+                | ast::Decl::Enum(types::EnumDecl { span, .. })
+                | ast::Decl::Interface(contract::InterfaceDecl { span, .. })
+                | ast::Decl::Contract(contract::ContractDecl { span, .. })
+                | ast::Decl::Extern { span, .. } => {
                     return Err(CompileError::Internal {
                         span: span.clone(),
                         msg: "Fn blocks may only have `let` and `constraint` decls.",
@@ -313,13 +281,13 @@ impl ExprContext {
         let ast::InterfaceDecl {
             name,
             functions,
-            name_span,
+            span,
         } = ast_iface;
 
         Ok(InterfaceDecl {
             name: name.clone(),
             functions: convert_vec(functions, |sig| self.convert_fn_sig(sig))?,
-            name_span: name_span.clone(),
+            span: span.clone(),
         })
     }
 
@@ -332,7 +300,7 @@ impl ExprContext {
             id,
             interfaces,
             functions,
-            name_span,
+            span,
         } = ast_contract;
 
         Ok(ContractDecl {
@@ -340,26 +308,25 @@ impl ExprContext {
             id: self.convert_expr(id)?,
             interfaces: convert_vec(interfaces, convert_ident)?,
             functions: convert_vec(functions, |sig| self.convert_fn_sig(sig))?,
-            name_span: name_span.clone(),
+            span: span.clone(),
         })
     }
 
     fn convert_state(
         &mut self,
-        name: &str,
+        name: &ast::Ident,
         ty: &Option<ast::Type>,
         init: &ast::Expr,
-        span: &Span,
     ) -> super::Result<()> {
         let ty = ty.as_ref().map(|ty| self.convert_type(ty)).transpose()?;
         let expr = self.convert_expr(init)?;
         self.states.push((
             State {
-                name: name.to_owned(),
+                name: name.name.to_owned(),
                 ty,
                 expr,
             },
-            span.clone(),
+            name.span.clone(),
         ));
 
         Ok(())
@@ -367,44 +334,43 @@ impl ExprContext {
 
     fn unpack_let_decl(
         &mut self,
-        name: &str,
+        name: &ast::Ident,
         ty: &Option<ast::Type>,
         init: &Option<ast::Expr>,
-        span: &Span,
     ) -> super::Result<()> {
         let ty = ty.as_ref().map(|ty| self.convert_type(ty)).transpose()?;
         self.vars.push((
             Var {
-                name: name.to_owned(),
+                name: name.name.to_owned(),
                 ty,
             },
-            span.clone(),
+            name.span.clone(),
         ));
 
         if let Some(init) = init {
             let eq_expr = Expr::BinaryOp {
                 op: expr::BinaryOp::Equal,
-                lhs: Box::new(Expr::Ident(name.to_owned())),
+                lhs: Box::new(Expr::Path(name.name.to_owned())),
                 rhs: Box::new(self.convert_expr(init)?),
             };
-            self.constraints.push((eq_expr, span.clone()));
+            self.constraints.push((eq_expr, name.span.clone()));
         };
 
         Ok(())
     }
 }
 
-fn convert_ident(ast_id: &ast::Ident) -> super::Result<Path> {
+fn convert_ident(ast_id: &ast::Path) -> super::Result<Path> {
     // NOTE: for now we're only supporting a single main module, so the path MUST be a single
     // element and we're assuming is_absolute.  After we have the module system implemented then
-    // all symbols will be canonicalised and an ast::Ident will just be a string.
+    // all symbols will be canonicalised and an ast::Path will just be a string.
     if ast_id.path.len() != 1 {
         return Err(CompileError::Internal {
             span: ast_id.span.clone(),
             msg: "Multi-path identifiers are not supported yet.",
         });
     }
-    Ok(ast_id.path[0].clone())
+    Ok(ast_id.path[0].name.clone())
 }
 
 // We're converting vectors by mapping other conversions over their elements.  This little utility

@@ -76,7 +76,7 @@ fn convert_directive(directives: Vec<(Solve, Span)>) -> super::Result<Solve> {
 fn convert_expr(expr: Expr, span: &Span) -> super::Result<Expression> {
     match expr {
         super::Expr::Immediate(imm) => Ok(Expression::Immediate(imm)),
-        super::Expr::Ident(id) => Ok(Expression::Ident(id)),
+        super::Expr::Path(id) => Ok(Expression::Path(id)),
         super::Expr::UnaryOp { op, expr } => {
             convert_expr(*expr, span).map(|expr| Expression::UnaryOp {
                 op,

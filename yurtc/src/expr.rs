@@ -1,7 +1,9 @@
+use crate::ast::Ident;
+
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Expr<Ident, BlockExpr> {
+pub(super) enum Expr<Path, BlockExpr> {
     Immediate(Immediate),
-    Ident(Ident),
+    Path(Path),
     UnaryOp {
         op: UnaryOp,
         expr: Box<Self>,
@@ -12,7 +14,7 @@ pub(super) enum Expr<Ident, BlockExpr> {
         rhs: Box<Self>,
     },
     Call {
-        name: Ident,
+        name: Path,
         args: Vec<Self>,
     },
     Block(BlockExpr),
@@ -30,14 +32,14 @@ pub(super) enum Expr<Ident, BlockExpr> {
         array: Box<Self>,
         index: Box<Self>,
     },
-    Tuple(Vec<(Option<String>, Self)>),
+    Tuple(Vec<(Option<Ident>, Self)>),
     TupleFieldAccess {
         tuple: Box<Self>,
-        field: itertools::Either<usize, String>,
+        field: itertools::Either<usize, Ident>,
     },
     Cast {
         value: Box<Self>,
-        ty: Box<super::types::Type<Ident, Self>>,
+        ty: Box<super::types::Type<Path, Self>>,
     },
     In {
         value: Box<Self>,
@@ -60,7 +62,7 @@ pub(super) struct CondBranch<E> {
     pub(super) result: Box<E>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UnaryOp {
     Pos,
     Neg,
@@ -68,7 +70,7 @@ pub enum UnaryOp {
     NextState,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BinaryOp {
     Mul,
     Div,
