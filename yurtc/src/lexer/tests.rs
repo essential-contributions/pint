@@ -1,4 +1,4 @@
-use crate::error::{CompileError, LexError};
+use crate::error::{Error, LexError};
 use crate::lexer::*;
 
 #[cfg(test)]
@@ -127,6 +127,11 @@ fn strings() {
 #[test]
 fn variables() {
     assert_eq!(lex_one_success("let"), Token::Let);
+    assert_eq!(lex_one_success("state"), Token::State);
+}
+
+#[test]
+fn r#types() {
     assert_eq!(lex_one_success("enum"), Token::Enum);
     assert_eq!(lex_one_success("type"), Token::Type);
 }
@@ -182,6 +187,7 @@ fn blockchain_items() {
     assert_eq!(lex_one_success("interface"), Token::Interface);
     assert_eq!(lex_one_success("contract"), Token::Contract);
     assert_eq!(lex_one_success("implements"), Token::Implements);
+    assert_eq!(lex_one_success("extern"), Token::Extern);
 }
 
 #[test]
@@ -200,11 +206,11 @@ solve minimize mid;
     assert!(matches!(
         (&errors[0], &errors[1]),
         (
-            CompileError::Lex {
+            Error::Lex {
                 error: LexError::InvalidToken,
                 ..
             },
-            CompileError::Lex {
+            Error::Lex {
                 error: LexError::InvalidToken,
                 ..
             }

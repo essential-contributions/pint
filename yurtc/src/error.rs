@@ -4,6 +4,9 @@ use chumsky::prelude::*;
 use thiserror::Error;
 
 pub(super) type Span = std::ops::Range<usize>;
+pub(super) fn empty_span() -> Span {
+    0..0
+}
 
 /// An error originating from the lexer
 #[derive(Error, Debug, Clone, PartialEq, Default)]
@@ -36,6 +39,18 @@ pub(super) enum ParseError<'a> {
     EmptyTupleExpr { span: Span },
     #[error("empty tuple types are not allowed")]
     EmptyTupleType { span: Span },
+}
+
+#[derive(Error, Debug, PartialEq, Clone)]
+pub(super) enum CompileError {
+    #[error("internal error: {msg}")]
+    Internal { span: Span, msg: &'static str },
+    #[error("symbol \"{sym}\" has already been declared")]
+    NameClash {
+        sym: String,
+        span: Span,
+        prev_span: Span,
+    },
 }
 
 fn format_expected_found_error<'a>(
@@ -112,16 +127,18 @@ impl<'a> chumsky::Error<Token<'a>> for ParseError<'a> {
 
 /// A general compile error
 #[derive(Error, Debug, Clone, PartialEq)]
-pub(super) enum CompileError<'a> {
+pub(super) enum Error<'a> {
     #[error("{}", error)]
     Lex { span: Span, error: LexError },
     #[error("{}", error)]
     Parse { error: ParseError<'a> },
+    #[error("{}", error)]
+    Compile { error: CompileError },
 }
 
-impl<'a> CompileError<'a> {
+impl<'a> Error<'a> {
     pub(super) fn span(&self) -> Span {
-        use CompileError::*;
+        use Error::*;
         match self {
             Lex { span, .. } => span.clone(),
             Parse { error } => match error {
@@ -134,12 +151,16 @@ impl<'a> CompileError<'a> {
                 ParseError::EmptyTupleExpr { span } => span.clone(),
                 ParseError::EmptyTupleType { span } => span.clone(),
             },
+            Compile { error } => match error {
+                CompileError::Internal { span, .. } => span.clone(),
+                CompileError::NameClash { span, .. } => span.clone(),
+            },
         }
     }
 }
 
-/// Print a list of `CompileError` using the `ariadne` library
-pub(super) fn print_on_failure(filename: &str, source: &str, errs: &Vec<CompileError>) -> usize {
+/// Print a list of [`Error`] using the `ariadne` library
+pub(super) fn print_on_failure(filename: &str, source: &str, errs: &Vec<Error>) -> usize {
     for err in errs {
         let span = err.span();
         Report::build(ReportKind::Error, filename, span.start())

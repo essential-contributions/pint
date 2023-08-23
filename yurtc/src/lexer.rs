@@ -1,4 +1,4 @@
-use crate::error::{CompileError, LexError, Span};
+use crate::error::{Error, LexError, Span};
 use itertools::{Either, Itertools};
 use logos::Logos;
 use std::fmt;
@@ -44,6 +44,8 @@ pub(super) enum Token<'sc> {
     DoubleAmpersand,
     #[token("||")]
     DoublePipe,
+    #[token("'")]
+    SingleQuote,
 
     #[token(";")]
     Semi,
@@ -95,10 +97,10 @@ pub(super) enum Token<'sc> {
 
     #[token("let")]
     Let,
+    #[token("state")]
+    State,
     #[token("enum")]
     Enum,
-    #[token("type")]
-    Type,
     #[token("constraint")]
     Constraint,
     #[token("maximize")]
@@ -121,6 +123,8 @@ pub(super) enum Token<'sc> {
     Contract,
     #[token("implements")]
     Implements,
+    #[token("extern")]
+    Extern,
 
     #[token("in")]
     In,
@@ -158,6 +162,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Else,
     Token::Cond,
     Token::Let,
+    Token::State,
     Token::Constraint,
     Token::Maximize,
     Token::Minimize,
@@ -169,7 +174,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Interface,
     Token::Contract,
     Token::Implements,
-    Token::Type,
+    Token::Extern,
     Token::In,
 ];
 
@@ -193,6 +198,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::NotEq => write!(f, "!="),
             Token::DoubleAmpersand => write!(f, "&&"),
             Token::DoublePipe => write!(f, "||"),
+            Token::SingleQuote => write!(f, "'"),
             Token::Semi => write!(f, ";"),
             Token::Comma => write!(f, ","),
             Token::Star => write!(f, "*"),
@@ -216,8 +222,8 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Else => write!(f, "else"),
             Token::Cond => write!(f, "cond"),
             Token::Let => write!(f, "let"),
+            Token::State => write!(f, "state"),
             Token::Enum => write!(f, "enum"),
-            Token::Type => write!(f, "type"),
             Token::Constraint => write!(f, "constraint"),
             Token::Maximize => write!(f, "maximize"),
             Token::Minimize => write!(f, "minimize"),
@@ -228,6 +234,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Interface => write!(f, "interface"),
             Token::Contract => write!(f, "contract"),
             Token::Implements => write!(f, "implements"),
+            Token::Extern => write!(f, "extern"),
             Token::In => write!(f, "in"),
             Token::Ident(ident) => write!(f, "{ident}"),
             Token::RealLiteral(ident) => write!(f, "{ident}"),
@@ -240,12 +247,12 @@ impl<'sc> fmt::Display for Token<'sc> {
 
 /// Lex a stream of characters. Return a list of discovered tokens and a list of errors encountered
 /// along the way.
-pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<CompileError>) {
+pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<Error>) {
     Token::lexer(src)
         .spanned()
         .partition_map(|(r, span)| match r {
             Ok(v) => Either::Left((v, span)),
-            Err(v) => Either::Right(CompileError::Lex { span, error: v }),
+            Err(v) => Either::Right(Error::Lex { span, error: v }),
         })
 }
 

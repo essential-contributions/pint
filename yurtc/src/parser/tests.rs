@@ -1,5 +1,5 @@
 use crate::{
-    error::CompileError,
+    error::Error,
     lexer::{self, KEYWORDS},
     parser::*,
 };
@@ -17,7 +17,7 @@ macro_rules! run_parser {
                 "{}",
                 // Print each error on one line. For each error, start with the span.
                 errors.iter().fold(String::new(), |acc, error| {
-                    let span = CompileError::Parse {
+                    let span = Error::Parse {
                         error: error.clone(),
                     }
                     .span();
@@ -61,6 +61,12 @@ fn types() {
             "Tuple([(None, Int), (None, Tuple([(None, Real), (None, Int)])), (None, String)])"
         ],
     );
+    check(
+        &run_parser!(type_(expr()), "custom_type"),
+        expect_test::expect![[
+            r#"CustomType(Path { path: [Ident { name: "custom_type", span: 0..11 }], is_absolute: false, span: 0..11 })"#
+        ]],
+    );
 }
 
 #[test]
@@ -99,53 +105,53 @@ fn immediates() {
 fn use_statements() {
     check(
         &run_parser!(yurt_program(), "use *; use ::*;"),
-        expect_test::expect!["[Use { is_absolute: false, use_tree: Glob }, Use { is_absolute: true, use_tree: Glob }]"],
+        expect_test::expect!["[Use { is_absolute: false, use_tree: Glob, span: 0..6 }, Use { is_absolute: true, use_tree: Glob, span: 7..15 }]"],
     );
 
     check(
         &run_parser!(yurt_program(), "use {}; use ::{};"),
-        expect_test::expect!["[Use { is_absolute: false, use_tree: Group { imports: [] } }, Use { is_absolute: true, use_tree: Group { imports: [] } }]"],
+        expect_test::expect!["[Use { is_absolute: false, use_tree: Group { imports: [] }, span: 0..7 }, Use { is_absolute: true, use_tree: Group { imports: [] }, span: 8..17 }]"],
     );
 
     check(
         &run_parser!(yurt_program(), "use a; use ::a; use ::a as b;"),
         expect_test::expect![[
-            r#"[Use { is_absolute: false, use_tree: Name { name: "a" } }, Use { is_absolute: true, use_tree: Name { name: "a" } }, Use { is_absolute: true, use_tree: Alias { name: "a", alias: "b" } }]"#
+            r#"[Use { is_absolute: false, use_tree: Name { name: Ident { name: "a", span: 4..5 } }, span: 0..6 }, Use { is_absolute: true, use_tree: Name { name: Ident { name: "a", span: 13..14 } }, span: 7..15 }, Use { is_absolute: true, use_tree: Alias { name: Ident { name: "a", span: 22..23 }, alias: Ident { name: "b", span: 27..28 } }, span: 16..29 }]"#
         ]],
     );
 
     check(
         &run_parser!(yurt_program(), "use a::b; use ::a::b; use ::a::b as c;"),
         expect_test::expect![[
-            r#"[Use { is_absolute: false, use_tree: Path { prefix: "a", suffix: Name { name: "b" } } }, Use { is_absolute: true, use_tree: Path { prefix: "a", suffix: Name { name: "b" } } }, Use { is_absolute: true, use_tree: Path { prefix: "a", suffix: Alias { name: "b", alias: "c" } } }]"#
+            r#"[Use { is_absolute: false, use_tree: Path { prefix: Ident { name: "a", span: 4..5 }, suffix: Name { name: Ident { name: "b", span: 7..8 } } }, span: 0..9 }, Use { is_absolute: true, use_tree: Path { prefix: Ident { name: "a", span: 16..17 }, suffix: Name { name: Ident { name: "b", span: 19..20 } } }, span: 10..21 }, Use { is_absolute: true, use_tree: Path { prefix: Ident { name: "a", span: 28..29 }, suffix: Alias { name: Ident { name: "b", span: 31..32 }, alias: Ident { name: "c", span: 36..37 } } }, span: 22..38 }]"#
         ]],
     );
 
     check(
         &run_parser!(yurt_program(), "use a::{b, c as d};"),
         expect_test::expect![[
-            r#"[Use { is_absolute: false, use_tree: Path { prefix: "a", suffix: Group { imports: [Name { name: "b" }, Alias { name: "c", alias: "d" }] } } }]"#
+            r#"[Use { is_absolute: false, use_tree: Path { prefix: Ident { name: "a", span: 4..5 }, suffix: Group { imports: [Name { name: Ident { name: "b", span: 8..9 } }, Alias { name: Ident { name: "c", span: 11..12 }, alias: Ident { name: "d", span: 16..17 } }] } }, span: 0..19 }]"#
         ]],
     );
 
     check(
         &run_parser!(yurt_program(), "use ::a::{*, c as d};"),
         expect_test::expect![[
-            r#"[Use { is_absolute: true, use_tree: Path { prefix: "a", suffix: Group { imports: [Glob, Alias { name: "c", alias: "d" }] } } }]"#
+            r#"[Use { is_absolute: true, use_tree: Path { prefix: Ident { name: "a", span: 6..7 }, suffix: Group { imports: [Glob, Alias { name: Ident { name: "c", span: 13..14 }, alias: Ident { name: "d", span: 18..19 } }] } }, span: 0..21 }]"#
         ]],
     );
 
     check(
         &run_parser!(yurt_program(), "use ::a::{*, c as d};"),
         expect_test::expect![[
-            r#"[Use { is_absolute: true, use_tree: Path { prefix: "a", suffix: Group { imports: [Glob, Alias { name: "c", alias: "d" }] } } }]"#
+            r#"[Use { is_absolute: true, use_tree: Path { prefix: Ident { name: "a", span: 6..7 }, suffix: Group { imports: [Glob, Alias { name: Ident { name: "c", span: 13..14 }, alias: Ident { name: "d", span: 18..19 } }] } }, span: 0..21 }]"#
         ]],
     );
 
     check(
         &run_parser!(yurt_program(), "use a::{{*}, {c as d, { e as f, * }}};"),
         expect_test::expect![[
-            r#"[Use { is_absolute: false, use_tree: Path { prefix: "a", suffix: Group { imports: [Group { imports: [Glob] }, Group { imports: [Alias { name: "c", alias: "d" }, Group { imports: [Alias { name: "e", alias: "f" }, Glob] }] }] } } }]"#
+            r#"[Use { is_absolute: false, use_tree: Path { prefix: Ident { name: "a", span: 4..5 }, suffix: Group { imports: [Group { imports: [Glob] }, Group { imports: [Alias { name: Ident { name: "c", span: 14..15 }, alias: Ident { name: "d", span: 19..20 } }, Group { imports: [Alias { name: Ident { name: "e", span: 24..25 }, alias: Ident { name: "f", span: 29..30 } }, Glob] }] }] } }, span: 0..38 }]"#
         ]],
     );
 
@@ -197,67 +203,73 @@ fn let_decls() {
     check(
         &run_parser!(let_decl(expr()), "let blah = 1.0;"),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: None, init: Some(Immediate(Real(1.0))), span: 0..15 }"#
+            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: None, init: Some(Immediate(Real(1.0))), span: 0..15 }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: real = 1.0;"),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: Some(Real), init: Some(Immediate(Real(1.0))), span: 0..21 }"#
+            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: Some(Real), init: Some(Immediate(Real(1.0))), span: 0..21 }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: real;"),
-        expect_test::expect![[r#"Let { name: "blah", ty: Some(Real), init: None, span: 0..15 }"#]],
+        expect_test::expect![[
+            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: Some(Real), init: None, span: 0..15 }"#
+        ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah = 1;"),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: None, init: Some(Immediate(Int(1))), span: 0..13 }"#
+            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: None, init: Some(Immediate(Int(1))), span: 0..13 }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: int = 1;"),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: Some(Int), init: Some(Immediate(Int(1))), span: 0..18 }"#
+            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: Some(Int), init: Some(Immediate(Int(1))), span: 0..18 }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: int;"),
-        expect_test::expect![[r#"Let { name: "blah", ty: Some(Int), init: None, span: 0..14 }"#]],
+        expect_test::expect![[
+            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: Some(Int), init: None, span: 0..14 }"#
+        ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah = true;"),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: None, init: Some(Immediate(Bool(true))), span: 0..16 }"#
+            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: None, init: Some(Immediate(Bool(true))), span: 0..16 }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: bool = false;"),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: Some(Bool), init: Some(Immediate(Bool(false))), span: 0..23 }"#
+            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: Some(Bool), init: Some(Immediate(Bool(false))), span: 0..23 }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: bool;"),
-        expect_test::expect![[r#"Let { name: "blah", ty: Some(Bool), init: None, span: 0..15 }"#]],
+        expect_test::expect![[
+            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: Some(Bool), init: None, span: 0..15 }"#
+        ]],
     );
     check(
         &run_parser!(let_decl(expr()), r#"let blah = "hello";"#),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: None, init: Some(Immediate(String("hello"))), span: 0..19 }"#
+            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: None, init: Some(Immediate(String("hello"))), span: 0..19 }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), r#"let blah: string = "hello";"#),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: Some(String), init: Some(Immediate(String("hello"))), span: 0..27 }"#
+            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: Some(String), init: Some(Immediate(String("hello"))), span: 0..27 }"#
         ]],
     );
     check(
         &run_parser!(let_decl(expr()), r#"let blah: string;"#),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: Some(String), init: None, span: 0..17 }"#
+            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: Some(String), init: None, span: 0..17 }"#
         ]],
     );
 }
@@ -268,7 +280,7 @@ fn constraint_decls() {
     check(
         &run_parser!(constraint_decl(expr()), "constraint blah;"),
         expect_test::expect![[
-            r#"Constraint { expr: Ident(Ident { path: ["blah"], is_absolute: false }), span: 0..16 }"#
+            r#"Constraint { expr: Path(Path { path: [Ident { name: "blah", span: 11..15 }], is_absolute: false, span: 11..15 }), span: 0..16 }"#
         ]],
     );
 }
@@ -282,13 +294,13 @@ fn solve_decls() {
     check(
         &run_parser!(solve_decl(), "solve minimize foo;"),
         expect_test::expect![[
-            r#"Solve { directive: Minimize(Ident { path: ["foo"], is_absolute: false }), span: 0..19 }"#
+            r#"Solve { directive: Minimize(Path { path: [Ident { name: "foo", span: 15..18 }], is_absolute: false, span: 15..18 }), span: 0..19 }"#
         ]],
     );
     check(
         &run_parser!(solve_decl(), "solve maximize foo;"),
         expect_test::expect![[
-            r#"Solve { directive: Maximize(Ident { path: ["foo"], is_absolute: false }), span: 0..19 }"#
+            r#"Solve { directive: Maximize(Path { path: [Ident { name: "foo", span: 15..18 }], is_absolute: false, span: 15..18 }), span: 0..19 }"#
         ]],
     );
 
@@ -308,7 +320,9 @@ fn basic_exprs() {
     );
     check(
         &run_parser!(expr(), "foo"),
-        expect_test::expect![[r#"Ident(Ident { path: ["foo"], is_absolute: false })"#]],
+        expect_test::expect![[
+            r#"Path(Path { path: [Ident { name: "foo", span: 0..3 }], is_absolute: false, span: 0..3 })"#
+        ]],
     );
 }
 
@@ -317,19 +331,19 @@ fn unary_op_exprs() {
     check(
         &run_parser!(expr(), "!a"),
         expect_test::expect![[
-            r#"UnaryOp { op: Not, expr: Ident(Ident { path: ["a"], is_absolute: false }) }"#
+            r#"UnaryOp { op: Not, expr: Path(Path { path: [Ident { name: "a", span: 1..2 }], is_absolute: false, span: 1..2 }) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "+a"),
         expect_test::expect![[
-            r#"UnaryOp { op: Pos, expr: Ident(Ident { path: ["a"], is_absolute: false }) }"#
+            r#"UnaryOp { op: Pos, expr: Path(Path { path: [Ident { name: "a", span: 1..2 }], is_absolute: false, span: 1..2 }) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "-a"),
         expect_test::expect![[
-            r#"UnaryOp { op: Neg, expr: Ident(Ident { path: ["a"], is_absolute: false }) }"#
+            r#"UnaryOp { op: Neg, expr: Path(Path { path: [Ident { name: "a", span: 1..2 }], is_absolute: false, span: 1..2 }) }"#
         ]],
     );
     check(
@@ -382,6 +396,16 @@ fn unary_op_exprs() {
             r#"UnaryOp { op: Neg, expr: Immediate(BigInt(14991544909594023253)) }"#
         ]],
     );
+    check(
+        &run_parser!(expr(), "! - - !  -+  -1"),
+        expect_test::expect!["UnaryOp { op: Not, expr: UnaryOp { op: Neg, expr: UnaryOp { op: Neg, expr: UnaryOp { op: Not, expr: UnaryOp { op: Neg, expr: UnaryOp { op: Pos, expr: UnaryOp { op: Neg, expr: Immediate(Int(1)) } } } } } } }"],
+    );
+    check(
+        &run_parser!(expr(), "+ {- x} '  '  "),
+        expect_test::expect![[
+            r#"UnaryOp { op: Pos, expr: UnaryOp { op: NextState, expr: UnaryOp { op: NextState, expr: Block(Block { statements: [], final_expr: UnaryOp { op: Neg, expr: Path(Path { path: [Ident { name: "x", span: 5..6 }], is_absolute: false, span: 5..6 }) } }) } } }"#
+        ]],
+    );
 }
 
 #[test]
@@ -389,99 +413,99 @@ fn binary_op_exprs() {
     check(
         &run_parser!(expr(), "a * 2.0"),
         expect_test::expect![[
-            r#"BinaryOp { op: Mul, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Real(2.0)) }"#
+            r#"BinaryOp { op: Mul, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "a / 2.0"),
         expect_test::expect![[
-            r#"BinaryOp { op: Div, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Real(2.0)) }"#
+            r#"BinaryOp { op: Div, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "a % 2.0"),
         expect_test::expect![[
-            r#"BinaryOp { op: Mod, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Real(2.0)) }"#
+            r#"BinaryOp { op: Mod, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "a + 2.0"),
         expect_test::expect![[
-            r#"BinaryOp { op: Add, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Real(2.0)) }"#
+            r#"BinaryOp { op: Add, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "a - 2.0"),
         expect_test::expect![[
-            r#"BinaryOp { op: Sub, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Real(2.0)) }"#
+            r#"BinaryOp { op: Sub, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "a+2.0"),
         expect_test::expect![[
-            r#"BinaryOp { op: Add, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Real(2.0)) }"#
+            r#"BinaryOp { op: Add, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "a-2.0"),
         expect_test::expect![[
-            r#"BinaryOp { op: Sub, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Real(2.0)) }"#
+            r#"BinaryOp { op: Sub, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "a < 2.0"),
         expect_test::expect![[
-            r#"BinaryOp { op: LessThan, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Real(2.0)) }"#
+            r#"BinaryOp { op: LessThan, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "a > 2.0"),
         expect_test::expect![[
-            r#"BinaryOp { op: GreaterThan, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Real(2.0)) }"#
+            r#"BinaryOp { op: GreaterThan, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "a <= 2.0"),
         expect_test::expect![[
-            r#"BinaryOp { op: LessThanOrEqual, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Real(2.0)) }"#
+            r#"BinaryOp { op: LessThanOrEqual, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "a >= 2.0"),
         expect_test::expect![[
-            r#"BinaryOp { op: GreaterThanOrEqual, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Real(2.0)) }"#
+            r#"BinaryOp { op: GreaterThanOrEqual, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "a == 2.0"),
         expect_test::expect![[
-            r#"BinaryOp { op: Equal, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Real(2.0)) }"#
+            r#"BinaryOp { op: Equal, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "a != 2.0"),
         expect_test::expect![[
-            r#"BinaryOp { op: NotEqual, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Real(2.0)) }"#
+            r#"BinaryOp { op: NotEqual, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "a && b"),
         expect_test::expect![[
-            r#"BinaryOp { op: LogicalAnd, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Ident(Ident { path: ["b"], is_absolute: false }) }"#
+            r#"BinaryOp { op: LogicalAnd, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Path(Path { path: [Ident { name: "b", span: 5..6 }], is_absolute: false, span: 5..6 }) }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), "a || b"),
         expect_test::expect![[
-            r#"BinaryOp { op: LogicalOr, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Ident(Ident { path: ["b"], is_absolute: false }) }"#
+            r#"BinaryOp { op: LogicalOr, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Path(Path { path: [Ident { name: "b", span: 5..6 }], is_absolute: false, span: 5..6 }) }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), "a || b && c || d && !e"),
         expect_test::expect![[
-            r#"BinaryOp { op: LogicalOr, lhs: BinaryOp { op: LogicalOr, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: BinaryOp { op: LogicalAnd, lhs: Ident(Ident { path: ["b"], is_absolute: false }), rhs: Ident(Ident { path: ["c"], is_absolute: false }) } }, rhs: BinaryOp { op: LogicalAnd, lhs: Ident(Ident { path: ["d"], is_absolute: false }), rhs: UnaryOp { op: Not, expr: Ident(Ident { path: ["e"], is_absolute: false }) } } }"#
+            r#"BinaryOp { op: LogicalOr, lhs: BinaryOp { op: LogicalOr, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: BinaryOp { op: LogicalAnd, lhs: Path(Path { path: [Ident { name: "b", span: 5..6 }], is_absolute: false, span: 5..6 }), rhs: Path(Path { path: [Ident { name: "c", span: 10..11 }], is_absolute: false, span: 10..11 }) } }, rhs: BinaryOp { op: LogicalAnd, lhs: Path(Path { path: [Ident { name: "d", span: 15..16 }], is_absolute: false, span: 15..16 }), rhs: UnaryOp { op: Not, expr: Path(Path { path: [Ident { name: "e", span: 21..22 }], is_absolute: false, span: 21..22 }) } } }"#
         ]],
     );
 }
@@ -491,49 +515,49 @@ fn complex_exprs() {
     check(
         &run_parser!(expr(), "2 * b * 3"),
         expect_test::expect![[
-            r#"BinaryOp { op: Mul, lhs: BinaryOp { op: Mul, lhs: Immediate(Int(2)), rhs: Ident(Ident { path: ["b"], is_absolute: false }) }, rhs: Immediate(Int(3)) }"#
+            r#"BinaryOp { op: Mul, lhs: BinaryOp { op: Mul, lhs: Immediate(Int(2)), rhs: Path(Path { path: [Ident { name: "b", span: 4..5 }], is_absolute: false, span: 4..5 }) }, rhs: Immediate(Int(3)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "2 < b * 3"),
         expect_test::expect![[
-            r#"BinaryOp { op: LessThan, lhs: Immediate(Int(2)), rhs: BinaryOp { op: Mul, lhs: Ident(Ident { path: ["b"], is_absolute: false }), rhs: Immediate(Int(3)) } }"#
+            r#"BinaryOp { op: LessThan, lhs: Immediate(Int(2)), rhs: BinaryOp { op: Mul, lhs: Path(Path { path: [Ident { name: "b", span: 4..5 }], is_absolute: false, span: 4..5 }), rhs: Immediate(Int(3)) } }"#
         ]],
     );
     check(
         &run_parser!(expr(), "2.0 > b * 3.0"),
         expect_test::expect![[
-            r#"BinaryOp { op: GreaterThan, lhs: Immediate(Real(2.0)), rhs: BinaryOp { op: Mul, lhs: Ident(Ident { path: ["b"], is_absolute: false }), rhs: Immediate(Real(3.0)) } }"#
+            r#"BinaryOp { op: GreaterThan, lhs: Immediate(Real(2.0)), rhs: BinaryOp { op: Mul, lhs: Path(Path { path: [Ident { name: "b", span: 6..7 }], is_absolute: false, span: 6..7 }), rhs: Immediate(Real(3.0)) } }"#
         ]],
     );
     check(
         &run_parser!(expr(), "2.0 * b < 3.0"),
         expect_test::expect![[
-            r#"BinaryOp { op: LessThan, lhs: BinaryOp { op: Mul, lhs: Immediate(Real(2.0)), rhs: Ident(Ident { path: ["b"], is_absolute: false }) }, rhs: Immediate(Real(3.0)) }"#
+            r#"BinaryOp { op: LessThan, lhs: BinaryOp { op: Mul, lhs: Immediate(Real(2.0)), rhs: Path(Path { path: [Ident { name: "b", span: 6..7 }], is_absolute: false, span: 6..7 }) }, rhs: Immediate(Real(3.0)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "2 > b < 3"),
         expect_test::expect![[
-            r#"BinaryOp { op: LessThan, lhs: BinaryOp { op: GreaterThan, lhs: Immediate(Int(2)), rhs: Ident(Ident { path: ["b"], is_absolute: false }) }, rhs: Immediate(Int(3)) }"#
+            r#"BinaryOp { op: LessThan, lhs: BinaryOp { op: GreaterThan, lhs: Immediate(Int(2)), rhs: Path(Path { path: [Ident { name: "b", span: 4..5 }], is_absolute: false, span: 4..5 }) }, rhs: Immediate(Int(3)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "2 != b < 3"),
         expect_test::expect![[
-            r#"BinaryOp { op: LessThan, lhs: BinaryOp { op: NotEqual, lhs: Immediate(Int(2)), rhs: Ident(Ident { path: ["b"], is_absolute: false }) }, rhs: Immediate(Int(3)) }"#
+            r#"BinaryOp { op: LessThan, lhs: BinaryOp { op: NotEqual, lhs: Immediate(Int(2)), rhs: Path(Path { path: [Ident { name: "b", span: 5..6 }], is_absolute: false, span: 5..6 }) }, rhs: Immediate(Int(3)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "2 < b != 3"),
         expect_test::expect![[
-            r#"BinaryOp { op: NotEqual, lhs: BinaryOp { op: LessThan, lhs: Immediate(Int(2)), rhs: Ident(Ident { path: ["b"], is_absolute: false }) }, rhs: Immediate(Int(3)) }"#
+            r#"BinaryOp { op: NotEqual, lhs: BinaryOp { op: LessThan, lhs: Immediate(Int(2)), rhs: Path(Path { path: [Ident { name: "b", span: 4..5 }], is_absolute: false, span: 4..5 }) }, rhs: Immediate(Int(3)) }"#
         ]],
     );
     check(
         &run_parser!(expr(), "a > b * c < d"),
         expect_test::expect![[
-            r#"BinaryOp { op: LessThan, lhs: BinaryOp { op: GreaterThan, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: BinaryOp { op: Mul, lhs: Ident(Ident { path: ["b"], is_absolute: false }), rhs: Ident(Ident { path: ["c"], is_absolute: false }) } }, rhs: Ident(Ident { path: ["d"], is_absolute: false }) }"#
+            r#"BinaryOp { op: LessThan, lhs: BinaryOp { op: GreaterThan, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: BinaryOp { op: Mul, lhs: Path(Path { path: [Ident { name: "b", span: 4..5 }], is_absolute: false, span: 4..5 }), rhs: Path(Path { path: [Ident { name: "c", span: 8..9 }], is_absolute: false, span: 8..9 }) } }, rhs: Path(Path { path: [Ident { name: "d", span: 12..13 }], is_absolute: false, span: 12..13 }) }"#
         ]],
     );
     check(
@@ -635,7 +659,7 @@ fn parens_exprs() {
     check(
         &run_parser!(expr(), "!(a < b)"),
         expect_test::expect![[
-            r#"UnaryOp { op: Not, expr: BinaryOp { op: LessThan, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Ident(Ident { path: ["b"], is_absolute: false }) } }"#
+            r#"UnaryOp { op: Not, expr: BinaryOp { op: LessThan, lhs: Path(Path { path: [Ident { name: "a", span: 2..3 }], is_absolute: false, span: 2..3 }), rhs: Path(Path { path: [Ident { name: "b", span: 6..7 }], is_absolute: false, span: 6..7 }) } }"#
         ]],
     );
     check(
@@ -644,7 +668,9 @@ fn parens_exprs() {
     );
     check(
         &run_parser!(expr(), "(a)"),
-        expect_test::expect![[r#"Ident(Ident { path: ["a"], is_absolute: false })"#]],
+        expect_test::expect![[
+            r#"Path(Path { path: [Ident { name: "a", span: 1..2 }], is_absolute: false, span: 1..2 })"#
+        ]],
     );
     check(
         &run_parser!(expr(), "()"),
@@ -655,13 +681,13 @@ fn parens_exprs() {
     check(
         &run_parser!(expr(), "(if a < b { 1 } else { 2 })"),
         expect_test::expect![[
-            r#"If { condition: BinaryOp { op: LessThan, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Ident(Ident { path: ["b"], is_absolute: false }) }, then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }"#
+            r#"If { condition: BinaryOp { op: LessThan, lhs: Path(Path { path: [Ident { name: "a", span: 4..5 }], is_absolute: false, span: 4..5 }), rhs: Path(Path { path: [Ident { name: "b", span: 8..9 }], is_absolute: false, span: 8..9 }) }, then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }"#
         ]],
     );
     check(
         &run_parser!(expr(), "(foo(a, b, c))"),
         expect_test::expect![[
-            r#"Call { name: Ident { path: ["foo"], is_absolute: false }, args: [Ident(Ident { path: ["a"], is_absolute: false }), Ident(Ident { path: ["b"], is_absolute: false }), Ident(Ident { path: ["c"], is_absolute: false })] }"#
+            r#"Call { name: Path { path: [Ident { name: "foo", span: 1..4 }], is_absolute: false, span: 1..4 }, args: [Path(Path { path: [Ident { name: "a", span: 5..6 }], is_absolute: false, span: 5..6 }), Path(Path { path: [Ident { name: "b", span: 8..9 }], is_absolute: false, span: 8..9 }), Path(Path { path: [Ident { name: "c", span: 11..12 }], is_absolute: false, span: 11..12 })] }"#
         ]],
     );
 }
@@ -671,19 +697,19 @@ fn enums() {
     check(
         &run_parser!(enum_decl(), "enum MyEnum = Variant1 | Variant2;"),
         expect_test::expect![[
-            r#"Enum { name: "MyEnum", variants: ["Variant1", "Variant2"], name_span: 5..11 }"#
+            r#"Enum(EnumDecl { name: Ident { name: "MyEnum", span: 5..11 }, variants: [Ident { name: "Variant1", span: 14..22 }, Ident { name: "Variant2", span: 25..33 }], span: 0..34 })"#
         ]],
     );
     check(
         &run_parser!(enum_decl(), "enum MyEnum = Variant1;"),
         expect_test::expect![[
-            r#"Enum { name: "MyEnum", variants: ["Variant1"], name_span: 5..11 }"#
+            r#"Enum(EnumDecl { name: Ident { name: "MyEnum", span: 5..11 }, variants: [Ident { name: "Variant1", span: 14..22 }], span: 0..23 })"#
         ]],
     );
     check(
         &run_parser!(expr(), "MyEnum::Variant1;"),
         expect_test::expect![[
-            r#"Ident(Ident { path: ["MyEnum", "Variant1"], is_absolute: false })"#
+            r#"Path(Path { path: [Ident { name: "MyEnum", span: 0..6 }, Ident { name: "Variant1", span: 8..16 }], is_absolute: false, span: 0..16 })"#
         ]],
     );
     check(
@@ -694,7 +720,7 @@ fn enums() {
             "#
         ),
         expect_test::expect![[
-            r#"Let { name: "x", ty: None, init: Some(Ident(Ident { path: ["MyEnum", "Variant3"], is_absolute: false })), span: 13..38 }"#
+            r#"Let { name: Ident { name: "x", span: 17..18 }, ty: None, init: Some(Path(Path { path: [Ident { name: "MyEnum", span: 21..27 }, Ident { name: "Variant3", span: 29..37 }], is_absolute: false, span: 21..37 })), span: 13..38 }"#
         ]],
     );
     check(
@@ -705,55 +731,8 @@ fn enums() {
             "#
         ),
         expect_test::expect![[
-            r#"Let { name: "e", ty: Some(CustomType(Ident { path: ["path", "to", "MyEnum"], is_absolute: true })), init: None, span: 13..39 }"#
+            r#"Let { name: Ident { name: "e", span: 17..18 }, ty: Some(CustomType(Path { path: [Ident { name: "path", span: 22..26 }, Ident { name: "to", span: 28..30 }, Ident { name: "MyEnum", span: 32..38 }], is_absolute: true, span: 20..38 })), init: None, span: 13..39 }"#
         ]],
-    );
-}
-
-#[test]
-fn custom_types() {
-    check(
-        &run_parser!(type_(expr()), "custom_type"),
-        expect_test::expect![[
-            r#"CustomType(Ident { path: ["custom_type"], is_absolute: false })"#
-        ]],
-    );
-    check(
-        &run_parser!(type_decl(expr()), "type MyInt = int;"),
-        expect_test::expect![r#"NewType { name: "MyInt", ty: Int, name_span: 5..10 }"#],
-    );
-    check(
-        &run_parser!(type_decl(expr()), "type MyReal = real;"),
-        expect_test::expect![r#"NewType { name: "MyReal", ty: Real, name_span: 5..11 }"#],
-    );
-    check(
-        &run_parser!(type_decl(expr()), "type MyBool = bool;"),
-        expect_test::expect![r#"NewType { name: "MyBool", ty: Bool, name_span: 5..11 }"#],
-    );
-    check(
-        &run_parser!(type_decl(expr()), "type MyString = string;"),
-        expect_test::expect![r#"NewType { name: "MyString", ty: String, name_span: 5..13 }"#],
-    );
-    check(
-        &run_parser!(type_decl(expr()), "type IntArray = int[5];"),
-        expect_test::expect![
-            r#"NewType { name: "IntArray", ty: Array { ty: Int, range: Immediate(Int(5)) }, name_span: 5..13 }"#
-        ],
-    );
-    check(
-        &run_parser!(
-            type_decl(expr()),
-            "type MyTuple = { int, real, z: string };"
-        ),
-        expect_test::expect![[
-            r#"NewType { name: "MyTuple", ty: Tuple([(None, Int), (None, Real), (Some("z"), String)]), name_span: 5..12 }"#
-        ]],
-    );
-    check(
-        &run_parser!(type_decl(expr()), "type MyAliasInt = MyInt;"),
-        expect_test::expect![
-            r#"NewType { name: "MyAliasInt", ty: CustomType(Ident { path: ["MyInt"], is_absolute: false }), name_span: 5..15 }"#
-        ],
     );
 }
 
@@ -761,25 +740,28 @@ fn custom_types() {
 fn idents() {
     check(
         &run_parser!(ident(), "foobar"),
-        expect_test::expect![[r#""foobar""#]],
+        expect_test::expect![[r#"Ident { name: "foobar", span: 0..6 }"#]],
     );
     check(
         &run_parser!(ident(), "foo_bar"),
-        expect_test::expect![[r#""foo_bar""#]],
+        expect_test::expect![[r#"Ident { name: "foo_bar", span: 0..7 }"#]],
     );
     check(
         &run_parser!(ident(), "FOO_bar"),
-        expect_test::expect![[r#""FOO_bar""#]],
+        expect_test::expect![[r#"Ident { name: "FOO_bar", span: 0..7 }"#]],
     );
     check(
         &run_parser!(ident(), "__FOO"),
-        expect_test::expect![[r#""__FOO""#]],
+        expect_test::expect![[r#"Ident { name: "__FOO", span: 0..5 }"#]],
     );
     check(
         &run_parser!(ident(), "_2_FOO1"),
-        expect_test::expect![[r#""_2_FOO1""#]],
+        expect_test::expect![[r#"Ident { name: "_2_FOO1", span: 0..7 }"#]],
     );
-    check(&run_parser!(ident(), "_"), expect_test::expect![[r#""_""#]]);
+    check(
+        &run_parser!(ident(), "_"),
+        expect_test::expect![[r#"Ident { name: "_", span: 0..1 }"#]],
+    );
     check(
         &run_parser!(ident(), "12_ab"),
         expect_test::expect![[r#"
@@ -789,42 +771,52 @@ fn idents() {
     check(
         // Lexer will split this into 3 tokens, ident() will parse the first one.
         &run_parser!(ident(), "ab*cd"),
-        expect_test::expect![[r#""ab""#]],
+        expect_test::expect![[r#"Ident { name: "ab", span: 0..2 }"#]],
     );
 }
 
 #[test]
-fn ident_paths() {
+fn paths() {
     check(
-        &run_parser!(ident_path(), "foo::bar"),
-        expect_test::expect![[r#"Ident { path: ["foo", "bar"], is_absolute: false }"#]],
+        &run_parser!(path(), "foo::bar"),
+        expect_test::expect![[
+            r#"Path { path: [Ident { name: "foo", span: 0..3 }, Ident { name: "bar", span: 5..8 }], is_absolute: false, span: 0..8 }"#
+        ]],
     );
     check(
-        &run_parser!(ident_path(), "_foo_::_bar"),
-        expect_test::expect![[r#"Ident { path: ["_foo_", "_bar"], is_absolute: false }"#]],
+        &run_parser!(path(), "_foo_::_bar"),
+        expect_test::expect![[
+            r#"Path { path: [Ident { name: "_foo_", span: 0..5 }, Ident { name: "_bar", span: 7..11 }], is_absolute: false, span: 0..11 }"#
+        ]],
     );
     check(
-        &run_parser!(ident_path(), "_::_"),
-        expect_test::expect![[r#"Ident { path: ["_", "_"], is_absolute: false }"#]],
+        &run_parser!(path(), "_::_"),
+        expect_test::expect![[
+            r#"Path { path: [Ident { name: "_", span: 0..1 }, Ident { name: "_", span: 3..4 }], is_absolute: false, span: 0..4 }"#
+        ]],
     );
     check(
-        &run_parser!(ident_path(), "t2::_3t::t4_::t"),
-        expect_test::expect![[r#"Ident { path: ["t2", "_3t", "t4_", "t"], is_absolute: false }"#]],
+        &run_parser!(path(), "t2::_3t::t4_::t"),
+        expect_test::expect![[
+            r#"Path { path: [Ident { name: "t2", span: 0..2 }, Ident { name: "_3t", span: 4..7 }, Ident { name: "t4_", span: 9..12 }, Ident { name: "t", span: 14..15 }], is_absolute: false, span: 0..15 }"#
+        ]],
     );
     check(
-        &run_parser!(ident_path(), "::foo::bar"),
-        expect_test::expect![[r#"Ident { path: ["foo", "bar"], is_absolute: true }"#]],
+        &run_parser!(path(), "::foo::bar"),
+        expect_test::expect![[
+            r#"Path { path: [Ident { name: "foo", span: 2..5 }, Ident { name: "bar", span: 7..10 }], is_absolute: true, span: 0..10 }"#
+        ]],
     );
 
     // As long as these two produce an error... it should be expecting 'ident'.
     check(
-        &run_parser!(ident_path().then_ignore(end()), "foo::"),
+        &run_parser!(path().then_ignore(end()), "foo::"),
         expect_test::expect![[r#"
             @5..5: found end of input but expected something else
         "#]],
     );
     check(
-        &run_parser!(ident_path().then_ignore(end()), "::foo::"),
+        &run_parser!(path().then_ignore(end()), "::foo::"),
         expect_test::expect![[r#"
             @7..7: found end of input but expected something else
         "#]],
@@ -843,7 +835,7 @@ fn foo(x: real, y: real) -> real {
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Fn { fn_sig: FnSig { name: "foo", params: [("x", Real), ("y", Real)], return_type: Real, span: 1..33 }, body: Block { statements: [Let { name: "z", ty: None, init: Some(Immediate(Real(5.0))), span: 40..52 }], final_expr: Ident(Ident { path: ["z"], is_absolute: false }) } }]"#
+            r#"[Fn { fn_sig: FnSig { name: Ident { name: "foo", span: 4..7 }, params: [(Ident { name: "x", span: 8..9 }, Real), (Ident { name: "y", span: 17..18 }, Real)], return_type: Real, span: 1..33 }, body: Block { statements: [Let { name: Ident { name: "z", span: 44..45 }, ty: None, init: Some(Immediate(Real(5.0))), span: 40..52 }], final_expr: Path(Path { path: [Ident { name: "z", span: 57..58 }], is_absolute: false, span: 57..58 }) }, span: 1..60 }]"#
         ]],
     );
 }
@@ -857,14 +849,14 @@ let x = foo(a*3, c);
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Let { name: "x", ty: None, init: Some(Call { name: Ident { path: ["foo"], is_absolute: false }, args: [BinaryOp { op: Mul, lhs: Ident(Ident { path: ["a"], is_absolute: false }), rhs: Immediate(Int(3)) }, Ident(Ident { path: ["c"], is_absolute: false })] }), span: 1..21 }]"#
+            r#"[Let { name: Ident { name: "x", span: 5..6 }, ty: None, init: Some(Call { name: Path { path: [Ident { name: "foo", span: 9..12 }], is_absolute: false, span: 9..12 }, args: [BinaryOp { op: Mul, lhs: Path(Path { path: [Ident { name: "a", span: 13..14 }], is_absolute: false, span: 13..14 }), rhs: Immediate(Int(3)) }, Path(Path { path: [Ident { name: "c", span: 18..19 }], is_absolute: false, span: 18..19 })] }), span: 1..21 }]"#
         ]],
     );
 
     check(
         &run_parser!(expr(), "A::B::foo(-a, b+c)"),
         expect_test::expect![[
-            r#"Call { name: Ident { path: ["A", "B", "foo"], is_absolute: false }, args: [UnaryOp { op: Neg, expr: Ident(Ident { path: ["a"], is_absolute: false }) }, BinaryOp { op: Add, lhs: Ident(Ident { path: ["b"], is_absolute: false }), rhs: Ident(Ident { path: ["c"], is_absolute: false }) }] }"#
+            r#"Call { name: Path { path: [Ident { name: "A", span: 0..1 }, Ident { name: "B", span: 3..4 }, Ident { name: "foo", span: 6..9 }], is_absolute: false, span: 0..9 }, args: [UnaryOp { op: Neg, expr: Path(Path { path: [Ident { name: "a", span: 11..12 }], is_absolute: false, span: 11..12 }) }, BinaryOp { op: Add, lhs: Path(Path { path: [Ident { name: "b", span: 14..15 }], is_absolute: false, span: 14..15 }), rhs: Path(Path { path: [Ident { name: "c", span: 16..17 }], is_absolute: false, span: 16..17 }) }] }"#
         ]],
     );
 }
@@ -874,14 +866,14 @@ fn code_blocks() {
     check(
         &run_parser!(let_decl(expr()), "let x = { 0 };"),
         expect_test::expect![[
-            r#"Let { name: "x", ty: None, init: Some(Block(Block { statements: [], final_expr: Immediate(Int(0)) })), span: 0..14 }"#
+            r#"Let { name: Ident { name: "x", span: 4..5 }, ty: None, init: Some(Block(Block { statements: [], final_expr: Immediate(Int(0)) })), span: 0..14 }"#
         ]],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = { constraint x > 0.0; 0.0 };"),
         expect_test::expect![[
-            r#"Let { name: "x", ty: None, init: Some(Block(Block { statements: [Constraint { expr: BinaryOp { op: GreaterThan, lhs: Ident(Ident { path: ["x"], is_absolute: false }), rhs: Immediate(Real(0.0)) }, span: 10..29 }], final_expr: Immediate(Real(0.0)) })), span: 0..36 }"#
+            r#"Let { name: Ident { name: "x", span: 4..5 }, ty: None, init: Some(Block(Block { statements: [Constraint { expr: BinaryOp { op: GreaterThan, lhs: Path(Path { path: [Ident { name: "x", span: 21..22 }], is_absolute: false, span: 21..22 }), rhs: Immediate(Real(0.0)) }, span: 10..29 }], final_expr: Immediate(Real(0.0)) })), span: 0..36 }"#
         ]],
     );
 
@@ -891,14 +883,14 @@ fn code_blocks() {
             "constraint { constraint { true }; x > 0 };"
         ),
         expect_test::expect![[
-            r#"Constraint { expr: Block(Block { statements: [Constraint { expr: Block(Block { statements: [], final_expr: Immediate(Bool(true)) }), span: 13..33 }], final_expr: BinaryOp { op: GreaterThan, lhs: Ident(Ident { path: ["x"], is_absolute: false }), rhs: Immediate(Int(0)) } }), span: 0..42 }"#
+            r#"Constraint { expr: Block(Block { statements: [Constraint { expr: Block(Block { statements: [], final_expr: Immediate(Bool(true)) }), span: 13..33 }], final_expr: BinaryOp { op: GreaterThan, lhs: Path(Path { path: [Ident { name: "x", span: 34..35 }], is_absolute: false, span: 34..35 }), rhs: Immediate(Int(0)) } }), span: 0..42 }"#
         ]],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = { 1.0 } * { 2.0 };"),
         expect_test::expect![[
-            r#"Let { name: "x", ty: None, init: Some(BinaryOp { op: Mul, lhs: Block(Block { statements: [], final_expr: Immediate(Real(1.0)) }), rhs: Block(Block { statements: [], final_expr: Immediate(Real(2.0)) }) }), span: 0..26 }"#
+            r#"Let { name: Ident { name: "x", span: 4..5 }, ty: None, init: Some(BinaryOp { op: Mul, lhs: Block(Block { statements: [], final_expr: Immediate(Real(1.0)) }), rhs: Block(Block { statements: [], final_expr: Immediate(Real(2.0)) }) }), span: 0..26 }"#
         ]],
     );
 
@@ -920,21 +912,21 @@ fn if_exprs() {
     check(
         &run_parser!(if_expr(expr()), "if c { 1 } else { 0 }"),
         expect_test::expect![[
-            r#"If { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } }"#
+            r#"If { condition: Path(Path { path: [Ident { name: "c", span: 3..4 }], is_absolute: false, span: 3..4 }), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } }"#
         ]],
     );
 
     check(
         &run_parser!(if_expr(expr()), "if c { if c { 1 } else { 0 } } else { 2 }"),
         expect_test::expect![[
-            r#"If { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: If { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } } }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }"#
+            r#"If { condition: Path(Path { path: [Ident { name: "c", span: 3..4 }], is_absolute: false, span: 3..4 }), then_block: Block { statements: [], final_expr: If { condition: Path(Path { path: [Ident { name: "c", span: 10..11 }], is_absolute: false, span: 10..11 }), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } } }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }"#
         ]],
     );
 
     check(
         &run_parser!(if_expr(expr()), "if c { if c { 1 } else { 0 } } else { 2 }"),
         expect_test::expect![[
-            r#"If { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: If { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } } }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }"#
+            r#"If { condition: Path(Path { path: [Ident { name: "c", span: 3..4 }], is_absolute: false, span: 3..4 }), then_block: Block { statements: [], final_expr: If { condition: Path(Path { path: [Ident { name: "c", span: 10..11 }], is_absolute: false, span: 10..11 }), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } } }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }"#
         ]],
     );
 }
@@ -949,14 +941,14 @@ fn array_type() {
     check(
         &run_parser!(type_(expr()), r#"int[MyEnum]"#),
         expect_test::expect![[
-            r#"Array { ty: Int, range: Ident(Ident { path: ["MyEnum"], is_absolute: false }) }"#
+            r#"Array { ty: Int, range: Path(Path { path: [Ident { name: "MyEnum", span: 4..10 }], is_absolute: false, span: 4..10 }) }"#
         ]],
     );
 
     check(
         &run_parser!(type_(expr()), r#"int[N]"#),
         expect_test::expect![[
-            r#"Array { ty: Int, range: Ident(Ident { path: ["N"], is_absolute: false }) }"#
+            r#"Array { ty: Int, range: Path(Path { path: [Ident { name: "N", span: 4..5 }], is_absolute: false, span: 4..5 }) }"#
         ]],
     );
 
@@ -966,21 +958,21 @@ fn array_type() {
             r#"string[foo()][{ 7 }][if true { 1 } else { 2 }"#
         ),
         expect_test::expect![[
-            r#"Array { ty: Array { ty: String, range: Block(Block { statements: [], final_expr: Immediate(Int(7)) }) }, range: Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] } }"#
+            r#"Array { ty: Array { ty: String, range: Block(Block { statements: [], final_expr: Immediate(Int(7)) }) }, range: Call { name: Path { path: [Ident { name: "foo", span: 7..10 }], is_absolute: false, span: 7..10 }, args: [] } }"#
         ]],
     );
 
     check(
         &run_parser!(type_(expr()), r#"real[N][9][M][3]"#),
         expect_test::expect![[
-            r#"Array { ty: Array { ty: Array { ty: Array { ty: Real, range: Immediate(Int(3)) }, range: Ident(Ident { path: ["M"], is_absolute: false }) }, range: Immediate(Int(9)) }, range: Ident(Ident { path: ["N"], is_absolute: false }) }"#
+            r#"Array { ty: Array { ty: Array { ty: Array { ty: Real, range: Immediate(Int(3)) }, range: Path(Path { path: [Ident { name: "M", span: 11..12 }], is_absolute: false, span: 11..12 }) }, range: Immediate(Int(9)) }, range: Path(Path { path: [Ident { name: "N", span: 5..6 }], is_absolute: false, span: 5..6 }) }"#
         ]],
     );
 
     check(
         &run_parser!(type_(expr()), r#"{int, { real, string }}[N][9]"#),
         expect_test::expect![[
-            r#"Array { ty: Array { ty: Tuple([(None, Int), (None, Tuple([(None, Real), (None, String)]))]), range: Immediate(Int(9)) }, range: Ident(Ident { path: ["N"], is_absolute: false }) }"#
+            r#"Array { ty: Array { ty: Tuple([(None, Int), (None, Tuple([(None, Real), (None, String)]))]), range: Immediate(Int(9)) }, range: Path(Path { path: [Ident { name: "N", span: 24..25 }], is_absolute: false, span: 24..25 }) }"#
         ]],
     );
 
@@ -1031,7 +1023,7 @@ fn array_expressions() {
             r#"[[foo(), { 2 }], [if true { 1 } else { 2 }, t.0]]"#
         ),
         expect_test::expect![[
-            r#"Array([Array([Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] }, Block(Block { statements: [], final_expr: Immediate(Int(2)) })]), Array([If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }, TupleFieldAccess { tuple: Ident(Ident { path: ["t"], is_absolute: false }), field: Left(0) }])])"#
+            r#"Array([Array([Call { name: Path { path: [Ident { name: "foo", span: 2..5 }], is_absolute: false, span: 2..5 }, args: [] }, Block(Block { statements: [], final_expr: Immediate(Int(2)) })]), Array([If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }, TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 44..45 }], is_absolute: false, span: 44..45 }), field: Left(0) }])])"#
         ]],
     );
 }
@@ -1041,21 +1033,21 @@ fn array_field_accesss() {
     check(
         &run_parser!(expr(), r#"a[5]"#),
         expect_test::expect![[
-            r#"ArrayElementAccess { array: Ident(Ident { path: ["a"], is_absolute: false }), index: Immediate(Int(5)) }"#
+            r#"ArrayElementAccess { array: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), index: Immediate(Int(5)) }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"{ a }[N][foo()][M][4]"#),
         expect_test::expect![[
-            r#"ArrayElementAccess { array: ArrayElementAccess { array: ArrayElementAccess { array: ArrayElementAccess { array: Block(Block { statements: [], final_expr: Ident(Ident { path: ["a"], is_absolute: false }) }), index: Immediate(Int(4)) }, index: Ident(Ident { path: ["M"], is_absolute: false }) }, index: Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] } }, index: Ident(Ident { path: ["N"], is_absolute: false }) }"#
+            r#"ArrayElementAccess { array: ArrayElementAccess { array: ArrayElementAccess { array: ArrayElementAccess { array: Block(Block { statements: [], final_expr: Path(Path { path: [Ident { name: "a", span: 2..3 }], is_absolute: false, span: 2..3 }) }), index: Immediate(Int(4)) }, index: Path(Path { path: [Ident { name: "M", span: 16..17 }], is_absolute: false, span: 16..17 }) }, index: Call { name: Path { path: [Ident { name: "foo", span: 9..12 }], is_absolute: false, span: 9..12 }, args: [] } }, index: Path(Path { path: [Ident { name: "N", span: 6..7 }], is_absolute: false, span: 6..7 }) }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"foo()[{ M }][if true { 1 } else { 3 }]"#),
         expect_test::expect![[
-            r#"ArrayElementAccess { array: ArrayElementAccess { array: Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] }, index: If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } } }, index: Block(Block { statements: [], final_expr: Ident(Ident { path: ["M"], is_absolute: false }) }) }"#
+            r#"ArrayElementAccess { array: ArrayElementAccess { array: Call { name: Path { path: [Ident { name: "foo", span: 0..3 }], is_absolute: false, span: 0..3 }, args: [] }, index: If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } } }, index: Block(Block { statements: [], final_expr: Path(Path { path: [Ident { name: "M", span: 8..9 }], is_absolute: false, span: 8..9 }) }) }"#
         ]],
     );
 
@@ -1069,7 +1061,7 @@ fn array_field_accesss() {
     check(
         &run_parser!(expr(), r#"a[MyEnum::Variant1];"#),
         expect_test::expect![[
-            r#"ArrayElementAccess { array: Ident(Ident { path: ["a"], is_absolute: false }), index: Ident(Ident { path: ["MyEnum", "Variant1"], is_absolute: false }) }"#
+            r#"ArrayElementAccess { array: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), index: Path(Path { path: [Ident { name: "MyEnum", span: 2..8 }, Ident { name: "Variant1", span: 10..18 }], is_absolute: false, span: 2..18 }) }"#
         ]],
     );
 }
@@ -1083,7 +1075,9 @@ fn tuple_expressions() {
 
     check(
         &run_parser!(expr(), r#"{x: 0}"#), // This is a tuple because the field is named so there is no ambiguity
-        expect_test::expect![[r#"Tuple([(Some("x"), Immediate(Int(0)))])"#]],
+        expect_test::expect![[
+            r#"Tuple([(Some(Ident { name: "x", span: 1..2 }), Immediate(Int(0)))])"#
+        ]],
     );
 
     check(
@@ -1093,7 +1087,9 @@ fn tuple_expressions() {
 
     check(
         &run_parser!(expr(), r#"{x: 0,}"#), // This is a tuple
-        expect_test::expect![[r#"Tuple([(Some("x"), Immediate(Int(0)))])"#]],
+        expect_test::expect![[
+            r#"Tuple([(Some(Ident { name: "x", span: 1..2 }), Immediate(Int(0)))])"#
+        ]],
     );
 
     check(
@@ -1106,7 +1102,7 @@ fn tuple_expressions() {
     check(
         &run_parser!(expr(), r#"{x: 0, y: 1.0, z: "foo"}"#),
         expect_test::expect![[
-            r#"Tuple([(Some("x"), Immediate(Int(0))), (Some("y"), Immediate(Real(1.0))), (Some("z"), Immediate(String("foo")))])"#
+            r#"Tuple([(Some(Ident { name: "x", span: 1..2 }), Immediate(Int(0))), (Some(Ident { name: "y", span: 7..8 }), Immediate(Real(1.0))), (Some(Ident { name: "z", span: 15..16 }), Immediate(String("foo")))])"#
         ]],
     );
 
@@ -1120,14 +1116,14 @@ fn tuple_expressions() {
     check(
         &run_parser!(expr(), r#"{x: 0, {y: 1.0, "bar"}, z: "foo"}"#),
         expect_test::expect![[
-            r#"Tuple([(Some("x"), Immediate(Int(0))), (None, Tuple([(Some("y"), Immediate(Real(1.0))), (None, Immediate(String("bar")))])), (Some("z"), Immediate(String("foo")))])"#
+            r#"Tuple([(Some(Ident { name: "x", span: 1..2 }), Immediate(Int(0))), (None, Tuple([(Some(Ident { name: "y", span: 8..9 }), Immediate(Real(1.0))), (None, Immediate(String("bar")))])), (Some(Ident { name: "z", span: 24..25 }), Immediate(String("foo")))])"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"{ { 42 }, if c { 2 } else { 3 }, foo() }"#),
         expect_test::expect![[
-            r#"Tuple([(None, Block(Block { statements: [], final_expr: Immediate(Int(42)) })), (None, If { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } }), (None, Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] })])"#
+            r#"Tuple([(None, Block(Block { statements: [], final_expr: Immediate(Int(42)) })), (None, If { condition: Path(Path { path: [Ident { name: "c", span: 13..14 }], is_absolute: false, span: 13..14 }), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } }), (None, Call { name: Path { path: [Ident { name: "foo", span: 33..36 }], is_absolute: false, span: 33..36 }, args: [] })])"#
         ]],
     );
 
@@ -1137,7 +1133,7 @@ fn tuple_expressions() {
             r#"{ x: { 42 }, y: if c { 2 } else { 3 }, z: foo() }"#
         ),
         expect_test::expect![[
-            r#"Tuple([(Some("x"), Block(Block { statements: [], final_expr: Immediate(Int(42)) })), (Some("y"), If { condition: Ident(Ident { path: ["c"], is_absolute: false }), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } }), (Some("z"), Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] })])"#
+            r#"Tuple([(Some(Ident { name: "x", span: 2..3 }), Block(Block { statements: [], final_expr: Immediate(Int(42)) })), (Some(Ident { name: "y", span: 13..14 }), If { condition: Path(Path { path: [Ident { name: "c", span: 19..20 }], is_absolute: false, span: 19..20 }), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } }), (Some(Ident { name: "z", span: 39..40 }), Call { name: Path { path: [Ident { name: "foo", span: 42..45 }], is_absolute: false, span: 42..45 }, args: [] })])"#
         ]],
     );
 }
@@ -1147,7 +1143,7 @@ fn tuple_field_accesses() {
     check(
         &run_parser!(expr(), r#"t.0 + t.9999999 + t.x"#),
         expect_test::expect![[
-            r#"BinaryOp { op: Add, lhs: BinaryOp { op: Add, lhs: TupleFieldAccess { tuple: Ident(Ident { path: ["t"], is_absolute: false }), field: Left(0) }, rhs: TupleFieldAccess { tuple: Ident(Ident { path: ["t"], is_absolute: false }), field: Left(9999999) } }, rhs: TupleFieldAccess { tuple: Ident(Ident { path: ["t"], is_absolute: false }), field: Right("x") } }"#
+            r#"BinaryOp { op: Add, lhs: BinaryOp { op: Add, lhs: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 0..1 }], is_absolute: false, span: 0..1 }), field: Left(0) }, rhs: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 6..7 }], is_absolute: false, span: 6..7 }), field: Left(9999999) } }, rhs: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 18..19 }], is_absolute: false, span: 18..19 }), field: Right(Ident { name: "x", span: 20..21 }) } }"#
         ]],
     );
 
@@ -1159,49 +1155,49 @@ fn tuple_field_accesses() {
     check(
         &run_parser!(expr(), r#"{0, 1}.x"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(1)))]), field: Right("x") }"#
+            r#"TupleFieldAccess { tuple: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(1)))]), field: Right(Ident { name: "x", span: 7..8 }) }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"t.0 .0"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Ident(Ident { path: ["t"], is_absolute: false }), field: Left(0) }, field: Left(0) }"#
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 0..1 }], is_absolute: false, span: 0..1 }), field: Left(0) }, field: Left(0) }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"t.x .y"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Ident(Ident { path: ["t"], is_absolute: false }), field: Right("x") }, field: Right("y") }"#
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 0..1 }], is_absolute: false, span: 0..1 }), field: Right(Ident { name: "x", span: 2..3 }) }, field: Right(Ident { name: "y", span: 5..6 }) }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), "t \r .1 .2.2. \n 3 . \t 13 . 1.1"),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Ident(Ident { path: ["t"], is_absolute: false }), field: Left(1) }, field: Left(2) }, field: Left(2) }, field: Left(3) }, field: Left(13) }, field: Left(1) }, field: Left(1) }"#
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 0..1 }], is_absolute: false, span: 0..1 }), field: Left(1) }, field: Left(2) }, field: Left(2) }, field: Left(3) }, field: Left(13) }, field: Left(1) }, field: Left(1) }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), "t \r .x .1.2. \n w . \t t. 3.4"),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Ident(Ident { path: ["t"], is_absolute: false }), field: Right("x") }, field: Left(1) }, field: Left(2) }, field: Right("w") }, field: Right("t") }, field: Left(3) }, field: Left(4) }"#
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 0..1 }], is_absolute: false, span: 0..1 }), field: Right(Ident { name: "x", span: 5..6 }) }, field: Left(1) }, field: Left(2) }, field: Right(Ident { name: "w", span: 15..16 }) }, field: Right(Ident { name: "t", span: 21..22 }) }, field: Left(3) }, field: Left(4) }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"foo().0.1"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] }, field: Left(0) }, field: Left(1) }"#
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Call { name: Path { path: [Ident { name: "foo", span: 0..3 }], is_absolute: false, span: 0..3 }, args: [] }, field: Left(0) }, field: Left(1) }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"foo().a.b.0.1"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] }, field: Right("a") }, field: Right("b") }, field: Left(0) }, field: Left(1) }"#
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Call { name: Path { path: [Ident { name: "foo", span: 0..3 }], is_absolute: false, span: 0..3 }, args: [] }, field: Right(Ident { name: "a", span: 6..7 }) }, field: Right(Ident { name: "b", span: 8..9 }) }, field: Left(0) }, field: Left(1) }"#
         ]],
     );
 
@@ -1213,7 +1209,7 @@ fn tuple_field_accesses() {
     check(
         &run_parser!(expr(), r#"{ {0, 0} }.a"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: Block(Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) }), field: Right("a") }"#
+            r#"TupleFieldAccess { tuple: Block(Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) }), field: Right(Ident { name: "a", span: 11..12 }) }"#
         ]],
     );
 
@@ -1225,7 +1221,7 @@ fn tuple_field_accesses() {
     check(
         &run_parser!(expr(), r#"if true { {0, 0} } else { {0, 0} }.x"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) }, else_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) } }, field: Right("x") }"#
+            r#"TupleFieldAccess { tuple: If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) }, else_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) } }, field: Right(Ident { name: "x", span: 35..36 }) }"#
         ]],
     );
 
@@ -1239,7 +1235,7 @@ fn tuple_field_accesses() {
     check(
         &run_parser!(expr(), "1 + 2 .a"),
         expect_test::expect![[
-            r#"BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: TupleFieldAccess { tuple: Immediate(Int(2)), field: Right("a") } }"#
+            r#"BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: TupleFieldAccess { tuple: Immediate(Int(2)), field: Right(Ident { name: "a", span: 7..8 }) } }"#
         ]],
     );
 
@@ -1302,28 +1298,28 @@ fn cond_exprs() {
     check(
         &run_parser!(cond_expr(expr()), r#"cond { else => a }"#),
         expect_test::expect![[
-            r#"Cond { branches: [], else_result: Ident(Ident { path: ["a"], is_absolute: false }) }"#
+            r#"Cond { branches: [], else_result: Path(Path { path: [Ident { name: "a", span: 15..16 }], is_absolute: false, span: 15..16 }) }"#
         ]],
     );
 
     check(
         &run_parser!(cond_expr(expr()), r#"cond { else => { a } }"#),
         expect_test::expect![[
-            r#"Cond { branches: [], else_result: Block(Block { statements: [], final_expr: Ident(Ident { path: ["a"], is_absolute: false }) }) }"#
+            r#"Cond { branches: [], else_result: Block(Block { statements: [], final_expr: Path(Path { path: [Ident { name: "a", span: 17..18 }], is_absolute: false, span: 17..18 }) }) }"#
         ]],
     );
 
     check(
         &run_parser!(cond_expr(expr()), r#"cond { a => b, else => c }"#),
         expect_test::expect![[
-            r#"Cond { branches: [CondBranch { condition: Ident(Ident { path: ["a"], is_absolute: false }), result: Ident(Ident { path: ["b"], is_absolute: false }) }], else_result: Ident(Ident { path: ["c"], is_absolute: false }) }"#
+            r#"Cond { branches: [CondBranch { condition: Path(Path { path: [Ident { name: "a", span: 7..8 }], is_absolute: false, span: 7..8 }), result: Path(Path { path: [Ident { name: "b", span: 12..13 }], is_absolute: false, span: 12..13 }) }], else_result: Path(Path { path: [Ident { name: "c", span: 23..24 }], is_absolute: false, span: 23..24 }) }"#
         ]],
     );
 
     check(
         &run_parser!(cond_expr(expr()), r#"cond { a => { b }, else => c, }"#),
         expect_test::expect![[
-            r#"Cond { branches: [CondBranch { condition: Ident(Ident { path: ["a"], is_absolute: false }), result: Block(Block { statements: [], final_expr: Ident(Ident { path: ["b"], is_absolute: false }) }) }], else_result: Ident(Ident { path: ["c"], is_absolute: false }) }"#
+            r#"Cond { branches: [CondBranch { condition: Path(Path { path: [Ident { name: "a", span: 7..8 }], is_absolute: false, span: 7..8 }), result: Block(Block { statements: [], final_expr: Path(Path { path: [Ident { name: "b", span: 14..15 }], is_absolute: false, span: 14..15 }) }) }], else_result: Path(Path { path: [Ident { name: "c", span: 27..28 }], is_absolute: false, span: 27..28 }) }"#
         ]],
     );
 
@@ -1333,7 +1329,7 @@ fn cond_exprs() {
             r#"cond { a => b, { true } => d, else => f, }"#
         ),
         expect_test::expect![[
-            r#"Cond { branches: [CondBranch { condition: Ident(Ident { path: ["a"], is_absolute: false }), result: Ident(Ident { path: ["b"], is_absolute: false }) }, CondBranch { condition: Block(Block { statements: [], final_expr: Immediate(Bool(true)) }), result: Ident(Ident { path: ["d"], is_absolute: false }) }], else_result: Ident(Ident { path: ["f"], is_absolute: false }) }"#
+            r#"Cond { branches: [CondBranch { condition: Path(Path { path: [Ident { name: "a", span: 7..8 }], is_absolute: false, span: 7..8 }), result: Path(Path { path: [Ident { name: "b", span: 12..13 }], is_absolute: false, span: 12..13 }) }, CondBranch { condition: Block(Block { statements: [], final_expr: Immediate(Bool(true)) }), result: Path(Path { path: [Ident { name: "d", span: 27..28 }], is_absolute: false, span: 27..28 }) }], else_result: Path(Path { path: [Ident { name: "f", span: 38..39 }], is_absolute: false, span: 38..39 }) }"#
         ]],
     );
 
@@ -1362,7 +1358,7 @@ fn casting() {
     check(
         &run_parser!(expr(), r#"t.0.1 as real * a[5][3] as int"#),
         expect_test::expect![[
-            r#"BinaryOp { op: Mul, lhs: Cast { value: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Ident(Ident { path: ["t"], is_absolute: false }), field: Left(0) }, field: Left(1) }, ty: Real }, rhs: Cast { value: ArrayElementAccess { array: ArrayElementAccess { array: Ident(Ident { path: ["a"], is_absolute: false }), index: Immediate(Int(3)) }, index: Immediate(Int(5)) }, ty: Int } }"#
+            r#"BinaryOp { op: Mul, lhs: Cast { value: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 0..1 }], is_absolute: false, span: 0..1 }), field: Left(0) }, field: Left(1) }, ty: Real }, rhs: Cast { value: ArrayElementAccess { array: ArrayElementAccess { array: Path(Path { path: [Ident { name: "a", span: 16..17 }], is_absolute: false, span: 16..17 }), index: Immediate(Int(3)) }, index: Immediate(Int(5)) }, ty: Int } }"#
         ]],
     );
 
@@ -1372,7 +1368,7 @@ fn casting() {
             r#"let x = foo() as real as { int, real };"#
         ),
         expect_test::expect![[
-            r#"Let { name: "x", ty: None, init: Some(Cast { value: Cast { value: Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] }, ty: Real }, ty: Tuple([(None, Int), (None, Real)]) }), span: 0..39 }"#
+            r#"Let { name: Ident { name: "x", span: 4..5 }, ty: None, init: Some(Cast { value: Cast { value: Call { name: Path { path: [Ident { name: "foo", span: 8..11 }], is_absolute: false, span: 8..11 }, args: [] }, ty: Real }, ty: Tuple([(None, Int), (None, Real)]) }), span: 0..39 }"#
         ]],
     );
 
@@ -1389,28 +1385,28 @@ fn in_expr() {
     check(
         &run_parser!(expr(), r#"x in { 1, 2 }"#),
         expect_test::expect![[
-            r#"In { value: Ident(Ident { path: ["x"], is_absolute: false }), collection: Tuple([(None, Immediate(Int(1))), (None, Immediate(Int(2)))]) }"#
+            r#"In { value: Path(Path { path: [Ident { name: "x", span: 0..1 }], is_absolute: false, span: 0..1 }), collection: Tuple([(None, Immediate(Int(1))), (None, Immediate(Int(2)))]) }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"x in [ 1, 2 ] in { true, false }"#),
         expect_test::expect![[
-            r#"In { value: Ident(Ident { path: ["x"], is_absolute: false }), collection: In { value: Array([Immediate(Int(1)), Immediate(Int(2))]), collection: Tuple([(None, Immediate(Bool(true))), (None, Immediate(Bool(false)))]) } }"#
+            r#"In { value: Path(Path { path: [Ident { name: "x", span: 0..1 }], is_absolute: false, span: 0..1 }), collection: In { value: Array([Immediate(Int(1)), Immediate(Int(2))]), collection: Tuple([(None, Immediate(Bool(true))), (None, Immediate(Bool(false)))]) } }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"x as int in { 1, 2 }"#),
         expect_test::expect![[
-            r#"In { value: Cast { value: Ident(Ident { path: ["x"], is_absolute: false }), ty: Int }, collection: Tuple([(None, Immediate(Int(1))), (None, Immediate(Int(2)))]) }"#
+            r#"In { value: Cast { value: Path(Path { path: [Ident { name: "x", span: 0..1 }], is_absolute: false, span: 0..1 }), ty: Int }, collection: Tuple([(None, Immediate(Int(1))), (None, Immediate(Int(2)))]) }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"[1] in foo() in [[1]]"#),
         expect_test::expect![[
-            r#"In { value: Array([Immediate(Int(1))]), collection: In { value: Call { name: Ident { path: ["foo"], is_absolute: false }, args: [] }, collection: Array([Array([Immediate(Int(1))])]) } }"#
+            r#"In { value: Array([Immediate(Int(1))]), collection: In { value: Call { name: Path { path: [Ident { name: "foo", span: 7..10 }], is_absolute: false, span: 7..10 }, args: [] }, collection: Array([Array([Immediate(Int(1))])]) } }"#
         ]],
     );
 
@@ -1438,7 +1434,7 @@ solve minimize mid;
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Let { name: "low_val", ty: Some(Real), init: Some(Immediate(Real(1.23))), span: 1..26 }, Let { name: "high_val", ty: None, init: Some(Immediate(Real(4.56))), span: 27..47 }, Constraint { expr: BinaryOp { op: GreaterThan, lhs: Ident(Ident { path: ["mid"], is_absolute: false }), rhs: BinaryOp { op: Mul, lhs: Ident(Ident { path: ["low_val"], is_absolute: false }), rhs: Immediate(Real(2.0)) } }, span: 101..132 }, Constraint { expr: BinaryOp { op: LessThan, lhs: Ident(Ident { path: ["mid"], is_absolute: false }), rhs: Ident(Ident { path: ["high_val"], is_absolute: false }) }, span: 133..159 }, Solve { directive: Minimize(Ident { path: ["mid"], is_absolute: false }), span: 161..180 }]"#
+            r#"[Let { name: Ident { name: "low_val", span: 5..12 }, ty: Some(Real), init: Some(Immediate(Real(1.23))), span: 1..26 }, Let { name: Ident { name: "high_val", span: 31..39 }, ty: None, init: Some(Immediate(Real(4.56))), span: 27..47 }, Constraint { expr: BinaryOp { op: GreaterThan, lhs: Path(Path { path: [Ident { name: "mid", span: 112..115 }], is_absolute: false, span: 112..115 }), rhs: BinaryOp { op: Mul, lhs: Path(Path { path: [Ident { name: "low_val", span: 118..125 }], is_absolute: false, span: 118..125 }), rhs: Immediate(Real(2.0)) } }, span: 101..132 }, Constraint { expr: BinaryOp { op: LessThan, lhs: Path(Path { path: [Ident { name: "mid", span: 144..147 }], is_absolute: false, span: 144..147 }), rhs: Path(Path { path: [Ident { name: "high_val", span: 150..158 }], is_absolute: false, span: 150..158 }) }, span: 133..159 }, Solve { directive: Minimize(Path { path: [Ident { name: "mid", span: 176..179 }], is_absolute: false, span: 176..179 }), span: 161..180 }]"#
         ]],
     );
 }
@@ -1455,7 +1451,7 @@ fn fn_errors() {
     check(
         &run_parser!(yurt_program(), "fn foo() -> real {}"),
         expect_test::expect![[r#"
-            @18..19: found "}" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if", "cond", "let",  or "constraint"
+            @18..19: found "}" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if", "cond", "let", "state",  or "constraint"
         "#]],
     );
 }
@@ -1473,7 +1469,7 @@ let low = 1.0;
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Solve { directive: Maximize(Ident { path: ["low"], is_absolute: false }), span: 1..20 }, Constraint { expr: BinaryOp { op: LessThan, lhs: Ident(Ident { path: ["low"], is_absolute: false }), rhs: Ident(Ident { path: ["high"], is_absolute: false }) }, span: 21..43 }, Let { name: "high", ty: None, init: Some(Immediate(Real(2.0))), span: 44..59 }, Solve { directive: Satisfy, span: 60..74 }, Let { name: "low", ty: None, init: Some(Immediate(Real(1.0))), span: 75..89 }]"#
+            r#"[Solve { directive: Maximize(Path { path: [Ident { name: "low", span: 16..19 }], is_absolute: false, span: 16..19 }), span: 1..20 }, Constraint { expr: BinaryOp { op: LessThan, lhs: Path(Path { path: [Ident { name: "low", span: 32..35 }], is_absolute: false, span: 32..35 }), rhs: Path(Path { path: [Ident { name: "high", span: 38..42 }], is_absolute: false, span: 38..42 }) }, span: 21..43 }, Let { name: Ident { name: "high", span: 48..52 }, ty: None, init: Some(Immediate(Real(2.0))), span: 44..59 }, Solve { directive: Satisfy, span: 60..74 }, Let { name: Ident { name: "low", span: 79..82 }, ty: None, init: Some(Immediate(Real(1.0))), span: 75..89 }]"#
         ]],
     );
 }
@@ -1499,7 +1495,7 @@ fn test_parse_str_to_ast() {
     check(
         &format!("{:?}", parse_str_to_ast("let x = 5;", "my_file")),
         expect_test::expect![[
-            r#"Ok([Let { name: "x", ty: None, init: Some(Immediate(Int(5))), span: 0..10 }])"#
+            r#"Ok([Let { name: Ident { name: "x", span: 4..5 }, ty: None, init: Some(Immediate(Int(5))), span: 0..10 }])"#
         ]],
     );
     check(
@@ -1520,7 +1516,7 @@ fn big_ints() {
             "let blah = 1234567890123456789012345678901234567890;"
         ),
         expect_test::expect![[
-            r#"Let { name: "blah", ty: None, init: Some(Immediate(BigInt(1234567890123456789012345678901234567890))), span: 0..52 }"#
+            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: None, init: Some(Immediate(BigInt(1234567890123456789012345678901234567890))), span: 0..52 }"#
         ]],
     );
     check(
@@ -1530,7 +1526,7 @@ fn big_ints() {
         ),
         // Confirmed by using the Python REPL to convert from hex to dec...
         expect_test::expect![[
-            r#"Let { name: "blah", ty: None, init: Some(Immediate(BigInt(5421732407698601623698172315373246806734))), span: 0..47 }"#
+            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: None, init: Some(Immediate(BigInt(5421732407698601623698172315373246806734))), span: 0..47 }"#
         ]],
     );
     check(
@@ -1559,13 +1555,15 @@ interface Foo {
     check(
         &run_parser!(interface_decl(expr()), src),
         expect_test::expect![[
-            r#"Interface { name: "Foo", functions: [FnSig { name: "foo", params: [("x", Real), ("y", Array { ty: Int, range: Immediate(Int(5)) })], return_type: Real, span: 21..55 }, FnSig { name: "bar", params: [("x", Bool)], return_type: Real, span: 61..85 }, FnSig { name: "baz", params: [], return_type: Tuple([(None, Int), (None, Real)]), span: 91..116 }], name_span: 11..14 }"#
+            r#"Interface(InterfaceDecl { name: Ident { name: "Foo", span: 11..14 }, functions: [FnSig { name: Ident { name: "foo", span: 24..27 }, params: [(Ident { name: "x", span: 28..29 }, Real), (Ident { name: "y", span: 37..38 }, Array { ty: Int, range: Immediate(Int(5)) })], return_type: Real, span: 21..55 }, FnSig { name: Ident { name: "bar", span: 64..67 }, params: [(Ident { name: "x", span: 68..69 }, Bool)], return_type: Real, span: 61..85 }, FnSig { name: Ident { name: "baz", span: 94..97 }, params: [], return_type: Tuple([(None, Int), (None, Real)]), span: 91..116 }], span: 1..119 })"#
         ]],
     );
 
     check(
         &run_parser!(interface_decl(expr()), "interface Foo {}"),
-        expect_test::expect![[r#"Interface { name: "Foo", functions: [], name_span: 10..13 }"#]],
+        expect_test::expect![[
+            r#"Interface(InterfaceDecl { name: Ident { name: "Foo", span: 10..13 }, functions: [], span: 0..16 })"#
+        ]],
     );
 }
 
@@ -1574,7 +1572,7 @@ fn contract_test() {
     check(
         &run_parser!(contract_decl(expr()), "contract Foo(0) {}"),
         expect_test::expect![[
-            r#"Contract { name: "Foo", id: Immediate(Int(0)), interfaces: [], functions: [], name_span: 9..12 }"#
+            r#"Contract(ContractDecl { name: Ident { name: "Foo", span: 9..12 }, id: Immediate(Int(0)), interfaces: [], functions: [], span: 0..18 })"#
         ]],
     );
 
@@ -1584,7 +1582,7 @@ fn contract_test() {
             "contract Foo(if true {0} else {1}) {}"
         ),
         expect_test::expect![[
-            r#"Contract { name: "Foo", id: If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(0)) }, else_block: Block { statements: [], final_expr: Immediate(Int(1)) } }, interfaces: [], functions: [], name_span: 9..12 }"#
+            r#"Contract(ContractDecl { name: Ident { name: "Foo", span: 9..12 }, id: If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(0)) }, else_block: Block { statements: [], final_expr: Immediate(Int(1)) } }, interfaces: [], functions: [], span: 0..37 })"#
         ]],
     );
 
@@ -1594,7 +1592,7 @@ fn contract_test() {
             "contract Foo(0) implements X::Bar, ::Y::Baz {}"
         ),
         expect_test::expect![[
-            r#"Contract { name: "Foo", id: Immediate(Int(0)), interfaces: [Ident { path: ["X", "Bar"], is_absolute: false }, Ident { path: ["Y", "Baz"], is_absolute: true }], functions: [], name_span: 9..12 }"#
+            r#"Contract(ContractDecl { name: Ident { name: "Foo", span: 9..12 }, id: Immediate(Int(0)), interfaces: [Path { path: [Ident { name: "X", span: 27..28 }, Ident { name: "Bar", span: 30..33 }], is_absolute: false, span: 27..33 }, Path { path: [Ident { name: "Y", span: 37..38 }, Ident { name: "Baz", span: 40..43 }], is_absolute: true, span: 35..43 }], functions: [], span: 0..46 })"#
         ]],
     );
 
@@ -1604,7 +1602,7 @@ fn contract_test() {
             "contract Foo(0) implements Bar { fn baz(x: real) -> int; }"
         ),
         expect_test::expect![[
-            r#"Contract { name: "Foo", id: Immediate(Int(0)), interfaces: [Ident { path: ["Bar"], is_absolute: false }], functions: [FnSig { name: "baz", params: [("x", Real)], return_type: Int, span: 33..55 }], name_span: 9..12 }"#
+            r#"Contract(ContractDecl { name: Ident { name: "Foo", span: 9..12 }, id: Immediate(Int(0)), interfaces: [Path { path: [Ident { name: "Bar", span: 27..30 }], is_absolute: false, span: 27..30 }], functions: [FnSig { name: Ident { name: "baz", span: 36..39 }, params: [(Ident { name: "x", span: 40..41 }, Real)], return_type: Int, span: 33..55 }], span: 0..58 })"#
         ]],
     );
 
@@ -1619,6 +1617,44 @@ fn contract_test() {
         &run_parser!(contract_decl(expr()), "contract Foo(0) implements { }"),
         expect_test::expect![[r#"
             @27..28: found "{" but expected "::"
+        "#]],
+    );
+}
+
+#[test]
+fn extern_test() {
+    check(
+        &run_parser!(extern_decl(expr()), "extern {}"),
+        expect_test::expect!["Extern { functions: [], span: 0..9 }"],
+    );
+    check(
+        &run_parser!(extern_decl(expr()), "extern { fn foo() -> string; }"),
+        expect_test::expect![[
+            r#"Extern { functions: [FnSig { name: Ident { name: "foo", span: 12..15 }, params: [], return_type: String, span: 9..27 }], span: 0..30 }"#
+        ]],
+    );
+    check(
+        &run_parser!(
+            extern_decl(expr()),
+            "extern { fn foo(x: int, y: real) -> int; }"
+        ),
+        expect_test::expect![[
+            r#"Extern { functions: [FnSig { name: Ident { name: "foo", span: 12..15 }, params: [(Ident { name: "x", span: 16..17 }, Int), (Ident { name: "y", span: 24..25 }, Real)], return_type: Int, span: 9..39 }], span: 0..42 }"#
+        ]],
+    );
+    check(
+        &run_parser!(
+            extern_decl(expr()),
+            "extern { fn foo() -> int; fn bar() -> real; }"
+        ),
+        expect_test::expect![[
+            r#"Extern { functions: [FnSig { name: Ident { name: "foo", span: 12..15 }, params: [], return_type: Int, span: 9..24 }, FnSig { name: Ident { name: "bar", span: 29..32 }, params: [], return_type: Real, span: 26..42 }], span: 0..45 }"#
+        ]],
+    );
+    check(
+        &run_parser!(extern_decl(expr()), "extern { fn foo(); }"),
+        expect_test::expect![[r#"
+            @17..18: found ";" but expected "->"
         "#]],
     );
 }

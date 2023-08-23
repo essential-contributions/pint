@@ -62,7 +62,7 @@ Identifiers have the following syntax:
 <ident> ::= _?[A-Za-z][A-Za-z0-9]*     % excluding keywords
 ```
 
-A number of keywords are reserved and cannot be used as identifiers. The keywords are: `as`, `bool`, `constraint`, `contract`, `else`, `enum`, `false`, `fn`, `if`, `implements`, `interface`, `int`, `let`, `maximize`, `minimize`, `real`, `satisfy`, `solve`, `string`, `true`, `use`.
+A number of keywords are reserved and cannot be used as identifiers. The keywords are: `as`, `bool`, `constraint`, `contract`, `else`, `enum`, `extern`, `false`, `fn`, `if`, `implements`, `interface`, `int`, `let`, `maximize`, `minimize`, `real`, `satisfy`, `solve`, `state`, `string`, `true`, `use`.
 
 ### Paths
 
@@ -99,18 +99,21 @@ Items can occur in any order; identifiers need not be declared before they are u
 ```ebnf
 <item> ::= <import-item>
          | <let-item>
+         | <state-item>
          | <constraint-item>
          | <function-item>
          | <enum-decl-item>
          | <solve-item>
-         | <transition-item>
          | <interface-item>
          | <contract-item>
+         | <extern-item>
 ```
 
 Import items (`<import-item>`) import new items from a module/submodule or external library into the current module ([Import Items](#import-items)).
 
-Variable declaration items (`<let-item>`) introduce variables and optionally bind them to a value ([Variable Declaration Items](#variable-declaration-items)).
+Let declaration items introduce decision variables and optionally constrain them to values ([Let Declaration Items](#let-declaration-items)).
+
+State declaration items (`<state-item>`) introduce _state_ variables and constrain them to values ([State Declaration Items](#state-declaration-items)).
 
 Constraint items describe intent constraints ([Constraint Items](#constraint-items)).
 
@@ -123,6 +126,8 @@ Solve items specify exact what kind of solution the user is interested in: plain
 Interface items contain lists of smart contract methods that a [contract](#contract-items) can have ([Interface Items](#interface-items)).
 
 Contract items describe actual deployed contracts with a known contract ID and a list of available methods ([contract Items](#contract-items)).
+
+"Extern" items contain lists of external functions that allow accessing data on a blockchain (["Extern" Items](#extern-items)).
 
 ### Multi-file Intents
 
@@ -239,6 +244,7 @@ Expressions represent values and have the following syntax:
          | <call-expr>
          | <cast-expr>
          | <in-expr>
+         | <prime-expr>
 ```
 
 Expressions can be composed from sub-expressions with operators. All unary and binary operators are described in [Operators
@@ -536,6 +542,23 @@ A value belongs to an array if and only if it is "equal" to one of its entries. 
 
 Note that two values of different types cannot be compared and should result in a compile error.
 
+#### Prime Expressions
+
+Prime expressions are used to refer to the _future_ value of a [state variable](#state-declaration-items). They have the following syntax:
+
+```ebnf
+<prime-expr> ::= <expr> "'"
+```
+
+For example:
+
+```rust
+state u = MyContract::foo();
+constraint u' - u > 10;
+```
+
+The above enforces that the blockchain state value returned by `MyContract::foo()` increases by at least 10 after the execution of a valid solution for the intent.
+
 #### Expression Precedence
 
 The precedence of Yurt operators and expressions is ordered as follows, going from strong to weak. Binary Operators at the same precedence level are grouped in the order given by their associativity.
@@ -580,14 +603,14 @@ Use declarations support a number of convenient shortcuts:
 - Binding all paths matching a given prefix, using the asterisk wildcard syntax `use a::b::*;`.
 - Nesting groups of the previous features multiple times, such as use `a::b::{self as ab, c, d::{*, e::f}};`.
 
-### Variable Declaration Items
+### Let Declaration Items
 
 These are variables whose values may or may not be unknown for a given _instance_ for an intent. Solvers are required to find appropriate values for those variables with unknown values at compile-time.
 
 Variable declaration items have the following syntax:
 
 ```ebnf
-<let-item> ::= "let" <ident> ( ( ":" <ty> ) | ("=" <expr> ) | ( ":" <ty> "=" <expr> )
+<let-item> ::= "let" <ident> ( ( ":" <ty> ) | ("=" <expr> ) | ( ":" <ty> "=" <expr> ) )
 ```
 
 For example:
@@ -598,6 +621,25 @@ let y = 5;
 ```
 
 Note that at least one of the type annotation and the initializing expression has to be present so that the type of the variable can be determined. This implies that `let x;` is not a valid variable declaration.
+
+### State Declaration Items
+
+These are variables that represent blockchain _state_ and require an initializer in the form of a [contract](#contract-items) method call. State variables are _not_ decision variables and the solver is not required to find values for them as their true value is determined by the blockchain. That being said, state variables can still be used in [constraint items](#constraint-items) to enforce various restrictions on the current and future state values.
+
+State declaration items have the following syntax:
+
+```ebnf
+<state-item> ::= "state" <ident> [ ":" <ty> ] "=" <expr>
+```
+
+For example:
+
+```rust
+state x: int = MyContract::foo();
+state y = MyContract::bar();
+```
+
+Note that, unlike [let declarations](#let-declaration-items), the initializer of a state declaration is not optional.
 
 ### Constraint Items
 
@@ -715,7 +757,31 @@ This contract is called `MyToken` and has an integer ID of `0xA0b86991c6218b36c1
 1. All the functions declared in the `Ownable` interface.
 1. All the functions declared in the body of the contract, namely `foo()` and `bar()`.
 
-A call to any of these functions can be made using a `<call-expr>` with the name of the contract used in `<path>`. For example, `MyToken::foo()`.
+A call to any of these functions can be made using a `<call-expr>` with the name of the contract used in `<path>`. For example, `MyToken::foo()`. Contract function calls _always_ return values which must be bound to [state variables](#state-declaration-items), such as `state u = MyToken::foo()`.
+
+### "Extern" Items
+
+"Extern" items contain lists of function signatures that represent external APIs that can access data on a blockchain. More specifically, for the Ethereum blockchain, the functions should match the [JSON-RPC methods](https://ethereum.github.io/execution-apis/api-documentation/) that all Ethereum clients must implement.
+
+The syntax for extern items is as follows:
+
+```ebnf
+<extern-item> ::= "extern" "{" ( <function-sig> ";" )* "}"
+```
+
+For example:
+
+```rust
+extern {
+    fn eth_getBalance(address: string) -> string;
+
+    fn eth_gasPrice() -> string;
+}
+```
+
+The types used in the signature of `extern` functions depend on the types used by the external APIs. In the case of Ethereum JSON-RPC, a string is used to encode all values, hence a `string` type must be used in the `extern` block.
+
+Extern functions are available directly without any special scoping. The only requirement is that the functions are called in the same file where the `extern` block is declared or that the functions are imported using an [import item](#import-items), similarly to regular functions.
 
 ## Language Backend
 
