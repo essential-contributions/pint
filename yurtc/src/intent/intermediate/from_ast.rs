@@ -22,6 +22,7 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
     let mut interfaces = Vec::new();
     let mut contracts = Vec::new();
     let mut externs = Vec::new();
+    let mut new_types = Vec::new();
 
     for decl in ast {
         match decl {
@@ -89,6 +90,9 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
                     convert_vec(functions, |fnsig| expr_ctx.convert_fn_sig(fnsig))?,
                     span.clone(),
                 ));
+            }
+            ast::Decl::NewType { name, ty, span } => {
+                new_types.push((name, convert_type(ty)?, span));
             }
         }
     }
@@ -246,6 +250,10 @@ impl ExprContext {
                 ast::Decl::Let { name, ty, init, .. } => {
                     self.check_unique_symbol(name)?;
                     self.unpack_let_decl(name, ty, init)?;
+                }
+                ast::Decl::NewType { name, ty, span, .. } => {
+                    self.check_unique_symbol(name)?;
+                    self.convert_type(ty)?;
                 }
                 ast::Decl::Constraint { expr, span } => {
                     let constraint = self.convert_expr(expr)?;

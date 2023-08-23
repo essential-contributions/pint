@@ -61,12 +61,6 @@ fn types() {
             "Tuple([(None, Int), (None, Tuple([(None, Real), (None, Int)])), (None, String)])"
         ],
     );
-    check(
-        &run_parser!(type_(expr()), "custom_type"),
-        expect_test::expect![[
-            r#"CustomType(Path { path: [Ident { name: "custom_type", span: 0..11 }], is_absolute: false, span: 0..11 })"#
-        ]],
-    );
 }
 
 #[test]
@@ -733,6 +727,53 @@ fn enums() {
         expect_test::expect![[
             r#"Let { name: Ident { name: "e", span: 17..18 }, ty: Some(CustomType(Path { path: [Ident { name: "path", span: 22..26 }, Ident { name: "to", span: 28..30 }, Ident { name: "MyEnum", span: 32..38 }], is_absolute: true, span: 20..38 })), init: None, span: 13..39 }"#
         ]],
+    );
+}
+
+#[test]
+fn custom_types() {
+    check(
+        &run_parser!(type_(expr()), "custom_type"),
+        expect_test::expect![[
+            r#"CustomType(Ident { path: ["custom_type"], is_absolute: false })"#
+        ]],
+    );
+    check(
+        &run_parser!(type_decl(expr()), "type MyInt = int;"),
+        expect_test::expect![r#"NewType { name: "MyInt", ty: Int, name_span: 5..10 }"#],
+    );
+    check(
+        &run_parser!(type_decl(expr()), "type MyReal = real;"),
+        expect_test::expect![r#"NewType { name: "MyReal", ty: Real, name_span: 5..11 }"#],
+    );
+    check(
+        &run_parser!(type_decl(expr()), "type MyBool = bool;"),
+        expect_test::expect![r#"NewType { name: "MyBool", ty: Bool, name_span: 5..11 }"#],
+    );
+    check(
+        &run_parser!(type_decl(expr()), "type MyString = string;"),
+        expect_test::expect![r#"NewType { name: "MyString", ty: String, name_span: 5..13 }"#],
+    );
+    check(
+        &run_parser!(type_decl(expr()), "type IntArray = int[5];"),
+        expect_test::expect![
+            r#"NewType { name: "IntArray", ty: Array { ty: Int, range: Immediate(Int(5)) }, name_span: 5..13 }"#
+        ],
+    );
+    check(
+        &run_parser!(
+            type_decl(expr()),
+            "type MyTuple = { int, real, z: string };"
+        ),
+        expect_test::expect![[
+            r#"NewType { name: "MyTuple", ty: Tuple([(None, Int), (None, Real), (Some("z"), String)]), name_span: 5..12 }"#
+        ]],
+    );
+    check(
+        &run_parser!(type_decl(expr()), "type MyAliasInt = MyInt;"),
+        expect_test::expect![
+            r#"NewType { name: "MyAliasInt", ty: CustomType(Ident { path: ["MyInt"], is_absolute: false }), name_span: 5..15 }"#
+        ],
     );
 }
 

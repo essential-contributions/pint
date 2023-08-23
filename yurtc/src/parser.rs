@@ -197,11 +197,7 @@ fn type_decl<'sc>(
         .then_ignore(just(Token::Eq))
         .then(type_(expr))
         .then_ignore(just(Token::Semi))
-        .map(|((name, name_span), ty)| ast::Decl::NewType {
-            name,
-            name_span,
-            ty,
-        })
+        .map(|((name, _), ty, span)| ast::Decl::NewType { name, span, ty })
         .boxed()
 }
 

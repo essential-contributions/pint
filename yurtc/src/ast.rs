@@ -46,6 +46,11 @@ pub(super) enum Decl {
     Enum(EnumDecl),
     Interface(InterfaceDecl),
     Contract(ContractDecl),
+    NewType {
+        name: Ident,
+        ty: Type,
+        span: Span,
+    },
     Extern {
         functions: Vec<FnSig>,
         span: Span,
