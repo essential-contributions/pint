@@ -1,12 +1,10 @@
-use crate::lexer::Token;
+use crate::{
+    lexer::Token,
+    span::{Span, Spanned},
+};
 use ariadne::{Color, Fmt, Label, Report, ReportKind, Source};
 use chumsky::prelude::*;
 use thiserror::Error;
-
-pub(super) type Span = std::ops::Range<usize>;
-pub(super) fn empty_span() -> Span {
-    0..0
-}
 
 /// An error originating from the lexer
 #[derive(Error, Debug, Clone, PartialEq, Default)]
@@ -136,24 +134,24 @@ pub(super) enum Error<'a> {
     Compile { error: CompileError },
 }
 
-impl<'a> Error<'a> {
-    pub(super) fn span(&self) -> Span {
+impl<'a> Spanned for Error<'a> {
+    fn span(&self) -> &Span {
         use Error::*;
         match self {
-            Lex { span, .. } => span.clone(),
+            Lex { span, .. } => span,
             Parse { error } => match error {
-                ParseError::ExpectedFound { span, .. } => span.clone(),
-                ParseError::KeywordAsIdent { span, .. } => span.clone(),
-                ParseError::UntypedVariable { span, .. } => span.clone(),
-                ParseError::EmptyArrayExpr { span } => span.clone(),
-                ParseError::InvalidIntegerTupleIndex { span, .. } => span.clone(),
-                ParseError::InvalidTupleIndex { span, .. } => span.clone(),
-                ParseError::EmptyTupleExpr { span } => span.clone(),
-                ParseError::EmptyTupleType { span } => span.clone(),
+                ParseError::ExpectedFound { span, .. } => span,
+                ParseError::KeywordAsIdent { span, .. } => span,
+                ParseError::UntypedVariable { span, .. } => span,
+                ParseError::EmptyArrayExpr { span } => span,
+                ParseError::InvalidIntegerTupleIndex { span, .. } => span,
+                ParseError::InvalidTupleIndex { span, .. } => span,
+                ParseError::EmptyTupleExpr { span } => span,
+                ParseError::EmptyTupleType { span } => span,
             },
             Compile { error } => match error {
-                CompileError::Internal { span, .. } => span.clone(),
-                CompileError::NameClash { span, .. } => span.clone(),
+                CompileError::Internal { span, .. } => span,
+                CompileError::NameClash { span, .. } => span,
             },
         }
     }
