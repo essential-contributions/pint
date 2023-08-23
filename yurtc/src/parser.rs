@@ -193,11 +193,11 @@ fn type_decl<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     just(Token::Type)
-        .ignore_then(ident().map_with_span(|id, span| (id, span)))
+        .ignore_then(ident())
         .then_ignore(just(Token::Eq))
         .then(type_(expr))
         .then_ignore(just(Token::Semi))
-        .map(|((name, _), ty, span)| ast::Decl::NewType { name, span, ty })
+        .map_with_span(|(name, ty), span| ast::Decl::NewType { name, ty, span })
         .boxed()
 }
 

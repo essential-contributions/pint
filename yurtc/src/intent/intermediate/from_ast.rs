@@ -1,5 +1,6 @@
 use crate::{
-    ast, contract,
+    ast::{self, Ident},
+    contract,
     error::{CompileError, Span},
     expr,
     intent::{Path, Solve},
@@ -92,7 +93,8 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
                 ));
             }
             ast::Decl::NewType { name, ty, span } => {
-                new_types.push((name, convert_type(ty)?, span));
+                expr_ctx.check_unique_symbol(name)?;
+                new_types.push((name, ty, span));
             }
         }
     }
@@ -117,6 +119,7 @@ struct ExprContext {
     states: Vec<(State, Span)>,
     vars: Vec<(Var, Span)>,
     constraints: Vec<(Expr, Span)>,
+    new_types: Vec<(Ident, Type, Span)>,
 }
 
 impl ExprContext {
@@ -253,8 +256,11 @@ impl ExprContext {
                 }
                 ast::Decl::NewType { name, ty, span, .. } => {
                     self.check_unique_symbol(name)?;
-                    self.convert_type(ty)?;
+                    let converted_type = self.convert_type(ty)?;
+                    self.new_types
+                        .push((name.clone(), converted_type, span.clone()));
                 }
+
                 ast::Decl::Constraint { expr, span } => {
                     let constraint = self.convert_expr(expr)?;
                     self.constraints.push((constraint, span.clone()));

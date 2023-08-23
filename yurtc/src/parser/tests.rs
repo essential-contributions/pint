@@ -735,29 +735,37 @@ fn custom_types() {
     check(
         &run_parser!(type_(expr()), "custom_type"),
         expect_test::expect![[
-            r#"CustomType(Ident { path: ["custom_type"], is_absolute: false })"#
+            r#"CustomType(Path { path: [Ident { name: "custom_type", span: 0..11 }], is_absolute: false, span: 0..11 })"#
         ]],
     );
     check(
         &run_parser!(type_decl(expr()), "type MyInt = int;"),
-        expect_test::expect![r#"NewType { name: "MyInt", ty: Int, name_span: 5..10 }"#],
+        expect_test::expect![
+            r#"NewType { name: Ident { name: "MyInt", span: 5..10 }, ty: Int, span: 0..17 }"#
+        ],
     );
     check(
         &run_parser!(type_decl(expr()), "type MyReal = real;"),
-        expect_test::expect![r#"NewType { name: "MyReal", ty: Real, name_span: 5..11 }"#],
+        expect_test::expect![
+            r#"NewType { name: Ident { name: "MyReal", span: 5..11 }, ty: Real, span: 0..19 }"#
+        ],
     );
     check(
         &run_parser!(type_decl(expr()), "type MyBool = bool;"),
-        expect_test::expect![r#"NewType { name: "MyBool", ty: Bool, name_span: 5..11 }"#],
+        expect_test::expect![
+            r#"NewType { name: Ident { name: "MyBool", span: 5..11 }, ty: Bool, span: 0..19 }"#
+        ],
     );
     check(
         &run_parser!(type_decl(expr()), "type MyString = string;"),
-        expect_test::expect![r#"NewType { name: "MyString", ty: String, name_span: 5..13 }"#],
+        expect_test::expect![
+            r#"NewType { name: Ident { name: "MyString", span: 5..13 }, ty: String, span: 0..23 }"#
+        ],
     );
     check(
         &run_parser!(type_decl(expr()), "type IntArray = int[5];"),
         expect_test::expect![
-            r#"NewType { name: "IntArray", ty: Array { ty: Int, range: Immediate(Int(5)) }, name_span: 5..13 }"#
+            r#"NewType { name: Ident { name: "IntArray", span: 5..13 }, ty: Array { ty: Int, range: Immediate(Int(5)) }, span: 0..23 }"#
         ],
     );
     check(
@@ -766,13 +774,13 @@ fn custom_types() {
             "type MyTuple = { int, real, z: string };"
         ),
         expect_test::expect![[
-            r#"NewType { name: "MyTuple", ty: Tuple([(None, Int), (None, Real), (Some("z"), String)]), name_span: 5..12 }"#
+            r#"NewType { name: Ident { name: "MyTuple", span: 5..12 }, ty: Tuple([(None, Int), (None, Real), (Some(Ident { name: "z", span: 28..29 }), String)]), span: 0..40 }"#
         ]],
     );
     check(
         &run_parser!(type_decl(expr()), "type MyAliasInt = MyInt;"),
         expect_test::expect![
-            r#"NewType { name: "MyAliasInt", ty: CustomType(Ident { path: ["MyInt"], is_absolute: false }), name_span: 5..15 }"#
+            r#"NewType { name: Ident { name: "MyAliasInt", span: 5..15 }, ty: CustomType(Path { path: [Ident { name: "MyInt", span: 18..23 }], is_absolute: false, span: 18..23 }), span: 0..24 }"#
         ],
     );
 }
