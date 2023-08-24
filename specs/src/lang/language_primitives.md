@@ -806,7 +806,7 @@ type Address = string;
 In the above declarations:
 
 Matrix3x3 is an alias for a 3x3 matrix of floats.
-Address is an alias for the string type to represent blockchain addresses or other specific string-based identifiers.
+Address is an alias for the `string` type to represent blockchain addresses or other specific string-based identifiers.
 Once declared, these aliases can be employed anywhere in the module in lieu of the original types:
 
 ```rust
