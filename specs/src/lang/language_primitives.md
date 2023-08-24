@@ -624,7 +624,7 @@ Note that at least one of the type annotation and the initializing expression ha
 
 ### State Declaration Items
 
-These are variables that represent blockchain _state_ and require an initializer in the form of a [contract](#contract-items) method call. State variables are _not_ decision variables and the solver is not required to find values for them as their true value is determined by the blockchain. That being said, state variables can still be used in [constraint items](#constraint-items) to enforce various restrictions on the current and future state values.
+These are variables that represent blockchain _state_ and require an initializer in the form of a [contract](#contract-items) method call or a call an [`extern` function](#extern-items). State variables are _not_ decision variables and the solver is not required to find values for them as their true value is determined by the blockchain. That being said, state variables can still be used in [constraint items](#constraint-items) to enforce various restrictions on the current and future state values.
 
 State declaration items have the following syntax:
 
