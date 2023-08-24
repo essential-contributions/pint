@@ -155,4 +155,21 @@ let     y     =    7.777   ;
             let y = 7.777;
         "#]],
     );
+
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"
+let z=    { int,    real, string  }; 
+
+
+let     y     =    {int,    {real,    int  },
+ string       }   ;
+"#
+        ),
+        expect_test::expect![[r#"
+            let x = 5;
+            let y = 7.777;
+        "#]],
+    );
 }
