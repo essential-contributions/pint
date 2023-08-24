@@ -5,6 +5,11 @@ updates:
     schedule:
       interval: daily
     versioning-strategy: lockfile-only
+  - package-ecosystem: cargo
+    directory: /yurtfmt/
+    schedule:
+      interval: daily
+    versioning-strategy: lockfile-only
   - package-ecosystem: github-actions
     directory: /
     schedule:
