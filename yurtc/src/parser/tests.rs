@@ -11,7 +11,7 @@ macro_rules! run_parser {
         let (toks, errs) = lexer::lex($source);
         assert!(errs.is_empty());
         let token_stream = Stream::from_iter($source.len()..$source.len(), toks.into_iter());
-        match $parser.parse(token_stream) {
+        match ($parser.then_ignore(end())).parse(token_stream) {
             Ok(ast) => format!("{:?}", ast),
             Err(errors) => format!(
                 "{}",
@@ -72,31 +72,31 @@ fn types() {
 #[test]
 fn immediates() {
     check(
-        &run_parser!(immediate(), "0x88;"),
+        &run_parser!(immediate(), "0x88"),
         expect_test::expect![[r#"Int(136)"#]],
     );
     check(
-        &run_parser!(immediate(), "0b111;"),
+        &run_parser!(immediate(), "0b111"),
         expect_test::expect![[r#"Int(7)"#]],
     );
     check(
-        &run_parser!(immediate(), "1;"),
+        &run_parser!(immediate(), "1"),
         expect_test::expect![[r#"Int(1)"#]],
     );
     check(
-        &run_parser!(immediate(), "0x4f3f4f3f4f3f4f3f4f3f4f3f4f;"),
+        &run_parser!(immediate(), "0x4f3f4f3f4f3f4f3f4f3f4f3f4f"),
         expect_test::expect![[r#"BigInt(6278618198356320102092284837711)"#]],
     );
     check(
-        &run_parser!(immediate(), "0b1000000000000000000000000000000000000000000000000000000000000000000000000000000000000;"),
+        &run_parser!(immediate(), "0b1000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
         expect_test::expect![[r#"BigInt(19342813113834066795298816)"#]],
     );
     check(
-        &run_parser!(immediate(), "9223372036854775808;"),
+        &run_parser!(immediate(), "9223372036854775808"),
         expect_test::expect![[r#"BigInt(9223372036854775808)"#]],
     );
     check(
-        &run_parser!(immediate(), "1.3;"),
+        &run_parser!(immediate(), "1.3"),
         expect_test::expect![[r#"Real(1.3)"#]],
     );
 }
@@ -707,7 +707,7 @@ fn enums() {
         ]],
     );
     check(
-        &run_parser!(expr(), "MyEnum::Variant1;"),
+        &run_parser!(expr(), "MyEnum::Variant1"),
         expect_test::expect![[
             r#"Path(Path { path: [Ident { name: "MyEnum", span: 0..6 }, Ident { name: "Variant1", span: 8..16 }], is_absolute: false, span: 0..16 })"#
         ]],
@@ -770,8 +770,11 @@ fn idents() {
     );
     check(
         // Lexer will split this into 3 tokens, ident() will parse the first one.
+        // This shows that we're not able to parser `ab*cd` as a single identifier
         &run_parser!(ident(), "ab*cd"),
-        expect_test::expect![[r#"Ident { name: "ab", span: 0..2 }"#]],
+        expect_test::expect![[r#"
+            @2..3: found "*" but expected end of input
+        "#]],
     );
 }
 
@@ -955,10 +958,10 @@ fn array_type() {
     check(
         &run_parser!(
             type_(expr()),
-            r#"string[foo()][{ 7 }][if true { 1 } else { 2 }"#
+            r#"string[foo()][{ 7 }][if true { 1 } else { 2 }]"#
         ),
         expect_test::expect![[
-            r#"Array { ty: Array { ty: String, range: Block(Block { statements: [], final_expr: Immediate(Int(7)) }) }, range: Call { name: Path { path: [Ident { name: "foo", span: 7..10 }], is_absolute: false, span: 7..10 }, args: [] } }"#
+            r#"Array { ty: Array { ty: Array { ty: String, range: If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } } }, range: Block(Block { statements: [], final_expr: Immediate(Int(7)) }) }, range: Call { name: Path { path: [Ident { name: "foo", span: 7..10 }], is_absolute: false, span: 7..10 }, args: [] } }"#
         ]],
     );
 
@@ -1059,7 +1062,7 @@ fn array_field_accesss() {
     );
 
     check(
-        &run_parser!(expr(), r#"a[MyEnum::Variant1];"#),
+        &run_parser!(expr(), r#"a[MyEnum::Variant1]"#),
         expect_test::expect![[
             r#"ArrayElementAccess { array: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), index: Path(Path { path: [Ident { name: "MyEnum", span: 2..8 }, Ident { name: "Variant1", span: 10..18 }], is_absolute: false, span: 2..18 }) }"#
         ]],
