@@ -64,6 +64,33 @@ fn ident<'sc>() -> impl Parser<Token<'sc>, String, Error = Simple<Token<'sc>>> +
     select! { Token::Ident(id) => id.to_owned() }.boxed()
 }
 
+fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError<'sc>> + Clone {
+    recursive(|type_| {
+        let tuple = (ident().then_ignore(just(Token::Colon)))
+            .or_not()
+            .then(type_)
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+            .validate(|args, span, emit| {
+                if args.is_empty() {
+                    emit(ParseError::EmptyTupleType { span })
+                }
+                args
+            })
+            .boxed();
+
+        let type_atom = choice((
+            just(Token::Real).to(ast::Type::Real),
+            just(Token::Int).to(ast::Type::Int),
+            just(Token::Bool).to(ast::Type::Bool),
+            just(Token::String).to(ast::Type::String),
+            tuple.map(ast::Type::Tuple),
+        ))
+        .boxed();
+    })
+}
+
 fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Simple<Token<'sc>>> + Clone {
     select! { Token::Number(num_str) => ast::Immediate::Real(num_str.parse().unwrap()) }.boxed()
 }
