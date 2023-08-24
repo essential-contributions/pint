@@ -805,9 +805,7 @@ type Address = string;
 
 In the above declarations:
 
-AccountTuple is an alias for a `tuple`.
-Address is an alias for the string type to represent blockchain addresses or other specific string-based identifiers.
-Once declared, these aliases can be employed anywhere in the module in lieu of the original types:
+AccountTuple is an alias for a `tuple` type to represent the account's id, balance, and address. Address is an alias for the `string` type to represent blockchain addresses or other specific string-based identifiers. Once declared, these aliases can be employed anywhere in the module in lieu of the original types:
 
 ```rust
 let walletDetails: AccountTuple = {id: 1, balance: 2.0, address: "0x1234...ABCD"};
