@@ -94,7 +94,7 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
             }
             ast::Decl::NewType { name, ty, span } => {
                 expr_ctx.check_unique_symbol(name)?;
-                new_types.push((name, ty, span));
+                new_types.push((name, expr_ctx.convert_type(ty)?, span));
             }
         }
     }
