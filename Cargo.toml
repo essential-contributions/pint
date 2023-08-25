@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = ["yurtc", "yurtfmt"]
+
+[workspace.dependencies]
+chumsky = "0.9"
+logos = "0.13"
+
+[workspace.package]
+edition = "2021"
+authors = ["Essential Contributions <contact@essentialcontributions.com>"]
+homepage = "https://essential.builders/"
+license = "Apache-2.0"
+repository = "https://github.com/essential-contributions/yurt"
