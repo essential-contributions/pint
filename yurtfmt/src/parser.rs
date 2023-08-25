@@ -47,16 +47,21 @@ pub(super) fn yurt_program<'sc>(
 
 fn value_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Simple<Token<'sc>>> + Clone
 {
+    let type_spec = just(Token::Colon).then(type_());
+    let init = just(Token::Eq).then(immediate().map(ast::Expr::Immediate));
+
     just(Token::Let)
         .then(ident())
-        .then(just(Token::Eq))
-        .then(immediate().map(ast::Expr::Immediate))
-        .map(|(((let_token, name), eq_token), init)| ast::Decl::Value {
-            let_token,
-            name,
-            eq_token,
-            init,
-        })
+        .then(type_spec.or_not())
+        .then(init.or_not())
+        .map(
+            |(((let_token, name), colon_token_and_ty), eq_token_and_init)| ast::Decl::Value {
+                let_token,
+                name,
+                colon_token_and_ty,
+                eq_token_and_init,
+            },
+        )
         .boxed()
 }
 
@@ -66,4 +71,9 @@ fn ident<'sc>() -> impl Parser<Token<'sc>, String, Error = Simple<Token<'sc>>> +
 
 fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Simple<Token<'sc>>> + Clone {
     select! { Token::Number(num_str) => ast::Immediate::Real(num_str.parse().unwrap()) }.boxed()
+}
+
+fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>> + Clone {
+    select! { Token::Primitive(type_str) => ast::Type::Primitive(type_str.parse().unwrap()) }
+        .boxed()
 }

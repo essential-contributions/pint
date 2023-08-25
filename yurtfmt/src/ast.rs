@@ -7,7 +7,7 @@ use crate::{
 };
 #[cfg(test)]
 use chumsky::{prelude::*, Stream};
-use std::fmt::Write;
+use std::fmt::{self, Write};
 
 pub(super) type Ast<'sc> = Vec<Decl<'sc>>;
 
@@ -16,8 +16,8 @@ pub(super) enum Decl<'sc> {
     Value {
         let_token: Token<'sc>,
         name: String,
-        eq_token: Token<'sc>,
-        init: Expr,
+        colon_token_and_ty: Option<(Token<'sc>, Type)>,
+        eq_token_and_init: Option<(Token<'sc>, Expr)>,
     },
 }
 
@@ -27,11 +27,19 @@ impl<'sc> Format for Decl<'sc> {
             Self::Value {
                 let_token,
                 name,
-                eq_token,
-                init,
+                colon_token_and_ty,
+                eq_token_and_init,
             } => {
-                write!(formatted_code, "{} {} {} ", let_token, name, eq_token)?;
-                init.format(formatted_code)?;
+                write!(formatted_code, "{} {} ", let_token, name)?;
+
+                if let Some((colon_token, ty)) = colon_token_and_ty {
+                    write!(formatted_code, "{} {} ", colon_token, ty)?;
+                }
+
+                if let Some((eq_token, init)) = eq_token_and_init {
+                    write!(formatted_code, "{} ", eq_token)?;
+                    init.format(formatted_code)?;
+                }
             }
         }
 
@@ -47,6 +55,19 @@ pub(super) enum Expr {
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Immediate {
     Real(f64),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) enum Type {
+    Primitive(String),
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Type::Primitive(primitive_ty) => write!(f, "{primitive_ty}"),
+        }
+    }
 }
 
 impl Format for Immediate {
@@ -151,8 +172,8 @@ let     y     =    7.777   ;
 "#
         ),
         expect_test::expect![[r#"
-            let x = 5;
-            let y = 7.777;
+            let x : int = 5;
+            let y : real = 7.777;
         "#]],
     );
 }

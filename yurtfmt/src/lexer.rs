@@ -9,11 +9,12 @@ use std::fmt;
 pub(super) enum Token<'sc> {
     #[token("=")]
     Eq,
+    #[token(":")]
+    Colon,
     #[token(";")]
     Semi,
-
-    #[token("real")]
-    Real,
+    #[regex(r"int|bool|string|real", |lex| lex.slice())]
+    Primitive(&'sc str),
 
     #[token("let")]
     Let,
@@ -40,8 +41,9 @@ impl<'sc> fmt::Display for Token<'sc> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Token::Eq => write!(f, "="),
+            Token::Colon => write!(f, ":"),
             Token::Semi => write!(f, ";"),
-            Token::Real => write!(f, "real"),
+            Token::Primitive(ident) => write!(f, "{ident}"),
             Token::Let => write!(f, "let"),
             Token::Ident(ident) => write!(f, "{ident}"),
             Token::Number(ident) => write!(f, "{ident}"),
