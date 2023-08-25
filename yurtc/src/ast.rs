@@ -71,6 +71,7 @@ impl Spanned for Decl {
             Enum(enum_decl) => enum_decl.span(),
             Interface(interface_decl) => interface_decl.span(),
             Contract(contract_decl) => contract_decl.span(),
+            NewType { span, .. } => span,
         }
     }
 }
