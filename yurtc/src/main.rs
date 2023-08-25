@@ -7,6 +7,7 @@ mod expr;
 pub mod intent;
 mod lexer;
 mod parser;
+mod span;
 mod types;
 
 fn main() -> anyhow::Result<()> {

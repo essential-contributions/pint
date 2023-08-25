@@ -1,6 +1,7 @@
 use crate::{
-    error::{empty_span, CompileError, Span},
+    error::CompileError,
     intent::{self, Expression, Intent, Solve},
+    span::{empty_span, Span},
 };
 
 use super::{Expr, IntermediateIntent, State, Type, Var};
@@ -75,22 +76,22 @@ fn convert_directive(directives: Vec<(Solve, Span)>) -> super::Result<Solve> {
 
 fn convert_expr(expr: Expr, span: &Span) -> super::Result<Expression> {
     match expr {
-        super::Expr::Immediate(imm) => Ok(Expression::Immediate(imm)),
-        super::Expr::Path(id) => Ok(Expression::Path(id)),
-        super::Expr::UnaryOp { op, expr } => {
-            convert_expr(*expr, span).map(|expr| Expression::UnaryOp {
+        super::Expr::Immediate { value, .. } => Ok(Expression::Immediate(value)),
+        super::Expr::Path(path) => Ok(Expression::Path(path)),
+        super::Expr::UnaryOp { op, expr, span } => {
+            convert_expr(*expr, &span).map(|expr| Expression::UnaryOp {
                 op,
                 expr: Box::new(expr),
             })
         }
-        super::Expr::BinaryOp { op, lhs, rhs } => convert_expr(*lhs, span).and_then(|lhs| {
+        super::Expr::BinaryOp { op, lhs, rhs, .. } => convert_expr(*lhs, span).and_then(|lhs| {
             convert_expr(*rhs, span).map(|rhs| Expression::BinaryOp {
                 op,
                 lhs: Box::new(lhs),
                 rhs: Box::new(rhs),
             })
         }),
-        super::Expr::Call { name, args } => args
+        super::Expr::Call { name, args, .. } => args
             .into_iter()
             .map(|arg| convert_expr(arg, span))
             .collect::<super::Result<_>>()
@@ -99,6 +100,7 @@ fn convert_expr(expr: Expr, span: &Span) -> super::Result<Expression> {
             condition,
             then_block,
             else_block,
+            ..
         } => convert_expr(*condition, span).and_then(|condition| {
             convert_expr(*then_block.0, span).and_then(|then_expr| {
                 convert_expr(*else_block.0, span).map(|else_expr| Expression::If {
@@ -113,9 +115,9 @@ fn convert_expr(expr: Expr, span: &Span) -> super::Result<Expression> {
         // compilation from IntermediateIntent to Intent.
         super::Expr::Block(_)
         | super::Expr::Cond { .. }
-        | super::Expr::Array(_)
+        | super::Expr::Array { .. }
         | super::Expr::ArrayElementAccess { .. }
-        | super::Expr::Tuple(_)
+        | super::Expr::Tuple { .. }
         | super::Expr::TupleFieldAccess { .. }
         | super::Expr::Cast { .. }
         | super::Expr::In { .. } => Err(CompileError::Internal {
@@ -126,15 +128,18 @@ fn convert_expr(expr: Expr, span: &Span) -> super::Result<Expression> {
 }
 
 fn convert_type(ty: Type, span: &Span) -> super::Result<intent::Type> {
+    use crate::types::PrimitiveKind::*;
     match ty {
-        Type::Bool => Ok(intent::Type::Bool),
-        Type::Int => Ok(intent::Type::Int),
-        Type::Real => Ok(intent::Type::Real),
-        Type::String => Ok(intent::Type::String),
+        Type::Primitive { kind: Bool, .. } => Ok(intent::Type::Bool),
+        Type::Primitive { kind: Int, .. } => Ok(intent::Type::Int),
+        Type::Primitive { kind: Real, .. } => Ok(intent::Type::Real),
+        Type::Primitive { kind: String, .. } => Ok(intent::Type::String),
 
-        Type::Array { .. } | Type::Tuple(_) | Type::CustomType(_) => Err(CompileError::Internal {
-            span: span.clone(),
-            msg: "Found unsupported types in final Intent.",
-        }),
+        Type::Array { .. } | Type::Tuple { .. } | Type::CustomType { .. } => {
+            Err(CompileError::Internal {
+                span: span.clone(),
+                msg: "Found unsupported types in final Intent.",
+            })
+        }
     }
 }

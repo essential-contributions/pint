@@ -1,7 +1,7 @@
 use crate::{
     contract::{ContractDecl as CD, InterfaceDecl as ID},
-    error::Span,
     expr::Expr as E,
+    span::{Span, Spanned},
     types::{EnumDecl, FnSig as F, Type as T},
 };
 
@@ -57,19 +57,68 @@ pub(super) enum Decl {
     },
 }
 
+impl Spanned for Decl {
+    fn span(&self) -> &Span {
+        use Decl::*;
+        match &self {
+            Use { span, .. }
+            | Let { span, .. }
+            | State { span, .. }
+            | Constraint { span, .. }
+            | Fn { span, .. }
+            | Solve { span, .. }
+            | Extern { span, .. } => span,
+            Enum(enum_decl) => enum_decl.span(),
+            Interface(interface_decl) => interface_decl.span(),
+            Contract(contract_decl) => contract_decl.span(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum UseTree {
-    Glob,
-    Name { name: Ident },
-    Path { prefix: Ident, suffix: Box<UseTree> },
-    Group { imports: Vec<UseTree> },
-    Alias { name: Ident, alias: Ident },
+    Glob(Span),
+    Name {
+        name: Ident,
+        span: Span,
+    },
+    Path {
+        prefix: Ident,
+        suffix: Box<UseTree>,
+        span: Span,
+    },
+    Group {
+        imports: Vec<UseTree>,
+        span: Span,
+    },
+    Alias {
+        name: Ident,
+        alias: Ident,
+        span: Span,
+    },
+}
+
+impl Spanned for UseTree {
+    fn span(&self) -> &Span {
+        use UseTree::*;
+        match &self {
+            Glob(span) => span,
+            Name { span, .. } | Path { span, .. } | Group { span, .. } | Alias { span, .. } => span,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Block {
     pub(super) statements: Vec<Decl>,
     pub(super) final_expr: Box<Expr>,
+    pub(super) span: Span,
+}
+
+impl Spanned for Block {
+    fn span(&self) -> &Span {
+        &self.span
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -78,11 +127,23 @@ pub(super) struct Ident {
     pub(super) span: Span,
 }
 
+impl Spanned for Ident {
+    fn span(&self) -> &Span {
+        &self.span
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Path {
     pub(super) path: Vec<Ident>,
     pub(super) is_absolute: bool,
     pub(super) span: Span,
+}
+
+impl Spanned for Path {
+    fn span(&self) -> &Span {
+        &self.span
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
