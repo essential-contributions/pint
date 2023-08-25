@@ -202,7 +202,7 @@ An array dimension can be indexed using integers, enum variants of a single enum
 
 - An array dimension that can be indexed using an integer requires that the corresponding dimension size is specified in between brackets as an expression that is evaluatable, **at compile-time**, to a **strictly positive** integer. Otherwise, the compiler should emit an error.
 
-- An array dimension that can be indexed using an enum variant or a custom-ty that resolves to an enum, requires that the corresponding dimension size is specified in between brackets as the appropriate enum type or custom-ty.
+- An array dimension that can be indexed using an enum variant requires that the corresponding dimension size is specified in between brackets as the appropriate enum type or a type alias that resolves to the appropriate enum type.
 
 For example, in:
 
