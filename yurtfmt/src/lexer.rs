@@ -1,3 +1,5 @@
+mod tests;
+
 use crate::error::{FormatterError, LexError, Span};
 use itertools::{Either, Itertools};
 use logos::Logos;
