@@ -172,6 +172,22 @@ let     y     =    7.777   ;
 "#
         ),
         expect_test::expect![[r#"
+            let x = 5;
+            let y = 7.777;
+        "#]],
+    );
+
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"
+let x :      int=    5; 
+
+
+let     y    :real       =    7.777   ;
+"#
+        ),
+        expect_test::expect![[r#"
             let x : int = 5;
             let y : real = 7.777;
         "#]],
