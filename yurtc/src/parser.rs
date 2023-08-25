@@ -3,7 +3,8 @@ use crate::{
     error::{print_on_failure, Error, ParseError},
     expr,
     lexer::{self, Token, KEYWORDS},
-    types::{EnumDecl, FnSig},
+    span::{Span, Spanned},
+    types::{EnumDecl, FnSig, PrimitiveKind},
 };
 use chumsky::{prelude::*, Stream};
 use itertools::Either;
@@ -85,28 +86,29 @@ fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError<'
         let path = ident()
             .then_ignore(just(Token::DoubleColon))
             .then(use_tree.clone())
-            .map(|(prefix, suffix)| ast::UseTree::Path {
+            .map_with_span(|(prefix, suffix), span| ast::UseTree::Path {
                 prefix,
                 suffix: Box::new(suffix),
+                span,
             })
             .boxed();
 
-        let glob = just(Token::Star).to(ast::UseTree::Glob);
+        let glob = just(Token::Star).map_with_span(|_, span| ast::UseTree::Glob(span));
 
         let group = use_tree
             .separated_by(just(Token::Comma))
             .allow_trailing()
             .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
-            .map(|imports| ast::UseTree::Group { imports })
+            .map_with_span(|imports, span| ast::UseTree::Group { imports, span })
             .boxed();
 
         let alias = ident()
             .then_ignore(just(Token::As))
             .then(ident())
-            .map(|(name, alias)| ast::UseTree::Alias { name, alias })
+            .map_with_span(|(name, alias), span| ast::UseTree::Alias { name, alias, span })
             .boxed();
 
-        let name = ident().map(|name| ast::UseTree::Name { name });
+        let name = ident().map_with_span(|name, span| ast::UseTree::Name { name, span });
 
         choice((path, alias, name, glob, group)).boxed()
     })
@@ -328,9 +330,10 @@ fn code_block_expr<'sc>(
 
     code_block_body
         .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
-        .map(|(statements, expr)| ast::Block {
+        .map_with_span(|(statements, expr), span| ast::Block {
             statements,
             final_expr: Box::new(expr),
+            span,
         })
         .boxed()
 }
@@ -344,9 +347,10 @@ fn prefix_unary_op<'sc>(
         just(Token::Bang).to(expr::UnaryOp::Not),
     ))
     .then(expr)
-    .map(|(op, expr)| ast::Expr::UnaryOp {
+    .map_with_span(|(op, expr), span| ast::Expr::UnaryOp {
         op,
         expr: Box::new(expr),
+        span,
     })
     .boxed()
 }
@@ -361,11 +365,14 @@ fn if_expr<'sc>(
         .ignore_then(expr)
         .then(then_block)
         .then(else_block)
-        .map(|((condition, then_block), else_block)| ast::Expr::If {
-            condition: Box::new(condition),
-            then_block,
-            else_block,
-        })
+        .map_with_span(
+            |((condition, then_block), else_block), span| ast::Expr::If {
+                condition: Box::new(condition),
+                then_block,
+                else_block,
+                span,
+            },
+        )
         .boxed()
 }
 
@@ -377,9 +384,10 @@ fn cond_expr<'sc>(
         .then_ignore(just(Token::HeavyArrow))
         .then(expr.clone())
         .then_ignore(just(Token::Comma))
-        .map(|(condition, result)| expr::CondBranch {
+        .map_with_span(|(condition, result), span| expr::CondBranch {
             condition: Box::new(condition),
             result: Box::new(result),
+            span,
         })
         .boxed();
 
@@ -397,9 +405,10 @@ fn cond_expr<'sc>(
 
     just(Token::Cond)
         .ignore_then(body)
-        .map(|(branches, else_result)| ast::Expr::Cond {
+        .map_with_span(|(branches, else_result), span| ast::Expr::Cond {
             branches,
             else_result: Box::new(else_result),
+            span,
         })
         .boxed()
 }
@@ -415,7 +424,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
 
         let call = path()
             .then(call_args.clone())
-            .map(|(name, args)| ast::Expr::Call { name, args })
+            .map_with_span(|(name, args), span| ast::Expr::Call { name, args, span })
             .boxed();
 
         let array_elements = expr
@@ -432,7 +441,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
                 }
                 array_elements
             })
-            .map(ast::Expr::Array)
+            .map_with_span(|elements, span| ast::Expr::Array { elements, span })
             .boxed();
 
         let tuple_fields = (ident().then_ignore(just(Token::Colon)))
@@ -450,7 +459,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
                 }
                 tuple_fields
             })
-            .map(ast::Expr::Tuple)
+            .map_with_span(|fields, span| ast::Expr::Tuple { fields, span })
             .boxed();
 
         let parens = expr
@@ -459,7 +468,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
             .boxed();
 
         let atom = choice((
-            immediate().map(ast::Expr::Immediate),
+            immediate().map_with_span(|value, span| ast::Expr::Immediate { value, span }),
             prefix_unary_op(expr.clone()),
             code_block_expr(expr.clone()).map(ast::Expr::Block),
             if_expr(expr.clone()),
@@ -499,10 +508,18 @@ where
     P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 {
     parser
-        .then((just(Token::SingleQuote).to(expr::UnaryOp::NextState)).repeated())
-        .foldl(|expr, prime| ast::Expr::UnaryOp {
-            op: prime,
-            expr: Box::new(expr),
+        .then(
+            (just(Token::SingleQuote).to(expr::UnaryOp::NextState))
+                .map_with_span(|op, span| (op, span))
+                .repeated(),
+        )
+        .foldl(|expr, (op, span)| {
+            let span = expr.span().start..span.end;
+            ast::Expr::UnaryOp {
+                op,
+                expr: Box::new(expr),
+                span,
+            }
         })
         .boxed()
 }
@@ -517,12 +534,17 @@ where
     parser
         .then(
             expr.delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
+                .map_with_span(|index, span| (index, span))
                 .repeated(),
         )
-        .map(|(expr, indices)| (indices, expr))
-        .foldr(|index, expr| ast::Expr::ArrayElementAccess {
-            array: Box::new(expr),
-            index: Box::new(index),
+        .map(|(expr, indices_with_spans)| (indices_with_spans, expr))
+        .foldr(|(index, span), expr| {
+            let span = expr.span().start..span.end;
+            ast::Expr::ArrayElementAccess {
+                array: Box::new(expr),
+                index: Box::new(index),
+                span,
+            }
         })
         .boxed()
 }
@@ -533,19 +555,22 @@ fn tuple_field_access<'sc, P>(
 where
     P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 {
-    let indices = filter_map(|span, token| match &token {
+    let indices_with_spans = filter_map(|span: Span, token| match &token {
         // Field access with an identifier
-        Token::Ident(ident) => Ok(vec![Either::Right(ast::Ident {
-            name: (*ident).to_owned(),
+        Token::Ident(ident) => Ok(vec![(
+            Either::Right(ast::Ident {
+                name: (*ident).to_owned(),
+                span: span.clone(),
+            }),
             span,
-        })]),
+        )]),
 
         // Field access with an integer
         Token::IntLiteral(num_str) => num_str
             .parse::<usize>()
-            .map(|index| vec![Either::Left(index)])
+            .map(|index| vec![(Either::Left(index), span.clone())])
             .map_err(|_| ParseError::InvalidIntegerTupleIndex {
-                span,
+                span: span.clone(),
                 index: num_str,
             }),
 
@@ -579,9 +604,9 @@ where
                                     span: span.clone(),
                                     index,
                                 })
-                                .map(Either::Left)
+                                .map(|index| (Either::Left(index), span.clone()))
                         })
-                        .collect::<Result<Vec<Either<usize, ast::Ident>>, _>>()
+                        .collect::<Result<Vec<(Either<usize, ast::Ident>, Span)>, _>>()
                 }
                 None => Err(ParseError::InvalidTupleIndex { span, index: token }),
             }
@@ -591,10 +616,19 @@ where
     .boxed();
 
     parser
-        .then(just(Token::Dot).ignore_then(indices).repeated().flatten())
-        .foldl(|expr, field| ast::Expr::TupleFieldAccess {
-            tuple: Box::new(expr),
-            field,
+        .then(
+            just(Token::Dot)
+                .ignore_then(indices_with_spans)
+                .repeated()
+                .flatten(),
+        )
+        .foldl(|expr, (field, span)| {
+            let span = expr.span().start..span.end;
+            ast::Expr::TupleFieldAccess {
+                tuple: Box::new(expr),
+                field,
+                span,
+            }
         })
         .boxed()
 }
@@ -607,10 +641,19 @@ where
     P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 {
     parser
-        .then(just(Token::As).ignore_then(type_(expr)).repeated())
-        .foldl(|value, ty| ast::Expr::Cast {
-            value: Box::new(value),
-            ty: Box::new(ty),
+        .then(
+            just(Token::As)
+                .ignore_then(type_(expr))
+                .map_with_span(|ty, span| (ty, span))
+                .repeated(),
+        )
+        .foldl(|value, (ty, span)| {
+            let span = value.span().start..span.end;
+            ast::Expr::Cast {
+                value: Box::new(value),
+                ty: Box::new(ty),
+                span,
+            }
         })
         .boxed()
 }
@@ -623,10 +666,19 @@ where
     P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
 {
     parser
-        .then(just(Token::In).ignore_then(expr).repeated())
-        .foldl(|value, collection| ast::Expr::In {
-            value: Box::new(value),
-            collection: Box::new(collection),
+        .then(
+            just(Token::In)
+                .ignore_then(expr)
+                .map_with_span(|collection, span| (collection, span))
+                .repeated(),
+        )
+        .foldl(|value, (collection, span)| {
+            let span = value.span().start..span.end;
+            ast::Expr::In {
+                value: Box::new(value),
+                collection: Box::new(collection),
+                span,
+            }
         })
         .boxed()
 }
@@ -645,12 +697,17 @@ where
                 .or(just(Token::Div).to(expr::BinaryOp::Div))
                 .or(just(Token::Mod).to(expr::BinaryOp::Mod))
                 .then(parser)
+                .map_with_span(|bin, span| (bin, span))
                 .repeated(),
         )
-        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
-            op,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
+        .foldl(|lhs, ((op, rhs), span)| {
+            let span = lhs.span().start..span.end;
+            ast::Expr::BinaryOp {
+                op,
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+                span,
+            }
         })
         .boxed()
 }
@@ -668,12 +725,17 @@ where
                 .to(expr::BinaryOp::Add)
                 .or(just(Token::Minus).to(expr::BinaryOp::Sub))
                 .then(parser)
+                .map_with_span(|bin, span| (bin, span))
                 .repeated(),
         )
-        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
-            op,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
+        .foldl(|lhs, ((op, rhs), span)| {
+            let span = lhs.span().start..span.end;
+            ast::Expr::BinaryOp {
+                op,
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+                span,
+            }
         })
         .boxed()
 }
@@ -696,12 +758,17 @@ where
                 just(Token::NotEq).to(expr::BinaryOp::NotEqual),
             ))
             .then(parser)
+            .map_with_span(|bin, span| (bin, span))
             .repeated(),
         )
-        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
-            op,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
+        .foldl(|lhs, ((op, rhs), span)| {
+            let span = lhs.span().start..span.end;
+            ast::Expr::BinaryOp {
+                op,
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+                span,
+            }
         })
         .boxed()
 }
@@ -716,11 +783,21 @@ where
 {
     parser
         .clone()
-        .then(just(token).to(logical_op).then(parser).repeated())
-        .foldl(|lhs, (op, rhs)| ast::Expr::BinaryOp {
-            op,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
+        .then(
+            just(token)
+                .to(logical_op)
+                .then(parser)
+                .map_with_span(|bin, span| (bin, span))
+                .repeated(),
+        )
+        .foldl(|lhs, ((op, rhs), span)| {
+            let span = lhs.span().start..span.end;
+            ast::Expr::BinaryOp {
+                op,
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+                span,
+            }
         })
         .boxed()
 }
@@ -783,12 +860,24 @@ fn type_<'sc>(
             .boxed();
 
         let type_atom = choice((
-            just(Token::Real).to(ast::Type::Real),
-            just(Token::Int).to(ast::Type::Int),
-            just(Token::Bool).to(ast::Type::Bool),
-            just(Token::String).to(ast::Type::String),
-            tuple.map(ast::Type::Tuple),
-            path().map(ast::Type::CustomType),
+            just(Token::Real).map_with_span(|_, span| ast::Type::Primitive {
+                kind: PrimitiveKind::Real,
+                span,
+            }),
+            just(Token::Int).map_with_span(|_, span| ast::Type::Primitive {
+                kind: PrimitiveKind::Int,
+                span,
+            }),
+            just(Token::Bool).map_with_span(|_, span| ast::Type::Primitive {
+                kind: PrimitiveKind::Bool,
+                span,
+            }),
+            just(Token::String).map_with_span(|_, span| ast::Type::Primitive {
+                kind: PrimitiveKind::String,
+                span,
+            }),
+            tuple.map_with_span(|fields, span| ast::Type::Tuple { fields, span }),
+            path().map_with_span(|path, span| ast::Type::CustomType { path, span }),
         ))
         .boxed();
 
@@ -799,12 +888,17 @@ fn type_<'sc>(
             .clone()
             .then(
                 expr.delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
+                    .map_with_span(|range, span| (range, span))
                     .repeated(),
             )
-            .map(|(type_atom, array_range)| (array_range, type_atom))
-            .foldr(|range, ty| ast::Type::Array {
-                ty: Box::new(ty),
-                range,
+            .map(|(type_atom, ranges_with_span)| (ranges_with_span, type_atom))
+            .foldr(|(range, span), ty| {
+                let span = ty.span().start..span.end;
+                ast::Type::Array {
+                    ty: Box::new(ty),
+                    range,
+                    span,
+                }
             })
             .boxed()
     })

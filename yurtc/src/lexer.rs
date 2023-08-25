@@ -1,4 +1,7 @@
-use crate::error::{Error, LexError, Span};
+use crate::{
+    error::{Error, LexError},
+    span::Span,
+};
 use itertools::{Either, Itertools};
 use logos::Logos;
 use std::fmt;

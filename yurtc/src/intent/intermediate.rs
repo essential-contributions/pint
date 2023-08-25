@@ -1,9 +1,10 @@
 use crate::{
     ast,
     contract::{ContractDecl as CD, InterfaceDecl as ID},
-    error::{CompileError, Span},
+    error::CompileError,
     expr::Expr as E,
     intent::{Intent, Path, Solve},
+    span::Span,
     types::{EnumDecl, FnSig as F, Type as T},
 };
 
@@ -81,13 +82,17 @@ use crate::expr;
 
 #[test]
 fn single_let() {
+    use crate::types::{PrimitiveKind::*, Type};
     let ast = vec![ast::Decl::Let {
         // `let foo: real;`
         name: ast::Ident {
             name: "foo".to_owned(),
             span: 4..7,
         },
-        ty: Some(ast::Type::Real),
+        ty: Some(Type::Primitive {
+            kind: Real,
+            span: 9..13,
+        }),
         init: None,
         span: 0..14,
     }];
@@ -97,6 +102,7 @@ fn single_let() {
 
 #[test]
 fn double_let_clash() {
+    use crate::types::{PrimitiveKind::*, Type};
     let ast = vec![
         ast::Decl::Let {
             // `let foo: real;`
@@ -104,7 +110,10 @@ fn double_let_clash() {
                 name: "foo".to_owned(),
                 span: 4..7,
             },
-            ty: Some(ast::Type::Real),
+            ty: Some(Type::Primitive {
+                kind: Real,
+                span: 9..13,
+            }),
             init: None,
             span: 0..14,
         },
@@ -114,7 +123,10 @@ fn double_let_clash() {
                 name: "foo".to_owned(),
                 span: 19..22,
             },
-            ty: Some(ast::Type::Real),
+            ty: Some(Type::Primitive {
+                kind: Real,
+                span: 24..28,
+            }),
             init: None,
             span: 15..29,
         },
@@ -134,6 +146,7 @@ fn double_let_clash() {
 
 #[test]
 fn let_fn_clash() {
+    use crate::types::{PrimitiveKind::*, Type};
     let ast = vec![
         ast::Decl::Let {
             // `let bar: real;`
@@ -141,7 +154,10 @@ fn let_fn_clash() {
                 name: "bar".to_owned(),
                 span: 4..7,
             },
-            ty: Some(ast::Type::Real),
+            ty: Some(Type::Primitive {
+                kind: Real,
+                span: 9..13,
+            }),
             init: None,
             span: 0..14,
         },
@@ -153,12 +169,19 @@ fn let_fn_clash() {
                     span: 18..21,
                 },
                 params: Vec::new(),
-                return_type: ast::Type::Bool,
+                return_type: Type::Primitive {
+                    kind: Bool,
+                    span: 27..31,
+                },
                 span: 15..31,
             },
             body: ast::Block {
                 statements: Vec::new(),
-                final_expr: Box::new(ast::Expr::Immediate(expr::Immediate::Bool(false))),
+                final_expr: Box::new(ast::Expr::Immediate {
+                    value: expr::Immediate::Bool(false),
+                    span: 34..39,
+                }),
+                span: 15..41,
             },
             span: 15..41,
         },
