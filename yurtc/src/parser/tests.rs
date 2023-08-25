@@ -747,7 +747,7 @@ fn custom_types() {
     check(
         &run_parser!(type_(expr()), "custom_type"),
         expect_test::expect![[
-            r#"CustomType(Path { path: [Ident { name: "custom_type", span: 0..11 }], is_absolute: false, span: 0..11 })"#
+            r#"CustomType { path: Path { path: [Ident { name: "custom_type", span: 0..11 }], is_absolute: false, span: 0..11 }, span: 0..11 }"#
         ]],
     );
     check(
