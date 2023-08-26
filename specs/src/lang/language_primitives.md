@@ -198,7 +198,7 @@ An array type represents a collection of items that share the same type. Arrays 
 <array-ty> ::= <ty> ( "[" <expr> | <custom-ty> "]" )+
 ```
 
-An array dimension can be indexed using non-negative integers. It can also be indexed using enum variants of some enum type or some [type alias](#type-alias-items) that resolves to an enum type. The allowed type of the index depends on how the dimension is specified in the array type definition.
+An array dimension can be indexed using non-negative integers. It can also be indexed using enum variants of some enum type or some [new type](#new-type-items) that resolves to an enum type. The allowed type of the index depends on how the dimension is specified in the array type definition.
 
 - An array dimension that can be indexed using an integer requires that the corresponding dimension size is specified in between brackets as an expression that is evaluatable, **at compile-time**, to a **strictly positive** integer. Otherwise, the compiler should emit an error.
 
