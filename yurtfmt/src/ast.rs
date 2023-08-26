@@ -175,6 +175,8 @@ fn let_decls() {
 
     let   bool_var   = true;
 
+  let       bool_var   =false;
+
     let  str_var =     "sample";
 
  let  real_var  =    8.8888E+5;
@@ -188,6 +190,7 @@ let bin_var  =0b1010;
                 let x = 5;
                 let y = 7.777;
                 let bool_var = true;
+                let bool_var = false;
                 let str_var = "sample";
                 let real_var = 8.8888E+5;
                 let hex_var = 0xFF;
@@ -205,7 +208,7 @@ let bin_var  =0b1010;
 
     let   bool_var : bool    = true;
 
- let str_var  : string  =    "sample";
+ let str_var  : string  =    "this sample has spaces";
 
      let real_var:   real = 8.8888E+5;
 
@@ -218,7 +221,7 @@ let bin_var :  int=0b1010;
                 let x : int = 5;
                 let y : real = 7.777;
                 let bool_var : bool = true;
-                let str_var : string = "sample";
+                let str_var : string = "this sample has spaces";
                 let real_var : real = 8.8888E+5;
                 let hex_var : int = 0xFF;
                 let bin_var : int = 0b1010;
