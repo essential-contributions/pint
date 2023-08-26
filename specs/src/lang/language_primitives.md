@@ -107,7 +107,7 @@ Items can occur in any order; identifiers need not be declared before they are u
          | <interface-item>
          | <contract-item>
          | <extern-item>
-         | <type-alias-item>
+         | <new-type-item>
 ```
 
 Import items (`<import-item>`) import new items from a module/submodule or external library into the current module ([Import Items](#import-items)).
@@ -130,7 +130,7 @@ Contract items describe actual deployed contracts with a known contract ID and a
 
 "Extern" items contain lists of external functions that allow accessing data on a blockchain (["Extern" Items](#extern-items)).
 
-Type Alias items let you assign a new name to an existing type, simplifying complex type definitions or providing more context for certain types (["Type Alias" Items](#type-alias-items)).
+New Type items let you assign a new name to an existing type, simplifying complex type definitions or providing more context for certain types (["New Type" Items](#new-type-items)).
 
 ### Multi-file Intents
 
@@ -202,7 +202,7 @@ An array dimension can be indexed using non-negative integers. It can also be in
 
 - An array dimension that can be indexed using an integer requires that the corresponding dimension size is specified in between brackets as an expression that is evaluatable, **at compile-time**, to a **strictly positive** integer. Otherwise, the compiler should emit an error.
 
-- An array dimension that can be indexed using an enum variant requires that the corresponding dimension size is specified in between brackets as the appropriate enum type or a type alias that resolves to the appropriate enum type.
+- An array dimension that can be indexed using an enum variant requires that the corresponding dimension size is specified in between brackets as the appropriate enum type.
 
 For example, in:
 
@@ -786,14 +786,14 @@ The types used in the signature of `extern` functions depend on the types used b
 
 Extern functions are available directly without any special scoping. The only requirement is that the functions are called in the same file where the `extern` block is declared or that the functions are imported using an [import item](#import-items), similarly to regular functions.
 
-### "Type Alias" Items
+### "New Type" Items
 
-Type Alias items provide a shorthand for referencing complex or frequently used types. However, it's crucial to understand that these aliases do not represent new or distinct types. They are merely alternative names for existing types. Consequently, they do not introduce type coercion or change the underlying type's behavior.
+New Type items introduce a distinct type that is not directly interchangeable with its underlying type or other new types based on the same underlying type.
 
-The syntax for declaring a type alias is:
+The syntax for declaring a new type is:
 
 ```ebnf
-<type-alias-item> ::= "type" <ident> "=" <ty>
+<new-type-item> ::= "type" <ident> "=" <ty>
 ```
 
 For example:
@@ -805,15 +805,13 @@ type Address = string;
 
 In the above declarations:
 
-AccountTuple is an alias for a `tuple` type to represent the account's id, balance, and address. Address is an alias for the `string` type to represent blockchain addresses or other specific string-based identifiers. Once declared, these aliases can be employed anywhere in the module in lieu of the original types:
+AccountTuple is a new type for a `tuple` type to represent the account's id, balance, and address. Address is an new type for the `string` type to represent blockchain addresses or other specific string-based identifiers. Once declared, these new types can be employed anywhere in the module in lieu of the original types:
 
 ```rust
 let walletDetails: AccountTuple = {id: 1, balance: 2.0, address: "0x1234...ABCD"};
 
 let myAddress: Address = "0x1234567890abcdef";
 ```
-
-It's important to note that even though Address is an alias for string, Address and string cannot be implicitly coerced. Both refer to the same underlying type, and any operations or methods applicable to the original type are equally applicable to its alias.
 
 ## Language Backend
 
