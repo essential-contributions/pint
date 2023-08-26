@@ -30,14 +30,14 @@ impl<'sc> Format for Decl<'sc> {
                 colon_token_and_ty,
                 eq_token_and_init,
             } => {
-                write!(formatted_code, "{} {} ", let_token, name)?;
+                write!(formatted_code, "{} {}", let_token, name)?;
 
                 if let Some((colon_token, ty)) = colon_token_and_ty {
-                    write!(formatted_code, "{} {} ", colon_token, ty)?;
+                    write!(formatted_code, " {} {}", colon_token, ty)?;
                 }
 
                 if let Some((eq_token, init)) = eq_token_and_init {
-                    write!(formatted_code, "{} ", eq_token)?;
+                    write!(formatted_code, " {} ", eq_token)?;
                     init.format(formatted_code)?;
                 }
             }
@@ -54,7 +54,9 @@ pub(super) enum Expr {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Immediate {
-    Real(f64),
+    Number(String),
+    Bool(String),
+    String(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -73,7 +75,9 @@ impl fmt::Display for Type {
 impl Format for Immediate {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
-            Self::Real(val) => write!(formatted_code, "{}", val)?,
+            Self::Number(val) => write!(formatted_code, "{}", val)?,
+            Self::Bool(val) => write!(formatted_code, "{}", val)?,
+            Self::String(val) => write!(formatted_code, "\"{}\"", val)?,
         }
 
         Ok(())
@@ -165,31 +169,89 @@ fn let_decls() {
         &run_formatter!(
             yurt_program(),
             r#"
-let x =    5; 
+    let   x   = 5;
 
+   let y     =     7.777;
 
-let     y     =    7.777   ;
+    let   bool_var   = true;
+
+    let  str_var =     "sample";
+
+ let  real_var  =    8.8888E+5;
+
+     let hex_var =   0xFF;
+
+let bin_var  =0b1010;
 "#
         ),
         expect_test::expect![[r#"
-            let x = 5;
-            let y = 7.777;
-        "#]],
+                let x = 5;
+                let y = 7.777;
+                let bool_var = true;
+                let str_var = "sample";
+                let real_var = 8.8888E+5;
+                let hex_var = 0xFF;
+                let bin_var = 0b1010;
+            "#]],
     );
 
     check(
         &run_formatter!(
             yurt_program(),
             r#"
-let x :      int=    5; 
+    let  x  :  int   =   5;
 
+   let   y:  real  =  7.777;
 
-let     y    :real       =    7.777   ;
+    let   bool_var : bool    = true;
+
+ let str_var  : string  =    "sample";
+
+     let real_var:   real = 8.8888E+5;
+
+  let   hex_var:int =   0xFF;
+
+let bin_var :  int=0b1010;
 "#
         ),
         expect_test::expect![[r#"
-            let x : int = 5;
-            let y : real = 7.777;
-        "#]],
+                let x : int = 5;
+                let y : real = 7.777;
+                let bool_var : bool = true;
+                let str_var : string = "sample";
+                let real_var : real = 8.8888E+5;
+                let hex_var : int = 0xFF;
+                let bin_var : int = 0b1010;
+            "#]],
+    );
+
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"
+    let     x ;
+
+    let y;
+
+    let  bool_var   ;
+
+    let    str_var;
+
+    let real_var  ;
+
+    let   hex_var ;
+
+let   bin_var  ;
+        "#
+        ),
+        expect_test::expect![[r#"
+                let x;
+                let y;
+                let bool_var;
+                let str_var;
+                let real_var;
+                let hex_var;
+                let bin_var;
+            "#]],
     );
 }

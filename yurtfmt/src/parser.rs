@@ -70,7 +70,11 @@ fn ident<'sc>() -> impl Parser<Token<'sc>, String, Error = Simple<Token<'sc>>> +
 }
 
 fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Simple<Token<'sc>>> + Clone {
-    select! { Token::Number(num_str) => ast::Immediate::Real(num_str.parse().unwrap()) }.boxed()
+    select! {
+    Token::NumberLiteral(num_str) => ast::Immediate::Number(num_str.parse().unwrap()),
+    Token::BoolLiteral(bool_str) => ast::Immediate::Bool(bool_str.parse().unwrap()),
+    Token::StringLiteral(str) => ast::Immediate::String(str.parse().unwrap()) }
+    .boxed()
 }
 
 fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>> + Clone {
