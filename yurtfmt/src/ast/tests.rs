@@ -86,6 +86,8 @@ fn let_decls() {
      let hex_var =   0xFF;
 
 let bin_var  =0b1010;
+
+let         bigint_var=1234567890123456789012345678901234567890;
 "#
         ),
         expect_test::expect![[r#"
@@ -97,6 +99,7 @@ let bin_var  =0b1010;
                 let real_var = 8.8888E+5;
                 let hex_var = 0xFF;
                 let bin_var = 0b1010;
+                let bigint_var = 1234567890123456789012345678901234567890;
             "#]],
     );
 
@@ -117,6 +120,8 @@ let bin_var  =0b1010;
   let   hex_var:int =   0xFF;
 
 let bin_var :  int=0b1010;
+
+     let         bigint_var:        int=1234567890123456789012345678901234567890;
 "#
         ),
         expect_test::expect![[r#"
@@ -127,6 +132,7 @@ let bin_var :  int=0b1010;
                 let real_var : real = 8.8888E+5;
                 let hex_var : int = 0xFF;
                 let bin_var : int = 0b1010;
+                let bigint_var : int = 1234567890123456789012345678901234567890;
             "#]],
     );
 
@@ -146,7 +152,7 @@ let bin_var :  int=0b1010;
 
     let   hex_var ;
 
-let   bin_var  ;
+let   bin_var;
         "#
         ),
         expect_test::expect![[r#"
