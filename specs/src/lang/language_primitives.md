@@ -62,7 +62,7 @@ Identifiers have the following syntax:
 <ident> ::= _?[A-Za-z][A-Za-z0-9]*     % excluding keywords
 ```
 
-A number of keywords are reserved and cannot be used as identifiers. The keywords are: `as`, `bool`, `constraint`, `contract`, `else`, `enum`, `extern`, `false`, `fn`, `if`, `implements`, `interface`, `int`, `let`, `maximize`, `minimize`, `real`, `satisfy`, `solve`, `state`, `string`, `true`, `use`.
+A number of keywords are reserved and cannot be used as identifiers. The keywords are: `as`, `bool`, `constraint`, `contract`, `else`, `enum`, `extern`, `false`, `fn`, `if`, `implements`, `interface`, `int`, `let`, `maximize`, `minimize`, `real`, `satisfy`, `solve`, `state`, `string`, `true`, `type`, `use`.
 
 ### Paths
 
@@ -107,6 +107,7 @@ Items can occur in any order; identifiers need not be declared before they are u
          | <interface-item>
          | <contract-item>
          | <extern-item>
+         | <new-type-item>
 ```
 
 Import items (`<import-item>`) import new items from a module/submodule or external library into the current module ([Import Items](#import-items)).
@@ -128,6 +129,8 @@ Interface items contain lists of smart contract methods that a [contract](#contr
 Contract items describe actual deployed contracts with a known contract ID and a list of available methods ([contract Items](#contract-items)).
 
 "Extern" items contain lists of external functions that allow accessing data on a blockchain (["Extern" Items](#extern-items)).
+
+New Type items let you assign a new name to an existing type, simplifying complex type definitions or providing more context for certain types (["New Type" Items](#new-type-items)).
 
 ### Multi-file Intents
 
@@ -170,7 +173,7 @@ The syntax for types is as follows:
        | "string"
        | <tuple-ty>
        | <array-ty>
-       | <enum-ty>
+       | <custom-ty>
 ```
 
 ### Tuple Type
@@ -192,10 +195,10 @@ Note that the grammar disallows empty tuple types `{ }`.
 An array type represents a collection of items that share the same type. Arrays can be multi-dimensional and have the following syntax:
 
 ```ebnf
-<array-ty> ::= <ty> ( "[" <expr> | <enum-ty> "]" )+
+<array-ty> ::= <ty> ( "[" <expr> | <custom-ty> "]" )+
 ```
 
-An array dimension can be indexed using integers or using enum variants of a single enum type, depending on how the dimension is specified in the array type.
+An array dimension can be indexed using non-negative integers. It can also be indexed using enum variants of some enum type or some [new type](#new-type-items) that resolves to an enum type. The allowed type of the index depends on how the dimension is specified in the array type definition.
 
 - An array dimension that can be indexed using an integer requires that the corresponding dimension size is specified in between brackets as an expression that is evaluatable, **at compile-time**, to a **strictly positive** integer. Otherwise, the compiler should emit an error.
 
@@ -782,6 +785,44 @@ extern {
 The types used in the signature of `extern` functions depend on the types used by the external APIs. In the case of Ethereum JSON-RPC, a string is used to encode all values, hence a `string` type must be used in the `extern` block.
 
 Extern functions are available directly without any special scoping. The only requirement is that the functions are called in the same file where the `extern` block is declared or that the functions are imported using an [import item](#import-items), similarly to regular functions.
+
+### "New Type" Items
+
+New Type items introduce a distinct type that is not directly interchangeable with its underlying type or other new types based on the same underlying type.
+
+The syntax for declaring a new type is:
+
+```ebnf
+<new-type-item> ::= "type" <ident> "=" <ty>
+```
+
+For example:
+
+```rust
+type AccountTuple = { id: int, balance: real, address: string };
+
+type IdArray = int[5];
+
+type Address = string;
+```
+
+In the above declarations:
+
+`AccountTuple` is a new type for a `tuple` type to represent the account's ID, balance, and address. `IdArray` is a new type for an `array` type to represent a list of account ids. `Address` is an new type for the `string` type to represent blockchain addresses or other specific string-based identifiers.
+
+New type values may be initialized through:
+
+- Expressions that conform to the new type's structure (such as tuple and array expressions). For instance, `{ x: .. }` for tuples or `[1, y, .. ]` for arrays.
+
+- Literals of primitive types (`int`, `real`, `bool`, `string`) as long as they are compatible with the new type's underlying definition.
+
+```rust
+let walletDetails: AccountTuple = {id: 1, balance: 2.0, address: "0x1234...ABCD"};
+
+let ids: IdArray = [1, 2, 3, 4, 5];
+
+let myAddress: Address = "0x1234567890abcdef";
+```
 
 ## Language Backend
 
