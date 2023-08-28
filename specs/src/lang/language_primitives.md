@@ -812,10 +812,9 @@ AccountTuple is a new type for a `tuple` type to represent the account's id, bal
 
 New type values may be initialized through:
 
-* Expressions that conform to the new type's structure (such as tuple and array expressions). For instance, `{ x: .. }` for tuples or `[1, y, .. ]` for arrays.
+- Expressions that conform to the new type's structure (such as tuple and array expressions). For instance, `{ x: .. }` for tuples or `[1, y, .. ]` for arrays.
 
-* Basic literals (`strings`, `integers`, `booleans`, and `reals`) as long as they are compatible with the new type's underlying definition.
-
+- Basic literals (`strings`, `integers`, `booleans`, and `reals`) as long as they are compatible with the new type's underlying definition.
 
 ```rust
 let walletDetails: AccountTuple = {id: 1, balance: 2.0, address: "0x1234...ABCD"};
