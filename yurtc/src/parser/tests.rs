@@ -751,38 +751,38 @@ fn custom_types() {
         ]],
     );
     check(
-        &run_parser!(type_decl(expr()), "type MyInt = int;"),
+        &run_parser!(type_decl(), "type MyInt = int;"),
         expect_test::expect![
             r#"NewType { name: Ident { name: "MyInt", span: 5..10 }, ty: Primitive { kind: Int, span: 13..16 }, span: 0..17 }"#
         ],
     );
     check(
-        &run_parser!(type_decl(expr()), "type MyReal = real;"),
+        &run_parser!(type_decl(), "type MyReal = real;"),
         expect_test::expect![
             r#"NewType { name: Ident { name: "MyReal", span: 5..11 }, ty: Primitive { kind: Real, span: 14..18 }, span: 0..19 }"#
         ],
     );
     check(
-        &run_parser!(type_decl(expr()), "type MyBool = bool;"),
+        &run_parser!(type_decl(), "type MyBool = bool;"),
         expect_test::expect![
             r#"NewType { name: Ident { name: "MyBool", span: 5..11 }, ty: Primitive { kind: Bool, span: 14..18 }, span: 0..19 }"#
         ],
     );
     check(
-        &run_parser!(type_decl(expr()), "type MyString = string;"),
+        &run_parser!(type_decl(), "type MyString = string;"),
         expect_test::expect![
             r#"NewType { name: Ident { name: "MyString", span: 5..13 }, ty: Primitive { kind: String, span: 16..22 }, span: 0..23 }"#
         ],
     );
     check(
-        &run_parser!(type_decl(expr()), "type IntArray = int[5];"),
+        &run_parser!(type_decl(), "type IntArray = int[5];"),
         expect_test::expect![
             r#"NewType { name: Ident { name: "IntArray", span: 5..13 }, ty: Array { ty: Primitive { kind: Int, span: 16..19 }, range: Immediate { value: Int(5), span: 20..21 }, span: 16..22 }, span: 0..23 }"#
         ],
     );
     check(
         &run_parser!(
-            type_decl(expr()),
+            type_decl(),
             "type MyTuple = { int, real, z: string };"
         ),
         expect_test::expect![[
@@ -790,7 +790,7 @@ fn custom_types() {
         ]],
     );
     check(
-        &run_parser!(type_decl(expr()), "type MyAliasInt = MyInt;"),
+        &run_parser!(type_decl(), "type MyAliasInt = MyInt;"),
         expect_test::expect![
             r#"NewType { name: Ident { name: "MyAliasInt", span: 5..15 }, ty: CustomType { path: Path { path: [Ident { name: "MyInt", span: 18..23 }], is_absolute: false, span: 18..23 }, span: 18..23 }, span: 0..24 }"#
         ],
