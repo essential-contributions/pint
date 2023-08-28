@@ -808,7 +808,7 @@ type Address = string;
 
 In the above declarations:
 
-AccountTuple is a new type for a `tuple` type to represent the account's id, balance, and address. IdArray is a new type for an `array` type to represent a list of account ids. Address is an new type for the `string` type to represent blockchain addresses or other specific string-based identifiers.
+`AccountTuple` is a new type for a `tuple` type to represent the account's ID, balance, and address. `IdArray` is a new type for an `array` type to represent a list of account ids. `Address` is an new type for the `string` type to represent blockchain addresses or other specific string-based identifiers.
 
 New type values may be initialized through:
 
