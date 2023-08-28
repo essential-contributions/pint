@@ -800,15 +800,27 @@ For example:
 
 ```rust
 type AccountTuple = { id: int, balance: real, address: string };
+
+type IdArray = int[5];
+
 type Address = string;
 ```
 
 In the above declarations:
 
-AccountTuple is a new type for a `tuple` type to represent the account's id, balance, and address. Address is an new type for the `string` type to represent blockchain addresses or other specific string-based identifiers. Once declared, these new types can be employed anywhere in the module in lieu of the original types:
+AccountTuple is a new type for a `tuple` type to represent the account's id, balance, and address. IdArray is a new type for an `array` type to represent a list of account ids. Address is an new type for the `string` type to represent blockchain addresses or other specific string-based identifiers.
+
+New type values may be initialized through:
+
+* Expressions that conform to the new type's structure (such as tuple and array expressions). For instance, `{ x: .. }` for tuples or `[1, y, .. ]` for arrays.
+
+* Basic literals (`strings`, `integers`, `booleans`, and `reals`) as long as they are compatible with the new type's underlying definition.
+
 
 ```rust
 let walletDetails: AccountTuple = {id: 1, balance: 2.0, address: "0x1234...ABCD"};
+
+let ids: IdArray = [1, 2, 3, 4, 5];
 
 let myAddress: Address = "0x1234567890abcdef";
 ```
