@@ -1,5 +1,6 @@
 use crate::{
-    ast, contract,
+    ast::{self, Ident},
+    contract,
     error::CompileError,
     expr,
     intent::{Path, Solve},
@@ -23,6 +24,7 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
     let mut interfaces = Vec::new();
     let mut contracts = Vec::new();
     let mut externs = Vec::new();
+    let mut new_types = Vec::new();
 
     for decl in ast {
         match decl {
@@ -96,6 +98,10 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
                     span.clone(),
                 ));
             }
+            ast::Decl::NewType { name, ty, span } => {
+                expr_ctx.check_unique_symbol(name)?;
+                new_types.push((name, expr_ctx.convert_type(ty)?, span));
+            }
         }
     }
 
@@ -119,6 +125,7 @@ struct ExprContext {
     states: Vec<(State, Span)>,
     vars: Vec<(Var, Span)>,
     constraints: Vec<(Expr, Span)>,
+    new_types: Vec<(Ident, Type, Span)>,
 }
 
 impl ExprContext {
@@ -298,6 +305,13 @@ impl ExprContext {
                     self.check_unique_symbol(name)?;
                     self.unpack_let_decl(name, ty, init, span)?;
                 }
+                ast::Decl::NewType { name, ty, span, .. } => {
+                    self.check_unique_symbol(name)?;
+                    let converted_type = self.convert_type(ty)?;
+                    self.new_types
+                        .push((name.clone(), converted_type, span.clone()));
+                }
+
                 ast::Decl::Constraint { expr, span } => {
                     let constraint = self.convert_expr(expr)?;
                     self.constraints.push((constraint, span.clone()));

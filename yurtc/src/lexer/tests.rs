@@ -133,6 +133,7 @@ fn variables() {
 #[test]
 fn r#types() {
     assert_eq!(lex_one_success("enum"), Token::Enum);
+    assert_eq!(lex_one_success("type"), Token::Type);
 }
 
 #[test]
