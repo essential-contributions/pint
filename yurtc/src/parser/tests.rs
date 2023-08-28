@@ -61,12 +61,6 @@ fn types() {
         expect_test::expect!["Tuple { fields: [(None, Primitive { kind: Int, span: 1..4 }), (None, Tuple { fields: [(None, Primitive { kind: Real, span: 7..11 }), (None, Primitive { kind: Int, span: 13..16 })], span: 6..17 }), (None, Primitive { kind: String, span: 19..25 })], span: 0..26 }"
         ],
     );
-    check(
-        &run_parser!(type_(expr()), "custom_type"),
-        expect_test::expect![[
-            r#"CustomType { path: Path { path: [Ident { name: "custom_type", span: 0..11 }], is_absolute: false, span: 0..11 }, span: 0..11 }"#
-        ]],
-    );
 }
 
 #[test]
@@ -745,6 +739,58 @@ fn enums() {
         expect_test::expect![[
             r#"Let { name: Ident { name: "e", span: 17..18 }, ty: Some(CustomType { path: Path { path: [Ident { name: "path", span: 22..26 }, Ident { name: "to", span: 28..30 }, Ident { name: "MyEnum", span: 32..38 }], is_absolute: true, span: 20..38 }, span: 20..38 }), init: None, span: 13..39 }"#
         ]],
+    );
+}
+
+#[test]
+fn custom_types() {
+    check(
+        &run_parser!(type_(expr()), "custom_type"),
+        expect_test::expect![[
+            r#"CustomType { path: Path { path: [Ident { name: "custom_type", span: 0..11 }], is_absolute: false, span: 0..11 }, span: 0..11 }"#
+        ]],
+    );
+    check(
+        &run_parser!(type_decl(), "type MyInt = int;"),
+        expect_test::expect![
+            r#"NewType { name: Ident { name: "MyInt", span: 5..10 }, ty: Primitive { kind: Int, span: 13..16 }, span: 0..17 }"#
+        ],
+    );
+    check(
+        &run_parser!(type_decl(), "type MyReal = real;"),
+        expect_test::expect![
+            r#"NewType { name: Ident { name: "MyReal", span: 5..11 }, ty: Primitive { kind: Real, span: 14..18 }, span: 0..19 }"#
+        ],
+    );
+    check(
+        &run_parser!(type_decl(), "type MyBool = bool;"),
+        expect_test::expect![
+            r#"NewType { name: Ident { name: "MyBool", span: 5..11 }, ty: Primitive { kind: Bool, span: 14..18 }, span: 0..19 }"#
+        ],
+    );
+    check(
+        &run_parser!(type_decl(), "type MyString = string;"),
+        expect_test::expect![
+            r#"NewType { name: Ident { name: "MyString", span: 5..13 }, ty: Primitive { kind: String, span: 16..22 }, span: 0..23 }"#
+        ],
+    );
+    check(
+        &run_parser!(type_decl(), "type IntArray = int[5];"),
+        expect_test::expect![
+            r#"NewType { name: Ident { name: "IntArray", span: 5..13 }, ty: Array { ty: Primitive { kind: Int, span: 16..19 }, range: Immediate { value: Int(5), span: 20..21 }, span: 16..22 }, span: 0..23 }"#
+        ],
+    );
+    check(
+        &run_parser!(type_decl(), "type MyTuple = { int, real, z: string };"),
+        expect_test::expect![[
+            r#"NewType { name: Ident { name: "MyTuple", span: 5..12 }, ty: Tuple { fields: [(None, Primitive { kind: Int, span: 17..20 }), (None, Primitive { kind: Real, span: 22..26 }), (Some(Ident { name: "z", span: 28..29 }), Primitive { kind: String, span: 31..37 })], span: 15..39 }, span: 0..40 }"#
+        ]],
+    );
+    check(
+        &run_parser!(type_decl(), "type MyAliasInt = MyInt;"),
+        expect_test::expect![
+            r#"NewType { name: Ident { name: "MyAliasInt", span: 5..15 }, ty: CustomType { path: Path { path: [Ident { name: "MyInt", span: 18..23 }], is_absolute: false, span: 18..23 }, span: 18..23 }, span: 0..24 }"#
+        ],
     );
 }
 
