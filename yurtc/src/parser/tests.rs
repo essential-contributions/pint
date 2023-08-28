@@ -781,10 +781,7 @@ fn custom_types() {
         ],
     );
     check(
-        &run_parser!(
-            type_decl(),
-            "type MyTuple = { int, real, z: string };"
-        ),
+        &run_parser!(type_decl(), "type MyTuple = { int, real, z: string };"),
         expect_test::expect![[
             r#"NewType { name: Ident { name: "MyTuple", span: 5..12 }, ty: Tuple { fields: [(None, Primitive { kind: Int, span: 17..20 }), (None, Primitive { kind: Real, span: 22..26 }), (Some(Ident { name: "z", span: 28..29 }), Primitive { kind: String, span: 31..37 })], span: 15..39 }, span: 0..40 }"#
         ]],
