@@ -81,6 +81,12 @@ fn let_decls() {
 
     let  str_var =     "sample";
 
+    let str1 = "abc \
+        def";
+
+    let str2 = "abc
+        def";
+
  let  real_var  =    8.8888E+5;
 
      let hex_var =   0xFF;
@@ -96,6 +102,10 @@ let         bigint_var=1234567890123456789012345678901234567890;
                 let bool_var = true;
                 let bool_var = false;
                 let str_var = "sample";
+                let str1 = "abc \
+                        def";
+                let str2 = "abc
+                        def";
                 let real_var = 8.8888E+5;
                 let hex_var = 0xFF;
                 let bin_var = 0b1010;
