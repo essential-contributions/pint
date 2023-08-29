@@ -52,9 +52,7 @@ pub(super) enum Expr {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Immediate {
-    Number(String),
-    Bool(String),
-    String(String),
+    Literal(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -73,9 +71,7 @@ impl fmt::Display for Type {
 impl Format for Immediate {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
-            Self::Number(val) => write!(formatted_code, "{}", val)?,
-            Self::Bool(val) => write!(formatted_code, "{}", val)?,
-            Self::String(val) => write!(formatted_code, "\"{}\"", val)?,
+            Self::Literal(val) => write!(formatted_code, "{}", val)?,
         }
 
         Ok(())

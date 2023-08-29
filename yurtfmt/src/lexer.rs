@@ -29,12 +29,7 @@ pub(super) enum Token<'sc> {
     NumberLiteral(&'sc str),
     #[regex(
         r#""([^"\\]|\\(x[0-9a-fA-F]{2}|[nt"]|\\|\n))*""#,
-        |lex| {
-            StringLiteralChar::lexer(lex.slice())
-                .map(|c| c.map(char::from))
-                .collect::<Result<String, _>>()
-                .unwrap()
-        }
+        |lex| lex.slice().to_string()
     )]
     StringLiteral(String),
     #[regex(r"//[^\n\r]*", logos::skip)]
@@ -61,66 +56,8 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Ident(ident) => write!(f, "{ident}"),
             Token::BoolLiteral(ident) => write!(f, "{ident}"),
             Token::NumberLiteral(ident) => write!(f, "{ident}"),
-            Token::StringLiteral(contents) => write!(f, "{contents}"),
+            Token::StringLiteral(contents) => write!(f, "{}", contents),
             Token::Comment => write!(f, "comment"),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, Hash, Logos, PartialEq, Ord, PartialOrd)]
-#[logos(error = LexError)]
-enum StringLiteralChar {
-    // The lex.slice() is the whole matched '\xDD'.  It's easy to create an invalid character this
-    // way as far as Rust is concerned, so if it fails we currently return 0.  Supporting UTF8
-    // properly or treating Yurt strings as `[u8]` instead of `String` is a TODO issue.
-    #[regex(r"\\x[0-9a-fA-F]{2}",
-        |lex| {
-            char::from_u32(
-                lex.slice()
-                .chars()
-                .skip(2)
-                .fold(0, |n, c| n * 16 + c.to_digit(16).unwrap()),
-            )
-            .unwrap_or('\x00')
-        }
-    )]
-    HexEscape(char),
-
-    #[token(r"\n", |_| '\n')]
-    Newline(char),
-
-    #[token(r"\t", |_| '\t')]
-    Tab(char),
-
-    #[token(r#"\""#, |_| '\"')]
-    DoubleQuote(char),
-
-    #[token(r"\\", |_| '\\')]
-    Backslash(char),
-
-    #[regex(r"\\\n[ \t]*", logos::skip)]
-    JoinNewline,
-
-    #[token(r#"""#, logos::skip)]
-    Delimiter,
-
-    #[regex(r#"[^"\\]"#, |lex| lex.slice().chars().next().unwrap())]
-    Any(char),
-}
-
-impl From<StringLiteralChar> for char {
-    fn from(value: StringLiteralChar) -> Self {
-        match value {
-            StringLiteralChar::HexEscape(c)
-            | StringLiteralChar::Newline(c)
-            | StringLiteralChar::Tab(c)
-            | StringLiteralChar::DoubleQuote(c)
-            | StringLiteralChar::Backslash(c)
-            | StringLiteralChar::Any(c) => c,
-
-            StringLiteralChar::JoinNewline | StringLiteralChar::Delimiter => {
-                unreachable!("Should be skipped by the tokenizer.")
-            }
         }
     }
 }
