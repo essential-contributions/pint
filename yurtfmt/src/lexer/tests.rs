@@ -36,32 +36,29 @@ fn idents() {
 
 #[test]
 fn bool_literals() {
-    assert_eq!(lex_one_success("true"), Token::BoolLiteral("true"));
-    assert_eq!(lex_one_success("false"), Token::BoolLiteral("false"));
+    assert_eq!(lex_one_success("true"), Token::Literal("true"));
+    assert_eq!(lex_one_success("false"), Token::Literal("false"));
 }
 
 #[test]
 fn number_literals() {
-    assert_eq!(lex_one_success("42"), Token::NumberLiteral("42"));
-    assert_eq!(lex_one_success("3.14"), Token::NumberLiteral("3.14"));
-    assert_eq!(lex_one_success("5.67E+3"), Token::NumberLiteral("5.67E+3"));
-    assert_eq!(lex_one_success("1.23e-4"), Token::NumberLiteral("1.23e-4"));
-    assert_eq!(lex_one_success("0x1A3F"), Token::NumberLiteral("0x1A3F"));
-    assert_eq!(lex_one_success("0b1010"), Token::NumberLiteral("0b1010"));
+    assert_eq!(lex_one_success("42"), Token::Literal("42"));
+    assert_eq!(lex_one_success("3.14"), Token::Literal("3.14"));
+    assert_eq!(lex_one_success("5.67E+3"), Token::Literal("5.67E+3"));
+    assert_eq!(lex_one_success("1.23e-4"), Token::Literal("1.23e-4"));
+    assert_eq!(lex_one_success("0x1A3F"), Token::Literal("0x1A3F"));
+    assert_eq!(lex_one_success("0b1010"), Token::Literal("0b1010"));
 }
 
 #[test]
 fn string_literals() {
-    assert_eq!(
-        lex_one_success(r#""Hello""#),
-        Token::StringLiteral(r#""Hello""#.to_string())
-    );
+    assert_eq!(lex_one_success(r#""Hello""#), Token::Literal(r#""Hello""#));
     assert_eq!(
         lex_one_success(r#""This is a \"quote\".""#),
-        Token::StringLiteral(r#""This is a \"quote\".""#.to_string())
+        Token::Literal(r#""This is a \"quote\".""#)
     );
     assert_eq!(
         lex_one_success(r#""New\nLine""#),
-        Token::StringLiteral(r#""New\nLine""#.to_string())
+        Token::Literal(r#""New\nLine""#)
     );
 }
