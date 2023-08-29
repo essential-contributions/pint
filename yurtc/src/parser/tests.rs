@@ -288,13 +288,20 @@ fn solve_decls() {
     check(
         &run_parser!(solve_decl(), "solve minimize foo;"),
         expect_test::expect![[
-            r#"Solve { directive: Minimize(Path { path: [Ident { name: "foo", span: 15..18 }], is_absolute: false, span: 15..18 }), span: 0..19 }"#
+            r#"Solve { directive: Minimize(Path(Path { path: [Ident { name: "foo", span: 15..18 }], is_absolute: false, span: 15..18 })), span: 0..19 }"#
         ]],
     );
     check(
         &run_parser!(solve_decl(), "solve maximize foo;"),
         expect_test::expect![[
-            r#"Solve { directive: Maximize(Path { path: [Ident { name: "foo", span: 15..18 }], is_absolute: false, span: 15..18 }), span: 0..19 }"#
+            r#"Solve { directive: Maximize(Path(Path { path: [Ident { name: "foo", span: 15..18 }], is_absolute: false, span: 15..18 })), span: 0..19 }"#
+        ]],
+    );
+
+    check(
+        &run_parser!(solve_decl(), "solve maximize x + y;"),
+        expect_test::expect![[
+            r#"Solve { directive: Maximize(BinaryOp { op: Add, lhs: Path(Path { path: [Ident { name: "x", span: 15..16 }], is_absolute: false, span: 15..16 }), rhs: Path(Path { path: [Ident { name: "y", span: 19..20 }], is_absolute: false, span: 19..20 }), span: 15..20 }), span: 0..21 }"#
         ]],
     );
 
@@ -1499,7 +1506,7 @@ solve minimize mid;
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Let { name: Ident { name: "low_val", span: 5..12 }, ty: Some(Primitive { kind: Real, span: 14..18 }), init: Some(Immediate { value: Real(1.23), span: 21..25 }), span: 1..26 }, Let { name: Ident { name: "high_val", span: 31..39 }, ty: None, init: Some(Immediate { value: Real(4.56), span: 42..46 }), span: 27..47 }, Constraint { expr: BinaryOp { op: GreaterThan, lhs: Path(Path { path: [Ident { name: "mid", span: 112..115 }], is_absolute: false, span: 112..115 }), rhs: BinaryOp { op: Mul, lhs: Path(Path { path: [Ident { name: "low_val", span: 118..125 }], is_absolute: false, span: 118..125 }), rhs: Immediate { value: Real(2.0), span: 128..131 }, span: 118..131 }, span: 112..131 }, span: 101..132 }, Constraint { expr: BinaryOp { op: LessThan, lhs: Path(Path { path: [Ident { name: "mid", span: 144..147 }], is_absolute: false, span: 144..147 }), rhs: Path(Path { path: [Ident { name: "high_val", span: 150..158 }], is_absolute: false, span: 150..158 }), span: 144..158 }, span: 133..159 }, Solve { directive: Minimize(Path { path: [Ident { name: "mid", span: 176..179 }], is_absolute: false, span: 176..179 }), span: 161..180 }]"#
+            r#"[Let { name: Ident { name: "low_val", span: 5..12 }, ty: Some(Primitive { kind: Real, span: 14..18 }), init: Some(Immediate { value: Real(1.23), span: 21..25 }), span: 1..26 }, Let { name: Ident { name: "high_val", span: 31..39 }, ty: None, init: Some(Immediate { value: Real(4.56), span: 42..46 }), span: 27..47 }, Constraint { expr: BinaryOp { op: GreaterThan, lhs: Path(Path { path: [Ident { name: "mid", span: 112..115 }], is_absolute: false, span: 112..115 }), rhs: BinaryOp { op: Mul, lhs: Path(Path { path: [Ident { name: "low_val", span: 118..125 }], is_absolute: false, span: 118..125 }), rhs: Immediate { value: Real(2.0), span: 128..131 }, span: 118..131 }, span: 112..131 }, span: 101..132 }, Constraint { expr: BinaryOp { op: LessThan, lhs: Path(Path { path: [Ident { name: "mid", span: 144..147 }], is_absolute: false, span: 144..147 }), rhs: Path(Path { path: [Ident { name: "high_val", span: 150..158 }], is_absolute: false, span: 150..158 }), span: 144..158 }, span: 133..159 }, Solve { directive: Minimize(Path(Path { path: [Ident { name: "mid", span: 176..179 }], is_absolute: false, span: 176..179 })), span: 161..180 }]"#
         ]],
     );
 }
@@ -1534,7 +1541,7 @@ let low = 1.0;
     check(
         &run_parser!(yurt_program(), src),
         expect_test::expect![[
-            r#"[Solve { directive: Maximize(Path { path: [Ident { name: "low", span: 16..19 }], is_absolute: false, span: 16..19 }), span: 1..20 }, Constraint { expr: BinaryOp { op: LessThan, lhs: Path(Path { path: [Ident { name: "low", span: 32..35 }], is_absolute: false, span: 32..35 }), rhs: Path(Path { path: [Ident { name: "high", span: 38..42 }], is_absolute: false, span: 38..42 }), span: 32..42 }, span: 21..43 }, Let { name: Ident { name: "high", span: 48..52 }, ty: None, init: Some(Immediate { value: Real(2.0), span: 55..58 }), span: 44..59 }, Solve { directive: Satisfy, span: 60..74 }, Let { name: Ident { name: "low", span: 79..82 }, ty: None, init: Some(Immediate { value: Real(1.0), span: 85..88 }), span: 75..89 }]"#
+            r#"[Solve { directive: Maximize(Path(Path { path: [Ident { name: "low", span: 16..19 }], is_absolute: false, span: 16..19 })), span: 1..20 }, Constraint { expr: BinaryOp { op: LessThan, lhs: Path(Path { path: [Ident { name: "low", span: 32..35 }], is_absolute: false, span: 32..35 }), rhs: Path(Path { path: [Ident { name: "high", span: 38..42 }], is_absolute: false, span: 38..42 }), span: 32..42 }, span: 21..43 }, Let { name: Ident { name: "high", span: 48..52 }, ty: None, init: Some(Immediate { value: Real(2.0), span: 55..58 }), span: 44..59 }, Solve { directive: Satisfy, span: 60..74 }, Let { name: Ident { name: "low", span: 79..82 }, ty: None, init: Some(Immediate { value: Real(1.0), span: 85..88 }), span: 75..89 }]"#
         ]],
     );
 }
@@ -1687,27 +1694,24 @@ fn contract_test() {
 #[test]
 fn extern_test() {
     check(
-        &run_parser!(extern_decl(expr()), "extern {}"),
+        &run_parser!(extern_decl(), "extern {}"),
         expect_test::expect!["Extern { functions: [], span: 0..9 }"],
     );
     check(
-        &run_parser!(extern_decl(expr()), "extern { fn foo() -> string; }"),
+        &run_parser!(extern_decl(), "extern { fn foo() -> string; }"),
         expect_test::expect![[
             r#"Extern { functions: [FnSig { name: Ident { name: "foo", span: 12..15 }, params: [], return_type: Primitive { kind: String, span: 21..27 }, span: 9..27 }], span: 0..30 }"#
         ]],
     );
     check(
-        &run_parser!(
-            extern_decl(expr()),
-            "extern { fn foo(x: int, y: real) -> int; }"
-        ),
+        &run_parser!(extern_decl(), "extern { fn foo(x: int, y: real) -> int; }"),
         expect_test::expect![[
             r#"Extern { functions: [FnSig { name: Ident { name: "foo", span: 12..15 }, params: [(Ident { name: "x", span: 16..17 }, Primitive { kind: Int, span: 19..22 }), (Ident { name: "y", span: 24..25 }, Primitive { kind: Real, span: 27..31 })], return_type: Primitive { kind: Int, span: 36..39 }, span: 9..39 }], span: 0..42 }"#
         ]],
     );
     check(
         &run_parser!(
-            extern_decl(expr()),
+            extern_decl(),
             "extern { fn foo() -> int; fn bar() -> real; }"
         ),
         expect_test::expect![[
@@ -1715,7 +1719,7 @@ fn extern_test() {
         ]],
     );
     check(
-        &run_parser!(extern_decl(expr()), "extern { fn foo(); }"),
+        &run_parser!(extern_decl(), "extern { fn foo(); }"),
         expect_test::expect![[r#"
             @17..18: found ";" but expected "->"
         "#]],

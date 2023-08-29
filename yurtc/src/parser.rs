@@ -76,7 +76,7 @@ fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> 
         type_decl(),
         interface_decl(expr()),
         contract_decl(expr()),
-        extern_decl(expr()),
+        extern_decl(),
     ))
     .repeated()
     .then_ignore(end())
@@ -214,10 +214,10 @@ fn constraint_decl<'sc>(
 fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     let solve_satisfy = just(Token::Satisfy).to(ast::SolveFunc::Satisfy);
     let solve_minimize = just(Token::Minimize)
-        .ignore_then(path())
+        .ignore_then(expr())
         .map(ast::SolveFunc::Minimize);
     let solve_maximize = just(Token::Maximize)
-        .ignore_then(path())
+        .ignore_then(expr())
         .map(ast::SolveFunc::Maximize);
 
     just(Token::Solve)
@@ -314,12 +314,10 @@ fn contract_decl<'sc>(
         .boxed()
 }
 
-fn extern_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+fn extern_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     just(Token::Extern)
         .ignore_then(
-            (fn_sig(expr).then_ignore(just(Token::Semi)))
+            (fn_sig(expr()).then_ignore(just(Token::Semi)))
                 .repeated()
                 .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
         )

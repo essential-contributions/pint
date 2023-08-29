@@ -71,9 +71,9 @@ pub enum Solve {
     /// Resolve all [Variable]s.
     Satisfy,
     /// Resolve to minimize a particular named [Variable].
-    Minimize(Path),
+    Minimize(Expression),
     /// Resolve to maximize a particular named [Variable].
-    Maximize(Path),
+    Maximize(Expression),
 }
 
 /// The type of a [Variable].
