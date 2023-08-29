@@ -71,7 +71,7 @@ fn ident<'sc>() -> impl Parser<Token<'sc>, String, Error = Simple<Token<'sc>>> +
 
 fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Simple<Token<'sc>>> + Clone {
     select! {
-    Token::Literal(str) => ast::Immediate::Literal(str.to_string()) }
+    Token::Literal(str) => ast::Immediate(str.to_string()) }
     .boxed()
 }
 

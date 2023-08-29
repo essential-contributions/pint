@@ -51,9 +51,7 @@ pub(super) enum Expr {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Immediate {
-    Literal(String),
-}
+pub(super) struct Immediate(pub String);
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Type {
@@ -70,9 +68,7 @@ impl fmt::Display for Type {
 
 impl Format for Immediate {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
-        match self {
-            Self::Literal(val) => write!(formatted_code, "{}", val)?,
-        }
+        write!(formatted_code, "{}", self.0)?;
 
         Ok(())
     }
