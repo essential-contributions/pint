@@ -31,7 +31,7 @@ impl<'sc> Format for Decl<'sc> {
                 write!(formatted_code, "{} {}", let_token, name)?;
 
                 if let Some((colon_token, ty)) = colon_token_and_ty {
-                    write!(formatted_code, " {} {}", colon_token, ty)?;
+                    write!(formatted_code, "{} {}", colon_token, ty)?;
                 }
 
                 if let Some((eq_token, init)) = eq_token_and_init {
