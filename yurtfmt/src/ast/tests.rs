@@ -125,14 +125,14 @@ let bin_var :  int=0b1010;
 "#
         ),
         expect_test::expect![[r#"
-                let x : int = 5;
-                let y : real = 7.777;
-                let bool_var : bool = true;
-                let str_var : string = "this sample has spaces";
-                let real_var : real = 8.8888E+5;
-                let hex_var : int = 0xFF;
-                let bin_var : int = 0b1010;
-                let bigint_var : int = 1234567890123456789012345678901234567890;
+                let x: int = 5;
+                let y: real = 7.777;
+                let bool_var: bool = true;
+                let str_var: string = "this sample has spaces";
+                let real_var: real = 8.8888E+5;
+                let hex_var: int = 0xFF;
+                let bin_var: int = 0b1010;
+                let bigint_var: int = 1234567890123456789012345678901234567890;
             "#]],
     );
 
@@ -142,27 +142,12 @@ let bin_var :  int=0b1010;
             r#"
     let     x ;
 
-    let y;
-
     let  bool_var   ;
-
-    let    str_var;
-
-    let real_var  ;
-
-    let   hex_var ;
-
-let   bin_var;
         "#
         ),
         expect_test::expect![[r#"
                 let x;
-                let y;
                 let bool_var;
-                let str_var;
-                let real_var;
-                let hex_var;
-                let bin_var;
             "#]],
     );
 }
