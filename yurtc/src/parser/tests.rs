@@ -1633,17 +1633,14 @@ interface Foo {
 #[test]
 fn contract_test() {
     check(
-        &run_parser!(contract_decl(expr()), "contract Foo(0) {}"),
+        &run_parser!(contract_decl(), "contract Foo(0) {}"),
         expect_test::expect![[
             r#"Contract(ContractDecl { name: Ident { name: "Foo", span: 9..12 }, id: Immediate { value: Int(0), span: 13..14 }, interfaces: [], functions: [], span: 0..18 })"#
         ]],
     );
 
     check(
-        &run_parser!(
-            contract_decl(expr()),
-            "contract Foo(if true {0} else {1}) {}"
-        ),
+        &run_parser!(contract_decl(), "contract Foo(if true {0} else {1}) {}"),
         expect_test::expect![[
             r#"Contract(ContractDecl { name: Ident { name: "Foo", span: 9..12 }, id: If { condition: Immediate { value: Bool(true), span: 16..20 }, then_block: Block { statements: [], final_expr: Immediate { value: Int(0), span: 22..23 }, span: 21..24 }, else_block: Block { statements: [], final_expr: Immediate { value: Int(1), span: 31..32 }, span: 30..33 }, span: 13..33 }, interfaces: [], functions: [], span: 0..37 })"#
         ]],
@@ -1651,7 +1648,7 @@ fn contract_test() {
 
     check(
         &run_parser!(
-            contract_decl(expr()),
+            contract_decl(),
             "contract Foo(0) implements X::Bar, ::Y::Baz {}"
         ),
         expect_test::expect![[
@@ -1661,7 +1658,7 @@ fn contract_test() {
 
     check(
         &run_parser!(
-            contract_decl(expr()),
+            contract_decl(),
             "contract Foo(0) implements Bar { fn baz(x: real) -> int; }"
         ),
         expect_test::expect![[
@@ -1670,14 +1667,14 @@ fn contract_test() {
     );
 
     check(
-        &run_parser!(contract_decl(expr()), "contract Foo { }"),
+        &run_parser!(contract_decl(), "contract Foo { }"),
         expect_test::expect![[r#"
             @13..14: found "{" but expected "("
         "#]],
     );
 
     check(
-        &run_parser!(contract_decl(expr()), "contract Foo(0) implements { }"),
+        &run_parser!(contract_decl(), "contract Foo(0) implements { }"),
         expect_test::expect![[r#"
             @27..28: found "{" but expected "::"
         "#]],
