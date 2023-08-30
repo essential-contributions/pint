@@ -319,7 +319,7 @@ fn extern_decl<'sc>(
 ) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     just(Token::Extern)
         .ignore_then(
-            (fn_sig(expr.clone()).then_ignore(just(Token::Semi)))
+            (fn_sig(expr).then_ignore(just(Token::Semi)))
                 .repeated()
                 .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
         )
