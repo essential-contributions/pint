@@ -1616,14 +1616,14 @@ interface Foo {
 "#;
 
     check(
-        &run_parser!(interface_decl(expr()), src),
+        &run_parser!(interface_decl(), src),
         expect_test::expect![[
             r#"Interface(InterfaceDecl { name: Ident { name: "Foo", span: 11..14 }, functions: [FnSig { name: Ident { name: "foo", span: 24..27 }, params: [(Ident { name: "x", span: 28..29 }, Primitive { kind: Real, span: 31..35 }), (Ident { name: "y", span: 37..38 }, Array { ty: Primitive { kind: Int, span: 40..43 }, range: Immediate { value: Int(5), span: 44..45 }, span: 40..46 })], return_type: Primitive { kind: Real, span: 51..55 }, span: 21..55 }, FnSig { name: Ident { name: "bar", span: 64..67 }, params: [(Ident { name: "x", span: 68..69 }, Primitive { kind: Bool, span: 71..75 })], return_type: Primitive { kind: Real, span: 81..85 }, span: 61..85 }, FnSig { name: Ident { name: "baz", span: 94..97 }, params: [], return_type: Tuple { fields: [(None, Primitive { kind: Int, span: 105..108 }), (None, Primitive { kind: Real, span: 110..114 })], span: 103..116 }, span: 91..116 }], span: 1..119 })"#
         ]],
     );
 
     check(
-        &run_parser!(interface_decl(expr()), "interface Foo {}"),
+        &run_parser!(interface_decl(), "interface Foo {}"),
         expect_test::expect![[
             r#"Interface(InterfaceDecl { name: Ident { name: "Foo", span: 10..13 }, functions: [], span: 0..16 })"#
         ]],
