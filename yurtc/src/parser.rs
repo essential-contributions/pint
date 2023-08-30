@@ -71,7 +71,7 @@ fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> 
         state_decl(expr()),
         constraint_decl(expr()),
         solve_decl(),
-        fn_decl(expr()),
+        fn_decl(),
         enum_decl(),
         type_decl(),
         interface_decl(),
@@ -227,11 +227,9 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'s
         .boxed()
 }
 
-fn fn_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
-    fn_sig(expr.clone())
-        .then(code_block_expr(expr))
+fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+    fn_sig(expr())
+        .then(code_block_expr(expr()))
         .map_with_span(|(fn_sig, body), span| ast::Decl::Fn { fn_sig, body, span })
         .boxed()
 }
