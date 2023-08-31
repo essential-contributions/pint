@@ -1,6 +1,6 @@
 use crate::{
     ast, contract,
-    error::{print_on_failure, Error, ParseError},
+    error::{Error, ParseError},
     expr,
     lexer::{self, Token, KEYWORDS},
     span::{Span, Spanned},
@@ -9,33 +9,15 @@ use crate::{
 use chumsky::{prelude::*, Stream};
 use itertools::Either;
 use regex::Regex;
-use std::{fs::read_to_string, path::Path};
 
 #[cfg(test)]
 mod tests;
 
 type Ast = Vec<ast::Decl>;
 
-pub(super) fn parse_path_to_ast(path: &Path, filename: &str) -> anyhow::Result<Ast> {
-    parse_str_to_ast(&read_to_string(path)?, filename)
-}
-
-/// Parse `source` and returns an AST. Upon failure, print all compile errors and exit.
-fn parse_str_to_ast(source: &str, filename: &str) -> anyhow::Result<Ast> {
-    match parse_str_to_ast_inner(source) {
-        Ok(ast) => Ok(ast),
-        Err(errors) => {
-            if !cfg!(test) {
-                print_on_failure(filename, source, &errors);
-            }
-            yurtc_bail!(errors.len(), filename)
-        }
-    }
-}
-
 /// Parse `source` and returns an AST. Upon failure, return a vector of all compile errors
 /// encountered.
-fn parse_str_to_ast_inner(source: &str) -> Result<Ast, Vec<Error>> {
+pub(super) fn parse_str_to_ast(source: &str) -> Result<Ast, Vec<Error>> {
     let mut errors = vec![];
 
     // Lex the input into tokens and spans. Also collect any lex errors encountered.
