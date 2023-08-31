@@ -1660,14 +1660,14 @@ interface Foo {
 "#;
 
     check(
-        &run_parser!(interface_decl(expr()), src),
+        &run_parser!(interface_decl(), src),
         expect_test::expect![[
             r#"Interface(InterfaceDecl { name: Ident { name: "Foo", span: 11..14 }, functions: [FnSig { name: Ident { name: "foo", span: 24..27 }, params: [(Ident { name: "x", span: 28..29 }, Primitive { kind: Real, span: 31..35 }), (Ident { name: "y", span: 37..38 }, Array { ty: Primitive { kind: Int, span: 40..43 }, range: Immediate { value: Int(5), span: 44..45 }, span: 40..46 })], return_type: Primitive { kind: Real, span: 51..55 }, span: 21..55 }, FnSig { name: Ident { name: "bar", span: 64..67 }, params: [(Ident { name: "x", span: 68..69 }, Primitive { kind: Bool, span: 71..75 })], return_type: Primitive { kind: Real, span: 81..85 }, span: 61..85 }, FnSig { name: Ident { name: "baz", span: 94..97 }, params: [], return_type: Tuple { fields: [(None, Primitive { kind: Int, span: 105..108 }), (None, Primitive { kind: Real, span: 110..114 })], span: 103..116 }, span: 91..116 }], span: 1..119 })"#
         ]],
     );
 
     check(
-        &run_parser!(interface_decl(expr()), "interface Foo {}"),
+        &run_parser!(interface_decl(), "interface Foo {}"),
         expect_test::expect![[
             r#"Interface(InterfaceDecl { name: Ident { name: "Foo", span: 10..13 }, functions: [], span: 0..16 })"#
         ]],
@@ -1677,17 +1677,14 @@ interface Foo {
 #[test]
 fn contract_test() {
     check(
-        &run_parser!(contract_decl(expr()), "contract Foo(0) {}"),
+        &run_parser!(contract_decl(), "contract Foo(0) {}"),
         expect_test::expect![[
             r#"Contract(ContractDecl { name: Ident { name: "Foo", span: 9..12 }, id: Immediate { value: Int(0), span: 13..14 }, interfaces: [], functions: [], span: 0..18 })"#
         ]],
     );
 
     check(
-        &run_parser!(
-            contract_decl(expr()),
-            "contract Foo(if true {0} else {1}) {}"
-        ),
+        &run_parser!(contract_decl(), "contract Foo(if true {0} else {1}) {}"),
         expect_test::expect![[
             r#"Contract(ContractDecl { name: Ident { name: "Foo", span: 9..12 }, id: If { condition: Immediate { value: Bool(true), span: 16..20 }, then_block: Block { statements: [], final_expr: Immediate { value: Int(0), span: 22..23 }, span: 21..24 }, else_block: Block { statements: [], final_expr: Immediate { value: Int(1), span: 31..32 }, span: 30..33 }, span: 13..33 }, interfaces: [], functions: [], span: 0..37 })"#
         ]],
@@ -1695,7 +1692,7 @@ fn contract_test() {
 
     check(
         &run_parser!(
-            contract_decl(expr()),
+            contract_decl(),
             "contract Foo(0) implements X::Bar, ::Y::Baz {}"
         ),
         expect_test::expect![[
@@ -1705,7 +1702,7 @@ fn contract_test() {
 
     check(
         &run_parser!(
-            contract_decl(expr()),
+            contract_decl(),
             "contract Foo(0) implements Bar { fn baz(x: real) -> int; }"
         ),
         expect_test::expect![[
@@ -1714,7 +1711,7 @@ fn contract_test() {
     );
 
     check(
-        &run_parser!(contract_decl(expr()), "contract Foo { }"),
+        &run_parser!(contract_decl(), "contract Foo { }"),
         expect_test::expect![[r#"
             expected `(`, found `{`
             @13..14: expected `(`
@@ -1722,7 +1719,7 @@ fn contract_test() {
     );
 
     check(
-        &run_parser!(contract_decl(expr()), "contract Foo(0) implements { }"),
+        &run_parser!(contract_decl(), "contract Foo(0) implements { }"),
         expect_test::expect![[r#"
             expected `::`, found `{`
             @27..28: expected `::`
@@ -1733,27 +1730,24 @@ fn contract_test() {
 #[test]
 fn extern_test() {
     check(
-        &run_parser!(extern_decl(expr()), "extern {}"),
+        &run_parser!(extern_decl(), "extern {}"),
         expect_test::expect!["Extern { functions: [], span: 0..9 }"],
     );
     check(
-        &run_parser!(extern_decl(expr()), "extern { fn foo() -> string; }"),
+        &run_parser!(extern_decl(), "extern { fn foo() -> string; }"),
         expect_test::expect![[
             r#"Extern { functions: [FnSig { name: Ident { name: "foo", span: 12..15 }, params: [], return_type: Primitive { kind: String, span: 21..27 }, span: 9..27 }], span: 0..30 }"#
         ]],
     );
     check(
-        &run_parser!(
-            extern_decl(expr()),
-            "extern { fn foo(x: int, y: real) -> int; }"
-        ),
+        &run_parser!(extern_decl(), "extern { fn foo(x: int, y: real) -> int; }"),
         expect_test::expect![[
             r#"Extern { functions: [FnSig { name: Ident { name: "foo", span: 12..15 }, params: [(Ident { name: "x", span: 16..17 }, Primitive { kind: Int, span: 19..22 }), (Ident { name: "y", span: 24..25 }, Primitive { kind: Real, span: 27..31 })], return_type: Primitive { kind: Int, span: 36..39 }, span: 9..39 }], span: 0..42 }"#
         ]],
     );
     check(
         &run_parser!(
-            extern_decl(expr()),
+            extern_decl(),
             "extern { fn foo() -> int; fn bar() -> real; }"
         ),
         expect_test::expect![[
@@ -1761,7 +1755,7 @@ fn extern_test() {
         ]],
     );
     check(
-        &run_parser!(extern_decl(expr()), "extern { fn foo(); }"),
+        &run_parser!(extern_decl(), "extern { fn foo(); }"),
         expect_test::expect![[r#"
             expected `->`, found `;`
             @17..18: expected `->`
