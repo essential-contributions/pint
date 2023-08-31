@@ -283,8 +283,8 @@ Block expressions are expressions that contains a list of _statements_ followed 
 <block-expr> ::= "{" ( <block-statement> ";" )* <expr> "}"
 
 <block-statement> ::= <let-item>
-                    | <constraint-item>
                     | <state-time>
+                    | <constraint-item>
 ```
 
 The type of the block expression is the type of the final expression. For example:
