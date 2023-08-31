@@ -23,8 +23,16 @@ pub(super) enum Token<'sc> {
 
     #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice())]
     Ident(&'sc str),
-    #[regex(r"[0-9]+(\.[0-9]+)?", |lex| lex.slice())]
-    Number(&'sc str),
+    #[regex(
+        r#"(?x)
+        true|false
+        |[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+|0x[0-9A-Fa-f]+|0b[0-1]+|[0-9]+
+        |"([^"\\]|\\(x[0-9a-fA-F]{2}|[nt"]|\\|\n))*"
+        "#,
+        |lex| lex.slice(),
+        priority = 2
+    )]
+    Literal(&'sc str),
 
     #[regex(r"//[^\n\r]*", logos::skip)]
     Comment,
@@ -48,7 +56,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Primitive(ident) => write!(f, "{ident}"),
             Token::Let => write!(f, "let"),
             Token::Ident(ident) => write!(f, "{ident}"),
-            Token::Number(ident) => write!(f, "{ident}"),
+            Token::Literal(contents) => write!(f, "{contents}"),
             Token::Comment => write!(f, "comment"),
         }
     }

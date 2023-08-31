@@ -14,12 +14,8 @@ pub struct Intent {
 }
 
 impl Intent {
-    pub(crate) fn from_ast(ast: &[ast::Decl]) -> anyhow::Result<Self> {
-        let cnv_err = |e| anyhow::anyhow!(error::Error::Compile { error: e });
-        intermediate::IntermediateIntent::from_ast(ast)
-            .map_err(cnv_err)?
-            .compile()
-            .map_err(cnv_err)
+    pub(crate) fn from_ast(ast: &[ast::Decl]) -> Result<Self, error::CompileError> {
+        intermediate::IntermediateIntent::from_ast(ast)?.compile()
     }
 }
 

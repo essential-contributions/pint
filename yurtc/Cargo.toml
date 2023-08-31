@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 ansi_term = "0.12"
 anyhow = "1.0"
-ariadne = "0.3"
+ariadne = { version = "0.3", features = ["auto-color"] }
 chumsky = { workspace = true }
 clap = { version = "4.3", features = ["cargo"] }
 expect-test = "1.4"
@@ -19,3 +19,4 @@ num-traits = "0.2"
 regex = "1.9"
 test_bin = "0.4"
 thiserror = "1.0"
+yansi = "0.5"

@@ -1,6 +1,6 @@
 use crate::{
     ast, contract,
-    error::{print_on_failure, Error, ParseError},
+    error::{Error, ParseError},
     expr,
     lexer::{self, Token, KEYWORDS},
     span::{Span, Spanned},
@@ -9,33 +9,15 @@ use crate::{
 use chumsky::{prelude::*, Stream};
 use itertools::Either;
 use regex::Regex;
-use std::{fs::read_to_string, path::Path};
 
 #[cfg(test)]
 mod tests;
 
 type Ast = Vec<ast::Decl>;
 
-pub(super) fn parse_path_to_ast(path: &Path, filename: &str) -> anyhow::Result<Ast> {
-    parse_str_to_ast(&read_to_string(path)?, filename)
-}
-
-/// Parse `source` and returns an AST. Upon failure, print all compile errors and exit.
-fn parse_str_to_ast(source: &str, filename: &str) -> anyhow::Result<Ast> {
-    match parse_str_to_ast_inner(source) {
-        Ok(ast) => Ok(ast),
-        Err(errors) => {
-            if !cfg!(test) {
-                print_on_failure(filename, source, &errors);
-            }
-            yurtc_bail!(errors.len(), filename)
-        }
-    }
-}
-
 /// Parse `source` and returns an AST. Upon failure, return a vector of all compile errors
 /// encountered.
-fn parse_str_to_ast_inner(source: &str) -> Result<Ast, Vec<Error>> {
+pub(super) fn parse_str_to_ast(source: &str) -> Result<Ast, Vec<Error>> {
     let mut errors = vec![];
 
     // Lex the input into tokens and spans. Also collect any lex errors encountered.
@@ -71,12 +53,12 @@ fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> 
         state_decl(expr()),
         constraint_decl(expr()),
         solve_decl(),
-        fn_decl(expr()),
+        fn_decl(),
         enum_decl(),
         type_decl(),
-        interface_decl(expr()),
-        contract_decl(expr()),
-        extern_decl(expr()),
+        interface_decl(),
+        contract_decl(),
+        extern_decl(),
     ))
     .repeated()
     .then_ignore(end())
@@ -227,11 +209,9 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'s
         .boxed()
 }
 
-fn fn_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
-    fn_sig(expr.clone())
-        .then(code_block_expr(expr))
+fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+    fn_sig(expr())
+        .then(code_block_expr(expr()))
         .map_with_span(|(fn_sig, body), span| ast::Decl::Fn { fn_sig, body, span })
         .boxed()
 }
@@ -263,13 +243,11 @@ fn fn_sig<'sc>(
         .boxed()
 }
 
-fn interface_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+fn interface_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     just(Token::Interface)
         .ignore_then(ident())
         .then(
-            (fn_sig(expr).then_ignore(just(Token::Semi)))
+            (fn_sig(expr()).then_ignore(just(Token::Semi)))
                 .repeated()
                 .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
         )
@@ -283,22 +261,17 @@ fn interface_decl<'sc>(
         .boxed()
 }
 
-fn contract_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+fn contract_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     just(Token::Contract)
         .ignore_then(ident())
-        .then(
-            expr.clone()
-                .delimited_by(just(Token::ParenOpen), just(Token::ParenClose)),
-        )
+        .then(expr().delimited_by(just(Token::ParenOpen), just(Token::ParenClose)))
         .then(
             (just(Token::Implements)
                 .ignore_then(path().separated_by(just(Token::Comma)).at_least(1)))
             .or_not(),
         )
         .then(
-            (fn_sig(expr).then_ignore(just(Token::Semi)))
+            (fn_sig(expr()).then_ignore(just(Token::Semi)))
                 .repeated()
                 .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
         )
@@ -314,12 +287,10 @@ fn contract_decl<'sc>(
         .boxed()
 }
 
-fn extern_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+fn extern_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     just(Token::Extern)
         .ignore_then(
-            (fn_sig(expr).then_ignore(just(Token::Semi)))
+            (fn_sig(expr()).then_ignore(just(Token::Semi)))
                 .repeated()
                 .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
         )

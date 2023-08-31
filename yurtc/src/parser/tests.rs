@@ -1,5 +1,5 @@
 use crate::{
-    error::Error,
+    error::ReportableError,
     lexer::{self, KEYWORDS},
     parser::*,
 };
@@ -17,12 +17,27 @@ macro_rules! run_parser {
                 "{}",
                 // Print each error on one line. For each error, start with the span.
                 errors.iter().fold(String::new(), |acc, error| {
-                    let span = Error::Parse {
-                        error: error.clone(),
+                    let mut all_diagnostics = format!("{}{}", acc, error);
+                    all_diagnostics = format!(
+                        "{}{}",
+                        all_diagnostics,
+                        error.labels().iter().fold(String::new(), |acc, label| {
+                            format!(
+                                "\n{}@{}..{}: {}\n",
+                                acc,
+                                label.span().start,
+                                label.span().end,
+                                label.message()
+                            )
+                        })
+                    );
+                    if let Some(note) = error.note() {
+                        all_diagnostics = format!("{}{}", all_diagnostics, note);
                     }
-                    .span()
-                    .clone();
-                    format!("{}@{}..{}: {}\n", acc, span.start, span.end(), error)
+                    if let Some(help) = error.help() {
+                        all_diagnostics = format!("{}{}", all_diagnostics, help);
+                    }
+                    all_diagnostics
                 })
             ),
         }
@@ -153,35 +168,40 @@ fn use_statements() {
     check(
         &run_parser!(use_statement(), "use ;"),
         expect_test::expect![[r#"
-            @4..5: found ";" but expected "::", "*",  or "{"
+            expected `::`, `*`, or `{`, found `;`
+            @4..5: expected `::`, `*`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(use_statement(), "use ::;"),
         expect_test::expect![[r#"
-            @6..7: found ";" but expected "*",  or "{"
+            expected `*`, or `{`, found `;`
+            @6..7: expected `*`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(use_statement(), "use a::;"),
         expect_test::expect![[r#"
-            @5..7: found "::" but expected ";"
+            expected `;`, found `::`
+            @5..7: expected `;`
         "#]],
     );
 
     check(
         &run_parser!(use_statement(), "use * as b;"),
         expect_test::expect![[r#"
-            @6..8: found "as" but expected ";"
+            expected `;`, found `as`
+            @6..8: expected `;`
         "#]],
     );
 
     check(
         &run_parser!(use_statement(), "use a::{* as d};"),
         expect_test::expect![[r#"
-            @5..7: found "::" but expected ";"
+            expected `;`, found `::`
+            @5..7: expected `;`
         "#]],
     );
 }
@@ -191,8 +211,9 @@ fn let_decls() {
     check(
         &run_parser!(let_decl(expr()), "let blah;"),
         expect_test::expect![[r#"
-            @0..9: type annotation or initializer needed for variable "blah"
-        "#]],
+            type annotation or initializer needed for variable `blah`
+            @0..9: type annotation or initializer needed
+            consider giving `blah` an explicit type or an initializer"#]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah = 1.0;"),
@@ -308,7 +329,8 @@ fn solve_decls() {
     check(
         &run_parser!(solve_decl(), "solve world hunger;"),
         expect_test::expect![[r#"
-            @6..11: found "world" but expected "maximize", "minimize",  or "satisfy"
+            expected `maximize`, `minimize`, or `satisfy`, found `world`
+            @6..11: expected `maximize`, `minimize`, or `satisfy`
         "#]],
     );
 }
@@ -688,7 +710,8 @@ fn parens_exprs() {
     check(
         &run_parser!(expr(), "()"),
         expect_test::expect![[r#"
-            @1..2: found ")" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if",  or "cond"
+            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`, found `)`
+            @1..2: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`
         "#]],
     );
     check(
@@ -830,7 +853,8 @@ fn idents() {
     check(
         &run_parser!(ident(), "12_ab"),
         expect_test::expect![[r#"
-            @0..2: found "12" but expected something else
+            expected something else, found `12`
+            @0..2: expected something else
         "#]],
     );
     check(
@@ -838,7 +862,8 @@ fn idents() {
         // This shows that we're not able to parser `ab*cd` as a single identifier
         &run_parser!(ident(), "ab*cd"),
         expect_test::expect![[r#"
-            @2..3: found "*" but expected end of input
+            expected "end of input", found `*`
+            @2..3: expected "end of input"
         "#]],
     );
 }
@@ -880,13 +905,15 @@ fn paths() {
     check(
         &run_parser!(path().then_ignore(end()), "foo::"),
         expect_test::expect![[r#"
-            @5..5: found end of input but expected something else
+            expected something else, found "end of input"
+            @5..5: expected something else
         "#]],
     );
     check(
         &run_parser!(path().then_ignore(end()), "::foo::"),
         expect_test::expect![[r#"
-            @7..7: found end of input but expected something else
+            expected something else, found "end of input"
+            @7..7: expected something else
         "#]],
     );
 }
@@ -963,8 +990,11 @@ fn code_blocks() {
     );
 
     check(
-        &format!("{:?}", run_parser!(let_decl(expr()), "let x = {};")),
-        expect_test::expect![[r#""@8..10: empty tuple expressions are not allowed\n""#]],
+        &run_parser!(let_decl(expr()), "let x = {};"),
+        expect_test::expect![[r#"
+            empty tuple expressions are not allowed
+            @8..10: empty tuple expression found
+        "#]],
     );
 }
 
@@ -973,7 +1003,8 @@ fn if_exprs() {
     check(
         &run_parser!(if_expr(expr()), "if c { 1 }"),
         expect_test::expect![[r#"
-            @10..10: found end of input but expected "else"
+            expected `else`, found "end of input"
+            @10..10: expected `else`
         "#]],
     );
 
@@ -1003,7 +1034,7 @@ fn if_exprs() {
 fn array_type() {
     check(
         &run_parser!(type_(expr()), r#"int[5]"#),
-        expect_test::expect!["Array { ty: Primitive { kind: Int, span: 0..3 }, range: Immediate { value: Int(5), span: 4..5 }, span: 0..6 }"],
+        expect_test::expect![["Array { ty: Primitive { kind: Int, span: 0..3 }, range: Immediate { value: Int(5), span: 4..5 }, span: 0..6 }"]],
     );
 
     check(
@@ -1047,7 +1078,8 @@ fn array_type() {
     check(
         &run_parser!(let_decl(expr()), r#"let a: int[];"#),
         expect_test::expect![[r#"
-            @11..12: found "]" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if",  or "cond"
+            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`, found `]`
+            @11..12: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`
         "#]],
     );
 }
@@ -1124,7 +1156,8 @@ fn array_field_accesss() {
     check(
         &run_parser!(let_decl(expr()), r#"let x = a[];"#),
         expect_test::expect![[r#"
-            @10..11: found "]" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if",  or "cond"
+            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`, found `]`
+            @10..11: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`
         "#]],
     );
 
@@ -1314,28 +1347,32 @@ fn tuple_field_accesses() {
     check(
         &run_parser!(let_decl(expr()), "let x = t.0xa;"),
         expect_test::expect![[r#"
-            @10..13: invalid integer value "0xa" for tuple index
+            invalid integer `0xa` as tuple index
+            @10..13: invalid integer as tuple index
         "#]],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = t.111111111111111111111111111;"),
         expect_test::expect![[r#"
-            @10..37: invalid integer value "111111111111111111111111111" for tuple index
+            invalid integer `111111111111111111111111111` as tuple index
+            @10..37: invalid integer as tuple index
         "#]],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = t.111111111111111111111111111.2;"),
         expect_test::expect![[r#"
-            @10..37: invalid integer value "111111111111111111111111111" for tuple index
+            invalid integer `111111111111111111111111111` as tuple index
+            @10..37: invalid integer as tuple index
         "#]],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = t.2.111111111111111111111111111;"),
         expect_test::expect![[r#"
-            @12..39: invalid integer value "111111111111111111111111111" for tuple index
+            invalid integer `111111111111111111111111111` as tuple index
+            @12..39: invalid integer as tuple index
         "#]],
     );
 
@@ -1345,22 +1382,26 @@ fn tuple_field_accesses() {
             "let x = t.222222222222222222222.111111111111111111111111111;"
         ),
         expect_test::expect![[r#"
-            @10..31: invalid integer value "222222222222222222222" for tuple index
+            invalid integer `222222222222222222222` as tuple index
+            @10..31: invalid integer as tuple index
         "#]],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = t.1e5;"),
         expect_test::expect![[r#"
-            @10..13: invalid value "1e5" for tuple index
+            invalid value `1e5` as tuple index
+            @10..13: invalid value as tuple index
         "#]],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let bad_tuple:{} = {};"),
         expect_test::expect![[r#"
-            @14..16: empty tuple types are not allowed
-            @19..21: empty tuple expressions are not allowed
+            empty tuple types are not allowed
+            @14..16: empty tuple type found
+            empty tuple expressions are not allowed
+            @19..21: empty tuple expression found
         "#]],
     );
 }
@@ -1408,14 +1449,16 @@ fn cond_exprs() {
     check(
         &run_parser!(cond_expr(expr()), r#"cond { a => b, }"#),
         expect_test::expect![[r#"
-            @15..16: found "}" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if", "else",  or "cond"
+            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, `else`, or `cond`, found `}`
+            @15..16: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, `else`, or `cond`
         "#]],
     );
 
     check(
         &run_parser!(cond_expr(expr()), r#"cond { else => a, b => c }"#),
         expect_test::expect![[r#"
-            @18..19: found "b" but expected "}"
+            expected `}`, found `b`
+            @18..19: expected `}`
         "#]],
     );
 }
@@ -1447,7 +1490,8 @@ fn casting() {
     check(
         &run_parser!(let_decl(expr()), r#"let x = 5 as;"#),
         expect_test::expect![[r#"
-            @12..13: found ";" but expected "::", "{", "real", "int", "bool",  or "string"
+            expected `::`, `{`, `real`, `int`, `bool`, or `string`, found `;`
+            @12..13: expected `::`, `{`, `real`, `int`, `bool`, or `string`
         "#]],
     );
 }
@@ -1485,7 +1529,8 @@ fn in_expr() {
     check(
         &run_parser!(let_decl(expr()), r#"let x = 5 in;"#),
         expect_test::expect![[r#"
-            @12..13: found ";" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if",  or "cond"
+            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`, found `;`
+            @12..13: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`
         "#]],
     );
 }
@@ -1516,14 +1561,16 @@ fn fn_errors() {
     check(
         &run_parser!(yurt_program(), "fn foo() {5}"),
         expect_test::expect![[r#"
-            @9..10: found "{" but expected "->"
+            expected `->`, found `{`
+            @9..10: expected `->`
         "#]],
     );
 
     check(
         &run_parser!(yurt_program(), "fn foo() -> real {}"),
         expect_test::expect![[r#"
-            @18..19: found "}" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if", "cond", "let", "state",  or "constraint"
+            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, `cond`, `let`, `state`, or `constraint`, found `}`
+            @18..19: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, `cond`, `let`, `state`, or `constraint`
         "#]],
     );
 }
@@ -1552,10 +1599,7 @@ fn keywords_as_identifiers_errors() {
         let src = format!("let {keyword} = 5;");
         assert_eq!(
             &run_parser!(yurt_program(), &src),
-            &format!(
-                "@4..{}: expected identifier, found keyword \"{keyword}\"\n",
-                4 + format!("{keyword}").len() // End of the error span
-            ),
+            &format!("expected identifier, found keyword `{keyword}`\n@4..{}: expected identifier, found keyword\n", 4 + format!("{keyword}").len()), // End of the error span),
             "Check \"identifier as keyword\" error for  keyword \"{}\"",
             keyword
         );
@@ -1565,18 +1609,18 @@ fn keywords_as_identifiers_errors() {
 #[test]
 fn test_parse_str_to_ast() {
     check(
-        &format!("{:?}", parse_str_to_ast("let x = 5;", "my_file")),
+        &format!("{:?}", parse_str_to_ast("let x = 5;")),
         expect_test::expect![[
             r#"Ok([Let { name: Ident { name: "x", span: 4..5 }, ty: None, init: Some(Immediate { value: Int(5), span: 8..9 }), span: 0..10 }])"#
         ]],
     );
     check(
-        &format!("{:?}", parse_str_to_ast("let x = 5", "my_file")),
-        expect_test::expect![[r#"Err(could not compile "my_file" due to previous error)"#]],
+        &format!("{:?}", parse_str_to_ast("let x = 5")),
+        expect_test::expect!["Err([Parse { error: ExpectedFound { span: 9..9, expected: [Some(Semi), Some(DoublePipe), Some(DoubleAmpersand), Some(NotEq), Some(EqEq), Some(GtEq), Some(LtEq), Some(Gt), Some(Lt), Some(Plus), Some(Minus), Some(Star), Some(Div), Some(Mod), Some(In), Some(As), Some(Dot), Some(BracketOpen), Some(SingleQuote)], found: None } }])"],
     );
     check(
-        &format!("{:?}", parse_str_to_ast("@ @", "my_file")),
-        expect_test::expect![[r#"Err(could not compile "my_file" due to 2 previous errors)"#]],
+        &format!("{:?}", parse_str_to_ast("@ @")),
+        expect_test::expect!["Err([Lex { span: 0..1, error: InvalidToken }, Lex { span: 2..3, error: InvalidToken }])"],
     );
 }
 
@@ -1623,14 +1667,14 @@ interface Foo {
 "#;
 
     check(
-        &run_parser!(interface_decl(expr()), src),
+        &run_parser!(interface_decl(), src),
         expect_test::expect![[
             r#"Interface(InterfaceDecl { name: Ident { name: "Foo", span: 11..14 }, functions: [FnSig { name: Ident { name: "foo", span: 24..27 }, params: [(Ident { name: "x", span: 28..29 }, Primitive { kind: Real, span: 31..35 }), (Ident { name: "y", span: 37..38 }, Array { ty: Primitive { kind: Int, span: 40..43 }, range: Immediate { value: Int(5), span: 44..45 }, span: 40..46 })], return_type: Primitive { kind: Real, span: 51..55 }, span: 21..55 }, FnSig { name: Ident { name: "bar", span: 64..67 }, params: [(Ident { name: "x", span: 68..69 }, Primitive { kind: Bool, span: 71..75 })], return_type: Primitive { kind: Real, span: 81..85 }, span: 61..85 }, FnSig { name: Ident { name: "baz", span: 94..97 }, params: [], return_type: Tuple { fields: [(None, Primitive { kind: Int, span: 105..108 }), (None, Primitive { kind: Real, span: 110..114 })], span: 103..116 }, span: 91..116 }], span: 1..119 })"#
         ]],
     );
 
     check(
-        &run_parser!(interface_decl(expr()), "interface Foo {}"),
+        &run_parser!(interface_decl(), "interface Foo {}"),
         expect_test::expect![[
             r#"Interface(InterfaceDecl { name: Ident { name: "Foo", span: 10..13 }, functions: [], span: 0..16 })"#
         ]],
@@ -1640,17 +1684,14 @@ interface Foo {
 #[test]
 fn contract_test() {
     check(
-        &run_parser!(contract_decl(expr()), "contract Foo(0) {}"),
+        &run_parser!(contract_decl(), "contract Foo(0) {}"),
         expect_test::expect![[
             r#"Contract(ContractDecl { name: Ident { name: "Foo", span: 9..12 }, id: Immediate { value: Int(0), span: 13..14 }, interfaces: [], functions: [], span: 0..18 })"#
         ]],
     );
 
     check(
-        &run_parser!(
-            contract_decl(expr()),
-            "contract Foo(if true {0} else {1}) {}"
-        ),
+        &run_parser!(contract_decl(), "contract Foo(if true {0} else {1}) {}"),
         expect_test::expect![[
             r#"Contract(ContractDecl { name: Ident { name: "Foo", span: 9..12 }, id: If { condition: Immediate { value: Bool(true), span: 16..20 }, then_block: Block { statements: [], final_expr: Immediate { value: Int(0), span: 22..23 }, span: 21..24 }, else_block: Block { statements: [], final_expr: Immediate { value: Int(1), span: 31..32 }, span: 30..33 }, span: 13..33 }, interfaces: [], functions: [], span: 0..37 })"#
         ]],
@@ -1658,7 +1699,7 @@ fn contract_test() {
 
     check(
         &run_parser!(
-            contract_decl(expr()),
+            contract_decl(),
             "contract Foo(0) implements X::Bar, ::Y::Baz {}"
         ),
         expect_test::expect![[
@@ -1668,7 +1709,7 @@ fn contract_test() {
 
     check(
         &run_parser!(
-            contract_decl(expr()),
+            contract_decl(),
             "contract Foo(0) implements Bar { fn baz(x: real) -> int; }"
         ),
         expect_test::expect![[
@@ -1677,16 +1718,18 @@ fn contract_test() {
     );
 
     check(
-        &run_parser!(contract_decl(expr()), "contract Foo { }"),
+        &run_parser!(contract_decl(), "contract Foo { }"),
         expect_test::expect![[r#"
-            @13..14: found "{" but expected "("
+            expected `(`, found `{`
+            @13..14: expected `(`
         "#]],
     );
 
     check(
-        &run_parser!(contract_decl(expr()), "contract Foo(0) implements { }"),
+        &run_parser!(contract_decl(), "contract Foo(0) implements { }"),
         expect_test::expect![[r#"
-            @27..28: found "{" but expected "::"
+            expected `::`, found `{`
+            @27..28: expected `::`
         "#]],
     );
 }
@@ -1694,27 +1737,24 @@ fn contract_test() {
 #[test]
 fn extern_test() {
     check(
-        &run_parser!(extern_decl(expr()), "extern {}"),
+        &run_parser!(extern_decl(), "extern {}"),
         expect_test::expect!["Extern { functions: [], span: 0..9 }"],
     );
     check(
-        &run_parser!(extern_decl(expr()), "extern { fn foo() -> string; }"),
+        &run_parser!(extern_decl(), "extern { fn foo() -> string; }"),
         expect_test::expect![[
             r#"Extern { functions: [FnSig { name: Ident { name: "foo", span: 12..15 }, params: [], return_type: Primitive { kind: String, span: 21..27 }, span: 9..27 }], span: 0..30 }"#
         ]],
     );
     check(
-        &run_parser!(
-            extern_decl(expr()),
-            "extern { fn foo(x: int, y: real) -> int; }"
-        ),
+        &run_parser!(extern_decl(), "extern { fn foo(x: int, y: real) -> int; }"),
         expect_test::expect![[
             r#"Extern { functions: [FnSig { name: Ident { name: "foo", span: 12..15 }, params: [(Ident { name: "x", span: 16..17 }, Primitive { kind: Int, span: 19..22 }), (Ident { name: "y", span: 24..25 }, Primitive { kind: Real, span: 27..31 })], return_type: Primitive { kind: Int, span: 36..39 }, span: 9..39 }], span: 0..42 }"#
         ]],
     );
     check(
         &run_parser!(
-            extern_decl(expr()),
+            extern_decl(),
             "extern { fn foo() -> int; fn bar() -> real; }"
         ),
         expect_test::expect![[
@@ -1722,9 +1762,10 @@ fn extern_test() {
         ]],
     );
     check(
-        &run_parser!(extern_decl(expr()), "extern { fn foo(); }"),
+        &run_parser!(extern_decl(), "extern { fn foo(); }"),
         expect_test::expect![[r#"
-            @17..18: found ";" but expected "->"
+            expected `->`, found `;`
+            @17..18: expected `->`
         "#]],
     );
 }
