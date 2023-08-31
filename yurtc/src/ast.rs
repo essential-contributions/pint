@@ -40,7 +40,7 @@ pub(super) enum Decl {
         span: Span,
     },
     Solve {
-        directive: SolveFunc,
+        directive: SolveFunc<Expr>,
         span: Span,
     },
     Enum(EnumDecl),
@@ -148,8 +148,8 @@ impl Spanned for Path {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum SolveFunc {
+pub(super) enum SolveFunc<Expr> {
     Satisfy,
-    Minimize(Path),
-    Maximize(Path),
+    Minimize(Expr),
+    Maximize(Expr),
 }

@@ -3,13 +3,14 @@ use crate::{
     contract,
     error::CompileError,
     expr,
-    intent::{Path, Solve},
+    intent::Path,
     span::Span,
     types,
 };
 
 use super::{
-    Block, ContractDecl, Expr, FnDecl, InterfaceDecl, IntermediateIntent, State, Type, Var,
+    Block, ContractDecl, Expr, FnDecl, InterfaceDecl, IntermediateIntent, SolveFunc, State, Type,
+    Var,
 };
 
 use std::collections::HashMap;
@@ -78,9 +79,9 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
 
             ast::Decl::Solve { directive, span } => {
                 let what = match directive {
-                    ast::SolveFunc::Satisfy => Solve::Satisfy,
-                    ast::SolveFunc::Minimize(id) => Solve::Minimize(convert_path(id)?),
-                    ast::SolveFunc::Maximize(id) => Solve::Maximize(convert_path(id)?),
+                    ast::SolveFunc::Satisfy => SolveFunc::Satisfy,
+                    ast::SolveFunc::Minimize(id) => SolveFunc::Minimize(expr_ctx.convert_expr(id)?),
+                    ast::SolveFunc::Maximize(id) => SolveFunc::Maximize(expr_ctx.convert_expr(id)?),
                 };
                 directives.push((what, span.clone()));
             }

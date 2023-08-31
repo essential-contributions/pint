@@ -4,7 +4,7 @@ use crate::{
     span::{empty_span, Span},
 };
 
-use super::{Expr, IntermediateIntent, State, Type, Var};
+use super::{Expr, IntermediateIntent, SolveFunc, State, Type, Var};
 
 pub(super) fn compile(context: IntermediateIntent) -> super::Result<Intent> {
     let IntermediateIntent {
@@ -63,15 +63,22 @@ fn convert_constraints(constraints: Vec<(Expr, Span)>) -> super::Result<Vec<Expr
         .collect()
 }
 
-fn convert_directive(directives: Vec<(Solve, Span)>) -> super::Result<Solve> {
-    directives
-        .into_iter()
-        .next()
-        .map(|(s, _)| s)
-        .ok_or_else(|| CompileError::Internal {
-            span: empty_span(),
-            msg: "Missing directive during final compile.",
-        })
+fn convert_directive(directives: Vec<(SolveFunc, Span)>) -> super::Result<Solve> {
+    let (directive, span) = match directives.into_iter().next() {
+        Some(tuple) => tuple,
+        None => {
+            return Err(CompileError::Internal {
+                span: empty_span(),
+                msg: "Missing directive during final compile.",
+            })
+        }
+    };
+
+    Ok(match directive {
+        SolveFunc::Satisfy => Solve::Satisfy,
+        SolveFunc::Maximize(expr) => Solve::Maximize(convert_expr(expr, &span)?),
+        SolveFunc::Minimize(expr) => Solve::Minimize(convert_expr(expr, &span)?),
+    })
 }
 
 fn convert_expr(expr: Expr, span: &Span) -> super::Result<Expression> {

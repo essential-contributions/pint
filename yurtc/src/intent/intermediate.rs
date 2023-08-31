@@ -1,9 +1,10 @@
 use crate::{
     ast,
+    ast::SolveFunc as SF,
     contract::{ContractDecl as CD, InterfaceDecl as ID},
     error::CompileError,
     expr::Expr as E,
-    intent::{Intent, Path, Solve},
+    intent::{Intent, Path},
     span::Span,
     types::{EnumDecl, FnSig as F, Type as T},
 };
@@ -19,6 +20,7 @@ type Type = T<Path, Expr>;
 type FnSig = F<Type>;
 type InterfaceDecl = ID<Type>;
 type ContractDecl = CD<Path, Expr, Type>;
+type SolveFunc = SF<Expr>;
 
 /// An in-progress intent, possibly malformed or containing redundant information.  Designed to be
 /// iterated upon and to be reduced to an [Intent].
@@ -26,7 +28,7 @@ pub(super) struct IntermediateIntent {
     states: Vec<(State, Span)>,
     vars: Vec<(Var, Span)>,
     constraints: Vec<(Expr, Span)>,
-    directives: Vec<(Solve, Span)>,
+    directives: Vec<(SolveFunc, Span)>,
 
     // TODO: These aren't read yet but they will need to be as a part of semantic analysis and
     // optimisation.

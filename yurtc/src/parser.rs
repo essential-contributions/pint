@@ -196,10 +196,10 @@ fn constraint_decl<'sc>(
 fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
     let solve_satisfy = just(Token::Satisfy).to(ast::SolveFunc::Satisfy);
     let solve_minimize = just(Token::Minimize)
-        .ignore_then(path())
+        .ignore_then(expr())
         .map(ast::SolveFunc::Minimize);
     let solve_maximize = just(Token::Maximize)
-        .ignore_then(path())
+        .ignore_then(expr())
         .map(ast::SolveFunc::Maximize);
 
     just(Token::Solve)
