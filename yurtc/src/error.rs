@@ -2,7 +2,7 @@ mod compile_error;
 mod lex_error;
 mod parse_error;
 
-use crate::span::Span;
+use crate::span::{Span, Spanned};
 use ariadne::{Label, Report, ReportKind, Source};
 use chumsky::prelude::*;
 pub(super) use compile_error::CompileError;
@@ -11,24 +11,11 @@ pub(super) use parse_error::ParseError;
 use thiserror::Error;
 use yansi::{Color, Style};
 
+/// An error label used for pretty printing error messages to the terminal
 pub(super) struct ErrorLabel {
-    message: String,
-    span: Span,
-    color: Color,
-}
-
-impl ErrorLabel {
-    pub(super) fn message(&self) -> &String {
-        &self.message
-    }
-
-    pub(super) fn span(&self) -> &Span {
-        &self.span
-    }
-
-    pub(super) fn color(&self) -> &Color {
-        &self.color
-    }
+    pub(super) message: String,
+    pub(super) span: Span,
+    pub(super) color: Color,
 }
 
 /// A general compile error
@@ -42,11 +29,11 @@ pub(super) enum Error<'a> {
     Compile { error: CompileError },
 }
 
-/// Types that implement this trait can be pretty printed to the terminal using `ariadne` by
-/// calling the `print()` method.
+/// Types that implement this trait can be pretty printed to the terminal using the `ariadne` crate
+/// by calling the `print()` method.
 pub(super) trait ReportableError
 where
-    Self: std::fmt::Display,
+    Self: std::fmt::Display + Spanned,
 {
     /// A list of error labels for emitting diagnostics at multiple span locations
     fn labels(&self) -> Vec<ErrorLabel>;
@@ -62,16 +49,16 @@ where
 
     /// Pretty print an error to the terminal
     fn print(&self, filename: &str, source: &str) {
-        let mut report_builder = Report::build(ReportKind::Error, filename, 0)
+        let mut report_builder = Report::build(ReportKind::Error, filename, self.span().start)
             .with_message(format!("{}", Style::default().bold().paint(self)))
             .with_labels({
                 let mut labels = vec![];
                 for label in self.labels() {
                     let style = Style::new(label.color).bold();
                     labels.push(
-                        Label::new((filename, label.span().start()..label.span().end()))
-                            .with_message(style.paint(label.message()))
-                            .with_color(*label.color()),
+                        Label::new((filename, label.span.start()..label.span.end()))
+                            .with_message(style.paint(label.message))
+                            .with_color(label.color),
                     );
                 }
                 labels
@@ -96,8 +83,7 @@ where
     }
 }
 
-/// Types that implement this trait can be printed
-impl<'a> ReportableError for Error<'a> {
+impl ReportableError for Error<'_> {
     fn labels(&self) -> Vec<ErrorLabel> {
         use Error::*;
         match self {
@@ -118,7 +104,7 @@ impl<'a> ReportableError for Error<'a> {
     fn note(&self) -> Option<String> {
         use Error::*;
         match self {
-            Lex { error, .. } => error.note(),
+            Lex { .. } => None,
             Parse { error } => error.note(),
             Compile { error } => error.note(),
         }
@@ -127,7 +113,7 @@ impl<'a> ReportableError for Error<'a> {
     fn code(&self) -> Option<String> {
         use Error::*;
         match self {
-            Lex { error, .. } => error.code().map(|code| format!("L{}", code)),
+            Lex { .. } => None,
             Parse { error } => error.code().map(|code| format!("P{}", code)),
             Compile { error } => error.code().map(|code| format!("C{}", code)),
         }
@@ -136,14 +122,25 @@ impl<'a> ReportableError for Error<'a> {
     fn help(&self) -> Option<String> {
         use Error::*;
         match self {
-            Lex { error, .. } => error.help(),
+            Lex { .. } => None,
             Parse { error } => error.help(),
             Compile { error } => error.help(),
         }
     }
 }
 
-/// Print a list of [`Error`] using the `ariadne` library
+impl Spanned for Error<'_> {
+    fn span(&self) -> &Span {
+        use Error::*;
+        match &self {
+            Lex { span, .. } => span,
+            Parse { error } => error.span(),
+            Compile { error } => error.span(),
+        }
+    }
+}
+
+/// Print a list of [`Error`] using the `ariadne` crate
 pub(super) fn print_errors(errs: &Vec<Error>, filename: &str, source: &str) {
     for err in errs {
         err.print(filename, source);
@@ -151,7 +148,7 @@ pub(super) fn print_errors(errs: &Vec<Error>, filename: &str, source: &str) {
 }
 
 /// A simple warpper around `anyhow::bail!` that prints a different message based on a the number
-/// of compiler errors.
+/// of compile errors.
 macro_rules! yurtc_bail {
     ($number_of_errors: expr, $filename: expr) => {
         if $number_of_errors == 1 {

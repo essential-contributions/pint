@@ -1,6 +1,6 @@
 use crate::{
     error::{ErrorLabel, ReportableError},
-    span::Span,
+    span::{Span, Spanned},
 };
 use thiserror::Error;
 use yansi::Color;
@@ -12,8 +12,8 @@ pub(crate) enum CompileError {
     #[error("symbol `{sym}` has already been declared")]
     NameClash {
         sym: String,
-        span: Span,
-        prev_span: Span,
+        span: Span,      // Actual error location
+        prev_span: Span, // Span of the previous occurance
     },
 }
 
@@ -65,5 +65,14 @@ impl ReportableError for CompileError {
 
     fn help(&self) -> Option<String> {
         None
+    }
+}
+
+impl Spanned for CompileError {
+    fn span(&self) -> &Span {
+        use CompileError::*;
+        match &self {
+            Internal { span, .. } | NameClash { span, .. } => span,
+        }
     }
 }
