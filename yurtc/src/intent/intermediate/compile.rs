@@ -81,7 +81,7 @@ fn convert_directive(directives: Vec<(SolveFunc, Span)>) -> super::Result<Solve>
     })
 }
 
-pub(super) fn convert_expr(expr: Expr, span: &Span) -> super::Result<Expression> {
+fn convert_expr(expr: Expr, span: &Span) -> super::Result<Expression> {
     match expr {
         super::Expr::Immediate { value, .. } => Ok(Expression::Immediate(value)),
         super::Expr::Path(path) => Ok(Expression::Path(path)),
