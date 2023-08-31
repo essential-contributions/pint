@@ -1,22 +1,24 @@
 [package]
 name = "yurtc"
 version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
-ansi_term = "0.12"
-anyhow = "1.0"
-ariadne = { version = "0.3", features = ["auto-color"] }
+ansi_term = { workspace = true }
+anyhow = { workspace = true }
+ariadne = { workspace = true }
 chumsky = { workspace = true }
-clap = { version = "4.3", features = ["cargo"] }
-expect-test = "1.4"
-itertools = "0.11"
+clap = { workspace = true }
+expect-test = { workspace = true }
+itertools = { workspace = true }
 logos = { workspace = true }
 num-bigint = "0.4"
 num-traits = "0.2"
 regex = "1.9"
 test_bin = "0.4"
-thiserror = "1.0"
+thiserror = { workspace = true }
 yansi = "0.5"

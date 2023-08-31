@@ -3,8 +3,15 @@ resolver = "2"
 members = ["yurtc", "yurtfmt"]
 
 [workspace.dependencies]
+ansi_term = "0.12"
+anyhow = "1.0"
+ariadne = "0.3"
 chumsky = "0.9"
+clap = { version = "4.4", features = ["cargo"] }
+expect-test = "1.4"
+itertools = "0.11"
 logos = "0.13"
+thiserror = "1.0"
 
 [workspace.package]
 edition = "2021"
