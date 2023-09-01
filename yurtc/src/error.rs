@@ -3,7 +3,7 @@ mod lex_error;
 mod parse_error;
 
 use crate::span::{Span, Spanned};
-use ariadne::{Label, Report, ReportKind, Source};
+use ariadne::{FnCache, Label, Report, ReportKind, Source};
 use chumsky::prelude::*;
 pub(super) use compile_error::CompileError;
 pub(super) use lex_error::LexError;
@@ -48,20 +48,32 @@ where
     fn help(&self) -> Option<String>;
 
     /// Pretty print an error to the terminal
-    fn print(&self, filename: &str, source: &str) {
-        let mut report_builder = Report::build(ReportKind::Error, filename, self.span().start)
+    fn print(&self) {
+        let filepaths_and_sources = self
+            .labels()
+            .iter()
+            .map(|label| {
+                let filepath = format!("{}", label.span.context().display());
+                let source = std::fs::read_to_string(filepath.clone()).unwrap();
+                (filepath, source)
+            })
+            .collect::<Vec<(String, String)>>();
+
+        let error_file: &str = &format!("{}", self.span().context().display());
+        let mut report_builder = Report::build(ReportKind::Error, error_file, self.span().start())
             .with_message(format!("{}", Style::default().bold().paint(self)))
             .with_labels({
-                let mut labels = vec![];
-                for label in self.labels() {
-                    let style = Style::new(label.color).bold();
-                    labels.push(
-                        Label::new((filename, label.span.start()..label.span.end()))
-                            .with_message(style.paint(label.message))
-                            .with_color(label.color),
-                    );
-                }
-                labels
+                self.labels()
+                    .iter()
+                    .enumerate()
+                    .map(|(index, label)| {
+                        let filepath: &str = &filepaths_and_sources[index].0;
+                        let style = Style::new(label.color).bold();
+                        Label::new((filepath, label.span.start()..label.span.end()))
+                            .with_message(style.paint(label.message.clone()))
+                            .with_color(label.color)
+                    })
+                    .collect::<Vec<_>>()
             });
 
         if let Some(code) = self.code() {
@@ -78,7 +90,17 @@ where
 
         report_builder
             .finish()
-            .print((filename, Source::from(source)))
+            .print(
+                FnCache::new(|id: &&str| {
+                    Err(Box::new(format!("Failed to fetch source '{}'", id)) as _)
+                })
+                .with_sources(
+                    filepaths_and_sources
+                        .iter()
+                        .map(|(id, s)| (&id[..], Source::from(s)))
+                        .collect(),
+                ),
+            )
             .unwrap();
     }
 }
@@ -141,22 +163,25 @@ impl Spanned for Error<'_> {
 }
 
 /// Print a list of [`Error`] using the `ariadne` crate
-pub(super) fn print_errors(errs: &Vec<Error>, filename: &str, source: &str) {
+pub(super) fn print_errors(errs: &Vec<Error>) {
     for err in errs {
-        err.print(filename, source);
+        err.print();
     }
 }
 
-/// A simple warpper around `anyhow::bail!` that prints a different message based on a the number
+/// A simple wrapper around `anyhow::bail!` that prints a different message based on a the number
 /// of compile errors.
 macro_rules! yurtc_bail {
-    ($number_of_errors: expr, $filename: expr) => {
+    ($number_of_errors: expr, $filepath: expr) => {
         if $number_of_errors == 1 {
-            anyhow::bail!("could not compile `{}` due to previous error", $filename)
+            anyhow::bail!(
+                "could not compile `{}` due to previous error",
+                format!("{}", $filepath.display())
+            )
         } else {
             anyhow::bail!(
                 "could not compile `{}` due to {} previous errors",
-                $filename,
+                format!("{}", $filepath.display()),
                 $number_of_errors
             )
         }
