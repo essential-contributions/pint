@@ -24,10 +24,7 @@ macro_rules! run_parser {
                         error.labels().iter().fold(String::new(), |acc, label| {
                             format!(
                                 "\n{}@{}..{}: {}\n",
-                                acc,
-                                label.span().start,
-                                label.span().end,
-                                label.message()
+                                acc, label.span.start, label.span.end, label.message
                             )
                         })
                     );

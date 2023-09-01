@@ -1,7 +1,7 @@
 use crate::{
     error::{ErrorLabel, ReportableError},
     lexer::Token,
-    span::Span,
+    span::{Span, Spanned},
 };
 use thiserror::Error;
 use yansi::Color;
@@ -192,4 +192,20 @@ fn format_expected_found_error<'a>(
         format_expected_tokens_message(expected),
         format_optional_token(found),
     )
+}
+
+impl Spanned for ParseError<'_> {
+    fn span(&self) -> &Span {
+        use ParseError::*;
+        match &self {
+            ExpectedFound { span, .. }
+            | KeywordAsIdent { span, .. }
+            | UntypedVariable { span, .. }
+            | EmptyArrayExpr { span }
+            | InvalidIntegerTupleIndex { span, .. }
+            | InvalidTupleIndex { span, .. }
+            | EmptyTupleExpr { span, .. }
+            | EmptyTupleType { span, .. } => span,
+        }
+    }
 }
