@@ -9,6 +9,7 @@ use crate::{
 use chumsky::{prelude::*, Stream};
 use itertools::Either;
 use regex::Regex;
+use std::{path::Path, rc::Rc};
 
 #[cfg(test)]
 mod tests;
@@ -17,15 +18,15 @@ type Ast = Vec<ast::Decl>;
 
 /// Parse `source` and returns an AST. Upon failure, return a vector of all compile errors
 /// encountered.
-pub(super) fn parse_str_to_ast(source: &str) -> Result<Ast, Vec<Error>> {
+pub(super) fn parse_str_to_ast(source: &str, filepath: Rc<Path>) -> Result<Ast, Vec<Error>> {
     let mut errors = vec![];
 
     // Lex the input into tokens and spans. Also collect any lex errors encountered.
-    let (tokens, lex_errors) = lexer::lex(source);
+    let (tokens, lex_errors) = lexer::lex(source, Rc::clone(&filepath));
     errors.extend(lex_errors);
 
     // Provide a token stream
-    let eoi_span = source.len()..source.len();
+    let eoi_span = Span::new(filepath, source.len()..source.len());
     let token_stream = Stream::from_iter(eoi_span, tokens.into_iter());
 
     // Parse the token stream
@@ -496,7 +497,7 @@ where
                 .repeated(),
         )
         .foldl(|expr, (op, span)| {
-            let span = expr.span().start..span.end;
+            let span = Span::new(span.context(), expr.span().start()..span.end());
             ast::Expr::UnaryOp {
                 op,
                 expr: Box::new(expr),
@@ -521,7 +522,7 @@ where
         )
         .map(|(expr, indices_with_spans)| (indices_with_spans, expr))
         .foldr(|(index, span), expr| {
-            let span = expr.span().start..span.end;
+            let span = Span::new(span.context(), expr.span().start()..span.end());
             ast::Expr::ArrayElementAccess {
                 array: Box::new(expr),
                 index: Box::new(index),
@@ -569,21 +570,21 @@ where
                         .chars()
                         .position(|c| c == '.')
                         .expect("guaranteed by regex");
-                    let spans = [
-                        span.start..span.start + dot_index,
-                        span.start + dot_index + 1..span.end,
+                    let span_ranges = [
+                        span.start()..span.start() + dot_index,
+                        span.start() + dot_index + 1..span.end(),
                     ];
 
                     // Split at `.` then collect the two indices as `usize`. Report errors as
                     // needed
                     num_str
                         .split('.')
-                        .zip(spans.iter())
-                        .map(|(index, span)| {
+                        .zip(span_ranges.iter())
+                        .map(|(index, span_range)| {
                             index
                                 .parse::<usize>()
                                 .map_err(|_| ParseError::InvalidIntegerTupleIndex {
-                                    span: span.clone(),
+                                    span: Span::new(span.context(), span_range.clone()),
                                     index,
                                 })
                                 .map(|index| (Either::Left(index), span.clone()))
@@ -605,7 +606,7 @@ where
                 .flatten(),
         )
         .foldl(|expr, (field, span)| {
-            let span = expr.span().start..span.end;
+            let span = Span::new(span.context(), expr.span().start()..span.end());
             ast::Expr::TupleFieldAccess {
                 tuple: Box::new(expr),
                 field,
@@ -630,7 +631,7 @@ where
                 .repeated(),
         )
         .foldl(|value, (ty, span)| {
-            let span = value.span().start..span.end;
+            let span = Span::new(span.context(), value.span().start()..span.end());
             ast::Expr::Cast {
                 value: Box::new(value),
                 ty: Box::new(ty),
@@ -655,7 +656,7 @@ where
                 .repeated(),
         )
         .foldl(|value, (collection, span)| {
-            let span = value.span().start..span.end;
+            let span = Span::new(span.context(), value.span().start()..span.end());
             ast::Expr::In {
                 value: Box::new(value),
                 collection: Box::new(collection),
@@ -683,7 +684,7 @@ where
                 .repeated(),
         )
         .foldl(|lhs, ((op, rhs), span)| {
-            let span = lhs.span().start..span.end;
+            let span = Span::new(span.context(), lhs.span().start()..span.end());
             ast::Expr::BinaryOp {
                 op,
                 lhs: Box::new(lhs),
@@ -711,7 +712,7 @@ where
                 .repeated(),
         )
         .foldl(|lhs, ((op, rhs), span)| {
-            let span = lhs.span().start..span.end;
+            let span = Span::new(span.context(), lhs.span().start()..span.end());
             ast::Expr::BinaryOp {
                 op,
                 lhs: Box::new(lhs),
@@ -744,7 +745,7 @@ where
             .repeated(),
         )
         .foldl(|lhs, ((op, rhs), span)| {
-            let span = lhs.span().start..span.end;
+            let span = Span::new(span.context(), lhs.span().start()..span.end());
             ast::Expr::BinaryOp {
                 op,
                 lhs: Box::new(lhs),
@@ -773,7 +774,7 @@ where
                 .repeated(),
         )
         .foldl(|lhs, ((op, rhs), span)| {
-            let span = lhs.span().start..span.end;
+            let span = Span::new(span.context(), lhs.span().start()..span.end());
             ast::Expr::BinaryOp {
                 op,
                 lhs: Box::new(lhs),
@@ -875,7 +876,7 @@ fn type_<'sc>(
             )
             .map(|(type_atom, ranges_with_span)| (ranges_with_span, type_atom))
             .foldr(|(range, span), ty| {
-                let span = ty.span().start..span.end;
+                let span = Span::new(span.context(), ty.span().start()..span.end());
                 ast::Type::Array {
                     ty: Box::new(ty),
                     range,

@@ -13,7 +13,7 @@ pub(crate) enum CompileError {
     NameClash {
         sym: String,
         span: Span,      // Actual error location
-        prev_span: Span, // Span of the previous occurance
+        prev_span: Span, // Span of the previous occurrence
     },
 }
 
