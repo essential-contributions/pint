@@ -180,8 +180,8 @@ fn use_statements() {
     check(
         &run_parser!(use_statement(), "use ;"),
         expect_test::expect![[r#"
-            expected `::`, `*`, or `{`, found `;`
-            @4..5: expected `::`, `*`, or `{`
+            expected `*`, `::`, or `{`, found `;`
+            @4..5: expected `*`, `::`, or `{`
         "#]],
     );
 
@@ -774,8 +774,8 @@ fn parens_exprs() {
     check(
         &run_parser!(expr(), "()"),
         expect_test::expect![[r#"
-            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`, found `)`
-            @1..2: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`, found `)`
+            @1..2: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`
         "#]],
     );
     check(
@@ -1144,8 +1144,8 @@ fn array_type() {
     check(
         &run_parser!(let_decl(expr()), r#"let a: int[];"#),
         expect_test::expect![[r#"
-            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`, found `]`
-            @11..12: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`, found `]`
+            @11..12: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`
         "#]],
     );
 }
@@ -1230,8 +1230,8 @@ fn array_field_accesss() {
     check(
         &run_parser!(let_decl(expr()), r#"let x = a[];"#),
         expect_test::expect![[r#"
-            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`, found `]`
-            @10..11: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`, found `]`
+            @10..11: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`
         "#]],
     );
 
@@ -1533,8 +1533,8 @@ fn cond_exprs() {
     check(
         &run_parser!(cond_expr(expr()), r#"cond { a => b, }"#),
         expect_test::expect![[r#"
-            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, `else`, or `cond`, found `}`
-            @15..16: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, `else`, or `cond`
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `else`, `if`, `{`, or `{`, found `}`
+            @15..16: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `else`, `if`, `{`, or `{`
         "#]],
     );
 
@@ -1576,8 +1576,8 @@ fn casting() {
     check(
         &run_parser!(let_decl(expr()), r#"let x = 5 as;"#),
         expect_test::expect![[r#"
-            expected `::`, `{`, `real`, `int`, `bool`, or `string`, found `;`
-            @12..13: expected `::`, `{`, `real`, `int`, `bool`, or `string`
+            expected `::`, `bool`, `int`, `real`, `string`, or `{`, found `;`
+            @12..13: expected `::`, `bool`, `int`, `real`, `string`, or `{`
         "#]],
     );
 }
@@ -1615,8 +1615,8 @@ fn in_expr() {
     check(
         &run_parser!(let_decl(expr()), r#"let x = 5 in;"#),
         expect_test::expect![[r#"
-            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`, found `;`
-            @12..13: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`, found `;`
+            @12..13: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`
         "#]],
     );
 }
@@ -1655,8 +1655,8 @@ fn fn_errors() {
     check(
         &run_parser!(yurt_program(), "fn foo() -> real {}"),
         expect_test::expect![[r#"
-            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, `cond`, `let`, `state`, or `constraint`, found `}`
-            @18..19: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, `cond`, `let`, `state`, or `constraint`
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `constraint`, `if`, `let`, `state`, `{`, or `{`, found `}`
+            @18..19: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `constraint`, `if`, `let`, `state`, `{`, or `{`
         "#]],
     );
 }
@@ -1704,7 +1704,7 @@ fn test_parse_str_to_ast() {
     check(
         &format!("{:?}", parse_str_to_ast("let x = 5", filepath.clone())),
         expect_test::expect![[
-            r#"Err([Parse { error: ExpectedFound { span: "test":9..9, expected: [Some(Semi), Some(DoublePipe), Some(DoubleAmpersand), Some(NotEq), Some(EqEq), Some(GtEq), Some(LtEq), Some(Gt), Some(Lt), Some(Plus), Some(Minus), Some(Star), Some(Div), Some(Mod), Some(In), Some(As), Some(Dot), Some(BracketOpen), Some(SingleQuote)], found: None } }])"#
+            r#"Err([Parse { error: ExpectedFound { span: "test":9..9, expected: [Some(";"), Some("||"), Some("&&"), Some("!="), Some("=="), Some(">="), Some("<="), Some(">"), Some("<"), Some("+"), Some("-"), Some("*"), Some("/"), Some("%"), Some("in"), Some("as"), Some("."), Some("["), Some("'")], found: None } }])"#
         ]],
     );
     check(
