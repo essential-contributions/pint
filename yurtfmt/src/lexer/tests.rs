@@ -14,6 +14,7 @@ fn lex_one_success(src: &str) -> Token<'_> {
 #[test]
 fn control_tokens() {
     assert_eq!(lex_one_success(":"), Token::Colon);
+    assert_eq!(lex_one_success("::"), Token::DoubleColon);
     assert_eq!(lex_one_success(";"), Token::Semi);
     assert_eq!(lex_one_success("="), Token::Eq);
     assert_eq!(lex_one_success("let"), Token::Let);

@@ -13,6 +13,8 @@ pub(super) enum Token<'sc> {
     Eq,
     #[token(":")]
     Colon,
+    #[token("::")]
+    DoubleColon,
     #[token(";")]
     Semi,
     #[regex(r"int|bool|string|real", |lex| lex.slice())]
@@ -57,6 +59,7 @@ impl<'sc> fmt::Display for Token<'sc> {
         match self {
             Token::Eq => write!(f, "="),
             Token::Colon => write!(f, ":"),
+            Token::DoubleColon => write!(f, "::"),
             Token::Semi => write!(f, ";"),
             Token::Primitive(ident) => write!(f, "{ident}"),
             Token::Let => write!(f, "let"),
