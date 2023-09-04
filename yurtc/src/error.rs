@@ -54,7 +54,7 @@ where
             .iter()
             .map(|label| {
                 let filepath = format!("{}", label.span.context().display());
-                let source = std::fs::read_to_string(filepath.clone()).unwrap();
+                let source = std::fs::read_to_string(filepath.clone()).unwrap_or("<none>".into());
                 (filepath, source)
             })
             .collect::<Vec<(String, String)>>();

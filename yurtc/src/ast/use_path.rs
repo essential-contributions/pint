@@ -100,7 +100,6 @@ fn gather_use_paths() {
         let test_file_name = std::rc::Rc::from(std::path::Path::new("test"));
         match crate::parser::parse_str_to_ast(src, test_file_name)
             .expect("Failed to parse test case.")
-            .0
             .into_iter()
             .next()
             .expect("Failed to get first decl in parsed result for test case.")
