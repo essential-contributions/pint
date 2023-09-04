@@ -93,9 +93,31 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>
 }
 
 fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone {
-    recursive(|_| immediate().map(ast::Expr::Immediate)).boxed()
+    recursive(|_| {
+        choice((
+            immediate().map(ast::Expr::Immediate),
+            path().map(ast::Expr::Path),
+        ))
+    })
+    .boxed()
 }
 
 fn directive<'sc>() -> impl Parser<Token<'sc>, String, Error = Simple<Token<'sc>>> + Clone {
     select! { Token::Directive(dir) => dir.to_owned() }.boxed()
+}
+
+pub(super) fn path<'sc>() -> impl Parser<Token<'sc>, ast::Path, Error = Simple<Token<'sc>>> + Clone
+{
+    let relative_path = ident().then((just(Token::DoubleColon).ignore_then(ident())).repeated());
+    just(Token::DoubleColon)
+        .or_not()
+        .then(relative_path)
+        .map(|(pre_colon, (id, mut path))| {
+            path.insert(0, id);
+            ast::Path {
+                pre_colon: pre_colon.is_some(),
+                idents: path,
+            }
+        })
+        .boxed()
 }

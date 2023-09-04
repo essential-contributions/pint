@@ -5,6 +5,7 @@ use crate::{
 };
 use std::fmt::{self, Write};
 
+#[cfg(test)]
 mod tests;
 
 pub(super) type Ast<'sc> = Vec<Decl<'sc>>;
@@ -87,14 +88,32 @@ impl Format for Immediate {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct Path {
+    pub pre_colon: bool,
+    pub idents: Vec<String>,
+}
+
+impl Format for Path {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        if self.pre_colon {
+            write!(formatted_code, "::")?;
+        }
+        write!(formatted_code, "{}", self.idents.join("::"))?;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) enum Expr {
     Immediate(Immediate),
+    Path(Path),
 }
 
 impl Format for Expr {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
             Self::Immediate(immediate) => immediate.format(formatted_code)?,
+            Self::Path(path) => path.format(formatted_code)?,
         }
 
         Ok(())
