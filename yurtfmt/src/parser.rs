@@ -75,9 +75,9 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Simple<T
             just(Token::Maximize),
         )))
         .then(expr().or_not())
-        .map(|((solve_token, objective_token), expr)| ast::Decl::Solve {
+        .map(|((solve_token, directive_token), expr)| ast::Decl::Solve {
             solve_token,
-            objective_token,
+            directive_token,
             expr,
         })
         .boxed()

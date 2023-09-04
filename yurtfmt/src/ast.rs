@@ -19,7 +19,7 @@ pub(super) enum Decl<'sc> {
     },
     Solve {
         solve_token: Token<'sc>,
-        objective_token: Token<'sc>,
+        directive_token: Token<'sc>,
         expr: Option<Expr>,
     },
 }
@@ -46,10 +46,10 @@ impl<'sc> Format for Decl<'sc> {
             }
             Self::Solve {
                 solve_token,
-                objective_token,
+                directive_token,
                 expr,
             } => {
-                write!(formatted_code, "{} {}", solve_token, objective_token)?;
+                write!(formatted_code, "{} {}", solve_token, directive_token)?;
 
                 if let Some(expr) = expr {
                     write!(formatted_code, " ")?;
