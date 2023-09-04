@@ -10,19 +10,22 @@ mod parser;
 mod span;
 mod types;
 
+use std::{fs::read_to_string, path::Path, rc::Rc};
+
 fn main() -> anyhow::Result<()> {
-    let (filename, compile_flag) = parse_cli();
-    let filepath = std::path::Path::new(&filename);
-    let source_code = std::fs::read_to_string(filepath)?;
+    let (filepath, compile_flag) = parse_cli();
+    let source_code = read_to_string(Path::new(&filepath))?;
+
+    let filepath: Rc<Path> = Rc::from(Path::new(&filepath));
 
     // Lex + Parse
-    let ast = match parser::parse_str_to_ast(&source_code) {
+    let ast = match parser::parse_str_to_ast(&source_code, filepath.clone()) {
         Ok(ast) => ast,
         Err(errors) => {
             if !cfg!(test) {
-                error::print_errors(&errors, &filename, &source_code);
+                error::print_errors(&errors);
             }
-            yurtc_bail!(errors.len(), filename)
+            yurtc_bail!(errors.len(), filepath)
         }
     };
 
@@ -32,13 +35,9 @@ fn main() -> anyhow::Result<()> {
             Ok(intent) => intent,
             Err(error) => {
                 if !cfg!(test) {
-                    error::print_errors(
-                        &vec![error::Error::Compile { error }],
-                        &filename,
-                        &source_code,
-                    );
+                    error::print_errors(&vec![error::Error::Compile { error }]);
                 }
-                yurtc_bail!(1, filename)
+                yurtc_bail!(1, filepath)
             }
         };
 
@@ -64,15 +63,15 @@ fn parse_cli() -> (String, bool) {
                 .action(clap::ArgAction::SetTrue),
         )
         .arg(
-            clap::Arg::new("filename")
+            clap::Arg::new("filepath")
                 .required(true)
                 .action(clap::ArgAction::Set),
         )
         .get_matches();
 
-    let filename = cli.get_one::<String>("filename").unwrap();
+    let filepath = cli.get_one::<String>("filepath").unwrap();
 
     let compile_flag = cli.get_flag("compile");
 
-    (filename.clone(), compile_flag)
+    (filepath.clone(), compile_flag)
 }

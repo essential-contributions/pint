@@ -2,9 +2,10 @@ use crate::{
     error::{Error, LexError},
     span::Span,
 };
+use chumsky::prelude::*;
 use itertools::{Either, Itertools};
 use logos::Logos;
-use std::fmt;
+use std::{fmt, path::Path, rc::Rc};
 
 #[cfg(test)]
 mod tests;
@@ -254,13 +255,14 @@ impl<'sc> fmt::Display for Token<'sc> {
 
 /// Lex a stream of characters. Return a list of discovered tokens and a list of errors encountered
 /// along the way.
-pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<Error>) {
-    Token::lexer(src)
-        .spanned()
-        .partition_map(|(r, span)| match r {
+pub(super) fn lex(src: &str, filepath: Rc<Path>) -> (Vec<(Token, Span)>, Vec<Error>) {
+    Token::lexer(src).spanned().partition_map(|(r, span)| {
+        let span = Span::new(Rc::clone(&filepath), span);
+        match r {
             Ok(v) => Either::Left((v, span)),
             Err(v) => Either::Right(Error::Lex { span, error: v }),
-        })
+        }
+    })
 }
 
 #[derive(Clone, Debug, Eq, Hash, Logos, PartialEq, Ord, PartialOrd)]
