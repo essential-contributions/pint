@@ -45,7 +45,7 @@ fn main() -> anyhow::Result<()> {
 
     // If `compile_flag` is set, there is no need to print the initial AST.
     if !compile_flag {
-        dbg!(&ast);
+        eprintln!("{}", &ast);
     }
 
     Ok(())
