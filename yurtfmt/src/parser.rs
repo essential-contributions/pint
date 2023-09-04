@@ -69,15 +69,11 @@ fn value_decl<'sc>(
 fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Simple<Token<'sc>>> + Clone
 {
     just(Token::Solve)
-        .then(choice((
-            just(Token::Satisfy),
-            just(Token::Minimize),
-            just(Token::Maximize),
-        )))
+        .then(directive())
         .then(expr().or_not())
-        .map(|((solve_token, directive_token), expr)| ast::Decl::Solve {
+        .map(|((solve_token, directive), expr)| ast::Decl::Solve {
             solve_token,
-            directive_token,
+            directive,
             expr,
         })
         .boxed()
@@ -98,4 +94,8 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>
 
 fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone {
     recursive(|_| immediate().map(ast::Expr::Immediate)).boxed()
+}
+
+fn directive<'sc>() -> impl Parser<Token<'sc>, String, Error = Simple<Token<'sc>>> + Clone {
+    select! { Token::Directive(dir) => dir.to_owned() }.boxed()
 }

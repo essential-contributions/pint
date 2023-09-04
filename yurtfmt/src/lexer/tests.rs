@@ -66,7 +66,7 @@ fn string_literals() {
 #[test]
 fn solve_tokens() {
     assert_eq!(lex_one_success("solve"), Token::Solve);
-    assert_eq!(lex_one_success("maximize"), Token::Maximize);
-    assert_eq!(lex_one_success("minimize"), Token::Minimize);
-    assert_eq!(lex_one_success("satisfy"), Token::Satisfy);
+    assert_eq!(lex_one_success("maximize"), Token::Directive("maximize"));
+    assert_eq!(lex_one_success("minimize"), Token::Directive("minimize"));
+    assert_eq!(lex_one_success("satisfy"), Token::Directive("satisfy"));
 }

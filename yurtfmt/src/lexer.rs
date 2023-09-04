@@ -21,15 +21,10 @@ pub(super) enum Token<'sc> {
     #[token("let")]
     Let,
 
-    #[token("maximize")]
-    // Probably combine maximize, minimize, satisfy together? Or at least maximize and minimize
-    Maximize,
-    #[token("minimize")]
-    Minimize,
+    #[regex(r"satisfy|minimize|maximize", |lex| lex.slice())]
+    Directive(&'sc str),
     #[token("solve")]
     Solve,
-    #[token("satisfy")]
-    Satisfy,
 
     #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice())]
     Ident(&'sc str),
@@ -65,10 +60,8 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Semi => write!(f, ";"),
             Token::Primitive(ident) => write!(f, "{ident}"),
             Token::Let => write!(f, "let"),
-            Token::Maximize => write!(f, "maximize"),
-            Token::Minimize => write!(f, "minimize"),
+            Token::Directive(contents) => write!(f, "{contents}"),
             Token::Solve => write!(f, "solve"),
-            Token::Satisfy => write!(f, "satisfy"),
             Token::Ident(ident) => write!(f, "{ident}"),
             Token::Literal(contents) => write!(f, "{contents}"),
             Token::Comment => write!(f, "comment"),
