@@ -7,7 +7,6 @@ use crate::{
     types::{EnumDecl, FnSig, PrimitiveKind},
 };
 use chumsky::{prelude::*, Stream};
-use itertools::Either;
 use regex::Regex;
 use std::{path::Path, rc::Rc};
 
@@ -541,7 +540,7 @@ where
     let indices_with_spans = filter_map(|span: Span, token| match &token {
         // Field access with an identifier
         Token::Ident(ident) => Ok(vec![(
-            Either::Right(ast::Ident {
+            expr::TupleAccess::Name(ast::Ident {
                 name: (*ident).to_owned(),
                 span: span.clone(),
             }),
@@ -551,7 +550,7 @@ where
         // Field access with an integer
         Token::IntLiteral(num_str) => num_str
             .parse::<usize>()
-            .map(|index| vec![(Either::Left(index), span.clone())])
+            .map(|index| vec![(expr::TupleAccess::Index(index), span.clone())])
             .map_err(|_| ParseError::InvalidIntegerTupleIndex {
                 span: span.clone(),
                 index: num_str,
@@ -587,9 +586,9 @@ where
                                     span: Span::new(span.context(), span_range.clone()),
                                     index,
                                 })
-                                .map(|index| (Either::Left(index), span.clone()))
+                                .map(|index| (expr::TupleAccess::Index(index), span.clone()))
                         })
-                        .collect::<Result<Vec<(Either<usize, ast::Ident>, Span)>, _>>()
+                        .collect::<Result<Vec<(expr::TupleAccess, Span)>, _>>()
                 }
                 None => Err(ParseError::InvalidTupleIndex { span, index: token }),
             }
