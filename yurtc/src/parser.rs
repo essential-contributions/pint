@@ -13,11 +13,9 @@ use std::{path::Path, rc::Rc};
 #[cfg(test)]
 mod tests;
 
-type Ast = Vec<ast::Decl>;
-
 /// Parse `source` and returns an AST. Upon failure, return a vector of all compile errors
 /// encountered.
-pub(super) fn parse_str_to_ast(source: &str, filepath: Rc<Path>) -> Result<Ast, Vec<Error>> {
+pub(super) fn parse_str_to_ast(source: &str, filepath: Rc<Path>) -> Result<ast::Ast, Vec<Error>> {
     let mut errors = vec![];
 
     // Lex the input into tokens and spans. Also collect any lex errors encountered.
@@ -46,7 +44,7 @@ pub(super) fn parse_str_to_ast(source: &str, filepath: Rc<Path>) -> Result<Ast, 
     }
 }
 
-fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> + Clone {
+fn yurt_program<'sc>() -> impl Parser<Token<'sc>, ast::Ast, Error = ParseError<'sc>> + Clone {
     choice((
         use_statement(),
         let_decl(expr()),

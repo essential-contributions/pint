@@ -31,8 +31,8 @@ fn convert_states(states: Vec<(State, Span)>) -> super::Result<Vec<intent::State
         .into_iter()
         .map(|(State { name, ty, expr }, span)| {
             ty.ok_or_else(|| CompileError::Internal {
-                span: span.clone(),
                 msg: "Found untyped variable in final state.",
+                span: span.clone(),
             })
             .and_then(|ty| {
                 convert_type(ty, &span).and_then(|ty| {
@@ -47,8 +47,8 @@ fn convert_vars(vars: Vec<(Var, Span)>) -> super::Result<Vec<intent::Variable>> 
     vars.into_iter()
         .map(|(Var { name, ty }, span)| {
             ty.ok_or_else(|| CompileError::Internal {
-                span: span.clone(),
                 msg: "Found untyped variable in final variable.",
+                span: span.clone(),
             })
             .and_then(|ty| convert_type(ty, &span))
             .map(|ty| intent::Variable { name, ty })
@@ -68,8 +68,8 @@ fn convert_directive(directives: Vec<(SolveFunc, Span)>) -> super::Result<Solve>
         Some(tuple) => tuple,
         None => {
             return Err(CompileError::Internal {
-                span: empty_span(),
                 msg: "Missing directive during final compile.",
+                span: empty_span(),
             })
         }
     };
@@ -128,8 +128,8 @@ fn convert_expr(expr: Expr, span: &Span) -> super::Result<Expression> {
         | super::Expr::TupleFieldAccess { .. }
         | super::Expr::Cast { .. }
         | super::Expr::In { .. } => Err(CompileError::Internal {
-            span: span.clone(),
             msg: "Found unsupported expressions in final Intent.",
+            span: span.clone(),
         }),
     }
 }
@@ -144,8 +144,8 @@ fn convert_type(ty: Type, span: &Span) -> super::Result<intent::Type> {
 
         Type::Array { .. } | Type::Tuple { .. } | Type::CustomType { .. } => {
             Err(CompileError::Internal {
-                span: span.clone(),
                 msg: "Found unsupported types in final Intent.",
+                span: span.clone(),
             })
         }
     }

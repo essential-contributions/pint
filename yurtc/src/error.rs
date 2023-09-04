@@ -19,7 +19,7 @@ pub(super) struct ErrorLabel {
 }
 
 /// A general compile error
-#[derive(Error, Debug, Clone, PartialEq)]
+#[derive(Error, Debug)]
 pub(super) enum Error<'a> {
     #[error("{}", error)]
     Lex { span: Span, error: LexError },

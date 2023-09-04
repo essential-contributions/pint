@@ -31,8 +31,8 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
         match decl {
             ast::Decl::Use { span, .. } => {
                 return Err(CompileError::Internal {
-                    span: span.clone(),
                     msg: "Use statements must be removed from AST before conversion to Intent.",
+                    span: span.clone(),
                 });
             }
 
@@ -327,8 +327,8 @@ impl ExprContext {
                 | ast::Decl::Contract(contract::ContractDecl { span, .. })
                 | ast::Decl::Extern { span, .. } => {
                     return Err(CompileError::Internal {
-                        span: span.clone(),
                         msg: "Fn blocks may only have `let` and `constraint` decls.",
+                        span: span.clone(),
                     });
                 }
             }
@@ -431,8 +431,8 @@ fn convert_path(path: &ast::Path) -> super::Result<Path> {
     // all symbols will be canonicalised and an ast::Path will just be a string.
     if path.path.len() != 1 {
         return Err(CompileError::Internal {
-            span: path.span.clone(),
             msg: "Multi-path identifiers are not supported yet.",
+            span: path.span.clone(),
         });
     }
     Ok(path.path[0].name.clone())
