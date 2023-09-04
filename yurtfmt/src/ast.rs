@@ -63,14 +63,6 @@ impl<'sc> Format for Decl<'sc> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Expr {
-    Immediate(Immediate),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(super) struct Immediate(pub String);
-
-#[derive(Clone, Debug, PartialEq)]
 pub(super) enum Type {
     Primitive(String),
 }
@@ -83,12 +75,20 @@ impl fmt::Display for Type {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct Immediate(pub String);
+
 impl Format for Immediate {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         write!(formatted_code, "{}", self.0)?;
 
         Ok(())
     }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) enum Expr {
+    Immediate(Immediate),
 }
 
 impl Format for Expr {
