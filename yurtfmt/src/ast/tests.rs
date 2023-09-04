@@ -161,3 +161,33 @@ let bin_var :  int=0b1010;
             "#]],
     );
 }
+
+#[test]
+fn solve_decls() {
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"
+                 solve    satisfy   ;
+
+          solve    minimize   ;
+
+solve  maximize ;
+
+               solve minimize   5;
+
+   solve   maximize true   ;
+
+      solve maximize    "test"  ;
+  "#
+        ),
+        expect_test::expect![[r#"
+                    solve satisfy;
+                    solve minimize;
+                    solve maximize;
+                    solve minimize 5;
+                    solve maximize true;
+                    solve maximize "test";
+                "#]],
+    );
+}
