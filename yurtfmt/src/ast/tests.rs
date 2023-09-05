@@ -218,3 +218,39 @@ fn paths() {
         expect_test::expect![[r#"::foo::bar"#]],
     );
 }
+
+#[test]
+fn unary_op_exprs() {
+    check(
+        &run_formatter!(expr(), "   !a   "),
+        expect_test::expect![[r#"!a"#]],
+    );
+    check(
+        &run_formatter!(expr(), "   +a   "),
+        expect_test::expect![[r#"+a"#]],
+    );
+    check(
+        &run_formatter!(expr(), " -   a"),
+        expect_test::expect![[r#"-a"#]],
+    );
+    check(
+        &run_formatter!(expr(), "+7"),
+        expect_test::expect![[r#"+7"#]],
+    );
+    check(
+        &run_formatter!(expr(), "+    3.4"),
+        expect_test::expect![[r#"+3.4"#]],
+    );
+    check(
+        &run_formatter!(expr(), "-  1.0"),
+        expect_test::expect![[r#"-1.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "! - - !  -+  -1"),
+        expect_test::expect![[r#"!--!-+-1"#]],
+    );
+    check(
+        &run_formatter!(expr(), "!- -! - +  -1 "),
+        expect_test::expect![[r#"!--!-+-1"#]],
+    );
+}

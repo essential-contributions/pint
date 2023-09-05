@@ -63,6 +63,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Colon => write!(f, ":"),
             Token::DoubleColon => write!(f, "::"),
             Token::Semi => write!(f, ";"),
+            Token::UnaryOp(op) => write!(f, "{op}"),
             Token::Primitive(ident) => write!(f, "{ident}"),
             Token::Let => write!(f, "let"),
             Token::Directive(contents) => write!(f, "{contents}"),

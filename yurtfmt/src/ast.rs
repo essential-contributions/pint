@@ -104,9 +104,24 @@ impl Format for Path {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct UnaryOp {
+    pub prefix_op: String,
+    pub expr: Box<Expr>,
+}
+
+impl Format for UnaryOp {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        write!(formatted_code, "{}", self.prefix_op)?;
+        self.expr.format(formatted_code)?;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) enum Expr {
     Immediate(Immediate),
     Path(Path),
+    UnaryOp(UnaryOp),
 }
 
 impl Format for Expr {
@@ -114,6 +129,7 @@ impl Format for Expr {
         match self {
             Self::Immediate(immediate) => immediate.format(formatted_code)?,
             Self::Path(path) => path.format(formatted_code)?,
+            Self::UnaryOp(unary_op) => unary_op.format(formatted_code)?,
         }
 
         Ok(())

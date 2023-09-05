@@ -91,10 +91,11 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>
     select! { Token::Primitive(type_str) => ast::Type::Primitive(type_str.parse().unwrap()) }
         .boxed()
 }
-
-fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone {
-    recursive(|_| {
+pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone
+{
+    recursive(|expr| {
         choice((
+            unary_op(expr.clone()),
             immediate().map(ast::Expr::Immediate),
             path().map(ast::Expr::Path),
         ))
@@ -118,6 +119,24 @@ pub(super) fn path<'sc>() -> impl Parser<Token<'sc>, ast::Path, Error = Simple<T
                 pre_colon: pre_colon.is_some(),
                 idents: path,
             }
+        })
+        .boxed()
+}
+
+fn unary<'sc>() -> impl Parser<Token<'sc>, String, Error = Simple<Token<'sc>>> + Clone {
+    select! { Token::UnaryOp(op) => op.to_owned() }.boxed()
+}
+
+fn unary_op<'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone + 'sc {
+    unary()
+        .then(expr)
+        .map(|(prefix_op, expr)| {
+            ast::Expr::UnaryOp(ast::UnaryOp {
+                prefix_op,
+                expr: Box::new(expr),
+            })
         })
         .boxed()
 }
