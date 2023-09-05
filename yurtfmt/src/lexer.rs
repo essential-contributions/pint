@@ -17,6 +17,8 @@ pub(super) enum Token<'sc> {
     DoubleColon,
     #[token(";")]
     Semi,
+    #[regex(r"\-|\+|!", |lex| lex.slice())]
+    UnaryOp(&'sc str),
     #[regex(r"int|bool|string|real", |lex| lex.slice())]
     Primitive(&'sc str),
 

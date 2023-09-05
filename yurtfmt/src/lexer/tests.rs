@@ -71,3 +71,10 @@ fn solve_tokens() {
     assert_eq!(lex_one_success("minimize"), Token::Directive("minimize"));
     assert_eq!(lex_one_success("satisfy"), Token::Directive("satisfy"));
 }
+
+#[test]
+fn unary_op_tokens() {
+    assert_eq!(lex_one_success("+"), Token::UnaryOp("+"));
+    assert_eq!(lex_one_success("-"), Token::UnaryOp("-"));
+    assert_eq!(lex_one_success("!"), Token::UnaryOp("!"));
+}
