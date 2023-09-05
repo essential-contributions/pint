@@ -164,6 +164,7 @@ let bin_var :  int=0b1010;
 
 #[test]
 fn solve_decls() {
+    // TODO: Add solve maximize x + y; when binary expr is supported
     check(
         &run_formatter!(
             yurt_program(),
@@ -174,20 +175,46 @@ fn solve_decls() {
 
 solve  maximize ;
 
-               solve minimize   5;
+               solve minimize   foo;
 
-   solve   maximize true   ;
-
-      solve maximize    "test"  ;
+   solve   maximize foo   ;
   "#
         ),
         expect_test::expect![[r#"
                     solve satisfy;
                     solve minimize;
                     solve maximize;
-                    solve minimize 5;
-                    solve maximize true;
-                    solve maximize "test";
+                    solve minimize foo;
+                    solve maximize foo;
                 "#]],
+    );
+}
+
+#[test]
+fn paths() {
+    use crate::parser;
+    check(
+        &run_formatter!(parser::path(), r#"::     foo    ::   bar   "#),
+        expect_test::expect![[r#"::foo::bar"#]],
+    );
+    check(
+        &run_formatter!(path(), "foo    ::   \n   bar"),
+        expect_test::expect![[r#"foo::bar"#]],
+    );
+    check(
+        &run_formatter!(path(), "_foo_  \n :: \n  _bar"),
+        expect_test::expect![[r#"_foo_::_bar"#]],
+    );
+    check(
+        &run_formatter!(path(), "_  ::   _"),
+        expect_test::expect![[r#"_::_"#]],
+    );
+    check(
+        &run_formatter!(path(), "t2::   \n_3t::  t4_   :: t"),
+        expect_test::expect![[r#"t2::_3t::t4_::t"#]],
+    );
+    check(
+        &run_formatter!(path(), ":: foo   ::bar "),
+        expect_test::expect![[r#"::foo::bar"#]],
     );
 }

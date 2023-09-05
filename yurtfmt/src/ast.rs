@@ -5,6 +5,7 @@ use crate::{
 };
 use std::fmt::{self, Write};
 
+#[cfg(test)]
 mod tests;
 
 pub(super) type Ast<'sc> = Vec<Decl<'sc>>;
@@ -63,14 +64,6 @@ impl<'sc> Format for Decl<'sc> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Expr {
-    Immediate(Immediate),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(super) struct Immediate(pub String);
-
-#[derive(Clone, Debug, PartialEq)]
 pub(super) enum Type {
     Primitive(String),
 }
@@ -83,6 +76,9 @@ impl fmt::Display for Type {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct Immediate(pub String);
+
 impl Format for Immediate {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         write!(formatted_code, "{}", self.0)?;
@@ -91,10 +87,33 @@ impl Format for Immediate {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct Path {
+    pub pre_colon: bool,
+    pub idents: Vec<String>,
+}
+
+impl Format for Path {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        if self.pre_colon {
+            write!(formatted_code, "::")?;
+        }
+        write!(formatted_code, "{}", self.idents.join("::"))?;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) enum Expr {
+    Immediate(Immediate),
+    Path(Path),
+}
+
 impl Format for Expr {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
             Self::Immediate(immediate) => immediate.format(formatted_code)?,
+            Self::Path(path) => path.format(formatted_code)?,
         }
 
         Ok(())
