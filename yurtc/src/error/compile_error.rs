@@ -5,10 +5,12 @@ use crate::{
 use thiserror::Error;
 use yansi::Color;
 
-#[derive(Error, Debug, PartialEq, Clone)]
+#[derive(Error, Debug)]
 pub(crate) enum CompileError {
     #[error("internal error: {msg}")]
-    Internal { span: Span, msg: &'static str },
+    Internal { msg: &'static str, span: Span },
+    #[error("I/O error: {error}")]
+    FileIO { error: std::io::Error, span: Span },
     #[error("symbol `{sym}` has already been declared")]
     NameClash {
         sym: String,
@@ -39,7 +41,14 @@ impl ReportableError for CompileError {
                     },
                 ]
             }
-            Internal { span, msg } => {
+            FileIO { error, span } => {
+                vec![ErrorLabel {
+                    message: error.to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+            Internal { msg, span } => {
                 vec![ErrorLabel {
                     message: msg.to_string(),
                     span: span.clone(),
@@ -72,7 +81,7 @@ impl Spanned for CompileError {
     fn span(&self) -> &Span {
         use CompileError::*;
         match &self {
-            Internal { span, .. } | NameClash { span, .. } => span,
+            FileIO { span, .. } | Internal { span, .. } | NameClash { span, .. } => span,
         }
     }
 }

@@ -19,12 +19,12 @@ pub(super) struct ErrorLabel {
 }
 
 /// A general compile error
-#[derive(Error, Debug, Clone, PartialEq)]
-pub(super) enum Error<'a> {
+#[derive(Error, Debug)]
+pub(super) enum Error {
     #[error("{}", error)]
     Lex { span: Span, error: LexError },
     #[error("{}", error)]
-    Parse { error: ParseError<'a> },
+    Parse { error: ParseError },
     #[error("{}", error)]
     Compile { error: CompileError },
 }
@@ -105,7 +105,7 @@ where
     }
 }
 
-impl ReportableError for Error<'_> {
+impl ReportableError for Error {
     fn labels(&self) -> Vec<ErrorLabel> {
         use Error::*;
         match self {
@@ -151,7 +151,7 @@ impl ReportableError for Error<'_> {
     }
 }
 
-impl Spanned for Error<'_> {
+impl Spanned for Error {
     fn span(&self) -> &Span {
         use Error::*;
         match &self {

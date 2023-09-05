@@ -11,6 +11,13 @@ pub(super) type FnSig = F<Type>;
 pub(super) type InterfaceDecl = ID<Type>;
 pub(super) type ContractDecl = CD<Path, Expr, Type>;
 
+mod mod_resolve;
+mod use_path;
+
+pub(crate) type Ast = Vec<Decl>;
+
+pub(super) use mod_resolve::parse_project;
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Decl {
     Use {
