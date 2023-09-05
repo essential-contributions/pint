@@ -53,7 +53,7 @@ pub(super) enum Expr<Path, BlockExpr> {
     },
     TupleFieldAccess {
         tuple: Box<Self>,
-        field: itertools::Either<usize, Ident>,
+        field: TupleAccess,
         span: Span,
     },
     Cast {
@@ -66,6 +66,12 @@ pub(super) enum Expr<Path, BlockExpr> {
         collection: Box<Self>,
         span: Span,
     },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) enum TupleAccess {
+    Index(usize),
+    Name(Ident),
 }
 
 impl<Path, BlockExpr> Spanned for Expr<Path, BlockExpr>

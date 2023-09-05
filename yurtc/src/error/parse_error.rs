@@ -8,31 +8,31 @@ use yansi::Color;
 
 /// An error originating from the parser
 #[derive(Error, Debug, PartialEq, Clone)]
-pub(crate) enum ParseError<'a> {
+pub(crate) enum ParseError {
     #[error("{}", format_expected_found_error(&mut expected.clone(), found))]
     ExpectedFound {
         span: Span,
-        expected: Vec<Option<Token<'a>>>,
-        found: Option<Token<'a>>,
+        expected: Vec<Option<String>>,
+        found: Option<String>,
     },
     #[error("expected identifier, found keyword `{keyword}`")]
-    KeywordAsIdent { span: Span, keyword: Token<'a> },
+    KeywordAsIdent { span: Span, keyword: String },
     #[error("type annotation or initializer needed for variable `{name}`")]
     UntypedVariable { span: Span, name: String },
     #[error("empty array expressions are not allowed")]
     EmptyArrayExpr { span: Span },
     #[error("invalid integer `{}` as tuple index", index)]
-    InvalidIntegerTupleIndex { span: Span, index: &'a str },
+    InvalidIntegerTupleIndex { span: Span, index: String },
     #[error("invalid value `{}` as tuple index", index)]
-    InvalidTupleIndex { span: Span, index: Token<'a> },
+    InvalidTupleIndex { span: Span, index: String },
     #[error("empty tuple expressions are not allowed")]
     EmptyTupleExpr { span: Span },
     #[error("empty tuple types are not allowed")]
     EmptyTupleType { span: Span },
 }
 
-/// Implement the `ParseError` trait from Chumsky for `ParseError`
-impl<'a> chumsky::Error<Token<'a>> for ParseError<'a> {
+/// Implement the `Error` trait from Chumsky for `ParseError`
+impl<'a> chumsky::Error<Token<'a>> for ParseError {
     type Span = Span;
     type Label = ();
 
@@ -43,8 +43,11 @@ impl<'a> chumsky::Error<Token<'a>> for ParseError<'a> {
     ) -> Self {
         Self::ExpectedFound {
             span,
-            expected: expected.into_iter().collect(),
-            found,
+            expected: expected
+                .into_iter()
+                .map(|tok| tok.map(|tok| tok.to_string()))
+                .collect(),
+            found: found.map(|tok| tok.to_string()),
         }
     }
 
@@ -71,7 +74,7 @@ impl<'a> chumsky::Error<Token<'a>> for ParseError<'a> {
     }
 }
 
-impl ReportableError for ParseError<'_> {
+impl ReportableError for ParseError {
     fn labels(&self) -> Vec<ErrorLabel> {
         use ParseError::*;
         match self {
@@ -153,14 +156,14 @@ impl ReportableError for ParseError<'_> {
     }
 }
 
-fn format_optional_token(token: &Option<Token>) -> String {
+fn format_optional_token(token: &Option<String>) -> String {
     match &token {
         Some(token) => format!("`{token}`"),
         None => "\"end of input\"".into(),
     }
 }
 
-fn format_expected_tokens_message(expected: &mut Vec<Option<Token<'_>>>) -> String {
+fn format_expected_tokens_message(expected: &mut Vec<Option<String>>) -> String {
     format!(
         "expected {}",
         match &expected[..] {
@@ -183,9 +186,9 @@ fn format_expected_tokens_message(expected: &mut Vec<Option<Token<'_>>>) -> Stri
     )
 }
 
-fn format_expected_found_error<'a>(
-    expected: &mut Vec<Option<Token<'a>>>,
-    found: &Option<Token<'a>>,
+fn format_expected_found_error(
+    expected: &mut Vec<Option<String>>,
+    found: &Option<String>,
 ) -> String {
     format!(
         "{}, found {}",
@@ -194,7 +197,7 @@ fn format_expected_found_error<'a>(
     )
 }
 
-impl Spanned for ParseError<'_> {
+impl Spanned for ParseError {
     fn span(&self) -> &Span {
         use ParseError::*;
         match &self {

@@ -180,8 +180,8 @@ fn use_statements() {
     check(
         &run_parser!(use_statement(), "use ;"),
         expect_test::expect![[r#"
-            expected `::`, `*`, or `{`, found `;`
-            @4..5: expected `::`, `*`, or `{`
+            expected `*`, `::`, or `{`, found `;`
+            @4..5: expected `*`, `::`, or `{`
         "#]],
     );
 
@@ -774,8 +774,8 @@ fn parens_exprs() {
     check(
         &run_parser!(expr(), "()"),
         expect_test::expect![[r#"
-            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`, found `)`
-            @1..2: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`, found `)`
+            @1..2: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`
         "#]],
     );
     check(
@@ -1144,8 +1144,8 @@ fn array_type() {
     check(
         &run_parser!(let_decl(expr()), r#"let a: int[];"#),
         expect_test::expect![[r#"
-            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`, found `]`
-            @11..12: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`, found `]`
+            @11..12: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`
         "#]],
     );
 }
@@ -1199,7 +1199,7 @@ fn array_expressions() {
             r#"[[foo(), { 2 }], [if true { 1 } else { 2 }, t.0]]"#
         ),
         expect_test::expect![[
-            r#"Array { elements: [Array { elements: [Call { name: Path { path: [Ident { name: "foo", span: "test":2..5 }], is_absolute: false, span: "test":2..5 }, args: [], span: "test":2..7 }, Block(Block { statements: [], final_expr: Immediate { value: Int(2), span: "test":11..12 }, span: "test":9..14 })], span: "test":1..15 }, Array { elements: [If { condition: Immediate { value: Bool(true), span: "test":21..25 }, then_block: Block { statements: [], final_expr: Immediate { value: Int(1), span: "test":28..29 }, span: "test":26..31 }, else_block: Block { statements: [], final_expr: Immediate { value: Int(2), span: "test":39..40 }, span: "test":37..42 }, span: "test":18..42 }, TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":44..45 }], is_absolute: false, span: "test":44..45 }), field: Left(0), span: "test":44..47 }], span: "test":17..48 }], span: "test":0..49 }"#
+            r#"Array { elements: [Array { elements: [Call { name: Path { path: [Ident { name: "foo", span: "test":2..5 }], is_absolute: false, span: "test":2..5 }, args: [], span: "test":2..7 }, Block(Block { statements: [], final_expr: Immediate { value: Int(2), span: "test":11..12 }, span: "test":9..14 })], span: "test":1..15 }, Array { elements: [If { condition: Immediate { value: Bool(true), span: "test":21..25 }, then_block: Block { statements: [], final_expr: Immediate { value: Int(1), span: "test":28..29 }, span: "test":26..31 }, else_block: Block { statements: [], final_expr: Immediate { value: Int(2), span: "test":39..40 }, span: "test":37..42 }, span: "test":18..42 }, TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":44..45 }], is_absolute: false, span: "test":44..45 }), field: Index(0), span: "test":44..47 }], span: "test":17..48 }], span: "test":0..49 }"#
         ]],
     );
 }
@@ -1230,8 +1230,8 @@ fn array_field_accesss() {
     check(
         &run_parser!(let_decl(expr()), r#"let x = a[];"#),
         expect_test::expect![[r#"
-            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`, found `]`
-            @10..11: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`, found `]`
+            @10..11: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`
         "#]],
     );
 
@@ -1324,91 +1324,91 @@ fn tuple_field_accesses() {
     check(
         &run_parser!(expr(), r#"t.0 + t.9999999 + t.x"#),
         expect_test::expect![[
-            r#"BinaryOp { op: Add, lhs: BinaryOp { op: Add, lhs: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":0..1 }], is_absolute: false, span: "test":0..1 }), field: Left(0), span: "test":0..3 }, rhs: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":6..7 }], is_absolute: false, span: "test":6..7 }), field: Left(9999999), span: "test":6..15 }, span: "test":0..15 }, rhs: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":18..19 }], is_absolute: false, span: "test":18..19 }), field: Right(Ident { name: "x", span: "test":20..21 }), span: "test":18..21 }, span: "test":0..21 }"#
+            r#"BinaryOp { op: Add, lhs: BinaryOp { op: Add, lhs: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":0..1 }], is_absolute: false, span: "test":0..1 }), field: Index(0), span: "test":0..3 }, rhs: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":6..7 }], is_absolute: false, span: "test":6..7 }), field: Index(9999999), span: "test":6..15 }, span: "test":0..15 }, rhs: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":18..19 }], is_absolute: false, span: "test":18..19 }), field: Name(Ident { name: "x", span: "test":20..21 }), span: "test":18..21 }, span: "test":0..21 }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"{0, 1}.0"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: Tuple { fields: [(None, Immediate { value: Int(0), span: "test":1..2 }), (None, Immediate { value: Int(1), span: "test":4..5 })], span: "test":0..6 }, field: Left(0), span: "test":0..8 }"#
+            r#"TupleFieldAccess { tuple: Tuple { fields: [(None, Immediate { value: Int(0), span: "test":1..2 }), (None, Immediate { value: Int(1), span: "test":4..5 })], span: "test":0..6 }, field: Index(0), span: "test":0..8 }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"{0, 1}.x"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: Tuple { fields: [(None, Immediate { value: Int(0), span: "test":1..2 }), (None, Immediate { value: Int(1), span: "test":4..5 })], span: "test":0..6 }, field: Right(Ident { name: "x", span: "test":7..8 }), span: "test":0..8 }"#
+            r#"TupleFieldAccess { tuple: Tuple { fields: [(None, Immediate { value: Int(0), span: "test":1..2 }), (None, Immediate { value: Int(1), span: "test":4..5 })], span: "test":0..6 }, field: Name(Ident { name: "x", span: "test":7..8 }), span: "test":0..8 }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"t.0 .0"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":0..1 }], is_absolute: false, span: "test":0..1 }), field: Left(0), span: "test":0..3 }, field: Left(0), span: "test":0..6 }"#
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":0..1 }], is_absolute: false, span: "test":0..1 }), field: Index(0), span: "test":0..3 }, field: Index(0), span: "test":0..6 }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"t.x .y"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":0..1 }], is_absolute: false, span: "test":0..1 }), field: Right(Ident { name: "x", span: "test":2..3 }), span: "test":0..3 }, field: Right(Ident { name: "y", span: "test":5..6 }), span: "test":0..6 }"#
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":0..1 }], is_absolute: false, span: "test":0..1 }), field: Name(Ident { name: "x", span: "test":2..3 }), span: "test":0..3 }, field: Name(Ident { name: "y", span: "test":5..6 }), span: "test":0..6 }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), "t \r .1 .2.2. \n 3 . \t 13 . 1.1"),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":0..1 }], is_absolute: false, span: "test":0..1 }), field: Left(1), span: "test":0..6 }, field: Left(2), span: "test":0..11 }, field: Left(2), span: "test":0..11 }, field: Left(3), span: "test":0..16 }, field: Left(13), span: "test":0..23 }, field: Left(1), span: "test":0..29 }, field: Left(1), span: "test":0..29 }"#
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":0..1 }], is_absolute: false, span: "test":0..1 }), field: Index(1), span: "test":0..6 }, field: Index(2), span: "test":0..11 }, field: Index(2), span: "test":0..11 }, field: Index(3), span: "test":0..16 }, field: Index(13), span: "test":0..23 }, field: Index(1), span: "test":0..29 }, field: Index(1), span: "test":0..29 }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), "t \r .x .1.2. \n w . \t t. 3.4"),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":0..1 }], is_absolute: false, span: "test":0..1 }), field: Right(Ident { name: "x", span: "test":5..6 }), span: "test":0..6 }, field: Left(1), span: "test":0..11 }, field: Left(2), span: "test":0..11 }, field: Right(Ident { name: "w", span: "test":15..16 }), span: "test":0..16 }, field: Right(Ident { name: "t", span: "test":21..22 }), span: "test":0..22 }, field: Left(3), span: "test":0..27 }, field: Left(4), span: "test":0..27 }"#
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":0..1 }], is_absolute: false, span: "test":0..1 }), field: Name(Ident { name: "x", span: "test":5..6 }), span: "test":0..6 }, field: Index(1), span: "test":0..11 }, field: Index(2), span: "test":0..11 }, field: Name(Ident { name: "w", span: "test":15..16 }), span: "test":0..16 }, field: Name(Ident { name: "t", span: "test":21..22 }), span: "test":0..22 }, field: Index(3), span: "test":0..27 }, field: Index(4), span: "test":0..27 }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"foo().0.1"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Call { name: Path { path: [Ident { name: "foo", span: "test":0..3 }], is_absolute: false, span: "test":0..3 }, args: [], span: "test":0..5 }, field: Left(0), span: "test":0..9 }, field: Left(1), span: "test":0..9 }"#
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Call { name: Path { path: [Ident { name: "foo", span: "test":0..3 }], is_absolute: false, span: "test":0..3 }, args: [], span: "test":0..5 }, field: Index(0), span: "test":0..9 }, field: Index(1), span: "test":0..9 }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"foo().a.b.0.1"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Call { name: Path { path: [Ident { name: "foo", span: "test":0..3 }], is_absolute: false, span: "test":0..3 }, args: [], span: "test":0..5 }, field: Right(Ident { name: "a", span: "test":6..7 }), span: "test":0..7 }, field: Right(Ident { name: "b", span: "test":8..9 }), span: "test":0..9 }, field: Left(0), span: "test":0..13 }, field: Left(1), span: "test":0..13 }"#
+            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Call { name: Path { path: [Ident { name: "foo", span: "test":0..3 }], is_absolute: false, span: "test":0..3 }, args: [], span: "test":0..5 }, field: Name(Ident { name: "a", span: "test":6..7 }), span: "test":0..7 }, field: Name(Ident { name: "b", span: "test":8..9 }), span: "test":0..9 }, field: Index(0), span: "test":0..13 }, field: Index(1), span: "test":0..13 }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"{ {0, 0} }.0"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: Block(Block { statements: [], final_expr: Tuple { fields: [(None, Immediate { value: Int(0), span: "test":3..4 }), (None, Immediate { value: Int(0), span: "test":6..7 })], span: "test":2..8 }, span: "test":0..10 }), field: Left(0), span: "test":0..12 }"#
+            r#"TupleFieldAccess { tuple: Block(Block { statements: [], final_expr: Tuple { fields: [(None, Immediate { value: Int(0), span: "test":3..4 }), (None, Immediate { value: Int(0), span: "test":6..7 })], span: "test":2..8 }, span: "test":0..10 }), field: Index(0), span: "test":0..12 }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"{ {0, 0} }.a"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: Block(Block { statements: [], final_expr: Tuple { fields: [(None, Immediate { value: Int(0), span: "test":3..4 }), (None, Immediate { value: Int(0), span: "test":6..7 })], span: "test":2..8 }, span: "test":0..10 }), field: Right(Ident { name: "a", span: "test":11..12 }), span: "test":0..12 }"#
+            r#"TupleFieldAccess { tuple: Block(Block { statements: [], final_expr: Tuple { fields: [(None, Immediate { value: Int(0), span: "test":3..4 }), (None, Immediate { value: Int(0), span: "test":6..7 })], span: "test":2..8 }, span: "test":0..10 }), field: Name(Ident { name: "a", span: "test":11..12 }), span: "test":0..12 }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"if true { {0, 0} } else { {0, 0} }.0"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: If { condition: Immediate { value: Bool(true), span: "test":3..7 }, then_block: Block { statements: [], final_expr: Tuple { fields: [(None, Immediate { value: Int(0), span: "test":11..12 }), (None, Immediate { value: Int(0), span: "test":14..15 })], span: "test":10..16 }, span: "test":8..18 }, else_block: Block { statements: [], final_expr: Tuple { fields: [(None, Immediate { value: Int(0), span: "test":27..28 }), (None, Immediate { value: Int(0), span: "test":30..31 })], span: "test":26..32 }, span: "test":24..34 }, span: "test":0..34 }, field: Left(0), span: "test":0..36 }"#
+            r#"TupleFieldAccess { tuple: If { condition: Immediate { value: Bool(true), span: "test":3..7 }, then_block: Block { statements: [], final_expr: Tuple { fields: [(None, Immediate { value: Int(0), span: "test":11..12 }), (None, Immediate { value: Int(0), span: "test":14..15 })], span: "test":10..16 }, span: "test":8..18 }, else_block: Block { statements: [], final_expr: Tuple { fields: [(None, Immediate { value: Int(0), span: "test":27..28 }), (None, Immediate { value: Int(0), span: "test":30..31 })], span: "test":26..32 }, span: "test":24..34 }, span: "test":0..34 }, field: Index(0), span: "test":0..36 }"#
         ]],
     );
 
     check(
         &run_parser!(expr(), r#"if true { {0, 0} } else { {0, 0} }.x"#),
         expect_test::expect![[
-            r#"TupleFieldAccess { tuple: If { condition: Immediate { value: Bool(true), span: "test":3..7 }, then_block: Block { statements: [], final_expr: Tuple { fields: [(None, Immediate { value: Int(0), span: "test":11..12 }), (None, Immediate { value: Int(0), span: "test":14..15 })], span: "test":10..16 }, span: "test":8..18 }, else_block: Block { statements: [], final_expr: Tuple { fields: [(None, Immediate { value: Int(0), span: "test":27..28 }), (None, Immediate { value: Int(0), span: "test":30..31 })], span: "test":26..32 }, span: "test":24..34 }, span: "test":0..34 }, field: Right(Ident { name: "x", span: "test":35..36 }), span: "test":0..36 }"#
+            r#"TupleFieldAccess { tuple: If { condition: Immediate { value: Bool(true), span: "test":3..7 }, then_block: Block { statements: [], final_expr: Tuple { fields: [(None, Immediate { value: Int(0), span: "test":11..12 }), (None, Immediate { value: Int(0), span: "test":14..15 })], span: "test":10..16 }, span: "test":8..18 }, else_block: Block { statements: [], final_expr: Tuple { fields: [(None, Immediate { value: Int(0), span: "test":27..28 }), (None, Immediate { value: Int(0), span: "test":30..31 })], span: "test":26..32 }, span: "test":24..34 }, span: "test":0..34 }, field: Name(Ident { name: "x", span: "test":35..36 }), span: "test":0..36 }"#
         ]],
     );
 
@@ -1416,7 +1416,7 @@ fn tuple_field_accesses() {
     check(
         &run_parser!(expr(), "1 + 2 .3"),
         expect_test::expect![[
-            r#"BinaryOp { op: Add, lhs: Immediate { value: Int(1), span: "test":0..1 }, rhs: TupleFieldAccess { tuple: Immediate { value: Int(2), span: "test":4..5 }, field: Left(3), span: "test":4..8 }, span: "test":0..8 }"#
+            r#"BinaryOp { op: Add, lhs: Immediate { value: Int(1), span: "test":0..1 }, rhs: TupleFieldAccess { tuple: Immediate { value: Int(2), span: "test":4..5 }, field: Index(3), span: "test":4..8 }, span: "test":0..8 }"#
         ]],
     );
 
@@ -1424,7 +1424,7 @@ fn tuple_field_accesses() {
     check(
         &run_parser!(expr(), "1 + 2 .a"),
         expect_test::expect![[
-            r#"BinaryOp { op: Add, lhs: Immediate { value: Int(1), span: "test":0..1 }, rhs: TupleFieldAccess { tuple: Immediate { value: Int(2), span: "test":4..5 }, field: Right(Ident { name: "a", span: "test":7..8 }), span: "test":4..8 }, span: "test":0..8 }"#
+            r#"BinaryOp { op: Add, lhs: Immediate { value: Int(1), span: "test":0..1 }, rhs: TupleFieldAccess { tuple: Immediate { value: Int(2), span: "test":4..5 }, field: Name(Ident { name: "a", span: "test":7..8 }), span: "test":4..8 }, span: "test":0..8 }"#
         ]],
     );
 
@@ -1533,8 +1533,8 @@ fn cond_exprs() {
     check(
         &run_parser!(cond_expr(expr()), r#"cond { a => b, }"#),
         expect_test::expect![[r#"
-            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, `else`, or `cond`, found `}`
-            @15..16: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, `else`, or `cond`
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `else`, `if`, `{`, or `{`, found `}`
+            @15..16: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `else`, `if`, `{`, or `{`
         "#]],
     );
 
@@ -1559,7 +1559,7 @@ fn casting() {
     check(
         &run_parser!(expr(), r#"t.0.1 as real * a[5][3] as int"#),
         expect_test::expect![[
-            r#"BinaryOp { op: Mul, lhs: Cast { value: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":0..1 }], is_absolute: false, span: "test":0..1 }), field: Left(0), span: "test":0..5 }, field: Left(1), span: "test":0..5 }, ty: Primitive { kind: Real, span: "test":9..13 }, span: "test":0..13 }, rhs: Cast { value: ArrayElementAccess { array: ArrayElementAccess { array: Path(Path { path: [Ident { name: "a", span: "test":16..17 }], is_absolute: false, span: "test":16..17 }), index: Immediate { value: Int(3), span: "test":21..22 }, span: "test":16..23 }, index: Immediate { value: Int(5), span: "test":18..19 }, span: "test":16..20 }, ty: Primitive { kind: Int, span: "test":27..30 }, span: "test":16..30 }, span: "test":0..30 }"#
+            r#"BinaryOp { op: Mul, lhs: Cast { value: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: "test":0..1 }], is_absolute: false, span: "test":0..1 }), field: Index(0), span: "test":0..5 }, field: Index(1), span: "test":0..5 }, ty: Primitive { kind: Real, span: "test":9..13 }, span: "test":0..13 }, rhs: Cast { value: ArrayElementAccess { array: ArrayElementAccess { array: Path(Path { path: [Ident { name: "a", span: "test":16..17 }], is_absolute: false, span: "test":16..17 }), index: Immediate { value: Int(3), span: "test":21..22 }, span: "test":16..23 }, index: Immediate { value: Int(5), span: "test":18..19 }, span: "test":16..20 }, ty: Primitive { kind: Int, span: "test":27..30 }, span: "test":16..30 }, span: "test":0..30 }"#
         ]],
     );
 
@@ -1576,8 +1576,8 @@ fn casting() {
     check(
         &run_parser!(let_decl(expr()), r#"let x = 5 as;"#),
         expect_test::expect![[r#"
-            expected `::`, `{`, `real`, `int`, `bool`, or `string`, found `;`
-            @12..13: expected `::`, `{`, `real`, `int`, `bool`, or `string`
+            expected `::`, `bool`, `int`, `real`, `string`, or `{`, found `;`
+            @12..13: expected `::`, `bool`, `int`, `real`, `string`, or `{`
         "#]],
     );
 }
@@ -1615,8 +1615,8 @@ fn in_expr() {
     check(
         &run_parser!(let_decl(expr()), r#"let x = 5 in;"#),
         expect_test::expect![[r#"
-            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`, found `;`
-            @12..13: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, or `cond`
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`, found `;`
+            @12..13: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`
         "#]],
     );
 }
@@ -1655,8 +1655,8 @@ fn fn_errors() {
     check(
         &run_parser!(yurt_program(), "fn foo() -> real {}"),
         expect_test::expect![[r#"
-            expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, `cond`, `let`, `state`, or `constraint`, found `}`
-            @18..19: expected `::`, `::`, `!`, `+`, `-`, `{`, `{`, `(`, `[`, `if`, `cond`, `let`, `state`, or `constraint`
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `constraint`, `if`, `let`, `state`, `{`, or `{`, found `}`
+            @18..19: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `constraint`, `if`, `let`, `state`, `{`, or `{`
         "#]],
     );
 }
@@ -1704,7 +1704,7 @@ fn test_parse_str_to_ast() {
     check(
         &format!("{:?}", parse_str_to_ast("let x = 5", filepath.clone())),
         expect_test::expect![[
-            r#"Err([Parse { error: ExpectedFound { span: "test":9..9, expected: [Some(Semi), Some(DoublePipe), Some(DoubleAmpersand), Some(NotEq), Some(EqEq), Some(GtEq), Some(LtEq), Some(Gt), Some(Lt), Some(Plus), Some(Minus), Some(Star), Some(Div), Some(Mod), Some(In), Some(As), Some(Dot), Some(BracketOpen), Some(SingleQuote)], found: None } }])"#
+            r#"Err([Parse { error: ExpectedFound { span: "test":9..9, expected: [Some(";"), Some("||"), Some("&&"), Some("!="), Some("=="), Some(">="), Some("<="), Some(">"), Some("<"), Some("+"), Some("-"), Some("*"), Some("/"), Some("%"), Some("in"), Some("as"), Some("."), Some("["), Some("'")], found: None } }])"#
         ]],
     );
     check(

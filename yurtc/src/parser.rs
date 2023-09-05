@@ -7,18 +7,15 @@ use crate::{
     types::{EnumDecl, FnSig, PrimitiveKind},
 };
 use chumsky::{prelude::*, Stream};
-use itertools::Either;
 use regex::Regex;
 use std::{path::Path, rc::Rc};
 
 #[cfg(test)]
 mod tests;
 
-type Ast = Vec<ast::Decl>;
-
 /// Parse `source` and returns an AST. Upon failure, return a vector of all compile errors
 /// encountered.
-pub(super) fn parse_str_to_ast(source: &str, filepath: Rc<Path>) -> Result<Ast, Vec<Error>> {
+pub(super) fn parse_str_to_ast(source: &str, filepath: Rc<Path>) -> Result<ast::Ast, Vec<Error>> {
     let mut errors = vec![];
 
     // Lex the input into tokens and spans. Also collect any lex errors encountered.
@@ -47,7 +44,7 @@ pub(super) fn parse_str_to_ast(source: &str, filepath: Rc<Path>) -> Result<Ast, 
     }
 }
 
-fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> + Clone {
+fn yurt_program<'sc>() -> impl Parser<Token<'sc>, ast::Ast, Error = ParseError> + Clone {
     choice((
         use_statement(),
         let_decl(expr()),
@@ -65,7 +62,7 @@ fn yurt_program<'sc>() -> impl Parser<Token<'sc>, Ast, Error = ParseError<'sc>> 
     .then_ignore(end())
 }
 
-fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError<'sc>> + Clone {
+fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError> + Clone {
     recursive(|use_tree| {
         let path = ident()
             .then_ignore(just(Token::DoubleColon))
@@ -98,7 +95,7 @@ fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError<'
     })
 }
 
-fn use_statement<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+fn use_statement<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
     just(Token::Use)
         .ignore_then(just(Token::DoubleColon).or_not())
         .then(use_tree())
@@ -112,8 +109,8 @@ fn use_statement<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError
 }
 
 fn let_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
     let type_spec = just(Token::Colon).ignore_then(type_(expr.clone()));
     let init = just(Token::Eq).ignore_then(expr);
     just(Token::Let)
@@ -140,8 +137,8 @@ fn let_decl<'sc>(
 }
 
 fn state_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
     let type_spec = just(Token::Colon).ignore_then(type_(expr.clone()));
     let init = just(Token::Eq).ignore_then(expr);
     just(Token::State)
@@ -158,7 +155,7 @@ fn state_decl<'sc>(
         .boxed()
 }
 
-fn enum_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+fn enum_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
     just(Token::Enum)
         .ignore_then(ident())
         .then_ignore(just(Token::Eq))
@@ -174,7 +171,7 @@ fn enum_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc
         .boxed()
 }
 
-fn type_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+fn type_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
     just(Token::Type)
         .ignore_then(ident())
         .then_ignore(just(Token::Eq))
@@ -185,8 +182,8 @@ fn type_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc
 }
 
 fn constraint_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
     just(Token::Constraint)
         .ignore_then(expr)
         .then_ignore(just(Token::Semi))
@@ -194,7 +191,7 @@ fn constraint_decl<'sc>(
         .boxed()
 }
 
-fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
     let solve_satisfy = just(Token::Satisfy).to(ast::SolveFunc::Satisfy);
     let solve_minimize = just(Token::Minimize)
         .ignore_then(expr())
@@ -210,7 +207,7 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'s
         .boxed()
 }
 
-fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
     fn_sig(expr())
         .then(code_block_expr(expr()))
         .map_with_span(|(fn_sig, body), span| ast::Decl::Fn { fn_sig, body, span })
@@ -218,8 +215,8 @@ fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>>
 }
 
 fn fn_sig<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, FnSig<ast::Type>, Error = ParseError<'sc>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, FnSig<ast::Type>, Error = ParseError> + Clone {
     let type_spec = just(Token::Colon).ignore_then(type_(expr.clone()));
 
     let params = ident()
@@ -244,7 +241,7 @@ fn fn_sig<'sc>(
         .boxed()
 }
 
-fn interface_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+fn interface_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
     just(Token::Interface)
         .ignore_then(ident())
         .then(
@@ -262,7 +259,7 @@ fn interface_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseErro
         .boxed()
 }
 
-fn contract_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+fn contract_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
     just(Token::Contract)
         .ignore_then(ident())
         .then(expr().delimited_by(just(Token::ParenOpen), just(Token::ParenClose)))
@@ -288,7 +285,7 @@ fn contract_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError
         .boxed()
 }
 
-fn extern_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'sc>> + Clone {
+fn extern_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
     just(Token::Extern)
         .ignore_then(
             (fn_sig(expr()).then_ignore(just(Token::Semi)))
@@ -300,8 +297,8 @@ fn extern_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError<'
 }
 
 fn code_block_expr<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Block, Error = ParseError<'sc>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Block, Error = ParseError> + Clone {
     let code_block_body = choice((
         let_decl(expr.clone()),
         state_decl(expr.clone()),
@@ -322,8 +319,8 @@ fn code_block_expr<'sc>(
 }
 
 fn prefix_unary_op<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone {
     choice((
         just(Token::Plus).to(expr::UnaryOp::Pos),
         just(Token::Minus).to(expr::UnaryOp::Neg),
@@ -339,8 +336,8 @@ fn prefix_unary_op<'sc>(
 }
 
 fn if_expr<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone {
     let then_block = code_block_expr(expr.clone());
     let else_block = just(Token::Else).ignore_then(code_block_expr(expr.clone()));
 
@@ -360,8 +357,8 @@ fn if_expr<'sc>(
 }
 
 fn cond_expr<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone {
     let cond_branch = expr
         .clone()
         .then_ignore(just(Token::HeavyArrow))
@@ -396,7 +393,7 @@ fn cond_expr<'sc>(
         .boxed()
 }
 
-fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone {
+fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone {
     recursive(|expr| {
         let call_args = expr
             .clone()
@@ -486,9 +483,9 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + 
 
 fn suffix_unary_op<'sc, P>(
     parser: P,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
 where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
 {
     parser
         .then(
@@ -509,10 +506,10 @@ where
 
 fn array_element_access<'sc, P>(
     parser: P,
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
 where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
 {
     parser
         .then(
@@ -534,14 +531,14 @@ where
 
 fn tuple_field_access<'sc, P>(
     parser: P,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
 where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
 {
     let indices_with_spans = filter_map(|span: Span, token| match &token {
         // Field access with an identifier
         Token::Ident(ident) => Ok(vec![(
-            Either::Right(ast::Ident {
+            expr::TupleAccess::Name(ast::Ident {
                 name: (*ident).to_owned(),
                 span: span.clone(),
             }),
@@ -551,10 +548,10 @@ where
         // Field access with an integer
         Token::IntLiteral(num_str) => num_str
             .parse::<usize>()
-            .map(|index| vec![(Either::Left(index), span.clone())])
+            .map(|index| vec![(expr::TupleAccess::Index(index), span.clone())])
             .map_err(|_| ParseError::InvalidIntegerTupleIndex {
                 span: span.clone(),
-                index: num_str,
+                index: num_str.to_string(),
             }),
 
         // If the next token is of the form `<int>.<int>` which, to the lexer, looks like a real,
@@ -585,16 +582,22 @@ where
                                 .parse::<usize>()
                                 .map_err(|_| ParseError::InvalidIntegerTupleIndex {
                                     span: Span::new(span.context(), span_range.clone()),
-                                    index,
+                                    index: index.to_string(),
                                 })
-                                .map(|index| (Either::Left(index), span.clone()))
+                                .map(|index| (expr::TupleAccess::Index(index), span.clone()))
                         })
-                        .collect::<Result<Vec<(Either<usize, ast::Ident>, Span)>, _>>()
+                        .collect::<Result<Vec<(expr::TupleAccess, Span)>, _>>()
                 }
-                None => Err(ParseError::InvalidTupleIndex { span, index: token }),
+                None => Err(ParseError::InvalidTupleIndex {
+                    span,
+                    index: token.to_string(),
+                }),
             }
         }
-        _ => Err(ParseError::InvalidTupleIndex { span, index: token }),
+        _ => Err(ParseError::InvalidTupleIndex {
+            span,
+            index: token.to_string(),
+        }),
     })
     .boxed();
 
@@ -618,10 +621,10 @@ where
 
 fn cast<'sc, P>(
     parser: P,
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
 where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
 {
     parser
         .then(
@@ -643,10 +646,10 @@ where
 
 fn in_expr<'sc, P>(
     parser: P,
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
 where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
 {
     parser
         .then(
@@ -668,9 +671,9 @@ where
 
 fn multiplicative_op<'sc, P>(
     parser: P,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
 where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
 {
     parser
         .clone()
@@ -695,11 +698,9 @@ where
         .boxed()
 }
 
-fn additive_op<'sc, P>(
-    parser: P,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+fn additive_op<'sc, P>(parser: P) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
 where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
 {
     parser
         .clone()
@@ -725,9 +726,9 @@ where
 
 fn comparison_op<'sc, P>(
     parser: P,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
 where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
 {
     parser
         .clone()
@@ -760,9 +761,9 @@ fn and_or_op<'sc, P>(
     token: Token<'sc>,
     logical_op: expr::BinaryOp,
     parser: P,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone
+) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
 where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
 {
     parser
         .clone()
@@ -785,7 +786,7 @@ where
         .boxed()
 }
 
-fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError<'sc>> + Clone {
+fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError> + Clone {
     filter_map(|span, token| match token {
         // Accept detected identifier. The lexer makes sure that these are not keywords.
         Token::Ident(id) => Ok(ast::Ident {
@@ -796,19 +797,19 @@ fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError<'sc>> 
         // Tokens that represent keywords are not allowed
         _ if KEYWORDS.contains(&token) => Err(ParseError::KeywordAsIdent {
             span,
-            keyword: token,
+            keyword: token.to_string(),
         }),
 
         // Other tokens are not allowed either
         _ => Err(ParseError::ExpectedFound {
             span,
             expected: vec![],
-            found: Some(token),
+            found: Some(token.to_string()),
         }),
     })
 }
 
-fn path<'sc>() -> impl Parser<Token<'sc>, ast::Path, Error = ParseError<'sc>> + Clone {
+fn path<'sc>() -> impl Parser<Token<'sc>, ast::Path, Error = ParseError> + Clone {
     let relative_path = ident().then((just(Token::DoubleColon).ignore_then(ident())).repeated());
     just(Token::DoubleColon)
         .or_not()
@@ -825,8 +826,8 @@ fn path<'sc>() -> impl Parser<Token<'sc>, ast::Path, Error = ParseError<'sc>> + 
 }
 
 fn type_<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError<'sc>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Type, Error = ParseError<'sc>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Type, Error = ParseError> + Clone {
     recursive(|type_| {
         let tuple = (ident().then_ignore(just(Token::Colon)))
             .or_not()
@@ -887,7 +888,7 @@ fn type_<'sc>(
     })
 }
 
-fn immediate<'sc>() -> impl Parser<Token<'sc>, expr::Immediate, Error = ParseError<'sc>> + Clone {
+fn immediate<'sc>() -> impl Parser<Token<'sc>, expr::Immediate, Error = ParseError> + Clone {
     let integer_parser = |num_str: &str| {
         use num_traits::Num;
         let (radix, offset) = match num_str.chars().nth(1) {

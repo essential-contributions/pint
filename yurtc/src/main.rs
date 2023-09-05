@@ -10,16 +10,14 @@ mod parser;
 mod span;
 mod types;
 
-use std::{fs::read_to_string, path::Path, rc::Rc};
+use std::path::Path;
 
 fn main() -> anyhow::Result<()> {
     let (filepath, compile_flag) = parse_cli();
-    let source_code = read_to_string(Path::new(&filepath))?;
-
-    let filepath: Rc<Path> = Rc::from(Path::new(&filepath));
+    let filepath = Path::new(&filepath);
 
     // Lex + Parse
-    let ast = match parser::parse_str_to_ast(&source_code, filepath.clone()) {
+    let ast = match ast::parse_project(filepath) {
         Ok(ast) => ast,
         Err(errors) => {
             if !cfg!(test) {
