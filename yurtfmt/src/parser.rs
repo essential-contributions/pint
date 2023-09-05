@@ -38,17 +38,18 @@ pub(super) fn parse_str_to_ast(source: &str) -> Result<ast::Ast<'_>, Vec<Formatt
 
 pub(super) fn yurt_program<'sc>(
 ) -> impl Parser<Token<'sc>, ast::Ast<'sc>, Error = Simple<Token<'sc>>> + Clone {
-    value_decl()
+    choice((value_decl(expr()), solve_decl()))
         .then_ignore(just(Token::Semi))
         .repeated()
         .then_ignore(end())
         .boxed()
 }
 
-fn value_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Simple<Token<'sc>>> + Clone
-{
+fn value_decl<'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Simple<Token<'sc>>> + Clone {
     let type_spec = just(Token::Colon).then(type_());
-    let init = just(Token::Eq).then(immediate().map(ast::Expr::Immediate));
+    let init = just(Token::Eq).then(expr);
 
     just(Token::Let)
         .then(ident())
@@ -65,6 +66,19 @@ fn value_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Simple<T
         .boxed()
 }
 
+fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Simple<Token<'sc>>> + Clone
+{
+    just(Token::Solve)
+        .then(directive())
+        .then(expr().or_not())
+        .map(|((solve_token, directive), expr)| ast::Decl::Solve {
+            solve_token,
+            directive,
+            expr,
+        })
+        .boxed()
+}
+
 fn ident<'sc>() -> impl Parser<Token<'sc>, String, Error = Simple<Token<'sc>>> + Clone {
     select! { Token::Ident(id) => id.to_owned() }.boxed()
 }
@@ -76,4 +90,12 @@ fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Simple<To
 fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>> + Clone {
     select! { Token::Primitive(type_str) => ast::Type::Primitive(type_str.parse().unwrap()) }
         .boxed()
+}
+
+fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone {
+    recursive(|_| immediate().map(ast::Expr::Immediate)).boxed()
+}
+
+fn directive<'sc>() -> impl Parser<Token<'sc>, String, Error = Simple<Token<'sc>>> + Clone {
+    select! { Token::Directive(dir) => dir.to_owned() }.boxed()
 }

@@ -62,3 +62,11 @@ fn string_literals() {
         Token::Literal(r#""New\nLine""#)
     );
 }
+
+#[test]
+fn solve_tokens() {
+    assert_eq!(lex_one_success("solve"), Token::Solve);
+    assert_eq!(lex_one_success("maximize"), Token::Directive("maximize"));
+    assert_eq!(lex_one_success("minimize"), Token::Directive("minimize"));
+    assert_eq!(lex_one_success("satisfy"), Token::Directive("satisfy"));
+}

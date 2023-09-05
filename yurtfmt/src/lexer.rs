@@ -21,6 +21,11 @@ pub(super) enum Token<'sc> {
     #[token("let")]
     Let,
 
+    #[regex(r"satisfy|minimize|maximize", |lex| lex.slice())]
+    Directive(&'sc str),
+    #[token("solve")]
+    Solve,
+
     #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice())]
     Ident(&'sc str),
     #[regex(
@@ -55,6 +60,8 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Semi => write!(f, ";"),
             Token::Primitive(ident) => write!(f, "{ident}"),
             Token::Let => write!(f, "let"),
+            Token::Directive(contents) => write!(f, "{contents}"),
+            Token::Solve => write!(f, "solve"),
             Token::Ident(ident) => write!(f, "{ident}"),
             Token::Literal(contents) => write!(f, "{contents}"),
             Token::Comment => write!(f, "comment"),

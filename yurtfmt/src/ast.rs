@@ -17,6 +17,11 @@ pub(super) enum Decl<'sc> {
         colon_token_and_ty: Option<(Token<'sc>, Type)>,
         eq_token_and_init: Option<(Token<'sc>, Expr)>,
     },
+    Solve {
+        solve_token: Token<'sc>,
+        directive: String,
+        expr: Option<Expr>,
+    },
 }
 
 impl<'sc> Format for Decl<'sc> {
@@ -37,6 +42,18 @@ impl<'sc> Format for Decl<'sc> {
                 if let Some((eq_token, init)) = eq_token_and_init {
                     write!(formatted_code, " {} ", eq_token)?;
                     init.format(formatted_code)?;
+                }
+            }
+            Self::Solve {
+                solve_token,
+                directive,
+                expr,
+            } => {
+                write!(formatted_code, "{} {}", solve_token, directive)?;
+
+                if let Some(expr) = expr {
+                    write!(formatted_code, " ")?;
+                    expr.format(formatted_code)?;
                 }
             }
         }
