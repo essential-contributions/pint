@@ -46,7 +46,7 @@ pub(super) fn yurt_program<'sc>(
 }
 
 fn value_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone + 'sc,
+    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Simple<Token<'sc>>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Simple<Token<'sc>>> + Clone {
     let type_spec = just(Token::Colon).then(type_());
     let init = just(Token::Eq).then(expr);
@@ -91,11 +91,12 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>
     select! { Token::Primitive(type_str) => ast::Type::Primitive(type_str.parse().unwrap()) }
         .boxed()
 }
-pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone
-{
+pub(super) fn expr<'sc>(
+) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Simple<Token<'sc>>> + Clone {
     recursive(|expr| {
         choice((
             unary_op(expr.clone()),
+            binary_op(exp.clone()),
             immediate().map(ast::Expr::Immediate),
             path().map(ast::Expr::Path),
         ))
@@ -123,19 +124,45 @@ pub(super) fn path<'sc>() -> impl Parser<Token<'sc>, ast::Path, Error = Simple<T
         .boxed()
 }
 
-fn unary<'sc>() -> impl Parser<Token<'sc>, String, Error = Simple<Token<'sc>>> + Clone {
-    select! { Token::UnaryOp(op) => op.to_owned() }.boxed()
-}
-
 fn unary_op<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone + 'sc {
-    unary()
+    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Simple<Token<'sc>>> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Simple<Token<'sc>>> + Clone + 'sc {
+    choice((just(Token::Plus), just(Token::Minus), just(Token::Bang)))
         .then(expr)
         .map(|(prefix_op, expr)| {
             ast::Expr::UnaryOp(ast::UnaryOp {
                 prefix_op,
                 expr: Box::new(expr),
+            })
+        })
+        .boxed()
+}
+
+fn binary_op<'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Simple<Token<'sc>>> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Simple<Token<'sc>>> + Clone + 'sc {
+    expr.clone()
+        .then(choice((
+            just(Token::Plus),
+            just(Token::Minus),
+            just(Token::Star),
+            just(Token::Div),
+            just(Token::Mod),
+            just(Token::Gt),
+            just(Token::Lt),
+            just(Token::LtEq),
+            just(Token::GtEq),
+            just(Token::EqEq),
+            just(Token::NotEq),
+            just(Token::DoubleAmpersand),
+            just(Token::DoublePipe),
+        )))
+        .then(expr)
+        .map(|((lhs, op), rhs)| {
+            ast::Expr::BinaryOp(ast::BinaryOp {
+                lhs: Box::new(lhs),
+                op,
+                rhs: Box::new(rhs),
             })
         })
         .boxed()

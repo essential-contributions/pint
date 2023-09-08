@@ -73,8 +73,19 @@ fn solve_tokens() {
 }
 
 #[test]
-fn unary_op_tokens() {
-    assert_eq!(lex_one_success("+"), Token::UnaryOp("+"));
-    assert_eq!(lex_one_success("-"), Token::UnaryOp("-"));
-    assert_eq!(lex_one_success("!"), Token::UnaryOp("!"));
+fn operators() {
+    assert_eq!(lex_one_success("!"), Token::Bang);
+    assert_eq!(lex_one_success("+"), Token::Plus);
+    assert_eq!(lex_one_success("-"), Token::Minus);
+    assert_eq!(lex_one_success("*"), Token::Star);
+    assert_eq!(lex_one_success("/"), Token::Div);
+    assert_eq!(lex_one_success("%"), Token::Mod);
+    assert_eq!(lex_one_success(">"), Token::Gt);
+    assert_eq!(lex_one_success("<"), Token::Lt);
+    assert_eq!(lex_one_success("<="), Token::LtEq);
+    assert_eq!(lex_one_success(">="), Token::GtEq);
+    assert_eq!(lex_one_success("=="), Token::EqEq);
+    assert_eq!(lex_one_success("!="), Token::NotEq);
+    assert_eq!(lex_one_success("&&"), Token::DoubleAmpersand);
+    assert_eq!(lex_one_success("||"), Token::DoublePipe);
 }

@@ -254,3 +254,71 @@ fn unary_op_exprs() {
         expect_test::expect![[r#"!--!-+-1"#]],
     );
 }
+
+#[test]
+fn binary_op_exprs() {
+    check(
+        &run_formatter!(expr(), "   a   *    2.0   "),
+        expect_test::expect![[r#"a * 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), " a /     2.0 "),
+        expect_test::expect![[r#"a / 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "a   %   2.0"),
+        expect_test::expect![[r#"a % 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "  a   +  2.0 "),
+        expect_test::expect![[r#"a + 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), " a   - 2.0   "),
+        expect_test::expect![[r#"a - 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "a+   2.0"),
+        expect_test::expect![[r#"a+2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), " a- 2.0   "),
+        expect_test::expect![[r#"a-2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "   a <  2.0   "),
+        expect_test::expect![[r#"a < 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), " a   >    2.0 "),
+        expect_test::expect![[r#"a > 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "a   <= 2.0   "),
+        expect_test::expect![[r#"a <= 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "   a  >=  2.0  "),
+        expect_test::expect![[r#"a >= 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "  a   ==  2.0   "),
+        expect_test::expect![[r#"a == 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), " a  != 2.0 "),
+        expect_test::expect![[r#"a != 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "a  &&  b  "),
+        expect_test::expect![[r#"a && b"#]],
+    );
+    check(
+        &run_formatter!(expr(), "   a ||  b  "),
+        expect_test::expect![[r#"a || b"#]],
+    );
+    check(
+        &run_formatter!(expr(), "   a     ||  b &&     c  ||      d      &&     ! e"),
+        expect_test::expect![[r#"a || b && c || d && !e"#]],
+    );
+}

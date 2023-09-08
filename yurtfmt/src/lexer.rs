@@ -17,8 +17,38 @@ pub(super) enum Token<'sc> {
     DoubleColon,
     #[token(";")]
     Semi,
-    #[regex(r"\-|\+|!", |lex| lex.slice())]
-    UnaryOp(&'sc str),
+    #[token("!")]
+    Bang,
+    #[token("*")]
+    Star,
+    #[token("+")]
+    Plus,
+    #[token("-")]
+    Minus,
+    #[token("/")]
+    Div,
+    #[token("%")]
+    Mod,
+    #[token(">")]
+    Gt,
+    #[token("<")]
+    Lt,
+    #[token("<=")]
+    LtEq,
+    #[token(">=")]
+    GtEq,
+    #[token("==")]
+    EqEq,
+    #[token("!=")]
+    NotEq,
+    #[token("&&")]
+    DoubleAmpersand,
+    #[token("||")]
+    DoublePipe,
+    // #[regex(r"\-|\+|!", |lex| lex.slice())]
+    // UnaryOp(&'sc str),
+    // #[regex(r"\*|\/|\+|\-|\%|\<|\<=|\>|\>=|\=|\!=|\&|\||", |lex| lex.slice())]
+    // BinaryOp(&'sc str),
     #[regex(r"int|bool|string|real", |lex| lex.slice())]
     Primitive(&'sc str),
 
@@ -63,7 +93,21 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Colon => write!(f, ":"),
             Token::DoubleColon => write!(f, "::"),
             Token::Semi => write!(f, ";"),
-            Token::UnaryOp(op) => write!(f, "{op}"),
+            // Token::UnaryOp(op) => write!(f, "{op}"),
+            Token::Bang => write!(f, "!"),
+            Token::Star => write!(f, "*"),
+            Token::Plus => write!(f, "+"),
+            Token::Minus => write!(f, "-"),
+            Token::Div => write!(f, "/"),
+            Token::Mod => write!(f, "%"),
+            Token::Gt => write!(f, ">"),
+            Token::Lt => write!(f, "<"),
+            Token::LtEq => write!(f, "<="),
+            Token::GtEq => write!(f, ">="),
+            Token::EqEq => write!(f, "=="),
+            Token::NotEq => write!(f, "!="),
+            Token::DoubleAmpersand => write!(f, "&&"),
+            Token::DoublePipe => write!(f, "||"),
             Token::Primitive(ident) => write!(f, "{ident}"),
             Token::Let => write!(f, "let"),
             Token::Directive(contents) => write!(f, "{contents}"),
