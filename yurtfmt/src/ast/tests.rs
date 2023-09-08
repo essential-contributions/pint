@@ -164,7 +164,6 @@ let bin_var :  int=0b1010;
 
 #[test]
 fn solve_decls() {
-    // TODO: Add solve maximize x + y; when binary expr is supported
     check(
         &run_formatter!(
             yurt_program(),
@@ -178,6 +177,10 @@ solve  maximize ;
                solve minimize   foo;
 
    solve   maximize foo   ;
+
+                    solve   minimize x    +y   ;
+
+        solve   maximize y-    x   ;
   "#
         ),
         expect_test::expect![[r#"
@@ -186,6 +189,8 @@ solve  maximize ;
                     solve maximize;
                     solve minimize foo;
                     solve maximize foo;
+                    solve minimize x + y;
+                    solve maximize y - x;
                 "#]],
     );
 }
@@ -279,11 +284,11 @@ fn binary_op_exprs() {
     );
     check(
         &run_formatter!(expr(), "a+   2.0"),
-        expect_test::expect![[r#"a+2.0"#]],
+        expect_test::expect![[r#"a + 2.0"#]],
     );
     check(
         &run_formatter!(expr(), " a- 2.0   "),
-        expect_test::expect![[r#"a-2.0"#]],
+        expect_test::expect![[r#"a - 2.0"#]],
     );
     check(
         &run_formatter!(expr(), "   a <  2.0   "),

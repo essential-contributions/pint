@@ -91,17 +91,19 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Simple<Token<'sc>>
     select! { Token::Primitive(type_str) => ast::Type::Primitive(type_str.parse().unwrap()) }
         .boxed()
 }
+
 pub(super) fn expr<'sc>(
 ) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Simple<Token<'sc>>> + Clone {
     recursive(|expr| {
-        choice((
+        let atom = choice((
             unary_op(expr.clone()),
-            binary_op(expr.clone()),
             immediate().map(ast::Expr::Immediate),
             path().map(ast::Expr::Path),
         ))
+        .boxed();
+
+        binary_op(atom).boxed()
     })
-    .boxed()
 }
 
 fn directive<'sc>() -> impl Parser<Token<'sc>, String, Error = Simple<Token<'sc>>> + Clone {
@@ -138,27 +140,34 @@ fn unary_op<'sc>(
         .boxed()
 }
 
-fn binary_op<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Simple<Token<'sc>>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Simple<Token<'sc>>> + Clone + 'sc {
-    expr.clone()
-        .then(choice((
-            just(Token::Plus),
-            just(Token::Minus),
-            just(Token::Star),
-            just(Token::Div),
-            just(Token::Mod),
-            just(Token::Gt),
-            just(Token::Lt),
-            just(Token::LtEq),
-            just(Token::GtEq),
-            just(Token::EqEq),
-            just(Token::NotEq),
-            just(Token::DoubleAmpersand),
-            just(Token::DoublePipe),
-        )))
-        .then(expr)
-        .map(|((lhs, op), rhs)| {
+fn binary_op<'sc, P>(
+    parser: P,
+) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Simple<Token<'sc>>> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr<'sc>, Error = Simple<Token<'sc>>> + Clone + 'sc,
+{
+    parser
+        .clone()
+        .then(
+            choice((
+                just(Token::Plus),
+                just(Token::Minus),
+                just(Token::Star),
+                just(Token::Div),
+                just(Token::Mod),
+                just(Token::Gt),
+                just(Token::Lt),
+                just(Token::LtEq),
+                just(Token::GtEq),
+                just(Token::EqEq),
+                just(Token::NotEq),
+                just(Token::DoubleAmpersand),
+                just(Token::DoublePipe),
+            ))
+            .then(parser)
+            .repeated(),
+        )
+        .foldl(|lhs, (op, rhs)| {
             ast::Expr::BinaryOp(ast::BinaryOp {
                 lhs: Box::new(lhs),
                 op,

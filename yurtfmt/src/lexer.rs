@@ -45,10 +45,6 @@ pub(super) enum Token<'sc> {
     DoubleAmpersand,
     #[token("||")]
     DoublePipe,
-    // #[regex(r"\-|\+|!", |lex| lex.slice())]
-    // UnaryOp(&'sc str),
-    // #[regex(r"\*|\/|\+|\-|\%|\<|\<=|\>|\>=|\=|\!=|\&|\||", |lex| lex.slice())]
-    // BinaryOp(&'sc str),
     #[regex(r"int|bool|string|real", |lex| lex.slice())]
     Primitive(&'sc str),
 
@@ -93,7 +89,6 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Colon => write!(f, ":"),
             Token::DoubleColon => write!(f, "::"),
             Token::Semi => write!(f, ";"),
-            // Token::UnaryOp(op) => write!(f, "{op}"),
             Token::Bang => write!(f, "!"),
             Token::Star => write!(f, "*"),
             Token::Plus => write!(f, "+"),
