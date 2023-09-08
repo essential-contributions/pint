@@ -96,7 +96,7 @@ pub(super) fn expr<'sc>(
     recursive(|expr| {
         choice((
             unary_op(expr.clone()),
-            binary_op(exp.clone()),
+            binary_op(expr.clone()),
             immediate().map(ast::Expr::Immediate),
             path().map(ast::Expr::Path),
         ))
