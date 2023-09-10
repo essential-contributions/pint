@@ -1,10 +1,10 @@
 version: 0.1
 cli:
-  version: 1.14.2
+  version: 1.15.0
 plugins:
   sources:
     - id: trunk
-      ref: v1.2.2
+      ref: v1.2.3
       uri: https://github.com/trunk-io/plugins
 lint:
   enabled:
@@ -12,7 +12,7 @@ lint:
     - clippy@1.72.0
     - git-diff-check
     - gitleaks@8.18.0
-    - markdownlint@0.35.0
+    - markdownlint@0.36.0
     - prettier@3.0.3
     - rustfmt@1.72.0
     - taplo@0.8.1
