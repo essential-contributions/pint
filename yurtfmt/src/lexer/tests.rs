@@ -71,3 +71,8 @@ fn solve_tokens() {
     assert_eq!(lex_one_success("minimize"), Token::Directive("minimize"));
     assert_eq!(lex_one_success("satisfy"), Token::Directive("satisfy"));
 }
+
+#[test]
+fn constraint() {
+    assert_eq!(lex_one_success("constraint"), Token::Constraint);
+}
