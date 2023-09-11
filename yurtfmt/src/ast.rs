@@ -23,6 +23,13 @@ pub(super) enum Decl<'sc> {
         directive: String,
         expr: Option<Expr>,
     },
+    Fn {
+        fn_token: Token<'sc>,
+        name: String,
+        fn_sig: Option<Vec<(String, Type)>>,
+        return_type: Type,
+        // body: Block, TODO:
+    },
 }
 
 impl<'sc> Format for Decl<'sc> {
@@ -56,6 +63,28 @@ impl<'sc> Format for Decl<'sc> {
                     write!(formatted_code, " ")?;
                     expr.format(formatted_code)?;
                 }
+            }
+            Self::Fn {
+                fn_token,
+                name,
+                fn_sig,
+                return_type,
+                // body,
+            } => {
+                write!(formatted_code, "{} {} (", fn_token, name)?;
+
+                if let Some(fn_sig) = fn_sig {
+                    let parameters: Vec<String> = fn_sig
+                        .iter()
+                        .map(|(param_name, param_type)| format!("{}: {}", param_name, param_type))
+                        .collect();
+
+                    write!(formatted_code, " {} ", parameters.join(", "))?;
+                }
+
+                writeln!(formatted_code, ") -> {} {{", return_type)?;
+                // block stuff
+                write!(formatted_code, "\n}}")?;
             }
         }
 

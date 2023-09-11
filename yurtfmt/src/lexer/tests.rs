@@ -16,8 +16,11 @@ fn control_tokens() {
     assert_eq!(lex_one_success(":"), Token::Colon);
     assert_eq!(lex_one_success("::"), Token::DoubleColon);
     assert_eq!(lex_one_success(";"), Token::Semi);
+    assert_eq!(lex_one_success(","), Token::Comma);
+    assert_eq!(lex_one_success("("), Token::ParenOpen);
+    assert_eq!(lex_one_success(")"), Token::ParenClose);
     assert_eq!(lex_one_success("="), Token::Eq);
-    assert_eq!(lex_one_success("let"), Token::Let);
+    assert_eq!(lex_one_success("->"), Token::Arrow);
 }
 
 #[test]
@@ -70,4 +73,10 @@ fn solve_tokens() {
     assert_eq!(lex_one_success("maximize"), Token::Directive("maximize"));
     assert_eq!(lex_one_success("minimize"), Token::Directive("minimize"));
     assert_eq!(lex_one_success("satisfy"), Token::Directive("satisfy"));
+}
+
+#[test]
+fn keywords() {
+    assert_eq!(lex_one_success("let"), Token::Let);
+    assert_eq!(lex_one_success("fn"), Token::Fn);
 }

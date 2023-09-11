@@ -38,7 +38,7 @@ pub(super) fn parse_str_to_ast(source: &str) -> Result<ast::Ast<'_>, Vec<Formatt
 
 pub(super) fn yurt_program<'sc>(
 ) -> impl Parser<Token<'sc>, ast::Ast<'sc>, Error = Simple<Token<'sc>>> + Clone {
-    choice((value_decl(expr()), solve_decl()))
+    choice((value_decl(expr()), solve_decl(), fn_decl()))
         .then_ignore(just(Token::Semi))
         .repeated()
         .then_ignore(end())
@@ -77,6 +77,30 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Simple<T
             expr,
         })
         .boxed()
+}
+
+fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Simple<Token<'sc>>> + Clone {
+    let type_spec = just(Token::Colon).ignore_then(type_());
+
+    let params = ident()
+        .then(type_spec)
+        .separated_by(just(Token::Comma))
+        .allow_trailing()
+        .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
+        .boxed();
+
+    let return_type = just(Token::Arrow).ignore_then(type_());
+
+    just(Token::Fn)
+        .then(ident())
+        .then(params)
+        .then(return_type)
+        .map(|(((fn_token, name), params), return_type)| ast::Decl::Fn {
+            fn_token,
+            name,
+            fn_sig: Some(params),
+            return_type,
+        })
 }
 
 fn ident<'sc>() -> impl Parser<Token<'sc>, String, Error = Simple<Token<'sc>>> + Clone {

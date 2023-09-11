@@ -218,3 +218,24 @@ fn paths() {
         expect_test::expect![[r#"::foo::bar"#]],
     );
 }
+
+#[test]
+fn fn_decl() {
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"
+            fn foo(
+                        x: real, 
+        y: real
+            )   ->       real;
+            
+            "#
+        ),
+        expect_test::expect![[r#"
+        fn foo ( x: real, y: real ) -> real {
+
+        };
+        "#]],
+    );
+}

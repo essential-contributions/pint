@@ -17,11 +17,21 @@ pub(super) enum Token<'sc> {
     DoubleColon,
     #[token(";")]
     Semi,
+    #[token(",")]
+    Comma,
+    #[token("(")]
+    ParenOpen,
+    #[token(")")]
+    ParenClose,
+    #[token("->")]
+    Arrow,
     #[regex(r"int|bool|string|real", |lex| lex.slice())]
     Primitive(&'sc str),
 
     #[token("let")]
     Let,
+    #[token("fn")]
+    Fn,
 
     #[regex(r"satisfy|minimize|maximize", |lex| lex.slice())]
     Directive(&'sc str),
@@ -61,8 +71,13 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Colon => write!(f, ":"),
             Token::DoubleColon => write!(f, "::"),
             Token::Semi => write!(f, ";"),
+            Token::Comma => write!(f, ","),
+            Token::ParenOpen => write!(f, "("),
+            Token::ParenClose => write!(f, ")"),
+            Token::Arrow => write!(f, "->"),
             Token::Primitive(ident) => write!(f, "{ident}"),
             Token::Let => write!(f, "let"),
+            Token::Fn => write!(f, "fn"),
             Token::Directive(contents) => write!(f, "{contents}"),
             Token::Solve => write!(f, "solve"),
             Token::Ident(ident) => write!(f, "{ident}"),
