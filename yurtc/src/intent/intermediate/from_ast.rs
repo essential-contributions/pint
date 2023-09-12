@@ -15,7 +15,7 @@ use super::{
 
 use std::collections::HashMap;
 
-pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
+pub(super) fn from_ast(ast: &ast::Ast) -> super::Result<IntermediateIntent> {
     let mut expr_ctx = ExprContext::default();
 
     let mut directives = Vec::new();
@@ -27,7 +27,7 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
     let mut externs = Vec::new();
     let mut new_types = Vec::new();
 
-    for decl in ast {
+    for decl in &ast.0 {
         match decl {
             ast::Decl::Use { span, .. } => {
                 return Err(CompileError::Internal {

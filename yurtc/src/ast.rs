@@ -14,7 +14,8 @@ pub(super) type ContractDecl = CD<Path, Expr, Type>;
 mod mod_resolve;
 mod use_path;
 
-pub(crate) type Ast = Vec<Decl>;
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Ast(pub(crate) Vec<Decl>);
 
 pub(super) use mod_resolve::parse_project;
 

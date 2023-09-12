@@ -60,6 +60,7 @@ fn yurt_program<'sc>() -> impl Parser<Token<'sc>, ast::Ast, Error = ParseError> 
     ))
     .repeated()
     .then_ignore(end())
+    .map(ast::Ast)
 }
 
 fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError> + Clone {

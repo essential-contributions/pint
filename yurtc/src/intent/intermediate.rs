@@ -49,7 +49,7 @@ pub(super) struct IntermediateIntent {
 }
 
 impl IntermediateIntent {
-    pub(super) fn from_ast(ast: &[ast::Decl]) -> Result<Self> {
+    pub(super) fn from_ast(ast: &ast::Ast) -> Result<Self> {
         from_ast::from_ast(ast)
     }
 
@@ -90,7 +90,7 @@ use crate::expr;
 fn single_let() {
     use crate::types::{PrimitiveKind::*, Type};
     let filepath: Rc<std::path::Path> = Rc::from(std::path::Path::new("test"));
-    let ast = vec![ast::Decl::Let {
+    let ast = ast::Ast(vec![ast::Decl::Let {
         // `let foo: real;`
         name: ast::Ident {
             name: "foo".to_owned(),
@@ -102,7 +102,7 @@ fn single_let() {
         }),
         init: None,
         span: Span::new(filepath, 0..14),
-    }];
+    }]);
 
     assert!(IntermediateIntent::from_ast(&ast).is_ok());
 }
@@ -111,7 +111,7 @@ fn single_let() {
 fn double_let_clash() {
     use crate::types::{PrimitiveKind::*, Type};
     let filepath: Rc<std::path::Path> = Rc::from(std::path::Path::new("test"));
-    let ast = vec![
+    let ast = ast::Ast(vec![
         ast::Decl::Let {
             // `let foo: real;`
             name: ast::Ident {
@@ -138,7 +138,7 @@ fn double_let_clash() {
             init: None,
             span: Span::new(filepath, 15..29),
         },
-    ];
+    ]);
 
     // TODO compare against an error message using the spans.
     // https://github.com/essential-contributions/yurt/issues/172
@@ -156,7 +156,7 @@ fn double_let_clash() {
 fn let_fn_clash() {
     use crate::types::{PrimitiveKind::*, Type};
     let filepath: Rc<std::path::Path> = Rc::from(std::path::Path::new("test"));
-    let ast = vec![
+    let ast = ast::Ast(vec![
         ast::Decl::Let {
             // `let bar: real;`
             name: ast::Ident {
@@ -194,7 +194,7 @@ fn let_fn_clash() {
             },
             span: Span::new(Rc::clone(&filepath), 15..41),
         },
-    ];
+    ]);
 
     // TODO ditto
     let res = IntermediateIntent::from_ast(&ast);
