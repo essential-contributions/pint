@@ -9,6 +9,7 @@ mod lexer;
 mod parser;
 mod span;
 mod types;
+mod util;
 
 use std::path::Path;
 

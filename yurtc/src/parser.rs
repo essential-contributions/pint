@@ -518,8 +518,7 @@ where
                 .map_with_span(|index, span| (index, span))
                 .repeated(),
         )
-        .map(|(expr, indices_with_spans)| (indices_with_spans, expr))
-        .foldr(|(index, span), expr| {
+        .foldl(|expr, (index, span)| {
             let span = Span::new(span.context(), expr.span().start()..span.end());
             ast::Expr::ArrayElementAccess {
                 array: Box::new(expr),
