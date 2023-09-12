@@ -3,6 +3,8 @@ use crate::{
     span::{Span, Spanned},
 };
 
+mod display;
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum PrimitiveKind {
     Bool,

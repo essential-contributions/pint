@@ -11,6 +11,7 @@ pub(super) type FnSig = F<Type>;
 pub(super) type InterfaceDecl = ID<Type>;
 pub(super) type ContractDecl = CD<Path, Expr, Type>;
 
+mod display;
 mod mod_resolve;
 mod use_path;
 

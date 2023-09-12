@@ -17,7 +17,7 @@ macro_rules! run_parser {
             toks.into_iter(),
         );
         match ($parser.then_ignore(end())).parse(token_stream) {
-            Ok(ast) => format!("{:?}", ast),
+            Ok(ast) => format!("{ast}"),
             Err(errors) => format!(
                 "{}",
                 // Print each error on one line. For each error, start with the span.
@@ -1698,7 +1698,7 @@ fn test_parse_str_to_ast() {
     check(
         &format!("{:?}", parse_str_to_ast("let x = 5;", filepath.clone())),
         expect_test::expect![[
-            r#"Ok([Let { name: Ident { name: "x", span: "test":4..5 }, ty: None, init: Some(Immediate { value: Int(5), span: "test":8..9 }), span: "test":0..10 }])"#
+            r#"Ok(Ast([Let { name: Ident { name: "x", span: "test":4..5 }, ty: None, init: Some(Immediate { value: Int(5), span: "test":8..9 }), span: "test":0..10 }]))"#
         ]],
     );
     check(
