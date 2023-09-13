@@ -89,3 +89,8 @@ fn operators() {
     assert_eq!(lex_one_success("&&"), Token::DoubleAmpersand);
     assert_eq!(lex_one_success("||"), Token::DoublePipe);
 }
+
+#[test]
+fn constraint() {
+    assert_eq!(lex_one_success("constraint"), Token::Constraint);
+}

@@ -51,6 +51,9 @@ pub(super) enum Token<'sc> {
     #[token("let")]
     Let,
 
+    #[token("constraint")]
+    Constraint,
+
     #[regex(r"satisfy|minimize|maximize", |lex| lex.slice())]
     Directive(&'sc str),
     #[token("solve")]
@@ -105,6 +108,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::DoublePipe => write!(f, "||"),
             Token::Primitive(ident) => write!(f, "{ident}"),
             Token::Let => write!(f, "let"),
+            Token::Constraint => write!(f, "constraint"),
             Token::Directive(contents) => write!(f, "{contents}"),
             Token::Solve => write!(f, "solve"),
             Token::Ident(ident) => write!(f, "{ident}"),

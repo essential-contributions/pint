@@ -196,6 +196,24 @@ solve  maximize ;
 }
 
 #[test]
+fn constraint_decls() {
+    // TODO: add binary expr constraint when supported (ex. x + y)
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"
+            constraint         blah;
+    constraint foo      ;
+        "#
+        ),
+        expect_test::expect![[r#"
+        constraint blah;
+        constraint foo;
+        "#]],
+    );
+}
+
+#[test]
 fn paths() {
     use crate::parser;
     check(

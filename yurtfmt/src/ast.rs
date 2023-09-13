@@ -23,6 +23,10 @@ pub(super) enum Decl<'sc> {
         directive: String,
         expr: Option<Expr<'sc>>,
     },
+    Constraint {
+        constraint_token: Token<'sc>,
+        expr: Expr,
+    },
 }
 
 impl<'sc> Format for Decl<'sc> {
@@ -56,6 +60,13 @@ impl<'sc> Format for Decl<'sc> {
                     write!(formatted_code, " ")?;
                     expr.format(formatted_code)?;
                 }
+            }
+            Self::Constraint {
+                constraint_token,
+                expr,
+            } => {
+                write!(formatted_code, "{} ", constraint_token)?;
+                expr.format(formatted_code)?;
             }
         }
 
