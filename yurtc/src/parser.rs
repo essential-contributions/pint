@@ -60,6 +60,7 @@ fn yurt_program<'sc>() -> impl Parser<Token<'sc>, ast::Ast, Error = ParseError> 
     ))
     .repeated()
     .then_ignore(end())
+    .map(ast::Ast)
 }
 
 fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError> + Clone {
@@ -517,8 +518,7 @@ where
                 .map_with_span(|index, span| (index, span))
                 .repeated(),
         )
-        .map(|(expr, indices_with_spans)| (indices_with_spans, expr))
-        .foldr(|(index, span), expr| {
+        .foldl(|expr, (index, span)| {
             let span = Span::new(span.context(), expr.span().start()..span.end());
             ast::Expr::ArrayElementAccess {
                 array: Box::new(expr),
