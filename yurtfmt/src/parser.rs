@@ -80,7 +80,7 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Simple<T
 }
 
 fn constraint_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone + 'sc,
+    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Simple<Token<'sc>>> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Simple<Token<'sc>>> + Clone {
     just(Token::Constraint)
         .then(expr)

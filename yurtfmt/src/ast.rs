@@ -25,7 +25,7 @@ pub(super) enum Decl<'sc> {
     },
     Constraint {
         constraint_token: Token<'sc>,
-        expr: Expr,
+        expr: Expr<'sc>,
     },
 }
 
