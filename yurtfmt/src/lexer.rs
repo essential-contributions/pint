@@ -30,6 +30,9 @@ pub(super) enum Token<'sc> {
 
     #[token("let")]
     Let,
+
+    #[token("constraint")]
+    Constraint,
     #[token("fn")]
     Fn,
 
@@ -77,6 +80,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Arrow => write!(f, "->"),
             Token::Primitive(ident) => write!(f, "{ident}"),
             Token::Let => write!(f, "let"),
+            Token::Constraint => write!(f, "constraint"),
             Token::Fn => write!(f, "fn"),
             Token::Directive(contents) => write!(f, "{contents}"),
             Token::Solve => write!(f, "solve"),

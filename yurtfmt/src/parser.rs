@@ -38,11 +38,16 @@ pub(super) fn parse_str_to_ast(source: &str) -> Result<ast::Ast<'_>, Vec<Formatt
 
 pub(super) fn yurt_program<'sc>(
 ) -> impl Parser<Token<'sc>, ast::Ast<'sc>, Error = Simple<Token<'sc>>> + Clone {
-    choice((value_decl(expr()), solve_decl(), fn_decl()))
-        .then_ignore(just(Token::Semi))
-        .repeated()
-        .then_ignore(end())
-        .boxed()
+    choice((
+        value_decl(expr()),
+        solve_decl(),
+        fn_decl(),
+        constraint_decl(expr()),
+    ))
+    .then_ignore(just(Token::Semi))
+    .repeated()
+    .then_ignore(end())
+    .boxed()
 }
 
 fn value_decl<'sc>(
@@ -74,6 +79,18 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Simple<T
         .map(|((solve_token, directive), expr)| ast::Decl::Solve {
             solve_token,
             directive,
+            expr,
+        })
+        .boxed()
+}
+
+fn constraint_decl<'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr, Error = Simple<Token<'sc>>> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Simple<Token<'sc>>> + Clone {
+    just(Token::Constraint)
+        .then(expr)
+        .map(|(constraint_token, expr)| ast::Decl::Constraint {
+            constraint_token,
             expr,
         })
         .boxed()

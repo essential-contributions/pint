@@ -80,3 +80,8 @@ fn keywords() {
     assert_eq!(lex_one_success("let"), Token::Let);
     assert_eq!(lex_one_success("fn"), Token::Fn);
 }
+
+#[test]
+fn constraint() {
+    assert_eq!(lex_one_success("constraint"), Token::Constraint);
+}
