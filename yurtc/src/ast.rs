@@ -111,7 +111,6 @@ impl Spanned for Decl {
 
 #[derive(Clone, Debug)]
 pub(super) enum UseTree {
-    Glob(Span),
     Name {
         name: Ident,
         span: Span,
@@ -136,7 +135,6 @@ impl Spanned for UseTree {
     fn span(&self) -> &Span {
         use UseTree::*;
         match &self {
-            Glob(span) => span,
             Name { span, .. } | Path { span, .. } | Group { span, .. } | Alias { span, .. } => span,
         }
     }

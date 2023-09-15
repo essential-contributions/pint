@@ -4,7 +4,6 @@ use crate::span::Span;
 #[derive(Clone, PartialEq)]
 pub(super) struct UsePath {
     pub(super) path: Vec<Ident>,
-    pub(super) has_glob: bool,
     pub(super) alias: Option<Ident>,
     pub(super) span: Span,
 }
@@ -25,13 +24,12 @@ impl std::fmt::Debug for UsePath {
             .map(|p| p.name.to_string())
             .collect::<Vec<_>>()
             .join("::");
-        let glob_str = if self.has_glob { "::*" } else { "" };
         let alias_str = self
             .alias
             .as_ref()
             .map(|a| format!(" as {}", &a.name))
             .unwrap_or_else(|| "".to_owned());
-        write!(f, "UsePath({path_str}{glob_str}{alias_str})",)
+        write!(f, "UsePath({path_str}{alias_str})",)
     }
 }
 
@@ -39,20 +37,10 @@ impl UseTree {
     #[allow(dead_code)]
     pub(super) fn gather_paths(&self) -> Vec<UsePath> {
         match self {
-            UseTree::Glob(span) => {
-                // Just a glob suffix.
-                vec![UsePath {
-                    path: Vec::new(),
-                    has_glob: true,
-                    alias: None,
-                    span: span.clone(),
-                }]
-            }
             UseTree::Name { name, span } => {
                 // A single element.
                 vec![UsePath {
                     path: vec![name.clone()],
-                    has_glob: false,
                     alias: None,
                     span: span.clone(),
                 }]
@@ -80,7 +68,6 @@ impl UseTree {
                 // A single element with an alias.
                 vec![UsePath {
                     path: vec![name.clone()],
-                    has_glob: false,
                     alias: Some(alias.clone()),
                     span: span.clone(),
                 }]
@@ -142,20 +129,5 @@ fn gather_use_paths() {
     check_use_path(
         to_use_tree("use a::{b as ab, c};").gather_paths(),
         expect_test::expect!["[UsePath(a::b as ab), UsePath(a::c)]"],
-    );
-
-    check_use_path(
-        to_use_tree("use a::*;").gather_paths(),
-        expect_test::expect!["[UsePath(a::*)]"],
-    );
-
-    check_use_path(
-        to_use_tree("use a::{*, b::c};").gather_paths(),
-        expect_test::expect!["[UsePath(a::*), UsePath(a::b::c)]"],
-    );
-
-    check_use_path(
-        to_use_tree("use a::{*, b::c as abc};").gather_paths(),
-        expect_test::expect!["[UsePath(a::*), UsePath(a::b::c as abc)]"],
     );
 }

@@ -114,11 +114,6 @@ fn immediates() {
 #[test]
 fn use_statements() {
     check(
-        &run_parser!(yurt_program(), "use *; use ::*;"),
-        expect_test::expect!["use *; use ::*;"],
-    );
-
-    check(
         &run_parser!(yurt_program(), "use {}; use ::{};"),
         expect_test::expect!["use {}; use ::{};"],
     );
@@ -139,55 +134,29 @@ fn use_statements() {
     );
 
     check(
-        &run_parser!(yurt_program(), "use ::a::{*, c as d};"),
-        expect_test::expect!["use ::a::{*, c as d};"],
-    );
-
-    check(
-        &run_parser!(yurt_program(), "use ::a::{*, c as d};"),
-        expect_test::expect!["use ::a::{*, c as d};"],
-    );
-
-    check(
-        &run_parser!(yurt_program(), "use a::{{*}, {c as d, { e as f, * }}};"),
-        expect_test::expect!["use a::{{*}, {c as d, {e as f, *}}};"],
+        &run_parser!(yurt_program(), "use a::{{c as d, { e as f }}};"),
+        expect_test::expect!["use a::{{c as d, {e as f}}};"],
     );
 
     // Errors - TODO: imporve these
     check(
         &run_parser!(use_statement(), "use ;"),
         expect_test::expect![[r#"
-            expected `*`, `::`, or `{`, found `;`
-            @4..5: expected `*`, `::`, or `{`
+            expected `::`, or `{`, found `;`
+            @4..5: expected `::`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(use_statement(), "use ::;"),
         expect_test::expect![[r#"
-            expected `*`, or `{`, found `;`
-            @6..7: expected `*`, or `{`
+            expected `{`, found `;`
+            @6..7: expected `{`
         "#]],
     );
 
     check(
         &run_parser!(use_statement(), "use a::;"),
-        expect_test::expect![[r#"
-            expected `;`, found `::`
-            @5..7: expected `;`
-        "#]],
-    );
-
-    check(
-        &run_parser!(use_statement(), "use * as b;"),
-        expect_test::expect![[r#"
-            expected `;`, found `as`
-            @6..8: expected `;`
-        "#]],
-    );
-
-    check(
-        &run_parser!(use_statement(), "use a::{* as d};"),
         expect_test::expect![[r#"
             expected `;`, found `::`
             @5..7: expected `;`

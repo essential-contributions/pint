@@ -221,37 +221,28 @@ impl ModuleResolver {
         let ast = resolver_getv!(self.asts, &src_key, "AST")?;
         let mod_path = resolver_getv!(self.mod_paths, &src_key, "module path")?;
 
-        let (uses, globbed_uses): (Vec<UsePath>, Vec<UsePath>) = ast
+        let uses = ast
             .iter()
-            .filter_map(|decl| {
-                if let Decl::Use {
-                    is_absolute,
+            .filter_map(|decl| match decl {
+                Decl::Use {
                     use_tree,
+                    is_absolute,
                     ..
-                } = decl
-                {
-                    Some(
-                        use_tree
-                            .gather_paths()
-                            .into_iter()
-                            .map(|mut use_path| {
-                                if !is_absolute {
-                                    use_path.add_prefix(mod_path.clone());
-                                }
-                                use_path
-                            })
-                            .collect::<Vec<_>>(),
-                    )
-                } else {
-                    None
-                }
+                } => Some(
+                    use_tree
+                        .gather_paths()
+                        .into_iter()
+                        .map(move |mut use_path| {
+                            if !is_absolute {
+                                use_path.add_prefix(mod_path.clone());
+                            }
+                            use_path
+                        }),
+                ),
+                _ => None,
             })
             .flatten()
-            .partition(|use_path| use_path.has_glob);
-
-        if !globbed_uses.is_empty() {
-            todo!("Need to handle globs!")
-        }
+            .collect();
 
         self.uses.insert(src_key, uses);
 
