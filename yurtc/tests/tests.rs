@@ -47,10 +47,23 @@ fn run_tests(sub_dir: &str, args: &[&OsStr]) -> anyhow::Result<()> {
                 io::stdout().write_all(&output.stdout)?;
                 println!("\n");
             } else {
+                let strip_file_path = |text: String| {
+                    text.lines()
+                        .filter(|line| {
+                            entry
+                                .path()
+                                .to_str()
+                                .map(|path_str| !line.contains(path_str))
+                                .unwrap_or(false)
+                        })
+                        .collect::<String>()
+                };
+
                 let stdout_str = String::from_utf8_lossy(&output.stdout).to_string();
                 let expected_str =
                     String::from_utf8_lossy(&std::fs::read(expected_to_fail_txt_path)?).to_string();
-                assert_eq!(stdout_str, expected_str);
+
+                assert_eq!(strip_file_path(stdout_str), strip_file_path(expected_str));
             }
         }
 

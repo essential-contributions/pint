@@ -1,5 +1,5 @@
 [31mError:[0m [1msymbol `a` has already been declared[0m
-   [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m/home/toby/prj/yurt/yurtc/tests/modules/03/main.yrt:4:5[38;5;246m][0m
+   [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0myurt/yurtc/tests/modules/03/main.yrt:4:5[38;5;246m][0m
    [38;5;246m│[0m
  [38;5;246m1 │[0m [38;5;249mu[0m[38;5;249ms[0m[38;5;249me[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249m:[0m[38;5;249m:[0m[34ma[0m[38;5;249m;[0m
  [38;5;240m  │[0m        [34m┬[0m  
