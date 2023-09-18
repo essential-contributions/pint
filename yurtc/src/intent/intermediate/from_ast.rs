@@ -154,12 +154,12 @@ impl ExprContext {
             },
             ast::Expr::Path(path) => Expr::Path(convert_path(path)?),
             ast::Expr::UnaryOp { op, expr, span } => Expr::UnaryOp {
-                op: op.clone(),
+                op: *op,
                 expr: Box::new(self.convert_expr(expr)?),
                 span: span.clone(),
             },
             ast::Expr::BinaryOp { op, lhs, rhs, span } => Expr::BinaryOp {
-                op: op.clone(),
+                op: *op,
                 lhs: Box::new(self.convert_expr(lhs)?),
                 rhs: Box::new(self.convert_expr(rhs)?),
                 span: span.clone(),

@@ -78,7 +78,6 @@ impl Display for super::Decl {
 impl Display for super::UseTree {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
-            Self::Glob(_) => write!(f, "*"),
             Self::Name { name, .. } => name.fmt(f),
             Self::Path { prefix, suffix, .. } => write!(f, "{prefix}::{suffix}"),
             Self::Group { imports, .. } => {

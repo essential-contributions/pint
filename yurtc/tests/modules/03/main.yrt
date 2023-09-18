@@ -1,0 +1,6 @@
+use a::a;
+
+// Name clash with a::a.
+let a = 11;
+
+solve minimize a;

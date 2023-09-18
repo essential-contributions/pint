@@ -75,8 +75,6 @@ fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError> 
             })
             .boxed();
 
-        let glob = just(Token::Star).map_with_span(|_, span| ast::UseTree::Glob(span));
-
         let group = use_tree
             .separated_by(just(Token::Comma))
             .allow_trailing()
@@ -92,7 +90,7 @@ fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError> 
 
         let name = ident().map_with_span(|name, span| ast::UseTree::Name { name, span });
 
-        choice((path, alias, name, glob, group)).boxed()
+        choice((path, alias, name, group)).boxed()
     })
 }
 

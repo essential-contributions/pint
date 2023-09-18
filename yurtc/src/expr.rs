@@ -124,7 +124,7 @@ impl<E> Spanned for CondBranch<E> {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UnaryOp {
     Pos,
     Neg,
@@ -132,7 +132,7 @@ pub enum UnaryOp {
     NextState,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BinaryOp {
     Mul,
     Div,
