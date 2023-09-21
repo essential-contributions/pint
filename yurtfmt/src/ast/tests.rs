@@ -38,7 +38,7 @@ macro_rules! run_formatter {
                     "{}",
                     // Print each parsing.
                     errors.iter().fold(String::new(), |acc, error| {
-                        format!("{}{}\n", acc, error)
+                        format!("{}{:?}\n", acc, error)
                     })
                 ),
             }
@@ -60,7 +60,7 @@ fn errors() {
     check(
         &run_formatter!(yurt_program(), r#"let x = 5"#),
         expect_test::expect![[r#"
-            found end of input but expected ";"
+            Cheap { span: 9..9, label: None, phantom: PhantomData<yurtfmt::lexer::Token> }
         "#]],
     );
 }

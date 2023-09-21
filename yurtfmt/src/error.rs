@@ -1,6 +1,6 @@
 use crate::lexer::Token;
 use ariadne::{Color, Fmt, Label, Report, ReportKind, Source};
-use chumsky::prelude::*;
+use chumsky::{error::Cheap, prelude::*};
 use thiserror::Error;
 
 pub(super) type Span = std::ops::Range<usize>;
@@ -18,8 +18,8 @@ pub(super) enum LexError {
 pub(super) enum FormatterError<'a> {
     #[error("{}", error)]
     Lex { span: Span, error: LexError },
-    #[error("{}", error)]
-    Parse { error: Box<Simple<Token<'a>>> },
+    #[error("{:?}", error)]
+    Parse { error: Box<Cheap<Token<'a>>> },
     #[error("Error formatting a message into a stream: {0}")]
     FormatError(#[from] std::fmt::Error),
 }
