@@ -56,7 +56,7 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
                     .join(", ");
 
                 if let Some(parse_error_str) = expectations.parse_failure {
-                    similar_asserts::assert_eq!(errs_str, parse_error_str.trim_end());
+                    similar_asserts::assert_eq!(parse_error_str.trim_end(), errs_str);
                 } else {
                     failed_tests.push(path.display().to_string());
                     println!(
@@ -79,6 +79,13 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
                         .collect::<Vec<_>>()
                         .join("\n");
                     similar_asserts::assert_eq!(expected_ast_str, ast_str);
+                } else if expectations.parse_failure.is_some() {
+                    failed_tests.push(path.display().to_string());
+                    println!(
+                        "{} {}.",
+                        Red.paint("UNEXPECTED SUCCESSFUL PARSE"),
+                        Cyan.paint(path.display().to_string()),
+                    );
                 }
 
                 Some(ast)
@@ -89,7 +96,7 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
         let _intent = ast.and_then(|ast| match yurtc::intent::Intent::from_ast(&ast) {
             Err(err) => {
                 if let Some(compile_error_str) = expectations.compile_failure {
-                    similar_asserts::assert_eq!(err.to_string(), compile_error_str);
+                    similar_asserts::assert_eq!(compile_error_str, err.to_string());
                 } else {
                     failed_tests.push(path.display().to_string());
                     println!(
@@ -109,6 +116,13 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
                     // Comparing against Debug for now.
                     let intent_str = format!("{intent:?}");
                     similar_asserts::assert_eq!(expected_intent_str, intent_str);
+                } else if expectations.compile_failure.is_some() {
+                    failed_tests.push(path.display().to_string());
+                    println!(
+                        "{} {}.",
+                        Red.paint("UNEXPECTED SUCCESSFUL COMPILE"),
+                        Cyan.paint(path.display().to_string()),
+                    );
                 }
 
                 Some(intent)

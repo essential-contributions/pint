@@ -1,0 +1,30 @@
+// A bunch of enums *with the same name* all in different files should all have unique paths.
+
+enum Skill = Nunchuck | BowHunting | ComputerHacking;
+
+let pedro_skill: Skill;
+constraint pedro_skill == Skill::Nunchuck || Skill::BowHunting;
+
+let kip_skill: kip::Skill;
+
+constraint debbie::debbie_skill == debbie::Skill::Handicrafts && kip_skill == kip::Skill::CageFighting;
+
+solve satisfy;
+
+// ast <<<
+// enum ::Skill = Nunchuck | BowHunting | ComputerHacking;
+// let ::pedro_skill: ::Skill;
+// constraint ((::pedro_skill == ::Skill::Nunchuck) || ::Skill::BowHunting);
+// let ::kip_skill: ::kip::Skill;
+// constraint ((::debbie::debbie_skill == ::debbie::Skill::Handicrafts) && (::kip_skill == ::kip::Skill::CageFighting));
+// solve satisfy;
+// enum ::debbie::Skill = GlamourShots | Handicrafts;
+// let ::debbie::debbie_skill = (::debbie::Skill::GlamourShots || ::debbie::Skill::Handicrafts);
+// enum ::kip::Skill = ChattingOnlineWithBabes | CageFighting;
+// let ::kip::kip_skill = ::kip::Skill::ChattingOnlineWithBabes;
+// >>>
+
+// We'll get this error until we implement enum desugaring.
+// compile_failure <<<
+// internal error: Found unsupported types in final Intent.
+// >>>

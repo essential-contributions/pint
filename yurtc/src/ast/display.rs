@@ -40,7 +40,7 @@ impl Display for super::Decl {
                 if let Some(ty) = ty {
                     write!(f, ": {ty}")?;
                 }
-                write!(f, "= {init}")
+                write!(f, " = {init}")
             }
 
             super::Decl::Constraint { expr, .. } => write!(f, "constraint {expr}"),
@@ -88,6 +88,37 @@ impl Display for super::UseTree {
             Self::Alias { name, alias, .. } => write!(f, "{name} as {alias}"),
         }
     }
+}
+
+#[test]
+fn display_usetree() {
+    // Typically by the time we want/need to pretty print a Decl the UseTrees have all be merged
+    // and removed from the AST.  So we can quickly test them here.
+
+    use crate::span::empty_span;
+
+    assert_eq!(
+        (super::Decl::Use {
+            is_absolute: false,
+            use_tree: super::UseTree::Path {
+                prefix: super::Ident {
+                    name: "foo".to_owned(),
+                    span: empty_span(),
+                },
+                suffix: Box::new(super::UseTree::Name {
+                    name: super::Ident {
+                        name: "bar".to_owned(),
+                        span: empty_span(),
+                    },
+                    span: empty_span(),
+                }),
+                span: empty_span(),
+            },
+            span: empty_span(),
+        })
+        .to_string(),
+        "use foo::bar".to_owned()
+    );
 }
 
 impl Display for super::Path {

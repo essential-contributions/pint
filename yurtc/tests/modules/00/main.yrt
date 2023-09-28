@@ -11,6 +11,7 @@ solve satisfy;
 // let ::b::b = 1;
 // >>>
 
+// We'll get this error until we implement type inference.
 // compile_failure <<<
-// internal error: Multi-path identifiers are not supported yet.
+// internal error: Found untyped variable.
 // >>>
