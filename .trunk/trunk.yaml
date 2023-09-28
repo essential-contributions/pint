@@ -1,6 +1,6 @@
 version: 0.1
 cli:
-  version: 1.15.0
+  version: 1.16.0
 plugins:
   sources:
     - id: trunk
@@ -12,7 +12,7 @@ lint:
     - clippy@1.72.0
     - git-diff-check
     - gitleaks@8.18.0
-    - markdownlint@0.36.0
+    - markdownlint@0.37.0
     - prettier@3.0.3
     - rustfmt@1.72.0
     - taplo@0.8.1

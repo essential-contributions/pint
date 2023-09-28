@@ -1,14 +1,4 @@
-#[macro_use]
-mod error;
-
-mod ast;
-mod contract;
-mod expr;
-pub mod intent;
-mod lexer;
-mod parser;
-mod span;
-mod types;
+use yurtc::{ast, error, intent};
 
 use std::path::Path;
 
@@ -23,7 +13,7 @@ fn main() -> anyhow::Result<()> {
             if !cfg!(test) {
                 error::print_errors(&errors);
             }
-            yurtc_bail!(errors.len(), filepath)
+            yurtc::yurtc_bail!(errors.len(), filepath)
         }
     };
 
@@ -35,7 +25,7 @@ fn main() -> anyhow::Result<()> {
                 if !cfg!(test) {
                     error::print_errors(&vec![error::Error::Compile { error }]);
                 }
-                yurtc_bail!(1, filepath)
+                yurtc::yurtc_bail!(1, filepath)
             }
         };
 
@@ -44,7 +34,7 @@ fn main() -> anyhow::Result<()> {
 
     // If `compile_flag` is set, there is no need to print the initial AST.
     if !compile_flag {
-        dbg!(&ast);
+        eprintln!("{}", &ast);
     }
 
     Ok(())

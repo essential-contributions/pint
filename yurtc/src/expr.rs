@@ -3,8 +3,10 @@ use crate::{
     span::{Span, Spanned},
 };
 
+mod display;
+
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Expr<Path, BlockExpr> {
+pub enum Expr<Path, BlockExpr> {
     Immediate {
         value: Immediate,
         span: Span,
@@ -69,7 +71,7 @@ pub(super) enum Expr<Path, BlockExpr> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum TupleAccess {
+pub enum TupleAccess {
     Index(usize),
     Name(Ident),
 }
@@ -110,7 +112,7 @@ pub enum Immediate {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct CondBranch<E> {
+pub struct CondBranch<E> {
     pub(super) condition: Box<E>,
     pub(super) result: Box<E>,
     pub(super) span: Span,
@@ -122,7 +124,7 @@ impl<E> Spanned for CondBranch<E> {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UnaryOp {
     Pos,
     Neg,
@@ -130,7 +132,7 @@ pub enum UnaryOp {
     NextState,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BinaryOp {
     Mul,
     Div,

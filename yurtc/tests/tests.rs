@@ -1,39 +1,73 @@
-use ansi_term::Colour::{Cyan, Purple, Red};
-use std::io::{self, Write};
-use std::path::PathBuf;
+use ansi_term::Colour::{Cyan, Purple, Red, Yellow};
+use std::{ffi::OsStr, path::PathBuf};
 
-fn run_tests(sub_dir: &str) {
+fn run_tests(sub_dir: &str, _args: &[&OsStr]) -> anyhow::Result<()> {
     let dir: PathBuf = format!("tests/{sub_dir}").into();
 
     let mut failed_tests = vec![];
 
-    for entry in std::fs::read_dir(dir).unwrap() {
-        let path = entry.unwrap().path();
+    for entry in std::fs::read_dir(dir)? {
+        let entry = entry?;
+        println!("Testing {}.", entry.path().display());
 
-        let output = test_bin::get_test_bin("yurtc")
-            .args([path.clone()])
-            .output()
-            .expect("Failed to run 'yurtc' binary.");
-
-        if !output.status.success() {
-            failed_tests.push(path.display().to_string());
-            println!(
-                "{} {}. {}\n",
-                Purple.paint("FAILED TO COMPILE"),
-                Cyan.paint(path.display().to_string()),
-                Red.paint("Reported errors:"),
-            );
-
-            io::stdout().write_all(&output.stdout).unwrap();
-            println!("\n");
+        let mut path = entry.path();
+        if entry.file_type()?.is_dir() {
+            path.push("main.yrt");
         }
 
-        // TODO: actually check the output of the compiler in case of success
+        let mut expected_to_fail_txt_path = entry.path();
+        expected_to_fail_txt_path.push("expected_to_fail.txt");
+        let expected_to_fail = expected_to_fail_txt_path.exists();
+
+        let parse_result = yurtc::ast::parse_project(&path);
+
+        match parse_result {
+            Err(errs) => {
+                let errs_str = errs
+                    .iter()
+                    .map(|err| err.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+
+                if !expected_to_fail {
+                    failed_tests.push(path.display().to_string());
+                    println!(
+                        "{} {}. {}\n{}",
+                        Purple.paint("FAILED TO COMPILE"),
+                        Cyan.paint(path.display().to_string()),
+                        Red.paint("Reported errors:"),
+                        Yellow.paint(errs_str),
+                    );
+                } else {
+                    let expected_str =
+                        String::from_utf8_lossy(&std::fs::read(expected_to_fail_txt_path)?)
+                            .to_string();
+
+                    assert_eq!(errs_str, expected_str.trim_end());
+                }
+            }
+
+            Ok(ast) => {
+                let mut expected_txt_path = entry.path();
+                expected_txt_path.push("expected.txt");
+                if expected_txt_path.exists() {
+                    let ast_str = ast
+                        .iter()
+                        .map(|decl| format!("{decl}; "))
+                        .collect::<Vec<_>>()
+                        .concat();
+                    let expected_str =
+                        String::from_utf8_lossy(&std::fs::read(expected_txt_path)?).to_string();
+                    assert_eq!(ast_str.trim_end(), expected_str.trim_end());
+                }
+            }
+        }
     }
 
     if !failed_tests.is_empty() {
         panic!();
     }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -42,6 +76,15 @@ mod e2e {
 
     #[test]
     fn basic_tests() {
-        run_tests("basic_tests");
+        if let Err(err) = run_tests("basic_tests", &[]) {
+            eprintln!("{err}");
+        }
+    }
+
+    #[test]
+    fn modules() {
+        if let Err(err) = run_tests("modules", &[]) {
+            eprintln!("{err}");
+        }
     }
 }

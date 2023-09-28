@@ -1,0 +1,7 @@
+use a::b;
+
+let c: int;
+
+constraint b > c;
+
+solve satisfy;

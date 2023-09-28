@@ -1,0 +1,5 @@
+let a: int;
+
+constraint a == b::b;
+
+solve satisfy;

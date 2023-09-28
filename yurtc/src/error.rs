@@ -20,7 +20,7 @@ pub(super) struct ErrorLabel {
 
 /// A general compile error
 #[derive(Error, Debug)]
-pub(super) enum Error {
+pub enum Error {
     #[error("{}", error)]
     Lex { span: Span, error: LexError },
     #[error("{}", error)]
@@ -54,7 +54,7 @@ where
             .iter()
             .map(|label| {
                 let filepath = format!("{}", label.span.context().display());
-                let source = std::fs::read_to_string(filepath.clone()).unwrap();
+                let source = std::fs::read_to_string(filepath.clone()).unwrap_or("<none>".into());
                 (filepath, source)
             })
             .collect::<Vec<(String, String)>>();
@@ -163,7 +163,7 @@ impl Spanned for Error {
 }
 
 /// Print a list of [`Error`] using the `ariadne` crate
-pub(super) fn print_errors(errs: &Vec<Error>) {
+pub fn print_errors(errs: &Vec<Error>) {
     for err in errs {
         err.print();
     }
@@ -171,6 +171,7 @@ pub(super) fn print_errors(errs: &Vec<Error>) {
 
 /// A simple wrapper around `anyhow::bail!` that prints a different message based on a the number
 /// of compile errors.
+#[macro_export]
 macro_rules! yurtc_bail {
     ($number_of_errors: expr, $filepath: expr) => {
         if $number_of_errors == 1 {
