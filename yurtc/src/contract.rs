@@ -8,7 +8,7 @@ use crate::{
 use std::fmt::{Display, Formatter, Result};
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct InterfaceDecl<Type> {
+pub struct InterfaceDecl<Type> {
     pub(super) name: Ident,
     pub(super) functions: Vec<FnSig<Type>>,
     pub(super) span: Span,
@@ -31,7 +31,7 @@ impl<Type: Display> Display for InterfaceDecl<Type> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct ContractDecl<Path, Expr, Type> {
+pub struct ContractDecl<Path, Expr, Type> {
     pub(super) name: Ident,
     pub(super) id: Expr,
     pub(super) interfaces: Vec<Path>,

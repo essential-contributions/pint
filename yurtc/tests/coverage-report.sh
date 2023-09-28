@@ -77,14 +77,6 @@ object_list=$( \
     grep -v 'dSYM' \
 )
 
-# Also add the default `yurtc` binary since the 'tests/tests.rs` harness uses the `test_bin` crate
-# to run it.  It will also be instrumented, as running `cargo test` seems to build it along with the
-# other deps.
-yurtc_bin=$( \
-    cargo metadata --format-version 1 | \
-    jq -r '"\(.target_directory)/debug/yurtc"' \
-)
-
 if [[ ${show_summary} == "yes" ]] ; then
     # Generate the report.
     report_file=$(date "+yurtc_test_coverage_summary_%y%m%d-%H%M.txt")
@@ -94,7 +86,7 @@ if [[ ${show_summary} == "yes" ]] ; then
         --ignore-filename-regex='/.cargo/registry|/rustc' \
         --instr-profile=${profdata_file} \
         --summary-only \
-        ${object_list} --object ${yurtc_bin}
+        ${object_list}
 
     echo
     echo "====================================================================="
@@ -115,6 +107,5 @@ else
         --show-line-counts-or-regions \
         --ignore-filename-regex='/.cargo/registry|/rustc' \
         ${func_regex_opt} \
-        ${yurtc_bin}
-
+        ${object_list}
 fi

@@ -6,7 +6,7 @@ use crate::{
 mod display;
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum PrimitiveKind {
+pub enum PrimitiveKind {
     Bool,
     Int,
     Real,
@@ -14,7 +14,7 @@ pub(super) enum PrimitiveKind {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Type<Path, Expr> {
+pub enum Type<Path, Expr> {
     Primitive {
         kind: PrimitiveKind,
         span: Span,
@@ -47,7 +47,7 @@ impl<Path, Expr> Spanned for Type<Path, Expr> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct EnumDecl {
+pub struct EnumDecl {
     pub(super) name: Ident,
     pub(super) variants: Vec<Ident>,
     pub(super) span: Span,
@@ -60,7 +60,7 @@ impl Spanned for EnumDecl {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct FnSig<Type> {
+pub struct FnSig<Type> {
     pub(super) name: Ident,
     pub(super) params: Vec<(Ident, Type)>,
     pub(super) return_type: Type,
