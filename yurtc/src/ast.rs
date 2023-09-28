@@ -21,7 +21,7 @@ pub use mod_resolve::parse_project;
 pub struct Ast(pub(crate) Vec<Decl>);
 
 impl Ast {
-    fn iter(&self) -> impl Iterator<Item = &Decl> {
+    pub fn iter(&self) -> impl Iterator<Item = &Decl> {
         self.0.iter()
     }
 }

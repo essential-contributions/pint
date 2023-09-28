@@ -27,6 +27,5 @@ logos = { workspace = true }
 num-bigint = "0.4"
 num-traits = "0.2"
 regex = "1.9"
-test_bin = "0.4"
 thiserror = { workspace = true }
 yansi = "0.5"

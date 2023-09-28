@@ -1,11 +1,7 @@
 use ansi_term::Colour::{Cyan, Purple, Red, Yellow};
-use std::{
-    ffi::OsStr,
-    io::{self, Write},
-    path::PathBuf,
-};
+use std::{ffi::OsStr, path::PathBuf};
 
-fn run_tests(sub_dir: &str, args: &[&OsStr]) -> anyhow::Result<()> {
+fn run_tests(sub_dir: &str, _args: &[&OsStr]) -> anyhow::Result<()> {
     let dir: PathBuf = format!("tests/{sub_dir}").into();
 
     let mut failed_tests = vec![];
@@ -19,65 +15,52 @@ fn run_tests(sub_dir: &str, args: &[&OsStr]) -> anyhow::Result<()> {
             path.push("main.yrt");
         }
 
-        let mut args = args.to_vec();
-        let args_path = path.clone();
-        args.push(args_path.as_ref());
-
-        let output = test_bin::get_test_bin("yurtc")
-            .args(args)
-            .output()
-            .expect("Failed to run 'yurtc' binary.");
-
         let mut expected_to_fail_txt_path = entry.path();
         expected_to_fail_txt_path.push("expected_to_fail.txt");
         let expected_to_fail = expected_to_fail_txt_path.exists();
 
-        if !output.status.success() {
-            if !expected_to_fail {
-                failed_tests.push(path.display().to_string());
-                println!(
-                    "{} {}. {}\n{}\n{}",
-                    Purple.paint("FAILED TO COMPILE"),
-                    Cyan.paint(path.display().to_string()),
-                    Red.paint("Reported errors:"),
-                    Yellow.paint(String::from_utf8_lossy(&output.stderr)),
-                    String::from_utf8_lossy(&output.stdout),
-                );
+        let parse_result = yurtc::ast::parse_project(&path);
 
-                io::stdout().write_all(&output.stdout)?;
-                println!("\n");
-            } else {
-                let strip_file_path = |text: String| {
-                    text.lines()
-                        .filter(|line| {
-                            entry
-                                .path()
-                                .to_str()
-                                .map(|path_str| !line.contains(path_str))
-                                .unwrap_or(false)
-                        })
-                        .collect::<String>()
-                };
+        match parse_result {
+            Err(errs) => {
+                let errs_str = errs
+                    .iter()
+                    .map(|err| err.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
 
-                let stdout_str = String::from_utf8_lossy(&output.stdout).to_string();
-                let expected_str =
-                    String::from_utf8_lossy(&std::fs::read(expected_to_fail_txt_path)?).to_string();
+                if !expected_to_fail {
+                    failed_tests.push(path.display().to_string());
+                    println!(
+                        "{} {}. {}\n{}",
+                        Purple.paint("FAILED TO COMPILE"),
+                        Cyan.paint(path.display().to_string()),
+                        Red.paint("Reported errors:"),
+                        Yellow.paint(errs_str),
+                    );
+                } else {
+                    let expected_str =
+                        String::from_utf8_lossy(&std::fs::read(expected_to_fail_txt_path)?)
+                            .to_string();
 
-                assert_eq!(strip_file_path(stdout_str), strip_file_path(expected_str));
+                    assert_eq!(errs_str, expected_str.trim_end());
+                }
             }
-        }
 
-        // This is pretty clunky, but it's OK for now.  It only works while we're printing the AST
-        // to stderr by default.  The next step is to either have options to print the AST by
-        // request, or to make `yurtc` a library crate and call the functions directly rather than
-        // use `test_bin`.
-        let mut expected_txt_path = entry.path();
-        expected_txt_path.push("expected.txt");
-        if expected_txt_path.exists() {
-            let stderr_str = String::from_utf8_lossy(&output.stderr).to_string();
-            let expected_str =
-                String::from_utf8_lossy(&std::fs::read(expected_txt_path)?).to_string();
-            assert_eq!(stderr_str, expected_str);
+            Ok(ast) => {
+                let mut expected_txt_path = entry.path();
+                expected_txt_path.push("expected.txt");
+                if expected_txt_path.exists() {
+                    let ast_str = ast
+                        .iter()
+                        .map(|decl| format!("{decl}; "))
+                        .collect::<Vec<_>>()
+                        .concat();
+                    let expected_str =
+                        String::from_utf8_lossy(&std::fs::read(expected_txt_path)?).to_string();
+                    assert_eq!(ast_str.trim_end(), expected_str.trim_end());
+                }
+            }
         }
     }
 
