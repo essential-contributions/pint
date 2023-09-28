@@ -7,6 +7,14 @@ homepage.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[lib]
+name = "yurtc"
+path = "src/lib.rs"
+
+[[bin]]
+name = "yurtc"
+path = "src/main.rs"
+
 [dependencies]
 ansi_term = { workspace = true }
 anyhow = { workspace = true }

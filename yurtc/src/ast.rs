@@ -15,10 +15,10 @@ mod display;
 mod mod_resolve;
 mod use_path;
 
-pub(super) use mod_resolve::parse_project;
+pub use mod_resolve::parse_project;
 
 #[derive(Clone, Debug)]
-pub(crate) struct Ast(pub(crate) Vec<Decl>);
+pub struct Ast(pub(crate) Vec<Decl>);
 
 impl Ast {
     fn iter(&self) -> impl Iterator<Item = &Decl> {
@@ -45,7 +45,7 @@ impl IntoIterator for Ast {
 }
 
 #[derive(Clone, Debug)]
-pub(super) enum Decl {
+pub enum Decl {
     Use {
         is_absolute: bool,
         use_tree: UseTree,
@@ -110,7 +110,7 @@ impl Spanned for Decl {
 }
 
 #[derive(Clone, Debug)]
-pub(super) enum UseTree {
+pub enum UseTree {
     Name {
         name: Ident,
         span: Span,
@@ -141,7 +141,7 @@ impl Spanned for UseTree {
 }
 
 #[derive(Clone, Debug)]
-pub(super) struct Block {
+pub struct Block {
     pub(super) statements: Vec<Decl>,
     pub(super) final_expr: Box<Expr>,
     pub(super) span: Span,
@@ -154,7 +154,7 @@ impl Spanned for Block {
 }
 
 #[derive(Clone, Debug)]
-pub(super) struct Ident {
+pub struct Ident {
     pub(super) name: String,
     pub(super) span: Span,
 }
@@ -173,7 +173,7 @@ impl Spanned for Ident {
 }
 
 #[derive(Clone, Debug)]
-pub(super) struct Path {
+pub struct Path {
     pub(super) path: Vec<Ident>,
     pub(super) is_absolute: bool,
     pub(super) span: Span,
@@ -186,7 +186,7 @@ impl Spanned for Path {
 }
 
 #[derive(Clone, Debug)]
-pub(super) enum SolveFunc<Expr> {
+pub enum SolveFunc<Expr> {
     Satisfy,
     Minimize(Expr),
     Maximize(Expr),

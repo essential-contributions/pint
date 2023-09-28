@@ -8,7 +8,7 @@ use thiserror::Error;
 
 /// An error originating from the lexer
 #[derive(Error, Debug, Clone, PartialEq, Default)]
-pub(crate) enum LexError {
+pub enum LexError {
     #[default]
     #[error("invalid token")]
     InvalidToken,

@@ -8,7 +8,7 @@ use yansi::Color;
 
 /// An error originating from the parser
 #[derive(Error, Debug, PartialEq, Clone)]
-pub(crate) enum ParseError {
+pub enum ParseError {
     #[error("{}", format_expected_found_error(&mut expected.clone(), found))]
     ExpectedFound {
         span: Span,

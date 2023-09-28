@@ -23,7 +23,7 @@ use std::{
 /// Parse a path to the _root_ module into ASTs.  Each root AST is recursively
 /// inspected and any referenced sub-modules are also parsed _and merged_ into the project AST, and
 /// then returned.
-pub(crate) fn parse_project(source_path: &std::path::Path) -> Result<super::Ast, Vec<Error>> {
+pub fn parse_project(source_path: &std::path::Path) -> Result<super::Ast, Vec<Error>> {
     let mut resolver = ModuleResolver::default();
     resolver.load_source(SourcePath::FileName(source_path.into()), Vec::new())?;
     resolver.finish()

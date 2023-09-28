@@ -7,7 +7,7 @@ use thiserror::Error;
 use yansi::Color;
 
 #[derive(Error, Debug)]
-pub(crate) enum CompileError {
+pub enum CompileError {
     #[error("internal error: {msg}")]
     Internal { msg: &'static str, span: Span },
     #[error("I/O error: {error}")]
