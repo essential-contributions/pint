@@ -1,9 +1,9 @@
 use crate::{
     ast,
-    error::FormatterError,
+    error::{FormatterError, ParseError},
     lexer::{self, Token},
 };
-use chumsky::{error::Cheap, prelude::*, Stream};
+use chumsky::{prelude::*, Stream};
 
 /// Parse `source` and returns an AST. Upon failure, return a vector of all compile errors
 /// encountered.
@@ -25,7 +25,7 @@ pub(super) fn parse_str_to_ast(source: &str) -> Result<ast::Ast<'_>, Vec<Formatt
             let parsing_errors: Vec<_> = parsing_errors
                 .iter()
                 .map(|error| FormatterError::Parse {
-                    error: Box::new(error.clone()),
+                    error: error.clone(),
                 })
                 .collect();
 
@@ -37,7 +37,7 @@ pub(super) fn parse_str_to_ast(source: &str) -> Result<ast::Ast<'_>, Vec<Formatt
 }
 
 pub(super) fn yurt_program<'sc>(
-) -> impl Parser<Token<'sc>, ast::Ast<'sc>, Error = Cheap<Token<'sc>>> + Clone {
+) -> impl Parser<Token<'sc>, ast::Ast<'sc>, Error = ParseError> + Clone {
     choice((value_decl(expr()), solve_decl(), constraint_decl(expr())))
         .then_ignore(just(Token::Semi))
         .repeated()
@@ -46,8 +46,8 @@ pub(super) fn yurt_program<'sc>(
 }
 
 fn value_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Cheap<Token<'sc>>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Cheap<Token<'sc>>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
     let type_spec = just(Token::Colon).then(type_());
     let init = just(Token::Eq).then(expr);
 
@@ -66,7 +66,7 @@ fn value_decl<'sc>(
         .boxed()
 }
 
-fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Cheap<Token<'sc>>> + Clone {
+fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
     just(Token::Solve)
         .then(directive())
         .then(expr().or_not())
@@ -79,8 +79,8 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Cheap<To
 }
 
 fn constraint_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Cheap<Token<'sc>>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Cheap<Token<'sc>>> + Clone {
+    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
     just(Token::Constraint)
         .then(expr)
         .map(|(constraint_token, expr)| ast::Decl::Constraint {
@@ -90,21 +90,20 @@ fn constraint_decl<'sc>(
         .boxed()
 }
 
-fn ident<'sc>() -> impl Parser<Token<'sc>, String, Error = Cheap<Token<'sc>>> + Clone {
+fn ident<'sc>() -> impl Parser<Token<'sc>, String, Error = ParseError> + Clone {
     select! { Token::Ident(id) => id.to_owned() }.boxed()
 }
 
-fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = Cheap<Token<'sc>>> + Clone {
+fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseError> + Clone {
     select! { Token::Literal(str) => ast::Immediate(str.to_string()) }.boxed()
 }
 
-fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = Cheap<Token<'sc>>> + Clone {
+fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError> + Clone {
     select! { Token::Primitive(type_str) => ast::Type::Primitive(type_str.parse().unwrap()) }
         .boxed()
 }
 
-pub(super) fn expr<'sc>(
-) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Cheap<Token<'sc>>> + Clone {
+pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone {
     recursive(|expr| {
         let atom = choice((
             unary_op(expr.clone()),
@@ -117,11 +116,11 @@ pub(super) fn expr<'sc>(
     })
 }
 
-fn directive<'sc>() -> impl Parser<Token<'sc>, String, Error = Cheap<Token<'sc>>> + Clone {
+fn directive<'sc>() -> impl Parser<Token<'sc>, String, Error = ParseError> + Clone {
     select! { Token::Directive(dir) => dir.to_owned() }.boxed()
 }
 
-pub(super) fn path<'sc>() -> impl Parser<Token<'sc>, ast::Path, Error = Cheap<Token<'sc>>> + Clone {
+pub(super) fn path<'sc>() -> impl Parser<Token<'sc>, ast::Path, Error = ParseError> + Clone {
     let relative_path = ident().then((just(Token::DoubleColon).ignore_then(ident())).repeated());
     just(Token::DoubleColon)
         .or_not()
@@ -137,8 +136,8 @@ pub(super) fn path<'sc>() -> impl Parser<Token<'sc>, ast::Path, Error = Cheap<To
 }
 
 fn unary_op<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Cheap<Token<'sc>>> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Cheap<Token<'sc>>> + Clone + 'sc {
+    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc {
     choice((just(Token::Plus), just(Token::Minus), just(Token::Bang)))
         .then(expr)
         .map(|(prefix_op, expr)| {
@@ -152,9 +151,9 @@ fn unary_op<'sc>(
 
 fn binary_op<'sc, P>(
     parser: P,
-) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Cheap<Token<'sc>>> + Clone
+) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone
 where
-    P: Parser<Token<'sc>, ast::Expr<'sc>, Error = Cheap<Token<'sc>>> + Clone + 'sc,
+    P: Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
 {
     parser
         .clone()

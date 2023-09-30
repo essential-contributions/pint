@@ -31,14 +31,14 @@ macro_rules! run_formatter {
                     let mut formatted_code = String::default();
                     match ast.format(&mut formatted_code) {
                         Ok(_) => formatted_code,
-                        Err(error) => format!("{error}"),
+                        Err(error) => format!("{}", error),
                     }
                 }
                 Err(errors) => format!(
                     "{}",
                     // Print each parsing.
                     errors.iter().fold(String::new(), |acc, error| {
-                        format!("{}{:?}\n", acc, error)
+                        format!("{}{}\n", acc, error)
                     })
                 ),
             }
@@ -60,7 +60,7 @@ fn errors() {
     check(
         &run_formatter!(yurt_program(), r#"let x = 5"#),
         expect_test::expect![[r#"
-            Cheap { span: 9..9, label: None, phantom: PhantomData<yurtfmt::lexer::Token> }
+            Error formatting starting at location 9 and ending at location 9
         "#]],
     );
 }
