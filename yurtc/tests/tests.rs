@@ -53,12 +53,12 @@ fn run_tests(sub_dir: &str, _args: &[&OsStr]) -> anyhow::Result<()> {
                 if expected_txt_path.exists() {
                     let ast_str = ast
                         .iter()
-                        .map(|decl| format!("{decl}; "))
+                        .map(|decl| format!("{decl};\n"))
                         .collect::<Vec<_>>()
                         .concat();
                     let expected_str =
                         String::from_utf8_lossy(&std::fs::read(expected_txt_path)?).to_string();
-                    assert_eq!(ast_str.trim_end(), expected_str.trim_end());
+                    similar_asserts::assert_eq!(expected_str.trim_end(), ast_str.trim_end());
                 }
             }
         }

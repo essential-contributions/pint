@@ -1,1 +1,4 @@
-let ::c: int; constraint (::a::b > ::c); solve satisfy; let ::a::b: int = 10;
+let ::c: int;
+constraint (::a::b > ::c);
+solve satisfy;
+let ::a::b: int = 10;
