@@ -43,7 +43,7 @@ pub(super) fn print_on_failure(filename: &str, source: &str, errs: &Vec<Formatte
             FormatterError::Lex { span, .. } => pretty_print_error(span, err),
             FormatterError::Parse { error } => pretty_print_error(&error.span(), err),
             FormatterError::FormatError(error) => {
-                println!("{}", ansi_term::Colour::Red.paint(format!("{error}")));
+                println!("{}", yansi::Color::Red.paint(format!("{error}")));
             }
         }
     }
