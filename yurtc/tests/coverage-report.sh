@@ -44,19 +44,13 @@ while getopts 's' OPT ; do
     esac
 done
 
-# Change into the `yurtc` project directory.  Assumes it's the parent of the home of this script.
-pushd "$(dirname "${0}")/.."
-
-# Create a temporary directory for temp files.
-working_dir=$(mktemp -d "yurtc_test_cov_XXXX")
+# Create a working directory for temp files.
+working_dir=$(mktemp --tmpdir -d "yurtc_test_cov_XXXX")
 
 # Function for cleaning up which will run regardless of success or failure.
 cleanup() {
     # Remove the working directory and its temp files.
-    rm -rf ${working_dir}
-
-    # Return to original directory.
-    popd
+    rm -r ${working_dir}
 }
 trap cleanup EXIT
 
