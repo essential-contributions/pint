@@ -16,7 +16,6 @@ name = "yurtc"
 path = "src/main.rs"
 
 [dependencies]
-ansi_term = { workspace = true }
 anyhow = { workspace = true }
 ariadne = { workspace = true }
 chumsky = { workspace = true }
@@ -28,4 +27,4 @@ num-bigint = "0.4"
 num-traits = "0.2"
 regex = "1.9"
 thiserror = { workspace = true }
-yansi = "0.5"
+yansi = { workspace = true }

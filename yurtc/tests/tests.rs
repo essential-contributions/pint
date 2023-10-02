@@ -1,5 +1,5 @@
-use ansi_term::Colour::{Cyan, Purple, Red, Yellow};
 use std::{ffi::OsStr, path::PathBuf};
+use yansi::Color::{Cyan, Red, Yellow};
 
 fn run_tests(sub_dir: &str, _args: &[&OsStr]) -> anyhow::Result<()> {
     let dir: PathBuf = format!("tests/{sub_dir}").into();
@@ -33,7 +33,7 @@ fn run_tests(sub_dir: &str, _args: &[&OsStr]) -> anyhow::Result<()> {
                     failed_tests.push(path.display().to_string());
                     println!(
                         "{} {}. {}\n{}",
-                        Purple.paint("FAILED TO COMPILE"),
+                        Red.paint("FAILED TO COMPILE"),
                         Cyan.paint(path.display().to_string()),
                         Red.paint("Reported errors:"),
                         Yellow.paint(errs_str),
