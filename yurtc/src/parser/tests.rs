@@ -604,6 +604,34 @@ fn custom_types() {
 }
 
 #[test]
+fn ranges() {
+    check(&run_parser!(expr(), "1..2"), expect_test::expect!["1..2"]);
+    check(
+        &run_parser!(expr(), "1.1..2.2e3"),
+        expect_test::expect!["1.1e0..2.2e3"],
+    );
+    check(
+        &run_parser!(expr(), "A[x]..t.2"),
+        expect_test::expect!["A[x]..t.2"],
+    );
+    check(
+        &run_parser!(expr(), "1+2..3+4"),
+        expect_test::expect!["(1 + 2)..(3 + 4)"],
+    );
+    check(
+        &run_parser!(expr(), "-100.. -if c { 10 } else { 9 }"),
+        expect_test::expect!["-100..-if c { 10 } else { 9 }"],
+    );
+    check(
+        &run_parser!(expr(), "1...2"),
+        expect_test::expect![[r#"
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`, found `.`
+            @3..4: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`
+        "#]],
+    );
+}
+
+#[test]
 fn idents() {
     check(
         &run_parser!(ident(), "foobar"),
@@ -1262,7 +1290,7 @@ fn test_parse_str_to_ast() {
     check(
         &format!("{:?}", parse_str_to_ast("let x = 5", filepath.clone())),
         expect_test::expect![[
-            r#"Err([Parse { error: ExpectedFound { span: "test":9..9, expected: [Some(";"), Some("||"), Some("&&"), Some("!="), Some("=="), Some(">="), Some("<="), Some(">"), Some("<"), Some("+"), Some("-"), Some("*"), Some("/"), Some("%"), Some("in"), Some("as"), Some("."), Some("["), Some("'")], found: None } }])"#
+            r#"Err([Parse { error: ExpectedFound { span: "test":9..9, expected: [Some(";"), Some(".."), Some("||"), Some("&&"), Some("!="), Some("=="), Some(">="), Some("<="), Some(">"), Some("<"), Some("+"), Some("-"), Some("*"), Some("/"), Some("%"), Some("in"), Some("as"), Some("."), Some("["), Some("'")], found: None } }])"#
         ]],
     );
     check(

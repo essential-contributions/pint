@@ -572,6 +572,12 @@ impl ModuleResolver {
                 collection: Box::new(self.convert_expr(key, mod_path, collection)?),
                 span: span.clone(),
             },
+
+            Expr::Range { lb, ub, span } => Expr::Range {
+                lb: Box::new(self.convert_expr(key, mod_path, lb)?),
+                ub: Box::new(self.convert_expr(key, mod_path, ub)?),
+                span: span.clone(),
+            },
         })
     }
 
@@ -773,6 +779,10 @@ impl Paths {
                 } => {
                     from_expr(tree, value);
                     from_expr(tree, collection);
+                }
+                Expr::Range { lb, ub, .. } => {
+                    from_expr(tree, lb);
+                    from_expr(tree, ub);
                 }
             }
         }

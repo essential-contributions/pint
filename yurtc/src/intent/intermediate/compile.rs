@@ -127,7 +127,8 @@ fn convert_expr(expr: Expr, span: &Span) -> super::Result<Expression> {
         | super::Expr::Tuple { .. }
         | super::Expr::TupleFieldAccess { .. }
         | super::Expr::Cast { .. }
-        | super::Expr::In { .. } => Err(CompileError::Internal {
+        | super::Expr::In { .. }
+        | super::Expr::Range { .. } => Err(CompileError::Internal {
             msg: "Found unsupported expressions in final Intent.",
             span: span.clone(),
         }),

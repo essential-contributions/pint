@@ -475,8 +475,9 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
             comparison_op,
         );
         let or = and_or_op(Token::DoublePipe, expr::BinaryOp::LogicalOr, and);
+        let range = range(or);
 
-        or.boxed()
+        range.boxed()
     })
 }
 
@@ -778,6 +779,30 @@ where
                 op,
                 lhs: Box::new(lhs),
                 rhs: Box::new(rhs),
+                span,
+            }
+        })
+        .boxed()
+}
+
+fn range<'sc, P>(parser: P) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
+{
+    parser
+        .clone()
+        .then(
+            just(Token::TwoDots)
+                .ignore_then(parser)
+                .map_with_span(|range, span| (range, span))
+                .repeated()
+                .at_most(1),
+        )
+        .foldl(|lb, (ub, span)| {
+            let span = Span::new(span.context(), lb.span().start()..span.end());
+            ast::Expr::Range {
+                lb: Box::new(lb),
+                ub: Box::new(ub),
                 span,
             }
         })

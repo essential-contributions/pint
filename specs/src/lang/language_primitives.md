@@ -247,6 +247,7 @@ Expressions represent values and have the following syntax:
          | <call-expr>
          | <cast-expr>
          | <in-expr>
+         | <range-expr>
          | <prime-expr>
 ```
 
@@ -546,6 +547,44 @@ A value belongs to an array if and only if it is "equal" to one of its entries. 
 
 Note that two values of different types cannot be compared and should result in a compile error.
 
+#### Range Expressions
+
+Range expressions are used to refer to ranges between a lower bound value and an upper bound value:
+
+```ebnf
+<range-expr> ::= <expr> ".." <expr>
+```
+
+Range expressions require that both the lower bound and the upper bound expressions have the same type. The type of a range expression is identical to the type of its bounds.
+
+The only allowed types for the bounds of a range expression are `int` and `real`.
+
+Range expressions can only be used in two contexts:
+
+1. As the expression on the right-hand side of a `<let-item>`.
+1. As the expression on the right-hand side of an `<in-expr>`
+
+For example,
+
+```rust
+let x: int = 3..5;
+```
+
+is equivalent to;
+
+```rust
+let x: int;
+constraint x in 3..5;
+```
+
+which is equivalent to:
+
+```rust
+let x: int;
+constraint x >= 3;
+constraint x <= 5;
+```
+
 #### Prime Expressions
 
 Prime expressions are used to refer to the _future_ value of a [state variable](#state-declaration-items). They have the following syntax:
@@ -580,6 +619,7 @@ The precedence of Yurt operators and expressions is ordered as follows, going fr
 | `==`, `!=`, `<`, `>`, `<=`, `>=` | Requires parentheses |
 | `&&`                             | left to right        |
 | `\|\|`                           | left to right        |
+| `..`                             | Requires parentheses |
 
 ## Items
 
