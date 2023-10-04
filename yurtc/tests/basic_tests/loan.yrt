@@ -13,7 +13,22 @@ let b4: real; // balance owing at end
 
 constraint b1 == p + p * i - r;
 constraint b2 == b1 + b1 * i - r;
-constraint b3 == b2 + b2 * i - r; 
+constraint b3 == b2 + b2 * i - r;
 constraint b4 == b3 + b3 * i - r;
 
 solve satisfy;
+
+// ast <<<<
+// let ::r: real;
+// let ::p: real;
+// let ::i: real;
+// let ::b1: real;
+// let ::b2: real;
+// let ::b3: real;
+// let ::b4: real;
+// constraint (::b1 == ((::p + (::p * ::i)) - ::r));
+// constraint (::b2 == ((::b1 + (::b1 * ::i)) - ::r));
+// constraint (::b3 == ((::b2 + (::b2 * ::i)) - ::r));
+// constraint (::b4 == ((::b3 + (::b3 * ::i)) - ::r));
+// solve satisfy;
+// >>>

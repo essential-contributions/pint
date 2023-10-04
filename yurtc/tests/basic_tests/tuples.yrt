@@ -24,3 +24,7 @@ let t14_z_0 = t14.z.0;
 let t14_z_1 = t14.z.1;
 let t14_z_2 = t14.z.2;
 let t14_z_w = t14.z.w;
+
+// compile_failure <<<
+// symbol `::t3` has already been declared
+// >>>
