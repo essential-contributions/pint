@@ -16,16 +16,16 @@ pub(super) enum Decl<'sc> {
         let_token: Token<'sc>,
         name: String,
         colon_token_and_ty: Option<(Token<'sc>, Type)>,
-        eq_token_and_init: Option<(Token<'sc>, Expr)>,
+        eq_token_and_init: Option<(Token<'sc>, Expr<'sc>)>,
     },
     Solve {
         solve_token: Token<'sc>,
         directive: String,
-        expr: Option<Expr>,
+        expr: Option<Expr<'sc>>,
     },
     Constraint {
         constraint_token: Token<'sc>,
-        expr: Expr,
+        expr: Expr<'sc>,
     },
 }
 
@@ -115,16 +115,50 @@ impl Format for Path {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Expr {
-    Immediate(Immediate),
-    Path(Path),
+pub(super) struct UnaryOp<'sc> {
+    pub prefix_op: Token<'sc>,
+    pub expr: Box<Expr<'sc>>,
 }
 
-impl Format for Expr {
+impl<'sc> Format for UnaryOp<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        write!(formatted_code, "{}", self.prefix_op)?;
+        self.expr.format(formatted_code)?;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct BinaryOp<'sc> {
+    pub op: Token<'sc>,
+    pub lhs: Box<Expr<'sc>>,
+    pub rhs: Box<Expr<'sc>>,
+}
+
+impl<'sc> Format for BinaryOp<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        self.lhs.format(formatted_code)?;
+        write!(formatted_code, " {} ", self.op)?;
+        self.rhs.format(formatted_code)?;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) enum Expr<'sc> {
+    Immediate(Immediate),
+    Path(Path),
+    UnaryOp(UnaryOp<'sc>),
+    BinaryOp(BinaryOp<'sc>),
+}
+
+impl<'sc> Format for Expr<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
             Self::Immediate(immediate) => immediate.format(formatted_code)?,
             Self::Path(path) => path.format(formatted_code)?,
+            Self::UnaryOp(unary_op) => unary_op.format(formatted_code)?,
+            Self::BinaryOp(binary_op) => binary_op.format(formatted_code)?,
         }
 
         Ok(())
