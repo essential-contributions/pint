@@ -4,3 +4,7 @@ use a::a;
 let a = 11;
 
 solve minimize a;
+
+// parse_failure <<<
+// symbol `a` has already been declared
+// >>>

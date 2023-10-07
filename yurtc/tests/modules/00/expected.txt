@@ -1,1 +1,0 @@
-let ::a: int; constraint (::a == ::b::b); solve satisfy; let ::b::b = 1;

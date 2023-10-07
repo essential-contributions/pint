@@ -1,2 +1,7 @@
 let a: int = 1;
 solve satisfy;
+
+// ast <<<<
+// let ::a: int = 1;
+// solve satisfy;
+// >>>

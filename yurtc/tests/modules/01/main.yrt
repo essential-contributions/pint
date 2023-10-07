@@ -1,3 +1,14 @@
 constraint a::b::c == d::e;
 
 solve satisfy;
+
+// ast <<<
+// constraint (::a::b::c == ::d::e);
+// solve satisfy;
+// let ::a::b::c: int;
+// let ::d::e: int = 10;
+// >>>
+
+// compile_failure <<<
+// internal error: Multi-path identifiers are not supported yet.
+// >>>
