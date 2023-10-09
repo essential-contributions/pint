@@ -1,7 +1,8 @@
-use crate::lexer::Token;
 use ariadne::{Color, Fmt, Label, Report, ReportKind, Source};
 use chumsky::prelude::*;
 use thiserror::Error;
+
+use crate::lexer::Token;
 
 pub(super) type Span = std::ops::Range<usize>;
 
@@ -13,15 +14,46 @@ pub(super) enum LexError {
     InvalidToken,
 }
 
+/// An error originating from the parser
+#[derive(Error, Debug, Clone, PartialEq)]
+pub(super) enum ParseError {
+    #[error("Error formatting starting at location {} and ending at location {}", span.start, span.end)]
+    InvalidParse { span: Span },
+}
+
 /// A general lexing/parsing or formatting error
 #[derive(Error, Debug, Clone, PartialEq)]
-pub(super) enum FormatterError<'a> {
+pub(super) enum FormatterError {
     #[error("{}", error)]
     Lex { span: Span, error: LexError },
     #[error("{}", error)]
-    Parse { error: Box<Simple<Token<'a>>> },
+    Parse { error: ParseError },
     #[error("Error formatting a message into a stream: {0}")]
     FormatError(#[from] std::fmt::Error),
+}
+
+/// Implement the `Error` trait from Chumsky for `ParseError`
+impl<'a> chumsky::Error<Token<'a>> for ParseError {
+    type Span = Span;
+    type Label = ();
+
+    fn expected_input_found<Iter: IntoIterator<Item = Option<Token<'a>>>>(
+        span: Span,
+        _: Iter,
+        _: Option<Token<'a>>,
+    ) -> Self {
+        Self::InvalidParse { span }
+    }
+
+    // Not currently doing anything with the label
+    fn with_label(self, _: Self::Label) -> Self {
+        self
+    }
+
+    // Not currently doing anything with merging errors
+    fn merge(self, _: Self) -> Self {
+        self
+    }
 }
 
 /// Print a list of `FormatterError`s using the `ariadne` library
@@ -41,9 +73,11 @@ pub(super) fn print_on_failure(filename: &str, source: &str, errs: &Vec<Formatte
     for err in errs {
         match err {
             FormatterError::Lex { span, .. } => pretty_print_error(span, err),
-            FormatterError::Parse { error } => pretty_print_error(&error.span(), err),
+            FormatterError::Parse { error } => match error {
+                ParseError::InvalidParse { span } => pretty_print_error(span, err),
+            },
             FormatterError::FormatError(error) => {
-                println!("{}", ansi_term::Colour::Red.paint(format!("{error}")));
+                println!("{}", yansi::Color::Red.paint(format!("{error}")));
             }
         }
     }

@@ -8,7 +8,6 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-ansi_term = { workspace = true }
 anyhow = { workspace = true }
 ariadne = { workspace = true }
 chumsky = { workspace = true }
@@ -17,3 +16,4 @@ expect-test = { workspace = true }
 itertools = { workspace = true }
 logos = { workspace = true }
 thiserror = { workspace = true }
+yansi = { workspace = true }

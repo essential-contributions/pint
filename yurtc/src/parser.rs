@@ -60,6 +60,7 @@ fn yurt_program<'sc>() -> impl Parser<Token<'sc>, ast::Ast, Error = ParseError> 
     ))
     .repeated()
     .then_ignore(end())
+    .map(ast::Ast)
 }
 
 fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError> + Clone {
@@ -73,8 +74,6 @@ fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError> 
                 span,
             })
             .boxed();
-
-        let glob = just(Token::Star).map_with_span(|_, span| ast::UseTree::Glob(span));
 
         let group = use_tree
             .separated_by(just(Token::Comma))
@@ -91,7 +90,7 @@ fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError> 
 
         let name = ident().map_with_span(|name, span| ast::UseTree::Name { name, span });
 
-        choice((path, alias, name, glob, group)).boxed()
+        choice((path, alias, name, group)).boxed()
     })
 }
 
@@ -112,7 +111,7 @@ fn let_decl<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
     let type_spec = just(Token::Colon).ignore_then(type_(expr.clone()));
-    let init = just(Token::Eq).ignore_then(expr);
+    let init = just(Token::Eq).ignore_then(range(expr.clone()).or(expr));
     just(Token::Let)
         .ignore_then(ident())
         .then(type_spec.or_not())
@@ -475,9 +474,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
             expr::BinaryOp::LogicalAnd,
             comparison_op,
         );
-        let or = and_or_op(Token::DoublePipe, expr::BinaryOp::LogicalOr, and);
-
-        or.boxed()
+        and_or_op(Token::DoublePipe, expr::BinaryOp::LogicalOr, and)
     })
 }
 
@@ -517,8 +514,7 @@ where
                 .map_with_span(|index, span| (index, span))
                 .repeated(),
         )
-        .map(|(expr, indices_with_spans)| (indices_with_spans, expr))
-        .foldr(|(index, span), expr| {
+        .foldl(|expr, (index, span)| {
             let span = Span::new(span.context(), expr.span().start()..span.end());
             ast::Expr::ArrayElementAccess {
                 array: Box::new(expr),
@@ -652,9 +648,10 @@ where
     P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
 {
     parser
+        .clone()
         .then(
             just(Token::In)
-                .ignore_then(expr)
+                .ignore_then(range(expr.clone()).or(expr))
                 .map_with_span(|collection, span| (collection, span))
                 .repeated(),
         )
@@ -784,6 +781,20 @@ where
             }
         })
         .boxed()
+}
+
+fn range<'sc, P>(parser: P) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
+{
+    parser
+        .clone()
+        .then(just(Token::TwoDots).ignore_then(parser))
+        .map_with_span(|(lb, ub), span| ast::Expr::Range {
+            lb: Box::new(lb),
+            ub: Box::new(ub),
+            span,
+        })
 }
 
 fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError> + Clone {

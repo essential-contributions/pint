@@ -15,7 +15,7 @@ use super::{
 
 use std::collections::HashMap;
 
-pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
+pub(super) fn from_ast(ast: &ast::Ast) -> super::Result<IntermediateIntent> {
     let mut expr_ctx = ExprContext::default();
 
     let mut directives = Vec::new();
@@ -27,7 +27,7 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
     let mut externs = Vec::new();
     let mut new_types = Vec::new();
 
-    for decl in ast {
+    for decl in &ast.0 {
         match decl {
             ast::Decl::Use { span, .. } => {
                 return Err(CompileError::Internal {
@@ -154,12 +154,12 @@ impl ExprContext {
             },
             ast::Expr::Path(path) => Expr::Path(convert_path(path)?),
             ast::Expr::UnaryOp { op, expr, span } => Expr::UnaryOp {
-                op: op.clone(),
+                op: *op,
                 expr: Box::new(self.convert_expr(expr)?),
                 span: span.clone(),
             },
             ast::Expr::BinaryOp { op, lhs, rhs, span } => Expr::BinaryOp {
-                op: op.clone(),
+                op: *op,
                 lhs: Box::new(self.convert_expr(lhs)?),
                 rhs: Box::new(self.convert_expr(rhs)?),
                 span: span.clone(),
@@ -237,6 +237,11 @@ impl ExprContext {
             } => Expr::In {
                 value: Box::new(self.convert_expr(value)?),
                 collection: Box::new(self.convert_expr(collection)?),
+                span: span.clone(),
+            },
+            ast::Expr::Range { lb, ub, span } => Expr::Range {
+                lb: Box::new(self.convert_expr(lb)?),
+                ub: Box::new(self.convert_expr(ub)?),
                 span: span.clone(),
             },
         })
@@ -412,13 +417,31 @@ impl ExprContext {
         ));
 
         if let Some(init) = init {
-            let eq_expr = Expr::BinaryOp {
-                op: expr::BinaryOp::Equal,
-                lhs: Box::new(Expr::Path(name.name.to_owned())),
-                rhs: Box::new(self.convert_expr(init)?),
-                span: span.clone(), // Using the span of the `let` decl here
-            };
-            self.constraints.push((eq_expr, name.span.clone()));
+            if let ast::Expr::Range { lb, ub, span } = init {
+                let gt_expr = Expr::BinaryOp {
+                    op: expr::BinaryOp::GreaterThan,
+                    lhs: Box::new(Expr::Path(name.name.to_owned())),
+                    rhs: Box::new(self.convert_expr(lb)?),
+                    span: span.clone(), // Using the span of the `let` decl here
+                };
+                let lt_expr = Expr::BinaryOp {
+                    op: expr::BinaryOp::LessThan,
+                    lhs: Box::new(Expr::Path(name.name.to_owned())),
+                    rhs: Box::new(self.convert_expr(ub)?),
+                    span: span.clone(), // Using the span of the `let` decl here
+                };
+
+                self.constraints.push((gt_expr, name.span.clone()));
+                self.constraints.push((lt_expr, name.span.clone()));
+            } else {
+                let eq_expr = Expr::BinaryOp {
+                    op: expr::BinaryOp::Equal,
+                    lhs: Box::new(Expr::Path(name.name.to_owned())),
+                    rhs: Box::new(self.convert_expr(init)?),
+                    span: span.clone(), // Using the span of the `let` decl here
+                };
+                self.constraints.push((eq_expr, name.span.clone()));
+            }
         };
 
         Ok(())

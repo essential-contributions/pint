@@ -31,7 +31,7 @@ macro_rules! run_formatter {
                     let mut formatted_code = String::default();
                     match ast.format(&mut formatted_code) {
                         Ok(_) => formatted_code,
-                        Err(error) => format!("{error}"),
+                        Err(error) => format!("{}", error),
                     }
                 }
                 Err(errors) => format!(
@@ -60,7 +60,7 @@ fn errors() {
     check(
         &run_formatter!(yurt_program(), r#"let x = 5"#),
         expect_test::expect![[r#"
-            found end of input but expected ";"
+            Error formatting starting at location 9 and ending at location 9
         "#]],
     );
 }
@@ -164,7 +164,6 @@ let bin_var :  int=0b1010;
 
 #[test]
 fn solve_decls() {
-    // TODO: Add solve maximize x + y; when binary expr is supported
     check(
         &run_formatter!(
             yurt_program(),
@@ -178,6 +177,10 @@ solve  maximize ;
                solve minimize   foo;
 
    solve   maximize foo   ;
+
+                    solve   minimize x    +y   ;
+
+        solve   maximize y-    x   ;
   "#
         ),
         expect_test::expect![[r#"
@@ -186,6 +189,8 @@ solve  maximize ;
                     solve maximize;
                     solve minimize foo;
                     solve maximize foo;
+                    solve minimize x + y;
+                    solve maximize y - x;
                 "#]],
     );
 }
@@ -234,6 +239,110 @@ fn paths() {
     check(
         &run_formatter!(path(), ":: foo   ::bar "),
         expect_test::expect![[r#"::foo::bar"#]],
+    );
+}
+
+#[test]
+fn unary_op_exprs() {
+    check(
+        &run_formatter!(expr(), "   !a   "),
+        expect_test::expect![[r#"!a"#]],
+    );
+    check(
+        &run_formatter!(expr(), "   +a   "),
+        expect_test::expect![[r#"+a"#]],
+    );
+    check(
+        &run_formatter!(expr(), " -   a"),
+        expect_test::expect![[r#"-a"#]],
+    );
+    check(
+        &run_formatter!(expr(), "+7"),
+        expect_test::expect![[r#"+7"#]],
+    );
+    check(
+        &run_formatter!(expr(), "+    3.4"),
+        expect_test::expect![[r#"+3.4"#]],
+    );
+    check(
+        &run_formatter!(expr(), "-  1.0"),
+        expect_test::expect![[r#"-1.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "! - - !  -+  -1"),
+        expect_test::expect![[r#"!--!-+-1"#]],
+    );
+    check(
+        &run_formatter!(expr(), "!- -! - +  -1 "),
+        expect_test::expect![[r#"!--!-+-1"#]],
+    );
+}
+
+#[test]
+fn binary_op_exprs() {
+    check(
+        &run_formatter!(expr(), "   a   *    2.0   "),
+        expect_test::expect![[r#"a * 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), " a /     2.0 "),
+        expect_test::expect![[r#"a / 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "a   %   2.0"),
+        expect_test::expect![[r#"a % 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "  a   +  2.0 "),
+        expect_test::expect![[r#"a + 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), " a   - 2.0   "),
+        expect_test::expect![[r#"a - 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "a+   2.0"),
+        expect_test::expect![[r#"a + 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), " a- 2.0   "),
+        expect_test::expect![[r#"a - 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "   a <  2.0   "),
+        expect_test::expect![[r#"a < 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), " a   >    2.0 "),
+        expect_test::expect![[r#"a > 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "a   <= 2.0   "),
+        expect_test::expect![[r#"a <= 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "   a  >=  2.0  "),
+        expect_test::expect![[r#"a >= 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "  a   ==  2.0   "),
+        expect_test::expect![[r#"a == 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), " a  != 2.0 "),
+        expect_test::expect![[r#"a != 2.0"#]],
+    );
+    check(
+        &run_formatter!(expr(), "a  &&  b  "),
+        expect_test::expect![[r#"a && b"#]],
+    );
+    check(
+        &run_formatter!(expr(), "   a ||  b  "),
+        expect_test::expect![[r#"a || b"#]],
+    );
+    check(
+        &run_formatter!(expr(), "   a     ||  b &&     c  ||      d      &&     ! e"),
+        expect_test::expect![[r#"a || b && c || d && !e"#]],
     );
 }
 

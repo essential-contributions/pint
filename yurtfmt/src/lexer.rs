@@ -17,6 +17,34 @@ pub(super) enum Token<'sc> {
     DoubleColon,
     #[token(";")]
     Semi,
+    #[token("!")]
+    Bang,
+    #[token("*")]
+    Star,
+    #[token("+")]
+    Plus,
+    #[token("-")]
+    Minus,
+    #[token("/")]
+    Div,
+    #[token("%")]
+    Mod,
+    #[token(">")]
+    Gt,
+    #[token("<")]
+    Lt,
+    #[token("<=")]
+    LtEq,
+    #[token(">=")]
+    GtEq,
+    #[token("==")]
+    EqEq,
+    #[token("!=")]
+    NotEq,
+    #[token("&&")]
+    DoubleAmpersand,
+    #[token("||")]
+    DoublePipe,
     #[token(",")]
     Comma,
     #[token("(")]
@@ -74,6 +102,20 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Colon => write!(f, ":"),
             Token::DoubleColon => write!(f, "::"),
             Token::Semi => write!(f, ";"),
+            Token::Bang => write!(f, "!"),
+            Token::Star => write!(f, "*"),
+            Token::Plus => write!(f, "+"),
+            Token::Minus => write!(f, "-"),
+            Token::Div => write!(f, "/"),
+            Token::Mod => write!(f, "%"),
+            Token::Gt => write!(f, ">"),
+            Token::Lt => write!(f, "<"),
+            Token::LtEq => write!(f, "<="),
+            Token::GtEq => write!(f, ">="),
+            Token::EqEq => write!(f, "=="),
+            Token::NotEq => write!(f, "!="),
+            Token::DoubleAmpersand => write!(f, "&&"),
+            Token::DoublePipe => write!(f, "||"),
             Token::Comma => write!(f, ","),
             Token::ParenOpen => write!(f, "("),
             Token::ParenClose => write!(f, ")"),

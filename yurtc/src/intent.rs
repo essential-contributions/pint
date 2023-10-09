@@ -14,7 +14,7 @@ pub struct Intent {
 }
 
 impl Intent {
-    pub(crate) fn from_ast(ast: &[ast::Decl]) -> Result<Self, error::CompileError> {
+    pub fn from_ast(ast: &ast::Ast) -> Result<Self, error::CompileError> {
         intermediate::IntermediateIntent::from_ast(ast)?.compile()
     }
 }

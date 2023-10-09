@@ -11,3 +11,18 @@ constraint c > a;
 constraint c < b;
 
 solve minimize c;
+
+// ast <<<<
+// let ::a = 123;
+// let ::b = 1.23456e2;
+// let ::c: real;
+// fn ::d(e: real) -> bool { (::e > 0e0) };
+// constraint ::d(::c);
+// constraint (::c > ::a);
+// constraint (::c < ::b);
+// solve minimize ::c;
+// >>>
+
+// compile_failure <<<
+// internal error: Found untyped variable in final variable.
+// >>>

@@ -30,6 +30,7 @@ fn control_tokens() {
     assert_eq!(lex_one_success("->"), Token::Arrow);
     assert_eq!(lex_one_success("=>"), Token::HeavyArrow);
     assert_eq!(lex_one_success("."), Token::Dot);
+    assert_eq!(lex_one_success(".."), Token::TwoDots);
 }
 
 #[test]

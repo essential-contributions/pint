@@ -3,7 +3,7 @@ resolver = "2"
 members = ["yurtc", "yurtfmt"]
 
 [workspace.dependencies]
-ansi_term = "0.12"
+yansi = "0.5"
 anyhow = "1.0"
 ariadne = "0.3"
 chumsky = "0.9"

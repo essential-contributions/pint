@@ -1,0 +1,18 @@
+use a::b;
+
+let c: int;
+
+constraint b > c;
+
+solve satisfy;
+
+// ast <<<
+// let ::c: int;
+// constraint (::a::b > ::c);
+// solve satisfy;
+// let ::a::b: int = 10;
+// >>>
+
+// compile_failure <<<
+// internal error: Multi-path identifiers are not supported yet.
+// >>>

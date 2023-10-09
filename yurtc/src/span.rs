@@ -1,7 +1,7 @@
 use std::{fmt, ops::Range, path::Path, rc::Rc};
 
 #[derive(Clone, PartialEq)]
-pub(super) struct Span {
+pub struct Span {
     pub(super) context: Rc<Path>,
     pub(super) range: Range<usize>,
 }
