@@ -9,6 +9,6 @@ solve satisfy;
 // let ::d::e: int = 10;
 // >>>
 
-// compile_failure <<<
-// internal error: Multi-path identifiers are not supported yet.
+// compiled_intent <<<
+// Intent { states: [], vars: [Variable { name: "::a::b::c", ty: Int }, Variable { name: "::d::e", ty: Int }], constraints: [BinaryOp { op: Equal, lhs: Path("::a::b::c"), rhs: Path("::d::e") }, BinaryOp { op: Equal, lhs: Path("::d::e"), rhs: Immediate(Int(10)) }], directive: Satisfy }
 // >>>
