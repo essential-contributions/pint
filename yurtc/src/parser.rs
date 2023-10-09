@@ -111,7 +111,7 @@ fn let_decl<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
     let type_spec = just(Token::Colon).ignore_then(type_(expr.clone()));
-    let init = just(Token::Eq).ignore_then(expr);
+    let init = just(Token::Eq).ignore_then(range(expr.clone()).or(expr));
     just(Token::Let)
         .ignore_then(ident())
         .then(type_spec.or_not())
@@ -474,9 +474,7 @@ fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
             expr::BinaryOp::LogicalAnd,
             comparison_op,
         );
-        let or = and_or_op(Token::DoublePipe, expr::BinaryOp::LogicalOr, and);
-
-        or.boxed()
+        and_or_op(Token::DoublePipe, expr::BinaryOp::LogicalOr, and)
     })
 }
 
@@ -650,9 +648,10 @@ where
     P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
 {
     parser
+        .clone()
         .then(
             just(Token::In)
-                .ignore_then(expr)
+                .ignore_then(range(expr.clone()).or(expr))
                 .map_with_span(|collection, span| (collection, span))
                 .repeated(),
         )
@@ -782,6 +781,20 @@ where
             }
         })
         .boxed()
+}
+
+fn range<'sc, P>(parser: P) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
+{
+    parser
+        .clone()
+        .then(just(Token::TwoDots).ignore_then(parser))
+        .map_with_span(|(lb, ub), span| ast::Expr::Range {
+            lb: Box::new(lb),
+            ub: Box::new(ub),
+            span,
+        })
 }
 
 fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError> + Clone {

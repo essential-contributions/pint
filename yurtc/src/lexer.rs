@@ -75,6 +75,8 @@ pub(super) enum Token<'sc> {
     HeavyArrow,
     #[token(".")]
     Dot,
+    #[token("..")]
+    TwoDots,
 
     #[token("real")]
     Real,
@@ -218,6 +220,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Arrow => write!(f, "->"),
             Token::HeavyArrow => write!(f, "=>"),
             Token::Dot => write!(f, "."),
+            Token::TwoDots => write!(f, ".."),
             Token::Real => write!(f, "real"),
             Token::Int => write!(f, "int"),
             Token::Bool => write!(f, "bool"),

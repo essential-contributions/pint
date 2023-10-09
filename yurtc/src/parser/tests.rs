@@ -604,6 +604,37 @@ fn custom_types() {
 }
 
 #[test]
+fn ranges() {
+    check(
+        &run_parser!(range(expr()), "1..2"),
+        expect_test::expect!["1..2"],
+    );
+    check(
+        &run_parser!(range(expr()), "1.1..2.2e3"),
+        expect_test::expect!["1.1e0..2.2e3"],
+    );
+    check(
+        &run_parser!(range(expr()), "A[x]..t.2"),
+        expect_test::expect!["A[x]..t.2"],
+    );
+    check(
+        &run_parser!(range(expr()), "1+2..3+4"),
+        expect_test::expect!["(1 + 2)..(3 + 4)"],
+    );
+    check(
+        &run_parser!(range(expr()), "-100.. -if c { 10 } else { 9 }"),
+        expect_test::expect!["-100..-if c { 10 } else { 9 }"],
+    );
+    check(
+        &run_parser!(range(expr()), "1...2"),
+        expect_test::expect![[r#"
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`, found `.`
+            @3..4: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`
+        "#]],
+    );
+}
+
+#[test]
 fn idents() {
     check(
         &run_parser!(ident(), "foobar"),
@@ -1175,8 +1206,8 @@ fn in_expr() {
     check(
         &run_parser!(let_decl(expr()), r#"let x = 5 in;"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`, found `;`
-            @12..13: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`
+            expected `!`, `!`, `(`, `(`, `+`, `+`, `-`, `-`, `::`, `::`, `::`, `::`, `[`, `[`, `cond`, `cond`, `if`, `if`, `{`, `{`, `{`, or `{`, found `;`
+            @12..13: expected `!`, `!`, `(`, `(`, `+`, `+`, `-`, `-`, `::`, `::`, `::`, `::`, `[`, `[`, `cond`, `cond`, `if`, `if`, `{`, `{`, `{`, or `{`
         "#]],
     );
 }

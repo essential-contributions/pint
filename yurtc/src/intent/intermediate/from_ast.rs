@@ -239,6 +239,11 @@ impl ExprContext {
                 collection: Box::new(self.convert_expr(collection)?),
                 span: span.clone(),
             },
+            ast::Expr::Range { lb, ub, span } => Expr::Range {
+                lb: Box::new(self.convert_expr(lb)?),
+                ub: Box::new(self.convert_expr(ub)?),
+                span: span.clone(),
+            },
         })
     }
 
@@ -412,13 +417,31 @@ impl ExprContext {
         ));
 
         if let Some(init) = init {
-            let eq_expr = Expr::BinaryOp {
-                op: expr::BinaryOp::Equal,
-                lhs: Box::new(Expr::Path(name.name.to_owned())),
-                rhs: Box::new(self.convert_expr(init)?),
-                span: span.clone(), // Using the span of the `let` decl here
-            };
-            self.constraints.push((eq_expr, name.span.clone()));
+            if let ast::Expr::Range { lb, ub, span } = init {
+                let gt_expr = Expr::BinaryOp {
+                    op: expr::BinaryOp::GreaterThan,
+                    lhs: Box::new(Expr::Path(name.name.to_owned())),
+                    rhs: Box::new(self.convert_expr(lb)?),
+                    span: span.clone(), // Using the span of the `let` decl here
+                };
+                let lt_expr = Expr::BinaryOp {
+                    op: expr::BinaryOp::LessThan,
+                    lhs: Box::new(Expr::Path(name.name.to_owned())),
+                    rhs: Box::new(self.convert_expr(ub)?),
+                    span: span.clone(), // Using the span of the `let` decl here
+                };
+
+                self.constraints.push((gt_expr, name.span.clone()));
+                self.constraints.push((lt_expr, name.span.clone()));
+            } else {
+                let eq_expr = Expr::BinaryOp {
+                    op: expr::BinaryOp::Equal,
+                    lhs: Box::new(Expr::Path(name.name.to_owned())),
+                    rhs: Box::new(self.convert_expr(init)?),
+                    span: span.clone(), // Using the span of the `let` decl here
+                };
+                self.constraints.push((eq_expr, name.span.clone()));
+            }
         };
 
         Ok(())

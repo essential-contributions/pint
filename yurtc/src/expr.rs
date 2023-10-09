@@ -68,6 +68,11 @@ pub enum Expr<Path, BlockExpr> {
         collection: Box<Self>,
         span: Span,
     },
+    Range {
+        lb: Box<Self>,
+        ub: Box<Self>,
+        span: Span,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -95,7 +100,8 @@ where
             | Tuple { span, .. }
             | TupleFieldAccess { span, .. }
             | Cast { span, .. }
-            | In { span, .. } => span,
+            | In { span, .. }
+            | Range { span, .. } => span,
             Path(path) => path.span(),
             Block(block) => block.span(),
         }

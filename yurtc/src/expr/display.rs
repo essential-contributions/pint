@@ -105,6 +105,8 @@ impl<Path: Display, BlockExpr: Display> Display for super::Expr<Path, BlockExpr>
             super::Expr::In {
                 value, collection, ..
             } => write!(f, "{value} in {collection}"),
+
+            super::Expr::Range { lb, ub, .. } => write!(f, "{lb}..{ub}"),
         }
     }
 }
