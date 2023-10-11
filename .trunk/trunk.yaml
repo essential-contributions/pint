@@ -1,25 +1,30 @@
 version: 0.1
 cli:
-  version: 1.14.0
+  version: 1.16.2
 plugins:
   sources:
     - id: trunk
-      ref: v1.1.1
+      ref: v1.2.5
       uri: https://github.com/trunk-io/plugins
 lint:
   enabled:
-    - actionlint@1.6.25
-    - clippy@1.65.0
+    - checkov@2.5.6
+    - osv-scanner@1.4.1
+    - oxipng@8.0.0
+    - trivy@0.45.1
+    - trufflehog@3.59.0
+    - actionlint@1.6.26
+    - clippy@1.72.0
     - git-diff-check
-    - gitleaks@8.17.0
-    - markdownlint@0.35.0
-    - prettier@3.0.2
-    - rustfmt@1.65.0
+    - gitleaks@8.18.0
+    - markdownlint@0.37.0
+    - prettier@3.0.3
+    - rustfmt@1.72.0
     - taplo@0.8.1
     - yamllint@1.32.0
 runtimes:
   enabled:
-    - go@1.19.5
+    - go@1.21.0
     - node@18.12.1
     - python@3.10.8
 actions:

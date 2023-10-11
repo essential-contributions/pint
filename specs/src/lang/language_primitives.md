@@ -62,7 +62,7 @@ Identifiers have the following syntax:
 <ident> ::= _?[A-Za-z][A-Za-z0-9]*     % excluding keywords
 ```
 
-A number of keywords are reserved and cannot be used as identifiers. The keywords are: `as`, `bool`, `constraint`, `contract`, `else`, `enum`, `extern`, `false`, `fn`, `if`, `implements`, `interface`, `int`, `let`, `maximize`, `minimize`, `real`, `satisfy`, `solve`, `state`, `string`, `true`, `use`.
+A number of keywords are reserved and cannot be used as identifiers. The keywords are: `as`, `bool`, `constraint`, `contract`, `else`, `enum`, `extern`, `false`, `fn`, `if`, `implements`, `interface`, `int`, `let`, `maximize`, `minimize`, `real`, `satisfy`, `solve`, `state`, `string`, `true`, `type`, `use`.
 
 ### Paths
 
@@ -107,6 +107,7 @@ Items can occur in any order; identifiers need not be declared before they are u
          | <interface-item>
          | <contract-item>
          | <extern-item>
+         | <new-type-item>
 ```
 
 Import items (`<import-item>`) import new items from a module/submodule or external library into the current module ([Import Items](#import-items)).
@@ -128,6 +129,8 @@ Interface items contain lists of smart contract methods that a [contract](#contr
 Contract items describe actual deployed contracts with a known contract ID and a list of available methods ([contract Items](#contract-items)).
 
 "Extern" items contain lists of external functions that allow accessing data on a blockchain (["Extern" Items](#extern-items)).
+
+New Type items let you assign a new name to an existing type, simplifying complex type definitions or providing more context for certain types (["New Type" Items](#new-type-items)).
 
 ### Multi-file Intents
 
@@ -170,7 +173,7 @@ The syntax for types is as follows:
        | "string"
        | <tuple-ty>
        | <array-ty>
-       | <enum-ty>
+       | <custom-ty>
 ```
 
 ### Tuple Type
@@ -192,10 +195,10 @@ Note that the grammar disallows empty tuple types `{ }`.
 An array type represents a collection of items that share the same type. Arrays can be multi-dimensional and have the following syntax:
 
 ```ebnf
-<array-ty> ::= <ty> ( "[" <expr> | <enum-ty> "]" )+
+<array-ty> ::= <ty> ( "[" <expr> | <custom-ty> "]" )+
 ```
 
-An array dimension can be indexed using integers or using enum variants of a single enum type, depending on how the dimension is specified in the array type.
+An array dimension can be indexed using non-negative integers. It can also be indexed using enum variants of some enum type or some [new type](#new-type-items) that resolves to an enum type. The allowed type of the index depends on how the dimension is specified in the array type definition.
 
 - An array dimension that can be indexed using an integer requires that the corresponding dimension size is specified in between brackets as an expression that is evaluatable, **at compile-time**, to a **strictly positive** integer. Otherwise, the compiler should emit an error.
 
@@ -244,6 +247,7 @@ Expressions represent values and have the following syntax:
          | <call-expr>
          | <cast-expr>
          | <in-expr>
+         | <range-expr>
          | <prime-expr>
 ```
 
@@ -280,6 +284,7 @@ Block expressions are expressions that contains a list of _statements_ followed 
 <block-expr> ::= "{" ( <block-statement> ";" )* <expr> "}"
 
 <block-statement> ::= <let-item>
+                    | <state-item>
                     | <constraint-item>
 ```
 
@@ -542,6 +547,44 @@ A value belongs to an array if and only if it is "equal" to one of its entries. 
 
 Note that two values of different types cannot be compared and should result in a compile error.
 
+#### Range Expressions
+
+Range expressions are used to refer to ranges between a lower bound value and an upper bound value:
+
+```ebnf
+<range-expr> ::= <expr> ".." <expr>
+```
+
+Range expressions require that both the lower bound and the upper bound expressions have the same type. The type of a range expression is identical to the type of its bounds.
+
+The only allowed types for the bounds of a range expression are `int` and `real`.
+
+Range expressions can only be used in two contexts:
+
+1. As the expression on the right-hand side of a `<let-item>`.
+1. As the expression on the right-hand side of an `<in-expr>`
+
+For example,
+
+```rust
+let x: int = 3..5;
+```
+
+is equivalent to;
+
+```rust
+let x: int;
+constraint x in 3..5;
+```
+
+which is equivalent to:
+
+```rust
+let x: int;
+constraint x >= 3;
+constraint x <= 5;
+```
+
 #### Prime Expressions
 
 Prime expressions are used to refer to the _future_ value of a [state variable](#state-declaration-items). They have the following syntax:
@@ -576,6 +619,7 @@ The precedence of Yurt operators and expressions is ordered as follows, going fr
 | `==`, `!=`, `<`, `>`, `<=`, `>=` | Requires parentheses |
 | `&&`                             | left to right        |
 | `\|\|`                           | left to right        |
+| `..`                             | Requires parentheses |
 
 ## Items
 
@@ -597,11 +641,10 @@ An import item creates one or more local name bindings synonymous with some othe
 
 Use declarations support a number of convenient shortcuts:
 
-- Simultaneously binding a list of paths with a common prefix, using the glob-like brace syntax `use a::b::{c, d, e::f, g::h::i};`
+- Simultaneously binding a list of paths with a common prefix, using the brace syntax `use a::b::{c, d, e::f, g::h::i};`
 - Simultaneously binding a list of paths with a common prefix and their common parent module, using the `self` keyword, such as use `a::b::{self, c, d::e};`.
 - Rebinding the target name as a new local name, using the syntax `use p::q::r as x;`. This can also be used with the last two features: `use a::b::{self as ab, c as abc};`.
-- Binding all paths matching a given prefix, using the asterisk wildcard syntax `use a::b::*;`.
-- Nesting groups of the previous features multiple times, such as use `a::b::{self as ab, c, d::{*, e::f}};`.
+- Nesting groups of the previous features multiple times, such as use `a::b::{self as ab, c, d::{e, f::g}};`.
 
 ### Let Declaration Items
 
@@ -624,7 +667,7 @@ Note that at least one of the type annotation and the initializing expression ha
 
 ### State Declaration Items
 
-These are variables that represent blockchain _state_ and require an initializer in the form of a [contract](#contract-items) method call. State variables are _not_ decision variables and the solver is not required to find values for them as their true value is determined by the blockchain. That being said, state variables can still be used in [constraint items](#constraint-items) to enforce various restrictions on the current and future state values.
+These are variables that represent blockchain _state_ and require an initializer in the form of a [contract](#contract-items) method call or a call an [`extern` function](#extern-items). State variables are _not_ decision variables and the solver is not required to find values for them as their true value is determined by the blockchain. That being said, state variables can still be used in [constraint items](#constraint-items) to enforce various restrictions on the current and future state values.
 
 State declaration items have the following syntax:
 
@@ -782,6 +825,44 @@ extern {
 The types used in the signature of `extern` functions depend on the types used by the external APIs. In the case of Ethereum JSON-RPC, a string is used to encode all values, hence a `string` type must be used in the `extern` block.
 
 Extern functions are available directly without any special scoping. The only requirement is that the functions are called in the same file where the `extern` block is declared or that the functions are imported using an [import item](#import-items), similarly to regular functions.
+
+### "New Type" Items
+
+New Type items introduce a distinct type that is not directly interchangeable with its underlying type or other new types based on the same underlying type.
+
+The syntax for declaring a new type is:
+
+```ebnf
+<new-type-item> ::= "type" <ident> "=" <ty>
+```
+
+For example:
+
+```rust
+type AccountTuple = { id: int, balance: real, address: string };
+
+type IdArray = int[5];
+
+type Address = string;
+```
+
+In the above declarations:
+
+`AccountTuple` is a new type for a `tuple` type to represent the account's ID, balance, and address. `IdArray` is a new type for an `array` type to represent a list of account ids. `Address` is an new type for the `string` type to represent blockchain addresses or other specific string-based identifiers.
+
+New type values may be initialized through:
+
+- Expressions that conform to the new type's structure (such as tuple and array expressions). For instance, `{ x: .. }` for tuples or `[1, y, .. ]` for arrays.
+
+- Literals of primitive types (`int`, `real`, `bool`, `string`) as long as they are compatible with the new type's underlying definition.
+
+```rust
+let walletDetails: AccountTuple = {id: 1, balance: 2.0, address: "0x1234...ABCD"};
+
+let ids: IdArray = [1, 2, 3, 4, 5];
+
+let myAddress: Address = "0x1234567890abcdef";
+```
 
 ## Language Backend
 

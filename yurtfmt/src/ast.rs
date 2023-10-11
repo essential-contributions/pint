@@ -1,13 +1,12 @@
-#[cfg(test)]
-use crate::parser::*;
 use crate::{
     error::FormatterError,
     formatter::{Format, FormattedCode},
     lexer::Token,
 };
+use std::fmt::{self, Write};
+
 #[cfg(test)]
-use chumsky::{prelude::*, Stream};
-use std::fmt::Write;
+mod tests;
 
 pub(super) type Ast<'sc> = Vec<Decl<'sc>>;
 
@@ -16,8 +15,17 @@ pub(super) enum Decl<'sc> {
     Value {
         let_token: Token<'sc>,
         name: String,
-        eq_token: Token<'sc>,
-        init: Expr,
+        colon_token_and_ty: Option<(Token<'sc>, Type)>,
+        eq_token_and_init: Option<(Token<'sc>, Expr<'sc>)>,
+    },
+    Solve {
+        solve_token: Token<'sc>,
+        directive: String,
+        expr: Option<Expr<'sc>>,
+    },
+    Constraint {
+        constraint_token: Token<'sc>,
+        expr: Expr<'sc>,
     },
 }
 
@@ -27,11 +35,38 @@ impl<'sc> Format for Decl<'sc> {
             Self::Value {
                 let_token,
                 name,
-                eq_token,
-                init,
+                colon_token_and_ty,
+                eq_token_and_init,
             } => {
-                write!(formatted_code, "{} {} {} ", let_token, name, eq_token)?;
-                init.format(formatted_code)?;
+                write!(formatted_code, "{} {}", let_token, name)?;
+
+                if let Some((colon_token, ty)) = colon_token_and_ty {
+                    write!(formatted_code, "{} {}", colon_token, ty)?;
+                }
+
+                if let Some((eq_token, init)) = eq_token_and_init {
+                    write!(formatted_code, " {} ", eq_token)?;
+                    init.format(formatted_code)?;
+                }
+            }
+            Self::Solve {
+                solve_token,
+                directive,
+                expr,
+            } => {
+                write!(formatted_code, "{} {}", solve_token, directive)?;
+
+                if let Some(expr) = expr {
+                    write!(formatted_code, " ")?;
+                    expr.format(formatted_code)?;
+                }
+            }
+            Self::Constraint {
+                constraint_token,
+                expr,
+            } => {
+                write!(formatted_code, "{} ", constraint_token)?;
+                expr.format(formatted_code)?;
             }
         }
 
@@ -40,29 +75,90 @@ impl<'sc> Format for Decl<'sc> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Expr {
-    Immediate(Immediate),
+pub(super) enum Type {
+    Primitive(String),
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Type::Primitive(primitive_ty) => write!(f, "{primitive_ty}"),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Immediate {
-    Real(f64),
-}
+pub(super) struct Immediate(pub String);
 
 impl Format for Immediate {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
-        match self {
-            Self::Real(val) => write!(formatted_code, "{}", val)?,
-        }
+        write!(formatted_code, "{}", self.0)?;
 
         Ok(())
     }
 }
 
-impl Format for Expr {
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct Path {
+    pub pre_colon: bool,
+    pub idents: Vec<String>,
+}
+
+impl Format for Path {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        if self.pre_colon {
+            write!(formatted_code, "::")?;
+        }
+        write!(formatted_code, "{}", self.idents.join("::"))?;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct UnaryOp<'sc> {
+    pub prefix_op: Token<'sc>,
+    pub expr: Box<Expr<'sc>>,
+}
+
+impl<'sc> Format for UnaryOp<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        write!(formatted_code, "{}", self.prefix_op)?;
+        self.expr.format(formatted_code)?;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct BinaryOp<'sc> {
+    pub op: Token<'sc>,
+    pub lhs: Box<Expr<'sc>>,
+    pub rhs: Box<Expr<'sc>>,
+}
+
+impl<'sc> Format for BinaryOp<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        self.lhs.format(formatted_code)?;
+        write!(formatted_code, " {} ", self.op)?;
+        self.rhs.format(formatted_code)?;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) enum Expr<'sc> {
+    Immediate(Immediate),
+    Path(Path),
+    UnaryOp(UnaryOp<'sc>),
+    BinaryOp(BinaryOp<'sc>),
+}
+
+impl<'sc> Format for Expr<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
             Self::Immediate(immediate) => immediate.format(formatted_code)?,
+            Self::Path(path) => path.format(formatted_code)?,
+            Self::UnaryOp(unary_op) => unary_op.format(formatted_code)?,
+            Self::BinaryOp(binary_op) => binary_op.format(formatted_code)?,
         }
 
         Ok(())
@@ -78,98 +174,4 @@ impl<'sc> Format for Ast<'sc> {
 
         Ok(())
     }
-}
-
-#[cfg(test)]
-fn check(actual: &str, expect: expect_test::Expect) {
-    expect.assert_eq(actual);
-}
-
-#[cfg(test)]
-macro_rules! run_formatter {
-    ($parser: expr, $source: expr) => {{
-        let (toks, errs) = crate::lexer::lex($source);
-        if !errs.is_empty() {
-            format!(
-                "{}",
-                // Print each lexing error on one line
-                errs.iter().fold(String::new(), |acc, error| {
-                    format!("{}{}\n", acc, error)
-                })
-            )
-        } else {
-            let token_stream = Stream::from_iter($source.len()..$source.len(), toks.into_iter());
-            match $parser.parse(token_stream) {
-                Ok(ast) => {
-                    let mut formatted_code = String::default();
-                    match ast.format(&mut formatted_code) {
-                        Ok(_) => formatted_code,
-                        Err(error) => format!("{error}"),
-                    }
-                }
-                Err(errors) => format!(
-                    "{}",
-                    // Print each parsing.
-                    errors.iter().fold(String::new(), |acc, error| {
-                        format!("{}{}\n", acc, error)
-                    })
-                ),
-            }
-        }
-    }};
-}
-
-#[test]
-fn errors() {
-    check(
-        &run_formatter!(yurt_program(), r#"@@@"#),
-        expect_test::expect![[r#"
-            invalid token
-            invalid token
-            invalid token
-        "#]],
-    );
-
-    check(
-        &run_formatter!(yurt_program(), r#"let x = 5"#),
-        expect_test::expect![[r#"
-            found end of input but expected ";"
-        "#]],
-    );
-}
-
-#[test]
-fn let_decls() {
-    check(
-        &run_formatter!(
-            yurt_program(),
-            r#"
-let x =    5; 
-
-
-let     y     =    7.777   ;
-"#
-        ),
-        expect_test::expect![[r#"
-            let x = 5;
-            let y = 7.777;
-        "#]],
-    );
-
-    check(
-        &run_formatter!(
-            yurt_program(),
-            r#"
-let z=    { int,    real, string  }; 
-
-
-let     y     =    {int,    {real,    int  },
- string       }   ;
-"#
-        ),
-        expect_test::expect![[r#"
-            let x = 5;
-            let y = 7.777;
-        "#]],
-    );
 }

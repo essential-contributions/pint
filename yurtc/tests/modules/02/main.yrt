@@ -1,0 +1,26 @@
+use a::b;
+
+extern {
+  fn hello_world() -> bool;
+}
+
+let c: int;
+state d: bool = hello_world();
+
+constraint b > c;
+
+solve satisfy;
+
+// ast <<<
+// extern { fn ::hello_world() -> bool; };
+// let ::c: int;
+// state ::d: bool = ::hello_world();
+// constraint (::a::b > ::c);
+// solve satisfy;
+// type ::a::Count = int;
+// let ::a::b: int = 10;
+// >>>
+
+// compiled_intent <<<
+// Intent { states: [State { name: "::d", ty: Bool, expr: Call { name: "::hello_world", args: [] } }], vars: [Variable { name: "::c", ty: Int }, Variable { name: "::a::b", ty: Int }], constraints: [BinaryOp { op: GreaterThan, lhs: Path("::a::b"), rhs: Path("::c") }, BinaryOp { op: Equal, lhs: Path("::a::b"), rhs: Immediate(Int(10)) }], directive: Satisfy }
+// >>>

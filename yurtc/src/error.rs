@@ -1,192 +1,188 @@
-use crate::lexer::Token;
-use ariadne::{Color, Fmt, Label, Report, ReportKind, Source};
+mod compile_error;
+mod lex_error;
+mod parse_error;
+
+use crate::span::{Span, Spanned};
+use ariadne::{FnCache, Label, Report, ReportKind, Source};
 use chumsky::prelude::*;
+pub(super) use compile_error::CompileError;
+pub(super) use lex_error::LexError;
+pub(super) use parse_error::ParseError;
 use thiserror::Error;
+use yansi::{Color, Style};
 
-pub(super) type Span = std::ops::Range<usize>;
-pub(super) fn empty_span() -> Span {
-    0..0
-}
-
-/// An error originating from the lexer
-#[derive(Error, Debug, Clone, PartialEq, Default)]
-pub(super) enum LexError {
-    #[default]
-    #[error("invalid token")]
-    InvalidToken,
-}
-
-/// An error originating from the parser
-#[derive(Error, Debug, PartialEq, Clone)]
-pub(super) enum ParseError<'a> {
-    #[error("{}", format_expected_found_error(&mut expected.clone(), found))]
-    ExpectedFound {
-        span: Span,
-        expected: Vec<Option<Token<'a>>>,
-        found: Option<Token<'a>>,
-    },
-    #[error("expected identifier, found keyword \"{keyword}\"")]
-    KeywordAsIdent { span: Span, keyword: Token<'a> },
-    #[error("type annotation or initializer needed for variable \"{name}\"")]
-    UntypedVariable { span: Span, name: String },
-    #[error("empty array expressions are not allowed")]
-    EmptyArrayExpr { span: Span },
-    #[error("invalid integer value \"{}\" for tuple index", index)]
-    InvalidIntegerTupleIndex { span: Span, index: &'a str },
-    #[error("invalid value \"{}\" for tuple index", index)]
-    InvalidTupleIndex { span: Span, index: Token<'a> },
-    #[error("empty tuple expressions are not allowed")]
-    EmptyTupleExpr { span: Span },
-    #[error("empty tuple types are not allowed")]
-    EmptyTupleType { span: Span },
-}
-
-#[derive(Error, Debug, PartialEq, Clone)]
-pub(super) enum CompileError {
-    #[error("internal error: {msg}")]
-    Internal { span: Span, msg: &'static str },
-    #[error("symbol \"{sym}\" has already been declared")]
-    NameClash {
-        sym: String,
-        span: Span,
-        prev_span: Span,
-    },
-}
-
-fn format_expected_found_error<'a>(
-    expected: &mut Vec<Option<Token<'a>>>,
-    found: &Option<Token<'a>>,
-) -> String {
-    let format_optional_token = |token: &Option<Token>| match &token {
-        Some(token) => format!("\"{token}\""),
-        None => "end of input".to_string(),
-    };
-
-    format!(
-        "found {} but expected {}",
-        format_optional_token(found),
-        match &expected[..] {
-            [] => "something else".to_string(),
-            [expected] => format_optional_token(expected),
-            _ => {
-                // Make sure that the list of expected tokens is printed in a deterministic order
-                expected.sort();
-
-                let mut token_list = "".to_string();
-                for expected in &expected[..expected.len() - 1] {
-                    token_list = format!("{token_list}{}, ", format_optional_token(expected));
-                }
-                format!(
-                    "{token_list} or {}",
-                    format_optional_token(expected.last().unwrap())
-                )
-            }
-        }
-    )
-}
-
-/// Implement the `ParseError` trait from Chumsky for `ParseError`
-impl<'a> chumsky::Error<Token<'a>> for ParseError<'a> {
-    type Span = Span;
-    type Label = ();
-
-    fn expected_input_found<Iter: IntoIterator<Item = Option<Token<'a>>>>(
-        span: Span,
-        expected: Iter,
-        found: Option<Token<'a>>,
-    ) -> Self {
-        Self::ExpectedFound {
-            span,
-            expected: expected.into_iter().collect(),
-            found,
-        }
-    }
-
-    // Not currently doing anything with the label
-    fn with_label(self, _: Self::Label) -> Self {
-        self
-    }
-
-    // Merge two errors that point to the same input together, combining their information. Only
-    // relevant for the `ExpectedFound` error for now.
-    fn merge(mut self, mut other: Self) -> Self {
-        #[allow(clippy::single_match)]
-        match (&mut self, &mut other) {
-            (
-                Self::ExpectedFound { expected, .. },
-                Self::ExpectedFound {
-                    expected: expected_other,
-                    ..
-                },
-            ) => expected.append(expected_other),
-            _ => {}
-        }
-        self
-    }
+/// An error label used for pretty printing error messages to the terminal
+pub(super) struct ErrorLabel {
+    pub(super) message: String,
+    pub(super) span: Span,
+    pub(super) color: Color,
 }
 
 /// A general compile error
-#[derive(Error, Debug, Clone, PartialEq)]
-pub(super) enum Error<'a> {
+#[derive(Error, Debug)]
+pub enum Error {
     #[error("{}", error)]
     Lex { span: Span, error: LexError },
     #[error("{}", error)]
-    Parse { error: ParseError<'a> },
+    Parse { error: ParseError },
     #[error("{}", error)]
     Compile { error: CompileError },
 }
 
-impl<'a> Error<'a> {
-    pub(super) fn span(&self) -> Span {
+/// Types that implement this trait can be pretty printed to the terminal using the `ariadne` crate
+/// by calling the `print()` method.
+pub(super) trait ReportableError
+where
+    Self: std::fmt::Display + Spanned,
+{
+    /// A list of error labels for emitting diagnostics at multiple span locations
+    fn labels(&self) -> Vec<ErrorLabel>;
+
+    /// A helpful "note" about the error
+    fn note(&self) -> Option<String>;
+
+    /// A unique error code
+    fn code(&self) -> Option<String>;
+
+    /// Additional information to help the user address the diagnostic
+    fn help(&self) -> Option<String>;
+
+    /// Pretty print an error to the terminal
+    fn print(&self) {
+        let filepaths_and_sources = self
+            .labels()
+            .iter()
+            .map(|label| {
+                let filepath = format!("{}", label.span.context().display());
+                let source = std::fs::read_to_string(filepath.clone()).unwrap_or("<none>".into());
+                (filepath, source)
+            })
+            .collect::<Vec<(String, String)>>();
+
+        let error_file: &str = &format!("{}", self.span().context().display());
+        let mut report_builder = Report::build(ReportKind::Error, error_file, self.span().start())
+            .with_message(format!("{}", Style::default().bold().paint(self)))
+            .with_labels({
+                self.labels()
+                    .iter()
+                    .enumerate()
+                    .map(|(index, label)| {
+                        let filepath: &str = &filepaths_and_sources[index].0;
+                        let style = Style::new(label.color).bold();
+                        Label::new((filepath, label.span.start()..label.span.end()))
+                            .with_message(style.paint(label.message.clone()))
+                            .with_color(label.color)
+                    })
+                    .collect::<Vec<_>>()
+            });
+
+        if let Some(code) = self.code() {
+            report_builder = report_builder.with_code(code)
+        };
+
+        if let Some(note) = self.note() {
+            report_builder = report_builder.with_note(note)
+        };
+
+        if let Some(help) = self.help() {
+            report_builder = report_builder.with_help(help)
+        };
+
+        report_builder
+            .finish()
+            .print(
+                FnCache::new(|id: &&str| {
+                    Err(Box::new(format!("Failed to fetch source '{}'", id)) as _)
+                })
+                .with_sources(
+                    filepaths_and_sources
+                        .iter()
+                        .map(|(id, s)| (&id[..], Source::from(s)))
+                        .collect(),
+                ),
+            )
+            .unwrap();
+    }
+}
+
+impl ReportableError for Error {
+    fn labels(&self) -> Vec<ErrorLabel> {
         use Error::*;
         match self {
-            Lex { span, .. } => span.clone(),
-            Parse { error } => match error {
-                ParseError::ExpectedFound { span, .. } => span.clone(),
-                ParseError::KeywordAsIdent { span, .. } => span.clone(),
-                ParseError::UntypedVariable { span, .. } => span.clone(),
-                ParseError::EmptyArrayExpr { span } => span.clone(),
-                ParseError::InvalidIntegerTupleIndex { span, .. } => span.clone(),
-                ParseError::InvalidTupleIndex { span, .. } => span.clone(),
-                ParseError::EmptyTupleExpr { span } => span.clone(),
-                ParseError::EmptyTupleType { span } => span.clone(),
+            Lex { error, span } => match error {
+                // For lex errors, insert the labels here for now because we don't have access to
+                // `span` in `LexError` just yet.
+                LexError::InvalidToken => vec![ErrorLabel {
+                    message: "invalid token".into(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }],
             },
-            Compile { error } => match error {
-                CompileError::Internal { span, .. } => span.clone(),
-                CompileError::NameClash { span, .. } => span.clone(),
-            },
+            Parse { error } => error.labels(),
+            Compile { error } => error.labels(),
+        }
+    }
+
+    fn note(&self) -> Option<String> {
+        use Error::*;
+        match self {
+            Lex { .. } => None,
+            Parse { error } => error.note(),
+            Compile { error } => error.note(),
+        }
+    }
+
+    fn code(&self) -> Option<String> {
+        use Error::*;
+        match self {
+            Lex { .. } => None,
+            Parse { error } => error.code().map(|code| format!("P{}", code)),
+            Compile { error } => error.code().map(|code| format!("C{}", code)),
+        }
+    }
+
+    fn help(&self) -> Option<String> {
+        use Error::*;
+        match self {
+            Lex { .. } => None,
+            Parse { error } => error.help(),
+            Compile { error } => error.help(),
         }
     }
 }
 
-/// Print a list of [`Error`] using the `ariadne` library
-pub(super) fn print_on_failure(filename: &str, source: &str, errs: &Vec<Error>) -> usize {
-    for err in errs {
-        let span = err.span();
-        Report::build(ReportKind::Error, filename, span.start())
-            .with_label(
-                Label::new((filename, span.start()..span.end()))
-                    .with_message(format!("{}", err.fg(Color::Red)))
-                    .with_color(Color::Red),
-            )
-            .finish()
-            .print((filename, Source::from(source)))
-            .unwrap();
+impl Spanned for Error {
+    fn span(&self) -> &Span {
+        use Error::*;
+        match &self {
+            Lex { span, .. } => span,
+            Parse { error } => error.span(),
+            Compile { error } => error.span(),
+        }
     }
-
-    errs.len()
 }
 
-/// A simple warpper around `anyhow::bail!` that prints a different message based on a the number
-/// of compiler errors.
+/// Print a list of [`Error`] using the `ariadne` crate
+pub fn print_errors(errs: &Vec<Error>) {
+    for err in errs {
+        err.print();
+    }
+}
+
+/// A simple wrapper around `anyhow::bail!` that prints a different message based on a the number
+/// of compile errors.
+#[macro_export]
 macro_rules! yurtc_bail {
-    ($number_of_errors: expr, $filename: expr) => {
+    ($number_of_errors: expr, $filepath: expr) => {
         if $number_of_errors == 1 {
-            anyhow::bail!("could not compile \"{}\" due to previous error", $filename)
+            anyhow::bail!(
+                "could not compile `{}` due to previous error",
+                format!("{}", $filepath.display())
+            )
         } else {
             anyhow::bail!(
-                "could not compile \"{}\" due to {} previous errors",
-                $filename,
+                "could not compile `{}` due to {} previous errors",
+                format!("{}", $filepath.display()),
                 $number_of_errors
             )
         }

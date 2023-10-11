@@ -1,7 +1,11 @@
-use crate::error::{Error, LexError, Span};
+use crate::{
+    error::{Error, LexError},
+    span::Span,
+};
+use chumsky::prelude::*;
 use itertools::{Either, Itertools};
 use logos::Logos;
-use std::fmt;
+use std::{fmt, path::Path, rc::Rc};
 
 #[cfg(test)]
 mod tests;
@@ -71,6 +75,8 @@ pub(super) enum Token<'sc> {
     HeavyArrow,
     #[token(".")]
     Dot,
+    #[token("..")]
+    TwoDots,
 
     #[token("real")]
     Real,
@@ -101,6 +107,8 @@ pub(super) enum Token<'sc> {
     State,
     #[token("enum")]
     Enum,
+    #[token("type")]
+    Type,
     #[token("constraint")]
     Constraint,
     #[token("maximize")]
@@ -176,6 +184,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Implements,
     Token::Extern,
     Token::In,
+    Token::Type,
 ];
 
 impl<'sc> fmt::Display for Token<'sc> {
@@ -211,6 +220,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Arrow => write!(f, "->"),
             Token::HeavyArrow => write!(f, "=>"),
             Token::Dot => write!(f, "."),
+            Token::TwoDots => write!(f, ".."),
             Token::Real => write!(f, "real"),
             Token::Int => write!(f, "int"),
             Token::Bool => write!(f, "bool"),
@@ -224,6 +234,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Let => write!(f, "let"),
             Token::State => write!(f, "state"),
             Token::Enum => write!(f, "enum"),
+            Token::Type => write!(f, "type"),
             Token::Constraint => write!(f, "constraint"),
             Token::Maximize => write!(f, "maximize"),
             Token::Minimize => write!(f, "minimize"),
@@ -247,13 +258,14 @@ impl<'sc> fmt::Display for Token<'sc> {
 
 /// Lex a stream of characters. Return a list of discovered tokens and a list of errors encountered
 /// along the way.
-pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<Error>) {
-    Token::lexer(src)
-        .spanned()
-        .partition_map(|(r, span)| match r {
+pub(super) fn lex(src: &str, filepath: Rc<Path>) -> (Vec<(Token, Span)>, Vec<Error>) {
+    Token::lexer(src).spanned().partition_map(|(r, span)| {
+        let span = Span::new(Rc::clone(&filepath), span);
+        match r {
             Ok(v) => Either::Left((v, span)),
             Err(v) => Either::Right(Error::Lex { span, error: v }),
-        })
+        }
+    })
 }
 
 #[derive(Clone, Debug, Eq, Hash, Logos, PartialEq, Ord, PartialOrd)]

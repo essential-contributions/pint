@@ -1,9 +1,10 @@
 use crate::{
-    error::{empty_span, CompileError, Span},
+    error::CompileError,
     intent::{self, Expression, Intent, Solve},
+    span::{empty_span, Span},
 };
 
-use super::{Expr, IntermediateIntent, State, Type, Var};
+use super::{Expr, IntermediateIntent, SolveFunc, State, Type, Var};
 
 pub(super) fn compile(context: IntermediateIntent) -> super::Result<Intent> {
     let IntermediateIntent {
@@ -30,8 +31,8 @@ fn convert_states(states: Vec<(State, Span)>) -> super::Result<Vec<intent::State
         .into_iter()
         .map(|(State { name, ty, expr }, span)| {
             ty.ok_or_else(|| CompileError::Internal {
+                msg: "Found untyped variable.",
                 span: span.clone(),
-                msg: "Found untyped variable in final state.",
             })
             .and_then(|ty| {
                 convert_type(ty, &span).and_then(|ty| {
@@ -46,8 +47,8 @@ fn convert_vars(vars: Vec<(Var, Span)>) -> super::Result<Vec<intent::Variable>> 
     vars.into_iter()
         .map(|(Var { name, ty }, span)| {
             ty.ok_or_else(|| CompileError::Internal {
+                msg: "Found untyped variable.",
                 span: span.clone(),
-                msg: "Found untyped variable in final variable.",
             })
             .and_then(|ty| convert_type(ty, &span))
             .map(|ty| intent::Variable { name, ty })
@@ -62,35 +63,42 @@ fn convert_constraints(constraints: Vec<(Expr, Span)>) -> super::Result<Vec<Expr
         .collect()
 }
 
-fn convert_directive(directives: Vec<(Solve, Span)>) -> super::Result<Solve> {
-    directives
-        .into_iter()
-        .next()
-        .map(|(s, _)| s)
-        .ok_or_else(|| CompileError::Internal {
-            span: empty_span(),
-            msg: "Missing directive during final compile.",
-        })
+fn convert_directive(directives: Vec<(SolveFunc, Span)>) -> super::Result<Solve> {
+    let (directive, span) = match directives.into_iter().next() {
+        Some(tuple) => tuple,
+        None => {
+            return Err(CompileError::Internal {
+                msg: "Missing directive during final compile.",
+                span: empty_span(),
+            })
+        }
+    };
+
+    Ok(match directive {
+        SolveFunc::Satisfy => Solve::Satisfy,
+        SolveFunc::Maximize(expr) => Solve::Maximize(convert_expr(expr, &span)?),
+        SolveFunc::Minimize(expr) => Solve::Minimize(convert_expr(expr, &span)?),
+    })
 }
 
 fn convert_expr(expr: Expr, span: &Span) -> super::Result<Expression> {
     match expr {
-        super::Expr::Immediate(imm) => Ok(Expression::Immediate(imm)),
-        super::Expr::Path(id) => Ok(Expression::Path(id)),
-        super::Expr::UnaryOp { op, expr } => {
-            convert_expr(*expr, span).map(|expr| Expression::UnaryOp {
+        super::Expr::Immediate { value, .. } => Ok(Expression::Immediate(value)),
+        super::Expr::Path(path) => Ok(Expression::Path(path)),
+        super::Expr::UnaryOp { op, expr, span } => {
+            convert_expr(*expr, &span).map(|expr| Expression::UnaryOp {
                 op,
                 expr: Box::new(expr),
             })
         }
-        super::Expr::BinaryOp { op, lhs, rhs } => convert_expr(*lhs, span).and_then(|lhs| {
+        super::Expr::BinaryOp { op, lhs, rhs, .. } => convert_expr(*lhs, span).and_then(|lhs| {
             convert_expr(*rhs, span).map(|rhs| Expression::BinaryOp {
                 op,
                 lhs: Box::new(lhs),
                 rhs: Box::new(rhs),
             })
         }),
-        super::Expr::Call { name, args } => args
+        super::Expr::Call { name, args, .. } => args
             .into_iter()
             .map(|arg| convert_expr(arg, span))
             .collect::<super::Result<_>>()
@@ -99,6 +107,7 @@ fn convert_expr(expr: Expr, span: &Span) -> super::Result<Expression> {
             condition,
             then_block,
             else_block,
+            ..
         } => convert_expr(*condition, span).and_then(|condition| {
             convert_expr(*then_block.0, span).and_then(|then_expr| {
                 convert_expr(*else_block.0, span).map(|else_expr| Expression::If {
@@ -113,28 +122,32 @@ fn convert_expr(expr: Expr, span: &Span) -> super::Result<Expression> {
         // compilation from IntermediateIntent to Intent.
         super::Expr::Block(_)
         | super::Expr::Cond { .. }
-        | super::Expr::Array(_)
+        | super::Expr::Array { .. }
         | super::Expr::ArrayElementAccess { .. }
-        | super::Expr::Tuple(_)
+        | super::Expr::Tuple { .. }
         | super::Expr::TupleFieldAccess { .. }
         | super::Expr::Cast { .. }
-        | super::Expr::In { .. } => Err(CompileError::Internal {
-            span: span.clone(),
+        | super::Expr::In { .. }
+        | super::Expr::Range { .. } => Err(CompileError::Internal {
             msg: "Found unsupported expressions in final Intent.",
+            span: span.clone(),
         }),
     }
 }
 
 fn convert_type(ty: Type, span: &Span) -> super::Result<intent::Type> {
+    use crate::types::PrimitiveKind::*;
     match ty {
-        Type::Bool => Ok(intent::Type::Bool),
-        Type::Int => Ok(intent::Type::Int),
-        Type::Real => Ok(intent::Type::Real),
-        Type::String => Ok(intent::Type::String),
+        Type::Primitive { kind: Bool, .. } => Ok(intent::Type::Bool),
+        Type::Primitive { kind: Int, .. } => Ok(intent::Type::Int),
+        Type::Primitive { kind: Real, .. } => Ok(intent::Type::Real),
+        Type::Primitive { kind: String, .. } => Ok(intent::Type::String),
 
-        Type::Array { .. } | Type::Tuple(_) | Type::CustomType(_) => Err(CompileError::Internal {
-            span: span.clone(),
-            msg: "Found unsupported types in final Intent.",
-        }),
+        Type::Array { .. } | Type::Tuple { .. } | Type::CustomType { .. } => {
+            Err(CompileError::Internal {
+                msg: "Found unsupported types in final Intent.",
+                span: span.clone(),
+            })
+        }
     }
 }

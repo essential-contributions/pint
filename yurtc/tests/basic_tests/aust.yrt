@@ -23,3 +23,29 @@ constraint nsw != v;
 
 // We're just looking for a satisfying assignment of colours
 solve satisfy;
+
+// ast <<<<
+// enum ::Colour = Red | Green | Blue;
+// let ::wa: ::Colour;
+// let ::nt: ::Colour;
+// let ::sa: ::Colour;
+// let ::q: ::Colour;
+// let ::nsw: ::Colour;
+// let ::v: ::Colour;
+// let ::t: ::Colour;
+// constraint (::wa != ::nt);
+// constraint (::wa != ::sa);
+// constraint (::nt != ::sa);
+// constraint (::nt != ::q);
+// constraint (::sa != ::q);
+// constraint (::sa != ::nsw);
+// constraint (::sa != ::v);
+// constraint (::q != ::nsw);
+// constraint (::nsw != ::v);
+// solve satisfy;
+// >>>
+
+// We'll get this error until we implement enum desugaring.
+// compile_failure <<<
+// internal error: Found unsupported types in final Intent.
+// >>>

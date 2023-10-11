@@ -1,38 +1,48 @@
-#[macro_use]
-mod error;
+use yurtc::{ast, error, intent};
 
-mod ast;
-mod contract;
-mod expr;
-pub mod intent;
-mod lexer;
-mod parser;
-mod types;
+use std::path::Path;
 
 fn main() -> anyhow::Result<()> {
-    let (srcs, compile_flag) = parse_cli();
-    let asts = srcs
-        .iter()
-        .map(|src| parser::parse_path_to_ast(std::path::Path::new(src), src))
-        .collect::<anyhow::Result<Vec<_>>>()?;
+    let (filepath, compile_flag) = parse_cli();
+    let filepath = Path::new(&filepath);
 
-    dbg!(&asts);
+    // Lex + Parse
+    let ast = match ast::parse_project(filepath) {
+        Ok(ast) => ast,
+        Err(errors) => {
+            if !cfg!(test) {
+                error::print_errors(&errors);
+            }
+            yurtc::yurtc_bail!(errors.len(), filepath)
+        }
+    };
 
+    // Compile ast down to a final intent
     if compile_flag {
-        let intents = asts
-            .iter()
-            .map(|ast| intent::Intent::from_ast(ast))
-            .collect::<anyhow::Result<Vec<_>>>()?;
+        let intent = match intent::Intent::from_ast(&ast) {
+            Ok(intent) => intent,
+            Err(error) => {
+                if !cfg!(test) {
+                    error::print_errors(&vec![error::Error::Compile { error }]);
+                }
+                yurtc::yurtc_bail!(1, filepath)
+            }
+        };
 
-        dbg!(&intents);
+        dbg!(&intent);
+    }
+
+    // If `compile_flag` is set, there is no need to print the initial AST.
+    if !compile_flag {
+        eprintln!("{}", &ast);
     }
 
     Ok(())
 }
 
-fn parse_cli() -> (Vec<String>, bool) {
-    // This is very basic for now.  Doesn't take any options or anything, just a list of source
-    // file path strings.  It'll also just exit if `-h` or `-V` are passed, or if there's an error.
+fn parse_cli() -> (String, bool) {
+    // This is very basic for now.  It only take a single source file and a single optional flag.
+    // It'll also just exit if `-h` or `-V` are passed, or if there's an error.
     let cli = clap::command!()
         .arg(
             clap::Arg::new("compile")
@@ -41,17 +51,15 @@ fn parse_cli() -> (Vec<String>, bool) {
                 .action(clap::ArgAction::SetTrue),
         )
         .arg(
-            clap::Arg::new("filename")
+            clap::Arg::new("filepath")
                 .required(true)
-                .action(clap::ArgAction::Append),
+                .action(clap::ArgAction::Set),
         )
         .get_matches();
 
-    let srcs = cli
-        .get_many::<String>("filename")
-        .map(|fs| fs.cloned().collect())
-        .unwrap();
+    let filepath = cli.get_one::<String>("filepath").unwrap();
+
     let compile_flag = cli.get_flag("compile");
 
-    (srcs, compile_flag)
+    (filepath.clone(), compile_flag)
 }

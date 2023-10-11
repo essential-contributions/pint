@@ -1,27 +1,48 @@
 use crate::{
-    error::Error,
+    error::ReportableError,
     lexer::{self, KEYWORDS},
     parser::*,
 };
 use chumsky::Stream;
+use std::{path::Path, rc::Rc};
 
 #[cfg(test)]
 macro_rules! run_parser {
     ($parser: expr, $source: expr) => {{
-        let (toks, errs) = lexer::lex($source);
+        let filepath = Rc::from(Path::new("test"));
+        let (toks, errs) = lexer::lex($source, Rc::clone(&filepath));
         assert!(errs.is_empty());
-        let token_stream = Stream::from_iter($source.len()..$source.len(), toks.into_iter());
-        match $parser.parse(token_stream) {
-            Ok(ast) => format!("{:?}", ast),
+        let token_stream = Stream::from_iter(
+            Span::new(filepath, $source.len()..$source.len()),
+            toks.into_iter(),
+        );
+        match ($parser.then_ignore(end())).parse(token_stream) {
+            Ok(ast) => format!("{ast}"),
             Err(errors) => format!(
                 "{}",
                 // Print each error on one line. For each error, start with the span.
                 errors.iter().fold(String::new(), |acc, error| {
-                    let span = Error::Parse {
-                        error: error.clone(),
+                    let mut all_diagnostics = format!("{}{}", acc, error);
+                    all_diagnostics = format!(
+                        "{}{}",
+                        all_diagnostics,
+                        error.labels().iter().fold(String::new(), |acc, label| {
+                            format!(
+                                "\n{}@{}..{}: {}\n",
+                                acc,
+                                label.span.start(),
+                                label.span.end(),
+                                label.message
+                            )
+                        })
+                    );
+                    if let Some(note) = error.note() {
+                        all_diagnostics = format!("{}{}", all_diagnostics, note);
                     }
-                    .span();
-                    format!("{}@{}..{}: {}\n", acc, span.start, span.end(), error)
+                    if let Some(help) = error.help() {
+                        all_diagnostics = format!("{}{}", all_diagnostics, help);
+                    }
+                    all_diagnostics
                 })
             ),
         }
@@ -37,157 +58,108 @@ fn check(actual: &str, expect: expect_test::Expect) {
 fn types() {
     check(
         &run_parser!(type_(expr()), "int"),
-        expect_test::expect!["Int"],
+        expect_test::expect!["int"],
     );
     check(
         &run_parser!(type_(expr()), "real"),
-        expect_test::expect!["Real"],
+        expect_test::expect!["real"],
     );
     check(
         &run_parser!(type_(expr()), "bool"),
-        expect_test::expect!["Bool"],
+        expect_test::expect!["bool"],
     );
     check(
         &run_parser!(type_(expr()), "string"),
-        expect_test::expect!["String"],
+        expect_test::expect!["string"],
     );
     check(
         &run_parser!(type_(expr()), "{int, real, string}"),
-        expect_test::expect!["Tuple([(None, Int), (None, Real), (None, String)])"],
+        expect_test::expect!["{int, real, string}"],
     );
     check(
         &run_parser!(type_(expr()), "{int, {real, int}, string}"),
-        expect_test::expect![
-            "Tuple([(None, Int), (None, Tuple([(None, Real), (None, Int)])), (None, String)])"
-        ],
-    );
-    check(
-        &run_parser!(type_(expr()), "custom_type"),
-        expect_test::expect![[
-            r#"CustomType(Path { path: [Ident { name: "custom_type", span: 0..11 }], is_absolute: false, span: 0..11 })"#
-        ]],
+        expect_test::expect!["{int, {real, int}, string}"],
     );
 }
 
 #[test]
 fn immediates() {
     check(
-        &run_parser!(immediate(), "0x88;"),
-        expect_test::expect![[r#"Int(136)"#]],
+        &run_parser!(immediate(), "0x88"),
+        expect_test::expect!["136"],
     );
     check(
-        &run_parser!(immediate(), "0b111;"),
-        expect_test::expect![[r#"Int(7)"#]],
+        &run_parser!(immediate(), "0b111"),
+        expect_test::expect!["7"],
+    );
+    check(&run_parser!(immediate(), "1"), expect_test::expect!["1"]);
+    check(
+        &run_parser!(immediate(), "0x4f3f4f3f4f3f4f3f4f3f4f3f4f"),
+        expect_test::expect!["6278618198356320102092284837711"],
     );
     check(
-        &run_parser!(immediate(), "1;"),
-        expect_test::expect![[r#"Int(1)"#]],
+        &run_parser!(immediate(), "0b1000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+        expect_test::expect!["19342813113834066795298816"],
     );
     check(
-        &run_parser!(immediate(), "0x4f3f4f3f4f3f4f3f4f3f4f3f4f;"),
-        expect_test::expect![[r#"BigInt(6278618198356320102092284837711)"#]],
+        &run_parser!(immediate(), "9223372036854775808"),
+        expect_test::expect!["9223372036854775808"],
     );
     check(
-        &run_parser!(immediate(), "0b1000000000000000000000000000000000000000000000000000000000000000000000000000000000000;"),
-        expect_test::expect![[r#"BigInt(19342813113834066795298816)"#]],
-    );
-    check(
-        &run_parser!(immediate(), "9223372036854775808;"),
-        expect_test::expect![[r#"BigInt(9223372036854775808)"#]],
-    );
-    check(
-        &run_parser!(immediate(), "1.3;"),
-        expect_test::expect![[r#"Real(1.3)"#]],
+        &run_parser!(immediate(), "1.3"),
+        expect_test::expect!["1.3e0"],
     );
 }
 
 #[test]
 fn use_statements() {
     check(
-        &run_parser!(yurt_program(), "use *; use ::*;"),
-        expect_test::expect!["[Use { is_absolute: false, use_tree: Glob, span: 0..6 }, Use { is_absolute: true, use_tree: Glob, span: 7..15 }]"],
-    );
-
-    check(
         &run_parser!(yurt_program(), "use {}; use ::{};"),
-        expect_test::expect!["[Use { is_absolute: false, use_tree: Group { imports: [] }, span: 0..7 }, Use { is_absolute: true, use_tree: Group { imports: [] }, span: 8..17 }]"],
+        expect_test::expect!["use {}; use ::{};"],
     );
 
     check(
         &run_parser!(yurt_program(), "use a; use ::a; use ::a as b;"),
-        expect_test::expect![[
-            r#"[Use { is_absolute: false, use_tree: Name { name: Ident { name: "a", span: 4..5 } }, span: 0..6 }, Use { is_absolute: true, use_tree: Name { name: Ident { name: "a", span: 13..14 } }, span: 7..15 }, Use { is_absolute: true, use_tree: Alias { name: Ident { name: "a", span: 22..23 }, alias: Ident { name: "b", span: 27..28 } }, span: 16..29 }]"#
-        ]],
+        expect_test::expect!["use a; use ::a; use ::a as b;"],
     );
 
     check(
         &run_parser!(yurt_program(), "use a::b; use ::a::b; use ::a::b as c;"),
-        expect_test::expect![[
-            r#"[Use { is_absolute: false, use_tree: Path { prefix: Ident { name: "a", span: 4..5 }, suffix: Name { name: Ident { name: "b", span: 7..8 } } }, span: 0..9 }, Use { is_absolute: true, use_tree: Path { prefix: Ident { name: "a", span: 16..17 }, suffix: Name { name: Ident { name: "b", span: 19..20 } } }, span: 10..21 }, Use { is_absolute: true, use_tree: Path { prefix: Ident { name: "a", span: 28..29 }, suffix: Alias { name: Ident { name: "b", span: 31..32 }, alias: Ident { name: "c", span: 36..37 } } }, span: 22..38 }]"#
-        ]],
+        expect_test::expect!["use a::b; use ::a::b; use ::a::b as c;"],
     );
 
     check(
         &run_parser!(yurt_program(), "use a::{b, c as d};"),
-        expect_test::expect![[
-            r#"[Use { is_absolute: false, use_tree: Path { prefix: Ident { name: "a", span: 4..5 }, suffix: Group { imports: [Name { name: Ident { name: "b", span: 8..9 } }, Alias { name: Ident { name: "c", span: 11..12 }, alias: Ident { name: "d", span: 16..17 } }] } }, span: 0..19 }]"#
-        ]],
+        expect_test::expect!["use a::{b, c as d};"],
     );
 
     check(
-        &run_parser!(yurt_program(), "use ::a::{*, c as d};"),
-        expect_test::expect![[
-            r#"[Use { is_absolute: true, use_tree: Path { prefix: Ident { name: "a", span: 6..7 }, suffix: Group { imports: [Glob, Alias { name: Ident { name: "c", span: 13..14 }, alias: Ident { name: "d", span: 18..19 } }] } }, span: 0..21 }]"#
-        ]],
-    );
-
-    check(
-        &run_parser!(yurt_program(), "use ::a::{*, c as d};"),
-        expect_test::expect![[
-            r#"[Use { is_absolute: true, use_tree: Path { prefix: Ident { name: "a", span: 6..7 }, suffix: Group { imports: [Glob, Alias { name: Ident { name: "c", span: 13..14 }, alias: Ident { name: "d", span: 18..19 } }] } }, span: 0..21 }]"#
-        ]],
-    );
-
-    check(
-        &run_parser!(yurt_program(), "use a::{{*}, {c as d, { e as f, * }}};"),
-        expect_test::expect![[
-            r#"[Use { is_absolute: false, use_tree: Path { prefix: Ident { name: "a", span: 4..5 }, suffix: Group { imports: [Group { imports: [Glob] }, Group { imports: [Alias { name: Ident { name: "c", span: 14..15 }, alias: Ident { name: "d", span: 19..20 } }, Group { imports: [Alias { name: Ident { name: "e", span: 24..25 }, alias: Ident { name: "f", span: 29..30 } }, Glob] }] }] } }, span: 0..38 }]"#
-        ]],
+        &run_parser!(yurt_program(), "use a::{{c as d, { e as f }}};"),
+        expect_test::expect!["use a::{{c as d, {e as f}}};"],
     );
 
     // Errors - TODO: imporve these
     check(
         &run_parser!(use_statement(), "use ;"),
         expect_test::expect![[r#"
-            @4..5: found ";" but expected "::", "*",  or "{"
+            expected `::`, or `{`, found `;`
+            @4..5: expected `::`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(use_statement(), "use ::;"),
         expect_test::expect![[r#"
-            @6..7: found ";" but expected "*",  or "{"
+            expected `{`, found `;`
+            @6..7: expected `{`
         "#]],
     );
 
     check(
         &run_parser!(use_statement(), "use a::;"),
         expect_test::expect![[r#"
-            @5..7: found "::" but expected ";"
-        "#]],
-    );
-
-    check(
-        &run_parser!(use_statement(), "use * as b;"),
-        expect_test::expect![[r#"
-            @6..8: found "as" but expected ";"
-        "#]],
-    );
-
-    check(
-        &run_parser!(use_statement(), "use a::{* as d};"),
-        expect_test::expect![[r#"
-            @5..7: found "::" but expected ";"
+            expected `;`, found `::`
+            @5..7: expected `;`
         "#]],
     );
 }
@@ -197,80 +169,57 @@ fn let_decls() {
     check(
         &run_parser!(let_decl(expr()), "let blah;"),
         expect_test::expect![[r#"
-            @0..9: type annotation or initializer needed for variable "blah"
-        "#]],
+            type annotation or initializer needed for variable `blah`
+            @0..9: type annotation or initializer needed
+            consider giving `blah` an explicit type or an initializer"#]],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah = 1.0;"),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: None, init: Some(Immediate(Real(1.0))), span: 0..15 }"#
-        ]],
+        expect_test::expect!["let blah = 1e0"],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: real = 1.0;"),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: Some(Real), init: Some(Immediate(Real(1.0))), span: 0..21 }"#
-        ]],
+        expect_test::expect!["let blah: real = 1e0"],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: real;"),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: Some(Real), init: None, span: 0..15 }"#
-        ]],
+        expect_test::expect!["let blah: real"],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah = 1;"),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: None, init: Some(Immediate(Int(1))), span: 0..13 }"#
-        ]],
+        expect_test::expect!["let blah = 1"],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: int = 1;"),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: Some(Int), init: Some(Immediate(Int(1))), span: 0..18 }"#
-        ]],
+        expect_test::expect!["let blah: int = 1"],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: int;"),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: Some(Int), init: None, span: 0..14 }"#
-        ]],
+        expect_test::expect!["let blah: int"],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah = true;"),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: None, init: Some(Immediate(Bool(true))), span: 0..16 }"#
-        ]],
+        expect_test::expect!["let blah = true"],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: bool = false;"),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: Some(Bool), init: Some(Immediate(Bool(false))), span: 0..23 }"#
-        ]],
+        expect_test::expect!["let blah: bool = false"],
     );
     check(
         &run_parser!(let_decl(expr()), "let blah: bool;"),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: Some(Bool), init: None, span: 0..15 }"#
-        ]],
+        expect_test::expect!["let blah: bool"],
     );
     check(
         &run_parser!(let_decl(expr()), r#"let blah = "hello";"#),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: None, init: Some(Immediate(String("hello"))), span: 0..19 }"#
-        ]],
+        expect_test::expect![[r#"let blah = "hello""#]],
     );
     check(
         &run_parser!(let_decl(expr()), r#"let blah: string = "hello";"#),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: Some(String), init: Some(Immediate(String("hello"))), span: 0..27 }"#
-        ]],
+        expect_test::expect![[r#"let blah: string = "hello""#]],
     );
     check(
         &run_parser!(let_decl(expr()), r#"let blah: string;"#),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: Some(String), init: None, span: 0..17 }"#
-        ]],
+        expect_test::expect!["let blah: string"],
     );
 }
 
@@ -279,9 +228,7 @@ fn constraint_decls() {
     // Argument just needs to be any expression, as far as the parser is concerned.
     check(
         &run_parser!(constraint_decl(expr()), "constraint blah;"),
-        expect_test::expect![[
-            r#"Constraint { expr: Path(Path { path: [Ident { name: "blah", span: 11..15 }], is_absolute: false, span: 11..15 }), span: 0..16 }"#
-        ]],
+        expect_test::expect!["constraint blah"],
     );
 }
 
@@ -289,122 +236,77 @@ fn constraint_decls() {
 fn solve_decls() {
     check(
         &run_parser!(solve_decl(), "solve satisfy;"),
-        expect_test::expect!["Solve { directive: Satisfy, span: 0..14 }"],
+        expect_test::expect!["solve satisfy"],
     );
     check(
         &run_parser!(solve_decl(), "solve minimize foo;"),
-        expect_test::expect![[
-            r#"Solve { directive: Minimize(Path { path: [Ident { name: "foo", span: 15..18 }], is_absolute: false, span: 15..18 }), span: 0..19 }"#
-        ]],
+        expect_test::expect!["solve minimize foo"],
     );
     check(
         &run_parser!(solve_decl(), "solve maximize foo;"),
-        expect_test::expect![[
-            r#"Solve { directive: Maximize(Path { path: [Ident { name: "foo", span: 15..18 }], is_absolute: false, span: 15..18 }), span: 0..19 }"#
-        ]],
+        expect_test::expect!["solve maximize foo"],
+    );
+
+    check(
+        &run_parser!(solve_decl(), "solve maximize x + y;"),
+        expect_test::expect!["solve maximize (x + y)"],
     );
 
     check(
         &run_parser!(solve_decl(), "solve world hunger;"),
         expect_test::expect![[r#"
-            @6..11: found "world" but expected "maximize", "minimize",  or "satisfy"
+            expected `maximize`, `minimize`, or `satisfy`, found `world`
+            @6..11: expected `maximize`, `minimize`, or `satisfy`
         "#]],
     );
 }
 
 #[test]
 fn basic_exprs() {
-    check(
-        &run_parser!(expr(), "123"),
-        expect_test::expect!["Immediate(Int(123))"],
-    );
-    check(
-        &run_parser!(expr(), "foo"),
-        expect_test::expect![[
-            r#"Path(Path { path: [Ident { name: "foo", span: 0..3 }], is_absolute: false, span: 0..3 })"#
-        ]],
-    );
+    check(&run_parser!(expr(), "123"), expect_test::expect!["123"]);
+    check(&run_parser!(expr(), "foo"), expect_test::expect!["foo"]);
 }
 
 #[test]
 fn unary_op_exprs() {
-    check(
-        &run_parser!(expr(), "!a"),
-        expect_test::expect![[
-            r#"UnaryOp { op: Not, expr: Path(Path { path: [Ident { name: "a", span: 1..2 }], is_absolute: false, span: 1..2 }) }"#
-        ]],
-    );
-    check(
-        &run_parser!(expr(), "+a"),
-        expect_test::expect![[
-            r#"UnaryOp { op: Pos, expr: Path(Path { path: [Ident { name: "a", span: 1..2 }], is_absolute: false, span: 1..2 }) }"#
-        ]],
-    );
-    check(
-        &run_parser!(expr(), "-a"),
-        expect_test::expect![[
-            r#"UnaryOp { op: Neg, expr: Path(Path { path: [Ident { name: "a", span: 1..2 }], is_absolute: false, span: 1..2 }) }"#
-        ]],
-    );
-    check(
-        &run_parser!(expr(), "+7"),
-        expect_test::expect![[r#"UnaryOp { op: Pos, expr: Immediate(Int(7)) }"#]],
-    );
-    check(
-        &run_parser!(expr(), "+3.4"),
-        expect_test::expect![[r#"UnaryOp { op: Pos, expr: Immediate(Real(3.4)) }"#]],
-    );
+    check(&run_parser!(expr(), "!a"), expect_test::expect!["!a"]);
+    check(&run_parser!(expr(), "+a"), expect_test::expect!["+a"]);
+    check(&run_parser!(expr(), "-a"), expect_test::expect!["-a"]);
+    check(&run_parser!(expr(), "+7"), expect_test::expect!["+7"]);
+    check(&run_parser!(expr(), "+3.4"), expect_test::expect!["+3.4e0"]);
     check(
         &run_parser!(expr(), "+0x456"),
-        expect_test::expect![[r#"UnaryOp { op: Pos, expr: Immediate(Int(1110)) }"#]],
+        expect_test::expect!["+1110"],
     );
     check(
         &run_parser!(expr(), "+0b01010101"),
-        expect_test::expect![[r#"UnaryOp { op: Pos, expr: Immediate(Int(85)) }"#]],
+        expect_test::expect!["+85"],
     );
     check(
         &run_parser!(
             expr(),
             "+0b1101000000001100101010101010101111111111101010101101010101010101"
         ),
-        expect_test::expect![[
-            r#"UnaryOp { op: Pos, expr: Immediate(BigInt(14991544915315053909)) }"#
-        ]],
+        expect_test::expect!["+14991544915315053909"],
     );
-    check(
-        &run_parser!(expr(), "-1.0"),
-        expect_test::expect![[r#"UnaryOp { op: Neg, expr: Immediate(Real(1.0)) }"#]],
-    );
-    check(
-        &run_parser!(expr(), "-1"),
-        expect_test::expect![[r#"UnaryOp { op: Neg, expr: Immediate(Int(1)) }"#]],
-    );
-    check(
-        &run_parser!(expr(), "-0x133"),
-        expect_test::expect![[r#"UnaryOp { op: Neg, expr: Immediate(Int(307)) }"#]],
-    );
-    check(
-        &run_parser!(expr(), "-0b1101"),
-        expect_test::expect![[r#"UnaryOp { op: Neg, expr: Immediate(Int(13)) }"#]],
-    );
+    check(&run_parser!(expr(), "-1.0"), expect_test::expect!["-1e0"]);
+    check(&run_parser!(expr(), "-1"), expect_test::expect!["-1"]);
+    check(&run_parser!(expr(), "-0x133"), expect_test::expect!["-307"]);
+    check(&run_parser!(expr(), "-0b1101"), expect_test::expect!["-13"]);
     check(
         &run_parser!(
             expr(),
             "-0b1101000000001100101010101010101010101010101010101101010101010101"
         ),
-        expect_test::expect![[
-            r#"UnaryOp { op: Neg, expr: Immediate(BigInt(14991544909594023253)) }"#
-        ]],
+        expect_test::expect!["-14991544909594023253"],
     );
     check(
         &run_parser!(expr(), "! - - !  -+  -1"),
-        expect_test::expect!["UnaryOp { op: Not, expr: UnaryOp { op: Neg, expr: UnaryOp { op: Neg, expr: UnaryOp { op: Not, expr: UnaryOp { op: Neg, expr: UnaryOp { op: Pos, expr: UnaryOp { op: Neg, expr: Immediate(Int(1)) } } } } } } }"],
+        expect_test::expect!["!--!-+-1"],
     );
     check(
         &run_parser!(expr(), "+ {- x} '  '  "),
-        expect_test::expect![[
-            r#"UnaryOp { op: Pos, expr: UnaryOp { op: NextState, expr: UnaryOp { op: NextState, expr: Block(Block { statements: [], final_expr: UnaryOp { op: Neg, expr: Path(Path { path: [Ident { name: "x", span: 5..6 }], is_absolute: false, span: 5..6 }) } }) } } }"#
-        ]],
+        expect_test::expect!["+{ -x }''"],
     );
 }
 
@@ -412,101 +314,69 @@ fn unary_op_exprs() {
 fn binary_op_exprs() {
     check(
         &run_parser!(expr(), "a * 2.0"),
-        expect_test::expect![[
-            r#"BinaryOp { op: Mul, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
-        ]],
+        expect_test::expect!["(a * 2e0)"],
     );
     check(
         &run_parser!(expr(), "a / 2.0"),
-        expect_test::expect![[
-            r#"BinaryOp { op: Div, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
-        ]],
+        expect_test::expect!["(a / 2e0)"],
     );
     check(
         &run_parser!(expr(), "a % 2.0"),
-        expect_test::expect![[
-            r#"BinaryOp { op: Mod, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
-        ]],
+        expect_test::expect!["(a % 2e0)"],
     );
     check(
         &run_parser!(expr(), "a + 2.0"),
-        expect_test::expect![[
-            r#"BinaryOp { op: Add, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
-        ]],
+        expect_test::expect!["(a + 2e0)"],
     );
     check(
         &run_parser!(expr(), "a - 2.0"),
-        expect_test::expect![[
-            r#"BinaryOp { op: Sub, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
-        ]],
+        expect_test::expect!["(a - 2e0)"],
     );
     check(
         &run_parser!(expr(), "a+2.0"),
-        expect_test::expect![[
-            r#"BinaryOp { op: Add, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
-        ]],
+        expect_test::expect!["(a + 2e0)"],
     );
     check(
         &run_parser!(expr(), "a-2.0"),
-        expect_test::expect![[
-            r#"BinaryOp { op: Sub, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
-        ]],
+        expect_test::expect!["(a - 2e0)"],
     );
     check(
         &run_parser!(expr(), "a < 2.0"),
-        expect_test::expect![[
-            r#"BinaryOp { op: LessThan, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
-        ]],
+        expect_test::expect!["(a < 2e0)"],
     );
     check(
         &run_parser!(expr(), "a > 2.0"),
-        expect_test::expect![[
-            r#"BinaryOp { op: GreaterThan, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
-        ]],
+        expect_test::expect!["(a > 2e0)"],
     );
     check(
         &run_parser!(expr(), "a <= 2.0"),
-        expect_test::expect![[
-            r#"BinaryOp { op: LessThanOrEqual, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
-        ]],
+        expect_test::expect!["(a <= 2e0)"],
     );
     check(
         &run_parser!(expr(), "a >= 2.0"),
-        expect_test::expect![[
-            r#"BinaryOp { op: GreaterThanOrEqual, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
-        ]],
+        expect_test::expect!["(a >= 2e0)"],
     );
     check(
         &run_parser!(expr(), "a == 2.0"),
-        expect_test::expect![[
-            r#"BinaryOp { op: Equal, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
-        ]],
+        expect_test::expect!["(a == 2e0)"],
     );
     check(
         &run_parser!(expr(), "a != 2.0"),
-        expect_test::expect![[
-            r#"BinaryOp { op: NotEqual, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Immediate(Real(2.0)) }"#
-        ]],
+        expect_test::expect!["(a != 2e0)"],
     );
     check(
         &run_parser!(expr(), "a && b"),
-        expect_test::expect![[
-            r#"BinaryOp { op: LogicalAnd, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Path(Path { path: [Ident { name: "b", span: 5..6 }], is_absolute: false, span: 5..6 }) }"#
-        ]],
+        expect_test::expect!["(a && b)"],
     );
 
     check(
         &run_parser!(expr(), "a || b"),
-        expect_test::expect![[
-            r#"BinaryOp { op: LogicalOr, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: Path(Path { path: [Ident { name: "b", span: 5..6 }], is_absolute: false, span: 5..6 }) }"#
-        ]],
+        expect_test::expect!["(a || b)"],
     );
 
     check(
         &run_parser!(expr(), "a || b && c || d && !e"),
-        expect_test::expect![[
-            r#"BinaryOp { op: LogicalOr, lhs: BinaryOp { op: LogicalOr, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: BinaryOp { op: LogicalAnd, lhs: Path(Path { path: [Ident { name: "b", span: 5..6 }], is_absolute: false, span: 5..6 }), rhs: Path(Path { path: [Ident { name: "c", span: 10..11 }], is_absolute: false, span: 10..11 }) } }, rhs: BinaryOp { op: LogicalAnd, lhs: Path(Path { path: [Ident { name: "d", span: 15..16 }], is_absolute: false, span: 15..16 }), rhs: UnaryOp { op: Not, expr: Path(Path { path: [Ident { name: "e", span: 21..22 }], is_absolute: false, span: 21..22 }) } } }"#
-        ]],
+        expect_test::expect!["((a || (b && c)) || (d && !e))"],
     );
 }
 
@@ -514,83 +384,67 @@ fn binary_op_exprs() {
 fn complex_exprs() {
     check(
         &run_parser!(expr(), "2 * b * 3"),
-        expect_test::expect![[
-            r#"BinaryOp { op: Mul, lhs: BinaryOp { op: Mul, lhs: Immediate(Int(2)), rhs: Path(Path { path: [Ident { name: "b", span: 4..5 }], is_absolute: false, span: 4..5 }) }, rhs: Immediate(Int(3)) }"#
-        ]],
+        expect_test::expect!["((2 * b) * 3)"],
     );
     check(
         &run_parser!(expr(), "2 < b * 3"),
-        expect_test::expect![[
-            r#"BinaryOp { op: LessThan, lhs: Immediate(Int(2)), rhs: BinaryOp { op: Mul, lhs: Path(Path { path: [Ident { name: "b", span: 4..5 }], is_absolute: false, span: 4..5 }), rhs: Immediate(Int(3)) } }"#
-        ]],
+        expect_test::expect!["(2 < (b * 3))"],
     );
     check(
         &run_parser!(expr(), "2.0 > b * 3.0"),
-        expect_test::expect![[
-            r#"BinaryOp { op: GreaterThan, lhs: Immediate(Real(2.0)), rhs: BinaryOp { op: Mul, lhs: Path(Path { path: [Ident { name: "b", span: 6..7 }], is_absolute: false, span: 6..7 }), rhs: Immediate(Real(3.0)) } }"#
-        ]],
+        expect_test::expect!["(2e0 > (b * 3e0))"],
     );
     check(
         &run_parser!(expr(), "2.0 * b < 3.0"),
-        expect_test::expect![[
-            r#"BinaryOp { op: LessThan, lhs: BinaryOp { op: Mul, lhs: Immediate(Real(2.0)), rhs: Path(Path { path: [Ident { name: "b", span: 6..7 }], is_absolute: false, span: 6..7 }) }, rhs: Immediate(Real(3.0)) }"#
-        ]],
+        expect_test::expect!["((2e0 * b) < 3e0)"],
     );
     check(
         &run_parser!(expr(), "2 > b < 3"),
-        expect_test::expect![[
-            r#"BinaryOp { op: LessThan, lhs: BinaryOp { op: GreaterThan, lhs: Immediate(Int(2)), rhs: Path(Path { path: [Ident { name: "b", span: 4..5 }], is_absolute: false, span: 4..5 }) }, rhs: Immediate(Int(3)) }"#
-        ]],
+        expect_test::expect!["((2 > b) < 3)"],
     );
     check(
         &run_parser!(expr(), "2 != b < 3"),
-        expect_test::expect![[
-            r#"BinaryOp { op: LessThan, lhs: BinaryOp { op: NotEqual, lhs: Immediate(Int(2)), rhs: Path(Path { path: [Ident { name: "b", span: 5..6 }], is_absolute: false, span: 5..6 }) }, rhs: Immediate(Int(3)) }"#
-        ]],
+        expect_test::expect!["((2 != b) < 3)"],
     );
     check(
         &run_parser!(expr(), "2 < b != 3"),
-        expect_test::expect![[
-            r#"BinaryOp { op: NotEqual, lhs: BinaryOp { op: LessThan, lhs: Immediate(Int(2)), rhs: Path(Path { path: [Ident { name: "b", span: 4..5 }], is_absolute: false, span: 4..5 }) }, rhs: Immediate(Int(3)) }"#
-        ]],
+        expect_test::expect!["((2 < b) != 3)"],
     );
     check(
         &run_parser!(expr(), "a > b * c < d"),
-        expect_test::expect![[
-            r#"BinaryOp { op: LessThan, lhs: BinaryOp { op: GreaterThan, lhs: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), rhs: BinaryOp { op: Mul, lhs: Path(Path { path: [Ident { name: "b", span: 4..5 }], is_absolute: false, span: 4..5 }), rhs: Path(Path { path: [Ident { name: "c", span: 8..9 }], is_absolute: false, span: 8..9 }) } }, rhs: Path(Path { path: [Ident { name: "d", span: 12..13 }], is_absolute: false, span: 12..13 }) }"#
-        ]],
+        expect_test::expect!["((a > (b * c)) < d)"],
     );
     check(
         &run_parser!(expr(), "2 + 3 * 4"),
-        expect_test::expect!["BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: BinaryOp { op: Mul, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }"],
+        expect_test::expect!["(2 + (3 * 4))"],
     );
     check(
         &run_parser!(expr(), "10 - 8 / 4"),
-        expect_test::expect!["BinaryOp { op: Sub, lhs: Immediate(Int(10)), rhs: BinaryOp { op: Div, lhs: Immediate(Int(8)), rhs: Immediate(Int(4)) } }"],
+        expect_test::expect!["(10 - (8 / 4))"],
     );
     check(
         &run_parser!(expr(), "10 + 8 % 4"),
-        expect_test::expect!["BinaryOp { op: Add, lhs: Immediate(Int(10)), rhs: BinaryOp { op: Mod, lhs: Immediate(Int(8)), rhs: Immediate(Int(4)) } }"],
+        expect_test::expect!["(10 + (8 % 4))"],
     );
     check(
         &run_parser!(expr(), "2 + 3 * 4 < 5"),
-        expect_test::expect!["BinaryOp { op: LessThan, lhs: BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: BinaryOp { op: Mul, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }, rhs: Immediate(Int(5)) }"],
+        expect_test::expect!["((2 + (3 * 4)) < 5)"],
     );
     check(
         &run_parser!(expr(), "2 * 3 / 4 < 5"),
-        expect_test::expect!["BinaryOp { op: LessThan, lhs: BinaryOp { op: Div, lhs: BinaryOp { op: Mul, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) }, rhs: Immediate(Int(4)) }, rhs: Immediate(Int(5)) }"],
+        expect_test::expect!["(((2 * 3) / 4) < 5)"],
     );
     check(
         &run_parser!(expr(), "10 - 5 + 3 > 7"),
-        expect_test::expect!["BinaryOp { op: GreaterThan, lhs: BinaryOp { op: Add, lhs: BinaryOp { op: Sub, lhs: Immediate(Int(10)), rhs: Immediate(Int(5)) }, rhs: Immediate(Int(3)) }, rhs: Immediate(Int(7)) }"],
+        expect_test::expect!["(((10 - 5) + 3) > 7)"],
     );
     check(
         &run_parser!(expr(), "10 % 2 * 4 < 3"),
-        expect_test::expect!["BinaryOp { op: LessThan, lhs: BinaryOp { op: Mul, lhs: BinaryOp { op: Mod, lhs: Immediate(Int(10)), rhs: Immediate(Int(2)) }, rhs: Immediate(Int(4)) }, rhs: Immediate(Int(3)) }"],
+        expect_test::expect!["(((10 % 2) * 4) < 3)"],
     );
     check(
         &run_parser!(expr(), "2 + 3 * 4 - 5 / 2 > 1"),
-        expect_test::expect!["BinaryOp { op: GreaterThan, lhs: BinaryOp { op: Sub, lhs: BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: BinaryOp { op: Mul, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }, rhs: BinaryOp { op: Div, lhs: Immediate(Int(5)), rhs: Immediate(Int(2)) } }, rhs: Immediate(Int(1)) }"],
+        expect_test::expect!["(((2 + (3 * 4)) - (5 / 2)) > 1)"],
     );
 }
 
@@ -598,97 +452,84 @@ fn complex_exprs() {
 fn parens_exprs() {
     check(
         &run_parser!(expr(), "(1 + 2) * 3"),
-        expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }, rhs: Immediate(Int(3)) }"],
+        expect_test::expect!["((1 + 2) * 3)"],
     );
     check(
         &run_parser!(expr(), "1 * (2 + 3)"),
-        expect_test::expect!["BinaryOp { op: Mul, lhs: Immediate(Int(1)), rhs: BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) } }"],
+        expect_test::expect!["(1 * (2 + 3))"],
     );
     check(
         &run_parser!(expr(), "(1 + 2) * (3 + 4)"),
-        expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }, rhs: BinaryOp { op: Add, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }"],
+        expect_test::expect!["((1 + 2) * (3 + 4))"],
     );
     check(
         &run_parser!(expr(), "(1 + (2 * 3)) * 4"),
-        expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: BinaryOp { op: Mul, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) } }, rhs: Immediate(Int(4)) }"],
+        expect_test::expect!["((1 + (2 * 3)) * 4)"],
     );
     check(
         &run_parser!(expr(), "(1 * (2 + 3)) * 4"),
-        expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Mul, lhs: Immediate(Int(1)), rhs: BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) } }, rhs: Immediate(Int(4)) }"],
+        expect_test::expect!["((1 * (2 + 3)) * 4)"],
     );
     check(
         &run_parser!(expr(), "((1 + 2) * 3) * 4"),
-        expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Mul, lhs: BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }, rhs: Immediate(Int(3)) }, rhs: Immediate(Int(4)) }"],
+        expect_test::expect!["(((1 + 2) * 3) * 4)"],
     );
     check(
         &run_parser!(expr(), "((1 + 2) * (3 + 4)) * 5"),
-        expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Mul, lhs: BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }, rhs: BinaryOp { op: Add, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }, rhs: Immediate(Int(5)) }"],
+        expect_test::expect!["(((1 + 2) * (3 + 4)) * 5)"],
     );
     check(
         &run_parser!(expr(), "(1 + 2) * 3 / 4"),
-        expect_test::expect!["BinaryOp { op: Div, lhs: BinaryOp { op: Mul, lhs: BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }, rhs: Immediate(Int(3)) }, rhs: Immediate(Int(4)) }"],
+        expect_test::expect!["(((1 + 2) * 3) / 4)"],
     );
     check(
         &run_parser!(expr(), "1 / (2 + 3) * 4"),
-        expect_test::expect!["BinaryOp { op: Mul, lhs: BinaryOp { op: Div, lhs: Immediate(Int(1)), rhs: BinaryOp { op: Add, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) } }, rhs: Immediate(Int(4)) }"],
+        expect_test::expect!["((1 / (2 + 3)) * 4)"],
     );
     check(
         &run_parser!(expr(), "(1 < 2) && (3 > 4)"),
-        expect_test::expect!["BinaryOp { op: LogicalAnd, lhs: BinaryOp { op: LessThan, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }, rhs: BinaryOp { op: GreaterThan, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }"],
+        expect_test::expect!["((1 < 2) && (3 > 4))"],
     );
     check(
         &run_parser!(expr(), "(1 == 2) || (3 != 4)"),
-        expect_test::expect!["BinaryOp { op: LogicalOr, lhs: BinaryOp { op: Equal, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) }, rhs: BinaryOp { op: NotEqual, lhs: Immediate(Int(3)), rhs: Immediate(Int(4)) } }"],
+        expect_test::expect!["((1 == 2) || (3 != 4))"],
     );
     check(
         &run_parser!(expr(), "1 < (2 && 3) > 4"),
-        expect_test::expect!["BinaryOp { op: GreaterThan, lhs: BinaryOp { op: LessThan, lhs: Immediate(Int(1)), rhs: BinaryOp { op: LogicalAnd, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) } }, rhs: Immediate(Int(4)) }"],
+        expect_test::expect!["((1 < (2 && 3)) > 4)"],
     );
     check(
         &run_parser!(expr(), "1 && (2 || 3)"),
-        expect_test::expect!["BinaryOp { op: LogicalAnd, lhs: Immediate(Int(1)), rhs: BinaryOp { op: LogicalOr, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) } }"],
+        expect_test::expect!["(1 && (2 || 3))"],
     );
     check(
         &run_parser!(expr(), "1 == (2 || 3) != 4"),
-        expect_test::expect!["BinaryOp { op: NotEqual, lhs: BinaryOp { op: Equal, lhs: Immediate(Int(1)), rhs: BinaryOp { op: LogicalOr, lhs: Immediate(Int(2)), rhs: Immediate(Int(3)) } }, rhs: Immediate(Int(4)) }"],
+        expect_test::expect!["((1 == (2 || 3)) != 4)"],
     );
     check(
         &run_parser!(expr(), "-(1 + 2)"),
-        expect_test::expect!["UnaryOp { op: Neg, expr: BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: Immediate(Int(2)) } }"],
+        expect_test::expect!["-(1 + 2)"],
     );
     check(
         &run_parser!(expr(), "!(a < b)"),
-        expect_test::expect![[
-            r#"UnaryOp { op: Not, expr: BinaryOp { op: LessThan, lhs: Path(Path { path: [Ident { name: "a", span: 2..3 }], is_absolute: false, span: 2..3 }), rhs: Path(Path { path: [Ident { name: "b", span: 6..7 }], is_absolute: false, span: 6..7 }) } }"#
-        ]],
+        expect_test::expect!["!(a < b)"],
     );
-    check(
-        &run_parser!(expr(), "(1)"),
-        expect_test::expect!["Immediate(Int(1))"],
-    );
-    check(
-        &run_parser!(expr(), "(a)"),
-        expect_test::expect![[
-            r#"Path(Path { path: [Ident { name: "a", span: 1..2 }], is_absolute: false, span: 1..2 })"#
-        ]],
-    );
+    check(&run_parser!(expr(), "(1)"), expect_test::expect!["1"]);
+    check(&run_parser!(expr(), "(a)"), expect_test::expect!["a"]);
     check(
         &run_parser!(expr(), "()"),
         expect_test::expect![[r#"
-            @1..2: found ")" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if",  or "cond"
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`, found `)`
+            @1..2: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`
         "#]],
     );
     check(
         &run_parser!(expr(), "(if a < b { 1 } else { 2 })"),
-        expect_test::expect![[
-            r#"If { condition: BinaryOp { op: LessThan, lhs: Path(Path { path: [Ident { name: "a", span: 4..5 }], is_absolute: false, span: 4..5 }), rhs: Path(Path { path: [Ident { name: "b", span: 8..9 }], is_absolute: false, span: 8..9 }) }, then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }"#
-        ]],
+        expect_test::expect!["if (a < b) { 1 } else { 2 }"],
     );
     check(
         &run_parser!(expr(), "(foo(a, b, c))"),
-        expect_test::expect![[
-            r#"Call { name: Path { path: [Ident { name: "foo", span: 1..4 }], is_absolute: false, span: 1..4 }, args: [Path(Path { path: [Ident { name: "a", span: 5..6 }], is_absolute: false, span: 5..6 }), Path(Path { path: [Ident { name: "b", span: 8..9 }], is_absolute: false, span: 8..9 }), Path(Path { path: [Ident { name: "c", span: 11..12 }], is_absolute: false, span: 11..12 })] }"#
-        ]],
+        expect_test::expect!["foo(a, b, c)"],
     );
 }
 
@@ -696,21 +537,15 @@ fn parens_exprs() {
 fn enums() {
     check(
         &run_parser!(enum_decl(), "enum MyEnum = Variant1 | Variant2;"),
-        expect_test::expect![[
-            r#"Enum(EnumDecl { name: Ident { name: "MyEnum", span: 5..11 }, variants: [Ident { name: "Variant1", span: 14..22 }, Ident { name: "Variant2", span: 25..33 }], span: 0..34 })"#
-        ]],
+        expect_test::expect!["enum MyEnum = Variant1 | Variant2"],
     );
     check(
         &run_parser!(enum_decl(), "enum MyEnum = Variant1;"),
-        expect_test::expect![[
-            r#"Enum(EnumDecl { name: Ident { name: "MyEnum", span: 5..11 }, variants: [Ident { name: "Variant1", span: 14..22 }], span: 0..23 })"#
-        ]],
+        expect_test::expect!["enum MyEnum = Variant1"],
     );
     check(
-        &run_parser!(expr(), "MyEnum::Variant1;"),
-        expect_test::expect![[
-            r#"Path(Path { path: [Ident { name: "MyEnum", span: 0..6 }, Ident { name: "Variant1", span: 8..16 }], is_absolute: false, span: 0..16 })"#
-        ]],
+        &run_parser!(expr(), "MyEnum::Variant1"),
+        expect_test::expect!["MyEnum::Variant1"],
     );
     check(
         &run_parser!(
@@ -719,9 +554,7 @@ fn enums() {
             let x = MyEnum::Variant3;
             "#
         ),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "x", span: 17..18 }, ty: None, init: Some(Path(Path { path: [Ident { name: "MyEnum", span: 21..27 }, Ident { name: "Variant3", span: 29..37 }], is_absolute: false, span: 21..37 })), span: 13..38 }"#
-        ]],
+        expect_test::expect!["let x = MyEnum::Variant3"],
     );
     check(
         &run_parser!(
@@ -730,9 +563,74 @@ fn enums() {
             let e: ::path::to::MyEnum;
             "#
         ),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "e", span: 17..18 }, ty: Some(CustomType(Path { path: [Ident { name: "path", span: 22..26 }, Ident { name: "to", span: 28..30 }, Ident { name: "MyEnum", span: 32..38 }], is_absolute: true, span: 20..38 })), init: None, span: 13..39 }"#
-        ]],
+        expect_test::expect!["let e: ::path::to::MyEnum"],
+    );
+}
+
+#[test]
+fn custom_types() {
+    check(
+        &run_parser!(type_(expr()), "custom_type"),
+        expect_test::expect!["custom_type"],
+    );
+    check(
+        &run_parser!(type_decl(), "type MyInt = int;"),
+        expect_test::expect!["type MyInt = int"],
+    );
+    check(
+        &run_parser!(type_decl(), "type MyReal = real;"),
+        expect_test::expect!["type MyReal = real"],
+    );
+    check(
+        &run_parser!(type_decl(), "type MyBool = bool;"),
+        expect_test::expect!["type MyBool = bool"],
+    );
+    check(
+        &run_parser!(type_decl(), "type MyString = string;"),
+        expect_test::expect!["type MyString = string"],
+    );
+    check(
+        &run_parser!(type_decl(), "type IntArray = int[5];"),
+        expect_test::expect!["type IntArray = int[5]"],
+    );
+    check(
+        &run_parser!(type_decl(), "type MyTuple = { int, real, z: string };"),
+        expect_test::expect!["type MyTuple = {int, real, z: string}"],
+    );
+    check(
+        &run_parser!(type_decl(), "type MyAliasInt = MyInt;"),
+        expect_test::expect!["type MyAliasInt = MyInt"],
+    );
+}
+
+#[test]
+fn ranges() {
+    check(
+        &run_parser!(range(expr()), "1..2"),
+        expect_test::expect!["1..2"],
+    );
+    check(
+        &run_parser!(range(expr()), "1.1..2.2e3"),
+        expect_test::expect!["1.1e0..2.2e3"],
+    );
+    check(
+        &run_parser!(range(expr()), "A[x]..t.2"),
+        expect_test::expect!["A[x]..t.2"],
+    );
+    check(
+        &run_parser!(range(expr()), "1+2..3+4"),
+        expect_test::expect!["(1 + 2)..(3 + 4)"],
+    );
+    check(
+        &run_parser!(range(expr()), "-100.. -if c { 10 } else { 9 }"),
+        expect_test::expect!["-100..-if c { 10 } else { 9 }"],
+    );
+    check(
+        &run_parser!(range(expr()), "1...2"),
+        expect_test::expect![[r#"
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`, found `.`
+            @3..4: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`
+        "#]],
     );
 }
 
@@ -740,38 +638,40 @@ fn enums() {
 fn idents() {
     check(
         &run_parser!(ident(), "foobar"),
-        expect_test::expect![[r#"Ident { name: "foobar", span: 0..6 }"#]],
+        expect_test::expect!["foobar"],
     );
     check(
         &run_parser!(ident(), "foo_bar"),
-        expect_test::expect![[r#"Ident { name: "foo_bar", span: 0..7 }"#]],
+        expect_test::expect!["foo_bar"],
     );
     check(
         &run_parser!(ident(), "FOO_bar"),
-        expect_test::expect![[r#"Ident { name: "FOO_bar", span: 0..7 }"#]],
+        expect_test::expect!["FOO_bar"],
     );
     check(
         &run_parser!(ident(), "__FOO"),
-        expect_test::expect![[r#"Ident { name: "__FOO", span: 0..5 }"#]],
+        expect_test::expect!["__FOO"],
     );
     check(
         &run_parser!(ident(), "_2_FOO1"),
-        expect_test::expect![[r#"Ident { name: "_2_FOO1", span: 0..7 }"#]],
+        expect_test::expect!["_2_FOO1"],
     );
-    check(
-        &run_parser!(ident(), "_"),
-        expect_test::expect![[r#"Ident { name: "_", span: 0..1 }"#]],
-    );
+    check(&run_parser!(ident(), "_"), expect_test::expect!["_"]);
     check(
         &run_parser!(ident(), "12_ab"),
         expect_test::expect![[r#"
-            @0..2: found "12" but expected something else
+            expected something else, found `12`
+            @0..2: expected something else
         "#]],
     );
     check(
         // Lexer will split this into 3 tokens, ident() will parse the first one.
+        // This shows that we're not able to parser `ab*cd` as a single identifier
         &run_parser!(ident(), "ab*cd"),
-        expect_test::expect![[r#"Ident { name: "ab", span: 0..2 }"#]],
+        expect_test::expect![[r#"
+            expected "end of input", found `*`
+            @2..3: expected "end of input"
+        "#]],
     );
 }
 
@@ -779,46 +679,35 @@ fn idents() {
 fn paths() {
     check(
         &run_parser!(path(), "foo::bar"),
-        expect_test::expect![[
-            r#"Path { path: [Ident { name: "foo", span: 0..3 }, Ident { name: "bar", span: 5..8 }], is_absolute: false, span: 0..8 }"#
-        ]],
+        expect_test::expect!["foo::bar"],
     );
     check(
         &run_parser!(path(), "_foo_::_bar"),
-        expect_test::expect![[
-            r#"Path { path: [Ident { name: "_foo_", span: 0..5 }, Ident { name: "_bar", span: 7..11 }], is_absolute: false, span: 0..11 }"#
-        ]],
+        expect_test::expect!["_foo_::_bar"],
     );
-    check(
-        &run_parser!(path(), "_::_"),
-        expect_test::expect![[
-            r#"Path { path: [Ident { name: "_", span: 0..1 }, Ident { name: "_", span: 3..4 }], is_absolute: false, span: 0..4 }"#
-        ]],
-    );
+    check(&run_parser!(path(), "_::_"), expect_test::expect!["_::_"]);
     check(
         &run_parser!(path(), "t2::_3t::t4_::t"),
-        expect_test::expect![[
-            r#"Path { path: [Ident { name: "t2", span: 0..2 }, Ident { name: "_3t", span: 4..7 }, Ident { name: "t4_", span: 9..12 }, Ident { name: "t", span: 14..15 }], is_absolute: false, span: 0..15 }"#
-        ]],
+        expect_test::expect!["t2::_3t::t4_::t"],
     );
     check(
         &run_parser!(path(), "::foo::bar"),
-        expect_test::expect![[
-            r#"Path { path: [Ident { name: "foo", span: 2..5 }, Ident { name: "bar", span: 7..10 }], is_absolute: true, span: 0..10 }"#
-        ]],
+        expect_test::expect!["::foo::bar"],
     );
 
     // As long as these two produce an error... it should be expecting 'ident'.
     check(
         &run_parser!(path().then_ignore(end()), "foo::"),
         expect_test::expect![[r#"
-            @5..5: found end of input but expected something else
+            expected something else, found "end of input"
+            @5..5: expected something else
         "#]],
     );
     check(
         &run_parser!(path().then_ignore(end()), "::foo::"),
         expect_test::expect![[r#"
-            @7..7: found end of input but expected something else
+            expected something else, found "end of input"
+            @7..7: expected something else
         "#]],
     );
 }
@@ -834,9 +723,7 @@ fn foo(x: real, y: real) -> real {
 
     check(
         &run_parser!(yurt_program(), src),
-        expect_test::expect![[
-            r#"[Fn { fn_sig: FnSig { name: Ident { name: "foo", span: 4..7 }, params: [(Ident { name: "x", span: 8..9 }, Real), (Ident { name: "y", span: 17..18 }, Real)], return_type: Real, span: 1..33 }, body: Block { statements: [Let { name: Ident { name: "z", span: 44..45 }, ty: None, init: Some(Immediate(Real(5.0))), span: 40..52 }], final_expr: Path(Path { path: [Ident { name: "z", span: 57..58 }], is_absolute: false, span: 57..58 }) }, span: 1..60 }]"#
-        ]],
+        expect_test::expect!["fn foo(x: real, y: real) -> real { let z = 5e0; z };"],
     );
 }
 
@@ -848,16 +735,12 @@ let x = foo(a*3, c);
 
     check(
         &run_parser!(yurt_program(), src),
-        expect_test::expect![[
-            r#"[Let { name: Ident { name: "x", span: 5..6 }, ty: None, init: Some(Call { name: Path { path: [Ident { name: "foo", span: 9..12 }], is_absolute: false, span: 9..12 }, args: [BinaryOp { op: Mul, lhs: Path(Path { path: [Ident { name: "a", span: 13..14 }], is_absolute: false, span: 13..14 }), rhs: Immediate(Int(3)) }, Path(Path { path: [Ident { name: "c", span: 18..19 }], is_absolute: false, span: 18..19 })] }), span: 1..21 }]"#
-        ]],
+        expect_test::expect!["let x = foo((a * 3), c);"],
     );
 
     check(
         &run_parser!(expr(), "A::B::foo(-a, b+c)"),
-        expect_test::expect![[
-            r#"Call { name: Path { path: [Ident { name: "A", span: 0..1 }, Ident { name: "B", span: 3..4 }, Ident { name: "foo", span: 6..9 }], is_absolute: false, span: 0..9 }, args: [UnaryOp { op: Neg, expr: Path(Path { path: [Ident { name: "a", span: 11..12 }], is_absolute: false, span: 11..12 }) }, BinaryOp { op: Add, lhs: Path(Path { path: [Ident { name: "b", span: 14..15 }], is_absolute: false, span: 14..15 }), rhs: Path(Path { path: [Ident { name: "c", span: 16..17 }], is_absolute: false, span: 16..17 }) }] }"#
-        ]],
+        expect_test::expect!["A::B::foo(-a, (b + c))"],
     );
 }
 
@@ -865,16 +748,12 @@ let x = foo(a*3, c);
 fn code_blocks() {
     check(
         &run_parser!(let_decl(expr()), "let x = { 0 };"),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "x", span: 4..5 }, ty: None, init: Some(Block(Block { statements: [], final_expr: Immediate(Int(0)) })), span: 0..14 }"#
-        ]],
+        expect_test::expect!["let x = { 0 }"],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = { constraint x > 0.0; 0.0 };"),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "x", span: 4..5 }, ty: None, init: Some(Block(Block { statements: [Constraint { expr: BinaryOp { op: GreaterThan, lhs: Path(Path { path: [Ident { name: "x", span: 21..22 }], is_absolute: false, span: 21..22 }), rhs: Immediate(Real(0.0)) }, span: 10..29 }], final_expr: Immediate(Real(0.0)) })), span: 0..36 }"#
-        ]],
+        expect_test::expect!["let x = { constraint (x > 0e0); 0e0 }"],
     );
 
     check(
@@ -882,21 +761,20 @@ fn code_blocks() {
             constraint_decl(expr()),
             "constraint { constraint { true }; x > 0 };"
         ),
-        expect_test::expect![[
-            r#"Constraint { expr: Block(Block { statements: [Constraint { expr: Block(Block { statements: [], final_expr: Immediate(Bool(true)) }), span: 13..33 }], final_expr: BinaryOp { op: GreaterThan, lhs: Path(Path { path: [Ident { name: "x", span: 34..35 }], is_absolute: false, span: 34..35 }), rhs: Immediate(Int(0)) } }), span: 0..42 }"#
-        ]],
+        expect_test::expect!["constraint { constraint { true }; (x > 0) }"],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = { 1.0 } * { 2.0 };"),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "x", span: 4..5 }, ty: None, init: Some(BinaryOp { op: Mul, lhs: Block(Block { statements: [], final_expr: Immediate(Real(1.0)) }), rhs: Block(Block { statements: [], final_expr: Immediate(Real(2.0)) }) }), span: 0..26 }"#
-        ]],
+        expect_test::expect!["let x = ({ 1e0 } * { 2e0 })"],
     );
 
     check(
-        &format!("{:?}", run_parser!(let_decl(expr()), "let x = {};")),
-        expect_test::expect![[r#""@8..10: empty tuple expressions are not allowed\n""#]],
+        &run_parser!(let_decl(expr()), "let x = {};"),
+        expect_test::expect![[r#"
+            empty tuple expressions are not allowed
+            @8..10: empty tuple expression found
+        "#]],
     );
 }
 
@@ -905,29 +783,19 @@ fn if_exprs() {
     check(
         &run_parser!(if_expr(expr()), "if c { 1 }"),
         expect_test::expect![[r#"
-            @10..10: found end of input but expected "else"
+            expected `else`, found "end of input"
+            @10..10: expected `else`
         "#]],
     );
 
     check(
         &run_parser!(if_expr(expr()), "if c { 1 } else { 0 }"),
-        expect_test::expect![[
-            r#"If { condition: Path(Path { path: [Ident { name: "c", span: 3..4 }], is_absolute: false, span: 3..4 }), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } }"#
-        ]],
+        expect_test::expect!["if c { 1 } else { 0 }"],
     );
 
     check(
         &run_parser!(if_expr(expr()), "if c { if c { 1 } else { 0 } } else { 2 }"),
-        expect_test::expect![[
-            r#"If { condition: Path(Path { path: [Ident { name: "c", span: 3..4 }], is_absolute: false, span: 3..4 }), then_block: Block { statements: [], final_expr: If { condition: Path(Path { path: [Ident { name: "c", span: 10..11 }], is_absolute: false, span: 10..11 }), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } } }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }"#
-        ]],
-    );
-
-    check(
-        &run_parser!(if_expr(expr()), "if c { if c { 1 } else { 0 } } else { 2 }"),
-        expect_test::expect![[
-            r#"If { condition: Path(Path { path: [Ident { name: "c", span: 3..4 }], is_absolute: false, span: 3..4 }), then_block: Block { statements: [], final_expr: If { condition: Path(Path { path: [Ident { name: "c", span: 10..11 }], is_absolute: false, span: 10..11 }), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(0)) } } }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }"#
-        ]],
+        expect_test::expect!["if c { if c { 1 } else { 0 } } else { 2 }"],
     );
 }
 
@@ -935,86 +803,69 @@ fn if_exprs() {
 fn array_type() {
     check(
         &run_parser!(type_(expr()), r#"int[5]"#),
-        expect_test::expect!["Array { ty: Int, range: Immediate(Int(5)) }"],
+        expect_test::expect!["int[5]"],
     );
 
     check(
         &run_parser!(type_(expr()), r#"int[MyEnum]"#),
-        expect_test::expect![[
-            r#"Array { ty: Int, range: Path(Path { path: [Ident { name: "MyEnum", span: 4..10 }], is_absolute: false, span: 4..10 }) }"#
-        ]],
+        expect_test::expect!["int[MyEnum]"],
     );
 
     check(
         &run_parser!(type_(expr()), r#"int[N]"#),
-        expect_test::expect![[
-            r#"Array { ty: Int, range: Path(Path { path: [Ident { name: "N", span: 4..5 }], is_absolute: false, span: 4..5 }) }"#
-        ]],
+        expect_test::expect!["int[N]"],
     );
 
     check(
         &run_parser!(
             type_(expr()),
-            r#"string[foo()][{ 7 }][if true { 1 } else { 2 }"#
+            r#"string[foo()][{ 7 }][if true { 1 } else { 2 }]"#
         ),
-        expect_test::expect![[
-            r#"Array { ty: Array { ty: String, range: Block(Block { statements: [], final_expr: Immediate(Int(7)) }) }, range: Call { name: Path { path: [Ident { name: "foo", span: 7..10 }], is_absolute: false, span: 7..10 }, args: [] } }"#
-        ]],
+        expect_test::expect!["string[if true { 1 } else { 2 }][{ 7 }][foo()]"],
     );
 
     check(
         &run_parser!(type_(expr()), r#"real[N][9][M][3]"#),
-        expect_test::expect![[
-            r#"Array { ty: Array { ty: Array { ty: Array { ty: Real, range: Immediate(Int(3)) }, range: Path(Path { path: [Ident { name: "M", span: 11..12 }], is_absolute: false, span: 11..12 }) }, range: Immediate(Int(9)) }, range: Path(Path { path: [Ident { name: "N", span: 5..6 }], is_absolute: false, span: 5..6 }) }"#
-        ]],
+        expect_test::expect!["real[3][M][9][N]"],
     );
 
     check(
         &run_parser!(type_(expr()), r#"{int, { real, string }}[N][9]"#),
-        expect_test::expect![[
-            r#"Array { ty: Array { ty: Tuple([(None, Int), (None, Tuple([(None, Real), (None, String)]))]), range: Immediate(Int(9)) }, range: Path(Path { path: [Ident { name: "N", span: 24..25 }], is_absolute: false, span: 24..25 }) }"#
-        ]],
+        expect_test::expect!["{int, {real, string}}[9][N]"],
     );
 
     check(
         &run_parser!(let_decl(expr()), r#"let a: int[];"#),
         expect_test::expect![[r#"
-            @11..12: found "]" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if",  or "cond"
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`, found `]`
+            @11..12: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`
         "#]],
     );
 }
 #[test]
 fn array_expressions() {
-    check(
-        &run_parser!(expr(), r#"[5]"#),
-        expect_test::expect!["Array([Immediate(Int(5))])"],
-    );
+    check(&run_parser!(expr(), r#"[5]"#), expect_test::expect!["[5]"]);
 
-    check(
-        &run_parser!(expr(), r#"[5,]"#),
-        expect_test::expect!["Array([Immediate(Int(5))])"],
-    );
+    check(&run_parser!(expr(), r#"[5,]"#), expect_test::expect!["[5]"]);
 
     check(
         &run_parser!(expr(), r#"[5, 4]"#),
-        expect_test::expect!["Array([Immediate(Int(5)), Immediate(Int(4))])"],
+        expect_test::expect!["[5, 4]"],
     );
 
     check(
         &run_parser!(expr(), r#"[[ 1 ],]"#),
-        expect_test::expect!["Array([Array([Immediate(Int(1))])])"],
+        expect_test::expect!["[[1]]"],
     );
 
     check(
         &run_parser!(expr(), r#"[[1, 2], 3]"#), // This should fail in semantic analysis
-        expect_test::expect![
-            "Array([Array([Immediate(Int(1)), Immediate(Int(2))]), Immediate(Int(3))])"
-        ],
+        expect_test::expect!["[[1, 2], 3]"],
     );
 
     check(
         &run_parser!(expr(), r#"[[1, 2], [3, 4]]"#),
-        expect_test::expect!["Array([Array([Immediate(Int(1)), Immediate(Int(2))]), Array([Immediate(Int(3)), Immediate(Int(4))])])"],
+        expect_test::expect!["[[1, 2], [3, 4]]"],
     );
 
     check(
@@ -1022,9 +873,7 @@ fn array_expressions() {
             expr(),
             r#"[[foo(), { 2 }], [if true { 1 } else { 2 }, t.0]]"#
         ),
-        expect_test::expect![[
-            r#"Array([Array([Call { name: Path { path: [Ident { name: "foo", span: 2..5 }], is_absolute: false, span: 2..5 }, args: [] }, Block(Block { statements: [], final_expr: Immediate(Int(2)) })]), Array([If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(2)) } }, TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 44..45 }], is_absolute: false, span: 44..45 }), field: Left(0) }])])"#
-        ]],
+        expect_test::expect!["[[foo(), { 2 }], [if true { 1 } else { 2 }, t.0]]"],
     );
 }
 
@@ -1032,37 +881,30 @@ fn array_expressions() {
 fn array_field_accesss() {
     check(
         &run_parser!(expr(), r#"a[5]"#),
-        expect_test::expect![[
-            r#"ArrayElementAccess { array: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), index: Immediate(Int(5)) }"#
-        ]],
+        expect_test::expect!["a[5]"],
     );
 
     check(
         &run_parser!(expr(), r#"{ a }[N][foo()][M][4]"#),
-        expect_test::expect![[
-            r#"ArrayElementAccess { array: ArrayElementAccess { array: ArrayElementAccess { array: ArrayElementAccess { array: Block(Block { statements: [], final_expr: Path(Path { path: [Ident { name: "a", span: 2..3 }], is_absolute: false, span: 2..3 }) }), index: Immediate(Int(4)) }, index: Path(Path { path: [Ident { name: "M", span: 16..17 }], is_absolute: false, span: 16..17 }) }, index: Call { name: Path { path: [Ident { name: "foo", span: 9..12 }], is_absolute: false, span: 9..12 }, args: [] } }, index: Path(Path { path: [Ident { name: "N", span: 6..7 }], is_absolute: false, span: 6..7 }) }"#
-        ]],
+        expect_test::expect!["{ a }[N][foo()][M][4]"],
     );
 
     check(
         &run_parser!(expr(), r#"foo()[{ M }][if true { 1 } else { 3 }]"#),
-        expect_test::expect![[
-            r#"ArrayElementAccess { array: ArrayElementAccess { array: Call { name: Path { path: [Ident { name: "foo", span: 0..3 }], is_absolute: false, span: 0..3 }, args: [] }, index: If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(1)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } } }, index: Block(Block { statements: [], final_expr: Path(Path { path: [Ident { name: "M", span: 8..9 }], is_absolute: false, span: 8..9 }) }) }"#
-        ]],
+        expect_test::expect!["foo()[{ M }][if true { 1 } else { 3 }]"],
     );
 
     check(
         &run_parser!(let_decl(expr()), r#"let x = a[];"#),
         expect_test::expect![[r#"
-            @10..11: found "]" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if",  or "cond"
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`, found `]`
+            @10..11: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `if`, `{`, or `{`
         "#]],
     );
 
     check(
-        &run_parser!(expr(), r#"a[MyEnum::Variant1];"#),
-        expect_test::expect![[
-            r#"ArrayElementAccess { array: Path(Path { path: [Ident { name: "a", span: 0..1 }], is_absolute: false, span: 0..1 }), index: Path(Path { path: [Ident { name: "MyEnum", span: 2..8 }, Ident { name: "Variant1", span: 10..18 }], is_absolute: false, span: 2..18 }) }"#
-        ]],
+        &run_parser!(expr(), r#"a[MyEnum::Variant1]"#),
+        expect_test::expect!["a[MyEnum::Variant1]"],
     );
 }
 
@@ -1070,61 +912,47 @@ fn array_field_accesss() {
 fn tuple_expressions() {
     check(
         &run_parser!(expr(), r#"{0}"#), // This is not a tuple. It is a code block expr.
-        expect_test::expect!["Block(Block { statements: [], final_expr: Immediate(Int(0)) })"],
+        expect_test::expect!["{ 0 }"],
     );
 
     check(
         &run_parser!(expr(), r#"{x: 0}"#), // This is a tuple because the field is named so there is no ambiguity
-        expect_test::expect![[
-            r#"Tuple([(Some(Ident { name: "x", span: 1..2 }), Immediate(Int(0)))])"#
-        ]],
+        expect_test::expect!["{x: 0}"],
     );
 
     check(
         &run_parser!(expr(), r#"{0,}"#), // This is a tuple
-        expect_test::expect!["Tuple([(None, Immediate(Int(0)))])"],
+        expect_test::expect!["{0}"],
     );
 
     check(
         &run_parser!(expr(), r#"{x: 0,}"#), // This is a tuple
-        expect_test::expect![[
-            r#"Tuple([(Some(Ident { name: "x", span: 1..2 }), Immediate(Int(0)))])"#
-        ]],
+        expect_test::expect!["{x: 0}"],
     );
 
     check(
         &run_parser!(expr(), r#"{0, 1.0, "foo"}"#),
-        expect_test::expect![[
-            r#"Tuple([(None, Immediate(Int(0))), (None, Immediate(Real(1.0))), (None, Immediate(String("foo")))])"#
-        ]],
+        expect_test::expect![[r#"{0, 1e0, "foo"}"#]],
     );
 
     check(
         &run_parser!(expr(), r#"{x: 0, y: 1.0, z: "foo"}"#),
-        expect_test::expect![[
-            r#"Tuple([(Some(Ident { name: "x", span: 1..2 }), Immediate(Int(0))), (Some(Ident { name: "y", span: 7..8 }), Immediate(Real(1.0))), (Some(Ident { name: "z", span: 15..16 }), Immediate(String("foo")))])"#
-        ]],
+        expect_test::expect![[r#"{x: 0, y: 1e0, z: "foo"}"#]],
     );
 
     check(
         &run_parser!(expr(), r#"{0, {1.0, "bar"}, "foo"}"#),
-        expect_test::expect![[
-            r#"Tuple([(None, Immediate(Int(0))), (None, Tuple([(None, Immediate(Real(1.0))), (None, Immediate(String("bar")))])), (None, Immediate(String("foo")))])"#
-        ]],
+        expect_test::expect![[r#"{0, {1e0, "bar"}, "foo"}"#]],
     );
 
     check(
         &run_parser!(expr(), r#"{x: 0, {y: 1.0, "bar"}, z: "foo"}"#),
-        expect_test::expect![[
-            r#"Tuple([(Some(Ident { name: "x", span: 1..2 }), Immediate(Int(0))), (None, Tuple([(Some(Ident { name: "y", span: 8..9 }), Immediate(Real(1.0))), (None, Immediate(String("bar")))])), (Some(Ident { name: "z", span: 24..25 }), Immediate(String("foo")))])"#
-        ]],
+        expect_test::expect![[r#"{x: 0, {y: 1e0, "bar"}, z: "foo"}"#]],
     );
 
     check(
         &run_parser!(expr(), r#"{ { 42 }, if c { 2 } else { 3 }, foo() }"#),
-        expect_test::expect![[
-            r#"Tuple([(None, Block(Block { statements: [], final_expr: Immediate(Int(42)) })), (None, If { condition: Path(Path { path: [Ident { name: "c", span: 13..14 }], is_absolute: false, span: 13..14 }), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } }), (None, Call { name: Path { path: [Ident { name: "foo", span: 33..36 }], is_absolute: false, span: 33..36 }, args: [] })])"#
-        ]],
+        expect_test::expect!["{{ 42 }, if c { 2 } else { 3 }, foo()}"],
     );
 
     check(
@@ -1132,9 +960,7 @@ fn tuple_expressions() {
             expr(),
             r#"{ x: { 42 }, y: if c { 2 } else { 3 }, z: foo() }"#
         ),
-        expect_test::expect![[
-            r#"Tuple([(Some(Ident { name: "x", span: 2..3 }), Block(Block { statements: [], final_expr: Immediate(Int(42)) })), (Some(Ident { name: "y", span: 13..14 }), If { condition: Path(Path { path: [Ident { name: "c", span: 19..20 }], is_absolute: false, span: 19..20 }), then_block: Block { statements: [], final_expr: Immediate(Int(2)) }, else_block: Block { statements: [], final_expr: Immediate(Int(3)) } }), (Some(Ident { name: "z", span: 39..40 }), Call { name: Path { path: [Ident { name: "foo", span: 42..45 }], is_absolute: false, span: 42..45 }, args: [] })])"#
-        ]],
+        expect_test::expect!["{x: { 42 }, y: if c { 2 } else { 3 }, z: foo()}"],
     );
 }
 
@@ -1142,128 +968,110 @@ fn tuple_expressions() {
 fn tuple_field_accesses() {
     check(
         &run_parser!(expr(), r#"t.0 + t.9999999 + t.x"#),
-        expect_test::expect![[
-            r#"BinaryOp { op: Add, lhs: BinaryOp { op: Add, lhs: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 0..1 }], is_absolute: false, span: 0..1 }), field: Left(0) }, rhs: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 6..7 }], is_absolute: false, span: 6..7 }), field: Left(9999999) } }, rhs: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 18..19 }], is_absolute: false, span: 18..19 }), field: Right(Ident { name: "x", span: 20..21 }) } }"#
-        ]],
+        expect_test::expect!["((t.0 + t.9999999) + t.x)"],
     );
 
     check(
         &run_parser!(expr(), r#"{0, 1}.0"#),
-        expect_test::expect!["TupleFieldAccess { tuple: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(1)))]), field: Left(0) }"],
+        expect_test::expect!["{0, 1}.0"],
     );
 
     check(
         &run_parser!(expr(), r#"{0, 1}.x"#),
-        expect_test::expect![[
-            r#"TupleFieldAccess { tuple: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(1)))]), field: Right(Ident { name: "x", span: 7..8 }) }"#
-        ]],
+        expect_test::expect!["{0, 1}.x"],
     );
 
     check(
         &run_parser!(expr(), r#"t.0 .0"#),
-        expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 0..1 }], is_absolute: false, span: 0..1 }), field: Left(0) }, field: Left(0) }"#
-        ]],
+        expect_test::expect!["t.0.0"],
     );
 
     check(
         &run_parser!(expr(), r#"t.x .y"#),
-        expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 0..1 }], is_absolute: false, span: 0..1 }), field: Right(Ident { name: "x", span: 2..3 }) }, field: Right(Ident { name: "y", span: 5..6 }) }"#
-        ]],
+        expect_test::expect!["t.x.y"],
     );
 
     check(
         &run_parser!(expr(), "t \r .1 .2.2. \n 3 . \t 13 . 1.1"),
-        expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 0..1 }], is_absolute: false, span: 0..1 }), field: Left(1) }, field: Left(2) }, field: Left(2) }, field: Left(3) }, field: Left(13) }, field: Left(1) }, field: Left(1) }"#
-        ]],
+        expect_test::expect!["t.1.2.2.3.13.1.1"],
     );
 
     check(
         &run_parser!(expr(), "t \r .x .1.2. \n w . \t t. 3.4"),
-        expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 0..1 }], is_absolute: false, span: 0..1 }), field: Right(Ident { name: "x", span: 5..6 }) }, field: Left(1) }, field: Left(2) }, field: Right(Ident { name: "w", span: 15..16 }) }, field: Right(Ident { name: "t", span: 21..22 }) }, field: Left(3) }, field: Left(4) }"#
-        ]],
+        expect_test::expect!["t.x.1.2.w.t.3.4"],
     );
 
     check(
         &run_parser!(expr(), r#"foo().0.1"#),
-        expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: Call { name: Path { path: [Ident { name: "foo", span: 0..3 }], is_absolute: false, span: 0..3 }, args: [] }, field: Left(0) }, field: Left(1) }"#
-        ]],
+        expect_test::expect!["foo().0.1"],
     );
 
     check(
         &run_parser!(expr(), r#"foo().a.b.0.1"#),
-        expect_test::expect![[
-            r#"TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Call { name: Path { path: [Ident { name: "foo", span: 0..3 }], is_absolute: false, span: 0..3 }, args: [] }, field: Right(Ident { name: "a", span: 6..7 }) }, field: Right(Ident { name: "b", span: 8..9 }) }, field: Left(0) }, field: Left(1) }"#
-        ]],
+        expect_test::expect!["foo().a.b.0.1"],
     );
 
     check(
         &run_parser!(expr(), r#"{ {0, 0} }.0"#),
-        expect_test::expect!["TupleFieldAccess { tuple: Block(Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) }), field: Left(0) }"],
+        expect_test::expect!["{ {0, 0} }.0"],
     );
 
     check(
         &run_parser!(expr(), r#"{ {0, 0} }.a"#),
-        expect_test::expect![[
-            r#"TupleFieldAccess { tuple: Block(Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) }), field: Right(Ident { name: "a", span: 11..12 }) }"#
-        ]],
+        expect_test::expect!["{ {0, 0} }.a"],
     );
 
     check(
         &run_parser!(expr(), r#"if true { {0, 0} } else { {0, 0} }.0"#),
-        expect_test::expect!["TupleFieldAccess { tuple: If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) }, else_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) } }, field: Left(0) }"],
+        expect_test::expect!["if true { {0, 0} } else { {0, 0} }.0"],
     );
 
     check(
         &run_parser!(expr(), r#"if true { {0, 0} } else { {0, 0} }.x"#),
-        expect_test::expect![[
-            r#"TupleFieldAccess { tuple: If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) }, else_block: Block { statements: [], final_expr: Tuple([(None, Immediate(Int(0))), (None, Immediate(Int(0)))]) } }, field: Right(Ident { name: "x", span: 35..36 }) }"#
-        ]],
+        expect_test::expect!["if true { {0, 0} } else { {0, 0} }.x"],
     );
 
     // This parses because `1 + 2` is an expression, but it should fail in semantic analysis.
     check(
         &run_parser!(expr(), "1 + 2 .3"),
-        expect_test::expect!["BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: TupleFieldAccess { tuple: Immediate(Int(2)), field: Left(3) } }"],
+        expect_test::expect!["(1 + 2.3)"],
     );
 
     // This parses because `1 + 2` is an expression, but it should fail in semantic analysis.
     check(
         &run_parser!(expr(), "1 + 2 .a"),
-        expect_test::expect![[
-            r#"BinaryOp { op: Add, lhs: Immediate(Int(1)), rhs: TupleFieldAccess { tuple: Immediate(Int(2)), field: Right(Ident { name: "a", span: 7..8 }) } }"#
-        ]],
+        expect_test::expect!["(1 + 2.a)"],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = t.0xa;"),
         expect_test::expect![[r#"
-            @10..13: invalid integer value "0xa" for tuple index
+            invalid integer `0xa` as tuple index
+            @10..13: invalid integer as tuple index
         "#]],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = t.111111111111111111111111111;"),
         expect_test::expect![[r#"
-            @10..37: invalid integer value "111111111111111111111111111" for tuple index
+            invalid integer `111111111111111111111111111` as tuple index
+            @10..37: invalid integer as tuple index
         "#]],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = t.111111111111111111111111111.2;"),
         expect_test::expect![[r#"
-            @10..37: invalid integer value "111111111111111111111111111" for tuple index
+            invalid integer `111111111111111111111111111` as tuple index
+            @10..37: invalid integer as tuple index
         "#]],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = t.2.111111111111111111111111111;"),
         expect_test::expect![[r#"
-            @12..39: invalid integer value "111111111111111111111111111" for tuple index
+            invalid integer `111111111111111111111111111` as tuple index
+            @12..39: invalid integer as tuple index
         "#]],
     );
 
@@ -1273,22 +1081,26 @@ fn tuple_field_accesses() {
             "let x = t.222222222222222222222.111111111111111111111111111;"
         ),
         expect_test::expect![[r#"
-            @10..31: invalid integer value "222222222222222222222" for tuple index
+            invalid integer `222222222222222222222` as tuple index
+            @10..31: invalid integer as tuple index
         "#]],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let x = t.1e5;"),
         expect_test::expect![[r#"
-            @10..13: invalid value "1e5" for tuple index
+            invalid value `1e5` as tuple index
+            @10..13: invalid value as tuple index
         "#]],
     );
 
     check(
         &run_parser!(let_decl(expr()), "let bad_tuple:{} = {};"),
         expect_test::expect![[r#"
-            @14..16: empty tuple types are not allowed
-            @19..21: empty tuple expressions are not allowed
+            empty tuple types are not allowed
+            @14..16: empty tuple type found
+            empty tuple expressions are not allowed
+            @19..21: empty tuple expression found
         "#]],
     );
 }
@@ -1297,30 +1109,22 @@ fn tuple_field_accesses() {
 fn cond_exprs() {
     check(
         &run_parser!(cond_expr(expr()), r#"cond { else => a }"#),
-        expect_test::expect![[
-            r#"Cond { branches: [], else_result: Path(Path { path: [Ident { name: "a", span: 15..16 }], is_absolute: false, span: 15..16 }) }"#
-        ]],
+        expect_test::expect!["cond { else => a }"],
     );
 
     check(
         &run_parser!(cond_expr(expr()), r#"cond { else => { a } }"#),
-        expect_test::expect![[
-            r#"Cond { branches: [], else_result: Block(Block { statements: [], final_expr: Path(Path { path: [Ident { name: "a", span: 17..18 }], is_absolute: false, span: 17..18 }) }) }"#
-        ]],
+        expect_test::expect!["cond { else => { a } }"],
     );
 
     check(
         &run_parser!(cond_expr(expr()), r#"cond { a => b, else => c }"#),
-        expect_test::expect![[
-            r#"Cond { branches: [CondBranch { condition: Path(Path { path: [Ident { name: "a", span: 7..8 }], is_absolute: false, span: 7..8 }), result: Path(Path { path: [Ident { name: "b", span: 12..13 }], is_absolute: false, span: 12..13 }) }], else_result: Path(Path { path: [Ident { name: "c", span: 23..24 }], is_absolute: false, span: 23..24 }) }"#
-        ]],
+        expect_test::expect!["cond { a => b, else => c }"],
     );
 
     check(
         &run_parser!(cond_expr(expr()), r#"cond { a => { b }, else => c, }"#),
-        expect_test::expect![[
-            r#"Cond { branches: [CondBranch { condition: Path(Path { path: [Ident { name: "a", span: 7..8 }], is_absolute: false, span: 7..8 }), result: Block(Block { statements: [], final_expr: Path(Path { path: [Ident { name: "b", span: 14..15 }], is_absolute: false, span: 14..15 }) }) }], else_result: Path(Path { path: [Ident { name: "c", span: 27..28 }], is_absolute: false, span: 27..28 }) }"#
-        ]],
+        expect_test::expect!["cond { a => { b }, else => c }"],
     );
 
     check(
@@ -1328,22 +1132,22 @@ fn cond_exprs() {
             cond_expr(expr()),
             r#"cond { a => b, { true } => d, else => f, }"#
         ),
-        expect_test::expect![[
-            r#"Cond { branches: [CondBranch { condition: Path(Path { path: [Ident { name: "a", span: 7..8 }], is_absolute: false, span: 7..8 }), result: Path(Path { path: [Ident { name: "b", span: 12..13 }], is_absolute: false, span: 12..13 }) }, CondBranch { condition: Block(Block { statements: [], final_expr: Immediate(Bool(true)) }), result: Path(Path { path: [Ident { name: "d", span: 27..28 }], is_absolute: false, span: 27..28 }) }], else_result: Path(Path { path: [Ident { name: "f", span: 38..39 }], is_absolute: false, span: 38..39 }) }"#
-        ]],
+        expect_test::expect!["cond { a => b, { true } => d, else => f }"],
     );
 
     check(
         &run_parser!(cond_expr(expr()), r#"cond { a => b, }"#),
         expect_test::expect![[r#"
-            @15..16: found "}" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if", "else",  or "cond"
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `else`, `if`, `{`, or `{`, found `}`
+            @15..16: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `else`, `if`, `{`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(cond_expr(expr()), r#"cond { else => a, b => c }"#),
         expect_test::expect![[r#"
-            @18..19: found "b" but expected "}"
+            expected `}`, found `b`
+            @18..19: expected `}`
         "#]],
     );
 }
@@ -1352,14 +1156,12 @@ fn cond_exprs() {
 fn casting() {
     check(
         &run_parser!(expr(), r#"(5 as int) as real as int"#),
-        expect_test::expect!["Cast { value: Cast { value: Cast { value: Immediate(Int(5)), ty: Int }, ty: Real }, ty: Int }"],
+        expect_test::expect!["5 as int as real as int"],
     );
 
     check(
         &run_parser!(expr(), r#"t.0.1 as real * a[5][3] as int"#),
-        expect_test::expect![[
-            r#"BinaryOp { op: Mul, lhs: Cast { value: TupleFieldAccess { tuple: TupleFieldAccess { tuple: Path(Path { path: [Ident { name: "t", span: 0..1 }], is_absolute: false, span: 0..1 }), field: Left(0) }, field: Left(1) }, ty: Real }, rhs: Cast { value: ArrayElementAccess { array: ArrayElementAccess { array: Path(Path { path: [Ident { name: "a", span: 16..17 }], is_absolute: false, span: 16..17 }), index: Immediate(Int(3)) }, index: Immediate(Int(5)) }, ty: Int } }"#
-        ]],
+        expect_test::expect!["(t.0.1 as real * a[5][3] as int)"],
     );
 
     check(
@@ -1367,15 +1169,14 @@ fn casting() {
             let_decl(expr()),
             r#"let x = foo() as real as { int, real };"#
         ),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "x", span: 4..5 }, ty: None, init: Some(Cast { value: Cast { value: Call { name: Path { path: [Ident { name: "foo", span: 8..11 }], is_absolute: false, span: 8..11 }, args: [] }, ty: Real }, ty: Tuple([(None, Int), (None, Real)]) }), span: 0..39 }"#
-        ]],
+        expect_test::expect!["let x = foo() as real as {int, real}"],
     );
 
     check(
         &run_parser!(let_decl(expr()), r#"let x = 5 as;"#),
         expect_test::expect![[r#"
-            @12..13: found ";" but expected "::", "{", "real", "int", "bool",  or "string"
+            expected `::`, `bool`, `int`, `real`, `string`, or `{`, found `;`
+            @12..13: expected `::`, `bool`, `int`, `real`, `string`, or `{`
         "#]],
     );
 }
@@ -1384,36 +1185,29 @@ fn casting() {
 fn in_expr() {
     check(
         &run_parser!(expr(), r#"x in { 1, 2 }"#),
-        expect_test::expect![[
-            r#"In { value: Path(Path { path: [Ident { name: "x", span: 0..1 }], is_absolute: false, span: 0..1 }), collection: Tuple([(None, Immediate(Int(1))), (None, Immediate(Int(2)))]) }"#
-        ]],
+        expect_test::expect!["x in {1, 2}"],
     );
 
     check(
         &run_parser!(expr(), r#"x in [ 1, 2 ] in { true, false }"#),
-        expect_test::expect![[
-            r#"In { value: Path(Path { path: [Ident { name: "x", span: 0..1 }], is_absolute: false, span: 0..1 }), collection: In { value: Array([Immediate(Int(1)), Immediate(Int(2))]), collection: Tuple([(None, Immediate(Bool(true))), (None, Immediate(Bool(false)))]) } }"#
-        ]],
+        expect_test::expect!["x in [1, 2] in {true, false}"],
     );
 
     check(
         &run_parser!(expr(), r#"x as int in { 1, 2 }"#),
-        expect_test::expect![[
-            r#"In { value: Cast { value: Path(Path { path: [Ident { name: "x", span: 0..1 }], is_absolute: false, span: 0..1 }), ty: Int }, collection: Tuple([(None, Immediate(Int(1))), (None, Immediate(Int(2)))]) }"#
-        ]],
+        expect_test::expect!["x as int in {1, 2}"],
     );
 
     check(
         &run_parser!(expr(), r#"[1] in foo() in [[1]]"#),
-        expect_test::expect![[
-            r#"In { value: Array([Immediate(Int(1))]), collection: In { value: Call { name: Path { path: [Ident { name: "foo", span: 7..10 }], is_absolute: false, span: 7..10 }, args: [] }, collection: Array([Array([Immediate(Int(1))])]) } }"#
-        ]],
+        expect_test::expect!["[1] in foo() in [[1]]"],
     );
 
     check(
         &run_parser!(let_decl(expr()), r#"let x = 5 in;"#),
         expect_test::expect![[r#"
-            @12..13: found ";" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if",  or "cond"
+            expected `!`, `!`, `(`, `(`, `+`, `+`, `-`, `-`, `::`, `::`, `::`, `::`, `[`, `[`, `cond`, `cond`, `if`, `if`, `{`, `{`, `{`, or `{`, found `;`
+            @12..13: expected `!`, `!`, `(`, `(`, `+`, `+`, `-`, `-`, `::`, `::`, `::`, `::`, `[`, `[`, `cond`, `cond`, `if`, `if`, `{`, `{`, `{`, or `{`
         "#]],
     );
 }
@@ -1433,9 +1227,7 @@ solve minimize mid;
 
     check(
         &run_parser!(yurt_program(), src),
-        expect_test::expect![[
-            r#"[Let { name: Ident { name: "low_val", span: 5..12 }, ty: Some(Real), init: Some(Immediate(Real(1.23))), span: 1..26 }, Let { name: Ident { name: "high_val", span: 31..39 }, ty: None, init: Some(Immediate(Real(4.56))), span: 27..47 }, Constraint { expr: BinaryOp { op: GreaterThan, lhs: Path(Path { path: [Ident { name: "mid", span: 112..115 }], is_absolute: false, span: 112..115 }), rhs: BinaryOp { op: Mul, lhs: Path(Path { path: [Ident { name: "low_val", span: 118..125 }], is_absolute: false, span: 118..125 }), rhs: Immediate(Real(2.0)) } }, span: 101..132 }, Constraint { expr: BinaryOp { op: LessThan, lhs: Path(Path { path: [Ident { name: "mid", span: 144..147 }], is_absolute: false, span: 144..147 }), rhs: Path(Path { path: [Ident { name: "high_val", span: 150..158 }], is_absolute: false, span: 150..158 }) }, span: 133..159 }, Solve { directive: Minimize(Path { path: [Ident { name: "mid", span: 176..179 }], is_absolute: false, span: 176..179 }), span: 161..180 }]"#
-        ]],
+        expect_test::expect!["let low_val: real = 1.23e0; let high_val = 4.56e0; constraint (mid > (low_val * 2e0)); constraint (mid < high_val); solve minimize mid;"],
     );
 }
 
@@ -1444,14 +1236,16 @@ fn fn_errors() {
     check(
         &run_parser!(yurt_program(), "fn foo() {5}"),
         expect_test::expect![[r#"
-            @9..10: found "{" but expected "->"
+            expected `->`, found `{`
+            @9..10: expected `->`
         "#]],
     );
 
     check(
         &run_parser!(yurt_program(), "fn foo() -> real {}"),
         expect_test::expect![[r#"
-            @18..19: found "}" but expected "::", "::", "!", "+", "-", "{", "{", "(", "[", "if", "cond", "let", "state",  or "constraint"
+            expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `constraint`, `if`, `let`, `state`, `{`, or `{`, found `}`
+            @18..19: expected `!`, `(`, `+`, `-`, `::`, `::`, `[`, `cond`, `constraint`, `if`, `let`, `state`, `{`, or `{`
         "#]],
     );
 }
@@ -1468,9 +1262,9 @@ let low = 1.0;
 
     check(
         &run_parser!(yurt_program(), src),
-        expect_test::expect![[
-            r#"[Solve { directive: Maximize(Path { path: [Ident { name: "low", span: 16..19 }], is_absolute: false, span: 16..19 }), span: 1..20 }, Constraint { expr: BinaryOp { op: LessThan, lhs: Path(Path { path: [Ident { name: "low", span: 32..35 }], is_absolute: false, span: 32..35 }), rhs: Path(Path { path: [Ident { name: "high", span: 38..42 }], is_absolute: false, span: 38..42 }) }, span: 21..43 }, Let { name: Ident { name: "high", span: 48..52 }, ty: None, init: Some(Immediate(Real(2.0))), span: 44..59 }, Solve { directive: Satisfy, span: 60..74 }, Let { name: Ident { name: "low", span: 79..82 }, ty: None, init: Some(Immediate(Real(1.0))), span: 75..89 }]"#
-        ]],
+        expect_test::expect![
+            "solve maximize low; constraint (low < high); let high = 2e0; solve satisfy; let low = 1e0;"
+        ],
     );
 }
 
@@ -1480,10 +1274,7 @@ fn keywords_as_identifiers_errors() {
         let src = format!("let {keyword} = 5;");
         assert_eq!(
             &run_parser!(yurt_program(), &src),
-            &format!(
-                "@4..{}: expected identifier, found keyword \"{keyword}\"\n",
-                4 + format!("{keyword}").len() // End of the error span
-            ),
+            &format!("expected identifier, found keyword `{keyword}`\n@4..{}: expected identifier, found keyword\n", 4 + format!("{keyword}").len()), // End of the error span),
             "Check \"identifier as keyword\" error for  keyword \"{}\"",
             keyword
         );
@@ -1492,19 +1283,24 @@ fn keywords_as_identifiers_errors() {
 
 #[test]
 fn test_parse_str_to_ast() {
+    let filepath: Rc<Path> = Rc::from(Path::new("test"));
     check(
-        &format!("{:?}", parse_str_to_ast("let x = 5;", "my_file")),
+        &parse_str_to_ast("let x = 5;", filepath.clone())
+            .expect("Can't parse string.")
+            .to_string(),
+        expect_test::expect![["let x = 5;"]],
+    );
+    check(
+        &format!("{:?}", parse_str_to_ast("let x = 5", filepath.clone())),
         expect_test::expect![[
-            r#"Ok([Let { name: Ident { name: "x", span: 4..5 }, ty: None, init: Some(Immediate(Int(5))), span: 0..10 }])"#
+            r#"Err([Parse { error: ExpectedFound { span: "test":9..9, expected: [Some(";"), Some("||"), Some("&&"), Some("!="), Some("=="), Some(">="), Some("<="), Some(">"), Some("<"), Some("+"), Some("-"), Some("*"), Some("/"), Some("%"), Some("in"), Some("as"), Some("."), Some("["), Some("'")], found: None } }])"#
         ]],
     );
     check(
-        &format!("{:?}", parse_str_to_ast("let x = 5", "my_file")),
-        expect_test::expect![[r#"Err(could not compile "my_file" due to previous error)"#]],
-    );
-    check(
-        &format!("{:?}", parse_str_to_ast("@ @", "my_file")),
-        expect_test::expect![[r#"Err(could not compile "my_file" due to 2 previous errors)"#]],
+        &format!("{:?}", parse_str_to_ast("@ @", filepath.clone())),
+        expect_test::expect![[
+            r#"Err([Lex { span: "test":0..1, error: InvalidToken }, Lex { span: "test":2..3, error: InvalidToken }])"#
+        ]],
     );
 }
 
@@ -1515,9 +1311,7 @@ fn big_ints() {
             let_decl(expr()),
             "let blah = 1234567890123456789012345678901234567890;"
         ),
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: None, init: Some(Immediate(BigInt(1234567890123456789012345678901234567890))), span: 0..52 }"#
-        ]],
+        expect_test::expect!["let blah = 1234567890123456789012345678901234567890"],
     );
     check(
         &run_parser!(
@@ -1525,9 +1319,7 @@ fn big_ints() {
             "let blah = 0xfeedbadf00d2adeadcafed00dbabeface;"
         ),
         // Confirmed by using the Python REPL to convert from hex to dec...
-        expect_test::expect![[
-            r#"Let { name: Ident { name: "blah", span: 4..8 }, ty: None, init: Some(Immediate(BigInt(5421732407698601623698172315373246806734))), span: 0..47 }"#
-        ]],
+        expect_test::expect!["let blah = 5421732407698601623698172315373246806734"],
     );
     check(
         &run_parser!(
@@ -1536,9 +1328,7 @@ fn big_ints() {
             0b01001001010110101010101001010101010010100100101001010010100100100001010"
         ),
         // Again confirmed using the Python REPL.  Handy.
-        expect_test::expect![
-            "BinaryOp { op: Add, lhs: Immediate(BigInt(31076614848392666458794)), rhs: Immediate(BigInt(676572722683907229962)) }"
-        ],
+        expect_test::expect!["(31076614848392666458794 + 676572722683907229962)"],
     );
 }
 
@@ -1553,70 +1343,57 @@ interface Foo {
 "#;
 
     check(
-        &run_parser!(interface_decl(expr()), src),
-        expect_test::expect![[
-            r#"Interface(InterfaceDecl { name: Ident { name: "Foo", span: 11..14 }, functions: [FnSig { name: Ident { name: "foo", span: 24..27 }, params: [(Ident { name: "x", span: 28..29 }, Real), (Ident { name: "y", span: 37..38 }, Array { ty: Int, range: Immediate(Int(5)) })], return_type: Real, span: 21..55 }, FnSig { name: Ident { name: "bar", span: 64..67 }, params: [(Ident { name: "x", span: 68..69 }, Bool)], return_type: Real, span: 61..85 }, FnSig { name: Ident { name: "baz", span: 94..97 }, params: [], return_type: Tuple([(None, Int), (None, Real)]), span: 91..116 }], span: 1..119 })"#
-        ]],
+        &run_parser!(interface_decl(), src),
+        expect_test::expect!["interface Foo { fn foo(x: real, y: int[5]) -> real; fn bar(x: bool) -> real; fn baz() -> {int, real}; }"],
     );
 
     check(
-        &run_parser!(interface_decl(expr()), "interface Foo {}"),
-        expect_test::expect![[
-            r#"Interface(InterfaceDecl { name: Ident { name: "Foo", span: 10..13 }, functions: [], span: 0..16 })"#
-        ]],
+        &run_parser!(interface_decl(), "interface Foo {}"),
+        expect_test::expect!["interface Foo { }"],
     );
 }
 
 #[test]
 fn contract_test() {
     check(
-        &run_parser!(contract_decl(expr()), "contract Foo(0) {}"),
-        expect_test::expect![[
-            r#"Contract(ContractDecl { name: Ident { name: "Foo", span: 9..12 }, id: Immediate(Int(0)), interfaces: [], functions: [], span: 0..18 })"#
-        ]],
+        &run_parser!(contract_decl(), "contract Foo(0) {}"),
+        expect_test::expect!["contract Foo(0) { }"],
+    );
+
+    check(
+        &run_parser!(contract_decl(), "contract Foo(if true {0} else {1}) {}"),
+        expect_test::expect!["contract Foo(if true { 0 } else { 1 }) { }"],
     );
 
     check(
         &run_parser!(
-            contract_decl(expr()),
-            "contract Foo(if true {0} else {1}) {}"
-        ),
-        expect_test::expect![[
-            r#"Contract(ContractDecl { name: Ident { name: "Foo", span: 9..12 }, id: If { condition: Immediate(Bool(true)), then_block: Block { statements: [], final_expr: Immediate(Int(0)) }, else_block: Block { statements: [], final_expr: Immediate(Int(1)) } }, interfaces: [], functions: [], span: 0..37 })"#
-        ]],
-    );
-
-    check(
-        &run_parser!(
-            contract_decl(expr()),
+            contract_decl(),
             "contract Foo(0) implements X::Bar, ::Y::Baz {}"
         ),
-        expect_test::expect![[
-            r#"Contract(ContractDecl { name: Ident { name: "Foo", span: 9..12 }, id: Immediate(Int(0)), interfaces: [Path { path: [Ident { name: "X", span: 27..28 }, Ident { name: "Bar", span: 30..33 }], is_absolute: false, span: 27..33 }, Path { path: [Ident { name: "Y", span: 37..38 }, Ident { name: "Baz", span: 40..43 }], is_absolute: true, span: 35..43 }], functions: [], span: 0..46 })"#
-        ]],
+        expect_test::expect!["contract Foo(0) implements X::Bar, ::Y::Baz { }"],
     );
 
     check(
         &run_parser!(
-            contract_decl(expr()),
+            contract_decl(),
             "contract Foo(0) implements Bar { fn baz(x: real) -> int; }"
         ),
-        expect_test::expect![[
-            r#"Contract(ContractDecl { name: Ident { name: "Foo", span: 9..12 }, id: Immediate(Int(0)), interfaces: [Path { path: [Ident { name: "Bar", span: 27..30 }], is_absolute: false, span: 27..30 }], functions: [FnSig { name: Ident { name: "baz", span: 36..39 }, params: [(Ident { name: "x", span: 40..41 }, Real)], return_type: Int, span: 33..55 }], span: 0..58 })"#
-        ]],
+        expect_test::expect!["contract Foo(0) implements Bar { fn baz(x: real) -> int; }"],
     );
 
     check(
-        &run_parser!(contract_decl(expr()), "contract Foo { }"),
+        &run_parser!(contract_decl(), "contract Foo { }"),
         expect_test::expect![[r#"
-            @13..14: found "{" but expected "("
+            expected `(`, found `{`
+            @13..14: expected `(`
         "#]],
     );
 
     check(
-        &run_parser!(contract_decl(expr()), "contract Foo(0) implements { }"),
+        &run_parser!(contract_decl(), "contract Foo(0) implements { }"),
         expect_test::expect![[r#"
-            @27..28: found "{" but expected "::"
+            expected `::`, found `{`
+            @27..28: expected `::`
         "#]],
     );
 }
@@ -1624,37 +1401,29 @@ fn contract_test() {
 #[test]
 fn extern_test() {
     check(
-        &run_parser!(extern_decl(expr()), "extern {}"),
-        expect_test::expect!["Extern { functions: [], span: 0..9 }"],
+        &run_parser!(extern_decl(), "extern {}"),
+        expect_test::expect!["extern { }"],
     );
     check(
-        &run_parser!(extern_decl(expr()), "extern { fn foo() -> string; }"),
-        expect_test::expect![[
-            r#"Extern { functions: [FnSig { name: Ident { name: "foo", span: 12..15 }, params: [], return_type: String, span: 9..27 }], span: 0..30 }"#
-        ]],
+        &run_parser!(extern_decl(), "extern { fn foo() -> string; }"),
+        expect_test::expect!["extern { fn foo() -> string; }"],
     );
     check(
-        &run_parser!(
-            extern_decl(expr()),
-            "extern { fn foo(x: int, y: real) -> int; }"
-        ),
-        expect_test::expect![[
-            r#"Extern { functions: [FnSig { name: Ident { name: "foo", span: 12..15 }, params: [(Ident { name: "x", span: 16..17 }, Int), (Ident { name: "y", span: 24..25 }, Real)], return_type: Int, span: 9..39 }], span: 0..42 }"#
-        ]],
+        &run_parser!(extern_decl(), "extern { fn foo(x: int, y: real) -> int; }"),
+        expect_test::expect!["extern { fn foo(x: int, y: real) -> int; }"],
     );
     check(
         &run_parser!(
-            extern_decl(expr()),
+            extern_decl(),
             "extern { fn foo() -> int; fn bar() -> real; }"
         ),
-        expect_test::expect![[
-            r#"Extern { functions: [FnSig { name: Ident { name: "foo", span: 12..15 }, params: [], return_type: Int, span: 9..24 }, FnSig { name: Ident { name: "bar", span: 29..32 }, params: [], return_type: Real, span: 26..42 }], span: 0..45 }"#
-        ]],
+        expect_test::expect!["extern { fn foo() -> int; fn bar() -> real; }"],
     );
     check(
-        &run_parser!(extern_decl(expr()), "extern { fn foo(); }"),
+        &run_parser!(extern_decl(), "extern { fn foo(); }"),
         expect_test::expect![[r#"
-            @17..18: found ";" but expected "->"
+            expected `->`, found `;`
+            @17..18: expected `->`
         "#]],
     );
 }

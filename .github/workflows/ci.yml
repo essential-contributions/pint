@@ -7,7 +7,7 @@ on:
   pull_request: null
 
 env:
-  RUST_VERSION: 1.71.0
+  RUST_VERSION: 1.72.0
   NIGHTLY_RUST_VERSION: nightly-2023-07-01
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
       checks: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Trunk Check
         uses: trunk-io/trunk-action@v1
@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
@@ -38,20 +38,15 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Build yurtc
+      - name: Build Workspace
         run: cargo build --release
-        working-directory: yurtc
-
-      - name: Build yurtfmt
-        run: cargo build --release
-        working-directory: yurtfmt
 
   cargo-unused-deps-check:
     name: Cargo Unused Dependencies Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@master
@@ -63,20 +58,15 @@ jobs:
       - name: Install cargo-udeps
         run: cargo install --locked cargo-udeps
 
-      - name: Check Unused Deps in yurtc
+      - name: Check Unused Deps
         run: cargo udeps --locked --all-targets
-        working-directory: yurtc
-
-      - name: Check Unused Deps in yurtfmt
-        run: cargo udeps --locked --all-targets
-        working-directory: yurtfmt
 
   cargo-toml-lint-check:
     name: Cargo.toml Link Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
@@ -88,20 +78,15 @@ jobs:
       - name: Install Cargo.toml linter
         run: cargo install --locked cargo-toml-lint
 
-      - name: Run Cargo.toml linter in yurtc
+      - name: Run Cargo.toml linter
         run: git ls-files | grep Cargo.toml$ | xargs --verbose -n 1 cargo-toml-lint
-        working-directory: yurtc
-
-      - name: Run Cargo.toml linter in yurtfmt
-        run: git ls-files | grep Cargo.toml$ | xargs --verbose -n 1 cargo-toml-lint
-        working-directory: yurtfmt
 
   cargo-test-workspace:
     name: Cargo Test Workspace Using nextest
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
@@ -116,10 +101,5 @@ jobs:
           crate: cargo-nextest
           locked: true
 
-      - name: Run workspace tests in yurtc
+      - name: Run workspace tests
         run: cargo nextest run --release --locked
-        working-directory: yurtc
-
-      - name: Run workspace tests in yurtfmt
-        run: cargo nextest run --release --locked
-        working-directory: yurtfmt

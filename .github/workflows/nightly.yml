@@ -13,20 +13,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - uses: Swatinem/rust-cache@v2
 
       - name: Install cargo-audit
         run: cargo install --locked cargo-audit
 
-      - name: Run security audit for yurtc
+      - name: Run security audit
         run: cargo audit
-        working-directory: yurtc
-
-      - name: Run security audit for yurtfmt
-        run: cargo audit
-        working-directory: yurtfmt
 
       - name: Notify Slack
         if: failure()

@@ -1,18 +1,51 @@
 use crate::{
     contract::{ContractDecl as CD, InterfaceDecl as ID},
-    error::Span,
     expr::Expr as E,
-    types::{EnumDecl, FnSig as F, Type as T},
+    span::{Span, Spanned},
+    types::{EnumDecl, FnSig as FS, Type as T},
 };
 
 pub(super) type Expr = E<Path, Block>;
 pub(super) type Type = T<Path, Expr>;
-pub(super) type FnSig = F<Type>;
+pub(super) type FnSig = FS<Type>;
 pub(super) type InterfaceDecl = ID<Type>;
 pub(super) type ContractDecl = CD<Path, Expr, Type>;
 
-#[derive(Clone, Debug, PartialEq)]
-pub(super) enum Decl {
+mod display;
+mod mod_resolve;
+mod use_path;
+
+pub use mod_resolve::parse_project;
+
+#[derive(Clone, Debug)]
+pub struct Ast(pub(crate) Vec<Decl>);
+
+impl Ast {
+    pub fn iter(&self) -> impl Iterator<Item = &Decl> {
+        self.0.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a Ast {
+    type Item = &'a Decl;
+    type IntoIter = std::slice::Iter<'a, Decl>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for Ast {
+    type Item = Decl;
+    type IntoIter = <Vec<Decl> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum Decl {
     Use {
         is_absolute: bool,
         use_tree: UseTree,
@@ -40,49 +73,121 @@ pub(super) enum Decl {
         span: Span,
     },
     Solve {
-        directive: SolveFunc,
+        directive: SolveFunc<Expr>,
         span: Span,
     },
     Enum(EnumDecl),
     Interface(InterfaceDecl),
     Contract(ContractDecl),
+    NewType {
+        name: Ident,
+        ty: Type,
+        span: Span,
+    },
     Extern {
         functions: Vec<FnSig>,
         span: Span,
     },
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub(super) enum UseTree {
-    Glob,
-    Name { name: Ident },
-    Path { prefix: Ident, suffix: Box<UseTree> },
-    Group { imports: Vec<UseTree> },
-    Alias { name: Ident, alias: Ident },
+impl Spanned for Decl {
+    fn span(&self) -> &Span {
+        use Decl::*;
+        match &self {
+            Use { span, .. }
+            | Let { span, .. }
+            | State { span, .. }
+            | Constraint { span, .. }
+            | Fn { span, .. }
+            | Solve { span, .. }
+            | Extern { span, .. } => span,
+            Enum(enum_decl) => enum_decl.span(),
+            Interface(interface_decl) => interface_decl.span(),
+            Contract(contract_decl) => contract_decl.span(),
+            NewType { span, .. } => span,
+        }
+    }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub(super) struct Block {
+#[derive(Clone, Debug)]
+pub enum UseTree {
+    Name {
+        name: Ident,
+        span: Span,
+    },
+    Path {
+        prefix: Ident,
+        suffix: Box<UseTree>,
+        span: Span,
+    },
+    Group {
+        imports: Vec<UseTree>,
+        span: Span,
+    },
+    Alias {
+        name: Ident,
+        alias: Ident,
+        span: Span,
+    },
+}
+
+impl Spanned for UseTree {
+    fn span(&self) -> &Span {
+        use UseTree::*;
+        match &self {
+            Name { span, .. } | Path { span, .. } | Group { span, .. } | Alias { span, .. } => span,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Block {
     pub(super) statements: Vec<Decl>,
     pub(super) final_expr: Box<Expr>,
+    pub(super) span: Span,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub(super) struct Ident {
+impl Spanned for Block {
+    fn span(&self) -> &Span {
+        &self.span
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Ident {
     pub(super) name: String,
     pub(super) span: Span,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub(super) struct Path {
+/// We want to compare identifiers fairly regularly, and we should not include the span.
+impl PartialEq for Ident {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+impl Spanned for Ident {
+    fn span(&self) -> &Span {
+        &self.span
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Path {
     pub(super) path: Vec<Ident>,
     pub(super) is_absolute: bool,
     pub(super) span: Span,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub(super) enum SolveFunc {
+impl Spanned for Path {
+    fn span(&self) -> &Span {
+        &self.span
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum SolveFunc<Expr> {
     Satisfy,
-    Minimize(Path),
-    Maximize(Path),
+    Minimize(Expr),
+    Maximize(Expr),
 }

@@ -9,7 +9,7 @@ fn check(actual: &str, expect: expect_test::Expect) {
 #[cfg(test)]
 fn lex_one_success(src: &str) -> Token<'_> {
     // Tokenise src, assume success and that we produce a single token.
-    let (toks, errs) = lex(src);
+    let (toks, errs) = lex(src, Rc::from(Path::new("test")));
     assert!(errs.is_empty(), "Testing for success only.");
     assert_eq!(toks.len(), 1, "Testing for single token only.");
     toks[0].0.clone()
@@ -30,6 +30,7 @@ fn control_tokens() {
     assert_eq!(lex_one_success("->"), Token::Arrow);
     assert_eq!(lex_one_success("=>"), Token::HeavyArrow);
     assert_eq!(lex_one_success("."), Token::Dot);
+    assert_eq!(lex_one_success(".."), Token::TwoDots);
 }
 
 #[test]
@@ -40,12 +41,12 @@ fn reals() {
     assert_eq!(lex_one_success("1.3E5"), Token::RealLiteral("1.3E5"));
     assert_eq!(lex_one_success("0.34"), Token::RealLiteral("0.34"));
     check(
-        &format!("{:?}", lex(".34")),
-        expect_test::expect![[r#"([(Dot, 0..1), (IntLiteral("34"), 1..3)], [])"#]],
+        &format!("{:?}", lex(".34", Rc::from(Path::new("test")))),
+        expect_test::expect![[r#"([(Dot, "test":0..1), (IntLiteral("34"), "test":1..3)], [])"#]],
     );
     check(
-        &format!("{:?}", lex("12.")),
-        expect_test::expect![[r#"([(IntLiteral("12"), 0..2), (Dot, 2..3)], [])"#]],
+        &format!("{:?}", lex("12.", Rc::from(Path::new("test")))),
+        expect_test::expect![[r#"([(IntLiteral("12"), "test":0..2), (Dot, "test":2..3)], [])"#]],
     );
 }
 
@@ -133,6 +134,7 @@ fn variables() {
 #[test]
 fn r#types() {
     assert_eq!(lex_one_success("enum"), Token::Enum);
+    assert_eq!(lex_one_success("type"), Token::Type);
 }
 
 #[test]
@@ -198,7 +200,7 @@ constraint mid < low_val @ 2;
 solve minimize mid;
 "#;
 
-    let (tokens, errors) = lex(src);
+    let (tokens, errors) = lex(src, Rc::from(Path::new("test")));
 
     // Check errors
     assert_eq!(errors.len(), 2);

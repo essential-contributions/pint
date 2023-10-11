@@ -1,18 +1,21 @@
 use crate::{
-    ast, contract,
-    error::{CompileError, Span},
+    ast::{self, Ident},
+    contract,
+    error::CompileError,
     expr,
-    intent::{Path, Solve},
+    intent::Path,
+    span::Span,
     types,
 };
 
 use super::{
-    Block, ContractDecl, Expr, FnDecl, InterfaceDecl, IntermediateIntent, State, Type, Var,
+    Block, ContractDecl, Expr, FnDecl, InterfaceDecl, IntermediateIntent, SolveFunc, State, Type,
+    Var,
 };
 
 use std::collections::HashMap;
 
-pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
+pub(super) fn from_ast(ast: &ast::Ast) -> super::Result<IntermediateIntent> {
     let mut expr_ctx = ExprContext::default();
 
     let mut directives = Vec::new();
@@ -22,19 +25,25 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
     let mut interfaces = Vec::new();
     let mut contracts = Vec::new();
     let mut externs = Vec::new();
+    let mut new_types = Vec::new();
 
-    for decl in ast {
+    for decl in &ast.0 {
         match decl {
             ast::Decl::Use { span, .. } => {
                 return Err(CompileError::Internal {
-                    span: span.clone(),
                     msg: "Use statements must be removed from AST before conversion to Intent.",
+                    span: span.clone(),
                 });
             }
 
-            ast::Decl::Let { name, ty, init, .. } => {
+            ast::Decl::Let {
+                name,
+                ty,
+                init,
+                span,
+            } => {
                 expr_ctx.check_unique_symbol(name)?;
-                expr_ctx.unpack_let_decl(name, ty, init)?;
+                expr_ctx.unpack_let_decl(name, ty, init, span)?;
             }
 
             ast::Decl::State { name, ty, init, .. } => {
@@ -51,7 +60,7 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
                 expr_ctx.constraints.push((expr, span.clone()));
             }
 
-            ast::Decl::Fn { fn_sig, body, .. } => {
+            ast::Decl::Fn { fn_sig, body, span } => {
                 expr_ctx.check_unique_symbol(&fn_sig.name)?;
 
                 let mut local_expr_ctx = ExprContext::default();
@@ -64,15 +73,15 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
                         local_constraints: local_expr_ctx.constraints,
                         returned_constraint,
                     },
-                    fn_sig.span.clone(),
+                    span.clone(),
                 ))
             }
 
             ast::Decl::Solve { directive, span } => {
                 let what = match directive {
-                    ast::SolveFunc::Satisfy => Solve::Satisfy,
-                    ast::SolveFunc::Minimize(id) => Solve::Minimize(convert_ident(id)?),
-                    ast::SolveFunc::Maximize(id) => Solve::Maximize(convert_ident(id)?),
+                    ast::SolveFunc::Satisfy => SolveFunc::Satisfy,
+                    ast::SolveFunc::Minimize(id) => SolveFunc::Minimize(expr_ctx.convert_expr(id)?),
+                    ast::SolveFunc::Maximize(id) => SolveFunc::Maximize(expr_ctx.convert_expr(id)?),
                 };
                 directives.push((what, span.clone()));
             }
@@ -89,6 +98,10 @@ pub(super) fn from_ast(ast: &[ast::Decl]) -> super::Result<IntermediateIntent> {
                     convert_vec(functions, |fnsig| expr_ctx.convert_fn_sig(fnsig))?,
                     span.clone(),
                 ));
+            }
+            ast::Decl::NewType { name, ty, span } => {
+                expr_ctx.check_unique_symbol(name)?;
+                new_types.push((name, expr_ctx.convert_type(ty)?, span));
             }
         }
     }
@@ -113,6 +126,7 @@ struct ExprContext {
     states: Vec<(State, Span)>,
     vars: Vec<(Var, Span)>,
     constraints: Vec<(Expr, Span)>,
+    new_types: Vec<(Ident, Type, Span)>,
 }
 
 impl ExprContext {
@@ -134,82 +148,126 @@ impl ExprContext {
 
     fn convert_expr(&mut self, ast_expr: &ast::Expr) -> super::Result<Expr> {
         Ok(match ast_expr {
-            ast::Expr::Immediate(imm) => Expr::Immediate(imm.clone()),
-            ast::Expr::Path(id) => Expr::Path(convert_ident(id)?),
-            ast::Expr::UnaryOp { op, expr } => Expr::UnaryOp {
-                op: op.clone(),
-                expr: Box::new(self.convert_expr(expr)?),
+            ast::Expr::Immediate { value, span } => Expr::Immediate {
+                value: value.clone(),
+                span: span.clone(),
             },
-            ast::Expr::BinaryOp { op, lhs, rhs } => Expr::BinaryOp {
-                op: op.clone(),
+            ast::Expr::Path(path) => Expr::Path(convert_path(path)?),
+            ast::Expr::UnaryOp { op, expr, span } => Expr::UnaryOp {
+                op: *op,
+                expr: Box::new(self.convert_expr(expr)?),
+                span: span.clone(),
+            },
+            ast::Expr::BinaryOp { op, lhs, rhs, span } => Expr::BinaryOp {
+                op: *op,
                 lhs: Box::new(self.convert_expr(lhs)?),
                 rhs: Box::new(self.convert_expr(rhs)?),
+                span: span.clone(),
             },
-            ast::Expr::Call { name, args } => Expr::Call {
-                name: convert_ident(name)?,
+            ast::Expr::Call { name, args, span } => Expr::Call {
+                name: convert_path(name)?,
                 args: convert_vec(args, |arg| self.convert_expr(arg))?,
+                span: span.clone(),
             },
             ast::Expr::Block(block) => self.convert_block(block)?,
             ast::Expr::If {
                 condition,
                 then_block,
                 else_block,
+                span,
             } => Expr::If {
                 condition: Box::new(self.convert_expr(condition)?),
                 then_block: Block(Box::new(self.convert_block(then_block)?)),
                 else_block: Block(Box::new(self.convert_block(else_block)?)),
+                span: span.clone(),
             },
             ast::Expr::Cond {
                 branches,
                 else_result,
+                span,
             } => Expr::Cond {
-                branches: convert_vec(branches, |expr::CondBranch { condition, result }| {
-                    self.convert_expr(condition).and_then(|condition| {
-                        self.convert_expr(result).map(|result| expr::CondBranch {
-                            condition: Box::new(condition),
-                            result: Box::new(result),
+                branches: convert_vec(
+                    branches,
+                    |expr::CondBranch {
+                         condition,
+                         result,
+                         span,
+                     }| {
+                        self.convert_expr(condition).and_then(|condition| {
+                            self.convert_expr(result).map(|result| expr::CondBranch {
+                                condition: Box::new(condition),
+                                result: Box::new(result),
+                                span: span.clone(),
+                            })
                         })
-                    })
-                })?,
+                    },
+                )?,
                 else_result: Box::new(self.convert_expr(else_result)?),
+                span: span.clone(),
             },
-            ast::Expr::Array(els) => Expr::Array(convert_vec(els, |el| self.convert_expr(el))?),
-            ast::Expr::ArrayElementAccess { array, index } => Expr::ArrayElementAccess {
+            ast::Expr::Array { elements, span } => Expr::Array {
+                elements: convert_vec(elements, |element| self.convert_expr(element))?,
+                span: span.clone(),
+            },
+            ast::Expr::ArrayElementAccess { array, index, span } => Expr::ArrayElementAccess {
                 array: Box::new(self.convert_expr(array)?),
                 index: Box::new(self.convert_expr(index)?),
+                span: span.clone(),
             },
-            ast::Expr::Tuple(fields) => Expr::Tuple(convert_vec(fields, |(name, expr)| {
-                self.convert_expr(expr).map(|expr| (name.clone(), expr))
-            })?),
-            ast::Expr::TupleFieldAccess { tuple, field } => Expr::TupleFieldAccess {
+            ast::Expr::Tuple { fields, span } => Expr::Tuple {
+                fields: convert_vec(fields, |(name, expr)| {
+                    self.convert_expr(expr).map(|expr| (name.clone(), expr))
+                })?,
+                span: span.clone(),
+            },
+            ast::Expr::TupleFieldAccess { tuple, field, span } => Expr::TupleFieldAccess {
                 tuple: Box::new(self.convert_expr(tuple)?),
                 field: field.clone(),
+                span: span.clone(),
             },
-            ast::Expr::Cast { value, ty } => Expr::Cast {
+            ast::Expr::Cast { value, ty, span } => Expr::Cast {
                 value: Box::new(self.convert_expr(value)?),
                 ty: Box::new(self.convert_type(ty)?),
+                span: span.clone(),
             },
-            ast::Expr::In { value, collection } => Expr::In {
+            ast::Expr::In {
+                value,
+                collection,
+                span,
+            } => Expr::In {
                 value: Box::new(self.convert_expr(value)?),
                 collection: Box::new(self.convert_expr(collection)?),
+                span: span.clone(),
+            },
+            ast::Expr::Range { lb, ub, span } => Expr::Range {
+                lb: Box::new(self.convert_expr(lb)?),
+                ub: Box::new(self.convert_expr(ub)?),
+                span: span.clone(),
             },
         })
     }
 
     fn convert_type(&mut self, ast_ty: &ast::Type) -> super::Result<Type> {
         Ok(match ast_ty {
-            ast::Type::Bool => Type::Bool,
-            ast::Type::Int => Type::Int,
-            ast::Type::Real => Type::Real,
-            ast::Type::String => Type::String,
-            ast::Type::Array { ty, range } => Type::Array {
+            ast::Type::Primitive { kind, span } => Type::Primitive {
+                kind: kind.clone(),
+                span: span.clone(),
+            },
+            ast::Type::Array { ty, range, span } => Type::Array {
                 ty: Box::new(self.convert_type(ty)?),
                 range: self.convert_expr(range)?,
+                span: span.clone(),
             },
-            ast::Type::Tuple(fields) => Type::Tuple(convert_vec(fields, |(name, ast_ty)| {
-                self.convert_type(ast_ty).map(|ty| (name.clone(), ty))
-            })?),
-            ast::Type::CustomType(name) => Type::CustomType(convert_ident(name)?),
+            ast::Type::Tuple { fields, span } => Type::Tuple {
+                fields: convert_vec(fields, |(name, ast_ty)| {
+                    self.convert_type(ast_ty).map(|ty| (name.clone(), ty))
+                })?,
+                span: span.clone(),
+            },
+            ast::Type::CustomType { path, span } => Type::CustomType {
+                path: convert_path(path)?,
+                span: span.clone(),
+            },
         })
     }
 
@@ -235,6 +293,7 @@ impl ExprContext {
         let ast::Block {
             statements,
             final_expr,
+            ..
         } = block;
 
         for statement in statements {
@@ -243,10 +302,22 @@ impl ExprContext {
                     self.check_unique_symbol(name)?;
                     self.convert_state(name, ty, init)?;
                 }
-                ast::Decl::Let { name, ty, init, .. } => {
+                ast::Decl::Let {
+                    name,
+                    ty,
+                    init,
+                    span,
+                } => {
                     self.check_unique_symbol(name)?;
-                    self.unpack_let_decl(name, ty, init)?;
+                    self.unpack_let_decl(name, ty, init, span)?;
                 }
+                ast::Decl::NewType { name, ty, span, .. } => {
+                    self.check_unique_symbol(name)?;
+                    let converted_type = self.convert_type(ty)?;
+                    self.new_types
+                        .push((name.clone(), converted_type, span.clone()));
+                }
+
                 ast::Decl::Constraint { expr, span } => {
                     let constraint = self.convert_expr(expr)?;
                     self.constraints.push((constraint, span.clone()));
@@ -254,18 +325,15 @@ impl ExprContext {
 
                 // None of the following are allowed in code blocks, only the top-level scope.
                 ast::Decl::Use { span, .. }
-                | ast::Decl::Fn {
-                    fn_sig: ast::FnSig { span, .. },
-                    ..
-                }
+                | ast::Decl::Fn { span, .. }
                 | ast::Decl::Solve { span, .. }
                 | ast::Decl::Enum(types::EnumDecl { span, .. })
                 | ast::Decl::Interface(contract::InterfaceDecl { span, .. })
                 | ast::Decl::Contract(contract::ContractDecl { span, .. })
                 | ast::Decl::Extern { span, .. } => {
                     return Err(CompileError::Internal {
-                        span: span.clone(),
                         msg: "Fn blocks may only have `let` and `constraint` decls.",
+                        span: span.clone(),
                     });
                 }
             }
@@ -306,7 +374,7 @@ impl ExprContext {
         Ok(ContractDecl {
             name: name.clone(),
             id: self.convert_expr(id)?,
-            interfaces: convert_vec(interfaces, convert_ident)?,
+            interfaces: convert_vec(interfaces, convert_path)?,
             functions: convert_vec(functions, |sig| self.convert_fn_sig(sig))?,
             span: span.clone(),
         })
@@ -337,6 +405,7 @@ impl ExprContext {
         name: &ast::Ident,
         ty: &Option<ast::Type>,
         init: &Option<ast::Expr>,
+        span: &Span,
     ) -> super::Result<()> {
         let ty = ty.as_ref().map(|ty| self.convert_type(ty)).transpose()?;
         self.vars.push((
@@ -348,29 +417,50 @@ impl ExprContext {
         ));
 
         if let Some(init) = init {
-            let eq_expr = Expr::BinaryOp {
-                op: expr::BinaryOp::Equal,
-                lhs: Box::new(Expr::Path(name.name.to_owned())),
-                rhs: Box::new(self.convert_expr(init)?),
-            };
-            self.constraints.push((eq_expr, name.span.clone()));
+            if let ast::Expr::Range { lb, ub, span } = init {
+                let gt_expr = Expr::BinaryOp {
+                    op: expr::BinaryOp::GreaterThan,
+                    lhs: Box::new(Expr::Path(name.name.to_owned())),
+                    rhs: Box::new(self.convert_expr(lb)?),
+                    span: span.clone(), // Using the span of the `let` decl here
+                };
+                let lt_expr = Expr::BinaryOp {
+                    op: expr::BinaryOp::LessThan,
+                    lhs: Box::new(Expr::Path(name.name.to_owned())),
+                    rhs: Box::new(self.convert_expr(ub)?),
+                    span: span.clone(), // Using the span of the `let` decl here
+                };
+
+                self.constraints.push((gt_expr, name.span.clone()));
+                self.constraints.push((lt_expr, name.span.clone()));
+            } else {
+                let eq_expr = Expr::BinaryOp {
+                    op: expr::BinaryOp::Equal,
+                    lhs: Box::new(Expr::Path(name.name.to_owned())),
+                    rhs: Box::new(self.convert_expr(init)?),
+                    span: span.clone(), // Using the span of the `let` decl here
+                };
+                self.constraints.push((eq_expr, name.span.clone()));
+            }
         };
 
         Ok(())
     }
 }
 
-fn convert_ident(ast_id: &ast::Path) -> super::Result<Path> {
-    // NOTE: for now we're only supporting a single main module, so the path MUST be a single
-    // element and we're assuming is_absolute.  After we have the module system implemented then
-    // all symbols will be canonicalised and an ast::Path will just be a string.
-    if ast_id.path.len() != 1 {
+fn convert_path(path: &ast::Path) -> super::Result<Path> {
+    if !path.is_absolute {
         return Err(CompileError::Internal {
-            span: ast_id.span.clone(),
-            msg: "Multi-path identifiers are not supported yet.",
+            msg: "Path in AST is not already absolute.",
+            span: path.span.clone(),
         });
     }
-    Ok(ast_id.path[0].name.clone())
+
+    use std::fmt::Write;
+    Ok(path.path.iter().fold(String::new(), |mut path_str, el| {
+        let _ = write!(path_str, "::{el}");
+        path_str
+    }))
 }
 
 // We're converting vectors by mapping other conversions over their elements.  This little utility

@@ -14,12 +14,8 @@ pub struct Intent {
 }
 
 impl Intent {
-    pub(crate) fn from_ast(ast: &[ast::Decl]) -> anyhow::Result<Self> {
-        let cnv_err = |e| anyhow::anyhow!(error::Error::Compile { error: e });
-        intermediate::IntermediateIntent::from_ast(ast)
-            .map_err(cnv_err)?
-            .compile()
-            .map_err(cnv_err)
+    pub fn from_ast(ast: &ast::Ast) -> Result<Self, error::CompileError> {
+        intermediate::IntermediateIntent::from_ast(ast)?.compile()
     }
 }
 
@@ -71,9 +67,9 @@ pub enum Solve {
     /// Resolve all [Variable]s.
     Satisfy,
     /// Resolve to minimize a particular named [Variable].
-    Minimize(Path),
+    Minimize(Expression),
     /// Resolve to maximize a particular named [Variable].
-    Maximize(Path),
+    Maximize(Expression),
 }
 
 /// The type of a [Variable].

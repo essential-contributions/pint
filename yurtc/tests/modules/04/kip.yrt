@@ -1,0 +1,4 @@
+enum Skill = ChattingOnlineWithBabes | CageFighting;
+
+// Reflexes not good enough.
+let kip_skill = Skill::ChattingOnlineWithBabes;
