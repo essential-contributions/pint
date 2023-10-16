@@ -38,11 +38,16 @@ pub(super) fn parse_str_to_ast(source: &str) -> Result<ast::Ast<'_>, Vec<Formatt
 
 pub(super) fn yurt_program<'sc>(
 ) -> impl Parser<Token<'sc>, ast::Ast<'sc>, Error = ParseError> + Clone {
-    choice((value_decl(expr()), solve_decl(), constraint_decl(expr())))
-        .then_ignore(just(Token::Semi))
-        .repeated()
-        .then_ignore(end())
-        .boxed()
+    choice((
+        value_decl(expr()),
+        solve_decl(),
+        constraint_decl(expr()),
+        type_decl(),
+    ))
+    .then_ignore(just(Token::Semi))
+    .repeated()
+    .then_ignore(end())
+    .boxed()
 }
 
 fn value_decl<'sc>(
@@ -78,6 +83,20 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseErr
         .boxed()
 }
 
+fn type_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+    just(Token::Type)
+        .then(ident())
+        .then_ignore(just(Token::Eq))
+        .then(type_())
+        .then_ignore(just(Token::Semi))
+        .map(|((type_token, name), ty)| ast::Decl::NewType {
+            type_token,
+            name,
+            ty,
+        })
+        .boxed()
+}
+
 fn constraint_decl<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
@@ -99,8 +118,24 @@ fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseErro
 }
 
 fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError> + Clone {
-    select! { Token::Primitive(type_str) => ast::Type::Primitive(type_str.parse().unwrap()) }
-        .boxed()
+    recursive(|type_| {
+        let tuple = (ident().then_ignore(just(Token::Colon)))
+            .or_not()
+            .then(type_.clone())
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+            .map(ast::Type::Tuple)
+            .boxed();
+
+        let type_atom = choice((
+            select! { Token::Primitive(type_str) => ast::Type::Primitive(type_str.parse().unwrap()) },
+            tuple
+        ))
+        .boxed();
+
+        type_atom
+    })
 }
 
 pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone {
