@@ -345,3 +345,14 @@ fn binary_op_exprs() {
         expect_test::expect![[r#"a || b && c || d && !e"#]],
     );
 }
+
+#[test]
+fn custom_types() {
+    check(
+        &run_formatter!(
+            yurt_program(),
+            "type MyTuple = { x: int, y: real, z: string };"
+        ),
+        expect_test::expect!["type MyTuple = { x: int, y: real, z: string };"],
+    );
+}
