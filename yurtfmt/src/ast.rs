@@ -90,7 +90,7 @@ impl<'sc> Format for Decl<'sc> {
                         .map(|(param_name, param_type)| format!("{}: {}", param_name, param_type))
                         .collect();
 
-                    write!(formatted_code, " {} ", parameters.join(", "))?;
+                    write!(formatted_code, "{}", parameters.join(", "))?;
                 }
 
                 writeln!(formatted_code, ") -> {} {{", return_type)?;

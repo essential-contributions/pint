@@ -360,7 +360,7 @@ fn fn_decl() {
             "#
         ),
         expect_test::expect![[r#"
-        fn foo ( x: real, y: real ) -> real {
+        fn foo (x: real, y: real) -> real {
 
         };
         "#]],
