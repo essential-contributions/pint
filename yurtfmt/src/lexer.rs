@@ -47,6 +47,10 @@ pub(super) enum Token<'sc> {
     DoublePipe,
     #[token(",")]
     Comma,
+    #[token("{")]
+    BraceOpen,
+    #[token("}")]
+    BraceClose,
     #[token("(")]
     ParenOpen,
     #[token(")")]
@@ -117,6 +121,8 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::DoubleAmpersand => write!(f, "&&"),
             Token::DoublePipe => write!(f, "||"),
             Token::Comma => write!(f, ","),
+            Token::BraceOpen => write!(f, "{{"),
+            Token::BraceClose => write!(f, "}}"),
             Token::ParenOpen => write!(f, "("),
             Token::ParenClose => write!(f, ")"),
             Token::Arrow => write!(f, "->"),

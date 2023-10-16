@@ -111,12 +111,37 @@ fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError>
         .then(ident())
         .then(params)
         .then(return_type)
-        .map(|(((fn_token, name), params), return_type)| ast::Decl::Fn {
-            fn_token,
-            name,
-            fn_sig: Some(params),
-            return_type,
+        .then(code_block_expr(expr()))
+        .map(
+            |((((fn_token, name), params), return_type), body)| ast::Decl::Fn {
+                fn_token,
+                name,
+                fn_sig: Some(params),
+                return_type,
+                body,
+            },
+        )
+}
+
+fn code_block_expr<'a, 'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Block<'sc>, Error = ParseError> + Clone {
+    let code_block_body = choice((
+        value_decl(expr.clone()),
+        // state_decl(expr.clone()), TODO: add when state is supported
+        constraint_decl(expr.clone()),
+    ))
+    .repeated()
+    .then(expr)
+    .boxed();
+
+    code_block_body
+        .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+        .map(|(statements, expr)| ast::Block {
+            statements,
+            final_expr: Box::new(expr),
         })
+        .boxed()
 }
 
 fn ident<'sc>() -> impl Parser<Token<'sc>, String, Error = ParseError> + Clone {

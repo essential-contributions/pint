@@ -32,7 +32,7 @@ pub(super) enum Decl<'sc> {
         name: String,
         fn_sig: Option<Vec<(String, Type)>>,
         return_type: Type,
-        // body: Block, TODO:
+        body: Block<'sc>,
     },
 }
 
@@ -80,7 +80,7 @@ impl<'sc> Format for Decl<'sc> {
                 name,
                 fn_sig,
                 return_type,
-                // body,
+                body,
             } => {
                 write!(formatted_code, "{} {} (", fn_token, name)?;
 
@@ -94,13 +94,25 @@ impl<'sc> Format for Decl<'sc> {
                 }
 
                 writeln!(formatted_code, ") -> {} {{", return_type)?;
-                // block stuff
+
+                for statement in &body.statements {
+                    statement.format(formatted_code)?;
+                }
+
+                body.final_expr.format(formatted_code)?;
+
                 write!(formatted_code, "\n}}")?;
             }
         }
 
         Ok(())
     }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Block<'sc> {
+    pub(super) statements: Vec<Decl<'sc>>,
+    pub(super) final_expr: Box<Expr<'sc>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

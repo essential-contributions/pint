@@ -17,6 +17,8 @@ fn control_tokens() {
     assert_eq!(lex_one_success("::"), Token::DoubleColon);
     assert_eq!(lex_one_success(";"), Token::Semi);
     assert_eq!(lex_one_success(","), Token::Comma);
+    assert_eq!(lex_one_success("{"), Token::BraceOpen);
+    assert_eq!(lex_one_success("}"), Token::BraceClose);
     assert_eq!(lex_one_success("("), Token::ParenOpen);
     assert_eq!(lex_one_success(")"), Token::ParenClose);
     assert_eq!(lex_one_success("="), Token::Eq);
