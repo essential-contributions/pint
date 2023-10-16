@@ -83,12 +83,12 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseErr
         .boxed()
 }
 
-fn type_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+pub(super) fn type_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone
+{
     just(Token::Type)
         .then(ident())
         .then_ignore(just(Token::Eq))
         .then(type_())
-        .then_ignore(just(Token::Semi))
         .map(|((type_token, name), ty)| ast::Decl::NewType {
             type_token,
             name,
@@ -117,7 +117,7 @@ fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseErro
     select! { Token::Literal(str) => ast::Immediate(str.to_string()) }.boxed()
 }
 
-fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError> + Clone {
+pub(super) fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError> + Clone {
     recursive(|type_| {
         let tuple = (ident().then_ignore(just(Token::Colon)))
             .or_not()
