@@ -391,4 +391,6 @@ fn fn_debug_decl() {
     );
 }
 
+// require semicolons on a per declaration basis todo:
+
 // error reporting - highlight the bad character
