@@ -1,5 +1,3 @@
-// pub(super) type FormattedCode = String;
-
 // Basic `Format` trait. We will likely need to pass around a `Formatter` object to `format()` in
 // the future to carry over things like formatter configs and utils.
 pub(super) trait Format {
@@ -61,7 +59,7 @@ impl FormattedCode {
     }
 
     fn get_indentation(&self) -> String {
-        const INDENT_SIZE: usize = 4; // 4 spaces for indentation.
-        " ".repeat(self.indent_level * INDENT_SIZE)
+        const SPACES_PER_INDENT: usize = 4;
+        " ".repeat(self.indent_level * SPACES_PER_INDENT)
     }
 }
