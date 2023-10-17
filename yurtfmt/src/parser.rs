@@ -95,7 +95,8 @@ fn constraint_decl<'sc>(
         .boxed()
 }
 
-fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+pub(super) fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone
+{
     let type_spec = just(Token::Colon).ignore_then(type_());
 
     let params = ident()
@@ -123,7 +124,7 @@ fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError>
         )
 }
 
-fn code_block_expr<'a, 'sc>(
+pub(super) fn code_block_expr<'a, 'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Block<'sc>, Error = ParseError> + Clone {
     let code_block_body = choice((
@@ -134,6 +135,8 @@ fn code_block_expr<'a, 'sc>(
     .repeated()
     .then(expr)
     .boxed();
+
+    eprintln!("Made it to the code block thing");
 
     code_block_body
         .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))

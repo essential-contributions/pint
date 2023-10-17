@@ -347,24 +347,48 @@ fn binary_op_exprs() {
 }
 
 #[test]
-fn fn_decl() {
+fn func_decl() {
     check(
         &run_formatter!(
-            yurt_program(),
+            fn_decl(),
             r#"
             fn foo(
-                        x: real, 
+                        x: real,
         y: real
-            )   ->       real;
+            )   ->       real {
                 let x: int = 2;
     y + 1
+            }
             "#
         ),
         expect_test::expect![[r#"
         fn foo (x: real, y: real) -> real {
             let x: int = 2;
             y + 1
-        };
+        }
         "#]],
     );
 }
+
+#[test]
+fn fn_debug_decl() {
+    check(
+        &run_formatter!(
+            code_block_expr(expr()),
+            r#"
+             {
+                let x: int = 2;
+    y + 1
+            }
+            "#
+        ),
+        expect_test::expect![[r#"
+        {
+            let x: int = 2;
+            y + 1
+        }
+        "#]],
+    );
+}
+
+// error reporting - highlight the bad character

@@ -115,6 +115,15 @@ pub struct Block<'sc> {
     pub(super) final_expr: Box<Expr<'sc>>,
 }
 
+impl<'sc> Format for Block<'sc> {
+    fn format(
+        &self,
+        formatted_code: &mut FormattedCode,
+    ) -> Result<(), crate::error::FormatterError> {
+        todo!()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Type {
     Primitive(String),
