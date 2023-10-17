@@ -139,6 +139,7 @@ pub struct Block<'sc> {
 impl<'sc> Format for Block<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         formatted_code.increase_indent();
+
         for (i, statement) in self.statements.iter().enumerate() {
             statement.format(formatted_code)?;
 
@@ -167,6 +168,7 @@ impl Format for Type {
             Type::Primitive(primitive_ty) => formatted_code.write(primitive_ty),
             Type::Tuple(tuple_ty) => {
                 formatted_code.write("{ ");
+
                 for (i, (name, ty)) in tuple_ty.iter().enumerate() {
                     if let Some(name) = name {
                         formatted_code.write(&format!("{}: ", name));
@@ -180,6 +182,7 @@ impl Format for Type {
                         formatted_code.write(", ");
                     }
                 }
+
                 formatted_code.write(" }");
             }
         }
@@ -207,10 +210,9 @@ pub(super) struct Path {
 impl Format for Path {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         if self.pre_colon {
-            // write!(formatted_code, "::")?;
             formatted_code.write("::");
         }
-        // write!(formatted_code, "{}", self.idents.join("::"))?;
+
         formatted_code.write(&self.idents.join("::"));
         Ok(())
     }
@@ -225,7 +227,6 @@ pub(super) struct UnaryOp<'sc> {
 impl<'sc> Format for UnaryOp<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         write!(formatted_code, "{}", self.prefix_op)?;
-        // formatted_code.write(self.prefix_op);
         self.expr.format(formatted_code)?;
         Ok(())
     }
@@ -272,7 +273,6 @@ impl<'sc> Format for Ast<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         for node in self {
             node.format(formatted_code)?;
-            // writeln!(formatted_code, "{}", Token::Semi)?;
         }
 
         Ok(())

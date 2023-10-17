@@ -34,12 +34,6 @@ impl FormattedCode {
         &self.code
     }
 
-    pub fn indent(&mut self) {
-        const INDENT_SIZE: usize = 4; // 4 spaces for indentation.
-        let spaces = " ".repeat(self.indent_level * INDENT_SIZE);
-        self.code.push_str(&spaces);
-    }
-
     pub fn push_str(&mut self, s: &str) {
         self.code.push_str(s);
     }
