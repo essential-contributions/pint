@@ -97,7 +97,7 @@ impl fmt::Display for Type {
         match self {
             Type::Primitive(primitive_ty) => write!(f, "{}", primitive_ty),
             Type::Tuple(tuple_ty) => {
-                write!(f, "{{")?;
+                write!(f, "{{ ")?;
                 for (i, (name, ty)) in tuple_ty.iter().enumerate() {
                     if let Some(name) = name {
                         write!(f, "{}: ", name)?;
@@ -109,7 +109,7 @@ impl fmt::Display for Type {
                         write!(f, ", ")?;
                     }
                 }
-                write!(f, "}}")
+                write!(f, " }}")
             }
         }
     }

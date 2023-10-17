@@ -160,6 +160,20 @@ let bin_var :  int=0b1010;
                 let bool_var;
             "#]],
     );
+
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"
+            let   t 
+            : {  int , real
+            , string };
+            "#
+        ),
+        expect_test::expect![[r#"
+            let t: { int, real, string };
+        "#]],
+    );
 }
 
 #[test]
@@ -351,8 +365,28 @@ fn custom_types() {
     check(
         &run_formatter!(
             yurt_program(),
-            "type MyTuple = { x: int, y: real, z: string };"
+            r#"
+                type MyTuple =  { 
+                    x:  int , y:    real, z: 
+                string };
+            "#
         ),
-        expect_test::expect!["type MyTuple = { x: int, y: real, z: string };"],
+        expect_test::expect![[r#"
+            type MyTuple = { x: int, y: real, z: string };
+        "#]],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"
+                type   MyTuple 
+            = { real, 
+                bool, z
+            :   string };
+            "#
+        ),
+        expect_test::expect![[r#"
+            type MyTuple = { real, bool, z: string };
+        "#]],
     );
 }
