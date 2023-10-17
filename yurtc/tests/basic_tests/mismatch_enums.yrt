@@ -1,0 +1,23 @@
+enum Key = CMajor | DMinor;
+enum Chord = FFlatDiminished | EMinorOverG;
+
+let saddest_sound: Chord;
+
+// Saddest key is D-minor.  Should produce type error since `saddest_sound` is a `Chord`.
+constraint saddest_sound == DMinor;
+
+solve satisfy;
+
+// ast <<<
+// enum ::Key = CMajor | DMinor;
+// enum ::Chord = FFlatDiminished | EMinorOverG;
+// let ::saddest_sound: ::Chord;
+// constraint (::saddest_sound == ::DMinor);
+// solve satisfy;
+// >>>
+
+// We'll get this error until we implement enum desugaring.  But then we should get a `Chord` isn't
+// a `Key` type error.
+// compile_failure <<<
+// internal error: Found unsupported types in final Intent.
+// >>>

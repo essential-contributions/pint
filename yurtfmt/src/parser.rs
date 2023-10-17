@@ -43,6 +43,7 @@ pub(super) fn yurt_program<'sc>(
         solve_decl(),
         fn_decl(),
         constraint_decl(expr()),
+        type_decl(),
     ))
     .then_ignore(just(Token::Semi))
     .repeated()
@@ -79,6 +80,19 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseErr
             solve_token,
             directive,
             expr,
+        })
+        .boxed()
+}
+
+fn type_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+    just(Token::Type)
+        .then(ident())
+        .then_ignore(just(Token::Eq))
+        .then(type_())
+        .map(|((type_token, name), ty)| ast::Decl::NewType {
+            type_token,
+            name,
+            ty,
         })
         .boxed()
 }
@@ -156,8 +170,24 @@ fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseErro
 }
 
 fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError> + Clone {
-    select! { Token::Primitive(type_str) => ast::Type::Primitive(type_str.parse().unwrap()) }
-        .boxed()
+    recursive(|type_| {
+        let tuple = (ident().then_ignore(just(Token::Colon)))
+            .or_not()
+            .then(type_.clone())
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+            .map(ast::Type::Tuple)
+            .boxed();
+
+        let type_atom = choice((
+            select! { Token::Primitive(type_str) => ast::Type::Primitive(type_str.parse().unwrap()) },
+            tuple
+        ))
+        .boxed();
+
+        type_atom
+    })
 }
 
 pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone {

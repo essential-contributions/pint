@@ -89,7 +89,7 @@ impl ModuleResolver {
     fn load_source(
         &mut self,
         relative_path: SourcePath,
-        module_path: Vec<Ident>,
+        mut module_path: Vec<Ident>,
     ) -> Result<bool, Vec<Error>> {
         let wrap_io_error = |io_err, file| {
             vec![Error::Compile {
@@ -105,7 +105,7 @@ impl ModuleResolver {
             SourcePath::FileName(p) => {
                 Rc::from(fs::canonicalize(p.clone()).map_err(|e| wrap_io_error(e, Some(p)))?)
             }
-            SourcePath::Module(p) => {
+            SourcePath::Module(mut p) => {
                 // `p` must be to a module 'a/b/c' where we expect either 'a/b/c.yrt' to exist, or
                 // 'a/b/c/c.yrt'.
 
@@ -134,7 +134,19 @@ impl ModuleResolver {
                         },
                     }]),
 
-                    (false, false) => return Ok(false),
+                    (false, false) => {
+                        // This may be a path to an item in a different module.  We can't load the
+                        // item itself but we should load its parent module.  We can tell its a
+                        // sub-module to the project when `module_path` is longer than 1.
+                        if module_path.len() > 1 {
+                            p.pop();
+                            module_path.pop();
+                            return self.load_source(SourcePath::Module(p), module_path);
+                        } else {
+                            // Nope.  Don't bother.
+                            return Ok(false);
+                        }
+                    }
 
                     (true, false) => fs::canonicalize(file_mod_path.clone())
                         .map_err(|e| wrap_io_error(e, Some(file_mod_path))),
@@ -347,7 +359,10 @@ impl ModuleResolver {
                 span,
             } => Some(Decl::Let {
                 name: self.convert_ident(mod_path, name, None)?,
-                ty: ty.clone(),
+                ty: ty
+                    .as_ref()
+                    .map(|ty| self.convert_type(key, mod_path, ty))
+                    .transpose()?,
                 init: init
                     .as_ref()
                     .map(|expr| self.convert_expr(key, mod_path, expr))
@@ -362,7 +377,10 @@ impl ModuleResolver {
                 span,
             } => Some(Decl::State {
                 name: self.convert_ident(mod_path, name, None)?,
-                ty: ty.clone(),
+                ty: ty
+                    .as_ref()
+                    .map(|ty| self.convert_type(key, mod_path, ty))
+                    .transpose()?,
                 init: self.convert_expr(key, mod_path, init)?,
                 span: span.clone(),
             }),
@@ -398,7 +416,7 @@ impl ModuleResolver {
 
             Decl::NewType { name, ty, span } => Some(Decl::NewType {
                 name: self.convert_ident(mod_path, name, None)?,
-                ty: ty.clone(),
+                ty: self.convert_type(key, mod_path, ty)?,
                 span: span.clone(),
             }),
 

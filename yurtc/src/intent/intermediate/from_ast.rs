@@ -449,16 +449,18 @@ impl ExprContext {
 }
 
 fn convert_path(path: &ast::Path) -> super::Result<Path> {
-    // NOTE: for now we're only supporting a single main module, so the path MUST be a single
-    // element and we're assuming is_absolute.  After we have the module system implemented then
-    // all symbols will be canonicalised and an ast::Path will just be a string.
-    if path.path.len() != 1 {
+    if !path.is_absolute {
         return Err(CompileError::Internal {
-            msg: "Multi-path identifiers are not supported yet.",
+            msg: "Path in AST is not already absolute.",
             span: path.span.clone(),
         });
     }
-    Ok(path.path[0].name.clone())
+
+    use std::fmt::Write;
+    Ok(path.path.iter().fold(String::new(), |mut path_str, el| {
+        let _ = write!(path_str, "::{el}");
+        path_str
+    }))
 }
 
 // We're converting vectors by mapping other conversions over their elements.  This little utility

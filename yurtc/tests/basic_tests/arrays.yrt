@@ -15,12 +15,13 @@ let one = nums()[1];
 // let ::a: real[5];
 // let ::a1 = ::a[1];
 // enum ::Colour = Red | Green | Blue;
-// let ::b: real[3][Colour];
+// let ::b: real[3][::Colour];
 // let ::b_r_2 = ::b[::Colour::Red][2];
 // fn ::nums() -> int[4] { [0, 1, 2, 3] };
 // let ::one = ::nums()[1];
 // >>>
 
+// We'll get this error until we implement array destructuring.
 // compile_failure <<<
-// internal error: Multi-path identifiers are not supported yet.
+// internal error: Found unsupported types in final Intent.
 // >>>

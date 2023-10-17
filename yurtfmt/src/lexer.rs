@@ -17,10 +17,16 @@ pub(super) enum Token<'sc> {
     DoubleColon,
     #[token(";")]
     Semi,
+    #[token(",")]
+    Comma,
     #[token("!")]
     Bang,
     #[token("*")]
     Star,
+    #[token("{")]
+    BraceOpen,
+    #[token("}")]
+    BraceClose,
     #[token("+")]
     Plus,
     #[token("-")]
@@ -62,7 +68,8 @@ pub(super) enum Token<'sc> {
 
     #[token("let")]
     Let,
-
+    #[token("type")]
+    Type,
     #[token("constraint")]
     Constraint,
     #[token("fn")]
@@ -106,6 +113,9 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Colon => write!(f, ":"),
             Token::DoubleColon => write!(f, "::"),
             Token::Semi => write!(f, ";"),
+            Token::Comma => write!(f, ","),
+            Token::BraceOpen => write!(f, "{{"),
+            Token::BraceClose => write!(f, "}}"),
             Token::Bang => write!(f, "!"),
             Token::Star => write!(f, "*"),
             Token::Plus => write!(f, "+"),
@@ -128,6 +138,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Arrow => write!(f, "->"),
             Token::Primitive(ident) => write!(f, "{ident}"),
             Token::Let => write!(f, "let"),
+            Token::Type => write!(f, "type"),
             Token::Constraint => write!(f, "constraint"),
             Token::Fn => write!(f, "fn"),
             Token::Directive(contents) => write!(f, "{contents}"),

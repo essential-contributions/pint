@@ -23,6 +23,7 @@ solve minimize c;
 // solve minimize ::c;
 // >>>
 
+// We'll get this error until we implement type inference.
 // compile_failure <<<
-// internal error: Found untyped variable in final variable.
+// internal error: Found untyped variable.
 // >>>

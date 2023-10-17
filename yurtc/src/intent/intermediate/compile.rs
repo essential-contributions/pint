@@ -31,7 +31,7 @@ fn convert_states(states: Vec<(State, Span)>) -> super::Result<Vec<intent::State
         .into_iter()
         .map(|(State { name, ty, expr }, span)| {
             ty.ok_or_else(|| CompileError::Internal {
-                msg: "Found untyped variable in final state.",
+                msg: "Found untyped variable.",
                 span: span.clone(),
             })
             .and_then(|ty| {
@@ -47,7 +47,7 @@ fn convert_vars(vars: Vec<(Var, Span)>) -> super::Result<Vec<intent::Variable>> 
     vars.into_iter()
         .map(|(Var { name, ty }, span)| {
             ty.ok_or_else(|| CompileError::Internal {
-                msg: "Found untyped variable in final variable.",
+                msg: "Found untyped variable.",
                 span: span.clone(),
             })
             .and_then(|ty| convert_type(ty, &span))
