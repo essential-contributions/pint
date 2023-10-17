@@ -45,7 +45,6 @@ pub(super) fn yurt_program<'sc>(
         constraint_decl(expr()),
         type_decl(),
     ))
-    .then_ignore(just(Token::Semi))
     .repeated()
     .then_ignore(end())
     .boxed()
@@ -61,6 +60,7 @@ fn value_decl<'sc>(
         .then(ident())
         .then(type_spec.or_not())
         .then(init.or_not())
+        .then_ignore(just(Token::Semi))
         .map(
             |(((let_token, name), colon_token_and_ty), eq_token_and_init)| ast::Decl::Value {
                 let_token,
@@ -76,6 +76,7 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseErr
     just(Token::Solve)
         .then(directive())
         .then(expr().or_not())
+        .then_ignore(just(Token::Semi))
         .map(|((solve_token, directive), expr)| ast::Decl::Solve {
             solve_token,
             directive,
@@ -89,6 +90,7 @@ fn type_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseErro
         .then(ident())
         .then_ignore(just(Token::Eq))
         .then(type_())
+        .then_ignore(just(Token::Semi))
         .map(|((type_token, name), ty)| ast::Decl::NewType {
             type_token,
             name,
@@ -102,6 +104,7 @@ fn constraint_decl<'sc>(
 ) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
     just(Token::Constraint)
         .then(expr)
+        .then_ignore(just(Token::Semi))
         .map(|(constraint_token, expr)| ast::Decl::Constraint {
             constraint_token,
             expr,
@@ -149,8 +152,6 @@ pub(super) fn code_block_expr<'a, 'sc>(
     .repeated()
     .then(expr)
     .boxed();
-
-    eprintln!("Made it to the code block thing");
 
     code_block_body
         .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))

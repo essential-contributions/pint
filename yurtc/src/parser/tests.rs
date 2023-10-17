@@ -1427,27 +1427,3 @@ fn extern_test() {
         "#]],
     );
 }
-
-#[test]
-fn temp_fn() {
-    check(
-        &run_parser!(
-            yurt_program(),
-            r#"
-            fn foo(
-                        x: real, 
-        y: real
-            )   ->       real {
-                let x: int = 2;
-    y + 1
-            }
-            "#
-        ),
-        expect_test::expect![[r#"
-        fn foo (x: real, y: real) -> real {
-            let x: int = 2;
-            y + 1
-        }
-        "#]],
-    );
-}

@@ -40,7 +40,7 @@ impl<'a> chumsky::Error<Token<'a>> for ParseError {
     fn expected_input_found<Iter: IntoIterator<Item = Option<Token<'a>>>>(
         span: Span,
         _: Iter,
-        _: Option<Token<'a>>, // print the token temporarily
+        _: Option<Token<'a>>, // TODO: print the token temporarily
     ) -> Self {
         Self::InvalidParse { span }
     }

@@ -27,6 +27,12 @@ pub(super) enum Token<'sc> {
     BraceOpen,
     #[token("}")]
     BraceClose,
+    #[token("(")]
+    ParenOpen,
+    #[token(")")]
+    ParenClose,
+    #[token("->")]
+    Arrow,
     #[token("+")]
     Plus,
     #[token("-")]
@@ -51,18 +57,6 @@ pub(super) enum Token<'sc> {
     DoubleAmpersand,
     #[token("||")]
     DoublePipe,
-    #[token(",")]
-    Comma,
-    #[token("{")]
-    BraceOpen,
-    #[token("}")]
-    BraceClose,
-    #[token("(")]
-    ParenOpen,
-    #[token(")")]
-    ParenClose,
-    #[token("->")]
-    Arrow,
     #[regex(r"int|bool|string|real", |lex| lex.slice())]
     Primitive(&'sc str),
 
@@ -114,10 +108,13 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::DoubleColon => write!(f, "::"),
             Token::Semi => write!(f, ";"),
             Token::Comma => write!(f, ","),
-            Token::BraceOpen => write!(f, "{{"),
-            Token::BraceClose => write!(f, "}}"),
             Token::Bang => write!(f, "!"),
             Token::Star => write!(f, "*"),
+            Token::BraceOpen => write!(f, "{{"),
+            Token::BraceClose => write!(f, "}}"),
+            Token::ParenOpen => write!(f, "("),
+            Token::ParenClose => write!(f, ")"),
+            Token::Arrow => write!(f, "->"),
             Token::Plus => write!(f, "+"),
             Token::Minus => write!(f, "-"),
             Token::Div => write!(f, "/"),
@@ -130,12 +127,6 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::NotEq => write!(f, "!="),
             Token::DoubleAmpersand => write!(f, "&&"),
             Token::DoublePipe => write!(f, "||"),
-            Token::Comma => write!(f, ","),
-            Token::BraceOpen => write!(f, "{{"),
-            Token::BraceClose => write!(f, "}}"),
-            Token::ParenOpen => write!(f, "("),
-            Token::ParenClose => write!(f, ")"),
-            Token::Arrow => write!(f, "->"),
             Token::Primitive(ident) => write!(f, "{ident}"),
             Token::Let => write!(f, "let"),
             Token::Type => write!(f, "type"),
