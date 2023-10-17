@@ -36,7 +36,7 @@ fn format_file(filename: &str) -> anyhow::Result<()> {
     };
 
     // Write the ast back into `formatted_code`
-    let mut formatted_code = formatter::FormattedCode::new(); // Use FormattedCode here
+    let mut formatted_code = formatter::FormattedCode::new();
     if let Err(error) = ast.format(&mut formatted_code) {
         if !cfg!(test) {
             print_on_failure(filename, &src, &vec![error]);
@@ -45,7 +45,7 @@ fn format_file(filename: &str) -> anyhow::Result<()> {
     }
 
     // Write `formatted_code` back into the original file
-    write(Path::new(&filename), formatted_code.as_str())?; // Use `as_str()` method
+    write(Path::new(&filename), formatted_code.as_str())?;
 
     Ok(())
 }

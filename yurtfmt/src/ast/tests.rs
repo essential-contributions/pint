@@ -28,9 +28,9 @@ macro_rules! run_formatter {
             let token_stream = Stream::from_iter($source.len()..$source.len(), toks.into_iter());
             match $parser.parse(token_stream) {
                 Ok(ast) => {
-                    let mut formatted_code = FormattedCode::new(); // Use FormattedCode here
+                    let mut formatted_code = FormattedCode::new();
                     match ast.format(&mut formatted_code) {
-                        Ok(_) => formatted_code.as_str().to_string(), // Convert to String using `as_str`
+                        Ok(_) => formatted_code.as_str().to_string(),
                         Err(error) => format!("{}", error),
                     }
                 }
