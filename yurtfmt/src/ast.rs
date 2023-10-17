@@ -23,6 +23,11 @@ pub(super) enum Decl<'sc> {
         directive: String,
         expr: Option<Expr<'sc>>,
     },
+    NewType {
+        type_token: Token<'sc>,
+        name: String,
+        ty: Type,
+    },
     Constraint {
         constraint_token: Token<'sc>,
         expr: Expr<'sc>,
@@ -61,6 +66,13 @@ impl<'sc> Format for Decl<'sc> {
                     expr.format(formatted_code)?;
                 }
             }
+            Self::NewType {
+                type_token,
+                name,
+                ty,
+            } => {
+                write!(formatted_code, "{} {} = {}", type_token, name, ty)?;
+            }
             Self::Constraint {
                 constraint_token,
                 expr,
@@ -77,12 +89,28 @@ impl<'sc> Format for Decl<'sc> {
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Type {
     Primitive(String),
+    Tuple(Vec<(Option<String>, Type)>),
 }
 
 impl fmt::Display for Type {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Type::Primitive(primitive_ty) => write!(f, "{primitive_ty}"),
+            Type::Primitive(primitive_ty) => write!(f, "{}", primitive_ty),
+            Type::Tuple(tuple_ty) => {
+                write!(f, "{{ ")?;
+                for (i, (name, ty)) in tuple_ty.iter().enumerate() {
+                    if let Some(name) = name {
+                        write!(f, "{}: ", name)?;
+                    }
+                    write!(f, "{}", ty)?;
+
+                    // If not the last element, append a comma
+                    if i < tuple_ty.len() - 1 {
+                        write!(f, ", ")?;
+                    }
+                }
+                write!(f, " }}")
+            }
         }
     }
 }
