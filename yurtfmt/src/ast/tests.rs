@@ -371,7 +371,9 @@ fn custom_types() {
                 string };
             "#
         ),
-        expect_test::expect![[r#"type MyTuple = { x: int, y: real, z: string };"#]],
+        expect_test::expect![[r#"
+            type MyTuple = { x: int, y: real, z: string };
+        "#]],
     );
     check(
         &run_formatter!(
@@ -383,7 +385,9 @@ fn custom_types() {
             :   string };
             "#
         ),
-        expect_test::expect![[r#"type MyTuple = { real, bool, z: string };"#]],
+        expect_test::expect![[r#"
+            type MyTuple = { real, bool, z: string };
+        "#]],
     );
 }
 
