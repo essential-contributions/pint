@@ -41,10 +41,10 @@ pub(super) fn yurt_program<'sc>(
     choice((
         value_decl(expr()),
         solve_decl(),
+        fn_decl(),
         constraint_decl(expr()),
         type_decl(),
     ))
-    .then_ignore(just(Token::Semi))
     .repeated()
     .then_ignore(end())
     .boxed()
@@ -60,6 +60,7 @@ fn value_decl<'sc>(
         .then(ident())
         .then(type_spec.or_not())
         .then(init.or_not())
+        .then_ignore(just(Token::Semi))
         .map(
             |(((let_token, name), colon_token_and_ty), eq_token_and_init)| ast::Decl::Value {
                 let_token,
@@ -75,6 +76,7 @@ fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseErr
     just(Token::Solve)
         .then(directive())
         .then(expr().or_not())
+        .then_ignore(just(Token::Semi))
         .map(|((solve_token, directive), expr)| ast::Decl::Solve {
             solve_token,
             directive,
@@ -88,6 +90,7 @@ fn type_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseErro
         .then(ident())
         .then_ignore(just(Token::Eq))
         .then(type_())
+        .then_ignore(just(Token::Semi))
         .map(|((type_token, name), ty)| ast::Decl::NewType {
             type_token,
             name,
@@ -101,9 +104,60 @@ fn constraint_decl<'sc>(
 ) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
     just(Token::Constraint)
         .then(expr)
+        .then_ignore(just(Token::Semi))
         .map(|(constraint_token, expr)| ast::Decl::Constraint {
             constraint_token,
             expr,
+        })
+        .boxed()
+}
+
+pub(super) fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone
+{
+    let type_spec = just(Token::Colon).ignore_then(type_());
+
+    let params = ident()
+        .then(type_spec)
+        .separated_by(just(Token::Comma))
+        .allow_trailing()
+        .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
+        .boxed();
+
+    let return_type = just(Token::Arrow).ignore_then(type_());
+
+    just(Token::Fn)
+        .then(ident())
+        .then(params)
+        .then(return_type)
+        .then(code_block_expr(expr()))
+        .map(
+            |((((fn_token, name), params), return_type), body)| ast::Decl::Fn {
+                fn_token,
+                name,
+                fn_sig: Some(params),
+                return_type,
+                body,
+            },
+        )
+}
+
+pub(super) fn code_block_expr<'a, 'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Block<'sc>, Error = ParseError> + Clone {
+    let code_block_body = choice((
+        value_decl(expr.clone()),
+        // state_decl(expr.clone()), TODO: add when state is supported
+        constraint_decl(expr.clone()),
+    ))
+    .repeated()
+    .then(expr)
+    .boxed();
+
+    code_block_body
+        .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+        .map(|(statements, expr)| ast::Block {
+            statements,
+            final_expr: Box::new(expr),
         })
         .boxed()
 }

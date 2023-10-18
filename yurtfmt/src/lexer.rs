@@ -27,6 +27,12 @@ pub(super) enum Token<'sc> {
     BraceOpen,
     #[token("}")]
     BraceClose,
+    #[token("(")]
+    ParenOpen,
+    #[token(")")]
+    ParenClose,
+    #[token("->")]
+    Arrow,
     #[token("+")]
     Plus,
     #[token("-")]
@@ -60,6 +66,8 @@ pub(super) enum Token<'sc> {
     Type,
     #[token("constraint")]
     Constraint,
+    #[token("fn")]
+    Fn,
 
     #[regex(r"satisfy|minimize|maximize", |lex| lex.slice())]
     Directive(&'sc str),
@@ -100,10 +108,13 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::DoubleColon => write!(f, "::"),
             Token::Semi => write!(f, ";"),
             Token::Comma => write!(f, ","),
-            Token::BraceOpen => write!(f, "{{"),
-            Token::BraceClose => write!(f, "}}"),
             Token::Bang => write!(f, "!"),
             Token::Star => write!(f, "*"),
+            Token::BraceOpen => write!(f, "{{"),
+            Token::BraceClose => write!(f, "}}"),
+            Token::ParenOpen => write!(f, "("),
+            Token::ParenClose => write!(f, ")"),
+            Token::Arrow => write!(f, "->"),
             Token::Plus => write!(f, "+"),
             Token::Minus => write!(f, "-"),
             Token::Div => write!(f, "/"),
@@ -120,6 +131,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Let => write!(f, "let"),
             Token::Type => write!(f, "type"),
             Token::Constraint => write!(f, "constraint"),
+            Token::Fn => write!(f, "fn"),
             Token::Directive(contents) => write!(f, "{contents}"),
             Token::Solve => write!(f, "solve"),
             Token::Ident(ident) => write!(f, "{ident}"),

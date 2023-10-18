@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::formatter::Format;
+use crate::formatter::{Format, FormattedCode};
 
 #[cfg(test)]
 use crate::parser::*;
@@ -28,15 +28,15 @@ macro_rules! run_formatter {
             let token_stream = Stream::from_iter($source.len()..$source.len(), toks.into_iter());
             match $parser.parse(token_stream) {
                 Ok(ast) => {
-                    let mut formatted_code = String::default();
+                    let mut formatted_code = FormattedCode::new();
                     match ast.format(&mut formatted_code) {
-                        Ok(_) => formatted_code,
+                        Ok(_) => formatted_code.as_str().to_string(),
                         Err(error) => format!("{}", error),
                     }
                 }
                 Err(errors) => format!(
                     "{}",
-                    // Print each parsing.
+                    // Print each parsing error on one line
                     errors.iter().fold(String::new(), |acc, error| {
                         format!("{}{}\n", acc, error)
                     })
@@ -371,9 +371,7 @@ fn custom_types() {
                 string };
             "#
         ),
-        expect_test::expect![[r#"
-            type MyTuple = { x: int, y: real, z: string };
-        "#]],
+        expect_test::expect![[r#"type MyTuple = { x: int, y: real, z: string };"#]],
     );
     check(
         &run_formatter!(
@@ -385,8 +383,29 @@ fn custom_types() {
             :   string };
             "#
         ),
+        expect_test::expect![[r#"type MyTuple = { real, bool, z: string };"#]],
+    );
+}
+
+#[test]
+fn func_decl() {
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"
+            fn foo(
+                        x: real,
+        y: real
+            )   ->       real {
+                let x: int = 2;
+    y + 1
+            }
+            "#
+        ),
         expect_test::expect![[r#"
-            type MyTuple = { real, bool, z: string };
-        "#]],
+            fn foo (x: real, y: real) -> real {
+                let x: int = 2;
+                y + 1
+            }"#]],
     );
 }
