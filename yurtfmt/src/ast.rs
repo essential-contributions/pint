@@ -62,7 +62,7 @@ impl<'sc> Format for Decl<'sc> {
                     init.format(formatted_code)?;
                 }
 
-                formatted_code.write_line(&format!("{}", Token::Semi));
+                formatted_code.write_line(";");
             }
             Self::Solve {
                 solve_token,
@@ -76,7 +76,7 @@ impl<'sc> Format for Decl<'sc> {
                     expr.format(formatted_code)?;
                 }
 
-                formatted_code.write_line(&format!("{}", Token::Semi));
+                formatted_code.write_line(";");
             }
             Self::NewType {
                 type_token,
@@ -85,7 +85,7 @@ impl<'sc> Format for Decl<'sc> {
             } => {
                 formatted_code.write(&format!("{} {} = ", type_token, name));
                 ty.format(formatted_code)?;
-                formatted_code.write(&format!("{}", Token::Semi));
+                formatted_code.write_line(";");
             }
             Self::Constraint {
                 constraint_token,
@@ -93,7 +93,7 @@ impl<'sc> Format for Decl<'sc> {
             } => {
                 formatted_code.write(&format!("{} ", constraint_token));
                 expr.format(formatted_code)?;
-                formatted_code.write_line(&format!("{}", Token::Semi));
+                formatted_code.write_line(";");
             }
             Self::Fn {
                 fn_token,
