@@ -247,19 +247,9 @@ where
         .clone()
         .then(
             choice((
-                just(Token::Plus),
-                just(Token::Minus),
-                just(Token::Star),
-                just(Token::Div),
-                just(Token::Mod),
-                just(Token::Gt),
-                just(Token::Lt),
-                just(Token::LtEq),
-                just(Token::GtEq),
-                just(Token::EqEq),
-                just(Token::NotEq),
-                just(Token::DoubleAmpersand),
-                just(Token::DoublePipe),
+                just(Token::Plus).map(|op| op.to_string()),
+                just(Token::Minus).map(|op| op.to_string()),
+                select! { Token::BinaryOp(op) => op.to_owned() },
             ))
             .then(parser)
             .repeated(),
