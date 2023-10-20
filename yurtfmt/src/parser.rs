@@ -39,6 +39,7 @@ pub(super) fn parse_str_to_ast(source: &str) -> Result<ast::Ast<'_>, Vec<Formatt
 pub(super) fn yurt_program<'sc>(
 ) -> impl Parser<Token<'sc>, ast::Ast<'sc>, Error = ParseError> + Clone {
     choice((
+        use_statement(),
         value_decl(expr()),
         solve_decl(),
         fn_decl(),
@@ -48,6 +49,39 @@ pub(super) fn yurt_program<'sc>(
     .repeated()
     .then_ignore(end())
     .boxed()
+}
+
+pub(super) fn use_statement<'sc>(
+) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+    just(Token::Use)
+        .then(use_tree())
+        .then_ignore(just(Token::Semi))
+        .map(|(use_token, use_tree)| ast::Decl::Use {
+            use_token,
+            use_tree,
+        })
+}
+
+pub(super) fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError> + Clone {
+    recursive(|use_tree| {
+        let group = use_tree
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+            .map(|imports| ast::UseTree::Group { imports });
+
+        let path_with_optional_alias = path()
+            .then(just(Token::As).ignore_then(ident()).or_not())
+            .map(|(path, alias_opt)| {
+                if let Some(alias) = alias_opt {
+                    ast::UseTree::Alias { path, alias }
+                } else {
+                    ast::UseTree::Path(path)
+                }
+            });
+
+        choice((path_with_optional_alias, group)).boxed()
+    })
 }
 
 fn value_decl<'sc>(
