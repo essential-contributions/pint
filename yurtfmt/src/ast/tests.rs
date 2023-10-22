@@ -274,6 +274,18 @@ fn use_statements() {
         &run_formatter!(use_statement(), "use q::r as x;"),
         expect_test::expect!["use q::r as x;"],
     );
+    check(
+        &run_formatter!(use_statement(), "use q::r as x;"),
+        expect_test::expect!["use q::r as x;"],
+    );
+    check(
+        &run_formatter!(use_statement(), "use a::b::{self, c, d::e};"),
+        expect_test::expect!["use a::b::{self, c, d::e};"],
+    );
+    check(
+        &run_formatter!(use_statement(), "use a::b::{self as ab, c, d::{e, f::g}};"),
+        expect_test::expect!["use a::b::{self as ab, c, d::{e, f::g}};"],
+    );
 }
 
 #[test]

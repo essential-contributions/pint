@@ -144,15 +144,30 @@ impl<'sc> Format for Decl<'sc> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum UseTree {
-    Path(Path),
-    Group { imports: Vec<UseTree> },
-    Alias { path: Path, alias: String },
+    Name(String),
+    Path {
+        prefix: String,
+        suffix: Box<UseTree>,
+    },
+    Group {
+        imports: Vec<UseTree>,
+    },
+    Alias {
+        name: String,
+        alias: String,
+    },
 }
 
 impl Format for UseTree {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
-            Self::Path(path) => path.format(formatted_code)?,
+            Self::Name(name) => {
+                formatted_code.write(name);
+            }
+            Self::Path { prefix, suffix } => {
+                formatted_code.write(&format!("{}::", prefix));
+                suffix.format(formatted_code)?;
+            }
             Self::Group { imports } => {
                 formatted_code.write("{");
                 for (i, import) in imports.iter().enumerate() {
@@ -164,9 +179,8 @@ impl Format for UseTree {
                 }
                 formatted_code.write("}");
             }
-            Self::Alias { path, alias } => {
-                path.format(formatted_code)?;
-                formatted_code.write(&format!(" as {}", alias));
+            Self::Alias { name, alias } => {
+                formatted_code.write(&format!("{} as {}", name, alias));
             }
         }
 

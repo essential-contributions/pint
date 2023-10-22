@@ -64,23 +64,31 @@ pub(super) fn use_statement<'sc>(
 
 pub(super) fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError> + Clone {
     recursive(|use_tree| {
+        let name = ident().map(ast::UseTree::Name);
+
+        let path = ident()
+            .then_ignore(just(Token::DoubleColon))
+            .then(use_tree.clone())
+            .map(|(prefix, suffix)| ast::UseTree::Path {
+                prefix,
+                suffix: Box::new(suffix),
+            })
+            .boxed();
+
         let group = use_tree
             .separated_by(just(Token::Comma))
             .allow_trailing()
             .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
-            .map(|imports| ast::UseTree::Group { imports });
+            .map(|imports| ast::UseTree::Group { imports })
+            .boxed();
 
-        let path_with_optional_alias = path()
-            .then(just(Token::As).ignore_then(ident()).or_not())
-            .map(|(path, alias_opt)| {
-                if let Some(alias) = alias_opt {
-                    ast::UseTree::Alias { path, alias }
-                } else {
-                    ast::UseTree::Path(path)
-                }
-            });
+        let alias = ident()
+            .then_ignore(just(Token::As))
+            .then(ident())
+            .map(|(name, alias)| ast::UseTree::Alias { name, alias })
+            .boxed();
 
-        choice((path_with_optional_alias, group)).boxed()
+        choice((path, alias, name, group)).boxed()
     })
 }
 
