@@ -39,6 +39,11 @@ pub(super) enum Decl<'sc> {
         return_type: Type,
         body: Block<'sc>,
     },
+    Interface {
+        interface_token: Token<'sc>,
+        name: String,
+        fn_sigs: Option<Vec<(Vec<(String, Type)>, Type)>>, // todo make fn_sig a struct (with return type)
+    },
 }
 
 impl<'sc> Format for Decl<'sc> {
@@ -123,6 +128,29 @@ impl<'sc> Format for Decl<'sc> {
                 body.format(formatted_code)?;
 
                 formatted_code.write("\n}");
+            }
+            Self::Interface {
+                interface_token,
+                name,
+                fn_sigs,
+            } => {
+                formatted_code.write_line(&format!("{} {} {{", interface_token, name));
+                if let Some(fn_sigs) = fn_sigs {
+                    for (params, return_type) in fn_sigs {
+                        formatted_code.write("(");
+                        for (i, (param_name, param_type)) in params.iter().enumerate() {
+                            formatted_code.write(&format!("{}: ", param_name));
+                            param_type.format(formatted_code)?;
+
+                            if i < params.len() - 1 {
+                                formatted_code.write(", ");
+                            }
+                        }
+                        formatted_code.write(") -> ");
+                        return_type.format(formatted_code)?;
+                        formatted_code.write_line(";");
+                    }
+                }
             }
         }
 
