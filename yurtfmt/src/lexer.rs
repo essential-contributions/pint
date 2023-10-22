@@ -68,6 +68,8 @@ pub(super) enum Token<'sc> {
     Constraint,
     #[token("fn")]
     Fn,
+    #[token("interface")]
+    Interface,
 
     #[regex(r"satisfy|minimize|maximize", |lex| lex.slice())]
     Directive(&'sc str),
@@ -132,6 +134,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Type => write!(f, "type"),
             Token::Constraint => write!(f, "constraint"),
             Token::Fn => write!(f, "fn"),
+            Token::Interface => write!(f, "interface"),
             Token::Directive(contents) => write!(f, "{contents}"),
             Token::Solve => write!(f, "solve"),
             Token::Ident(ident) => write!(f, "{ident}"),
