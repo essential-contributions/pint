@@ -259,31 +259,63 @@ fn paths() {
 #[test]
 fn use_statements() {
     check(
-        &run_formatter!(use_statement(), "use x;"),
+        &run_formatter!(
+            use_statement(),
+            "
+
+        use  x ;  "
+        ),
         expect_test::expect!["use x;"],
     );
     check(
-        &run_formatter!(use_statement(), "use a::b::c;"),
+        &run_formatter!(
+            use_statement(),
+            "
+                use   a::b::c;"
+        ),
         expect_test::expect![[r#"use a::b::c;"#]],
     );
     check(
-        &run_formatter!(use_statement(), "use {c, d, e, g};"),
+        &run_formatter!(
+            use_statement(),
+            "   use {  c, d,e,
+    g};  "
+        ),
         expect_test::expect!["use {c, d, e, g};"],
     );
     check(
-        &run_formatter!(use_statement(), "use q::r as x;"),
+        &run_formatter!(
+            use_statement(),
+            "
+                use   q::r   as  x ;
+                "
+        ),
         expect_test::expect!["use q::r as x;"],
     );
     check(
-        &run_formatter!(use_statement(), "use q::r as x;"),
+        &run_formatter!(use_statement(), "  use   q::r as x   ;  "),
         expect_test::expect!["use q::r as x;"],
     );
     check(
-        &run_formatter!(use_statement(), "use a::b::{self, c, d::e};"),
+        &run_formatter!(
+            use_statement(),
+            "   use a::b::{
+            self,
+            c,
+            d::e
+            };  "
+        ),
         expect_test::expect!["use a::b::{self, c, d::e};"],
     );
     check(
-        &run_formatter!(use_statement(), "use a::b::{self as ab, c, d::{e, f::g}};"),
+        &run_formatter!(
+            use_statement(),
+            " use a::b::{
+            self   as ab , c,
+            d::{
+            e, f::g} 
+            };"
+        ),
         expect_test::expect!["use a::b::{self as ab, c, d::{e, f::g}};"],
     );
 }
