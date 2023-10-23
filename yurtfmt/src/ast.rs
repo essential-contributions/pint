@@ -292,7 +292,7 @@ impl<'sc> Format for UnaryOp<'sc> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct BinaryOp<'sc> {
-    pub op: Token<'sc>,
+    pub op: &'sc str,
     pub lhs: Box<Expr<'sc>>,
     pub rhs: Box<Expr<'sc>>,
 }
