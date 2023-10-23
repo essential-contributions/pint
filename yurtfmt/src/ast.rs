@@ -12,6 +12,10 @@ pub(super) type Ast<'sc> = Vec<Decl<'sc>>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Decl<'sc> {
+    Use {
+        use_token: Token<'sc>,
+        use_tree: UseTree,
+    },
     Value {
         let_token: Token<'sc>,
         name: String,
@@ -44,6 +48,14 @@ pub(super) enum Decl<'sc> {
 impl<'sc> Format for Decl<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
+            Self::Use {
+                use_token,
+                use_tree,
+            } => {
+                formatted_code.write(&format!("{} ", use_token));
+                use_tree.format(formatted_code)?;
+                formatted_code.write(";");
+            }
             Self::Value {
                 let_token,
                 name,
@@ -123,6 +135,52 @@ impl<'sc> Format for Decl<'sc> {
                 body.format(formatted_code)?;
 
                 formatted_code.write("\n}");
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) enum UseTree {
+    Name(String),
+    Path {
+        prefix: String,
+        suffix: Box<UseTree>,
+    },
+    Group {
+        imports: Vec<UseTree>,
+    },
+    Alias {
+        name: String,
+        alias: String,
+    },
+}
+
+impl Format for UseTree {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        match self {
+            Self::Name(name) => {
+                formatted_code.write(name);
+            }
+            Self::Path { prefix, suffix } => {
+                formatted_code.write(&format!("{}::", prefix));
+                suffix.format(formatted_code)?;
+            }
+            Self::Group { imports } => {
+                formatted_code.write("{");
+                for (i, import) in imports.iter().enumerate() {
+                    import.format(formatted_code)?;
+
+                    if i < imports.len() - 1 {
+                        formatted_code.write(", ");
+                    }
+                }
+                formatted_code.write("}");
+            }
+            Self::Alias { name, alias } => {
+                formatted_code.write(&format!("{} as {}", name, alias));
             }
         }
 

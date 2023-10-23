@@ -138,7 +138,7 @@ fn use_statements() {
         expect_test::expect!["use a::{{c as d, {e as f}}};"],
     );
 
-    // Errors - TODO: imporve these
+    // Errors - TODO: improve these
     check(
         &run_parser!(use_statement(), "use ;"),
         expect_test::expect![[r#"
