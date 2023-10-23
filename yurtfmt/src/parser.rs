@@ -247,9 +247,9 @@ where
         .clone()
         .then(
             choice((
-                just(Token::Plus).map(|op| op.to_string()),
-                just(Token::Minus).map(|op| op.to_string()),
-                select! { Token::BinaryOp(op) => op.to_owned() },
+                just(Token::Plus).to("+"),
+                just(Token::Minus).to("-"),
+                select! { Token::BinaryOp(op) => op },
             ))
             .then(parser)
             .repeated(),
