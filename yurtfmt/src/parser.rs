@@ -44,6 +44,7 @@ pub(super) fn yurt_program<'sc>(
         fn_decl(),
         constraint_decl(expr()),
         type_decl(),
+        interface_decl(),
     ))
     .repeated()
     .then_ignore(end())
@@ -112,6 +113,19 @@ fn constraint_decl<'sc>(
         .boxed()
 }
 
+pub(super) fn interface_decl<'sc>(
+) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+    just(Token::Interface)
+        .ignore_then(ident())
+        .then_ignore(just(Token::BraceOpen))
+        .then(
+            (fn_sig().then_ignore(just(Token::Semi))).repeated(), // .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+        )
+        .then_ignore(just(Token::BraceClose))
+        .map(|(name, fn_sigs)| ast::Decl::Interface { name, fn_sigs })
+        .boxed()
+}
+
 pub(super) fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone
 {
     let type_spec = just(Token::Colon).ignore_then(type_());
@@ -139,6 +153,29 @@ pub(super) fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = 
                 body,
             },
         )
+}
+
+pub(super) fn fn_sig<'sc>() -> impl Parser<Token<'sc>, ast::FnSig, Error = ParseError> + Clone {
+    let return_type = just(Token::Arrow).ignore_then(type_()).boxed();
+
+    let type_spec = just(Token::Colon).ignore_then(type_()).boxed();
+
+    let params = ident()
+        .then(type_spec)
+        .separated_by(just(Token::Comma))
+        .allow_trailing()
+        .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
+        .boxed();
+
+    just(Token::Fn)
+        .ignore_then(ident())
+        .then(params)
+        .then(return_type)
+        .map(|((name, params), return_type)| ast::FnSig {
+            name,
+            params: Some(params),
+            return_type,
+        })
 }
 
 pub(super) fn code_block_expr<'a, 'sc>(

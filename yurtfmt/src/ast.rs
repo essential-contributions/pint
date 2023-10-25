@@ -40,9 +40,8 @@ pub(super) enum Decl<'sc> {
         body: Block<'sc>,
     },
     Interface {
-        interface_token: Token<'sc>,
         name: String,
-        fn_sigs: Option<Vec<(Vec<(String, Type)>, Type)>>, // todo make fn_sig a struct (with return type)
+        fn_sigs: Vec<FnSig>,
     },
 }
 
@@ -129,30 +128,54 @@ impl<'sc> Format for Decl<'sc> {
 
                 formatted_code.write("\n}");
             }
-            Self::Interface {
-                interface_token,
-                name,
-                fn_sigs,
-            } => {
-                formatted_code.write_line(&format!("{} {} {{", interface_token, name));
-                if let Some(fn_sigs) = fn_sigs {
-                    for (params, return_type) in fn_sigs {
-                        formatted_code.write("(");
-                        for (i, (param_name, param_type)) in params.iter().enumerate() {
-                            formatted_code.write(&format!("{}: ", param_name));
-                            param_type.format(formatted_code)?;
+            Self::Interface { name, fn_sigs } => {
+                formatted_code.write(&format!("interface {} {{", name));
 
-                            if i < params.len() - 1 {
-                                formatted_code.write(", ");
-                            }
-                        }
-                        formatted_code.write(") -> ");
-                        return_type.format(formatted_code)?;
-                        formatted_code.write_line(";");
+                formatted_code.increase_indent();
+
+                for (i, fn_sig) in fn_sigs.iter().enumerate() {
+                    if i == 0 {
+                        formatted_code.write_line("");
                     }
+
+                    fn_sig.format(formatted_code)?;
+                    formatted_code.write_line(";")
+                }
+
+                formatted_code.decrease_indent();
+
+                formatted_code.write_line("}");
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct FnSig {
+    pub(super) name: String,
+    pub(super) params: Option<Vec<(String, Type)>>,
+    pub(super) return_type: Type,
+}
+
+impl Format for FnSig {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        formatted_code.write(&format!("fn {}(", self.name));
+
+        if let Some(params) = &self.params {
+            for (i, (param_name, param_type)) in params.iter().enumerate() {
+                formatted_code.write(&format!("{}: ", param_name));
+                param_type.format(formatted_code)?;
+
+                if i < params.len() - 1 {
+                    formatted_code.write(", ");
                 }
             }
         }
+
+        formatted_code.write(") -> ");
+        self.return_type.format(formatted_code)?;
 
         Ok(())
     }
@@ -202,7 +225,6 @@ impl Format for Type {
                         formatted_code.write(&format!("{}: ", name));
                     }
 
-                    // Instead of using the format! macro, directly format the Type.
                     ty.format(formatted_code)?;
 
                     // If not the last element, append a comma
