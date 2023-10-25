@@ -160,9 +160,7 @@ pub(super) fn interface_decl<'sc>(
     just(Token::Interface)
         .ignore_then(ident())
         .then_ignore(just(Token::BraceOpen))
-        .then(
-            (fn_sig().then_ignore(just(Token::Semi))).repeated(), // .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
-        )
+        .then((fn_sig().then_ignore(just(Token::Semi))).repeated())
         .then_ignore(just(Token::BraceClose))
         .map(|(name, fn_sigs)| ast::Decl::Interface { name, fn_sigs })
         .boxed()

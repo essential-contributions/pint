@@ -203,6 +203,7 @@ impl Format for FnSig {
                 formatted_code.write(&format!("{}: ", param_name));
                 param_type.format(formatted_code)?;
 
+                // If not the last element, add a comma
                 if i < params.len() - 1 {
                     formatted_code.write(", ");
                 }
