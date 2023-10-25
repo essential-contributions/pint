@@ -17,8 +17,6 @@ fn control_tokens() {
     assert_eq!(lex_one_success("::"), Token::DoubleColon);
     assert_eq!(lex_one_success(";"), Token::Semi);
     assert_eq!(lex_one_success("="), Token::Eq);
-    assert_eq!(lex_one_success("let"), Token::Let);
-    assert_eq!(lex_one_success("type"), Token::Type);
     assert_eq!(lex_one_success(","), Token::Comma);
     assert_eq!(lex_one_success("{"), Token::BraceOpen);
     assert_eq!(lex_one_success("}"), Token::BraceClose);
@@ -84,6 +82,10 @@ fn solve_tokens() {
 fn keywords() {
     assert_eq!(lex_one_success("let"), Token::Let);
     assert_eq!(lex_one_success("fn"), Token::Fn);
+    assert_eq!(lex_one_success("type"), Token::Type);
+    assert_eq!(lex_one_success("use"), Token::Use);
+    assert_eq!(lex_one_success("as"), Token::As);
+    assert_eq!(lex_one_success("constraint"), Token::Constraint);
     assert_eq!(lex_one_success("interface"), Token::Interface);
 }
 
@@ -92,20 +94,15 @@ fn operators() {
     assert_eq!(lex_one_success("!"), Token::Bang);
     assert_eq!(lex_one_success("+"), Token::Plus);
     assert_eq!(lex_one_success("-"), Token::Minus);
-    assert_eq!(lex_one_success("*"), Token::Star);
-    assert_eq!(lex_one_success("/"), Token::Div);
-    assert_eq!(lex_one_success("%"), Token::Mod);
-    assert_eq!(lex_one_success(">"), Token::Gt);
-    assert_eq!(lex_one_success("<"), Token::Lt);
-    assert_eq!(lex_one_success("<="), Token::LtEq);
-    assert_eq!(lex_one_success(">="), Token::GtEq);
-    assert_eq!(lex_one_success("=="), Token::EqEq);
-    assert_eq!(lex_one_success("!="), Token::NotEq);
-    assert_eq!(lex_one_success("&&"), Token::DoubleAmpersand);
-    assert_eq!(lex_one_success("||"), Token::DoublePipe);
-}
-
-#[test]
-fn constraint() {
-    assert_eq!(lex_one_success("constraint"), Token::Constraint);
+    assert_eq!(lex_one_success("*"), Token::BinaryOp("*"));
+    assert_eq!(lex_one_success("/"), Token::BinaryOp("/"));
+    assert_eq!(lex_one_success("%"), Token::BinaryOp("%"));
+    assert_eq!(lex_one_success(">"), Token::BinaryOp(">"));
+    assert_eq!(lex_one_success("<"), Token::BinaryOp("<"));
+    assert_eq!(lex_one_success("<="), Token::BinaryOp("<="));
+    assert_eq!(lex_one_success(">="), Token::BinaryOp(">="));
+    assert_eq!(lex_one_success("=="), Token::BinaryOp("=="));
+    assert_eq!(lex_one_success("!="), Token::BinaryOp("!="));
+    assert_eq!(lex_one_success("&&"), Token::BinaryOp("&&"));
+    assert_eq!(lex_one_success("||"), Token::BinaryOp("||"));
 }

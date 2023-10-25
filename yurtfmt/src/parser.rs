@@ -39,6 +39,7 @@ pub(super) fn parse_str_to_ast(source: &str) -> Result<ast::Ast<'_>, Vec<Formatt
 pub(super) fn yurt_program<'sc>(
 ) -> impl Parser<Token<'sc>, ast::Ast<'sc>, Error = ParseError> + Clone {
     choice((
+        use_statement(),
         value_decl(expr()),
         solve_decl(),
         fn_decl(),
@@ -49,6 +50,47 @@ pub(super) fn yurt_program<'sc>(
     .repeated()
     .then_ignore(end())
     .boxed()
+}
+
+pub(super) fn use_statement<'sc>(
+) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+    just(Token::Use)
+        .then(use_tree())
+        .then_ignore(just(Token::Semi))
+        .map(|(use_token, use_tree)| ast::Decl::Use {
+            use_token,
+            use_tree,
+        })
+}
+
+pub(super) fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError> + Clone {
+    recursive(|use_tree| {
+        let name = ident().map(ast::UseTree::Name);
+
+        let path = ident()
+            .then_ignore(just(Token::DoubleColon))
+            .then(use_tree.clone())
+            .map(|(prefix, suffix)| ast::UseTree::Path {
+                prefix,
+                suffix: Box::new(suffix),
+            })
+            .boxed();
+
+        let group = use_tree
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+            .map(|imports| ast::UseTree::Group { imports })
+            .boxed();
+
+        let alias = ident()
+            .then_ignore(just(Token::As))
+            .then(ident())
+            .map(|(name, alias)| ast::UseTree::Alias { name, alias })
+            .boxed();
+
+        choice((path, alias, name, group)).boxed()
+    })
 }
 
 fn value_decl<'sc>(
@@ -262,19 +304,9 @@ where
         .clone()
         .then(
             choice((
-                just(Token::Plus),
-                just(Token::Minus),
-                just(Token::Star),
-                just(Token::Div),
-                just(Token::Mod),
-                just(Token::Gt),
-                just(Token::Lt),
-                just(Token::LtEq),
-                just(Token::GtEq),
-                just(Token::EqEq),
-                just(Token::NotEq),
-                just(Token::DoubleAmpersand),
-                just(Token::DoublePipe),
+                just(Token::Plus).to("+"),
+                just(Token::Minus).to("-"),
+                select! { Token::BinaryOp(op) => op },
             ))
             .then(parser)
             .repeated(),

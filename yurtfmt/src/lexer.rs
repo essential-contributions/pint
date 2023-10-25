@@ -21,8 +21,6 @@ pub(super) enum Token<'sc> {
     Comma,
     #[token("!")]
     Bang,
-    #[token("*")]
-    Star,
     #[token("{")]
     BraceOpen,
     #[token("}")]
@@ -37,26 +35,8 @@ pub(super) enum Token<'sc> {
     Plus,
     #[token("-")]
     Minus,
-    #[token("/")]
-    Div,
-    #[token("%")]
-    Mod,
-    #[token(">")]
-    Gt,
-    #[token("<")]
-    Lt,
-    #[token("<=")]
-    LtEq,
-    #[token(">=")]
-    GtEq,
-    #[token("==")]
-    EqEq,
-    #[token("!=")]
-    NotEq,
-    #[token("&&")]
-    DoubleAmpersand,
-    #[token("||")]
-    DoublePipe,
+    #[regex(r"/|%|\*|>|<|<=|>=|!=|==|&&|\|\|", |lex| lex.slice())]
+    BinaryOp(&'sc str),
     #[regex(r"int|bool|string|real", |lex| lex.slice())]
     Primitive(&'sc str),
 
@@ -73,6 +53,10 @@ pub(super) enum Token<'sc> {
 
     #[regex(r"satisfy|minimize|maximize", |lex| lex.slice())]
     Directive(&'sc str),
+    #[token("use")]
+    Use,
+    #[token("as")]
+    As,
     #[token("solve")]
     Solve,
 
@@ -111,7 +95,6 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Semi => write!(f, ";"),
             Token::Comma => write!(f, ","),
             Token::Bang => write!(f, "!"),
-            Token::Star => write!(f, "*"),
             Token::BraceOpen => write!(f, "{{"),
             Token::BraceClose => write!(f, "}}"),
             Token::ParenOpen => write!(f, "("),
@@ -119,16 +102,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Arrow => write!(f, "->"),
             Token::Plus => write!(f, "+"),
             Token::Minus => write!(f, "-"),
-            Token::Div => write!(f, "/"),
-            Token::Mod => write!(f, "%"),
-            Token::Gt => write!(f, ">"),
-            Token::Lt => write!(f, "<"),
-            Token::LtEq => write!(f, "<="),
-            Token::GtEq => write!(f, ">="),
-            Token::EqEq => write!(f, "=="),
-            Token::NotEq => write!(f, "!="),
-            Token::DoubleAmpersand => write!(f, "&&"),
-            Token::DoublePipe => write!(f, "||"),
+            Token::BinaryOp(op) => write!(f, "{op}"),
             Token::Primitive(ident) => write!(f, "{ident}"),
             Token::Let => write!(f, "let"),
             Token::Type => write!(f, "type"),
@@ -136,6 +110,8 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Fn => write!(f, "fn"),
             Token::Interface => write!(f, "interface"),
             Token::Directive(contents) => write!(f, "{contents}"),
+            Token::Use => write!(f, "use"),
+            Token::As => write!(f, "as"),
             Token::Solve => write!(f, "solve"),
             Token::Ident(ident) => write!(f, "{ident}"),
             Token::Literal(contents) => write!(f, "{contents}"),
