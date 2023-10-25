@@ -128,31 +128,9 @@ pub(super) fn interface_decl<'sc>(
 
 pub(super) fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone
 {
-    let type_spec = just(Token::Colon).ignore_then(type_());
-
-    let params = ident()
-        .then(type_spec)
-        .separated_by(just(Token::Comma))
-        .allow_trailing()
-        .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
-        .boxed();
-
-    let return_type = just(Token::Arrow).ignore_then(type_());
-
-    just(Token::Fn)
-        .then(ident())
-        .then(params)
-        .then(return_type)
+    fn_sig()
         .then(code_block_expr(expr()))
-        .map(
-            |((((fn_token, name), params), return_type), body)| ast::Decl::Fn {
-                fn_token,
-                name,
-                fn_sig: Some(params),
-                return_type,
-                body,
-            },
-        )
+        .map(|(fn_sig, body)| ast::Decl::Fn { fn_sig, body })
 }
 
 pub(super) fn fn_sig<'sc>() -> impl Parser<Token<'sc>, ast::FnSig, Error = ParseError> + Clone {

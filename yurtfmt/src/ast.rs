@@ -33,10 +33,7 @@ pub(super) enum Decl<'sc> {
         expr: Expr<'sc>,
     },
     Fn {
-        fn_token: Token<'sc>,
-        name: String,
-        fn_sig: Option<Vec<(String, Type)>>,
-        return_type: Type,
+        fn_sig: FnSig,
         body: Block<'sc>,
     },
     Interface {
@@ -99,29 +96,9 @@ impl<'sc> Format for Decl<'sc> {
                 expr.format(formatted_code)?;
                 formatted_code.write_line(";");
             }
-            Self::Fn {
-                fn_token,
-                name,
-                fn_sig,
-                return_type,
-                body,
-            } => {
-                formatted_code.write(&format!("{} {} (", fn_token, name));
+            Self::Fn { fn_sig, body } => {
+                fn_sig.format(formatted_code)?;
 
-                if let Some(fn_sig) = fn_sig {
-                    for (i, (param_name, param_type)) in fn_sig.iter().enumerate() {
-                        formatted_code.write(&format!("{}: ", param_name));
-                        param_type.format(formatted_code)?;
-
-                        // If not the last element, add a comma
-                        if i < fn_sig.len() - 1 {
-                            formatted_code.write(", ");
-                        }
-                    }
-                }
-
-                formatted_code.write(") -> ");
-                return_type.format(formatted_code)?;
                 formatted_code.write_line(" {");
 
                 body.format(formatted_code)?;

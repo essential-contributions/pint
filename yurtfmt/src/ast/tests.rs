@@ -407,7 +407,7 @@ fn func_decl() {
             "#
         ),
         expect_test::expect![[r#"
-            fn foo (x: real, y: real) -> real {
+            fn foo(x: real, y: real) -> real {
                 let x: int = 2;
                 y + 1
             }"#]],
