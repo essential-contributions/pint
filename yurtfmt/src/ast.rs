@@ -32,11 +32,12 @@ pub(super) enum Decl<'sc> {
         expr: Expr<'sc>,
     },
     Fn {
-        fn_token: Token<'sc>,
-        name: String,
-        fn_sig: Option<Vec<(String, Type)>>,
-        return_type: Type,
+        fn_sig: FnSig,
         body: Block<'sc>,
+    },
+    Interface {
+        name: String,
+        fn_sigs: Vec<FnSig>,
     },
 }
 
@@ -83,34 +84,32 @@ impl<'sc> Format for Decl<'sc> {
                 expr.format(formatted_code)?;
                 formatted_code.write_line(";");
             }
-            Self::Fn {
-                fn_token,
-                name,
-                fn_sig,
-                return_type,
-                body,
-            } => {
-                formatted_code.write(&format!("{} {} (", fn_token, name));
+            Self::Fn { fn_sig, body } => {
+                fn_sig.format(formatted_code)?;
 
-                if let Some(fn_sig) = fn_sig {
-                    for (i, (param_name, param_type)) in fn_sig.iter().enumerate() {
-                        formatted_code.write(&format!("{}: ", param_name));
-                        param_type.format(formatted_code)?;
-
-                        // If not the last element, add a comma
-                        if i < fn_sig.len() - 1 {
-                            formatted_code.write(", ");
-                        }
-                    }
-                }
-
-                formatted_code.write(") -> ");
-                return_type.format(formatted_code)?;
                 formatted_code.write_line(" {");
 
                 body.format(formatted_code)?;
 
                 formatted_code.write("\n}");
+            }
+            Self::Interface { name, fn_sigs } => {
+                formatted_code.write(&format!("interface {} {{", name));
+
+                formatted_code.increase_indent();
+
+                for (i, fn_sig) in fn_sigs.iter().enumerate() {
+                    if i == 0 {
+                        formatted_code.write_line("");
+                    }
+
+                    fn_sig.format(formatted_code)?;
+                    formatted_code.write_line(";")
+                }
+
+                formatted_code.decrease_indent();
+
+                formatted_code.write_line("}");
             }
         }
 
@@ -165,6 +164,36 @@ impl Format for UseTree {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct FnSig {
+    pub(super) name: String,
+    pub(super) params: Option<Vec<(String, Type)>>,
+    pub(super) return_type: Type,
+}
+
+impl Format for FnSig {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        formatted_code.write(&format!("fn {}(", self.name));
+
+        if let Some(params) = &self.params {
+            for (i, (param_name, param_type)) in params.iter().enumerate() {
+                formatted_code.write(&format!("{}: ", param_name));
+                param_type.format(formatted_code)?;
+
+                // If not the last element, add a comma
+                if i < params.len() - 1 {
+                    formatted_code.write(", ");
+                }
+            }
+        }
+
+        formatted_code.write(") -> ");
+        self.return_type.format(formatted_code)?;
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Block<'sc> {
     pub(super) statements: Vec<Decl<'sc>>,
     pub(super) final_expr: Box<Expr<'sc>>,
@@ -208,7 +237,6 @@ impl Format for Type {
                         formatted_code.write(&format!("{}: ", name));
                     }
 
-                    // Instead of using the format! macro, directly format the Type.
                     ty.format(formatted_code)?;
 
                     // If not the last element, append a comma

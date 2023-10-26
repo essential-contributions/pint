@@ -45,6 +45,7 @@ pub(super) fn yurt_program<'sc>(
         fn_decl(),
         constraint_decl(expr()),
         type_decl(),
+        interface_decl(),
     ))
     .repeated()
     .then_ignore(end())
@@ -133,8 +134,26 @@ fn constraint_decl<'sc>(
         .boxed()
 }
 
+fn interface_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+    just(Token::Interface)
+        .ignore_then(ident())
+        .then_ignore(just(Token::BraceOpen))
+        .then((fn_sig().then_ignore(just(Token::Semi))).repeated())
+        .then_ignore(just(Token::BraceClose))
+        .map(|(name, fn_sigs)| ast::Decl::Interface { name, fn_sigs })
+        .boxed()
+}
+
 pub(super) fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone
 {
+    fn_sig()
+        .then(code_block_expr(expr()))
+        .map(|(fn_sig, body)| ast::Decl::Fn { fn_sig, body })
+}
+
+pub(super) fn fn_sig<'sc>() -> impl Parser<Token<'sc>, ast::FnSig, Error = ParseError> + Clone {
+    let return_type = just(Token::Arrow).ignore_then(type_()).boxed();
+
     let type_spec = just(Token::Colon).ignore_then(type_()).boxed();
 
     let params = ident()
@@ -144,23 +163,15 @@ pub(super) fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = 
         .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
         .boxed();
 
-    let return_type = just(Token::Arrow).ignore_then(type_()).boxed();
-
     just(Token::Fn)
-        .then(ident())
+        .ignore_then(ident())
         .then(params)
         .then(return_type)
-        .then(code_block_expr(expr()))
-        .map(
-            |((((fn_token, name), params), return_type), body)| ast::Decl::Fn {
-                fn_token,
-                name,
-                fn_sig: Some(params),
-                return_type,
-                body,
-            },
-        )
-        .boxed()
+        .map(|((name, params), return_type)| ast::FnSig {
+            name,
+            params: Some(params),
+            return_type,
+        })
 }
 
 pub(super) fn code_block_expr<'a, 'sc>(
