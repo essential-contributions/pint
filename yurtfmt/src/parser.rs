@@ -46,6 +46,7 @@ pub(super) fn yurt_program<'sc>(
         constraint_decl(expr()),
         type_decl(),
         interface_decl(),
+        extern_decl(),
     ))
     .repeated()
     .then_ignore(end())
@@ -141,6 +142,17 @@ fn interface_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Pars
         .then((fn_sig().then_ignore(just(Token::Semi))).repeated())
         .then_ignore(just(Token::BraceClose))
         .map(|(name, fn_sigs)| ast::Decl::Interface { name, fn_sigs })
+        .boxed()
+}
+
+fn extern_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+    just(Token::Extern)
+        .ignore_then(
+            (fn_sig().then_ignore(just(Token::Semi)))
+                .repeated()
+                .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
+        )
+        .map(|fn_sigs| ast::Decl::Extern { fn_sigs })
         .boxed()
 }
 
