@@ -155,6 +155,34 @@ fn constraint_decl<'sc>(
         .boxed()
 }
 
+fn contract_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+    let expr = expr()
+        .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
+        .boxed();
+
+    let paths = just(Token::Implements)
+        .ignore_then(path().separated_by(just(Token::Comma)))
+        .boxed();
+
+    let fn_sigs = (fn_sig().then_ignore(just(Token::Semi)))
+        .repeated()
+        .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+        .boxed();
+
+    just(Token::Contract)
+        .ignore_then(ident())
+        .then(expr)
+        .then(paths.or_not())
+        .then(fn_sigs)
+        .map(|(((name, expr), paths), fn_sigs)| ast::Decl::Contract {
+            name,
+            expr,
+            paths,
+            fn_sigs,
+        })
+        .boxed()
+}
+
 pub(super) fn interface_decl<'sc>(
 ) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
     just(Token::Interface)
