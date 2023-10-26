@@ -471,9 +471,35 @@ fn func_decl() {
             "#
         ),
         expect_test::expect![[r#"
-            fn foo (x: real, y: real) -> real {
+            fn foo(x: real, y: real) -> real {
                 let x: int = 2;
                 y + 1
             }"#]],
+    );
+}
+
+#[test]
+fn interface_test() {
+    check(
+        &run_formatter!(
+            yurt_program(),
+            "interface   IERC20     {fn totalSupply()  -> int; 
+            fn     balanceOf(account:    int)   -> int;
+                fn allowance(owner:  int, spender:   int) -> int;
+        }   "
+        ),
+        expect_test::expect![[r#"
+            interface IERC20 {
+                fn totalSupply() -> int;
+                fn balanceOf(account: int) -> int;
+                fn allowance(owner: int, spender: int) -> int;
+            }
+        "#]],
+    );
+    check(
+        &run_formatter!(yurt_program(), "interface IERC20  {}  "),
+        expect_test::expect![[r#"
+            interface IERC20 {}
+        "#]],
     );
 }

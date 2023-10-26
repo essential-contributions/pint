@@ -86,6 +86,7 @@ fn keywords() {
     assert_eq!(lex_one_success("use"), Token::Use);
     assert_eq!(lex_one_success("as"), Token::As);
     assert_eq!(lex_one_success("constraint"), Token::Constraint);
+    assert_eq!(lex_one_success("interface"), Token::Interface);
 }
 
 #[test]
