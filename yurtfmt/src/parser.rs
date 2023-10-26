@@ -56,12 +56,9 @@ pub(super) fn yurt_program<'sc>(
 pub(super) fn use_statement<'sc>(
 ) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
     just(Token::Use)
-        .then(use_tree())
+        .ignore_then(use_tree())
         .then_ignore(just(Token::Semi))
-        .map(|(use_token, use_tree)| ast::Decl::Use {
-            use_token,
-            use_tree,
-        })
+        .map(|use_tree| ast::Decl::Use { use_tree })
 }
 
 pub(super) fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError> + Clone {
@@ -97,49 +94,34 @@ pub(super) fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = P
 fn value_decl<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
-    let type_spec = just(Token::Colon).then(type_());
-    let init = just(Token::Eq).then(expr);
+    let type_spec = just(Token::Colon).ignore_then(type_());
+    let init = just(Token::Eq).ignore_then(expr);
 
     just(Token::Let)
-        .then(ident())
+        .ignore_then(ident())
         .then(type_spec.or_not())
         .then(init.or_not())
         .then_ignore(just(Token::Semi))
-        .map(
-            |(((let_token, name), colon_token_and_ty), eq_token_and_init)| ast::Decl::Value {
-                let_token,
-                name,
-                colon_token_and_ty,
-                eq_token_and_init,
-            },
-        )
+        .map(|((name, ty), init)| ast::Decl::Value { name, ty, init })
         .boxed()
 }
 
 fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
     just(Token::Solve)
-        .then(directive())
+        .ignore_then(directive())
         .then(expr().or_not())
         .then_ignore(just(Token::Semi))
-        .map(|((solve_token, directive), expr)| ast::Decl::Solve {
-            solve_token,
-            directive,
-            expr,
-        })
+        .map(|(directive, expr)| ast::Decl::Solve { directive, expr })
         .boxed()
 }
 
 fn type_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
     just(Token::Type)
-        .then(ident())
+        .ignore_then(ident())
         .then_ignore(just(Token::Eq))
         .then(type_())
         .then_ignore(just(Token::Semi))
-        .map(|((type_token, name), ty)| ast::Decl::NewType {
-            type_token,
-            name,
-            ty,
-        })
+        .map(|(name, ty)| ast::Decl::NewType { name, ty })
         .boxed()
 }
 
@@ -147,12 +129,9 @@ fn constraint_decl<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
     just(Token::Constraint)
-        .then(expr)
+        .ignore_then(expr)
         .then_ignore(just(Token::Semi))
-        .map(|(constraint_token, expr)| ast::Decl::Constraint {
-            constraint_token,
-            expr,
-        })
+        .map(|expr| ast::Decl::Constraint { expr })
         .boxed()
 }
 
@@ -309,15 +288,19 @@ pub(super) fn path<'sc>() -> impl Parser<Token<'sc>, ast::Path, Error = ParseErr
 fn unary_op<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc {
-    choice((just(Token::Plus), just(Token::Minus), just(Token::Bang)))
-        .then(expr)
-        .map(|(prefix_op, expr)| {
-            ast::Expr::UnaryOp(ast::UnaryOp {
-                prefix_op,
-                expr: Box::new(expr),
-            })
+    choice((
+        just(Token::Plus).to("+"),
+        just(Token::Minus).to("-"),
+        just(Token::Bang).to("!"),
+    ))
+    .then(expr)
+    .map(|(prefix_op, expr)| {
+        ast::Expr::UnaryOp(ast::UnaryOp {
+            prefix_op,
+            expr: Box::new(expr),
         })
-        .boxed()
+    })
+    .boxed()
 }
 
 fn binary_op<'sc, P>(

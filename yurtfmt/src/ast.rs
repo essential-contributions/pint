@@ -1,7 +1,6 @@
 use crate::{
     error::FormatterError,
     formatter::{Format, FormattedCode},
-    lexer::Token,
 };
 use std::fmt::Write;
 
@@ -13,14 +12,12 @@ pub(super) type Ast<'sc> = Vec<Decl<'sc>>;
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Decl<'sc> {
     Use {
-        use_token: Token<'sc>,
         use_tree: UseTree,
     },
     Value {
-        let_token: Token<'sc>,
         name: String,
-        colon_token_and_ty: Option<(Token<'sc>, Type)>,
-        eq_token_and_init: Option<(Token<'sc>, Expr<'sc>)>,
+        ty: Option<Type>,
+        init: Option<Expr<'sc>>,
     },
     Contract {
         name: String,
@@ -29,17 +26,14 @@ pub(super) enum Decl<'sc> {
         fn_sigs: Vec<FnSig>,
     },
     Solve {
-        solve_token: Token<'sc>,
         directive: String,
         expr: Option<Expr<'sc>>,
     },
     NewType {
-        type_token: Token<'sc>,
         name: String,
         ty: Type,
     },
     Constraint {
-        constraint_token: Token<'sc>,
         expr: Expr<'sc>,
     },
     Fn {
@@ -55,29 +49,21 @@ pub(super) enum Decl<'sc> {
 impl<'sc> Format for Decl<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
-            Self::Use {
-                use_token,
-                use_tree,
-            } => {
-                formatted_code.write(&format!("{} ", use_token));
+            Self::Use { use_tree } => {
+                formatted_code.write("use ");
                 use_tree.format(formatted_code)?;
                 formatted_code.write(";");
             }
-            Self::Value {
-                let_token,
-                name,
-                colon_token_and_ty,
-                eq_token_and_init,
-            } => {
-                formatted_code.write(&format!("{} {}", let_token, name));
+            Self::Value { name, ty, init } => {
+                formatted_code.write(&format!("let {}", name));
 
-                if let Some((colon_token, ty)) = colon_token_and_ty {
-                    formatted_code.write(&format!("{} ", colon_token));
+                if let Some(ty) = ty {
+                    formatted_code.write(": ");
                     ty.format(formatted_code)?;
                 }
 
-                if let Some((eq_token, init)) = eq_token_and_init {
-                    formatted_code.write(&format!(" {} ", eq_token));
+                if let Some(init) = init {
+                    formatted_code.write(" = ");
                     init.format(formatted_code)?;
                 }
 
@@ -121,12 +107,8 @@ impl<'sc> Format for Decl<'sc> {
                 formatted_code.decrease_indent();
                 formatted_code.write_line("}");
             }
-            Self::Solve {
-                solve_token,
-                directive,
-                expr,
-            } => {
-                formatted_code.write(&format!("{} {}", solve_token, directive));
+            Self::Solve { directive, expr } => {
+                formatted_code.write(&format!("solve {}", directive));
 
                 if let Some(expr) = expr {
                     formatted_code.write(" ");
@@ -135,20 +117,13 @@ impl<'sc> Format for Decl<'sc> {
 
                 formatted_code.write_line(";");
             }
-            Self::NewType {
-                type_token,
-                name,
-                ty,
-            } => {
-                formatted_code.write(&format!("{} {} = ", type_token, name));
+            Self::NewType { name, ty } => {
+                formatted_code.write(&format!("type {} = ", name));
                 ty.format(formatted_code)?;
                 formatted_code.write_line(";");
             }
-            Self::Constraint {
-                constraint_token,
-                expr,
-            } => {
-                formatted_code.write(&format!("{} ", constraint_token));
+            Self::Constraint { expr } => {
+                formatted_code.write("constraint ");
                 expr.format(formatted_code)?;
                 formatted_code.write_line(";");
             }
@@ -350,7 +325,7 @@ impl Format for Path {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct UnaryOp<'sc> {
-    pub prefix_op: Token<'sc>,
+    pub prefix_op: &'sc str,
     pub expr: Box<Expr<'sc>>,
 }
 
