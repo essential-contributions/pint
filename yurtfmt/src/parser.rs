@@ -184,8 +184,7 @@ fn contract_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Parse
         .boxed()
 }
 
-pub(super) fn interface_decl<'sc>(
-) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+fn interface_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
     just(Token::Interface)
         .ignore_then(ident())
         .then_ignore(just(Token::BraceOpen))

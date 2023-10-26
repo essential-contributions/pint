@@ -482,12 +482,11 @@ fn func_decl() {
 fn interface_test() {
     check(
         &run_formatter!(
-            interface_decl(),
-            "interface IERC20 {
-            fn totalSupply() -> int;
-            fn balanceOf(account: int) -> int;
-            fn allowance(owner: int, spender: int) -> int;
-        } "
+            yurt_program(),
+            "interface   IERC20     {fn totalSupply()  -> int; 
+            fn     balanceOf(account:    int)   -> int;
+                fn allowance(owner:  int, spender:   int) -> int;
+        }   "
         ),
         expect_test::expect![[r#"
             interface IERC20 {
@@ -498,7 +497,7 @@ fn interface_test() {
         "#]],
     );
     check(
-        &run_formatter!(interface_decl(), "interface IERC20 {}"),
+        &run_formatter!(yurt_program(), "interface IERC20  {}  "),
         expect_test::expect![[r#"
             interface IERC20 {}
         "#]],
