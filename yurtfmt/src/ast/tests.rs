@@ -508,10 +508,18 @@ fn interface_test() {
 #[test]
 fn contract_decl() {
     check(
-        &run_formatter!(yurt_program(), "contract MyToken(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) implements IERC20, Ownable {
-            fn foo() -> int;
-            fn bar() -> int;
-        }"),
+        &run_formatter!(
+            yurt_program(),
+            "contract   MyToken(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)  
+            implements    IERC20, 
+            Ownable  {
+                  fn foo()  -> 
+            int; 
+                fn 
+            bar()  ->    
+        int;
+    } "
+        ),
         expect_test::expect![[r#"
             contract MyToken(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) implements IERC20, Ownable {
                 fn foo() -> int;
@@ -522,14 +530,23 @@ fn contract_decl() {
     check(
         &run_formatter!(
             yurt_program(),
-            "contract MyToken(foo) implements IERC20, Ownable {}"
+            "   contract    
+        MyToken(foo)  
+            implements IERC20, Ownable
+             {}  "
         ),
         expect_test::expect![[r#"
             contract MyToken(foo) implements IERC20, Ownable {}
         "#]],
     );
     check(
-        &run_formatter!(yurt_program(), "contract MyToken(foo) {}"),
+        &run_formatter!(
+            yurt_program(),
+            " contract    MyToken(foo)  
+        {
+            
+        } "
+        ),
         expect_test::expect![[r#"
             contract MyToken(foo) {}
         "#]],
