@@ -94,7 +94,7 @@ impl<'sc> Format for Decl<'sc> {
                 formatted_code.write(")");
 
                 if let Some(paths) = paths {
-                    formatted_code.write("implements ");
+                    formatted_code.write(" implements ");
 
                     for (i, path) in paths.iter().enumerate() {
                         path.format(formatted_code)?;
@@ -104,20 +104,22 @@ impl<'sc> Format for Decl<'sc> {
                             formatted_code.write(", ")
                         }
                     }
+                }
 
-                    formatted_code.write("{");
+                formatted_code.write(" {");
+                formatted_code.increase_indent();
 
-                    for (i, fn_sig) in fn_sigs.iter().enumerate() {
-                        if i == 0 {
-                            formatted_code.write_line("");
-                        }
-
-                        fn_sig.format(formatted_code)?;
-                        formatted_code.write_line(";")
+                for (i, fn_sig) in fn_sigs.iter().enumerate() {
+                    if i == 0 {
+                        formatted_code.write_line("");
                     }
 
-                    formatted_code.write_line("}");
+                    fn_sig.format(formatted_code)?;
+                    formatted_code.write_line(";")
                 }
+
+                formatted_code.decrease_indent();
+                formatted_code.write_line("}");
             }
             Self::Solve {
                 solve_token,

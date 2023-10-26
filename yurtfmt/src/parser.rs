@@ -46,6 +46,7 @@ pub(super) fn yurt_program<'sc>(
         constraint_decl(expr()),
         type_decl(),
         interface_decl(),
+        contract_decl(),
     ))
     .repeated()
     .then_ignore(end())
