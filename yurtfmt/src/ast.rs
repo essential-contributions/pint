@@ -158,7 +158,7 @@ impl<'sc> Format for Decl<'sc> {
                 formatted_code.write_line("}");
             }
             Self::Extern { fn_sigs } => {
-                formatted_code.write_line("extern {");
+                formatted_code.write("extern {");
 
                 formatted_code.increase_indent();
 
