@@ -54,6 +54,8 @@ pub(super) enum Token<'sc> {
     Implements,
     #[token("interface")]
     Interface,
+    #[token("state")]
+    State,
     #[token("extern")]
     Extern,
 
@@ -117,6 +119,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Contract => write!(f, "contract"),
             Token::Implements => write!(f, "implements"),
             Token::Interface => write!(f, "interface"),
+            Token::State => write!(f, "state"),
             Token::Extern => write!(f, "extern"),
             Token::Directive(contents) => write!(f, "{contents}"),
             Token::Use => write!(f, "use"),

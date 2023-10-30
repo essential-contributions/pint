@@ -44,6 +44,11 @@ pub(super) enum Decl<'sc> {
         name: String,
         fn_sigs: Vec<FnSig>,
     },
+    State {
+        name: String,
+        ty: Option<Type>,
+        expr: Expr<'sc>,
+    },
     Extern {
         fn_sigs: Vec<FnSig>,
     },
@@ -156,6 +161,18 @@ impl<'sc> Format for Decl<'sc> {
                 formatted_code.decrease_indent();
 
                 formatted_code.write_line("}");
+            }
+            Self::State { name, ty, expr } => {
+                formatted_code.write(&format!("state {}", name));
+
+                if let Some(ty) = ty {
+                    formatted_code.write(": ");
+                    ty.format(formatted_code)?;
+                }
+
+                formatted_code.write(" = ");
+                expr.format(formatted_code)?;
+                formatted_code.write_line(";");
             }
             Self::Extern { fn_sigs } => {
                 formatted_code.write("extern {");

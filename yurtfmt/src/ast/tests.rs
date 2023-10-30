@@ -557,6 +557,40 @@ fn contract_decl() {
 }
 
 #[test]
+fn state_decl() {
+    check(
+        &run_formatter!(
+            yurt_program(),
+            "  state x:   int   = 
+            MyContract::getBalance;
+            
+                state y=  CryptoExchange::convertToEth;
+       state z :  int  
+       =   totalSupply + mintedTokens;
+            state  w =   
+            -  5.5  ;
+            
+            state v   :  bool = !isWhitelisted;
+
+            state u
+            = Token::Metadata::uri;      
+            
+    state tx: int = CryptoUtils::hashTransaction;
+            "
+        ),
+        expect_test::expect![[r#"
+            state x: int = MyContract::getBalance;
+            state y = CryptoExchange::convertToEth;
+            state z: int = totalSupply + mintedTokens;
+            state w = -5.5;
+            state v: bool = !isWhitelisted;
+            state u = Token::Metadata::uri;
+            state tx: int = CryptoUtils::hashTransaction;
+          "#]],
+    );
+}
+
+#[test]
 fn extern_decl() {
     check(
         &run_formatter!(
