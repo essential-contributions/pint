@@ -211,18 +211,22 @@ solve  maximize ;
 
 #[test]
 fn constraint_decls() {
-    // TODO: add binary expr constraint when supported (ex. x + y)
     check(
         &run_formatter!(
             yurt_program(),
             r#"
             constraint         blah;
-    constraint foo      ;
+    constraint a    + b    <=c      ;
+            constraint
+                !   foo;
+constraint a::    b::d       ;
         "#
         ),
         expect_test::expect![[r#"
         constraint blah;
-        constraint foo;
+        constraint a + b <= c;
+        constraint !foo;
+        constraint a::b::d;
         "#]],
     );
 }
@@ -548,6 +552,96 @@ fn contract_decl() {
         ),
         expect_test::expect![[r#"
             contract MyToken(foo) {}
+        "#]],
+    );
+}
+
+#[test]
+fn extern_decl() {
+    check(
+        &run_formatter!(
+            yurt_program(),
+            "extern    {
+                  fn  eth_getBalance(address:   string) 
+        ->   
+string;
+                
+             
+                
+                 fn eth_gasPrice()   
+-> string;
+        }   "
+        ),
+        expect_test::expect![[r#"
+            extern {
+                fn eth_getBalance(address: string) -> string;
+                fn eth_gasPrice() -> string;
+            }
+        "#]],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            "  extern    
+            {}  
+  "
+        ),
+        expect_test::expect![[r#"
+            extern {}
+        "#]],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            "  extern
+            {
+             fn 
+             eth_blockNumber() ->    
+             
+             string;
+            } "
+        ),
+        expect_test::expect![[r#"
+            extern {
+                fn eth_blockNumber() -> string;
+            }
+        "#]],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            "extern{
+                fn    eth_getCode( address 
+                :
+                string 
+                , blockTag  
+                :  string) -> string;
+            }"
+        ),
+        expect_test::expect![[r#"
+            extern {
+                fn eth_getCode(address: string, blockTag: string) -> string;
+            }
+        "#]],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            "extern {
+                
+            fn eth_call(   transaction  
+            
+            :string,    
+            
+            blockTag: string  ) ->  
+            
+            string;
+            } "
+        ),
+        expect_test::expect![[r#"
+            extern {
+                fn eth_call(transaction: string, blockTag: string) -> string;
+            }
         "#]],
     );
 }

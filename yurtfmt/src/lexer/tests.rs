@@ -90,6 +90,7 @@ fn keywords() {
     assert_eq!(lex_one_success("contract"), Token::Contract);
     assert_eq!(lex_one_success("implements"), Token::Implements);
     assert_eq!(lex_one_success("interface"), Token::Interface);
+    assert_eq!(lex_one_success("extern"), Token::Extern);
 }
 
 #[test]
