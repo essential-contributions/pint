@@ -11,6 +11,8 @@ use std::fmt;
 pub(super) enum Token<'sc> {
     #[token("=")]
     Eq,
+    #[token("|")]
+    Pipe,
     #[token(":")]
     Colon,
     #[token("::")]
@@ -98,6 +100,7 @@ impl<'sc> fmt::Display for Token<'sc> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Token::Eq => write!(f, "="),
+            Token::Pipe => write!(f, "|"),
             Token::Colon => write!(f, ":"),
             Token::DoubleColon => write!(f, "::"),
             Token::Semi => write!(f, ";"),

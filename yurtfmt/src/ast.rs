@@ -180,7 +180,7 @@ impl<'sc> Format for Decl<'sc> {
                 formatted_code.write_line("}");
             }
             Self::Enum { name, variants } => {
-                formatted_code.write(&format!("enum {} = {}", name, &variants.join("|")));
+                formatted_code.write(&format!("enum {} = {};", name, &variants.join(" | ")));
             }
         }
 

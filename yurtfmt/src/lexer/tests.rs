@@ -24,6 +24,7 @@ fn control_tokens() {
     assert_eq!(lex_one_success(")"), Token::ParenClose);
     assert_eq!(lex_one_success("="), Token::Eq);
     assert_eq!(lex_one_success("->"), Token::Arrow);
+    assert_eq!(lex_one_success("|"), Token::Pipe);
 }
 
 #[test]

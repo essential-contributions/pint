@@ -645,3 +645,11 @@ string;
         "#]],
     );
 }
+
+#[test]
+fn enum_decl() {
+    check(
+        &run_formatter!(yurt_program(), "enum Colour = Red | Green | Blue;"),
+        expect_test::expect![[r#"enum Colour = Red | Green | Blue;"#]],
+    );
+}
