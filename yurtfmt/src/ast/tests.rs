@@ -590,6 +590,7 @@ fn state_decl() {
     );
 }
 
+#[test]
 fn extern_decl() {
     check(
         &run_formatter!(
