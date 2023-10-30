@@ -41,6 +41,7 @@ pub(super) fn yurt_program<'sc>(
     choice((
         use_statement(),
         value_decl(expr()),
+        state_decl(),
         solve_decl(),
         fn_decl(),
         constraint_decl(expr()),
@@ -173,6 +174,18 @@ fn interface_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Pars
         .then_ignore(just(Token::BraceClose))
         .map(|(name, fn_sigs)| ast::Decl::Interface { name, fn_sigs })
         .boxed()
+}
+
+fn state_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+    let type_spec = just(Token::Colon).ignore_then(type_()).boxed();
+
+    just(Token::State)
+        .ignore_then(ident())
+        .then(type_spec.or_not())
+        .then_ignore(just(Token::Eq))
+        .then(expr())
+        .then_ignore(just(Token::Semi))
+        .map(|((name, ty), expr)| ast::Decl::State { name, ty, expr })
 }
 
 fn extern_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
