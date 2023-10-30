@@ -44,6 +44,9 @@ pub(super) enum Decl<'sc> {
         name: String,
         fn_sigs: Vec<FnSig>,
     },
+    Extern {
+        fn_sigs: Vec<FnSig>,
+    },
 }
 
 impl<'sc> Format for Decl<'sc> {
@@ -138,6 +141,24 @@ impl<'sc> Format for Decl<'sc> {
             }
             Self::Interface { name, fn_sigs } => {
                 formatted_code.write(&format!("interface {} {{", name));
+
+                formatted_code.increase_indent();
+
+                for (i, fn_sig) in fn_sigs.iter().enumerate() {
+                    if i == 0 {
+                        formatted_code.write_line("");
+                    }
+
+                    fn_sig.format(formatted_code)?;
+                    formatted_code.write_line(";")
+                }
+
+                formatted_code.decrease_indent();
+
+                formatted_code.write_line("}");
+            }
+            Self::Extern { fn_sigs } => {
+                formatted_code.write("extern {");
 
                 formatted_code.increase_indent();
 
