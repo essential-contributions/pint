@@ -48,6 +48,8 @@ pub(super) enum Token<'sc> {
     Constraint,
     #[token("fn")]
     Fn,
+    #[token("enum")]
+    Enum,
     #[token("contract")]
     Contract,
     #[token("implements")]
@@ -112,6 +114,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Type => write!(f, "type"),
             Token::Constraint => write!(f, "constraint"),
             Token::Fn => write!(f, "fn"),
+            Token::Enum => write!(f, "enum"),
             Token::Contract => write!(f, "contract"),
             Token::Implements => write!(f, "implements"),
             Token::Interface => write!(f, "interface"),
