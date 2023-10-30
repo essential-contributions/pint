@@ -589,7 +589,7 @@ fn state_decl() {
           "#]],
     );
 }
-          
+
 fn extern_decl() {
     check(
         &run_formatter!(
