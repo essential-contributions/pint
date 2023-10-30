@@ -679,3 +679,30 @@ string;
         "#]],
     );
 }
+
+#[test]
+fn enum_decl() {
+    check(
+        &run_formatter!(yurt_program(), "   enum   Colour=Red|Green|Blue  ;  "),
+        expect_test::expect![[r#"enum Colour = Red | Green | Blue;"#]],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            "enum       MyEnum =Variant1
+        ;"
+        ),
+        expect_test::expect![[r#"enum MyEnum = Variant1;"#]],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            "enum
+         Weather
+             =Sunny
+    |
+     Rainy;"
+        ),
+        expect_test::expect![[r#"enum Weather = Sunny | Rainy;"#]],
+    );
+}

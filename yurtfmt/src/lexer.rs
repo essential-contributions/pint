@@ -11,6 +11,8 @@ use std::fmt;
 pub(super) enum Token<'sc> {
     #[token("=")]
     Eq,
+    #[token("|")]
+    Pipe,
     #[token(":")]
     Colon,
     #[token("::")]
@@ -48,6 +50,8 @@ pub(super) enum Token<'sc> {
     Constraint,
     #[token("fn")]
     Fn,
+    #[token("enum")]
+    Enum,
     #[token("contract")]
     Contract,
     #[token("implements")]
@@ -98,6 +102,7 @@ impl<'sc> fmt::Display for Token<'sc> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Token::Eq => write!(f, "="),
+            Token::Pipe => write!(f, "|"),
             Token::Colon => write!(f, ":"),
             Token::DoubleColon => write!(f, "::"),
             Token::Semi => write!(f, ";"),
@@ -116,6 +121,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Type => write!(f, "type"),
             Token::Constraint => write!(f, "constraint"),
             Token::Fn => write!(f, "fn"),
+            Token::Enum => write!(f, "enum"),
             Token::Contract => write!(f, "contract"),
             Token::Implements => write!(f, "implements"),
             Token::Interface => write!(f, "interface"),

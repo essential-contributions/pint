@@ -45,6 +45,7 @@ pub(super) fn yurt_program<'sc>(
         solve_decl(),
         fn_decl(),
         constraint_decl(expr()),
+        enum_decl(),
         type_decl(),
         interface_decl(),
         contract_decl(),
@@ -195,6 +196,18 @@ fn extern_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseEr
                 .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
         )
         .map(|fn_sigs| ast::Decl::Extern { fn_sigs })
+        .boxed()
+}
+
+fn enum_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+    let variants = ident().separated_by(just(Token::Pipe)).boxed();
+
+    just(Token::Enum)
+        .ignore_then(ident())
+        .then_ignore(just(Token::Eq))
+        .then(variants)
+        .then_ignore(just(Token::Semi))
+        .map(|(name, variants)| ast::Decl::Enum { name, variants })
         .boxed()
 }
 
