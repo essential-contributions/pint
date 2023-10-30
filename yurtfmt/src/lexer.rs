@@ -56,6 +56,8 @@ pub(super) enum Token<'sc> {
     Interface,
     #[token("state")]
     State,
+    #[token("extern")]
+    Extern,
 
     #[regex(r"satisfy|minimize|maximize", |lex| lex.slice())]
     Directive(&'sc str),
@@ -118,6 +120,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Implements => write!(f, "implements"),
             Token::Interface => write!(f, "interface"),
             Token::State => write!(f, "state"),
+            Token::Extern => write!(f, "extern"),
             Token::Directive(contents) => write!(f, "{contents}"),
             Token::Use => write!(f, "use"),
             Token::As => write!(f, "as"),
