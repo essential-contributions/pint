@@ -109,7 +109,7 @@ pub enum Immediate {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UnaryOp {
-    Pos,
+    Error,
     Neg,
     Not,
     NextState,

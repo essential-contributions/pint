@@ -16,14 +16,14 @@ Yurt is a high-level, typed, intent expression and modeling language. It provide
 
 Yurt's design is inspired by both [MiniZinc](https://www.minizinc.org/) and [Rust](https://www.rust-lang.org/).
 
-This document has the following structure. [Notation](#notation) introduces the syntax notation used throughout the specification. [Overview of an Intent Model](#overview-of-an-intent-model) provides a high-level overview of Yurt intent models. [Syntax Overview](#syntax-overview) covers syntax basics. [High-level Intent Structure](#high-level-intent-structure) covers high-level structure: items, multi-file models, namespaces, and scopes. [Types](#types) introduces available types. [Expressions](#expressions) covers expressions. [Items](#items) describes the top-level items in detail.
+This document has the following structure. [Notation](#notation) introduces the syntax notation used throughout the specification. [Overview of an Intent Model](#overview-of-an-intent-model) provides a high-level overview of Yurt intent models. [Syntax Overview](#syntax-overview) covers syntax basics. [High-level Intent Structure](#high-level-intent-structure) covers high-level structure: items, multi-file intents, namespaces, and name shadowing. [Types](#types) introduces available types. [Expressions](#expressions) covers expressions. [Items](#items) describes the top-level items in detail.
 
 ## Notation
 
 The specification of the Yurt programming language presented in this document follows the [BNF format](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form). The basics of the BNF used are as follows:
 
 - Non-terminals are written between angle brackets, e.g. `<item>`.
-- Terminals are written in double quotes, e.g. `"solve"`. A double quote terminal is written as a sequence of three double quotes: `"""`.
+- Terminals are written in double quotes, e.g. `"solve"`.
 - Optional items are written in square bracket, e.g. `[ "," ]`
 - Sequences of zero or more items are written with parentheses and a star, e.g. `( "," <ident> )*`
 - Sequences of one or more items are written with parentheses and a plus, e.g. `( "," <ident> )+`.
@@ -31,16 +31,16 @@ The specification of the Yurt programming language presented in this document fo
 
 ## Overview of an Intent Model
 
-Conceptually, a Yurt problem specification has two parts:
+Conceptually, a Yurt program has two parts:
 
-1. The _model_: the main part of the problem specification, which describes the structure of a particular class of problems.
-1. The data: the input data for the model, which specifies one particular problem with this class of problems.
+1. The _intent model_: the main part of the program, which describes the structure of a particular class of intents.
+1. The data: the input data for the model, which specifies one particular intent with this class of intents.
 
-The pairing of a model with a particular data set is a _model instance_.
+The pairing of a model with a particular data set is an _intent model instance_.
 
 The model and data may be separated, or the data may be "hard-wired" into the model.
 
-There are two broad classes of problems: satisfaction and optimization. In satisfaction problems all solutions are considered equally good, whereas in optimization problems the solutions are ordered according to an objective and the ai is to find a solution whose objective is optimal. [Solve Items](#solve-items) specifies how the class of problem is chosen.
+There are two broad classes of intents: satisfaction and optimization. In satisfaction intents all solutions are considered equally good, whereas in optimization intents the solutions are ordered according to an objective and the goal is to find a solution whose objective is optimal. [Solve Items](#solve-items) specifies how the class of intent is chosen.
 
 ## Syntax Overview
 
@@ -59,10 +59,12 @@ A `//` indicates that the rest of the line is a comment.
 Identifiers have the following syntax:
 
 ```bnf
-<ident> ::= _?[A-Za-z][A-Za-z0-9]*     % excluding keywords
+<ident> ::= [A-Za-z_][A-Za-z_0-9]*     % excluding keywords
 ```
 
-A number of keywords are reserved and cannot be used as identifiers. The keywords are: `as`, `bool`, `constraint`, `contract`, `else`, `enum`, `extern`, `false`, `fn`, `if`, `implements`, `interface`, `int`, `let`, `maximize`, `minimize`, `real`, `satisfy`, `solve`, `state`, `string`, `true`, `type`, `use`.
+For example, `___j_Bond_007_` is a valid identifier.
+
+A number of keywords are reserved and cannot be used as identifiers. The keywords are: `as`, `bool`, `cond`, `constraint`, `contract`, `else`, `enum`, `extern`, `false`, `fn`, `if`, `implements`, `in`, `interface`, `int`, `let`, `macro`, `maximize`, `minimize`, `real`, `satisfy`, `self`, `solve`, `state`, `string`, `true`, `type`, `use`.
 
 ### Paths
 
@@ -74,12 +76,12 @@ Paths have the following syntax:
 <path> ::= [ "::" ] <ident> ( "::" <ident> )*
 ```
 
-For example:
+For example, the following are all valid paths:
 
 ```yurt
-::x;
-x::y::z;
-x;
+::x
+x::y::z
+x
 ```
 
 Paths can be used in [Import Items](#import-items). They can also be used in expressions to directly refer to an item in a different module or [contract](#contract-items).
@@ -88,10 +90,10 @@ Paths that start with `::` are absolute paths from the root of the project. Path
 
 ## High-level Intent Structure
 
-A Yurt intent consists of one or more semicolon separated `items`:
+A Yurt intent consists of one or more Yurt files according to the rules described in [Multi-File Intents](#multi-file-intents). Each Yurt file contains one or more `<item>`s:
 
 ```bnf
-<intent> ::= ( <item> ";" )*
+<yurt-file> ::= <item>*
 ```
 
 Items can occur in any order; identifiers need not be declared before they are used. Items have the following top-level syntax:
@@ -122,6 +124,8 @@ Macro items introduce new parameterized blocks of declarations or expressions wh
 
 Enum declaration items describe C-style enumerations ([Enum Declaration Items](#enum-declaration-items)).
 
+New Type items let you assign a new name to an existing type, simplifying complex type definitions or providing more context for certain types (["New Type" Items](#new-type-items)).
+
 Solve items specify exact what kind of solution the user is interested in: plain satisfaction, or the minimization/maximization of an expression. Each intent must have at most one solve item ([Solve Items](#solve-items)).
 
 Interface items contain lists of smart contract methods that a [contract](#contract-items) can have ([Interface Items](#interface-items)).
@@ -130,9 +134,7 @@ Contract items describe actual deployed contracts with a known contract ID and a
 
 "Extern" items contain lists of external functions that allow accessing data on a blockchain (["Extern" Items](#extern-items)).
 
-New Type items let you assign a new name to an existing type, simplifying complex type definitions or providing more context for certain types (["New Type" Items](#new-type-items)).
-
-### Multi-file Intents
+### Multi-File Intents
 
 An intent can be spread across multiple files. Each file implicitly declares a local module or submodule dependency.
 
@@ -156,13 +158,47 @@ In any directory other than the project root directory, new submodules can be cr
 
 Note that it is not allowed to have a file and a folder with the same name in any of the project's subdirectories. For example, a project that contains both `src/my_mod.yrt` and `src/my_mod/...` should not compile. Moreover, having a single file in a subdirectory is allowed even though subdirectories are typically used for multi-file modules. For example, having a single file in `src/my_mod/` is allowed as long as the name of that file is `my_mod.yrt`. This is equivalent to having the module live in `src/my_mod.yrt` and skipping the subdirectory `src/my_mod/` altogether.
 
-### Namespaces and Scopes
+### Namespaces
 
-TODO
+All names declared at the top-level of a Yurt file belong to a single namespace. It includes the following names:
+
+1. All variable names.
+2. All function names.
+3. The names of all user-defined types.
+
+[import item](#import-items) used in a Yurt file import new names to its namespace.
+
+### Name Shadowing
+
+Name shadowing in Yurt is not allowed. For example, both examples below should fail to compile:
+
+```yurt
+let x = 5;
+let x = 6;
+```
+
+```yurt
+let x = 5;
+let y = {
+    let x = 6; // shadows the `x` outside the block expression
+    x
+}
+```
+
+Note, however, that [macro](#macro-items) bodies **are allowed** to declare new variables with names that have been used outside the macro body, because macro expansion is designed to be [hygienic](#hygiene). For example, the following is allowed:
+
+```yurt
+let half = 5;
+
+macro @is_even($a) {
+    let half: int;
+    constraint $a == half * 2; // `half` here refers to the one declared inside the macro
+}
+```
 
 ## Types
 
-Yurt provides 4 scalar types built-in: Booleans, integers, reals and strings. Yurt also provides tuples and arrays as a compound built-int type.
+Yurt provides 4 scalar primitive types: Boolean (`bool`), integer (`int`), real (`real`) and string (`string`). Yurt also provides tuples and arrays as a compound built-in type, as well as C-style enumeration types.
 
 The syntax for types is as follows:
 
@@ -173,6 +209,7 @@ The syntax for types is as follows:
        | "string"
        | <tuple-ty>
        | <array-ty>
+       | <enum-ty>
        | <custom-ty>
 ```
 
@@ -195,10 +232,10 @@ Note that the grammar disallows empty tuple types `{ }`.
 An array type represents a collection of items that share the same type. Arrays can be multi-dimensional and have the following syntax:
 
 ```bnf
-<array-ty> ::= <ty> ( "[" <expr> | <custom-ty> "]" )+
+<array-ty> ::= <ty> ( "[" <expr> | <path> "]" )+
 ```
 
-An array dimension can be indexed using non-negative integers. It can also be indexed using enum variants of some enum type or some [new type](#new-type-items) that resolves to an enum type. The allowed type of the index depends on how the dimension is specified in the array type definition.
+An array dimension can be indexed using an expression of type `int` which has to be non-negative. It can also be indexed using a `<path>` that represents an enum variant of some enum type or some [new type](#new-type-items) that resolves to an enum type. The allowed type of the index depends on how the dimension is specified in the array type definition.
 
 - An array dimension that can be indexed using an integer requires that the corresponding dimension size is specified in between brackets as an expression that is evaluatable, **at compile-time**, to a **strictly positive** integer. Otherwise, the compiler should emit an error.
 
@@ -212,7 +249,7 @@ enum Colour = Red | Green | Blue;
 let a: real[N][Colour];`
 ```
 
-`a` is a two dimensional array that contains `N` arrays of size 3 each (because `Colour` is an enum that has 3 variants). An element of `a` can be [accessed](#array-expressions-and-array-element-access-expressions) using `a[3][Colour::Green]`, which accesses the second element of the fourth array in `a`.
+`a` is a two dimensional array that contains `N` arrays of size 3 each (because `Colour` is an enum that has 3 variants). An element of `a` can be [accessed](#array-expressions-and-array-element-access-expressions) using a syntax similar to `a[3][Colour::Green]`, which accesses the second element of the fourth array in `a`.
 
 ### Enum Type
 
@@ -221,6 +258,18 @@ An enum type refers to an [enum declaration](#enum-declaration-items) using its 
 ```bnf
 <enum-ty> ::= <path>
 ```
+
+For example, `::path::to::MyEnum` may refer to an enum called `MyEnum` if an enum called `MyEnum` exists and is available in the scope of `::path::to::MyEnum`.
+
+### Custom type
+
+Custom types may refer to any type and are declared using ["New Type" Items](#new-type-items). Custom types are referred to using a path:
+
+```ebnf
+<custom-ty> ::= <path>
+```
+
+For example, `::path::to::MyNewType` may refer to some custom type called `MyNewType` if a [new type](#new-type-items) called `MyNewType` exists and is available in the scope of `::path::to::MyNewType`.
 
 ## Expressions
 
@@ -242,46 +291,51 @@ Expressions represent values and have the following syntax:
          | <tuple-field-access-expr>
          | <array-expr>
          | <array-element-access-expr>
+         | <range-expr>
          | <if-expr>
          | <cond-expr>
          | <call-expr>
          | <cast-expr>
          | <in-expr>
-         | <range-expr>
          | <prime-expr>
 ```
 
-Expressions can be composed from sub-expressions with operators. All unary and binary operators are described in [Operators
-](#operators). All unary operators bind more tightly than all binary operators. Expressions can also be contained within parentheses.
+Expressions can be composed from sub-expressions with operators. All unary and binary operators are described in [Operators](#operators). All unary operators bind more tightly than all binary operators. Expressions can also be contained within parentheses.
 
 ### Operators
 
-Operators are functions that are distinguished by their syntax:
-
-1. They mostly contain non-alphanumeric characters that normal functions do not (e.g. `+`).
-1. Their application may be written differently than normal functions.
-
-There are two kinds of operators:
+Operators are special functions that are distinguished by their syntax. There are two kinds of operators:
 
 1. Unary operators which can be applied in a prefix manner without parentheses, e.g. `-x`.
 1. Binary operator which can be applied in an infix manner, e.g. `3 + 4`.
 
 ```bnf
-<un-op> ::= "+" | "-" | "!"
+<un-op> ::= "-"   // Arithmetic negation
+          | "!"   // Bitwise or logical complement
 
-<bin-op> ::= "<" | ">" | "<=" | ">=" | "==" | "!="
-           | "+" | "-" | "*" | "/" | "%"
-           | "&&" | "||"
+<bin-op> ::= "<"  // Less than comparison
+           | ">"  // Greater than comparison
+           | "<=" // Less than or equal comparison
+           | ">=" // Greater than or equal comparison
+           | "==" // Nonequality comparison
+           | "!=" // Nonequality comparison
+           | "+"  // Arithmetic Addition
+           | "-"  // Arithmetic Subtraction
+           | "*"  // Arithmetic multiplication
+           | "/"  // Arithmetic division
+           | "%"  // Arithmetic remainder
+           | "&&" // Logical AND
+           | "||" // Logical OR
 ```
 
 ### Expression Atoms
 
 #### Block Expressions
 
-Block expressions are expressions that contains a list of _statements_ followed by an expression within curly bracket `{ .. }`. Formally:
+Block expressions are expressions that contain a list of _statements_ followed by an expression within curly bracket `{ .. }`. Formally:
 
 ```bnf
-<block-expr> ::= "{" ( <block-statement> ";" )* <expr> "}"
+<block-expr> ::= "{" ( <block-statement> )* <expr> "}"
 
 <block-statement> ::= <let-item>
                     | <state-item>
@@ -293,8 +347,17 @@ The type of the block expression is the type of the final expression. For exampl
 ```yurt
 let x: int = {
     let y: int = 2;
-    y + 1
+    y + 1 // returned final expression of type `int`
 }
+```
+
+the above is equivalent to the following:
+
+```yurt
+let x: int;
+let y: int;
+constraint y == 2;
+constraint x == y + 1;
 ```
 
 #### Boolean Literals
@@ -342,9 +405,9 @@ For example: `"Hello, world!\n"`.
 String literals can be broken across multiple lines by escaping the newline and leading whitespace with a `\`. For example:
 
 ```yurt
-let string = "first line\
-             second line\
-             third line";
+let mutli_line_string: string = "first line\
+                                 second line\
+                                 third line";
 ```
 
 #### Tuple Expressions and Tuple Field Access Expressions
@@ -365,7 +428,7 @@ let t: { x: int, real } = { 6, 5.0 }
 
 where the type of the tuple is indicated by the type annotation and has a named field `x`, but that named field is not actually used in the tuple expression. This is allowed because `{ x: int, real }` and `{ int, real }` coerce into each other.
 
-Tuple fields can be initialized out of order only if all the fields have names and their names are used in the tuple expression. For example, the following is allowed:
+Tuple fields can be initialized out of order only if and only if all the fields have names and their names are used in the tuple expression. For example, the following is allowed:
 
 ```yurt
 let t: { x: int, y: real } = { y: 5.0, x: 6 };
@@ -407,7 +470,7 @@ The following is another example:
 let b: real[2][3] = [ [ 1.0, 2.0, 3.0], [4.0, 5.0, 6.0] ];
 ```
 
-where the type of the array is indicated by the type annotation. Note that the initializers of `b` is an array expression that contains other array expressions to reflect the fact that `b` is two dimensional. Also note that `real[2][3]` is an array that contains 2 elements where each element is of size 3, and not the other way around.
+where the type of the array is indicated by the type annotation. Note that the initializer of `b` is an array expression that contains other array expressions to reflect the fact that `b` is two dimensional. Also note that `real[2][3]` is an array that contains 2 elements where each element is an array of size 3, and not the other way around.
 
 The grammar disallows empty array expressions `[ ]` because arrays of size 0 are not allowed.
 
@@ -421,14 +484,14 @@ Array element access expressions are written as:
 
 For example, `a[1];` refers to the second element of array `a` in the example above. Therefore, `a[1]` should be equal to `2`. Similarly, `b[0][2]` in the example above refers to the third elements from the first inner array of `b`. That is, `b[0][2]` should be equal to `3.0`.
 
-Yurt requires that the expression used to index into is an array. For example, in `foo()[5]`, `foo()` must return array of the appropriate size.
+Yurt requires that the expression used to index into is an array. For example, in `foo()[5]`, `foo()` must return an array of an appropriate size.
 
 Yurt also requires that each array index is known (i.e. evaluatable) at compile-time. In addition, Yurt requires that each index evaluates to:
 
 1. A **non-negative** integer that is **strictly smaller** than the corresponding dimension (i.e. within bounds), if the dimension has a size that is specified using an integer in the array type definition.
 1. A path to an enum variant of some enum type, if the dimension size is specified using that enum type in the array type definition.
 
-Below is an example where both an integer and an enum variant are used to index into an two-dimensional array:
+Below is an example where both an integer and an enum variant are used to index into a two-dimensional array:
 
 ```yurt
 let N = 5;
@@ -436,6 +499,44 @@ enum Colour = Red | Green | Blue;
 let a: real[N][Colour];`
 
 let a_3_g = a[3][Colour::Green];
+```
+
+#### Range Expressions
+
+Range expressions are used to refer to ranges between a lower bound value and an upper bound value:
+
+```bnf
+<range-expr> ::= <expr> ".." <expr>
+```
+
+Range expressions require that both the lower bound and the upper bound expressions have the same type. The type of a range expression is identical to the type of its bounds.
+
+The only allowed types for the bounds of a range expression are `int` and `real`.
+
+Range expressions can only be used in two contexts:
+
+1. As the expression on the right-hand side of a `<let-item>`.
+1. As the expression on the right-hand side of an `<in-expr>`
+
+For example,
+
+```yurt
+let x: int = 3..5;
+```
+
+is equivalent to:
+
+```yurt
+let x: int;
+constraint x in 3..5;
+```
+
+which is equivalent to:
+
+```yurt
+let x: int;
+constraint x >= 3;
+constraint x <= 5;
 ```
 
 #### "If" Expressions
@@ -448,7 +549,17 @@ Yurt has `if` expressions which provide selection from two alternatives based on
 
 The condition `<expr>` above must be of type `bool`. The "then" and "else" block expressions must have the same type or have types that are coercible to the same type, which determines the type of the whole `if` expression.
 
-Note that the `else` block is not optional and the `else if { .. }` syntax is not supported.
+For example:
+
+```yurt
+let y = if condition > 0 {
+    1
+} else {
+    2
+};
+```
+
+Note that the `else` block is **not optional** and the `else if { .. }` syntax is not supported.
 
 #### "Cond" Expressions
 
@@ -462,11 +573,26 @@ Yurt provides `cond` expressions which are generalized `if` expressions with mor
 <cond-expr> ::= cond "{" ( <cond-branch> "," )* <else-branch> [ "," ] "}"
 ```
 
-The first `<expr>` in `<cond-branch>` must be of type `bool`. If it evaluates to `true`, then the branch is active which means that the whole `cond` expression takes the value of the second `<expr>` in `<cond-branch>`.
+The `<expr>` on the left-hand side of the `=>` in `<cond-branch>` must be of type `bool`. If it evaluates to `true`, then the branch is active which means that the whole `cond` expression takes the value of the second `<expr>` in `<cond-branch>`.
 
 The branches are evaluated in order. The first one to become active determines the value of the `cond` expression. If all branches fail, then the `cond` expression takes the value of the `<expr>` in the `<else-branch>`.
 
 Similarly to `if` expressions, all candidate expressions must have the same type or have types that are coercible to the same type, which determines the type of the whole `cond` expression.
+
+For example:
+
+```yurt
+enum Colour = Red | Green | Blue;
+let y: Colour = Colour::Blue;
+let z: Colour = Colour::Green;
+
+let x: int = cond {
+    z == Red => 0,
+    y == Green || z != Green => 1,
+    y == Blue => 2,
+    else => 3,
+}; // Evaluates to `2`
+```
 
 #### Call Expressions
 
@@ -499,13 +625,13 @@ Note that there is no implicit casting in Yurt, hence the need for an explicit c
 
 Any cast that does not fit an entry in the table below is a compiler error:
 
-| Type of LHS | RHS    | Cast performed                      |
-| ----------- | ------ | ----------------------------------- |
-| `int`       | `int`  | No-op                               |
-| `int`       | `real` | Produce the closest possible `real` |
-| `real`      | `real` | No-op                               |
-| `enum`      | `int`  | Enum cast                           |
-| `bool`      | `int`  | Boolean to integer cast             |
+| Type of LHS | RHS    | Cast performed                                      |
+| ----------- | ------ | --------------------------------------------------- |
+| `int`       | `int`  | No-op                                               |
+| `int`       | `real` | Produce the closest possible `real`                 |
+| `real`      | `real` | No-op                                               |
+| `enum`      | `int`  | [Enum cast](#enum-cast)                             |
+| `bool`      | `int`  | [Boolean to integer cast](#boolean-to-integer-cast) |
 
 ##### Enum Cast
 
@@ -517,6 +643,8 @@ enum MyEnum = V0 | V1 | V2;
 let d = MyEnum::V1 as int; // `d` is equal to `1`.
 ```
 
+See [Enum Declaration Items](#enum-declaration-items) for a detailed explanation of how enum discriminants are assigned.
+
 ##### Boolean to Integer Cast
 
 - `false` casts to `0`.
@@ -524,17 +652,20 @@ let d = MyEnum::V1 as int; // `d` is equal to `1`.
 
 #### "In" Expressions
 
-"In" expressions are used to detect whether a value belongs to an array. They have the following syntax:
+"In" expressions are used to detect whether a value belongs to an [array](#array-expressions-and-array-element-access-expressions) or [range](#range-expressions). They have the following syntax:
 
 ```bnf
 <in-expr> ::= <expr> "in" <expr>
 ```
 
-An "in" expression returns a `bool` that indicates whether the left-hand side belongs to the right-hand side. For example, in `let x: bool = 5 in [3, 4, 5];`, `x` should be `true`.
+An "in" expression returns a `bool` that indicates whether the left-hand side "belongs" to the right-hand side. For example:
 
-The right-hand side of an "in" expression must be an array and the type of the left-hand side must match the array elements type. Otherwise, a compiler error should be emitted.
+- In `let x: bool = 5 in [3, 4, 5];`, `x` should be `true`.
+- In, `let y: bool = 2 in 3..5;`, `x` should be `false`.
 
-A value belongs to an array if and only if it is "equal" to one of its entries. Equality for various types is defined as follows:
+The right-hand side of an "in" expression must be an array or a range and the type of the left-hand side must match the type of the array elements or the range bounds. Otherwise, a compiler error should be emitted.
+
+A value **belongs to an array** if and only if it is "equal" to one of its entries. Equality for various types is defined as follows:
 
 | Type     | Equality Criterion                                       |
 | -------- | -------------------------------------------------------- |
@@ -543,48 +674,12 @@ A value belongs to an array if and only if it is "equal" to one of its entries. 
 | `bool`   | Identical values                                         |
 | `string` | Identical lengths and characters in the same order       |
 | `enum`   | Identical variants                                       |
+| tuple    | Identical lengths and _equal_ elements in the same order |
 | array    | Identical lengths and _equal_ elements in the same order |
-| array    | Identical lengths and _equal_ elements in the same order |
 
-Note that two values of different types cannot be compared and should result in a compile error.
+A value **belongs to a range** if and only if it is within the bounds of the range. This is only valid and well-defined, by the rules of `<=` and `>=`, for integer (`int`) and real (`real`) values, since ranges of any other type are not supported.
 
-#### Range Expressions
-
-Range expressions are used to refer to ranges between a lower bound value and an upper bound value:
-
-```bnf
-<range-expr> ::= <expr> ".." <expr>
-```
-
-Range expressions require that both the lower bound and the upper bound expressions have the same type. The type of a range expression is identical to the type of its bounds.
-
-The only allowed types for the bounds of a range expression are `int` and `real`.
-
-Range expressions can only be used in two contexts:
-
-1. As the expression on the right-hand side of a `<let-item>`.
-1. As the expression on the right-hand side of an `<in-expr>`
-
-For example,
-
-```yurt
-let x: int = 3..5;
-```
-
-is equivalent to;
-
-```yurt
-let x: int;
-constraint x in 3..5;
-```
-
-which is equivalent to:
-
-```yurt
-let x: int;
-constraint x >= 3;
-constraint x <= 5;
-```
+> **Note:** two values of different types cannot be compared (both equality and inequality) and should result in a compile error.
 
 #### Prime Expressions
 
@@ -612,7 +707,7 @@ The precedence of Yurt operators and expressions is ordered as follows, going fr
 | Paths                            |                      |
 | Tuple field access expressions   | left to right        |
 | Call expressions, array indexing |                      |
-| Unary `-`, Unary `+`, `!`        |                      |
+| Unary `-`, `!`                   |                      |
 | `as`                             | left to right        |
 | `in`                             | left to right        |
 | `*`, `/`, `%`                    | left to right        |
@@ -631,30 +726,31 @@ This section describes the top-level program items.
 Within a scope, import items create shortcuts to items defined in other files. Import items have the following syntax:
 
 ```bnf
-<use-tree> ::= [ [ <path> ] "::" ] "*"
-             | [ [ <path> ] "::" ] "{" [ <use-tree> "," ... ] "}"
-             | <path> [ "as" <ident> ]
+<use-path> ::= [ "::" ] ( <ident> | "self" ) ( "::" ( <ident> | "self" ) )*
+<use-tree> ::= [ [ <use-path> ] "::" ] "*"
+             | [ [ <use-path> ] "::" ] "{" [ <use-tree> "," ... ] "}"
+             | <use-path> [ "as" <ident> ]
 
-<import-item> ::= "use" <use-tree>
+<import-item> ::= "use" <use-tree> ";"
 ```
 
-An import item creates one or more local name bindings synonymous with some other path. Usually a `use` item is used to shorten the path required to refer to a module item. These items may appear in modules and blocks, usually at the top.
+An import item creates one or more local name bindings synonymous with some other path. Usually a `use` item is used to shorten the path required to refer to a module item. These items may appear in modules, usually at the top. **An item must be imported _before_ it can be used**. This is the only instance in Yurt where the order of items is important.
 
-Use declarations support a number of convenient shortcuts:
+"Use" items support a number of convenient shortcuts:
 
-- Simultaneously binding a list of paths with a common prefix, using the brace syntax `use a::b::{c, d, e::f, g::h::i};`
+- Simultaneously binding a list of paths with a common prefix, using the brace syntax `use ::a::b::{c, d, e::f, g::h::i};`
 - Simultaneously binding a list of paths with a common prefix and their common parent module, using the `self` keyword, such as `use a::b::{self, c, d::e};`.
 - Rebinding the target name as a new local name, using the syntax `use p::q::r as x;`. This can also be used with the last two features: `use a::b::{self as ab, c as abc};`.
-- Nesting groups of the previous features multiple times, such as `use a::b::{self as ab, c, d::{e, f::g}};`.
+- Nesting groups of the previous features multiple times, such as `use ::a::b::{self as ab, c, d::{e, f::g}};`.
 
 ### Let Declaration Items
 
-These are variables whose values may or may not be unknown for a given _instance_ for an intent. Solvers are required to find appropriate values for those variables with unknown values at compile-time.
+These are typed **decision variables** whose values must be determined by a solver. They are the the "unknowns" of the program.
 
 Variable declaration items have the following syntax:
 
 ```bnf
-<let-item> ::= "let" <ident> ( ( ":" <ty> ) | ("=" <expr> ) | ( ":" <ty> "=" <expr> ) )
+<let-item> ::= "let" <ident> ( ( ":" <ty> ) | ("=" <expr> ) | ( ":" <ty> "=" <expr> ) ) ";"
 ```
 
 For example:
@@ -662,18 +758,26 @@ For example:
 ```yurt
 let x: int;
 let y = 5;
+let z: int = 7;
 ```
 
 Note that at least one of the type annotation and the initializing expression has to be present so that the type of the variable can be determined. This implies that `let x;` is not a valid variable declaration.
 
+"Initializing" a decision variable is equivalent to imposing an equality constraint on it. For example, `let y = 5` is equivalent to:
+
+```yurt
+let y: int;
+constraint y == 5;
+```
+
 ### State Declaration Items
 
-These are variables that represent blockchain _state_ and require an initializer in the form of a [contract](#contract-items) method call or a call an [`extern` function](#extern-items). State variables are _not_ decision variables and the solver is not required to find values for them as their true value is determined by the blockchain. That being said, state variables can still be used in [constraint items](#constraint-items) to enforce various restrictions on the current and future state values.
+These are variables that represent blockchain _state_ and **require** an initializer in the form of a [contract](#contract-items) method call or a call to an [`extern` function](#extern-items). State variables are _not_ decision variables and the solver is not required to find values for them as their true value is determined by the blockchain. That being said, state variables can still be used in [constraint items](#constraint-items) to enforce various restrictions on the current and [future state values](#prime-expressions).
 
 State declaration items have the following syntax:
 
 ```bnf
-<state-item> ::= "state" <ident> [ ":" <ty> ] "=" <expr>
+<state-item> ::= "state" <ident> [ ":" <ty> ] "=" <expr> ";"
 ```
 
 For example:
@@ -692,7 +796,7 @@ Constraint items represent the core of any intent. Any solution to the intent mu
 Constraint items have this syntax:
 
 ```bnf
-<constraint-item> ::= "constraint" <expr>
+<constraint-item> ::= "constraint" <expr> ";"
 ```
 
 For example:
@@ -955,21 +1059,59 @@ The extra type information is used to confirm correct use, which is not directly
 In Yurt, an enum type is a named enumeration of integer constants. Unlike sum types found in some functional languages, each member of an enum in Yurt is associated with an integer discriminant, making it similar to C-style enums. The syntax for declaring an enum is:
 
 ```bnf
-<enum-decl-item> ::= "enum" <ident> "=" <ident> ( "|" <ident> )*
+<enum-decl-item> ::= "enum" <ident> "=" <ident> ( "|" <ident> )* ";"
 ```
 
 For example, `enum Colour = Red | Green | Blue;` declares an enum with three variants. An instantiation of a `Colour` can be created using a path that includes the name of the enum, as in `Colour::Green;`.
 
-Each enum variant must be assigned a discriminant that matches the index of its location, starting with `0`, in the sequence of variants as they appear in the enum declaration. An enum variant can be converted to an integer that is equal to its assigned discriminant using `as`.
+Each enum variant is assigned a discriminant that matches the index of its location, starting with `0`, in the sequence of variants as they appear in the enum declaration. An enum variant can be converted to an integer that is equal to its assigned discriminant using [`as`](#cast-expressions).
+
+### "New Type" Items
+
+A "new type" item introduces a new custom type with a given name and an underlying type.
+
+The syntax for declaring a new type is:
+
+```bnf
+<new-type-item> ::= "type" <ident> "=" <ty> ";"
+```
+
+For example:
+
+```yurt
+type AccountTuple = { id: int, balance: real, address: string };
+
+type IdArray = int[5];
+
+type Address = string;
+```
+
+New type values may be initialized through:
+
+- Expressions that match the new type's "structure", such as tuple and array expressions.
+
+- Literals of primitive types (`int`, `real`, `bool`, `string`) as long as they are compatible with the new type's underlying definition.
+
+For example:
+
+```yurt
+let walletDetails: AccountTuple = {id: 1, balance: 2.0, address: "0x1234...ABCD"};
+
+let ids: IdArray = [1, 2, 3, 4, 5];
+
+let myAddress: Address = "0x1234567890abcdef";
+```
+
+New types are **not aliases**, meaning they are not completely interchangeable with their underlying type. That is, there is no implicit conversion between a new type and its underlying type (or other new types with the same underlying type) except when explicit literals, array expressions, or tuple expressions are used for initialization.
 
 ### Solve Items
 
 Every intent must have at most one solve item. Solve items have the following syntax:
 
 ```bnf
-<solve-item> ::= "solve" "satisfy"
-               | "solve" "minimize" <expr>
-               | "solve" "maximize" <expr>
+<solve-item> ::= "solve" "satisfy" ";"
+               | "solve" "minimize" <expr> ";"
+               | "solve" "maximize" <expr> ";"
 ```
 
 Example solve items:
@@ -1054,44 +1196,6 @@ The types used in the signature of `extern` functions depend on the types used b
 
 Extern functions are available directly without any special scoping. The only requirement is that the functions are called in the same file where the `extern` block is declared or that the functions are imported using an [import item](#import-items), similarly to regular functions.
 
-### "New Type" Items
-
-New Type items introduce a distinct type that is not directly interchangeable with its underlying type or other new types based on the same underlying type.
-
-The syntax for declaring a new type is:
-
-```bnf
-<new-type-item> ::= "type" <ident> "=" <ty>
-```
-
-For example:
-
-```yurt
-type AccountTuple = { id: int, balance: real, address: string };
-
-type IdArray = int[5];
-
-type Address = string;
-```
-
-In the above declarations:
-
-`AccountTuple` is a new type for a `tuple` type to represent the account's ID, balance, and address. `IdArray` is a new type for an `array` type to represent a list of account ids. `Address` is an new type for the `string` type to represent blockchain addresses or other specific string-based identifiers.
-
-New type values may be initialized through:
-
-- Expressions that conform to the new type's structure (such as tuple and array expressions). For instance, `{ x: .. }` for tuples or `[1, y, .. ]` for arrays.
-
-- Literals of primitive types (`int`, `real`, `bool`, `string`) as long as they are compatible with the new type's underlying definition.
-
-```yurt
-let walletDetails: AccountTuple = {id: 1, balance: 2.0, address: "0x1234...ABCD"};
-
-let ids: IdArray = [1, 2, 3, 4, 5];
-
-let myAddress: Address = "0x1234567890abcdef";
-```
-
 ## Language Backend
 
-The backend of the DSL (or API) that we're building is effectively a Constraint Programming Solver, simply referred to as a "solver" in this documentation. Note, this should not be confused with the "solver" agent in the network. There are numerous commercial solvers that can be targeted, such as [OR-Tools](https://developers.google.com/optimization/), [Geocode](https://www.gecode.org/), and [Chuffed](https://github.com/chuffed/chuffed). We could decide on a standardized JSON output that is generated by the compiler and that can be read and subsequently _solved_ by network participants using their solver of choice (not all solvers are created equal!).
+The backend of the Yurt is effectively a programmatic Solver, simply referred to as a "solver" in this spec. Note, this should not be confused with the "solver" agent in the network. There are numerous commercial solvers that can be targeted, such as [OR-Tools](https://developers.google.com/optimization/), [Geocode](https://www.gecode.org/), and [Chuffed](https://github.com/chuffed/chuffed).
