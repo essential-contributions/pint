@@ -24,15 +24,15 @@ constraint nsw != v;
 // We're just looking for a satisfying assignment of colours
 solve satisfy;
 
-// ast <<<<
+// intermediate <<<<
+// var ::wa: ::Colour;
+// var ::nt: ::Colour;
+// var ::sa: ::Colour;
+// var ::q: ::Colour;
+// var ::nsw: ::Colour;
+// var ::v: ::Colour;
+// var ::t: ::Colour;
 // enum ::Colour = Red | Green | Blue;
-// let ::wa: ::Colour;
-// let ::nt: ::Colour;
-// let ::sa: ::Colour;
-// let ::q: ::Colour;
-// let ::nsw: ::Colour;
-// let ::v: ::Colour;
-// let ::t: ::Colour;
 // constraint (::wa != ::nt);
 // constraint (::wa != ::sa);
 // constraint (::nt != ::sa);

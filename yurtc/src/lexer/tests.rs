@@ -1,5 +1,5 @@
-use crate::error::{Error, LexError};
 use crate::lexer::*;
+use std::{path::Path, rc::Rc};
 
 #[cfg(test)]
 fn check(actual: &str, expect: expect_test::Expect) {
@@ -206,16 +206,7 @@ solve minimize mid;
     assert_eq!(errors.len(), 2);
     assert!(matches!(
         (&errors[0], &errors[1]),
-        (
-            Error::Lex {
-                error: LexError::InvalidToken,
-                ..
-            },
-            Error::Lex {
-                error: LexError::InvalidToken,
-                ..
-            }
-        )
+        (ParseError::Lex { .. }, ParseError::Lex { .. })
     ));
 
     // Check tokens

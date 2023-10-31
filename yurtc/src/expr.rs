@@ -1,111 +1,97 @@
 use crate::{
-    ast::Ident,
+    intent::intermediate::{ExprKey, VarKey},
     span::{Span, Spanned},
+    types::{Path, Type},
 };
 
 mod display;
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Expr<Path, BlockExpr> {
+pub enum Expr {
+    Error(Span),
     Immediate {
         value: Immediate,
         span: Span,
     },
-    Path(Path),
+    PathByKey(VarKey, Span),
+    PathByName(Path, Span),
     UnaryOp {
         op: UnaryOp,
-        expr: Box<Self>,
+        expr: ExprKey,
         span: Span,
     },
     BinaryOp {
         op: BinaryOp,
-        lhs: Box<Self>,
-        rhs: Box<Self>,
+        lhs: ExprKey,
+        rhs: ExprKey,
         span: Span,
     },
     Call {
         name: Path,
-        args: Vec<Self>,
+        args: Vec<ExprKey>,
         span: Span,
     },
-    Block(BlockExpr),
     If {
-        condition: Box<Self>,
-        then_block: BlockExpr,
-        else_block: BlockExpr,
-        span: Span,
-    },
-    Cond {
-        branches: Vec<CondBranch<Self>>,
-        else_result: Box<Self>,
+        condition: ExprKey,
+        then_block: ExprKey,
+        else_block: ExprKey,
         span: Span,
     },
     Array {
-        elements: Vec<Self>,
+        elements: Vec<ExprKey>,
         span: Span,
     },
     ArrayElementAccess {
-        array: Box<Self>,
-        index: Box<Self>,
+        array: ExprKey,
+        index: ExprKey,
         span: Span,
     },
     Tuple {
-        fields: Vec<(Option<Ident>, Self)>,
+        fields: Vec<(Option<Ident>, ExprKey)>,
         span: Span,
     },
     TupleFieldAccess {
-        tuple: Box<Self>,
+        tuple: ExprKey,
         field: TupleAccess,
         span: Span,
     },
     Cast {
-        value: Box<Self>,
-        ty: Box<super::types::Type<Path, Self>>,
+        value: ExprKey,
+        ty: Box<Type>,
         span: Span,
     },
     In {
-        value: Box<Self>,
-        collection: Box<Self>,
+        value: ExprKey,
+        collection: ExprKey,
         span: Span,
     },
     Range {
-        lb: Box<Self>,
-        ub: Box<Self>,
+        lb: ExprKey,
+        ub: ExprKey,
         span: Span,
     },
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum TupleAccess {
-    Index(usize),
-    Name(Ident),
+pub struct Ident {
+    pub(super) name: String,
+    pub(super) span: Span,
 }
 
-impl<Path, BlockExpr> Spanned for Expr<Path, BlockExpr>
-where
-    Path: Spanned,
-    BlockExpr: Spanned,
-{
-    fn span(&self) -> &Span {
-        use Expr::*;
-        match &self {
-            Immediate { span, .. }
-            | UnaryOp { span, .. }
-            | BinaryOp { span, .. }
-            | Call { span, .. }
-            | If { span, .. }
-            | Cond { span, .. }
-            | Array { span, .. }
-            | ArrayElementAccess { span, .. }
-            | Tuple { span, .. }
-            | TupleFieldAccess { span, .. }
-            | Cast { span, .. }
-            | In { span, .. }
-            | Range { span, .. } => span,
-            Path(path) => path.span(),
-            Block(block) => block.span(),
+impl Ident {
+    pub(crate) fn to_full_path(&self, mod_prefix: &str) -> Self {
+        Ident {
+            name: mod_prefix.to_owned() + &self.name,
+            span: self.span.clone(),
         }
     }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum TupleAccess {
+    Error,
+    Index(usize),
+    Name(Ident),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -115,19 +101,6 @@ pub enum Immediate {
     BigInt(num_bigint::BigInt),
     Bool(bool),
     String(String),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct CondBranch<E> {
-    pub(super) condition: Box<E>,
-    pub(super) result: Box<E>,
-    pub(super) span: Span,
-}
-
-impl<E> Spanned for CondBranch<E> {
-    fn span(&self) -> &Span {
-        &self.span
-    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -153,4 +126,26 @@ pub enum BinaryOp {
     NotEqual,
     LogicalAnd,
     LogicalOr,
+}
+
+impl Spanned for Expr {
+    fn span(&self) -> &Span {
+        match self {
+            Expr::Error(span)
+            | Expr::Immediate { span, .. }
+            | Expr::PathByKey(_, span)
+            | Expr::PathByName(_, span)
+            | Expr::UnaryOp { span, .. }
+            | Expr::BinaryOp { span, .. }
+            | Expr::Call { span, .. }
+            | Expr::If { span, .. }
+            | Expr::Array { span, .. }
+            | Expr::ArrayElementAccess { span, .. }
+            | Expr::Tuple { span, .. }
+            | Expr::TupleFieldAccess { span, .. }
+            | Expr::Cast { span, .. }
+            | Expr::In { span, .. }
+            | Expr::Range { span, .. } => span,
+        }
+    }
 }

@@ -1,0 +1,8 @@
+use a::b;
+
+let b: int;
+
+// parse_failure <<<
+// symbol `b` has already been declared
+// >>>
+

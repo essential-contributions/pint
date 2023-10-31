@@ -4,11 +4,12 @@ constraint a == b::b;
 
 solve satisfy;
 
-// ast <<<
-// let ::a: int;
+// intermediate <<<
+// var ::a: int;
+// var ::b::b;
 // constraint (::a == ::b::b);
+// constraint (var ::b::b == 1);
 // solve satisfy;
-// let ::b::b = 1;
 // >>>
 
 // We'll get this error until we implement type inference.

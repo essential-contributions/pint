@@ -1,0 +1,10 @@
+use c_mod::A::{C, D};
+use ::b_mod::c_mod::{A, A::B};
+
+enum X = Y | Z;
+
+let s0 = B;
+let s1 = C;
+let s2 = A::B;
+let s3 = c_mod::A::C;
+let s4 = ::b_mod::c_mod::A::B;

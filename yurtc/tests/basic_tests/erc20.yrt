@@ -18,7 +18,7 @@ contract MyToken(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) implements IERC20, 
 
 solve satisfy;
 
-// ast <<<<
+// intermediate <<<<
 // interface ::IERC20 { fn ::IERC20::totalSupply() -> int; fn ::IERC20::balanceOf(account: int) -> int; fn ::IERC20::allowance(owner: int, spender: int) -> int; };
 // interface ::Ownable { fn ::Ownable::owner() -> int; };
 // contract ::MyToken(917551056842671309452305380979543736893630245704) implements ::IERC20, ::Ownable { fn ::MyToken::custom_function() -> int; };
