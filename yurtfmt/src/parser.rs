@@ -300,7 +300,8 @@ pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Par
         ))
         .boxed();
 
-        binary_op(atom).boxed()
+        let cast = cast(atom);
+        binary_op(cast)
     })
 }
 
@@ -319,6 +320,22 @@ pub(super) fn path<'sc>() -> impl Parser<Token<'sc>, ast::Path, Error = ParseErr
                 pre_colon: pre_colon.is_some(),
                 idents: path,
             }
+        })
+        .boxed()
+}
+
+fn cast<'sc, P>(parser: P) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+{
+    parser
+        .then_ignore(just(Token::As))
+        .then(type_())
+        .map(|(value, ty)| {
+            ast::Expr::Cast(ast::Cast {
+                value: Box::new(value),
+                ty,
+            })
         })
         .boxed()
 }
