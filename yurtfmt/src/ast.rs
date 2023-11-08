@@ -16,14 +16,14 @@ pub(super) enum Decl<'sc> {
     },
     Value {
         name: String,
-        ty: Option<Type>,
+        ty: Option<Type<'sc>>,
         init: Option<Expr<'sc>>,
     },
     Contract {
         name: String,
         expr: Expr<'sc>,
         paths: Option<Vec<Path>>,
-        fn_sigs: Vec<FnSig>,
+        fn_sigs: Vec<FnSig<'sc>>,
     },
     Solve {
         directive: String,
@@ -31,26 +31,26 @@ pub(super) enum Decl<'sc> {
     },
     NewType {
         name: String,
-        ty: Type,
+        ty: Type<'sc>,
     },
     Constraint {
         expr: Expr<'sc>,
     },
     Fn {
-        fn_sig: FnSig,
+        fn_sig: FnSig<'sc>,
         body: Block<'sc>,
     },
     Interface {
         name: String,
-        fn_sigs: Vec<FnSig>,
+        fn_sigs: Vec<FnSig<'sc>>,
     },
     State {
         name: String,
-        ty: Option<Type>,
+        ty: Option<Type<'sc>>,
         expr: Expr<'sc>,
     },
     Extern {
-        fn_sigs: Vec<FnSig>,
+        fn_sigs: Vec<FnSig<'sc>>,
     },
     Enum {
         name: String,
@@ -252,13 +252,13 @@ impl Format for UseTree {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct FnSig {
+pub struct FnSig<'sc> {
     pub(super) name: String,
-    pub(super) params: Option<Vec<(String, Type)>>,
-    pub(super) return_type: Type,
+    pub(super) params: Option<Vec<(String, Type<'sc>)>>,
+    pub(super) return_type: Type<'sc>,
 }
 
-impl Format for FnSig {
+impl<'sc> Format for FnSig<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         formatted_code.write(&format!("fn {}(", self.name));
 
@@ -308,12 +308,13 @@ impl<'sc> Format for Block<'sc> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Type {
+pub(super) enum Type<'sc> {
     Primitive(String),
-    Tuple(Vec<(Option<String>, Type)>),
+    Tuple(Vec<(Option<String>, Box<Self>)>),
+    Array((Box<Self>, Expr<'sc>)),
 }
 
-impl Format for Type {
+impl<'sc> Format for Type<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
             Type::Primitive(primitive_ty) => formatted_code.write(primitive_ty),
@@ -335,6 +336,7 @@ impl Format for Type {
 
                 formatted_code.write(" }");
             }
+            Type::Array(array_ty) => {}
         }
         Ok(())
     }

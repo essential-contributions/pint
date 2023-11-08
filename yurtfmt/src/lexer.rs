@@ -27,6 +27,10 @@ pub(super) enum Token<'sc> {
     BraceOpen,
     #[token("}")]
     BraceClose,
+    #[token("[")]
+    BracketOpen,
+    #[token("]")]
+    BracketClose,
     #[token("(")]
     ParenOpen,
     #[token(")")]
@@ -110,6 +114,8 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Bang => write!(f, "!"),
             Token::BraceOpen => write!(f, "{{"),
             Token::BraceClose => write!(f, "}}"),
+            Token::BracketOpen => write!(f, "["),
+            Token::BracketClose => write!(f, "]"),
             Token::ParenOpen => write!(f, "("),
             Token::ParenClose => write!(f, ")"),
             Token::Arrow => write!(f, "->"),
