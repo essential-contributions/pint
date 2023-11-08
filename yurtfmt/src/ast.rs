@@ -310,8 +310,8 @@ impl<'sc> Format for Block<'sc> {
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Type<'sc> {
     Primitive(String),
-    Tuple(Vec<(Option<String>, Box<Self>)>),
-    Array((Box<Self>, Expr<'sc>)),
+    Tuple(Vec<(Option<String>, Self)>),
+    Array((Box<Self>, Vec<Expr<'sc>>)),
 }
 
 impl<'sc> Format for Type<'sc> {
@@ -336,7 +336,15 @@ impl<'sc> Format for Type<'sc> {
 
                 formatted_code.write(" }");
             }
-            Type::Array(array_ty) => {}
+            Type::Array((array_ty, array_exprs)) => {
+                array_ty.format(formatted_code)?;
+
+                for expr in array_exprs {
+                    formatted_code.write("[");
+                    expr.format(formatted_code)?;
+                    formatted_code.write("]")
+                }
+            }
         }
         Ok(())
     }

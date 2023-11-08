@@ -1,5 +1,3 @@
-use std::ops::RangeBounds;
-
 use crate::{
     ast,
     error::{FormatterError, ParseError},
@@ -273,7 +271,7 @@ fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseErro
     select! { Token::Literal(str) => ast::Immediate(str.to_string()) }.boxed()
 }
 
-fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type<'sc>, Error = ParseError> + Clone {
+pub(super) fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type<'sc>, Error = ParseError> + Clone {
     recursive(|type_| {
         let tuple = (ident().then_ignore(just(Token::Colon)))
             .or_not()
@@ -281,14 +279,12 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type<'sc>, Error = ParseError> +
             .separated_by(just(Token::Comma))
             .allow_trailing()
             .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
-            .map(ast::Type::Tuple)
-            .boxed();
+            .map(ast::Type::Tuple);
 
         let type_atom = choice((
             select! { Token::Primitive(type_str) => ast::Type::Primitive(type_str.parse().unwrap()) },
-            tuple
-        ))
-        .boxed();
+            tuple,
+        ));
 
         type_atom
             .clone()
@@ -298,7 +294,6 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type<'sc>, Error = ParseError> +
                     .repeated(),
             )
             .map(|(ty, ranges)| ast::Type::Array((Box::new(ty), ranges)))
-            // .foldr(|(ranges, ty)| )
             .boxed()
     })
 }
