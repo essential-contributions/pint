@@ -293,7 +293,8 @@ pub(super) fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type<'sc>, Error = Pa
             .then(
                 expr()
                     .delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
-                    .repeated(),
+                    .repeated()
+                    .at_least(1),
             )
             .map(|(ty, ranges)| ast::Type::Array((Box::new(ty), ranges)))
             .boxed();
