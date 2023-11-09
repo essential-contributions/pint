@@ -288,7 +288,7 @@ pub(super) fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type<'sc>, Error = Pa
         ))
         .boxed();
 
-        type_atom
+        let array = type_atom
             .clone()
             .then(
                 expr()
@@ -296,7 +296,9 @@ pub(super) fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type<'sc>, Error = Pa
                     .repeated(),
             )
             .map(|(ty, ranges)| ast::Type::Array((Box::new(ty), ranges)))
-            .boxed()
+            .boxed();
+
+        choice((array, type_atom))
     })
 }
 
