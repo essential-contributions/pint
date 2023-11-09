@@ -323,22 +323,6 @@ pub(super) fn path<'sc>() -> impl Parser<Token<'sc>, ast::Path, Error = ParseErr
         .boxed()
 }
 
-fn in_expr<'sc, P>(parser: P) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone
-where
-    P: Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
-{
-    parser
-        .clone()
-        .then(just(Token::In).ignore_then(parser).repeated())
-        .map(|(lhs, rhs)| {
-            ast::Expr::In(ast::In {
-                lhs: Box::new(lhs),
-                rhs: Box::new(rhs),
-            })
-        })
-        .boxed()
-}
-
 fn unary_op<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc {
@@ -355,6 +339,22 @@ fn unary_op<'sc>(
         })
     })
     .boxed()
+}
+
+fn in_expr<'sc, P>(parser: P) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+{
+    parser
+        .clone()
+        .then(just(Token::In).ignore_then(parser).repeated())
+        .map(|(lhs, rhs)| {
+            ast::Expr::In(ast::In {
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+            })
+        })
+        .boxed()
 }
 
 fn binary_op<'sc, P>(
