@@ -706,3 +706,61 @@ fn enum_decl() {
         expect_test::expect![[r#"enum Weather = Sunny | Rainy;"#]],
     );
 }
+
+#[test]
+fn array_types() {
+    check(
+        &run_formatter!(type_(), "int[   10   ]"),
+        expect_test::expect![[r#"int[10]"#]],
+    );
+    check(
+        &run_formatter!(
+            type_(),
+            "string[
+Day
+]"
+        ),
+        expect_test::expect![[r#"string[Day]"#]],
+    );
+    check(
+        &run_formatter!(
+            type_(),
+            "bool [  10  ] [ 
+Colour
+]"
+        ),
+        expect_test::expect![[r#"bool[10][Colour]"#]],
+    );
+    check(
+        &run_formatter!(type_(), "real [3] [ 4 ][  5]"),
+        expect_test::expect![[r#"real[3][4][5]"#]],
+    );
+    check(
+        &run_formatter!(
+            type_(),
+            "
+
+real [   0   ] [ 2 ]"
+        ),
+        expect_test::expect![[r#"real[0][2]"#]],
+    );
+    check(
+        &run_formatter!(
+            type_(),
+            "string[
+N
+][
+Colour
+]"
+        ),
+        expect_test::expect![[r#"string[N][Colour]"#]],
+    );
+    check(
+        &run_formatter!(type_(), "string[  N   ][Colour  ]"),
+        expect_test::expect![[r#"string[N][Colour]"#]],
+    );
+    check(
+        &run_formatter!(type_(), "bool[N][Colour]    "),
+        expect_test::expect![[r#"bool[N][Colour]"#]],
+    );
+}
