@@ -279,12 +279,14 @@ pub(super) fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type<'sc>, Error = Pa
             .separated_by(just(Token::Comma))
             .allow_trailing()
             .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
-            .map(ast::Type::Tuple);
+            .map(ast::Type::Tuple)
+            .boxed();
 
         let type_atom = choice((
             select! { Token::Primitive(type_str) => ast::Type::Primitive(type_str.parse().unwrap()) },
             tuple,
-        ));
+        ))
+        .boxed();
 
         type_atom
             .clone()
