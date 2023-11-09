@@ -300,7 +300,8 @@ pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Par
         ))
         .boxed();
 
-        binary_op(atom).boxed()
+        let in_expr = in_expr(atom).boxed();
+        binary_op(in_expr).boxed()
     })
 }
 
@@ -348,7 +349,7 @@ where
     parser
         .clone()
         .then(just(Token::In).ignore_then(parser).repeated())
-        .map(|(lhs, rhs)| {
+        .foldl(|lhs, rhs| {
             ast::Expr::In(ast::In {
                 lhs: Box::new(lhs),
                 rhs: Box::new(rhs),

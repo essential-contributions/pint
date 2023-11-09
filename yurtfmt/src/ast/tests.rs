@@ -706,3 +706,35 @@ fn enum_decl() {
         expect_test::expect![[r#"enum Weather = Sunny | Rainy;"#]],
     );
 }
+
+#[test]
+fn in_expressions() {
+    check(
+        &run_formatter!(expr(), "42    in y"),
+        expect_test::expect![[r#"42 in y"#]],
+    );
+    check(
+        &run_formatter!(
+            expr(),
+            "
+!x in y"
+        ),
+        expect_test::expect![[r#"!x in y"#]],
+    );
+    check(
+        &run_formatter!(
+            expr(),
+            "x in   y 
+&&    z in w"
+        ),
+        expect_test::expect![[r#"x in y && z in w"#]],
+    );
+    check(
+        &run_formatter!(
+            expr(),
+            "!x   in
+y ||    42 in   z"
+        ),
+        expect_test::expect![[r#"!x in y || 42 in z"#]],
+    );
+}
