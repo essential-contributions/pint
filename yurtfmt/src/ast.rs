@@ -399,11 +399,36 @@ impl<'sc> Format for BinaryOp<'sc> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct Call<'sc> {
+    pub path: Path,
+    pub args: Vec<Expr<'sc>>,
+}
+
+impl<'sc> Format for Call<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        self.path.format(formatted_code)?;
+
+        formatted_code.write("(");
+        for (i, arg) in self.args.iter().enumerate() {
+            arg.format(formatted_code)?;
+
+            // If not the last element, append a comma
+            if i < self.args.len() - 1 {
+                formatted_code.write(", ");
+            }
+        }
+        formatted_code.write(")");
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) enum Expr<'sc> {
     Immediate(Immediate),
     Path(Path),
     UnaryOp(UnaryOp<'sc>),
     BinaryOp(BinaryOp<'sc>),
+    Call(Call<'sc>),
 }
 
 impl<'sc> Format for Expr<'sc> {
@@ -413,6 +438,7 @@ impl<'sc> Format for Expr<'sc> {
             Self::Path(path) => path.format(formatted_code)?,
             Self::UnaryOp(unary_op) => unary_op.format(formatted_code)?,
             Self::BinaryOp(binary_op) => binary_op.format(formatted_code)?,
+            Self::Call(call) => call.format(formatted_code)?,
         }
 
         Ok(())

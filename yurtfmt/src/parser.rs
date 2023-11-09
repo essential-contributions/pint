@@ -293,9 +293,20 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError> + Clon
 
 pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone {
     recursive(|expr| {
+        let call = path()
+            .then(
+                expr.clone()
+                    .separated_by(just(Token::Comma))
+                    .allow_trailing()
+                    .delimited_by(just(Token::ParenOpen), just(Token::ParenClose)),
+            )
+            .map(|(path, args)| ast::Expr::Call(ast::Call { path, args }))
+            .boxed();
+
         let atom = choice((
             unary_op(expr.clone()),
             immediate().map(ast::Expr::Immediate),
+            call,
             path().map(ast::Expr::Path),
         ))
         .boxed();
