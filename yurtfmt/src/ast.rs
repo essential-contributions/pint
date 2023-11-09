@@ -401,14 +401,17 @@ impl<'sc> Format for BinaryOp<'sc> {
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Cast<'sc> {
     pub value: Box<Expr<'sc>>,
-    pub ty: Type,
+    pub types: Vec<Type>,
 }
 
 impl<'sc> Format for Cast<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         self.value.format(formatted_code)?;
-        formatted_code.write(" as ");
-        self.ty.format(formatted_code)?;
+
+        for ty in &self.types {
+            formatted_code.write(" as ");
+            ty.format(formatted_code)?;
+        }
         Ok(())
     }
 }

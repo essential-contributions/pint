@@ -329,12 +329,11 @@ where
     P: Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
 {
     parser
-        .then_ignore(just(Token::As))
-        .then(type_())
-        .map(|(value, ty)| {
+        .then((just(Token::As)).ignore_then(type_()).repeated())
+        .map(|(value, types)| {
             ast::Expr::Cast(ast::Cast {
                 value: Box::new(value),
-                ty,
+                types,
             })
         })
         .boxed()
