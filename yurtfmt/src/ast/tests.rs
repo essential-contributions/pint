@@ -764,3 +764,64 @@ Colour
         expect_test::expect![[r#"bool[N][Colour]"#]],
     );
 }
+
+#[test]
+fn call_expressions() {
+    check(
+        &run_formatter!(expr(), "foo        ()"),
+        expect_test::expect![[r#"foo()"#]],
+    );
+    check(
+        &run_formatter!(
+            expr(),
+            "foo( 5, 
+            2 )"
+        ),
+        expect_test::expect![[r#"foo(5, 2)"#]],
+    );
+    check(
+        &run_formatter!(expr(), "foo(    5  ,  10    ,20)"),
+        expect_test::expect![[r#"foo(5, 10, 20)"#]],
+    );
+    check(
+        &run_formatter!(
+            expr(),
+            "foo(
+5,
+    10,
+            20
+)"
+        ),
+        expect_test::expect![[r#"foo(5, 10, 20)"#]],
+    );
+    check(
+        &run_formatter!(
+            expr(),
+            "foo(   5 , 
+    10  ,
+     20   )"
+        ),
+        expect_test::expect![[r#"foo(5, 10, 20)"#]],
+    );
+    check(
+        &run_formatter!(expr(), "foo(bar(5,6), 2)"),
+        expect_test::expect![[r#"foo(bar(5, 6), 2)"#]],
+    );
+    check(
+        &run_formatter!(
+            expr(),
+            "
+        
+foo  (  5,2  )"
+        ),
+        expect_test::expect![[r#"foo(5, 2)"#]],
+    );
+    check(
+        &run_formatter!(expr(), "foo(5, 2,)"),
+        expect_test::expect![[r#"foo(5, 2)"#]],
+    );
+    check(
+        &run_formatter!(expr(), "           foo    (5, 2)"),
+        expect_test::expect![[r#"foo(5, 2)"#]],
+    );
+}
