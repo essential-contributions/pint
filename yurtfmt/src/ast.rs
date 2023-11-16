@@ -441,11 +441,9 @@ pub(super) struct Cast<'sc> {
 impl<'sc> Format for Cast<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         self.value.format(formatted_code)?;
-
-        // for ty in &self.types {
         formatted_code.write(" as ");
         self.ty.format(formatted_code)?;
-        // }
+
         Ok(())
     }
 }
