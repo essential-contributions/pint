@@ -710,12 +710,12 @@ fn enum_decl() {
 #[test]
 fn array_types() {
     check(
-        &run_formatter!(type_(), "int[   10   ]"),
+        &run_formatter!(type_(expr()), "int[   10   ]"),
         expect_test::expect![[r#"int[10]"#]],
     );
     check(
         &run_formatter!(
-            type_(),
+            type_(expr()),
             "string[
 Day
 ]"
@@ -724,7 +724,7 @@ Day
     );
     check(
         &run_formatter!(
-            type_(),
+            type_(expr()),
             "bool [  10  ] [ 
 Colour
 ]"
@@ -732,12 +732,12 @@ Colour
         expect_test::expect![[r#"bool[10][Colour]"#]],
     );
     check(
-        &run_formatter!(type_(), "real [3] [ 4 ][  5]"),
+        &run_formatter!(type_(expr()), "real [3] [ 4 ][  5]"),
         expect_test::expect![[r#"real[3][4][5]"#]],
     );
     check(
         &run_formatter!(
-            type_(),
+            type_(expr()),
             "
 
 real [   0   ] [ 2 ]"
@@ -746,7 +746,7 @@ real [   0   ] [ 2 ]"
     );
     check(
         &run_formatter!(
-            type_(),
+            type_(expr()),
             "string[
 N
 ][
@@ -756,11 +756,11 @@ Colour
         expect_test::expect![[r#"string[N][Colour]"#]],
     );
     check(
-        &run_formatter!(type_(), "string[  N   ][Colour  ]"),
+        &run_formatter!(type_(expr()), "string[  N   ][Colour  ]"),
         expect_test::expect![[r#"string[N][Colour]"#]],
     );
     check(
-        &run_formatter!(type_(), "bool[N][Colour]    "),
+        &run_formatter!(type_(expr()), "bool[N][Colour]    "),
         expect_test::expect![[r#"bool[N][Colour]"#]],
     );
 }
