@@ -738,3 +738,11 @@ y ||    42 in   z"
         expect_test::expect![[r#"!x in y || 42 in z"#]],
     );
 }
+
+#[test]
+fn range_expressions() {
+    check(
+        &run_formatter!(expr(), "1..2"),
+        expect_test::expect![[r#"1..2"#]],
+    );
+}
