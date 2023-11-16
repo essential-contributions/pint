@@ -435,17 +435,17 @@ impl<'sc> Format for Call<'sc> {
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Cast<'sc> {
     pub value: Box<Expr<'sc>>,
-    pub types: Vec<Type<'sc>>,
+    pub ty: Type<'sc>,
 }
 
 impl<'sc> Format for Cast<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         self.value.format(formatted_code)?;
 
-        for ty in &self.types {
-            formatted_code.write(" as ");
-            ty.format(formatted_code)?;
-        }
+        // for ty in &self.types {
+        formatted_code.write(" as ");
+        self.ty.format(formatted_code)?;
+        // }
         Ok(())
     }
 }

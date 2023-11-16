@@ -323,7 +323,7 @@ pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Par
         ))
         .boxed();
 
-        let cast = cast(atom); // Fold -> just a value and a type
+        let cast = cast(atom);
         binary_op(cast)
     })
 }
@@ -352,16 +352,11 @@ where
     P: Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
 {
     parser
-        .then(
-            (just(Token::As))
-                .ignore_then(type_())
-                .repeated()
-                .at_least(1),
-        )
-        .map(|(value, types)| {
+        .then((just(Token::As)).ignore_then(type_()).repeated())
+        .foldl(|value, ty| {
             ast::Expr::Cast(ast::Cast {
                 value: Box::new(value),
-                types,
+                ty,
             })
         })
         .boxed()
