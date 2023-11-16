@@ -829,20 +829,24 @@ foo  (  5,2  )"
 #[test]
 fn casting() {
     check(
-        &run_formatter!(expr(), "5 as int"),
+        &run_formatter!(expr(), "5 as      int"),
         expect_test::expect![[r#"5 as int"#]],
     );
     check(
-        &run_formatter!(expr(), "5 as int as real as int"),
+        &run_formatter!(expr(), "5    as int     as real as    int"),
         expect_test::expect![[r#"5 as int as real as int"#]],
     );
     check(
-        &run_formatter!(expr(), "5 as { x: int, y: real, z: string }"),
+        &run_formatter!(
+            expr(),
+            "5 as { x: int, 
+            y: real,    z: string }"
+        ),
         expect_test::expect![[r#"5 as { x: int, y: real, z: string }"#]],
     );
     // TODO: enable when array exprs are supported
     // check(
-    //     &run_formatter!(expr(), "a[5][3] as real"),
+    //     &run_formatter!(expr(), "a[5][3]   as real"),
     //     expect_test::expect![[r#"a[5][3] as real"#]],
     // );
 }
