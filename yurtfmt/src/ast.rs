@@ -433,12 +433,32 @@ impl<'sc> Format for Call<'sc> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct If<'sc> {
+    pub condition: Box<Expr<'sc>>,
+    pub true_code_block: Block<'sc>,
+    pub false_code_block: Block<'sc>,
+}
+
+impl<'sc> Format for If<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        formatted_code.write("if ");
+        self.condition.format(formatted_code)?;
+        self.true_code_block.format(formatted_code)?;
+        formatted_code.write(" else ");
+        self.false_code_block.format(formatted_code)?;
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) enum Expr<'sc> {
     Immediate(Immediate),
     Path(Path),
     UnaryOp(UnaryOp<'sc>),
     BinaryOp(BinaryOp<'sc>),
     Call(Call<'sc>),
+    If(If<'sc>),
 }
 
 impl<'sc> Format for Expr<'sc> {
@@ -449,6 +469,7 @@ impl<'sc> Format for Expr<'sc> {
             Self::UnaryOp(unary_op) => unary_op.format(formatted_code)?,
             Self::BinaryOp(binary_op) => binary_op.format(formatted_code)?,
             Self::Call(call) => call.format(formatted_code)?,
+            Self::If(if_) => if_.format(formatted_code)?,
         }
 
         Ok(())
