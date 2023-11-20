@@ -433,12 +433,44 @@ impl<'sc> Format for Call<'sc> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct In<'sc> {
+    pub lhs: Box<Expr<'sc>>,
+    pub rhs: Box<Expr<'sc>>,
+}
+
+impl<'sc> Format for In<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        self.lhs.format(formatted_code)?;
+        formatted_code.write(" in ");
+        self.rhs.format(formatted_code)?;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct Range<'sc> {
+    pub lb: Box<Expr<'sc>>,
+    pub ub: Box<Expr<'sc>>,
+}
+
+impl<'sc> Format for Range<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        self.lb.format(formatted_code)?;
+        formatted_code.write("..");
+        self.ub.format(formatted_code)?;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) enum Expr<'sc> {
     Immediate(Immediate),
     Path(Path),
     UnaryOp(UnaryOp<'sc>),
     BinaryOp(BinaryOp<'sc>),
     Call(Call<'sc>),
+    In(In<'sc>),
+    Range(Range<'sc>),
 }
 
 impl<'sc> Format for Expr<'sc> {
@@ -449,6 +481,8 @@ impl<'sc> Format for Expr<'sc> {
             Self::UnaryOp(unary_op) => unary_op.format(formatted_code)?,
             Self::BinaryOp(binary_op) => binary_op.format(formatted_code)?,
             Self::Call(call) => call.format(formatted_code)?,
+            Self::In(in_) => in_.format(formatted_code)?,
+            Self::Range(range) => range.format(formatted_code)?,
         }
 
         Ok(())
