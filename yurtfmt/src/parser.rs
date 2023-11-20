@@ -218,7 +218,8 @@ pub(super) fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = 
         .map(|(fn_sig, body)| ast::Decl::Fn { fn_sig, body })
 }
 
-pub(super) fn fn_sig<'sc>() -> impl Parser<Token<'sc>, ast::FnSig, Error = ParseError> + Clone {
+pub(super) fn fn_sig<'sc>() -> impl Parser<Token<'sc>, ast::FnSig<'sc>, Error = ParseError> + Clone
+{
     let return_type = just(Token::Arrow).ignore_then(type_()).boxed();
 
     let type_spec = just(Token::Colon).ignore_then(type_()).boxed();
@@ -270,7 +271,7 @@ fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseErro
     select! { Token::Literal(str) => ast::Immediate(str.to_string()) }.boxed()
 }
 
-fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError> + Clone {
+pub(super) fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type<'sc>, Error = ParseError> + Clone {
     recursive(|type_| {
         let tuple = (ident().then_ignore(just(Token::Colon)))
             .or_not()
@@ -283,19 +284,41 @@ fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type, Error = ParseError> + Clon
 
         let type_atom = choice((
             select! { Token::Primitive(type_str) => ast::Type::Primitive(type_str.parse().unwrap()) },
-            tuple
+            tuple,
         ))
         .boxed();
 
-        type_atom
+        let array = type_atom
+            .clone()
+            .then(
+                expr()
+                    .delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
+                    .repeated()
+                    .at_least(1),
+            )
+            .map(|(ty, ranges)| ast::Type::Array((Box::new(ty), ranges)))
+            .boxed();
+
+        choice((array, type_atom))
     })
 }
 
 pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone {
     recursive(|expr| {
+        let call = path()
+            .then(
+                expr.clone()
+                    .separated_by(just(Token::Comma))
+                    .allow_trailing()
+                    .delimited_by(just(Token::ParenOpen), just(Token::ParenClose)),
+            )
+            .map(|(path, args)| ast::Expr::Call(ast::Call { path, args }))
+            .boxed();
+
         let atom = choice((
             unary_op(expr.clone()),
             immediate().map(ast::Expr::Immediate),
+            call,
             path().map(ast::Expr::Path),
         ))
         .boxed();

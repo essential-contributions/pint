@@ -16,14 +16,14 @@ pub(super) enum Decl<'sc> {
     },
     Value {
         name: String,
-        ty: Option<Type>,
+        ty: Option<Type<'sc>>,
         init: Option<Expr<'sc>>,
     },
     Contract {
         name: String,
         expr: Expr<'sc>,
         paths: Option<Vec<Path>>,
-        fn_sigs: Vec<FnSig>,
+        fn_sigs: Vec<FnSig<'sc>>,
     },
     Solve {
         directive: String,
@@ -31,26 +31,26 @@ pub(super) enum Decl<'sc> {
     },
     NewType {
         name: String,
-        ty: Type,
+        ty: Type<'sc>,
     },
     Constraint {
         expr: Expr<'sc>,
     },
     Fn {
-        fn_sig: FnSig,
+        fn_sig: FnSig<'sc>,
         body: Block<'sc>,
     },
     Interface {
         name: String,
-        fn_sigs: Vec<FnSig>,
+        fn_sigs: Vec<FnSig<'sc>>,
     },
     State {
         name: String,
-        ty: Option<Type>,
+        ty: Option<Type<'sc>>,
         expr: Expr<'sc>,
     },
     Extern {
-        fn_sigs: Vec<FnSig>,
+        fn_sigs: Vec<FnSig<'sc>>,
     },
     Enum {
         name: String,
@@ -252,13 +252,13 @@ impl Format for UseTree {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct FnSig {
+pub struct FnSig<'sc> {
     pub(super) name: String,
-    pub(super) params: Option<Vec<(String, Type)>>,
-    pub(super) return_type: Type,
+    pub(super) params: Option<Vec<(String, Type<'sc>)>>,
+    pub(super) return_type: Type<'sc>,
 }
 
-impl Format for FnSig {
+impl<'sc> Format for FnSig<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         formatted_code.write(&format!("fn {}(", self.name));
 
@@ -308,12 +308,13 @@ impl<'sc> Format for Block<'sc> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Type {
+pub(super) enum Type<'sc> {
     Primitive(String),
-    Tuple(Vec<(Option<String>, Type)>),
+    Tuple(Vec<(Option<String>, Self)>),
+    Array((Box<Self>, Vec<Expr<'sc>>)),
 }
 
-impl Format for Type {
+impl<'sc> Format for Type<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
             Type::Primitive(primitive_ty) => formatted_code.write(primitive_ty),
@@ -334,6 +335,15 @@ impl Format for Type {
                 }
 
                 formatted_code.write(" }");
+            }
+            Type::Array((array_ty, array_exprs)) => {
+                array_ty.format(formatted_code)?;
+
+                for expr in array_exprs {
+                    formatted_code.write("[");
+                    expr.format(formatted_code)?;
+                    formatted_code.write("]")
+                }
             }
         }
         Ok(())
@@ -399,6 +409,30 @@ impl<'sc> Format for BinaryOp<'sc> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct Call<'sc> {
+    pub path: Path,
+    pub args: Vec<Expr<'sc>>,
+}
+
+impl<'sc> Format for Call<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        self.path.format(formatted_code)?;
+
+        formatted_code.write("(");
+        for (i, arg) in self.args.iter().enumerate() {
+            arg.format(formatted_code)?;
+
+            // If not the last element, append a comma
+            if i < self.args.len() - 1 {
+                formatted_code.write(", ");
+            }
+        }
+        formatted_code.write(")");
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) struct In<'sc> {
     pub lhs: Box<Expr<'sc>>,
     pub rhs: Box<Expr<'sc>>,
@@ -434,6 +468,7 @@ pub(super) enum Expr<'sc> {
     Path(Path),
     UnaryOp(UnaryOp<'sc>),
     BinaryOp(BinaryOp<'sc>),
+    Call(Call<'sc>),
     In(In<'sc>),
     Range(Range<'sc>),
 }
@@ -445,6 +480,7 @@ impl<'sc> Format for Expr<'sc> {
             Self::Path(path) => path.format(formatted_code)?,
             Self::UnaryOp(unary_op) => unary_op.format(formatted_code)?,
             Self::BinaryOp(binary_op) => binary_op.format(formatted_code)?,
+            Self::Call(call) => call.format(formatted_code)?,
             Self::In(in_) => in_.format(formatted_code)?,
             Self::Range(range) => range.format(formatted_code)?,
         }
