@@ -390,3 +390,21 @@ where
         })
         .boxed()
 }
+
+fn if_expr<'sc, P>(parser: P) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+{
+    just(Token::If)
+        .ignore_then(parser)
+        .then(code_block_expr(expr()))
+        .then_ignore(just(Token::Else))
+        .then(code_block_expr(expr()))
+        .map(|((condition, true_code_block), false_code_block)| {
+            ast::Expr::If(ast::If {
+                condition: Box::new(condition),
+                true_code_block,
+                false_code_block,
+            })
+        })
+}
