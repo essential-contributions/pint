@@ -825,3 +825,11 @@ foo  (  5,2  )"
         expect_test::expect![[r#"foo(5, 2)"#]],
     );
 }
+
+#[test]
+fn if_statements() {
+    check(
+        &run_formatter!(expr(), "if 1 == 2 { 3 } else { 4 }"),
+        expect_test::expect![[r#"if 1 == 2 { 3 } else { 4 }"#]],
+    );
+}
