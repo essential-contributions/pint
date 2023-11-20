@@ -15,6 +15,21 @@ fn lex_one_success(src: &str) -> Token<'_> {
     toks[0].0.clone()
 }
 
+#[cfg(test)]
+pub(super) fn lex(
+    src: &str,
+    filepath: Rc<std::path::Path>,
+) -> (Vec<(Token, Span)>, Vec<ParseError>) {
+    use itertools::Itertools;
+    Token::lexer(src).spanned().partition_map(|(r, span)| {
+        let span = Span::new(Rc::clone(&filepath), span);
+        match r {
+            Ok(v) => itertools::Either::Left((v, span)),
+            Err(_) => itertools::Either::Right(ParseError::Lex { span }),
+        }
+    })
+}
+
 #[test]
 fn control_tokens() {
     assert_eq!(lex_one_success(":"), Token::Colon);
@@ -238,4 +253,418 @@ solve minimize mid;
     assert!(matches!(tokens[20].0, Minimize));
     assert!(matches!(tokens[21].0, Ident("mid")));
     assert!(matches!(tokens[22].0, Semi));
+}
+
+#[test]
+fn macros_success() {
+    use Token::*;
+
+    let path = Rc::from(Path::new("test"));
+
+    // Simple success cases.
+    let mut toks = Lexer::new("macro @name()", &Rc::clone(&path));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenOpen, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
+    assert!(toks.next().is_none());
+
+    let mut toks = Lexer::new("macro @name_x11($a)", &Rc::clone(&path));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name_x11"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenOpen, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroParam("$a"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
+    assert!(toks.next().is_none());
+
+    let mut toks = Lexer::new("macro @name($Z, $9)", &Rc::clone(&path));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenOpen, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroParam("$Z"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Comma, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroParam("$9"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
+    assert!(toks.next().is_none());
+
+    let mut toks = Lexer::new("macro @name($Z, $9,)", &Rc::clone(&path));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenOpen, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroParam("$Z"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Comma, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroParam("$9"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Comma, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
+    assert!(toks.next().is_none());
+
+    let mut toks = Lexer::new("macro @name() {} constraint", &Rc::clone(&path));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenOpen, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroBody(_), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Constraint, _)));
+    assert!(toks.next().is_none());
+
+    let mut toks = Lexer::new(r#"macro @name() { let it "be" 88 ; }"#, &Rc::clone(&path));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenOpen, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
+    let body = toks.next().unwrap().unwrap();
+    assert!(toks.next().is_none());
+
+    assert!(matches!(body, (_, MacroBody(_), _)));
+    if let MacroBody(body_toks) = body.1 {
+        assert_eq!(body_toks.len(), 7);
+        assert!(matches!(body_toks[0], BraceOpen));
+        assert!(matches!(body_toks[1], Let));
+        assert!(matches!(body_toks[2], Ident("it")));
+        assert!(matches!(body_toks[3], StringLiteral(_)));
+        assert!(matches!(body_toks[4], IntLiteral("88")));
+        assert!(matches!(body_toks[5], Semi));
+        assert!(matches!(body_toks[6], BraceClose));
+    } else {
+        unreachable!()
+    }
+
+    // Nested braces.
+    let mut toks = Lexer::new("macro @name() { a { b}{{}c}{ d }} let", &Rc::clone(&path));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenOpen, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
+    let body = toks.next().unwrap().unwrap();
+    assert!(matches!(body, (_, MacroBody(_), _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Let, _)));
+    assert!(toks.next().is_none());
+
+    if let MacroBody(body_toks) = body.1 {
+        assert_eq!(body_toks.len(), 14);
+        assert!(matches!(body_toks[0], BraceOpen));
+        assert!(matches!(body_toks[1], Ident("a")));
+        assert!(matches!(body_toks[2], BraceOpen));
+        assert!(matches!(body_toks[3], Ident("b")));
+        assert!(matches!(body_toks[4], BraceClose));
+        assert!(matches!(body_toks[5], BraceOpen));
+        assert!(matches!(body_toks[6], BraceOpen));
+        assert!(matches!(body_toks[7], BraceClose));
+        assert!(matches!(body_toks[8], Ident("c")));
+        assert!(matches!(body_toks[9], BraceClose));
+        assert!(matches!(body_toks[10], BraceOpen));
+        assert!(matches!(body_toks[11], Ident("d")));
+        assert!(matches!(body_toks[12], BraceClose));
+        assert!(matches!(body_toks[13], BraceClose));
+    } else {
+        unreachable!()
+    }
+}
+
+#[test]
+fn macros_badly_formed() {
+    use Token::*;
+
+    let path = Rc::from(Path::new("test"));
+
+    // Macro name has no `@`, should not parse the body.
+    let mut toks = Lexer::new("macro bad() { 11 }", &Rc::clone(&path));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, Ident("bad"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenOpen, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, BraceOpen, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, IntLiteral("11"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, BraceClose, _)));
+    assert!(toks.next().is_none());
+
+    // Macro params have no `$`, should not parse the body.
+    let mut toks = Lexer::new("macro @name(bad, param) { 22 }", &Rc::clone(&path));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenOpen, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, Ident("bad"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Comma, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, Ident("param"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, BraceOpen, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, IntLiteral("22"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, BraceClose, _)));
+    assert!(toks.next().is_none());
+
+    let mut toks = Lexer::new("macro @name($good, bad) { 33 }", &Rc::clone(&path));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenOpen, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroParam("$good"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Comma, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, Ident("bad"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, BraceOpen, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, IntLiteral("33"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, BraceClose, _)));
+    assert!(toks.next().is_none());
+
+    // Badly nested braces, should backtrack.
+    let mut toks = Lexer::new("macro @name() { { } let", &Rc::clone(&path));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenOpen, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
+    // Not a macro body...
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, BraceOpen, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, BraceOpen, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, BraceClose, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Let, _)));
+    assert!(toks.next().is_none());
+}
+
+#[test]
+fn macros_call_success() {
+    use Token::*;
+
+    let path = Rc::from(Path::new("test"));
+
+    let mut toks = Lexer::new("@name()", &Rc::clone(&path));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    let args = toks.next().unwrap().unwrap();
+    assert!(matches!(args, (_, MacroCallArgs(_), _)));
+    assert!(toks.next().is_none());
+    if let MacroCallArgs(args) = args.1 {
+        assert!(args.is_empty());
+    } else {
+        unreachable!()
+    }
+
+    let mut toks = Lexer::new("11 + @name()", &Rc::clone(&path));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, IntLiteral("11"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Plus, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroCallArgs(_), _)
+    ));
+    assert!(toks.next().is_none());
+
+    let mut toks = Lexer::new("@name(int)", &Rc::clone(&path));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    let args = toks.next().unwrap().unwrap();
+    assert!(matches!(args, (_, MacroCallArgs(_), _)));
+    assert!(toks.next().is_none());
+    if let MacroCallArgs(args) = args.1 {
+        assert_eq!(args.len(), 1);
+        assert_eq!(args[0].len(), 1);
+        assert!(matches!(args[0][0], Int));
+    } else {
+        unreachable!()
+    }
+
+    let mut toks = Lexer::new("@name(int; foo) || true", &Rc::clone(&path));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    let args = toks.next().unwrap().unwrap();
+    assert!(matches!(args, (_, MacroCallArgs(_), _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, DoublePipe, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, True, _)));
+    assert!(toks.next().is_none());
+    if let MacroCallArgs(args) = args.1 {
+        assert_eq!(args.len(), 2);
+        assert_eq!(args[0].len(), 1);
+        assert!(matches!(args[0][0], Int));
+        assert_eq!(args[1].len(), 1);
+        assert!(matches!(args[1][0], Ident(_)));
+    } else {
+        unreachable!()
+    }
+
+    let mut toks = Lexer::new("@name(1 + 2; [1, 2];)", &Rc::clone(&path));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    let args = toks.next().unwrap().unwrap();
+    assert!(matches!(args, (_, MacroCallArgs(_), _)));
+    assert!(toks.next().is_none());
+    if let MacroCallArgs(args) = args.1 {
+        assert_eq!(args.len(), 2);
+        assert_eq!(args[0].len(), 3);
+        assert!(matches!(args[0][0], IntLiteral("1")));
+        assert!(matches!(args[0][1], Plus));
+        assert!(matches!(args[0][2], IntLiteral("2")));
+        assert_eq!(args[1].len(), 5);
+        assert!(matches!(args[1][0], BracketOpen));
+        assert!(matches!(args[1][1], IntLiteral("1")));
+        assert!(matches!(args[1][2], Comma));
+        assert!(matches!(args[1][3], IntLiteral("2")));
+        assert!(matches!(args[1][4], BracketClose));
+    } else {
+        unreachable!()
+    }
+
+    let mut toks = Lexer::new("@name(let i: int = 0;)", &Rc::clone(&path));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    let args = toks.next().unwrap().unwrap();
+    assert!(matches!(args, (_, MacroCallArgs(_), _)));
+    assert!(toks.next().is_none());
+    if let MacroCallArgs(args) = args.1 {
+        assert_eq!(args.len(), 1);
+        assert_eq!(args[0].len(), 6);
+        assert!(matches!(args[0][0], Let));
+        assert!(matches!(args[0][1], Ident(_)));
+        assert!(matches!(args[0][2], Colon));
+        assert!(matches!(args[0][3], Int));
+        assert!(matches!(args[0][4], Eq));
+        assert!(matches!(args[0][5], IntLiteral("0")));
+    } else {
+        unreachable!()
+    }
+
+    let mut toks = Lexer::new("@name(1,2,3,4,5,6,7,8)", &Rc::clone(&path));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    let args = toks.next().unwrap().unwrap();
+    assert!(matches!(args, (_, MacroCallArgs(_), _)));
+    assert!(toks.next().is_none());
+    if let MacroCallArgs(args) = args.1 {
+        assert_eq!(args.len(), 1);
+        assert_eq!(args[0].len(), 15);
+        assert!(matches!(args[0][0], IntLiteral("1")));
+        assert!(matches!(args[0][1], Comma));
+        assert!(matches!(args[0][2], IntLiteral("2")));
+        assert!(matches!(args[0][3], Comma));
+        // etc.
+        assert!(matches!(args[0][11], Comma));
+        assert!(matches!(args[0][12], IntLiteral("7")));
+        assert!(matches!(args[0][13], Comma));
+        assert!(matches!(args[0][14], IntLiteral("8")));
+    } else {
+        unreachable!()
+    }
+}
+
+#[test]
+fn macros_call_badly_formed() {
+    use Token::*;
+
+    let path = Rc::from(Path::new("test"));
+
+    // Macro name has no `@`.
+    let mut toks = Lexer::new("1 + name() + 2", &Rc::clone(&path));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, IntLiteral("1"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Plus, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Ident(_), _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenOpen, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Plus, _)));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, IntLiteral("2"), _)
+    ));
+    assert!(toks.next().is_none());
+
+    // No closing paren, should backtrack.
+    let mut toks = Lexer::new("@name(one; two", &Rc::clone(&path));
+    assert!(matches!(
+        toks.next().unwrap().unwrap(),
+        (_, MacroName("@name"), _)
+    ));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenOpen, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Ident(_), _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Semi, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Ident(_), _)));
+    assert!(toks.next().is_none());
 }
