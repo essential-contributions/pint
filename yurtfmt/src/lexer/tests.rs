@@ -25,6 +25,7 @@ fn control_tokens() {
     assert_eq!(lex_one_success("="), Token::Eq);
     assert_eq!(lex_one_success("->"), Token::Arrow);
     assert_eq!(lex_one_success("|"), Token::Pipe);
+    assert_eq!(lex_one_success(".."), Token::TwoDots);
 }
 
 #[test]
@@ -83,6 +84,7 @@ fn solve_tokens() {
 fn keywords() {
     assert_eq!(lex_one_success("let"), Token::Let);
     assert_eq!(lex_one_success("fn"), Token::Fn);
+    assert_eq!(lex_one_success("in"), Token::In);
     assert_eq!(lex_one_success("if"), Token::If);
     assert_eq!(lex_one_success("else"), Token::Else);
     assert_eq!(lex_one_success("enum"), Token::Enum);

@@ -41,6 +41,8 @@ pub(super) enum Token<'sc> {
     Plus,
     #[token("-")]
     Minus,
+    #[token("..")]
+    TwoDots,
     #[regex(r"/|%|\*|>|<|<=|>=|!=|==|&&|\|\|", |lex| lex.slice())]
     BinaryOp(&'sc str),
     #[regex(r"int|bool|string|real", |lex| lex.slice())]
@@ -54,6 +56,8 @@ pub(super) enum Token<'sc> {
     Constraint,
     #[token("fn")]
     Fn,
+    #[token("in")]
+    In,
     #[token("if")]
     If,
     #[token("else")]
@@ -125,12 +129,14 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Arrow => write!(f, "->"),
             Token::Plus => write!(f, "+"),
             Token::Minus => write!(f, "-"),
+            Token::TwoDots => write!(f, ".."),
             Token::BinaryOp(op) => write!(f, "{op}"),
             Token::Primitive(ident) => write!(f, "{ident}"),
             Token::Let => write!(f, "let"),
             Token::Type => write!(f, "type"),
             Token::Constraint => write!(f, "constraint"),
             Token::Fn => write!(f, "fn"),
+            Token::In => write!(f, "in"),
             Token::If => write!(f, "if"),
             Token::Else => write!(f, "else"),
             Token::Enum => write!(f, "enum"),
