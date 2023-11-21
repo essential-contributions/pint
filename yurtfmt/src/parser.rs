@@ -97,7 +97,7 @@ pub(super) fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = P
 fn value_decl<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
-    let type_spec = just(Token::Colon).ignore_then(type_());
+    let type_spec = just(Token::Colon).ignore_then(type_(expr.clone()));
     let init = just(Token::Eq).ignore_then(expr);
 
     just(Token::Let)
@@ -122,7 +122,7 @@ fn type_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseErro
     just(Token::Type)
         .ignore_then(ident())
         .then_ignore(just(Token::Eq))
-        .then(type_())
+        .then(type_(expr()))
         .then_ignore(just(Token::Semi))
         .map(|(name, ty)| ast::Decl::NewType { name, ty })
         .boxed()
@@ -177,7 +177,7 @@ fn interface_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = Pars
 }
 
 fn state_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
-    let type_spec = just(Token::Colon).ignore_then(type_()).boxed();
+    let type_spec = just(Token::Colon).ignore_then(type_(expr())).boxed();
 
     just(Token::State)
         .ignore_then(ident())
@@ -220,9 +220,9 @@ pub(super) fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = 
 
 pub(super) fn fn_sig<'sc>() -> impl Parser<Token<'sc>, ast::FnSig<'sc>, Error = ParseError> + Clone
 {
-    let return_type = just(Token::Arrow).ignore_then(type_()).boxed();
+    let return_type = just(Token::Arrow).ignore_then(type_(expr())).boxed();
 
-    let type_spec = just(Token::Colon).ignore_then(type_()).boxed();
+    let type_spec = just(Token::Colon).ignore_then(type_(expr())).boxed();
 
     let params = ident()
         .then(type_spec)
@@ -271,7 +271,9 @@ fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseErro
     select! { Token::Literal(str) => ast::Immediate(str.to_string()) }.boxed()
 }
 
-pub(super) fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type<'sc>, Error = ParseError> + Clone {
+pub(super) fn type_<'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Type<'sc>, Error = ParseError> + Clone {
     recursive(|type_| {
         let tuple = (ident().then_ignore(just(Token::Colon)))
             .or_not()
@@ -291,8 +293,7 @@ pub(super) fn type_<'sc>() -> impl Parser<Token<'sc>, ast::Type<'sc>, Error = Pa
         let array = type_atom
             .clone()
             .then(
-                expr()
-                    .delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
+                expr.delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
                     .repeated()
                     .at_least(1),
             )
@@ -322,8 +323,9 @@ pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Par
             path().map(ast::Expr::Path),
         ))
         .boxed();
+        let cast = cast(atom, expr.clone());
 
-        let in_expr = in_expr(atom, expr.clone()).boxed();
+        let in_expr = in_expr(cast, expr).boxed();
         binary_op(in_expr).boxed()
     })
 }
@@ -343,6 +345,24 @@ pub(super) fn path<'sc>() -> impl Parser<Token<'sc>, ast::Path, Error = ParseErr
                 pre_colon: pre_colon.is_some(),
                 idents: path,
             }
+        })
+        .boxed()
+}
+
+fn cast<'sc, P>(
+    parser: P,
+    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+{
+    parser
+        .then((just(Token::As)).ignore_then(type_(expr)).repeated())
+        .foldl(|value, ty| {
+            ast::Expr::Cast(ast::Cast {
+                value: Box::new(value),
+                ty,
+            })
         })
         .boxed()
 }
