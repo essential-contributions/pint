@@ -98,7 +98,7 @@ fn value_decl<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
     let type_spec = just(Token::Colon).ignore_then(type_(expr.clone()));
-    let init = just(Token::Eq).ignore_then(expr);
+    let init = just(Token::Eq).ignore_then(range(expr.clone()).or(expr));
 
     just(Token::Let)
         .ignore_then(ident())
