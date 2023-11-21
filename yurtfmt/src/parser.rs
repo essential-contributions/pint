@@ -323,9 +323,10 @@ pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Par
             path().map(ast::Expr::Path),
         ))
         .boxed();
+        let cast = cast(atom, expr.clone());
 
-        let cast = cast(atom, expr);
-        binary_op(cast)
+        let in_expr = in_expr(cast, expr).boxed();
+        binary_op(in_expr).boxed()
     })
 }
 
@@ -382,6 +383,47 @@ fn unary_op<'sc>(
         })
     })
     .boxed()
+}
+
+fn in_expr<'sc, P>(
+    parser: P,
+    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+{
+    parser
+        .clone()
+        .then(
+            just(Token::In)
+                .ignore_then(range(expr.clone()).or(expr))
+                .repeated(),
+        )
+        .foldl(|lhs, rhs| {
+            ast::Expr::In(ast::In {
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+            })
+        })
+        .boxed()
+}
+
+pub(super) fn range<'sc, P>(
+    parser: P,
+) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+{
+    parser
+        .clone()
+        .then(just(Token::TwoDots).ignore_then(parser))
+        .map(|(lb, ub)| {
+            ast::Expr::Range(ast::Range {
+                lb: Box::new(lb),
+                ub: Box::new(ub),
+            })
+        })
+        .boxed()
 }
 
 fn binary_op<'sc, P>(

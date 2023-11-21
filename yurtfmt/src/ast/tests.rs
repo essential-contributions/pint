@@ -827,6 +827,54 @@ foo  (  5,2  )"
 }
 
 #[test]
+fn in_expressions() {
+    check(
+        &run_formatter!(expr(), "42    in y"),
+        expect_test::expect![[r#"42 in y"#]],
+    );
+    check(
+        &run_formatter!(
+            expr(),
+            "
+!x in y"
+        ),
+        expect_test::expect![[r#"!x in y"#]],
+    );
+    check(
+        &run_formatter!(
+            expr(),
+            "x in   y 
+&&    z in w"
+        ),
+        expect_test::expect![[r#"x in y && z in w"#]],
+    );
+    check(
+        &run_formatter!(
+            expr(),
+            "!x   in
+y ||    42 in   z"
+        ),
+        expect_test::expect![[r#"!x in y || 42 in z"#]],
+    );
+}
+
+#[test]
+fn range_expressions() {
+    check(
+        &run_formatter!(range(expr()), "1..2"),
+        expect_test::expect![[r#"1..2"#]],
+    );
+    check(
+        &run_formatter!(range(expr()), "1+2..3+4"),
+        expect_test::expect!["1 + 2..3 + 4"],
+    );
+    check(
+        &run_formatter!(range(expr()), "1.1..2.2e3"),
+        expect_test::expect!["1.1..2.2e3"],
+    );
+}
+
+#[test]
 fn casting() {
     check(
         &run_formatter!(expr(), "5 as      int"),
