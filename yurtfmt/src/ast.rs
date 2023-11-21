@@ -463,6 +463,22 @@ impl<'sc> Format for Range<'sc> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct Cast<'sc> {
+    pub value: Box<Expr<'sc>>,
+    pub ty: Type<'sc>,
+}
+
+impl<'sc> Format for Cast<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        self.value.format(formatted_code)?;
+        formatted_code.write(" as ");
+        self.ty.format(formatted_code)?;
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) enum Expr<'sc> {
     Immediate(Immediate),
     Path(Path),
@@ -471,6 +487,7 @@ pub(super) enum Expr<'sc> {
     Call(Call<'sc>),
     In(In<'sc>),
     Range(Range<'sc>),
+    Cast(Cast<'sc>),
 }
 
 impl<'sc> Format for Expr<'sc> {
@@ -483,6 +500,7 @@ impl<'sc> Format for Expr<'sc> {
             Self::Call(call) => call.format(formatted_code)?,
             Self::In(in_) => in_.format(formatted_code)?,
             Self::Range(range) => range.format(formatted_code)?,
+            Self::Cast(cast) => cast.format(formatted_code)?,
         }
 
         Ok(())
