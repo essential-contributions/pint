@@ -877,7 +877,19 @@ fn range_expressions() {
 #[test]
 fn if_statements() {
     check(
-        &run_formatter!(expr(), "if 1 == 2 { 3 } else { 4 }"),
-        expect_test::expect![[r#"if 1 == 2 { 3 } else { 4 }"#]],
+        &run_formatter!(
+            if_expr(expr()),
+            "if 
+        1 == 
+        2 {         3 } 
+        else {  
+            4 }"
+        ),
+        expect_test::expect![[r#"
+        if 1 == 2 {
+            3
+        } else {
+            4
+        }"#]],
     );
 }
