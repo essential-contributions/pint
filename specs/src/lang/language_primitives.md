@@ -479,9 +479,9 @@ Call expressions are used to call macros or functions and have the following syn
 
 For example: `let x = foo(5, 2);` or `constraint bar@(5; [a, b])`.
 
-For function-style macros or extern function calls the type of the expressions passed as arguments must match the argument types of the called function. For all call expressions the number of passed arguments must match the called item. The return type of the function must also be appropriate for the calling context.
+For function-style macros or extern function calls the type of the expressions passed as arguments must match the argument types of the called function. For all call expressions the number of passed arguments must match the called item, though this is flexible due to Yurt's variadic macro support. The return type of the function must also be appropriate for the calling context.
 
-See [Macro Items](#macro-items) for the distinction between regular and function-style macros.  When calling regular macros the call arguments may be a collection of source tokens, excluding semi-colons.
+See [Macro Items](#macro-items) for the distinction between regular and function-style macros.  When calling regular macros the call arguments may be a collection of source tokens, excluding semi-colons, delimited by semi-colons.
 
 #### Cast Expressions
 
@@ -712,11 +712,11 @@ Regular macros have the following syntax:
 ```ebnf
 <macro-name> ::= @[A-Za-z_][A-Za-z0-9_]*
 
-<macro-ident> ::= $[A-Za-z0-9]+
+<macro-param> ::= $[A-Za-z0-9]+
 
-<macro-body-item> ::= <tok> | <macro-ident>     % where <tok> is any valid parsable source token.
+<macro-body-item> ::= <tok> | <macro-param>     % where <tok> is any valid parsable source token.
 
-<macro-item> ::= "macro" <macro-name> "(" [ <macro-ident> "," ... ] ")" "{" <macro-body-item>* "}"
+<macro-item> ::= "macro" <macro-name> "(" [ <macro-param> "," ... ] ")" "{" <macro-body-item>* "}"
 ```
 
 Macro expansion is the very first operation performed by the compiler.  Any macro call expression is expanded in-place, replaced by the contents of the macro as parameterized by the call arguments.
@@ -725,7 +725,7 @@ Macros are intended to be a generalized method for code re-use.  The macro param
 
 #### Expansion
 
-The macro body is only semi-parsed by the compiler prior to macro expansion and may contain macro identifiers.  During expansion macro identifiers are replaced by the corresponding call parameters and the body is then fully parsed.  The parsed items are then added to the program as if they were parsed where the macro is called.
+The macro body is only semi-parsed by the compiler prior to macro expansion and may contain macro identifiers.  During expansion macro identifiers are replaced by the corresponding call arguments and the body is then fully parsed.  The parsed items are then added to the program as if they were parsed where the macro is called.
 
 For example, a simple macro may introduce some constraints:
 
@@ -752,7 +752,7 @@ constraint x >= 10;
 constraint x < (10 * 10);
 ```
 
-The arguments to a macro call may be collections of tokens which do not necessarily parse to full expression.  For example, an operator like `+` or type name such as `real` are valid.  If the token is an identifier then it may be used to name a declaration such as with `let`.
+The arguments to a macro call may be collections of tokens which do not necessarily parse to a proper expression.  For example, an operator like `+` or a type name such as `real` are valid.  If the token is an identifier then it may be used to name a declaration such as with `let`.
 
 ```
 macro @do_decls($a, $b, $ty, $op) {
@@ -807,14 +807,14 @@ macro @is_even($a) {
 }
 ```
 
-In a naive macro system, if `@is_even` was called more than once within the same module then after expansion there would be multiple `half` variable declarations, resulting in a name clash error.
+In a naive macro system if `@is_even` was called more than once within the same module then after expansion there would be multiple `half` variable declarations, resulting in a name clash error.
 
 To avoid this problem Yurt's macro expansion aims to be 'hygienic' and place newly declared symbols into a unique anonymous namespace.  Note that this is only done for symbols which are not macro parameters.
 
 ```
 macro @let_decls($a) {
     let foo: int;       // Hygienic anonymous binding for `foo`.
-    let $a: bool;       // Literal binding for `$a`.
+    let $a: bool;       // Lexical binding for `$a`.
 }
 ```
 
@@ -845,11 +845,11 @@ Of course if `@let_decls` was called with the argument `foo` multiple times ther
 
 #### Recursion And Variadic Macros
 
-Macros may call other macros and a special type of recursion via variadic arguments is allowed. Sometimes it may be desirable to do repeated expansions using a single macro, essentially entering an expansion loop.
+Macros may call other macros and a special type of recursion via variadic parameters is allowed. Sometimes it may be desirable to do repeated expansions using a single macro, essentially entering an expansion loop.
 
-To support this macros may be declared to accept a variable number of parameters.  Basic pattern matching is used to determine how these macros are expanded via one or more terminating macros and one or more recursing macros, each with the same name.  That is, it is valid to declare multiple macros with the same name but different number of parameters and the correct one to expand will be chosen based on the number of arguments passed to the call.
+To support this macros may be declared to accept a variable number of parameters. It is valid to declare multiple macros _with the same name_ but different number of parameters and the correct one to expand will be chosen based on the number of arguments passed to the call.
 
-The recursing macros call other versions of itself but with a different number of -- usually fewer -- arguments.  The terminating macros do not call another version of itself.
+Recursion may be performed via one or more recursing macros and one or more non-recursing, or 'terminating' macros. The recursing macros call other versions of itself but with a different number of -- usually fewer -- arguments.  The terminating macros do not call another version of itself.
 
 The recursing macros may have a parameter 'pack' as its final parameter, denoted using an `&`, e.g., `macro @foo($a, $b, &rest) { ... }`.  The parameter pack is never empty, therefore a macro declaration with a corresponding signature minus the parameter pack is required to avoid a pattern match failure.
 
@@ -892,7 +892,7 @@ macro @sum($x) {
 }
 ```
 
-The `&pack` parameter may be used by non recursive macros which wish to in turn call recursive macros. A more realistic use of variadic macros might be to chain variables together in relative constraints:
+The `&pack` parameter may be used by non recursive macros which wish to call recursive macros. A more realistic use of variadic macros might be to chain variables together in relative constraints:
 
 ```
 macro @chain($a, &rest) {
@@ -901,16 +901,16 @@ macro @chain($a, &rest) {
     @chain_next($a; &rest);
 }
 
-macro @chain_next($a, $b, &rest) {
+macro @chain_next($prev, $next, &rest) {
     // Add the next link, constrain based on the previous link and continue.
-    let $b: int;
-    constraint $b > $a + 10;
-    @chain_next($b; &rest)
+    let $next: int;
+    constraint $next > $prev + 10;
+    @chain_next($next; &rest)
 }
 
-macro @chain_next($a) {
+macro @chain_next($prev) {
     // Just expand to the final link.
-    $a
+    $prev
 }
 
 ```
@@ -948,7 +948,7 @@ fn is_even(x: int) -> bool {
 }
 ```
 
-The extra type information is used to confirm correct use, which is not possible with regular macros.  Expansion otherwise follows the regular macro procedures.
+The extra type information is used to confirm correct use, which is not directly possible with regular macros.  Expansion otherwise follows the regular macro procedures.
 
 ### Enum Declaration Items
 
