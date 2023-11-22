@@ -2,78 +2,80 @@ use std::fmt::{Display, Formatter, Result};
 
 use crate::{
     expr,
-    util::{write_many, write_many_iter},
+    intent::intermediate::{DisplayWithII, IntermediateIntent},
+    util::{write_many_iter, write_many_with_ii},
 };
 
-impl<Path: Display, BlockExpr: Display> Display for super::Expr<Path, BlockExpr> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl DisplayWithII for super::ExprKey {
+    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> Result {
+        write!(f, "{}", ii.with_ii(&ii.exprs[*self]))
+    }
+}
+
+impl DisplayWithII for &super::Expr {
+    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> Result {
         match self {
+            super::Expr::Error(..) => write!(f, "Error"),
             super::Expr::Immediate { value, .. } => write!(f, "{value}"),
 
-            super::Expr::Path(p) => write!(f, "{p}"),
+            super::Expr::PathByName(p, _) => write!(f, "{p}"),
+            super::Expr::PathByKey(k, _) => write!(f, "{}", ii.with_ii(k)),
 
-            super::Expr::UnaryOp { op, expr, .. } => match op {
-                expr::UnaryOp::Pos => write!(f, "+{expr}"),
-                expr::UnaryOp::Neg => write!(f, "-{expr}"),
-                expr::UnaryOp::Not => write!(f, "!{expr}"),
-                expr::UnaryOp::NextState => write!(f, "{expr}'"),
-            },
+            super::Expr::UnaryOp { op, expr, .. } => {
+                if matches!(op, expr::UnaryOp::NextState) {
+                    write!(f, "{}'", ii.with_ii(expr))
+                } else {
+                    match op {
+                        expr::UnaryOp::Pos => write!(f, "+"),
+                        expr::UnaryOp::Neg => write!(f, "-"),
+                        expr::UnaryOp::Not => write!(f, "!"),
+                        expr::UnaryOp::NextState => unreachable!(),
+                    }?;
+                    write!(f, "{}", ii.with_ii(expr))
+                }
+            }
 
             super::Expr::BinaryOp { op, lhs, rhs, .. } => {
-                write!(f, "({lhs} ")?;
+                write!(f, "({} ", ii.with_ii(lhs))?;
                 match op {
-                    expr::BinaryOp::Mul => write!(f, "*"),
-                    expr::BinaryOp::Div => write!(f, "/"),
                     expr::BinaryOp::Add => write!(f, "+"),
-                    expr::BinaryOp::Sub => write!(f, "-"),
-                    expr::BinaryOp::Mod => write!(f, "%"),
-                    expr::BinaryOp::LessThan => write!(f, "<"),
-                    expr::BinaryOp::LessThanOrEqual => write!(f, "<="),
-                    expr::BinaryOp::GreaterThan => write!(f, ">"),
-                    expr::BinaryOp::GreaterThanOrEqual => write!(f, ">="),
+                    expr::BinaryOp::Div => write!(f, "/"),
                     expr::BinaryOp::Equal => write!(f, "=="),
-                    expr::BinaryOp::NotEqual => write!(f, "!="),
+                    expr::BinaryOp::GreaterThanOrEqual => write!(f, ">="),
+                    expr::BinaryOp::GreaterThan => write!(f, ">"),
+                    expr::BinaryOp::LessThanOrEqual => write!(f, "<="),
+                    expr::BinaryOp::LessThan => write!(f, "<"),
                     expr::BinaryOp::LogicalAnd => write!(f, "&&"),
                     expr::BinaryOp::LogicalOr => write!(f, "||"),
+                    expr::BinaryOp::Mod => write!(f, "%"),
+                    expr::BinaryOp::Mul => write!(f, "*"),
+                    expr::BinaryOp::NotEqual => write!(f, "!="),
+                    expr::BinaryOp::Sub => write!(f, "-"),
                 }?;
-                write!(f, " {rhs})")
+                write!(f, " {})", ii.with_ii(rhs))
             }
 
-            super::Expr::Call { name, args, .. } => {
-                write!(f, "{name}(")?;
-                write_many!(f, args, ", ");
-                write!(f, ")")
+            super::Expr::In {
+                value, collection, ..
+            } => write!(f, "{} in {}", ii.with_ii(value), ii.with_ii(collection)),
+
+            super::Expr::Cast { value, ty, .. } => {
+                write!(f, "{}", ii.with_ii(value))?;
+                write!(f, " as ")?;
+                write!(f, "{}", ii.with_ii(*ty.clone()))
             }
 
-            super::Expr::Block(b) => write!(f, "{b}"),
-
-            super::Expr::If {
-                condition,
-                then_block,
-                else_block,
-                ..
-            } => write!(f, "if {condition} {then_block} else {else_block}"),
-
-            super::Expr::Cond {
-                branches,
-                else_result,
-                ..
-            } => {
-                write!(f, "cond {{ ")?;
-                for branch in branches {
-                    write!(f, "{branch}, ")?;
+            super::Expr::TupleFieldAccess { tuple, field, .. } => {
+                write!(f, "{}.", ii.with_ii(tuple))?;
+                match field {
+                    expr::TupleAccess::Error => write!(f, "Error"),
+                    expr::TupleAccess::Index(n) => write!(f, "{n}"),
+                    expr::TupleAccess::Name(i) => write!(f, "{}", i.name),
                 }
-                write!(f, "else => {else_result} }}")
-            }
-
-            super::Expr::Array { elements, .. } => {
-                write!(f, "[")?;
-                write_many!(f, elements, ", ");
-                write!(f, "]")
             }
 
             super::Expr::ArrayElementAccess { array, index, .. } => {
-                write!(f, "{array}[{index}]")
+                write!(f, "{}[{}]", ii.with_ii(array), ii.with_ii(index))
             }
 
             super::Expr::Tuple { fields, .. } => {
@@ -82,43 +84,69 @@ impl<Path: Display, BlockExpr: Display> Display for super::Expr<Path, BlockExpr>
                     // This is the only place where we're building strings.  Could be aleviated
                     // if the named tuple field was a struct which could be Display.
                     format!(
-                        "{}{val}",
+                        "{}{}",
                         name.as_ref()
                             .map(|name| format!("{}: ", name.name))
-                            .unwrap_or(String::new())
+                            .unwrap_or(String::new()),
+                        ii.with_ii(val)
                     )
                 });
                 write_many_iter!(f, i, ", ");
                 write!(f, "}}")
             }
 
-            super::Expr::TupleFieldAccess { tuple, field, .. } => {
-                write!(f, "{tuple}.")?;
-                match field {
-                    expr::TupleAccess::Index(n) => write!(f, "{n}"),
-                    expr::TupleAccess::Name(i) => write!(f, "{}", i.name),
-                }
+            super::Expr::Array { elements, .. } => {
+                write!(f, "[")?;
+                write_many_with_ii!(f, elements, ", ", ii);
+                write!(f, "]")
             }
 
-            super::Expr::Cast { value, ty, .. } => write!(f, "{value} as {ty}"),
+            super::Expr::Call { name, args, .. } => {
+                write!(f, "{name}(")?;
+                write_many_with_ii!(f, args, ", ", ii);
+                write!(f, ")")
+            }
 
-            super::Expr::In {
-                value, collection, ..
-            } => write!(f, "{value} in {collection}"),
+            super::Expr::If {
+                condition,
+                then_block,
+                else_block,
+                ..
+            } => write!(
+                f,
+                "if {} {{ {} }} else {{ {} }}",
+                ii.with_ii(condition),
+                ii.with_ii(then_block),
+                ii.with_ii(else_block)
+            ),
 
-            super::Expr::Range { lb, ub, .. } => write!(f, "{lb}..{ub}"),
+            super::Expr::Range { lb, ub, .. } => {
+                write!(f, "{}..{}", ii.with_ii(lb), ii.with_ii(ub))
+            }
         }
     }
 }
 
-impl<Expr: Display> Display for super::CondBranch<Expr> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{} => {}", self.condition, self.result)
+impl DisplayWithII for super::Immediate {
+    fn fmt(&self, f: &mut Formatter, _: &IntermediateIntent) -> Result {
+        write!(f, "{self}")
+    }
+}
+
+impl DisplayWithII for super::Ident {
+    fn fmt(&self, f: &mut Formatter, _: &IntermediateIntent) -> std::fmt::Result {
+        write!(f, "{self}")
+    }
+}
+
+impl Display for super::Ident {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "{}", self.name)
     }
 }
 
 impl Display for super::Immediate {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    fn fmt(&self, f: &mut Formatter) -> Result {
         match self {
             super::Immediate::Real(n) => write!(f, "{n:e}"),
             super::Immediate::Int(n) => write!(f, "{n}"),

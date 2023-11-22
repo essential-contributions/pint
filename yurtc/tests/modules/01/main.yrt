@@ -2,11 +2,12 @@ constraint a::b::c == d::e;
 
 solve satisfy;
 
-// ast <<<
+// intermediate <<<
+// var ::a::b::c: int;
+// var ::d::e: int;
 // constraint (::a::b::c == ::d::e);
+// constraint (var ::d::e: int == 10);
 // solve satisfy;
-// let ::a::b::c: int;
-// let ::d::e: int = 10;
 // >>>
 
 // compiled_intent <<<

@@ -1,0 +1,23 @@
+let untyped;
+let clash = 5;
+let clash = 5;
+let clash = 5;
+let empty_tuple: {} = {};
+let empty_array: int[] = [];
+let empty_index = a[];
+let bad_integer_index = t.0x5;
+let bad_real_index = t.1e5;
+let parse_error
+
+// parse_failure <<<
+// type annotation or initializer needed for variable `untyped`
+// symbol `clash` has already been declared
+// symbol `clash` has already been declared
+// empty tuple types are not allowed
+// empty tuple expressions are not allowed
+// empty array types are not allowed
+// missing array index
+// invalid integer `0x5` as tuple index
+// invalid value `1e5` as tuple index
+// expected `:`, `;`, or `=`, found `end of file`
+// >>>

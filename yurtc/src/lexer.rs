@@ -1,19 +1,14 @@
-use crate::{
-    error::{Error, LexError},
-    span::Span,
-};
-use chumsky::prelude::*;
-use itertools::{Either, Itertools};
+use crate::error::ParseError;
 use logos::Logos;
-use std::{fmt, path::Path, rc::Rc};
+use std::fmt;
 
 #[cfg(test)]
 mod tests;
 
 #[derive(Clone, Debug, Eq, Hash, Logos, PartialEq, Ord, PartialOrd)]
 #[logos(skip r"[ \t\n\r\f]+")]
-#[logos(error = LexError)]
-pub(super) enum Token<'sc> {
+#[logos(error = ParseError)]
+pub enum Token<'sc> {
     #[token(":")]
     Colon,
     #[token("::")]
@@ -158,6 +153,7 @@ pub(super) enum Token<'sc> {
     Comment,
 }
 
+#[cfg(test)]
 pub(super) static KEYWORDS: &[Token] = &[
     Token::Real,
     Token::Int,
@@ -256,20 +252,53 @@ impl<'sc> fmt::Display for Token<'sc> {
     }
 }
 
+pub(super) struct Lexer<'sc> {
+    token_stream: logos::SpannedIter<'sc, Token<'sc>>,
+    filepath: std::rc::Rc<std::path::Path>,
+}
+
+impl<'sc> Lexer<'sc> {
+    pub(super) fn new(src: &'sc str, filepath: &std::rc::Rc<std::path::Path>) -> Self {
+        Self {
+            token_stream: Token::lexer(src).spanned(),
+            filepath: filepath.clone(),
+        }
+    }
+}
+
+// Iterator adapter which is converting the token stream into something LALRPOP can work with?
+impl<'sc> Iterator for Lexer<'sc> {
+    type Item = Result<(usize, Token<'sc>, usize), ParseError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.token_stream.next().map(|(res, span)| {
+            res.map(|tok| (span.start, tok, span.end))
+                .map_err(|_| ParseError::Lex {
+                    span: crate::span::Span::new(self.filepath.clone(), span.start..span.end),
+                })
+        })
+    }
+}
+
 /// Lex a stream of characters. Return a list of discovered tokens and a list of errors encountered
 /// along the way.
-pub(super) fn lex(src: &str, filepath: Rc<Path>) -> (Vec<(Token, Span)>, Vec<Error>) {
+#[cfg(test)]
+pub(super) fn lex(
+    src: &str,
+    filepath: std::rc::Rc<std::path::Path>,
+) -> (Vec<(Token, crate::span::Span)>, Vec<ParseError>) {
+    use itertools::Itertools;
     Token::lexer(src).spanned().partition_map(|(r, span)| {
-        let span = Span::new(Rc::clone(&filepath), span);
+        let span = crate::span::Span::new(std::rc::Rc::clone(&filepath), span);
         match r {
-            Ok(v) => Either::Left((v, span)),
-            Err(v) => Either::Right(Error::Lex { span, error: v }),
+            Ok(v) => itertools::Either::Left((v, span)),
+            Err(_) => itertools::Either::Right(ParseError::Lex { span }),
         }
     })
 }
 
 #[derive(Clone, Debug, Eq, Hash, Logos, PartialEq, Ord, PartialOrd)]
-#[logos(error = LexError)]
+#[logos(error = ParseError)]
 enum StringLiteralChar {
     // The lex.slice() is the whole matched '\xDD'.  It's easy to create an invalid character this
     // way as far as Rust is concerned, so if it fails we currently return 0.  Supporting UTF8

@@ -1,3 +1,5 @@
+// <<disabled>>
+
 let a: real[5];
 let a1 = a[1];
 
@@ -11,7 +13,7 @@ fn nums() -> int[4] {
 
 let one = nums()[1];
 
-// ast <<<<
+// intermediate <<<<
 // let ::a: real[5];
 // let ::a1 = ::a[1];
 // enum ::Colour = Red | Green | Blue;

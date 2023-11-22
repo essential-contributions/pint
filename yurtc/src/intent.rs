@@ -1,6 +1,6 @@
-use crate::{ast, error, expr};
+use crate::expr;
 
-mod intermediate;
+pub(crate) mod intermediate;
 
 type Path = String;
 
@@ -11,12 +11,6 @@ pub struct Intent {
     pub vars: Vec<Variable>,
     pub constraints: Vec<Expression>,
     pub directive: Solve,
-}
-
-impl Intent {
-    pub fn from_ast(ast: &ast::Ast) -> Result<Self, error::CompileError> {
-        intermediate::IntermediateIntent::from_ast(ast)?.compile()
-    }
 }
 
 /// A representation of state fetched from a blockchain.  This is almost always a contract method

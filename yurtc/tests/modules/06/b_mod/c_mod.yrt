@@ -1,0 +1,3 @@
+use ::b_mod::e_mod::f_mod::f;
+
+enum A = B | C | D;

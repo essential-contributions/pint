@@ -11,17 +11,19 @@ constraint debbie::debbie_skill == debbie::Skill::Handicrafts && kip_skill == ki
 
 solve satisfy;
 
-// ast <<<
+// intermediate <<<
+// var ::pedro_skill: ::Skill;
+// var ::kip_skill: ::kip::Skill;
+// var ::kip::kip_skill;
+// var ::debbie::debbie_skill;
 // enum ::Skill = Nunchuck | BowHunting | ComputerHacking;
-// let ::pedro_skill: ::Skill;
-// constraint ((::pedro_skill == ::Skill::Nunchuck) || ::Skill::BowHunting);
-// let ::kip_skill: ::kip::Skill;
-// constraint ((::debbie::debbie_skill == ::debbie::Skill::Handicrafts) && (::kip_skill == ::kip::Skill::CageFighting));
-// solve satisfy;
-// enum ::debbie::Skill = GlamourShots | Handicrafts;
-// let ::debbie::debbie_skill = (::debbie::Skill::GlamourShots || ::debbie::Skill::Handicrafts);
 // enum ::kip::Skill = ChattingOnlineWithBabes | CageFighting;
-// let ::kip::kip_skill = ::kip::Skill::ChattingOnlineWithBabes;
+// enum ::debbie::Skill = GlamourShots | Handicrafts;
+// constraint ((::pedro_skill == ::Skill::Nunchuck) || ::Skill::BowHunting);
+// constraint ((::debbie::debbie_skill == ::debbie::Skill::Handicrafts) && (::kip_skill == ::kip::Skill::CageFighting));
+// constraint (var ::kip::kip_skill == ::kip::Skill::ChattingOnlineWithBabes);
+// constraint (var ::debbie::debbie_skill == (::debbie::Skill::GlamourShots || ::debbie::Skill::Handicrafts));
+// solve satisfy;
 // >>>
 
 // We'll get this error until we implement enum desugaring.

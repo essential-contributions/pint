@@ -4,12 +4,12 @@ mod parse_error;
 
 use crate::span::{Span, Spanned};
 use ariadne::{FnCache, Label, Report, ReportKind, Source};
-use chumsky::prelude::*;
+use thiserror::Error;
+use yansi::{Color, Style};
+
 pub(super) use compile_error::CompileError;
 pub(super) use lex_error::LexError;
 pub(super) use parse_error::ParseError;
-use thiserror::Error;
-use yansi::{Color, Style};
 
 /// An error label used for pretty printing error messages to the terminal
 pub(super) struct ErrorLabel {

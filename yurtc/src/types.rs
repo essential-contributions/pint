@@ -1,9 +1,12 @@
 use crate::{
-    ast::Ident,
+    expr::Ident,
+    intent::intermediate::ExprKey,
     span::{Span, Spanned},
 };
 
 mod display;
+
+pub type Path = String;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PrimitiveKind {
@@ -14,14 +17,15 @@ pub enum PrimitiveKind {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Type<Path, Expr> {
+pub enum Type {
+    Error(Span),
     Primitive {
         kind: PrimitiveKind,
         span: Span,
     },
     Array {
         ty: Box<Self>,
-        range: Expr,
+        range: ExprKey,
         span: Span,
     },
     Tuple {
@@ -34,11 +38,12 @@ pub enum Type<Path, Expr> {
     },
 }
 
-impl<Path, Expr> Spanned for Type<Path, Expr> {
+impl Spanned for Type {
     fn span(&self) -> &Span {
         use Type::*;
         match &self {
-            Primitive { span, .. }
+            Error(span)
+            | Primitive { span, .. }
             | Array { span, .. }
             | Tuple { span, .. }
             | CustomType { span, .. } => span,
@@ -60,15 +65,33 @@ impl Spanned for EnumDecl {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct FnSig<Type> {
+pub struct NewTypeDecl {
+    pub(super) name: Ident,
+    pub(super) ty: Type,
+    pub(super) span: Span,
+}
+
+impl Spanned for NewTypeDecl {
+    fn span(&self) -> &Span {
+        &self.span
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct FnSig {
     pub(super) name: Ident,
     pub(super) params: Vec<(Ident, Type)>,
     pub(super) return_type: Type,
     pub(super) span: Span,
 }
 
-impl<Type> Spanned for FnSig<Type> {
+impl Spanned for FnSig {
     fn span(&self) -> &Span {
         &self.span
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct ExternDecl {
+    pub(super) functions: Vec<FnSig>,
 }
