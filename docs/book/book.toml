@@ -1,0 +1,13 @@
+[book]
+authors = ["Essential Contributions <contact@essentialcontributions.com> "]
+language = "en"
+multilingual = false
+src = "src"
+title = "The Book of Yurt"
+
+[output.html]
+additional-js = ["theme/yurt.js", "theme/bnf.js"]
+git-repository-url = "https://github.com/essential-contributions/yurt"
+
+[preprocessor.katex]
+after = ["links"]

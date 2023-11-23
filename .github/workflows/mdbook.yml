@@ -21,6 +21,9 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+env:
+  RUST_VERSION: 1.74.0
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -28,17 +31,38 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
       - name: Setup mdBook
         uses: peaceiris/actions-mdbook@v1
         with:
           mdbook-version: 0.4.30
 
-      - name: Build Specs Book
-        run: mdbook build specs
+      - name: Install cargo-nextest
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: mdbook-katex
+          locked: true
 
-      - name: Deploy
+      - name: Build Specs Book
+        run: mdbook build docs/specs
+
+      - name: Deploy Specs Book
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./specs/book
+          publish_dir: ./docs/specs/book
           destination_dir: ./specs
+
+      - name: Build Yurt Book
+        run: mdbook build docs/book
+
+      - name: Deploy Yurt Book
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/book/book
+          destination_dir: ./book
