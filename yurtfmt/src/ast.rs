@@ -67,7 +67,7 @@ impl<'sc> Format for Decl<'sc> {
                 formatted_code.write(";");
             }
             Self::Value { name, ty, init } => {
-                formatted_code.write(&format!("let {}", name));
+                formatted_code.write(&format!("let {name}"));
 
                 if let Some(ty) = ty {
                     formatted_code.write(": ");
@@ -87,7 +87,7 @@ impl<'sc> Format for Decl<'sc> {
                 paths,
                 fn_sigs,
             } => {
-                formatted_code.write(&format!("contract {}(", name));
+                formatted_code.write(&format!("contract {name}("));
                 expr.format(formatted_code)?;
                 formatted_code.write(")");
 
@@ -99,7 +99,7 @@ impl<'sc> Format for Decl<'sc> {
 
                         // If not the last element, add a comma
                         if i < paths.len() - 1 {
-                            formatted_code.write(", ")
+                            formatted_code.write(", ");
                         }
                     }
                 }
@@ -113,14 +113,14 @@ impl<'sc> Format for Decl<'sc> {
                     }
 
                     fn_sig.format(formatted_code)?;
-                    formatted_code.write_line(";")
+                    formatted_code.write_line(";");
                 }
 
                 formatted_code.decrease_indent();
                 formatted_code.write_line("}");
             }
             Self::Solve { directive, expr } => {
-                formatted_code.write(&format!("solve {}", directive));
+                formatted_code.write(&format!("solve {directive}"));
 
                 if let Some(expr) = expr {
                     formatted_code.write(" ");
@@ -130,7 +130,7 @@ impl<'sc> Format for Decl<'sc> {
                 formatted_code.write_line(";");
             }
             Self::NewType { name, ty } => {
-                formatted_code.write(&format!("type {} = ", name));
+                formatted_code.write(&format!("type {name} = "));
                 ty.format(formatted_code)?;
                 formatted_code.write_line(";");
             }
@@ -149,7 +149,7 @@ impl<'sc> Format for Decl<'sc> {
                 formatted_code.write("\n}");
             }
             Self::Interface { name, fn_sigs } => {
-                formatted_code.write(&format!("interface {} {{", name));
+                formatted_code.write(&format!("interface {name} {{"));
 
                 formatted_code.increase_indent();
 
@@ -159,7 +159,7 @@ impl<'sc> Format for Decl<'sc> {
                     }
 
                     fn_sig.format(formatted_code)?;
-                    formatted_code.write_line(";")
+                    formatted_code.write_line(";");
                 }
 
                 formatted_code.decrease_indent();
@@ -167,7 +167,7 @@ impl<'sc> Format for Decl<'sc> {
                 formatted_code.write_line("}");
             }
             Self::State { name, ty, expr } => {
-                formatted_code.write(&format!("state {}", name));
+                formatted_code.write(&format!("state {name}"));
 
                 if let Some(ty) = ty {
                     formatted_code.write(": ");
@@ -189,7 +189,7 @@ impl<'sc> Format for Decl<'sc> {
                     }
 
                     fn_sig.format(formatted_code)?;
-                    formatted_code.write_line(";")
+                    formatted_code.write_line(";");
                 }
 
                 formatted_code.decrease_indent();
@@ -197,7 +197,7 @@ impl<'sc> Format for Decl<'sc> {
                 formatted_code.write_line("}");
             }
             Self::Enum { name, variants } => {
-                formatted_code.write(&format!("enum {} = {};", name, &variants.join(" | ")));
+                formatted_code.write(&format!("enum {name} = {};", &variants.join(" | ")));
             }
         }
 
@@ -228,7 +228,7 @@ impl Format for UseTree {
                 formatted_code.write(name);
             }
             Self::Path { prefix, suffix } => {
-                formatted_code.write(&format!("{}::", prefix));
+                formatted_code.write(&format!("{prefix}::"));
                 suffix.format(formatted_code)?;
             }
             Self::Group { imports } => {
@@ -243,7 +243,7 @@ impl Format for UseTree {
                 formatted_code.write("}");
             }
             Self::Alias { name, alias } => {
-                formatted_code.write(&format!("{} as {}", name, alias));
+                formatted_code.write(&format!("{name} as {alias}"));
             }
         }
 
@@ -264,7 +264,7 @@ impl<'sc> Format for FnSig<'sc> {
 
         if let Some(params) = &self.params {
             for (i, (param_name, param_type)) in params.iter().enumerate() {
-                formatted_code.write(&format!("{}: ", param_name));
+                formatted_code.write(&format!("{param_name}: "));
                 param_type.format(formatted_code)?;
 
                 // If not the last element, add a comma
@@ -323,7 +323,7 @@ impl<'sc> Format for Type<'sc> {
 
                 for (i, (name, ty)) in tuple_ty.iter().enumerate() {
                     if let Some(name) = name {
-                        formatted_code.write(&format!("{}: ", name));
+                        formatted_code.write(&format!("{name}: "));
                     }
 
                     ty.format(formatted_code)?;
@@ -342,7 +342,7 @@ impl<'sc> Format for Type<'sc> {
                 for expr in array_exprs {
                     formatted_code.write("[");
                     expr.format(formatted_code)?;
-                    formatted_code.write("]")
+                    formatted_code.write("]");
                 }
             }
         }

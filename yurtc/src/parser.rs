@@ -31,9 +31,8 @@ pub fn parse_project(root_src_path: &Path) -> Result<IntermediateIntent, Vec<Err
         .root_src_path
         .clone()
         .parent()
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("/"));
-    parser.parse_project(parser.root_src_path.clone(), Vec::new())?;
+        .map_or_else(|| PathBuf::from("/"), PathBuf::from);
+    parser.parse_project(&parser.root_src_path.clone(), &Vec::new())?;
     parser.finalize()
 }
 
@@ -48,11 +47,7 @@ struct ProjectParser {
 impl ProjectParser {
     /// Parse `source` and return an intermediate intent. Upon failure, return a vector of all
     /// compile errors encountered.
-    fn parse_project(
-        &mut self,
-        src_path: PathBuf,
-        mod_path: Vec<String>,
-    ) -> Result<(), Vec<Error>> {
+    fn parse_project(&mut self, src_path: &Path, mod_path: &[String]) -> Result<(), Vec<Error>> {
         // Parse this file module, returning any paths to other potential modules.
         let mut mod_prefix = mod_path
             .iter()
@@ -61,16 +56,16 @@ impl ProjectParser {
             .concat();
         mod_prefix.push_str("::");
 
-        let next_paths = self.parse_module(&Rc::from(src_path.clone()), &mod_path, &mod_prefix)?;
+        let next_paths = self.parse_module(&Rc::from(src_path), mod_path, &mod_prefix)?;
 
         // Store this path as parsed to avoid re-parsing later.
-        self.visited_paths.push(src_path.clone());
+        self.visited_paths.push(src_path.to_path_buf());
 
         for (is_abs, mod_path_strs) in &next_paths {
             let mut next_path = self.proj_root_path.clone();
             let mut next_mod_path = Vec::new();
             if !is_abs {
-                for m in &mod_path {
+                for m in mod_path {
                     next_path.push(m);
                     next_mod_path.push(m.clone());
                 }
@@ -100,7 +95,7 @@ impl ProjectParser {
             }
 
             if !self.visited_paths.contains(&next_path) {
-                self.parse_project(next_path, next_mod_path)?;
+                self.parse_project(&next_path, &next_mod_path)?;
             }
         }
 

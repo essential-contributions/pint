@@ -91,12 +91,11 @@ macro_rules! yurtfmt_bail {
     ($number_of_errors: expr, $filename: expr) => {
         if $number_of_errors == 1 {
             anyhow::bail!("could not format \"{}\" due to previous error", $filename)
-        } else {
-            anyhow::bail!(
-                "could not format \"{}\" due to {} previous errors",
-                $filename,
-                $number_of_errors
-            )
         }
+        anyhow::bail!(
+            "could not format \"{}\" due to {} previous errors",
+            $filename,
+            $number_of_errors
+        )
     };
 }

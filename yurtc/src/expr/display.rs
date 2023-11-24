@@ -86,8 +86,7 @@ impl DisplayWithII for &super::Expr {
                     format!(
                         "{}{}",
                         name.as_ref()
-                            .map(|name| format!("{}: ", name.name))
-                            .unwrap_or(String::new()),
+                            .map_or(String::new(), |name| format!("{}: ", name.name)),
                         ii.with_ii(val)
                     )
                 });

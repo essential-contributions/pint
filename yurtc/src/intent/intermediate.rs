@@ -73,8 +73,7 @@ impl IntermediateIntent {
         let var_span = self
             .vars
             .get(var_key)
-            .map(|v| v.span.clone())
-            .unwrap_or_else(empty_span);
+            .map_or_else(empty_span, |v| v.span.clone());
 
         let var_expr_key = self.exprs.insert(Expr::PathByKey(var_key, var_span));
 

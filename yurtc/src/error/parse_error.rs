@@ -194,7 +194,7 @@ fn format_expected_tokens_message(expected: &mut Vec<Option<String>>) -> String 
                 // Make sure that the list of expected tokens is printed in a deterministic order
                 expected.sort();
 
-                let mut token_list = "".to_string();
+                let mut token_list = String::new();
                 for expected in &expected[..expected.len() - 1] {
                     token_list = format!("{token_list}{}, ", format_optional_token(expected));
                 }

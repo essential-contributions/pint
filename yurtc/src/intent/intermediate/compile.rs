@@ -22,8 +22,8 @@ pub(super) fn compile(context: IntermediateIntent) -> super::Result<Intent> {
     Ok(Intent {
         states: convert_states(&exprs, states)?,
         vars: convert_vars(vars)?,
-        constraints: convert_constraints(constraints)?,
-        directive: convert_directive(directives)?,
+        constraints: convert_constraints(&constraints)?,
+        directive: convert_directive(&directives)?,
     })
 }
 
@@ -45,7 +45,7 @@ fn convert_states(
                     span: span.clone(),
                 })
                 .and_then(|ty| {
-                    convert_type(ty, &span).and_then(|ty| {
+                    convert_type(&ty, &span).and_then(|ty| {
                         exprs
                             .get(expr_key)
                             .ok_or_else(|| CompileError::Internal {
@@ -75,13 +75,13 @@ fn convert_vars(
                 msg: "Found untyped variable.",
                 span: span.clone(),
             })
-            .and_then(|ty| convert_type(ty, &span))
+            .and_then(|ty| convert_type(&ty, &span))
             .map(|ty| intent::Variable { name, ty })
         })
         .collect()
 }
 
-fn convert_constraints(_constraints: Vec<(ExprKey, Span)>) -> super::Result<Vec<Expression>> {
+fn convert_constraints(_constraints: &[(ExprKey, Span)]) -> super::Result<Vec<Expression>> {
     todo!()
     //    constraints
     //        .into_iter()
@@ -89,7 +89,7 @@ fn convert_constraints(_constraints: Vec<(ExprKey, Span)>) -> super::Result<Vec<
     //        .collect()
 }
 
-fn convert_directive(_directives: Vec<(SolveFunc, Span)>) -> super::Result<Solve> {
+fn convert_directive(_directives: &[(SolveFunc, Span)]) -> super::Result<Solve> {
     todo!()
     //    let (directive, span) = match directives.into_iter().next() {
     //        Some(tuple) => tuple,
@@ -159,7 +159,7 @@ fn convert_expr(expr: &Expr, span: &Span) -> super::Result<Expression> {
     }
 }
 
-fn convert_type(ty: Type, span: &Span) -> super::Result<intent::Type> {
+fn convert_type(ty: &Type, span: &Span) -> super::Result<intent::Type> {
     use crate::types::PrimitiveKind::*;
     match ty {
         Type::Primitive { kind: Bool, .. } => Ok(intent::Type::Bool),
