@@ -6,6 +6,7 @@ src = "src"
 title = "Yurt Specification"
 
 [output.html]
+additional-js = ["theme/yurt.js", "theme/bnf.js"]
 git-repository-url = "https://github.com/essential-contributions/yurt"
 
 [preprocessor.katex]
