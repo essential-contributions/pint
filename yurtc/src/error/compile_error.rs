@@ -31,7 +31,7 @@ impl ReportableError for CompileError {
         match self {
             Internal { msg, span } => {
                 vec![ErrorLabel {
-                    message: msg.to_string(),
+                    message: (*msg).to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -54,7 +54,7 @@ impl ReportableError for CompileError {
                 .clone()
                 .map(|file| format!("when accessing path {}", file.display())),
 
-            _ => None,
+            Internal { .. } => None,
         }
     }
 

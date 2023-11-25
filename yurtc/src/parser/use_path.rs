@@ -16,12 +16,8 @@ impl UsePath {
     }
 
     pub fn matches_suffix(&self, suffix: &String) -> bool {
-        self.path.last().map(|last| last == suffix).unwrap_or(false)
-            || self
-                .alias
-                .as_ref()
-                .map(|alias| alias == suffix)
-                .unwrap_or(false)
+        self.path.last().is_some_and(|last| last == suffix)
+            || self.alias.as_ref().map_or(false, |alias| alias == suffix)
     }
 }
 
@@ -37,8 +33,7 @@ impl std::fmt::Display for UsePath {
         let alias_str = self
             .alias
             .as_ref()
-            .map(|a| format!(" as {a}"))
-            .unwrap_or_else(|| "".to_owned());
+            .map_or_else(String::new, |a| format!(" as {a}"));
         write!(f, "{path_str}{alias_str}",)
     }
 }
@@ -77,10 +72,7 @@ impl UseTree {
             }
             UseTree::Group { imports } => {
                 // A group of imports.  Simply recurse for each one.
-                imports
-                    .iter()
-                    .flat_map(|import| import.gather_paths())
-                    .collect()
+                imports.iter().flat_map(Self::gather_paths).collect()
             }
             UseTree::Alias { name, alias } => {
                 // A single element with an alias.
