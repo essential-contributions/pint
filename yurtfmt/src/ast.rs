@@ -489,6 +489,7 @@ impl<'sc> Format for If<'sc> {
         formatted_code.write("if ");
         self.condition.format(formatted_code)?;
         self.true_code_block.format(formatted_code)?;
+
         formatted_code.write(" else");
         self.false_code_block.format(formatted_code)?;
 
