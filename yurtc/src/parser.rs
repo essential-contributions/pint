@@ -1,930 +1,164 @@
 use crate::{
-    ast, contract,
-    error::{Error, ParseError},
-    expr,
-    lexer::{self, Token, KEYWORDS},
-    span::{Span, Spanned},
-    types::{EnumDecl, FnSig, PrimitiveKind},
+    error::{CompileError, Error},
+    expr::Ident,
+    intent::intermediate::IntermediateIntent,
+    lexer,
+    span::{self, Span},
 };
-use chumsky::{prelude::*, Stream};
-use regex::Regex;
-use std::{path::Path, rc::Rc};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    rc::Rc,
+};
+
+use lalrpop_util::lalrpop_mod;
+
+lalrpop_mod!(#[allow(clippy::ptr_arg)] pub yurt_parser);
+
+mod use_path;
+pub(crate) use use_path::{UsePath, UseTree};
+
+mod context;
+pub(crate) use context::ParserContext;
 
 #[cfg(test)]
 mod tests;
 
-/// Parse `source` and returns an AST. Upon failure, return a vector of all compile errors
-/// encountered.
-pub(super) fn parse_str_to_ast(source: &str, filepath: Rc<Path>) -> Result<ast::Ast, Vec<Error>> {
-    let mut errors = vec![];
+pub fn parse_project(root_src_path: &Path) -> Result<IntermediateIntent, Vec<Error>> {
+    let mut parser = ProjectParser::default();
+    parser.root_src_path = PathBuf::from(root_src_path);
+    parser.proj_root_path = parser
+        .root_src_path
+        .clone()
+        .parent()
+        .map_or_else(|| PathBuf::from("/"), PathBuf::from);
+    parser.parse_project(&parser.root_src_path.clone(), &Vec::new())?;
+    parser.finalize()
+}
 
-    // Lex the input into tokens and spans. Also collect any lex errors encountered.
-    let (tokens, lex_errors) = lexer::lex(source, Rc::clone(&filepath));
-    errors.extend(lex_errors);
+#[derive(Default)]
+struct ProjectParser {
+    intent: IntermediateIntent,
+    proj_root_path: PathBuf,
+    root_src_path: PathBuf,
+    visited_paths: Vec<PathBuf>,
+}
 
-    // Provide a token stream
-    let eoi_span = Span::new(filepath, source.len()..source.len());
-    let token_stream = Stream::from_iter(eoi_span, tokens.into_iter());
+impl ProjectParser {
+    /// Parse `source` and return an intermediate intent. Upon failure, return a vector of all
+    /// compile errors encountered.
+    fn parse_project(&mut self, src_path: &Path, mod_path: &[String]) -> Result<(), Vec<Error>> {
+        // Parse this file module, returning any paths to other potential modules.
+        let mut mod_prefix = mod_path
+            .iter()
+            .map(|el| format!("::{el}"))
+            .collect::<Vec<_>>()
+            .concat();
+        mod_prefix.push_str("::");
 
-    // Parse the token stream
-    match yurt_program().parse(token_stream) {
-        Ok(_) if !errors.is_empty() => Err(errors),
-        Err(parsing_errors) => {
-            let parsing_errors: Vec<_> = parsing_errors
-                .iter()
-                .map(|error| Error::Parse {
-                    error: error.clone(),
-                })
-                .collect();
+        let next_paths = self.parse_module(&Rc::from(src_path), mod_path, &mod_prefix)?;
 
-            errors.extend(parsing_errors);
-            Err(errors)
+        // Store this path as parsed to avoid re-parsing later.
+        self.visited_paths.push(src_path.to_path_buf());
+
+        for (is_abs, mod_path_strs) in &next_paths {
+            let mut next_path = self.proj_root_path.clone();
+            let mut next_mod_path = Vec::new();
+            if !is_abs {
+                for m in mod_path {
+                    next_path.push(m);
+                    next_mod_path.push(m.clone());
+                }
+            }
+            for m in mod_path_strs {
+                next_path.push(m);
+                next_mod_path.push(m.clone());
+            }
+            next_path.set_extension("yrt");
+
+            // If the next path does not exist, it may be a path to an enum type. In that case, we
+            // pop the enum name from the path and try to parse the module where the enum is
+            // defined. For example, if the path is `::a::b::MyEnum`, then we try to parse
+            // `::a::b`. For that, we have to pop the enum type from both `next_path` and
+            // `next_mod_path`. A special case is when, after popping the enum name, `next_path`
+            // matches the project root path. In that case, we set `next_path` to the root source
+            // path (i.e. `main.yrt` in most cases) and reset `next_mod_path`.
+            if !next_path.exists() {
+                next_path.pop();
+                next_mod_path.pop();
+                if next_path == self.proj_root_path {
+                    next_path = self.root_src_path.clone();
+                    next_mod_path = Vec::new();
+                } else {
+                    next_path.set_extension("yrt");
+                }
+            }
+
+            if !self.visited_paths.contains(&next_path) {
+                self.parse_project(&next_path, &next_mod_path)?;
+            }
         }
-        Ok(ast) => Ok(ast),
+
+        Ok(())
     }
-}
 
-fn yurt_program<'sc>() -> impl Parser<Token<'sc>, ast::Ast, Error = ParseError> + Clone {
-    choice((
-        use_statement(),
-        let_decl(expr()),
-        state_decl(expr()),
-        constraint_decl(expr()),
-        solve_decl(),
-        fn_decl(),
-        enum_decl(),
-        type_decl(),
-        interface_decl(),
-        contract_decl(),
-        extern_decl(),
-    ))
-    .repeated()
-    .then_ignore(end())
-    .map(ast::Ast)
-}
-
-fn use_tree<'sc>() -> impl Parser<Token<'sc>, ast::UseTree, Error = ParseError> + Clone {
-    recursive(|use_tree| {
-        let path = ident()
-            .then_ignore(just(Token::DoubleColon))
-            .then(use_tree.clone())
-            .map_with_span(|(prefix, suffix), span| ast::UseTree::Path {
-                prefix,
-                suffix: Box::new(suffix),
-                span,
-            })
-            .boxed();
-
-        let group = use_tree
-            .separated_by(just(Token::Comma))
-            .allow_trailing()
-            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
-            .map_with_span(|imports, span| ast::UseTree::Group { imports, span })
-            .boxed();
-
-        let alias = ident()
-            .then_ignore(just(Token::As))
-            .then(ident())
-            .map_with_span(|(name, alias), span| ast::UseTree::Alias { name, alias, span })
-            .boxed();
-
-        let name = ident().map_with_span(|name, span| ast::UseTree::Name { name, span });
-
-        choice((path, alias, name, group)).boxed()
-    })
-}
-
-fn use_statement<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
-    just(Token::Use)
-        .ignore_then(just(Token::DoubleColon).or_not())
-        .then(use_tree())
-        .then_ignore(just(Token::Semi))
-        .map_with_span(|(double_colon, use_tree), span| ast::Decl::Use {
-            is_absolute: double_colon.is_some(),
-            use_tree,
-            span,
-        })
-        .boxed()
-}
-
-fn let_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
-    let type_spec = just(Token::Colon).ignore_then(type_(expr.clone()));
-    let init = just(Token::Eq).ignore_then(range(expr.clone()).or(expr));
-    just(Token::Let)
-        .ignore_then(ident())
-        .then(type_spec.or_not())
-        .then(init.or_not())
-        .then_ignore(just(Token::Semi))
-        .validate(|((name, ty), init), span, emit| {
-            if ty.is_none() && init.is_none() {
-                emit(ParseError::UntypedVariable {
-                    span,
-                    name: name.name.clone(),
-                })
-            }
-            ((name, ty), init)
-        })
-        .map_with_span(|((name, ty), init), span| ast::Decl::Let {
-            name,
-            ty,
-            init,
-            span,
-        })
-        .boxed()
-}
-
-fn state_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
-    let type_spec = just(Token::Colon).ignore_then(type_(expr.clone()));
-    let init = just(Token::Eq).ignore_then(expr);
-    just(Token::State)
-        .ignore_then(ident())
-        .then(type_spec.or_not())
-        .then(init)
-        .then_ignore(just(Token::Semi))
-        .map_with_span(|((name, ty), init), span| ast::Decl::State {
-            name,
-            ty,
-            init,
-            span,
-        })
-        .boxed()
-}
-
-fn enum_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
-    just(Token::Enum)
-        .ignore_then(ident())
-        .then_ignore(just(Token::Eq))
-        .then(ident().separated_by(just(Token::Pipe)))
-        .then_ignore(just(Token::Semi))
-        .map_with_span(|(name, variants), span| {
-            ast::Decl::Enum(EnumDecl {
-                name,
-                variants,
-                span,
-            })
-        })
-        .boxed()
-}
-
-fn type_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
-    just(Token::Type)
-        .ignore_then(ident())
-        .then_ignore(just(Token::Eq))
-        .then(type_(expr()))
-        .then_ignore(just(Token::Semi))
-        .map_with_span(|(name, ty), span| ast::Decl::NewType { name, ty, span })
-        .boxed()
-}
-
-fn constraint_decl<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
-    just(Token::Constraint)
-        .ignore_then(expr)
-        .then_ignore(just(Token::Semi))
-        .map_with_span(|expr, span| ast::Decl::Constraint { expr, span })
-        .boxed()
-}
-
-fn solve_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
-    let solve_satisfy = just(Token::Satisfy).to(ast::SolveFunc::Satisfy);
-    let solve_minimize = just(Token::Minimize)
-        .ignore_then(expr())
-        .map(ast::SolveFunc::Minimize);
-    let solve_maximize = just(Token::Maximize)
-        .ignore_then(expr())
-        .map(ast::SolveFunc::Maximize);
-
-    just(Token::Solve)
-        .ignore_then(choice((solve_satisfy, solve_minimize, solve_maximize)))
-        .then_ignore(just(Token::Semi))
-        .map_with_span(|directive, span| ast::Decl::Solve { directive, span })
-        .boxed()
-}
-
-fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
-    fn_sig(expr())
-        .then(code_block_expr(expr()))
-        .map_with_span(|(fn_sig, body), span| ast::Decl::Fn { fn_sig, body, span })
-        .boxed()
-}
-
-fn fn_sig<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, FnSig<ast::Type>, Error = ParseError> + Clone {
-    let type_spec = just(Token::Colon).ignore_then(type_(expr.clone()));
-
-    let params = ident()
-        .then(type_spec)
-        .separated_by(just(Token::Comma))
-        .allow_trailing()
-        .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
-        .boxed();
-
-    let return_type = just(Token::Arrow).ignore_then(type_(expr));
-
-    just(Token::Fn)
-        .ignore_then(ident())
-        .then(params)
-        .then(return_type)
-        .map_with_span(|((name, params), return_type), span| FnSig {
-            name,
-            params,
-            return_type,
-            span,
-        })
-        .boxed()
-}
-
-fn interface_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
-    just(Token::Interface)
-        .ignore_then(ident())
-        .then(
-            (fn_sig(expr()).then_ignore(just(Token::Semi)))
-                .repeated()
-                .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
-        )
-        .map_with_span(|(name, functions), span| {
-            ast::Decl::Interface(contract::InterfaceDecl {
-                name,
-                functions,
-                span,
-            })
-        })
-        .boxed()
-}
-
-fn contract_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
-    just(Token::Contract)
-        .ignore_then(ident())
-        .then(expr().delimited_by(just(Token::ParenOpen), just(Token::ParenClose)))
-        .then(
-            (just(Token::Implements)
-                .ignore_then(path().separated_by(just(Token::Comma)).at_least(1)))
-            .or_not(),
-        )
-        .then(
-            (fn_sig(expr()).then_ignore(just(Token::Semi)))
-                .repeated()
-                .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
-        )
-        .map_with_span(|(((name, id), interfaces), functions), span| {
-            ast::Decl::Contract(contract::ContractDecl {
-                name,
-                id,
-                interfaces: interfaces.unwrap_or_default(),
-                functions,
-                span,
-            })
-        })
-        .boxed()
-}
-
-fn extern_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl, Error = ParseError> + Clone {
-    just(Token::Extern)
-        .ignore_then(
-            (fn_sig(expr()).then_ignore(just(Token::Semi)))
-                .repeated()
-                .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
-        )
-        .map_with_span(|functions, span| ast::Decl::Extern { functions, span })
-        .boxed()
-}
-
-fn code_block_expr<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Block, Error = ParseError> + Clone {
-    let code_block_body = choice((
-        let_decl(expr.clone()),
-        state_decl(expr.clone()),
-        constraint_decl(expr.clone()),
-    ))
-    .repeated()
-    .then(expr)
-    .boxed();
-
-    code_block_body
-        .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
-        .map_with_span(|(statements, expr), span| ast::Block {
-            statements,
-            final_expr: Box::new(expr),
-            span,
-        })
-        .boxed()
-}
-
-fn prefix_unary_op<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone {
-    choice((
-        just(Token::Plus).to(expr::UnaryOp::Pos),
-        just(Token::Minus).to(expr::UnaryOp::Neg),
-        just(Token::Bang).to(expr::UnaryOp::Not),
-    ))
-    .then(expr)
-    .map_with_span(|(op, expr), span| ast::Expr::UnaryOp {
-        op,
-        expr: Box::new(expr),
-        span,
-    })
-    .boxed()
-}
-
-fn if_expr<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone {
-    let then_block = code_block_expr(expr.clone());
-    let else_block = just(Token::Else).ignore_then(code_block_expr(expr.clone()));
-
-    just(Token::If)
-        .ignore_then(expr)
-        .then(then_block)
-        .then(else_block)
-        .map_with_span(
-            |((condition, then_block), else_block), span| ast::Expr::If {
-                condition: Box::new(condition),
-                then_block,
-                else_block,
-                span,
-            },
-        )
-        .boxed()
-}
-
-fn cond_expr<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone {
-    let cond_branch = expr
-        .clone()
-        .then_ignore(just(Token::HeavyArrow))
-        .then(expr.clone())
-        .then_ignore(just(Token::Comma))
-        .map_with_span(|(condition, result), span| expr::CondBranch {
-            condition: Box::new(condition),
-            result: Box::new(result),
-            span,
-        })
-        .boxed();
-
-    let else_branch = just(Token::Else)
-        .ignore_then(just(Token::HeavyArrow))
-        .ignore_then(expr)
-        .boxed();
-
-    let body = cond_branch
-        .repeated()
-        .then(else_branch)
-        .then_ignore(just(Token::Comma).or_not())
-        .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
-        .boxed();
-
-    just(Token::Cond)
-        .ignore_then(body)
-        .map_with_span(|(branches, else_result), span| ast::Expr::Cond {
-            branches,
-            else_result: Box::new(else_result),
-            span,
-        })
-        .boxed()
-}
-
-fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone {
-    recursive(|expr| {
-        let call_args = expr
-            .clone()
-            .separated_by(just(Token::Comma))
-            .allow_trailing()
-            .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
-            .boxed();
-
-        let call = path()
-            .then(call_args.clone())
-            .map_with_span(|(name, args), span| ast::Expr::Call { name, args, span })
-            .boxed();
-
-        let array_elements = expr
-            .clone()
-            .separated_by(just(Token::Comma))
-            .allow_trailing()
-            .delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
-            .boxed();
-
-        let array = array_elements
-            .validate(|array_elements, span, emit| {
-                if array_elements.is_empty() {
-                    emit(ParseError::EmptyArrayExpr { span })
-                }
-                array_elements
-            })
-            .map_with_span(|elements, span| ast::Expr::Array { elements, span })
-            .boxed();
-
-        let tuple_fields = (ident().then_ignore(just(Token::Colon)))
-            .or_not()
-            .then(expr.clone())
-            .separated_by(just(Token::Comma))
-            .allow_trailing()
-            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
-            .boxed();
-
-        let tuple = tuple_fields
-            .validate(|tuple_fields, span, emit| {
-                if tuple_fields.is_empty() {
-                    emit(ParseError::EmptyTupleExpr { span })
-                }
-                tuple_fields
-            })
-            .map_with_span(|fields, span| ast::Expr::Tuple { fields, span })
-            .boxed();
-
-        let parens = expr
-            .clone()
-            .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
-            .boxed();
-
-        let atom = choice((
-            immediate().map_with_span(|value, span| ast::Expr::Immediate { value, span }),
-            prefix_unary_op(expr.clone()),
-            code_block_expr(expr.clone()).map(ast::Expr::Block),
-            if_expr(expr.clone()),
-            cond_expr(expr.clone()),
-            call,
-            array,
-            tuple,
-            parens,
-            path().map(ast::Expr::Path),
-        ))
-        .boxed();
-
-        // This order enforces the procedence rules in Yurt expressions
-        let suffix_unary_op = suffix_unary_op(atom);
-        let array_element_access = array_element_access(suffix_unary_op, expr.clone());
-        let tuple_field_access = tuple_field_access(array_element_access);
-        let cast = cast(tuple_field_access, expr.clone());
-        let in_expr = in_expr(cast, expr.clone());
-        let multiplicative_op = multiplicative_op(in_expr);
-        let additive_op = additive_op(multiplicative_op);
-        let comparison_op = comparison_op(additive_op);
-        let and = and_or_op(
-            Token::DoubleAmpersand,
-            expr::BinaryOp::LogicalAnd,
-            comparison_op,
-        );
-        and_or_op(Token::DoublePipe, expr::BinaryOp::LogicalOr, and)
-    })
-}
-
-fn suffix_unary_op<'sc, P>(
-    parser: P,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
-where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-{
-    parser
-        .then(
-            (just(Token::SingleQuote).to(expr::UnaryOp::NextState))
-                .map_with_span(|op, span| (op, span))
-                .repeated(),
-        )
-        .foldl(|expr, (op, span)| {
-            let span = Span::new(span.context(), expr.span().start()..span.end());
-            ast::Expr::UnaryOp {
-                op,
-                expr: Box::new(expr),
-                span,
-            }
-        })
-        .boxed()
-}
-
-fn array_element_access<'sc, P>(
-    parser: P,
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
-where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-{
-    parser
-        .then(
-            expr.delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
-                .map_with_span(|index, span| (index, span))
-                .repeated(),
-        )
-        .foldl(|expr, (index, span)| {
-            let span = Span::new(span.context(), expr.span().start()..span.end());
-            ast::Expr::ArrayElementAccess {
-                array: Box::new(expr),
-                index: Box::new(index),
-                span,
-            }
-        })
-        .boxed()
-}
-
-fn tuple_field_access<'sc, P>(
-    parser: P,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
-where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-{
-    let indices_with_spans = filter_map(|span: Span, token| match &token {
-        // Field access with an identifier
-        Token::Ident(ident) => Ok(vec![(
-            expr::TupleAccess::Name(ast::Ident {
-                name: (*ident).to_owned(),
-                span: span.clone(),
-            }),
-            span,
-        )]),
-
-        // Field access with an integer
-        Token::IntLiteral(num_str) => num_str
-            .parse::<usize>()
-            .map(|index| vec![(expr::TupleAccess::Index(index), span.clone())])
-            .map_err(|_| ParseError::InvalidIntegerTupleIndex {
-                span: span.clone(),
-                index: num_str.to_string(),
-            }),
-
-        // If the next token is of the form `<int>.<int>` which, to the lexer, looks like a real,
-        // break it apart manually.
-        Token::RealLiteral(num_str) => {
-            match Regex::new(r"[0-9]+\.[0-9]+")
-                .expect("valid regex")
-                .captures(num_str)
-            {
-                Some(_) => {
-                    // Collect the spans for the two integers
-                    let dot_index = num_str
-                        .chars()
-                        .position(|c| c == '.')
-                        .expect("guaranteed by regex");
-                    let span_ranges = [
-                        span.start()..span.start() + dot_index,
-                        span.start() + dot_index + 1..span.end(),
-                    ];
-
-                    // Split at `.` then collect the two indices as `usize`. Report errors as
-                    // needed
-                    num_str
-                        .split('.')
-                        .zip(span_ranges.iter())
-                        .map(|(index, span_range)| {
-                            index
-                                .parse::<usize>()
-                                .map_err(|_| ParseError::InvalidIntegerTupleIndex {
-                                    span: Span::new(span.context(), span_range.clone()),
-                                    index: index.to_string(),
-                                })
-                                .map(|index| (expr::TupleAccess::Index(index), span.clone()))
-                        })
-                        .collect::<Result<Vec<(expr::TupleAccess, Span)>, _>>()
-                }
-                None => Err(ParseError::InvalidTupleIndex {
-                    span,
-                    index: token.to_string(),
-                }),
-            }
-        }
-        _ => Err(ParseError::InvalidTupleIndex {
-            span,
-            index: token.to_string(),
-        }),
-    })
-    .boxed();
-
-    parser
-        .then(
-            just(Token::Dot)
-                .ignore_then(indices_with_spans)
-                .repeated()
-                .flatten(),
-        )
-        .foldl(|expr, (field, span)| {
-            let span = Span::new(span.context(), expr.span().start()..span.end());
-            ast::Expr::TupleFieldAccess {
-                tuple: Box::new(expr),
-                field,
-                span,
-            }
-        })
-        .boxed()
-}
-
-fn cast<'sc, P>(
-    parser: P,
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
-where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-{
-    parser
-        .then(
-            just(Token::As)
-                .ignore_then(type_(expr))
-                .map_with_span(|ty, span| (ty, span))
-                .repeated(),
-        )
-        .foldl(|value, (ty, span)| {
-            let span = Span::new(span.context(), value.span().start()..span.end());
-            ast::Expr::Cast {
-                value: Box::new(value),
-                ty: Box::new(ty),
-                span,
-            }
-        })
-        .boxed()
-}
-
-fn in_expr<'sc, P>(
-    parser: P,
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
-where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-{
-    parser
-        .clone()
-        .then(
-            just(Token::In)
-                .ignore_then(range(expr.clone()).or(expr))
-                .map_with_span(|collection, span| (collection, span))
-                .repeated(),
-        )
-        .foldl(|value, (collection, span)| {
-            let span = Span::new(span.context(), value.span().start()..span.end());
-            ast::Expr::In {
-                value: Box::new(value),
-                collection: Box::new(collection),
-                span,
-            }
-        })
-        .boxed()
-}
-
-fn multiplicative_op<'sc, P>(
-    parser: P,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
-where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-{
-    parser
-        .clone()
-        .then(
-            just(Token::Star)
-                .to(expr::BinaryOp::Mul)
-                .or(just(Token::Div).to(expr::BinaryOp::Div))
-                .or(just(Token::Mod).to(expr::BinaryOp::Mod))
-                .then(parser)
-                .map_with_span(|bin, span| (bin, span))
-                .repeated(),
-        )
-        .foldl(|lhs, ((op, rhs), span)| {
-            let span = Span::new(span.context(), lhs.span().start()..span.end());
-            ast::Expr::BinaryOp {
-                op,
-                lhs: Box::new(lhs),
-                rhs: Box::new(rhs),
-                span,
-            }
-        })
-        .boxed()
-}
-
-fn additive_op<'sc, P>(parser: P) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
-where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-{
-    parser
-        .clone()
-        .then(
-            just(Token::Plus)
-                .to(expr::BinaryOp::Add)
-                .or(just(Token::Minus).to(expr::BinaryOp::Sub))
-                .then(parser)
-                .map_with_span(|bin, span| (bin, span))
-                .repeated(),
-        )
-        .foldl(|lhs, ((op, rhs), span)| {
-            let span = Span::new(span.context(), lhs.span().start()..span.end());
-            ast::Expr::BinaryOp {
-                op,
-                lhs: Box::new(lhs),
-                rhs: Box::new(rhs),
-                span,
-            }
-        })
-        .boxed()
-}
-
-fn comparison_op<'sc, P>(
-    parser: P,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
-where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-{
-    parser
-        .clone()
-        .then(
-            choice((
-                just(Token::Lt).to(expr::BinaryOp::LessThan),
-                just(Token::Gt).to(expr::BinaryOp::GreaterThan),
-                just(Token::LtEq).to(expr::BinaryOp::LessThanOrEqual),
-                just(Token::GtEq).to(expr::BinaryOp::GreaterThanOrEqual),
-                just(Token::EqEq).to(expr::BinaryOp::Equal),
-                just(Token::NotEq).to(expr::BinaryOp::NotEqual),
-            ))
-            .then(parser)
-            .map_with_span(|bin, span| (bin, span))
-            .repeated(),
-        )
-        .foldl(|lhs, ((op, rhs), span)| {
-            let span = Span::new(span.context(), lhs.span().start()..span.end());
-            ast::Expr::BinaryOp {
-                op,
-                lhs: Box::new(lhs),
-                rhs: Box::new(rhs),
-                span,
-            }
-        })
-        .boxed()
-}
-
-fn and_or_op<'sc, P>(
-    token: Token<'sc>,
-    logical_op: expr::BinaryOp,
-    parser: P,
-) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
-where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-{
-    parser
-        .clone()
-        .then(
-            just(token)
-                .to(logical_op)
-                .then(parser)
-                .map_with_span(|bin, span| (bin, span))
-                .repeated(),
-        )
-        .foldl(|lhs, ((op, rhs), span)| {
-            let span = Span::new(span.context(), lhs.span().start()..span.end());
-            ast::Expr::BinaryOp {
-                op,
-                lhs: Box::new(lhs),
-                rhs: Box::new(rhs),
-                span,
-            }
-        })
-        .boxed()
-}
-
-fn range<'sc, P>(parser: P) -> impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone
-where
-    P: Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-{
-    parser
-        .clone()
-        .then(just(Token::TwoDots).ignore_then(parser))
-        .map_with_span(|(lb, ub), span| ast::Expr::Range {
-            lb: Box::new(lb),
-            ub: Box::new(ub),
-            span,
-        })
-}
-
-fn ident<'sc>() -> impl Parser<Token<'sc>, ast::Ident, Error = ParseError> + Clone {
-    filter_map(|span, token| match token {
-        // Accept detected identifier. The lexer makes sure that these are not keywords.
-        Token::Ident(id) => Ok(ast::Ident {
-            name: id.to_owned(),
-            span,
-        }),
-
-        // Tokens that represent keywords are not allowed
-        _ if KEYWORDS.contains(&token) => Err(ParseError::KeywordAsIdent {
-            span,
-            keyword: token.to_string(),
-        }),
-
-        // Other tokens are not allowed either
-        _ => Err(ParseError::ExpectedFound {
-            span,
-            expected: vec![],
-            found: Some(token.to_string()),
-        }),
-    })
-}
-
-fn path<'sc>() -> impl Parser<Token<'sc>, ast::Path, Error = ParseError> + Clone {
-    let relative_path = ident().then((just(Token::DoubleColon).ignore_then(ident())).repeated());
-    just(Token::DoubleColon)
-        .or_not()
-        .then(relative_path)
-        .map_with_span(|(pre_colons, (id, mut path)), span| {
-            path.insert(0, id);
-            ast::Path {
-                path,
-                is_absolute: pre_colons.is_some(),
-                span,
-            }
-        })
-        .boxed()
-}
-
-fn type_<'sc>(
-    expr: impl Parser<Token<'sc>, ast::Expr, Error = ParseError> + Clone + 'sc,
-) -> impl Parser<Token<'sc>, ast::Type, Error = ParseError> + Clone {
-    recursive(|type_| {
-        let tuple = (ident().then_ignore(just(Token::Colon)))
-            .or_not()
-            .then(type_)
-            .separated_by(just(Token::Comma))
-            .allow_trailing()
-            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
-            .validate(|args, span, emit| {
-                if args.is_empty() {
-                    emit(ParseError::EmptyTupleType { span })
-                }
-                args
-            })
-            .boxed();
-
-        let type_atom = choice((
-            just(Token::Real).map_with_span(|_, span| ast::Type::Primitive {
-                kind: PrimitiveKind::Real,
-                span,
-            }),
-            just(Token::Int).map_with_span(|_, span| ast::Type::Primitive {
-                kind: PrimitiveKind::Int,
-                span,
-            }),
-            just(Token::Bool).map_with_span(|_, span| ast::Type::Primitive {
-                kind: PrimitiveKind::Bool,
-                span,
-            }),
-            just(Token::String).map_with_span(|_, span| ast::Type::Primitive {
-                kind: PrimitiveKind::String,
-                span,
-            }),
-            tuple.map_with_span(|fields, span| ast::Type::Tuple { fields, span }),
-            path().map_with_span(|path, span| ast::Type::CustomType { path, span }),
-        ))
-        .boxed();
-
-        // Multi-dimensional arrays have their innermost dimension on the far right. Hence, we need
-        // a `foldr` here instead of a `foldl`. For example, `int[3][5]` is actually an array of
-        // size 3 that contains arrays of size 5 of `int`s.
-        type_atom
-            .clone()
-            .then(
-                expr.delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
-                    .map_with_span(|range, span| (range, span))
-                    .repeated(),
-            )
-            .map(|(type_atom, ranges_with_span)| (ranges_with_span, type_atom))
-            .foldr(|(range, span), ty| {
-                let span = Span::new(span.context(), ty.span().start()..span.end());
-                ast::Type::Array {
-                    ty: Box::new(ty),
-                    range,
-                    span,
-                }
-            })
-            .boxed()
-    })
-}
-
-fn immediate<'sc>() -> impl Parser<Token<'sc>, expr::Immediate, Error = ParseError> + Clone {
-    let integer_parser = |num_str: &str| {
-        use num_traits::Num;
-        let (radix, offset) = match num_str.chars().nth(1) {
-            Some('b') => (2, 2),
-            Some('x') => (16, 2),
-            _ => (10, 0),
+    fn parse_module(
+        &mut self,
+        src_path: &Rc<Path>,
+        mod_path: &[String],
+        mod_prefix: &String,
+    ) -> Result<Vec<(bool, Vec<String>)>, Vec<Error>> {
+        println!("Compiling {}", src_path.display());
+        let src_str = fs::read_to_string(src_path).map_err(|io_err| {
+            vec![Error::Compile {
+                error: CompileError::FileIO {
+                    error: io_err,
+                    file: Some(src_path.to_path_buf()),
+                    span: span::empty_span(),
+                },
+            }]
+        })?;
+        let span_from = |start, end| Span {
+            context: Rc::clone(src_path),
+            range: start..end,
         };
 
-        // Try to parse as an i64 first
-        i64::from_str_radix(&num_str[offset..], radix)
-            .map(expr::Immediate::Int)
-            .or_else(|_| {
-                // Try a big-int if that fails and return an expr::Immedate::BigInt.  The BigInt
-                // FromStr::from_str() isn't smart about radices though.
-                num_bigint::BigInt::from_str_radix(&num_str[offset..], radix)
-                    .map(expr::Immediate::BigInt)
-            })
-            .unwrap()
-    };
+        let mut use_trees = Vec::new();
+        let mut next_paths = Vec::new();
+        let mut context = ParserContext {
+            mod_path,
+            mod_prefix,
+            ii: &mut self.intent,
+            span_from: &span_from,
+            use_paths: &mut use_trees,
+            next_paths: &mut next_paths,
+        };
+        let mut errors = Vec::new();
 
-    select! {
-        Token::RealLiteral(num_str) => expr::Immediate::Real(num_str.parse().unwrap()),
-        Token::IntLiteral(num_str) => integer_parser(num_str),
-        Token::True => expr::Immediate::Bool(true),
-        Token::False => expr::Immediate::Bool(false),
-        Token::StringLiteral(str_val) => expr::Immediate::String(str_val),
+        match yurt_parser::YurtParser::new().parse(
+            &mut context,
+            &mut errors,
+            lexer::Lexer::new(&src_str, src_path),
+        ) {
+            Ok(result) => {
+                if errors.is_empty() {
+                    Ok(result)
+                } else {
+                    Err(errors)
+                }
+            }
+            Err(lalrpop_err) => {
+                errors.push(Error::Parse {
+                    error: (lalrpop_err, src_path).into(),
+                });
+                Err(errors)
+            }
+        }?;
+
+        Ok(next_paths)
+    }
+
+    fn finalize(self) -> Result<IntermediateIntent, Vec<Error>> {
+        Ok(self.intent)
     }
 }

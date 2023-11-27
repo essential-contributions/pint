@@ -6,24 +6,24 @@ pub struct Span {
     pub(super) range: Range<usize>,
 }
 
-impl chumsky::Span for Span {
+type Context = Rc<Path>;
+type Offset = usize;
+
+impl Span {
     // For now, the context is just a `Path`. This may change in the future
-    type Context = Rc<Path>;
-
-    type Offset = usize;
-
-    fn new(context: Self::Context, range: Range<Self::Offset>) -> Self {
+    pub fn new(context: Context, range: Range<Offset>) -> Self {
         Self { context, range }
     }
 
-    fn context(&self) -> Self::Context {
+    pub fn context(&self) -> Context {
         Rc::clone(&self.context)
     }
 
-    fn start(&self) -> Self::Offset {
+    pub fn start(&self) -> Offset {
         self.range.start
     }
-    fn end(&self) -> Self::Offset {
+
+    pub fn end(&self) -> Offset {
         self.range.end
     }
 }
@@ -38,6 +38,16 @@ pub(super) fn empty_span() -> Span {
     Span {
         range: 0..0,
         context: Rc::from(Path::new("")),
+    }
+}
+
+/// Join two spans into a new span ranging from the `lhs` to `rhs`.
+/// NOTE: no validation is performed--it is assumed that `lhs` is before `rhs` and that they share
+/// the same context, which is copied from `lhs`.  Behaviour is undefined otherwise.
+pub(super) fn join(lhs: &Span, rhs: &Span) -> Span {
+    Span {
+        range: lhs.range.start..rhs.range.end,
+        context: Rc::clone(&lhs.context),
     }
 }
 

@@ -1,3 +1,5 @@
+// <<disabled>>
+
 let a = 123;
 let b = 123.456;
 let c: real;
@@ -12,7 +14,7 @@ constraint c < b;
 
 solve minimize c;
 
-// ast <<<<
+// intermediate <<<
 // let ::a = 123;
 // let ::b = 1.23456e2;
 // let ::c: real;

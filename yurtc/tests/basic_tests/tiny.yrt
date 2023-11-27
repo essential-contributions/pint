@@ -1,7 +1,8 @@
 let a: int = 1;
 solve satisfy;
 
-// ast <<<<
-// let ::a: int = 1;
+// intermediate <<<<
+// var ::a: int;
+// constraint (var ::a: int == 1);
 // solve satisfy;
 // >>>

@@ -11,14 +11,15 @@ constraint b > c;
 
 solve satisfy;
 
-// ast <<<
-// extern { fn ::hello_world() -> bool; };
-// let ::c: int;
+// intermediate <<<
+// var ::c: int;
+// var ::a::b: int;
 // state ::d: bool = ::hello_world();
-// constraint (::a::b > ::c);
-// solve satisfy;
 // type ::a::Count = int;
-// let ::a::b: int = 10;
+// constraint (::a::b > ::c);
+// constraint (var ::a::b: int == 10);
+// extern { fn ::hello_world() -> bool; };
+// solve satisfy;
 // >>>
 
 // compiled_intent <<<

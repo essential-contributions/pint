@@ -4,12 +4,12 @@ mod parse_error;
 
 use crate::span::{Span, Spanned};
 use ariadne::{FnCache, Label, Report, ReportKind, Source};
-use chumsky::prelude::*;
+use thiserror::Error;
+use yansi::{Color, Style};
+
 pub(super) use compile_error::CompileError;
 pub(super) use lex_error::LexError;
 pub(super) use parse_error::ParseError;
-use thiserror::Error;
-use yansi::{Color, Style};
 
 /// An error label used for pretty printing error messages to the terminal
 pub(super) struct ErrorLabel {
@@ -77,22 +77,22 @@ where
             });
 
         if let Some(code) = self.code() {
-            report_builder = report_builder.with_code(code)
-        };
+            report_builder = report_builder.with_code(code);
+        }
 
         if let Some(note) = self.note() {
-            report_builder = report_builder.with_note(note)
-        };
+            report_builder = report_builder.with_note(note);
+        }
 
         if let Some(help) = self.help() {
-            report_builder = report_builder.with_help(help)
-        };
+            report_builder = report_builder.with_help(help);
+        }
 
         report_builder
             .finish()
             .print(
                 FnCache::new(|id: &&str| {
-                    Err(Box::new(format!("Failed to fetch source '{}'", id)) as _)
+                    Err(Box::new(format!("Failed to fetch source '{id}'")) as _)
                 })
                 .with_sources(
                     filepaths_and_sources
@@ -136,8 +136,8 @@ impl ReportableError for Error {
         use Error::*;
         match self {
             Lex { .. } => None,
-            Parse { error } => error.code().map(|code| format!("P{}", code)),
-            Compile { error } => error.code().map(|code| format!("C{}", code)),
+            Parse { error } => error.code().map(|code| format!("P{code}")),
+            Compile { error } => error.code().map(|code| format!("C{code}")),
         }
     }
 

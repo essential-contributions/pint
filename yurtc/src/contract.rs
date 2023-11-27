@@ -1,60 +1,60 @@
 use crate::{
-    ast::Ident,
+    expr::Ident,
+    intent::intermediate::{DisplayWithII, ExprKey, IntermediateIntent},
     span::{Span, Spanned},
-    types::FnSig,
+    types::{FnSig, Path},
     util::write_many,
 };
-
-use std::fmt::{Display, Formatter, Result};
+use std::fmt::{Formatter, Result};
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct InterfaceDecl<Type> {
+pub struct InterfaceDecl {
     pub(super) name: Ident,
-    pub(super) functions: Vec<FnSig<Type>>,
+    pub(super) functions: Vec<FnSig>,
     pub(super) span: Span,
 }
 
-impl<Type> Spanned for InterfaceDecl<Type> {
+impl Spanned for InterfaceDecl {
     fn span(&self) -> &Span {
         &self.span
     }
 }
 
-impl<Type: Display> Display for InterfaceDecl<Type> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl DisplayWithII for InterfaceDecl {
+    fn fmt(&self, f: &mut Formatter<'_>, ii: &IntermediateIntent) -> Result {
         write!(f, "interface {} {{ ", self.name)?;
         for function in &self.functions {
-            write!(f, "{function}; ")?;
+            write!(f, "{}; ", ii.with_ii(function))?;
         }
         write!(f, "}}")
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct ContractDecl<Path, Expr, Type> {
+pub struct ContractDecl {
     pub(super) name: Ident,
-    pub(super) id: Expr,
+    pub(super) id: ExprKey,
     pub(super) interfaces: Vec<Path>,
-    pub(super) functions: Vec<FnSig<Type>>,
+    pub(super) functions: Vec<FnSig>,
     pub(super) span: Span,
 }
 
-impl<Path, Expr, Type> Spanned for ContractDecl<Path, Expr, Type> {
+impl Spanned for ContractDecl {
     fn span(&self) -> &Span {
         &self.span
     }
 }
 
-impl<Path: Display, Expr: Display, Type: Display> Display for ContractDecl<Path, Expr, Type> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "contract {}({})", self.name, self.id)?;
+impl DisplayWithII for ContractDecl {
+    fn fmt(&self, f: &mut Formatter<'_>, ii: &IntermediateIntent) -> Result {
+        write!(f, "contract {}({})", self.name, ii.with_ii(self.id))?;
         if !self.interfaces.is_empty() {
             write!(f, " implements ")?;
             write_many!(f, self.interfaces, ", ");
         }
         write!(f, " {{ ")?;
         for function in &self.functions {
-            write!(f, "{function}; ")?;
+            write!(f, "{}; ", ii.with_ii(function))?;
         }
         write!(f, "}}")
     }

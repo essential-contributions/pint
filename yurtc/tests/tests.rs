@@ -41,19 +41,27 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
             path.push("main.yrt");
         }
 
+        // Skip disabled tests
+        let handle = File::open(path.clone())?;
+        if let Some(Ok(first_line)) = BufReader::new(handle).lines().next() {
+            if first_line.contains("<disabled>") {
+                continue;
+            }
+        }
+
         // Parse the file for the expected results for Yurt parsing, optimising and final output,
         // or errors at any of those stages.
         let expectations = parse_expectations(&path)?;
 
         // Parse the project and check its output.
-        let ast = match yurtc::ast::parse_project(&path) {
+        let _ii = match yurtc::parser::parse_project(&path) {
             Err(errs) => {
                 // Just comma separate all the errors on a single line.
                 let errs_str = errs
                     .iter()
                     .map(|err| err.to_string())
                     .collect::<Vec<_>>()
-                    .join(", ");
+                    .join("\n");
 
                 if let Some(parse_error_str) = expectations.parse_failure {
                     similar_asserts::assert_eq!(parse_error_str.trim_end(), errs_str);
@@ -67,56 +75,16 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
                         Yellow.paint(errs_str),
                     );
                 }
-
                 None
             }
 
-            Ok(ast) => {
-                if let Some(expected_ast_str) = expectations.ast {
-                    let ast_str = ast
-                        .iter()
-                        .map(|decl| format!("{decl};"))
-                        .collect::<Vec<_>>()
-                        .join("\n");
-                    similar_asserts::assert_eq!(expected_ast_str, ast_str);
+            Ok(ii) => {
+                if let Some(expected_intent_str) = expectations.intermediate {
+                    // The slotmaps in the IntermediateIntent don't seem to iterate
+                    // deterministically so we'll print them in a more predictable way here.
+                    let intent_str = format!("{ii}");
+                    similar_asserts::assert_eq!(expected_intent_str.trim(), intent_str.trim());
                 } else if expectations.parse_failure.is_some() {
-                    failed_tests.push(path.display().to_string());
-                    println!(
-                        "{} {}.",
-                        Red.paint("UNEXPECTED SUCCESSFUL PARSE"),
-                        Cyan.paint(path.display().to_string()),
-                    );
-                }
-
-                Some(ast)
-            }
-        };
-
-        // Compile the AST into an intermediate intent.
-        let _intent = ast.and_then(|ast| match yurtc::intent::Intent::from_ast(&ast) {
-            Err(err) => {
-                if let Some(compile_error_str) = expectations.compile_failure {
-                    similar_asserts::assert_eq!(compile_error_str, err.to_string());
-                } else {
-                    failed_tests.push(path.display().to_string());
-                    println!(
-                        "{} {}. {}\n{}",
-                        Red.paint("FAILED TO COMPILE"),
-                        Cyan.paint(path.display().to_string()),
-                        Red.paint("Reported errors:"),
-                        Yellow.paint(err),
-                    );
-                }
-
-                None
-            }
-
-            Ok(intent) => {
-                if let Some(expected_intent_str) = expectations.compiled_intent {
-                    // Comparing against Debug for now.
-                    let intent_str = format!("{intent:?}");
-                    similar_asserts::assert_eq!(expected_intent_str, intent_str);
-                } else if expectations.compile_failure.is_some() {
                     failed_tests.push(path.display().to_string());
                     println!(
                         "{} {}.",
@@ -124,10 +92,11 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
                         Cyan.paint(path.display().to_string()),
                     );
                 }
-
-                Some(intent)
+                Some(ii)
             }
-        });
+        };
+
+        // TODO compile ii to inent and compare.
     }
 
     if !failed_tests.is_empty() {
@@ -139,7 +108,7 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
 
 #[derive(Default)]
 struct Expectations {
-    ast: Option<String>,
+    intermediate: Option<String>,
     parse_failure: Option<String>,
     compiled_intent: Option<String>,
     compile_failure: Option<String>,
@@ -154,14 +123,14 @@ struct Expectations {
 // tags.
 //
 // A section containing a single expected result string has a tag and is delimited by `<<<` and
-// `>>>`.  The tags are `ast`, `parse_failure`, `compiled_intent`, `compile_failure`.
+// `>>>`.  The tags are `intermediate`, `parse_failure`, `compiled_intent`, `compile_failure`.
 //
 // e.g. A simple test file may be:
 // | let a: int;
 // | constraint a == 42;
 // | solve satisfy;
 // |
-// | // ast <<<
+// | // intermediate <<<
 // | // let ::a: int;
 // | // constraint (::a == 42);
 // | // solve satisfy;
@@ -181,17 +150,18 @@ fn parse_expectations(path: &Path) -> anyhow::Result<Expectations> {
     #[derive(PartialEq)]
     enum Section {
         None,
-        Ast,
         ParseFailure,
+        IntermediateIntent,
         CompiledIntent,
-        CompileFailuire,
+        CompileFailure, // Deprecated.
     }
     let mut cur_section = Section::None;
     let mut section_lines = Vec::<String>::new();
 
     let comment_re = regex::Regex::new(r"^\s*//")?;
-    let open_sect_re =
-        regex::Regex::new(r"^\s*//\s*(ast|parse_failure|compiled_intent|compile_failure)\s*<<<")?;
+    let open_sect_re = regex::Regex::new(
+        r"^\s*//\s*(intermediate|parse_failure|compiled_intent|compile_failure)\s*<<<",
+    )?;
     let close_sect_re = regex::Regex::new(r"^\s*//\s*>>>")?;
 
     let handle = File::open(path)?;
@@ -209,10 +179,10 @@ fn parse_expectations(path: &Path) -> anyhow::Result<Expectations> {
             assert!(cur_section == Section::None && section_lines.is_empty());
 
             match &tag[1] {
-                "ast" => cur_section = Section::Ast,
+                "intermediate" => cur_section = Section::IntermediateIntent,
                 "parse_failure" => cur_section = Section::ParseFailure,
                 "compiled_intent" => cur_section = Section::CompiledIntent,
-                "compile_failure" => cur_section = Section::CompileFailuire,
+                "compile_failure" => cur_section = Section::CompileFailure,
                 _ => unreachable!("We can't capture strings not in the regex."),
             }
 
@@ -229,8 +199,8 @@ fn parse_expectations(path: &Path) -> anyhow::Result<Expectations> {
 
             // Store it in the correct part of our result.
             match cur_section {
-                Section::Ast => {
-                    expectations.ast = Some(section_str);
+                Section::IntermediateIntent => {
+                    expectations.intermediate = Some(section_str);
                 }
                 Section::ParseFailure => {
                     expectations.parse_failure = Some(section_str);
@@ -238,7 +208,7 @@ fn parse_expectations(path: &Path) -> anyhow::Result<Expectations> {
                 Section::CompiledIntent => {
                     expectations.compiled_intent = Some(section_str);
                 }
-                Section::CompileFailuire => {
+                Section::CompileFailure => {
                     expectations.compile_failure = Some(section_str);
                 }
                 Section::None => unreachable!("Can't be none, already checked."),

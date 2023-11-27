@@ -1,79 +1,185 @@
 use crate::{
-    ast,
-    ast::SolveFunc as SF,
-    contract::{ContractDecl as CD, InterfaceDecl as ID},
-    error::CompileError,
-    expr::Expr as E,
+    contract::{ContractDecl, InterfaceDecl},
+    error::{CompileError, ParseError},
+    expr::{self, Expr, Ident},
     intent::{Intent, Path},
-    span::Span,
-    types::{EnumDecl, FnSig as F, Type as T},
+    span::{empty_span, Span},
+    types::{EnumDecl, FnSig, NewTypeDecl, Type},
 };
-#[cfg(test)]
-use chumsky::prelude::*;
-#[cfg(test)]
-use std::rc::Rc;
+use std::{
+    collections::HashMap,
+    fmt::{self, Formatter},
+};
 
 mod compile;
-mod from_ast;
+mod display;
 
 type Result<T> = std::result::Result<T, CompileError>;
 
-struct Block(Box<Expr>);
-type Expr = E<Path, Block>;
-type Type = T<Path, Expr>;
-type FnSig = F<Type>;
-type InterfaceDecl = ID<Type>;
-type ContractDecl = CD<Path, Expr, Type>;
-type SolveFunc = SF<Expr>;
+slotmap::new_key_type! { pub struct VarKey; }
+slotmap::new_key_type! { pub struct ExprKey; }
 
 /// An in-progress intent, possibly malformed or containing redundant information.  Designed to be
 /// iterated upon and to be reduced to an [Intent].
-pub(super) struct IntermediateIntent {
-    states: Vec<(State, Span)>,
-    vars: Vec<(Var, Span)>,
-    constraints: Vec<(Expr, Span)>,
-    directives: Vec<(SolveFunc, Span)>,
+#[derive(Debug, Default)]
+pub struct IntermediateIntent {
+    pub vars: slotmap::SlotMap<VarKey, Var>,
+    pub exprs: slotmap::SlotMap<ExprKey, Expr>,
 
-    // TODO: These aren't read yet but they will need to be as a part of semantic analysis and
-    // optimisation.
+    pub states: Vec<State>,
+    pub constraints: Vec<(ExprKey, Span)>,
+    pub directives: Vec<(SolveFunc, Span)>,
+
+    pub enums: Vec<EnumDecl>,
+    pub new_types: Vec<NewTypeDecl>,
+    pub interfaces: Vec<InterfaceDecl>,
+    pub contracts: Vec<ContractDecl>,
+    pub externs: Vec<(Vec<FnSig>, Span)>,
+
+    // TODO: functions/macros are not implemented yet.
     #[allow(dead_code)]
     funcs: Vec<(FnDecl, Span)>,
-    #[allow(dead_code)]
-    enums: Vec<EnumDecl>,
-    #[allow(dead_code)]
-    interfaces: Vec<InterfaceDecl>,
-    #[allow(dead_code)]
-    contracts: Vec<ContractDecl>,
-    #[allow(dead_code)]
-    externs: Vec<(Vec<FnSig>, Span)>,
+
+    pub top_level_symbols: HashMap<String, Span>,
 }
 
 impl IntermediateIntent {
-    pub(super) fn from_ast(ast: &ast::Ast) -> Result<Self> {
-        from_ast::from_ast(ast)
+    pub fn compile(self) -> Result<Intent> {
+        compile::compile(self)
     }
 
-    pub(super) fn compile(self) -> Result<Intent> {
-        compile::compile(self)
+    /// Helps out some `thing: T` by adding `self` as context.
+    pub fn with_ii<T>(&self, thing: T) -> WithII<'_, T> {
+        WithII { thing, ii: self }
+    }
+
+    pub fn insert_var(
+        &mut self,
+        mod_prefix: &str,
+        name: &Ident,
+        ty: Option<Type>,
+    ) -> std::result::Result<VarKey, ParseError> {
+        let full_name = self.add_top_level_symbol(mod_prefix, name, name.span.clone())?;
+        let var_key = self.vars.insert(Var {
+            name: full_name,
+            ty,
+            span: name.span.clone(),
+        });
+
+        Ok(var_key)
+    }
+
+    pub fn insert_eq_constraint(&mut self, var_key: VarKey, expr_key: ExprKey, span: Span) {
+        let var_span = self
+            .vars
+            .get(var_key)
+            .map_or_else(empty_span, |v| v.span.clone());
+
+        let var_expr_key = self.exprs.insert(Expr::PathByKey(var_key, var_span));
+
+        let eq_expr_key = self.exprs.insert(Expr::BinaryOp {
+            op: expr::BinaryOp::Equal,
+            lhs: var_expr_key,
+            rhs: expr_key,
+            span: span.clone(),
+        });
+
+        self.constraints.push((eq_expr_key, span));
+    }
+
+    pub fn insert_state(
+        &mut self,
+        mod_prefix: &str,
+        name: &Ident,
+        ty: Option<Type>,
+        expr: ExprKey,
+        span: Span,
+    ) -> std::result::Result<usize, ParseError> {
+        let name = self.add_top_level_symbol(mod_prefix, name, span.clone())?;
+        let idx = self.states.len();
+
+        self.states.push(State {
+            name,
+            ty,
+            expr,
+            span,
+        });
+
+        Ok(idx)
+    }
+
+    pub fn add_top_level_symbol(
+        &mut self,
+        mod_prefix: &str,
+        name: &Ident,
+        span: Span,
+    ) -> std::result::Result<String, ParseError> {
+        let full_name = mod_prefix.to_owned() + &name.name;
+        self.top_level_symbols
+            .get(&full_name)
+            .map(|prev_span| {
+                // Name clash.
+                Err(ParseError::NameClash {
+                    sym: name.name.clone(),
+                    span: name.span.clone(),
+                    prev_span: prev_span.clone(),
+                })
+            })
+            .unwrap_or_else(|| {
+                // Not found in the symbol table.
+                self.top_level_symbols.insert(full_name.clone(), span);
+                Ok(full_name)
+            })
     }
 }
 
 /// A state specification with an optional type.
-struct State {
+#[derive(Debug)]
+pub struct State {
     name: Path,
     ty: Option<Type>,
-    expr: Expr,
+    expr: ExprKey,
+    span: Span,
 }
 
+impl DisplayWithII for &State {
+    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
+        write!(f, "state {}", self.name)?;
+        if let Some(ty) = &self.ty {
+            write!(f, ": {}", ii.with_ii(ty))?;
+        }
+        write!(f, " = {}", ii.with_ii(&self.expr))?;
+        Ok(())
+    }
+}
 /// A decision variable with an optional type.
-struct Var {
+#[derive(Clone, Debug)]
+pub struct Var {
     name: Path,
     ty: Option<Type>,
+    span: Span,
+}
+
+impl DisplayWithII for VarKey {
+    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
+        write!(f, "{}", ii.with_ii(&ii.vars[*self]))
+    }
+}
+
+impl DisplayWithII for &Var {
+    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
+        write!(f, "var {}", self.name)?;
+        if let Some(ty) = &self.ty {
+            write!(f, ": {}", ii.with_ii(ty))?;
+        }
+        Ok(())
+    }
 }
 
 /// A function (macro) to be applied and reduced where called.
 // TODO: This isn't read yet but will need to be as a part of semantic analysis and optimisation.
 #[allow(dead_code)]
+#[derive(Debug)]
 struct FnDecl {
     sig: FnSig,
     local_vars: Vec<(Var, Span)>,
@@ -81,128 +187,48 @@ struct FnDecl {
     returned_constraint: Expr,
 }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-#[cfg(test)]
-use crate::expr;
-
-#[test]
-fn single_let() {
-    use crate::types::{PrimitiveKind::*, Type};
-    let filepath: Rc<std::path::Path> = Rc::from(std::path::Path::new("test"));
-    let ast = ast::Ast(vec![ast::Decl::Let {
-        // `let foo: real;`
-        name: ast::Ident {
-            name: "foo".to_owned(),
-            span: Span::new(Rc::clone(&filepath), 4..7),
-        },
-        ty: Some(Type::Primitive {
-            kind: Real,
-            span: Span::new(Rc::clone(&filepath), 9..13),
-        }),
-        init: None,
-        span: Span::new(filepath, 0..14),
-    }]);
-
-    assert!(IntermediateIntent::from_ast(&ast).is_ok());
+#[derive(Clone, Debug)]
+pub enum SolveFunc {
+    Satisfy,
+    Minimize(ExprKey),
+    Maximize(ExprKey),
 }
 
-#[test]
-fn double_let_clash() {
-    use crate::types::{PrimitiveKind::*, Type};
-    let filepath: Rc<std::path::Path> = Rc::from(std::path::Path::new("test"));
-    let ast = ast::Ast(vec![
-        ast::Decl::Let {
-            // `let foo: real;`
-            name: ast::Ident {
-                name: "foo".to_owned(),
-                span: Span::new(Rc::clone(&filepath), 4..7),
-            },
-            ty: Some(Type::Primitive {
-                kind: Real,
-                span: Span::new(Rc::clone(&filepath), 9..13),
-            }),
-            init: None,
-            span: Span::new(Rc::clone(&filepath), 0..14),
-        },
-        ast::Decl::Let {
-            // `let foo: real;`
-            name: ast::Ident {
-                name: "foo".to_owned(),
-                span: Span::new(Rc::clone(&filepath), 19..22),
-            },
-            ty: Some(Type::Primitive {
-                kind: Real,
-                span: Span::new(Rc::clone(&filepath), 24..28),
-            }),
-            init: None,
-            span: Span::new(filepath, 15..29),
-        },
-    ]);
-
-    // TODO compare against an error message using the spans.
-    // https://github.com/essential-contributions/yurt/issues/172
-    let res = IntermediateIntent::from_ast(&ast);
-    assert!(res.is_err_and(|e| {
-        assert_eq!(
-            format!("{e:?}"),
-            r#"NameClash { sym: "foo", span: "test":19..22, prev_span: "test":4..7 }"#
-        );
-        true
-    }));
+impl DisplayWithII for SolveFunc {
+    fn fmt(&self, f: &mut Formatter<'_>, ii: &IntermediateIntent) -> std::fmt::Result {
+        write!(f, "solve ")?;
+        match self {
+            SolveFunc::Satisfy => write!(f, "satisfy"),
+            SolveFunc::Minimize(key) => write!(f, "minimize {}", ii.with_ii(key)),
+            SolveFunc::Maximize(key) => write!(f, "maximize {}", ii.with_ii(key)),
+        }
+    }
 }
 
-#[test]
-fn let_fn_clash() {
-    use crate::types::{PrimitiveKind::*, Type};
-    let filepath: Rc<std::path::Path> = Rc::from(std::path::Path::new("test"));
-    let ast = ast::Ast(vec![
-        ast::Decl::Let {
-            // `let bar: real;`
-            name: ast::Ident {
-                name: "bar".to_owned(),
-                span: Span::new(Rc::clone(&filepath), 4..7),
-            },
-            ty: Some(Type::Primitive {
-                kind: Real,
-                span: Span::new(Rc::clone(&filepath), 9..13),
-            }),
-            init: None,
-            span: Span::new(Rc::clone(&filepath), 0..14),
-        },
-        ast::Decl::Fn {
-            fn_sig: ast::FnSig {
-                // `fn bar() -> bool { false }`
-                name: ast::Ident {
-                    name: "bar".to_owned(),
-                    span: Span::new(Rc::clone(&filepath), 18..21),
-                },
-                params: Vec::new(),
-                return_type: Type::Primitive {
-                    kind: Bool,
-                    span: Span::new(Rc::clone(&filepath), 27..31),
-                },
-                span: Span::new(Rc::clone(&filepath), 15..31),
-            },
-            body: ast::Block {
-                statements: Vec::new(),
-                final_expr: Box::new(ast::Expr::Immediate {
-                    value: expr::Immediate::Bool(false),
-                    span: Span::new(Rc::clone(&filepath), 34..39),
-                }),
-                span: Span::new(Rc::clone(&filepath), 15..41),
-            },
-            span: Span::new(Rc::clone(&filepath), 15..41),
-        },
-    ]);
+#[derive(Clone, Copy)]
+pub struct WithII<'a, T> {
+    pub thing: T,
+    pub ii: &'a IntermediateIntent,
+}
 
-    // TODO ditto
-    let res = IntermediateIntent::from_ast(&ast);
-    assert!(res.is_err_and(|e| {
-        assert_eq!(
-            format!("{e:?}"),
-            r#"NameClash { sym: "bar", span: "test":18..21, prev_span: "test":4..7 }"#
-        );
-        true
-    }));
+impl<'a, T> WithII<'a, T> {
+    pub fn new(thing: T, ii: &'a IntermediateIntent) -> Self {
+        WithII { thing, ii }
+    }
+}
+
+pub(crate) trait DisplayWithII {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>, ii: &IntermediateIntent) -> fmt::Result;
+}
+
+impl<T: DisplayWithII> fmt::Display for WithII<'_, T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.thing.fmt(f, self.ii)
+    }
+}
+
+impl<T: DisplayWithII> DisplayWithII for &T {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>, ii: &IntermediateIntent) -> fmt::Result {
+        (*self).fmt(f, ii)
+    }
 }

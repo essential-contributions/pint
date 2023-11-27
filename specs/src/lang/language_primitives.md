@@ -9,7 +9,7 @@ Yurt is a high-level, typed, intent expression and modeling language. It provide
 - mathematical notation-like syntax;
 - expressive constraints;
 - support for different kinds of problems (satisfaction, explicit optimization);
-- extensibility (user-defined functions);
+- extensibility (user-defined macros);
 - reliability (type checking);
 - solver-independent modeling;
 - simple, declarative semantics.
@@ -20,7 +20,7 @@ This document has the following structure. [Notation](#notation) introduces the 
 
 ## Notation
 
-The specification of the Yurt programming language presented in this document follows the [EBNF format](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form). The basics of the EBNF used are as follows:
+The specification of the Yurt programming language presented in this document follows the [BNF format](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form). The basics of the BNF used are as follows:
 
 - Non-terminals are written between angle brackets, e.g. `<item>`.
 - Terminals are written in double quotes, e.g. `"solve"`. A double quote terminal is written as a sequence of three double quotes: `"""`.
@@ -58,7 +58,7 @@ A `//` indicates that the rest of the line is a comment.
 
 Identifiers have the following syntax:
 
-```ebnf
+```bnf
 <ident> ::= _?[A-Za-z][A-Za-z0-9]*     % excluding keywords
 ```
 
@@ -70,13 +70,13 @@ A path is a sequence of one ore more path segments logically separated by a name
 
 Paths have the following syntax:
 
-```ebnf
+```bnf
 <path> ::= [ "::" ] <ident> ( "::" <ident> )*
 ```
 
 For example:
 
-```rust
+```yurt
 ::x;
 x::y::z;
 x;
@@ -90,18 +90,18 @@ Paths that start with `::` are absolute paths from the root of the project. Path
 
 A Yurt intent consists of one or more semicolon separated `items`:
 
-```ebnf
+```bnf
 <intent> ::= ( <item> ";" )*
 ```
 
 Items can occur in any order; identifiers need not be declared before they are used. Items have the following top-level syntax:
 
-```ebnf
+```bnf
 <item> ::= <import-item>
          | <let-item>
          | <state-item>
          | <constraint-item>
-         | <function-item>
+         | <macro-item>
          | <enum-decl-item>
          | <solve-item>
          | <interface-item>
@@ -118,7 +118,7 @@ State declaration items (`<state-item>`) introduce _state_ variables and constra
 
 Constraint items describe intent constraints ([Constraint Items](#constraint-items)).
 
-Function items introduce new user-defined functions which can be called in expressions ([Function Items](#function-items)).
+Macro items introduce new parameterized blocks of declarations or expressions which can be used to facilitate code re-use ([Macro Items](#macro-items)).
 
 Enum declaration items describe C-style enumerations ([Enum Declaration Items](#enum-declaration-items)).
 
@@ -166,7 +166,7 @@ Yurt provides 4 scalar types built-in: Booleans, integers, reals and strings. Yu
 
 The syntax for types is as follows:
 
-```ebnf
+```bnf
 <ty> ::= "bool"
        | "int"
        | "real"
@@ -180,7 +180,7 @@ The syntax for types is as follows:
 
 A tuple type represents a collection of items that may have different types. Tuple types have the following syntax:
 
-```ebnf
+```bnf
 <tuple-ty> ::= "{" ( [ <ident> ":" ] <ty> "," ... ) "}"
 ```
 
@@ -194,7 +194,7 @@ Note that the grammar disallows empty tuple types `{ }`.
 
 An array type represents a collection of items that share the same type. Arrays can be multi-dimensional and have the following syntax:
 
-```ebnf
+```bnf
 <array-ty> ::= <ty> ( "[" <expr> | <custom-ty> "]" )+
 ```
 
@@ -206,7 +206,7 @@ An array dimension can be indexed using non-negative integers. It can also be in
 
 For example, in:
 
-```rust
+```yurt
 let N = 5;
 enum Colour = Red | Green | Blue;
 let a: real[N][Colour];`
@@ -218,7 +218,7 @@ let a: real[N][Colour];`
 
 An enum type refers to an [enum declaration](#enum-declaration-items) using its path and has the following syntax:
 
-```ebnf
+```bnf
 <enum-ty> ::= <path>
 ```
 
@@ -228,7 +228,7 @@ An enum type refers to an [enum declaration](#enum-declaration-items) using its 
 
 Expressions represent values and have the following syntax:
 
-```ebnf
+```bnf
 <expr> ::= <un-op> <expr>
          | <expr> <bin-op> <expr>
          | <block-expr>
@@ -266,7 +266,7 @@ There are two kinds of operators:
 1. Unary operators which can be applied in a prefix manner without parentheses, e.g. `-x`.
 1. Binary operator which can be applied in an infix manner, e.g. `3 + 4`.
 
-```ebnf
+```bnf
 <un-op> ::= "+" | "-" | "!"
 
 <bin-op> ::= "<" | ">" | "<=" | ">=" | "==" | "!="
@@ -280,7 +280,7 @@ There are two kinds of operators:
 
 Block expressions are expressions that contains a list of _statements_ followed by an expression within curly bracket `{ .. }`. Formally:
 
-```ebnf
+```bnf
 <block-expr> ::= "{" ( <block-statement> ";" )* <expr> "}"
 
 <block-statement> ::= <let-item>
@@ -290,7 +290,7 @@ Block expressions are expressions that contains a list of _statements_ followed 
 
 The type of the block expression is the type of the final expression. For example:
 
-```rust
+```yurt
 let x: int = {
     let y: int = 2;
     y + 1
@@ -301,7 +301,7 @@ let x: int = {
 
 Boolean literals have this syntax:
 
-```ebnf
+```bnf
 <bool-literal> ::= "false" | "true"
 ```
 
@@ -309,7 +309,7 @@ Boolean literals have this syntax:
 
 There are three forms of integer literals: decimal, hexadecimal, and binary:
 
-```ebnf
+```bnf
 <int-literal> ::= [0-9]+
                 | 0x[0-9A-Fa-f]+
                 | 0b[0-1]+
@@ -319,7 +319,7 @@ For example: `1`, `0030`, `0x333`, `0b1010`.
 
 Real literals have the following form:
 
-```ebnf
+```bnf
 <real-literal> ::= [0-9]+"."[0-9]+
                   | [0-9]+"."[0-9]+[Ee][-+]?[0-9]+
                   | [0-9]+[Ee][-+]?[0-9]+
@@ -333,7 +333,7 @@ A `-` preceding an integer or real literal is parsed as a unary minus, not as pa
 
 String literals are written as:
 
-```ebnf
+```bnf
 <string-literal> ::= "\"" ([^"\n] | "\\" ("x" [0-9a-fA-F][0-9a-fA-F] | "n" | "t" | "\"" | "\\")) "\""
 ```
 
@@ -341,7 +341,7 @@ For example: `"Hello, world!\n"`.
 
 String literals can be broken across multiple lines by escaping the newline and leading whitespace with a `\`. For example:
 
-```rust
+```yurt
 let string = "first line\
              second line\
              third line";
@@ -351,7 +351,7 @@ let string = "first line\
 
 Tuple expressions are written as:
 
-```ebnf
+```bnf
 <tuple-expr> ::= "{" ( [ <ident> ":" ] <expr> "," ... ) "}"
 ```
 
@@ -359,7 +359,7 @@ For example: `let t = { x: 5, 3, "foo" };`. The type of this tuple can be inferr
 
 The following is another example:
 
-```rust
+```yurt
 let t: { x: int, real } = { 6, 5.0 }
 ```
 
@@ -367,13 +367,13 @@ where the type of the tuple is indicated by the type annotation and has a named 
 
 Tuple fields can be initialized out of order only if all the fields have names and their names are used in the tuple expression. For example, the following is allowed:
 
-```rust
+```yurt
 let t: { x: int, y: real } = { y: 5.0, x: 6 };
 ```
 
 while the following are not:
 
-```rust
+```yurt
 let t: { x: int, real } = { 5.0, x: 6 };
 let t: { x: int, y: real } = { 5.0, x: 6 };
 let t: { x: int, y: real } = { 5.0, 6 }; // This is a type mismatch!
@@ -385,7 +385,7 @@ Note that the grammar disallows empty tuple expressions `{ }`.
 
 Tuple field access expressions are written as:
 
-```ebnf
+```bnf
 <tuple-field-access-expr> ::= <expr> "." ( [0-9]+ | <ident> )
 ```
 
@@ -395,7 +395,7 @@ For example, `t.1;` refers to the second field of tuple `t`. Named field can be 
 
 Array expressions are written as:
 
-```ebnf
+```bnf
 <array-expr> ::= "[" ( <expr> "," ... ) "]"
 ```
 
@@ -403,7 +403,7 @@ For example: `let a = [ 1, 2, 3 ];`. The type of this array can be inferred by t
 
 The following is another example:
 
-```rust
+```yurt
 let b: real[2][3] = [ [ 1.0, 2.0, 3.0], [4.0, 5.0, 6.0] ];
 ```
 
@@ -415,7 +415,7 @@ All element expressions used in an array expression must have the exact same typ
 
 Array element access expressions are written as:
 
-```ebnf
+```bnf
 <array-element-access-expr> ::= <expr> ( "[" expr "]" )+
 ```
 
@@ -430,7 +430,7 @@ Yurt also requires that each array index is known (i.e. evaluatable) at compile-
 
 Below is an example where both an integer and an enum variant are used to index into an two-dimensional array:
 
-```rust
+```yurt
 let N = 5;
 enum Colour = Red | Green | Blue;
 let a: real[N][Colour];`
@@ -442,7 +442,7 @@ let a_3_g = a[3][Colour::Green];
 
 Yurt has `if` expressions which provide selection from two alternatives based on a condition. They have this syntax:
 
-```ebnf
+```bnf
 <if-expr> ::= "if" <expr> <block-expr> "else" <block-expr>
 ```
 
@@ -454,7 +454,7 @@ Note that the `else` block is not optional and the `else if { .. }` syntax is no
 
 Yurt provides `cond` expressions which are generalized `if` expressions with more than two branches. That is, they provide selection from multiple alternatives, each based on some condition. They have the following syntax:
 
-```ebnf
+```bnf
 <cond-branch> ::= <expr> "=>" <expr>
 
 <else-branch> ::= "else" "=>" <expr>
@@ -470,23 +470,24 @@ Similarly to `if` expressions, all candidate expressions must have the same type
 
 #### Call Expressions
 
-Call expressions are used to call functions and have the following syntax:
+Call expressions are used to call macros or functions and have the following syntax:
 
-```ebnf
-<call-expr> ::= <path> "(" [ <expr> "," ... ] ")"
+```bnf
+<func-call-expr> ::= <path> "(" [ <expr> "," ... ] ")"
+<macro-call-expr> ::= <path> "(" [ <tok>+ ";" ... ] ")"
 ```
 
-For example: `let x = foo(5, 2);`.
+For example: `let x = foo(5, 2);` or `constraint bar@(5; [a, b])`.
 
-The type of the expressions passed as arguments must match the argument types of the called function. The return type of the function must also be appropriate for the calling context.
+For function-style macros or extern function calls the type of the expressions passed as arguments must match the argument types of the called function. For all call expressions the number of passed arguments must match the called item, though this is flexible due to Yurt's variadic macro support. The return type of the function must also be appropriate for the calling context.
 
-The order of argument evaluation is not specified.
+See [Macro Items](#macro-items) for the distinction between regular and function-style macros. When calling regular macros the call arguments may be a collection of source tokens, excluding semi-colons, delimited by semi-colons.
 
 #### Cast Expressions
 
 Cast expressions are used to cast one value to a different type. They have the following syntax:
 
-```ebnf
+```bnf
 <cast-expr> ::= <expr> "as" <ty>
 ```
 
@@ -510,7 +511,7 @@ Any cast that does not fit an entry in the table below is a compiler error:
 
 Casts an enum to its discriminant. For example:
 
-```rust
+```yurt
 enum MyEnum = V0 | V1 | V2;
 
 let d = MyEnum::V1 as int; // `d` is equal to `1`.
@@ -525,7 +526,7 @@ let d = MyEnum::V1 as int; // `d` is equal to `1`.
 
 "In" expressions are used to detect whether a value belongs to an array. They have the following syntax:
 
-```ebnf
+```bnf
 <in-expr> ::= <expr> "in" <expr>
 ```
 
@@ -551,7 +552,7 @@ Note that two values of different types cannot be compared and should result in 
 
 Range expressions are used to refer to ranges between a lower bound value and an upper bound value:
 
-```ebnf
+```bnf
 <range-expr> ::= <expr> ".." <expr>
 ```
 
@@ -566,20 +567,20 @@ Range expressions can only be used in two contexts:
 
 For example,
 
-```rust
+```yurt
 let x: int = 3..5;
 ```
 
 is equivalent to;
 
-```rust
+```yurt
 let x: int;
 constraint x in 3..5;
 ```
 
 which is equivalent to:
 
-```rust
+```yurt
 let x: int;
 constraint x >= 3;
 constraint x <= 5;
@@ -589,13 +590,13 @@ constraint x <= 5;
 
 Prime expressions are used to refer to the _future_ value of a [state variable](#state-declaration-items). They have the following syntax:
 
-```ebnf
+```bnf
 <prime-expr> ::= <expr> "'"
 ```
 
 For example:
 
-```rust
+```yurt
 state u = MyContract::foo();
 constraint u' - u > 10;
 ```
@@ -610,7 +611,7 @@ The precedence of Yurt operators and expressions is ordered as follows, going fr
 | -------------------------------- | -------------------- |
 | Paths                            |                      |
 | Tuple field access expressions   | left to right        |
-| Function calls, array indexing   |                      |
+| Call expressions, array indexing |                      |
 | Unary `-`, Unary `+`, `!`        |                      |
 | `as`                             | left to right        |
 | `in`                             | left to right        |
@@ -629,7 +630,7 @@ This section describes the top-level program items.
 
 Within a scope, import items create shortcuts to items defined in other files. Import items have the following syntax:
 
-```ebnf
+```bnf
 <use-tree> ::= [ [ <path> ] "::" ] "*"
              | [ [ <path> ] "::" ] "{" [ <use-tree> "," ... ] "}"
              | <path> [ "as" <ident> ]
@@ -652,13 +653,13 @@ These are variables whose values may or may not be unknown for a given _instance
 
 Variable declaration items have the following syntax:
 
-```ebnf
+```bnf
 <let-item> ::= "let" <ident> ( ( ":" <ty> ) | ("=" <expr> ) | ( ":" <ty> "=" <expr> ) )
 ```
 
 For example:
 
-```rust
+```yurt
 let x: int;
 let y = 5;
 ```
@@ -671,13 +672,13 @@ These are variables that represent blockchain _state_ and require an initializer
 
 State declaration items have the following syntax:
 
-```ebnf
+```bnf
 <state-item> ::= "state" <ident> [ ":" <ty> ] "=" <expr>
 ```
 
 For example:
 
-```rust
+```yurt
 state x: int = MyContract::foo();
 state y = MyContract::bar();
 ```
@@ -690,23 +691,248 @@ Constraint items represent the core of any intent. Any solution to the intent mu
 
 Constraint items have this syntax:
 
-```ebnf
+```bnf
 <constraint-item> ::= "constraint" <expr>
 ```
 
 For example:
 
-```rust
+```yurt
 constraint a + b <= c
 ```
 
 The expression in a constraint item must be of type `bool`.
 
-### Function Items
+### Macro Items
 
-Function items describe user defined operations. They have the following syntax:
+Macro items describe user defined operations. They can take the form of a 'regular' macro, or of a specialized 'function-style' macro.
 
-```ebnf
+Regular macros have the following syntax:
+
+```bnf
+<macro-name> ::= @[A-Za-z_][A-Za-z0-9_]*
+
+<macro-param> ::= $[A-Za-z0-9]+
+
+<macro-body-item> ::= <tok> | <macro-param>     % where <tok> is any valid parsable source token.
+
+<macro-item> ::= "macro" <macro-name> "(" [ <macro-param> "," ... ] ")" "{" <macro-body-item>* "}"
+```
+
+Macro expansion is the very first operation performed by the compiler. Any macro call expression is expanded in-place, replaced by the contents of the macro as parameterized by the call arguments.
+
+Macros are intended to be a generalized method for code re-use. The macro parameters are special identifiers starting with a `$`, e.g., `$max` or `$0`.
+
+#### Expansion
+
+The macro body is only semi-parsed by the compiler prior to macro expansion and may contain macro identifiers. During expansion macro identifiers are replaced by the corresponding call arguments and the body is then fully parsed. The parsed items are then added to the program as if they were parsed where the macro is called.
+
+For example, a simple macro may introduce some constraints:
+
+```yurt
+macro @in_range($var, $num) {
+    constraint $var >= $num;
+    constraint $var < ($num * $num);
+}
+```
+
+It may be used as such:
+
+```yurt
+let x: int;
+@in_range(x; 10);  // Constrain `x` to [10, 100).
+
+```
+
+After macro expansion the above becomes:
+
+```yurt
+let x: int;
+constraint x >= 10;
+constraint x < (10 * 10);
+```
+
+The arguments to a macro call may be collections of tokens which do not necessarily parse to a proper expression. For example, an operator like `+` or a type name such as `real` are valid. If the token is an identifier then it may be used to name a declaration such as with `let`.
+
+```yurt
+macro @do_decls($a, $b, $ty, $op) {
+    let $a: $ty;
+    let $b: $ty;
+    constraint $b $op $a;
+}
+```
+
+If called as `@do_decls(foo; bar; real; >)` it would expand to:
+
+```yurt
+let foo: real;
+let bar: real;
+constraint bar > foo;
+```
+
+#### Macro Expressions
+
+Macro bodies may have an expression rather than a declaration as its final item after expansion. In this special case the expression is inserted at the macro call, but any prior declaration items are inserted before the call.
+
+```yurt
+macro @inverse_of($a) {
+    constraint $a > 0.0;  // Declaration.
+    1.0 / $a              // Final expression.
+}
+```
+
+When called:
+
+```yurt
+let foo: real;
+let bar: real = @inverse_of(foo);
+```
+
+will expand to:
+
+```yurt
+let foo: real;
+constraint foo > 0.0;
+let bar: real = 1.0 / foo;
+```
+
+#### Hygiene
+
+Macro bodies also treat `let` declarations specially. It may be desirable to use a local variable within a macro. For example:
+
+```yurt
+macro @is_even($a) {
+    let half: int;
+    constraint $a == half * 2;
+}
+```
+
+In a naive macro system if `@is_even` was called more than once within the same module then after expansion there would be multiple `half` variable declarations, resulting in a name clash error.
+
+To avoid this problem Yurt's macro expansion aims to be 'hygienic' and place newly declared symbols into a unique anonymous namespace. Note that this is only done for symbols which are not macro parameters.
+
+```yurt
+macro @let_decls($a) {
+    let foo: int;       // Hygienic anonymous binding for `foo`.
+    let $a: bool;       // Lexical binding for `$a`.
+}
+```
+
+If called using `@let_decls(foo)` there would not be an error as the expansion would be equivalent to:
+
+```yurt
+let anon_0::foo: int;
+let foo: int;
+```
+
+And even when called multiple times with different arguments there would be no error:
+
+```yurt
+@let_decls(foo);
+@let_decls(bar);
+```
+
+Becomes equivalent to:
+
+```yurt
+let anon_0::foo: int;
+let foo: int;
+let anon_1::foo: int;
+let bar: int;
+```
+
+Of course if `@let_decls` was called with the argument `foo` multiple times there _would_ be an error.
+
+#### Recursion And Variadic Macros
+
+Macros may call other macros and a special type of recursion via variadic parameters is allowed. Sometimes it may be desirable to do repeated expansions using a single macro, essentially entering an expansion loop.
+
+To support this macros may be declared to accept a variable number of parameters. It is valid to declare multiple macros _with the same name_ but different number of parameters and the correct one to expand will be chosen based on the number of arguments passed to the call.
+
+Recursion may be performed via one or more recursing macros and one or more non-recursing, or 'terminating' macros. The recursing macros call other versions of itself but with a different number of -- usually fewer -- arguments. The terminating macros do not call another version of itself.
+
+The recursing macros may have a parameter 'pack' as its final parameter, denoted using an `&`, e.g., `macro @foo($a, $b, &rest) { ... }`. The parameter pack is never empty, therefore a macro declaration with a corresponding signature minus the parameter pack is required to avoid a pattern match failure.
+
+The parameter pack is not addressable in any way. It may only be used as arguments to another macro call.
+
+This example performs a naive sum of named variables:
+
+```yurt
+macro @sum($x, $y, &rest) {
+    // Called only when `rest` is not empty.  We recurse by adding $x and $y and using &rest as the second argument.
+    @sum($x + $y, &rest)
+}
+
+macro @sum($x, $y) {
+    // Called only when the number of arguments is exactly 2.
+    $x + $y
+}
+```
+
+Calling `@sum(a; b)` will expand directly using the terminating macro to the expression `a + b`.
+
+Calling `@sum(a; b; c; d)` will expand as follows:
+
+- `@sum(a; b; c; d)` calls the _recursive_ macro as `@sum(a; b; [c, d])` where `[c, d]` is `&rest`.
+- `@sum(a; b; [c, d])` expands to `@sum(a + b; c; d)`.
+- `@sum(a + b; c; d)` calls the recursive macro again, as `@sum(a + b; c; [d])`.
+- `@sum(a + b; c; [d])` expands to `@sum(a + b + c; d)`.
+- `@sum(a + b + c; d)` calls the _terminating_ macro.
+- `@sum(a + b + c; d)` expands to `a + b + c + d`.
+
+Note that as the `&rest` parameter pack is passed in its expanded form, the above `@sum` macros could instead be the following, to the same effect:
+
+```yurt
+macro @sum($x, &rest) {
+    @sum($x + &rest)
+}
+
+macro @sum($x) {
+    $x
+}
+```
+
+The `&pack` parameter may be used by non recursive macros which wish to call recursive macros. A more realistic use of variadic macros might be to chain variables together in relative constraints:
+
+```yurt
+macro @chain($a, &rest) {
+    // Add the first link in the chain, then move to the rest.
+    let $a: int;
+    @chain_next($a; &rest);
+}
+
+macro @chain_next($prev, $next, &rest) {
+    // Add the next link, constrain based on the previous link and continue.
+    let $next: int;
+    constraint $next > $prev + 10;
+    @chain_next($next; &rest)
+}
+
+macro @chain_next($prev) {
+    // Just expand to the final link.
+    $prev
+}
+
+```
+
+When called as `@chain(x; y; z)` it would expand to:
+
+```yurt
+let x: int;
+let y: int;
+constraint y > x + 10;
+let z: int;
+constraint z > y + 10;
+z
+```
+
+#### Function-style Macros
+
+Yurt also supports 'function-style' macros which are more constrained but also stricter in their use. Function-style macros look like function declarations and are called with standard expression arguments.
+
+Function-style macros must have a final expression in their body and they may only be called as a sub-expression. Each parameter is a typed identifier and a return type (i.e., the type of the final body expression) must be specified.
+
+```bnf
 <function-sig> ::= "fn" <ident> "(" [ <param> "," ... ] ")" "->" <ty>
 
 <function-item> ::= <function-sig> <block-expr>
@@ -714,19 +940,21 @@ Function items describe user defined operations. They have the following syntax:
 <param> ::= <ident> ":" <ty>
 ```
 
-For example, the following function checks that its argument is an even number:
+For example, the following macro expands to a boolean expression which tests if the parameter is an even number:
 
-```rust
-fn even(x: int) -> bool {
+```yurt
+fn is_even(x: int) -> bool {
     x % 2 == 0
 }
 ```
+
+The extra type information is used to confirm correct use, which is not directly possible with regular macros. Expansion otherwise follows the regular macro procedures.
 
 ### Enum Declaration Items
 
 In Yurt, an enum type is a named enumeration of integer constants. Unlike sum types found in some functional languages, each member of an enum in Yurt is associated with an integer discriminant, making it similar to C-style enums. The syntax for declaring an enum is:
 
-```ebnf
+```bnf
 <enum-decl-item> ::= "enum" <ident> "=" <ident> ( "|" <ident> )*
 ```
 
@@ -738,7 +966,7 @@ Each enum variant must be assigned a discriminant that matches the index of its 
 
 Every intent must have at most one solve item. Solve items have the following syntax:
 
-```ebnf
+```bnf
 <solve-item> ::= "solve" "satisfy"
                | "solve" "minimize" <expr>
                | "solve" "maximize" <expr>
@@ -746,7 +974,7 @@ Every intent must have at most one solve item. Solve items have the following sy
 
 Example solve items:
 
-```rust
+```yurt
 solve satisfy;
 solve maximize a + b - c;
 ```
@@ -759,13 +987,13 @@ Interface items contain lists of smart contract functions that a smart [contract
 
 Interface items describe lists of smart contract functions, in the form of function signatures, that a contract can have. An interface item has the following syntax:
 
-```ebnf
+```bnf
 <interface-item> ::= "interface" <ident> "{" ( <function-sig> ";" )* "}"
 ```
 
 For example, the following is a simple interface with 3 functions:
 
-```rust
+```yurt
 interface IERC20 {
     fn totalSupply() -> int;
     fn balanceOf(account: int) -> int;
@@ -779,7 +1007,7 @@ Interface functions are not callable directly. Instead, they have to be called t
 
 Contract items describe actual deployed contracts with a known contract ID and a list of available functions. Contract items require a known integer ID and a list of function signatures. Contract can also "inherit" functions from [interfaces](#interface-items). Contract items have the following syntax:
 
-```ebnf
+```bnf
 <contract-item> ::= "contract" <ident> "(" <expr> ")"
                     [ "implements" <path> ( "," <path> )* ]
                     "{" ( <function-sig> ";" )* "}"
@@ -787,7 +1015,7 @@ Contract items describe actual deployed contracts with a known contract ID and a
 
 For example, consider the contract item below:
 
-```rust
+```yurt
 contract MyToken(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) implements IERC20, Ownable {
     fn foo() -> int;
     fn bar() -> int;
@@ -808,13 +1036,13 @@ A call to any of these functions can be made using a `<call-expr>` with the name
 
 The syntax for extern items is as follows:
 
-```ebnf
+```bnf
 <extern-item> ::= "extern" "{" ( <function-sig> ";" )* "}"
 ```
 
 For example:
 
-```rust
+```yurt
 extern {
     fn eth_getBalance(address: string) -> string;
 
@@ -832,13 +1060,13 @@ New Type items introduce a distinct type that is not directly interchangeable wi
 
 The syntax for declaring a new type is:
 
-```ebnf
+```bnf
 <new-type-item> ::= "type" <ident> "=" <ty>
 ```
 
 For example:
 
-```rust
+```yurt
 type AccountTuple = { id: int, balance: real, address: string };
 
 type IdArray = int[5];
@@ -856,7 +1084,7 @@ New type values may be initialized through:
 
 - Literals of primitive types (`int`, `real`, `bool`, `string`) as long as they are compatible with the new type's underlying definition.
 
-```rust
+```yurt
 let walletDetails: AccountTuple = {id: 1, balance: 2.0, address: "0x1234...ABCD"};
 
 let ids: IdArray = [1, 2, 3, 4, 5];

@@ -1,4 +1,4 @@
-use yurtc::{ast, error, intent};
+use yurtc::{error, parser};
 
 use std::path::Path;
 
@@ -7,8 +7,8 @@ fn main() -> anyhow::Result<()> {
     let filepath = Path::new(&filepath);
 
     // Lex + Parse
-    let ast = match ast::parse_project(filepath) {
-        Ok(ast) => ast,
+    let intermediate_intent = match parser::parse_project(filepath) {
+        Ok(ii) => ii,
         Err(errors) => {
             if !cfg!(test) {
                 error::print_errors(&errors);
@@ -19,7 +19,7 @@ fn main() -> anyhow::Result<()> {
 
     // Compile ast down to a final intent
     if compile_flag {
-        let intent = match intent::Intent::from_ast(&ast) {
+        let intent = match intermediate_intent.compile() {
             Ok(intent) => intent,
             Err(error) => {
                 if !cfg!(test) {
@@ -30,11 +30,9 @@ fn main() -> anyhow::Result<()> {
         };
 
         dbg!(&intent);
-    }
-
-    // If `compile_flag` is set, there is no need to print the initial AST.
-    if !compile_flag {
-        eprintln!("{}", &ast);
+    } else {
+        // If `compile_flag` is set, there is no need to print the intermediate intent.
+        eprintln!("{intermediate_intent}");
     }
 
     Ok(())

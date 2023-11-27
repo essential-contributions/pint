@@ -1,10 +1,14 @@
 use a::a;
 
-// Name clash with a::a.
-let a = 11;
+// All these statements have a name clash with the `a::a` above.
+use a::a;
+let a = 12;
+let a = 13;
 
 solve minimize a;
 
 // parse_failure <<<
+// symbol `a` has already been declared
+// symbol `a` has already been declared
 // symbol `a` has already been declared
 // >>>
