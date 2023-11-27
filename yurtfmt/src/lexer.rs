@@ -37,6 +37,8 @@ pub(super) enum Token<'sc> {
     ParenClose,
     #[token("->")]
     Arrow,
+    #[token("=>")]
+    HeavyArrow,
     #[token("+")]
     Plus,
     #[token("-")]
@@ -125,6 +127,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::ParenOpen => write!(f, "("),
             Token::ParenClose => write!(f, ")"),
             Token::Arrow => write!(f, "->"),
+            Token::HeavyArrow => write!(f, "=>"),
             Token::Plus => write!(f, "+"),
             Token::Minus => write!(f, "-"),
             Token::TwoDots => write!(f, ".."),
