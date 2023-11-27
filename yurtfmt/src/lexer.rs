@@ -58,6 +58,8 @@ pub(super) enum Token<'sc> {
     Fn,
     #[token("in")]
     In,
+    #[token("cond")]
+    Cond,
     #[token("enum")]
     Enum,
     #[token("contract")]
@@ -133,7 +135,8 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Constraint => write!(f, "constraint"),
             Token::Fn => write!(f, "fn"),
             Token::In => write!(f, "in"),
-            Token::Enum => write!(f, "enum"),
+            Token::Enum => write!(f, "cond"),
+            Token::Cond => write!(f, "enum"),
             Token::Contract => write!(f, "contract"),
             Token::Implements => write!(f, "implements"),
             Token::Interface => write!(f, "interface"),
