@@ -242,7 +242,7 @@ pub(super) fn fn_sig<'sc>() -> impl Parser<Token<'sc>, ast::FnSig<'sc>, Error = 
         })
 }
 
-pub(super) fn code_block_expr<'a, 'sc>(
+pub(super) fn code_block_expr<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Block<'sc>, Error = ParseError> + Clone {
     let code_block_body = choice((
