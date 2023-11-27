@@ -4,7 +4,7 @@ use crate::{
     expr::*,
     intent::intermediate::{ExprKey, SolveFunc, VarKey},
     lexer,
-    parser::{ParserContext, UseTree},
+    parser::{ParserContext, UseTree, NextModPath},
     types::{self, EnumDecl, ExternDecl, FnSig, NewTypeDecl, PrimitiveKind, Type},
 };
 
@@ -182,7 +182,10 @@ pub ConstraintDecl: ExprKey = {
 
 pub SolveDecl: SolveFunc = {
     <l:@L> <sd:SolveDeclInner> <r:@R> => {
-        context.ii.directives.push((sd.clone(), (context.span_from)(l, r)));
+        context
+            .ii
+            .directives
+            .push((sd.clone(), (context.span_from)(l, r)));
         sd
     }
 }
@@ -506,9 +509,11 @@ MultOpOp: BinaryOp = {
 
 AsOp: ExprKey = {
      <l:@L> <value:AsOp> "as" <ty:Type> <r:@R> => {
-         context.ii.exprs.insert(
-            Expr::Cast { value, ty: Box::new(ty), span: (context.span_from)(l, r) },
-        )
+        context.ii.exprs.insert(Expr::Cast {
+            value,
+            ty: Box::new(ty),
+            span: (context.span_from)(l, r),
+        })
      },
     <TupleFieldOp>,
 };
@@ -816,10 +821,17 @@ pub Path: types::Path = {
     <l:@L> "::" <els:(<Ident> "::")*> <last:Ident> <r:@R> => {
         // <FMT_OPEN>
         if !els.is_empty() {
-            context
-                .next_paths
-                .push((true, els.iter().map(|el| el.to_string()).collect()));
+            let path: Vec<_> = els.iter().map(|el| el.to_string()).collect();
+            context.next_paths.push(NextModPath {
+                is_abs: true,
+                mod_path_strs: path.clone(),
+                suffix: last.to_string(),
+                enum_path_strs: (path.len() > 1)
+                    .then_some(path.iter().take(path.len() - 1).cloned().collect()),
+                span: (context.span_from)(l, r),
+            });
         }
+
         let path = format!(
             "::{}{last}",
             els.iter()
@@ -870,18 +882,31 @@ pub Path: types::Path = {
                     .collect::<Vec<_>>()
                     .concat();
 
-                // The next paths don't include the final element, only paths to modules.
+                // The next paths don't include the final element, only paths to modules or enums.
                 full_path.pop();
-                context.next_paths.push((true, full_path));
+                context.next_paths.push(NextModPath {
+                    is_abs: true,
+                    mod_path_strs: full_path.clone(),
+                    suffix: last.to_string(),
+                    enum_path_strs: (full_path.len() > 1)
+                        .then_some(full_path.iter().take(full_path.len() - 1).cloned().collect()),
+                    span: (context.span_from)(l, r),
+                });
 
                 full_path_str
             })
             .unwrap_or_else(|| {
                 // We didn't find a matching use path.  Just return the parsed path as is.
                 if !els.is_empty() {
-                    context
-                        .next_paths
-                        .push((false, els.iter().map(|el| el.to_string()).collect()));
+                    let path: Vec<_> = els.iter().map(|el| el.to_string()).collect();
+                    context.next_paths.push(NextModPath {
+                        is_abs: false,
+                        mod_path_strs: path.clone(),
+                        suffix: last.to_string(),
+                        enum_path_strs: (path.len() > 1)
+                            .then_some(path.iter().take(path.len() - 1).cloned().collect()),
+                        span: (context.span_from)(l, r),
+                    });
                 }
                 format!(
                     "{}{}{last}",
@@ -922,8 +947,7 @@ ImmediateInt: Immediate = {
             .or_else(|_| {
                 // Try a big-int if that fails and return an Immedate::BigInt.  The BigInt
                 // FromStr::from_str() isn't smart about radices though.
-                num_bigint::BigInt::from_str_radix(&s[offset..], radix)
-                    .map(Immediate::BigInt)
+                num_bigint::BigInt::from_str_radix(&s[offset..], radix).map(Immediate::BigInt)
             })
             .unwrap()
     }

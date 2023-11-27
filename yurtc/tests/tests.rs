@@ -56,7 +56,7 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
         // Parse the project and check its output.
         let _ii = match yurtc::parser::parse_project(&path) {
             Err(errs) => {
-                // Just comma separate all the errors on a single line.
+                // separate all the errors using a `\n`
                 let errs_str = errs
                     .iter()
                     .map(|err| err.to_string())
