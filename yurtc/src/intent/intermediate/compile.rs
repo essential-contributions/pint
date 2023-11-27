@@ -1,38 +1,27 @@
 use crate::{
     error::CompileError,
     intent::{self, Expression, Intent, Solve},
-    span::Span,
+    span::{empty_span, Span},
 };
 
 use super::{Expr, ExprKey, IntermediateIntent, SolveFunc, State, Type, Var};
 
 pub(super) fn compile(context: IntermediateIntent) -> super::Result<Intent> {
-    let IntermediateIntent {
-        states,
-        vars,
-        constraints,
-        directives,
-        exprs,
-        ..
-    } = context;
-
     // Perform all the verification, checks and optimisations.
     // ... TODO ...
 
     Ok(Intent {
-        states: convert_states(&exprs, states)?,
-        vars: convert_vars(vars)?,
-        constraints: convert_constraints(&constraints)?,
-        directive: convert_directive(&directives)?,
+        states: convert_states(&context)?,
+        vars: convert_vars(&context)?,
+        constraints: convert_constraints(&context)?,
+        directive: convert_directive(&context)?,
     })
 }
 
-fn convert_states(
-    exprs: &slotmap::SlotMap<ExprKey, Expr>,
-    states: Vec<State>,
-) -> super::Result<Vec<intent::State>> {
-    states
-        .into_iter()
+fn convert_states(context: &IntermediateIntent) -> super::Result<Vec<intent::State>> {
+    context
+        .states
+        .iter()
         .map(
             |State {
                  name,
@@ -40,108 +29,150 @@ fn convert_states(
                  expr: expr_key,
                  span,
              }| {
-                ty.ok_or_else(|| CompileError::Internal {
-                    msg: "Found untyped state.",
-                    span: span.clone(),
-                })
-                .and_then(|ty| {
-                    convert_type(&ty, &span).and_then(|ty| {
-                        exprs
-                            .get(expr_key)
-                            .ok_or_else(|| CompileError::Internal {
-                                msg: "Unable to resolve expr key.",
-                                span: span.clone(),
-                            })
-                            .and_then(|expr| {
-                                convert_expr(expr, &span).map(|expr| intent::State {
-                                    name,
-                                    ty,
-                                    expr,
-                                })
-                            })
+                ty.as_ref()
+                    .ok_or_else(|| CompileError::Internal {
+                        msg: "Found untyped state.",
+                        span: span.clone(),
                     })
-                })
+                    .and_then(|ty| {
+                        convert_type(ty, span).and_then(|ty| {
+                            convert_expr_key(context, *expr_key, span).map(|expr| intent::State {
+                                name: name.clone(),
+                                ty,
+                                expr,
+                            })
+                        })
+                    })
             },
         )
         .collect()
 }
 
-fn convert_vars(
-    vars: slotmap::SlotMap<super::VarKey, Var>,
-) -> super::Result<Vec<intent::Variable>> {
-    vars.into_iter()
+fn convert_vars(context: &IntermediateIntent) -> super::Result<Vec<intent::Variable>> {
+    context
+        .vars
+        .iter()
         .map(|(_, Var { name, ty, span })| {
-            ty.ok_or_else(|| CompileError::Internal {
-                msg: "Found untyped variable.",
-                span: span.clone(),
-            })
-            .and_then(|ty| convert_type(&ty, &span))
-            .map(|ty| intent::Variable { name, ty })
+            ty.as_ref()
+                .ok_or_else(|| CompileError::Internal {
+                    msg: "Found untyped variable.",
+                    span: span.clone(),
+                })
+                .and_then(|ty| convert_type(ty, span))
+                .map(|ty| intent::Variable {
+                    name: name.clone(),
+                    ty,
+                })
         })
         .collect()
 }
 
-fn convert_constraints(_constraints: &[(ExprKey, Span)]) -> super::Result<Vec<Expression>> {
-    todo!()
-    //    constraints
-    //        .into_iter()
-    //        .map(|(expr, span)| convert_expr(expr, &span))
-    //        .collect()
+fn convert_constraints(context: &IntermediateIntent) -> super::Result<Vec<Expression>> {
+    context
+        .constraints
+        .iter()
+        .map(|(expr_key, span)| convert_expr_key(context, *expr_key, span))
+        .collect()
 }
 
-fn convert_directive(_directives: &[(SolveFunc, Span)]) -> super::Result<Solve> {
-    todo!()
-    //    let (directive, span) = match directives.into_iter().next() {
-    //        Some(tuple) => tuple,
-    //        None => {
-    //            return Err(CompileError::Internal {
-    //                msg: "Missing directive during final compile.",
-    //                span: empty_span(),
-    //            })
-    //        }
-    //    };
-    //
-    //    Ok(match directive {
-    //        SolveFunc::Satisfy => Solve::Satisfy,
-    //        SolveFunc::Maximize(expr) => Solve::Maximize(convert_expr(expr, &span)?),
-    //        SolveFunc::Minimize(expr) => Solve::Minimize(convert_expr(expr, &span)?),
-    //    })
+fn convert_directive(context: &IntermediateIntent) -> super::Result<Solve> {
+    let (directive, span) = match context.directives.first() {
+        Some(tuple) => tuple,
+        None => {
+            return Err(CompileError::Internal {
+                msg: "Missing directive during final compile.",
+                span: empty_span(),
+            })
+        }
+    };
+
+    Ok(match directive {
+        SolveFunc::Satisfy => Solve::Satisfy,
+        SolveFunc::Maximize(expr_key) => {
+            Solve::Maximize(convert_expr_key(context, *expr_key, span)?)
+        }
+        SolveFunc::Minimize(expr_key) => {
+            Solve::Minimize(convert_expr_key(context, *expr_key, span)?)
+        }
+    })
 }
 
-fn convert_expr(expr: &Expr, span: &Span) -> super::Result<Expression> {
+fn convert_expr_key(
+    context: &IntermediateIntent,
+    expr_key: ExprKey,
+    span: &Span,
+) -> super::Result<Expression> {
+    context
+        .exprs
+        .get(expr_key)
+        .ok_or_else(|| CompileError::Internal {
+            msg: "Unable to resolve expr key.",
+            span: span.clone(),
+        })
+        .and_then(|expr| convert_expr(context, expr, span))
+}
+
+fn convert_expr(
+    context: &IntermediateIntent,
+    expr: &Expr,
+    span: &Span,
+) -> super::Result<Expression> {
     // Ugh.
-    let expr = expr.clone();
     match expr {
-        super::Expr::Immediate { value, .. } => Ok(Expression::Immediate(value)),
-        super::Expr::PathByName(path, _) => Ok(Expression::Path(path)),
-        super::Expr::PathByKey(_, _) => todo!(),
-        super::Expr::UnaryOp { .. } => todo!(), //{
-        //     convert_expr(*expr, &span).map(|expr| Expression::UnaryOp {
-        //         op,
-        //         expr: Box::new(expr),
-        //     })
-        // }
-        super::Expr::BinaryOp { .. } => todo!(), // convert_expr(*lhs, span).and_then(|lhs| {
-        //            convert_expr(*rhs, span).map(|rhs| Expression::BinaryOp {
-        //                op,
-        //                lhs: Box::new(lhs),
-        //                rhs: Box::new(rhs),
-        //            })
-        //        }),
-        super::Expr::Call { .. } => todo!(), // args
-        //            .into_iter()
-        //            .map(|arg| convert_expr(arg, span))
-        //            .collect::<super::Result<_>>()
-        //            .map(|args| Expression::Call { name, args }),
-        super::Expr::If { .. } => todo!(), //convert_expr(*condition, span).and_then(|condition| {
-        //            convert_expr(*then_block, span).and_then(|then_expr| {
-        //                convert_expr(*else_block, span).map(|else_expr| Expression::If {
-        //                    condition: Box::new(condition),
-        //                    then_expr: Box::new(then_expr),
-        //                    else_expr: Box::new(else_expr),
-        //                })
-        //            })
-        //        }),
+        super::Expr::Immediate { value, .. } => Ok(Expression::Immediate(value.clone())),
+
+        super::Expr::PathByName(path, _) => Ok(Expression::Path(path.clone())),
+
+        super::Expr::PathByKey(var_key, _) => context
+            .vars
+            .get(*var_key)
+            .map(|var| Expression::Path(var.name.clone()))
+            .ok_or_else(|| CompileError::Internal {
+                msg: "Unable to resolve expr key.",
+                span: span.clone(),
+            }),
+
+        super::Expr::UnaryOp {
+            op,
+            expr: expr_key,
+            span,
+        } => convert_expr_key(context, *expr_key, span).map(|expr| Expression::UnaryOp {
+            op: *op,
+            expr: Box::new(expr),
+        }),
+
+        super::Expr::BinaryOp { op, lhs, rhs, span } => convert_expr_key(context, *lhs, span)
+            .and_then(|lhs| {
+                convert_expr_key(context, *rhs, span).map(|rhs| Expression::BinaryOp {
+                    op: *op,
+                    lhs: Box::new(lhs),
+                    rhs: Box::new(rhs),
+                })
+            }),
+
+        super::Expr::Call { name, args, span } => args
+            .iter()
+            .map(|arg| convert_expr_key(context, *arg, span))
+            .collect::<super::Result<_>>()
+            .map(|args| Expression::Call {
+                name: name.clone(),
+                args,
+            }),
+
+        super::Expr::If {
+            condition,
+            then_block,
+            else_block,
+            span,
+        } => convert_expr_key(context, *condition, span).and_then(|condition| {
+            convert_expr_key(context, *then_block, span).and_then(|then_expr| {
+                convert_expr_key(context, *else_block, span).map(|else_expr| Expression::If {
+                    condition: Box::new(condition),
+                    then_expr: Box::new(then_expr),
+                    else_expr: Box::new(else_expr),
+                })
+            })
+        }),
 
         // These expression variants should all be optimised away before reaching final
         // compilation from IntermediateIntent to Intent.
