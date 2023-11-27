@@ -909,7 +909,7 @@ fn casting() {
 fn if_statements() {
     check(
         &run_formatter!(
-            if_expr(expr()),
+            expr(),
             "if 
         1 == 
         2 {         3 } 
