@@ -479,6 +479,35 @@ impl<'sc> Format for Cast<'sc> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct Cond<'sc> {
+    pub cond_branches: Vec<(Expr<'sc>, Expr<'sc>)>,
+    pub else_branch: Box<Expr<'sc>>,
+}
+
+impl<'sc> Format for Cond<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        formatted_code.write("cond { ");
+
+        for (i, cond) in self.cond_branches.iter().enumerate() {
+            cond.0.format(formatted_code)?;
+            formatted_code.write(" => ");
+            cond.1.format(formatted_code)?;
+
+            // If not the last element, append a comma
+            if i < self.cond_branches.len() - 1 {
+                formatted_code.write(", ");
+            }
+        }
+
+        formatted_code.write("else => ");
+        self.else_branch.format(formatted_code)?;
+        formatted_code.write(" }");
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) enum Expr<'sc> {
     Immediate(Immediate),
     Path(Path),
@@ -488,6 +517,7 @@ pub(super) enum Expr<'sc> {
     In(In<'sc>),
     Range(Range<'sc>),
     Cast(Cast<'sc>),
+    Cond(Cond<'sc>),
 }
 
 impl<'sc> Format for Expr<'sc> {
@@ -501,6 +531,7 @@ impl<'sc> Format for Expr<'sc> {
             Self::In(in_) => in_.format(formatted_code)?,
             Self::Range(range) => range.format(formatted_code)?,
             Self::Cast(cast) => cast.format(formatted_code)?,
+            Self::Cond(cond) => cond.format(formatted_code)?,
         }
 
         Ok(())
