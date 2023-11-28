@@ -1,5 +1,5 @@
 use crate::{
-    parser::{IntermediateIntent, UsePath},
+    parser::{IntermediateIntent, NextModPath, UsePath},
     span::Span,
 };
 
@@ -9,5 +9,5 @@ pub struct ParserContext<'a> {
     pub(crate) ii: &'a mut IntermediateIntent,
     pub(crate) span_from: &'a dyn Fn(usize, usize) -> Span,
     pub(crate) use_paths: &'a mut Vec<UsePath>,
-    pub(crate) next_paths: &'a mut Vec<(bool, Vec<String>)>,
+    pub(crate) next_paths: &'a mut Vec<NextModPath>,
 }

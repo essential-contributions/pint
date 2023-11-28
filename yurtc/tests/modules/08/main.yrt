@@ -1,0 +1,29 @@
+use ::b::c;
+use ::d::MyEnum;
+use b;
+
+let c1 = ::b::c;
+let c2 = b::c;
+let c3 = c;
+let c4 = b::c;
+
+let a_variant = MyEnum::A;
+let b_variant = d::MyEnum::B;
+
+// intermediate <<<
+// var ::c1;
+// var ::c2;
+// var ::c3;
+// var ::c4;
+// var ::a_variant;
+// var ::b_variant;
+// var ::b::c;
+// enum ::d::MyEnum = A | B;
+// constraint (var ::c1 == ::b::c);
+// constraint (var ::c2 == ::b::c);
+// constraint (var ::c3 == ::b::c);
+// constraint (var ::c4 == ::b::c);
+// constraint (var ::a_variant == ::d::MyEnum::A);
+// constraint (var ::b_variant == ::d::MyEnum::B);
+// constraint (var ::b::c == 5);
+// >>>
