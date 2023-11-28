@@ -319,6 +319,7 @@ pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Par
         let atom = choice((
             unary_op(expr.clone()),
             immediate().map(ast::Expr::Immediate),
+            if_expr(expr.clone()),
             call,
             path().map(ast::Expr::Path),
         ))
@@ -448,6 +449,24 @@ where
                 lhs: Box::new(lhs),
                 op,
                 rhs: Box::new(rhs),
+            })
+        })
+        .boxed()
+}
+
+pub(super) fn if_expr<'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone {
+    just(Token::If)
+        .ignore_then(expr.clone())
+        .then(code_block_expr(expr.clone()))
+        .then_ignore(just(Token::Else))
+        .then(code_block_expr(expr))
+        .map(|((condition, true_code_block), false_code_block)| {
+            ast::Expr::If(ast::If {
+                condition: Box::new(condition),
+                true_code_block,
+                false_code_block,
             })
         })
         .boxed()
