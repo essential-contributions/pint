@@ -1,0 +1,44 @@
+name: Deploy mdBook site to Pages
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches:
+      - master
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch: {}
+
+# Allows writing to the gh-pages branch
+permissions:
+  contents: write
+  pages: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run
+# in-progress and latest queued. However, do NOT cancel in-progress runs as we
+# want to allow these production deployments to complete.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v1
+        with:
+          mdbook-version: 0.4.30
+
+      - name: Build Specs Book
+        run: mdbook build specs
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./specs/book
+          destination_dir: ./specs
