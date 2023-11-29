@@ -11,13 +11,28 @@ let parse_error
 
 // parse_failure <<<
 // type annotation or initializer needed for variable `untyped`
+// @0..11: type annotation or initializer needed
+// consider giving `untyped` an explicit type or an initializer
 // symbol `clash` has already been declared
+// @17..22: previous declaration of the value `clash` here
+// @32..37: `clash` redeclared here
+// `clash` must be declared or imported only once in this scope
 // symbol `clash` has already been declared
+// @17..22: previous declaration of the value `clash` here
+// @47..52: `clash` redeclared here
+// `clash` must be declared or imported only once in this scope
 // empty tuple types are not allowed
+// @75..77: empty tuple type found
 // empty tuple expressions are not allowed
+// @80..82: empty tuple expression found
 // empty array types are not allowed
+// @101..106: empty array type found
 // missing array index
+// @131..134: missing array element index
 // invalid integer `0x5` as tuple index
+// @162..165: invalid integer as tuple index
 // invalid value `1e5` as tuple index
+// @190..193: invalid value as tuple index
 // expected `:`, `;`, or `=`, found `end of file`
+// @210..210: expected `:`, `;`, or `=`
 // >>>

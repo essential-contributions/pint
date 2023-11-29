@@ -56,7 +56,7 @@ impl ReportableError for CompileError {
                 path_full, span, ..
             } => {
                 vec![ErrorLabel {
-                    message: format!("failed to resolve path {path_full} "),
+                    message: format!("failed to resolve path {path_full}"),
                     span: span.clone(),
                     color: Color::Red,
                 }]
