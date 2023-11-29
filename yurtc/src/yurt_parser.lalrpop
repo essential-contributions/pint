@@ -9,8 +9,8 @@ use crate::{
     types::{EnumDecl, Path, FnSig, NewTypeDecl, PrimitiveKind, Type},
 };
 
-grammar<'sc>(
-    context: &mut ParserContext<'sc>,
+grammar<'a>(
+    context: &mut ParserContext<'a>,
     errors: &mut Vec<Error>,
 );
 
@@ -1018,7 +1018,7 @@ extern {
     type Location = usize;
     type Error = ParseError;
 
-    enum lexer::Token<'sc> {
+    enum lexer::Token {
         ":" => lexer::Token::Colon,
         "::" => lexer::Token::DoubleColon,
         ";" => lexer::Token::Semi,
@@ -1061,8 +1061,8 @@ extern {
         "bool_ty" => lexer::Token::Bool,
         "string_ty" => lexer::Token::String,
 
-        "int_lit" => lexer::Token::IntLiteral(<&'sc str>),
-        "real_lit" => lexer::Token::RealLiteral(<&'sc str>),
+        "int_lit" => lexer::Token::IntLiteral(<String>),
+        "real_lit" => lexer::Token::RealLiteral(<String>),
         "str_lit" => lexer::Token::StringLiteral(<String>),
 
         "true" => lexer::Token::True,
@@ -1092,12 +1092,12 @@ extern {
 
         "in" => lexer::Token::In,
 
-        "ident" => lexer::Token::Ident(<&'sc str>),
+        "ident" => lexer::Token::Ident(<String>),
 
         "macro" => lexer::Token::Macro,
-        "macro_name" => lexer::Token::MacroName(<&'sc str>),
-        "macro_param" => lexer::Token::MacroParam(<&'sc str>),
-        "macro_body" => lexer::Token::MacroBody(<Vec<lexer::Token<'sc>>>),
-        "macro_call_args" => lexer::Token::MacroCallArgs(<Vec<Vec<lexer::Token<'sc>>>>),
+        "macro_name" => lexer::Token::MacroName(<String>),
+        "macro_param" => lexer::Token::MacroParam(<String>),
+        "macro_body" => lexer::Token::MacroBody(<Vec<lexer::Token>>),
+        "macro_call_args" => lexer::Token::MacroCallArgs(<Vec<Vec<lexer::Token>>>),
     }
 }

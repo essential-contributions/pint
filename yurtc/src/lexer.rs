@@ -8,7 +8,7 @@ mod tests;
 #[derive(Clone, Debug, Eq, Hash, Logos, PartialEq, Ord, PartialOrd)]
 #[logos(skip r"[ \t\n\r\f]+")]
 #[logos(error = ParseError)]
-pub enum Token<'sc> {
+pub enum Token {
     #[token(":")]
     Colon,
     #[token("::")]
@@ -91,12 +91,12 @@ pub enum Token<'sc> {
 
     #[token("macro")]
     Macro,
-    #[regex(r"@[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice())]
-    MacroName(&'sc str),
-    #[regex(r"\$[A-Za-z_0-9]+", |lex| lex.slice())]
-    MacroParam(&'sc str),
-    MacroBody(Vec<Token<'sc>>),
-    MacroCallArgs(Vec<Vec<Token<'sc>>>),
+    #[regex(r"@[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice().to_string())]
+    MacroName(String),
+    #[regex(r"\$[A-Za-z_0-9]+", |lex| lex.slice().to_string())]
+    MacroParam(String),
+    MacroBody(Vec<Token>),
+    MacroCallArgs(Vec<Vec<Token>>),
 
     #[token("if")]
     If,
@@ -141,12 +141,12 @@ pub enum Token<'sc> {
     #[token("in")]
     In,
 
-    #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice())]
-    Ident(&'sc str),
-    #[regex(r"[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+", |lex| lex.slice())]
-    RealLiteral(&'sc str),
-    #[regex(r"0x[0-9A-Fa-f]+|0b[0-1]+|[0-9]+", |lex| lex.slice())]
-    IntLiteral(&'sc str),
+    #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice().to_string())]
+    Ident(String),
+    #[regex(r"[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+", |lex| lex.slice().to_string())]
+    RealLiteral(String),
+    #[regex(r"0x[0-9A-Fa-f]+|0b[0-1]+|[0-9]+", |lex| lex.slice().to_string())]
+    IntLiteral(String),
     #[regex(
         r#""([^"\\]|\\(x[0-9a-fA-F]{2}|[nt"]|\\|\n))*""#,
         |lex| {
@@ -192,7 +192,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Type,
 ];
 
-impl<'sc> fmt::Display for Token<'sc> {
+impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Token::Colon => write!(f, ":"),
@@ -285,8 +285,8 @@ impl<'sc> fmt::Display for Token<'sc> {
     }
 }
 
-pub(super) struct Lexer<'sc> {
-    token_stream: logos::SpannedIter<'sc, Token<'sc>>,
+pub(super) struct Lexer<'a> {
+    token_stream: logos::SpannedIter<'a, Token>,
     filepath: Rc<std::path::Path>,
     state: LexerState,
 }
@@ -302,9 +302,9 @@ impl<'sc> Lexer<'sc> {
 
     fn gather_macro_body(
         &mut self,
-        obrace_tok: Token<'sc>,
+        obrace_tok: Token,
         obrace_span: &std::ops::Range<usize>,
-    ) -> Result<(usize, Token<'sc>, usize), ParseError> {
+    ) -> Result<(usize, Token, usize), ParseError> {
         // Copy the token stream in case we need to backtrack.
         let mut body_token_stream = self.token_stream.clone();
         let mut parsed_tok_count = 0;
@@ -360,16 +360,16 @@ impl<'sc> Lexer<'sc> {
 
     fn gather_macro_call_args(
         &mut self,
-        oparen_tok: Token<'sc>,
+        oparen_tok: Token,
         oparen_span: &std::ops::Range<usize>,
-    ) -> Result<(usize, Token<'sc>, usize), ParseError> {
+    ) -> Result<(usize, Token, usize), ParseError> {
         // Copy the token stream in case we need to backtrack.
         let mut args_token_stream = self.token_stream.clone();
         let mut parsed_tok_count = 0;
 
         // We've already parsed the `(`.  Next we need any tokens up to delimiting `;` or
         // terminating `)`.
-        let mut all_args: Vec<Vec<Token<'sc>>> = vec![Vec::new()];
+        let mut all_args: Vec<Vec<Token>> = vec![Vec::new()];
         loop {
             parsed_tok_count += 1;
             match args_token_stream.next() {
@@ -434,8 +434,8 @@ enum LexerState {
 //
 // We implement special case macro parsing here as an adapter to the adapter, as we need to wrap up
 // macro params and body tokens before passing them to the parser.
-impl<'sc> Iterator for Lexer<'sc> {
-    type Item = Result<(usize, Token<'sc>, usize), ParseError>;
+impl<'a> Iterator for Lexer<'a> {
+    type Item = Result<(usize, Token, usize), ParseError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.token_stream.next().map(|(res, span)| {

@@ -2,13 +2,13 @@ use crate::{expr::Ident, lexer::Token, types::Path};
 
 use std::fmt;
 
-pub(crate) struct MacroDecl<'sc> {
+pub(crate) struct MacroDecl {
     pub(crate) name: Ident,
     pub(crate) params: Vec<Ident>,
-    pub(crate) body: Vec<Token<'sc>>,
+    pub(crate) body: Vec<Token>,
 }
 
-impl<'sc> fmt::Display for MacroDecl<'sc> {
+impl fmt::Display for MacroDecl {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -27,12 +27,12 @@ impl<'sc> fmt::Display for MacroDecl<'sc> {
         )
     }
 }
-pub(crate) struct MacroCall<'sc> {
+pub(crate) struct MacroCall {
     pub(crate) name: Path,
-    pub(crate) args: Vec<Vec<Token<'sc>>>,
+    pub(crate) args: Vec<Vec<Token>>,
 }
 
-impl<'sc> fmt::Display for MacroCall<'sc> {
+impl fmt::Display for MacroCall {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
