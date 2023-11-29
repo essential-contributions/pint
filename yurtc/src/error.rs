@@ -4,6 +4,7 @@ mod parse_error;
 
 use crate::span::{Span, Spanned};
 use ariadne::{FnCache, Label, Report, ReportKind, Source};
+use std::fmt::Write;
 use thiserror::Error;
 use yansi::{Color, Style};
 
@@ -12,7 +13,7 @@ pub(super) use lex_error::LexError;
 pub(super) use parse_error::ParseError;
 
 /// An error label used for pretty printing error messages to the terminal
-pub(super) struct ErrorLabel {
+pub struct ErrorLabel {
     pub(super) message: String,
     pub(super) span: Span,
     pub(super) color: Color,
@@ -31,7 +32,7 @@ pub enum Error {
 
 /// Types that implement this trait can be pretty printed to the terminal using the `ariadne` crate
 /// by calling the `print()` method.
-pub(super) trait ReportableError
+pub trait ReportableError
 where
     Self: std::fmt::Display + Spanned,
 {
@@ -102,6 +103,28 @@ where
                 ),
             )
             .unwrap();
+    }
+
+    fn display_raw(&self) -> String {
+        self.to_string()
+            + "\n"
+            + &self.labels().iter().fold(String::new(), |mut acc, label| {
+                writeln!(
+                    &mut acc,
+                    "@{}..{}: {}",
+                    label.span.start(),
+                    label.span.end(),
+                    label.message
+                )
+                .expect("Failed to write label to string");
+                acc
+            })
+            + &self
+                .note()
+                .map_or(String::new(), |note| format!("{}\n", note))
+            + &self
+                .help()
+                .map_or(String::new(), |help| format!("{}\n", help))
     }
 }
 

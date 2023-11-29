@@ -92,27 +92,7 @@ impl DisplayWithII for (&'static str, usize) {
 fn display_errors(errors: &[Error]) -> String {
     // Print each error on one line. For each error, start with the span.
     errors.iter().fold(String::new(), |acc, error| {
-        let mut all_diagnostics = format!("{}{}", acc, error);
-        all_diagnostics = format!(
-            "{}{}",
-            all_diagnostics,
-            error.labels().iter().fold(String::new(), |acc, label| {
-                format!(
-                    "\n{}@{}..{}: {}\n",
-                    acc,
-                    label.span.start(),
-                    label.span.end(),
-                    label.message
-                )
-            })
-        );
-        if let Some(note) = error.note() {
-            all_diagnostics = format!("{}{}", all_diagnostics, note);
-        }
-        if let Some(help) = error.help() {
-            all_diagnostics = format!("{}{}", all_diagnostics, help);
-        }
-        all_diagnostics
+        format!("{}{}", acc, error.display_raw())
     })
 }
 
@@ -312,7 +292,8 @@ fn let_decls() {
         expect_test::expect![[r#"
             type annotation or initializer needed for variable `blah`
             @0..8: type annotation or initializer needed
-            consider giving `blah` an explicit type or an initializer"#]],
+            consider giving `blah` an explicit type or an initializer
+        "#]],
     );
     check(
         &run_let_parser("let blah = 1.0"),
@@ -1851,30 +1832,31 @@ let parse_error
     check(
         &run_yurt_parser(src),
         expect_test::expect![[r#"
-        type annotation or initializer needed for variable `untyped`
-        @1..12: type annotation or initializer needed
-        consider giving `untyped` an explicit type or an initializersymbol `clash` has already been declared
-
-        @18..23: previous declaration of the value `clash` here
-        @33..38: `clash` redeclared here
-        `clash` must be declared or imported only once in this scopesymbol `clash` has already been declared
-
-        @18..23: previous declaration of the value `clash` here
-        @48..53: `clash` redeclared here
-        `clash` must be declared or imported only once in this scopeempty tuple types are not allowed
-        @76..78: empty tuple type found
-        empty tuple expressions are not allowed
-        @81..83: empty tuple expression found
-        empty array types are not allowed
-        @102..107: empty array type found
-        missing array index
-        @132..135: missing array element index
-        invalid integer `0x5` as tuple index
-        @163..166: invalid integer as tuple index
-        invalid value `1e5` as tuple index
-        @191..194: invalid value as tuple index
-        expected `:`, `;`, or `=`, found `end of file`
-        @211..211: expected `:`, `;`, or `=`
-    "#]],
+            type annotation or initializer needed for variable `untyped`
+            @1..12: type annotation or initializer needed
+            consider giving `untyped` an explicit type or an initializer
+            symbol `clash` has already been declared
+            @18..23: previous declaration of the value `clash` here
+            @33..38: `clash` redeclared here
+            `clash` must be declared or imported only once in this scope
+            symbol `clash` has already been declared
+            @18..23: previous declaration of the value `clash` here
+            @48..53: `clash` redeclared here
+            `clash` must be declared or imported only once in this scope
+            empty tuple types are not allowed
+            @76..78: empty tuple type found
+            empty tuple expressions are not allowed
+            @81..83: empty tuple expression found
+            empty array types are not allowed
+            @102..107: empty array type found
+            missing array index
+            @132..135: missing array element index
+            invalid integer `0x5` as tuple index
+            @163..166: invalid integer as tuple index
+            invalid value `1e5` as tuple index
+            @191..194: invalid value as tuple index
+            expected `:`, `;`, or `=`, found `end of file`
+            @211..211: expected `:`, `;`, or `=`
+        "#]],
     );
 }
