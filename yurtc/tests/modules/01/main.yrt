@@ -3,8 +3,8 @@ constraint a::b::c == d::e;
 solve satisfy;
 
 // intermediate <<<
-// var ::a::b::c: int;
 // var ::d::e: int;
+// var ::a::b::c: int;
 // constraint (::a::b::c == ::d::e);
 // constraint (var ::d::e: int == 10);
 // solve satisfy;

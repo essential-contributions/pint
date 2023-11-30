@@ -8,7 +8,7 @@ fn main() -> anyhow::Result<()> {
 
     // Lex + Parse
     let intermediate_intent = match parser::parse_project(filepath) {
-        Ok(ii) => ii,
+        Ok(ii) => dbg!(ii),
         Err(errors) => {
             if !cfg!(test) {
                 error::print_errors(&errors);
