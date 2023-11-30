@@ -81,14 +81,3 @@ impl DisplayWithII for super::NewTypeDecl {
         Ok(())
     }
 }
-
-impl DisplayWithII for super::ExternDecl {
-    fn fmt(&self, f: &mut Formatter<'_>, ii: &IntermediateIntent) -> Result {
-        write!(f, "extern {{ ")?;
-        for function in &self.functions {
-            write!(f, "{}; ", ii.with_ii(function))?;
-        }
-        write!(f, "}}")?;
-        Ok(())
-    }
-}

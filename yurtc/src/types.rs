@@ -90,8 +90,3 @@ impl Spanned for FnSig {
         &self.span
     }
 }
-
-#[derive(Clone, Debug)]
-pub struct ExternDecl {
-    pub(super) functions: Vec<FnSig>,
-}
