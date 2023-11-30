@@ -1,0 +1,308 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>JSON Representation of Intents - Yurt Specification</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../yurt-spec.html">Yurt Specification</a></li><li class="chapter-item expanded "><a href="../intro/introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../intro/state_transition_function.html"><strong aria-hidden="true">1.1.</strong> State Transition Function</a></li><li class="chapter-item expanded "><a href="../intro/transactions.html"><strong aria-hidden="true">1.2.</strong> Transactions</a></li></ol></li><li class="chapter-item expanded "><a href="../lang/language_primitives.html"><strong aria-hidden="true">2.</strong> Language Specification</a></li><li class="chapter-item expanded "><a href="../json/json_intents.html" class="active"><strong aria-hidden="true">3.</strong> JSON Representation of Intents</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Yurt Specification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/essential-contributions/yurt" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="json-representation-of-intents"><a class="header" href="#json-representation-of-intents">JSON Representation of Intents</a></h1>
+<p>Each intent in the network of solver agents is represented using a JSON object generated by the compiler. The JSON spec below aims to standardize intents so that multiple languages and multiple solvers can be built around it. This will help widen the ecosystem of intent-based architectures.</p>
+<h2 id="json-spec"><a class="header" href="#json-spec">JSON Spec</a></h2>
+<p>Each intent is represented as a JSON object containing the following properties:</p>
+<ul>
+<li><code>&quot;from&quot;</code>: a string containing the address of the intent submitter.</li>
+<li><code>&quot;variables&quot;</code>: an array of all the decision variables that the solver of an intent needs to search for. Each variable is represented using a JSON object with the following properties:
+<ul>
+<li><code>&quot;name&quot;</code>: a string containing the name of the variable.</li>
+<li><code>&quot;type&quot;</code>: a string containing the type of the variable. Available types are <code>&quot;bool&quot;</code>, <code>&quot;int&quot;</code>, and <code>&quot;float&quot;</code>.</li>
+<li><code>&quot;stateAccessed&quot;</code>: ....</li>
+</ul>
+</li>
+<li><code>&quot;constraints&quot;</code>: an array of all the constraints that describe the intent. Each constraint is an array that contains the following elements:
+<ul>
+<li>The first element is <code>&quot;Equal&quot;</code> or <code>&quot;LessEqual&quot;</code> indicating whether the constraint is an equality or an inequality constraint, respectively.</li>
+<li>The second and third elements are <em>expressions</em> describing both sides of the equality or inequality constraint. Each expression is one of the following:
+<ul>
+<li>A number literal. Refer to <a href="#number-literals">Number Literals</a> for a list of all possible number representations.</li>
+<li>A string representing the name of one of the decision variables above.</li>
+<li>An array containing the following:
+<ul>
+<li>A string representing an operator. Refer to <a href="#operators">Operators</a> for a list of all available operators.</li>
+<li>The arguments of the operators as <em>expressions</em>. The format of each expression follows the rules described in this section.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><code>&quot;stateTransitions&quot;</code>: An array of all state transitions that describe the intent. Each state transition is an array that contains two strings:
+<ul>
+<li>The first string is the name of a decision variable.</li>
+<li>The second string is the name of the decision variable that represents the <em>next state</em> of the first decision variable.</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p><strong>Note</strong>
+The list of constraints can be generalized to include arbitrary Boolean expressions.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note</strong>
+The spec above is limiting in a few ways and should eventually be generalized once we have a better understanding of the problem domain. For example, constraints on transactions and intermediate states are not possible yet.</p>
+</blockquote>
+<h3 id="number-literals"><a class="header" href="#number-literals">Number Literals</a></h3>
+<p>Number literals can be one of the following:</p>
+<ul>
+<li>A JSON number, e.g. <code>4</code>, <code>1.4</code>, <code>3.2e10</code>.</li>
+<li>A string containing a hexadecimal number, e.g. <code>&quot;0x00000000&quot;</code>.</li>
+<li>One of the following strings representing special numbers:</li>
+</ul>
+<div class="table-wrapper"><table><thead><tr><th>Constant</th><th>Value</th></tr></thead><tbody>
+<tr><td><code>&quot;ExponentialE&quot;</code></td><td>$e = 2.71828...$</td></tr>
+<tr><td><code>&quot;Pi&quot;</code></td><td>$\pi = 3.14159...$</td></tr>
+</tbody></table>
+</div>
+<h3 id="operators"><a class="header" href="#operators">Operators</a></h3>
+<p>The following is a list of supported operators:</p>
+<div class="table-wrapper"><table><thead><tr><th>Operator</th><th>Arguments</th><th>Operation</th></tr></thead><tbody>
+<tr><td><code>&quot;Add&quot;</code></td><td><code>a</code>, <code>b</code></td><td>$a + b$</td></tr>
+<tr><td><code>&quot;Subtract&quot;</code></td><td><code>a</code>, <code>b</code></td><td>$a - b$</td></tr>
+<tr><td><code>&quot;Multiply&quot;</code></td><td><code>a</code>, <code>b</code></td><td>$a * b$</td></tr>
+<tr><td><code>&quot;Divide&quot;</code></td><td><code>a</code>, <code>b</code></td><td>$\frac{a}{b}$</td></tr>
+<tr><td><code>&quot;Power&quot;</code></td><td><code>a</code>, <code>b</code></td><td>$a^b$</td></tr>
+<tr><td><code>&quot;Sqrt&quot;</code></td><td><code>a</code></td><td>$\sqrt{a}$</td></tr>
+<tr><td><code>&quot;Exp&quot;</code></td><td><code>a</code></td><td>$e^a$</td></tr>
+<tr><td><code>&quot;Ln&quot;</code></td><td><code>a</code></td><td>$\ln(a)$</td></tr>
+<tr><td><code>&quot;Log&quot;</code></td><td><code>a</code>, <code>b</code></td><td>$\log_b(a)$</td></tr>
+</tbody></table>
+</div>
+<h2 id="a-simple-example"><a class="header" href="#a-simple-example">A Simple Example</a></h2>
+<p>Below is a simple example showing how the JSON object for the <a href="../intro/introduction.html#example-2">simple swap intent</a> from the <a href="../intro/introduction.html">introduction</a> would look like:</p>
+<pre><code class="language-json">{
+  &quot;from&quot;: &quot;0x1111111111111111111111111111111111111111&quot;,
+  &quot;variables&quot;: [
+    {
+      &quot;name&quot;: &quot;eth&quot;,
+      &quot;type&quot;: &quot;float&quot;,
+      &quot;stateAccessed&quot;: {
+        &quot;account&quot;: &quot;0x1111111111111111111111111111111111111111&quot;,
+        &quot;value&quot;: &quot;balance&quot;
+      }
+    },
+    {
+      &quot;name&quot;: &quot;dai&quot;,
+      &quot;type&quot;: &quot;float&quot;,
+      &quot;stateAccessed&quot;: {
+        &quot;account&quot;: &quot;0x6B175474E89094C44Da98b954EedeAC495271d0F&quot;,
+        &quot;value&quot;: &quot;call balanceOf(0x1111111111111111111111111111111111111111)&quot;
+      }
+    },
+    {
+      &quot;name&quot;: &quot;eth_next&quot;,
+      &quot;type&quot;: &quot;float&quot;
+    },
+    {
+      &quot;name&quot;: &quot;dai_next&quot;,
+      &quot;type&quot;: &quot;float&quot;
+    }
+  ],
+  &quot;constraints&quot;: [
+    [&quot;Equal&quot;, [&quot;Subtract&quot;, &quot;eth&quot;, &quot;eth_next&quot;], &quot;3e18&quot;],
+    [&quot;LessEqual&quot;, &quot;5400000000&quot;, [&quot;Subtract&quot;, &quot;dai_next&quot;, &quot;dai&quot;]]
+  ],
+  &quot;stateTransitions&quot;: [
+    [&quot;eth&quot;, &quot;eth_next&quot;],
+    [&quot;dai&quot;, &quot;dai_next&quot;]
+  ]
+}
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../lang/language_primitives.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../lang/language_primitives.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/yurt.js"></script>
+        <script src="../theme/bnf.js"></script>
+
+
+    </div>
+    </body>
+</html>

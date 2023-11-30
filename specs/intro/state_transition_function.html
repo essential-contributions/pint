@@ -1,0 +1,268 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>State Transition Function - Yurt Specification</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../yurt-spec.html">Yurt Specification</a></li><li class="chapter-item expanded "><a href="../intro/introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../intro/state_transition_function.html" class="active"><strong aria-hidden="true">1.1.</strong> State Transition Function</a></li><li class="chapter-item expanded "><a href="../intro/transactions.html"><strong aria-hidden="true">1.2.</strong> Transactions</a></li></ol></li><li class="chapter-item expanded "><a href="../lang/language_primitives.html"><strong aria-hidden="true">2.</strong> Language Specification</a></li><li class="chapter-item expanded "><a href="../json/json_intents.html"><strong aria-hidden="true">3.</strong> JSON Representation of Intents</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Yurt Specification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/essential-contributions/yurt" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="state-transition-function"><a class="header" href="#state-transition-function">State Transition Function</a></h1>
+<p>The state transition function, which we called $tau$ in the <a href="introduction.html">introduction</a>, is the function that maps a given state $s_0$ to another state $s_1$ by executing a transaction $t$. That is, $s_1 = \tau(s_0, t)$. On Ethereum, $\tau$ is basically the process of validating and executing $t$ using the EVM. Every user intent requires $\tau$ in order to express an actual state transition.</p>
+<p>In the DSL examples presented in <a href="introduction.html">introduction</a>, we've used <code>eth_transition</code> to refer to the state transition function of Ethereum which takes a particular state (e.g. ETH balance of some address <code>a</code>) and an arbitrary transaction $t$, and returns the new ETH balance of <code>a</code> after a successful execution of $t$. Mathematically, this definition of <code>eth_transition</code> is quite vague and informal. We need to further specify what it will actually look and how solvers should handle it.</p>
+<h2 id="expressing-eth_transition"><a class="header" href="#expressing-eth_transition">Expressing <code>eth_transition</code></a></h2>
+<p>From the point of view of users, <code>eth_transition</code> can simply be a black box. Users do not really care about the state transition function of any blockchain and all they want to do is express some state transition. Therefore, users should have to write the least amount of code to express the relationship between start and end states.</p>
+<p>Conversely, solvers need to &quot;expand&quot; <code>eth_transition</code> to something more concrete that can be plugged into a mathematical solver. One can imagine a <em>magical</em> solver that is able to traverse the space of feasible transactions while iteratively evaluating (via code execution) the next state given a sequence of candidate transactions, but such a solver will be incredibly slow. Therefore, solvers need to come up with something better.</p>
+<p>One viable option is to restrict the space of feasible transactions to contract calls to specific contracts with well-defined mathematical models such as Uniswap. For each trusted contract, the solver has to replace calls to <code>eth_transition</code> with actual equations representing the state transition function <strong>for that contract</strong>. The result is a modified version of the user's initial intent, with the solver introducing additional constraints alongside those specified by the user. By applying more restrictive constraints to <code>eth_transition</code>, solvers reduce the transaction space, making it easier to navigate. This approach enables solvers to provide users with valid solutions in a timely manner.</p>
+<p><img src="../assets/intent_flow.png" alt="Flow of Intents" title="Flow of Intents" /></p>
+<p>Solvers compete by delivering the best &quot;expansion&quot; of <code>eth_transition</code>, striving to provide a solution that is more optimal relative to those proposed by other solvers. Solvers who are able to include more contracts in their solution space will likely achieve higher satisfaction scores, hence receiving higher rewards.</p>
+<p>Expanding the search space is largely a question of domain knowledge. For example, in the case of swaps, a solver should be aware of as many swap venues and pairs as possible. They should also run an order matching algorithm to match swaps where possible, as this will bypass a lot of expensive state access and contract calls. This also means that solvers will also compete on compute power, since a larger search space is more expensive to explore.</p>
+<p>This flow of intents above can be combined with intent batching that was explained in the <a href="introduction.html">introduction</a> to make the process more efficient and to explore user matching opportunities.</p>
+<h3 id="constant-function-market-maker-cfmm-example"><a class="header" href="#constant-function-market-maker-cfmm-example">Constant Function Market Maker (CFMM) Example</a></h3>
+<p>Consider the swap example from the <a href="introduction.html">introduction</a> where the user is requesting a state change that can be expressed mathematically as follows:</p>
+<p>$$
+\begin{aligned}
+e_0 - e_1 &amp;= 3e18\
+d_1 - d_0 &amp;\geq 5400e6 \
+\end{aligned}
+$$</p>
+<p>where:</p>
+<ul>
+<li>$e_0$ and $d_0$ are the starting ETH and DAI balances of the user, respectively.</li>
+<li>$e_1$ and $d_1$ are the final ETH and DAI balances of the user, respectively.</li>
+</ul>
+<p>These constraints on the change in state are then broadcast to the network of solvers. Solvers will then attempt to provide a solution to the intent above by exploring the list of contracts they are willing to interact with. For CFMM contracts, the trading semantics rely on a trading function $\varphi$ such that:</p>
+<p>$$\varphi(R_e + \gamma\delta_e, R_d - \delta_d) = \varphi(R_e, R_d)$$</p>
+<p>where $R_e$ and $R_d$ are the current reserves of ETH and DAI respectively, $\gamma \in (0, 1]$ is the trading fee for the CFMM, and $\delta_e$ and $\delta_d$ are the optimal tendered and received amounts of ETH and DAI respectively (i.e. $\delta_e = e_0 - e_1$ and $\delta_d = d_1 = d_0$ for optimal values of $e_0$, $e_1$, $d_0$ and $d_1$).</p>
+<p>Given the above, the solver can the craft the following optimization problem, using our DSL, by replacing <code>eth_transition</code> in the user's problem with the mathematical formulation of the CFMM above:</p>
+<pre><code class="language-solidity">include &quot;cfmm.mzn&quot; // Some library that implements &quot;phi&quot;
+
+/* These are constants */
+int: eth_amount = 3e18;
+int: min_dai_amount = 5400_000_000; // $1800 per ETH
+address: a = 0x1111111111111111111111111111111111111111;
+
+/* These are decision variables */
+var float: eth;
+var float: eth_next;
+var float: dai;
+var float: dai_next;
+var transaction: t;
+
+/* These are our constraints */
+constraint eth - eth_next = eth_amount;
+constraint dai_next - dai &gt;= min_dai_amount;
+constraint eth = eth.balance(a);
+constraint dai = dai.balanceOf(a);
+
+/* These two constraints can now be removed */
+// constraint eth_next = eth_transition(eth, t);
+// constraint dai_next = eth_transition(dai, t);
+
+/* SOLVER CONSTRAINTS */
+float: gamma = 0.97; // Trading fees
+float: R_e; // Current Eth reserve - inspect the chain to obtain this
+float: R_d; // Current Dai reserve - inspect the chain to obtain this
+var delta_e = eth - eth_next;
+var delta_d = dai_next - dai;
+constraint phi(R_e + gamma * delta_e, R_d - delta_d) = phi(R_e, R_d)
+/**********************/
+
+/* Maximize the amount of DAI received */
+solve maximize dai_next - dai;
+</code></pre>
+<p>The problem above is not very interesting on its own because it restricts the CFMM to only trading ETH for DAI. A more elaborate optimization problem may allow for additional intermediate trades (i.e. <code>Eth -&gt; Token1 -&gt; Token2 -&gt; ... -&gt; Dai</code>) within the same CFMM or across multiple CFMMs. Once a valid/optimal solution is found, the solver then has to translate it into a sequence of concrete transactions. For a CFMM, each transaction is likely to be a call to one of the CFMM's <code>swap</code> methods.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../intro/introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../intro/transactions.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../intro/introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../intro/transactions.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/yurt.js"></script>
+        <script src="../theme/bnf.js"></script>
+
+
+    </div>
+    </body>
+</html>
