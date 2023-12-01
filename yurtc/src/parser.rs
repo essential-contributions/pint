@@ -1,8 +1,9 @@
 use crate::{
     error::{CompileError, Error},
     expr::Ident,
-    intent::intermediate::IntermediateIntent,
+    intent::intermediate::{CallKey, IntermediateIntent},
     lexer,
+    macros::{MacroCall, MacroDecl},
     span::{self, Span},
 };
 use std::{
@@ -25,20 +26,17 @@ pub(crate) use context::ParserContext;
 mod tests;
 
 pub fn parse_project(root_src_path: &Path) -> Result<IntermediateIntent, Vec<Error>> {
-    let mut parser = ProjectParser::default();
-    parser.root_src_path = PathBuf::from(root_src_path);
-    parser.proj_root_path = parser
-        .root_src_path
-        .clone()
-        .parent()
-        .map_or_else(|| PathBuf::from("/"), PathBuf::from);
-    parser.parse_project(&parser.root_src_path.clone(), &Vec::new());
-    parser.finalize()
+    ProjectParser::new(PathBuf::from(root_src_path))
+        .parse_project()
+        .expand_macros()
+        .finalize()
 }
 
 #[derive(Default)]
 struct ProjectParser {
     intent: IntermediateIntent,
+    macros: Vec<MacroDecl>,
+    macro_calls: slotmap::SecondaryMap<CallKey, MacroCall>,
     proj_root_path: PathBuf,
     root_src_path: PathBuf,
     visited_paths: Vec<PathBuf>,
@@ -64,15 +62,28 @@ pub(crate) struct NextModPath {
 }
 
 impl ProjectParser {
+    fn new(root_src_path: PathBuf) -> Self {
+        let proj_root_path = root_src_path
+            .parent()
+            .map_or_else(|| PathBuf::from("/"), PathBuf::from);
+
+        Self {
+            root_src_path,
+            proj_root_path,
+
+            ..Self::default()
+        }
+    }
+
     /// Given a next module path and a path to the current module, decide on a file in the project
-    /// to actually parse and parse it.
-    fn parse_next_path(
+    /// to actually parse.
+    fn find_next_path(
         &mut self,
         is_abs: bool,
         path_strs: &[String],
         mod_path: &[String],
         span: &Span,
-    ) -> bool {
+    ) -> Option<(PathBuf, Vec<String>)> {
         // Collect the module path as a vector of `String`s. Also, collect the next file path
         // starting from the project root path.
         let mut next_path = self.proj_root_path.clone();
@@ -96,23 +107,13 @@ impl ProjectParser {
         next_path.set_extension("yrt");
 
         // Determine which of the two file paths above to actually parse. If both files exist,
-        // that's an error. If only 1 exists, parse that one. If no paths exist, simply return
-        // `false`.
-        match [next_path.clone(), alternative_next_path.clone()]
-            .iter()
-            .filter(|path| path.exists())
-            .collect::<Vec<_>>()
-            .as_slice()
-        {
-            [] => false,
-            [path] => {
-                // Make sure to only parse each file in the project once
-                if !self.visited_paths.contains(path) {
-                    self.parse_project(path, &next_mod_path);
-                }
-                true
-            }
-            _ => {
+        // that's an error. If only 1 exists, return that one. If no paths exist, simply return
+        // None.
+        match (next_path.exists(), alternative_next_path.exists()) {
+            (false, false) => None,
+            (true, false) => Some((next_path, next_mod_path)),
+            (false, true) => Some((alternative_next_path, next_mod_path)),
+            (true, true) => {
                 self.errors.push(Error::Compile {
                     error: CompileError::DualModulity {
                         mod_path: next_mod_path.join("::"),
@@ -121,62 +122,77 @@ impl ProjectParser {
                         span: span.clone(),
                     },
                 });
-                false
+                None
             }
         }
     }
 
-    /// Parse `source` and return an intermediate intent. Upon failure, return a vector of all
-    /// compile errors encountered.
-    fn parse_project(&mut self, src_path: &Path, mod_path: &[String]) {
-        // Parse this file module, returning any paths to other potential modules.
-        let mut mod_prefix = mod_path
-            .iter()
-            .map(|el| format!("::{el}"))
-            .collect::<Vec<_>>()
-            .concat();
-        mod_prefix.push_str("::");
-
-        let next_paths = self.parse_module(&Rc::from(src_path), mod_path, &mod_prefix);
-
-        // Store this path as parsed to avoid re-parsing later.
-        self.visited_paths.push(src_path.to_path_buf());
-
-        for NextModPath {
-            is_abs,
-            mod_path_strs,
-            suffix,
-            enum_path_strs,
-            span,
-        } in &next_paths
-        {
-            // The idea here is to try to handle the next path assuming the suffix refers to a
-            // declaration. If that fails, then try to handle the next path assuming it's a path to
-            // an enum variant. If both options fail, then we emit an error.
-
-            if self.parse_next_path(*is_abs, mod_path_strs, mod_path, span) {
+    /// Parse the project starting with the `root_src_path` and return an intermediate intent. Upon
+    /// failure, return a vector of all compile errors encountered.
+    fn parse_project(mut self) -> Self {
+        let mut pending_paths = vec![(self.root_src_path.clone(), Vec::new())];
+        while let Some((src_path, mod_path)) = pending_paths.pop() {
+            if self.visited_paths.contains(&src_path) {
                 continue;
             }
 
-            if let Some(enum_path_strs) = enum_path_strs {
-                if self.parse_next_path(*is_abs, enum_path_strs, mod_path, span) {
+            // Store this path as parsed to avoid re-parsing later.
+            self.visited_paths.push(src_path.to_path_buf());
+
+            // Parse this file module, returning any paths to other potential modules.
+            let mut mod_prefix = mod_path
+                .iter()
+                .map(|el| format!("::{el}"))
+                .collect::<Vec<_>>()
+                .concat();
+            mod_prefix.push_str("::");
+
+            let next_paths = self.parse_module(&Rc::from(src_path), &mod_path, &mod_prefix);
+
+            for NextModPath {
+                is_abs,
+                mod_path_strs,
+                suffix,
+                enum_path_strs,
+                span,
+            } in &next_paths
+            {
+                // The idea here is to try to handle the next path assuming the suffix refers to a
+                // declaration. If that fails, then try to handle the next path assuming it's a path to
+                // an enum variant. If both options fail, then we emit an error.
+
+                if let Some(next_path) =
+                    self.find_next_path(*is_abs, mod_path_strs, &mod_path, span)
+                {
+                    pending_paths.push(next_path);
                     continue;
                 }
 
-                let path_mod = mod_path_strs.join("::");
-                let path_enum = enum_path_strs.join("::");
-                let path_full = format!("{path_mod}::{suffix}");
+                if let Some(enum_path_strs) = enum_path_strs {
+                    if let Some(next_path) =
+                        self.find_next_path(*is_abs, enum_path_strs, &mod_path, span)
+                    {
+                        pending_paths.push(next_path);
+                        continue;
+                    }
 
-                self.errors.push(Error::Compile {
-                    error: CompileError::NoFileFoundForPath {
-                        path_full: path_full.clone(),
-                        path_mod,
-                        path_enum,
-                        span: span.clone(),
-                    },
-                });
+                    let path_mod = mod_path_strs.join("::");
+                    let path_enum = enum_path_strs.join("::");
+                    let path_full = format!("{path_mod}::{suffix}");
+
+                    self.errors.push(Error::Compile {
+                        error: CompileError::NoFileFoundForPath {
+                            path_full: path_full.clone(),
+                            path_mod,
+                            path_enum,
+                            span: span.clone(),
+                        },
+                    });
+                }
             }
         }
+
+        self
     }
 
     fn parse_module(
@@ -201,14 +217,15 @@ impl ProjectParser {
             range: start..end,
         };
 
-        let mut use_trees = Vec::new();
         let mut next_paths = Vec::new();
         let mut context = ParserContext {
             mod_path,
             mod_prefix,
             ii: &mut self.intent,
+            macros: &mut self.macros,
+            macro_calls: &mut self.macro_calls,
             span_from: &span_from,
-            use_paths: &mut use_trees,
+            use_paths: &mut Vec::new(),
             next_paths: &mut next_paths,
         };
 
@@ -225,6 +242,10 @@ impl ProjectParser {
             });
 
         next_paths
+    }
+
+    fn expand_macros(self) -> Self {
+        self
     }
 
     fn finalize(self) -> Result<IntermediateIntent, Vec<Error>> {

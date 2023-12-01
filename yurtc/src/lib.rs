@@ -5,6 +5,7 @@ mod contract;
 mod expr;
 pub mod intent;
 mod lexer;
+mod macros;
 pub mod parser;
 mod span;
 mod types;

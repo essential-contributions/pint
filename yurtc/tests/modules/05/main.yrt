@@ -5,12 +5,12 @@ constraint a > c;
 
 // intermediate <<<
 // var ::a_mod::a;
+// var ::b_mod::k;
 // var ::b_mod::c_mod::c;
 // var ::b_mod::e_mod::f_mod::f;
-// var ::b_mod::k;
 // constraint (::a_mod::a > ::c);
 // constraint (var ::a_mod::a == (::b_mod::c_mod::c + ::b_mod::k));
+// constraint (var ::b_mod::k == ::b_mod::c_mod::c);
 // constraint (var ::b_mod::c_mod::c == ::b_mod::e_mod::f_mod::f);
 // constraint (var ::b_mod::e_mod::f_mod::f == 5);
-// constraint (var ::b_mod::k == ::b_mod::c_mod::c);
 // >>>

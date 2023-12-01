@@ -57,6 +57,8 @@ macro_rules! context {
                 .then(|| format!("::{}::", $mod_path.join("::")))
                 .unwrap_or("::".to_string()),
             ii: &mut IntermediateIntent::default(),
+            macros: &mut vec![],
+            macro_calls: &mut slotmap::SecondaryMap::new(),
             span_from: &|l, r| Span::new(Rc::from(Path::new("")), l..r),
             use_paths: &mut $use_paths,
             next_paths: &mut vec![],
@@ -661,8 +663,8 @@ fn parens_exprs() {
     check(
         &run_parser!(expr, "()"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`, found `)`
-            @1..2: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `)`
+            @1..2: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
@@ -782,8 +784,8 @@ fn ranges() {
     check(
         &run_parser!(range, "1...2"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`, found `.`
-            @3..4: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `.`
+            @3..4: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
@@ -890,20 +892,46 @@ fn paths() {
     );
 }
 
-//#[test]
-//fn fn_decl_test() {
-//    let src = r#"
-//fn foo(x: real, y: real) -> real {
-//    let z = 5.0;
-//    z
-//}
-//"#;
-//
-//    check(
-//        &run_parser!(yurt_program(), src),
-//        expect_test::expect!["fn foo(x: real, y: real) -> real { let z = 5e0; z };"],
-//    );
-//}
+#[test]
+fn macro_decl() {
+    let src = r#"
+          macro @foo($x, $y) {
+              let z = 5.0 + $x * $y;
+              z
+          }
+      "#;
+
+    let mut context = context!(Vec::<String>::new(), Vec::new());
+    let result = parse_and_collect_errors!(yp::MacroDeclParser::new(), src, context);
+
+    assert!(result.is_ok());
+    assert!(context.macros.len() == 1);
+
+    check(
+        &context.macros[0].to_string(),
+        expect_test::expect!["macro @foo($x, $y) { let z = 5.0 + $x * $y ; z }"],
+    );
+}
+
+#[test]
+fn macro_call() {
+    let src = r#"@foo(a * 3; int; <= =>)"#;
+    let mut context = context!(Vec::<String>::new(), Vec::new());
+    let result = parse_and_collect_errors!(yp::ExprParser::new(), src, context);
+
+    assert!(result.is_ok());
+    assert!(context.macro_calls.len() == 1);
+
+    check(
+        &context.ii.with_ii(&result.unwrap()).to_string(),
+        expect_test::expect!["::@foo(...)"],
+    );
+
+    check(
+        &context.macro_calls.iter().next().unwrap().1.to_string(),
+        expect_test::expect!["::@foo(a * 3; int; <= =>)"],
+    );
+}
 
 #[test]
 fn fn_call() {
@@ -1336,8 +1364,8 @@ fn cond_exprs() {
     check(
         &run_parser!(expr, r#"cond { a => b, }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
-            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
+            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
@@ -1413,8 +1441,8 @@ fn in_expr() {
     check(
         &run_parser!(yp::LetDeclParser::new(), r#"let x = 5 in"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`, found `end of file`
-            @12..12: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `end of file`
+            @12..12: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 }
@@ -1537,7 +1565,7 @@ fn big_ints() {
 }
 
 #[test]
-fn interface_test() {
+fn interface() {
     let interface_decl = yp::InterfaceDeclParser::new();
 
     let src = r#"
@@ -1560,7 +1588,7 @@ interface Foo {
 }
 
 #[test]
-fn contract_test() {
+fn contract() {
     let contract_decl = yp::ContractDeclParser::new();
 
     check(
