@@ -18,6 +18,7 @@ type Result<T> = std::result::Result<T, CompileError>;
 
 slotmap::new_key_type! { pub struct VarKey; }
 slotmap::new_key_type! { pub struct ExprKey; }
+slotmap::new_key_type! { pub struct CallKey; }
 
 /// An in-progress intent, possibly malformed or containing redundant information.  Designed to be
 /// iterated upon and to be reduced to an [Intent].
@@ -36,9 +37,8 @@ pub struct IntermediateIntent {
     pub contracts: Vec<ContractDecl>,
     pub externs: Vec<(Vec<FnSig>, Span)>,
 
-    // TODO: functions/macros are not implemented yet.
-    #[allow(dead_code)]
-    funcs: Vec<(FnDecl, Span)>,
+    // CallKey is used in a secondary map in the parser context to access the actual call data.
+    pub calls: slotmap::SlotMap<CallKey, Path>,
 
     pub top_level_symbols: HashMap<String, Span>,
 }

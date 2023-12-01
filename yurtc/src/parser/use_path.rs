@@ -112,6 +112,7 @@ fn gather_use_paths() {
                     mod_prefix: "",
                     ii: &mut ii,
                     macros: &mut Vec::new(),
+                    macro_calls: &mut slotmap::SecondaryMap::new(),
                     span_from: &|_, _| span::empty_span(),
                     use_paths: &mut Vec::new(),
                     next_paths: &mut Vec::new(),

@@ -4,9 +4,9 @@ use crate::{
     expr::*,
     intent::intermediate::{ExprKey, SolveFunc},
     lexer,
-    macros::MacroDecl,
-    parser::{ParserContext, UseTree, NextModPath},
-    types::{self, EnumDecl, FnSig, NewTypeDecl, PrimitiveKind, Type},
+    macros::{MacroCall, MacroDecl},
+    parser::{ParserContext, UseTree::{self, Path as UseTreePath}, NextModPath},
+    types::{EnumDecl, Path, FnSig, NewTypeDecl, PrimitiveKind, Type},
 };
 
 grammar<'sc>(
@@ -84,7 +84,7 @@ UseStatement: () = {
 
 pub UseTree: UseTree = {
     <name:Ident> => UseTree::Name { name },
-    <prefix:Ident> "::" <suffix:UseTree> => UseTree::Path { prefix, suffix: Box::new(suffix) },
+    <prefix:Ident> "::" <suffix:UseTree> => UseTreePath { prefix, suffix: Box::new(suffix) },
     "{" <imports:SepList<UseTree, ",">> "}" => UseTree::Group { imports },
     <name:Ident> "as" <alias:Ident> => UseTree::Alias { name, alias },
 };
@@ -140,7 +140,7 @@ LetInit: ExprKey = {
 };
 
 pub StateDecl: () = {
-    <l:@L> "state" <name:Ident> <ty:(":" <Type>)?> "=" <init:CallExpr> <r:@R> => {
+    <l:@L> "state" <name:Ident> <ty:(":" <Type>)?> "=" <init:FnCallExpr> <r:@R> => {
         // <FMT_OPEN>
         // Return the index to the new state in the IntermediateIntent::states Vec.
         let init_key = context.ii.exprs.insert(init);
@@ -674,7 +674,8 @@ TermInner: Expr = {
         // <FMT_CLOSE>
     },
     <IfExpr>,
-    <CallExpr>,
+    <MacroCallExpr>,
+    <FnCallExpr>,
     <ArrayExpr>,
     <TupleExpr>,
     <l:@L> <path:Path> <r:@R> => Expr::PathByName(path, (context.span_from)(l, r)),
@@ -732,10 +733,25 @@ CondExpr: ExprKey = {
     }
 };
 
-CallExpr: Expr = {
+MacroCallExpr: Expr = {
+    <l:@L> <name:MacroPath> <args:"macro_call_args"> <r:@L> => {
+        let call_key = context.ii.calls.insert(name.clone());
+        let call_data = MacroCall {
+            name,
+            args,
+        };
+        context.macro_calls.insert(call_key, call_data);
+        Expr::MacroCall {
+            call: call_key,
+            span: (context.span_from)(l, r),
+        }
+    },
+};
+
+FnCallExpr: Expr = {
     <l:@L> <path:Path> "(" <args:SepList<Expr, ",">> ")" <r:@R> => {
         // <FMT_OPEN>
-        Expr::Call {
+        Expr::FnCall {
             name: path,
             args,
             span: (context.span_from)(l, r),
@@ -802,8 +818,16 @@ pub Range: ExprKey = {
     }
 }
 
-pub Path: types::Path = {
-    <l:@L> "::" <els:(<Ident> "::")*> <last:Ident> <r:@R> => {
+pub Path: Path = {
+    <PathWithLast<Ident>>,
+};
+
+MacroPath: Path = {
+    <PathWithLast<IdentFromToken<"macro_name">>>,
+};
+
+PathWithLast<Last>: Path = {
+    <l:@L> "::" <els:(<Ident> "::")*> <last:Last> <r:@R> => {
         // <FMT_OPEN>
         if !els.is_empty() {
             let path: Vec<_> = els.iter().map(|el| el.to_string()).collect();
@@ -828,7 +852,7 @@ pub Path: types::Path = {
         // <FMT_CLOSE>
     },
 
-    <l:@L> <els:(<Ident> "::")*> <last:Ident> <r:@R> => {
+    <l:@L> <els:(<Ident> "::")*> <last:Last> <r:@R> => {
         // <FMT_OPEN>
         // Check if any of the use statement matches the path. This requires
         // that the alias (if it exists) or the last ident in the use statement
@@ -1074,5 +1098,6 @@ extern {
         "macro_name" => lexer::Token::MacroName(<&'sc str>),
         "macro_param" => lexer::Token::MacroParam(<&'sc str>),
         "macro_body" => lexer::Token::MacroBody(<Vec<lexer::Token<'sc>>>),
+        "macro_call_args" => lexer::Token::MacroCallArgs(<Vec<Vec<lexer::Token<'sc>>>>),
     }
 }

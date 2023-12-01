@@ -202,6 +202,7 @@ impl ProjectParser {
         };
 
         let mut macros = Vec::new();
+        let mut macro_calls = slotmap::SecondaryMap::new();
         let mut use_trees = Vec::new();
         let mut next_paths = Vec::new();
         let mut context = ParserContext {
@@ -209,6 +210,7 @@ impl ProjectParser {
             mod_prefix,
             ii: &mut self.intent,
             macros: &mut macros,
+            macro_calls: &mut macro_calls,
             span_from: &span_from,
             use_paths: &mut use_trees,
             next_paths: &mut next_paths,

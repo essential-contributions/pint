@@ -58,6 +58,7 @@ macro_rules! context {
                 .unwrap_or("::".to_string()),
             ii: &mut IntermediateIntent::default(),
             macros: &mut vec![],
+            macro_calls: &mut slotmap::SecondaryMap::new(),
             span_from: &|l, r| Span::new(Rc::from(Path::new("")), l..r),
             use_paths: &mut $use_paths,
             next_paths: &mut vec![],
@@ -662,8 +663,8 @@ fn parens_exprs() {
     check(
         &run_parser!(expr, "()"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`, found `)`
-            @1..2: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `)`
+            @1..2: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
@@ -783,8 +784,8 @@ fn ranges() {
     check(
         &run_parser!(range, "1...2"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`, found `.`
-            @3..4: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `.`
+            @3..4: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
@@ -909,6 +910,26 @@ fn macro_decl() {
     check(
         &context.macros[0].to_string(),
         expect_test::expect!["macro @foo($x, $y) { let z = 5.0 + $x * $y ; z }"],
+    );
+}
+
+#[test]
+fn macro_call() {
+    let src = r#"@foo(a * 3; int; <= =>)"#;
+    let mut context = context!(Vec::<String>::new(), Vec::new());
+    let result = parse_and_collect_errors!(yp::ExprParser::new(), src, context);
+
+    assert!(result.is_ok());
+    assert!(context.macro_calls.len() == 1);
+
+    check(
+        &context.ii.with_ii(&result.unwrap()).to_string(),
+        expect_test::expect!["::@foo(...)"],
+    );
+
+    check(
+        &context.macro_calls.iter().next().unwrap().1.to_string(),
+        expect_test::expect!["::@foo(a * 3; int; <= =>)"],
     );
 }
 
@@ -1343,8 +1364,8 @@ fn cond_exprs() {
     check(
         &run_parser!(expr, r#"cond { a => b, }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
-            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
+            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
@@ -1420,8 +1441,8 @@ fn in_expr() {
     check(
         &run_parser!(yp::LetDeclParser::new(), r#"let x = 5 in"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`, found `end of file`
-            @12..12: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `end of file`
+            @12..12: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 }

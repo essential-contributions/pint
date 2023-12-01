@@ -100,7 +100,15 @@ impl DisplayWithII for &super::Expr {
                 write!(f, "]")
             }
 
-            super::Expr::Call { name, args, .. } => {
+            super::Expr::MacroCall { call, .. } => {
+                write!(
+                    f,
+                    "{}(...)",
+                    ii.calls.get(*call).unwrap_or(&"<CALL NOT FOUND>".to_owned())
+                )
+            }
+
+            super::Expr::FnCall { name, args, .. } => {
                 write!(f, "{name}(")?;
                 write_many_with_ii!(f, args, ", ", ii);
                 write!(f, ")")
