@@ -18,7 +18,7 @@ solve satisfy;
 // type ::a::Count = int;
 // constraint (::a::b > ::c);
 // constraint (var ::a::b: int == 10);
-// extern { fn ::hello_world() -> bool; };
+// extern { fn ::hello_world() -> bool; }
 // solve satisfy;
 // >>>
 

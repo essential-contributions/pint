@@ -2,10 +2,10 @@ use crate::{
     contract::{ContractDecl, InterfaceDecl},
     error::{Error, ParseError},
     expr::*,
-    intent::intermediate::{ExprKey, SolveFunc, VarKey},
+    intent::intermediate::{ExprKey, SolveFunc},
     lexer,
     parser::{ParserContext, UseTree, NextModPath},
-    types::{self, EnumDecl, ExternDecl, FnSig, NewTypeDecl, PrimitiveKind, Type},
+    types::{self, EnumDecl, FnSig, NewTypeDecl, PrimitiveKind, Type},
 };
 
 grammar<'sc>(
@@ -87,7 +87,7 @@ pub UseTree: UseTree = {
     <name:Ident> "as" <alias:Ident> => UseTree::Alias { name, alias },
 };
 
-pub LetDecl: (VarKey, Option<ExprKey>) = {
+pub LetDecl: () = {
     <l:@L> "let" <name:Ident> ":" <ty:Type> <init:LetInit?> <r:@R> => {
         // <FMT_OPEN>
         context
@@ -99,14 +99,10 @@ pub LetDecl: (VarKey, Option<ExprKey>) = {
                         .ii
                         .insert_eq_constraint(var_key, expr_key, (context.span_from)(l, r));
                 }
-                (var_key, init)
             })
             .unwrap_or_else(|error| {
-                // Recover with some default values. This is not great but not
-                // too important because these are only used for testing.
                 errors.push(Error::Parse { error });
-                (VarKey::default(), None)
-            })
+            });
         // <FMT_CLOSE>
     },
     <l:@L> "let" <name:Ident> <init:LetInit> <r:@R> => {
@@ -118,14 +114,10 @@ pub LetDecl: (VarKey, Option<ExprKey>) = {
                 context
                     .ii
                     .insert_eq_constraint(var_key, init, (context.span_from)(l, r));
-                (var_key, Some(init))
             })
             .unwrap_or_else(|error| {
-                // Recover with some default values. This is not great but not
-                // too important because these are only used for testing.
                 errors.push(Error::Parse { error });
-                (VarKey::default(), None)
-            })
+            });
         // <FMT_CLOSE>
     },
     <l:@L> "let" <name:Ident> <r:@R> => {
@@ -136,9 +128,6 @@ pub LetDecl: (VarKey, Option<ExprKey>) = {
                 span: (context.span_from)(l, r),
             },
         });
-        // Recover with some default values. This is not great but not
-        // too important because these are only used for testing.
-        (VarKey::default(), None)
         // <FMT_CLOSE>
     }
 };
@@ -148,7 +137,7 @@ LetInit: ExprKey = {
     "=" <Expr>,
 };
 
-pub StateDecl: (&'static str, usize) = {
+pub StateDecl: () = {
     <l:@L> "state" <name:Ident> <ty:(":" <Type>)?> "=" <init:CallExpr> <r:@R> => {
         // <FMT_OPEN>
         // Return the index to the new state in the IntermediateIntent::states Vec.
@@ -162,31 +151,25 @@ pub StateDecl: (&'static str, usize) = {
                 init_key,
                 (context.span_from)(l, r),
             )
-            .map(|idx| ("state_idx", idx))
             .unwrap_or_else(|error| {
-                // Recover with some default values. This is not great but not
-                // too important because these are only used for testing.
                 errors.push(Error::Parse { error });
-                ("", 0)
-            })
+            });
         // <FMT_CLOSE>
     }
 };
 
-pub ConstraintDecl: ExprKey = {
+pub ConstraintDecl: () = {
     <l:@L> "constraint" <e:Expr> <r:@R> => {
         context.ii.constraints.push((e, (context.span_from)(l, r)));
-        e
     }
 };
 
-pub SolveDecl: SolveFunc = {
+pub SolveDecl: () = {
     <l:@L> <sd:SolveDeclInner> <r:@R> => {
         context
             .ii
             .directives
             .push((sd.clone(), (context.span_from)(l, r)));
-        sd
     }
 }
 
@@ -196,30 +179,26 @@ SolveDeclInner: SolveFunc = {
     "solve" "maximize" <e:Expr> => SolveFunc::Maximize(e),
 };
 
-pub EnumDecl: EnumDecl = {
+pub EnumDecl: () = {
     <l:@L> "enum" <name:Ident> "=" <variants:Sep1ListNoTrail<Ident, "|">> <r:@R> => {
         // <FMT_OPEN>
-        let enum_decl = EnumDecl {
+        context.ii.enums.push(EnumDecl {
             name: name.to_full_path(context.mod_prefix),
             variants,
             span: (context.span_from)(l, r),
-        };
-        context.ii.enums.push(enum_decl.clone());
-        enum_decl
+        });
         // <FMT_CLOSE>
     }
 }
 
-pub NewTypeDecl: NewTypeDecl = {
+pub NewTypeDecl: () = {
     <l:@L> "type" <name:Ident> "=" <ty:Type> <r:@R> => {
         // <FMT_OPEN>
-        let new_type_decl = NewTypeDecl {
+        context.ii.new_types.push(NewTypeDecl {
             name: name.to_full_path(context.mod_prefix),
             ty,
             span: (context.span_from)(l, r),
-        };
-        context.ii.new_types.push(new_type_decl.clone());
-        new_type_decl
+        });
         // <FMT_CLOSE>
     }
 }
@@ -239,11 +218,11 @@ FnSig: FnSig = {
     }
 }
 
-pub InterfaceDecl: InterfaceDecl = {
+pub InterfaceDecl: () = {
     <l:@L> "interface" <name:Ident> "{" <functions:(<FnSig> ";")*> "}" <r:@R> => {
         // <FMT_OPEN>
         let full_interface_path = name.to_full_path(context.mod_prefix);
-        let interface_decl = InterfaceDecl {
+        context.ii.interfaces.push(InterfaceDecl {
             name: full_interface_path.clone(),
             functions: functions
                 .iter()
@@ -255,20 +234,18 @@ pub InterfaceDecl: InterfaceDecl = {
                 })
                 .collect(),
             span: (context.span_from)(l, r),
-        };
-        context.ii.interfaces.push(interface_decl.clone());
-        interface_decl
+        });
         // <FMT_CLOSE>
     }
 }
 
-pub ContractDecl: ContractDecl = {
+pub ContractDecl: () = {
     <l:@L> "contract" <name:Ident> "(" <id:Expr> ")"
         <interfaces: ("implements" <Sep1ListNoTrail<Path, ",">>)?>
         "{" <functions:(<FnSig> ";")*> "}" <r:@R> => {
         // <FMT_OPEN>
         let full_contract_path = name.to_full_path(context.mod_prefix);
-        let contract_decl = ContractDecl {
+        context.ii.contracts.push(ContractDecl {
             name: name.to_full_path(context.mod_prefix),
             id,
             interfaces: interfaces.unwrap_or_default().to_vec(),
@@ -282,14 +259,12 @@ pub ContractDecl: ContractDecl = {
                 })
                 .collect(),
             span: (context.span_from)(l, r),
-        };
-        context.ii.contracts.push(contract_decl.clone());
-        contract_decl
+        });
         // <FMT_CLOSE>
     }
 }
 
-pub ExternDecl: ExternDecl = {
+pub ExternDecl: () = {
     <l:@L> "extern" "{" <functions:(<FnSig> ";")*> "}" <r:@R> => {
         // <FMT_OPEN>
         context.ii.externs.push((
@@ -302,7 +277,6 @@ pub ExternDecl: ExternDecl = {
                 .collect(),
             (context.span_from)(l, r),
         ));
-        ExternDecl { functions }
         // <FMT_CLOSE>
     }
 }
@@ -888,8 +862,13 @@ pub Path: types::Path = {
                     is_abs: true,
                     mod_path_strs: full_path.clone(),
                     suffix: last.to_string(),
-                    enum_path_strs: (full_path.len() > 1)
-                        .then_some(full_path.iter().take(full_path.len() - 1).cloned().collect()),
+                    enum_path_strs: (full_path.len() > 1).then_some(
+                        full_path
+                            .iter()
+                            .take(full_path.len() - 1)
+                            .cloned()
+                            .collect(),
+                    ),
                     span: (context.span_from)(l, r),
                 });
 
