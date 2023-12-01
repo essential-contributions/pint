@@ -201,12 +201,14 @@ impl ProjectParser {
             range: start..end,
         };
 
+        let mut macros = Vec::new();
         let mut use_trees = Vec::new();
         let mut next_paths = Vec::new();
         let mut context = ParserContext {
             mod_path,
             mod_prefix,
             ii: &mut self.intent,
+            macros: &mut macros,
             span_from: &span_from,
             use_paths: &mut use_trees,
             next_paths: &mut next_paths,

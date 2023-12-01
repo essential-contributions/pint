@@ -57,6 +57,7 @@ macro_rules! context {
                 .then(|| format!("::{}::", $mod_path.join("::")))
                 .unwrap_or("::".to_string()),
             ii: &mut IntermediateIntent::default(),
+            macros: &mut vec![],
             span_from: &|l, r| Span::new(Rc::from(Path::new("")), l..r),
             use_paths: &mut $use_paths,
             next_paths: &mut vec![],
@@ -890,20 +891,26 @@ fn paths() {
     );
 }
 
-//#[test]
-//fn fn_decl_test() {
-//    let src = r#"
-//fn foo(x: real, y: real) -> real {
-//    let z = 5.0;
-//    z
-//}
-//"#;
-//
-//    check(
-//        &run_parser!(yurt_program(), src),
-//        expect_test::expect!["fn foo(x: real, y: real) -> real { let z = 5e0; z };"],
-//    );
-//}
+#[test]
+fn macro_decl() {
+    let src = r#"
+          macro @foo($x, $y) {
+              let z = 5.0 + $x * $y;
+              z
+          }
+      "#;
+
+    let mut context = context!(Vec::<String>::new(), Vec::new());
+    let result = parse_and_collect_errors!(yp::MacroDeclParser::new(), src, context);
+
+    assert!(result.is_ok());
+    assert!(context.macros.len() == 1);
+
+    check(
+        &context.macros[0].to_string(),
+        expect_test::expect!["macro @foo($x, $y) { let z = 5.0 + $x * $y ; z }"],
+    );
+}
 
 #[test]
 fn fn_call() {
@@ -1537,7 +1544,7 @@ fn big_ints() {
 }
 
 #[test]
-fn interface_test() {
+fn interface() {
     let interface_decl = yp::InterfaceDeclParser::new();
 
     let src = r#"
@@ -1560,7 +1567,7 @@ interface Foo {
 }
 
 #[test]
-fn contract_test() {
+fn contract() {
     let contract_decl = yp::ContractDeclParser::new();
 
     check(

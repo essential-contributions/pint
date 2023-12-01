@@ -111,6 +111,7 @@ fn gather_use_paths() {
                     mod_path: &[],
                     mod_prefix: "",
                     ii: &mut ii,
+                    macros: &mut Vec::new(),
                     span_from: &|_, _| span::empty_span(),
                     use_paths: &mut Vec::new(),
                     next_paths: &mut Vec::new(),

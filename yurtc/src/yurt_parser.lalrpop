@@ -4,6 +4,7 @@ use crate::{
     expr::*,
     intent::intermediate::{ExprKey, SolveFunc},
     lexer,
+    macros::MacroDecl,
     parser::{ParserContext, UseTree, NextModPath},
     types::{self, EnumDecl, FnSig, NewTypeDecl, PrimitiveKind, Type},
 };
@@ -29,6 +30,7 @@ Decl: () = {
     SolveDecl ";",
     EnumDecl ";",
     NewTypeDecl ";",
+    MacroDecl,
     InterfaceDecl,
     ContractDecl,
     ExternDecl,
@@ -200,6 +202,15 @@ pub NewTypeDecl: () = {
             span: (context.span_from)(l, r),
         });
         // <FMT_CLOSE>
+    }
+}
+
+pub MacroDecl: () = {
+    "macro" <name:IdentFromToken<"macro_name">> "("
+        <params:SepList<IdentFromToken<"macro_param">, ",">>
+    ")"
+    <body:"macro_body"> => {
+        context.macros.push(MacroDecl { name, params, body });
     }
 }
 
@@ -933,15 +944,14 @@ ImmediateInt: Immediate = {
 
 };
 
-// NEED TO BLOCK KEYWORDS.  If the keywords are in the lexer above ident then ident should never
-// match them though.  It will do longest match, earliest match priority.  Need to test this.
-// Maybe if ident is last in the token enum then it'll never match a keyword.
-pub Ident: Ident = {
-    <l:@L> <id:"ident"> <r:@R> => Ident {
+pub Ident: Ident = IdentFromToken<"ident">;
+
+IdentFromToken<Tok>: Ident = {
+    <l:@L> <id:Tok> <r:@R> => Ident {
         name: id.to_string(),
         span: (context.span_from)(l, r),
     }
-};
+}
 
 /////////////
 /// Utils ///
@@ -1059,5 +1069,10 @@ extern {
         "in" => lexer::Token::In,
 
         "ident" => lexer::Token::Ident(<&'sc str>),
+
+        "macro" => lexer::Token::Macro,
+        "macro_name" => lexer::Token::MacroName(<&'sc str>),
+        "macro_param" => lexer::Token::MacroParam(<&'sc str>),
+        "macro_body" => lexer::Token::MacroBody(<Vec<lexer::Token<'sc>>>),
     }
 }
