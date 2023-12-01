@@ -624,19 +624,13 @@ fn macros_call_badly_formed() {
 
     // Macro name has no `@`.
     let mut toks = Lexer::new("1 + name() + 2", &Rc::clone(&path));
-    assert_eq!(
-        toks.next().unwrap().unwrap().1,
-        IntLiteral("1".to_owned()),
-    );
+    assert_eq!(toks.next().unwrap().unwrap().1, IntLiteral("1".to_owned()),);
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Plus, _)));
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Ident(_), _)));
     assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenOpen, _)));
     assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Plus, _)));
-    assert_eq!(
-        toks.next().unwrap().unwrap().1,
-        IntLiteral("2".to_owned()),
-    );
+    assert_eq!(toks.next().unwrap().unwrap().1, IntLiteral("2".to_owned()),);
     assert!(toks.next().is_none());
 
     // No closing paren, should backtrack.

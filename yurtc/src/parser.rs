@@ -162,7 +162,7 @@ impl ProjectParser {
                 // an enum variant. If both options fail, then we emit an error.
 
                 if let Some(next_path) =
-                    self.find_next_path(*is_abs, &mod_path_strs, &mod_path, &span)
+                    self.find_next_path(*is_abs, mod_path_strs, &mod_path, span)
                 {
                     pending_paths.push(next_path);
                     continue;
@@ -170,7 +170,7 @@ impl ProjectParser {
 
                 if let Some(enum_path_strs) = enum_path_strs {
                     if let Some(next_path) =
-                        self.find_next_path(*is_abs, &enum_path_strs, &mod_path, &span)
+                        self.find_next_path(*is_abs, enum_path_strs, &mod_path, span)
                     {
                         pending_paths.push(next_path);
                         continue;

@@ -392,7 +392,11 @@ impl<'sc> Lexer<'sc> {
 
                     // Special case: if the last arg vec is empty then there are no args or we've
                     // seen a semi after the last arg.  Just remove the empty arg.
-                    if all_args.last().expect("Args vec is always valid.").is_empty() {
+                    if all_args
+                        .last()
+                        .expect("Args vec is always valid.")
+                        .is_empty()
+                    {
                         all_args.pop();
                     }
 

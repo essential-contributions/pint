@@ -104,7 +104,9 @@ impl DisplayWithII for &super::Expr {
                 write!(
                     f,
                     "{}(...)",
-                    ii.calls.get(*call).unwrap_or(&"<CALL NOT FOUND>".to_owned())
+                    ii.calls
+                        .get(*call)
+                        .unwrap_or(&"<CALL NOT FOUND>".to_owned())
                 )
             }
 
