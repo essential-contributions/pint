@@ -906,7 +906,7 @@ fn casting() {
 }
 
 #[test]
-fn if_statements() {
+fn if_exprs() {
     check(
         &run_formatter!(
             expr(),
@@ -923,4 +923,28 @@ fn if_statements() {
             4
         }"#]],
     );
+}
+
+#[test]
+fn cond_exprs() {
+    // check(
+    //     &run_formatter!(cond_expr(expr()), "cond { else => { a } }"),
+    //     expect_test::expect![[r#"cond { else => { a } }"#]],
+    // );
+    check(
+        &run_formatter!(cond_expr(expr()), "cond { else => a, }"),
+        expect_test::expect![[r#"cond { else => a, }"#]],
+    );
+    check(
+        &run_formatter!(cond_expr(expr()), "cond { a => b, else => c }"),
+        expect_test::expect![[r#"cond { a => b, else => c }"#]],
+    );
+    // check(
+    //     &run_formatter!(cond_expr(expr()), "cond { a => { b }, else => c, }"),
+    //     expect_test::expect![[r#"cond { a => { b }, else => c, }"#]],
+    // );
+    // check(
+    //     &run_formatter!(cond_expr(expr()), "cond { a => b, { true } => d, else => f, }"),
+    //     expect_test::expect![[r#"cond { a => b, { true } => d, else => f, }"#]],
+    // );
 }

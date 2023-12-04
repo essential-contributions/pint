@@ -320,6 +320,7 @@ pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Par
             unary_op(expr.clone()),
             immediate().map(ast::Expr::Immediate),
             if_expr(expr.clone()),
+            cond_expr(expr.clone()),
             call,
             path().map(ast::Expr::Path),
         ))
@@ -467,6 +468,40 @@ pub(super) fn if_expr<'sc>(
                 condition: Box::new(condition),
                 true_code_block,
                 false_code_block,
+            })
+        })
+        .boxed()
+}
+
+pub(super) fn cond_expr<'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone {
+    let cond_branch = expr
+        .clone()
+        .then_ignore(just(Token::HeavyArrow))
+        .then(expr.clone())
+        .then_ignore(just(Token::Comma))
+        .boxed();
+
+    let else_branch = just(Token::Else)
+        .ignore_then(just(Token::HeavyArrow))
+        .ignore_then(expr)
+        .boxed();
+
+    let body = cond_branch
+        .repeated()
+        .then(else_branch)
+        .then(just(Token::Comma).or_not())
+        .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+        .boxed();
+
+    just(Token::Cond)
+        .ignore_then(body)
+        .map(|((cond_branches, else_branch), comma)| {
+            ast::Expr::Cond(ast::Cond {
+                cond_branches,
+                else_branch: Box::new(else_branch),
+                trailing_comma: comma.is_some(),
             })
         })
         .boxed()

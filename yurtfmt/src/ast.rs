@@ -501,25 +501,28 @@ impl<'sc> Format for If<'sc> {
 pub(super) struct Cond<'sc> {
     pub cond_branches: Vec<(Expr<'sc>, Expr<'sc>)>,
     pub else_branch: Box<Expr<'sc>>,
+    pub trailing_comma: bool,
 }
 
 impl<'sc> Format for Cond<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         formatted_code.write("cond { ");
 
-        for (i, cond) in self.cond_branches.iter().enumerate() {
+        for cond in &self.cond_branches {
             cond.0.format(formatted_code)?;
             formatted_code.write(" => ");
             cond.1.format(formatted_code)?;
 
-            // If not the last element, append a comma
-            if i < self.cond_branches.len() - 1 {
-                formatted_code.write(", ");
-            }
+            formatted_code.write(", ");
         }
 
         formatted_code.write("else => ");
         self.else_branch.format(formatted_code)?;
+
+        if self.trailing_comma {
+            formatted_code.write(",");
+        }
+
         formatted_code.write(" }");
 
         Ok(())
