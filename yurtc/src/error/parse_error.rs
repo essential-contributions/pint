@@ -240,9 +240,9 @@ impl Spanned for ParseError {
     }
 }
 
-type LalrpopError<'sc> = lalrpop_util::ParseError<usize, Token<'sc>, ParseError>;
+type LalrpopError = lalrpop_util::ParseError<usize, Token, ParseError>;
 
-impl<'sc> From<(LalrpopError<'sc>, &Rc<Path>)> for ParseError {
+impl From<(LalrpopError, &Rc<Path>)> for ParseError {
     fn from(err_and_path: (LalrpopError, &Rc<Path>)) -> Self {
         fn span_at(src_path: &Rc<Path>, start: usize, end: usize) -> Span {
             Span {

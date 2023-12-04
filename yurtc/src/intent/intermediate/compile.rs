@@ -150,7 +150,7 @@ fn convert_expr(
                 })
             }),
 
-        super::Expr::Call { name, args, span } => args
+        super::Expr::FnCall { name, args, span } => args
             .iter()
             .map(|arg| convert_expr_key(context, *arg, span))
             .collect::<super::Result<_>>()
@@ -176,14 +176,15 @@ fn convert_expr(
 
         // These expression variants should all be optimised away before reaching final
         // compilation from IntermediateIntent to Intent.
-        super::Expr::Error(..)
-        | super::Expr::Array { .. }
+        super::Expr::Array { .. }
         | super::Expr::ArrayElementAccess { .. }
-        | super::Expr::Tuple { .. }
-        | super::Expr::TupleFieldAccess { .. }
         | super::Expr::Cast { .. }
+        | super::Expr::Error(..)
         | super::Expr::In { .. }
-        | super::Expr::Range { .. } => Err(CompileError::Internal {
+        | super::Expr::MacroCall { .. }
+        | super::Expr::Range { .. }
+        | super::Expr::Tuple { .. }
+        | super::Expr::TupleFieldAccess { .. } => Err(CompileError::Internal {
             msg: "Found unsupported expressions in final Intent.",
             span: span.clone(),
         }),

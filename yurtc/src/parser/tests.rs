@@ -1,12 +1,11 @@
 use crate::{
     error::{Error, ReportableError},
-    intent::intermediate::{DisplayWithII, ExprKey, IntermediateIntent, VarKey},
+    intent::intermediate::{DisplayWithII, IntermediateIntent},
     lexer::{self, KEYWORDS},
     parser::ParserContext,
     span::Span,
 };
-
-use std::{fmt::Write, path::Path, rc::Rc};
+use std::{path::Path, rc::Rc};
 
 #[cfg(test)]
 use yurt_parser as yp;
@@ -17,15 +16,18 @@ use lalrpop_util::lalrpop_mod;
 #[cfg(test)]
 lalrpop_mod!(#[allow(unused)] pub yurt_parser);
 
+/// Given a parser, some source code, and a parser context, parse the source code and return the
+/// parsed result or the full set of errors
 #[cfg(test)]
-macro_rules! parse_and_collect {
-    ($parser: expr, $source: expr, $filepath: expr, $context: expr) => {{
+macro_rules! parse_and_collect_errors {
+    ($parser: expr, $source: expr, $context: expr) => {{
+        let filepath = Rc::from(Path::new("test"));
         let mut errors = Vec::new();
 
         match $parser.parse(
             &mut $context,
             &mut errors,
-            lexer::Lexer::new($source, &$filepath),
+            lexer::Lexer::new($source, &filepath),
         ) {
             Ok(result) => {
                 if errors.is_empty() {
@@ -36,7 +38,7 @@ macro_rules! parse_and_collect {
             }
             Err(lalrpop_err) => {
                 errors.push(Error::Parse {
-                    error: (lalrpop_err, &$filepath).into(),
+                    error: (lalrpop_err, &filepath).into(),
                 });
                 Err(errors)
             }
@@ -44,47 +46,69 @@ macro_rules! parse_and_collect {
     }};
 }
 
+/// Generate a `ParserContext` given a path to the current module and a vector `use_paths` that
+/// collects all use statements encountered by a parser.
 #[cfg(test)]
-macro_rules! run_parser {
-    ($parser: expr, $source: expr) => {{
-        let filepath = Rc::from(Path::new(""));
-        let mut context = ParserContext {
-            mod_path: &[],
-            mod_prefix: "",
+macro_rules! context {
+    ($mod_path: expr, $use_paths: expr) => {{
+        ParserContext {
+            mod_path: &$mod_path,
+            mod_prefix: &(!$mod_path.is_empty())
+                .then(|| format!("::{}::", $mod_path.join("::")))
+                .unwrap_or("::".to_string()),
             ii: &mut IntermediateIntent::default(),
-            span_from: &|l, r| Span::new(Rc::clone(&filepath), l..r),
-            use_paths: &mut vec![],
+            macros: &mut vec![],
+            macro_calls: &mut slotmap::SecondaryMap::new(),
+            span_from: &|l, r| Span::new(Rc::from(Path::new("")), l..r),
+            use_paths: &mut $use_paths,
             next_paths: &mut vec![],
-        };
-        let result = parse_and_collect!($parser, $source, filepath, context);
-        match result {
-            Ok(item) => format!("{}", context.ii.with_ii(&item)),
-            Err(errors) => display_errors(&errors),
         }
     }};
 }
 
-// LetDecl returns a (VarKey, Option<ExprKey>) which we need to print.
+/// Run a parser and print the following, in order:
+/// - All use statements, broken down into individual paths
+/// - The full content of the `IntermediateIntent` post parsing (useful for decls).
+/// - The output of the parser itself (useful for expressions and types).
 #[cfg(test)]
-impl DisplayWithII for (VarKey, Option<ExprKey>) {
-    fn fmt(&self, f: &mut std::fmt::Formatter, ii: &IntermediateIntent) -> std::fmt::Result {
-        write!(
-            f,
-            "{} = {}",
-            ii.with_ii(&self.0),
-            self.1
-                .map(|k| ii.with_ii(k).to_string())
-                .unwrap_or(String::from("NONE"))
-        )
-    }
+macro_rules! run_parser {
+    ($parser: expr, $source: expr) => {{
+        let mod_path = Vec::<String>::new();
+        run_parser!(@internal $parser, $source, mod_path)
+    }};
+
+    ($parser: expr, $source: expr, $mod_path: expr) => {{
+        run_parser!(@internal $parser, $source, $mod_path)
+    }};
+
+    (@internal $parser: expr, $source: expr, $mod_path: expr) => {{
+        let mut use_paths = Vec::new();
+        let mut context = context!($mod_path, &mut use_paths);
+        let result = parse_and_collect_errors!($parser, $source, context);
+
+        let parser_output = match result {
+            Ok(item) => {
+                let result = format!("{}{}", context.ii, context.ii.with_ii(&item));
+                result.trim_end().to_owned()
+            }
+            Err(errors) => display_errors(&errors),
+        };
+
+        let use_statements = use_paths
+            .iter()
+            .map(|up| "use ".to_owned() + &up.to_string())
+            .collect::<Vec<_>>()
+            .join(";\n");
+
+        format!("{}{}", use_statements, parser_output)
+    }};
 }
 
-// StateDecl returns a (&'static str, usize) which we need to print.
+/// Many parsers return () which we may need to print. Just do nothing!
 #[cfg(test)]
-impl DisplayWithII for (&'static str, usize) {
-    fn fmt(&self, f: &mut std::fmt::Formatter, ii: &IntermediateIntent) -> std::fmt::Result {
-        assert_eq!(self.0, "state_idx");
-        write!(f, "{}", ii.with_ii(&ii.states[self.1]),)
+impl DisplayWithII for () {
+    fn fmt(&self, _f: &mut std::fmt::Formatter, _ii: &IntermediateIntent) -> std::fmt::Result {
+        Ok(())
     }
 }
 
@@ -92,27 +116,7 @@ impl DisplayWithII for (&'static str, usize) {
 fn display_errors(errors: &[Error]) -> String {
     // Print each error on one line. For each error, start with the span.
     errors.iter().fold(String::new(), |acc, error| {
-        let mut all_diagnostics = format!("{}{}", acc, error);
-        all_diagnostics = format!(
-            "{}{}",
-            all_diagnostics,
-            error.labels().iter().fold(String::new(), |acc, label| {
-                format!(
-                    "\n{}@{}..{}: {}\n",
-                    acc,
-                    label.span.start(),
-                    label.span.end(),
-                    label.message
-                )
-            })
-        );
-        if let Some(note) = error.note() {
-            all_diagnostics = format!("{}{}", all_diagnostics, note);
-        }
-        if let Some(help) = error.help() {
-            all_diagnostics = format!("{}{}", all_diagnostics, help);
-        }
-        all_diagnostics
+        format!("{}{}", acc, error.display_raw())
     })
 }
 
@@ -154,11 +158,11 @@ fn types() {
     );
     check(
         &run_parser!(type_, "MyType"),
-        expect_test::expect!["MyType"],
+        expect_test::expect!["::MyType"],
     );
     check(
         &run_parser!(type_, "A::B::C::MyType"),
-        expect_test::expect!["A::B::C::MyType"],
+        expect_test::expect!["::A::B::C::MyType"],
     );
     check(
         &run_parser!(type_, "::A::B::C::MyType"),
@@ -194,57 +198,46 @@ fn immediates() {
 #[test]
 fn use_statements() {
     let yurt = yp::YurtParser::new();
-
-    let run_use_parser = |src_str| {
-        let mut use_paths = Vec::new();
-        let filepath = Rc::from(Path::new("test"));
-        let mut context = ParserContext {
-            mod_path: &["foo".to_string()],
-            mod_prefix: "::foo::",
-            ii: &mut IntermediateIntent::default(),
-            span_from: &|_, _| crate::span::empty_span(),
-            use_paths: &mut use_paths,
-            next_paths: &mut vec![],
-        };
-
-        match parse_and_collect!(yurt, src_str, filepath, context) {
-            Ok(_) => use_paths
-                .into_iter()
-                .map(|up| up.to_string())
-                .collect::<Vec<_>>()
-                .join(", "),
-            Err(errors) => display_errors(&errors),
-        }
-    };
+    let mod_path = vec!["foo".to_string()];
 
     check(
-        &run_use_parser("use {}; use ::{};"),
+        &run_parser!(yurt, "use {}; use ::{};", mod_path),
         expect_test::expect![""],
     );
 
     check(
-        &run_use_parser("use a; use ::b; use ::c as d;"),
-        expect_test::expect!["foo::a, b, c as d"],
+        &run_parser!(yurt, "use a; use ::b; use ::c as d;", mod_path),
+        expect_test::expect![[r#"
+            use foo::a;
+            use b;
+            use c as d"#]],
     );
 
     check(
-        &run_use_parser("use a::b; use ::b::c; use ::c::d as c;"),
-        expect_test::expect!["foo::a::b, b::c, c::d as c"],
+        &run_parser!(yurt, "use a::b; use ::b::c; use ::c::d as c;", mod_path),
+        expect_test::expect![[r#"
+            use foo::a::b;
+            use b::c;
+            use c::d as c"#]],
     );
 
     check(
-        &run_use_parser("use a::{b, c as d};"),
-        expect_test::expect!["foo::a::b, foo::a::c as d"],
+        &run_parser!(yurt, "use a::{b, c as d};", mod_path),
+        expect_test::expect![[r#"
+            use foo::a::b;
+            use foo::a::c as d"#]],
     );
 
     check(
-        &run_use_parser("use a::{{c as d, { e as f }}};"),
-        expect_test::expect!["foo::a::c as d, foo::a::e as f"],
+        &run_parser!(yurt, "use a::{{c as d, { e as f }}};", mod_path),
+        expect_test::expect![[r#"
+            use foo::a::c as d;
+            use foo::a::e as f"#]],
     );
 
     // Errors - TODO: improve these
     check(
-        &run_use_parser("use ;"),
+        &run_parser!(yurt, "use ;", mod_path),
         expect_test::expect![[r#"
             expected `::`, `ident`, or `{`, found `;`
             @4..5: expected `::`, `ident`, or `{`
@@ -252,7 +245,7 @@ fn use_statements() {
     );
 
     check(
-        &run_use_parser("use ::;"),
+        &run_parser!(yurt, "use ::;", mod_path),
         expect_test::expect![[r#"
             expected `ident`, or `{`, found `;`
             @6..7: expected `ident`, or `{`
@@ -260,7 +253,7 @@ fn use_statements() {
     );
 
     check(
-        &run_use_parser("use a::;"),
+        &run_parser!(yurt, "use a::;", mod_path),
         expect_test::expect![[r#"
             expected `ident`, or `{`, found `;`
             @7..8: expected `ident`, or `{`
@@ -270,133 +263,83 @@ fn use_statements() {
 
 #[test]
 fn let_decls() {
-    let letp = yp::LetDeclParser::new();
-    let filepath = Rc::from(Path::new("test"));
-
-    // We're re-using this context for each test, rather than building a new one each time.  This
-    // is a) more efficient and b) dangerous -- we must be careful to reset it properly each time.
-    let mut ctx = ParserContext {
-        mod_path: &["foo".to_string()],
-        mod_prefix: "::foo::",
-        ii: &mut IntermediateIntent::default(),
-        span_from: &|l, r| Span::new(Rc::clone(&filepath), l..r),
-        use_paths: &mut Vec::new(),
-        next_paths: &mut Vec::new(),
-    };
-
-    let mut run_let_parser = |src_str| {
-        let out_str = match parse_and_collect!(letp, src_str, filepath, ctx) {
-            Ok(res) => {
-                let constraints_str = ctx
-                    .ii
-                    .constraints
-                    .iter()
-                    .map(|(expr_key, _)| format!("constraint {}", ctx.ii.with_ii(expr_key)))
-                    .collect::<Vec<_>>()
-                    .join("\n");
-
-                format!("{}\n{}\n", ctx.ii.with_ii(res), constraints_str)
-            }
-            Err(errors) => display_errors(&errors),
-        };
-
-        *ctx.ii = IntermediateIntent::default();
-        ctx.use_paths.clear();
-        ctx.next_paths.clear();
-
-        out_str
-    };
+    let mod_path = vec!["foo".to_string()];
 
     check(
-        &run_let_parser("let blah"),
+        &run_parser!(yp::LetDeclParser::new(), "let blah", mod_path),
         expect_test::expect![[r#"
             type annotation or initializer needed for variable `blah`
             @0..8: type annotation or initializer needed
-            consider giving `blah` an explicit type or an initializer"#]],
-    );
-    check(
-        &run_let_parser("let blah = 1.0"),
-        expect_test::expect![[r#"
-            var ::foo::blah = 1e0
-            constraint (var ::foo::blah == 1e0)
+            consider giving `blah` an explicit type or an initializer
         "#]],
     );
     check(
-        &run_let_parser("let blah: real = 1.0"),
+        &run_parser!(yp::LetDeclParser::new(), "let blah = 1.0", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah: real = 1e0
-            constraint (var ::foo::blah: real == 1e0)
-        "#]],
+            var ::foo::blah;
+            constraint (var ::foo::blah == 1e0);"#]],
     );
     check(
-        &run_let_parser("let blah: real"),
+        &run_parser!(yp::LetDeclParser::new(), "let blah: real = 1.0", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah: real = NONE
-
-        "#]],
+            var ::foo::blah: real;
+            constraint (var ::foo::blah: real == 1e0);"#]],
     );
     check(
-        &run_let_parser("let blah = 1"),
-        expect_test::expect![[r#"
-            var ::foo::blah = 1
-            constraint (var ::foo::blah == 1)
-        "#]],
+        &run_parser!(yp::LetDeclParser::new(), "let blah: real", mod_path),
+        expect_test::expect!["var ::foo::blah: real;"],
     );
     check(
-        &run_let_parser("let blah: int = 1"),
+        &run_parser!(yp::LetDeclParser::new(), "let blah = 1", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah: int = 1
-            constraint (var ::foo::blah: int == 1)
-        "#]],
+            var ::foo::blah;
+            constraint (var ::foo::blah == 1);"#]],
     );
     check(
-        &run_let_parser("let blah: int"),
+        &run_parser!(yp::LetDeclParser::new(), "let blah: int = 1", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah: int = NONE
-
-        "#]],
+            var ::foo::blah: int;
+            constraint (var ::foo::blah: int == 1);"#]],
     );
     check(
-        &run_let_parser("let blah = true"),
-        expect_test::expect![[r#"
-            var ::foo::blah = true
-            constraint (var ::foo::blah == true)
-        "#]],
+        &run_parser!(yp::LetDeclParser::new(), "let blah: int", mod_path),
+        expect_test::expect!["var ::foo::blah: int;"],
     );
     check(
-        &run_let_parser("let blah: bool = false"),
+        &run_parser!(yp::LetDeclParser::new(), "let blah = true", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah: bool = false
-            constraint (var ::foo::blah: bool == false)
-        "#]],
+            var ::foo::blah;
+            constraint (var ::foo::blah == true);"#]],
     );
     check(
-        &run_let_parser("let blah: bool"),
+        &run_parser!(yp::LetDeclParser::new(), "let blah: bool = false", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah: bool = NONE
-
-        "#]],
+            var ::foo::blah: bool;
+            constraint (var ::foo::blah: bool == false);"#]],
     );
     check(
-        &run_let_parser(r#"let blah = "hello""#),
-        expect_test::expect![[r#"
-            var ::foo::blah = "hello"
-            constraint (var ::foo::blah == "hello")
-        "#]],
+        &run_parser!(yp::LetDeclParser::new(), "let blah: bool", mod_path),
+        expect_test::expect!["var ::foo::blah: bool;"],
     );
     check(
-        &run_let_parser(r#"let blah: string = "hello""#),
+        &run_parser!(yp::LetDeclParser::new(), r#"let blah = "hello""#, mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah: string = "hello"
-            constraint (var ::foo::blah: string == "hello")
-        "#]],
+            var ::foo::blah;
+            constraint (var ::foo::blah == "hello");"#]],
     );
     check(
-        &run_let_parser(r#"let blah: string"#),
+        &run_parser!(
+            yp::LetDeclParser::new(),
+            r#"let blah: string = "hello""#,
+            mod_path
+        ),
         expect_test::expect![[r#"
-            var ::foo::blah: string = NONE
-
-        "#]],
+            var ::foo::blah: string;
+            constraint (var ::foo::blah: string == "hello");"#]],
+    );
+    check(
+        &run_parser!(yp::LetDeclParser::new(), r#"let blah: string"#, mod_path),
+        expect_test::expect!["var ::foo::blah: string;"],
     );
 }
 
@@ -406,11 +349,11 @@ fn state_decls() {
 
     check(
         &run_parser!(state, "state x: int = MyContract::foo()"),
-        expect_test::expect!["state x: int = MyContract::foo()"],
+        expect_test::expect!["state ::x: int = ::MyContract::foo();"],
     );
     check(
         &run_parser!(state, "state y = MyContract::bar()"),
-        expect_test::expect!["state y = MyContract::bar()"],
+        expect_test::expect!["state ::y = ::MyContract::bar();"],
     );
 }
 
@@ -421,7 +364,7 @@ fn constraint_decls() {
 
     check(
         &run_parser!(constraint_decl, "constraint blah"),
-        expect_test::expect!["blah"],
+        expect_test::expect!["constraint ::blah;"],
     );
 }
 
@@ -431,20 +374,20 @@ fn solve_decls() {
 
     check(
         &run_parser!(solve_decl, "solve satisfy"),
-        expect_test::expect!["solve satisfy"],
+        expect_test::expect!["solve satisfy;"],
     );
     check(
         &run_parser!(solve_decl, "solve minimize foo"),
-        expect_test::expect!["solve minimize foo"],
+        expect_test::expect!["solve minimize ::foo;"],
     );
     check(
         &run_parser!(solve_decl, "solve maximize foo"),
-        expect_test::expect!["solve maximize foo"],
+        expect_test::expect!["solve maximize ::foo;"],
     );
 
     check(
         &run_parser!(solve_decl, "solve maximize x + y"),
-        expect_test::expect!["solve maximize (x + y)"],
+        expect_test::expect!["solve maximize (::x + ::y);"],
     );
 
     check(
@@ -460,16 +403,16 @@ fn solve_decls() {
 fn basic_exprs() {
     let expr = yp::ExprParser::new();
     check(&run_parser!(expr, "123"), expect_test::expect!["123"]);
-    check(&run_parser!(expr, "foo"), expect_test::expect!["foo"]);
+    check(&run_parser!(expr, "foo"), expect_test::expect!["::foo"]);
 }
 
 #[test]
 fn unary_op_exprs() {
     let expr = yp::ExprParser::new();
 
-    check(&run_parser!(expr, "!a"), expect_test::expect!["!a"]);
-    check(&run_parser!(expr, "+a"), expect_test::expect!["+a"]);
-    check(&run_parser!(expr, "-a"), expect_test::expect!["-a"]);
+    check(&run_parser!(expr, "!a"), expect_test::expect!["!::a"]);
+    check(&run_parser!(expr, "+a"), expect_test::expect!["+::a"]);
+    check(&run_parser!(expr, "-a"), expect_test::expect!["-::a"]);
     check(&run_parser!(expr, "+7"), expect_test::expect!["+7"]);
     check(&run_parser!(expr, "+3.4"), expect_test::expect!["+3.4e0"]);
     check(&run_parser!(expr, "+0x456"), expect_test::expect!["+1110"]);
@@ -501,7 +444,7 @@ fn unary_op_exprs() {
     );
     check(
         &run_parser!(expr, "+ {- x} '  '  "),
-        expect_test::expect!["+-x''"],
+        expect_test::expect!["+-::x''"],
     );
 }
 
@@ -511,69 +454,69 @@ fn binary_op_exprs() {
 
     check(
         &run_parser!(expr, "a * 2.0"),
-        expect_test::expect!["(a * 2e0)"],
+        expect_test::expect!["(::a * 2e0)"],
     );
     check(
         &run_parser!(expr, "a / 2.0"),
-        expect_test::expect!["(a / 2e0)"],
+        expect_test::expect!["(::a / 2e0)"],
     );
     check(
         &run_parser!(expr, "a % 2.0"),
-        expect_test::expect!["(a % 2e0)"],
+        expect_test::expect!["(::a % 2e0)"],
     );
     check(
         &run_parser!(expr, "a + 2.0"),
-        expect_test::expect!["(a + 2e0)"],
+        expect_test::expect!["(::a + 2e0)"],
     );
     check(
         &run_parser!(expr, "a - 2.0"),
-        expect_test::expect!["(a - 2e0)"],
+        expect_test::expect!["(::a - 2e0)"],
     );
     check(
         &run_parser!(expr, "a+2.0"),
-        expect_test::expect!["(a + 2e0)"],
+        expect_test::expect!["(::a + 2e0)"],
     );
     check(
         &run_parser!(expr, "a-2.0"),
-        expect_test::expect!["(a - 2e0)"],
+        expect_test::expect!["(::a - 2e0)"],
     );
     check(
         &run_parser!(expr, "a < 2.0"),
-        expect_test::expect!["(a < 2e0)"],
+        expect_test::expect!["(::a < 2e0)"],
     );
     check(
         &run_parser!(expr, "a > 2.0"),
-        expect_test::expect!["(a > 2e0)"],
+        expect_test::expect!["(::a > 2e0)"],
     );
     check(
         &run_parser!(expr, "a <= 2.0"),
-        expect_test::expect!["(a <= 2e0)"],
+        expect_test::expect!["(::a <= 2e0)"],
     );
     check(
         &run_parser!(expr, "a >= 2.0"),
-        expect_test::expect!["(a >= 2e0)"],
+        expect_test::expect!["(::a >= 2e0)"],
     );
     check(
         &run_parser!(expr, "a == 2.0"),
-        expect_test::expect!["(a == 2e0)"],
+        expect_test::expect!["(::a == 2e0)"],
     );
     check(
         &run_parser!(expr, "a != 2.0"),
-        expect_test::expect!["(a != 2e0)"],
+        expect_test::expect!["(::a != 2e0)"],
     );
     check(
         &run_parser!(expr, "a && b"),
-        expect_test::expect!["(a && b)"],
+        expect_test::expect!["(::a && ::b)"],
     );
 
     check(
         &run_parser!(expr, "a || b"),
-        expect_test::expect!["(a || b)"],
+        expect_test::expect!["(::a || ::b)"],
     );
 
     check(
         &run_parser!(expr, "a || b && c || d && !e"),
-        expect_test::expect!["((a || (b && c)) || (d && !e))"],
+        expect_test::expect!["((::a || (::b && ::c)) || (::d && !::e))"],
     );
 }
 
@@ -583,35 +526,35 @@ fn complex_exprs() {
 
     check(
         &run_parser!(expr, "2 * b * 3"),
-        expect_test::expect!["((2 * b) * 3)"],
+        expect_test::expect!["((2 * ::b) * 3)"],
     );
     check(
         &run_parser!(expr, "2 < b * 3"),
-        expect_test::expect!["(2 < (b * 3))"],
+        expect_test::expect!["(2 < (::b * 3))"],
     );
     check(
         &run_parser!(expr, "2.0 > b * 3.0"),
-        expect_test::expect!["(2e0 > (b * 3e0))"],
+        expect_test::expect!["(2e0 > (::b * 3e0))"],
     );
     check(
         &run_parser!(expr, "2.0 * b < 3.0"),
-        expect_test::expect!["((2e0 * b) < 3e0)"],
+        expect_test::expect!["((2e0 * ::b) < 3e0)"],
     );
     check(
         &run_parser!(expr, "2 > b < 3"),
-        expect_test::expect!["((2 > b) < 3)"],
+        expect_test::expect!["((2 > ::b) < 3)"],
     );
     check(
         &run_parser!(expr, "2 != b < 3"),
-        expect_test::expect!["((2 != b) < 3)"],
+        expect_test::expect!["((2 != ::b) < 3)"],
     );
     check(
         &run_parser!(expr, "2 < b != 3"),
-        expect_test::expect!["((2 < b) != 3)"],
+        expect_test::expect!["((2 < ::b) != 3)"],
     );
     check(
         &run_parser!(expr, "a > b * c < d"),
-        expect_test::expect!["((a > (b * c)) < d)"],
+        expect_test::expect!["((::a > (::b * ::c)) < ::d)"],
     );
     check(
         &run_parser!(expr, "2 + 3 * 4"),
@@ -713,25 +656,25 @@ fn parens_exprs() {
     );
     check(
         &run_parser!(expr, "!(a < b)"),
-        expect_test::expect!["!(a < b)"],
+        expect_test::expect!["!(::a < ::b)"],
     );
     check(&run_parser!(expr, "(1)"), expect_test::expect!["1"]);
-    check(&run_parser!(expr, "(a)"), expect_test::expect!["a"]);
+    check(&run_parser!(expr, "(a)"), expect_test::expect!["::a"]);
     check(
         &run_parser!(expr, "()"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`, found `)`
-            @1..2: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `)`
+            @1..2: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(expr, "(if a < b { 1 } else { 2 })"),
-        expect_test::expect!["if (a < b) { 1 } else { 2 }"],
+        expect_test::expect!["if (::a < ::b) { 1 } else { 2 }"],
     );
     check(
         &run_parser!(expr, "(foo(a, b, c))"),
-        expect_test::expect!["foo(a, b, c)"],
+        expect_test::expect!["::foo(::a, ::b, ::c)"],
     );
 }
 
@@ -743,15 +686,15 @@ fn enums() {
 
     check(
         &run_parser!(enum_decl, "enum MyEnum = Variant1 | Variant2"),
-        expect_test::expect!["enum MyEnum = Variant1 | Variant2"],
+        expect_test::expect!["enum ::MyEnum = Variant1 | Variant2;"],
     );
     check(
         &run_parser!(enum_decl, "enum MyEnum = Variant1"),
-        expect_test::expect!["enum MyEnum = Variant1"],
+        expect_test::expect!["enum ::MyEnum = Variant1;"],
     );
     check(
         &run_parser!(expr, "MyEnum::Variant1"),
-        expect_test::expect!["MyEnum::Variant1"],
+        expect_test::expect!["::MyEnum::Variant1"],
     );
     check(
         &run_parser!(
@@ -760,7 +703,9 @@ fn enums() {
                 let x = MyEnum::Variant3
                 "#
         ),
-        expect_test::expect!["var x = MyEnum::Variant3"],
+        expect_test::expect![[r#"
+            var ::x;
+            constraint (var ::x == ::MyEnum::Variant3);"#]],
     );
     check(
         &run_parser!(
@@ -769,7 +714,8 @@ fn enums() {
                 let e: ::path::to::MyEnum
                 "#
         ),
-        expect_test::expect!["var e: ::path::to::MyEnum = NONE"],
+        expect_test::expect![[r#"
+            var ::e: ::path::to::MyEnum;"#]],
     );
 }
 
@@ -780,35 +726,35 @@ fn custom_types() {
 
     check(
         &run_parser!(type_, "custom_type"),
-        expect_test::expect!["custom_type"],
+        expect_test::expect!["::custom_type"],
     );
     check(
         &run_parser!(type_decl, "type MyInt = int"),
-        expect_test::expect!["type MyInt = int"],
+        expect_test::expect!["type ::MyInt = int;"],
     );
     check(
         &run_parser!(type_decl, "type MyReal = real"),
-        expect_test::expect!["type MyReal = real"],
+        expect_test::expect!["type ::MyReal = real;"],
     );
     check(
         &run_parser!(type_decl, "type MyBool = bool"),
-        expect_test::expect!["type MyBool = bool"],
+        expect_test::expect!["type ::MyBool = bool;"],
     );
     check(
         &run_parser!(type_decl, "type MyString = string"),
-        expect_test::expect!["type MyString = string"],
+        expect_test::expect!["type ::MyString = string;"],
     );
     check(
         &run_parser!(type_decl, "type IntArray = int[5]"),
-        expect_test::expect!["type IntArray = int[5]"],
+        expect_test::expect!["type ::IntArray = int[5];"],
     );
     check(
         &run_parser!(type_decl, "type MyTuple = { int, real, z: string }"),
-        expect_test::expect!["type MyTuple = {int, real, z: string}"],
+        expect_test::expect!["type ::MyTuple = {int, real, z: string};"],
     );
     check(
         &run_parser!(type_decl, "type MyAliasInt = MyInt"),
-        expect_test::expect!["type MyAliasInt = MyInt"],
+        expect_test::expect!["type ::MyAliasInt = ::MyInt;"],
     );
 }
 
@@ -825,7 +771,7 @@ fn ranges() {
     );
     check(
         &run_parser!(range, "A[x]..t.2"),
-        expect_test::expect!["A[x]..t.2"],
+        expect_test::expect!["::A[::x]..::t.2"],
     );
     check(
         &run_parser!(range, "1+2..3+4"),
@@ -833,26 +779,28 @@ fn ranges() {
     );
     check(
         &run_parser!(range, "-100.. -if c { 10 } else { 9 }"),
-        expect_test::expect!["-100..-if c { 10 } else { 9 }"],
+        expect_test::expect!["-100..-if ::c { 10 } else { 9 }"],
     );
     check(
         &run_parser!(range, "1...2"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`, found `.`
-            @3..4: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `.`
+            @3..4: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
     // Range allow in let decls
     check(
         &run_parser!(let_decl, "let x = 1..2"),
-        expect_test::expect!["var x = 1..2"],
+        expect_test::expect![[r#"
+            var ::x;
+            constraint (var ::x == 1..2);"#]],
     );
 
     // Ranges allowed after `in`
     check(
         &run_parser!(expr, "x in 1..2"),
-        expect_test::expect![[r#"x in 1..2"#]],
+        expect_test::expect!["::x in 1..2"],
     );
 
     // Ranges not allowed in binary ops
@@ -911,16 +859,16 @@ fn paths() {
 
     check(
         &run_parser!(path, "foo::bar"),
-        expect_test::expect!["foo::bar"],
+        expect_test::expect!["::foo::bar"],
     );
     check(
         &run_parser!(path, "_foo_::_bar"),
-        expect_test::expect!["_foo_::_bar"],
+        expect_test::expect!["::_foo_::_bar"],
     );
-    check(&run_parser!(path, "_::_"), expect_test::expect!["_::_"]);
+    check(&run_parser!(path, "_::_"), expect_test::expect!["::_::_"]);
     check(
         &run_parser!(path, "t2::_3t::t4_::t"),
-        expect_test::expect!["t2::_3t::t4_::t"],
+        expect_test::expect!["::t2::_3t::t4_::t"],
     );
     check(
         &run_parser!(path, "::foo::bar"),
@@ -944,109 +892,94 @@ fn paths() {
     );
 }
 
-//#[test]
-//fn fn_decl_test() {
-//    let src = r#"
-//fn foo(x: real, y: real) -> real {
-//    let z = 5.0;
-//    z
-//}
-//"#;
-//
-//    check(
-//        &run_parser!(yurt_program(), src),
-//        expect_test::expect!["fn foo(x: real, y: real) -> real { let z = 5e0; z };"],
-//    );
-//}
+#[test]
+fn macro_decl() {
+    let src = r#"
+          macro @foo($x, $y) {
+              let z = 5.0 + $x * $y;
+              z
+          }
+      "#;
+
+    let mut context = context!(Vec::<String>::new(), Vec::new());
+    let result = parse_and_collect_errors!(yp::MacroDeclParser::new(), src, context);
+
+    assert!(result.is_ok());
+    assert!(context.macros.len() == 1);
+
+    check(
+        &context.macros[0].to_string(),
+        expect_test::expect!["macro @foo($x, $y) { let z = 5.0 + $x * $y ; z }"],
+    );
+}
+
+#[test]
+fn macro_call() {
+    let src = r#"@foo(a * 3; int; <= =>)"#;
+    let mut context = context!(Vec::<String>::new(), Vec::new());
+    let result = parse_and_collect_errors!(yp::ExprParser::new(), src, context);
+
+    assert!(result.is_ok());
+    assert!(context.macro_calls.len() == 1);
+
+    check(
+        &context.ii.with_ii(&result.unwrap()).to_string(),
+        expect_test::expect!["::@foo(...)"],
+    );
+
+    check(
+        &context.macro_calls.iter().next().unwrap().1.to_string(),
+        expect_test::expect!["::@foo(a * 3; int; <= =>)"],
+    );
+}
 
 #[test]
 fn fn_call() {
     check(
         &run_parser!(yp::LetDeclParser::new(), r#"let x = foo(a*3, c)"#),
-        expect_test::expect!["var x = foo((a * 3), c)"],
+        expect_test::expect![[r#"
+            var ::x;
+            constraint (var ::x == ::foo((::a * 3), ::c));"#]],
     );
 
     check(
         &run_parser!(yp::ExprParser::new(), "A::B::foo(-a, b+c)"),
-        expect_test::expect!["A::B::foo(-a, (b + c))"],
+        expect_test::expect!["::A::B::foo(-::a, (::b + ::c))"],
     );
 }
 
 #[test]
 fn code_blocks() {
     let expr = yp::ExprParser::new();
-    let filepath = Rc::from(Path::new("test"));
-
-    // We're re-using this context for each test, rather than building a new one each time.  This
-    // is a) more efficient and b) dangerous -- we must be careful to reset it properly each time.
-    let mut ctx = ParserContext {
-        mod_path: &["foo".to_string()],
-        mod_prefix: "::foo::",
-        ii: &mut IntermediateIntent::default(),
-        span_from: &|l, r| Span::new(Rc::clone(&filepath), l..r),
-        use_paths: &mut Vec::new(),
-        next_paths: &mut Vec::new(),
-    };
-
-    let mut run_block_parser = |src_str| {
-        let out_str = match parse_and_collect!(expr, src_str, filepath, ctx) {
-            Ok(res) => {
-                let var_str = ctx
-                    .ii
-                    .vars
-                    .iter()
-                    .map(|(var_key, _)| format!("{}; ", ctx.ii.with_ii(var_key)))
-                    .collect::<Vec<_>>()
-                    .join("");
-
-                let constraints_str = ctx
-                    .ii
-                    .constraints
-                    .iter()
-                    .map(|(expr_key, _)| format!("constraint {}; ", ctx.ii.with_ii(expr_key)))
-                    .collect::<Vec<_>>()
-                    .join("");
-
-                format!(
-                    "{{ {}{}{} }}\n",
-                    var_str,
-                    constraints_str,
-                    ctx.ii.with_ii(res)
-                )
-            }
-            Err(errors) => display_errors(&errors),
-        };
-
-        *ctx.ii = IntermediateIntent::default();
-        ctx.use_paths.clear();
-        ctx.next_paths.clear();
-
-        out_str
-    };
+    let mod_path = vec!["foo".to_string()];
 
     check(
-        &run_block_parser("{ 0 }"),
-        expect_test::expect![[r#"
-            { 0 }
-        "#]],
+        &run_parser!(expr, "{ 0 }", mod_path),
+        expect_test::expect!["0"],
     );
 
     check(
-        &run_block_parser("{ let y: real = 0; constraint x > 0.0; 0.0 }"),
+        &run_parser!(
+            expr,
+            "{ let y: real = 0; constraint x > 0.0; 0.0 }",
+            mod_path
+        ),
         expect_test::expect![[r#"
-            { var ::foo::y: real; constraint (var ::foo::y: real == 0); constraint (::foo::x > 0e0); 0e0 }
-        "#]],
+            var ::foo::y: real;
+            constraint (var ::foo::y: real == 0);
+            constraint (::foo::x > 0e0);
+            0e0"#]],
     );
 
     check(
-        &run_block_parser("{ constraint { true }; x > 0 }"),
+        &run_parser!(expr, "{ constraint { true }; x > 0 }", mod_path),
         expect_test::expect![[r#"
-            { constraint true; (::foo::x > 0) }
-        "#]],
+            constraint true;
+            (::foo::x > 0)"#]],
     );
 
     check(
-        &run_block_parser("{}"),
+        &run_parser!(expr, "{}", mod_path),
         expect_test::expect![[r#"
             empty tuple expressions are not allowed
             @0..2: empty tuple expression found
@@ -1068,12 +1001,12 @@ fn if_exprs() {
 
     check(
         &run_parser!(expr, "if c { 1 } else { 0 }"),
-        expect_test::expect!["if c { 1 } else { 0 }"],
+        expect_test::expect!["if ::c { 1 } else { 0 }"],
     );
 
     check(
         &run_parser!(expr, "if c { if c { 1 } else { 0 } } else { 2 }"),
-        expect_test::expect!["if c { if c { 1 } else { 0 } } else { 2 }"],
+        expect_test::expect!["if ::c { if ::c { 1 } else { 0 } } else { 2 }"],
     );
 }
 
@@ -1088,27 +1021,27 @@ fn array_type() {
 
     check(
         &run_parser!(type_, r#"int[MyEnum]"#),
-        expect_test::expect!["int[MyEnum]"],
+        expect_test::expect!["int[::MyEnum]"],
     );
 
     check(
         &run_parser!(type_, r#"int[N]"#),
-        expect_test::expect!["int[N]"],
+        expect_test::expect!["int[::N]"],
     );
 
     check(
         &run_parser!(type_, r#"string[foo()][{ 7 }][if true { 1 } else { 2 }]"#),
-        expect_test::expect!["string[if true { 1 } else { 2 }][7][foo()]"],
+        expect_test::expect!["string[if true { 1 } else { 2 }][7][::foo()]"],
     );
 
     check(
         &run_parser!(type_, r#"real[N][9][M][3]"#),
-        expect_test::expect!["real[3][M][9][N]"],
+        expect_test::expect!["real[3][::M][9][::N]"],
     );
 
     check(
         &run_parser!(type_, r#"{int, { real, string }}[N][9]"#),
-        expect_test::expect!["{int, {real, string}}[9][N]"],
+        expect_test::expect!["{int, {real, string}}[9][::N]"],
     );
 
     check(
@@ -1150,7 +1083,7 @@ fn array_expressions() {
 
     check(
         &run_parser!(expr, r#"[[foo(), 2], [if true { 1 } else { 2 }, t.0]]"#),
-        expect_test::expect!["[[foo(), 2], [if true { 1 } else { 2 }, t.0]]"],
+        expect_test::expect!["[[::foo(), 2], [if true { 1 } else { 2 }, ::t.0]]"],
     );
 }
 
@@ -1158,21 +1091,24 @@ fn array_expressions() {
 fn array_element_accesses() {
     let expr = yp::ExprParser::new();
 
-    check(&run_parser!(expr, r#"a[5]"#), expect_test::expect!["a[5]"]);
+    check(
+        &run_parser!(expr, r#"a[5]"#),
+        expect_test::expect!["::a[5]"],
+    );
 
     check(
         &run_parser!(expr, r#"a[N][5][t.0]"#),
-        expect_test::expect!["a[N][5][t.0]"],
+        expect_test::expect!["::a[::N][5][::t.0]"],
     );
 
     check(
         &run_parser!(expr, r#"{ a }[N][foo()][M][4]"#),
-        expect_test::expect!["a[N][foo()][M][4]"],
+        expect_test::expect!["::a[::N][::foo()][::M][4]"],
     );
 
     check(
         &run_parser!(expr, r#"foo()[{ M }][if true { 1 } else { 3 }]"#),
-        expect_test::expect!["foo()[M][if true { 1 } else { 3 }]"],
+        expect_test::expect!["::foo()[::M][if true { 1 } else { 3 }]"],
     );
 
     check(
@@ -1185,7 +1121,7 @@ fn array_element_accesses() {
 
     check(
         &run_parser!(expr, r#"a[MyEnum::Variant1]"#),
-        expect_test::expect!["a[MyEnum::Variant1]"],
+        expect_test::expect!["::a[::MyEnum::Variant1]"],
     );
 }
 
@@ -1235,12 +1171,12 @@ fn tuple_expressions() {
 
     check(
         &run_parser!(expr, r#"{ { 42 }, if c { 2 } else { 3 }, foo() }"#),
-        expect_test::expect!["{42, if c { 2 } else { 3 }, foo()}"],
+        expect_test::expect!["{42, if ::c { 2 } else { 3 }, ::foo()}"],
     );
 
     check(
         &run_parser!(expr, r#"{ x: { 42 }, y: if c { 2 } else { 3 }, z: foo() }"#),
-        expect_test::expect!["{x: 42, y: if c { 2 } else { 3 }, z: foo()}"],
+        expect_test::expect!["{x: 42, y: if ::c { 2 } else { 3 }, z: ::foo()}"],
     );
 }
 
@@ -1250,12 +1186,12 @@ fn tuple_field_accesses() {
 
     check(
         &run_parser!(expr, r#"t.0 + t.9999999 + t.x"#),
-        expect_test::expect!["((t.0 + t.9999999) + t.x)"],
+        expect_test::expect!["((::t.0 + ::t.9999999) + ::t.x)"],
     );
 
     check(
         &run_parser!(expr, r#"t.1.1"#),
-        expect_test::expect!["t.1.1"],
+        expect_test::expect!["::t.1.1"],
     );
 
     check(
@@ -1270,32 +1206,32 @@ fn tuple_field_accesses() {
 
     check(
         &run_parser!(expr, r#"t.0 .0"#),
-        expect_test::expect!["t.0.0"],
+        expect_test::expect!["::t.0.0"],
     );
 
     check(
         &run_parser!(expr, r#"t.x .y"#),
-        expect_test::expect!["t.x.y"],
+        expect_test::expect!["::t.x.y"],
     );
 
     check(
         &run_parser!(expr, "t \r .1 .2.2. \n 3 . \t 13 . 1.1"),
-        expect_test::expect!["t.1.2.2.3.13.1.1"],
+        expect_test::expect!["::t.1.2.2.3.13.1.1"],
     );
 
     check(
         &run_parser!(expr, "t \r .x .1.2. \n w . \t t. 3.4"),
-        expect_test::expect!["t.x.1.2.w.t.3.4"],
+        expect_test::expect!["::t.x.1.2.w.t.3.4"],
     );
 
     check(
         &run_parser!(expr, r#"foo().0.1"#),
-        expect_test::expect!["foo().0.1"],
+        expect_test::expect!["::foo().0.1"],
     );
 
     check(
         &run_parser!(expr, r#"foo().a.b.0.1"#),
-        expect_test::expect!["foo().a.b.0.1"],
+        expect_test::expect!["::foo().a.b.0.1"],
     );
 
     check(
@@ -1402,34 +1338,34 @@ fn cond_exprs() {
 
     check(
         &run_parser!(expr, r#"cond { else => a, }"#),
-        expect_test::expect!["a"],
+        expect_test::expect!["::a"],
     );
 
     check(
         &run_parser!(expr, r#"cond { else => { a } }"#),
-        expect_test::expect!["a"],
+        expect_test::expect!["::a"],
     );
 
     check(
         &run_parser!(expr, r#"cond { a => b, else => c }"#),
-        expect_test::expect!["if a { b } else { c }"],
+        expect_test::expect!["if ::a { ::b } else { ::c }"],
     );
 
     check(
         &run_parser!(expr, r#"cond { a => { b }, else => c, }"#),
-        expect_test::expect!["if a { b } else { c }"],
+        expect_test::expect!["if ::a { ::b } else { ::c }"],
     );
 
     check(
         &run_parser!(expr, r#"cond { a => b, { true } => d, else => f, }"#),
-        expect_test::expect!["if a { b } else { if true { d } else { f } }"],
+        expect_test::expect!["if ::a { ::b } else { if true { ::d } else { ::f } }"],
     );
 
     check(
         &run_parser!(expr, r#"cond { a => b, }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
-            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
+            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
@@ -1454,12 +1390,14 @@ fn casting() {
 
     check(
         &run_parser!(expr, r#"t.0.1 as real * a[5][3] as int"#),
-        expect_test::expect!["(t.0.1 as real * a[5][3] as int)"],
+        expect_test::expect!["(::t.0.1 as real * ::a[5][3] as int)"],
     );
 
     check(
         &run_parser!(let_decl, r#"let x = foo() as real as { int, real }"#),
-        expect_test::expect!["var x = foo() as real as {int, real}"],
+        expect_test::expect![[r#"
+            var ::x;
+            constraint (var ::x == ::foo() as real as {int, real});"#]],
     );
 
     check(
@@ -1477,34 +1415,34 @@ fn in_expr() {
 
     check(
         &run_parser!(expr, r#"x in a"#),
-        expect_test::expect!["x in a"],
+        expect_test::expect!["::x in ::a"],
     );
 
     check(
         &run_parser!(expr, r#"x in { 1, 2 }"#),
-        expect_test::expect!["x in {1, 2}"],
+        expect_test::expect!["::x in {1, 2}"],
     );
 
     check(
         &run_parser!(expr, r#"x in [ 1, 2 ] in { true, false }"#),
-        expect_test::expect!["x in [1, 2] in {true, false}"],
+        expect_test::expect!["::x in [1, 2] in {true, false}"],
     );
 
     check(
         &run_parser!(expr, r#"x as int in { 1, 2 }"#),
-        expect_test::expect!["x as int in {1, 2}"],
+        expect_test::expect!["::x as int in {1, 2}"],
     );
 
     check(
         &run_parser!(expr, r#"[1] in foo() in [[1]]"#),
-        expect_test::expect!["[1] in foo() in [[1]]"],
+        expect_test::expect!["[1] in ::foo() in [[1]]"],
     );
 
     check(
         &run_parser!(yp::LetDeclParser::new(), r#"let x = 5 in"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`, found `end of file`
-            @12..12: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `end of file`
+            @12..12: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 }
@@ -1522,84 +1460,16 @@ constraint mid < high_val;
 solve minimize mid;
 "#;
 
-    let filepath = Rc::from(Path::new("test"));
-    let mut context = ParserContext {
-        mod_path: &[String::from("foo")],
-        mod_prefix: "::foo::",
-        ii: &mut IntermediateIntent::default(),
-        span_from: &|l, r| Span::new(Rc::clone(&filepath), l..r),
-        use_paths: &mut vec![],
-        next_paths: &mut vec![],
-    };
-
-    assert!(parse_and_collect!(yp::YurtParser::new(), src, filepath, context).is_ok());
-
     check(
-        &context.ii.vars.iter().fold(String::new(), |mut s, (_, v)| {
-            let _ = write!(s, "{}; ", context.ii.with_ii(&v));
-            s
-        }),
-        expect_test::expect![["var ::foo::low_val: real; var ::foo::high_val; "]],
-    );
-
-    // This might be overkill...
-    check(
-        &context
-            .ii
-            .exprs
-            .iter()
-            .fold(String::new(), |mut s, (k, e)| {
-                let _ = writeln!(s, "{k:?} -> {};", context.ii.with_ii(&e));
-                s
-            }),
+        &run_parser!(yp::YurtParser::new(), src),
         expect_test::expect![[r#"
-             ExprKey(1v1) -> 1.23e0;
-             ExprKey(2v1) -> var ::foo::low_val: real;
-             ExprKey(3v1) -> (var ::foo::low_val: real == 1.23e0);
-             ExprKey(4v1) -> 4.56e0;
-             ExprKey(5v1) -> var ::foo::high_val;
-             ExprKey(6v1) -> (var ::foo::high_val == 4.56e0);
-             ExprKey(7v1) -> ::foo::mid;
-             ExprKey(8v1) -> ::foo::low_val;
-             ExprKey(9v1) -> 2e0;
-             ExprKey(10v1) -> (::foo::low_val * 2e0);
-             ExprKey(11v1) -> (::foo::mid > (::foo::low_val * 2e0));
-             ExprKey(12v1) -> ::foo::mid;
-             ExprKey(13v1) -> ::foo::high_val;
-             ExprKey(14v1) -> (::foo::mid < ::foo::high_val);
-             ExprKey(15v1) -> ::foo::mid;
-        "#]],
-    );
-
-    check(
-        &context
-            .ii
-            .constraints
-            .iter()
-            .fold(String::new(), |mut s, (e, _)| {
-                let _ = writeln!(s, "constraint {};", context.ii.with_ii(e));
-                s
-            }),
-        expect_test::expect![[r#"
-            constraint (var ::foo::low_val: real == 1.23e0);
-            constraint (var ::foo::high_val == 4.56e0);
-            constraint (::foo::mid > (::foo::low_val * 2e0));
-            constraint (::foo::mid < ::foo::high_val);
-         "#]],
-    );
-
-    check(
-        &context
-            .ii
-            .directives
-            .iter()
-            .fold(String::new(), |mut s, (sf, _)| {
-                let _ = writeln!(s, "{};", context.ii.with_ii(sf));
-                s
-            }),
-        expect_test::expect![[r#"
-            solve minimize ::foo::mid;
-         "#]],
+            var ::low_val: real;
+            var ::high_val;
+            constraint (var ::low_val: real == 1.23e0);
+            constraint (var ::high_val == 4.56e0);
+            constraint (::mid > (::low_val * 2e0));
+            constraint (::mid < ::high_val);
+            solve minimize ::mid;"#]],
     );
 }
 
@@ -1632,45 +1502,27 @@ solve satisfy;
 let low = 1.0;
 "#;
 
-    let filepath = Rc::from(Path::new("test"));
-    let mut context = ParserContext {
-        mod_path: &[],
-        mod_prefix: "",
-        ii: &mut IntermediateIntent::default(),
-        span_from: &|l, r| Span::new(Rc::clone(&filepath), l..r),
-        use_paths: &mut vec![],
-        next_paths: &mut vec![],
-    };
-
-    assert!(parse_and_collect!(yp::YurtParser::new(), src, filepath, context).is_ok());
+    check(
+        &run_parser!(yp::YurtParser::new(), src),
+        expect_test::expect![[r#"
+            var ::high;
+            var ::low;
+            constraint (::low < ::high);
+            constraint (var ::high == 2e0);
+            constraint (var ::low == 1e0);
+            solve maximize ::low;
+            solve satisfy;"#]],
+    );
 }
 
 #[test]
 fn keywords_as_identifiers_errors() {
-    let yurt = yp::YurtParser::new();
-    let run_yurt_parser = |src_str: &String| {
-        let filepath = Rc::from(Path::new("test"));
-        let mut context = ParserContext {
-            mod_path: &[],
-            mod_prefix: "",
-            ii: &mut IntermediateIntent::default(),
-            span_from: &|l, r| Span::new(Rc::clone(&filepath), l..r),
-            use_paths: &mut vec![],
-            next_paths: &mut vec![],
-        };
-
-        match parse_and_collect!(yurt, src_str, filepath, context) {
-            Ok(_) => "".to_string(),
-            Err(errors) => display_errors(&errors),
-        }
-    };
-
     // TODO: Ideally, we emit a special error here. Instead, we currently get a generic "expected..
     // found" error.
     for keyword in KEYWORDS {
         let src = format!("let {keyword} = 5;").to_string();
         assert_eq!(
-            &run_yurt_parser(&src),
+            &run_parser!(yp::YurtParser::new(), &src),
             &format!(
                 "expected `ident`, found `{keyword}`\n@4..{}: expected `ident`\n",
                 4 + format!("{keyword}").len() // End of the error span)
@@ -1690,12 +1542,16 @@ fn big_ints() {
             let_decl,
             "let blah = 1234567890123456789012345678901234567890"
         ),
-        expect_test::expect!["var blah = 1234567890123456789012345678901234567890"],
+        expect_test::expect![[r#"
+            var ::blah;
+            constraint (var ::blah == 1234567890123456789012345678901234567890);"#]],
     );
     check(
         &run_parser!(let_decl, "let blah = 0xfeedbadf00d2adeadcafed00dbabeface"),
         // Confirmed by using the Python REPL to convert from hex to dec...
-        expect_test::expect!["var blah = 5421732407698601623698172315373246806734"],
+        expect_test::expect![[r#"
+            var ::blah;
+            constraint (var ::blah == 5421732407698601623698172315373246806734);"#]],
     );
     check(
         &run_parser!(
@@ -1709,7 +1565,7 @@ fn big_ints() {
 }
 
 #[test]
-fn interface_test() {
+fn interface() {
     let interface_decl = yp::InterfaceDeclParser::new();
 
     let src = r#"
@@ -1722,22 +1578,22 @@ interface Foo {
 
     check(
         &run_parser!(interface_decl, src),
-        expect_test::expect!["interface Foo { fn Foo::foo(x: real, y: int[5]) -> real; fn Foo::bar(x: bool) -> real; fn Foo::baz() -> {int, real}; }"],
+        expect_test::expect!["interface ::Foo { fn ::Foo::foo(x: real, y: int[5]) -> real; fn ::Foo::bar(x: bool) -> real; fn ::Foo::baz() -> {int, real}; }"],
     );
 
     check(
         &run_parser!(interface_decl, "interface Foo {}"),
-        expect_test::expect!["interface Foo { }"],
+        expect_test::expect!["interface ::Foo { }"],
     );
 }
 
 #[test]
-fn contract_test() {
+fn contract() {
     let contract_decl = yp::ContractDeclParser::new();
 
     check(
         &run_parser!(contract_decl, "contract Foo(0) {}"),
-        expect_test::expect!["contract Foo(0) { }"],
+        expect_test::expect!["contract ::Foo(0) { }"],
     );
 
     check(
@@ -1745,12 +1601,12 @@ fn contract_test() {
             contract_decl,
             "contract Foo(0) { fn foo(x: int) -> real; fn bar(y: real, z: { Bar, }) -> string;}"
         ),
-        expect_test::expect!["contract Foo(0) { fn Foo::foo(x: int) -> real; fn Foo::bar(y: real, z: {Bar}) -> string; }"],
+        expect_test::expect!["contract ::Foo(0) { fn ::Foo::foo(x: int) -> real; fn ::Foo::bar(y: real, z: {::Bar}) -> string; }"],
     );
 
     check(
         &run_parser!(contract_decl, "contract Foo(if true {0} else {1}) {}"),
-        expect_test::expect!["contract Foo(if true { 0 } else { 1 }) { }"],
+        expect_test::expect!["contract ::Foo(if true { 0 } else { 1 }) { }"],
     );
 
     check(
@@ -1758,7 +1614,7 @@ fn contract_test() {
             contract_decl,
             "contract Foo(0) implements X::Bar, ::Y::Baz {}"
         ),
-        expect_test::expect!["contract Foo(0) implements X::Bar, ::Y::Baz { }"],
+        expect_test::expect!["contract ::Foo(0) implements ::X::Bar, ::Y::Baz { }"],
     );
 
     check(
@@ -1766,7 +1622,9 @@ fn contract_test() {
             contract_decl,
             "contract Foo(0) implements Bar { fn baz(x: real) -> int; }"
         ),
-        expect_test::expect!["contract Foo(0) implements Bar { fn Foo::baz(x: real) -> int; }"],
+        expect_test::expect![
+            "contract ::Foo(0) implements ::Bar { fn ::Foo::baz(x: real) -> int; }"
+        ],
     );
 
     check(
@@ -1796,15 +1654,15 @@ fn extern_test() {
     );
     check(
         &run_parser!(extern_decl, "extern { fn foo() -> string; }"),
-        expect_test::expect!["extern { fn foo() -> string; }"],
+        expect_test::expect!["extern { fn ::foo() -> string; }"],
     );
     check(
         &run_parser!(extern_decl, "extern { fn foo(x: int, y: real) -> int; }"),
-        expect_test::expect!["extern { fn foo(x: int, y: real) -> int; }"],
+        expect_test::expect!["extern { fn ::foo(x: int, y: real) -> int; }"],
     );
     check(
         &run_parser!(extern_decl, "extern { fn foo() -> int; fn bar() -> real; }"),
-        expect_test::expect!["extern { fn foo() -> int; fn bar() -> real; }"],
+        expect_test::expect!["extern { fn ::foo() -> int; fn ::bar() -> real; }"],
     );
     check(
         &run_parser!(extern_decl, "extern { fn foo(); }"),
@@ -1817,24 +1675,6 @@ fn extern_test() {
 
 #[test]
 fn error_recovery() {
-    let yurt = yp::YurtParser::new();
-    let run_yurt_parser = |src_str| {
-        let filepath = Rc::from(Path::new("test"));
-        let mut context = ParserContext {
-            mod_path: &[],
-            mod_prefix: "",
-            ii: &mut IntermediateIntent::default(),
-            span_from: &|l, r| Span::new(Rc::clone(&filepath), l..r),
-            use_paths: &mut vec![],
-            next_paths: &mut vec![],
-        };
-
-        match parse_and_collect!(yurt, src_str, filepath, context) {
-            Ok(_) => "".to_string(),
-            Err(errors) => display_errors(&errors),
-        }
-    };
-
     let src = r#"
 let untyped;
 let clash = 5;
@@ -1849,32 +1689,33 @@ let parse_error
 "#;
 
     check(
-        &run_yurt_parser(src),
+        &run_parser!(yp::YurtParser::new(), src),
         expect_test::expect![[r#"
-        type annotation or initializer needed for variable `untyped`
-        @1..12: type annotation or initializer needed
-        consider giving `untyped` an explicit type or an initializersymbol `clash` has already been declared
-
-        @18..23: previous declaration of the value `clash` here
-        @33..38: `clash` redeclared here
-        `clash` must be declared or imported only once in this scopesymbol `clash` has already been declared
-
-        @18..23: previous declaration of the value `clash` here
-        @48..53: `clash` redeclared here
-        `clash` must be declared or imported only once in this scopeempty tuple types are not allowed
-        @76..78: empty tuple type found
-        empty tuple expressions are not allowed
-        @81..83: empty tuple expression found
-        empty array types are not allowed
-        @102..107: empty array type found
-        missing array index
-        @132..135: missing array element index
-        invalid integer `0x5` as tuple index
-        @163..166: invalid integer as tuple index
-        invalid value `1e5` as tuple index
-        @191..194: invalid value as tuple index
-        expected `:`, `;`, or `=`, found `end of file`
-        @211..211: expected `:`, `;`, or `=`
-    "#]],
+            type annotation or initializer needed for variable `untyped`
+            @1..12: type annotation or initializer needed
+            consider giving `untyped` an explicit type or an initializer
+            symbol `clash` has already been declared
+            @18..23: previous declaration of the value `clash` here
+            @33..38: `clash` redeclared here
+            `clash` must be declared or imported only once in this scope
+            symbol `clash` has already been declared
+            @18..23: previous declaration of the value `clash` here
+            @48..53: `clash` redeclared here
+            `clash` must be declared or imported only once in this scope
+            empty tuple types are not allowed
+            @76..78: empty tuple type found
+            empty tuple expressions are not allowed
+            @81..83: empty tuple expression found
+            empty array types are not allowed
+            @102..107: empty array type found
+            missing array index
+            @132..135: missing array element index
+            invalid integer `0x5` as tuple index
+            @163..166: invalid integer as tuple index
+            invalid value `1e5` as tuple index
+            @191..194: invalid value as tuple index
+            expected `:`, `;`, or `=`, found `end of file`
+            @211..211: expected `:`, `;`, or `=`
+        "#]],
     );
 }

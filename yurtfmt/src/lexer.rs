@@ -60,6 +60,10 @@ pub(super) enum Token<'sc> {
     Fn,
     #[token("in")]
     In,
+    #[token("if")]
+    If,
+    #[token("else")]
+    Else,
     #[token("cond")]
     Cond,
     #[token("enum")]
@@ -138,8 +142,10 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Constraint => write!(f, "constraint"),
             Token::Fn => write!(f, "fn"),
             Token::In => write!(f, "in"),
-            Token::Enum => write!(f, "cond"),
-            Token::Cond => write!(f, "enum"),
+            Token::If => write!(f, "if"),
+            Token::Else => write!(f, "else"),
+            Token::Cond => write!(f, "cond"),
+            Token::Enum => write!(f, "enum"),
             Token::Contract => write!(f, "contract"),
             Token::Implements => write!(f, "implements"),
             Token::Interface => write!(f, "interface"),

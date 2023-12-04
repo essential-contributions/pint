@@ -1,5 +1,5 @@
 use crate::{
-    intent::intermediate::{ExprKey, VarKey},
+    intent::intermediate::{CallKey, ExprKey, VarKey},
     span::{Span, Spanned},
     types::{Path, Type},
 };
@@ -26,7 +26,11 @@ pub enum Expr {
         rhs: ExprKey,
         span: Span,
     },
-    Call {
+    MacroCall {
+        call: CallKey,
+        span: Span,
+    },
+    FnCall {
         name: Path,
         args: Vec<ExprKey>,
         span: Span,
@@ -137,7 +141,8 @@ impl Spanned for Expr {
             | Expr::PathByName(_, span)
             | Expr::UnaryOp { span, .. }
             | Expr::BinaryOp { span, .. }
-            | Expr::Call { span, .. }
+            | Expr::MacroCall { span, .. }
+            | Expr::FnCall { span, .. }
             | Expr::If { span, .. }
             | Expr::Array { span, .. }
             | Expr::ArrayElementAccess { span, .. }

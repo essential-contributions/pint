@@ -1,0 +1,68 @@
+name: Deploy mdBook site to Pages
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches:
+      - master
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch: {}
+
+# Allows writing to the gh-pages branch
+permissions:
+  contents: write
+  pages: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run
+# in-progress and latest queued. However, do NOT cancel in-progress runs as we
+# want to allow these production deployments to complete.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  RUST_VERSION: 1.74.0
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v1
+        with:
+          mdbook-version: 0.4.30
+
+      - name: Install cargo-nextest
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: mdbook-katex
+          locked: true
+
+      - name: Build Specs Book
+        run: mdbook build docs/specs
+
+      - name: Deploy Specs Book
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/specs/book
+          destination_dir: ./specs
+
+      - name: Build Yurt Book
+        run: mdbook build docs/book
+
+      - name: Deploy Yurt Book
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/book/book
+          destination_dir: ./book

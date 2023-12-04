@@ -3,8 +3,8 @@ use std::{
     io::{BufRead, BufReader},
     path::{Path, PathBuf},
 };
-
 use yansi::Color::{Cyan, Red, Yellow};
+use yurtc::error::ReportableError;
 
 #[cfg(test)]
 mod e2e {
@@ -56,12 +56,13 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
         // Parse the project and check its output.
         let _ii = match yurtc::parser::parse_project(&path) {
             Err(errs) => {
-                // Just comma separate all the errors on a single line.
+                // separate all the errors using a `\n`
                 let errs_str = errs
                     .iter()
-                    .map(|err| err.to_string())
-                    .collect::<Vec<_>>()
-                    .join("\n");
+                    .map(|err| err.display_raw())
+                    .collect::<String>()
+                    .trim_end()
+                    .to_string();
 
                 if let Some(parse_error_str) = expectations.parse_failure {
                     similar_asserts::assert_eq!(parse_error_str.trim_end(), errs_str);

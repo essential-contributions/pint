@@ -142,11 +142,7 @@ impl<'sc> Format for Decl<'sc> {
             Self::Fn { fn_sig, body } => {
                 fn_sig.format(formatted_code)?;
 
-                formatted_code.write_line(" {");
-
                 body.format(formatted_code)?;
-
-                formatted_code.write("\n}");
             }
             Self::Interface { name, fn_sigs } => {
                 formatted_code.write(&format!("interface {name} {{"));
@@ -289,6 +285,7 @@ pub struct Block<'sc> {
 
 impl<'sc> Format for Block<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        formatted_code.write_line(" {");
         formatted_code.increase_indent();
 
         for (i, statement) in self.statements.iter().enumerate() {
@@ -301,7 +298,9 @@ impl<'sc> Format for Block<'sc> {
         }
 
         self.final_expr.format(formatted_code)?;
+
         formatted_code.decrease_indent();
+        formatted_code.write("\n}");
 
         Ok(())
     }
@@ -479,6 +478,26 @@ impl<'sc> Format for Cast<'sc> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct If<'sc> {
+    pub condition: Box<Expr<'sc>>,
+    pub true_code_block: Block<'sc>,
+    pub false_code_block: Block<'sc>,
+}
+
+impl<'sc> Format for If<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        formatted_code.write("if ");
+        self.condition.format(formatted_code)?;
+        self.true_code_block.format(formatted_code)?;
+
+        formatted_code.write(" else");
+        self.false_code_block.format(formatted_code)?;
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) struct Cond<'sc> {
     pub cond_branches: Vec<(Expr<'sc>, Expr<'sc>)>,
     pub else_branch: Box<Expr<'sc>>,
@@ -517,6 +536,7 @@ pub(super) enum Expr<'sc> {
     In(In<'sc>),
     Range(Range<'sc>),
     Cast(Cast<'sc>),
+    If(If<'sc>),
     Cond(Cond<'sc>),
 }
 
@@ -531,6 +551,7 @@ impl<'sc> Format for Expr<'sc> {
             Self::In(in_) => in_.format(formatted_code)?,
             Self::Range(range) => range.format(formatted_code)?,
             Self::Cast(cast) => cast.format(formatted_code)?,
+            Self::If(if_) => if_.format(formatted_code)?,
             Self::Cond(cond) => cond.format(formatted_code)?,
         }
 
