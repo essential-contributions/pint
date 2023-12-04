@@ -1,0 +1,14 @@
+// <disabled>
+macro @a($x) {
+    let z = @b($x);
+}
+
+macro @b($x) {
+    let z = @a($x);
+}
+
+solve satisfy;
+
+// parse_failure <<<
+// unbound recursion
+// >>>
