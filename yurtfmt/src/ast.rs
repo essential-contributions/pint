@@ -141,7 +141,7 @@ impl<'sc> Format for Decl<'sc> {
             }
             Self::Fn { fn_sig, body } => {
                 fn_sig.format(formatted_code)?;
-
+                formatted_code.write(" ");
                 body.format(formatted_code)?;
             }
             Self::Interface { name, fn_sigs } => {
@@ -285,7 +285,7 @@ pub struct Block<'sc> {
 
 impl<'sc> Format for Block<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
-        formatted_code.write_line(" {");
+        formatted_code.write_line("{");
         formatted_code.increase_indent();
 
         for (i, statement) in self.statements.iter().enumerate() {
@@ -488,9 +488,10 @@ impl<'sc> Format for If<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         formatted_code.write("if ");
         self.condition.format(formatted_code)?;
+        formatted_code.write(" ");
         self.true_code_block.format(formatted_code)?;
 
-        formatted_code.write(" else");
+        formatted_code.write(" else ");
         self.false_code_block.format(formatted_code)?;
 
         Ok(())
@@ -541,6 +542,7 @@ pub(super) enum Expr<'sc> {
     Cast(Cast<'sc>),
     If(If<'sc>),
     Cond(Cond<'sc>),
+    Block(Block<'sc>),
 }
 
 impl<'sc> Format for Expr<'sc> {
@@ -556,6 +558,7 @@ impl<'sc> Format for Expr<'sc> {
             Self::Cast(cast) => cast.format(formatted_code)?,
             Self::If(if_) => if_.format(formatted_code)?,
             Self::Cond(cond) => cond.format(formatted_code)?,
+            Self::Block(block) => block.format(formatted_code)?,
         }
 
         Ok(())

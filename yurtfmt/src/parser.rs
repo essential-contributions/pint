@@ -319,6 +319,7 @@ pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Par
         let atom = choice((
             unary_op(expr.clone()),
             immediate().map(ast::Expr::Immediate),
+            code_block_expr(expr.clone()).map(ast::Expr::Block),
             if_expr(expr.clone()),
             cond_expr(expr.clone()),
             call,

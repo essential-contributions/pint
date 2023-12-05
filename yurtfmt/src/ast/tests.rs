@@ -929,7 +929,11 @@ fn if_exprs() {
 fn cond_exprs() {
     // check(
     //     &run_formatter!(cond_expr(expr()), "cond { else => { a } }"),
-    //     expect_test::expect![[r#"cond { else => { a } }"#]],
+    //     expect_test::expect![[r#"
+    //     cond { else => {
+    //             a
+    //         }
+    //     }"#]],
     // );
     check(
         &run_formatter!(cond_expr(expr()), "cond { else => a, }"),
