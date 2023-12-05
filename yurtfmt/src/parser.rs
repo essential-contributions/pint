@@ -486,7 +486,7 @@ pub(super) fn if_expr<'sc>(
         .boxed()
 }
 
-pub(super) fn tuple_field_access<'sc, P>(
+fn tuple_field_access<'sc, P>(
     parser: P,
 ) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone
 where
