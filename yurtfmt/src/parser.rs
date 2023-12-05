@@ -325,13 +325,13 @@ pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Par
             .boxed();
 
         let tuple = tuple_fields
-            .validate(|tuple_fields, span, emit| {
-                if tuple_fields.is_empty() {
-                    emit(ParseError::EmptyTupleExpr { span })
-                }
-                tuple_fields
-            })
-            .map_with_span(|fields, span| ast::Expr::Tuple { fields, span })
+            // .validate(|tuple_fields, span, emit| {
+            //     if tuple_fields.is_empty() {
+            //         emit(ParseError::EmptyTupleExpr { span })
+            //     }
+            //     tuple_fields
+            // })
+            .map(|fields, span| ast::Expr::Tuple { fields })
             .boxed();
 
         let atom = choice((
