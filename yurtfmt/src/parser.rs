@@ -316,11 +316,30 @@ pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Par
             .map(|(path, args)| ast::Expr::Call(ast::Call { path, args }))
             .boxed();
 
+        let tuple_fields = (ident().then_ignore(just(Token::Colon)))
+            .or_not()
+            .then(expr.clone())
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+            .boxed();
+
+        let tuple = tuple_fields
+            .validate(|tuple_fields, span, emit| {
+                if tuple_fields.is_empty() {
+                    emit(ParseError::EmptyTupleExpr { span })
+                }
+                tuple_fields
+            })
+            .map_with_span(|fields, span| ast::Expr::Tuple { fields, span })
+            .boxed();
+
         let atom = choice((
             unary_op(expr.clone()),
             immediate().map(ast::Expr::Immediate),
             if_expr(expr.clone()),
             call,
+            tuple,
             path().map(ast::Expr::Path),
         ))
         .boxed();

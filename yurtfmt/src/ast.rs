@@ -498,6 +498,31 @@ impl<'sc> Format for If<'sc> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct Tuple<'sc> {
+    fields: Vec<(Option<String>, Expr<'sc>)>,
+}
+
+impl<'sc> Format for Tuple<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct TupleFieldAccess<'sc> {
+    tuple: Box<Expr<'sc>>,
+    field: String,
+}
+
+impl<'sc> Format for TupleFieldAccess<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        self.tuple.format(formatted_code)?;
+        formatted_code.write(&format!(".{field}"));
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) enum Expr<'sc> {
     Immediate(Immediate),
     Path(Path),
@@ -508,6 +533,8 @@ pub(super) enum Expr<'sc> {
     Range(Range<'sc>),
     Cast(Cast<'sc>),
     If(If<'sc>),
+    Tuple(Tuple<'sc>),
+    TupleFieldAccess(TupleFieldAccess<'sc>),
 }
 
 impl<'sc> Format for Expr<'sc> {
@@ -522,6 +549,10 @@ impl<'sc> Format for Expr<'sc> {
             Self::Range(range) => range.format(formatted_code)?,
             Self::Cast(cast) => cast.format(formatted_code)?,
             Self::If(if_) => if_.format(formatted_code)?,
+            Self::Tuple(tuple) => tuple.format(formatted_code)?,
+            Self::TupleFieldAccess(tuple_field_access) => {
+                tuple_field_access.format(formatted_code)?
+            }
         }
 
         Ok(())
