@@ -297,6 +297,8 @@ impl<'sc> Format for Block<'sc> {
             }
         }
 
+        // TODO: Fix the back indentation when in cond statements, aka nested indenting
+
         self.final_expr.format(formatted_code)?;
 
         formatted_code.decrease_indent();
@@ -507,14 +509,15 @@ pub(super) struct Cond<'sc> {
 
 impl<'sc> Format for Cond<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
-        formatted_code.write("cond { ");
+        formatted_code.write_line("cond {");
+        formatted_code.increase_indent();
 
         for cond in &self.cond_branches {
             cond.0.format(formatted_code)?;
             formatted_code.write(" => ");
             cond.1.format(formatted_code)?;
 
-            formatted_code.write(", ");
+            formatted_code.write_line(",");
         }
 
         formatted_code.write("else => ");
@@ -524,7 +527,8 @@ impl<'sc> Format for Cond<'sc> {
             formatted_code.write(",");
         }
 
-        formatted_code.write(" }");
+        formatted_code.decrease_indent();
+        formatted_code.write("\n}");
 
         Ok(())
     }
