@@ -41,6 +41,8 @@ pub(super) enum Token<'sc> {
     Plus,
     #[token("-")]
     Minus,
+    #[token(".")]
+    Dot,
     #[token("..")]
     TwoDots,
     #[regex(r"/|%|\*|>|<|<=|>=|!=|==|&&|\|\|", |lex| lex.slice())]
@@ -129,6 +131,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Arrow => write!(f, "->"),
             Token::Plus => write!(f, "+"),
             Token::Minus => write!(f, "-"),
+            Token::Dot => write!(f, "."),
             Token::TwoDots => write!(f, ".."),
             Token::BinaryOp(op) => write!(f, "{op}"),
             Token::Primitive(ident) => write!(f, "{ident}"),

@@ -498,26 +498,47 @@ impl<'sc> Format for If<'sc> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct Tuple<'sc> {
-    fields: Vec<(Option<String>, Expr<'sc>)>,
+pub(super) struct TupleExpr<'sc> {
+    pub fields: Vec<(Option<String>, Expr<'sc>)>,
 }
 
-impl<'sc> Format for Tuple<'sc> {
+impl<'sc> Format for TupleExpr<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        formatted_code.write("{");
+
+        for (i, field) in self.fields.iter().enumerate() {
+            formatted_code.write(" ");
+
+            if let Some(ident) = &field.0 {
+                formatted_code.write(&format!("{ident}: "))
+            }
+
+            field.1.format(formatted_code)?;
+
+            // If not the last element, add a comma
+            if i < self.fields.len() - 1 {
+                formatted_code.write(",");
+            } else {
+                formatted_code.write(" ");
+            }
+        }
+
+        formatted_code.write("}");
+
         Ok(())
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct TupleFieldAccess<'sc> {
-    tuple: Box<Expr<'sc>>,
-    field: String,
+    pub tuple: Box<Expr<'sc>>,
+    pub field: String,
 }
 
 impl<'sc> Format for TupleFieldAccess<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         self.tuple.format(formatted_code)?;
-        formatted_code.write(&format!(".{field}"));
+        formatted_code.write(&format!(".{}", self.field));
         Ok(())
     }
 }
@@ -533,7 +554,7 @@ pub(super) enum Expr<'sc> {
     Range(Range<'sc>),
     Cast(Cast<'sc>),
     If(If<'sc>),
-    Tuple(Tuple<'sc>),
+    Tuple(TupleExpr<'sc>),
     TupleFieldAccess(TupleFieldAccess<'sc>),
 }
 
