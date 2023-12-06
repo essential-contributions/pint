@@ -285,18 +285,7 @@ pub struct Block<'sc> {
 
 impl<'sc> Format for Block<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
-        println!(
-            "code:\n {} \n Indentation level:{} \n ------",
-            formatted_code.code, formatted_code.indent_level
-        );
-
         formatted_code.write_line("{");
-
-        println!(
-            "code:\n {} \n Indentation level:{} \n ------",
-            formatted_code.code, formatted_code.indent_level
-        );
-
         formatted_code.increase_indent();
 
         for (i, statement) in self.statements.iter().enumerate() {
@@ -309,31 +298,11 @@ impl<'sc> Format for Block<'sc> {
         }
 
         // TODO: Fix the back indentation when in cond statements, aka nested indenting
-        println!(
-            "code:\n {} \n Indentation level:{} \n ------",
-            formatted_code.code, formatted_code.indent_level
-        );
 
         self.final_expr.format(formatted_code)?;
 
-        println!(
-            "code:\n {} \n Indentation level:{} \n ------",
-            formatted_code.code, formatted_code.indent_level
-        );
-
         formatted_code.decrease_indent();
-
-        println!(
-            "code:\n {} \n Indentation level:{} \n ------",
-            formatted_code.code, formatted_code.indent_level
-        );
-
         formatted_code.write("\n}");
-
-        println!(
-            "code:\n {} \n Indentation level:{} \n ------",
-            formatted_code.code, formatted_code.indent_level
-        );
 
         Ok(())
     }
@@ -540,24 +509,8 @@ pub(super) struct Cond<'sc> {
 
 impl<'sc> Format for Cond<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
-        println!(
-            "code:\n {} \n Indentation level:{} \n ------",
-            formatted_code.code, formatted_code.indent_level
-        );
-
         formatted_code.write_line("cond {");
-
-        println!(
-            "code:\n {} \n Indentation level:{} \n ------",
-            formatted_code.code, formatted_code.indent_level
-        );
-
         formatted_code.increase_indent();
-
-        println!(
-            "code:\n {} \n Indentation level:{} \n ------",
-            formatted_code.code, formatted_code.indent_level
-        );
 
         for cond in &self.cond_branches {
             cond.0.format(formatted_code)?;
@@ -567,41 +520,15 @@ impl<'sc> Format for Cond<'sc> {
             formatted_code.write_line(",");
         }
 
-        println!(
-            "code:\n {} \n Indentation level:{} \n ------",
-            formatted_code.code, formatted_code.indent_level
-        );
-
         formatted_code.write("else => ");
         self.else_branch.format(formatted_code)?;
-
-        println!(
-            "code:\n {} \n Indentation level:{} \n ------",
-            formatted_code.code, formatted_code.indent_level
-        );
 
         if self.trailing_comma {
             formatted_code.write(",");
         }
 
-        println!(
-            "code:\n {} \n Indentation level:{} \n ------",
-            formatted_code.code, formatted_code.indent_level
-        );
-
         formatted_code.decrease_indent();
-
-        println!(
-            "code:\n {} \n Indentation level:{} \n ------",
-            formatted_code.code, formatted_code.indent_level
-        );
-
         formatted_code.write("\n}");
-
-        println!(
-            "code:\n {} \n Indentation level:{} \n ------",
-            formatted_code.code, formatted_code.indent_level
-        );
 
         Ok(())
     }
