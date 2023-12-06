@@ -652,7 +652,12 @@ UnaryOp: ExprKey = {
 };
 
 UnaryOpOp: UnaryOp = {
-    "+" => UnaryOp::Pos,
+    <l:@L> "+" <r:@R> => {
+        errors.push(Error::Parse {
+            error: ParseError::UnsupportedLeadingPlus { span: (context.span_from)(l, r) },
+        });
+        UnaryOp::Error
+    },
     "-" => UnaryOp::Neg,
     "!" => UnaryOp::Not,
 };
