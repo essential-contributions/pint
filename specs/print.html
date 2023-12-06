@@ -401,26 +401,26 @@ Recall that decision variables are the variables that the solver has to choose v
 <li>simple, declarative semantics.</li>
 </ul>
 <p>Yurt's design is inspired by both <a href="https://www.minizinc.org/">MiniZinc</a> and <a href="https://www.rust-lang.org/">Rust</a>.</p>
-<p>This document has the following structure. <a href="lang/language_primitives.html#notation">Notation</a> introduces the syntax notation used throughout the specification. <a href="lang/language_primitives.html#overview-of-an-intent-model">Overview of an Intent Model</a> provides a high-level overview of Yurt intent models. <a href="lang/language_primitives.html#syntax-overview">Syntax Overview</a> covers syntax basics. <a href="lang/language_primitives.html#high-level-intent-structure">High-level Intent Structure</a> covers high-level structure: items, multi-file models, namespaces, and scopes. <a href="lang/language_primitives.html#types">Types</a> introduces available types. <a href="lang/language_primitives.html#expressions">Expressions</a> covers expressions. <a href="lang/language_primitives.html#items">Items</a> describes the top-level items in detail.</p>
+<p>This document has the following structure. <a href="lang/language_primitives.html#notation">Notation</a> introduces the syntax notation used throughout the specification. <a href="lang/language_primitives.html#overview-of-an-intent-model">Overview of an Intent Model</a> provides a high-level overview of Yurt intent models. <a href="lang/language_primitives.html#syntax-overview">Syntax Overview</a> covers syntax basics. <a href="lang/language_primitives.html#high-level-intent-structure">High-level Intent Structure</a> covers high-level structure: items, multi-file intents, namespaces, and name shadowing. <a href="lang/language_primitives.html#types">Types</a> introduces available types. <a href="lang/language_primitives.html#expressions">Expressions</a> covers expressions. <a href="lang/language_primitives.html#items">Items</a> describes the top-level items in detail.</p>
 <h2 id="notation"><a class="header" href="#notation">Notation</a></h2>
 <p>The specification of the Yurt programming language presented in this document follows the <a href="https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form">BNF format</a>. The basics of the BNF used are as follows:</p>
 <ul>
 <li>Non-terminals are written between angle brackets, e.g. <code>&lt;item&gt;</code>.</li>
-<li>Terminals are written in double quotes, e.g. <code>&quot;solve&quot;</code>. A double quote terminal is written as a sequence of three double quotes: <code>&quot;&quot;&quot;</code>.</li>
+<li>Terminals are written in double quotes, e.g. <code>&quot;solve&quot;</code>.</li>
 <li>Optional items are written in square bracket, e.g. <code>[ &quot;,&quot; ]</code></li>
 <li>Sequences of zero or more items are written with parentheses and a star, e.g. <code>( &quot;,&quot; &lt;ident&gt; )*</code></li>
 <li>Sequences of one or more items are written with parentheses and a plus, e.g. <code>( &quot;,&quot; &lt;ident&gt; )+</code>.</li>
 <li>Non-empty lists are written with an item, a separator/terminator terminal, and three dots. For example, <code>&lt;expr&gt; &quot;,&quot; ...</code> is short for <code>&lt;expr&gt; ( &quot;,&quot; &lt;expr&gt; )* [ &quot;,&quot; ]</code>. The final terminal is always optional in non-empty lists.</li>
 </ul>
 <h2 id="overview-of-an-intent-model"><a class="header" href="#overview-of-an-intent-model">Overview of an Intent Model</a></h2>
-<p>Conceptually, a Yurt problem specification has two parts:</p>
+<p>Conceptually, a Yurt program has two parts:</p>
 <ol>
-<li>The <em>model</em>: the main part of the problem specification, which describes the structure of a particular class of problems.</li>
-<li>The data: the input data for the model, which specifies one particular problem with this class of problems.</li>
+<li>The <em>intent model</em>: the main part of the program, which describes the structure of a particular class of intents.</li>
+<li>The data: the input data for the model, which specifies one particular intent with this class of intents.</li>
 </ol>
-<p>The pairing of a model with a particular data set is a <em>model instance</em>.</p>
+<p>The pairing of a model with a particular data set is an <em>intent model instance</em>.</p>
 <p>The model and data may be separated, or the data may be &quot;hard-wired&quot; into the model.</p>
-<p>There are two broad classes of problems: satisfaction and optimization. In satisfaction problems all solutions are considered equally good, whereas in optimization problems the solutions are ordered according to an objective and the ai is to find a solution whose objective is optimal. <a href="lang/language_primitives.html#solve-items">Solve Items</a> specifies how the class of problem is chosen.</p>
+<p>There are two broad classes of intents: satisfaction and optimization. In satisfaction intents all solutions are considered equally good, whereas in optimization intents the solutions are ordered according to an objective and the goal is to find a solution whose objective is optimal. <a href="lang/language_primitives.html#solve-items">Solve Items</a> specifies how the class of intent is chosen.</p>
 <h2 id="syntax-overview"><a class="header" href="#syntax-overview">Syntax Overview</a></h2>
 <h3 id="character-set"><a class="header" href="#character-set">Character set</a></h3>
 <p>Yurt input files must be encoded as UTF-8 and may have the extension <code>*.yrt</code>.</p>
@@ -429,24 +429,25 @@ Recall that decision variables are the variables that the solver has to choose v
 <p>A <code>//</code> indicates that the rest of the line is a comment.</p>
 <h3 id="identifiers"><a class="header" href="#identifiers">Identifiers</a></h3>
 <p>Identifiers have the following syntax:</p>
-<pre><code class="language-bnf">&lt;ident&gt; ::= _?[A-Za-z][A-Za-z0-9]*     % excluding keywords
+<pre><code class="language-bnf">&lt;ident&gt; ::= [A-Za-z_][A-Za-z_0-9]*     % excluding keywords
 </code></pre>
-<p>A number of keywords are reserved and cannot be used as identifiers. The keywords are: <code>as</code>, <code>bool</code>, <code>constraint</code>, <code>contract</code>, <code>else</code>, <code>enum</code>, <code>extern</code>, <code>false</code>, <code>fn</code>, <code>if</code>, <code>implements</code>, <code>interface</code>, <code>int</code>, <code>let</code>, <code>maximize</code>, <code>minimize</code>, <code>real</code>, <code>satisfy</code>, <code>solve</code>, <code>state</code>, <code>string</code>, <code>true</code>, <code>type</code>, <code>use</code>.</p>
+<p>For example, <code>___j_Bond_007_</code> is a valid identifier.</p>
+<p>A number of keywords are reserved and cannot be used as identifiers. The keywords are: <code>as</code>, <code>bool</code>, <code>cond</code>, <code>constraint</code>, <code>contract</code>, <code>else</code>, <code>enum</code>, <code>extern</code>, <code>false</code>, <code>fn</code>, <code>if</code>, <code>implements</code>, <code>in</code>, <code>interface</code>, <code>int</code>, <code>let</code>, <code>macro</code>, <code>maximize</code>, <code>minimize</code>, <code>real</code>, <code>satisfy</code>, <code>self</code>, <code>solve</code>, <code>state</code>, <code>string</code>, <code>true</code>, <code>type</code>, <code>use</code>.</p>
 <h3 id="paths"><a class="header" href="#paths">Paths</a></h3>
 <p>A path is a sequence of one ore more path segments logically separated by a namespace qualifier (<code>::</code>). If a path consists of only one segment, it refers to either an item or a variable in a local control scope. If a path has multiple segments, it always refers to an item.</p>
 <p>Paths have the following syntax:</p>
 <pre><code class="language-bnf">&lt;path&gt; ::= [ &quot;::&quot; ] &lt;ident&gt; ( &quot;::&quot; &lt;ident&gt; )*
 </code></pre>
-<p>For example:</p>
-<pre><code class="language-yurt">::x;
-x::y::z;
-x;
+<p>For example, the following are all valid paths:</p>
+<pre><code class="language-yurt">::x
+x::y::z
+x
 </code></pre>
 <p>Paths can be used in <a href="lang/language_primitives.html#import-items">Import Items</a>. They can also be used in expressions to directly refer to an item in a different module or <a href="lang/language_primitives.html#contract-items">contract</a>.</p>
 <p>Paths that start with <code>::</code> are absolute paths from the root of the project. Paths that don't start with <code>::</code> are relative paths.</p>
 <h2 id="high-level-intent-structure"><a class="header" href="#high-level-intent-structure">High-level Intent Structure</a></h2>
-<p>A Yurt intent consists of one or more semicolon separated <code>items</code>:</p>
-<pre><code class="language-bnf">&lt;intent&gt; ::= ( &lt;item&gt; &quot;;&quot; )*
+<p>A Yurt intent consists of one or more Yurt files according to the rules described in <a href="lang/language_primitives.html#multi-file-intents">Multi-File Intents</a>. Each Yurt file contains one or more <code>&lt;item&gt;</code>s:</p>
+<pre><code class="language-bnf">&lt;yurt-file&gt; ::= &lt;item&gt;*
 </code></pre>
 <p>Items can occur in any order; identifiers need not be declared before they are used. Items have the following top-level syntax:</p>
 <pre><code class="language-bnf">&lt;item&gt; ::= &lt;import-item&gt;
@@ -467,12 +468,12 @@ x;
 <p>Constraint items describe intent constraints (<a href="lang/language_primitives.html#constraint-items">Constraint Items</a>).</p>
 <p>Macro items introduce new parameterized blocks of declarations or expressions which can be used to facilitate code re-use (<a href="lang/language_primitives.html#macro-items">Macro Items</a>).</p>
 <p>Enum declaration items describe C-style enumerations (<a href="lang/language_primitives.html#enum-declaration-items">Enum Declaration Items</a>).</p>
+<p>New Type items let you assign a new name to an existing type, simplifying complex type definitions or providing more context for certain types (<a href="lang/language_primitives.html#new-type-items">&quot;New Type&quot; Items</a>).</p>
 <p>Solve items specify exact what kind of solution the user is interested in: plain satisfaction, or the minimization/maximization of an expression. Each intent must have at most one solve item (<a href="lang/language_primitives.html#solve-items">Solve Items</a>).</p>
 <p>Interface items contain lists of smart contract methods that a <a href="lang/language_primitives.html#contract-items">contract</a> can have (<a href="lang/language_primitives.html#interface-items">Interface Items</a>).</p>
 <p>Contract items describe actual deployed contracts with a known contract ID and a list of available methods (<a href="lang/language_primitives.html#contract-items">contract Items</a>).</p>
 <p>&quot;Extern&quot; items contain lists of external functions that allow accessing data on a blockchain (<a href="lang/language_primitives.html#extern-items">&quot;Extern&quot; Items</a>).</p>
-<p>New Type items let you assign a new name to an existing type, simplifying complex type definitions or providing more context for certain types (<a href="lang/language_primitives.html#new-type-items">&quot;New Type&quot; Items</a>).</p>
-<h3 id="multi-file-intents"><a class="header" href="#multi-file-intents">Multi-file Intents</a></h3>
+<h3 id="multi-file-intents"><a class="header" href="#multi-file-intents">Multi-File Intents</a></h3>
 <p>An intent can be spread across multiple files. Each file implicitly declares a local module or submodule dependency.</p>
 <h4 id="entry-file"><a class="header" href="#entry-file">Entry File</a></h4>
 <p>Each multi-file Yurt project has an entry file. Compiling the entry file (e.g. using <code>yurtc &lt;filename&gt;</code>) should also compile all local modules and submodules that the entry file directly or indirectly depends on.</p>
@@ -489,10 +490,35 @@ x;
 <li>A multi-file submodule must be defined inside a directory that has the same name as the submodule itself. Moreover, the entry file of the submodule must also have the same name as the submodule. For example, multi-file submodule <code>multi_submod</code> must be defined in <code>src/multi_mod/multi_submod/multi_submod.yrt</code> and its own submodule dependencies must live in <code>src/multi_mod/multi_submod/</code>. The absolute <a href="lang/language_primitives.html#paths">path</a> to items in <code>multi_submod.yrt</code> is <code>::multi_mod::multi_submod::&lt;item&gt;</code>.</li>
 </ul>
 <p>Note that it is not allowed to have a file and a folder with the same name in any of the project's subdirectories. For example, a project that contains both <code>src/my_mod.yrt</code> and <code>src/my_mod/...</code> should not compile. Moreover, having a single file in a subdirectory is allowed even though subdirectories are typically used for multi-file modules. For example, having a single file in <code>src/my_mod/</code> is allowed as long as the name of that file is <code>my_mod.yrt</code>. This is equivalent to having the module live in <code>src/my_mod.yrt</code> and skipping the subdirectory <code>src/my_mod/</code> altogether.</p>
-<h3 id="namespaces-and-scopes"><a class="header" href="#namespaces-and-scopes">Namespaces and Scopes</a></h3>
-<p>TODO</p>
+<h3 id="namespaces"><a class="header" href="#namespaces">Namespaces</a></h3>
+<p>All names declared at the top-level of a Yurt file belong to a single namespace. It includes the following names:</p>
+<ol>
+<li>All variable names.</li>
+<li>All function names.</li>
+<li>The names of all user-defined types.</li>
+</ol>
+<p><a href="lang/language_primitives.html#import-items">import item</a> used in a Yurt file import new names to its namespace.</p>
+<h3 id="name-shadowing"><a class="header" href="#name-shadowing">Name Shadowing</a></h3>
+<p>Name shadowing in Yurt is not allowed. For example, both examples below should fail to compile:</p>
+<pre><code class="language-yurt">let x = 5;
+let x = 6;
+</code></pre>
+<pre><code class="language-yurt">let x = 5;
+let y = {
+    let x = 6; // shadows the `x` outside the block expression
+    x
+}
+</code></pre>
+<p>Note, however, that <a href="lang/language_primitives.html#macro-items">macro</a> bodies <strong>are allowed</strong> to declare new variables with names that have been used outside the macro body, because macro expansion is designed to be <a href="lang/language_primitives.html#hygiene">hygienic</a>. For example, the following is allowed:</p>
+<pre><code class="language-yurt">let half = 5;
+
+macro @is_even($a) {
+    let half: int;
+    constraint $a == half * 2; // `half` here refers to the one declared inside the macro
+}
+</code></pre>
 <h2 id="types"><a class="header" href="#types">Types</a></h2>
-<p>Yurt provides 4 scalar types built-in: Booleans, integers, reals and strings. Yurt also provides tuples and arrays as a compound built-int type.</p>
+<p>Yurt provides 4 scalar primitive types: Boolean (<code>bool</code>), integer (<code>int</code>), real (<code>real</code>) and string (<code>string</code>). Yurt also provides tuples and arrays as a compound built-in type, as well as C-style enumeration types.</p>
 <p>The syntax for types is as follows:</p>
 <pre><code class="language-bnf">&lt;ty&gt; ::= &quot;bool&quot;
        | &quot;int&quot;
@@ -500,6 +526,7 @@ x;
        | &quot;string&quot;
        | &lt;tuple-ty&gt;
        | &lt;array-ty&gt;
+       | &lt;enum-ty&gt;
        | &lt;custom-ty&gt;
 </code></pre>
 <h3 id="tuple-type"><a class="header" href="#tuple-type">Tuple Type</a></h3>
@@ -511,9 +538,9 @@ x;
 <p>Note that the grammar disallows empty tuple types <code>{ }</code>.</p>
 <h3 id="array-type"><a class="header" href="#array-type">Array Type</a></h3>
 <p>An array type represents a collection of items that share the same type. Arrays can be multi-dimensional and have the following syntax:</p>
-<pre><code class="language-bnf">&lt;array-ty&gt; ::= &lt;ty&gt; ( &quot;[&quot; &lt;expr&gt; | &lt;custom-ty&gt; &quot;]&quot; )+
+<pre><code class="language-bnf">&lt;array-ty&gt; ::= &lt;ty&gt; ( &quot;[&quot; &lt;expr&gt; | &lt;path&gt; &quot;]&quot; )+
 </code></pre>
-<p>An array dimension can be indexed using non-negative integers. It can also be indexed using enum variants of some enum type or some <a href="lang/language_primitives.html#new-type-items">new type</a> that resolves to an enum type. The allowed type of the index depends on how the dimension is specified in the array type definition.</p>
+<p>An array dimension can be indexed using an expression of type <code>int</code> which has to be non-negative. It can also be indexed using a <code>&lt;path&gt;</code> that represents an enum variant of some enum type or some <a href="lang/language_primitives.html#new-type-items">new type</a> that resolves to an enum type. The allowed type of the index depends on how the dimension is specified in the array type definition.</p>
 <ul>
 <li>
 <p>An array dimension that can be indexed using an integer requires that the corresponding dimension size is specified in between brackets as an expression that is evaluatable, <strong>at compile-time</strong>, to a <strong>strictly positive</strong> integer. Otherwise, the compiler should emit an error.</p>
@@ -527,11 +554,17 @@ x;
 enum Colour = Red | Green | Blue;
 let a: real[N][Colour];`
 </code></pre>
-<p><code>a</code> is a two dimensional array that contains <code>N</code> arrays of size 3 each (because <code>Colour</code> is an enum that has 3 variants). An element of <code>a</code> can be <a href="lang/language_primitives.html#array-expressions-and-array-element-access-expressions">accessed</a> using <code>a[3][Colour::Green]</code>, which accesses the second element of the fourth array in <code>a</code>.</p>
+<p><code>a</code> is a two dimensional array that contains <code>N</code> arrays of size 3 each (because <code>Colour</code> is an enum that has 3 variants). An element of <code>a</code> can be <a href="lang/language_primitives.html#array-expressions-and-array-element-access-expressions">accessed</a> using a syntax similar to <code>a[3][Colour::Green]</code>, which accesses the second element of the fourth array in <code>a</code>.</p>
 <h3 id="enum-type"><a class="header" href="#enum-type">Enum Type</a></h3>
 <p>An enum type refers to an <a href="lang/language_primitives.html#enum-declaration-items">enum declaration</a> using its path and has the following syntax:</p>
 <pre><code class="language-bnf">&lt;enum-ty&gt; ::= &lt;path&gt;
 </code></pre>
+<p>For example, <code>::path::to::MyEnum</code> may refer to an enum called <code>MyEnum</code> if an enum called <code>MyEnum</code> exists and is available in the scope of <code>::path::to::MyEnum</code>.</p>
+<h3 id="custom-type"><a class="header" href="#custom-type">Custom type</a></h3>
+<p>Custom types may refer to any type and are declared using <a href="lang/language_primitives.html#new-type-items">&quot;New Type&quot; Items</a>. Custom types are referred to using a path:</p>
+<pre><code class="language-ebnf">&lt;custom-ty&gt; ::= &lt;path&gt;
+</code></pre>
+<p>For example, <code>::path::to::MyNewType</code> may refer to some custom type called <code>MyNewType</code> if a <a href="lang/language_primitives.html#new-type-items">new type</a> called <code>MyNewType</code> exists and is available in the scope of <code>::path::to::MyNewType</code>.</p>
 <h2 id="expressions"><a class="header" href="#expressions">Expressions</a></h2>
 <h3 id="expressions-overview"><a class="header" href="#expressions-overview">Expressions Overview</a></h3>
 <p>Expressions represent values and have the following syntax:</p>
@@ -548,37 +581,42 @@ let a: real[N][Colour];`
          | &lt;tuple-field-access-expr&gt;
          | &lt;array-expr&gt;
          | &lt;array-element-access-expr&gt;
+         | &lt;range-expr&gt;
          | &lt;if-expr&gt;
          | &lt;cond-expr&gt;
          | &lt;call-expr&gt;
          | &lt;cast-expr&gt;
          | &lt;in-expr&gt;
-         | &lt;range-expr&gt;
          | &lt;prime-expr&gt;
 </code></pre>
-<p>Expressions can be composed from sub-expressions with operators. All unary and binary operators are described in <a href="lang/language_primitives.html#operators">Operators
-</a>. All unary operators bind more tightly than all binary operators. Expressions can also be contained within parentheses.</p>
+<p>Expressions can be composed from sub-expressions with operators. All unary and binary operators are described in <a href="lang/language_primitives.html#operators">Operators</a>. All unary operators bind more tightly than all binary operators. Expressions can also be contained within parentheses.</p>
 <h3 id="operators"><a class="header" href="#operators">Operators</a></h3>
-<p>Operators are functions that are distinguished by their syntax:</p>
-<ol>
-<li>They mostly contain non-alphanumeric characters that normal functions do not (e.g. <code>+</code>).</li>
-<li>Their application may be written differently than normal functions.</li>
-</ol>
-<p>There are two kinds of operators:</p>
+<p>Operators are special functions that are distinguished by their syntax. There are two kinds of operators:</p>
 <ol>
 <li>Unary operators which can be applied in a prefix manner without parentheses, e.g. <code>-x</code>.</li>
 <li>Binary operator which can be applied in an infix manner, e.g. <code>3 + 4</code>.</li>
 </ol>
-<pre><code class="language-bnf">&lt;un-op&gt; ::= &quot;+&quot; | &quot;-&quot; | &quot;!&quot;
+<pre><code class="language-bnf">&lt;un-op&gt; ::= &quot;-&quot;   // Arithmetic negation
+          | &quot;!&quot;   // Bitwise or logical complement
 
-&lt;bin-op&gt; ::= &quot;&lt;&quot; | &quot;&gt;&quot; | &quot;&lt;=&quot; | &quot;&gt;=&quot; | &quot;==&quot; | &quot;!=&quot;
-           | &quot;+&quot; | &quot;-&quot; | &quot;*&quot; | &quot;/&quot; | &quot;%&quot;
-           | &quot;&amp;&amp;&quot; | &quot;||&quot;
+&lt;bin-op&gt; ::= &quot;&lt;&quot;  // Less than comparison
+           | &quot;&gt;&quot;  // Greater than comparison
+           | &quot;&lt;=&quot; // Less than or equal comparison
+           | &quot;&gt;=&quot; // Greater than or equal comparison
+           | &quot;==&quot; // Nonequality comparison
+           | &quot;!=&quot; // Nonequality comparison
+           | &quot;+&quot;  // Arithmetic Addition
+           | &quot;-&quot;  // Arithmetic Subtraction
+           | &quot;*&quot;  // Arithmetic multiplication
+           | &quot;/&quot;  // Arithmetic division
+           | &quot;%&quot;  // Arithmetic remainder
+           | &quot;&amp;&amp;&quot; // Logical AND
+           | &quot;||&quot; // Logical OR
 </code></pre>
 <h3 id="expression-atoms"><a class="header" href="#expression-atoms">Expression Atoms</a></h3>
 <h4 id="block-expressions"><a class="header" href="#block-expressions">Block Expressions</a></h4>
-<p>Block expressions are expressions that contains a list of <em>statements</em> followed by an expression within curly bracket <code>{ .. }</code>. Formally:</p>
-<pre><code class="language-bnf">&lt;block-expr&gt; ::= &quot;{&quot; ( &lt;block-statement&gt; &quot;;&quot; )* &lt;expr&gt; &quot;}&quot;
+<p>Block expressions are expressions that contain a list of <em>statements</em> followed by an expression within curly bracket <code>{ .. }</code>. Formally:</p>
+<pre><code class="language-bnf">&lt;block-expr&gt; ::= &quot;{&quot; ( &lt;block-statement&gt; )* &lt;expr&gt; &quot;}&quot;
 
 &lt;block-statement&gt; ::= &lt;let-item&gt;
                     | &lt;state-item&gt;
@@ -587,8 +625,14 @@ let a: real[N][Colour];`
 <p>The type of the block expression is the type of the final expression. For example:</p>
 <pre><code class="language-yurt">let x: int = {
     let y: int = 2;
-    y + 1
+    y + 1 // returned final expression of type `int`
 }
+</code></pre>
+<p>the above is equivalent to the following:</p>
+<pre><code class="language-yurt">let x: int;
+let y: int;
+constraint y == 2;
+constraint x == y + 1;
 </code></pre>
 <h4 id="boolean-literals"><a class="header" href="#boolean-literals">Boolean Literals</a></h4>
 <p>Boolean literals have this syntax:</p>
@@ -614,9 +658,9 @@ let a: real[N][Colour];`
 </code></pre>
 <p>For example: <code>&quot;Hello, world!\n&quot;</code>.</p>
 <p>String literals can be broken across multiple lines by escaping the newline and leading whitespace with a <code>\</code>. For example:</p>
-<pre><code class="language-yurt">let string = &quot;first line\
-             second line\
-             third line&quot;;
+<pre><code class="language-yurt">let mutli_line_string: string = &quot;first line\
+                                 second line\
+                                 third line&quot;;
 </code></pre>
 <h4 id="tuple-expressions-and-tuple-field-access-expressions"><a class="header" href="#tuple-expressions-and-tuple-field-access-expressions">Tuple Expressions and Tuple Field Access Expressions</a></h4>
 <p>Tuple expressions are written as:</p>
@@ -627,7 +671,7 @@ let a: real[N][Colour];`
 <pre><code class="language-yurt">let t: { x: int, real } = { 6, 5.0 }
 </code></pre>
 <p>where the type of the tuple is indicated by the type annotation and has a named field <code>x</code>, but that named field is not actually used in the tuple expression. This is allowed because <code>{ x: int, real }</code> and <code>{ int, real }</code> coerce into each other.</p>
-<p>Tuple fields can be initialized out of order only if all the fields have names and their names are used in the tuple expression. For example, the following is allowed:</p>
+<p>Tuple fields can be initialized out of order only if and only if all the fields have names and their names are used in the tuple expression. For example, the following is allowed:</p>
 <pre><code class="language-yurt">let t: { x: int, y: real } = { y: 5.0, x: 6 };
 </code></pre>
 <p>while the following are not:</p>
@@ -649,32 +693,62 @@ let t: { x: int, y: real } = { 5.0, 6 }; // This is a type mismatch!
 <p>The following is another example:</p>
 <pre><code class="language-yurt">let b: real[2][3] = [ [ 1.0, 2.0, 3.0], [4.0, 5.0, 6.0] ];
 </code></pre>
-<p>where the type of the array is indicated by the type annotation. Note that the initializers of <code>b</code> is an array expression that contains other array expressions to reflect the fact that <code>b</code> is two dimensional. Also note that <code>real[2][3]</code> is an array that contains 2 elements where each element is of size 3, and not the other way around.</p>
+<p>where the type of the array is indicated by the type annotation. Note that the initializer of <code>b</code> is an array expression that contains other array expressions to reflect the fact that <code>b</code> is two dimensional. Also note that <code>real[2][3]</code> is an array that contains 2 elements where each element is an array of size 3, and not the other way around.</p>
 <p>The grammar disallows empty array expressions <code>[ ]</code> because arrays of size 0 are not allowed.</p>
 <p>All element expressions used in an array expression must have the exact same type and that type must match the type indicated in the array type annotation, if available.</p>
 <p>Array element access expressions are written as:</p>
 <pre><code class="language-bnf">&lt;array-element-access-expr&gt; ::= &lt;expr&gt; ( &quot;[&quot; expr &quot;]&quot; )+
 </code></pre>
 <p>For example, <code>a[1];</code> refers to the second element of array <code>a</code> in the example above. Therefore, <code>a[1]</code> should be equal to <code>2</code>. Similarly, <code>b[0][2]</code> in the example above refers to the third elements from the first inner array of <code>b</code>. That is, <code>b[0][2]</code> should be equal to <code>3.0</code>.</p>
-<p>Yurt requires that the expression used to index into is an array. For example, in <code>foo()[5]</code>, <code>foo()</code> must return array of the appropriate size.</p>
+<p>Yurt requires that the expression used to index into is an array. For example, in <code>foo()[5]</code>, <code>foo()</code> must return an array of an appropriate size.</p>
 <p>Yurt also requires that each array index is known (i.e. evaluatable) at compile-time. In addition, Yurt requires that each index evaluates to:</p>
 <ol>
 <li>A <strong>non-negative</strong> integer that is <strong>strictly smaller</strong> than the corresponding dimension (i.e. within bounds), if the dimension has a size that is specified using an integer in the array type definition.</li>
 <li>A path to an enum variant of some enum type, if the dimension size is specified using that enum type in the array type definition.</li>
 </ol>
-<p>Below is an example where both an integer and an enum variant are used to index into an two-dimensional array:</p>
+<p>Below is an example where both an integer and an enum variant are used to index into a two-dimensional array:</p>
 <pre><code class="language-yurt">let N = 5;
 enum Colour = Red | Green | Blue;
 let a: real[N][Colour];`
 
 let a_3_g = a[3][Colour::Green];
 </code></pre>
+<h4 id="range-expressions"><a class="header" href="#range-expressions">Range Expressions</a></h4>
+<p>Range expressions are used to refer to ranges between a lower bound value and an upper bound value:</p>
+<pre><code class="language-bnf">&lt;range-expr&gt; ::= &lt;expr&gt; &quot;..&quot; &lt;expr&gt;
+</code></pre>
+<p>Range expressions require that both the lower bound and the upper bound expressions have the same type. The type of a range expression is identical to the type of its bounds.</p>
+<p>The only allowed types for the bounds of a range expression are <code>int</code> and <code>real</code>.</p>
+<p>Range expressions can only be used in two contexts:</p>
+<ol>
+<li>As the expression on the right-hand side of a <code>&lt;let-item&gt;</code>.</li>
+<li>As the expression on the right-hand side of an <code>&lt;in-expr&gt;</code></li>
+</ol>
+<p>For example,</p>
+<pre><code class="language-yurt">let x: int = 3..5;
+</code></pre>
+<p>is equivalent to:</p>
+<pre><code class="language-yurt">let x: int;
+constraint x in 3..5;
+</code></pre>
+<p>which is equivalent to:</p>
+<pre><code class="language-yurt">let x: int;
+constraint x &gt;= 3;
+constraint x &lt;= 5;
+</code></pre>
 <h4 id="if-expressions"><a class="header" href="#if-expressions">&quot;If&quot; Expressions</a></h4>
 <p>Yurt has <code>if</code> expressions which provide selection from two alternatives based on a condition. They have this syntax:</p>
 <pre><code class="language-bnf">&lt;if-expr&gt; ::= &quot;if&quot; &lt;expr&gt; &lt;block-expr&gt; &quot;else&quot; &lt;block-expr&gt;
 </code></pre>
 <p>The condition <code>&lt;expr&gt;</code> above must be of type <code>bool</code>. The &quot;then&quot; and &quot;else&quot; block expressions must have the same type or have types that are coercible to the same type, which determines the type of the whole <code>if</code> expression.</p>
-<p>Note that the <code>else</code> block is not optional and the <code>else if { .. }</code> syntax is not supported.</p>
+<p>For example:</p>
+<pre><code class="language-yurt">let y = if condition &gt; 0 {
+    1
+} else {
+    2
+};
+</code></pre>
+<p>Note that the <code>else</code> block is <strong>not optional</strong> and the <code>else if { .. }</code> syntax is not supported.</p>
 <h4 id="cond-expressions"><a class="header" href="#cond-expressions">&quot;Cond&quot; Expressions</a></h4>
 <p>Yurt provides <code>cond</code> expressions which are generalized <code>if</code> expressions with more than two branches. That is, they provide selection from multiple alternatives, each based on some condition. They have the following syntax:</p>
 <pre><code class="language-bnf">&lt;cond-branch&gt; ::= &lt;expr&gt; &quot;=&gt;&quot; &lt;expr&gt;
@@ -683,9 +757,21 @@ let a_3_g = a[3][Colour::Green];
 
 &lt;cond-expr&gt; ::= cond &quot;{&quot; ( &lt;cond-branch&gt; &quot;,&quot; )* &lt;else-branch&gt; [ &quot;,&quot; ] &quot;}&quot;
 </code></pre>
-<p>The first <code>&lt;expr&gt;</code> in <code>&lt;cond-branch&gt;</code> must be of type <code>bool</code>. If it evaluates to <code>true</code>, then the branch is active which means that the whole <code>cond</code> expression takes the value of the second <code>&lt;expr&gt;</code> in <code>&lt;cond-branch&gt;</code>.</p>
+<p>The <code>&lt;expr&gt;</code> on the left-hand side of the <code>=&gt;</code> in <code>&lt;cond-branch&gt;</code> must be of type <code>bool</code>. If it evaluates to <code>true</code>, then the branch is active which means that the whole <code>cond</code> expression takes the value of the second <code>&lt;expr&gt;</code> in <code>&lt;cond-branch&gt;</code>.</p>
 <p>The branches are evaluated in order. The first one to become active determines the value of the <code>cond</code> expression. If all branches fail, then the <code>cond</code> expression takes the value of the <code>&lt;expr&gt;</code> in the <code>&lt;else-branch&gt;</code>.</p>
 <p>Similarly to <code>if</code> expressions, all candidate expressions must have the same type or have types that are coercible to the same type, which determines the type of the whole <code>cond</code> expression.</p>
+<p>For example:</p>
+<pre><code class="language-yurt">enum Colour = Red | Green | Blue;
+let y: Colour = Colour::Blue;
+let z: Colour = Colour::Green;
+
+let x: int = cond {
+    z == Red =&gt; 0,
+    y == Green || z != Green =&gt; 1,
+    y == Blue =&gt; 2,
+    else =&gt; 3,
+}; // Evaluates to `2`
+</code></pre>
 <h4 id="call-expressions"><a class="header" href="#call-expressions">Call Expressions</a></h4>
 <p>Call expressions are used to call macros or functions and have the following syntax:</p>
 <pre><code class="language-bnf">&lt;func-call-expr&gt; ::= &lt;path&gt; &quot;(&quot; [ &lt;expr&gt; &quot;,&quot; ... ] &quot;)&quot;
@@ -706,8 +792,8 @@ let a_3_g = a[3][Colour::Green];
 <tr><td><code>int</code></td><td><code>int</code></td><td>No-op</td></tr>
 <tr><td><code>int</code></td><td><code>real</code></td><td>Produce the closest possible <code>real</code></td></tr>
 <tr><td><code>real</code></td><td><code>real</code></td><td>No-op</td></tr>
-<tr><td><code>enum</code></td><td><code>int</code></td><td>Enum cast</td></tr>
-<tr><td><code>bool</code></td><td><code>int</code></td><td>Boolean to integer cast</td></tr>
+<tr><td><code>enum</code></td><td><code>int</code></td><td><a href="lang/language_primitives.html#enum-cast">Enum cast</a></td></tr>
+<tr><td><code>bool</code></td><td><code>int</code></td><td><a href="lang/language_primitives.html#boolean-to-integer-cast">Boolean to integer cast</a></td></tr>
 </tbody></table>
 </div>
 <h5 id="enum-cast"><a class="header" href="#enum-cast">Enum Cast</a></h5>
@@ -716,52 +802,37 @@ let a_3_g = a[3][Colour::Green];
 
 let d = MyEnum::V1 as int; // `d` is equal to `1`.
 </code></pre>
+<p>See <a href="lang/language_primitives.html#enum-declaration-items">Enum Declaration Items</a> for a detailed explanation of how enum discriminants are assigned.</p>
 <h5 id="boolean-to-integer-cast"><a class="header" href="#boolean-to-integer-cast">Boolean to Integer Cast</a></h5>
 <ul>
 <li><code>false</code> casts to <code>0</code>.</li>
 <li><code>true</code> casts to <code>1</code>.</li>
 </ul>
 <h4 id="in-expressions"><a class="header" href="#in-expressions">&quot;In&quot; Expressions</a></h4>
-<p>&quot;In&quot; expressions are used to detect whether a value belongs to an array. They have the following syntax:</p>
+<p>&quot;In&quot; expressions are used to detect whether a value belongs to an <a href="lang/language_primitives.html#array-expressions-and-array-element-access-expressions">array</a> or <a href="lang/language_primitives.html#range-expressions">range</a>. They have the following syntax:</p>
 <pre><code class="language-bnf">&lt;in-expr&gt; ::= &lt;expr&gt; &quot;in&quot; &lt;expr&gt;
 </code></pre>
-<p>An &quot;in&quot; expression returns a <code>bool</code> that indicates whether the left-hand side belongs to the right-hand side. For example, in <code>let x: bool = 5 in [3, 4, 5];</code>, <code>x</code> should be <code>true</code>.</p>
-<p>The right-hand side of an &quot;in&quot; expression must be an array and the type of the left-hand side must match the array elements type. Otherwise, a compiler error should be emitted.</p>
-<p>A value belongs to an array if and only if it is &quot;equal&quot; to one of its entries. Equality for various types is defined as follows:</p>
+<p>An &quot;in&quot; expression returns a <code>bool</code> that indicates whether the left-hand side &quot;belongs&quot; to the right-hand side. For example:</p>
+<ul>
+<li>In <code>let x: bool = 5 in [3, 4, 5];</code>, <code>x</code> should be <code>true</code>.</li>
+<li>In, <code>let y: bool = 2 in 3..5;</code>, <code>x</code> should be <code>false</code>.</li>
+</ul>
+<p>The right-hand side of an &quot;in&quot; expression must be an array or a range and the type of the left-hand side must match the type of the array elements or the range bounds. Otherwise, a compiler error should be emitted.</p>
+<p>A value <strong>belongs to an array</strong> if and only if it is &quot;equal&quot; to one of its entries. Equality for various types is defined as follows:</p>
 <div class="table-wrapper"><table><thead><tr><th>Type</th><th>Equality Criterion</th></tr></thead><tbody>
 <tr><td><code>int</code></td><td>Identical values</td></tr>
 <tr><td><code>real</code></td><td>Identical values</td></tr>
 <tr><td><code>bool</code></td><td>Identical values</td></tr>
 <tr><td><code>string</code></td><td>Identical lengths and characters in the same order</td></tr>
 <tr><td><code>enum</code></td><td>Identical variants</td></tr>
-<tr><td>array</td><td>Identical lengths and <em>equal</em> elements in the same order</td></tr>
+<tr><td>tuple</td><td>Identical lengths and <em>equal</em> elements in the same order</td></tr>
 <tr><td>array</td><td>Identical lengths and <em>equal</em> elements in the same order</td></tr>
 </tbody></table>
 </div>
-<p>Note that two values of different types cannot be compared and should result in a compile error.</p>
-<h4 id="range-expressions"><a class="header" href="#range-expressions">Range Expressions</a></h4>
-<p>Range expressions are used to refer to ranges between a lower bound value and an upper bound value:</p>
-<pre><code class="language-bnf">&lt;range-expr&gt; ::= &lt;expr&gt; &quot;..&quot; &lt;expr&gt;
-</code></pre>
-<p>Range expressions require that both the lower bound and the upper bound expressions have the same type. The type of a range expression is identical to the type of its bounds.</p>
-<p>The only allowed types for the bounds of a range expression are <code>int</code> and <code>real</code>.</p>
-<p>Range expressions can only be used in two contexts:</p>
-<ol>
-<li>As the expression on the right-hand side of a <code>&lt;let-item&gt;</code>.</li>
-<li>As the expression on the right-hand side of an <code>&lt;in-expr&gt;</code></li>
-</ol>
-<p>For example,</p>
-<pre><code class="language-yurt">let x: int = 3..5;
-</code></pre>
-<p>is equivalent to;</p>
-<pre><code class="language-yurt">let x: int;
-constraint x in 3..5;
-</code></pre>
-<p>which is equivalent to:</p>
-<pre><code class="language-yurt">let x: int;
-constraint x &gt;= 3;
-constraint x &lt;= 5;
-</code></pre>
+<p>A value <strong>belongs to a range</strong> if and only if it is within the bounds of the range. This is only valid and well-defined, by the rules of <code>&lt;=</code> and <code>&gt;=</code>, for integer (<code>int</code>) and real (<code>real</code>) values, since ranges of any other type are not supported.</p>
+<blockquote>
+<p><strong>Note:</strong> two values of different types cannot be compared (both equality and inequality) and should result in a compile error.</p>
+</blockquote>
 <h4 id="prime-expressions"><a class="header" href="#prime-expressions">Prime Expressions</a></h4>
 <p>Prime expressions are used to refer to the <em>future</em> value of a <a href="lang/language_primitives.html#state-declaration-items">state variable</a>. They have the following syntax:</p>
 <pre><code class="language-bnf">&lt;prime-expr&gt; ::= &lt;expr&gt; &quot;'&quot;
@@ -777,7 +848,7 @@ constraint u' - u &gt; 10;
 <tr><td>Paths</td><td></td></tr>
 <tr><td>Tuple field access expressions</td><td>left to right</td></tr>
 <tr><td>Call expressions, array indexing</td><td></td></tr>
-<tr><td>Unary <code>-</code>, Unary <code>+</code>, <code>!</code></td><td></td></tr>
+<tr><td>Unary <code>-</code>, <code>!</code></td><td></td></tr>
 <tr><td><code>as</code></td><td>left to right</td></tr>
 <tr><td><code>in</code></td><td>left to right</td></tr>
 <tr><td><code>*</code>, <code>/</code>, <code>%</code></td><td>left to right</td></tr>
@@ -792,34 +863,40 @@ constraint u' - u &gt; 10;
 <p>This section describes the top-level program items.</p>
 <h3 id="import-items"><a class="header" href="#import-items">Import Items</a></h3>
 <p>Within a scope, import items create shortcuts to items defined in other files. Import items have the following syntax:</p>
-<pre><code class="language-bnf">&lt;use-tree&gt; ::= [ [ &lt;path&gt; ] &quot;::&quot; ] &quot;*&quot;
-             | [ [ &lt;path&gt; ] &quot;::&quot; ] &quot;{&quot; [ &lt;use-tree&gt; &quot;,&quot; ... ] &quot;}&quot;
-             | &lt;path&gt; [ &quot;as&quot; &lt;ident&gt; ]
+<pre><code class="language-bnf">&lt;use-path&gt; ::= [ &quot;::&quot; ] ( &lt;ident&gt; | &quot;self&quot; ) ( &quot;::&quot; ( &lt;ident&gt; | &quot;self&quot; ) )*
+&lt;use-tree&gt; ::= [ [ &lt;use-path&gt; ] &quot;::&quot; ] &quot;*&quot;
+             | [ [ &lt;use-path&gt; ] &quot;::&quot; ] &quot;{&quot; [ &lt;use-tree&gt; &quot;,&quot; ... ] &quot;}&quot;
+             | &lt;use-path&gt; [ &quot;as&quot; &lt;ident&gt; ]
 
-&lt;import-item&gt; ::= &quot;use&quot; &lt;use-tree&gt;
+&lt;import-item&gt; ::= &quot;use&quot; &lt;use-tree&gt; &quot;;&quot;
 </code></pre>
-<p>An import item creates one or more local name bindings synonymous with some other path. Usually a <code>use</code> item is used to shorten the path required to refer to a module item. These items may appear in modules and blocks, usually at the top.</p>
-<p>Use declarations support a number of convenient shortcuts:</p>
+<p>An import item creates one or more local name bindings synonymous with some other path. Usually a <code>use</code> item is used to shorten the path required to refer to a module item. These items may appear in modules, usually at the top. <strong>An item must be imported <em>before</em> it can be used</strong>. This is the only instance in Yurt where the order of items is important.</p>
+<p>&quot;Use&quot; items support a number of convenient shortcuts:</p>
 <ul>
-<li>Simultaneously binding a list of paths with a common prefix, using the brace syntax <code>use a::b::{c, d, e::f, g::h::i};</code></li>
+<li>Simultaneously binding a list of paths with a common prefix, using the brace syntax <code>use ::a::b::{c, d, e::f, g::h::i};</code></li>
 <li>Simultaneously binding a list of paths with a common prefix and their common parent module, using the <code>self</code> keyword, such as <code>use a::b::{self, c, d::e};</code>.</li>
 <li>Rebinding the target name as a new local name, using the syntax <code>use p::q::r as x;</code>. This can also be used with the last two features: <code>use a::b::{self as ab, c as abc};</code>.</li>
-<li>Nesting groups of the previous features multiple times, such as <code>use a::b::{self as ab, c, d::{e, f::g}};</code>.</li>
+<li>Nesting groups of the previous features multiple times, such as <code>use ::a::b::{self as ab, c, d::{e, f::g}};</code>.</li>
 </ul>
 <h3 id="let-declaration-items"><a class="header" href="#let-declaration-items">Let Declaration Items</a></h3>
-<p>These are variables whose values may or may not be unknown for a given <em>instance</em> for an intent. Solvers are required to find appropriate values for those variables with unknown values at compile-time.</p>
+<p>These are typed <strong>decision variables</strong> whose values must be determined by a solver. They are the the &quot;unknowns&quot; of the program.</p>
 <p>Variable declaration items have the following syntax:</p>
-<pre><code class="language-bnf">&lt;let-item&gt; ::= &quot;let&quot; &lt;ident&gt; ( ( &quot;:&quot; &lt;ty&gt; ) | (&quot;=&quot; &lt;expr&gt; ) | ( &quot;:&quot; &lt;ty&gt; &quot;=&quot; &lt;expr&gt; ) )
+<pre><code class="language-bnf">&lt;let-item&gt; ::= &quot;let&quot; &lt;ident&gt; ( ( &quot;:&quot; &lt;ty&gt; ) | (&quot;=&quot; &lt;expr&gt; ) | ( &quot;:&quot; &lt;ty&gt; &quot;=&quot; &lt;expr&gt; ) ) &quot;;&quot;
 </code></pre>
 <p>For example:</p>
 <pre><code class="language-yurt">let x: int;
 let y = 5;
+let z: int = 7;
 </code></pre>
 <p>Note that at least one of the type annotation and the initializing expression has to be present so that the type of the variable can be determined. This implies that <code>let x;</code> is not a valid variable declaration.</p>
+<p>&quot;Initializing&quot; a decision variable is equivalent to imposing an equality constraint on it. For example, <code>let y = 5</code> is equivalent to:</p>
+<pre><code class="language-yurt">let y: int;
+constraint y == 5;
+</code></pre>
 <h3 id="state-declaration-items"><a class="header" href="#state-declaration-items">State Declaration Items</a></h3>
-<p>These are variables that represent blockchain <em>state</em> and require an initializer in the form of a <a href="lang/language_primitives.html#contract-items">contract</a> method call or a call an <a href="lang/language_primitives.html#extern-items"><code>extern</code> function</a>. State variables are <em>not</em> decision variables and the solver is not required to find values for them as their true value is determined by the blockchain. That being said, state variables can still be used in <a href="lang/language_primitives.html#constraint-items">constraint items</a> to enforce various restrictions on the current and future state values.</p>
+<p>These are variables that represent blockchain <em>state</em> and <strong>require</strong> an initializer in the form of a <a href="lang/language_primitives.html#contract-items">contract</a> method call or a call to an <a href="lang/language_primitives.html#extern-items"><code>extern</code> function</a>. State variables are <em>not</em> decision variables and the solver is not required to find values for them as their true value is determined by the blockchain. That being said, state variables can still be used in <a href="lang/language_primitives.html#constraint-items">constraint items</a> to enforce various restrictions on the current and <a href="lang/language_primitives.html#prime-expressions">future state values</a>.</p>
 <p>State declaration items have the following syntax:</p>
-<pre><code class="language-bnf">&lt;state-item&gt; ::= &quot;state&quot; &lt;ident&gt; [ &quot;:&quot; &lt;ty&gt; ] &quot;=&quot; &lt;expr&gt;
+<pre><code class="language-bnf">&lt;state-item&gt; ::= &quot;state&quot; &lt;ident&gt; [ &quot;:&quot; &lt;ty&gt; ] &quot;=&quot; &lt;expr&gt; &quot;;&quot;
 </code></pre>
 <p>For example:</p>
 <pre><code class="language-yurt">state x: int = MyContract::foo();
@@ -829,7 +906,7 @@ state y = MyContract::bar();
 <h3 id="constraint-items"><a class="header" href="#constraint-items">Constraint Items</a></h3>
 <p>Constraint items represent the core of any intent. Any solution to the intent must satisfy all of its constraints.</p>
 <p>Constraint items have this syntax:</p>
-<pre><code class="language-bnf">&lt;constraint-item&gt; ::= &quot;constraint&quot; &lt;expr&gt;
+<pre><code class="language-bnf">&lt;constraint-item&gt; ::= &quot;constraint&quot; &lt;expr&gt; &quot;;&quot;
 </code></pre>
 <p>For example:</p>
 <pre><code class="language-yurt">constraint a + b &lt;= c
@@ -1004,15 +1081,44 @@ z
 <p>The extra type information is used to confirm correct use, which is not directly possible with regular macros. Expansion otherwise follows the regular macro procedures.</p>
 <h3 id="enum-declaration-items"><a class="header" href="#enum-declaration-items">Enum Declaration Items</a></h3>
 <p>In Yurt, an enum type is a named enumeration of integer constants. Unlike sum types found in some functional languages, each member of an enum in Yurt is associated with an integer discriminant, making it similar to C-style enums. The syntax for declaring an enum is:</p>
-<pre><code class="language-bnf">&lt;enum-decl-item&gt; ::= &quot;enum&quot; &lt;ident&gt; &quot;=&quot; &lt;ident&gt; ( &quot;|&quot; &lt;ident&gt; )*
+<pre><code class="language-bnf">&lt;enum-decl-item&gt; ::= &quot;enum&quot; &lt;ident&gt; &quot;=&quot; &lt;ident&gt; ( &quot;|&quot; &lt;ident&gt; )* &quot;;&quot;
 </code></pre>
 <p>For example, <code>enum Colour = Red | Green | Blue;</code> declares an enum with three variants. An instantiation of a <code>Colour</code> can be created using a path that includes the name of the enum, as in <code>Colour::Green;</code>.</p>
-<p>Each enum variant must be assigned a discriminant that matches the index of its location, starting with <code>0</code>, in the sequence of variants as they appear in the enum declaration. An enum variant can be converted to an integer that is equal to its assigned discriminant using <code>as</code>.</p>
+<p>Each enum variant is assigned a discriminant that matches the index of its location, starting with <code>0</code>, in the sequence of variants as they appear in the enum declaration. An enum variant can be converted to an integer that is equal to its assigned discriminant using <a href="lang/language_primitives.html#cast-expressions"><code>as</code></a>.</p>
+<h3 id="new-type-items"><a class="header" href="#new-type-items">&quot;New Type&quot; Items</a></h3>
+<p>A &quot;new type&quot; item introduces a new custom type with a given name and an underlying type.</p>
+<p>The syntax for declaring a new type is:</p>
+<pre><code class="language-bnf">&lt;new-type-item&gt; ::= &quot;type&quot; &lt;ident&gt; &quot;=&quot; &lt;ty&gt; &quot;;&quot;
+</code></pre>
+<p>For example:</p>
+<pre><code class="language-yurt">type AccountTuple = { id: int, balance: real, address: string };
+
+type IdArray = int[5];
+
+type Address = string;
+</code></pre>
+<p>New type values may be initialized through:</p>
+<ul>
+<li>
+<p>Expressions that match the new type's &quot;structure&quot;, such as tuple and array expressions.</p>
+</li>
+<li>
+<p>Literals of primitive types (<code>int</code>, <code>real</code>, <code>bool</code>, <code>string</code>) as long as they are compatible with the new type's underlying definition.</p>
+</li>
+</ul>
+<p>For example:</p>
+<pre><code class="language-yurt">let walletDetails: AccountTuple = {id: 1, balance: 2.0, address: &quot;0x1234...ABCD&quot;};
+
+let ids: IdArray = [1, 2, 3, 4, 5];
+
+let myAddress: Address = &quot;0x1234567890abcdef&quot;;
+</code></pre>
+<p>New types are <strong>not aliases</strong>, meaning they are not completely interchangeable with their underlying type. That is, there is no implicit conversion between a new type and its underlying type (or other new types with the same underlying type) except when explicit literals, array expressions, or tuple expressions are used for initialization.</p>
 <h3 id="solve-items"><a class="header" href="#solve-items">Solve Items</a></h3>
 <p>Every intent must have at most one solve item. Solve items have the following syntax:</p>
-<pre><code class="language-bnf">&lt;solve-item&gt; ::= &quot;solve&quot; &quot;satisfy&quot;
-               | &quot;solve&quot; &quot;minimize&quot; &lt;expr&gt;
-               | &quot;solve&quot; &quot;maximize&quot; &lt;expr&gt;
+<pre><code class="language-bnf">&lt;solve-item&gt; ::= &quot;solve&quot; &quot;satisfy&quot; &quot;;&quot;
+               | &quot;solve&quot; &quot;minimize&quot; &lt;expr&gt; &quot;;&quot;
+               | &quot;solve&quot; &quot;maximize&quot; &lt;expr&gt; &quot;;&quot;
 </code></pre>
 <p>Example solve items:</p>
 <pre><code class="language-yurt">solve satisfy;
@@ -1065,37 +1171,8 @@ solve maximize a + b - c;
 </code></pre>
 <p>The types used in the signature of <code>extern</code> functions depend on the types used by the external APIs. In the case of Ethereum JSON-RPC, a string is used to encode all values, hence a <code>string</code> type must be used in the <code>extern</code> block.</p>
 <p>Extern functions are available directly without any special scoping. The only requirement is that the functions are called in the same file where the <code>extern</code> block is declared or that the functions are imported using an <a href="lang/language_primitives.html#import-items">import item</a>, similarly to regular functions.</p>
-<h3 id="new-type-items"><a class="header" href="#new-type-items">&quot;New Type&quot; Items</a></h3>
-<p>New Type items introduce a distinct type that is not directly interchangeable with its underlying type or other new types based on the same underlying type.</p>
-<p>The syntax for declaring a new type is:</p>
-<pre><code class="language-bnf">&lt;new-type-item&gt; ::= &quot;type&quot; &lt;ident&gt; &quot;=&quot; &lt;ty&gt;
-</code></pre>
-<p>For example:</p>
-<pre><code class="language-yurt">type AccountTuple = { id: int, balance: real, address: string };
-
-type IdArray = int[5];
-
-type Address = string;
-</code></pre>
-<p>In the above declarations:</p>
-<p><code>AccountTuple</code> is a new type for a <code>tuple</code> type to represent the account's ID, balance, and address. <code>IdArray</code> is a new type for an <code>array</code> type to represent a list of account ids. <code>Address</code> is an new type for the <code>string</code> type to represent blockchain addresses or other specific string-based identifiers.</p>
-<p>New type values may be initialized through:</p>
-<ul>
-<li>
-<p>Expressions that conform to the new type's structure (such as tuple and array expressions). For instance, <code>{ x: .. }</code> for tuples or <code>[1, y, .. ]</code> for arrays.</p>
-</li>
-<li>
-<p>Literals of primitive types (<code>int</code>, <code>real</code>, <code>bool</code>, <code>string</code>) as long as they are compatible with the new type's underlying definition.</p>
-</li>
-</ul>
-<pre><code class="language-yurt">let walletDetails: AccountTuple = {id: 1, balance: 2.0, address: &quot;0x1234...ABCD&quot;};
-
-let ids: IdArray = [1, 2, 3, 4, 5];
-
-let myAddress: Address = &quot;0x1234567890abcdef&quot;;
-</code></pre>
 <h2 id="language-backend"><a class="header" href="#language-backend">Language Backend</a></h2>
-<p>The backend of the DSL (or API) that we're building is effectively a Constraint Programming Solver, simply referred to as a &quot;solver&quot; in this documentation. Note, this should not be confused with the &quot;solver&quot; agent in the network. There are numerous commercial solvers that can be targeted, such as <a href="https://developers.google.com/optimization/">OR-Tools</a>, <a href="https://www.gecode.org/">Geocode</a>, and <a href="https://github.com/chuffed/chuffed">Chuffed</a>. We could decide on a standardized JSON output that is generated by the compiler and that can be read and subsequently <em>solved</em> by network participants using their solver of choice (not all solvers are created equal!).</p>
+<p>The backend of the Yurt is effectively a programmatic Solver, simply referred to as a &quot;solver&quot; in this spec. Note, this should not be confused with the &quot;solver&quot; agent in the network. There are numerous commercial solvers that can be targeted, such as <a href="https://developers.google.com/optimization/">OR-Tools</a>, <a href="https://www.gecode.org/">Geocode</a>, and <a href="https://github.com/chuffed/chuffed">Chuffed</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
 <h1 id="json-representation-of-intents"><a class="header" href="#json-representation-of-intents">JSON Representation of Intents</a></h1>
 <p>Each intent in the network of solver agents is represented using a JSON object generated by the compiler. The JSON spec below aims to standardize intents so that multiple languages and multiple solvers can be built around it. This will help widen the ecosystem of intent-based architectures.</p>
