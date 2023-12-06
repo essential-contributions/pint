@@ -686,13 +686,8 @@ TermInner: Expr = {
     <l:@L> <path:Path> <r:@R> => Expr::PathByName(path, (context.span_from)(l, r)),
 };
 
-BlockDecl: () = {
-    LetDecl ";",
-    ConstraintDecl ";",
-};
-
 BlockExpr: ExprKey = {
-    "{" BlockDecl* <Expr> "}"
+    "{" (ConstraintDecl ";")* <Expr> "}"
 };
 
 IfExpr: Expr = {

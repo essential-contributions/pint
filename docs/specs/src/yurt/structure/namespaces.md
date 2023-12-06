@@ -10,7 +10,7 @@ All names declared at the top-level of a Yurt file belong to a single namespace.
 
 ### Name Shadowing
 
-Name shadowing in Yurt is not allowed. For example, both examples below should fail to compile:
+Name shadowing in Yurt is not allowed. For example, the following should fail to compile:
 
 ```yurt
 let x = 5;
@@ -19,10 +19,7 @@ let x = 6;
 
 ```yurt
 let x = 5;
-let y = {
-    let x = 6; // shadows the `x` outside the block expression
-    x
-}
+state x = MyContract::bar();
 ```
 
 Note, however, that [macro](../items/macros.md) bodies **are allowed** to declare new variables with names that have been used outside the macro body, because macro expansion is designed to be [hygienic](../items/macros.md#hygiene). For example, the following is allowed:

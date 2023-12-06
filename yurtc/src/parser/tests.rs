@@ -968,12 +968,15 @@ fn code_blocks() {
     check(
         &run_parser!(
             expr,
-            "{ let y: real = 0; constraint x > 0.0; 0.0 }",
+            "{
+                constraint y == 0;
+                constraint x > 0.0;
+                0.0
+            }",
             mod_path
         ),
         expect_test::expect![[r#"
-            var ::foo::y: real;
-            constraint (var ::foo::y: real == 0);
+            constraint (::foo::y == 0);
             constraint (::foo::x > 0e0);
             0e0"#]],
     );
@@ -983,6 +986,44 @@ fn code_blocks() {
         expect_test::expect![[r#"
             constraint true;
             (::foo::x > 0)"#]],
+    );
+
+    check(
+        &run_parser!(
+            expr,
+            "{
+                constraint {
+                    constraint y == 0;
+                    constraint x > 0.0;
+                    true
+                };
+                0.0
+            }",
+            mod_path
+        ),
+        expect_test::expect![[r#"
+            constraint (::foo::y == 0);
+            constraint (::foo::x > 0e0);
+            constraint true;
+            0e0"#]],
+    );
+
+    // No final expr
+    check(
+        &run_parser!(expr, "{ constraint x == 0; }", mod_path),
+        expect_test::expect![[r#"
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
+            @21..22: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+        "#]],
+    );
+
+    // Use of `let`
+    check(
+        &run_parser!(expr, "{ let x = 0; 5 }", mod_path),
+        expect_test::expect![[r#"
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, `{`, or `}`, found `let`
+            @2..5: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, `{`, or `}`
+        "#]],
     );
 
     check(
