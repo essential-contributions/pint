@@ -1014,18 +1014,38 @@ fn tuple_expressions() {
 
 #[test]
 fn tuple_field_accesses() {
-    check(&run_formatter!(expr(), "t.1"), expect_test::expect!["t.1"]);
-    check(&run_formatter!(expr(), "t.a"), expect_test::expect!["t.a"]);
     check(
-        &run_formatter!(expr(), "t.1.1"),
+        &run_formatter!(
+            expr(),
+            "t.
+    1"
+        ),
+        expect_test::expect!["t.1"],
+    );
+    check(
+        &run_formatter!(
+            expr(),
+            "t.
+        1
+        .1"
+        ),
         expect_test::expect!["t.1.1"],
     );
     check(
-        &run_formatter!(expr(), "t.a.1"),
+        &run_formatter!(
+            expr(),
+            "t.a
+        .
+        1"
+        ),
         expect_test::expect!["t.a.1"],
     );
     check(
-        &run_formatter!(expr(), "t.0 + t.9999999 + t.x"),
+        &run_formatter!(
+            expr(),
+            "t  .   0 + t   .   9999999 + t
+        .x"
+        ),
         expect_test::expect!["t.0 + t.9999999 + t.x"],
     );
     check(
@@ -1037,7 +1057,13 @@ fn tuple_field_accesses() {
         expect_test::expect!["{ 0, 1 }.0"],
     );
     check(
-        &run_formatter!(expr(), "{0, 1}.x"),
+        &run_formatter!(
+            expr(),
+            "{
+            0
+            , 1
+        }.x"
+        ),
         expect_test::expect!["{ 0, 1 }.x"],
     );
     check(
