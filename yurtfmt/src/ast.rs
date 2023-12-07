@@ -302,7 +302,10 @@ impl<'sc> Format for Block<'sc> {
         self.final_expr.format(formatted_code)?;
 
         formatted_code.decrease_indent();
-        formatted_code.write("\n}");
+        // formatted_code.write("\n}");
+
+        formatted_code.write_line(""); // This adds just a newline
+        formatted_code.write("}"); // This will now correctly indent the closing brace
 
         Ok(())
     }
@@ -528,7 +531,10 @@ impl<'sc> Format for Cond<'sc> {
         }
 
         formatted_code.decrease_indent();
-        formatted_code.write("\n}");
+        // formatted_code.write("\n}");
+
+        formatted_code.write_line(""); // This adds just a newline
+        formatted_code.write("}"); // This will now correctly indent the closing brace
 
         Ok(())
     }
