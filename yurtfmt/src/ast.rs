@@ -297,15 +297,12 @@ impl<'sc> Format for Block<'sc> {
             }
         }
 
-        // TODO: Fix the back indentation when in cond statements, aka nested indenting
-
         self.final_expr.format(formatted_code)?;
 
         formatted_code.decrease_indent();
-        // formatted_code.write("\n}");
 
-        formatted_code.write_line(""); // This adds just a newline
-        formatted_code.write("}"); // This will now correctly indent the closing brace
+        formatted_code.write_line("");
+        formatted_code.write("}");
 
         Ok(())
     }
@@ -531,10 +528,9 @@ impl<'sc> Format for Cond<'sc> {
         }
 
         formatted_code.decrease_indent();
-        // formatted_code.write("\n}");
 
-        formatted_code.write_line(""); // This adds just a newline
-        formatted_code.write("}"); // This will now correctly indent the closing brace
+        formatted_code.write_line("");
+        formatted_code.write("}");
 
         Ok(())
     }

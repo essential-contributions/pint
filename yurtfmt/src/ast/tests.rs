@@ -971,18 +971,22 @@ fn cond_exprs() {
                     b  },else => c,  }"
         ),
         expect_test::expect![[r#"
-        cond { a => {
-            b
-        }, else => c, }"#]],
-    );
-    check(
-        &run_formatter!(cond_expr(expr()), "cond {a => b,{true}=>d,else=>f,}"),
-        expect_test::expect![[r#"
         cond {
             a => {
                 b
             },
             else => c,
+        }"#]],
+    );
+    check(
+        &run_formatter!(cond_expr(expr()), "cond {a => b,{true}=>d,else=>f,}"),
+        expect_test::expect![[r#"
+        cond {
+            a => b,
+            {
+                true
+            } => d,
+            else => f,
         }"#]],
     );
 }
