@@ -8,7 +8,10 @@ use crate::parser::*;
 use chumsky::{prelude::*, Stream};
 
 #[cfg(test)]
-fn check(actual: &str, expect: expect_test::Expect) {
+use expect_test::{expect, Expect};
+
+#[cfg(test)]
+fn check(actual: &str, expect: Expect) {
     expect.assert_eq(actual);
 }
 
@@ -50,7 +53,7 @@ macro_rules! run_formatter {
 fn errors() {
     check(
         &run_formatter!(yurt_program(), r#"@@@"#),
-        expect_test::expect![[r#"
+        expect![[r#"
             invalid token
             invalid token
             invalid token
@@ -59,7 +62,7 @@ fn errors() {
 
     check(
         &run_formatter!(yurt_program(), r#"let x = 5"#),
-        expect_test::expect![[r#"
+        expect![[r#"
             Error formatting starting at location 9 and ending at location 9
         "#]],
     );
@@ -98,7 +101,7 @@ let         bigint_var=1234567890123456789012345678901234567890;
 let x = y in        1..2;
 "#
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
                 let x = 5;
                 let y = 7.777;
                 let bool_var = true;
@@ -139,7 +142,7 @@ let bin_var :  int=0b1010;
      let x      :int =          y in 1.. 2    ;
 "#
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
                 let x: int = 5;
                 let y: real = 7.777;
                 let bool_var: bool = true;
@@ -161,7 +164,7 @@ let bin_var :  int=0b1010;
     let  bool_var   ;
         "#
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
                 let x;
                 let bool_var;
             "#]],
@@ -176,7 +179,7 @@ let bin_var :  int=0b1010;
             , string };
             "#
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
             let t: { int, real, string };
         "#]],
     );
@@ -203,7 +206,7 @@ solve  maximize ;
         solve   maximize y-    x   ;
   "#
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
                     solve satisfy;
                     solve minimize;
                     solve maximize;
@@ -228,7 +231,7 @@ fn constraint_decls() {
 constraint a::    b::d       ;
         "#
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
         constraint blah;
         constraint a + b <= c;
         constraint !foo;
@@ -242,27 +245,24 @@ fn paths() {
     use crate::parser;
     check(
         &run_formatter!(parser::path(), r#"::     foo    ::   bar   "#),
-        expect_test::expect![[r#"::foo::bar"#]],
+        expect![[r#"::foo::bar"#]],
     );
     check(
         &run_formatter!(path(), "foo    ::   \n   bar"),
-        expect_test::expect![[r#"foo::bar"#]],
+        expect![[r#"foo::bar"#]],
     );
     check(
         &run_formatter!(path(), "_foo_  \n :: \n  _bar"),
-        expect_test::expect![[r#"_foo_::_bar"#]],
+        expect![[r#"_foo_::_bar"#]],
     );
-    check(
-        &run_formatter!(path(), "_  ::   _"),
-        expect_test::expect![[r#"_::_"#]],
-    );
+    check(&run_formatter!(path(), "_  ::   _"), expect![[r#"_::_"#]]);
     check(
         &run_formatter!(path(), "t2::   \n_3t::  t4_   :: t"),
-        expect_test::expect![[r#"t2::_3t::t4_::t"#]],
+        expect![[r#"t2::_3t::t4_::t"#]],
     );
     check(
         &run_formatter!(path(), ":: foo   ::bar "),
-        expect_test::expect![[r#"::foo::bar"#]],
+        expect![[r#"::foo::bar"#]],
     );
 }
 
@@ -275,7 +275,7 @@ fn use_statements() {
 
         use  x ;  "
         ),
-        expect_test::expect!["use x;"],
+        expect!["use x;"],
     );
     check(
         &run_formatter!(
@@ -283,7 +283,7 @@ fn use_statements() {
             "
                 use   a::b::c;"
         ),
-        expect_test::expect![[r#"use a::b::c;"#]],
+        expect![[r#"use a::b::c;"#]],
     );
     check(
         &run_formatter!(
@@ -291,7 +291,7 @@ fn use_statements() {
             "   use {  c, d,e,
     g};  "
         ),
-        expect_test::expect!["use {c, d, e, g};"],
+        expect!["use {c, d, e, g};"],
     );
     check(
         &run_formatter!(
@@ -300,11 +300,11 @@ fn use_statements() {
                 use   q::r   as  x ;
                 "
         ),
-        expect_test::expect!["use q::r as x;"],
+        expect!["use q::r as x;"],
     );
     check(
         &run_formatter!(use_statement(), "  use   q::r as x   ;  "),
-        expect_test::expect!["use q::r as x;"],
+        expect!["use q::r as x;"],
     );
     check(
         &run_formatter!(
@@ -315,7 +315,7 @@ fn use_statements() {
             d::e
             };  "
         ),
-        expect_test::expect!["use a::b::{self, c, d::e};"],
+        expect!["use a::b::{self, c, d::e};"],
     );
     check(
         &run_formatter!(
@@ -326,43 +326,25 @@ fn use_statements() {
             e, f::g} 
             };"
         ),
-        expect_test::expect!["use a::b::{self as ab, c, d::{e, f::g}};"],
+        expect!["use a::b::{self as ab, c, d::{e, f::g}};"],
     );
 }
 
 #[test]
 fn unary_op_exprs() {
-    check(
-        &run_formatter!(expr(), "   !a   "),
-        expect_test::expect![[r#"!a"#]],
-    );
-    check(
-        &run_formatter!(expr(), "   +a   "),
-        expect_test::expect![[r#"+a"#]],
-    );
-    check(
-        &run_formatter!(expr(), " -   a"),
-        expect_test::expect![[r#"-a"#]],
-    );
-    check(
-        &run_formatter!(expr(), "+7"),
-        expect_test::expect![[r#"+7"#]],
-    );
-    check(
-        &run_formatter!(expr(), "+    3.4"),
-        expect_test::expect![[r#"+3.4"#]],
-    );
-    check(
-        &run_formatter!(expr(), "-  1.0"),
-        expect_test::expect![[r#"-1.0"#]],
-    );
+    check(&run_formatter!(expr(), "   !a   "), expect![[r#"!a"#]]);
+    check(&run_formatter!(expr(), "   +a   "), expect![[r#"+a"#]]);
+    check(&run_formatter!(expr(), " -   a"), expect![[r#"-a"#]]);
+    check(&run_formatter!(expr(), "+7"), expect![[r#"+7"#]]);
+    check(&run_formatter!(expr(), "+    3.4"), expect![[r#"+3.4"#]]);
+    check(&run_formatter!(expr(), "-  1.0"), expect![[r#"-1.0"#]]);
     check(
         &run_formatter!(expr(), "! - - !  -+  -1"),
-        expect_test::expect![[r#"!--!-+-1"#]],
+        expect![[r#"!--!-+-1"#]],
     );
     check(
         &run_formatter!(expr(), "!- -! - +  -1 "),
-        expect_test::expect![[r#"!--!-+-1"#]],
+        expect![[r#"!--!-+-1"#]],
     );
 }
 
@@ -370,67 +352,64 @@ fn unary_op_exprs() {
 fn binary_op_exprs() {
     check(
         &run_formatter!(expr(), "   a   *    2.0   "),
-        expect_test::expect![[r#"a * 2.0"#]],
+        expect![[r#"a * 2.0"#]],
     );
     check(
         &run_formatter!(expr(), " a /     2.0 "),
-        expect_test::expect![[r#"a / 2.0"#]],
+        expect![[r#"a / 2.0"#]],
     );
     check(
         &run_formatter!(expr(), "a   %   2.0"),
-        expect_test::expect![[r#"a % 2.0"#]],
+        expect![[r#"a % 2.0"#]],
     );
     check(
         &run_formatter!(expr(), "  a   +  2.0 "),
-        expect_test::expect![[r#"a + 2.0"#]],
+        expect![[r#"a + 2.0"#]],
     );
     check(
         &run_formatter!(expr(), " a   - 2.0   "),
-        expect_test::expect![[r#"a - 2.0"#]],
+        expect![[r#"a - 2.0"#]],
     );
-    check(
-        &run_formatter!(expr(), "a+   2.0"),
-        expect_test::expect![[r#"a + 2.0"#]],
-    );
+    check(&run_formatter!(expr(), "a+   2.0"), expect![[r#"a + 2.0"#]]);
     check(
         &run_formatter!(expr(), " a- 2.0   "),
-        expect_test::expect![[r#"a - 2.0"#]],
+        expect![[r#"a - 2.0"#]],
     );
     check(
         &run_formatter!(expr(), "   a <  2.0   "),
-        expect_test::expect![[r#"a < 2.0"#]],
+        expect![[r#"a < 2.0"#]],
     );
     check(
         &run_formatter!(expr(), " a   >    2.0 "),
-        expect_test::expect![[r#"a > 2.0"#]],
+        expect![[r#"a > 2.0"#]],
     );
     check(
         &run_formatter!(expr(), "a   <= 2.0   "),
-        expect_test::expect![[r#"a <= 2.0"#]],
+        expect![[r#"a <= 2.0"#]],
     );
     check(
         &run_formatter!(expr(), "   a  >=  2.0  "),
-        expect_test::expect![[r#"a >= 2.0"#]],
+        expect![[r#"a >= 2.0"#]],
     );
     check(
         &run_formatter!(expr(), "  a   ==  2.0   "),
-        expect_test::expect![[r#"a == 2.0"#]],
+        expect![[r#"a == 2.0"#]],
     );
     check(
         &run_formatter!(expr(), " a  != 2.0 "),
-        expect_test::expect![[r#"a != 2.0"#]],
+        expect![[r#"a != 2.0"#]],
     );
     check(
         &run_formatter!(expr(), "a  &&  b  "),
-        expect_test::expect![[r#"a && b"#]],
+        expect![[r#"a && b"#]],
     );
     check(
         &run_formatter!(expr(), "   a ||  b  "),
-        expect_test::expect![[r#"a || b"#]],
+        expect![[r#"a || b"#]],
     );
     check(
         &run_formatter!(expr(), "   a     ||  b &&     c  ||      d      &&     ! e"),
-        expect_test::expect![[r#"a || b && c || d && !e"#]],
+        expect![[r#"a || b && c || d && !e"#]],
     );
 }
 
@@ -445,7 +424,7 @@ fn custom_types() {
                 string };
             "#
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
             type MyTuple = { x: int, y: real, z: string };
         "#]],
     );
@@ -459,7 +438,7 @@ fn custom_types() {
             :   string };
             "#
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
             type MyTuple = { real, bool, z: string };
         "#]],
     );
@@ -480,7 +459,7 @@ fn func_decl() {
             }
             "#
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
             fn foo(x: real, y: real) -> real {
                 let x: int = 2;
                 y + 1
@@ -498,7 +477,7 @@ fn interface_test() {
                 fn allowance(owner:  int, spender:   int) -> int;
         }   "
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
             interface IERC20 {
                 fn totalSupply() -> int;
                 fn balanceOf(account: int) -> int;
@@ -508,7 +487,7 @@ fn interface_test() {
     );
     check(
         &run_formatter!(yurt_program(), "interface IERC20  {}  "),
-        expect_test::expect![[r#"
+        expect![[r#"
             interface IERC20 {}
         "#]],
     );
@@ -529,7 +508,7 @@ fn contract_decl() {
         int;
     } "
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
             contract MyToken(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) implements IERC20, Ownable {
                 fn foo() -> int;
                 fn bar() -> int;
@@ -544,7 +523,7 @@ fn contract_decl() {
             implements IERC20, Ownable
              {}  "
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
             contract MyToken(foo) implements IERC20, Ownable {}
         "#]],
     );
@@ -556,7 +535,7 @@ fn contract_decl() {
             
         } "
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
             contract MyToken(foo) {}
         "#]],
     );
@@ -584,7 +563,7 @@ fn state_decl() {
     state tx: int = CryptoUtils::hashTransaction;
             "
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
             state x: int = MyContract::getBalance;
             state y = CryptoExchange::convertToEth;
             state z: int = totalSupply + mintedTokens;
@@ -612,7 +591,7 @@ string;
 -> string;
         }   "
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
             extern {
                 fn eth_getBalance(address: string) -> string;
                 fn eth_gasPrice() -> string;
@@ -626,7 +605,7 @@ string;
             {}  
   "
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
             extern {}
         "#]],
     );
@@ -641,7 +620,7 @@ string;
              string;
             } "
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
             extern {
                 fn eth_blockNumber() -> string;
             }
@@ -658,7 +637,7 @@ string;
                 :  string) -> string;
             }"
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
             extern {
                 fn eth_getCode(address: string, blockTag: string) -> string;
             }
@@ -678,7 +657,7 @@ string;
             string;
             } "
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
             extern {
                 fn eth_call(transaction: string, blockTag: string) -> string;
             }
@@ -690,7 +669,7 @@ string;
 fn enum_decl() {
     check(
         &run_formatter!(yurt_program(), "   enum   Colour=Red|Green|Blue  ;  "),
-        expect_test::expect![[r#"enum Colour = Red | Green | Blue;"#]],
+        expect![[r#"enum Colour = Red | Green | Blue;"#]],
     );
     check(
         &run_formatter!(
@@ -698,7 +677,7 @@ fn enum_decl() {
             "enum       MyEnum =Variant1
         ;"
         ),
-        expect_test::expect![[r#"enum MyEnum = Variant1;"#]],
+        expect![[r#"enum MyEnum = Variant1;"#]],
     );
     check(
         &run_formatter!(
@@ -709,7 +688,7 @@ fn enum_decl() {
     |
      Rainy;"
         ),
-        expect_test::expect![[r#"enum Weather = Sunny | Rainy;"#]],
+        expect![[r#"enum Weather = Sunny | Rainy;"#]],
     );
 }
 
@@ -717,7 +696,7 @@ fn enum_decl() {
 fn array_types() {
     check(
         &run_formatter!(type_(expr()), "int[   10   ]"),
-        expect_test::expect![[r#"int[10]"#]],
+        expect![[r#"int[10]"#]],
     );
     check(
         &run_formatter!(
@@ -726,7 +705,7 @@ fn array_types() {
 Day
 ]"
         ),
-        expect_test::expect![[r#"string[Day]"#]],
+        expect![[r#"string[Day]"#]],
     );
     check(
         &run_formatter!(
@@ -735,11 +714,11 @@ Day
 Colour
 ]"
         ),
-        expect_test::expect![[r#"bool[10][Colour]"#]],
+        expect![[r#"bool[10][Colour]"#]],
     );
     check(
         &run_formatter!(type_(expr()), "real [3] [ 4 ][  5]"),
-        expect_test::expect![[r#"real[3][4][5]"#]],
+        expect![[r#"real[3][4][5]"#]],
     );
     check(
         &run_formatter!(
@@ -748,7 +727,7 @@ Colour
 
 real [   0   ] [ 2 ]"
         ),
-        expect_test::expect![[r#"real[0][2]"#]],
+        expect![[r#"real[0][2]"#]],
     );
     check(
         &run_formatter!(
@@ -759,15 +738,15 @@ N
 Colour
 ]"
         ),
-        expect_test::expect![[r#"string[N][Colour]"#]],
+        expect![[r#"string[N][Colour]"#]],
     );
     check(
         &run_formatter!(type_(expr()), "string[  N   ][Colour  ]"),
-        expect_test::expect![[r#"string[N][Colour]"#]],
+        expect![[r#"string[N][Colour]"#]],
     );
     check(
         &run_formatter!(type_(expr()), "bool[N][Colour]    "),
-        expect_test::expect![[r#"bool[N][Colour]"#]],
+        expect![[r#"bool[N][Colour]"#]],
     );
 }
 
@@ -775,7 +754,7 @@ Colour
 fn call_expressions() {
     check(
         &run_formatter!(expr(), "foo        ()"),
-        expect_test::expect![[r#"foo()"#]],
+        expect![[r#"foo()"#]],
     );
     check(
         &run_formatter!(
@@ -783,11 +762,11 @@ fn call_expressions() {
             "foo( 5, 
             2 )"
         ),
-        expect_test::expect![[r#"foo(5, 2)"#]],
+        expect![[r#"foo(5, 2)"#]],
     );
     check(
         &run_formatter!(expr(), "foo(    5  ,  10    ,20)"),
-        expect_test::expect![[r#"foo(5, 10, 20)"#]],
+        expect![[r#"foo(5, 10, 20)"#]],
     );
     check(
         &run_formatter!(
@@ -798,7 +777,7 @@ fn call_expressions() {
             20
 )"
         ),
-        expect_test::expect![[r#"foo(5, 10, 20)"#]],
+        expect![[r#"foo(5, 10, 20)"#]],
     );
     check(
         &run_formatter!(
@@ -807,11 +786,11 @@ fn call_expressions() {
     10  ,
      20   )"
         ),
-        expect_test::expect![[r#"foo(5, 10, 20)"#]],
+        expect![[r#"foo(5, 10, 20)"#]],
     );
     check(
         &run_formatter!(expr(), "foo(bar(5,6), 2)"),
-        expect_test::expect![[r#"foo(bar(5, 6), 2)"#]],
+        expect![[r#"foo(bar(5, 6), 2)"#]],
     );
     check(
         &run_formatter!(
@@ -820,15 +799,15 @@ fn call_expressions() {
         
 foo  (  5,2  )"
         ),
-        expect_test::expect![[r#"foo(5, 2)"#]],
+        expect![[r#"foo(5, 2)"#]],
     );
     check(
         &run_formatter!(expr(), "foo(5, 2,)"),
-        expect_test::expect![[r#"foo(5, 2)"#]],
+        expect![[r#"foo(5, 2)"#]],
     );
     check(
         &run_formatter!(expr(), "           foo    (5, 2)"),
-        expect_test::expect![[r#"foo(5, 2)"#]],
+        expect![[r#"foo(5, 2)"#]],
     );
 }
 
@@ -836,7 +815,7 @@ foo  (  5,2  )"
 fn in_expressions() {
     check(
         &run_formatter!(expr(), "42    in y"),
-        expect_test::expect![[r#"42 in y"#]],
+        expect![[r#"42 in y"#]],
     );
     check(
         &run_formatter!(
@@ -844,7 +823,7 @@ fn in_expressions() {
             "
 !x in y"
         ),
-        expect_test::expect![[r#"!x in y"#]],
+        expect![[r#"!x in y"#]],
     );
     check(
         &run_formatter!(
@@ -852,7 +831,7 @@ fn in_expressions() {
             "x in   y 
 &&    z in w"
         ),
-        expect_test::expect![[r#"x in y && z in w"#]],
+        expect![[r#"x in y && z in w"#]],
     );
     check(
         &run_formatter!(
@@ -860,23 +839,20 @@ fn in_expressions() {
             "!x   in
 y ||    42 in   z"
         ),
-        expect_test::expect![[r#"!x in y || 42 in z"#]],
+        expect![[r#"!x in y || 42 in z"#]],
     );
 }
 
 #[test]
 fn range_expressions() {
-    check(
-        &run_formatter!(range(expr()), "1..2"),
-        expect_test::expect![[r#"1..2"#]],
-    );
+    check(&run_formatter!(range(expr()), "1..2"), expect![[r#"1..2"#]]);
     check(
         &run_formatter!(range(expr()), "1+2..3+4"),
-        expect_test::expect!["1 + 2..3 + 4"],
+        expect!["1 + 2..3 + 4"],
     );
     check(
         &run_formatter!(range(expr()), "1.1..2.2e3"),
-        expect_test::expect!["1.1..2.2e3"],
+        expect!["1.1..2.2e3"],
     );
 }
 
@@ -884,11 +860,11 @@ fn range_expressions() {
 fn casting() {
     check(
         &run_formatter!(expr(), "5 as      int"),
-        expect_test::expect![[r#"5 as int"#]],
+        expect![[r#"5 as int"#]],
     );
     check(
         &run_formatter!(expr(), "5    as int     as real as    int"),
-        expect_test::expect![[r#"5 as int as real as int"#]],
+        expect![[r#"5 as int as real as int"#]],
     );
     check(
         &run_formatter!(
@@ -896,12 +872,12 @@ fn casting() {
             "5 as { x: int, 
             y: real,    z: string }"
         ),
-        expect_test::expect![[r#"5 as { x: int, y: real, z: string }"#]],
+        expect![[r#"5 as { x: int, y: real, z: string }"#]],
     );
     // TODO: enable when array exprs are supported
     // check(
     //     &run_formatter!(expr(), "a[5][3]   as real"),
-    //     expect_test::expect![[r#"a[5][3] as real"#]],
+    //     expect![[r#"a[5][3] as real"#]],
     // );
 }
 
@@ -916,7 +892,7 @@ fn if_exprs() {
         else {  
             4 }"
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
         if 1 == 2 {
             3
         } else {
@@ -928,7 +904,7 @@ fn if_exprs() {
 fn cond_exprs() {
     check(
         &run_formatter!(cond_expr(expr()), "cond {   else => {  a }  }"),
-        expect_test::expect![[r#"
+        expect![[r#"
         cond {
             else => {
                 a
@@ -943,7 +919,7 @@ fn cond_exprs() {
     else => a
     , }"
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
         cond {
             else => a,
         }"#]],
@@ -957,7 +933,7 @@ fn cond_exprs() {
                b,  
         else => c }"
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
         cond {
             a => b,
             else => c,
@@ -970,7 +946,7 @@ fn cond_exprs() {
                 a           =>{ 
                     b  },else => c,  }"
         ),
-        expect_test::expect![[r#"
+        expect![[r#"
         cond {
             a => {
                 b
@@ -980,7 +956,7 @@ fn cond_exprs() {
     );
     check(
         &run_formatter!(cond_expr(expr()), "cond {a => b,{true}=>d,else=>f,}"),
-        expect_test::expect![[r#"
+        expect![[r#"
         cond {
             a => b,
             {
