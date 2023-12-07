@@ -150,21 +150,18 @@
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
 <h4 id="block-expressions"><a class="header" href="#block-expressions">Block Expressions</a></h4>
 <p>Block expressions are expressions that contain a list of <em>statements</em> followed by an expression within curly bracket <code>{ .. }</code>. Formally:</p>
-<pre><code class="language-bnf">&lt;block-expr&gt; ::= &quot;{&quot; ( &lt;block-statement&gt; )* &lt;expr&gt; &quot;}&quot;
-
-&lt;block-statement&gt; ::= &lt;let-item&gt;
-                    | &lt;state-item&gt;
-                    | &lt;constraint-item&gt;
+<pre><code class="language-bnf">&lt;block-expr&gt; ::= &quot;{&quot; ( &lt;constraint-item&gt; )* &lt;expr&gt; &quot;}&quot;
 </code></pre>
 <p>The type of the block expression is the type of the final expression. For example:</p>
-<pre><code class="language-yurt">let x: int = {
-    let y: int = 2;
+<pre><code class="language-yurt">let y: int;
+let x: int = {
+    constraint y == 2;
     y + 1 // returned final expression of type `int`
 }
 </code></pre>
 <p>the above is equivalent to the following:</p>
-<pre><code class="language-yurt">let x: int;
-let y: int;
+<pre><code class="language-yurt">let y: int;
+let x: int;
 constraint y == 2;
 constraint x == y + 1;
 </code></pre>

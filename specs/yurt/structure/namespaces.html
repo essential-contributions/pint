@@ -157,15 +157,12 @@
 </ol>
 <p><a href="../items/imports.html">import item</a> used in a Yurt file import new names to its namespace.</p>
 <h3 id="name-shadowing"><a class="header" href="#name-shadowing">Name Shadowing</a></h3>
-<p>Name shadowing in Yurt is not allowed. For example, both examples below should fail to compile:</p>
+<p>Name shadowing in Yurt is not allowed. For example, the following should fail to compile:</p>
 <pre><code class="language-yurt">let x = 5;
 let x = 6;
 </code></pre>
 <pre><code class="language-yurt">let x = 5;
-let y = {
-    let x = 6; // shadows the `x` outside the block expression
-    x
-}
+state x = MyContract::bar();
 </code></pre>
 <p>Note, however, that <a href="../items/macros.html">macro</a> bodies <strong>are allowed</strong> to declare new variables with names that have been used outside the macro body, because macro expansion is designed to be <a href="../items/macros.html#hygiene">hygienic</a>. For example, the following is allowed:</p>
 <pre><code class="language-yurt">let half = 5;
