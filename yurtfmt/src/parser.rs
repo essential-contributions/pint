@@ -328,6 +328,17 @@ pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Par
             .map(|fields| ast::Expr::Tuple(ast::TupleExpr { fields }))
             .boxed();
 
+        let array_elements = expr
+            .clone()
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
+            .boxed();
+
+        let array = array_elements
+            .map(|elements| ast::Expr::Array(ast::ArrayExpr { elements }))
+            .boxed();
+
         let atom = choice((
             unary_op(expr.clone()),
             immediate().map(ast::Expr::Immediate),
@@ -335,11 +346,13 @@ pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Par
             if_expr(expr.clone()),
             cond_expr(expr.clone()),
             call,
+            array,
             tuple,
             path().map(ast::Expr::Path),
         ))
         .boxed();
-        let tuple_field_access = tuple_field_access(atom);
+        let array_element_access = array_element_access(atom, expr.clone());
+        let tuple_field_access = tuple_field_access(array_element_access);
         let cast = cast(tuple_field_access, expr.clone());
 
         let in_expr = in_expr(cast, expr).boxed();
@@ -535,6 +548,27 @@ where
             ast::Expr::TupleFieldAccess(ast::TupleFieldAccess {
                 tuple: Box::new(expr),
                 field,
+            })
+        })
+        .boxed()
+}
+
+fn array_element_access<'sc, P>(
+    parser: P,
+    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+{
+    parser
+        .then(
+            expr.delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
+                .repeated(),
+        )
+        .foldl(|expr, index| {
+            ast::Expr::ArrayElementAccess(ast::ArrayElementAccess {
+                array: Box::new(expr),
+                index: Box::new(index),
             })
         })
         .boxed()
