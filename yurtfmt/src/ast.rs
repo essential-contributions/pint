@@ -141,7 +141,7 @@ impl<'sc> Format for Decl<'sc> {
             }
             Self::Fn { fn_sig, body } => {
                 fn_sig.format(formatted_code)?;
-
+                formatted_code.write(" ");
                 body.format(formatted_code)?;
             }
             Self::Interface { name, fn_sigs } => {
@@ -285,7 +285,7 @@ pub struct Block<'sc> {
 
 impl<'sc> Format for Block<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
-        formatted_code.write_line(" {");
+        formatted_code.write_line("{");
         formatted_code.increase_indent();
 
         for (i, statement) in self.statements.iter().enumerate() {
@@ -300,7 +300,9 @@ impl<'sc> Format for Block<'sc> {
         self.final_expr.format(formatted_code)?;
 
         formatted_code.decrease_indent();
-        formatted_code.write("\n}");
+
+        formatted_code.write_line("");
+        formatted_code.write("}");
 
         Ok(())
     }
@@ -488,10 +490,44 @@ impl<'sc> Format for If<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         formatted_code.write("if ");
         self.condition.format(formatted_code)?;
+        formatted_code.write(" ");
         self.true_code_block.format(formatted_code)?;
 
-        formatted_code.write(" else");
+        formatted_code.write(" else ");
         self.false_code_block.format(formatted_code)?;
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct Cond<'sc> {
+    pub cond_branches: Vec<(Expr<'sc>, Expr<'sc>)>,
+    pub else_branch: Box<Expr<'sc>>,
+}
+
+impl<'sc> Format for Cond<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        formatted_code.write_line("cond {");
+        formatted_code.increase_indent();
+
+        for cond in &self.cond_branches {
+            cond.0.format(formatted_code)?;
+            formatted_code.write(" => ");
+            cond.1.format(formatted_code)?;
+
+            formatted_code.write_line(",");
+        }
+
+        formatted_code.write("else => ");
+        self.else_branch.format(formatted_code)?;
+
+        formatted_code.write(",");
+
+        formatted_code.decrease_indent();
+
+        formatted_code.write_line("");
+        formatted_code.write("}");
 
         Ok(())
     }
@@ -508,6 +544,8 @@ pub(super) enum Expr<'sc> {
     Range(Range<'sc>),
     Cast(Cast<'sc>),
     If(If<'sc>),
+    Cond(Cond<'sc>),
+    Block(Block<'sc>),
 }
 
 impl<'sc> Format for Expr<'sc> {
@@ -522,6 +560,8 @@ impl<'sc> Format for Expr<'sc> {
             Self::Range(range) => range.format(formatted_code)?,
             Self::Cast(cast) => cast.format(formatted_code)?,
             Self::If(if_) => if_.format(formatted_code)?,
+            Self::Cond(cond) => cond.format(formatted_code)?,
+            Self::Block(block) => block.format(formatted_code)?,
         }
 
         Ok(())

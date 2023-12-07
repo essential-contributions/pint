@@ -37,6 +37,8 @@ pub(super) enum Token<'sc> {
     ParenClose,
     #[token("->")]
     Arrow,
+    #[token("=>")]
+    HeavyArrow,
     #[token("+")]
     Plus,
     #[token("-")]
@@ -62,6 +64,8 @@ pub(super) enum Token<'sc> {
     If,
     #[token("else")]
     Else,
+    #[token("cond")]
+    Cond,
     #[token("enum")]
     Enum,
     #[token("contract")]
@@ -127,6 +131,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::ParenOpen => write!(f, "("),
             Token::ParenClose => write!(f, ")"),
             Token::Arrow => write!(f, "->"),
+            Token::HeavyArrow => write!(f, "=>"),
             Token::Plus => write!(f, "+"),
             Token::Minus => write!(f, "-"),
             Token::TwoDots => write!(f, ".."),
@@ -139,6 +144,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::In => write!(f, "in"),
             Token::If => write!(f, "if"),
             Token::Else => write!(f, "else"),
+            Token::Cond => write!(f, "cond"),
             Token::Enum => write!(f, "enum"),
             Token::Contract => write!(f, "contract"),
             Token::Implements => write!(f, "implements"),
