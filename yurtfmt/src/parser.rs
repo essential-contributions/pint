@@ -1,5 +1,5 @@
 use crate::{
-    ast,
+    ast::{self},
     error::{FormatterError, ParseError},
     lexer::{self, Token},
 };
@@ -316,6 +316,18 @@ pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Par
             .map(|(path, args)| ast::Expr::Call(ast::Call { path, args }))
             .boxed();
 
+        let tuple_fields = (ident().then_ignore(just(Token::Colon)))
+            .or_not()
+            .then(expr.clone())
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+            .boxed();
+
+        let tuple = tuple_fields
+            .map(|fields| ast::Expr::Tuple(ast::TupleExpr { fields }))
+            .boxed();
+
         let atom = choice((
             unary_op(expr.clone()),
             immediate().map(ast::Expr::Immediate),
@@ -323,10 +335,12 @@ pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Par
             if_expr(expr.clone()),
             cond_expr(expr.clone()),
             call,
+            tuple,
             path().map(ast::Expr::Path),
         ))
         .boxed();
-        let cast = cast(atom, expr.clone());
+        let tuple_field_access = tuple_field_access(atom);
+        let cast = cast(tuple_field_access, expr.clone());
 
         let in_expr = in_expr(cast, expr).boxed();
         binary_op(in_expr).boxed()
@@ -502,6 +516,25 @@ pub(super) fn cond_expr<'sc>(
             ast::Expr::Cond(ast::Cond {
                 cond_branches,
                 else_branch: Box::new(else_branch),
+            })
+        })
+        .boxed()
+}
+
+fn tuple_field_access<'sc, P>(
+    parser: P,
+) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone
+where
+    P: Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+{
+    let index = immediate().map(|immediate| immediate.0).or(ident());
+
+    parser
+        .then(just(Token::Dot).ignore_then(index).repeated())
+        .foldl(|expr, field| {
+            ast::Expr::TupleFieldAccess(ast::TupleFieldAccess {
+                tuple: Box::new(expr),
+                field,
             })
         })
         .boxed()
