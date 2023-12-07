@@ -845,13 +845,21 @@ y ||    42 in   z"
 
 #[test]
 fn range_expressions() {
-    check(&run_formatter!(range(expr()), "1..2"), expect![[r#"1..2"#]]);
     check(
-        &run_formatter!(range(expr()), "1+2..3+4"),
+        &run_formatter!(range(expr()), "1..     2"),
+        expect![[r#"1..2"#]],
+    );
+    check(
+        &run_formatter!(range(expr()), "1+2     ..3+4"),
         expect!["1 + 2..3 + 4"],
     );
     check(
-        &run_formatter!(range(expr()), "1.1..2.2e3"),
+        &run_formatter!(
+            range(expr()),
+            "1.1
+                    ..
+        2.2e3"
+        ),
         expect!["1.1..2.2e3"],
     );
 }
