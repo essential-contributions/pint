@@ -411,22 +411,7 @@ fn unary_op_exprs() {
     let expr = yp::ExprParser::new();
 
     check(&run_parser!(expr, "!a"), expect_test::expect!["!::a"]);
-    check(&run_parser!(expr, "+a"), expect_test::expect!["+::a"]);
     check(&run_parser!(expr, "-a"), expect_test::expect!["-::a"]);
-    check(&run_parser!(expr, "+7"), expect_test::expect!["+7"]);
-    check(&run_parser!(expr, "+3.4"), expect_test::expect!["+3.4e0"]);
-    check(&run_parser!(expr, "+0x456"), expect_test::expect!["+1110"]);
-    check(
-        &run_parser!(expr, "+0b01010101"),
-        expect_test::expect!["+85"],
-    );
-    check(
-        &run_parser!(
-            expr,
-            "+0b1101000000001100101010101010101111111111101010101101010101010101"
-        ),
-        expect_test::expect!["+14991544915315053909"],
-    );
     check(&run_parser!(expr, "-1.0"), expect_test::expect!["-1e0"]);
     check(&run_parser!(expr, "-1"), expect_test::expect!["-1"]);
     check(&run_parser!(expr, "-0x133"), expect_test::expect!["-307"]);
@@ -439,12 +424,34 @@ fn unary_op_exprs() {
         expect_test::expect!["-14991544909594023253"],
     );
     check(
-        &run_parser!(expr, "! - - !  -+  -1"),
-        expect_test::expect!["!--!-+-1"],
+        &run_parser!(expr, "! - - !  --  -1"),
+        expect_test::expect!["!--!---1"],
     );
     check(
-        &run_parser!(expr, "+ {- x} '  '  "),
-        expect_test::expect!["+-::x''"],
+        &run_parser!(expr, "! {- x} '  '  "),
+        expect_test::expect!["!-::x''"],
+    );
+    check(
+        &run_parser!(expr, "+ { + x} '  '  "),
+        expect_test::expect![[r#"
+            leading `+` is not supported
+            @0..1: unexpected `+`
+            try removing the `+`
+            leading `+` is not supported
+            @4..5: unexpected `+`
+            try removing the `+`
+        "#]],
+    );
+    check(
+        &run_parser!(expr, "1 + + { + x}"),
+        expect_test::expect![[r#"
+            leading `+` is not supported
+            @4..5: unexpected `+`
+            try removing the `+`
+            leading `+` is not supported
+            @8..9: unexpected `+`
+            try removing the `+`
+        "#]],
     );
 }
 
@@ -961,12 +968,15 @@ fn code_blocks() {
     check(
         &run_parser!(
             expr,
-            "{ let y: real = 0; constraint x > 0.0; 0.0 }",
+            "{
+                constraint y == 0;
+                constraint x > 0.0;
+                0.0
+            }",
             mod_path
         ),
         expect_test::expect![[r#"
-            var ::foo::y: real;
-            constraint (var ::foo::y: real == 0);
+            constraint (::foo::y == 0);
             constraint (::foo::x > 0e0);
             0e0"#]],
     );
@@ -976,6 +986,44 @@ fn code_blocks() {
         expect_test::expect![[r#"
             constraint true;
             (::foo::x > 0)"#]],
+    );
+
+    check(
+        &run_parser!(
+            expr,
+            "{
+                constraint {
+                    constraint y == 0;
+                    constraint x > 0.0;
+                    true
+                };
+                0.0
+            }",
+            mod_path
+        ),
+        expect_test::expect![[r#"
+            constraint (::foo::y == 0);
+            constraint (::foo::x > 0e0);
+            constraint true;
+            0e0"#]],
+    );
+
+    // No final expr
+    check(
+        &run_parser!(expr, "{ constraint x == 0; }", mod_path),
+        expect_test::expect![[r#"
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
+            @21..22: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+        "#]],
+    );
+
+    // Use of `let`
+    check(
+        &run_parser!(expr, "{ let x = 0; 5 }", mod_path),
+        expect_test::expect![[r#"
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, `{`, or `}`, found `let`
+            @2..5: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, `{`, or `}`
+        "#]],
     );
 
     check(
