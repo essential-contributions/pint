@@ -504,7 +504,6 @@ impl<'sc> Format for If<'sc> {
 pub(super) struct Cond<'sc> {
     pub cond_branches: Vec<(Expr<'sc>, Expr<'sc>)>,
     pub else_branch: Box<Expr<'sc>>,
-    pub trailing_comma: bool,
 }
 
 impl<'sc> Format for Cond<'sc> {
@@ -523,9 +522,7 @@ impl<'sc> Format for Cond<'sc> {
         formatted_code.write("else => ");
         self.else_branch.format(formatted_code)?;
 
-        if self.trailing_comma {
-            formatted_code.write(",");
-        }
+        formatted_code.write(",");
 
         formatted_code.decrease_indent();
 

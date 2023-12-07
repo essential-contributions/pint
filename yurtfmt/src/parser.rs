@@ -492,17 +492,16 @@ pub(super) fn cond_expr<'sc>(
     let body = cond_branch
         .repeated()
         .then(else_branch)
-        .then(just(Token::Comma).or_not())
+        .then_ignore(just(Token::Comma).or_not())
         .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
         .boxed();
 
     just(Token::Cond)
         .ignore_then(body)
-        .map(|((cond_branches, else_branch), comma)| {
+        .map(|(cond_branches, else_branch)| {
             ast::Expr::Cond(ast::Cond {
                 cond_branches,
                 else_branch: Box::new(else_branch),
-                trailing_comma: comma.is_some(),
             })
         })
         .boxed()

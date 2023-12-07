@@ -932,7 +932,7 @@ fn cond_exprs() {
         cond {
             else => {
                 a
-            }
+            },
         }"#]],
     );
     check(
@@ -960,7 +960,7 @@ fn cond_exprs() {
         expect_test::expect![[r#"
         cond {
             a => b,
-            else => c
+            else => c,
         }"#]],
     );
     check(
