@@ -928,10 +928,6 @@ fn if_statements() {
 #[test]
 fn tuple_expressions() {
     check(
-        &run_formatter!(expr(), "{   0    }"),
-        expect_test::expect!["{ 0 }"],
-    );
-    check(
         &run_formatter!(expr(), "{x:   0}"),
         expect_test::expect!["{ x: 0 }"],
     );
@@ -941,7 +937,7 @@ fn tuple_expressions() {
             "{0, 
          }"
         ),
-        expect_test::expect!["{ 0 }"],
+        expect_test::expect!["{ 0, }"],
     );
     check(
         &run_formatter!(expr(), "{x: 0,     }"),
@@ -988,7 +984,7 @@ fn tuple_expressions() {
         ),
         expect_test::expect![
             r#"
-        { { 42 }, if c {
+        { { 42, }, if c {
             2
         } else {
             3
@@ -1003,7 +999,7 @@ fn tuple_expressions() {
         ),
         expect_test::expect![
             r#"
-        { x: { 42 }, y: if c {
+        { x: { 42, }, y: if c {
             2
         } else {
             3
@@ -1115,7 +1111,7 @@ fn tuple_field_accesses() {
             0} }.
             0"
         ),
-        expect_test::expect!["{ { 0, 0 } }.0"],
+        expect_test::expect!["{ { 0, 0 }, }.0"],
     );
     check(
         &run_formatter!(
@@ -1123,7 +1119,7 @@ fn tuple_field_accesses() {
             "{ {0, 
             0} }.a"
         ),
-        expect_test::expect!["{ { 0, 0 } }.a"],
+        expect_test::expect!["{ { 0, 0 }, }.a"],
     );
     check(
         &run_formatter!(expr(), "if true { {0, 0} } else { {0, 0} }.0"),

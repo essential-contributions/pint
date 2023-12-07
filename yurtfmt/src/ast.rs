@@ -518,6 +518,8 @@ impl<'sc> Format for TupleExpr<'sc> {
             // If not the last element, add a comma
             if i < self.fields.len() - 1 {
                 formatted_code.write(",");
+            } else if field.0.is_none() && self.fields.len() == 1 {
+                formatted_code.write(", ");
             } else {
                 formatted_code.write(" ");
             }
