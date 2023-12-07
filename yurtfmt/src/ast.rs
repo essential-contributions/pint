@@ -534,6 +534,54 @@ impl<'sc> Format for Cond<'sc> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct TupleExpr<'sc> {
+    pub fields: Vec<(Option<String>, Expr<'sc>)>,
+}
+
+impl<'sc> Format for TupleExpr<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        formatted_code.write("{");
+
+        for (i, field) in self.fields.iter().enumerate() {
+            formatted_code.write(" ");
+
+            if let Some(ident) = &field.0 {
+                formatted_code.write(&format!("{ident}: "))
+            }
+
+            field.1.format(formatted_code)?;
+
+            // If not the last element, add a comma
+            if i < self.fields.len() - 1 {
+                formatted_code.write(",");
+            } else if field.0.is_none() && self.fields.len() == 1 {
+                formatted_code.write(", ");
+            } else {
+                formatted_code.write(" ");
+            }
+        }
+
+        formatted_code.write("}");
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct TupleFieldAccess<'sc> {
+    pub tuple: Box<Expr<'sc>>,
+    pub field: String,
+}
+
+impl<'sc> Format for TupleFieldAccess<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        self.tuple.format(formatted_code)?;
+        formatted_code.write(&format!(".{}", self.field));
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) enum Expr<'sc> {
     Immediate(Immediate),
     Path(Path),
@@ -546,6 +594,8 @@ pub(super) enum Expr<'sc> {
     If(If<'sc>),
     Cond(Cond<'sc>),
     Block(Block<'sc>),
+    Tuple(TupleExpr<'sc>),
+    TupleFieldAccess(TupleFieldAccess<'sc>),
 }
 
 impl<'sc> Format for Expr<'sc> {
@@ -562,6 +612,10 @@ impl<'sc> Format for Expr<'sc> {
             Self::If(if_) => if_.format(formatted_code)?,
             Self::Cond(cond) => cond.format(formatted_code)?,
             Self::Block(block) => block.format(formatted_code)?,
+            Self::Tuple(tuple) => tuple.format(formatted_code)?,
+            Self::TupleFieldAccess(tuple_field_access) => {
+                tuple_field_access.format(formatted_code)?
+            }
         }
 
         Ok(())
