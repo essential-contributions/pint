@@ -1,0 +1,4 @@
+use c_mod::{c1 as c1_alias, c2 as c1_alias}; // Clash because of the alias
+
+let c1_alias = 5; // Clash because of the alias
+let c1 = 5; // No Clash

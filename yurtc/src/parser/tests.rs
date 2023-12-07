@@ -89,18 +89,18 @@ macro_rules! run_parser {
         let parser_output = match result {
             Ok(item) => {
                 let result = format!("{}{}", context.ii, context.ii.with_ii(&item));
-                result.trim_end().to_owned()
+                format!("{}{}",
+                    use_paths
+                        .iter()
+                        .map(|up| "use ".to_owned() + &up.to_string())
+                        .collect::<Vec<_>>()
+                        .join(";\n")
+                        , result.trim_end().to_owned())
             }
             Err(errors) => display_errors(&errors),
         };
 
-        let use_statements = use_paths
-            .iter()
-            .map(|up| "use ".to_owned() + &up.to_string())
-            .collect::<Vec<_>>()
-            .join(";\n");
-
-        format!("{}{}", use_statements, parser_output)
+        format!("{}", parser_output)
     }};
 }
 
@@ -214,11 +214,11 @@ fn use_statements() {
     );
 
     check(
-        &run_parser!(yurt, "use a::b; use ::b::c; use ::c::d as c;", mod_path),
+        &run_parser!(yurt, "use a::b; use ::b::c; use ::c::d as d;", mod_path),
         expect_test::expect![[r#"
             use foo::a::b;
             use b::c;
-            use c::d as c"#]],
+            use c::d as d"#]],
     );
 
     check(
@@ -257,6 +257,20 @@ fn use_statements() {
         expect_test::expect![[r#"
             expected `ident`, or `{`, found `;`
             @7..8: expected `ident`, or `{`
+        "#]],
+    );
+
+    check(
+        &run_parser!(yurt, "use a::b; use a::c as b; use ::c::d as b;", mod_path),
+        expect_test::expect![[r#"
+            symbol `b` has already been declared
+            @7..8: previous declaration of the value `b` here
+            @17..23: `b` redeclared here
+            `b` must be declared or imported only once in this scope
+            symbol `b` has already been declared
+            @7..8: previous declaration of the value `b` here
+            @34..40: `b` redeclared here
+            `b` must be declared or imported only once in this scope
         "#]],
     );
 }
