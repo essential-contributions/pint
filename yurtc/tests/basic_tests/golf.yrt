@@ -1,6 +1,6 @@
 // Generate a random 18-hole golf course.
 
-let h1: int[18];
+let h: int[18];
 
 constraint h[0] in 3..5;
 constraint h[1] in 3..5;
@@ -31,7 +31,7 @@ solve satisfy;
 
 
 // intermediate <<<<
-// var ::h1: int[18];
+// var ::h: int[18];
 // var ::sum: int;
 // constraint ::h[0] in 3..5;
 // constraint ::h[1] in 3..5;

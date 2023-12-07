@@ -26,7 +26,7 @@ impl DisplayWithII for &super::Expr {
                     write!(f, "{}'", ii.with_ii(expr))
                 } else {
                     match op {
-                        expr::UnaryOp::Pos => write!(f, "+"),
+                        expr::UnaryOp::Error => write!(f, "error"),
                         expr::UnaryOp::Neg => write!(f, "-"),
                         expr::UnaryOp::Not => write!(f, "!"),
                         expr::UnaryOp::NextState => unreachable!(),

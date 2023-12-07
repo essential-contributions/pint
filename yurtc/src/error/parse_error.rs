@@ -47,6 +47,8 @@ pub enum ParseError {
         span: Span,      // Actual error location
         prev_span: Span, // Span of the previous occurrence
     },
+    #[error("leading `+` is not supported")]
+    UnsupportedLeadingPlus { span: Span },
 }
 
 impl ReportableError for ParseError {
@@ -149,6 +151,13 @@ impl ReportableError for ParseError {
                     },
                 ]
             }
+            UnsupportedLeadingPlus { span } => {
+                vec![ErrorLabel {
+                    message: "unexpected `+`".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
         }
     }
 
@@ -172,6 +181,7 @@ impl ReportableError for ParseError {
             UntypedVariable { name, .. } => Some(format!(
                 "consider giving `{name}` an explicit type or an initializer"
             )),
+            UnsupportedLeadingPlus { .. } => Some("try removing the `+`".to_string()),
             _ => None,
         }
     }
@@ -233,6 +243,7 @@ impl Spanned for ParseError {
             | EmptyTupleExpr { span, .. }
             | EmptyTupleType { span, .. }
             | NameClash { span, .. }
+            | UnsupportedLeadingPlus { span, .. }
             | Lex { span } => span,
 
             InvalidToken => unreachable!("The `InvalidToken` error is always wrapped in `Lex`."),
