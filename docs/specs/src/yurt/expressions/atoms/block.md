@@ -3,18 +3,15 @@
 Block expressions are expressions that contain a list of _statements_ followed by an expression within curly bracket `{ .. }`. Formally:
 
 ```bnf
-<block-expr> ::= "{" ( <block-statement> )* <expr> "}"
-
-<block-statement> ::= <let-item>
-                    | <state-item>
-                    | <constraint-item>
+<block-expr> ::= "{" ( <constraint-item> )* <expr> "}"
 ```
 
 The type of the block expression is the type of the final expression. For example:
 
 ```yurt
+let y: int;
 let x: int = {
-    let y: int = 2;
+    constraint y == 2;
     y + 1 // returned final expression of type `int`
 }
 ```
@@ -22,8 +19,8 @@ let x: int = {
 the above is equivalent to the following:
 
 ```yurt
-let x: int;
 let y: int;
+let x: int;
 constraint y == 2;
 constraint x == y + 1;
 ```
