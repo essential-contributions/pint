@@ -50,21 +50,27 @@ UseStatement: () = {
                     use_path.add_prefix(context.mod_path.to_vec());
                 }
 
-                // This is a bit strange.  We're taking the last element of the
-                // use path, prefixing it with the current mod path and
-                // inserting that as a top-level symbol.  This is to avoid
-                // local decls clashing with the `use` path, though those
+                // This is a bit strange.  We're taking the alias or the last
+                // element of the use path, prefixing it with the current mod
+                // path and inserting that as a top-level symbol.  This is to
+                // avoid local decls clashing with the `use` path, though those
                 // symbols are all absolute.
                 //
                 // e.g.,
-                // use some::other::mod::a;
-                // let a: int;      // Inserted as ::local::mod::a.
+                // use some::other::mod::a;       // Inserted as ::local::mod::a
+                // let a: int;                    // Inserted as ::local::mod::a
+                //
+                // use some::other::mod::b as c;  // Inserted as ::local::mod::c
+                // let c: int;                    // Inserted as ::local::mod::c
                 context
                     .ii
                     .add_top_level_symbol(
                         context.mod_prefix,
                         &Ident {
-                            name: use_path.path[use_path.path.len() - 1].clone(),
+                            name: use_path
+                                .alias
+                                .clone()
+                                .unwrap_or(use_path.path[use_path.path.len() - 1].clone()),
                             span: use_path.span.clone(),
                         },
                         use_path.span.clone(),
@@ -654,7 +660,9 @@ UnaryOp: ExprKey = {
 UnaryOpOp: UnaryOp = {
     <l:@L> "+" <r:@R> => {
         errors.push(Error::Parse {
-            error: ParseError::UnsupportedLeadingPlus { span: (context.span_from)(l, r) },
+            error: ParseError::UnsupportedLeadingPlus {
+                span: (context.span_from)(l, r),
+            },
         });
         UnaryOp::Error
     },
@@ -736,10 +744,7 @@ CondExpr: ExprKey = {
 MacroCallExpr: Expr = {
     <l:@L> <name:MacroPath> <args:"macro_call_args"> <r:@L> => {
         let call_key = context.ii.calls.insert(name.clone());
-        let call_data = MacroCall {
-            name,
-            args,
-        };
+        let call_data = MacroCall { name, args };
         context.macro_calls.insert(call_key, call_data);
         Expr::MacroCall {
             call: call_key,
