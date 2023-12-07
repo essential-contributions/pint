@@ -190,11 +190,12 @@ SolveDeclInner: SolveFunc = {
 pub EnumDecl: () = {
     <l:@L> "enum" <name:Ident> "=" <variants:Sep1ListNoTrail<Ident, "|">> <r:@R> => {
         // <FMT_OPEN>
-        context.ii.enums.push(EnumDecl {
-            name: name.to_full_path(context.mod_prefix),
+        let enum_decl = EnumDecl {
+            name: name.to_full_path(context.mod_prefix, context, errors),
             variants,
             span: (context.span_from)(l, r),
-        });
+        };
+        context.ii.enums.push(enum_decl);
         // <FMT_CLOSE>
     }
 }
@@ -202,11 +203,12 @@ pub EnumDecl: () = {
 pub NewTypeDecl: () = {
     <l:@L> "type" <name:Ident> "=" <ty:Type> <r:@R> => {
         // <FMT_OPEN>
-        context.ii.new_types.push(NewTypeDecl {
-            name: name.to_full_path(context.mod_prefix),
+        let new_type_decl = NewTypeDecl {
+            name: name.to_full_path(context.mod_prefix, context, errors),
             ty,
             span: (context.span_from)(l, r),
-        });
+        };
+        context.ii.new_types.push(new_type_decl);
         // <FMT_CLOSE>
     }
 }
@@ -238,20 +240,23 @@ FnSig: FnSig = {
 pub InterfaceDecl: () = {
     <l:@L> "interface" <name:Ident> "{" <functions:(<FnSig> ";")*> "}" <r:@R> => {
         // <FMT_OPEN>
-        let full_interface_path = name.to_full_path(context.mod_prefix);
-        context.ii.interfaces.push(InterfaceDecl {
+        let full_interface_path = name.to_full_path(context.mod_prefix, context, errors);
+        let interface_decl = InterfaceDecl {
             name: full_interface_path.clone(),
             functions: functions
                 .iter()
                 .map(|fn_sig| FnSig {
-                    name: fn_sig
-                        .name
-                        .to_full_path(&(full_interface_path.name.clone() + "::")),
+                    name: fn_sig.name.to_full_path(
+                        &(full_interface_path.name.clone() + "::"),
+                        context,
+                        errors,
+                    ),
                     ..fn_sig.clone()
                 })
                 .collect(),
             span: (context.span_from)(l, r),
-        });
+        };
+        context.ii.interfaces.push(interface_decl);
         // <FMT_CLOSE>
     }
 }
@@ -261,22 +266,25 @@ pub ContractDecl: () = {
         <interfaces: ("implements" <Sep1ListNoTrail<Path, ",">>)?>
         "{" <functions:(<FnSig> ";")*> "}" <r:@R> => {
         // <FMT_OPEN>
-        let full_contract_path = name.to_full_path(context.mod_prefix);
-        context.ii.contracts.push(ContractDecl {
-            name: name.to_full_path(context.mod_prefix),
+        let full_contract_path = name.to_full_path(context.mod_prefix, context, errors);
+        let contract_decl = ContractDecl {
+            name: full_contract_path.clone(),
             id,
             interfaces: interfaces.unwrap_or_default().to_vec(),
             functions: functions
                 .iter()
                 .map(|fn_sig| FnSig {
-                    name: fn_sig
-                        .name
-                        .to_full_path(&(full_contract_path.name.clone() + "::")),
+                    name: fn_sig.name.to_full_path(
+                        &(full_contract_path.name.clone() + "::"),
+                        context,
+                        errors,
+                    ),
                     ..fn_sig.clone()
                 })
                 .collect(),
             span: (context.span_from)(l, r),
-        });
+        };
+        context.ii.contracts.push(contract_decl);
         // <FMT_CLOSE>
     }
 }
@@ -284,16 +292,19 @@ pub ContractDecl: () = {
 pub ExternDecl: () = {
     <l:@L> "extern" "{" <functions:(<FnSig> ";")*> "}" <r:@R> => {
         // <FMT_OPEN>
-        context.ii.externs.push((
-            functions
-                .iter()
-                .map(|fn_sig| FnSig {
-                    name: fn_sig.name.to_full_path(context.mod_prefix),
-                    ..fn_sig.clone()
-                })
-                .collect(),
-            (context.span_from)(l, r),
-        ));
+        let functions = functions
+            .iter()
+            .map(|fn_sig| FnSig {
+                name: fn_sig
+                    .name
+                    .to_full_path(context.mod_prefix, context, errors),
+                ..fn_sig.clone()
+            })
+            .collect();
+        context
+            .ii
+            .externs
+            .push((functions, (context.span_from)(l, r)));
         // <FMT_CLOSE>
     }
 }
