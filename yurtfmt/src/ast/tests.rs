@@ -928,39 +928,64 @@ fn if_statements() {
 #[test]
 fn tuple_expressions() {
     check(
-        &run_formatter!(expr(), r#"{0}"#),
+        &run_formatter!(expr(), "{   0    }"),
         expect_test::expect!["{ 0 }"],
     );
     check(
-        &run_formatter!(expr(), r#"{x: 0}"#),
+        &run_formatter!(expr(), "{x:   0}"),
         expect_test::expect!["{ x: 0 }"],
     );
     check(
-        &run_formatter!(expr(), r#"{0,}"#),
+        &run_formatter!(
+            expr(),
+            "{0, 
+         }"
+        ),
         expect_test::expect!["{ 0 }"],
     );
     check(
-        &run_formatter!(expr(), r#"{x: 0,}"#),
+        &run_formatter!(expr(), "{x: 0,     }"),
         expect_test::expect!["{ x: 0 }"],
     );
     check(
-        &run_formatter!(expr(), r#"{0, 1.0, "foo"}"#),
+        &run_formatter!(
+            expr(),
+            "{  0, 1.0,
+             \"foo\" }"
+        ),
         expect_test::expect![[r#"{ 0, 1.0, "foo" }"#]],
     );
     check(
-        &run_formatter!(expr(), r#"{x: 0, y: 1.0, z: "foo"}"#),
+        &run_formatter!(
+            expr(),
+            "{x: 0, 
+             y:   1.0, z: \"foo\"}"
+        ),
         expect_test::expect![[r#"{ x: 0, y: 1.0, z: "foo" }"#]],
     );
     check(
-        &run_formatter!(expr(), r#"{0, {1.0, "bar"}, "foo"}"#),
+        &run_formatter!(
+            expr(),
+            "{0, {1.0,
+             \"bar\"}, \"foo\"}"
+        ),
         expect_test::expect![[r#"{ 0, { 1.0, "bar" }, "foo" }"#]],
     );
     check(
-        &run_formatter!(expr(), r#"{x: 0, {y: 1.0, "bar"}, z: "foo"}"#),
+        &run_formatter!(
+            expr(),
+            "{x:        0, 
+                {y:1.0, \"bar\"}, z:\"foo\"
+            }"
+        ),
         expect_test::expect![[r#"{ x: 0, { y: 1.0, "bar" }, z: "foo" }"#]],
     );
     check(
-        &run_formatter!(expr(), r#"{ { 42 }, if c { 2 } else { 3 }, foo() }"#),
+        &run_formatter!(
+            expr(),
+            "{ { 42 },
+         if c { 2 }      else{3}, foo() }"
+        ),
         expect_test::expect![
             r#"
         { { 42 }, if c {
@@ -973,7 +998,8 @@ fn tuple_expressions() {
     check(
         &run_formatter!(
             expr(),
-            r#"{ x: { 42 }, y: if c { 2 } else { 3 }, z: foo() }"#
+            "{ x: { 42 }, y: if c { 2 } 
+            else { 3 }, z: foo() }"
         ),
         expect_test::expect![
             r#"
@@ -988,68 +1014,93 @@ fn tuple_expressions() {
 
 #[test]
 fn tuple_field_accesses() {
+    check(&run_formatter!(expr(), "t.1"), expect_test::expect!["t.1"]);
+    check(&run_formatter!(expr(), "t.a"), expect_test::expect!["t.a"]);
     check(
-        &run_formatter!(expr(), r#"t.1"#),
-        expect_test::expect!["t.1"],
-    );
-    check(
-        &run_formatter!(expr(), r#"t.a"#),
-        expect_test::expect!["t.a"],
-    );
-    check(
-        &run_formatter!(expr(), r#"t.1.1"#),
+        &run_formatter!(expr(), "t.1.1"),
         expect_test::expect!["t.1.1"],
     );
     check(
-        &run_formatter!(expr(), r#"t.a.1"#),
+        &run_formatter!(expr(), "t.a.1"),
         expect_test::expect!["t.a.1"],
     );
     check(
-        &run_formatter!(expr(), r#"t.0 + t.9999999 + t.x"#),
+        &run_formatter!(expr(), "t.0 + t.9999999 + t.x"),
         expect_test::expect!["t.0 + t.9999999 + t.x"],
     );
     check(
-        &run_formatter!(expr(), r#"{0, 1}.0"#),
+        &run_formatter!(
+            expr(),
+            "{0, 
+            1}.0"
+        ),
         expect_test::expect!["{ 0, 1 }.0"],
     );
     check(
-        &run_formatter!(expr(), r#"{0, 1}.x"#),
+        &run_formatter!(expr(), "{0, 1}.x"),
         expect_test::expect!["{ 0, 1 }.x"],
     );
     check(
-        &run_formatter!(expr(), r#"t.0 .0"#),
+        &run_formatter!(
+            expr(),
+            "t.0 
+        .0"
+        ),
         expect_test::expect!["t.0.0"],
     );
     check(
-        &run_formatter!(expr(), r#"t.x .y"#),
+        &run_formatter!(
+            expr(),
+            "t.x 
+        .y"
+        ),
         expect_test::expect!["t.x.y"],
     );
     check(
-        &run_formatter!(expr(), "t \r .1 .2.2. \n 3 . \t 13 . 1.1"),
+        &run_formatter!(
+            expr(),
+            "t      .1 .2.2. 
+         3 .     13 . 1.1"
+        ),
         expect_test::expect!["t.1.2.2.3.13.1.1"],
     );
     check(
-        &run_formatter!(expr(), "t \r .x .1.2. \n w . \t t. 3.4"),
+        &run_formatter!(
+            expr(),
+            "t
+         .x .1.2. 
+          w . 
+           t. 3.4"
+        ),
         expect_test::expect!["t.x.1.2.w.t.3.4"],
     );
     check(
-        &run_formatter!(expr(), r#"foo().0.1"#),
+        &run_formatter!(expr(), "foo()          .0.1"),
         expect_test::expect!["foo().0.1"],
     );
     check(
-        &run_formatter!(expr(), r#"foo().a.b.0.1"#),
+        &run_formatter!(expr(), "foo().a.   b.0.    1"),
         expect_test::expect!["foo().a.b.0.1"],
     );
     check(
-        &run_formatter!(expr(), r#"{ {0, 0} }.0"#),
+        &run_formatter!(
+            expr(),
+            "{ {0, 
+            0} }.
+            0"
+        ),
         expect_test::expect!["{ { 0, 0 } }.0"],
     );
     check(
-        &run_formatter!(expr(), r#"{ {0, 0} }.a"#),
+        &run_formatter!(
+            expr(),
+            "{ {0, 
+            0} }.a"
+        ),
         expect_test::expect!["{ { 0, 0 } }.a"],
     );
     check(
-        &run_formatter!(expr(), r#"if true { {0, 0} } else { {0, 0} }.0"#),
+        &run_formatter!(expr(), "if true { {0, 0} } else { {0, 0} }.0"),
         expect_test::expect![
             r#"
         if true {
@@ -1060,7 +1111,11 @@ fn tuple_field_accesses() {
         ],
     );
     check(
-        &run_formatter!(expr(), r#"if true { {0, 0} } else { {0, 0} }.x"#),
+        &run_formatter!(
+            expr(),
+            "if true {       {0, 0} } else{{0,        0}
+          }.x"
+        ),
         expect_test::expect![
             r#"
         if true {
@@ -1071,11 +1126,21 @@ fn tuple_field_accesses() {
         ],
     );
     check(
-        &run_formatter!(expr(), "1 + 2 .3"),
+        &run_formatter!(
+            expr(),
+            "1 
+        + 
+        2 
+        .3"
+        ),
         expect_test::expect!["1 + 2.3"],
     );
     check(
-        &run_formatter!(expr(), "1 + 2 .a"),
+        &run_formatter!(
+            expr(),
+            "1 
+        + 2                 .a"
+        ),
         expect_test::expect!["1 + 2.a"],
     );
 }
