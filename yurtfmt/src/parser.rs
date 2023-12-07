@@ -242,7 +242,7 @@ pub(super) fn fn_sig<'sc>() -> impl Parser<Token<'sc>, ast::FnSig<'sc>, Error = 
         })
 }
 
-pub(super) fn code_block_expr<'a, 'sc>(
+pub(super) fn code_block_expr<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Block<'sc>, Error = ParseError> + Clone {
     let code_block_body = choice((
@@ -331,7 +331,9 @@ pub(super) fn expr<'sc>() -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = Par
         let atom = choice((
             unary_op(expr.clone()),
             immediate().map(ast::Expr::Immediate),
+            code_block_expr(expr.clone()).map(ast::Expr::Block),
             if_expr(expr.clone()),
+            cond_expr(expr.clone()),
             call,
             tuple,
             path().map(ast::Expr::Path),
@@ -481,6 +483,39 @@ pub(super) fn if_expr<'sc>(
                 condition: Box::new(condition),
                 true_code_block,
                 false_code_block,
+            })
+        })
+        .boxed()
+}
+
+pub(super) fn cond_expr<'sc>(
+    expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
+) -> impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone {
+    let cond_branch = expr
+        .clone()
+        .then_ignore(just(Token::HeavyArrow))
+        .then(expr.clone())
+        .then_ignore(just(Token::Comma))
+        .boxed();
+
+    let else_branch = just(Token::Else)
+        .ignore_then(just(Token::HeavyArrow))
+        .ignore_then(expr)
+        .boxed();
+
+    let body = cond_branch
+        .repeated()
+        .then(else_branch)
+        .then_ignore(just(Token::Comma).or_not())
+        .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
+        .boxed();
+
+    just(Token::Cond)
+        .ignore_then(body)
+        .map(|(cond_branches, else_branch)| {
+            ast::Expr::Cond(ast::Cond {
+                cond_branches,
+                else_branch: Box::new(else_branch),
             })
         })
         .boxed()

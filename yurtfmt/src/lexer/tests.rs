@@ -24,6 +24,7 @@ fn control_tokens() {
     assert_eq!(lex_one_success(")"), Token::ParenClose);
     assert_eq!(lex_one_success("="), Token::Eq);
     assert_eq!(lex_one_success("->"), Token::Arrow);
+    assert_eq!(lex_one_success("=>"), Token::HeavyArrow);
     assert_eq!(lex_one_success("|"), Token::Pipe);
     assert_eq!(lex_one_success("."), Token::Dot);
     assert_eq!(lex_one_success(".."), Token::TwoDots);
@@ -88,6 +89,7 @@ fn keywords() {
     assert_eq!(lex_one_success("in"), Token::In);
     assert_eq!(lex_one_success("if"), Token::If);
     assert_eq!(lex_one_success("else"), Token::Else);
+    assert_eq!(lex_one_success("cond"), Token::Cond);
     assert_eq!(lex_one_success("enum"), Token::Enum);
     assert_eq!(lex_one_success("type"), Token::Type);
     assert_eq!(lex_one_success("use"), Token::Use);
