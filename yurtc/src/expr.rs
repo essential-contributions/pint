@@ -1,7 +1,5 @@
 use crate::{
-    error::Error,
     intent::intermediate::{CallKey, ExprKey, VarKey},
-    parser::ParserContext,
     span::{Span, Spanned},
     types::{Path, Type},
 };
@@ -82,28 +80,6 @@ pub enum Expr {
 pub struct Ident {
     pub(super) name: String,
     pub(super) span: Span,
-}
-
-impl Ident {
-    /// Converts a given ident to a full path by prepending `prefix`. Insert the result into the
-    /// top level symbol table and collect errors along the way.
-    pub(crate) fn to_full_path(
-        &self,
-        prefix: &str,
-        context: &mut ParserContext,
-        errors: &mut Vec<Error>,
-    ) -> Self {
-        Ident {
-            name: context
-                .ii
-                .add_top_level_symbol(prefix, self, self.span.clone())
-                .unwrap_or_else(|error| {
-                    errors.push(Error::Parse { error });
-                    self.name.to_string()
-                }),
-            span: self.span.clone(),
-        }
-    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

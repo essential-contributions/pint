@@ -191,7 +191,7 @@ pub EnumDecl: () = {
     <l:@L> "enum" <name:Ident> "=" <variants:Sep1ListNoTrail<Ident, "|">> <r:@R> => {
         // <FMT_OPEN>
         let enum_decl = EnumDecl {
-            name: name.to_full_path(context.mod_prefix, context, errors),
+            name: context.add_top_level_symbol(name, context.mod_prefix, errors),
             variants,
             span: (context.span_from)(l, r),
         };
@@ -204,7 +204,7 @@ pub NewTypeDecl: () = {
     <l:@L> "type" <name:Ident> "=" <ty:Type> <r:@R> => {
         // <FMT_OPEN>
         let new_type_decl = NewTypeDecl {
-            name: name.to_full_path(context.mod_prefix, context, errors),
+            name: context.add_top_level_symbol(name, context.mod_prefix, errors),
             ty,
             span: (context.span_from)(l, r),
         };
@@ -240,15 +240,14 @@ FnSig: FnSig = {
 pub InterfaceDecl: () = {
     <l:@L> "interface" <name:Ident> "{" <functions:(<FnSig> ";")*> "}" <r:@R> => {
         // <FMT_OPEN>
-        let full_interface_path = name.to_full_path(context.mod_prefix, context, errors);
+        let full_interface_path = context.add_top_level_symbol(name, context.mod_prefix, errors);
         let interface_decl = InterfaceDecl {
             name: full_interface_path.clone(),
             functions: functions
                 .iter()
                 .map(|fn_sig| FnSig {
-                    name: fn_sig.name.to_full_path(
+                    name: context.add_top_level_symbol(fn_sig.name.clone(),
                         &(full_interface_path.name.clone() + "::"),
-                        context,
                         errors,
                     ),
                     ..fn_sig.clone()
@@ -266,7 +265,7 @@ pub ContractDecl: () = {
         <interfaces: ("implements" <Sep1ListNoTrail<Path, ",">>)?>
         "{" <functions:(<FnSig> ";")*> "}" <r:@R> => {
         // <FMT_OPEN>
-        let full_contract_path = name.to_full_path(context.mod_prefix, context, errors);
+        let full_contract_path = context.add_top_level_symbol(name, context.mod_prefix, errors);
         let contract_decl = ContractDecl {
             name: full_contract_path.clone(),
             id,
@@ -274,9 +273,8 @@ pub ContractDecl: () = {
             functions: functions
                 .iter()
                 .map(|fn_sig| FnSig {
-                    name: fn_sig.name.to_full_path(
+                    name: context.add_top_level_symbol(fn_sig.name.clone(), 
                         &(full_contract_path.name.clone() + "::"),
-                        context,
                         errors,
                     ),
                     ..fn_sig.clone()
@@ -295,9 +293,9 @@ pub ExternDecl: () = {
         let functions = functions
             .iter()
             .map(|fn_sig| FnSig {
-                name: fn_sig
-                    .name
-                    .to_full_path(context.mod_prefix, context, errors),
+                name:context.add_top_level_symbol(fn_sig
+                    .name.clone(),
+                    context.mod_prefix, errors),
                 ..fn_sig.clone()
             })
             .collect();
