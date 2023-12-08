@@ -82,15 +82,6 @@ pub struct Ident {
     pub(super) span: Span,
 }
 
-impl Ident {
-    pub(crate) fn to_full_path(&self, mod_prefix: &str) -> Self {
-        Ident {
-            name: mod_prefix.to_owned() + &self.name,
-            span: self.span.clone(),
-        }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum TupleAccess {
     Error,

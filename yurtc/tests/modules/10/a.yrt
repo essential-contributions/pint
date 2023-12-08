@@ -1,0 +1,15 @@
+let F = 1;
+
+enum F = A | B;
+
+type F = string;
+
+let F = 4;
+
+state F = MyContract::foo();
+
+interface F {}
+
+contract F(0) {}
+
+extern { fn F() -> bool; }
