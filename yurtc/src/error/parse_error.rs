@@ -49,6 +49,10 @@ pub enum ParseError {
     },
     #[error("leading `+` is not supported")]
     UnsupportedLeadingPlus { span: Span },
+    #[error("`self` import can only appear in an import list with a non-empty prefix")]
+    SelfWithEmptyPrefix { span: Span },
+    #[error("`self` is only allowed at the end of a use path")]
+    SelfNotAtTheEnd { span: Span },
 }
 
 impl ReportableError for ParseError {
@@ -158,6 +162,21 @@ impl ReportableError for ParseError {
                     color: Color::Red,
                 }]
             }
+            SelfWithEmptyPrefix { span } => {
+                vec![ErrorLabel {
+                    message: "can only appear in an import list with a non-empty prefix"
+                        .to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+            SelfNotAtTheEnd { span } => {
+                vec![ErrorLabel {
+                    message: "`self` can only appear at the end of a use path".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
         }
     }
 
@@ -244,6 +263,8 @@ impl Spanned for ParseError {
             | EmptyTupleType { span, .. }
             | NameClash { span, .. }
             | UnsupportedLeadingPlus { span, .. }
+            | SelfWithEmptyPrefix { span, .. }
+            | SelfNotAtTheEnd { span, .. }
             | Lex { span } => span,
 
             InvalidToken => unreachable!("The `InvalidToken` error is always wrapped in `Lex`."),
