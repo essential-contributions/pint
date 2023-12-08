@@ -38,7 +38,6 @@ Decl: () = {
 
 UseStatement: () = {
     "use" <abs:"::"?> <ut:UseTree> => {
-        // <FMT_OPEN>
         // Convert the use tree into use paths, prepend the current mod path
         // prefix to each iff the use tree is not absolute, and append to the
         // current list of use paths in our context.
@@ -84,7 +83,6 @@ UseStatement: () = {
             .collect::<Vec<_>>();
 
         context.use_paths.append(&mut new_use_paths);
-        // <FMT_CLOSE>
     }
 };
 
@@ -97,7 +95,6 @@ pub UseTree: UseTree = {
 
 pub LetDecl: () = {
     <l:@L> "let" <name:Ident> ":" <ty:Type> <init:LetInit?> <r:@R> => {
-        // <FMT_OPEN>
         context
             .ii
             .insert_var(context.mod_prefix, &name, Some(ty))
@@ -111,10 +108,8 @@ pub LetDecl: () = {
             .unwrap_or_else(|error| {
                 errors.push(Error::Parse { error });
             });
-        // <FMT_CLOSE>
     },
     <l:@L> "let" <name:Ident> <init:LetInit> <r:@R> => {
-        // <FMT_OPEN>
         context
             .ii
             .insert_var(context.mod_prefix, &name, None)
@@ -126,17 +121,14 @@ pub LetDecl: () = {
             .unwrap_or_else(|error| {
                 errors.push(Error::Parse { error });
             });
-        // <FMT_CLOSE>
     },
     <l:@L> "let" <name:Ident> <r:@R> => {
-        // <FMT_OPEN>
         errors.push(Error::Parse {
             error: ParseError::UntypedVariable {
                 name: name.name,
                 span: (context.span_from)(l, r),
             },
         });
-        // <FMT_CLOSE>
     }
 };
 
@@ -147,7 +139,6 @@ LetInit: ExprKey = {
 
 pub StateDecl: () = {
     <l:@L> "state" <name:Ident> <ty:(":" <Type>)?> "=" <init:FnCallExpr> <r:@R> => {
-        // <FMT_OPEN>
         // Return the index to the new state in the IntermediateIntent::states Vec.
         let init_key = context.ii.exprs.insert(init);
         context
@@ -162,7 +153,6 @@ pub StateDecl: () = {
             .unwrap_or_else(|error| {
                 errors.push(Error::Parse { error });
             });
-        // <FMT_CLOSE>
     }
 };
 
@@ -189,27 +179,23 @@ SolveDeclInner: SolveFunc = {
 
 pub EnumDecl: () = {
     <l:@L> "enum" <name:Ident> "=" <variants:Sep1ListNoTrail<Ident, "|">> <r:@R> => {
-        // <FMT_OPEN>
         let enum_decl = EnumDecl {
             name: context.add_top_level_symbol(name, context.mod_prefix, errors),
             variants,
             span: (context.span_from)(l, r),
         };
         context.ii.enums.push(enum_decl);
-        // <FMT_CLOSE>
     }
 }
 
 pub NewTypeDecl: () = {
     <l:@L> "type" <name:Ident> "=" <ty:Type> <r:@R> => {
-        // <FMT_OPEN>
         let new_type_decl = NewTypeDecl {
             name: context.add_top_level_symbol(name, context.mod_prefix, errors),
             ty,
             span: (context.span_from)(l, r),
         };
         context.ii.new_types.push(new_type_decl);
-        // <FMT_CLOSE>
     }
 }
 
@@ -239,14 +225,14 @@ FnSig: FnSig = {
 
 pub InterfaceDecl: () = {
     <l:@L> "interface" <name:Ident> "{" <functions:(<FnSig> ";")*> "}" <r:@R> => {
-        // <FMT_OPEN>
         let full_interface_path = context.add_top_level_symbol(name, context.mod_prefix, errors);
         let interface_decl = InterfaceDecl {
             name: full_interface_path.clone(),
             functions: functions
                 .iter()
                 .map(|fn_sig| FnSig {
-                    name: context.add_top_level_symbol(fn_sig.name.clone(),
+                    name: context.add_top_level_symbol(
+                        fn_sig.name.clone(),
                         &(full_interface_path.name.clone() + "::"),
                         errors,
                     ),
@@ -256,7 +242,6 @@ pub InterfaceDecl: () = {
             span: (context.span_from)(l, r),
         };
         context.ii.interfaces.push(interface_decl);
-        // <FMT_CLOSE>
     }
 }
 
@@ -264,7 +249,6 @@ pub ContractDecl: () = {
     <l:@L> "contract" <name:Ident> "(" <id:Expr> ")"
         <interfaces: ("implements" <Sep1ListNoTrail<Path, ",">>)?>
         "{" <functions:(<FnSig> ";")*> "}" <r:@R> => {
-        // <FMT_OPEN>
         let full_contract_path = context.add_top_level_symbol(name, context.mod_prefix, errors);
         let contract_decl = ContractDecl {
             name: full_contract_path.clone(),
@@ -273,7 +257,8 @@ pub ContractDecl: () = {
             functions: functions
                 .iter()
                 .map(|fn_sig| FnSig {
-                    name: context.add_top_level_symbol(fn_sig.name.clone(), 
+                    name: context.add_top_level_symbol(
+                        fn_sig.name.clone(),
                         &(full_contract_path.name.clone() + "::"),
                         errors,
                     ),
@@ -283,19 +268,15 @@ pub ContractDecl: () = {
             span: (context.span_from)(l, r),
         };
         context.ii.contracts.push(contract_decl);
-        // <FMT_CLOSE>
     }
 }
 
 pub ExternDecl: () = {
     <l:@L> "extern" "{" <functions:(<FnSig> ";")*> "}" <r:@R> => {
-        // <FMT_OPEN>
         let functions = functions
             .iter()
             .map(|fn_sig| FnSig {
-                name:context.add_top_level_symbol(fn_sig
-                    .name.clone(),
-                    context.mod_prefix, errors),
+                name: context.add_top_level_symbol(fn_sig.name.clone(), context.mod_prefix, errors),
                 ..fn_sig.clone()
             })
             .collect();
@@ -303,7 +284,6 @@ pub ExternDecl: () = {
             .ii
             .externs
             .push((functions, (context.span_from)(l, r)));
-        // <FMT_CLOSE>
     }
 }
 
@@ -328,7 +308,6 @@ TypeAtom: Type = {
         }
     },
     <l:@L> "{" "}" <r:@R> => {
-        // <FMT_OPEN>
         let span = (context.span_from)(l, r);
         errors.push(Error::Parse {
             error: ParseError::EmptyTupleType { span: span.clone() },
@@ -336,7 +315,6 @@ TypeAtom: Type = {
 
         // Recover with a malformed type
         Type::Error(span)
-        // <FMT_CLOSE>
     },
     <l:@L> <path:Path> <r:@R> => Type::CustomType {
         path,
@@ -346,7 +324,6 @@ TypeAtom: Type = {
 
 ArrayType: Type = {
     <l:@L> <ty:TypeAtom> <ranges: ("[" <Expr> "]")+ > <r:@R> => {
-        // <FMT_OPEN>
         // Multi-dimensional arrays have their innermost dimension on the far
         // right. Hence, we need to reverse the iterator.
         // For example, `int[3][5]` is actually an array of size 3 that
@@ -356,10 +333,8 @@ ArrayType: Type = {
             range: *range,
             span: (context.span_from)(l, r),
         })
-        // <FMT_CLOSE>
     },
     <l:@L> <ty:TypeAtom> "[" "]" <r:@R> => {
-        // <FMT_OPEN>
         let span = (context.span_from)(l, r);
         errors.push(Error::Parse {
             error: ParseError::EmptyArrayType { span: span.clone() },
@@ -367,7 +342,6 @@ ArrayType: Type = {
 
         // Recover with a malformed type
         Type::Error(span)
-        // <FMT_CLOSE>
     },
 };
 
@@ -397,42 +371,36 @@ pub Expr: ExprKey = {
 
 LogicalOrOp: ExprKey = {
     <l:@L> <lhs:LogicalOrOp> "||" <rhs:LogicalAndOp> <r:@R> => {
-        // <FMT_OPEN>
         context.ii.exprs.insert(Expr::BinaryOp {
             op: BinaryOp::LogicalOr,
             lhs,
             rhs,
             span: (context.span_from)(l, r),
         })
-        // <FMT_CLOSE>
     },
     <LogicalAndOp>,
 };
 
 LogicalAndOp: ExprKey = {
     <l:@L> <lhs:LogicalAndOp> "&&" <rhs:Comparison> <r:@R> => {
-        // <FMT_OPEN>
         context.ii.exprs.insert(Expr::BinaryOp {
             op: BinaryOp::LogicalAnd,
             lhs,
             rhs,
             span: (context.span_from)(l, r),
         })
-        // <FMT_CLOSE>
     },
     <Comparison>,
 };
 
 Comparison: ExprKey = {
     <l:@L> <lhs:Comparison> <op:RelOpOp> <rhs:InOp> <r:@R> => {
-        // <FMT_OPEN>
         context.ii.exprs.insert(Expr::BinaryOp {
             op,
             lhs,
             rhs,
             span: (context.span_from)(l, r),
         })
-        // <FMT_CLOSE>
     },
     <InOp>,
 };
@@ -448,36 +416,30 @@ RelOpOp: BinaryOp = {
 
 InOp: ExprKey = {
      <l:@L> <value:InOp> "in" <collection:Additive> <r:@R> => {
-        // <FMT_OPEN>
         context.ii.exprs.insert(Expr::In {
             value,
             collection,
             span: (context.span_from)(l, r),
         })
-        // <FMT_CLOSE>
      },
      <l:@L> <value:InOp> "in" <collection:Range> <r:@R> => {
-        // <FMT_OPEN>
         context.ii.exprs.insert(Expr::In {
             value,
             collection,
             span: (context.span_from)(l, r),
         })
-        // <FMT_CLOSE>
      },
     <Additive>,
 };
 
 Additive: ExprKey = {
     <l:@L> <lhs:Additive> <op:AddOpOp> <rhs:Multiplicative> <r:@R> => {
-        // <FMT_OPEN>
         context.ii.exprs.insert(Expr::BinaryOp {
             op,
             lhs,
             rhs,
             span: (context.span_from)(l, r),
         })
-        // <FMT_CLOSE>
     },
     <Multiplicative>,
 };
@@ -489,14 +451,12 @@ AddOpOp: BinaryOp = {
 
 Multiplicative: ExprKey = {
     <l:@L> <lhs:Multiplicative> <op:MultOpOp> <rhs:AsOp> <r:@R> => {
-        // <FMT_OPEN>
         context.ii.exprs.insert(Expr::BinaryOp {
             op,
             lhs,
             rhs,
             span: (context.span_from)(l, r),
         })
-        // <FMT_CLOSE>
     },
     <AsOp>,
 };
@@ -520,16 +480,13 @@ AsOp: ExprKey = {
 
 TupleFieldOp: ExprKey = {
     <l:@L> <tuple:TupleFieldOp> "." <name:Ident> <r:@R> => {
-        // <FMT_OPEN>
         context.ii.exprs.insert(Expr::TupleFieldAccess {
             tuple,
             field: TupleAccess::Name(name),
             span: (context.span_from)(l, r),
         })
-        // <FMT_CLOSE>
     },
     <l:@L> <tuple:TupleFieldOp> "." <m:@L> <num_str:"int_lit"> <r:@R> => {
-        // <FMT_OPEN>
         context.ii.exprs.insert(Expr::TupleFieldAccess {
             tuple,
             field: num_str
@@ -547,10 +504,8 @@ TupleFieldOp: ExprKey = {
                 }),
             span: (context.span_from)(l, r),
         })
-        // <FMT_CLOSE>
     },
     <l:@L> <tuple:TupleFieldOp> "." <m:@L> <num_str:"real_lit"> <r:@R> => {
-        // <FMT_OPEN>
         match num_str.chars().position(|c| c == '.') {
             Some(dot_index) => {
                 let first_index = num_str[0..dot_index]
@@ -611,23 +566,19 @@ TupleFieldOp: ExprKey = {
                 })
             }
         }
-        // <FMT_CLOSE>
     },
     <ArrayElOp>,
 };
 
 ArrayElOp: ExprKey = {
     <l:@L> <array:ArrayElOp> "[" <index:Expr> "]" <r:@R> => {
-        // <FMT_OPEN>
         context.ii.exprs.insert(Expr::ArrayElementAccess {
             array,
             index,
             span: (context.span_from)(l, r),
         })
-        // <FMT_CLOSE>
     },
     <l:@L> <array:ArrayElOp> "[" "]" <r:@R> => {
-        // <FMT_OPEN>
         let span = (context.span_from)(l, r);
         errors.push(Error::Parse {
             error: ParseError::EmptyArrayAccess { span: span.clone() },
@@ -635,33 +586,28 @@ ArrayElOp: ExprKey = {
 
         // Recover with a malformed expression
         context.ii.exprs.insert(Expr::Error(span))
-        // <FMT_CLOSE>
     },
     <PrimeOp>,
 };
 
 PrimeOp: ExprKey = {
     <l:@L> <expr:PrimeOp> "'" <r:@R> => {
-        // <FMT_OPEN>
         context.ii.exprs.insert(Expr::UnaryOp {
             op: UnaryOp::NextState,
             expr,
             span: (context.span_from)(l, r),
         })
-        // <FMT_CLOSE>
     },
     <UnaryOp>,
 }
 
 UnaryOp: ExprKey = {
     <l:@L> <op:UnaryOpOp> <expr:UnaryOp> <r:@R> => {
-        // <FMT_OPEN>
         context.ii.exprs.insert(Expr::UnaryOp {
             op,
             expr,
             span: (context.span_from)(l, r),
         })
-        // <FMT_CLOSE>
     },
     <Term>,
 };
@@ -688,12 +634,10 @@ Term: ExprKey = {
 
 TermInner: Expr = {
     <l:@L> <imm:Immediate> <r:@R> => {
-        // <FMT_OPEN>
         Expr::Immediate {
             value: imm,
             span: (context.span_from)(l, r),
         }
-        // <FMT_CLOSE>
     },
     <IfExpr>,
     <MacroCallExpr>,
@@ -709,14 +653,12 @@ BlockExpr: ExprKey = {
 
 IfExpr: Expr = {
     <l:@L> "if" <condition:Expr> <then_block:BlockExpr> "else" <else_block:BlockExpr> <r:@R> => {
-        // <FMT_OPEN>
         Expr::If {
             condition,
             then_block,
             else_block,
             span: (context.span_from)(l, r),
         }
-        // <FMT_CLOSE>
     }
 }
 
@@ -730,7 +672,6 @@ ElseBranch: ExprKey = {
 
 CondExpr: ExprKey = {
     <l:@L> "cond" "{" <cond_branches: (<CondBranch>)*> <else_branch: ElseBranch> "}" <r:@R> => {
-        // <FMT_OPEN>
         // De-sugar a `cond` into an `if/else` chain.
         //
         // Build the `if/else` chain starting with the else branch and going up,
@@ -746,7 +687,6 @@ CondExpr: ExprKey = {
                     span: (context.span_from)(l, r),
                 })
             })
-        // <FMT_CLOSE>
     }
 };
 
@@ -764,45 +704,37 @@ MacroCallExpr: Expr = {
 
 FnCallExpr: Expr = {
     <l:@L> <path:Path> "(" <args:SepList<Expr, ",">> ")" <r:@R> => {
-        // <FMT_OPEN>
         Expr::FnCall {
             name: path,
             args,
             span: (context.span_from)(l, r),
         }
-        // <FMT_CLOSE>
     },
 };
 
 ArrayExpr: Expr = {
     <l:@L> "[" <elements:SepList<Expr, ",">> "]" <r:@R> => {
-        // <FMT_OPEN>
         Expr::Array {
             elements,
             span: (context.span_from)(l, r),
         }
-        // <FMT_CLOSE>
     },
 };
 
 TupleExpr: Expr = {
     <l:@L> "{" <fields:TupleExprFields> "}" <r:@R> => {
-        // <FMT_OPEN>
         Expr::Tuple {
             fields,
             span: (context.span_from)(l, r),
         }
-        // <FMT_CLOSE>
     },
     <l:@L> "{" "}" <r:@R> => {
-        // <FMT_OPEN>
         let span = (context.span_from)(l, r);
         errors.push(Error::Parse {
             error: ParseError::EmptyTupleExpr { span: span.clone() },
         });
 
         Expr::Error(span)
-        // <FMT_CLOSE>
     },
 
 };
@@ -822,13 +754,11 @@ TupleExprField: (Option<Ident>, ExprKey) = {
 
 pub Range: ExprKey = {
     <l:@L> <lb:Additive> ".." <ub:Additive> <r:@R> => {
-        // <FMT_OPEN>
         context.ii.exprs.insert(Expr::Range {
             lb,
             ub,
             span: (context.span_from)(l, r),
         })
-        // <FMT_CLOSE>
     }
 }
 
@@ -842,7 +772,6 @@ MacroPath: Path = {
 
 PathWithLast<Last>: Path = {
     <l:@L> "::" <els:(<Ident> "::")*> <last:Last> <r:@R> => {
-        // <FMT_OPEN>
         if !els.is_empty() {
             let path: Vec<_> = els.iter().map(|el| el.to_string()).collect();
             context.next_paths.push(NextModPath {
@@ -863,11 +792,9 @@ PathWithLast<Last>: Path = {
                 .concat()
         );
         path
-        // <FMT_CLOSE>
     },
 
     <l:@L> <els:(<Ident> "::")*> <last:Last> <r:@R> => {
-        // <FMT_OPEN>
         // Check if any of the use statement matches the path. This requires
         // that the alias (if it exists) or the last ident in the use statement
         // matches the first ident in the path.
@@ -947,7 +874,6 @@ PathWithLast<Last>: Path = {
             });
 
         full_absolute_path
-        // <FMT_CLOSE>
     }
 };
 
