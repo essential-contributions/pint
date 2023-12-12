@@ -44,4 +44,5 @@
       - [Prime Expressions](yurt/expressions/atoms/prime.md)
       - [Expression Precedence](yurt/expressions/atoms/precedence.md)
   - [Backend](yurt/backend.md)
+- [Yurt Contracts](contracts/contracts.md)
 - [JSON Representation of Intents](json/json_intents.md)
