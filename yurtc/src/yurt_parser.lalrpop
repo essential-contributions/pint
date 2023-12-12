@@ -37,22 +37,63 @@ Decl: () = {
 };
 
 UseStatement: () = {
-    "use" <abs:"::"?> <ut:UseTree> => {
-        // Convert the use tree into use paths, prepend the current mod path
-        // prefix to each iff the use tree is not absolute, and append to the
-        // current list of use paths in our context.
+    "use" <l:@L> <abs:"::"?> <ut:UseTree> <r:@R> => {
+        // Convert the use tree into use paths, prepend the current mod path prefix to each iff the
+        // use tree is not absolute, and append to the current list of use paths in our context.
+        let mut local_errors = Vec::new();
         let mut new_use_paths = ut
             .gather_paths()
             .into_iter()
-            .map(|mut use_path| {
+            .filter_map(|mut use_path| {
                 if abs.is_none() {
                     use_path.add_prefix(context.mod_path.to_vec());
                 }
 
-                // This is a bit strange.  We're taking the alias or the last
-                // element of the use path, prefixing it with the current mod
-                // path and inserting that as a top-level symbol.  This is to
-                // avoid local decls clashing with the `use` path, though those
+                // If any of the idents in the path, other than the last one, is a `self`,
+                // immediately error out
+                if use_path
+                    .path
+                    .iter()
+                    .take(use_path.path.len() - 1)
+                    .any(|elem| elem == "self")
+                {
+                    local_errors.push(Error::Parse {
+                        error: ParseError::SelfNotAtTheEnd {
+                            // We can use a better span here but that's okay for now. Ideally, we
+                            // would use the span of the `self` ident itself, but we don't have that
+                            // right now.
+                            span: (context.span_from)(l, r),
+                        },
+                    });
+                    return None;
+                }
+
+                // Paths that end in `self` get a special handling
+                if use_path.path[use_path.path.len() - 1] == "self" {
+                    // First, remove `self` because a path that ends in `self` is the same as its
+                    // prefix For example: `a::b::self` is the same as `a::b`
+                    use_path.path.pop();
+
+                    // Paths with only `self` (i.e. nothing before it) are not valid
+                    //
+                    // Check that the prefix `use_path.path` matches the current `mod_path` because
+                    // we may in a module other than the root module
+                    if use_path.path == context.mod_path {
+                        local_errors.push(Error::Parse {
+                            error: ParseError::SelfWithEmptyPrefix {
+                                span: use_path.span.clone(),
+                            },
+                        });
+                        return None;
+                    }
+                }
+
+                Some(use_path.clone())
+            })
+            .map(|use_path| {
+                // This is a bit strange.  We're taking the alias or the last element of the use
+                // path, prefixing it with the current mod path and inserting that as a top-level
+                // symbol.  This is to avoid local decls clashing with the `use` path, though those
                 // symbols are all absolute.
                 //
                 // e.g.,
@@ -61,6 +102,12 @@ UseStatement: () = {
                 //
                 // use some::other::mod::b as c;  // Inserted as ::local::mod::c
                 // let c: int;                    // Inserted as ::local::mod::c
+                //
+                // There is one special case with `self` where the previous ident in the path is
+                // considered instead. This is automatically handled by the `filter_map` above. For
+                // example:
+                //
+                // use a::b::mod::my_mod::self;    // Inserted as ::local::mod::my_mod
                 context
                     .ii
                     .add_top_level_symbol(
@@ -82,15 +129,21 @@ UseStatement: () = {
             })
             .collect::<Vec<_>>();
 
+        errors.extend(local_errors);
         context.use_paths.append(&mut new_use_paths);
     }
 };
 
+pub UsePathIdent: Ident = {
+    IdentFromToken<"ident">,
+    IdentFromToken<"self">,
+}
+
 pub UseTree: UseTree = {
-    <name:Ident> => UseTree::Name { name },
-    <prefix:Ident> "::" <suffix:UseTree> => UseTreePath { prefix, suffix: Box::new(suffix) },
+    <name:UsePathIdent> => UseTree::Name { name },
+    <prefix:UsePathIdent> "::" <suffix:UseTree> => UseTreePath { prefix, suffix: Box::new(suffix) },
     "{" <imports:SepList<UseTree, ",">> "}" => UseTree::Group { imports },
-    <name:Ident> "as" <alias:Ident> => UseTree::Alias { name, alias },
+    <name:UsePathIdent> "as" <alias:Ident> => UseTree::Alias { name, alias },
 };
 
 pub LetDecl: () = {
@@ -1014,6 +1067,7 @@ extern {
         "cond" => lexer::Token::Cond,
 
         "use" => lexer::Token::Use,
+        "self" => lexer::Token::SelfTok,
         "let" => lexer::Token::Let,
         "state" => lexer::Token::State,
         "enum" => lexer::Token::Enum,

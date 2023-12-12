@@ -211,6 +211,11 @@ fn r#use() {
 }
 
 #[test]
+fn self_tok() {
+    assert_eq!(lex_one_success("self"), Token::SelfTok);
+}
+
+#[test]
 fn r#as() {
     assert_eq!(lex_one_success("as"), Token::As);
 }

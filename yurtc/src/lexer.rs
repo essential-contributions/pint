@@ -126,6 +126,8 @@ pub enum Token {
 
     #[token("use")]
     Use,
+    #[token("self")]
+    SelfTok,
     #[token("as")]
     As,
 
@@ -182,6 +184,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Solve,
     Token::Satisfy,
     Token::Use,
+    Token::SelfTok,
     Token::As,
     Token::Enum,
     Token::Interface,
@@ -270,6 +273,7 @@ impl fmt::Display for Token {
             Token::Solve => write!(f, "solve"),
             Token::Satisfy => write!(f, "satisfy"),
             Token::Use => write!(f, "use"),
+            Token::SelfTok => write!(f, "self"),
             Token::As => write!(f, "as"),
             Token::Interface => write!(f, "interface"),
             Token::Contract => write!(f, "contract"),

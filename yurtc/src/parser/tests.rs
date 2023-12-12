@@ -239,24 +239,24 @@ fn use_statements() {
     check(
         &run_parser!(yurt, "use ;", mod_path),
         expect_test::expect![[r#"
-            expected `::`, `ident`, or `{`, found `;`
-            @4..5: expected `::`, `ident`, or `{`
+            expected `::`, `ident`, `self`, or `{`, found `;`
+            @4..5: expected `::`, `ident`, `self`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(yurt, "use ::;", mod_path),
         expect_test::expect![[r#"
-            expected `ident`, or `{`, found `;`
-            @6..7: expected `ident`, or `{`
+            expected `ident`, `self`, or `{`, found `;`
+            @6..7: expected `ident`, `self`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(yurt, "use a::;", mod_path),
         expect_test::expect![[r#"
-            expected `ident`, or `{`, found `;`
-            @7..8: expected `ident`, or `{`
+            expected `ident`, `self`, or `{`, found `;`
+            @7..8: expected `ident`, `self`, or `{`
         "#]],
     );
 
@@ -271,6 +271,36 @@ fn use_statements() {
             @7..8: previous declaration of the value `b` here
             @34..40: `b` redeclared here
             `b` must be declared or imported only once in this scope
+        "#]],
+    );
+
+    check(
+        &run_parser!(yurt, "use a::{{self as t}, b, c::{self, d}, e};", mod_path),
+        expect_test::expect![[r#"
+            use foo::a as t;
+            use foo::a::b;
+            use foo::a::c;
+            use foo::a::c::d;
+            use foo::a::e"#]],
+    );
+
+    check(
+        &run_parser!(
+            yurt,
+            "use {self}; use self; use self::a; use self::self; use a::{b as self}",
+            mod_path
+        ),
+        expect_test::expect![[r#"
+            `self` import can only appear in an import list with a non-empty prefix
+            @5..9: can only appear in an import list with a non-empty prefix
+            `self` import can only appear in an import list with a non-empty prefix
+            @16..20: can only appear in an import list with a non-empty prefix
+            `self` is only allowed at the end of a use path
+            @26..33: `self` can only appear at the end of a use path
+            `self` is only allowed at the end of a use path
+            @39..49: `self` can only appear at the end of a use path
+            expected `ident`, found `self`
+            @64..68: expected `ident`
         "#]],
     );
 }
