@@ -1220,31 +1220,53 @@ fn tuple_field_accesses() {
 #[test]
 fn array_expressions() {
     check(
-        &run_formatter!(expr(), r#"[5]"#),
+        &run_formatter!(expr(), r#"[    5]"#),
         expect_test::expect!["[5]"],
     );
     check(
-        &run_formatter!(expr(), r#"[5,]"#),
+        &run_formatter!(
+            expr(),
+            r#"[5
+        ,]"#
+        ),
         expect_test::expect!["[5]"],
     );
     check(
-        &run_formatter!(expr(), r#"[5, 4]"#),
+        &run_formatter!(expr(), r#"[    5   , 4    ]"#),
         expect_test::expect!["[5, 4]"],
     );
     check(
-        &run_formatter!(expr(), r#"[[ 1 ],]"#),
+        &run_formatter!(expr(), r#"[[1],]"#),
         expect_test::expect!["[[1]]"],
     );
     check(
-        &run_formatter!(expr(), r#"[[1, 2], 3]"#), // This should fail in semantic analysis
+        &run_formatter!(
+            expr(),
+            r#"[[1, 
+        2], 
+        3]"#
+        ),
         expect_test::expect!["[[1, 2], 3]"],
     );
     check(
-        &run_formatter!(expr(), r#"[[1, 2], [3, 4]]"#),
+        &run_formatter!(
+            expr(),
+            r#"[
+            [1,
+             2],
+              [3,
+               4]
+               ]"#
+        ),
         expect_test::expect!["[[1, 2], [3, 4]]"],
     );
     check(
-        &run_formatter!(expr(), r#"[[foo(), 2], [if true { 1 } else { 2 }, t.0]]"#),
+        &run_formatter!(
+            expr(),
+            r#"[
+                [   foo (  ) ,  2] ,    [if  true  
+                {1}else{2}  ,      t    .0]]"#
+        ),
         expect_test::expect![
             r#"
         [[foo(), 2], [if true {
