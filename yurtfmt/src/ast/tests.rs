@@ -882,11 +882,10 @@ fn casting() {
         ),
         expect![[r#"5 as { x: int, y: real, z: string }"#]],
     );
-    // TODO: enable when array exprs are supported
-    // check(
-    //     &run_formatter!(expr(), "a[5][3]   as real"),
-    //     expect![[r#"a[5][3] as real"#]],
-    // );
+    check(
+        &run_formatter!(expr(), "a[ 5   ]      [       3    ]   as real"),
+        expect![[r#"a[5][3] as real"#]],
+    );
 }
 
 #[test]
