@@ -1251,23 +1251,56 @@ fn array_expressions() {
 #[test]
 fn array_element_accesses() {
     check(
-        &run_formatter!(expr(), r#"a[5]"#),
+        &run_formatter!(
+            expr(),
+            r#"a
+        [   5   ]"#
+        ),
         expect_test::expect!["a[5]"],
     );
     check(
-        &run_formatter!(expr(), r#"a[N][5][t.0]"#),
-        expect_test::expect!["a[::N][5][::t.0]"],
+        &run_formatter!(
+            expr(),
+            r#"a    [   N       ][
+            5][t.
+            0]"#
+        ),
+        expect_test::expect!["a[N][5][t.0]"],
     );
     check(
-        &run_formatter!(expr(), r#"{ a }[N][foo()][M][4]"#),
-        expect_test::expect!["a[::N][::foo()][::M][4]"],
+        &run_formatter!(
+            expr(),
+            r#"{ a }
+        [N] [   foo()][     M   ][  4   
+        ]"#
+        ),
+        expect_test::expect![[r#"
+            {
+                a
+            }[N][foo()][M][4]"#]],
     );
     check(
-        &run_formatter!(expr(), r#"foo()[{ M }][if true { 1 } else { 3 }]"#),
-        expect_test::expect!["foo()[::M][if true { 1 } else { 3 }]"],
+        &run_formatter!(
+            expr(),
+            r#"foo(
+
+        )[
+            { 
+                M 
+            }][
+                if true { 1 } else { 3 }]"#
+        ),
+        expect_test::expect![[r#"
+            foo()[{
+                M
+            }][if true {
+                1
+            } else {
+                3
+            }]"#]],
     );
     check(
-        &run_formatter!(expr(), r#"a[MyEnum::Variant1]"#),
-        expect_test::expect!["a[::MyEnum::Variant1]"],
+        &run_formatter!(expr(), r#"a    [   MyEnum  ::  Variant1    ]"#),
+        expect_test::expect!["a[MyEnum::Variant1]"],
     );
 }
