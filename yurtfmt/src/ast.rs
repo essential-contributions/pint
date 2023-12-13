@@ -582,6 +582,44 @@ impl<'sc> Format for TupleFieldAccess<'sc> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct ArrayExpr<'sc> {
+    pub elements: Vec<Expr<'sc>>,
+}
+
+impl<'sc> Format for ArrayExpr<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        formatted_code.write("[");
+
+        for (i, element) in self.elements.iter().enumerate() {
+            element.format(formatted_code)?;
+
+            // If not the last element, add a comma
+            if i < self.elements.len() - 1 {
+                formatted_code.write(", ");
+            }
+        }
+        formatted_code.write("]");
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct ArrayElementAccess<'sc> {
+    pub array: Box<Expr<'sc>>,
+    pub index: Box<Expr<'sc>>,
+}
+
+impl<'sc> Format for ArrayElementAccess<'sc> {
+    fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
+        self.array.format(formatted_code)?;
+        formatted_code.write("[");
+        self.index.format(formatted_code)?;
+        formatted_code.write("]");
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(super) enum Expr<'sc> {
     Immediate(Immediate),
     Path(Path),
@@ -596,6 +634,8 @@ pub(super) enum Expr<'sc> {
     Block(Block<'sc>),
     Tuple(TupleExpr<'sc>),
     TupleFieldAccess(TupleFieldAccess<'sc>),
+    Array(ArrayExpr<'sc>),
+    ArrayElementAccess(ArrayElementAccess<'sc>),
 }
 
 impl<'sc> Format for Expr<'sc> {
@@ -615,6 +655,10 @@ impl<'sc> Format for Expr<'sc> {
             Self::Tuple(tuple) => tuple.format(formatted_code)?,
             Self::TupleFieldAccess(tuple_field_access) => {
                 tuple_field_access.format(formatted_code)?
+            }
+            Self::Array(array) => array.format(formatted_code)?,
+            Self::ArrayElementAccess(array_field_access) => {
+                array_field_access.format(formatted_code)?
             }
         }
 
