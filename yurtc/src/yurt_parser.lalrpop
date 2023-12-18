@@ -153,9 +153,11 @@ pub LetDecl: () = {
             .insert_var(context.mod_prefix, &name, Some(ty))
             .map(|var_key| {
                 if let Some(expr_key) = init {
-                    context
-                        .ii
-                        .insert_eq_constraint(var_key, expr_key, (context.span_from)(l, r));
+                    context.ii.insert_eq_or_ineq_constraint(
+                        var_key,
+                        expr_key,
+                        (context.span_from)(l, r),
+                    );
                 }
             })
             .unwrap_or_else(|error| {
@@ -169,7 +171,7 @@ pub LetDecl: () = {
             .map(|var_key| {
                 context
                     .ii
-                    .insert_eq_constraint(var_key, init, (context.span_from)(l, r));
+                    .insert_eq_or_ineq_constraint(var_key, init, (context.span_from)(l, r));
             })
             .unwrap_or_else(|error| {
                 errors.push(Error::Parse { error });
