@@ -124,7 +124,7 @@ pub enum BinaryOp {
 }
 
 impl Spanned for Expr {
-    fn span(&self) -> &Span {
+    fn span(&self) -> Span {
         match self {
             Expr::Error(span)
             | Expr::Immediate { span, .. }
@@ -141,7 +141,7 @@ impl Spanned for Expr {
             | Expr::TupleFieldAccess { span, .. }
             | Expr::Cast { span, .. }
             | Expr::In { span, .. }
-            | Expr::Range { span, .. } => span,
+            | Expr::Range { span, .. } => span.clone(),
         }
     }
 }

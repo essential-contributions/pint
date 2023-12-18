@@ -1,6 +1,7 @@
 mod compile_error;
 mod lex_error;
 mod parse_error;
+mod solve_error;
 
 use crate::span::{Span, Spanned};
 use ariadne::{FnCache, Label, Report, ReportKind, Source};
@@ -11,6 +12,7 @@ use yansi::{Color, Style};
 pub(super) use compile_error::CompileError;
 pub(super) use lex_error::LexError;
 pub(super) use parse_error::ParseError;
+pub(super) use solve_error::SolveError;
 
 /// An error label used for pretty printing error messages to the terminal
 pub struct ErrorLabel {
@@ -28,6 +30,8 @@ pub enum Error {
     Parse { error: ParseError },
     #[error("{}", error)]
     Compile { error: CompileError },
+    #[error("{}", error)]
+    Solve { error: SolveError },
 }
 
 /// Types that implement this trait can be pretty printed to the terminal using the `ariadne` crate
@@ -63,7 +67,7 @@ where
         let error_file: &str = &format!("{}", self.span().context().display());
         let mut report_builder = Report::build(ReportKind::Error, error_file, self.span().start())
             .with_message(format!("{}", Style::default().bold().paint(self)))
-            .with_labels({
+            .with_labels(
                 self.labels()
                     .iter()
                     .enumerate()
@@ -74,8 +78,8 @@ where
                             .with_message(style.paint(label.message.clone()))
                             .with_color(label.color)
                     })
-                    .collect::<Vec<_>>()
-            });
+                    .collect::<Vec<_>>(),
+            );
 
         if let Some(code) = self.code() {
             report_builder = report_builder.with_code(code);
@@ -143,6 +147,7 @@ impl ReportableError for Error {
             },
             Parse { error } => error.labels(),
             Compile { error } => error.labels(),
+            Solve { error } => error.labels(),
         }
     }
 
@@ -152,6 +157,7 @@ impl ReportableError for Error {
             Lex { .. } => None,
             Parse { error } => error.note(),
             Compile { error } => error.note(),
+            Solve { error } => error.note(),
         }
     }
 
@@ -161,6 +167,7 @@ impl ReportableError for Error {
             Lex { .. } => None,
             Parse { error } => error.code().map(|code| format!("P{code}")),
             Compile { error } => error.code().map(|code| format!("C{code}")),
+            Solve { error } => error.code().map(|code| format!("S{code}")),
         }
     }
 
@@ -170,17 +177,19 @@ impl ReportableError for Error {
             Lex { .. } => None,
             Parse { error } => error.help(),
             Compile { error } => error.help(),
+            Solve { error } => error.help(),
         }
     }
 }
 
 impl Spanned for Error {
-    fn span(&self) -> &Span {
+    fn span(&self) -> Span {
         use Error::*;
         match &self {
-            Lex { span, .. } => span,
+            Lex { span, .. } => span.clone(),
             Parse { error } => error.span(),
             Compile { error } => error.span(),
+            Solve { error } => error.span(),
         }
     }
 }

@@ -33,3 +33,7 @@ enum U = V | W;
 // constraint (var ::b_mod::s3 == ::b_mod::c_mod::A::C);
 // constraint (var ::b_mod::s4 == ::b_mod::c_mod::A::B);
 // >>>
+
+// compile_failure <<<
+// internal error: Found untyped variable.
+// >>>

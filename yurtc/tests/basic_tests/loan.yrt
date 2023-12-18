@@ -18,7 +18,7 @@ constraint b4 == b3 + b3 * i - r;
 
 solve satisfy;
 
-// intermediate <<<<
+// intermediate <<<
 // var ::r: real;
 // var ::p: real;
 // var ::i: real;
@@ -31,4 +31,12 @@ solve satisfy;
 // constraint (::b3 == ((::b2 + (::b2 * ::i)) - ::r));
 // constraint (::b4 == ((::b3 + (::b3 * ::i)) - ::r));
 // solve satisfy;
+// >>>
+
+// compiled_intent <<<
+// Intent { states: [], vars: [Variable { name: "::r", ty: Real }, Variable { name: "::p", ty: Real }, Variable { name: "::i", ty: Real }, Variable { name: "::b1", ty: Real }, Variable { name: "::b2", ty: Real }, Variable { name: "::b3", ty: Real }, Variable { name: "::b4", ty: Real }], constraints: [BinaryOp { op: Equal, lhs: Path("::b1"), rhs: BinaryOp { op: Sub, lhs: BinaryOp { op: Add, lhs: Path("::p"), rhs: BinaryOp { op: Mul, lhs: Path("::p"), rhs: Path("::i") } }, rhs: Path("::r") } }, BinaryOp { op: Equal, lhs: Path("::b2"), rhs: BinaryOp { op: Sub, lhs: BinaryOp { op: Add, lhs: Path("::b1"), rhs: BinaryOp { op: Mul, lhs: Path("::b1"), rhs: Path("::i") } }, rhs: Path("::r") } }, BinaryOp { op: Equal, lhs: Path("::b3"), rhs: BinaryOp { op: Sub, lhs: BinaryOp { op: Add, lhs: Path("::b2"), rhs: BinaryOp { op: Mul, lhs: Path("::b2"), rhs: Path("::i") } }, rhs: Path("::r") } }, BinaryOp { op: Equal, lhs: Path("::b4"), rhs: BinaryOp { op: Sub, lhs: BinaryOp { op: Add, lhs: Path("::b3"), rhs: BinaryOp { op: Mul, lhs: Path("::b3"), rhs: Path("::i") } }, rhs: Path("::r") } }], directive: Satisfy }
+// >>>
+
+// solve_failure <<<
+// internal error: pcp solver: only addition is expected in expressions
 // >>>

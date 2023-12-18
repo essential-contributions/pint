@@ -23,8 +23,11 @@ anyhow = { workspace = true }
 ariadne = { workspace = true }
 clap = { workspace = true }
 expect-test = { workspace = true }
+gcollections = "1.4.0"
+intervallum = "1.2.0"
 itertools = { workspace = true }
 lalrpop-util = "0.20"
+libpcp = "0.7.0"
 logos = { workspace = true }
 num-bigint = "0.4"
 num-traits = "0.2"

@@ -36,14 +36,6 @@ impl ReportableError for CompileError {
     fn labels(&self) -> Vec<ErrorLabel> {
         use CompileError::*;
         match self {
-            Internal { msg, span } => {
-                vec![ErrorLabel {
-                    message: msg.to_string(),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
-            }
-
             DualModulity { mod_path, span, .. } => {
                 vec![ErrorLabel {
                     message: format!("multiple source files found for module {mod_path}"),
@@ -62,7 +54,7 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            FileIO { .. } => Vec::new(),
+            Internal { .. } | FileIO { .. } => Vec::new(),
         }
     }
 
@@ -102,13 +94,13 @@ impl ReportableError for CompileError {
 }
 
 impl Spanned for CompileError {
-    fn span(&self) -> &Span {
+    fn span(&self) -> Span {
         use CompileError::*;
         match &self {
             FileIO { span, .. }
             | Internal { span, .. }
             | DualModulity { span, .. }
-            | NoFileFoundForPath { span, .. } => span,
+            | NoFileFoundForPath { span, .. } => span.clone(),
         }
     }
 }

@@ -1,6 +1,6 @@
 use crate::expr;
 
-pub(crate) mod intermediate;
+pub mod intermediate;
 
 type Path = String;
 
