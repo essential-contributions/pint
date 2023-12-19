@@ -69,7 +69,7 @@ impl IntermediateIntent {
         Ok(var_key)
     }
 
-    pub fn insert_eq_constraint(&mut self, var_key: VarKey, expr_key: ExprKey, span: Span) {
+    pub fn insert_eq_or_ineq_constraint(&mut self, var_key: VarKey, expr_key: ExprKey, span: Span) {
         let var_span = self
             .vars
             .get(var_key)
@@ -77,14 +77,33 @@ impl IntermediateIntent {
 
         let var_expr_key = self.exprs.insert(Expr::PathByKey(var_key, var_span));
 
-        let eq_expr_key = self.exprs.insert(Expr::BinaryOp {
-            op: expr::BinaryOp::Equal,
-            lhs: var_expr_key,
-            rhs: expr_key,
-            span: span.clone(),
-        });
-
-        self.constraints.push((eq_expr_key, span));
+        match self.exprs.get(expr_key).cloned() {
+            Some(Expr::Range { lb, ub, .. }) => {
+                let geq_expr_key = self.exprs.insert(Expr::BinaryOp {
+                    op: expr::BinaryOp::GreaterThanOrEqual,
+                    lhs: var_expr_key,
+                    rhs: lb,
+                    span: span.clone(),
+                });
+                self.constraints.push((geq_expr_key, span.clone()));
+                let geq_expr_key = self.exprs.insert(Expr::BinaryOp {
+                    op: expr::BinaryOp::LessThanOrEqual,
+                    lhs: var_expr_key,
+                    rhs: ub,
+                    span: span.clone(),
+                });
+                self.constraints.push((geq_expr_key, span));
+            }
+            _ => {
+                let eq_expr_key = self.exprs.insert(Expr::BinaryOp {
+                    op: expr::BinaryOp::Equal,
+                    lhs: var_expr_key,
+                    rhs: expr_key,
+                    span: span.clone(),
+                });
+                self.constraints.push((eq_expr_key, span));
+            }
+        }
     }
 
     pub fn insert_state(

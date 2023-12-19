@@ -845,7 +845,8 @@ fn ranges() {
         &run_parser!(let_decl, "let x = 1..2"),
         expect_test::expect![[r#"
             var ::x;
-            constraint (var ::x == 1..2);"#]],
+            constraint (var ::x >= 1);
+            constraint (var ::x <= 2);"#]],
     );
 
     // Ranges allowed after `in`
