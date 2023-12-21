@@ -125,10 +125,10 @@ where
             })
             + &self
                 .note()
-                .map_or(String::new(), |note| format!("{}\n", note))
+                .map_or(String::new(), |note| format!("{note}\n"))
             + &self
                 .help()
-                .map_or(String::new(), |help| format!("{}\n", help))
+                .map_or(String::new(), |help| format!("{help}\n"))
     }
 }
 

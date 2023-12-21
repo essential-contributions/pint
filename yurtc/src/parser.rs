@@ -68,8 +68,8 @@ impl ProjectParser {
             .map_or_else(|| PathBuf::from("/"), PathBuf::from);
 
         Self {
-            root_src_path,
             proj_root_path,
+            root_src_path,
 
             ..Self::default()
         }
@@ -137,7 +137,7 @@ impl ProjectParser {
             }
 
             // Store this path as parsed to avoid re-parsing later.
-            self.visited_paths.push(src_path.to_path_buf());
+            self.visited_paths.push(src_path.clone());
 
             // Parse this file module, returning any paths to other potential modules.
             let mut mod_prefix = mod_path

@@ -4,15 +4,19 @@ use crate::{
     intent::{Expression, Intent, Solve, Type},
     span::empty_span,
 };
-use gcollections::ops::*;
-use interval::{interval_set::*, ops::Range};
+use gcollections::ops::{Alloc, Bounded, Empty};
+use interval::{interval_set::IntervalSet, ops::Range};
 use pcp::{
-    concept::*,
-    kernel::*,
-    propagators::*,
-    search::{search_tree_visitor::Status::*, *},
-    term::*,
-    variable::ops::*,
+    concept::Var,
+    kernel::Snapshot,
+    propagators::{x_geq_y, x_greater_y, x_leq_y, XEqY, XLessY, XNeqY},
+    search::{
+        one_solution_engine,
+        search_tree_visitor::Status::{EndOfSearch, Satisfiable, Unsatisfiable},
+        FDSpace, Status, VStore,
+    },
+    term::{Constant, Sum},
+    variable::ops::Iterable,
 };
 use std::fmt::Write;
 use yansi::{Color, Style};
@@ -40,7 +44,7 @@ impl<'a> Solver<'a> {
         }
     }
 
-    /// Converts an `intent::Expression` to a `Var<Vstore>. Works recursively, converting
+    /// Converts an `intent::Expression` to a `Var<Vstore>`. Works recursively, converting
     /// sub-expressions as needed.
     fn expr_to_vstore(&mut self, expr: &Expression) -> Result<Var<VStore>, SolveError> {
         match expr {
@@ -53,9 +57,12 @@ impl<'a> Solver<'a> {
                     msg: "(pcp) cannot find variable for path expression",
                     span: empty_span(),
                 }),
-            Expression::Immediate(expr::Immediate::Int(val)) => {
-                Ok(Box::new(Constant::new(*val as i32)))
-            }
+            Expression::Immediate(expr::Immediate::Int(val)) => Ok(Box::new(Constant::new(
+                i32::try_from(*val).map_err(|_| SolveError::Internal {
+                    msg: "(pcp) integer immediate is too large for the solver",
+                    span: empty_span(),
+                })?,
+            ))),
             Expression::BinaryOp { op, lhs, rhs } => {
                 let lhs = self.expr_to_vstore(lhs)?;
                 let rhs = self.expr_to_vstore(rhs)?;

@@ -45,7 +45,7 @@ pub struct IntermediateIntent {
 
 impl IntermediateIntent {
     pub fn compile(self) -> Result<Intent> {
-        compile::compile(self)
+        compile::compile(&self)
     }
 
     /// Helps out some `thing: T` by adding `self` as context.
@@ -77,32 +77,29 @@ impl IntermediateIntent {
 
         let var_expr_key = self.exprs.insert(Expr::PathByKey(var_key, var_span));
 
-        match self.exprs.get(expr_key).cloned() {
-            Some(Expr::Range { lb, ub, .. }) => {
-                let geq_expr_key = self.exprs.insert(Expr::BinaryOp {
-                    op: expr::BinaryOp::GreaterThanOrEqual,
-                    lhs: var_expr_key,
-                    rhs: lb,
-                    span: span.clone(),
-                });
-                self.constraints.push((geq_expr_key, span.clone()));
-                let geq_expr_key = self.exprs.insert(Expr::BinaryOp {
-                    op: expr::BinaryOp::LessThanOrEqual,
-                    lhs: var_expr_key,
-                    rhs: ub,
-                    span: span.clone(),
-                });
-                self.constraints.push((geq_expr_key, span));
-            }
-            _ => {
-                let eq_expr_key = self.exprs.insert(Expr::BinaryOp {
-                    op: expr::BinaryOp::Equal,
-                    lhs: var_expr_key,
-                    rhs: expr_key,
-                    span: span.clone(),
-                });
-                self.constraints.push((eq_expr_key, span));
-            }
+        if let Some(Expr::Range { lb, ub, .. }) = self.exprs.get(expr_key).cloned() {
+            let geq_expr_key = self.exprs.insert(Expr::BinaryOp {
+                op: expr::BinaryOp::GreaterThanOrEqual,
+                lhs: var_expr_key,
+                rhs: lb,
+                span: span.clone(),
+            });
+            self.constraints.push((geq_expr_key, span.clone()));
+            let geq_expr_key = self.exprs.insert(Expr::BinaryOp {
+                op: expr::BinaryOp::LessThanOrEqual,
+                lhs: var_expr_key,
+                rhs: ub,
+                span: span.clone(),
+            });
+            self.constraints.push((geq_expr_key, span));
+        } else {
+            let eq_expr_key = self.exprs.insert(Expr::BinaryOp {
+                op: expr::BinaryOp::Equal,
+                lhs: var_expr_key,
+                rhs: expr_key,
+                span: span.clone(),
+            });
+            self.constraints.push((eq_expr_key, span));
         }
     }
 

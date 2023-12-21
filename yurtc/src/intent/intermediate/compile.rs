@@ -6,15 +6,15 @@ use crate::{
 
 use super::{Expr, ExprKey, IntermediateIntent, SolveFunc, State, Type, Var};
 
-pub(super) fn compile(context: IntermediateIntent) -> super::Result<Intent> {
+pub(super) fn compile(context: &IntermediateIntent) -> super::Result<Intent> {
     // Perform all the verification, checks and optimisations.
     // ... TODO ...
 
     Ok(Intent {
-        states: convert_states(&context)?,
-        vars: convert_vars(&context)?,
-        constraints: convert_constraints(&context)?,
-        directive: convert_directive(&context)?,
+        states: convert_states(context)?,
+        vars: convert_vars(context)?,
+        constraints: convert_constraints(context)?,
+        directive: convert_directive(context)?,
     })
 }
 
@@ -76,14 +76,11 @@ fn convert_constraints(context: &IntermediateIntent) -> super::Result<Vec<Expres
 }
 
 fn convert_directive(context: &IntermediateIntent) -> super::Result<Solve> {
-    let (directive, span) = match context.directives.first() {
-        Some(tuple) => tuple,
-        None => {
-            return Err(CompileError::Internal {
-                msg: "Missing directive during final compile.",
-                span: empty_span(),
-            })
-        }
+    let Some((directive, span)) = context.directives.first() else {
+        return Err(CompileError::Internal {
+            msg: "Missing directive during final compile.",
+            span: empty_span(),
+        });
     };
 
     Ok(match directive {
