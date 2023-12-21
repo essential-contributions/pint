@@ -1,62 +1,102 @@
-// Generate a random 18-hole golf course.
+let h1: int = 3..5;
+let h2: int = 3..5;
+let h3: int = 3..5;
+let h4: int = 3..5;
+let h5: int = 3..5;
+let h6: int = 3..5;
+let h7: int = 3..5;
+let h8: int = 3..5;
+let h9: int = 3..5;
+let h10: int = 3..5;
+let h11: int = 3..5;
+let h12: int = 3..5;
+let h13: int = 3..5;
+let h14: int = 3..5;
+let h15: int = 3..5;
+let h16: int = 3..5;
+let h17: int = 3..5;
+let h18: int = 3..5;
 
-let h: int[18];
-
-constraint h[0] in 3..5;
-constraint h[1] in 3..5;
-constraint h[2] in 3..5;
-constraint h[3] in 3..5;
-constraint h[4] in 3..5;
-constraint h[5] in 3..5;
-constraint h[6] in 3..5;
-constraint h[7] in 3..5;
-constraint h[8] in 3..5;
-constraint h[9] in 3..5;
-constraint h[10] in 3..5;
-constraint h[11] in 3..5;
-constraint h[12] in 3..5;
-constraint h[13] in 3..5;
-constraint h[14] in 3..5;
-constraint h[15] in 3..5;
-constraint h[16] in 3..5;
-constraint h[17] in 3..5;
-
-let sum: int = h[0] + h[1] + h[2] + h[3] + h[4] + h[5] + h[6]
-             + h[7] + h[8] + h[9] + h[10] + h[11] + h[12] + h[13]
-             + h[14] + h[15] + h[16] + h[17];
-
-constraint sum == 72;
+constraint h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 + h9 + h10 + h11 + h12 + h13 + h14 + h15 + h16 + h17 + h18 == 72;
 
 solve satisfy;
 
-
 // intermediate <<<<
-// var ::h: int[18];
-// var ::sum: int;
-// constraint ::h[0] in 3..5;
-// constraint ::h[1] in 3..5;
-// constraint ::h[2] in 3..5;
-// constraint ::h[3] in 3..5;
-// constraint ::h[4] in 3..5;
-// constraint ::h[5] in 3..5;
-// constraint ::h[6] in 3..5;
-// constraint ::h[7] in 3..5;
-// constraint ::h[8] in 3..5;
-// constraint ::h[9] in 3..5;
-// constraint ::h[10] in 3..5;
-// constraint ::h[11] in 3..5;
-// constraint ::h[12] in 3..5;
-// constraint ::h[13] in 3..5;
-// constraint ::h[14] in 3..5;
-// constraint ::h[15] in 3..5;
-// constraint ::h[16] in 3..5;
-// constraint ::h[17] in 3..5;
-// constraint (var ::sum: int == (((((((((((((((((::h[0] + ::h[1]) + ::h[2]) + ::h[3]) + ::h[4]) + ::h[5]) + ::h[6]) + ::h[7]) + ::h[8]) + ::h[9]) + ::h[10]) + ::h[11]) + ::h[12]) + ::h[13]) + ::h[14]) + ::h[15]) + ::h[16]) + ::h[17]));
-// constraint (::sum == 72);
+// var ::h1: int;
+// var ::h2: int;
+// var ::h3: int;
+// var ::h4: int;
+// var ::h5: int;
+// var ::h6: int;
+// var ::h7: int;
+// var ::h8: int;
+// var ::h9: int;
+// var ::h10: int;
+// var ::h11: int;
+// var ::h12: int;
+// var ::h13: int;
+// var ::h14: int;
+// var ::h15: int;
+// var ::h16: int;
+// var ::h17: int;
+// var ::h18: int;
+// constraint (var ::h1: int >= 3);
+// constraint (var ::h1: int <= 5);
+// constraint (var ::h2: int >= 3);
+// constraint (var ::h2: int <= 5);
+// constraint (var ::h3: int >= 3);
+// constraint (var ::h3: int <= 5);
+// constraint (var ::h4: int >= 3);
+// constraint (var ::h4: int <= 5);
+// constraint (var ::h5: int >= 3);
+// constraint (var ::h5: int <= 5);
+// constraint (var ::h6: int >= 3);
+// constraint (var ::h6: int <= 5);
+// constraint (var ::h7: int >= 3);
+// constraint (var ::h7: int <= 5);
+// constraint (var ::h8: int >= 3);
+// constraint (var ::h8: int <= 5);
+// constraint (var ::h9: int >= 3);
+// constraint (var ::h9: int <= 5);
+// constraint (var ::h10: int >= 3);
+// constraint (var ::h10: int <= 5);
+// constraint (var ::h11: int >= 3);
+// constraint (var ::h11: int <= 5);
+// constraint (var ::h12: int >= 3);
+// constraint (var ::h12: int <= 5);
+// constraint (var ::h13: int >= 3);
+// constraint (var ::h13: int <= 5);
+// constraint (var ::h14: int >= 3);
+// constraint (var ::h14: int <= 5);
+// constraint (var ::h15: int >= 3);
+// constraint (var ::h15: int <= 5);
+// constraint (var ::h16: int >= 3);
+// constraint (var ::h16: int <= 5);
+// constraint (var ::h17: int >= 3);
+// constraint (var ::h17: int <= 5);
+// constraint (var ::h18: int >= 3);
+// constraint (var ::h18: int <= 5);
+// constraint ((((((((((((((((((::h1 + ::h2) + ::h3) + ::h4) + ::h5) + ::h6) + ::h7) + ::h8) + ::h9) + ::h10) + ::h11) + ::h12) + ::h13) + ::h14) + ::h15) + ::h16) + ::h17) + ::h18) == 72);
 // solve satisfy;
 // >>>
 
-// We'll get this error until we implement array destructuring.
-// compile_failure <<<
-// internal error: Found unsupported types in final Intent.
+// solution <<<
+// ::h1: 3
+// ::h2: 3
+// ::h3: 3
+// ::h4: 3
+// ::h5: 3
+// ::h6: 3
+// ::h7: 3
+// ::h8: 3
+// ::h9: 3
+// ::h10: 5
+// ::h11: 5
+// ::h12: 5
+// ::h13: 5
+// ::h14: 5
+// ::h15: 5
+// ::h16: 5
+// ::h17: 5
+// ::h18: 5
 // >>>

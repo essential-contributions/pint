@@ -27,3 +27,7 @@ let b_variant = d::MyEnum::B;
 // constraint (var ::b_variant == ::d::MyEnum::B);
 // constraint (var ::b::c == 5);
 // >>>
+
+// compile_failure <<<
+// compiler internal error: Found untyped variable.
+// >>>

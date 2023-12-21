@@ -14,3 +14,7 @@ constraint a > c;
 // constraint (var ::b_mod::c_mod::c == ::b_mod::e_mod::f_mod::f);
 // constraint (var ::b_mod::e_mod::f_mod::f == 5);
 // >>>
+
+// compile_failure <<<
+// compiler internal error: Found untyped variable.
+// >>>

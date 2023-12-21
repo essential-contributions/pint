@@ -1,6 +1,7 @@
 use crate::expr;
 
 pub(crate) mod intermediate;
+pub use intermediate::IntermediateIntent;
 
 type Path = String;
 

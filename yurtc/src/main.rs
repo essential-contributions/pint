@@ -1,9 +1,9 @@
-use yurtc::{error, parser};
+use yurtc::{error, parser, solver::*};
 
 use std::path::Path;
 
 fn main() -> anyhow::Result<()> {
-    let (filepath, compile_flag) = parse_cli();
+    let (filepath, compile_flag, solve_flag) = parse_cli();
     let filepath = Path::new(&filepath);
 
     // Lex + Parse
@@ -17,28 +17,44 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    // Compile ast down to a final intent
-    if compile_flag {
-        let intent = match intermediate_intent.compile() {
-            Ok(intent) => intent,
-            Err(error) => {
-                if !cfg!(test) {
-                    error::print_errors(&vec![error::Error::Compile { error }]);
-                }
-                yurtc::yurtc_bail!(1, filepath)
-            }
-        };
-
-        dbg!(&intent);
-    } else {
-        // If `compile_flag` is set, there is no need to print the intermediate intent.
+    if !compile_flag && !solve_flag {
         eprintln!("{intermediate_intent}");
+        return Ok(());
     }
+
+    // Compile the intermediate intent down to a final intent
+    let intent = match intermediate_intent.compile() {
+        Ok(intent) => intent,
+        Err(error) => {
+            if !cfg!(test) {
+                error::print_errors(&vec![error::Error::Compile { error }]);
+            }
+            yurtc::yurtc_bail!(1, filepath)
+        }
+    };
+
+    if !solve_flag {
+        eprintln!("{:?}", intent);
+        return Ok(());
+    }
+
+    // Solve the final intent. This assumes, for now, that the final intent has no state variables
+    let solver = Solver::new(&intent);
+    let solver = match solver.solve() {
+        Ok(solver) => solver,
+        Err(error) => {
+            if !cfg!(test) {
+                error::print_errors(&vec![error::Error::Solve { error }]);
+            }
+            yurtc::yurtc_bail!(1, filepath)
+        }
+    };
+    solver.print_solution();
 
     Ok(())
 }
 
-fn parse_cli() -> (String, bool) {
+fn parse_cli() -> (String, bool, bool) {
     // This is very basic for now.  It only take a single source file and a single optional flag.
     // It'll also just exit if `-h` or `-V` are passed, or if there's an error.
     let cli = clap::command!()
@@ -46,6 +62,12 @@ fn parse_cli() -> (String, bool) {
             clap::Arg::new("compile")
                 .short('c')
                 .long("compile")
+                .action(clap::ArgAction::SetTrue),
+        )
+        .arg(
+            clap::Arg::new("solve")
+                .short('s')
+                .long("solve")
                 .action(clap::ArgAction::SetTrue),
         )
         .arg(
@@ -59,5 +81,7 @@ fn parse_cli() -> (String, bool) {
 
     let compile_flag = cli.get_flag("compile");
 
-    (filepath.clone(), compile_flag)
+    let solve_flag = cli.get_flag("solve");
+
+    (filepath.clone(), compile_flag, solve_flag)
 }

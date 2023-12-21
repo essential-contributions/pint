@@ -25,5 +25,5 @@ let one = nums()[1];
 
 // We'll get this error until we implement array destructuring.
 // compile_failure <<<
-// internal error: Found unsupported types in final Intent.
+// compiler internal error: Found unsupported types in final Intent.
 // >>>

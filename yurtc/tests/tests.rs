@@ -4,7 +4,11 @@ use std::{
     path::{Path, PathBuf},
 };
 use yansi::Color::{Cyan, Red, Yellow};
-use yurtc::error::ReportableError;
+use yurtc::{
+    error::ReportableError,
+    intent::{Intent, IntermediateIntent},
+    solver::Solver,
+};
 
 #[cfg(test)]
 mod e2e {
@@ -54,50 +58,13 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
         let expectations = parse_expectations(&path)?;
 
         // Parse the project and check its output.
-        let _ii = match yurtc::parser::parse_project(&path) {
-            Err(errs) => {
-                // separate all the errors using a `\n`
-                let errs_str = errs
-                    .iter()
-                    .map(|err| err.display_raw())
-                    .collect::<String>()
-                    .trim_end()
-                    .to_string();
+        let ii = parse_test_and_check(&path, &expectations, &mut failed_tests);
 
-                if let Some(parse_error_str) = expectations.parse_failure {
-                    similar_asserts::assert_eq!(parse_error_str.trim_end(), errs_str);
-                } else {
-                    failed_tests.push(path.display().to_string());
-                    println!(
-                        "{} {}. {}\n{}",
-                        Red.paint("FAILED TO PARSE"),
-                        Cyan.paint(path.display().to_string()),
-                        Red.paint("Reported errors:"),
-                        Yellow.paint(errs_str),
-                    );
-                }
-                None
-            }
+        // Compile down to the final intent and check the output.
+        let intent = compile_to_final_intent_and_check(ii, &expectations, &mut failed_tests, &path);
 
-            Ok(ii) => {
-                if let Some(expected_intent_str) = expectations.intermediate {
-                    // The slotmaps in the IntermediateIntent don't seem to iterate
-                    // deterministically so we'll print them in a more predictable way here.
-                    let intent_str = format!("{ii}");
-                    similar_asserts::assert_eq!(expected_intent_str.trim(), intent_str.trim());
-                } else if expectations.parse_failure.is_some() {
-                    failed_tests.push(path.display().to_string());
-                    println!(
-                        "{} {}.",
-                        Red.paint("UNEXPECTED SUCCESSFUL COMPILE"),
-                        Cyan.paint(path.display().to_string()),
-                    );
-                }
-                Some(ii)
-            }
-        };
-
-        // TODO compile ii to inent and compare.
+        // Solve the final intent and check the solution
+        solve_and_check(intent, &expectations, &mut failed_tests, &path);
     }
 
     if !failed_tests.is_empty() {
@@ -113,6 +80,8 @@ struct Expectations {
     parse_failure: Option<String>,
     compiled_intent: Option<String>,
     compile_failure: Option<String>,
+    solution: Option<String>,
+    solve_failure: Option<String>,
     // optimized_intent
     // optimize_failure
     // final_intent
@@ -124,7 +93,13 @@ struct Expectations {
 // tags.
 //
 // A section containing a single expected result string has a tag and is delimited by `<<<` and
-// `>>>`.  The tags are `intermediate`, `parse_failure`, `compiled_intent`, `compile_failure`.
+// `>>>`.  The tags are
+//   * `intermediate`
+//   * `parse_failure`
+//   * `compiled_intent`
+//   * `compile_failure`
+//   * `solution`
+//   * `solve_failure`
 //
 // e.g. A simple test file may be:
 // | let a: int;
@@ -154,14 +129,16 @@ fn parse_expectations(path: &Path) -> anyhow::Result<Expectations> {
         ParseFailure,
         IntermediateIntent,
         CompiledIntent,
-        CompileFailure, // Deprecated.
+        CompileFailure,
+        Solution,
+        SolveFailure,
     }
     let mut cur_section = Section::None;
     let mut section_lines = Vec::<String>::new();
 
     let comment_re = regex::Regex::new(r"^\s*//")?;
     let open_sect_re = regex::Regex::new(
-        r"^\s*//\s*(intermediate|parse_failure|compiled_intent|compile_failure)\s*<<<",
+        r"^\s*//\s*(intermediate|parse_failure|compiled_intent|compile_failure|solution|solve_failure)\s*<<<",
     )?;
     let close_sect_re = regex::Regex::new(r"^\s*//\s*>>>")?;
 
@@ -184,6 +161,8 @@ fn parse_expectations(path: &Path) -> anyhow::Result<Expectations> {
                 "parse_failure" => cur_section = Section::ParseFailure,
                 "compiled_intent" => cur_section = Section::CompiledIntent,
                 "compile_failure" => cur_section = Section::CompileFailure,
+                "solution" => cur_section = Section::Solution,
+                "solve_failure" => cur_section = Section::SolveFailure,
                 _ => unreachable!("We can't capture strings not in the regex."),
             }
 
@@ -212,6 +191,12 @@ fn parse_expectations(path: &Path) -> anyhow::Result<Expectations> {
                 Section::CompileFailure => {
                     expectations.compile_failure = Some(section_str);
                 }
+                Section::Solution => {
+                    expectations.solution = Some(section_str);
+                }
+                Section::SolveFailure => {
+                    expectations.solve_failure = Some(section_str);
+                }
                 Section::None => unreachable!("Can't be none, already checked."),
             }
 
@@ -230,4 +215,138 @@ fn parse_expectations(path: &Path) -> anyhow::Result<Expectations> {
     }
 
     Ok(expectations)
+}
+
+fn parse_test_and_check(
+    path: &Path,
+    expectations: &Expectations,
+    failed_tests: &mut Vec<String>,
+) -> Option<IntermediateIntent> {
+    match yurtc::parser::parse_project(&path) {
+        Err(errs) => {
+            let errs_str = errs
+                .iter()
+                .map(|err| err.display_raw())
+                .collect::<String>()
+                .trim_end()
+                .to_string();
+
+            if let Some(parse_error_str) = &expectations.parse_failure {
+                similar_asserts::assert_eq!(parse_error_str.trim_end(), errs_str);
+            } else {
+                failed_tests.push(path.display().to_string());
+                println!(
+                    "{} {}. {}\n{}",
+                    Red.paint("FAILED TO PARSE"),
+                    Cyan.paint(path.display().to_string()),
+                    Red.paint("Reported errors:"),
+                    Yellow.paint(errs_str),
+                );
+            }
+            None
+        }
+        Ok(ii) => {
+            if let Some(expected_intent_str) = &expectations.intermediate {
+                similar_asserts::assert_eq!(expected_intent_str.trim(), format!("{ii}").trim());
+            } else if expectations.parse_failure.is_some() {
+                failed_tests.push(path.display().to_string());
+                println!(
+                    "{} {}.",
+                    Red.paint("UNEXPECTED SUCCESSFUL COMPILE"),
+                    Cyan.paint(path.display().to_string()),
+                );
+            }
+            Some(ii)
+        }
+    }
+}
+
+fn compile_to_final_intent_and_check(
+    ii: Option<IntermediateIntent>,
+    expectations: &Expectations,
+    failed_tests: &mut Vec<String>,
+    path: &Path,
+) -> Option<Intent> {
+    ii.and_then(|ii| {
+        ii.compile()
+            .map(|intent| {
+                if let Some(expected_intent_str) = &expectations.compiled_intent {
+                    similar_asserts::assert_eq!(
+                        expected_intent_str.trim(),
+                        format!("{:?}", intent).trim()
+                    );
+                } else if expectations.compile_failure.is_some() {
+                    failed_tests.push(path.display().to_string());
+                    println!(
+                        "{} {}.",
+                        Red.paint("UNEXPECTED SUCCESSFUL COMPILE"),
+                        Cyan.paint(path.display().to_string()),
+                    );
+                }
+                intent
+            })
+            .map_err(|err| {
+                if let Some(compile_error_str) = &expectations.compile_failure {
+                    similar_asserts::assert_eq!(
+                        compile_error_str.trim_end(),
+                        err.display_raw().trim_end()
+                    );
+                } else {
+                    failed_tests.push(path.display().to_string());
+                    println!(
+                        "{} {}. {}\n{}",
+                        Red.paint("FAILED TO COMPILE TO FINAL INTENT"),
+                        Cyan.paint(path.display().to_string()),
+                        Red.paint("Reported errors:"),
+                        Yellow.paint(err.display_raw().trim_end()),
+                    );
+                }
+            })
+            .ok()
+    })
+}
+
+fn solve_and_check(
+    ii: Option<Intent>,
+    expectations: &Expectations,
+    failed_tests: &mut Vec<String>,
+    path: &Path,
+) {
+    ii.and_then(|ii| {
+        Solver::new(&ii)
+            .solve()
+            .map(|solver| {
+                if let Some(expected_solution_str) = &expectations.solution {
+                    similar_asserts::assert_eq!(
+                        expected_solution_str.trim(),
+                        solver.display_solution_raw().trim()
+                    );
+                } else if expectations.solve_failure.is_some() {
+                    failed_tests.push(path.display().to_string());
+                    println!(
+                        "{} {}.",
+                        Red.paint("UNEXPECTED SUCCESSFUL SOLVE"),
+                        Cyan.paint(path.display().to_string()),
+                    );
+                }
+            })
+            .map_err(|err| {
+                if let Some(solve_error_str) = &expectations.solve_failure {
+                    similar_asserts::assert_eq!(
+                        solve_error_str.trim_end(),
+                        err.display_raw().trim_end()
+                    );
+                } else {
+                    failed_tests.push(path.display().to_string());
+                    println!(
+                        "{} {}. {}\n{}",
+                        Red.paint("FAILED TO SOLVE TO FINAL INTENT"),
+                        Cyan.paint(path.display().to_string()),
+                        Red.paint("Reported errors:"),
+                        Yellow.paint(err.display_raw().trim_end()),
+                    );
+                }
+            })
+            .ok()
+    });
 }

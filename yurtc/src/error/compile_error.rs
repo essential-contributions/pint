@@ -8,7 +8,7 @@ use yansi::Color;
 
 #[derive(Error, Debug)]
 pub enum CompileError {
-    #[error("internal error: {msg}")]
+    #[error("compiler internal error: {msg}")]
     Internal { msg: &'static str, span: Span },
     #[error("couldn't read {file}: {error}")]
     FileIO {
@@ -36,14 +36,6 @@ impl ReportableError for CompileError {
     fn labels(&self) -> Vec<ErrorLabel> {
         use CompileError::*;
         match self {
-            Internal { msg, span } => {
-                vec![ErrorLabel {
-                    message: msg.to_string(),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
-            }
-
             DualModulity { mod_path, span, .. } => {
                 vec![ErrorLabel {
                     message: format!("multiple source files found for module {mod_path}"),
@@ -62,7 +54,7 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            FileIO { .. } => Vec::new(),
+            Internal { .. } | FileIO { .. } => Vec::new(),
         }
     }
 
