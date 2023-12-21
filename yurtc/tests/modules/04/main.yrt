@@ -28,5 +28,5 @@ solve satisfy;
 
 // We'll get this error until we implement enum desugaring.
 // compile_failure <<<
-// internal error: Found unsupported types in final Intent.
+// compiler internal error: Found unsupported types in final Intent.
 // >>>

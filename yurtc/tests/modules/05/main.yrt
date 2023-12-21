@@ -16,5 +16,5 @@ constraint a > c;
 // >>>
 
 // compile_failure <<<
-// internal error: Found untyped variable.
+// compiler internal error: Found untyped variable.
 // >>>

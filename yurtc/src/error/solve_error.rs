@@ -1,13 +1,13 @@
 use crate::{
     error::{ErrorLabel, ReportableError},
-    span::{empty_span, Span, Spanned},
+    span::{Span, Spanned},
 };
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum SolveError {
-    #[error("internal error: {msg}")]
-    Internal { msg: &'static str },
+    #[error("solver internal error: {msg}")]
+    Internal { msg: &'static str, span: Span },
 }
 
 impl ReportableError for SolveError {
@@ -29,7 +29,10 @@ impl ReportableError for SolveError {
 }
 
 impl Spanned for SolveError {
-    fn span(&self) -> Span {
-        empty_span()
+    fn span(&self) -> &Span {
+        use SolveError::*;
+        match &self {
+            Internal { span, .. } => span,
+        }
     }
 }

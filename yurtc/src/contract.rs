@@ -15,8 +15,8 @@ pub struct InterfaceDecl {
 }
 
 impl Spanned for InterfaceDecl {
-    fn span(&self) -> Span {
-        self.span.clone()
+    fn span(&self) -> &Span {
+        &self.span
     }
 }
 
@@ -40,8 +40,8 @@ pub struct ContractDecl {
 }
 
 impl Spanned for ContractDecl {
-    fn span(&self) -> Span {
-        self.span.clone()
+    fn span(&self) -> &Span {
+        &self.span
     }
 }
 

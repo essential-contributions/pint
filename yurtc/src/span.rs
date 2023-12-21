@@ -52,5 +52,5 @@ pub(super) fn join(lhs: &Span, rhs: &Span) -> Span {
 }
 
 pub trait Spanned {
-    fn span(&self) -> Span;
+    fn span(&self) -> &Span;
 }

@@ -39,14 +39,14 @@ pub enum Type {
 }
 
 impl Spanned for Type {
-    fn span(&self) -> Span {
+    fn span(&self) -> &Span {
         use Type::*;
         match &self {
             Error(span)
             | Primitive { span, .. }
             | Array { span, .. }
             | Tuple { span, .. }
-            | CustomType { span, .. } => span.clone(),
+            | CustomType { span, .. } => span,
         }
     }
 }
@@ -59,8 +59,8 @@ pub struct EnumDecl {
 }
 
 impl Spanned for EnumDecl {
-    fn span(&self) -> Span {
-        self.span.clone()
+    fn span(&self) -> &Span {
+        &self.span
     }
 }
 
@@ -72,8 +72,8 @@ pub struct NewTypeDecl {
 }
 
 impl Spanned for NewTypeDecl {
-    fn span(&self) -> Span {
-        self.span.clone()
+    fn span(&self) -> &Span {
+        &self.span
     }
 }
 
@@ -86,7 +86,7 @@ pub struct FnSig {
 }
 
 impl Spanned for FnSig {
-    fn span(&self) -> Span {
-        self.span.clone()
+    fn span(&self) -> &Span {
+        &self.span
     }
 }

@@ -6,7 +6,7 @@ use std::{
 use yansi::Color::{Cyan, Red, Yellow};
 use yurtc::{
     error::ReportableError,
-    intent::{intermediate::IntermediateIntent, Intent},
+    intent::{Intent, IntermediateIntent},
     solver::Solver,
 };
 

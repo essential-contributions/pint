@@ -8,7 +8,7 @@ use yansi::Color;
 
 #[derive(Error, Debug)]
 pub enum CompileError {
-    #[error("internal error: {msg}")]
+    #[error("compiler internal error: {msg}")]
     Internal { msg: &'static str, span: Span },
     #[error("couldn't read {file}: {error}")]
     FileIO {
@@ -94,13 +94,13 @@ impl ReportableError for CompileError {
 }
 
 impl Spanned for CompileError {
-    fn span(&self) -> Span {
+    fn span(&self) -> &Span {
         use CompileError::*;
         match &self {
             FileIO { span, .. }
             | Internal { span, .. }
             | DualModulity { span, .. }
-            | NoFileFoundForPath { span, .. } => span.clone(),
+            | NoFileFoundForPath { span, .. } => span,
         }
     }
 }

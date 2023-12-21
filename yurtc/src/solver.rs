@@ -1,7 +1,8 @@
 use crate::{
     error::SolveError,
     expr,
-    intent::{self, Expression, Intent},
+    intent::{Expression, Intent, Solve, Type},
+    span::empty_span,
 };
 use gcollections::ops::*;
 use interval::{interval_set::*, ops::Range};
@@ -29,6 +30,7 @@ pub struct Solver<'a> {
 }
 
 impl<'a> Solver<'a> {
+    /// Creates a new instance of `Solver` given an `Intent`. Default initializes everything.
     pub fn new(intent: &'a Intent) -> Solver {
         Solver {
             space: FDSpace::empty(),
@@ -38,6 +40,8 @@ impl<'a> Solver<'a> {
         }
     }
 
+    /// Converts an `intent::Expression` to a `Var<Vstore>. Works recursively, converting
+    /// sub-expressions as needed.
     fn expr_to_vstore(&mut self, expr: &Expression) -> Result<Var<VStore>, SolveError> {
         match expr {
             Expression::Path(path) => self
@@ -46,7 +50,8 @@ impl<'a> Solver<'a> {
                 .find(|v| &v.name == path)
                 .map(|SolverVar { var, .. }| var.bclone())
                 .ok_or(SolveError::Internal {
-                    msg: "pcp solver: cannot find variable for path expression",
+                    msg: "(pcp) cannot find variable for path expression",
+                    span: empty_span(),
                 }),
             Expression::Immediate(expr::Immediate::Int(val)) => {
                 Ok(Box::new(Constant::new(*val as i32)))
@@ -57,24 +62,47 @@ impl<'a> Solver<'a> {
                 match op {
                     expr::BinaryOp::Add => Ok(Box::new(Sum::new(vec![lhs, rhs]))),
                     _ => Err(SolveError::Internal {
-                        msg: "pcp solver: only addition is expected in expressions",
+                        msg: "(pcp) only addition is expected in expressions",
+                        span: empty_span(),
                     }),
                 }
             }
             _ => Err(SolveError::Internal {
-                msg:
-                    "pcp solver: only paths, immediates, and binary ops are expected in expressions",
+                msg: "(pcp) only paths, immediates, and binary ops are expected in expressions",
+                span: empty_span(),
             }),
         }
     }
 
+    /// Produces a solution to the intent:
+    /// - Updates the domain bounds of `self.variables` upon success
+    /// - Updates `self.status` with the status of the problem (Satisfiable v.s. Unsatisfiable)
     pub fn solve(mut self) -> Result<Self, SolveError> {
-        if !matches!(self.intent.directive, intent::Solve::Satisfy) {
+        // Optimization problems are not supported yet
+        if !matches!(self.intent.directive, Solve::Satisfy) {
             return Err(SolveError::Internal {
-                msg: "pcp solver: only constraint satisfaction problems are currently supported",
+                msg: "(pcp) only constraint satisfaction problems are currently supported",
+                span: empty_span(),
             });
         }
 
+        // No state variables are allowed
+        if !self.intent.states.is_empty() {
+            return Err(SolveError::Internal {
+                msg: "(pcp) no state variables are allowed at this stage",
+                span: empty_span(),
+            });
+        }
+
+        // Only integer variables are currently supported
+        if self.intent.vars.iter().any(|v| !matches!(v.ty, Type::Int)) {
+            return Err(SolveError::Internal {
+                msg: "(pcp) only integer variables are currently supported",
+                span: empty_span(),
+            });
+        }
+
+        // Convert all variables
         for v in &self.intent.vars {
             // TODO: The bounds chosen below are a temporary hack. One option is to use the largest
             // possible interval: (i32::MIN, i32::MAX), but that causes some arithmetic overflow
@@ -90,6 +118,7 @@ impl<'a> Solver<'a> {
             });
         }
 
+        // Convert all constraints
         for constraint in &self.intent.constraints {
             match constraint {
                 Expression::BinaryOp { op, lhs, rhs } => {
@@ -114,15 +143,18 @@ impl<'a> Solver<'a> {
                         expr::BinaryOp::LessThan => {
                             self.space.cstore.alloc(Box::new(XLessY::new(lhs, rhs)))
                         }
-                        _ => return Err(SolveError::Internal {
-                            msg:
-                                "pcp solver: only comparison operators in constraints are expected",
-                        }),
+                        _ => {
+                            return Err(SolveError::Internal {
+                                msg: "(pcp) only comparison operators in constraints are expected",
+                                span: empty_span(),
+                            })
+                        }
                     };
                 }
                 _ => {
                     return Err(SolveError::Internal {
-                        msg: "pcp solver: only binary operators in constraints are expected",
+                        msg: "(pcp) only binary operators in constraints are expected",
+                        span: empty_span(),
                     })
                 }
             }
@@ -138,6 +170,8 @@ impl<'a> Solver<'a> {
         Ok(self)
     }
 
+    /// Pretty print the output of the solver which includes a valid solution for all the variables
+    /// in case of success.
     pub fn print_solution(&self) {
         match self.status {
             Some(Satisfiable) => {
@@ -169,6 +203,8 @@ impl<'a> Solver<'a> {
         }
     }
 
+    /// Serialize the raw output of the solver into a `String`. This is mostly meant for testing
+    /// purposes.
     pub fn display_solution_raw(&self) -> String {
         match self.status {
             Some(Satisfiable) => {

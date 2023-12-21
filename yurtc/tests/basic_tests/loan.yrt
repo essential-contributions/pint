@@ -38,5 +38,5 @@ solve satisfy;
 // >>>
 
 // solve_failure <<<
-// internal error: pcp solver: only addition is expected in expressions
+// solver internal error: (pcp) only integer variables are currently supported
 // >>>

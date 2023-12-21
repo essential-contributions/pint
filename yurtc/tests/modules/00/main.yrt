@@ -14,5 +14,5 @@ solve satisfy;
 
 // We'll get this error until we implement type inference.
 // compile_failure <<<
-// internal error: Found untyped variable.
+// compiler internal error: Found untyped variable.
 // >>>

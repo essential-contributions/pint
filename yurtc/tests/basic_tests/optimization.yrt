@@ -14,5 +14,5 @@ solve maximize x + y;
 // >>>
 
 // solve_failure <<<
-// internal error: pcp solver: only constraint satisfaction problems are currently supported 
+// solver internal error: (pcp) only constraint satisfaction problems are currently supported
 // >>>

@@ -248,7 +248,7 @@ fn format_expected_found_error(
 }
 
 impl Spanned for ParseError {
-    fn span(&self) -> Span {
+    fn span(&self) -> &Span {
         use ParseError::*;
         match self {
             ExpectedFound { span, .. }
@@ -265,7 +265,7 @@ impl Spanned for ParseError {
             | UnsupportedLeadingPlus { span, .. }
             | SelfWithEmptyPrefix { span, .. }
             | SelfNotAtTheEnd { span, .. }
-            | Lex { span } => span.clone(),
+            | Lex { span } => span,
 
             InvalidToken => unreachable!("The `InvalidToken` error is always wrapped in `Lex`."),
         }

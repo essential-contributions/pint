@@ -19,5 +19,5 @@ solve satisfy;
 // We'll get this error until we implement enum desugaring.  But then we should get a `Chord` isn't
 // a `Key` type error.
 // compile_failure <<<
-// internal error: Found unsupported types in final Intent.
+// compiler internal error: Found unsupported types in final Intent.
 // >>>

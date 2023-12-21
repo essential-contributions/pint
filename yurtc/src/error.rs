@@ -183,10 +183,10 @@ impl ReportableError for Error {
 }
 
 impl Spanned for Error {
-    fn span(&self) -> Span {
+    fn span(&self) -> &Span {
         use Error::*;
         match &self {
-            Lex { span, .. } => span.clone(),
+            Lex { span, .. } => span,
             Parse { error } => error.span(),
             Compile { error } => error.span(),
             Solve { error } => error.span(),
