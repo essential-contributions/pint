@@ -8,7 +8,7 @@ solve satisfy;
 // var ::a: int;
 // var ::b::b;
 // constraint (::a == ::b::b);
-// constraint (var ::b::b == 1);
+// constraint (::b::b == 1);
 // solve satisfy;
 // >>>
 

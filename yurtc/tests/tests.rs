@@ -273,7 +273,7 @@ fn compile_to_final_intent_and_check(
                 if let Some(expected_intent_str) = &expectations.compiled_intent {
                     similar_asserts::assert_eq!(
                         expected_intent_str.trim(),
-                        format!("{:?}", intent).trim()
+                        format!("{intent}").trim()
                     );
                 } else if expectations.compile_failure.is_some() {
                     failed_tests.push(path.display().to_string());

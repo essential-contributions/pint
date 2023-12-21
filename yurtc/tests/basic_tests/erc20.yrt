@@ -26,5 +26,8 @@ solve satisfy;
 // >>>
 
 // compiled_intent <<<
-// Intent { states: [], vars: [], constraints: [], directive: Satisfy }
+// solve satisfy;
+// >>>
+
+// solution <<<
 // >>>

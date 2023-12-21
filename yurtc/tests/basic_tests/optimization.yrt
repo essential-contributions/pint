@@ -6,10 +6,10 @@ solve maximize x + y;
 // intermediate <<<<
 // var ::x: int;
 // var ::y: int;
-// constraint (var ::x: int >= 1);
-// constraint (var ::x: int <= 3);
-// constraint (var ::y: int >= 1);
-// constraint (var ::y: int <= 3);
+// constraint (::x >= 1);
+// constraint (::x <= 3);
+// constraint (::y >= 1);
+// constraint (::y <= 3);
 // solve maximize (::x + ::y);
 // >>>
 

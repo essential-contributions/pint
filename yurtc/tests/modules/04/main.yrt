@@ -21,8 +21,8 @@ solve satisfy;
 // enum ::debbie::Skill = GlamourShots | Handicrafts;
 // constraint ((::pedro_skill == ::Skill::Nunchuck) || ::Skill::BowHunting);
 // constraint ((::debbie::debbie_skill == ::debbie::Skill::Handicrafts) && (::kip_skill == ::kip::Skill::CageFighting));
-// constraint (var ::kip::kip_skill == ::kip::Skill::ChattingOnlineWithBabes);
-// constraint (var ::debbie::debbie_skill == (::debbie::Skill::GlamourShots || ::debbie::Skill::Handicrafts));
+// constraint (::kip::kip_skill == ::kip::Skill::ChattingOnlineWithBabes);
+// constraint (::debbie::debbie_skill == (::debbie::Skill::GlamourShots || ::debbie::Skill::Handicrafts));
 // solve satisfy;
 // >>>
 

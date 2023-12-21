@@ -19,7 +19,7 @@ impl DisplayWithII for &super::Expr {
             super::Expr::Immediate { value, .. } => write!(f, "{value}"),
 
             super::Expr::PathByName(p, _) => write!(f, "{p}"),
-            super::Expr::PathByKey(k, _) => write!(f, "{}", ii.with_ii(k)),
+            super::Expr::PathByKey(k, _) => write!(f, "{}", ii.vars[*k].name),
 
             super::Expr::UnaryOp { op, expr, .. } => {
                 if matches!(op, expr::UnaryOp::NextState) {
@@ -36,23 +36,7 @@ impl DisplayWithII for &super::Expr {
             }
 
             super::Expr::BinaryOp { op, lhs, rhs, .. } => {
-                write!(f, "({} ", ii.with_ii(lhs))?;
-                match op {
-                    expr::BinaryOp::Add => write!(f, "+"),
-                    expr::BinaryOp::Div => write!(f, "/"),
-                    expr::BinaryOp::Equal => write!(f, "=="),
-                    expr::BinaryOp::GreaterThanOrEqual => write!(f, ">="),
-                    expr::BinaryOp::GreaterThan => write!(f, ">"),
-                    expr::BinaryOp::LessThanOrEqual => write!(f, "<="),
-                    expr::BinaryOp::LessThan => write!(f, "<"),
-                    expr::BinaryOp::LogicalAnd => write!(f, "&&"),
-                    expr::BinaryOp::LogicalOr => write!(f, "||"),
-                    expr::BinaryOp::Mod => write!(f, "%"),
-                    expr::BinaryOp::Mul => write!(f, "*"),
-                    expr::BinaryOp::NotEqual => write!(f, "!="),
-                    expr::BinaryOp::Sub => write!(f, "-"),
-                }?;
-                write!(f, " {})", ii.with_ii(rhs))
+                write!(f, "({} {} {})", ii.with_ii(lhs), op, ii.with_ii(rhs))
             }
 
             super::Expr::In {
@@ -162,6 +146,26 @@ impl Display for super::Immediate {
             super::Immediate::BigInt(n) => write!(f, "{n}"),
             super::Immediate::Bool(b) => write!(f, "{b}"),
             super::Immediate::String(s) => write!(f, "{s:?}"),
+        }
+    }
+}
+
+impl Display for super::BinaryOp {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        match self {
+            expr::BinaryOp::Add => write!(f, "+"),
+            expr::BinaryOp::Div => write!(f, "/"),
+            expr::BinaryOp::Equal => write!(f, "=="),
+            expr::BinaryOp::GreaterThanOrEqual => write!(f, ">="),
+            expr::BinaryOp::GreaterThan => write!(f, ">"),
+            expr::BinaryOp::LessThanOrEqual => write!(f, "<="),
+            expr::BinaryOp::LessThan => write!(f, "<"),
+            expr::BinaryOp::LogicalAnd => write!(f, "&&"),
+            expr::BinaryOp::LogicalOr => write!(f, "||"),
+            expr::BinaryOp::Mod => write!(f, "%"),
+            expr::BinaryOp::Mul => write!(f, "*"),
+            expr::BinaryOp::NotEqual => write!(f, "!="),
+            expr::BinaryOp::Sub => write!(f, "-"),
         }
     }
 }

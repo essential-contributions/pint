@@ -17,13 +17,18 @@ solve satisfy;
 // state ::d: bool = ::hello_world();
 // type ::a::Count = int;
 // constraint (::a::b > ::c);
-// constraint (var ::a::b: int == 10);
+// constraint (::a::b == 10);
 // extern { fn ::hello_world() -> bool; }
 // solve satisfy;
 // >>>
 
 // compiled_intent <<<
-// Intent { states: [State { name: "::d", ty: Bool, expr: Call { name: "::hello_world", args: [] } }], vars: [Variable { name: "::c", ty: Int }, Variable { name: "::a::b", ty: Int }], constraints: [BinaryOp { op: GreaterThan, lhs: Path("::a::b"), rhs: Path("::c") }, BinaryOp { op: Equal, lhs: Path("::a::b"), rhs: Immediate(Int(10)) }], directive: Satisfy }
+// var ::c: int;
+// var ::a::b: int;
+// state ::d: bool = ::hello_world();
+// constraint (::a::b > ::c);
+// constraint (::a::b == 10);
+// solve satisfy;
 // >>>
 
 // solve_failure <<<

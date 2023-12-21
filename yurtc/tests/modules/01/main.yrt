@@ -6,10 +6,19 @@ solve satisfy;
 // var ::d::e: int;
 // var ::a::b::c: int;
 // constraint (::a::b::c == ::d::e);
-// constraint (var ::d::e: int == 10);
+// constraint (::d::e == 10);
 // solve satisfy;
 // >>>
 
 // compiled_intent <<<
-// Intent { states: [], vars: [Variable { name: "::d::e", ty: Int }, Variable { name: "::a::b::c", ty: Int }], constraints: [BinaryOp { op: Equal, lhs: Path("::a::b::c"), rhs: Path("::d::e") }, BinaryOp { op: Equal, lhs: Path("::d::e"), rhs: Immediate(Int(10)) }], directive: Satisfy }
+// var ::d::e: int;
+// var ::a::b::c: int;
+// constraint (::a::b::c == ::d::e);
+// constraint (::d::e == 10);
+// solve satisfy;
+// >>>
+
+// solution <<<
+// ::d::e: 10
+// ::a::b::c: 10
 // >>>

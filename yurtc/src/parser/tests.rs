@@ -321,13 +321,13 @@ fn let_decls() {
         &run_parser!(yp::LetDeclParser::new(), "let blah = 1.0", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah;
-            constraint (var ::foo::blah == 1e0);"#]],
+            constraint (::foo::blah == 1e0);"#]],
     );
     check(
         &run_parser!(yp::LetDeclParser::new(), "let blah: real = 1.0", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah: real;
-            constraint (var ::foo::blah: real == 1e0);"#]],
+            constraint (::foo::blah == 1e0);"#]],
     );
     check(
         &run_parser!(yp::LetDeclParser::new(), "let blah: real", mod_path),
@@ -337,13 +337,13 @@ fn let_decls() {
         &run_parser!(yp::LetDeclParser::new(), "let blah = 1", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah;
-            constraint (var ::foo::blah == 1);"#]],
+            constraint (::foo::blah == 1);"#]],
     );
     check(
         &run_parser!(yp::LetDeclParser::new(), "let blah: int = 1", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah: int;
-            constraint (var ::foo::blah: int == 1);"#]],
+            constraint (::foo::blah == 1);"#]],
     );
     check(
         &run_parser!(yp::LetDeclParser::new(), "let blah: int", mod_path),
@@ -353,13 +353,13 @@ fn let_decls() {
         &run_parser!(yp::LetDeclParser::new(), "let blah = true", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah;
-            constraint (var ::foo::blah == true);"#]],
+            constraint (::foo::blah == true);"#]],
     );
     check(
         &run_parser!(yp::LetDeclParser::new(), "let blah: bool = false", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah: bool;
-            constraint (var ::foo::blah: bool == false);"#]],
+            constraint (::foo::blah == false);"#]],
     );
     check(
         &run_parser!(yp::LetDeclParser::new(), "let blah: bool", mod_path),
@@ -369,7 +369,7 @@ fn let_decls() {
         &run_parser!(yp::LetDeclParser::new(), r#"let blah = "hello""#, mod_path),
         expect_test::expect![[r#"
             var ::foo::blah;
-            constraint (var ::foo::blah == "hello");"#]],
+            constraint (::foo::blah == "hello");"#]],
     );
     check(
         &run_parser!(
@@ -379,7 +379,7 @@ fn let_decls() {
         ),
         expect_test::expect![[r#"
             var ::foo::blah: string;
-            constraint (var ::foo::blah: string == "hello");"#]],
+            constraint (::foo::blah == "hello");"#]],
     );
     check(
         &run_parser!(yp::LetDeclParser::new(), r#"let blah: string"#, mod_path),
@@ -756,7 +756,7 @@ fn enums() {
         ),
         expect_test::expect![[r#"
             var ::x;
-            constraint (var ::x == ::MyEnum::Variant3);"#]],
+            constraint (::x == ::MyEnum::Variant3);"#]],
     );
     check(
         &run_parser!(
@@ -845,8 +845,8 @@ fn ranges() {
         &run_parser!(let_decl, "let x = 1..2"),
         expect_test::expect![[r#"
             var ::x;
-            constraint (var ::x >= 1);
-            constraint (var ::x <= 2);"#]],
+            constraint (::x >= 1);
+            constraint (::x <= 2);"#]],
     );
 
     // Ranges allowed after `in`
@@ -991,7 +991,7 @@ fn fn_call() {
         &run_parser!(yp::LetDeclParser::new(), r#"let x = foo(a*3, c)"#),
         expect_test::expect![[r#"
             var ::x;
-            constraint (var ::x == ::foo((::a * 3), ::c));"#]],
+            constraint (::x == ::foo((::a * 3), ::c));"#]],
     );
 
     check(
@@ -1490,7 +1490,7 @@ fn casting() {
         &run_parser!(let_decl, r#"let x = foo() as real as { int, real }"#),
         expect_test::expect![[r#"
             var ::x;
-            constraint (var ::x == ::foo() as real as {int, real});"#]],
+            constraint (::x == ::foo() as real as {int, real});"#]],
     );
 
     check(
@@ -1558,8 +1558,8 @@ solve minimize mid;
         expect_test::expect![[r#"
             var ::low_val: real;
             var ::high_val;
-            constraint (var ::low_val: real == 1.23e0);
-            constraint (var ::high_val == 4.56e0);
+            constraint (::low_val == 1.23e0);
+            constraint (::high_val == 4.56e0);
             constraint (::mid > (::low_val * 2e0));
             constraint (::mid < ::high_val);
             solve minimize ::mid;"#]],
@@ -1601,8 +1601,8 @@ let low = 1.0;
             var ::high;
             var ::low;
             constraint (::low < ::high);
-            constraint (var ::high == 2e0);
-            constraint (var ::low == 1e0);
+            constraint (::high == 2e0);
+            constraint (::low == 1e0);
             solve maximize ::low;
             solve satisfy;"#]],
     );
@@ -1637,14 +1637,14 @@ fn big_ints() {
         ),
         expect_test::expect![[r#"
             var ::blah;
-            constraint (var ::blah == 1234567890123456789012345678901234567890);"#]],
+            constraint (::blah == 1234567890123456789012345678901234567890);"#]],
     );
     check(
         &run_parser!(let_decl, "let blah = 0xfeedbadf00d2adeadcafed00dbabeface"),
         // Confirmed by using the Python REPL to convert from hex to dec...
         expect_test::expect![[r#"
             var ::blah;
-            constraint (var ::blah == 5421732407698601623698172315373246806734);"#]],
+            constraint (::blah == 5421732407698601623698172315373246806734);"#]],
     );
     check(
         &run_parser!(
