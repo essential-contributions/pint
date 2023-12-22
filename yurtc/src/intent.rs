@@ -3,6 +3,8 @@ use crate::expr;
 pub(crate) mod intermediate;
 pub use intermediate::IntermediateIntent;
 
+pub mod display;
+
 type Path = String;
 
 /// A checked and verified representation of an intent ready to be solved.

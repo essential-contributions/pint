@@ -3,6 +3,16 @@ solve satisfy;
 
 // intermediate <<<<
 // var ::a: int;
-// constraint (var ::a: int == 1);
+// constraint (::a == 1);
 // solve satisfy;
+// >>>
+
+// compiled_intent <<<<
+// var ::a: int;
+// constraint (::a == 1);
+// solve satisfy;
+// >>>
+
+// solution <<<<
+// ::a: 1
 // >>>

@@ -170,7 +170,7 @@ impl DisplayWithII for &State {
 /// A decision variable with an optional type.
 #[derive(Clone, Debug)]
 pub struct Var {
-    name: Path,
+    pub(crate) name: Path,
     ty: Option<Type>,
     span: Span,
 }

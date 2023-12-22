@@ -19,13 +19,13 @@ let b_variant = d::MyEnum::B;
 // var ::b_variant;
 // var ::b::c;
 // enum ::d::MyEnum = A | B;
-// constraint (var ::c1 == ::b::c);
-// constraint (var ::c2 == ::b::c);
-// constraint (var ::c3 == ::b::c);
-// constraint (var ::c4 == ::b::c);
-// constraint (var ::a_variant == ::d::MyEnum::A);
-// constraint (var ::b_variant == ::d::MyEnum::B);
-// constraint (var ::b::c == 5);
+// constraint (::c1 == ::b::c);
+// constraint (::c2 == ::b::c);
+// constraint (::c3 == ::b::c);
+// constraint (::c4 == ::b::c);
+// constraint (::a_variant == ::d::MyEnum::A);
+// constraint (::b_variant == ::d::MyEnum::B);
+// constraint (::b::c == 5);
 // >>>
 
 // compile_failure <<<

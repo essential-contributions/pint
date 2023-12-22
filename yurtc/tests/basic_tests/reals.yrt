@@ -8,10 +8,10 @@ solve satisfy;
 // intermediate <<<
 // var ::x: real;
 // var ::y: real;
-// constraint (var ::x: real >= 1);
-// constraint (var ::x: real <= 4);
-// constraint (var ::y: real >= 1);
-// constraint (var ::y: real <= 4);
+// constraint (::x >= 1);
+// constraint (::x <= 4);
+// constraint (::y >= 1);
+// constraint (::y <= 4);
 // constraint ((::x + ::y) == 3.3e0);
 // solve satisfy;
 // >>>
