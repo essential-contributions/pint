@@ -56,6 +56,9 @@ pub(super) enum Decl<'sc> {
         name: String,
         variants: Vec<String>,
     },
+    Comment {
+        content: String,
+    },
 }
 
 impl<'sc> Format for Decl<'sc> {
@@ -194,6 +197,9 @@ impl<'sc> Format for Decl<'sc> {
             }
             Self::Enum { name, variants } => {
                 formatted_code.write(&format!("enum {name} = {};", &variants.join(" | ")));
+            }
+            Self::Comment { content } => {
+                formatted_code.write_line(content);
             }
         }
 
