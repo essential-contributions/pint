@@ -1,0 +1,87 @@
+//
+// Find distinct digits for the letters D, E, M, N, O, R, S, Y such that S and M are different from
+// zero (no leading zeros) and the equation
+//
+//    SEND
+//  + MORE
+//  ------
+//   MONEY
+//
+// is satisfied.
+//
+// The unique solution of the problem is 9567 + 1085 = 10652.
+//
+
+let s: int = 1..9;
+let e: int = 0..9;
+let n: int = 0..9;
+let d: int = 0..9;
+let m: int = 1..9;
+let o: int = 0..9;
+let r: int = 0..9;
+let y: int = 0..9;
+
+// All variables must be different. We will eventually have a `forall` directive that would allow
+// expressing the "all different" constraint more concisely.
+constraint s != e;
+constraint s != n;
+constraint s != d;
+constraint s != m;
+constraint s != o;
+constraint s != r;
+constraint s != y;
+
+constraint e != n;
+constraint e != d;
+constraint e != m;
+constraint e != o;
+constraint e != r;
+constraint e != y;
+
+constraint n != d;
+constraint n != m;
+constraint n != o;
+constraint n != r;
+constraint n != y;
+
+constraint d != m;
+constraint d != o;
+constraint d != r;
+constraint d != y;
+
+constraint m != o;
+constraint m != r;
+constraint m != y;
+
+constraint o != r;
+constraint o != y;
+
+constraint r != y;
+
+// SEND + MORE == MONEY
+constraint    1000*s + 100*e + 10*n + d
+           +  1000*m + 100*o + 10*r + e
+           == 10000*m + 1000*o + 100*n + 10*e + y;
+
+solve satisfy;
+
+// solution <<<
+// ::s: 9
+// ::e: 5
+// ::n: 6
+// ::d: 7
+// ::m: 1
+// ::o: 0
+// ::r: 8
+// ::y: 2
+// INTRODUCED0: 9000
+// INTRODUCED1: 500
+// INTRODUCED2: 60
+// INTRODUCED3: 1000
+// INTRODUCED4: 0
+// INTRODUCED5: 80
+// INTRODUCED6: 10000
+// INTRODUCED7: 0
+// INTRODUCED8: 600
+// INTRODUCED9: 50
+// >>>
