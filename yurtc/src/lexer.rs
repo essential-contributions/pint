@@ -95,8 +95,10 @@ pub enum Token {
     MacroName(String),
     #[regex(r"\$[A-Za-z_0-9]+", |lex| lex.slice().to_string())]
     MacroParam(String),
-    MacroBody(Vec<Token>),
-    MacroCallArgs(Vec<Vec<Token>>),
+    #[regex(r"&[A-Za-z_0-9]+", |lex| lex.slice().to_string())]
+    MacroParamPack(String),
+    MacroBody(Vec<(usize, Token, usize)>),
+    MacroCallArgs(Vec<Vec<(usize, Token, usize)>>),
 
     #[token("if")]
     If,
@@ -143,8 +145,9 @@ pub enum Token {
     #[token("in")]
     In,
 
-    #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice().to_string())]
-    Ident(String),
+    // Ident has a flag indicating whether it's in a macro argument.  Is generally false.
+    #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| {(lex.slice().to_string(), false)})]
+    Ident((String, bool)),
     #[regex(r"[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+", |lex| lex.slice().to_string())]
     RealLiteral(String),
     #[regex(r"0x[0-9A-Fa-f]+|0b[0-1]+|[0-9]+", |lex| lex.slice().to_string())]
@@ -238,12 +241,12 @@ impl fmt::Display for Token {
             Token::Fn => write!(f, "fn"),
             Token::Macro => write!(f, "macro"),
             Token::MacroName(name) => write!(f, "{name}"),
-            Token::MacroParam(arg) => write!(f, "{arg}"),
+            Token::MacroParam(arg) | Token::MacroParamPack(arg) => write!(f, "{arg}"),
             Token::MacroBody(body) => write!(
                 f,
                 "{{ {} }}",
                 body.iter()
-                    .map(|tok| tok.to_string())
+                    .map(|(_, tok, _)| tok.to_string())
                     .collect::<Vec<_>>()
                     .join(" ")
             ),
@@ -255,7 +258,7 @@ impl fmt::Display for Token {
                     .map(|param| {
                         param
                             .iter()
-                            .fold(String::new(), |s, tok| format!("{s} {tok}"))
+                            .fold(String::new(), |s, (_, tok, _)| format!("{s} {tok}"))
                     })
                     .collect::<Vec<_>>()
                     .join("; ")
@@ -280,7 +283,7 @@ impl fmt::Display for Token {
             Token::Implements => write!(f, "implements"),
             Token::Extern => write!(f, "extern"),
             Token::In => write!(f, "in"),
-            Token::Ident(ident) => write!(f, "{ident}"),
+            Token::Ident((ident, _)) => write!(f, "{ident}"),
             Token::RealLiteral(ident) => write!(f, "{ident}"),
             Token::IntLiteral(ident) => write!(f, "{ident}"),
             Token::StringLiteral(contents) => write!(f, "{contents}"),
@@ -290,7 +293,7 @@ impl fmt::Display for Token {
 }
 
 pub(super) struct Lexer<'a> {
-    token_stream: logos::SpannedIter<'a, Token>,
+    token_stream: TokenSource<'a>,
     filepath: Rc<std::path::Path>,
     state: LexerState,
 }
@@ -298,7 +301,18 @@ pub(super) struct Lexer<'a> {
 impl<'sc> Lexer<'sc> {
     pub(super) fn new(src: &'sc str, filepath: &Rc<std::path::Path>) -> Self {
         Self {
-            token_stream: Token::lexer(src).spanned(),
+            token_stream: TokenSource::LogosLexer(Token::lexer(src)),
+            filepath: filepath.clone(),
+            state: LexerState::default(),
+        }
+    }
+
+    pub(super) fn from_tokens(
+        tokens: Vec<(usize, Token, usize)>,
+        filepath: &Rc<std::path::Path>,
+    ) -> Self {
+        Self {
+            token_stream: TokenSource::VecToken(VecTokenSourceState::new(tokens)),
             filepath: filepath.clone(),
             state: LexerState::default(),
         }
@@ -309,29 +323,38 @@ impl<'sc> Lexer<'sc> {
         obrace_tok: Token,
         obrace_span: &std::ops::Range<usize>,
     ) -> Result<(usize, Token, usize), ParseError> {
-        // Copy the token stream in case we need to backtrack.
+        // Copy the lexer in case we need to backtrack.
         let mut body_token_stream = self.token_stream.clone();
         let mut parsed_tok_count = 0;
 
         // We've already parsed the `{`.  We need to find the matching `}` while counting and
         // skipping nested `{`/`}` pairs.
-        let mut body_toks = vec![Token::BraceOpen];
+        let mut body_toks = vec![(obrace_span.start, Token::BraceOpen, obrace_span.end)];
         let mut nest_depth = 0;
         loop {
             parsed_tok_count += 1;
-            match body_token_stream.next() {
+
+            let next_tok = body_token_stream.next();
+            let next_span = body_token_stream.span();
+            macro_rules! push_tok {
+                ($tok: expr) => {
+                    body_toks.push((next_span.start, $tok, next_span.end))
+                };
+            }
+
+            match next_tok {
                 None => {
                     // Unexpected end of stream.  Just return the `{`.
                     return Ok((obrace_span.start, obrace_tok, obrace_span.end));
                 }
 
                 Some(Ok(Token::BraceOpen)) => {
-                    body_toks.push(Token::BraceOpen);
+                    push_tok!(Token::BraceOpen);
                     nest_depth += 1;
                 }
 
                 Some(Ok(Token::BraceClose)) => {
-                    body_toks.push(Token::BraceClose);
+                    push_tok!(Token::BraceClose);
                     if nest_depth > 0 {
                         // We're leaving a nested pair.
                         nest_depth -= 1;
@@ -342,17 +365,16 @@ impl<'sc> Lexer<'sc> {
                         // the future.  Instead we'll just use `nth` to skip ahead.)
                         let _ = self.token_stream.nth(parsed_tok_count - 1);
 
-                        let cbrace_span = body_token_stream.span();
                         return Ok((
                             obrace_span.start,
                             Token::MacroBody(body_toks),
-                            cbrace_span.end,
+                            next_span.end,
                         ));
                     }
                 }
 
                 Some(Ok(tok)) => {
-                    body_toks.push(tok);
+                    push_tok!(tok);
                 }
 
                 Some(Err(_)) => {
@@ -367,13 +389,14 @@ impl<'sc> Lexer<'sc> {
         oparen_tok: Token,
         oparen_span: &std::ops::Range<usize>,
     ) -> Result<(usize, Token, usize), ParseError> {
-        // Copy the token stream in case we need to backtrack.
+        // Copy the token stream in case we need to backtrack.  Cloning isn't the most efficient
+        // way to do this, especially with TokenSource::VecToken, but it works.
         let mut args_token_stream = self.token_stream.clone();
         let mut parsed_tok_count = 0;
 
         // We've already parsed the `(`.  Next we need any tokens up to delimiting `;` or
         // terminating `)`.
-        let mut all_args: Vec<Vec<Token>> = vec![Vec::new()];
+        let mut all_args: Vec<Vec<(usize, Token, usize)>> = vec![Vec::new()];
         loop {
             parsed_tok_count += 1;
             match args_token_stream.next() {
@@ -412,16 +435,88 @@ impl<'sc> Lexer<'sc> {
                     ));
                 }
 
+                Some(Ok(Token::Ident((s, _)))) => {
+                    // When identifiers are in macro args we set the flag to true. Then while
+                    // parsing expanded macro bodies, the `let` decls can implement hygiene.
+                    let tok_span = args_token_stream.span();
+                    all_args
+                        .last_mut()
+                        .expect("Args vec is always valid.")
+                        .push((tok_span.start, Token::Ident((s, true)), tok_span.end))
+                }
+
                 // A regular parameter token.
-                Some(Ok(tok)) => all_args
-                    .last_mut()
-                    .expect("Args vec is always valid.")
-                    .push(tok),
+                Some(Ok(tok)) => {
+                    let tok_span = args_token_stream.span();
+                    all_args
+                        .last_mut()
+                        .expect("Args vec is always valid.")
+                        .push((tok_span.start, tok, tok_span.end))
+                }
 
                 Some(Err(_)) => {
                     return Err(ParseError::InvalidToken);
                 }
             }
+        }
+    }
+}
+
+#[derive(Clone)]
+enum TokenSource<'a> {
+    // Used when we parse from a source string using Logos.
+    LogosLexer(logos::Lexer<'a, Token>),
+
+    // Used by macro expansion when parsing macro bodies.
+    VecToken(VecTokenSourceState),
+}
+
+#[derive(Clone)]
+struct VecTokenSourceState {
+    toks: Vec<(usize, Token, usize)>,
+    index: usize,
+    start: usize,
+    end: usize,
+}
+
+impl VecTokenSourceState {
+    fn new(toks: Vec<(usize, Token, usize)>) -> Self {
+        VecTokenSourceState {
+            toks,
+            index: 0,
+            start: 0,
+            end: 0,
+        }
+    }
+}
+
+impl<'a> TokenSource<'a> {
+    fn next(&mut self) -> Option<Result<Token, ParseError>> {
+        match self {
+            TokenSource::LogosLexer(lex) => lex.next(),
+            TokenSource::VecToken(_) => self.nth(0),
+        }
+    }
+
+    fn nth(&mut self, n: usize) -> Option<Result<Token, ParseError>> {
+        match self {
+            TokenSource::LogosLexer(lex) => lex.nth(n),
+            TokenSource::VecToken(state) => {
+                state.toks.get(state.index + n).cloned().map(|(s, t, e)| {
+                    state.index += n + 1;
+                    state.start = s;
+                    state.end = e;
+
+                    Ok(t)
+                })
+            }
+        }
+    }
+
+    fn span(&self) -> std::ops::Range<usize> {
+        match self {
+            TokenSource::LogosLexer(lex) => lex.span(),
+            TokenSource::VecToken(state) => state.start..state.end,
         }
     }
 }
@@ -446,7 +541,8 @@ impl<'a> Iterator for Lexer<'a> {
     type Item = Result<(usize, Token, usize), ParseError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.token_stream.next().map(|(res, span)| {
+        self.token_stream.next().map(|res| {
+            let span = self.token_stream.span();
             res.and_then(|tok| match tok {
                 // The following states track a macro declaration going from `macro` to `@name` to
                 // `($a, $b, ...)` to the `{ ... }` body.
@@ -465,7 +561,10 @@ impl<'a> Iterator for Lexer<'a> {
                     self.state = LexerState::MacroParams;
                     Ok((span.start, tok, span.end))
                 }
-                Token::MacroParam(_) | Token::Comma | Token::ParenClose
+                Token::MacroParam(_)
+                | Token::MacroParamPack(_)
+                | Token::Comma
+                | Token::ParenClose
                     if self.state == LexerState::MacroParams =>
                 {
                     // Remain in the macro params state.

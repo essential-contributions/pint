@@ -56,10 +56,12 @@ impl IntermediateIntent {
     pub fn insert_var(
         &mut self,
         mod_prefix: &str,
+        local_scope: Option<&str>,
         name: &Ident,
         ty: Option<Type>,
     ) -> std::result::Result<VarKey, ParseError> {
-        let full_name = self.add_top_level_symbol(mod_prefix, name, name.span.clone())?;
+        let full_name =
+            self.add_top_level_symbol(mod_prefix, local_scope, name, name.span.clone())?;
         let var_key = self.vars.insert(Var {
             name: full_name,
             ty,
@@ -111,7 +113,7 @@ impl IntermediateIntent {
         expr: ExprKey,
         span: Span,
     ) -> std::result::Result<(), ParseError> {
-        let name = self.add_top_level_symbol(mod_prefix, name, span.clone())?;
+        let name = self.add_top_level_symbol(mod_prefix, None, name, span.clone())?;
 
         self.states.push(State {
             name,
@@ -126,10 +128,14 @@ impl IntermediateIntent {
     pub fn add_top_level_symbol(
         &mut self,
         mod_prefix: &str,
+        local_scope: Option<&str>,
         name: &Ident,
         span: Span,
     ) -> std::result::Result<String, ParseError> {
-        let full_name = mod_prefix.to_owned() + &name.name;
+        let local_scope_str = local_scope
+            .map(|ls| ls.to_owned() + "::")
+            .unwrap_or_default();
+        let full_name = mod_prefix.to_owned() + &local_scope_str + &name.name;
         self.top_level_symbols
             .get(&full_name)
             .map(|prev_span| {
@@ -145,6 +151,18 @@ impl IntermediateIntent {
                 self.top_level_symbols.insert(full_name.clone(), span);
                 Ok(full_name)
             })
+    }
+
+    pub fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
+        self.exprs
+            .iter_mut()
+            .for_each(|(_, expr)| expr.replace_one_to_one(old_expr, new_expr))
+    }
+
+    pub fn replace_exprs_by_map(&mut self, expr_map: &HashMap<ExprKey, ExprKey>) {
+        self.exprs
+            .iter_mut()
+            .for_each(|(_, expr)| expr.replace_ref_by_map(expr_map))
     }
 }
 

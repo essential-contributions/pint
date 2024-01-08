@@ -5,8 +5,9 @@ use crate::{
     intent::intermediate::{ExprKey, SolveFunc},
     lexer,
     macros::{MacroCall, MacroDecl},
-    parser::{ParserContext, UseTree::{self, Path as UseTreePath}, NextModPath},
+    parser::{ParserContext, UsePath, UseTree::{self, Path as UseTreePath}, NextModPath},
     types::{EnumDecl, Path, FnSig, NewTypeDecl, PrimitiveKind, Type},
+    span,
 };
 
 grammar<'a>(
@@ -23,6 +24,11 @@ pub Yurt: () = {
 ////////////////////
 
 Decl: () = {
+    DeclBarringMacro,
+    MacroDecl,
+};
+
+DeclBarringMacro: () = {
     UseStatement ";",
     LetDecl ";",
     StateDecl ";",
@@ -30,7 +36,7 @@ Decl: () = {
     SolveDecl ";",
     EnumDecl ";",
     NewTypeDecl ";",
-    MacroDecl,
+    MacroCallDecl ";",
     InterfaceDecl,
     ContractDecl,
     ExternDecl,
@@ -112,6 +118,7 @@ UseStatement: () = {
                     .ii
                     .add_top_level_symbol(
                         context.mod_prefix,
+                        None,
                         &Ident {
                             name: use_path
                                 .alias
@@ -135,7 +142,7 @@ UseStatement: () = {
 };
 
 pub UsePathIdent: Ident = {
-    IdentFromToken<"ident">,
+    Ident,
     IdentFromToken<"self">,
 }
 
@@ -147,10 +154,15 @@ pub UseTree: UseTree = {
 };
 
 pub LetDecl: () = {
-    <l:@L> "let" <name:Ident> ":" <ty:Type> <init:LetInit?> <r:@R> => {
+    <l:@L> "let" <let_name:LetName> ":" <ty:Type> <init:LetInit?> <r:@R> => {
         context
             .ii
-            .insert_var(context.mod_prefix, &name, Some(ty))
+            .insert_var(
+                context.mod_prefix,
+                let_name.1,
+                &let_name.0,
+                Some(ty),
+            )
             .map(|var_key| {
                 if let Some(expr_key) = init {
                     context.ii.insert_eq_or_ineq_constraint(
@@ -164,10 +176,15 @@ pub LetDecl: () = {
                 errors.push(Error::Parse { error });
             });
     },
-    <l:@L> "let" <name:Ident> <init:LetInit> <r:@R> => {
+    <l:@L> "let" <let_name:LetName> <init:LetInit> <r:@R> => {
         context
             .ii
-            .insert_var(context.mod_prefix, &name, None)
+            .insert_var(
+                context.mod_prefix,
+                let_name.1,
+                &let_name.0,
+                None,
+            )
             .map(|var_key| {
                 context
                     .ii
@@ -184,6 +201,42 @@ pub LetDecl: () = {
                 span: (context.span_from)(l, r),
             },
         });
+    }
+};
+
+LetName: (Ident, Option<&'a str>) = {
+    <l:@L> <id:"ident"> <r:@R> => {
+        // We special case the let name here, as we're interested in the associated flag (and this
+        // is the only place where we care).  The flag indicates that this identifier was
+        // substituted as a part of a macro argument during macro expansion.
+        //
+        // This is to implement macro body hygiene.
+        //
+        // If we have an identifier which is NOT from a macro arg AND a local prefix set in the
+        // parser context indicating we're currently parsing a macro body, then we need to add a Use
+        // path to make sure this name is referred to using that local prefix.  We're adding hygiene
+        // using the prefix.
+
+        let local_scope = (!id.1).then_some(()).and(context.local_scope);
+
+        if let Some(prefix) = local_scope {
+            let mut path = context.mod_path.to_vec();
+            path.push(prefix.to_owned());
+            path.push(id.0.to_owned());
+            context.use_paths.push(UsePath {
+                path,
+                alias: None,
+                is_absolute: true,
+                span: span::empty_span(),
+            });
+        }
+
+        let name = Ident {
+            name: id.0.to_owned(),
+            span: (context.span_from)(l, r),
+        };
+
+        (name, local_scope)
     }
 };
 
@@ -255,12 +308,39 @@ pub NewTypeDecl: () = {
 }
 
 pub MacroDecl: () = {
-    "macro" <name:IdentFromToken<"macro_name">> "("
-        <params:SepList<IdentFromToken<"macro_param">, ",">>
-    ")"
+    "macro" <l:@L> <mut name:IdentFromToken<"macro_name">> "("
+        <params:MacroParamList>
+    ")" <r:@R>
     <body:"macro_body"> => {
-        context.macros.push(MacroDecl { name, params, body });
+        // Prefix the name with the module.  We can't use `add_top_level_symbol()` to do this as we
+        // must avoid the regular name clash error we'd get with variadic macros.
+        name.name = context.mod_prefix.to_string() + &name.name;
+        context.macros.push(MacroDecl {
+            name,
+            params: params.0,
+            pack: params.1,
+            body,
+            sig_span: (context.span_from)(l, r),
+        });
     }
+}
+
+MacroParamList: (Vec<Ident>, Option<Ident>) = {
+    <mut v: (<MacroParam> ",")*> <e:MacroParam>
+    <p:("," <IdentFromToken<"macro_param_pack">>)?> ","? => {
+        v.push(e);
+        (v, p)
+    }
+}
+
+MacroParam: Ident = IdentFromToken<"macro_param">;
+
+MacroCallDecl: () = {
+    MacroCallExpr => (),
+}
+
+pub MacroBody: Option<ExprKey> = {
+    "{" DeclBarringMacro* <Expr?> "}"
 }
 
 FnParam: (Ident, Type)  = {
@@ -682,6 +762,7 @@ UnaryOpOp: UnaryOp = {
 
 Term: ExprKey = {
     <e:TermInner> => context.ii.exprs.insert(e),
+    <MacroCallExpr>,
     <CondExpr>,
     "(" <Expr> ")",
     <BlockExpr>,
@@ -695,7 +776,6 @@ TermInner: Expr = {
         }
     },
     <IfExpr>,
-    <MacroCallExpr>,
     <FnCallExpr>,
     <ArrayExpr>,
     <TupleExpr>,
@@ -745,15 +825,24 @@ CondExpr: ExprKey = {
     }
 };
 
-MacroCallExpr: Expr = {
+MacroCallExpr: ExprKey = {
     <l:@L> <name:MacroPath> <args:"macro_call_args"> <r:@L> => {
         let call_key = context.ii.calls.insert(name.clone());
-        let call_data = MacroCall { name, args };
-        context.macro_calls.insert(call_key, call_data);
-        Expr::MacroCall {
+        let span = (context.span_from)(l, r);
+        let call_data = MacroCall {
+            name,
+            mod_path: context.mod_path.to_vec(),
+            args,
+            span: span.clone(),
+        };
+        let call_expr_key = context.ii.exprs.insert(Expr::MacroCall {
             call: call_key,
-            span: (context.span_from)(l, r),
-        }
+            span,
+        });
+        context
+            .macro_calls
+            .insert(call_key, (call_expr_key, call_data));
+        call_expr_key
     },
 };
 
@@ -963,7 +1052,12 @@ ImmediateInt: Immediate = {
 
 };
 
-pub Ident: Ident = IdentFromToken<"ident">;
+pub Ident: Ident = {
+    <l:@L> <id:"ident"> <r:@R> => Ident {
+        name: id.0.to_string(),
+        span: (context.span_from)(l, r),
+    }
+}
 
 IdentFromToken<Tok>: Ident = {
     <l:@L> <id:Tok> <r:@R> => Ident {
@@ -1088,12 +1182,13 @@ extern {
 
         "in" => lexer::Token::In,
 
-        "ident" => lexer::Token::Ident(<String>),
+        "ident" => lexer::Token::Ident(<(String, bool)>),
 
         "macro" => lexer::Token::Macro,
         "macro_name" => lexer::Token::MacroName(<String>),
         "macro_param" => lexer::Token::MacroParam(<String>),
-        "macro_body" => lexer::Token::MacroBody(<Vec<lexer::Token>>),
-        "macro_call_args" => lexer::Token::MacroCallArgs(<Vec<Vec<lexer::Token>>>),
+        "macro_param_pack" => lexer::Token::MacroParamPack(<String>),
+        "macro_body" => lexer::Token::MacroBody(<Vec<(usize, lexer::Token, usize)>>),
+        "macro_call_args" => lexer::Token::MacroCallArgs(<Vec<Vec<(usize, lexer::Token, usize)>>>),
     }
 }

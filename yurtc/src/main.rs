@@ -34,7 +34,7 @@ fn main() -> anyhow::Result<()> {
     };
 
     if !solve_flag {
-        eprintln!("{:?}", intent);
+        eprintln!("{intent}");
         return Ok(());
     }
 

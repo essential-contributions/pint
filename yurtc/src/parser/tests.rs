@@ -56,6 +56,7 @@ macro_rules! context {
             mod_prefix: &(!$mod_path.is_empty())
                 .then(|| format!("::{}::", $mod_path.join("::")))
                 .unwrap_or("::".to_string()),
+            local_scope: None,
             ii: &mut IntermediateIntent::default(),
             macros: &mut vec![],
             macro_calls: &mut slotmap::SecondaryMap::new(),
@@ -947,9 +948,9 @@ fn paths() {
 #[test]
 fn macro_decl() {
     let src = r#"
-          macro @foo($x, $y) {
-              let z = 5.0 + $x * $y;
-              z
+          macro @foo($x, $y, &z) {
+              let a = 5.0 + $x * $y;
+              a
           }
       "#;
 
@@ -961,7 +962,115 @@ fn macro_decl() {
 
     check(
         &context.macros[0].to_string(),
-        expect_test::expect!["macro @foo($x, $y) { let z = 5.0 + $x * $y ; z }"],
+        expect_test::expect!["macro ::@foo($x, $y, &z) { let a = 5.0 + $x * $y ; a }"],
+    );
+}
+
+#[test]
+fn macro_decl_good_params() {
+    let mut context = context!(Vec::<String>::new(), Vec::new());
+
+    assert!(parse_and_collect_errors!(
+        yp::MacroDeclParser::new(),
+        r#"macro @foo($a) { x }"#,
+        context
+    )
+    .is_ok());
+
+    assert!(parse_and_collect_errors!(
+        yp::MacroDeclParser::new(),
+        r#"macro @foo($a,) { x }"#,
+        context
+    )
+    .is_ok());
+
+    assert!(parse_and_collect_errors!(
+        yp::MacroDeclParser::new(),
+        r#"macro @foo($a,$b) { x }"#,
+        context
+    )
+    .is_ok());
+
+    assert!(parse_and_collect_errors!(
+        yp::MacroDeclParser::new(),
+        r#"macro @foo($a,$b,) { x }"#,
+        context
+    )
+    .is_ok());
+
+    assert!(parse_and_collect_errors!(
+        yp::MacroDeclParser::new(),
+        r#"macro @foo($a,&rest) { x }"#,
+        context
+    )
+    .is_ok());
+
+    assert!(parse_and_collect_errors!(
+        yp::MacroDeclParser::new(),
+        r#"macro @foo($a,&rest,) { x }"#,
+        context
+    )
+    .is_ok());
+}
+
+#[test]
+fn macro_decl_bad_params() {
+    let mut context = context!(Vec::<String>::new(), Vec::new());
+
+    let result = parse_and_collect_errors!(
+        yp::MacroDeclParser::new(),
+        r#"macro @foo(&rest) { x }"#,
+        context
+    );
+    assert!(result.is_err());
+    check(
+        &display_errors(&result.unwrap_err()),
+        expect_test::expect![[r#"
+            expected `macro_param`, found `&rest`
+            @11..16: expected `macro_param`
+        "#]],
+    );
+
+    let result = parse_and_collect_errors!(
+        yp::MacroDeclParser::new(),
+        r#"macro @foo(&rest,) { x }"#,
+        context
+    );
+    assert!(result.is_err());
+    check(
+        &display_errors(&result.unwrap_err()),
+        expect_test::expect![[r#"
+            expected `macro_param`, found `&rest`
+            @11..16: expected `macro_param`
+        "#]],
+    );
+
+    let result = parse_and_collect_errors!(
+        yp::MacroDeclParser::new(),
+        r#"macro @foo(&rest,$a) { x }"#,
+        context
+    );
+    assert!(result.is_err());
+    check(
+        &display_errors(&result.unwrap_err()),
+        expect_test::expect![[r#"
+            expected `macro_param`, found `&rest`
+            @11..16: expected `macro_param`
+        "#]],
+    );
+
+    let result = parse_and_collect_errors!(
+        yp::MacroDeclParser::new(),
+        r#"macro @foo($a,,$b) { x }"#,
+        context
+    );
+    assert!(result.is_err());
+    check(
+        &display_errors(&result.unwrap_err()),
+        expect_test::expect![[r#"
+            expected `)`, `macro_param`, or `macro_param_pack`, found `,`
+            @14..15: expected `)`, `macro_param`, or `macro_param_pack`
+        "#]],
     );
 }
 
@@ -980,7 +1089,7 @@ fn macro_call() {
     );
 
     check(
-        &context.macro_calls.iter().next().unwrap().1.to_string(),
+        &context.macro_calls.iter().next().unwrap().1 .1.to_string(),
         expect_test::expect!["::@foo(a * 3; int; <= =>)"],
     );
 }

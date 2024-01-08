@@ -137,6 +137,7 @@ impl ReportableError for ParseError {
                     color: Color::Red,
                 }]
             }
+
             NameClash {
                 sym,
                 span,

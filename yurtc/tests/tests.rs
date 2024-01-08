@@ -22,6 +22,13 @@ mod e2e {
     }
 
     #[test]
+    fn macros() {
+        if let Err(err) = run_tests("macros") {
+            eprintln!("{err}");
+        }
+    }
+
+    #[test]
     fn modules() {
         if let Err(err) = run_tests("modules") {
             eprintln!("{err}");
@@ -45,11 +52,15 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
             path.push("main.yrt");
         }
 
-        // Skip disabled tests
+        // Skip disabled tests.  Also check for solver ban.
+        let mut skip_solve = false;
         let handle = File::open(path.clone())?;
         if let Some(Ok(first_line)) = BufReader::new(handle).lines().next() {
             if first_line.contains("<disabled>") {
                 continue;
+            }
+            if first_line.contains("<no-solve>") {
+                skip_solve = true;
             }
         }
 
@@ -64,7 +75,9 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
         let intent = compile_to_final_intent_and_check(ii, &expectations, &mut failed_tests, &path);
 
         // Solve the final intent and check the solution
-        solve_and_check(intent, &expectations, &mut failed_tests, &path);
+        if !skip_solve {
+            solve_and_check(intent, &expectations, &mut failed_tests, &path);
+        }
     }
 
     if !failed_tests.is_empty() {
@@ -222,7 +235,7 @@ fn parse_test_and_check(
     expectations: &Expectations,
     failed_tests: &mut Vec<String>,
 ) -> Option<IntermediateIntent> {
-    match yurtc::parser::parse_project(&path) {
+    match yurtc::parser::parse_project(path) {
         Err(errs) => {
             let errs_str = errs
                 .iter()
