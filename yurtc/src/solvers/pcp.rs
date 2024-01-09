@@ -1,7 +1,7 @@
 use crate::{
     error::SolveError,
     expr,
-    intent::{Expression, Intent, Solve, Type},
+    intent::{Expression, Intent, SolveDirective, Type},
     span::empty_span,
 };
 use gcollections::ops::{Alloc, Bounded, Empty};
@@ -158,7 +158,7 @@ impl<'a> Solver<'a> {
     /// - Updates `self.status` with the status of the problem (Satisfiable v.s. Unsatisfiable)
     pub fn solve(mut self) -> Result<Self, SolveError> {
         // Optimization problems are not supported yet
-        if !matches!(self.intent.directive, Solve::Satisfy) {
+        if !matches!(self.intent.directive, SolveDirective::Satisfy) {
             return Err(SolveError::Internal {
                 msg: "(pcp) only constraint satisfaction problems are currently supported",
                 span: empty_span(),

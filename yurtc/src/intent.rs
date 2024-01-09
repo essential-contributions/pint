@@ -13,7 +13,7 @@ pub struct Intent {
     pub states: Vec<State>,
     pub vars: Vec<Variable>,
     pub constraints: Vec<Expression>,
-    pub directive: Solve,
+    pub directive: SolveDirective,
 }
 
 /// A representation of state fetched from a blockchain.  This is almost always a contract method
@@ -59,14 +59,31 @@ pub enum Expression {
 }
 
 /// A directive describing in particular which [Variable] to resolve and how.
+///
+/// Yurt does support arbitrary objective functions, but here we assume that the objective function
+/// has been replaced by a single new variable that is constrained to be equal to the objective
+/// function. This transformation has to be done by the compiler.
+///
+/// For example:
+///
+/// ```yurt
+/// maximize x + y
+/// ```
+///
+/// becomes
+///
+/// ```yurt
+/// let z = x + y;
+/// maximize z
+/// ```
 #[derive(Debug)]
-pub enum Solve {
+pub enum SolveDirective {
     /// Resolve all [Variable]s.
     Satisfy,
     /// Resolve to minimize a particular named [Variable].
-    Minimize(Expression),
+    Minimize(Path),
     /// Resolve to maximize a particular named [Variable].
-    Maximize(Expression),
+    Maximize(Path),
 }
 
 /// The type of a [Variable].

@@ -10,6 +10,4 @@ solve satisfy;
 // ::x: 6
 // ::y: 3
 // ::z: 3
-// INTRODUCED0: 2
-// INTRODUCED1: 1
 // >>>

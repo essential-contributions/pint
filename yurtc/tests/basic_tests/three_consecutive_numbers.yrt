@@ -1,10 +1,8 @@
 // Find three consecutive integers such that their product is equal to their sum.
 
-// Ideally we don't have to bound the variables, but the pcp solver is unhappy with unbounded
-// variables.
-let x0: int = 0..10;
-let x1: int = 0..10;
-let x2: int = 0..10;
+let x0: int;
+let x1: int;
+let x2: int;
 
 // Make sure the numbers are consecutive
 constraint x1 == x0 + 1;
@@ -16,9 +14,7 @@ constraint x0 + x1 + x2 == x0 * x1 * x2;
 solve satisfy;
 
 // solution <<<
-// ::x0: 1
-// ::x1: 2
-// ::x2: 3
-// INTRODUCED0: 2
-// INTRODUCED1: 6
+// ::x0: -1
+// ::x1: 0
+// ::x2: 1
 // >>>
