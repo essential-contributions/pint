@@ -1,3 +1,4 @@
+use russcip::ProblemCreated;
 use std::{
     fs::{read_dir, File},
     io::{BufRead, BufReader},
@@ -7,7 +8,7 @@ use yansi::Color::{Cyan, Red, Yellow};
 use yurtc::{
     error::ReportableError,
     intent::{Intent, IntermediateIntent},
-    solver::Solver,
+    solvers::scip::Solver,
 };
 
 #[cfg(test)]
@@ -326,7 +327,7 @@ fn solve_and_check(
     path: &Path,
 ) {
     ii.and_then(|ii| {
-        Solver::new(&ii)
+        Solver::<ProblemCreated>::new(&ii)
             .solve()
             .map(|solver| {
                 if let Some(expected_solution_str) = &expectations.solution {

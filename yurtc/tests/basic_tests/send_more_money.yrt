@@ -71,17 +71,7 @@ solve satisfy;
 // ::n: 6
 // ::d: 7
 // ::m: 1
-// ::o: 0
+// ::o: -0
 // ::r: 8
 // ::y: 2
-// INTRODUCED0: 9000
-// INTRODUCED1: 500
-// INTRODUCED2: 60
-// INTRODUCED3: 1000
-// INTRODUCED4: 0
-// INTRODUCED5: 80
-// INTRODUCED6: 10000
-// INTRODUCED7: 0
-// INTRODUCED8: 600
-// INTRODUCED9: 50
 // >>>
