@@ -52,6 +52,7 @@ pub(crate) struct MacroCall {
     pub(crate) mod_path: Vec<String>,
     pub(crate) args: Vec<Vec<(usize, Token, usize)>>,
     pub(crate) span: Span,
+    pub(crate) tag: Option<u64>,
 }
 
 impl fmt::Display for MacroCall {
@@ -103,55 +104,102 @@ pub(crate) fn verify_unique_set(macro_decls: &[MacroDecl]) -> Vec<Error> {
     errors
 }
 
-pub(crate) fn expand_call(
-    macro_decls: &[MacroDecl],
-    call: &MacroCall,
-) -> Result<Vec<(usize, Token, usize)>, Vec<Error>> {
-    let macro_decl: &MacroDecl = match_macro(macro_decls, call)?;
-    let mut body = Vec::with_capacity(macro_decl.body.len());
-    let mut errs = Vec::new();
+#[derive(Default)]
+pub(crate) struct MacroExpander {
+    call_histories: HashMap<u64, Vec<(Path, usize)>>,
+    next_tag: u64,
+}
 
-    let param_idcs = HashMap::<&String, usize>::from_iter(
-        macro_decl
-            .params
-            .iter()
-            .enumerate()
-            .map(|(idx, id)| (&id.name, idx)),
-    );
+impl MacroExpander {
+    pub(crate) fn expand_call(
+        &mut self,
+        macro_decls: &[MacroDecl],
+        call: &MacroCall,
+    ) -> Result<Vec<(usize, Token, usize)>, Vec<Error>> {
+        let macro_decl: &MacroDecl = match_macro(macro_decls, call)?;
+        let mut errs = Vec::new();
 
-    for tok in &macro_decl.body {
-        match &tok.1 {
-            Token::MacroParam(param) => {
-                if let Some(&idx) = param_idcs.get(param) {
-                    body.append(&mut call.args[idx].clone());
-                } else {
+        // This tag identifies the current expansion chain.  Root calls from outside of macro
+        // bodies will be None and so we allocate a new unique tag.  Calls in macro bodies have
+        // this tag propogated and we track the expansion history to detect non-terminating
+        // recursion.
+        let tag = call.tag.unwrap_or_else(|| {
+            let tag = self.next_tag;
+            self.next_tag += 1;
+            tag
+        });
+
+        // If this 'call sig' -- the name and number of args -- has been used in this expansion
+        // chain before then we have illegal recursion.
+        let call_sig = (call.name.clone(), call.args.len());
+        self.call_histories
+            .entry(tag)
+            .and_modify(|call_history| {
+                if call_history.contains(&call_sig) {
                     errs.push(Error::Compile {
-                        error: CompileError::MacroUndefinedParam {
-                            name: param.clone(),
-                            span: Span {
-                                context: Rc::clone(&macro_decl.sig_span.context),
-                                range: tok.0..tok.2,
-                            },
+                        error: CompileError::MacroRecursion {
+                            name: call.name.clone(),
+                            call_span: call.span.clone(),
+                            decl_span: macro_decl.sig_span.clone(),
                         },
                     });
                 }
-            }
-            Token::MacroParamPack(_) => {
-                // `match_macro()` guarantees that the param pack is not empty.  We need to append
-                // the arg tokens separated by `;` for each arg.
-                for arg in call.args.iter().skip(macro_decl.params.len()) {
-                    body.append(&mut arg.clone());
-                    body.push((0, Token::Semi, 0));
-                }
-            }
-            _ => body.push(tok.clone()),
-        }
-    }
+                call_history.push(call_sig.clone())
+            })
+            .or_insert(vec![call_sig]);
 
-    if errs.is_empty() {
-        Ok(body)
-    } else {
-        Err(errs)
+        let param_idcs = HashMap::<&String, usize>::from_iter(
+            macro_decl
+                .params
+                .iter()
+                .enumerate()
+                .map(|(idx, id)| (&id.name, idx)),
+        );
+
+        let mut body = Vec::with_capacity(macro_decl.body.len());
+        for tok in &macro_decl.body {
+            match &tok.1 {
+                Token::MacroParam(param) => {
+                    if let Some(&idx) = param_idcs.get(param) {
+                        body.append(&mut call.args[idx].clone());
+                    } else {
+                        errs.push(Error::Compile {
+                            error: CompileError::MacroUndefinedParam {
+                                name: param.clone(),
+                                span: Span {
+                                    context: Rc::clone(&macro_decl.sig_span.context),
+                                    range: tok.0..tok.2,
+                                },
+                            },
+                        });
+                    }
+                }
+
+                Token::MacroParamPack(_) => {
+                    // `match_macro()` guarantees that the param pack is not empty.  We need to append
+                    // the arg tokens separated by `;` for each arg.
+                    for arg in call.args.iter().skip(macro_decl.params.len()) {
+                        body.append(&mut arg.clone());
+                        body.push((0, Token::Semi, 0));
+                    }
+                }
+
+                Token::MacroTag(old_tag) => {
+                    // This tag has been injected by the lexer.  We update the tag here for when
+                    // its associated call is expanded.
+                    assert!(old_tag.is_none());
+                    body.push((tok.0, Token::MacroTag(Some(tag)), tok.2))
+                }
+
+                _ => body.push(tok.clone()),
+            }
+        }
+
+        if errs.is_empty() {
+            Ok(body)
+        } else {
+            Err(errs)
+        }
     }
 }
 

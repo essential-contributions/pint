@@ -99,6 +99,7 @@ pub enum Token {
     MacroParamPack(String),
     MacroBody(Vec<(usize, Token, usize)>),
     MacroCallArgs(Vec<Vec<(usize, Token, usize)>>),
+    MacroTag(Option<u64>),
 
     #[token("if")]
     If,
@@ -263,6 +264,13 @@ impl fmt::Display for Token {
                     .collect::<Vec<_>>()
                     .join("; ")
             ),
+            Token::MacroTag(tag) => {
+                if let Some(tag) = tag {
+                    write!(f, "<{tag}>")
+                } else {
+                    Ok(())
+                }
+            }
             Token::If => write!(f, "if"),
             Token::Else => write!(f, "else"),
             Token::Cond => write!(f, "cond"),
@@ -371,6 +379,13 @@ impl<'sc> Lexer<'sc> {
                             next_span.end,
                         ));
                     }
+                }
+
+                Some(Ok(tok @ Token::MacroName(_))) => {
+                    // If we see a macro name in a macro body then we inject an empty tag used by
+                    // recursion checking.
+                    push_tok!(tok);
+                    push_tok!(Token::MacroTag(None));
                 }
 
                 Some(Ok(tok)) => {
@@ -582,6 +597,10 @@ impl<'a> Iterator for Lexer<'a> {
                 Token::MacroName(_) if self.state == LexerState::Normal => {
                     // Set the state to indicate we've seen a `@name` token without a `macro`.
                     self.state = LexerState::MacroCall;
+                    Ok((span.start, tok, span.end))
+                }
+                Token::MacroTag(_) if self.state == LexerState::MacroCall => {
+                    // Skip the tag if it exists, don't change the state.
                     Ok((span.start, tok, span.end))
                 }
                 Token::ParenOpen if self.state == LexerState::MacroCall => {
