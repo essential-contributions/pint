@@ -863,8 +863,7 @@ checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
 [[package]]
 name = "russcip"
 version = "0.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3029f61d8cbb47b368ef98cb612c54d497f44004f62efd12dc3f29cab8100c9c"
+source = "git+https://github.com/mohammadfawaz/russcip?branch=mohammadfawaz/indicator_constraints#bad98aa7832356b7172230c70b746a522b2ab914"
 dependencies = [
  "doc-comment",
  "scip-sys",

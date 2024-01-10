@@ -23,40 +23,40 @@ let y: int = 0..9;
 
 // All variables must be different. We will eventually have a `forall` directive that would allow
 // expressing the "all different" constraint more concisely.
-constraint s != e;
-constraint s != n;
-constraint s != d;
-constraint s != m;
-constraint s != o;
-constraint s != r;
-constraint s != y;
+constraint    s != e
+           && s != n
+           && s != d
+           && s != m
+           && s != o
+           && s != r
+           && s != y
 
-constraint e != n;
-constraint e != d;
-constraint e != m;
-constraint e != o;
-constraint e != r;
-constraint e != y;
+           && e != n
+           && e != d
+           && e != m
+           && e != o
+           && e != r
+           && e != y
 
-constraint n != d;
-constraint n != m;
-constraint n != o;
-constraint n != r;
-constraint n != y;
+           && n != d
+           && n != m
+           && n != o
+           && n != r
+           && n != y
 
-constraint d != m;
-constraint d != o;
-constraint d != r;
-constraint d != y;
+           && d != m
+           && d != o
+           && d != r
+           && d != y
 
-constraint m != o;
-constraint m != r;
-constraint m != y;
+           && m != o
+           && m != r
+           && m != y
 
-constraint o != r;
-constraint o != y;
+           && o != r
+           && o != y
 
-constraint r != y;
+           && r != y;
 
 // SEND + MORE == MONEY
 constraint    1000*s + 100*e + 10*n + d
@@ -71,7 +71,7 @@ solve satisfy;
 // ::n: 6
 // ::d: 7
 // ::m: 1
-// ::o: -0
+// ::o: 0
 // ::r: 8
 // ::y: 2
 // >>>

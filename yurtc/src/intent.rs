@@ -34,7 +34,7 @@ pub struct Variable {
 
 /// An expression describing the possible values for one or more [Variable]s or [State]s.
 /// NOTE: We don't _yet_ have a way to represent contract calls properly here.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Expression {
     Immediate(expr::Immediate),
     Path(Path),

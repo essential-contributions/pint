@@ -5,8 +5,7 @@ let x1: int;
 let x2: int;
 
 // Make sure the numbers are consecutive
-constraint x1 == x0 + 1;
-constraint x2 == x1 + 1;
+constraint x1 == x0 + 1 && x2 == x1 + 1;
 
 // Make sure their sum is equal to their product 
 constraint x0 + x1 + x2 == x0 * x1 * x2;
