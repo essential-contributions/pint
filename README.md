@@ -6,6 +6,8 @@ Yurt is a Domain Specific Language (DSL) for intent expression using constraints
 
 ## Dependencies
 
+### Rust
+
 Yurt is built in Rust. To begin, install the Rust toolchain following instructions at <https://www.rust-lang.org/tools/install>. Then configure your Rust toolchain to use Rust `stable`:
 
 ```sh
@@ -17,6 +19,19 @@ If not already done, add the Cargo bin directory to your `PATH` by adding the fo
 ```sh
 export PATH="${HOME}/.cargo/bin:${PATH}"
 ```
+
+### SCIP
+
+Yurt uses [SCIP](https://www.scipopt.org/) as its default solver. To install SCIP, use your favourite package manager and, if needed, set the environment variable `SCIPOPTDIR` to where SCIP is installed.
+
+For example, Homebrew can be used to install SCIP on MacOS:
+
+```sh
+brew install scip
+export SCIPOPTDIR=<scip-install-dir> # Example: /opt/homebrew/Cellar/scip/8.1.0
+```
+
+If SCIP is not available with your package manager, you may use [Miniconda](https://docs.conda.io/projects/miniconda/en/latest/).
 
 ## Building
 
