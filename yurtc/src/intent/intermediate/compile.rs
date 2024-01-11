@@ -1,6 +1,6 @@
 use crate::{
     error::CompileError,
-    intent::{self, Expression, Intent, Solve},
+    intent::{self, Expression, Intent, SolveDirective},
     span::{empty_span, Span},
 };
 
@@ -75,7 +75,7 @@ fn convert_constraints(context: &IntermediateIntent) -> super::Result<Vec<Expres
         .collect()
 }
 
-fn convert_directive(context: &IntermediateIntent) -> super::Result<Solve> {
+fn convert_directive(context: &IntermediateIntent) -> super::Result<SolveDirective> {
     let Some((directive, span)) = context.directives.first() else {
         return Err(CompileError::Internal {
             msg: "Missing directive during final compile.",
@@ -83,15 +83,23 @@ fn convert_directive(context: &IntermediateIntent) -> super::Result<Solve> {
         });
     };
 
-    Ok(match directive {
-        SolveFunc::Satisfy => Solve::Satisfy,
-        SolveFunc::Maximize(expr_key) => {
-            Solve::Maximize(convert_expr_key(context, *expr_key, span)?)
-        }
-        SolveFunc::Minimize(expr_key) => {
-            Solve::Minimize(convert_expr_key(context, *expr_key, span)?)
-        }
-    })
+    match directive {
+        SolveFunc::Satisfy => Ok(SolveDirective::Satisfy),
+        SolveFunc::Minimize(expr_key) => match convert_expr_key(context, *expr_key, span)? {
+            Expression::Path(path) => Ok(SolveDirective::Minimize(path.clone())),
+            _ => Err(CompileError::Internal {
+                msg: "Objective function is not a path. This is unexpected at this stage.",
+                span: empty_span(),
+            }),
+        },
+        SolveFunc::Maximize(expr_key) => match convert_expr_key(context, *expr_key, span)? {
+            Expression::Path(path) => Ok(SolveDirective::Maximize(path.clone())),
+            _ => Err(CompileError::Internal {
+                msg: "Objective function is not a path. This is unexpected at this stage.",
+                span: empty_span(),
+            }),
+        },
+    }
 }
 
 fn convert_expr_key(

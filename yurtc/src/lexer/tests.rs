@@ -255,7 +255,7 @@ solve minimize mid;
     use Token::*;
     assert_eq!(tokens.len(), 23);
     assert!(matches!(tokens[0].0, Let));
-    assert_eq!(tokens[1].0, Ident("low_val".to_owned()));
+    assert_eq!(tokens[1].0, Ident(("low_val".to_owned(), false)));
     assert!(matches!(tokens[2].0, Colon));
     assert!(matches!(tokens[3].0, Int));
     assert!(matches!(tokens[4].0, Eq));
@@ -263,22 +263,22 @@ solve minimize mid;
     assert!(matches!(tokens[6].0, Semi));
 
     assert!(matches!(tokens[7].0, Constraint));
-    assert_eq!(tokens[8].0, Ident("mid".to_owned()));
+    assert_eq!(tokens[8].0, Ident(("mid".to_owned(), false)));
     assert!(matches!(tokens[9].0, Gt));
-    assert_eq!(tokens[10].0, Ident("low_val".to_owned()));
+    assert_eq!(tokens[10].0, Ident(("low_val".to_owned(), false)));
     assert_eq!(tokens[11].0, IntLiteral("2".to_owned()));
     assert!(matches!(tokens[12].0, Semi));
 
     assert!(matches!(tokens[13].0, Constraint));
-    assert_eq!(tokens[14].0, Ident("mid".to_owned()));
+    assert_eq!(tokens[14].0, Ident(("mid".to_owned(), false)));
     assert!(matches!(tokens[15].0, Lt));
-    assert_eq!(tokens[16].0, Ident("low_val".to_owned()));
+    assert_eq!(tokens[16].0, Ident(("low_val".to_owned(), false)));
     assert_eq!(tokens[17].0, IntLiteral("2".to_owned()));
     assert!(matches!(tokens[18].0, Semi));
 
     assert!(matches!(tokens[19].0, Solve));
     assert!(matches!(tokens[20].0, Minimize));
-    assert_eq!(tokens[21].0, Ident("mid".to_owned()));
+    assert_eq!(tokens[21].0, Ident(("mid".to_owned(), false)));
     assert!(matches!(tokens[22].0, Semi));
 }
 
@@ -366,13 +366,13 @@ fn macros_success() {
     assert!(matches!(body, (_, MacroBody(_), _)));
     if let MacroBody(body_toks) = body.1 {
         assert_eq!(body_toks.len(), 7);
-        assert!(matches!(body_toks[0], BraceOpen));
-        assert!(matches!(body_toks[1], Let));
-        assert_eq!(body_toks[2], Ident("it".to_owned()));
-        assert!(matches!(body_toks[3], StringLiteral(_)));
-        assert_eq!(body_toks[4], IntLiteral("88".to_owned()));
-        assert!(matches!(body_toks[5], Semi));
-        assert!(matches!(body_toks[6], BraceClose));
+        assert!(matches!(body_toks[0], (_, BraceOpen, _)));
+        assert!(matches!(body_toks[1], (_, Let, _)));
+        assert_eq!(body_toks[2].1, Ident(("it".to_owned(), false)));
+        assert!(matches!(body_toks[3], (_, StringLiteral(_), _)));
+        assert_eq!(body_toks[4].1, IntLiteral("88".to_owned()));
+        assert!(matches!(body_toks[5], (_, Semi, _)));
+        assert!(matches!(body_toks[6], (_, BraceClose, _)));
     } else {
         unreachable!()
     }
@@ -393,20 +393,20 @@ fn macros_success() {
 
     if let MacroBody(body_toks) = body.1 {
         assert_eq!(body_toks.len(), 14);
-        assert!(matches!(body_toks[0], BraceOpen));
-        assert_eq!(body_toks[1], Ident("a".to_owned()));
-        assert!(matches!(body_toks[2], BraceOpen));
-        assert_eq!(body_toks[3], Ident("b".to_owned()));
-        assert!(matches!(body_toks[4], BraceClose));
-        assert!(matches!(body_toks[5], BraceOpen));
-        assert!(matches!(body_toks[6], BraceOpen));
-        assert!(matches!(body_toks[7], BraceClose));
-        assert_eq!(body_toks[8], Ident("c".to_owned()));
-        assert!(matches!(body_toks[9], BraceClose));
-        assert!(matches!(body_toks[10], BraceOpen));
-        assert_eq!(body_toks[11], Ident("d".to_owned()));
-        assert!(matches!(body_toks[12], BraceClose));
-        assert!(matches!(body_toks[13], BraceClose));
+        assert!(matches!(body_toks[0], (_, BraceOpen, _)));
+        assert_eq!(body_toks[1].1, Ident(("a".to_owned(), false)));
+        assert!(matches!(body_toks[2], (_, BraceOpen, _)));
+        assert_eq!(body_toks[3].1, Ident(("b".to_owned(), false)));
+        assert!(matches!(body_toks[4], (_, BraceClose, _)));
+        assert!(matches!(body_toks[5], (_, BraceOpen, _)));
+        assert!(matches!(body_toks[6], (_, BraceOpen, _)));
+        assert!(matches!(body_toks[7], (_, BraceClose, _)));
+        assert_eq!(body_toks[8].1, Ident(("c".to_owned(), false)));
+        assert!(matches!(body_toks[9], (_, BraceClose, _)));
+        assert!(matches!(body_toks[10], (_, BraceOpen, _)));
+        assert_eq!(body_toks[11].1, Ident(("d".to_owned(), false)));
+        assert!(matches!(body_toks[12], (_, BraceClose, _)));
+        assert!(matches!(body_toks[13], (_, BraceClose, _)));
     } else {
         unreachable!()
     }
@@ -421,7 +421,10 @@ fn macros_badly_formed() {
     // Macro name has no `@`, should not parse the body.
     let mut toks = Lexer::new("macro bad() { 11 }", &Rc::clone(&path));
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
-    assert_eq!(toks.next().unwrap().unwrap().1, Ident("bad".to_owned()),);
+    assert_eq!(
+        toks.next().unwrap().unwrap().1,
+        Ident(("bad".to_owned(), false)),
+    );
     assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenOpen, _)));
     assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
     assert!(matches!(toks.next().unwrap().unwrap(), (_, BraceOpen, _)));
@@ -437,9 +440,15 @@ fn macros_badly_formed() {
         MacroName("@name".to_owned()),
     );
     assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenOpen, _)));
-    assert_eq!(toks.next().unwrap().unwrap().1, Ident("bad".to_owned()),);
+    assert_eq!(
+        toks.next().unwrap().unwrap().1,
+        Ident(("bad".to_owned(), false)),
+    );
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Comma, _)));
-    assert_eq!(toks.next().unwrap().unwrap().1, Ident("param".to_owned()),);
+    assert_eq!(
+        toks.next().unwrap().unwrap().1,
+        Ident(("param".to_owned(), false)),
+    );
     assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
     assert!(matches!(toks.next().unwrap().unwrap(), (_, BraceOpen, _)));
     assert_eq!(toks.next().unwrap().unwrap().1, IntLiteral("22".to_owned()),);
@@ -458,7 +467,10 @@ fn macros_badly_formed() {
         MacroParam("$good".to_owned()),
     );
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Comma, _)));
-    assert_eq!(toks.next().unwrap().unwrap().1, Ident("bad".to_owned()),);
+    assert_eq!(
+        toks.next().unwrap().unwrap().1,
+        Ident(("bad".to_owned(), false)),
+    );
     assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
     assert!(matches!(toks.next().unwrap().unwrap(), (_, BraceOpen, _)));
     assert_eq!(toks.next().unwrap().unwrap().1, IntLiteral("33".to_owned()),);
@@ -526,7 +538,7 @@ fn macros_call_success() {
     if let MacroCallArgs(args) = args.1 {
         assert_eq!(args.len(), 1);
         assert_eq!(args[0].len(), 1);
-        assert!(matches!(args[0][0], Int));
+        assert!(matches!(args[0][0], (_, Int, _)));
     } else {
         unreachable!()
     }
@@ -544,9 +556,9 @@ fn macros_call_success() {
     if let MacroCallArgs(args) = args.1 {
         assert_eq!(args.len(), 2);
         assert_eq!(args[0].len(), 1);
-        assert!(matches!(args[0][0], Int));
+        assert!(matches!(args[0][0], (_, Int, _)));
         assert_eq!(args[1].len(), 1);
-        assert!(matches!(args[1][0], Ident(_)));
+        assert!(matches!(args[1][0], (_, Ident(_), _)));
     } else {
         unreachable!()
     }
@@ -562,15 +574,15 @@ fn macros_call_success() {
     if let MacroCallArgs(args) = args.1 {
         assert_eq!(args.len(), 2);
         assert_eq!(args[0].len(), 3);
-        assert_eq!(args[0][0], IntLiteral("1".to_owned()));
-        assert!(matches!(args[0][1], Plus));
-        assert_eq!(args[0][2], IntLiteral("2".to_owned()));
+        assert_eq!(args[0][0].1, IntLiteral("1".to_owned()));
+        assert!(matches!(args[0][1], (_, Plus, _)));
+        assert_eq!(args[0][2].1, IntLiteral("2".to_owned()));
         assert_eq!(args[1].len(), 5);
-        assert!(matches!(args[1][0], BracketOpen));
-        assert_eq!(args[1][1], IntLiteral("1".to_owned()));
-        assert!(matches!(args[1][2], Comma));
-        assert_eq!(args[1][3], IntLiteral("2".to_owned()));
-        assert!(matches!(args[1][4], BracketClose));
+        assert!(matches!(args[1][0], (_, BracketOpen, _)));
+        assert_eq!(args[1][1].1, IntLiteral("1".to_owned()));
+        assert!(matches!(args[1][2], (_, Comma, _)));
+        assert_eq!(args[1][3].1, IntLiteral("2".to_owned()));
+        assert!(matches!(args[1][4], (_, BracketClose, _)));
     } else {
         unreachable!()
     }
@@ -586,12 +598,12 @@ fn macros_call_success() {
     if let MacroCallArgs(args) = args.1 {
         assert_eq!(args.len(), 1);
         assert_eq!(args[0].len(), 6);
-        assert!(matches!(args[0][0], Let));
-        assert!(matches!(args[0][1], Ident(_)));
-        assert!(matches!(args[0][2], Colon));
-        assert!(matches!(args[0][3], Int));
-        assert!(matches!(args[0][4], Eq));
-        assert_eq!(args[0][5], IntLiteral("0".to_owned()));
+        assert!(matches!(args[0][0], (_, Let, _)));
+        assert!(matches!(args[0][1], (_, Ident(_), _)));
+        assert!(matches!(args[0][2], (_, Colon, _)));
+        assert!(matches!(args[0][3], (_, Int, _)));
+        assert!(matches!(args[0][4], (_, Eq, _)));
+        assert_eq!(args[0][5].1, IntLiteral("0".to_owned()));
     } else {
         unreachable!()
     }
@@ -607,15 +619,15 @@ fn macros_call_success() {
     if let MacroCallArgs(args) = args.1 {
         assert_eq!(args.len(), 1);
         assert_eq!(args[0].len(), 15);
-        assert_eq!(args[0][0], IntLiteral("1".to_owned()));
-        assert!(matches!(args[0][1], Comma));
-        assert_eq!(args[0][2], IntLiteral("2".to_owned()));
-        assert!(matches!(args[0][3], Comma));
+        assert_eq!(args[0][0].1, IntLiteral("1".to_owned()));
+        assert!(matches!(args[0][1], (_, Comma, _)));
+        assert_eq!(args[0][2].1, IntLiteral("2".to_owned()));
+        assert!(matches!(args[0][3], (_, Comma, _)));
         // etc.
-        assert!(matches!(args[0][11], Comma));
-        assert_eq!(args[0][12], IntLiteral("7".to_owned()));
-        assert!(matches!(args[0][13], Comma));
-        assert_eq!(args[0][14], IntLiteral("8".to_owned()));
+        assert!(matches!(args[0][11], (_, Comma, _)));
+        assert_eq!(args[0][12].1, IntLiteral("7".to_owned()));
+        assert!(matches!(args[0][13], (_, Comma, _)));
+        assert_eq!(args[0][14].1, IntLiteral("8".to_owned()));
     } else {
         unreachable!()
     }

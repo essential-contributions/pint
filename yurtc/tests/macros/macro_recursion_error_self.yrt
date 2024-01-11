@@ -1,0 +1,12 @@
+// <disabled>
+macro @m($a) {
+    let x = @m(22);
+}
+
+@m(11);
+
+solve satisfy;
+
+// parse_failure <<<
+// unbound recursion
+// >>>

@@ -28,8 +28,8 @@ constraint q3 + 1 != q4;
 solve satisfy;
 
 // solution <<<
-// ::variables::q1: 2
-// ::variables::q2: 4
-// ::variables::q3: 1
-// ::variables::q4: 3
+// ::variables::q1: 3
+// ::variables::q2: 1
+// ::variables::q3: 4
+// ::variables::q4: 2
 // >>>

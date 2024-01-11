@@ -50,6 +50,7 @@ pub(super) fn yurt_program<'sc>(
         interface_decl(),
         contract_decl(),
         extern_decl(),
+        comment_decl(),
     ))
     .repeated()
     .then_ignore(end())
@@ -208,6 +209,12 @@ fn enum_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseErro
         .then(variants)
         .then_ignore(just(Token::Semi))
         .map(|(name, variants)| ast::Decl::Enum { name, variants })
+        .boxed()
+}
+
+fn comment_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+    select! { Token::Comment(content) => content.to_owned() }
+        .map(|content| ast::Decl::Comment { content })
         .boxed()
 }
 

@@ -1,6 +1,6 @@
 use crate::{
     expr,
-    intent::{Expression, Solve, State, Type, Variable},
+    intent::{Expression, SolveDirective, State, Type, Variable},
     util::write_many,
 };
 use std::fmt::{Display, Formatter, Result};
@@ -35,13 +35,13 @@ impl Display for Type {
     }
 }
 
-impl Display for Solve {
+impl Display for SolveDirective {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "solve ")?;
         match self {
-            Solve::Satisfy => write!(f, "satisfy"),
-            Solve::Minimize(expr) => write!(f, "minimize {expr}"),
-            Solve::Maximize(expr) => write!(f, "maximize {expr}"),
+            SolveDirective::Satisfy => write!(f, "satisfy"),
+            SolveDirective::Minimize(path) => write!(f, "minimize {path}"),
+            SolveDirective::Maximize(path) => write!(f, "maximize {path}"),
         }
     }
 }

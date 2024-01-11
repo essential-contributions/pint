@@ -7,7 +7,7 @@ pub mod intent;
 mod lexer;
 mod macros;
 pub mod parser;
-pub mod solver;
+pub mod solvers;
 mod span;
 mod types;
 mod util;

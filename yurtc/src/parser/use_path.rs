@@ -110,6 +110,7 @@ fn gather_use_paths() {
                 &mut crate::parser::ParserContext {
                     mod_path: &[],
                     mod_prefix: "",
+                    local_scope: None,
                     ii: &mut ii,
                     macros: &mut Vec::new(),
                     macro_calls: &mut slotmap::SecondaryMap::new(),

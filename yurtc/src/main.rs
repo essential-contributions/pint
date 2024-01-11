@@ -1,6 +1,6 @@
-use yurtc::{error, parser, solver::*};
-
+use russcip::ProblemCreated;
 use std::path::Path;
+use yurtc::{error, parser, solvers::scip::*};
 
 fn main() -> anyhow::Result<()> {
     let (filepath, compile_flag, solve_flag) = parse_cli();
@@ -34,12 +34,12 @@ fn main() -> anyhow::Result<()> {
     };
 
     if !solve_flag {
-        eprintln!("{:?}", intent);
+        eprintln!("{intent}");
         return Ok(());
     }
 
     // Solve the final intent. This assumes, for now, that the final intent has no state variables
-    let solver = Solver::new(&intent);
+    let solver = Solver::<ProblemCreated>::new(&intent);
     let solver = match solver.solve() {
         Ok(solver) => solver,
         Err(error) => {

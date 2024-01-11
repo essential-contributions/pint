@@ -1331,3 +1331,61 @@ fn array_element_accesses() {
         expect_test::expect!["a[MyEnum::Variant1]"],
     );
 }
+
+#[test]
+fn single_line_comments() {
+    check(
+        &run_formatter!(yurt_program(), r#"// Hello"#),
+        expect_test::expect!["// Hello\n"],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"//Hello
+            //World"#
+        ),
+        expect_test::expect!["//Hello\n//World\n"],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"// Hello
+        // World
+        // !"#
+        ),
+        expect_test::expect!["// Hello\n// World\n// !\n"],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"//       Hello
+            // World
+            // !
+            // "#
+        ),
+        expect_test::expect!["//       Hello\n// World\n// !\n// \n"],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"// This comment is allowed
+            constraint h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 
+                     + h9 + h10 + h11 + h12 + h13 + h14 + h15 
+                     + h16 + h17 + h18 == 72;"#
+        ),
+        expect_test::expect!["// This comment is allowed\nconstraint h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 + h9 + h10 + h11 + h12 + h13 + h14 + h15 + h16 + h17 + h18 == 72;\n"],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"constraint h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 // this is not supported for now
+            + h9 + h10 + h11 + h12 + h13 + h14 + h15 
+            + h16 + h17 + h18 == 72;"#
+        ),
+        expect_test::expect![
+            r#"
+            Error formatting starting at location 49 and ending at location 81
+            "#
+        ],
+    );
+}

@@ -30,6 +30,18 @@ pub enum CompileError {
         path_enum: String,
         span: Span,
     },
+    #[error("macro {name} is declared multiple times")]
+    MacroDeclClash {
+        name: String,
+        span: Span,
+        prev_span: Span,
+    },
+    #[error("macro not found")]
+    MacroNotFound { name: String, span: Span },
+    #[error("unable to match macro call")]
+    MacroCallMismatch { name: String, span: Span },
+    #[error("undefined macro parameter")]
+    MacroUndefinedParam { name: String, span: Span },
 }
 
 impl ReportableError for CompileError {
@@ -49,6 +61,51 @@ impl ReportableError for CompileError {
             } => {
                 vec![ErrorLabel {
                     message: format!("failed to resolve path {path_full}"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            MacroDeclClash {
+                name,
+                span,
+                prev_span,
+            } => {
+                vec![
+                    ErrorLabel {
+                        message: format!("previous declaration of the macro `{name}` here"),
+                        span: prev_span.clone(),
+                        color: Color::Blue,
+                    },
+                    ErrorLabel {
+                        message: format!(
+                            "`{name}` redeclared here with the same number of parameters"
+                        ),
+                        span: span.clone(),
+                        color: Color::Red,
+                    },
+                ]
+            }
+
+            MacroNotFound { name, span } => {
+                vec![ErrorLabel {
+                    message: format!("macro `{name}` not found"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            MacroCallMismatch { name, span } => {
+                vec![ErrorLabel {
+                    message: format!("unable to match call to macro `{name}`"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            MacroUndefinedParam { name, span } => {
+                vec![ErrorLabel {
+                    message: format!("undefined parameter `{name}` in macro body"),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -80,7 +137,19 @@ impl ReportableError for CompileError {
                 path_mod, path_enum
             )),
 
-            _ => None,
+            MacroDeclClash { name, .. } => Some(format!(
+                "it is valid to have multiple macros named `{name}` \
+                but they must have differing parameter lists"
+            )),
+
+            MacroCallMismatch { name, .. } => Some(format!(
+                "a macro named `{name}` is defined but not with the required \
+                signature to fulfill this call"
+            )),
+
+            Internal { .. } | FileIO { .. } | MacroNotFound { .. } | MacroUndefinedParam { .. } => {
+                None
+            }
         }
     }
 
@@ -96,11 +165,15 @@ impl ReportableError for CompileError {
 impl Spanned for CompileError {
     fn span(&self) -> &Span {
         use CompileError::*;
-        match &self {
+        match self {
             FileIO { span, .. }
             | Internal { span, .. }
             | DualModulity { span, .. }
-            | NoFileFoundForPath { span, .. } => span,
+            | NoFileFoundForPath { span, .. }
+            | MacroDeclClash { span, .. }
+            | MacroNotFound { span, .. }
+            | MacroCallMismatch { span, .. }
+            | MacroUndefinedParam { span, .. } => span,
         }
     }
 }
