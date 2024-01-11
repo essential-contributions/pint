@@ -245,14 +245,10 @@ pub(super) fn fn_sig<'sc>() -> impl Parser<Token<'sc>, ast::FnSig<'sc>, Error = 
 pub(super) fn code_block_expr<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Block<'sc>, Error = ParseError> + Clone {
-    let code_block_body = choice((
-        value_decl(expr.clone()),
-        // state_decl(expr.clone()), TODO: add when state is supported
-        constraint_decl(expr.clone()),
-    ))
-    .repeated()
-    .then(expr)
-    .boxed();
+    let code_block_body = choice((constraint_decl(expr.clone()),))
+        .repeated()
+        .then(expr)
+        .boxed();
 
     code_block_body
         .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
