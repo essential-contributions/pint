@@ -42,6 +42,12 @@ pub enum CompileError {
     MacroCallMismatch { name: String, span: Span },
     #[error("undefined macro parameter")]
     MacroUndefinedParam { name: String, span: Span },
+    #[error("macro call is recursive")]
+    MacroRecursion {
+        name: String,
+        call_span: Span,
+        decl_span: Span,
+    },
 }
 
 impl ReportableError for CompileError {
@@ -111,6 +117,25 @@ impl ReportableError for CompileError {
                 }]
             }
 
+            MacroRecursion {
+                name,
+                call_span,
+                decl_span,
+            } => {
+                vec![
+                    ErrorLabel {
+                        message: format!("macro '{name}' is recursively called"),
+                        span: call_span.clone(),
+                        color: Color::Red,
+                    },
+                    ErrorLabel {
+                        message: format!("macro '{name}' declared here"),
+                        span: decl_span.clone(),
+                        color: Color::Blue,
+                    },
+                ]
+            }
+
             Internal { .. } | FileIO { .. } => Vec::new(),
         }
     }
@@ -147,6 +172,12 @@ impl ReportableError for CompileError {
                 signature to fulfill this call"
             )),
 
+            MacroRecursion { .. } => Some(
+                "a macro called recursively with the same number of arguments \
+                    will cause a non-terminating loop during expansion"
+                    .to_string(),
+            ),
+
             Internal { .. } | FileIO { .. } | MacroNotFound { .. } | MacroUndefinedParam { .. } => {
                 None
             }
@@ -173,7 +204,10 @@ impl Spanned for CompileError {
             | MacroDeclClash { span, .. }
             | MacroNotFound { span, .. }
             | MacroCallMismatch { span, .. }
-            | MacroUndefinedParam { span, .. } => span,
+            | MacroUndefinedParam { span, .. }
+            | MacroRecursion {
+                call_span: span, ..
+            } => span,
         }
     }
 }

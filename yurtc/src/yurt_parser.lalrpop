@@ -826,7 +826,7 @@ CondExpr: ExprKey = {
 };
 
 MacroCallExpr: ExprKey = {
-    <l:@L> <name:MacroPath> <args:"macro_call_args"> <r:@L> => {
+    <l:@L> <name:MacroPath> <tag:"macro_tag"?> <args:"macro_call_args"> <r:@L> => {
         let call_key = context.ii.calls.insert(name.clone());
         let span = (context.span_from)(l, r);
         let call_data = MacroCall {
@@ -834,6 +834,7 @@ MacroCallExpr: ExprKey = {
             mod_path: context.mod_path.to_vec(),
             args,
             span: span.clone(),
+            tag: tag.flatten(),
         };
         let call_expr_key = context.ii.exprs.insert(Expr::MacroCall {
             call: call_key,
@@ -1190,5 +1191,6 @@ extern {
         "macro_param_pack" => lexer::Token::MacroParamPack(<String>),
         "macro_body" => lexer::Token::MacroBody(<Vec<(usize, lexer::Token, usize)>>),
         "macro_call_args" => lexer::Token::MacroCallArgs(<Vec<Vec<(usize, lexer::Token, usize)>>>),
+        "macro_tag" => lexer::Token::MacroTag(<Option<u64>>),
     }
 }
