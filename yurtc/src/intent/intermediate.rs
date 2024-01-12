@@ -13,6 +13,7 @@ use std::{
 
 mod compile;
 mod display;
+mod transform;
 
 type Result<T> = std::result::Result<T, CompileError>;
 
@@ -44,8 +45,12 @@ pub struct IntermediateIntent {
 }
 
 impl IntermediateIntent {
-    pub fn compile(self) -> Result<Intent> {
-        compile::compile(&self)
+    pub fn compile(&mut self) -> Result<Intent> {
+        compile::compile(self)
+    }
+
+    pub fn flatten(self) -> Result<IntermediateIntent> {
+        compile::flatten(self)
     }
 
     /// Helps out some `thing: T` by adding `self` as context.
@@ -160,7 +165,7 @@ impl IntermediateIntent {
 
         self.constraints.iter_mut().for_each(|(expr, _)| {
             if *expr == old_expr {
-                *expr = new_expr
+                *expr = new_expr;
             }
         });
     }
@@ -179,7 +184,7 @@ impl IntermediateIntent {
 }
 
 /// A state specification with an optional type.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct State {
     name: Path,
     ty: Option<Type>,

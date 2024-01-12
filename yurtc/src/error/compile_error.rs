@@ -48,6 +48,16 @@ pub enum CompileError {
         call_span: Span,
         decl_span: Span,
     },
+    #[error("`forall` index `{name}` has already been declared")]
+    DuplicateForAllIndex {
+        name: String,
+        span: Span,
+        prev_span: Span,
+    },
+    #[error("invalid bound for `forall` index `{name}`")]
+    InvalidForAllIndexBound { name: String, span: Span },
+    #[error("cannot find value `{name}` in this scope")]
+    SymbolNotFound { name: String, span: Span },
 }
 
 impl ReportableError for CompileError {
@@ -136,6 +146,41 @@ impl ReportableError for CompileError {
                 ]
             }
 
+            DuplicateForAllIndex {
+                name,
+                span,
+                prev_span,
+            } => {
+                vec![
+                    ErrorLabel {
+                        message: format!("previous declaration of the index `{name}` here"),
+                        span: prev_span.clone(),
+                        color: Color::Blue,
+                    },
+                    ErrorLabel {
+                        message: format!("`{name}` redeclared here"),
+                        span: span.clone(),
+                        color: Color::Red,
+                    },
+                ]
+            }
+
+            InvalidForAllIndexBound { name, span } => {
+                vec![ErrorLabel {
+                    message: format!("invalid bound for `forall` index `{name}`"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            SymbolNotFound { span, .. } => {
+                vec![ErrorLabel {
+                    message: "not found in this scope".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
             Internal { .. } | FileIO { .. } => Vec::new(),
         }
     }
@@ -178,9 +223,19 @@ impl ReportableError for CompileError {
                     .to_string(),
             ),
 
-            Internal { .. } | FileIO { .. } | MacroNotFound { .. } | MacroUndefinedParam { .. } => {
-                None
+            DuplicateForAllIndex { name, .. } => Some(format!(
+                "`forall` index `{name}` must be declared only once in this scope"
+            )),
+
+            InvalidForAllIndexBound { .. } => {
+                Some("`forall` index bound must be an integer literal".to_string())
             }
+
+            Internal { .. }
+            | FileIO { .. }
+            | MacroNotFound { .. }
+            | MacroUndefinedParam { .. }
+            | SymbolNotFound { .. } => None,
         }
     }
 
@@ -207,7 +262,10 @@ impl Spanned for CompileError {
             | MacroUndefinedParam { span, .. }
             | MacroRecursion {
                 call_span: span, ..
-            } => span,
+            }
+            | DuplicateForAllIndex { span, .. }
+            | InvalidForAllIndexBound { span, .. }
+            | SymbolNotFound { span, .. } => span,
         }
     }
 }

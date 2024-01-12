@@ -146,6 +146,12 @@ pub enum Token {
     #[token("in")]
     In,
 
+    // Generators
+    #[token("forall")]
+    ForAll,
+    #[token("where")]
+    Where,
+
     // Ident has a flag indicating whether it's in a macro argument.  Is generally false.
     #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| {(lex.slice().to_string(), false)})]
     Ident((String, bool)),
@@ -176,6 +182,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::True,
     Token::False,
     Token::String,
+    Token::ForAll,
     Token::Fn,
     Token::If,
     Token::Else,
@@ -183,6 +190,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Let,
     Token::State,
     Token::Constraint,
+    Token::Macro,
     Token::Maximize,
     Token::Minimize,
     Token::Solve,
@@ -197,6 +205,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Extern,
     Token::In,
     Token::Type,
+    Token::Where,
 ];
 
 impl fmt::Display for Token {
@@ -291,6 +300,8 @@ impl fmt::Display for Token {
             Token::Implements => write!(f, "implements"),
             Token::Extern => write!(f, "extern"),
             Token::In => write!(f, "in"),
+            Token::ForAll => write!(f, "forall"),
+            Token::Where => write!(f, "where"),
             Token::Ident((ident, _)) => write!(f, "{ident}"),
             Token::RealLiteral(ident) => write!(f, "{ident}"),
             Token::IntLiteral(ident) => write!(f, "{ident}"),

@@ -776,6 +776,7 @@ TermInner: Expr = {
         }
     },
     <IfExpr>,
+    <ForAllExpr>,
     <FnCallExpr>,
     <ArrayExpr>,
     <TupleExpr>,
@@ -785,6 +786,23 @@ TermInner: Expr = {
 BlockExpr: ExprKey = {
     "{" (ConstraintDecl ";")* <Expr> "}"
 };
+
+GeneratorRange: (Ident, ExprKey) = {
+    <index:Ident> "in" <range:Range> => (index, range)
+}
+
+ForAllExpr: Expr = {
+    <l:@L> "forall" <gen_ranges:Sep1ListNoTrail<GeneratorRange, ",">>
+            <conditions: ("where" <Sep1ListNoTrail<Expr, ",">>)?>
+            "{" <body:Expr> "}" <r:@R> => {
+        Expr::ForAll {
+            gen_ranges,
+            conditions: conditions.unwrap_or_default(),
+            body,
+            span: (context.span_from)(l, r),
+        }
+    }
+}
 
 IfExpr: Expr = {
     <l:@L> "if" <condition:Expr> <then_block:BlockExpr> "else" <else_block:BlockExpr> <r:@R> => {
@@ -1182,6 +1200,9 @@ extern {
         "maximize" => lexer::Token::Maximize,
 
         "in" => lexer::Token::In,
+
+        "forall" => lexer::Token::ForAll,
+        "where" => lexer::Token::Where,
 
         "ident" => lexer::Token::Ident(<(String, bool)>),
 

@@ -94,10 +94,10 @@ impl ProjectParser {
                 }
 
                 // Store this path as parsed to avoid re-parsing later.
-                self.visited_paths.push(src_path.to_path_buf());
+                self.visited_paths.push(src_path.clone());
 
                 // Parse this file module, returning any paths to other potential modules.
-                let (_, next_paths) = self.parse_module(&Rc::from(src_path), &mod_path);
+                let ((), next_paths) = self.parse_module(&Rc::from(src_path), &mod_path);
                 self.analyse_and_add_paths(&mod_path, &next_paths, &mut pending_paths);
             }
 
