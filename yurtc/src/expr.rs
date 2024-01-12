@@ -110,17 +110,22 @@ pub enum UnaryOp {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BinaryOp {
-    Mul,
-    Div,
+    // Arithmetic
     Add,
     Sub,
+    Mul,
+    Div,
     Mod,
-    LessThan,
-    LessThanOrEqual,
-    GreaterThan,
-    GreaterThanOrEqual,
+
+    // Comparison
     Equal,
     NotEqual,
+    LessThanOrEqual,
+    LessThan,
+    GreaterThanOrEqual,
+    GreaterThan,
+
+    // Logical
     LogicalAnd,
     LogicalOr,
 }

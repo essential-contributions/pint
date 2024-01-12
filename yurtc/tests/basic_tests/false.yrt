@@ -1,0 +1,7 @@
+constraint false;
+
+solve satisfy;
+
+// solution <<<
+// infeasible
+// >>>
