@@ -116,6 +116,23 @@ impl DisplayWithII for &super::Expr {
             super::Expr::Range { lb, ub, .. } => {
                 write!(f, "{}..{}", ii.with_ii(lb), ii.with_ii(ub))
             }
+
+            super::Expr::ForAll {
+                gen_ranges,
+                body,
+                conditions,
+                ..
+            } => {
+                write!(f, "forall")?;
+                for (ident, range) in gen_ranges {
+                    write!(f, " {} in {},", ident, ii.with_ii(range))?;
+                }
+                if !conditions.is_empty() {
+                    write!(f, " where ")?;
+                    write_many_with_ii!(f, conditions, ", ", ii);
+                }
+                write!(f, " {{ {} }}", ii.with_ii(body))
+            }
         }
     }
 }

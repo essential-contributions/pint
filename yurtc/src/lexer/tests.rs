@@ -234,6 +234,12 @@ fn blockchain_items() {
 }
 
 #[test]
+fn forall() {
+    assert_eq!(lex_one_success("forall"), Token::ForAll);
+    assert_eq!(lex_one_success("where"), Token::Where);
+}
+
+#[test]
 fn with_error() {
     let src = r#"
 let low_val: int = 5.0;

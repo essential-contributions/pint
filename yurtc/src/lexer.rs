@@ -99,6 +99,7 @@ pub enum Token {
     MacroParamPack(String),
     MacroBody(Vec<(usize, Token, usize)>),
     MacroCallArgs(Vec<Vec<(usize, Token, usize)>>),
+    MacroTag(Option<u64>),
 
     #[token("if")]
     If,
@@ -145,6 +146,12 @@ pub enum Token {
     #[token("in")]
     In,
 
+    // Generators
+    #[token("forall")]
+    ForAll,
+    #[token("where")]
+    Where,
+
     // Ident has a flag indicating whether it's in a macro argument.  Is generally false.
     #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| {(lex.slice().to_string(), false)})]
     Ident((String, bool)),
@@ -175,6 +182,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::True,
     Token::False,
     Token::String,
+    Token::ForAll,
     Token::Fn,
     Token::If,
     Token::Else,
@@ -182,6 +190,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Let,
     Token::State,
     Token::Constraint,
+    Token::Macro,
     Token::Maximize,
     Token::Minimize,
     Token::Solve,
@@ -196,6 +205,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Extern,
     Token::In,
     Token::Type,
+    Token::Where,
 ];
 
 impl fmt::Display for Token {
@@ -263,6 +273,13 @@ impl fmt::Display for Token {
                     .collect::<Vec<_>>()
                     .join("; ")
             ),
+            Token::MacroTag(tag) => {
+                if let Some(tag) = tag {
+                    write!(f, "<{tag}>")
+                } else {
+                    Ok(())
+                }
+            }
             Token::If => write!(f, "if"),
             Token::Else => write!(f, "else"),
             Token::Cond => write!(f, "cond"),
@@ -283,6 +300,8 @@ impl fmt::Display for Token {
             Token::Implements => write!(f, "implements"),
             Token::Extern => write!(f, "extern"),
             Token::In => write!(f, "in"),
+            Token::ForAll => write!(f, "forall"),
+            Token::Where => write!(f, "where"),
             Token::Ident((ident, _)) => write!(f, "{ident}"),
             Token::RealLiteral(ident) => write!(f, "{ident}"),
             Token::IntLiteral(ident) => write!(f, "{ident}"),
@@ -371,6 +390,13 @@ impl<'sc> Lexer<'sc> {
                             next_span.end,
                         ));
                     }
+                }
+
+                Some(Ok(tok @ Token::MacroName(_))) => {
+                    // If we see a macro name in a macro body then we inject an empty tag used by
+                    // recursion checking.
+                    push_tok!(tok);
+                    push_tok!(Token::MacroTag(None));
                 }
 
                 Some(Ok(tok)) => {
@@ -582,6 +608,10 @@ impl<'a> Iterator for Lexer<'a> {
                 Token::MacroName(_) if self.state == LexerState::Normal => {
                     // Set the state to indicate we've seen a `@name` token without a `macro`.
                     self.state = LexerState::MacroCall;
+                    Ok((span.start, tok, span.end))
+                }
+                Token::MacroTag(_) if self.state == LexerState::MacroCall => {
+                    // Skip the tag if it exists, don't change the state.
                     Ok((span.start, tok, span.end))
                 }
                 Token::ParenOpen if self.state == LexerState::MacroCall => {

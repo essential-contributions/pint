@@ -13,6 +13,7 @@ use std::{
 
 mod compile;
 mod display;
+mod transform;
 
 type Result<T> = std::result::Result<T, CompileError>;
 
@@ -44,8 +45,12 @@ pub struct IntermediateIntent {
 }
 
 impl IntermediateIntent {
-    pub fn compile(self) -> Result<Intent> {
-        compile::compile(&self)
+    pub fn compile(&mut self) -> Result<Intent> {
+        compile::compile(self)
+    }
+
+    pub fn flatten(self) -> Result<IntermediateIntent> {
+        compile::flatten(self)
     }
 
     /// Helps out some `thing: T` by adding `self` as context.
@@ -156,18 +161,30 @@ impl IntermediateIntent {
     pub fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
         self.exprs
             .iter_mut()
-            .for_each(|(_, expr)| expr.replace_one_to_one(old_expr, new_expr))
+            .for_each(|(_, expr)| expr.replace_one_to_one(old_expr, new_expr));
+
+        self.constraints.iter_mut().for_each(|(expr, _)| {
+            if *expr == old_expr {
+                *expr = new_expr;
+            }
+        });
     }
 
     pub fn replace_exprs_by_map(&mut self, expr_map: &HashMap<ExprKey, ExprKey>) {
         self.exprs
             .iter_mut()
-            .for_each(|(_, expr)| expr.replace_ref_by_map(expr_map))
+            .for_each(|(_, expr)| expr.replace_ref_by_map(expr_map));
+
+        self.constraints.iter_mut().for_each(|(expr, _)| {
+            if let Some(new_expr) = expr_map.get(expr) {
+                *expr = *new_expr;
+            }
+        });
     }
 }
 
 /// A state specification with an optional type.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct State {
     name: Path,
     ty: Option<Type>,

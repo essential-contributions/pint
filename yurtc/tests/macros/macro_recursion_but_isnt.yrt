@@ -1,0 +1,38 @@
+macro @a($x) {
+    @c($x)
+}
+
+macro @b($y) {
+    @c($y)
+}
+
+macro @c($z) {
+    $z == 0
+}
+
+let v: int;
+
+constraint @a(v);
+constraint @b(v);
+constraint @a(v);
+constraint @b(v);
+
+solve satisfy;
+
+// intermediate <<<
+// var ::v: int;
+// constraint (::v == 0);
+// constraint (::v == 0);
+// constraint (::v == 0);
+// constraint (::v == 0);
+// solve satisfy;
+// >>>
+
+// compiled_intent <<<
+// var ::v: int;
+// constraint (::v == 0);
+// constraint (::v == 0);
+// constraint (::v == 0);
+// constraint (::v == 0);
+// solve satisfy;
+// >>>

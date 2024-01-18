@@ -3,7 +3,7 @@ use crate::{
     expr::Ident,
     intent::intermediate::{CallKey, ExprKey, IntermediateIntent},
     lexer,
-    macros::{self, MacroCall, MacroDecl},
+    macros::{self, MacroCall, MacroDecl, MacroExpander},
     span::{self, Span},
 };
 
@@ -81,6 +81,7 @@ impl ProjectParser {
     /// failure, return a vector of all compile errors encountered.
     fn parse_project(mut self) -> Self {
         let mut call_replacements = Vec::<(ExprKey, ExprKey)>::new();
+        let mut macro_expander = MacroExpander::default();
         let mut pending_paths = vec![(self.root_src_path.clone(), Vec::new())];
 
         // This is an unbound loop which breaks if there are errors or when there is no more work
@@ -93,10 +94,10 @@ impl ProjectParser {
                 }
 
                 // Store this path as parsed to avoid re-parsing later.
-                self.visited_paths.push(src_path.to_path_buf());
+                self.visited_paths.push(src_path.clone());
 
                 // Parse this file module, returning any paths to other potential modules.
-                let (_, next_paths) = self.parse_module(&Rc::from(src_path), &mod_path);
+                let ((), next_paths) = self.parse_module(&Rc::from(src_path), &mod_path);
                 self.analyse_and_add_paths(&mod_path, &next_paths, &mut pending_paths);
             }
 
@@ -119,7 +120,7 @@ impl ProjectParser {
                     .remove(call_key)
                     .expect("Call key must be valid.");
 
-                match macros::expand_call(&self.macros, &call) {
+                match macro_expander.expand_call(&self.macros, &call) {
                     Ok(tokens) => {
                         let (body_expr, next_paths) =
                             self.parse_macro_body(tokens, &call.span.context, &call.mod_path);

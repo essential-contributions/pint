@@ -1,14 +1,22 @@
-// <disabled>
 macro @a($x) {
     let z = @b($x);
 }
 
 macro @b($x) {
+    let z = @c($x);
+}
+
+macro @c($x) {
     let z = @a($x);
 }
+
+@a(11);
 
 solve satisfy;
 
 // parse_failure <<<
-// unbound recursion
+// macro call is recursive
+// @103..109: macro '::@a' is recursively called
+// @6..12: macro '::@a' declared here
+// a macro called recursively with the same number of arguments will cause a non-terminating loop during expansion
 // >>>

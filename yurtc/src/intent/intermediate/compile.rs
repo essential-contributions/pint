@@ -1,15 +1,24 @@
+use super::{Expr, ExprKey, IntermediateIntent, SolveFunc, State, Type, Var};
 use crate::{
     error::CompileError,
-    intent::{self, Expression, Intent, SolveDirective},
+    intent::{self, intermediate::transform::unroll_foralls, Expression, Intent, SolveDirective},
     span::{empty_span, Span},
 };
 
-use super::{Expr, ExprKey, IntermediateIntent, SolveFunc, State, Type, Var};
-
-pub(super) fn compile(context: &IntermediateIntent) -> super::Result<Intent> {
+/// Converts an `IntermediateIntent` to a flattened `IntermediateIntent`. This means that all the
+/// syntactic sugar of Yurt (such as enums, foralls, etc.) should be resolved into primitive
+/// elements in this function.
+pub(super) fn flatten(mut context: IntermediateIntent) -> super::Result<IntermediateIntent> {
     // Perform all the verification, checks and optimisations.
     // ... TODO ...
 
+    // Transformations
+    unroll_foralls(&mut context)?;
+    Ok(context)
+}
+
+/// Converts a final flattened `IntermediateIntent` into a final `Intent`
+pub(super) fn compile(context: &IntermediateIntent) -> super::Result<Intent> {
     Ok(Intent {
         states: convert_states(context)?,
         vars: convert_vars(context)?,
@@ -188,6 +197,7 @@ fn convert_expr(
         | super::Expr::In { .. }
         | super::Expr::MacroCall { .. }
         | super::Expr::Range { .. }
+        | super::Expr::ForAll { .. }
         | super::Expr::Tuple { .. }
         | super::Expr::TupleFieldAccess { .. } => Err(CompileError::Internal {
             msg: "Found unsupported expressions in final Intent.",

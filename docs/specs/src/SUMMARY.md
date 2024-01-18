@@ -38,6 +38,7 @@
       - [Arrays and Array Accesses](yurt/expressions/atoms/arrays.md)
       - [Ranges](yurt/expressions/atoms/ranges.md)
       - [Conditionals](yurt/expressions/atoms/conditionals.md)
+      - [Generators](yurt/expressions/atoms/generators.md)
       - [Casts](yurt/expressions/atoms/casts.md)
       - [Calls](yurt/expressions/atoms/calls.md)
       - ["In" Expressions](yurt/expressions/atoms/in.md)
