@@ -30,7 +30,7 @@ pub(super) fn compile(context: &IntermediateIntent) -> super::Result<Intent> {
     })
 }
 
-fn convert_states(context: &IntermediateIntent) -> super::Result<Vec<intent::State>> {
+fn convert_states(context: &IntermediateIntent) -> super::Result<Vec<intent::StateVar>> {
     context
         .states
         .iter()
@@ -48,10 +48,12 @@ fn convert_states(context: &IntermediateIntent) -> super::Result<Vec<intent::Sta
                     })
                     .and_then(|ty| {
                         convert_type(ty, span).and_then(|ty| {
-                            convert_expr_key(context, *expr_key, span).map(|expr| intent::State {
-                                name: name.clone(),
-                                ty,
-                                expr,
+                            convert_expr_key(context, *expr_key, span).map(|expr| {
+                                intent::StateVar {
+                                    name: name.clone(),
+                                    ty,
+                                    expr,
+                                }
                             })
                         })
                     })

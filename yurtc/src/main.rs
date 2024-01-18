@@ -1,8 +1,8 @@
 use std::path::Path;
-use yurtc::{error, parser};
+use yurtc::{asm_gen::intent_to_asm, error, parser};
 
 fn main() -> anyhow::Result<()> {
-    let (filepath, compile_flag, solve_flag) = parse_cli();
+    let (filepath, compile_flag, asm_flag, solve_flag) = parse_cli();
     let filepath = Path::new(&filepath);
 
     // Lex + Parse
@@ -44,8 +44,26 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
+    // This is WIP. So far, simply print the serialized JSON to `stdout`. That'll likely change in
+    // the future when we decide on a serialized scheme.
+    if asm_flag {
+        match intent_to_asm(&intent) {
+            Ok(intent) => {
+                serde_json::to_writer(std::io::stdout(), &intent)?;
+            }
+            Err(error) => {
+                if !cfg!(test) {
+                    error::print_errors(&vec![error::Error::Compile { error }]);
+                }
+                yurtc::yurtc_bail!(1, filepath)
+            }
+        };
+    }
+
     if !solve_flag {
-        eprintln!("{intent}");
+        if !asm_flag {
+            eprintln!("{intent}");
+        }
         return Ok(());
     }
 
@@ -75,7 +93,7 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn parse_cli() -> (String, bool, bool) {
+fn parse_cli() -> (String, bool, bool, bool) {
     // This is very basic for now.  It only take a single source file and a single optional flag.
     // It'll also just exit if `-h` or `-V` are passed, or if there's an error.
     let cli = clap::command!()
@@ -92,6 +110,12 @@ fn parse_cli() -> (String, bool, bool) {
                 .action(clap::ArgAction::SetTrue),
         )
         .arg(
+            clap::Arg::new("asm")
+                .short('a')
+                .long("asm")
+                .action(clap::ArgAction::SetTrue),
+        )
+        .arg(
             clap::Arg::new("filepath")
                 .required(true)
                 .action(clap::ArgAction::Set),
@@ -102,7 +126,9 @@ fn parse_cli() -> (String, bool, bool) {
 
     let compile_flag = cli.get_flag("compile");
 
+    let asm_flag = cli.get_flag("asm");
+
     let solve_flag = cli.get_flag("solve");
 
-    (filepath.clone(), compile_flag, solve_flag)
+    (filepath.clone(), compile_flag, asm_flag, solve_flag)
 }

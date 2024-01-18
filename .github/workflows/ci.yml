@@ -21,6 +21,11 @@ jobs:
       contents: read
       checks: write
     steps:
+      - name: Provide Access to Private Repos
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -31,6 +36,11 @@ jobs:
     name: Cargo Build and Test Workspace
     runs-on: ubuntu-latest
     steps:
+      - name: Provide Access to Private Repos
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -68,6 +78,11 @@ jobs:
     name: Cargo Unused Dependencies Check
     runs-on: ubuntu-latest
     steps:
+      - name: Provide Access to Private Repos
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v4
 

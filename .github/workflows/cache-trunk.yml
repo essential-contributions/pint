@@ -17,6 +17,11 @@ jobs:
       contents: read
       actions: write
     steps:
+      - name: Provide Access to Private Repos
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v4
 
