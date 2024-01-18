@@ -1,0 +1,9 @@
+constraint forall i in j..k { true };
+
+solve satisfy;
+
+// flattening_failure <<<
+// invalid bound for `forall` index `i`
+// @23..24: invalid bound for `forall` index `i`
+// `forall` index bound must be an integer literal
+// >>>

@@ -7,6 +7,7 @@ use crate::{
 use std::collections::HashMap;
 
 mod display;
+mod evaluate;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
@@ -74,6 +75,12 @@ pub enum Expr {
     Range {
         lb: ExprKey,
         ub: ExprKey,
+        span: Span,
+    },
+    ForAll {
+        gen_ranges: Vec<(Ident, ExprKey)>,
+        conditions: Vec<ExprKey>,
+        body: ExprKey,
         span: Span,
     },
 }
@@ -148,6 +155,7 @@ impl Spanned for Expr {
             | Expr::TupleFieldAccess { span, .. }
             | Expr::Cast { span, .. }
             | Expr::In { span, .. }
+            | Expr::ForAll { span, .. }
             | Expr::Range { span, .. } => span,
         }
     }
@@ -190,6 +198,16 @@ impl Expr {
                 replace(lb);
                 replace(ub);
             }
+            Expr::ForAll {
+                gen_ranges,
+                conditions,
+                body,
+                ..
+            } => {
+                gen_ranges.iter_mut().for_each(|(_, expr)| replace(expr));
+                conditions.iter_mut().for_each(&mut replace);
+                replace(body);
+            }
 
             Expr::MacroCall { .. }
             | Expr::PathByName(_, _)
@@ -202,9 +220,9 @@ impl Expr {
     pub fn replace_one_to_one(&mut self, old_key: ExprKey, new_key: ExprKey) {
         self.replace_ref(|expr: &mut ExprKey| {
             if *expr == old_key {
-                *expr = new_key
+                *expr = new_key;
             }
-        })
+        });
     }
 
     pub fn replace_ref_by_map(&mut self, keys: &HashMap<ExprKey, ExprKey>) {
@@ -212,6 +230,6 @@ impl Expr {
             if let Some(new_key) = keys.get(old_key) {
                 *old_key = *new_key;
             }
-        })
+        });
     }
 }

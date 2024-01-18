@@ -19,6 +19,7 @@ Expressions represent values and have the following syntax:
          | <range-expr>
          | <if-expr>
          | <cond-expr>
+         | <forall-expr>
          | <call-expr>
          | <cast-expr>
          | <in-expr>

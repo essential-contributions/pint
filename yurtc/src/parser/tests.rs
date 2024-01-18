@@ -715,8 +715,8 @@ fn parens_exprs() {
     check(
         &run_parser!(expr, "()"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `)`
-            @1..2: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `)`
+            @1..2: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
@@ -836,8 +836,8 @@ fn ranges() {
     check(
         &run_parser!(range, "1...2"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `.`
-            @3..4: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `.`
+            @3..4: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
@@ -1166,8 +1166,8 @@ fn code_blocks() {
     check(
         &run_parser!(expr, "{ constraint x == 0; }", mod_path),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
-            @21..22: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
+            @21..22: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
@@ -1175,8 +1175,8 @@ fn code_blocks() {
     check(
         &run_parser!(expr, "{ let x = 0; 5 }", mod_path),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, `{`, or `}`, found `let`
-            @2..5: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, `{`, or `}`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, `{`, or `}`, found `let`
+            @2..5: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, `{`, or `}`
         "#]],
     );
 
@@ -1566,8 +1566,8 @@ fn cond_exprs() {
     check(
         &run_parser!(expr, r#"cond { a => b, }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
-            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
+            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
@@ -1643,8 +1643,59 @@ fn in_expr() {
     check(
         &run_parser!(yp::LetDeclParser::new(), r#"let x = 5 in"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `end of file`
-            @12..12: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `end of file`
+            @12..12: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+        "#]],
+    );
+}
+
+#[test]
+fn forall_expr() {
+    let expr = yp::ExprParser::new();
+    check(
+        &run_parser!(expr, r#"forall i in 0..3 { true }"#),
+        expect_test::expect!["forall i in 0..3, { true }"],
+    );
+
+    check(
+        &run_parser!(expr, r#"forall i in 0..3, j in i..k { true }"#),
+        expect_test::expect!["forall i in 0..3, j in ::i..::k, { true }"],
+    );
+
+    check(
+        &run_parser!(expr, r#"forall i in 0..3 where i > 4 { true }"#),
+        expect_test::expect!["forall i in 0..3, where (::i > 4) { true }"],
+    );
+
+    check(
+        &run_parser!(
+            expr,
+            r#"forall i in 0..3, j in 0..3 where i > 2, j < 3, i != j && true { A[i] > A[j] }"#
+        ),
+        expect_test::expect!["forall i in 0..3, j in 0..3, where (::i > 2), (::j < 3), ((::i != ::j) && true) { (::A[::i] > ::A[::j]) }"],
+    );
+
+    check(
+        &run_parser!(expr, r#"forall { true }"#),
+        expect_test::expect![[r#"
+            expected `ident`, found `{`
+            @7..8: expected `ident`
+        "#]],
+    );
+
+    check(
+        &run_parser!(expr, r#"forall range { true }"#),
+        expect_test::expect![[r#"
+            expected `in`, found `{`
+            @13..14: expected `in`
+        "#]],
+    );
+
+    check(
+        &run_parser!(expr, r#"forall i in 0..3 { constraint x; true }"#),
+        expect_test::expect![[r#"
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `constraint`
+            @19..29: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 }

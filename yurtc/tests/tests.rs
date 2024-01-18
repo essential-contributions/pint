@@ -30,6 +30,13 @@ mod e2e {
     }
 
     #[test]
+    fn forall() {
+        if let Err(err) = run_tests("forall") {
+            eprintln!("{err}");
+        }
+    }
+
+    #[test]
     fn modules() {
         if let Err(err) = run_tests("modules") {
             eprintln!("{err}");
@@ -72,6 +79,9 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
         // Parse the project and check its output.
         let ii = parse_test_and_check(&path, &expectations, &mut failed_tests);
 
+        // Flatten the intermediate intent check the result.
+        let ii = flatten_and_check(ii, &expectations, &mut failed_tests, &path);
+
         // Compile down to the final intent and check the output.
         let intent = compile_to_final_intent_and_check(ii, &expectations, &mut failed_tests, &path);
 
@@ -92,6 +102,8 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
 struct Expectations {
     intermediate: Option<String>,
     parse_failure: Option<String>,
+    flattened: Option<String>,
+    flattening_failure: Option<String>,
     compiled_intent: Option<String>,
     compile_failure: Option<String>,
     solution: Option<String>,
@@ -142,6 +154,8 @@ fn parse_expectations(path: &Path) -> anyhow::Result<Expectations> {
         None,
         ParseFailure,
         IntermediateIntent,
+        FlattenedIntent,
+        FlatteningFailure,
         CompiledIntent,
         CompileFailure,
         Solution,
@@ -152,7 +166,7 @@ fn parse_expectations(path: &Path) -> anyhow::Result<Expectations> {
 
     let comment_re = regex::Regex::new(r"^\s*//")?;
     let open_sect_re = regex::Regex::new(
-        r"^\s*//\s*(intermediate|parse_failure|compiled_intent|compile_failure|solution|solve_failure)\s*<<<",
+        r"^\s*//\s*(intermediate|parse_failure|flattened|flattening_failure|compiled_intent|compile_failure|solution|solve_failure)\s*<<<",
     )?;
     let close_sect_re = regex::Regex::new(r"^\s*//\s*>>>")?;
 
@@ -173,6 +187,8 @@ fn parse_expectations(path: &Path) -> anyhow::Result<Expectations> {
             match &tag[1] {
                 "intermediate" => cur_section = Section::IntermediateIntent,
                 "parse_failure" => cur_section = Section::ParseFailure,
+                "flattened" => cur_section = Section::FlattenedIntent,
+                "flattening_failure" => cur_section = Section::FlatteningFailure,
                 "compiled_intent" => cur_section = Section::CompiledIntent,
                 "compile_failure" => cur_section = Section::CompileFailure,
                 "solution" => cur_section = Section::Solution,
@@ -198,6 +214,12 @@ fn parse_expectations(path: &Path) -> anyhow::Result<Expectations> {
                 }
                 Section::ParseFailure => {
                     expectations.parse_failure = Some(section_str);
+                }
+                Section::FlattenedIntent => {
+                    expectations.flattened = Some(section_str);
+                }
+                Section::FlatteningFailure => {
+                    expectations.flattening_failure = Some(section_str);
                 }
                 Section::CompiledIntent => {
                     expectations.compiled_intent = Some(section_str);
@@ -275,13 +297,58 @@ fn parse_test_and_check(
     }
 }
 
+fn flatten_and_check(
+    ii: Option<IntermediateIntent>,
+    expectations: &Expectations,
+    failed_tests: &mut Vec<String>,
+    path: &Path,
+) -> Option<IntermediateIntent> {
+    ii.and_then(|ii| {
+        ii.flatten()
+            .map(|flattened| {
+                if let Some(expected_flattened_str) = &expectations.flattened {
+                    similar_asserts::assert_eq!(
+                        expected_flattened_str.trim(),
+                        format!("{flattened}").trim()
+                    );
+                } else if expectations.flattening_failure.is_some() {
+                    failed_tests.push(path.display().to_string());
+                    println!(
+                        "{} {}.",
+                        Red.paint("UNEXPECTED SUCCESSFUL COMPILE"),
+                        Cyan.paint(path.display().to_string()),
+                    );
+                }
+                flattened
+            })
+            .map_err(|err| {
+                if let Some(flattening_error_str) = &expectations.flattening_failure {
+                    similar_asserts::assert_eq!(
+                        flattening_error_str.trim_end(),
+                        err.display_raw().trim_end()
+                    );
+                } else {
+                    failed_tests.push(path.display().to_string());
+                    println!(
+                        "{} {}. {}\n{}",
+                        Red.paint("FAILED TO FLATTEN INTERMEDIATE INTENT"),
+                        Cyan.paint(path.display().to_string()),
+                        Red.paint("Reported errors:"),
+                        Yellow.paint(err.display_raw().trim_end()),
+                    );
+                }
+            })
+            .ok()
+    })
+}
+
 fn compile_to_final_intent_and_check(
     ii: Option<IntermediateIntent>,
     expectations: &Expectations,
     failed_tests: &mut Vec<String>,
     path: &Path,
 ) -> Option<Intent> {
-    ii.and_then(|ii| {
+    ii.and_then(|mut ii| {
         ii.compile()
             .map(|intent| {
                 if let Some(expected_intent_str) = &expectations.compiled_intent {
