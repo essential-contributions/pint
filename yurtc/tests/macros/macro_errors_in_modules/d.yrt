@@ -1,0 +1,3 @@
+macro @d_macro_parse_error($val) {
+    let state foo bar
+}

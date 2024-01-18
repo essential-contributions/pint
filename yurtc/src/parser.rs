@@ -121,9 +121,13 @@ impl ProjectParser {
                     .expect("Call key must be valid.");
 
                 match macro_expander.expand_call(&self.macros, &call) {
-                    Ok(tokens) => {
-                        let (body_expr, next_paths) =
-                            self.parse_macro_body(tokens, &call.span.context, &call.mod_path);
+                    Ok((tokens, decl_sig_span)) => {
+                        let (body_expr, next_paths) = self.parse_macro_body(
+                            tokens,
+                            &decl_sig_span.context,
+                            &call.mod_path,
+                            &call,
+                        );
 
                         self.analyse_and_add_paths(&call.mod_path, &next_paths, &mut pending_paths);
 
@@ -184,7 +188,8 @@ macro_rules! parse_with {
      $parser: expr,
      $src_path: ident,
      $mod_path: ident,
-     $local_scope: expr) => {{
+     $local_scope: expr,
+     $macro_ctx: expr) => {{
         let span_from = |start, end| Span {
             context: Rc::clone($src_path),
             range: start..end,
@@ -211,14 +216,28 @@ macro_rules! parse_with {
             next_paths: &mut next_paths,
         };
 
+        let mut parse_errors = Vec::new();
+
         let parsed_val = $parser
-            .parse(&mut context, &mut $self.errors, $tokens)
+            .parse(&mut context, &mut parse_errors, $tokens)
             .map_err(|lalrpop_err| {
-                $self.errors.push(Error::Parse {
+                parse_errors.push(Error::Parse {
                     error: (lalrpop_err, $src_path).into(),
                 });
             })
             .unwrap_or_default();
+
+        if let Some((macro_name, macro_span)) = $macro_ctx {
+            for err in parse_errors {
+                $self.errors.push(Error::MacroBodyWrapper {
+                    child: Box::new(err),
+                    macro_name: macro_name.clone(),
+                    macro_span: macro_span.clone(),
+                })
+            }
+        } else {
+            $self.errors.append(&mut parse_errors)
+        }
 
         (parsed_val, next_paths)
     }};
@@ -243,7 +262,8 @@ impl ProjectParser {
             yurt_parser::YurtParser::new(),
             src_path,
             mod_path,
-            None
+            None,                           // local_scope
+            Option::<(String, Span)>::None  // macro_ctx
         )
     }
 
@@ -252,6 +272,7 @@ impl ProjectParser {
         tokens: Vec<(usize, lexer::Token, usize)>,
         src_path: &Rc<Path>,
         mod_path: &[String],
+        macro_call: &MacroCall,
     ) -> (Option<ExprKey>, Vec<NextModPath>) {
         let local_scope = format!("anon@{}", self.unique_idx);
         self.unique_idx += 1;
@@ -262,7 +283,8 @@ impl ProjectParser {
             yurt_parser::MacroBodyParser::new(),
             src_path,
             mod_path,
-            Some(&local_scope)
+            Some(&local_scope),
+            Some((macro_call.name.clone(), macro_call.span.clone()))
         )
     }
 

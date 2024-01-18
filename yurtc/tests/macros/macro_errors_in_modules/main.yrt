@@ -1,0 +1,26 @@
+// Call a macro in a module which doesn't exist.
+constraint ::b::@b_macro(11);
+
+// Call a non-existent macro in a module which exists.
+constraint ::c::@c_macro(22);
+
+// Call a macro which in turn has a parse error.  It's important that the span(s) are correct here.
+constraint d::@d_macro_parse_error(44);
+
+// Call a macro in a different module with the wrong number of args.
+constraint e::@e_macro(1; 2; 3);
+
+solve satisfy;
+
+// parse_failure <<<
+// macro not found
+// @60..77: macro `::b::@b_macro` not found
+// macro not found
+// @146..163: macro `::c::@c_macro` not found
+// expected `ident`, found `state`
+// @43..48: expected `ident`
+// @277..304: when making macro call to '::d::@d_macro_parse_error'
+// unable to match macro call
+// @387..407: unable to match call to macro `::e::@e_macro`
+// a macro named `::e::@e_macro` is defined but not with the required signature to fulfill this call
+// >>>

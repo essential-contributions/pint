@@ -240,24 +240,24 @@ fn use_statements() {
     check(
         &run_parser!(yurt, "use ;", mod_path),
         expect_test::expect![[r#"
-            expected `::`, `ident`, `self`, or `{`, found `;`
-            @4..5: expected `::`, `ident`, `self`, or `{`
+            expected `::`, `ident`, `macro_name`, `self`, or `{`, found `;`
+            @4..5: expected `::`, `ident`, `macro_name`, `self`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(yurt, "use ::;", mod_path),
         expect_test::expect![[r#"
-            expected `ident`, `self`, or `{`, found `;`
-            @6..7: expected `ident`, `self`, or `{`
+            expected `ident`, `macro_name`, `self`, or `{`, found `;`
+            @6..7: expected `ident`, `macro_name`, `self`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(yurt, "use a::;", mod_path),
         expect_test::expect![[r#"
-            expected `ident`, `self`, or `{`, found `;`
-            @7..8: expected `ident`, `self`, or `{`
+            expected `ident`, `macro_name`, `self`, or `{`, found `;`
+            @7..8: expected `ident`, `macro_name`, `self`, or `{`
         "#]],
     );
 

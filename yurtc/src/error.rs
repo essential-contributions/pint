@@ -24,14 +24,20 @@ pub struct ErrorLabel {
 /// A general compile error
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("{}", error)]
+    #[error("{error}")]
     Lex { span: Span, error: LexError },
-    #[error("{}", error)]
+    #[error("{error}")]
     Parse { error: ParseError },
-    #[error("{}", error)]
+    #[error("{error}")]
     Compile { error: CompileError },
-    #[error("{}", error)]
+    #[error("{error}")]
     Solve { error: SolveError },
+    #[error("{child}")]
+    MacroBodyWrapper {
+        child: Box<Self>,
+        macro_name: String,
+        macro_span: Span,
+    },
 }
 
 /// Types that implement this trait can be pretty printed to the terminal using the `ariadne` crate
@@ -148,6 +154,19 @@ impl ReportableError for Error {
             Parse { error } => error.labels(),
             Compile { error } => error.labels(),
             Solve { error } => error.labels(),
+            MacroBodyWrapper {
+                child,
+                macro_name,
+                macro_span,
+            } => {
+                let mut labels = child.labels();
+                labels.push(ErrorLabel {
+                    message: format!("when making macro call to '{macro_name}'"),
+                    span: macro_span.clone(),
+                    color: Color::Yellow,
+                });
+                labels
+            }
         }
     }
 
@@ -158,6 +177,7 @@ impl ReportableError for Error {
             Parse { error } => error.note(),
             Compile { error } => error.note(),
             Solve { error } => error.note(),
+            MacroBodyWrapper { child, .. } => child.note(),
         }
     }
 
@@ -168,6 +188,7 @@ impl ReportableError for Error {
             Parse { error } => error.code().map(|code| format!("P{code}")),
             Compile { error } => error.code().map(|code| format!("C{code}")),
             Solve { error } => error.code().map(|code| format!("S{code}")),
+            MacroBodyWrapper { child, .. } => child.code(),
         }
     }
 
@@ -178,6 +199,7 @@ impl ReportableError for Error {
             Parse { error } => error.help(),
             Compile { error } => error.help(),
             Solve { error } => error.help(),
+            MacroBodyWrapper { child, .. } => child.help(),
         }
     }
 }
@@ -190,6 +212,7 @@ impl Spanned for Error {
             Parse { error } => error.span(),
             Compile { error } => error.span(),
             Solve { error } => error.span(),
+            MacroBodyWrapper { child, .. } => child.span(),
         }
     }
 }
