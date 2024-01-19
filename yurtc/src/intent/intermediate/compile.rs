@@ -1,7 +1,11 @@
 use super::{Expr, ExprKey, IntermediateIntent, SolveFunc, State, Type, Var};
 use crate::{
     error::CompileError,
-    intent::{self, intermediate::transform::unroll_foralls, Expression, Intent, SolveDirective},
+    intent::{
+        self,
+        intermediate::transform::{scalarize, unroll_foralls},
+        Expression, Intent, SolveDirective,
+    },
     span::{empty_span, Span},
 };
 
@@ -9,11 +13,10 @@ use crate::{
 /// syntactic sugar of Yurt (such as enums, foralls, etc.) should be resolved into primitive
 /// elements in this function.
 pub(super) fn flatten(mut context: IntermediateIntent) -> super::Result<IntermediateIntent> {
-    // Perform all the verification, checks and optimisations.
-    // ... TODO ...
-
     // Transformations
     unroll_foralls(&mut context)?;
+    scalarize(&mut context)?;
+
     Ok(context)
 }
 

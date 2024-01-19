@@ -171,41 +171,34 @@ impl ExprKey {
             .expect("expr key must belong to ii.expr")
             .clone();
 
-        match expr {
-            Expr::Immediate { .. } | Expr::MacroCall { .. } | Expr::Error(_) => self,
-            Expr::PathByName(path, span) => values_map.get(&path).map_or(self, |value| {
-                ii.exprs.insert(Expr::Immediate {
+        let plugged = match expr {
+            Expr::Immediate { .. } | Expr::MacroCall { .. } | Expr::Error(_) => expr,
+            Expr::PathByName(ref path, ref span) => {
+                let span = span.clone();
+                values_map.get(path).map_or(expr, |value| Expr::Immediate {
                     value: value.clone(),
                     span,
                 })
-            }),
-            Expr::PathByKey(key, span) => {
-                values_map.get(&ii.vars[key].name).map_or(self, |value| {
-                    ii.exprs.insert(Expr::Immediate {
+            }
+            Expr::PathByKey(key, ref span) => {
+                let span = span.clone();
+                values_map
+                    .get(&ii.vars[key].name)
+                    .map_or(expr, |value| Expr::Immediate {
                         value: value.clone(),
                         span,
                     })
-                })
             }
             Expr::UnaryOp { op, expr, span } => {
                 let expr = expr.plug_in(ii, values_map);
 
-                ii.exprs.insert(Expr::UnaryOp {
-                    op,
-                    expr,
-                    span: span.clone(),
-                })
+                Expr::UnaryOp { op, expr, span }
             }
             Expr::BinaryOp { op, lhs, rhs, span } => {
                 let lhs = lhs.plug_in(ii, values_map);
                 let rhs = rhs.plug_in(ii, values_map);
 
-                ii.exprs.insert(Expr::BinaryOp {
-                    op,
-                    lhs,
-                    rhs,
-                    span: span.clone(),
-                })
+                Expr::BinaryOp { op, lhs, rhs, span }
             }
             Expr::FnCall { name, args, span } => {
                 let args = args
@@ -213,11 +206,7 @@ impl ExprKey {
                     .map(|arg| arg.plug_in(ii, values_map))
                     .collect::<Vec<_>>();
 
-                ii.exprs.insert(Expr::FnCall {
-                    name,
-                    args,
-                    span: span.clone(),
-                })
+                Expr::FnCall { name, args, span }
             }
             Expr::If {
                 condition,
@@ -229,12 +218,12 @@ impl ExprKey {
                 let then_block = then_block.plug_in(ii, values_map);
                 let else_block = else_block.plug_in(ii, values_map);
 
-                ii.exprs.insert(Expr::If {
+                Expr::If {
                     condition,
                     then_block,
                     else_block,
-                    span: span.clone(),
-                })
+                    span,
+                }
             }
             Expr::Array { elements, span } => {
                 let elements = elements
@@ -242,20 +231,13 @@ impl ExprKey {
                     .map(|element| element.plug_in(ii, values_map))
                     .collect::<Vec<_>>();
 
-                ii.exprs.insert(Expr::Array {
-                    elements,
-                    span: span.clone(),
-                })
+                Expr::Array { elements, span }
             }
             Expr::ArrayElementAccess { array, index, span } => {
                 let array = array.plug_in(ii, values_map);
                 let index = index.plug_in(ii, values_map);
 
-                ii.exprs.insert(Expr::ArrayElementAccess {
-                    array,
-                    index,
-                    span: span.clone(),
-                })
+                Expr::ArrayElementAccess { array, index, span }
             }
             Expr::Tuple { fields, span } => {
                 let fields = fields
@@ -263,28 +245,17 @@ impl ExprKey {
                     .map(|(name, value)| (name.clone(), value.plug_in(ii, values_map)))
                     .collect::<Vec<_>>();
 
-                ii.exprs.insert(Expr::Tuple {
-                    fields,
-                    span: span.clone(),
-                })
+                Expr::Tuple { fields, span }
             }
             Expr::TupleFieldAccess { tuple, field, span } => {
                 let tuple = tuple.plug_in(ii, values_map);
 
-                ii.exprs.insert(Expr::TupleFieldAccess {
-                    tuple,
-                    field,
-                    span: span.clone(),
-                })
+                Expr::TupleFieldAccess { tuple, field, span }
             }
             Expr::Cast { value, ty, span } => {
                 let value = value.plug_in(ii, values_map);
 
-                ii.exprs.insert(Expr::Cast {
-                    value,
-                    ty,
-                    span: span.clone(),
-                })
+                Expr::Cast { value, ty, span }
             }
             Expr::In {
                 value,
@@ -294,21 +265,17 @@ impl ExprKey {
                 let value = value.plug_in(ii, values_map);
                 let collection = collection.plug_in(ii, values_map);
 
-                ii.exprs.insert(Expr::In {
+                Expr::In {
                     value,
                     collection,
-                    span: span.clone(),
-                })
+                    span,
+                }
             }
             Expr::Range { lb, ub, span } => {
                 let lb = lb.plug_in(ii, values_map);
                 let ub = ub.plug_in(ii, values_map);
 
-                ii.exprs.insert(Expr::Range {
-                    lb,
-                    ub,
-                    span: span.clone(),
-                })
+                Expr::Range { lb, ub, span }
             }
             Expr::ForAll {
                 gen_ranges,
@@ -326,13 +293,14 @@ impl ExprKey {
                     .collect::<Vec<_>>();
                 let body = body.plug_in(ii, values_map);
 
-                ii.exprs.insert(Expr::ForAll {
+                Expr::ForAll {
                     gen_ranges,
                     conditions,
                     body,
-                    span: span.clone(),
-                })
+                    span,
+                }
             }
-        }
+        };
+        ii.exprs.insert(plugged)
     }
 }

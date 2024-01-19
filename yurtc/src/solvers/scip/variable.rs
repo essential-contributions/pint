@@ -96,43 +96,42 @@ impl<'a> super::Solver<'a, ProblemCreated> {
             },
 
             Expression::Path(path) => {
-                match self.model.vars().iter().find(|v| &v.name() == path) {
-                    Some(var) => Ok(var.clone()),
-                    None => {
-                        // If not found, then it's possible that the path starts with `!` and the
-                        // rest of it matches an existing variable.
-                        //
-                        // Paths that start with a `!` represents the inverse of the variable with the
-                        // same name but without the `!`.
+                if let Some(var) = self.model.vars().iter().find(|v| &v.name() == path) {
+                    Ok(var.clone())
+                } else {
+                    // If not found, then it's possible that the path starts with `!` and the
+                    // rest of it matches an existing variable.
+                    //
+                    // Paths that start with a `!` represents the inverse of the variable with the
+                    // same name but without the `!`.
 
-                        // First, find the var with the same name without the `!`, if available.
-                        // Error out otherwise.
-                        let var = self
-                            .model
-                            .vars()
-                            .iter()
-                            .find(|v| &("!".to_owned() + &v.name()) == path)
-                            .ok_or(SolveError::Internal {
-                                msg: "(scip) cannot find variable for path expression",
-                                span: empty_span(),
-                            })
-                            .cloned()?;
+                    // First, find the var with the same name without the `!`, if available.
+                    // Error out otherwise.
+                    let var = self
+                        .model
+                        .vars()
+                        .iter()
+                        .find(|v| &("!".to_owned() + &v.name()) == path)
+                        .ok_or(SolveError::Internal {
+                            msg: "(scip) cannot find variable for path expression",
+                            span: empty_span(),
+                        })
+                        .cloned()?;
 
-                        // Then, create the inverse variable which has to be a Binary variable.
-                        let bin_name = self.new_var_name();
-                        let inverse = self.model.add_var(0., 1., 0., &bin_name, VarType::Binary);
+                    // Then, create the inverse variable which has to be a Binary variable.
+                    let bin_name = self.new_var_name();
+                    let inverse = self.model.add_var(0., 1., 0., &bin_name, VarType::Binary);
 
-                        // Now, ensure that `var + inverse == 1`.
-                        let new_cons_name = self.new_cons_name();
-                        self.model.add_cons(
-                            vec![var.clone(), inverse.clone()],
-                            &[1., 1.],
-                            1.,
-                            1.,
-                            &new_cons_name,
-                        );
-                        Ok(inverse)
-                    }
+                    // Now, ensure that `var + inverse == 1`.
+                    let new_cons_name = self.new_cons_name();
+                    self.model.add_cons(
+                        vec![var.clone(), inverse.clone()],
+                        &[1., 1.],
+                        1.,
+                        1.,
+                        &new_cons_name,
+                    );
+                    Ok(inverse)
                 }
             }
 

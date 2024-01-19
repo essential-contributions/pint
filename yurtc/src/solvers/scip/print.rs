@@ -5,7 +5,8 @@ use yansi::{Color, Style};
 
 impl<'a> super::Solver<'a, Solved> {
     /// Pretty print the output of the solver which includes a valid solution for all the variables
-    /// in case of success. Skips any helper variables introduced by the solver.
+    /// in case of success. Skips any helper variables introduced by the solver. Rounds to 3
+    /// decimal places.
     pub fn print_solution(&self) {
         match self.model.status() {
             Status::Optimal => {
@@ -23,12 +24,16 @@ impl<'a> super::Solver<'a, Solved> {
                     .iter()
                     .take(self.intent.vars.len())
                     .fold((), |(), var| {
-                        println!("     {}: {}", &var.name(), sol.val(var.clone()));
+                        if var.var_type() == VarType::Continuous {
+                            println!("     {}: {:.3}", &var.name(), sol.val(var.clone()));
+                        } else {
+                            println!("     {}: {}", &var.name(), sol.val(var.clone()));
+                        }
                     });
 
                 if !matches!(self.intent.directive, SolveDirective::Satisfy) {
                     println!(
-                        "    {}: {}",
+                        "    {}: {:.3}",
                         Style::new(Color::Green).bold().paint("Objective value:"),
                         self.model.obj_val()
                     );
@@ -57,7 +62,7 @@ impl<'a> super::Solver<'a, Solved> {
     }
 
     /// Serialize the raw output of the solver into a `String`. This is mostly meant for testing
-    /// purposes. Includes helper variables introduced by the solver.
+    /// purposes. Includes helper variables introduced by the solver. Rounds to 3 decimal places.
     pub fn display_solution_raw(&self) -> String {
         match self.model.status() {
             Status::Optimal => {
@@ -65,15 +70,20 @@ impl<'a> super::Solver<'a, Solved> {
                 let solution = self.model.vars().iter().take(self.intent.vars.len()).fold(
                     String::new(),
                     |mut acc, var| {
-                        writeln!(&mut acc, "{}: {}", &var.name(), sol.val(var.clone()))
-                            .expect("Failed to write solution to string");
+                        if var.var_type() == VarType::Continuous {
+                            writeln!(&mut acc, "{}: {:.3}", &var.name(), sol.val(var.clone()))
+                                .expect("Failed to write solution to string");
+                        } else {
+                            writeln!(&mut acc, "{}: {}", &var.name(), sol.val(var.clone()))
+                                .expect("Failed to write solution to string");
+                        }
                         acc
                     },
                 );
                 if matches!(self.intent.directive, SolveDirective::Satisfy) {
                     solution
                 } else {
-                    format!("{solution}objective: {}", self.model.obj_val())
+                    format!("{solution}objective: {:.3}", self.model.obj_val())
                 }
             }
             Status::Infeasible => "infeasible".to_string(),

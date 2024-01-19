@@ -43,6 +43,15 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                     })
                 }
             },
+            Expression::BinaryOp {
+                op: expr::BinaryOp::LogicalAnd,
+                lhs: lhs_expr,
+                rhs: rhs_expr,
+            } => {
+                // enforce both the lhs and the rhs as seaprate constraints
+                self.convert_constraint(lhs_expr)?;
+                self.convert_constraint(rhs_expr)?;
+            }
 
             Expression::BinaryOp {
                 op,
@@ -179,12 +188,6 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                                 span: empty_span(),
                             });
                         }
-                    }
-
-                    expr::BinaryOp::LogicalAnd => {
-                        // enforce both the lhs and the rhs as seaprate constraints
-                        self.convert_constraint(lhs_expr)?;
-                        self.convert_constraint(rhs_expr)?;
                     }
 
                     expr::BinaryOp::LogicalOr => {

@@ -20,6 +20,6 @@ solve maximize y;
 
 // solution <<<
 // ::x: 3
-// ::y: 1.9
-// objective: 1.9
+// ::y: 1.900
+// objective: 1.900
 // >>>

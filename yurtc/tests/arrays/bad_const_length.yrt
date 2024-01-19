@@ -1,0 +1,9 @@
+let n: int;
+let a: int[0];
+
+solve satisfy;
+
+// flattening_failure <<<
+// attempt to use an invalid constant as an array length
+// @23..24: this would need to be a strictly positive integer value
+// >>>

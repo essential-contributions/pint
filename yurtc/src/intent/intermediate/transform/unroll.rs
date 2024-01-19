@@ -10,9 +10,9 @@ use crate::{
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
-/// Given an `IntermediateIntent`, a list of indices with their ranges `gen_ranges`, an optional list of
-/// `conditions`, and a `forall` body, return a new expression that is the AND of all the possible
-/// valid `forall` bodies.
+/// Given an `IntermediateIntent`, a list of indices with their ranges `gen_ranges`, an optional
+/// list of `conditions`, and a `forall` body, return a new expression that is the conjunction of
+/// all the possible valid `forall` bodies.
 ///
 /// For example,
 /// ```yurt
@@ -111,8 +111,8 @@ fn unroll_forall(
         .map(|(index, _)| index.clone())
         .collect::<Vec<_>>();
 
-    // Generate a new expression that is the AND of all the unrolled expressions. Consider the
-    // following:
+    // Generate a new expression that is the conjunction of all the unrolled expressions. Consider
+    // the following:
     // 1. All possible combinations of the indices given `gen_ranges`: this is tracked in
     //    `product_of_ranges`.
     // 2. All the conditions which restrict the possible index combinations.
@@ -172,20 +172,45 @@ fn unroll_forall(
 /// Given an `IntermediateIntent`, unroll all `forall` expressions and replace them in the
 /// expressions map with their unrolled version
 pub(crate) fn unroll_foralls(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
-    for (key, expr) in ii.exprs.clone() {
-        if let Expr::ForAll {
-            gen_ranges,
-            conditions,
-            body,
-            span,
-        } = expr
-        {
-            let unrolled = unroll_forall(ii, &gen_ranges, &conditions, body, &span)?;
+    ii.exprs
+        .iter()
+        .filter_map(|(key, expr)| {
+            // Only collect foralls
+            if let Expr::ForAll {
+                gen_ranges,
+                conditions,
+                body,
+                span,
+            } = expr
+            {
+                Some((
+                    key,
+                    gen_ranges.clone(),
+                    conditions.clone(),
+                    *body,
+                    span.clone(),
+                ))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>()
+        .iter()
+        .try_for_each(|(key, gen_ranges, conditions, body, span)| {
+            // Update the key of the `forall` to map to the new unrolled expression (the big
+            // conjunction)
             *ii.exprs
-                .get_mut(key)
-                .expect("key guaranteed to exist in the map!") = unrolled;
-        }
-    }
+                .get_mut(*key)
+                .expect("key guaranteed to exist in the map!") =
+                unroll_forall(ii, gen_ranges, conditions, *body, span)?;
 
-    Ok(())
+            // Clean up all keys used by the `forall` now that it's gone
+            gen_ranges
+                .iter()
+                .for_each(|(_, expr)| ii.remove_expr(*expr));
+            conditions.iter().for_each(|expr| ii.remove_expr(*expr));
+            ii.remove_expr(*body);
+
+            Ok(())
+        })
 }
