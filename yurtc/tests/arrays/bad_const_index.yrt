@@ -7,5 +7,5 @@ solve satisfy;
 
 // flattening_failure <<<
 // attempt to use an invalid constant as an array index
-// @42..46: this would need to be a non-negative integer value
+// @42..46: this must be a non-negative integer value
 // >>>

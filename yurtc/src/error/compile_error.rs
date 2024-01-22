@@ -193,7 +193,7 @@ impl ReportableError for CompileError {
 
             NonConstArrayLength { span } | NonConstArrayIndex { span } => {
                 vec![ErrorLabel {
-                    message: "this would need to be a constant".to_string(),
+                    message: "this must be a constant".to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -201,7 +201,7 @@ impl ReportableError for CompileError {
 
             InvalidConstArrayLength { span } => {
                 vec![ErrorLabel {
-                    message: "this would need to be a strictly positive integer value".to_string(),
+                    message: "this must be a strictly positive integer value".to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -209,7 +209,7 @@ impl ReportableError for CompileError {
 
             InvalidConstArrayIndex { span } => {
                 vec![ErrorLabel {
-                    message: "this would need to be a non-negative integer value".to_string(),
+                    message: "this must be a non-negative integer value".to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -218,7 +218,7 @@ impl ReportableError for CompileError {
             CannotIndexIntoValue { span, index_span } => {
                 vec![
                     ErrorLabel {
-                        message: "this would have to be an array".to_string(),
+                        message: "this must be an array".to_string(),
                         span: span.clone(),
                         color: Color::Blue,
                     },
