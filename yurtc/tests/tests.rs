@@ -37,6 +37,13 @@ mod e2e {
     }
 
     #[test]
+    fn arrays() {
+        if let Err(err) = run_tests("arrays") {
+            eprintln!("{err}");
+        }
+    }
+
+    #[test]
     fn modules() {
         if let Err(err) = run_tests("modules") {
             eprintln!("{err}");

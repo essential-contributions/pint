@@ -58,6 +58,16 @@ pub enum CompileError {
     InvalidForAllIndexBound { name: String, span: Span },
     #[error("cannot find value `{name}` in this scope")]
     SymbolNotFound { name: String, span: Span },
+    #[error("attempt to use a non-constant value as an array length")]
+    NonConstArrayLength { span: Span },
+    #[error("attempt to use an invalid constant as an array length")]
+    InvalidConstArrayLength { span: Span },
+    #[error("attempt to use a non-constant value as an array index")]
+    NonConstArrayIndex { span: Span },
+    #[error("attempt to use an invalid constant as an array index")]
+    InvalidConstArrayIndex { span: Span },
+    #[error("cannot index into value")]
+    CannotIndexIntoValue { span: Span, index_span: Span },
 }
 
 impl ReportableError for CompileError {
@@ -181,6 +191,45 @@ impl ReportableError for CompileError {
                 }]
             }
 
+            NonConstArrayLength { span } | NonConstArrayIndex { span } => {
+                vec![ErrorLabel {
+                    message: "this must be a constant".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            InvalidConstArrayLength { span } => {
+                vec![ErrorLabel {
+                    message: "this must be a strictly positive integer value".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            InvalidConstArrayIndex { span } => {
+                vec![ErrorLabel {
+                    message: "this must be a non-negative integer value".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            CannotIndexIntoValue { span, index_span } => {
+                vec![
+                    ErrorLabel {
+                        message: "this must be an array".to_string(),
+                        span: span.clone(),
+                        color: Color::Blue,
+                    },
+                    ErrorLabel {
+                        message: "invalid indexing here".to_string(),
+                        span: index_span.clone(),
+                        color: Color::Red,
+                    },
+                ]
+            }
+
             Internal { .. } | FileIO { .. } => Vec::new(),
         }
     }
@@ -235,7 +284,12 @@ impl ReportableError for CompileError {
             | FileIO { .. }
             | MacroNotFound { .. }
             | MacroUndefinedParam { .. }
-            | SymbolNotFound { .. } => None,
+            | SymbolNotFound { .. }
+            | NonConstArrayLength { .. }
+            | InvalidConstArrayLength { .. }
+            | NonConstArrayIndex { .. }
+            | InvalidConstArrayIndex { .. }
+            | CannotIndexIntoValue { .. } => None,
         }
     }
 
@@ -265,7 +319,12 @@ impl Spanned for CompileError {
             }
             | DuplicateForAllIndex { span, .. }
             | InvalidForAllIndexBound { span, .. }
-            | SymbolNotFound { span, .. } => span,
+            | SymbolNotFound { span, .. }
+            | NonConstArrayIndex { span }
+            | InvalidConstArrayLength { span }
+            | NonConstArrayLength { span }
+            | InvalidConstArrayIndex { span }
+            | CannotIndexIntoValue { span, .. } => span,
         }
     }
 }

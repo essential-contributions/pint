@@ -1,0 +1,11 @@
+let n: int;
+
+constraint foo()[0] == 3;
+
+solve satisfy;
+
+// flattening_failure <<<
+// cannot index into value
+// @24..29: this must be an array
+// @30..31: invalid indexing here
+// >>>

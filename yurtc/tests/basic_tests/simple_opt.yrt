@@ -16,5 +16,5 @@ solve minimize obj;
 // solution <<<
 // ::x: -1
 // ::obj: -9
-// objective: -9
+// objective: -9.000
 // >>>

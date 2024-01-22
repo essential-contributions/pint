@@ -1,0 +1,11 @@
+let n: int;
+let a: int[10];
+
+constraint a[-1.2] == 3;
+
+solve satisfy;
+
+// flattening_failure <<<
+// attempt to use an invalid constant as an array index
+// @42..46: this must be a non-negative integer value
+// >>>

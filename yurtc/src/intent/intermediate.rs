@@ -181,6 +181,85 @@ impl IntermediateIntent {
             }
         });
     }
+
+    /// Removes a key `expr_key` and all of its sub expressions from `self.exprs`.
+    ///
+    /// It *doee not* handle removing other objects that rely on `expr_key` such as constraints. It
+    /// is up to the caller to decide what to do with those.
+    ///
+    /// Assumes that `expr_key` and its sub expressions belongs to `self.exprs`. Panics otherwise.
+    pub(crate) fn remove_expr(&mut self, expr_key: ExprKey) {
+        let expr = self
+            .exprs
+            .get(expr_key)
+            .expect("expr key must belong to ii.expr")
+            .clone();
+
+        match &expr {
+            Expr::UnaryOp { expr, .. } => self.remove_expr(*expr),
+            Expr::BinaryOp { lhs, rhs, .. } => {
+                self.remove_expr(*lhs);
+                self.remove_expr(*rhs);
+            }
+            Expr::FnCall { args, .. } => {
+                args.iter().for_each(|expr| self.remove_expr(*expr));
+            }
+            Expr::If {
+                condition,
+                then_block,
+                else_block,
+                ..
+            } => {
+                self.remove_expr(*condition);
+                self.remove_expr(*then_block);
+                self.remove_expr(*else_block);
+            }
+            Expr::Array { elements, .. } => {
+                elements.iter().for_each(|expr| self.remove_expr(*expr));
+            }
+            Expr::ArrayElementAccess { array, index, .. } => {
+                self.remove_expr(*array);
+                self.remove_expr(*index);
+            }
+            Expr::Tuple { fields, .. } => {
+                fields.iter().for_each(|(_, expr)| self.remove_expr(*expr));
+            }
+            Expr::TupleFieldAccess { tuple, .. } => {
+                self.remove_expr(*tuple);
+            }
+            Expr::Cast { value, .. } => {
+                // Should we handle the `ty` field here too since it also depends on an `ExprKey`
+                self.remove_expr(*value);
+            }
+            Expr::In {
+                value, collection, ..
+            } => {
+                self.remove_expr(*value);
+                self.remove_expr(*collection);
+            }
+            Expr::ForAll {
+                gen_ranges,
+                conditions,
+                body,
+                ..
+            } => {
+                gen_ranges
+                    .iter()
+                    .for_each(|(_, expr)| self.remove_expr(*expr));
+                conditions.iter().for_each(|expr| self.remove_expr(*expr));
+                self.remove_expr(*body);
+            }
+            // Nothing to do here. These do not depend on any `ExprKey`s
+            Expr::Immediate { .. }
+            | Expr::PathByName { .. }
+            | Expr::PathByKey { .. }
+            | Expr::MacroCall { .. }
+            | Expr::Range { .. }
+            | Expr::Error(_) => {}
+        };
+
+        self.exprs.remove(expr_key);
+    }
 }
 
 /// A state specification with an optional type.
