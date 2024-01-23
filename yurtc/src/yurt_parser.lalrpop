@@ -144,6 +144,7 @@ UseStatement: () = {
 pub UsePathIdent: Ident = {
     Ident,
     IdentFromToken<"self">,
+    MacroName,
 }
 
 pub UseTree: UseTree = {
@@ -307,8 +308,10 @@ pub NewTypeDecl: () = {
     }
 }
 
+MacroName: Ident = IdentFromToken<"macro_name">;
+
 pub MacroDecl: () = {
-    "macro" <l:@L> <mut name:IdentFromToken<"macro_name">> "("
+    "macro" <l:@L> <mut name:MacroName> "("
         <params:MacroParamList>
     ")" <r:@R>
     <body:"macro_body"> => {
@@ -451,7 +454,7 @@ TypeAtom: Type = {
         // Recover with a malformed type
         Type::Error(span)
     },
-    <l:@L> <path:Path> <r:@R> => Type::CustomType {
+    <l:@L> <path:Path> <r:@R> => Type::Custom {
         path,
         span: (context.span_from)(l, r),
     },

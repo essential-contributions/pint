@@ -111,11 +111,12 @@ pub(crate) struct MacroExpander {
 }
 
 impl MacroExpander {
+    #[allow(clippy::type_complexity)]
     pub(crate) fn expand_call(
         &mut self,
         macro_decls: &[MacroDecl],
         call: &MacroCall,
-    ) -> Result<Vec<(usize, Token, usize)>, Vec<Error>> {
+    ) -> Result<(Vec<(usize, Token, usize)>, Span), Vec<Error>> {
         let macro_decl: &MacroDecl = match_macro(macro_decls, call)?;
         let mut errs = Vec::new();
 
@@ -196,7 +197,7 @@ impl MacroExpander {
         }
 
         if errs.is_empty() {
-            Ok(body)
+            Ok((body, macro_decl.sig_span.clone()))
         } else {
             Err(errs)
         }

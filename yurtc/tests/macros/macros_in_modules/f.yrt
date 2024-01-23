@@ -1,0 +1,3 @@
+macro @f_macro($id, $factor) {
+    $id % $factor == 0
+}

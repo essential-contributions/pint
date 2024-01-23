@@ -221,6 +221,40 @@ constraint z > y + 10;
 z
 ```
 
+#### Path Resolution
+
+Note that paths in macro bodies are resolved relative to the module from which they are called, _not_ necessarily where they are declared. That is, a macro declared in a different module but expanded locally will be parsed as if the macro body was declared locally.
+
+For example:
+
+```yurt
+// Declared in `utils/byte.yrt`.
+macro @in_byte_range($a) {
+    // Using a relative path to the `ranges` module.
+    constraint $a >= ranges::byte_min && $a <= ranges::byte_max;
+}
+```
+
+and
+
+```yurt
+// Declared in `main.yrt`.
+let a: int;
+utils::byte::@in_byte_range(a);
+```
+
+This will only compile if `ranges` is a top-level module, in either `ranges.yrt` or `ranges/ranges.yrt`, and _not_ if it exists in `utils/ranges.yrt` as might be expected when writing the `utils::byte` module.
+
+`use` statements are applied locally also, so putting a `use ::utils::ranges;` at the start of `utils.yrt` will not change this behaviour.
+
+Therefore it is better practice to always use full absolute paths to external symbols (i.e., any paths not passed to, or declared within the macro body) in macro bodies. For example, if `utils/ranges.yrt` _was_ where `byte_min` and `byte_max` are declared, then the following is preferred:
+
+```yurt
+macro @in_byte_range($a) {
+    constraint $a >= ::utils::ranges::byte_min && $a <= ::utils::ranges::byte_max;
+}
+```
+
 #### Function-style Macros
 
 Yurt also supports 'function-style' macros which are more constrained but also stricter in their use. Function-style macros look like function declarations and are called with standard expression arguments.

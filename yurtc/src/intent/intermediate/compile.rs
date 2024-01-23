@@ -217,7 +217,7 @@ fn convert_type(ty: &Type, span: &Span) -> super::Result<intent::Type> {
         Type::Primitive { kind: Real, .. } => Ok(intent::Type::Real),
         Type::Primitive { kind: String, .. } => Ok(intent::Type::String),
 
-        Type::Error(..) | Type::Array { .. } | Type::Tuple { .. } | Type::CustomType { .. } => {
+        Type::Error(..) | Type::Array { .. } | Type::Tuple { .. } | Type::Custom { .. } => {
             Err(CompileError::Internal {
                 msg: "Found unsupported types in final Intent.",
                 span: span.clone(),
