@@ -790,6 +790,27 @@ let z: int;
 constraint z &gt; y + 10;
 z
 </code></pre>
+<h4 id="path-resolution"><a class="header" href="#path-resolution">Path Resolution</a></h4>
+<p>Note that paths in macro bodies are resolved relative to the module from which they are called, <em>not</em> necessarily where they are declared. That is, a macro declared in a different module but expanded locally will be parsed as if the macro body was declared locally.</p>
+<p>For example:</p>
+<pre><code class="language-yurt">// Declared in `utils/byte.yrt`.
+macro @in_byte_range($a) {
+    // Using a relative path to the `ranges` module.
+    constraint $a &gt;= ranges::byte_min &amp;&amp; $a &lt;= ranges::byte_max;
+}
+</code></pre>
+<p>and</p>
+<pre><code class="language-yurt">// Declared in `main.yrt`.
+let a: int;
+utils::byte::@in_byte_range(a);
+</code></pre>
+<p>This will only compile if <code>ranges</code> is a top-level module, in either <code>ranges.yrt</code> or <code>ranges/ranges.yrt</code>, and <em>not</em> if it exists in <code>utils/ranges.yrt</code> as might be expected when writing the <code>utils::byte</code> module.</p>
+<p><code>use</code> statements are applied locally also, so putting a <code>use ::utils::ranges;</code> at the start of <code>utils.yrt</code> will not change this behaviour.</p>
+<p>Therefore it is better practice to always use full absolute paths to external symbols (i.e., any paths not passed to, or declared within the macro body) in macro bodies. For example, if <code>utils/ranges.yrt</code> <em>was</em> where <code>byte_min</code> and <code>byte_max</code> are declared, then the following is preferred:</p>
+<pre><code class="language-yurt">macro @in_byte_range($a) {
+    constraint $a &gt;= ::utils::ranges::byte_min &amp;&amp; $a &lt;= ::utils::ranges::byte_max;
+}
+</code></pre>
 <h4 id="function-style-macros"><a class="header" href="#function-style-macros">Function-style Macros</a></h4>
 <p>Yurt also supports 'function-style' macros which are more constrained but also stricter in their use. Function-style macros look like function declarations and are called with standard expression arguments.</p>
 <p>Function-style macros must have a final expression in their body and they may only be called as a sub-expression. Each parameter is a typed identifier and a return type (i.e., the type of the final body expression) must be specified.</p>
