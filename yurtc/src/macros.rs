@@ -111,6 +111,7 @@ pub(crate) struct MacroExpander {
 }
 
 impl MacroExpander {
+    #[allow(clippy::type_complexity)]
     pub(crate) fn expand_call(
         &mut self,
         macro_decls: &[MacroDecl],

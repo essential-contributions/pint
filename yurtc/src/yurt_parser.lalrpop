@@ -454,7 +454,7 @@ TypeAtom: Type = {
         // Recover with a malformed type
         Type::Error(span)
     },
-    <l:@L> <path:Path> <r:@R> => Type::CustomType {
+    <l:@L> <path:Path> <r:@R> => Type::Custom {
         path,
         span: (context.span_from)(l, r),
     },
