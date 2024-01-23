@@ -67,6 +67,20 @@ impl DisplayWithII for super::FnSig {
     }
 }
 
+impl DisplayWithII for super::MsgSig {
+    fn fmt(&self, f: &mut Formatter<'_>, ii: &IntermediateIntent) -> Result {
+        write!(f, "msg {}(", self.name)?;
+        let mut i = self.params.iter();
+        if let Some((id, ty)) = i.next() {
+            write!(f, "{id}: {}", ii.with_ii(ty))?;
+        }
+        for (id, ty) in i {
+            write!(f, ", {id}: {}", ii.with_ii(ty))?;
+        }
+        write!(f, ")")
+    }
+}
+
 impl DisplayWithII for super::EnumDecl {
     fn fmt(&self, f: &mut Formatter<'_>, _ii: &IntermediateIntent) -> Result {
         write!(f, "enum {} = ", self.name)?;

@@ -1823,15 +1823,15 @@ fn interface() {
 
     let src = r#"
 interface Foo {
-    fn foo(x: real, y: int[5]) -> real;
-    fn bar(x: bool,) -> real;
-    fn baz() -> { int, real };
+    msg foo(x: real, y: int[5]);
+    msg bar(x: bool,);
+    msg baz();
 }
 "#;
 
     check(
         &run_parser!(interface_decl, src),
-        expect_test::expect!["interface ::Foo { fn ::Foo::foo(x: real, y: int[5]) -> real; fn ::Foo::bar(x: bool) -> real; fn ::Foo::baz() -> {int, real}; }"],
+        expect_test::expect!["interface ::Foo { msg ::Foo::foo(x: real, y: int[5]); msg ::Foo::bar(x: bool); msg ::Foo::baz(); }"],
     );
 
     check(
@@ -1845,54 +1845,43 @@ fn contract() {
     let contract_decl = yp::ContractDeclParser::new();
 
     check(
-        &run_parser!(contract_decl, "contract Foo(0) {}"),
-        expect_test::expect!["contract ::Foo(0) { }"],
+        &run_parser!(contract_decl, "contract Foo {}"),
+        expect_test::expect!["contract ::Foo { }"],
     );
 
     check(
         &run_parser!(
             contract_decl,
-            "contract Foo(0) { fn foo(x: int) -> real; fn bar(y: real, z: { Bar, }) -> string;}"
+            "contract Foo { 
+                msg foo(x: int) { constraint true; } 
+                msg bar(y: real, z: { Bar, }) { constraint 3 == 3; }
+            }"
         ),
-        expect_test::expect!["contract ::Foo(0) { fn ::Foo::foo(x: int) -> real; fn ::Foo::bar(y: real, z: {::Bar}) -> string; }"],
+        expect_test::expect!["contract ::Foo { msg foo(x: int) { constraint true; } msg bar(y: real, z: {::Bar}) { constraint (3 == 3); } }"],
     );
 
     check(
-        &run_parser!(contract_decl, "contract Foo(if true {0} else {1}) {}"),
-        expect_test::expect!["contract ::Foo(if true { 0 } else { 1 }) { }"],
-    );
-
-    check(
-        &run_parser!(
-            contract_decl,
-            "contract Foo(0) implements X::Bar, ::Y::Baz {}"
-        ),
-        expect_test::expect!["contract ::Foo(0) implements ::X::Bar, ::Y::Baz { }"],
+        &run_parser!(contract_decl, "contract Foo implements X::Bar, ::Y::Baz {}"),
+        expect_test::expect!["contract ::Foo implements ::X::Bar, ::Y::Baz { }"],
     );
 
     check(
         &run_parser!(
             contract_decl,
-            "contract Foo(0) implements Bar { fn baz(x: real) -> int; }"
+            "contract Foo implements Bar { 
+                msg baz(x: real) { state x = storage::y[z]; }
+            }"
         ),
         expect_test::expect![
-            "contract ::Foo(0) implements ::Bar { fn ::Foo::baz(x: real) -> int; }"
+            "contract ::Foo implements ::Bar { msg baz(x: real) { state x = ::storage::y[::z]; } }"
         ],
     );
 
     check(
-        &run_parser!(contract_decl, "contract Foo { }"),
-        expect_test::expect![[r#"
-            expected `(`, found `{`
-            @13..14: expected `(`
-        "#]],
-    );
-
-    check(
-        &run_parser!(contract_decl, "contract Foo(0) implements { }"),
+        &run_parser!(contract_decl, "contract Foo implements { }"),
         expect_test::expect![[r#"
             expected `::`, or `ident`, found `{`
-            @27..28: expected `::`, or `ident`
+            @24..25: expected `::`, or `ident`
         "#]],
     );
 }

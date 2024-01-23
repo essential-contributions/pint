@@ -10,6 +10,6 @@ state F = MyContract::foo();
 
 interface F {}
 
-contract F(0) {}
+contract F {}
 
 extern { fn F() -> bool; }

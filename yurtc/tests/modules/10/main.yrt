@@ -14,7 +14,7 @@ state E = MyContract::foo();
 
 interface E {}
 
-contract E(0) {}
+contract E {}
 
 extern { fn E() -> bool; }
 
@@ -45,7 +45,7 @@ extern { fn E() -> bool; }
 // `E` must be declared or imported only once in this scope
 // symbol `E` has already been declared
 // @7..8: previous declaration of the value `E` here
-// @157..158: `E` redeclared here
+// @154..155: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `F` has already been declared
 // @4..5: previous declaration of the value `F` here
@@ -73,6 +73,6 @@ extern { fn E() -> bool; }
 // `F` must be declared or imported only once in this scope
 // symbol `F` has already been declared
 // @4..5: previous declaration of the value `F` here
-// @135..136: `F` redeclared here
+// @132..133: `F` redeclared here
 // `F` must be declared or imported only once in this scope
 // >>>

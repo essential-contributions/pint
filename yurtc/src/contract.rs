@@ -1,8 +1,8 @@
 use crate::{
     expr::Ident,
-    intent::intermediate::{DisplayWithII, ExprKey, IntermediateIntent},
+    intent::intermediate::{DisplayWithII, ExprKey, IntermediateIntent, State},
     span::{Span, Spanned},
-    types::{FnSig, Path},
+    types::{MsgSig, Path},
     util::write_many,
 };
 use std::fmt::{Formatter, Result};
@@ -10,7 +10,7 @@ use std::fmt::{Formatter, Result};
 #[derive(Clone, Debug, PartialEq)]
 pub struct InterfaceDecl {
     pub(super) name: Ident,
-    pub(super) functions: Vec<FnSig>,
+    pub(super) msg_sigs: Vec<MsgSig>,
     pub(super) span: Span,
 }
 
@@ -23,8 +23,45 @@ impl Spanned for InterfaceDecl {
 impl DisplayWithII for InterfaceDecl {
     fn fmt(&self, f: &mut Formatter<'_>, ii: &IntermediateIntent) -> Result {
         write!(f, "interface {} {{ ", self.name)?;
-        for function in &self.functions {
-            write!(f, "{}; ", ii.with_ii(function))?;
+        for msg_sig in &self.msg_sigs {
+            write!(f, "{}; ", ii.with_ii(msg_sig))?;
+        }
+        write!(f, "}}")
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum MsgStatement {
+    Constraint(ExprKey),
+    State(State),
+}
+
+impl DisplayWithII for MsgStatement {
+    fn fmt(&self, f: &mut Formatter<'_>, ii: &IntermediateIntent) -> Result {
+        match self {
+            MsgStatement::Constraint(constraint) => {
+                write!(f, "constraint {}", ii.with_ii(constraint))
+            }
+            MsgStatement::State(state) => {
+                write!(f, "{}", ii.with_ii(state))
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MsgDecl {
+    pub(super) msg_sig: MsgSig,
+    pub(super) statements: Vec<MsgStatement>,
+    pub(super) span: Span,
+}
+
+impl DisplayWithII for MsgDecl {
+    fn fmt(&self, f: &mut Formatter<'_>, ii: &IntermediateIntent) -> Result {
+        write!(f, "{}", ii.with_ii(self.msg_sig.clone()))?;
+        write!(f, " {{ ")?;
+        for statement in &self.statements {
+            write!(f, "{}; ", ii.with_ii(statement))?;
         }
         write!(f, "}}")
     }
@@ -33,9 +70,8 @@ impl DisplayWithII for InterfaceDecl {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ContractDecl {
     pub(super) name: Ident,
-    pub(super) id: ExprKey,
     pub(super) interfaces: Vec<Path>,
-    pub(super) functions: Vec<FnSig>,
+    pub(super) msg_decls: Vec<MsgDecl>,
     pub(super) span: Span,
 }
 
@@ -47,14 +83,14 @@ impl Spanned for ContractDecl {
 
 impl DisplayWithII for ContractDecl {
     fn fmt(&self, f: &mut Formatter<'_>, ii: &IntermediateIntent) -> Result {
-        write!(f, "contract {}({})", self.name, ii.with_ii(self.id))?;
+        write!(f, "contract {}", self.name)?;
         if !self.interfaces.is_empty() {
             write!(f, " implements ")?;
             write_many!(f, self.interfaces, ", ");
         }
         write!(f, " {{ ")?;
-        for function in &self.functions {
-            write!(f, "{}; ", ii.with_ii(function))?;
+        for msg_decl in &self.msg_decls {
+            write!(f, "{} ", ii.with_ii(msg_decl))?;
         }
         write!(f, "}}")
     }

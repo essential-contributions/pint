@@ -1,12 +1,12 @@
 use crate::{
-    contract::{ContractDecl, InterfaceDecl},
+    contract::{ContractDecl, InterfaceDecl, MsgDecl, MsgStatement},
     error::{Error, ParseError},
     expr::*,
-    intent::intermediate::{ExprKey, SolveFunc},
+    intent::intermediate::{ExprKey, SolveFunc, State},
     lexer,
     macros::{MacroCall, MacroDecl},
     parser::{ParserContext, UsePath, UseTree::{self, Path as UseTreePath}, NextModPath},
-    types::{EnumDecl, Path, FnSig, NewTypeDecl, PrimitiveKind, Type},
+    types::{EnumDecl, Path, FnSig, MsgSig, NewTypeDecl, PrimitiveKind, Type},
     span,
 };
 
@@ -246,17 +246,22 @@ LetInit: ExprKey = {
     "=" <Expr>,
 };
 
+pub State: (Ident, Option<Type>, ExprKey) = {
+    "state" <name:Ident> <ty:(":" <Type>)?> "=" <init:Expr> => {
+        (name, ty, init)
+    }
+};
+
 pub StateDecl: () = {
-    <l:@L> "state" <name:Ident> <ty:(":" <Type>)?> "=" <init:FnCallExpr> <r:@R> => {
+    <l:@L> <state: State> <r:@R> => {
         // Return the index to the new state in the IntermediateIntent::states Vec.
-        let init_key = context.ii.exprs.insert(init);
         context
             .ii
             .insert_state(
                 context.mod_prefix,
-                &name,
-                ty,
-                init_key,
+                &state.0, // name
+                state.1, // ty
+                state.2, // init expr
                 (context.span_from)(l, r),
             )
             .unwrap_or_else(|error| {
@@ -265,9 +270,13 @@ pub StateDecl: () = {
     }
 };
 
+pub Constraint: ExprKey = {
+    "constraint" <e:Expr> => e
+};
+
 pub ConstraintDecl: () = {
-    <l:@L> "constraint" <e:Expr> <r:@R> => {
-        context.ii.constraints.push((e, (context.span_from)(l, r)));
+    <l:@L> <constraint: Constraint> <r:@R> => {
+        context.ii.constraints.push((constraint, (context.span_from)(l, r)));
     }
 };
 
@@ -361,20 +370,30 @@ FnSig: FnSig = {
     }
 }
 
+MsgSig: MsgSig = {
+    <l:@L> "msg" <name:Ident> "(" <params:SepList<FnParam, ",">> ")" <r:@R> => {
+        MsgSig {
+            name,
+            params,
+            span: (context.span_from)(l, r),
+        }
+    }
+}
+
 pub InterfaceDecl: () = {
-    <l:@L> "interface" <name:Ident> "{" <functions:(<FnSig> ";")*> "}" <r:@R> => {
+    <l:@L> "interface" <name:Ident> "{" <msg_sigs:(<MsgSig> ";")*> "}" <r:@R> => {
         let full_interface_path = context.add_top_level_symbol(name, context.mod_prefix, errors);
         let interface_decl = InterfaceDecl {
             name: full_interface_path.clone(),
-            functions: functions
+            msg_sigs: msg_sigs 
                 .iter()
-                .map(|fn_sig| FnSig {
+                .map(|msg_sig| MsgSig {
                     name: context.add_top_level_symbol(
-                        fn_sig.name.clone(),
+                        msg_sig.name.clone(),
                         &(full_interface_path.name.clone() + "::"),
                         errors,
                     ),
-                    ..fn_sig.clone()
+                    ..msg_sig.clone()
                 })
                 .collect(),
             span: (context.span_from)(l, r),
@@ -383,26 +402,39 @@ pub InterfaceDecl: () = {
     }
 }
 
+pub MsgStatement: MsgStatement = {
+    <l:@L> <constraint: Constraint> ";" <r:@R> => MsgStatement::Constraint(constraint),
+    <l:@L> <state: State> ";" <r:@R> => {
+        MsgStatement::State(
+            State {
+                name: state.0.to_string(), // add to a local symbol table
+                ty: state.1,
+                expr: state.2,
+                span: (context.span_from)(l, r),
+            }
+        )
+    }
+}
+
+pub MsgDecl: MsgDecl = {
+    <l:@L> <msg_sig: MsgSig> "{" <statements: MsgStatement*> "}" <r:@R> => {
+        MsgDecl {
+            msg_sig,
+            statements, 
+            span: (context.span_from)(l, r),
+        }
+    }
+}
+
 pub ContractDecl: () = {
-    <l:@L> "contract" <name:Ident> "(" <id:Expr> ")"
+    <l:@L> "contract" <name:Ident>
         <interfaces: ("implements" <Sep1ListNoTrail<Path, ",">>)?>
-        "{" <functions:(<FnSig> ";")*> "}" <r:@R> => {
+        "{" <msg_decls: MsgDecl*> "}" <r:@R> => {
         let full_contract_path = context.add_top_level_symbol(name, context.mod_prefix, errors);
         let contract_decl = ContractDecl {
             name: full_contract_path.clone(),
-            id,
             interfaces: interfaces.unwrap_or_default().to_vec(),
-            functions: functions
-                .iter()
-                .map(|fn_sig| FnSig {
-                    name: context.add_top_level_symbol(
-                        fn_sig.name.clone(),
-                        &(full_contract_path.name.clone() + "::"),
-                        errors,
-                    ),
-                    ..fn_sig.clone()
-                })
-                .collect(),
+            msg_decls,
             span: (context.span_from)(l, r),
         };
         context.ii.contracts.push(contract_decl);
@@ -1193,6 +1225,7 @@ extern {
         "constraint" => lexer::Token::Constraint,
         "as" => lexer::Token::As,
         "interface" => lexer::Token::Interface,
+        "msg" => lexer::Token::Msg,
         "contract" => lexer::Token::Contract,
         "implements" => lexer::Token::Implements,
         "extern" => lexer::Token::Extern,

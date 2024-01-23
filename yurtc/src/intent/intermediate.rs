@@ -263,12 +263,12 @@ impl IntermediateIntent {
 }
 
 /// A state specification with an optional type.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct State {
-    name: Path,
-    ty: Option<Type>,
-    expr: ExprKey,
-    span: Span,
+    pub(crate) name: Path,
+    pub(crate) ty: Option<Type>,
+    pub(crate) expr: ExprKey,
+    pub(crate) span: Span,
 }
 
 impl DisplayWithII for &State {
@@ -281,6 +281,7 @@ impl DisplayWithII for &State {
         Ok(())
     }
 }
+
 /// A decision variable with an optional type.
 #[derive(Clone, Debug)]
 pub struct Var {

@@ -44,6 +44,13 @@ mod e2e {
     }
 
     #[test]
+    fn contracts() {
+        if let Err(err) = run_tests("contracts") {
+            eprintln!("{err}");
+        }
+    }
+
+    #[test]
     fn modules() {
         if let Err(err) = run_tests("modules") {
             eprintln!("{err}");

@@ -90,3 +90,16 @@ impl Spanned for FnSig {
         &self.span
     }
 }
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MsgSig {
+    pub(super) name: Ident,
+    pub(super) params: Vec<(Ident, Type)>,
+    pub(super) span: Span,
+}
+
+impl Spanned for MsgSig {
+    fn span(&self) -> &Span {
+        &self.span
+    }
+}

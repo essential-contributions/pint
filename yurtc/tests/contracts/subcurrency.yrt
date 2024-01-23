@@ -1,0 +1,32 @@
+interface Coin {
+    msg mint(receiver: string, amount: int);
+    msg send(receiver: string, amount: int);
+}
+
+contract CoinContract {
+    msg mint(receiver: string, amount: int) {
+        constraint storage::minter == context::sender;
+
+        state receiver_balance = storage::balances[receiver];
+        constraint receiver_balance' == receiver_balance + amount;
+    }
+
+    msg send(receiver: string, amount: int) {
+        state sender_balance = balances[context::sender];
+        state receiver_balance = balances[receiver];
+
+        constraint amount <= sender_balance;
+        constraint sender_balance' == sender_balance - amount;
+        constraint receiver_balance' == receiver_balance + amount;
+    }
+}
+
+// intermediate <<<
+// interface ::Coin { msg ::Coin::mint(receiver: string, amount: int); msg ::Coin::send(receiver: string, amount: int); }
+// contract ::CoinContract { msg mint(receiver: string, amount: int) { constraint (::storage::minter == ::context::sender); state receiver_balance = ::storage::balances[::receiver]; constraint (::receiver_balance' == (::receiver_balance + ::amount)); } msg send(receiver: string, amount: int) { state sender_balance = ::balances[::context::sender]; state receiver_balance = ::balances[::receiver]; constraint (::amount <= ::sender_balance); constraint (::sender_balance' == (::sender_balance - ::amount)); constraint (::receiver_balance' == (::receiver_balance + ::amount)); } }
+// >>>
+
+// flattening_failure <<<
+// attempt to use a non-constant value as an array index
+// @287..295: this must be a constant
+// >>>
