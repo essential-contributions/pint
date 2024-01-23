@@ -1,25 +1,28 @@
 // Basic sudoku
-// This should eventually use a 2D array and take an input puzzle
 
-let grid: int[81];
+let grid: int[9][9];
 
-constraint forall i in 0..80 { grid[i] >= 1 && grid[i] <= 9 };
-
-constraint forall k in 0..8 {
-    forall i in 0..8, j in 0..8 where i < j { 
-        grid[i + 9*k] != grid[j + 9*k] 
+constraint forall i in 0..8 { 
+    forall j in 0..8 {
+        // Each entry is an integer between 1 and 9
+        grid[i][j] >= 1 && grid[i][j] <= 9 
     }
 };
 
 constraint forall k in 0..8 {
     forall i in 0..8, j in 0..8 where i < j { 
-        grid[9*i + k] != grid[9*j + k] 
+        // Unique entries in each column `k`
+        grid[i][k] != grid[j][k] &&
+
+        // Unique entries in each row `k`
+        grid[k][i] != grid[k][j]
     }
 };
 
 constraint forall k1 in 0..2, k2 in 0..2 {
     forall i1 in 0..2, j1 in 0..2, i2 in 0..2, j2 in 0..2 where i1 < i2 || j2 < j2 {
-        grid[9*(k1*3 + i1) + k2*3 + j1] != grid[9*(k1*3 + i2) + k2*3 + j2]
+        // Unique entries in each 3x3 subgrid `(k1, k2)`
+        grid[k1*3 + i1][k2*3 + j1] != grid[k1*3 + i2][k2*3 + j2]
     }
 };
 
