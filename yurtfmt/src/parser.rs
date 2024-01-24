@@ -292,7 +292,9 @@ fn ident<'sc>() -> impl Parser<Token<'sc>, String, Error = ParseError> + Clone {
 }
 
 fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseError> + Clone {
-    select! { Token::Literal(str) => ast::Immediate(str.to_string()) }.boxed()
+    select! { Token::Literal(str) => str }
+        .map_with_span(|str, span| ast::Immediate(str.to_string(), span))
+        .boxed()
 }
 
 pub(super) fn type_<'sc>(

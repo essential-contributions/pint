@@ -1,7 +1,7 @@
 use crate::{
     error::FormatterError,
     formatter::{Format, FormattedCode},
-    span::Span,
+    span::{Span, Spanned},
 };
 use std::fmt::Write;
 
@@ -216,6 +216,25 @@ impl<'sc> Format for Decl<'sc> {
     }
 }
 
+impl<'sc> Spanned for Decl<'sc> {
+    fn span(&self) -> &Span {
+        use Decl::*;
+        match &self {
+            Use { span, .. }
+            | Value { span, .. }
+            | State { span, .. }
+            | Constraint { span, .. }
+            | Fn { span, .. }
+            | Solve { span, .. }
+            | Extern { span, .. }
+            | Enum { span, .. }
+            | Interface { span, .. }
+            | Contract { span, .. }
+            | NewType { span, .. } => span,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum UseTree {
     Name(String, Span),
@@ -265,6 +284,16 @@ impl Format for UseTree {
     }
 }
 
+impl Spanned for UseTree {
+    fn span(&self) -> &Span {
+        use UseTree::*;
+        match &self {
+            Path { span, .. } | Group { span, .. } | Alias { span, .. } => span,
+            Name(_, span) => span,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct FnSig<'sc> {
     pub(super) name: String,
@@ -293,6 +322,12 @@ impl<'sc> Format for FnSig<'sc> {
         self.return_type.format(formatted_code)?;
 
         Ok(())
+    }
+}
+
+impl<'sc> Spanned for FnSig<'sc> {
+    fn span(&self) -> &Span {
+        &self.span
     }
 }
 
@@ -325,6 +360,12 @@ impl<'sc> Format for Block<'sc> {
         formatted_code.write("}");
 
         Ok(())
+    }
+}
+
+impl<'sc> Spanned for Block<'sc> {
+    fn span(&self) -> &Span {
+        &self.span
     }
 }
 
@@ -371,14 +412,29 @@ impl<'sc> Format for Type<'sc> {
     }
 }
 
+impl<'sc> Spanned for Type<'sc> {
+    fn span(&self) -> &Span {
+        use Type::*;
+        match &self {
+            Primitive(_, span) | Tuple(_, span) | Array(_, span) => span,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct Immediate(pub String);
+pub(super) struct Immediate(pub String, pub Span);
 
 impl Format for Immediate {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         formatted_code.write(&self.0);
 
         Ok(())
+    }
+}
+
+impl Spanned for Immediate {
+    fn span(&self) -> &Span {
+        &self.1
     }
 }
 
@@ -400,6 +456,12 @@ impl Format for Path {
     }
 }
 
+impl Spanned for Path {
+    fn span(&self) -> &Span {
+        &self.span
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct UnaryOp<'sc> {
     pub prefix_op: &'sc str,
@@ -412,6 +474,12 @@ impl<'sc> Format for UnaryOp<'sc> {
         write!(formatted_code, "{}", self.prefix_op)?;
         self.expr.format(formatted_code)?;
         Ok(())
+    }
+}
+
+impl<'sc> Spanned for UnaryOp<'sc> {
+    fn span(&self) -> &Span {
+        &self.span
     }
 }
 
@@ -457,6 +525,12 @@ impl<'sc> Format for Call<'sc> {
     }
 }
 
+impl<'sc> Spanned for Call<'sc> {
+    fn span(&self) -> &Span {
+        &self.span
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct In<'sc> {
     pub lhs: Box<Expr<'sc>>,
@@ -470,6 +544,12 @@ impl<'sc> Format for In<'sc> {
         formatted_code.write(" in ");
         self.rhs.format(formatted_code)?;
         Ok(())
+    }
+}
+
+impl<'sc> Spanned for In<'sc> {
+    fn span(&self) -> &Span {
+        &self.span
     }
 }
 
@@ -489,6 +569,12 @@ impl<'sc> Format for Range<'sc> {
     }
 }
 
+impl<'sc> Spanned for Range<'sc> {
+    fn span(&self) -> &Span {
+        &self.span
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Cast<'sc> {
     pub value: Box<Expr<'sc>>,
@@ -503,6 +589,12 @@ impl<'sc> Format for Cast<'sc> {
         self.ty.format(formatted_code)?;
 
         Ok(())
+    }
+}
+
+impl<'sc> Spanned for Cast<'sc> {
+    fn span(&self) -> &Span {
+        &self.span
     }
 }
 
@@ -525,6 +617,12 @@ impl<'sc> Format for If<'sc> {
         self.false_code_block.format(formatted_code)?;
 
         Ok(())
+    }
+}
+
+impl<'sc> Spanned for If<'sc> {
+    fn span(&self) -> &Span {
+        &self.span
     }
 }
 
@@ -559,6 +657,12 @@ impl<'sc> Format for Cond<'sc> {
         formatted_code.write("}");
 
         Ok(())
+    }
+}
+
+impl<'sc> Spanned for Cond<'sc> {
+    fn span(&self) -> &Span {
+        &self.span
     }
 }
 
@@ -597,6 +701,12 @@ impl<'sc> Format for TupleExpr<'sc> {
     }
 }
 
+impl<'sc> Spanned for TupleExpr<'sc> {
+    fn span(&self) -> &Span {
+        &self.span
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct TupleFieldAccess<'sc> {
     pub tuple: Box<Expr<'sc>>,
@@ -609,6 +719,12 @@ impl<'sc> Format for TupleFieldAccess<'sc> {
         self.tuple.format(formatted_code)?;
         formatted_code.write(&format!(".{}", self.field));
         Ok(())
+    }
+}
+
+impl<'sc> Spanned for TupleFieldAccess<'sc> {
+    fn span(&self) -> &Span {
+        &self.span
     }
 }
 
@@ -635,6 +751,12 @@ impl<'sc> Format for ArrayExpr<'sc> {
     }
 }
 
+impl<'sc> Spanned for ArrayExpr<'sc> {
+    fn span(&self) -> &Span {
+        &self.span
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct ArrayElementAccess<'sc> {
     pub array: Box<Expr<'sc>>,
@@ -649,6 +771,12 @@ impl<'sc> Format for ArrayElementAccess<'sc> {
         self.index.format(formatted_code)?;
         formatted_code.write("]");
         Ok(())
+    }
+}
+
+impl<'sc> Spanned for ArrayElementAccess<'sc> {
+    fn span(&self) -> &Span {
+        &self.span
     }
 }
 
