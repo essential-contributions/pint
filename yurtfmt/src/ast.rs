@@ -1,6 +1,7 @@
 use crate::{
     error::FormatterError,
     formatter::{Format, FormattedCode},
+    span::Span,
 };
 use std::fmt::Write;
 
@@ -13,60 +14,71 @@ pub(super) type Ast<'sc> = Vec<Decl<'sc>>;
 pub(super) enum Decl<'sc> {
     Use {
         use_tree: UseTree,
+        span: Span,
     },
     Value {
         name: String,
         ty: Option<Type<'sc>>,
         init: Option<Expr<'sc>>,
+        span: Span,
     },
     Contract {
         name: String,
         expr: Expr<'sc>,
         paths: Option<Vec<Path>>,
         fn_sigs: Vec<FnSig<'sc>>,
+        span: Span,
     },
     Solve {
         directive: String,
         expr: Option<Expr<'sc>>,
+        span: Span,
     },
     NewType {
         name: String,
         ty: Type<'sc>,
+        span: Span,
     },
     Constraint {
         expr: Expr<'sc>,
+        span: Span,
     },
     Fn {
         fn_sig: FnSig<'sc>,
         body: Block<'sc>,
+        span: Span,
     },
     Interface {
         name: String,
         fn_sigs: Vec<FnSig<'sc>>,
+        span: Span,
     },
     State {
         name: String,
         ty: Option<Type<'sc>>,
         expr: Expr<'sc>,
+        span: Span,
     },
     Extern {
         fn_sigs: Vec<FnSig<'sc>>,
+        span: Span,
     },
     Enum {
         name: String,
         variants: Vec<String>,
+        span: Span,
     },
 }
 
 impl<'sc> Format for Decl<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
-            Self::Use { use_tree } => {
+            Self::Use { use_tree, .. } => {
                 formatted_code.write("use ");
                 use_tree.format(formatted_code)?;
                 formatted_code.write(";");
             }
-            Self::Value { name, ty, init } => {
+            Self::Value { name, ty, init, .. } => {
                 formatted_code.write(&format!("let {name}"));
 
                 if let Some(ty) = ty {
@@ -86,6 +98,7 @@ impl<'sc> Format for Decl<'sc> {
                 expr,
                 paths,
                 fn_sigs,
+                ..
             } => {
                 formatted_code.write(&format!("contract {name}("));
                 expr.format(formatted_code)?;
@@ -119,7 +132,9 @@ impl<'sc> Format for Decl<'sc> {
                 formatted_code.decrease_indent();
                 formatted_code.write_line("}");
             }
-            Self::Solve { directive, expr } => {
+            Self::Solve {
+                directive, expr, ..
+            } => {
                 formatted_code.write(&format!("solve {directive}"));
 
                 if let Some(expr) = expr {
@@ -129,22 +144,22 @@ impl<'sc> Format for Decl<'sc> {
 
                 formatted_code.write_line(";");
             }
-            Self::NewType { name, ty } => {
+            Self::NewType { name, ty, .. } => {
                 formatted_code.write(&format!("type {name} = "));
                 ty.format(formatted_code)?;
                 formatted_code.write_line(";");
             }
-            Self::Constraint { expr } => {
+            Self::Constraint { expr, .. } => {
                 formatted_code.write("constraint ");
                 expr.format(formatted_code)?;
                 formatted_code.write_line(";");
             }
-            Self::Fn { fn_sig, body } => {
+            Self::Fn { fn_sig, body, .. } => {
                 fn_sig.format(formatted_code)?;
                 formatted_code.write(" ");
                 body.format(formatted_code)?;
             }
-            Self::Interface { name, fn_sigs } => {
+            Self::Interface { name, fn_sigs, .. } => {
                 formatted_code.write(&format!("interface {name} {{"));
 
                 formatted_code.increase_indent();
@@ -162,7 +177,7 @@ impl<'sc> Format for Decl<'sc> {
 
                 formatted_code.write_line("}");
             }
-            Self::State { name, ty, expr } => {
+            Self::State { name, ty, expr, .. } => {
                 formatted_code.write(&format!("state {name}"));
 
                 if let Some(ty) = ty {
@@ -174,7 +189,7 @@ impl<'sc> Format for Decl<'sc> {
                 expr.format(formatted_code)?;
                 formatted_code.write_line(";");
             }
-            Self::Extern { fn_sigs } => {
+            Self::Extern { fn_sigs, .. } => {
                 formatted_code.write("extern {");
 
                 formatted_code.increase_indent();
@@ -192,7 +207,7 @@ impl<'sc> Format for Decl<'sc> {
 
                 formatted_code.write_line("}");
             }
-            Self::Enum { name, variants } => {
+            Self::Enum { name, variants, .. } => {
                 formatted_code.write(&format!("enum {name} = {};", &variants.join(" | ")));
             }
         }
@@ -203,31 +218,34 @@ impl<'sc> Format for Decl<'sc> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum UseTree {
-    Name(String),
+    Name(String, Span),
     Path {
         prefix: String,
         suffix: Box<UseTree>,
+        span: Span,
     },
     Group {
         imports: Vec<UseTree>,
+        span: Span,
     },
     Alias {
         name: String,
         alias: String,
+        span: Span,
     },
 }
 
 impl Format for UseTree {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
-            Self::Name(name) => {
+            Self::Name(name, _) => {
                 formatted_code.write(name);
             }
-            Self::Path { prefix, suffix } => {
+            Self::Path { prefix, suffix, .. } => {
                 formatted_code.write(&format!("{prefix}::"));
                 suffix.format(formatted_code)?;
             }
-            Self::Group { imports } => {
+            Self::Group { imports, .. } => {
                 formatted_code.write("{");
                 for (i, import) in imports.iter().enumerate() {
                     import.format(formatted_code)?;
@@ -238,7 +256,7 @@ impl Format for UseTree {
                 }
                 formatted_code.write("}");
             }
-            Self::Alias { name, alias } => {
+            Self::Alias { name, alias, .. } => {
                 formatted_code.write(&format!("{name} as {alias}"));
             }
         }
@@ -252,6 +270,7 @@ pub struct FnSig<'sc> {
     pub(super) name: String,
     pub(super) params: Option<Vec<(String, Type<'sc>)>>,
     pub(super) return_type: Type<'sc>,
+    pub(super) span: Span,
 }
 
 impl<'sc> Format for FnSig<'sc> {
@@ -281,6 +300,7 @@ impl<'sc> Format for FnSig<'sc> {
 pub struct Block<'sc> {
     pub(super) statements: Vec<Decl<'sc>>,
     pub(super) final_expr: Box<Expr<'sc>>,
+    pub(super) span: Span,
 }
 
 impl<'sc> Format for Block<'sc> {
@@ -310,16 +330,16 @@ impl<'sc> Format for Block<'sc> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Type<'sc> {
-    Primitive(String),
-    Tuple(Vec<(Option<String>, Self)>),
-    Array((Box<Self>, Vec<Expr<'sc>>)),
+    Primitive(String, Span),
+    Tuple(Vec<(Option<String>, Self)>, Span),
+    Array((Box<Self>, Vec<Expr<'sc>>), Span),
 }
 
 impl<'sc> Format for Type<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
-            Type::Primitive(primitive_ty) => formatted_code.write(primitive_ty),
-            Type::Tuple(tuple_ty) => {
+            Type::Primitive(primitive_ty, _) => formatted_code.write(primitive_ty),
+            Type::Tuple(tuple_ty, _) => {
                 formatted_code.write("{ ");
 
                 for (i, (name, ty)) in tuple_ty.iter().enumerate() {
@@ -337,7 +357,7 @@ impl<'sc> Format for Type<'sc> {
 
                 formatted_code.write(" }");
             }
-            Type::Array((array_ty, array_exprs)) => {
+            Type::Array((array_ty, array_exprs), _) => {
                 array_ty.format(formatted_code)?;
 
                 for expr in array_exprs {
@@ -366,6 +386,7 @@ impl Format for Immediate {
 pub(super) struct Path {
     pub pre_colon: bool,
     pub idents: Vec<String>,
+    pub span: Span,
 }
 
 impl Format for Path {
@@ -383,6 +404,7 @@ impl Format for Path {
 pub(super) struct UnaryOp<'sc> {
     pub prefix_op: &'sc str,
     pub expr: Box<Expr<'sc>>,
+    pub span: Span,
 }
 
 impl<'sc> Format for UnaryOp<'sc> {
@@ -398,6 +420,7 @@ pub(super) struct BinaryOp<'sc> {
     pub op: &'sc str,
     pub lhs: Box<Expr<'sc>>,
     pub rhs: Box<Expr<'sc>>,
+    pub span: Span,
 }
 
 impl<'sc> Format for BinaryOp<'sc> {
@@ -413,6 +436,7 @@ impl<'sc> Format for BinaryOp<'sc> {
 pub(super) struct Call<'sc> {
     pub path: Path,
     pub args: Vec<Expr<'sc>>,
+    pub span: Span,
 }
 
 impl<'sc> Format for Call<'sc> {
@@ -437,6 +461,7 @@ impl<'sc> Format for Call<'sc> {
 pub(super) struct In<'sc> {
     pub lhs: Box<Expr<'sc>>,
     pub rhs: Box<Expr<'sc>>,
+    pub span: Span,
 }
 
 impl<'sc> Format for In<'sc> {
@@ -452,6 +477,7 @@ impl<'sc> Format for In<'sc> {
 pub(super) struct Range<'sc> {
     pub lb: Box<Expr<'sc>>,
     pub ub: Box<Expr<'sc>>,
+    pub span: Span,
 }
 
 impl<'sc> Format for Range<'sc> {
@@ -467,6 +493,7 @@ impl<'sc> Format for Range<'sc> {
 pub(super) struct Cast<'sc> {
     pub value: Box<Expr<'sc>>,
     pub ty: Type<'sc>,
+    pub span: Span,
 }
 
 impl<'sc> Format for Cast<'sc> {
@@ -484,6 +511,7 @@ pub(super) struct If<'sc> {
     pub condition: Box<Expr<'sc>>,
     pub true_code_block: Block<'sc>,
     pub false_code_block: Block<'sc>,
+    pub span: Span,
 }
 
 impl<'sc> Format for If<'sc> {
@@ -504,6 +532,7 @@ impl<'sc> Format for If<'sc> {
 pub(super) struct Cond<'sc> {
     pub cond_branches: Vec<(Expr<'sc>, Expr<'sc>)>,
     pub else_branch: Box<Expr<'sc>>,
+    pub span: Span,
 }
 
 impl<'sc> Format for Cond<'sc> {
@@ -536,6 +565,7 @@ impl<'sc> Format for Cond<'sc> {
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct TupleExpr<'sc> {
     pub fields: Vec<(Option<String>, Expr<'sc>)>,
+    pub span: Span,
 }
 
 impl<'sc> Format for TupleExpr<'sc> {
@@ -571,6 +601,7 @@ impl<'sc> Format for TupleExpr<'sc> {
 pub(super) struct TupleFieldAccess<'sc> {
     pub tuple: Box<Expr<'sc>>,
     pub field: String,
+    pub span: Span,
 }
 
 impl<'sc> Format for TupleFieldAccess<'sc> {
@@ -584,6 +615,7 @@ impl<'sc> Format for TupleFieldAccess<'sc> {
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct ArrayExpr<'sc> {
     pub elements: Vec<Expr<'sc>>,
+    pub span: Span,
 }
 
 impl<'sc> Format for ArrayExpr<'sc> {
@@ -607,6 +639,7 @@ impl<'sc> Format for ArrayExpr<'sc> {
 pub(super) struct ArrayElementAccess<'sc> {
     pub array: Box<Expr<'sc>>,
     pub index: Box<Expr<'sc>>,
+    pub span: Span,
 }
 
 impl<'sc> Format for ArrayElementAccess<'sc> {
