@@ -176,7 +176,31 @@ impl MacroExpander {
                     }
                 }
 
-                Token::MacroParamPack(_) => {
+                Token::MacroParamPack(pack_name) => {
+                    // Confirm the pack has the correct name.
+                    if macro_decl
+                        .pack
+                        .as_ref()
+                        .map(|pack_id| &pack_id.name != pack_name)
+                        .unwrap_or(true)
+                    {
+                        errs.push(Error::Compile {
+                            error: CompileError::MacroUnknownPack {
+                                actual_pack: macro_decl
+                                    .pack
+                                    .clone()
+                                    .map(|pack_id| (pack_id.name, pack_id.span)),
+                                bad_pack: (
+                                    pack_name.clone(),
+                                    Span {
+                                        context: Rc::clone(&macro_decl.sig_span.context),
+                                        range: tok.0..tok.2,
+                                    },
+                                ),
+                            },
+                        });
+                    }
+
                     // `match_macro()` guarantees that the param pack is not empty.  We need to append
                     // the arg tokens separated by `;` for each arg.
                     for arg in call.args.iter().skip(macro_decl.params.len()) {

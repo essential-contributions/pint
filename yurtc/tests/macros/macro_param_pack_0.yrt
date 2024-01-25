@@ -1,0 +1,12 @@
+macro @a($x, &pack, $y) {
+    $x + $y
+}
+
+let b = @a(11; 22);
+
+solve satisfy;
+
+// parse_failure <<<
+// expected `)`, found `$y`
+// @20..22: expected `)`
+// >>>

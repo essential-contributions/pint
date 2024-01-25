@@ -47,6 +47,11 @@ pub enum CompileError {
     },
     #[error("macro declared with multiple parameter pack versions")]
     MacroMultiplePacks { span0: Span, span1: Span },
+    #[error("unknown parameter pack")]
+    MacroUnknownPack {
+        actual_pack: Option<(String, Span)>,
+        bad_pack: (String, Span),
+    },
     #[error("macro `{name}` must have unique parameter counts")]
     MacroNonUniqueParamCounts {
         name: String,
@@ -146,16 +151,37 @@ impl ReportableError for CompileError {
             MacroMultiplePacks { span0, span1 } => {
                 vec![
                     ErrorLabel {
-                        message: format!("macro declared here"),
+                        message: "macro declared here".to_string(),
                         span: span0.clone(),
                         color: Color::Red,
                     },
                     ErrorLabel {
-                        message: format!(" and also macro declared here"),
+                        message: "and also macro declared here".to_string(),
                         span: span1.clone(),
                         color: Color::Red,
                     },
                 ]
+            }
+
+            MacroUnknownPack {
+                actual_pack,
+                bad_pack,
+            } => {
+                let mut labels = vec![ErrorLabel {
+                    message: format!("unknown parameter pack `{}`", bad_pack.0),
+                    span: bad_pack.1.clone(),
+                    color: Color::Red,
+                }];
+
+                if let Some((name, span)) = actual_pack {
+                    labels.push(ErrorLabel {
+                        message: format!("actual parameter pack is `{name}`"),
+                        span: span.clone(),
+                        color: Color::Blue,
+                    });
+                }
+
+                labels
             }
 
             MacroNonUniqueParamCounts {
@@ -346,6 +372,7 @@ impl ReportableError for CompileError {
             | InvalidConstArrayIndex { .. }
             | CannotIndexIntoValue { .. }
             | MacroMultiplePacks { .. }
+            | MacroUnknownPack { .. }
             | MacroNonUniqueParamCounts { .. } => None,
         }
     }
@@ -378,6 +405,10 @@ impl Spanned for CompileError {
             | MacroNotFound { span, .. }
             | MacroCallMismatch { span, .. }
             | MacroMultiplePacks { span0: span, .. }
+            | MacroUnknownPack {
+                bad_pack: (_, span),
+                ..
+            }
             | MacroNonUniqueParamCounts { span0: span, .. }
             | MacroUndefinedParam { span, .. }
             | MacroRecursion {
