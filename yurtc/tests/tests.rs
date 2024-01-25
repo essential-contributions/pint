@@ -1,4 +1,3 @@
-use russcip::ProblemCreated;
 use std::{
     fs::{read_dir, File},
     io::{BufRead, BufReader},
@@ -8,7 +7,6 @@ use yansi::Color::{Cyan, Red, Yellow};
 use yurtc::{
     error::ReportableError,
     intent::{Intent, IntermediateIntent},
-    solvers::scip::Solver,
 };
 
 #[cfg(test)]
@@ -394,12 +392,19 @@ fn compile_to_final_intent_and_check(
     })
 }
 
+#[cfg(not(feature = "solver-scip"))]
+fn solve_and_check(_: Option<Intent>, _: &Expectations, _: &mut Vec<String>, _: &Path) {}
+
+#[cfg(feature = "solver-scip")]
 fn solve_and_check(
     ii: Option<Intent>,
     expectations: &Expectations,
     failed_tests: &mut Vec<String>,
     path: &Path,
 ) {
+    use russcip::ProblemCreated;
+    use yurtc::solvers::scip::Solver;
+
     ii.and_then(|ii| {
         Solver::<ProblemCreated>::new(&ii)
             .solve()

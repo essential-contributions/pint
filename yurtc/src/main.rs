@@ -1,6 +1,5 @@
-use russcip::ProblemCreated;
 use std::path::Path;
-use yurtc::{error, parser, solvers::scip::*};
+use yurtc::{error, parser};
 
 fn main() -> anyhow::Result<()> {
     let (filepath, compile_flag, solve_flag) = parse_cli();
@@ -50,18 +49,28 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    // Solve the final intent. This assumes, for now, that the final intent has no state variables
-    let solver = Solver::<ProblemCreated>::new(&intent);
-    let solver = match solver.solve() {
-        Ok(solver) => solver,
-        Err(error) => {
-            if !cfg!(test) {
-                error::print_errors(&vec![error::Error::Solve { error }]);
+    if solve_flag && !cfg!(feature = "solver-scip") && !cfg!(feature = "solver-pcp") {
+        eprintln!("Solving is disabled in this build.");
+    }
+
+    #[cfg(feature = "solver-scip")]
+    {
+        use russcip::ProblemCreated;
+        use yurtc::solvers::scip::*;
+
+        // Solve the final intent. This assumes, for now, that the final intent has no state variables
+        let solver = Solver::<ProblemCreated>::new(&intent);
+        let solver = match solver.solve() {
+            Ok(solver) => solver,
+            Err(error) => {
+                if !cfg!(test) {
+                    error::print_errors(&vec![error::Error::Solve { error }]);
+                }
+                yurtc::yurtc_bail!(1, filepath)
             }
-            yurtc::yurtc_bail!(1, filepath)
-        }
-    };
-    solver.print_solution();
+        };
+        solver.print_solution();
+    }
 
     Ok(())
 }
