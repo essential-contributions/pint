@@ -1,0 +1,12 @@
+macro @a($x) {
+    @a($x + &rest)
+}
+
+let b: int = @a(11);
+
+solve satisfy;
+
+// parse_failure <<<
+// unknown parameter pack
+// @27..32: unknown parameter pack `&rest`
+// >>>

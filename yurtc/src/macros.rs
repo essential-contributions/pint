@@ -176,7 +176,31 @@ impl MacroExpander {
                     }
                 }
 
-                Token::MacroParamPack(_) => {
+                Token::MacroParamPack(pack_name) => {
+                    // Confirm the pack has the correct name.
+                    if macro_decl
+                        .pack
+                        .as_ref()
+                        .map(|pack_id| &pack_id.name != pack_name)
+                        .unwrap_or(true)
+                    {
+                        errs.push(Error::Compile {
+                            error: CompileError::MacroUnknownPack {
+                                actual_pack: macro_decl
+                                    .pack
+                                    .clone()
+                                    .map(|pack_id| (pack_id.name, pack_id.span)),
+                                bad_pack: (
+                                    pack_name.clone(),
+                                    Span {
+                                        context: Rc::clone(&macro_decl.sig_span.context),
+                                        range: tok.0..tok.2,
+                                    },
+                                ),
+                            },
+                        });
+                    }
+
                     // `match_macro()` guarantees that the param pack is not empty.  We need to append
                     // the arg tokens separated by `;` for each arg.
                     for arg in call.args.iter().skip(macro_decl.params.len()) {
@@ -208,8 +232,12 @@ fn match_macro<'a>(
     macro_decls: &'a [MacroDecl],
     call: &MacroCall,
 ) -> Result<&'a MacroDecl, Vec<Error>> {
+    // This method does a lot of validation which will be duplicated for each call.  To avoid this
+    // some preprocessing could be done after parsing a module to perform them first.  It is
+    // convenient to do them here because we're necessarily collecting all macros by name.
+
     // Firstly find the macros which have the correct name.
-    let named_macros = macro_decls
+    let mut named_macros = macro_decls
         .iter()
         .filter(|md| md.name.name == call.name)
         .collect::<Vec<_>>();
@@ -220,6 +248,43 @@ fn match_macro<'a>(
                 span: call.span.clone(),
             },
         }]);
+    }
+
+    // Confirm that at most one version has a param pack.
+    let pack_spans = named_macros
+        .iter()
+        .filter_map(|&md| md.pack.as_ref().map(|_| &md.sig_span))
+        .collect::<Vec<_>>();
+    if pack_spans.len() > 1 {
+        return Err(vec![Error::Compile {
+            // Just take the first two.
+            error: CompileError::MacroMultiplePacks {
+                span0: pack_spans[0].clone(),
+                span1: pack_spans[1].clone(),
+            },
+        }]);
+    }
+
+    // Sort them by param count, putting the param pack version last if it exists.
+    named_macros.sort_unstable_by(|lhs, rhs| match (lhs.pack.is_some(), rhs.pack.is_some()) {
+        (false, false) => lhs.params.len().cmp(&rhs.params.len()),
+        (false, true) => std::cmp::Ordering::Less,
+        (true, false) => std::cmp::Ordering::Greater,
+        (true, true) => unreachable!("We already checked for multiple param packs."),
+    });
+
+    // All must be unique counts.
+    for pair in named_macros.windows(2) {
+        if pair[0].params.len() == pair[1].params.len() && pair[1].pack.is_none() {
+            return Err(vec![Error::Compile {
+                error: CompileError::MacroNonUniqueParamCounts {
+                    name: pair[0].name.name.clone(),
+                    count: pair[0].params.len(),
+                    span0: pair[0].sig_span.clone(),
+                    span1: pair[1].sig_span.clone(),
+                },
+            }]);
+        }
     }
 
     // Then search for one with exactly the right number of parameters.
@@ -237,8 +302,61 @@ fn match_macro<'a>(
             vec![Error::Compile {
                 error: CompileError::MacroCallMismatch {
                     name: call.name.clone(),
+                    arg_count: call.args.len(),
+                    param_counts_descr: format_param_counts_descr(&named_macros),
                     span: call.span.clone(),
                 },
             }]
         })
+}
+
+fn format_param_counts_descr(named_macros: &[&MacroDecl]) -> String {
+    use std::fmt::Write;
+
+    fn write_last_count(descr_str: &mut String, md: &MacroDecl) {
+        if md.pack.is_none() {
+            write!(descr_str, "or {}", md.params.len()).expect("infallible")
+        } else {
+            write!(descr_str, "or {} or more", md.params.len() + 1).expect("infallible")
+        }
+    }
+
+    let mut param_counts_descr = String::new();
+    match named_macros.len() {
+        1 => write!(
+            param_counts_descr,
+            "exactly {}",
+            named_macros[0].params.len()
+        )
+        .expect("infallible"),
+
+        2 => {
+            write!(
+                param_counts_descr,
+                "either {} ",
+                named_macros[0].params.len()
+            )
+            .expect("infallible");
+            write_last_count(&mut param_counts_descr, named_macros[1]);
+        }
+
+        _ => {
+            // We have at least 3 named macros.
+            let (last, middle) = named_macros[1..]
+                .split_last()
+                .expect("named_macros cannot be empty");
+            write!(
+                param_counts_descr,
+                "either {}",
+                named_macros[0].params.len()
+            )
+            .expect("infallible");
+            for md in middle {
+                write!(param_counts_descr, ", {}", md.params.len()).expect("infallible");
+            }
+            write_last_count(&mut param_counts_descr, last);
+        }
+    }
+
+    param_counts_descr
 }

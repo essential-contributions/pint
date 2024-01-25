@@ -39,7 +39,26 @@ pub enum CompileError {
     #[error("macro not found")]
     MacroNotFound { name: String, span: Span },
     #[error("unable to match macro call")]
-    MacroCallMismatch { name: String, span: Span },
+    MacroCallMismatch {
+        name: String,
+        arg_count: usize,
+        param_counts_descr: String,
+        span: Span,
+    },
+    #[error("macro declared with multiple parameter pack versions")]
+    MacroMultiplePacks { span0: Span, span1: Span },
+    #[error("unknown parameter pack")]
+    MacroUnknownPack {
+        actual_pack: Option<(String, Span)>,
+        bad_pack: (String, Span),
+    },
+    #[error("macro `{name}` must have unique parameter counts")]
+    MacroNonUniqueParamCounts {
+        name: String,
+        count: usize,
+        span0: Span,
+        span1: Span,
+    },
     #[error("undefined macro parameter")]
     MacroUndefinedParam { name: String, span: Span },
     #[error("macro call is recursive")]
@@ -121,12 +140,68 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            MacroCallMismatch { name, span } => {
+            MacroCallMismatch { name, span, .. } => {
                 vec![ErrorLabel {
                     message: format!("unable to match call to macro `{name}`"),
                     span: span.clone(),
                     color: Color::Red,
                 }]
+            }
+
+            MacroMultiplePacks { span0, span1 } => {
+                vec![
+                    ErrorLabel {
+                        message: "macro declared here".to_string(),
+                        span: span0.clone(),
+                        color: Color::Red,
+                    },
+                    ErrorLabel {
+                        message: "and also macro declared here".to_string(),
+                        span: span1.clone(),
+                        color: Color::Red,
+                    },
+                ]
+            }
+
+            MacroUnknownPack {
+                actual_pack,
+                bad_pack,
+            } => {
+                let mut labels = vec![ErrorLabel {
+                    message: format!("unknown parameter pack `{}`", bad_pack.0),
+                    span: bad_pack.1.clone(),
+                    color: Color::Red,
+                }];
+
+                if let Some((name, span)) = actual_pack {
+                    labels.push(ErrorLabel {
+                        message: format!("actual parameter pack is `{name}`"),
+                        span: span.clone(),
+                        color: Color::Blue,
+                    });
+                }
+
+                labels
+            }
+
+            MacroNonUniqueParamCounts {
+                count,
+                span0,
+                span1,
+                ..
+            } => {
+                vec![
+                    ErrorLabel {
+                        message: format!("macro declared here has {count} parameters"),
+                        span: span0.clone(),
+                        color: Color::Red,
+                    },
+                    ErrorLabel {
+                        message: format!("macro declared here has {count} parameters"),
+                        span: span1.clone(),
+                        color: Color::Red,
+                    },
+                ]
             }
 
             MacroUndefinedParam { name, span } => {
@@ -252,8 +327,7 @@ impl ReportableError for CompileError {
                 path_enum,
                 ..
             } => Some(format!(
-                "one of the modules `{}` or `{}` must exist",
-                path_mod, path_enum
+                "one of the modules `{path_mod}` or `{path_enum}` must exist",
             )),
 
             MacroDeclClash { name, .. } => Some(format!(
@@ -261,10 +335,17 @@ impl ReportableError for CompileError {
                 but they must have differing parameter lists"
             )),
 
-            MacroCallMismatch { name, .. } => Some(format!(
-                "a macro named `{name}` is defined but not with the required \
-                signature to fulfill this call"
-            )),
+            MacroCallMismatch {
+                arg_count,
+                param_counts_descr,
+                ..
+            } => {
+                // foobar
+                Some(format!(
+                    "the valid number of arguments may be {param_counts_descr} \
+                        but this call passes {arg_count} arguments"
+                ))
+            }
 
             MacroRecursion { .. } => Some(
                 "a macro called recursively with the same number of arguments \
@@ -289,7 +370,10 @@ impl ReportableError for CompileError {
             | InvalidConstArrayLength { .. }
             | NonConstArrayIndex { .. }
             | InvalidConstArrayIndex { .. }
-            | CannotIndexIntoValue { .. } => None,
+            | CannotIndexIntoValue { .. }
+            | MacroMultiplePacks { .. }
+            | MacroUnknownPack { .. }
+            | MacroNonUniqueParamCounts { .. } => None,
         }
     }
 
@@ -298,7 +382,14 @@ impl ReportableError for CompileError {
     }
 
     fn help(&self) -> Option<String> {
-        None
+        use CompileError::*;
+        match self {
+            MacroCallMismatch { name, .. } => Some(format!(
+                "a macro named `{name}` is defined but not with the required \
+                signature to fulfill this call"
+            )),
+            _ => None,
+        }
     }
 }
 
@@ -313,6 +404,12 @@ impl Spanned for CompileError {
             | MacroDeclClash { span, .. }
             | MacroNotFound { span, .. }
             | MacroCallMismatch { span, .. }
+            | MacroMultiplePacks { span0: span, .. }
+            | MacroUnknownPack {
+                bad_pack: (_, span),
+                ..
+            }
+            | MacroNonUniqueParamCounts { span0: span, .. }
             | MacroUndefinedParam { span, .. }
             | MacroRecursion {
                 call_span: span, ..

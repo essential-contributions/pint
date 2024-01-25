@@ -22,5 +22,6 @@ solve satisfy;
 // @277..304: when making macro call to '::d::@d_macro_parse_error'
 // unable to match macro call
 // @387..407: unable to match call to macro `::e::@e_macro`
+// the valid number of arguments may be exactly 1 but this call passes 3 arguments
 // a macro named `::e::@e_macro` is defined but not with the required signature to fulfill this call
 // >>>
