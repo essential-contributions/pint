@@ -116,6 +116,26 @@ pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<FormatterError>) {
         })
 }
 
+pub fn random_test() {
+    let x = 1 + 2;
+
+    let y = 12;
+}
+
+/* todo: stop ignoring newlines and get to the current behavior
+    - if newlines are inside of currently supported nodes while parsing, ignore
+    - if they are are outside / isolated on their own, then format as new node
+
+    -- what if we keep more than one newlines after semicolon and remove all the rest
+    -- would still need to care when it comes to functions and macros
+    -- could be preprocessing post lexing pre parsing -> remove all singular \n and keep any with semicolon and two or more \n
+    -- maybe try logos without consuming the ';' -> ex. ;\n\n becomes ';' 'newline_token'
+    -- after semicolon only keep one \n -> then the node becomes just one \n and it tells us to format \n\n -> ex. t t t t \n t; \n \n \n \n t t \n t; becomes t t t t t; \n t t t;
+    -- O(n) to add the preprocessing step. Can just use the filter method
+
+    --- maybe force newline after macro/function
+*/
+
 impl<'sc> fmt::Display for Token<'sc> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
