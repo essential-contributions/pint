@@ -1,0 +1,10 @@
+constraint forall i in 1..2, i in 3..4 { true };
+
+solve satisfy;
+
+// flattening_failure <<<
+// `forall` index `i` has already been declared
+// @18..19: previous declaration of the index `i` here
+// @29..30: `i` redeclared here
+// `forall` index `i` must be declared only once in this scope
+// >>>

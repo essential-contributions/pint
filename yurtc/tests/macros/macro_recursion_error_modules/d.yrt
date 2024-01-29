@@ -1,0 +1,3 @@
+macro @d_macro($id) {
+    b::@b_macro($id)
+}

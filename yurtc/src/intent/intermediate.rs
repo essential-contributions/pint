@@ -13,6 +13,7 @@ use std::{
 
 mod compile;
 mod display;
+mod transform;
 
 type Result<T> = std::result::Result<T, CompileError>;
 
@@ -44,8 +45,12 @@ pub struct IntermediateIntent {
 }
 
 impl IntermediateIntent {
-    pub fn compile(self) -> Result<Intent> {
-        compile::compile(&self)
+    pub fn compile(&mut self) -> Result<Intent> {
+        compile::compile(self)
+    }
+
+    pub fn flatten(self) -> Result<IntermediateIntent> {
+        compile::flatten(self)
     }
 
     /// Helps out some `thing: T` by adding `self` as context.
@@ -56,10 +61,12 @@ impl IntermediateIntent {
     pub fn insert_var(
         &mut self,
         mod_prefix: &str,
+        local_scope: Option<&str>,
         name: &Ident,
         ty: Option<Type>,
     ) -> std::result::Result<VarKey, ParseError> {
-        let full_name = self.add_top_level_symbol(mod_prefix, name, name.span.clone())?;
+        let full_name =
+            self.add_top_level_symbol(mod_prefix, local_scope, name, name.span.clone())?;
         let var_key = self.vars.insert(Var {
             name: full_name,
             ty,
@@ -111,7 +118,7 @@ impl IntermediateIntent {
         expr: ExprKey,
         span: Span,
     ) -> std::result::Result<(), ParseError> {
-        let name = self.add_top_level_symbol(mod_prefix, name, span.clone())?;
+        let name = self.add_top_level_symbol(mod_prefix, None, name, span.clone())?;
 
         self.states.push(State {
             name,
@@ -126,10 +133,14 @@ impl IntermediateIntent {
     pub fn add_top_level_symbol(
         &mut self,
         mod_prefix: &str,
+        local_scope: Option<&str>,
         name: &Ident,
         span: Span,
     ) -> std::result::Result<String, ParseError> {
-        let full_name = mod_prefix.to_owned() + &name.name;
+        let local_scope_str = local_scope
+            .map(|ls| ls.to_owned() + "::")
+            .unwrap_or_default();
+        let full_name = mod_prefix.to_owned() + &local_scope_str + &name.name;
         self.top_level_symbols
             .get(&full_name)
             .map(|prev_span| {
@@ -146,10 +157,113 @@ impl IntermediateIntent {
                 Ok(full_name)
             })
     }
+
+    pub fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
+        self.exprs
+            .iter_mut()
+            .for_each(|(_, expr)| expr.replace_one_to_one(old_expr, new_expr));
+
+        self.constraints.iter_mut().for_each(|(expr, _)| {
+            if *expr == old_expr {
+                *expr = new_expr;
+            }
+        });
+    }
+
+    pub fn replace_exprs_by_map(&mut self, expr_map: &HashMap<ExprKey, ExprKey>) {
+        self.exprs
+            .iter_mut()
+            .for_each(|(_, expr)| expr.replace_ref_by_map(expr_map));
+
+        self.constraints.iter_mut().for_each(|(expr, _)| {
+            if let Some(new_expr) = expr_map.get(expr) {
+                *expr = *new_expr;
+            }
+        });
+    }
+
+    /// Removes a key `expr_key` and all of its sub expressions from `self.exprs`.
+    ///
+    /// It *doee not* handle removing other objects that rely on `expr_key` such as constraints. It
+    /// is up to the caller to decide what to do with those.
+    ///
+    /// Assumes that `expr_key` and its sub expressions belongs to `self.exprs`. Panics otherwise.
+    pub(crate) fn remove_expr(&mut self, expr_key: ExprKey) {
+        let expr = self
+            .exprs
+            .get(expr_key)
+            .expect("expr key must belong to ii.expr")
+            .clone();
+
+        match &expr {
+            Expr::UnaryOp { expr, .. } => self.remove_expr(*expr),
+            Expr::BinaryOp { lhs, rhs, .. } => {
+                self.remove_expr(*lhs);
+                self.remove_expr(*rhs);
+            }
+            Expr::FnCall { args, .. } => {
+                args.iter().for_each(|expr| self.remove_expr(*expr));
+            }
+            Expr::If {
+                condition,
+                then_block,
+                else_block,
+                ..
+            } => {
+                self.remove_expr(*condition);
+                self.remove_expr(*then_block);
+                self.remove_expr(*else_block);
+            }
+            Expr::Array { elements, .. } => {
+                elements.iter().for_each(|expr| self.remove_expr(*expr));
+            }
+            Expr::ArrayElementAccess { array, index, .. } => {
+                self.remove_expr(*array);
+                self.remove_expr(*index);
+            }
+            Expr::Tuple { fields, .. } => {
+                fields.iter().for_each(|(_, expr)| self.remove_expr(*expr));
+            }
+            Expr::TupleFieldAccess { tuple, .. } => {
+                self.remove_expr(*tuple);
+            }
+            Expr::Cast { value, .. } => {
+                // Should we handle the `ty` field here too since it also depends on an `ExprKey`
+                self.remove_expr(*value);
+            }
+            Expr::In {
+                value, collection, ..
+            } => {
+                self.remove_expr(*value);
+                self.remove_expr(*collection);
+            }
+            Expr::ForAll {
+                gen_ranges,
+                conditions,
+                body,
+                ..
+            } => {
+                gen_ranges
+                    .iter()
+                    .for_each(|(_, expr)| self.remove_expr(*expr));
+                conditions.iter().for_each(|expr| self.remove_expr(*expr));
+                self.remove_expr(*body);
+            }
+            // Nothing to do here. These do not depend on any `ExprKey`s
+            Expr::Immediate { .. }
+            | Expr::PathByName { .. }
+            | Expr::PathByKey { .. }
+            | Expr::MacroCall { .. }
+            | Expr::Range { .. }
+            | Expr::Error(_) => {}
+        };
+
+        self.exprs.remove(expr_key);
+    }
 }
 
 /// A state specification with an optional type.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct State {
     name: Path,
     ty: Option<Type>,

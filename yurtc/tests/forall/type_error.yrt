@@ -1,0 +1,9 @@
+constraint forall i in 0..3 where i { true };
+
+solve satisfy;
+
+// Eventually, this should become proper type error instead of a internal error,  once the type
+// checker is implemented.
+// flattening_failure <<<
+// compiler internal error: type error: boolean expression expected
+// >>>

@@ -1,9 +1,9 @@
 // Model for determining relationships between a 1 year loan repaying every quarter
 
 // variables
-let r: real;  // quarterly repayment
-let p: real;  // principal initially borrowed
-let i: real;  // interest rate (per quarter)
+let r: real = 260.0;   // quarterly repayment
+let p: real = 1000.0;  // principal initially borrowed
+let i: real = 0.04;    // interest rate (per quarter)
 
 // intermediate variables
 let b1: real; // balance after one quarter
@@ -11,10 +11,10 @@ let b2: real; // balance after two quarters
 let b3: real; // balance after three quarters
 let b4: real; // balance owing at end
 
-constraint b1 == p + p * i - r;
-constraint b2 == b1 + b1 * i - r;
-constraint b3 == b2 + b2 * i - r;
-constraint b4 == b3 + b3 * i - r;
+constraint b1 == p * (1.0 + i) - r;
+constraint b2 == b1 * (1.0 + i) - r;
+constraint b3 == b2 * (1.0 + i) - r;
+constraint b4 == b3 * (1.0 + i) - r;
 
 solve satisfy;
 
@@ -26,10 +26,13 @@ solve satisfy;
 // var ::b2: real;
 // var ::b3: real;
 // var ::b4: real;
-// constraint (::b1 == ((::p + (::p * ::i)) - ::r));
-// constraint (::b2 == ((::b1 + (::b1 * ::i)) - ::r));
-// constraint (::b3 == ((::b2 + (::b2 * ::i)) - ::r));
-// constraint (::b4 == ((::b3 + (::b3 * ::i)) - ::r));
+// constraint (::r == 2.6e2);
+// constraint (::p == 1e3);
+// constraint (::i == 4e-2);
+// constraint (::b1 == ((::p * (1e0 + ::i)) - ::r));
+// constraint (::b2 == ((::b1 * (1e0 + ::i)) - ::r));
+// constraint (::b3 == ((::b2 * (1e0 + ::i)) - ::r));
+// constraint (::b4 == ((::b3 * (1e0 + ::i)) - ::r));
 // solve satisfy;
 // >>>
 
@@ -41,13 +44,22 @@ solve satisfy;
 // var ::b2: real;
 // var ::b3: real;
 // var ::b4: real;
-// constraint (::b1 == ((::p + (::p * ::i)) - ::r));
-// constraint (::b2 == ((::b1 + (::b1 * ::i)) - ::r));
-// constraint (::b3 == ((::b2 + (::b2 * ::i)) - ::r));
-// constraint (::b4 == ((::b3 + (::b3 * ::i)) - ::r));
+// constraint (::r == 2.6e2);
+// constraint (::p == 1e3);
+// constraint (::i == 4e-2);
+// constraint (::b1 == ((::p * (1e0 + ::i)) - ::r));
+// constraint (::b2 == ((::b1 * (1e0 + ::i)) - ::r));
+// constraint (::b3 == ((::b2 * (1e0 + ::i)) - ::r));
+// constraint (::b4 == ((::b3 * (1e0 + ::i)) - ::r));
 // solve satisfy;
 // >>>
 
-// solve_failure <<<
-// solver internal error: (pcp) only integer variables are currently supported
+// solution <<<
+// ::r: 260.000
+// ::p: 1000.000
+// ::i: 0.040
+// ::b1: 780.000
+// ::b2: 551.200
+// ::b3: 313.248
+// ::b4: 65.778
 // >>>

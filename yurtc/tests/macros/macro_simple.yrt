@@ -1,0 +1,28 @@
+macro @a_macro($a, $0, $type) {
+    let $a: $type = $0;
+    let b: $type;
+    constraint b > $a;
+    b
+}
+
+constraint @a_macro(id; 1234; int) > 1;
+
+solve satisfy;
+
+// intermediate <<<
+// var ::id: int;
+// var ::anon@0::b: int;
+// constraint (::anon@0::b > 1);
+// constraint (::id == 1234);
+// constraint (::anon@0::b > ::id);
+// solve satisfy;
+// >>>
+
+// compiled_intent <<<
+// var ::id: int;
+// var ::anon@0::b: int;
+// constraint (::anon@0::b > 1);
+// constraint (::id == 1234);
+// constraint (::anon@0::b > ::id);
+// solve satisfy;
+// >>>

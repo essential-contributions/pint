@@ -4,7 +4,10 @@ use crate::{
     types::{Path, Type},
 };
 
+use std::collections::HashMap;
+
 mod display;
+mod evaluate;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
@@ -74,6 +77,12 @@ pub enum Expr {
         ub: ExprKey,
         span: Span,
     },
+    ForAll {
+        gen_ranges: Vec<(Ident, ExprKey)>,
+        conditions: Vec<ExprKey>,
+        body: ExprKey,
+        span: Span,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -108,17 +117,22 @@ pub enum UnaryOp {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BinaryOp {
-    Mul,
-    Div,
+    // Arithmetic
     Add,
     Sub,
+    Mul,
+    Div,
     Mod,
-    LessThan,
-    LessThanOrEqual,
-    GreaterThan,
-    GreaterThanOrEqual,
+
+    // Comparison
     Equal,
     NotEqual,
+    LessThanOrEqual,
+    LessThan,
+    GreaterThanOrEqual,
+    GreaterThan,
+
+    // Logical
     LogicalAnd,
     LogicalOr,
 }
@@ -141,7 +155,81 @@ impl Spanned for Expr {
             | Expr::TupleFieldAccess { span, .. }
             | Expr::Cast { span, .. }
             | Expr::In { span, .. }
+            | Expr::ForAll { span, .. }
             | Expr::Range { span, .. } => span,
         }
+    }
+}
+
+impl Expr {
+    pub fn replace_ref<F: FnMut(&mut ExprKey)>(&mut self, mut replace: F) {
+        match self {
+            Expr::UnaryOp { expr, .. } => replace(expr),
+            Expr::BinaryOp { lhs, rhs, .. } => {
+                replace(lhs);
+                replace(rhs);
+            }
+            Expr::FnCall { args, .. } => args.iter_mut().for_each(replace),
+            Expr::If {
+                condition,
+                then_block,
+                else_block,
+                ..
+            } => {
+                replace(condition);
+                replace(then_block);
+                replace(else_block);
+            }
+            Expr::Array { elements, .. } => elements.iter_mut().for_each(replace),
+            Expr::ArrayElementAccess { array, index, .. } => {
+                replace(array);
+                replace(index);
+            }
+            Expr::Tuple { fields, .. } => fields.iter_mut().for_each(|(_, expr)| replace(expr)),
+            Expr::TupleFieldAccess { tuple, .. } => replace(tuple),
+            Expr::Cast { value, .. } => replace(value),
+            Expr::In {
+                value, collection, ..
+            } => {
+                replace(value);
+                replace(collection);
+            }
+            Expr::Range { lb, ub, .. } => {
+                replace(lb);
+                replace(ub);
+            }
+            Expr::ForAll {
+                gen_ranges,
+                conditions,
+                body,
+                ..
+            } => {
+                gen_ranges.iter_mut().for_each(|(_, expr)| replace(expr));
+                conditions.iter_mut().for_each(&mut replace);
+                replace(body);
+            }
+
+            Expr::MacroCall { .. }
+            | Expr::PathByName(_, _)
+            | Expr::PathByKey(_, _)
+            | Expr::Immediate { .. }
+            | Expr::Error(_) => {}
+        }
+    }
+
+    pub fn replace_one_to_one(&mut self, old_key: ExprKey, new_key: ExprKey) {
+        self.replace_ref(|expr: &mut ExprKey| {
+            if *expr == old_key {
+                *expr = new_key;
+            }
+        });
+    }
+
+    pub fn replace_ref_by_map(&mut self, keys: &HashMap<ExprKey, ExprKey>) {
+        self.replace_ref(|old_key: &mut ExprKey| {
+            if let Some(new_key) = keys.get(old_key) {
+                *old_key = *new_key;
+            }
+        });
     }
 }

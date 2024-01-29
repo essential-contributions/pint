@@ -1,0 +1,3 @@
+macro @e_macro($one) {
+    let one = $one;
+}

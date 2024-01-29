@@ -1,15 +1,27 @@
+use super::{Expr, ExprKey, IntermediateIntent, SolveFunc, State, Type, Var};
 use crate::{
     error::CompileError,
-    intent::{self, Expression, Intent, Solve},
+    intent::{
+        self,
+        intermediate::transform::{scalarize, unroll_foralls},
+        Expression, Intent, SolveDirective,
+    },
     span::{empty_span, Span},
 };
 
-use super::{Expr, ExprKey, IntermediateIntent, SolveFunc, State, Type, Var};
+/// Converts an `IntermediateIntent` to a flattened `IntermediateIntent`. This means that all the
+/// syntactic sugar of Yurt (such as enums, foralls, etc.) should be resolved into primitive
+/// elements in this function.
+pub(super) fn flatten(mut context: IntermediateIntent) -> super::Result<IntermediateIntent> {
+    // Transformations
+    unroll_foralls(&mut context)?;
+    scalarize(&mut context)?;
 
+    Ok(context)
+}
+
+/// Converts a final flattened `IntermediateIntent` into a final `Intent`
 pub(super) fn compile(context: &IntermediateIntent) -> super::Result<Intent> {
-    // Perform all the verification, checks and optimisations.
-    // ... TODO ...
-
     Ok(Intent {
         states: convert_states(context)?,
         vars: convert_vars(context)?,
@@ -75,7 +87,7 @@ fn convert_constraints(context: &IntermediateIntent) -> super::Result<Vec<Expres
         .collect()
 }
 
-fn convert_directive(context: &IntermediateIntent) -> super::Result<Solve> {
+fn convert_directive(context: &IntermediateIntent) -> super::Result<SolveDirective> {
     let Some((directive, span)) = context.directives.first() else {
         return Err(CompileError::Internal {
             msg: "Missing directive during final compile.",
@@ -83,15 +95,23 @@ fn convert_directive(context: &IntermediateIntent) -> super::Result<Solve> {
         });
     };
 
-    Ok(match directive {
-        SolveFunc::Satisfy => Solve::Satisfy,
-        SolveFunc::Maximize(expr_key) => {
-            Solve::Maximize(convert_expr_key(context, *expr_key, span)?)
-        }
-        SolveFunc::Minimize(expr_key) => {
-            Solve::Minimize(convert_expr_key(context, *expr_key, span)?)
-        }
-    })
+    match directive {
+        SolveFunc::Satisfy => Ok(SolveDirective::Satisfy),
+        SolveFunc::Minimize(expr_key) => match convert_expr_key(context, *expr_key, span)? {
+            Expression::Path(path) => Ok(SolveDirective::Minimize(path.clone())),
+            _ => Err(CompileError::Internal {
+                msg: "Objective function is not a path. This is unexpected at this stage.",
+                span: empty_span(),
+            }),
+        },
+        SolveFunc::Maximize(expr_key) => match convert_expr_key(context, *expr_key, span)? {
+            Expression::Path(path) => Ok(SolveDirective::Maximize(path.clone())),
+            _ => Err(CompileError::Internal {
+                msg: "Objective function is not a path. This is unexpected at this stage.",
+                span: empty_span(),
+            }),
+        },
+    }
 }
 
 fn convert_expr_key(
@@ -180,6 +200,7 @@ fn convert_expr(
         | super::Expr::In { .. }
         | super::Expr::MacroCall { .. }
         | super::Expr::Range { .. }
+        | super::Expr::ForAll { .. }
         | super::Expr::Tuple { .. }
         | super::Expr::TupleFieldAccess { .. } => Err(CompileError::Internal {
             msg: "Found unsupported expressions in final Intent.",
@@ -196,7 +217,7 @@ fn convert_type(ty: &Type, span: &Span) -> super::Result<intent::Type> {
         Type::Primitive { kind: Real, .. } => Ok(intent::Type::Real),
         Type::Primitive { kind: String, .. } => Ok(intent::Type::String),
 
-        Type::Error(..) | Type::Array { .. } | Type::Tuple { .. } | Type::CustomType { .. } => {
+        Type::Error(..) | Type::Array { .. } | Type::Tuple { .. } | Type::Custom { .. } => {
             Err(CompileError::Internal {
                 msg: "Found unsupported types in final Intent.",
                 span: span.clone(),

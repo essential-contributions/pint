@@ -12,6 +12,16 @@ fn lex_one_success(src: &str) -> Token<'_> {
 }
 
 #[test]
+fn comments() {
+    assert_eq!(lex_one_success("//"), Token::Comment("//"));
+    assert_eq!(lex_one_success("// Hello"), Token::Comment("// Hello"));
+    assert_eq!(lex_one_success("// Hello\n"), Token::Comment("// Hello"));
+    assert_eq!(lex_one_success("// Hello\r\n"), Token::Comment("// Hello"));
+    assert_eq!(lex_one_success("// Hello\r"), Token::Comment("// Hello"));
+    assert_eq!(lex_one_success("// Hello\n\r"), Token::Comment("// Hello"));
+}
+
+#[test]
 fn control_tokens() {
     assert_eq!(lex_one_success(":"), Token::Colon);
     assert_eq!(lex_one_success("::"), Token::DoubleColon);

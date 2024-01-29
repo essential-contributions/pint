@@ -30,6 +30,63 @@ pub enum CompileError {
         path_enum: String,
         span: Span,
     },
+    #[error("macro {name} is declared multiple times")]
+    MacroDeclClash {
+        name: String,
+        span: Span,
+        prev_span: Span,
+    },
+    #[error("macro not found")]
+    MacroNotFound { name: String, span: Span },
+    #[error("unable to match macro call")]
+    MacroCallMismatch {
+        name: String,
+        arg_count: usize,
+        param_counts_descr: String,
+        span: Span,
+    },
+    #[error("macro declared with multiple parameter pack versions")]
+    MacroMultiplePacks { span0: Span, span1: Span },
+    #[error("unknown parameter pack")]
+    MacroUnknownPack {
+        actual_pack: Option<(String, Span)>,
+        bad_pack: (String, Span),
+    },
+    #[error("macro `{name}` must have unique parameter counts")]
+    MacroNonUniqueParamCounts {
+        name: String,
+        count: usize,
+        span0: Span,
+        span1: Span,
+    },
+    #[error("undefined macro parameter")]
+    MacroUndefinedParam { name: String, span: Span },
+    #[error("macro call is recursive")]
+    MacroRecursion {
+        name: String,
+        call_span: Span,
+        decl_span: Span,
+    },
+    #[error("`forall` index `{name}` has already been declared")]
+    DuplicateForAllIndex {
+        name: String,
+        span: Span,
+        prev_span: Span,
+    },
+    #[error("invalid bound for `forall` index `{name}`")]
+    InvalidForAllIndexBound { name: String, span: Span },
+    #[error("cannot find value `{name}` in this scope")]
+    SymbolNotFound { name: String, span: Span },
+    #[error("attempt to use a non-constant value as an array length")]
+    NonConstArrayLength { span: Span },
+    #[error("attempt to use an invalid constant as an array length")]
+    InvalidConstArrayLength { span: Span },
+    #[error("attempt to use a non-constant value as an array index")]
+    NonConstArrayIndex { span: Span },
+    #[error("attempt to use an invalid constant as an array index")]
+    InvalidConstArrayIndex { span: Span },
+    #[error("cannot index into value")]
+    CannotIndexIntoValue { span: Span, index_span: Span },
 }
 
 impl ReportableError for CompileError {
@@ -54,6 +111,200 @@ impl ReportableError for CompileError {
                 }]
             }
 
+            MacroDeclClash {
+                name,
+                span,
+                prev_span,
+            } => {
+                vec![
+                    ErrorLabel {
+                        message: format!("previous declaration of the macro `{name}` here"),
+                        span: prev_span.clone(),
+                        color: Color::Blue,
+                    },
+                    ErrorLabel {
+                        message: format!(
+                            "`{name}` redeclared here with the same number of parameters"
+                        ),
+                        span: span.clone(),
+                        color: Color::Red,
+                    },
+                ]
+            }
+
+            MacroNotFound { name, span } => {
+                vec![ErrorLabel {
+                    message: format!("macro `{name}` not found"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            MacroCallMismatch { name, span, .. } => {
+                vec![ErrorLabel {
+                    message: format!("unable to match call to macro `{name}`"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            MacroMultiplePacks { span0, span1 } => {
+                vec![
+                    ErrorLabel {
+                        message: "macro declared here".to_string(),
+                        span: span0.clone(),
+                        color: Color::Red,
+                    },
+                    ErrorLabel {
+                        message: "and also macro declared here".to_string(),
+                        span: span1.clone(),
+                        color: Color::Red,
+                    },
+                ]
+            }
+
+            MacroUnknownPack {
+                actual_pack,
+                bad_pack,
+            } => {
+                let mut labels = vec![ErrorLabel {
+                    message: format!("unknown parameter pack `{}`", bad_pack.0),
+                    span: bad_pack.1.clone(),
+                    color: Color::Red,
+                }];
+
+                if let Some((name, span)) = actual_pack {
+                    labels.push(ErrorLabel {
+                        message: format!("actual parameter pack is `{name}`"),
+                        span: span.clone(),
+                        color: Color::Blue,
+                    });
+                }
+
+                labels
+            }
+
+            MacroNonUniqueParamCounts {
+                count,
+                span0,
+                span1,
+                ..
+            } => {
+                vec![
+                    ErrorLabel {
+                        message: format!("macro declared here has {count} parameters"),
+                        span: span0.clone(),
+                        color: Color::Red,
+                    },
+                    ErrorLabel {
+                        message: format!("macro declared here has {count} parameters"),
+                        span: span1.clone(),
+                        color: Color::Red,
+                    },
+                ]
+            }
+
+            MacroUndefinedParam { name, span } => {
+                vec![ErrorLabel {
+                    message: format!("undefined parameter `{name}` in macro body"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            MacroRecursion {
+                name,
+                call_span,
+                decl_span,
+            } => {
+                vec![
+                    ErrorLabel {
+                        message: format!("macro '{name}' is recursively called"),
+                        span: call_span.clone(),
+                        color: Color::Red,
+                    },
+                    ErrorLabel {
+                        message: format!("macro '{name}' declared here"),
+                        span: decl_span.clone(),
+                        color: Color::Blue,
+                    },
+                ]
+            }
+
+            DuplicateForAllIndex {
+                name,
+                span,
+                prev_span,
+            } => {
+                vec![
+                    ErrorLabel {
+                        message: format!("previous declaration of the index `{name}` here"),
+                        span: prev_span.clone(),
+                        color: Color::Blue,
+                    },
+                    ErrorLabel {
+                        message: format!("`{name}` redeclared here"),
+                        span: span.clone(),
+                        color: Color::Red,
+                    },
+                ]
+            }
+
+            InvalidForAllIndexBound { name, span } => {
+                vec![ErrorLabel {
+                    message: format!("invalid bound for `forall` index `{name}`"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            SymbolNotFound { span, .. } => {
+                vec![ErrorLabel {
+                    message: "not found in this scope".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            NonConstArrayLength { span } | NonConstArrayIndex { span } => {
+                vec![ErrorLabel {
+                    message: "this must be a constant".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            InvalidConstArrayLength { span } => {
+                vec![ErrorLabel {
+                    message: "this must be a strictly positive integer value".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            InvalidConstArrayIndex { span } => {
+                vec![ErrorLabel {
+                    message: "this must be a non-negative integer value".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            CannotIndexIntoValue { span, index_span } => {
+                vec![
+                    ErrorLabel {
+                        message: "this must be an array".to_string(),
+                        span: span.clone(),
+                        color: Color::Blue,
+                    },
+                    ErrorLabel {
+                        message: "invalid indexing here".to_string(),
+                        span: index_span.clone(),
+                        color: Color::Red,
+                    },
+                ]
+            }
+
             Internal { .. } | FileIO { .. } => Vec::new(),
         }
     }
@@ -76,11 +327,53 @@ impl ReportableError for CompileError {
                 path_enum,
                 ..
             } => Some(format!(
-                "one of the modules `{}` or `{}` must exist",
-                path_mod, path_enum
+                "one of the modules `{path_mod}` or `{path_enum}` must exist",
             )),
 
-            _ => None,
+            MacroDeclClash { name, .. } => Some(format!(
+                "it is valid to have multiple macros named `{name}` \
+                but they must have differing parameter lists"
+            )),
+
+            MacroCallMismatch {
+                arg_count,
+                param_counts_descr,
+                ..
+            } => {
+                // foobar
+                Some(format!(
+                    "the valid number of arguments may be {param_counts_descr} \
+                        but this call passes {arg_count} arguments"
+                ))
+            }
+
+            MacroRecursion { .. } => Some(
+                "a macro called recursively with the same number of arguments \
+                    will cause a non-terminating loop during expansion"
+                    .to_string(),
+            ),
+
+            DuplicateForAllIndex { name, .. } => Some(format!(
+                "`forall` index `{name}` must be declared only once in this scope"
+            )),
+
+            InvalidForAllIndexBound { .. } => {
+                Some("`forall` index bound must be an integer literal".to_string())
+            }
+
+            Internal { .. }
+            | FileIO { .. }
+            | MacroNotFound { .. }
+            | MacroUndefinedParam { .. }
+            | SymbolNotFound { .. }
+            | NonConstArrayLength { .. }
+            | InvalidConstArrayLength { .. }
+            | NonConstArrayIndex { .. }
+            | InvalidConstArrayIndex { .. }
+            | CannotIndexIntoValue { .. }
+            | MacroMultiplePacks { .. }
+            | MacroUnknownPack { .. }
+            | MacroNonUniqueParamCounts { .. } => None,
         }
     }
 
@@ -89,18 +382,46 @@ impl ReportableError for CompileError {
     }
 
     fn help(&self) -> Option<String> {
-        None
+        use CompileError::*;
+        match self {
+            MacroCallMismatch { name, .. } => Some(format!(
+                "a macro named `{name}` is defined but not with the required \
+                signature to fulfill this call"
+            )),
+            _ => None,
+        }
     }
 }
 
 impl Spanned for CompileError {
     fn span(&self) -> &Span {
         use CompileError::*;
-        match &self {
+        match self {
             FileIO { span, .. }
             | Internal { span, .. }
             | DualModulity { span, .. }
-            | NoFileFoundForPath { span, .. } => span,
+            | NoFileFoundForPath { span, .. }
+            | MacroDeclClash { span, .. }
+            | MacroNotFound { span, .. }
+            | MacroCallMismatch { span, .. }
+            | MacroMultiplePacks { span0: span, .. }
+            | MacroUnknownPack {
+                bad_pack: (_, span),
+                ..
+            }
+            | MacroNonUniqueParamCounts { span0: span, .. }
+            | MacroUndefinedParam { span, .. }
+            | MacroRecursion {
+                call_span: span, ..
+            }
+            | DuplicateForAllIndex { span, .. }
+            | InvalidForAllIndexBound { span, .. }
+            | SymbolNotFound { span, .. }
+            | NonConstArrayIndex { span }
+            | InvalidConstArrayLength { span }
+            | NonConstArrayLength { span }
+            | InvalidConstArrayIndex { span }
+            | CannotIndexIntoValue { span, .. } => span,
         }
     }
 }

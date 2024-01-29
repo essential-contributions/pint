@@ -103,8 +103,8 @@ pub(super) enum Token<'sc> {
     )]
     Literal(&'sc str),
 
-    #[regex(r"//[^\n\r]*", logos::skip)]
-    Comment,
+    #[regex(r"//[^\n\r]*", |lex| lex.slice())]
+    Comment(&'sc str),
 }
 
 pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<FormatterError>) {
@@ -180,7 +180,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Solve => write!(f, "solve"),
             Token::Ident(ident) => write!(f, "{ident}"),
             Token::Literal(contents) => write!(f, "{contents}"),
-            Token::Comment => write!(f, "comment"),
+            Token::Comment(contents) => write!(f, "{contents}"),
         }
     }
 }

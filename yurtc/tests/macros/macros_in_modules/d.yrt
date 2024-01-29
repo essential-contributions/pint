@@ -1,0 +1,2 @@
+let d: int;
+constraint ::@main_macro(d);

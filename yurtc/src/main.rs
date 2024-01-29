@@ -1,6 +1,5 @@
-use yurtc::{error, parser, solver::*};
-
 use std::path::Path;
+use yurtc::{error, parser};
 
 fn main() -> anyhow::Result<()> {
     let (filepath, compile_flag, solve_flag) = parse_cli();
@@ -22,9 +21,9 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    // Compile the intermediate intent down to a final intent
-    let intent = match intermediate_intent.compile() {
-        Ok(intent) => intent,
+    // Flatten the intermediate intent
+    let mut flattened = match intermediate_intent.flatten() {
+        Ok(flattened) => flattened,
         Err(error) => {
             if !cfg!(test) {
                 error::print_errors(&vec![error::Error::Compile { error }]);
@@ -33,23 +32,45 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    if !solve_flag {
-        eprintln!("{:?}", intent);
-        return Ok(());
-    }
-
-    // Solve the final intent. This assumes, for now, that the final intent has no state variables
-    let solver = Solver::new(&intent);
-    let solver = match solver.solve() {
-        Ok(solver) => solver,
+    // Compile the flattened intent down to a final intent
+    let intent = match flattened.compile() {
+        Ok(intent) => intent,
         Err(error) => {
+            eprintln!("{flattened}");
             if !cfg!(test) {
-                error::print_errors(&vec![error::Error::Solve { error }]);
+                error::print_errors(&vec![error::Error::Compile { error }]);
             }
             yurtc::yurtc_bail!(1, filepath)
         }
     };
-    solver.print_solution();
+
+    if !solve_flag {
+        eprintln!("{intent}");
+        return Ok(());
+    }
+
+    if solve_flag && !cfg!(feature = "solver-scip") && !cfg!(feature = "solver-pcp") {
+        eprintln!("Solving is disabled in this build.");
+    }
+
+    #[cfg(feature = "solver-scip")]
+    {
+        use russcip::ProblemCreated;
+        use yurtc::solvers::scip::*;
+
+        // Solve the final intent. This assumes, for now, that the final intent has no state variables
+        let solver = Solver::<ProblemCreated>::new(&intent);
+        let solver = match solver.solve() {
+            Ok(solver) => solver,
+            Err(error) => {
+                if !cfg!(test) {
+                    error::print_errors(&vec![error::Error::Solve { error }]);
+                }
+                yurtc::yurtc_bail!(1, filepath)
+            }
+        };
+        solver.print_solution();
+    }
 
     Ok(())
 }

@@ -50,6 +50,7 @@ pub(super) fn yurt_program<'sc>(
         interface_decl(),
         contract_decl(),
         extern_decl(),
+        comment_decl(),
     ))
     .repeated()
     .then_ignore(end())
@@ -237,6 +238,12 @@ fn enum_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseErro
         .boxed()
 }
 
+fn comment_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+    select! { Token::Comment(content) => content.to_owned() }
+        .map_with_span(|content, span| ast::Decl::Comment { content, span })
+        .boxed()
+}
+
 pub(super) fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone
 {
     fn_sig()
@@ -272,10 +279,7 @@ pub(super) fn fn_sig<'sc>() -> impl Parser<Token<'sc>, ast::FnSig<'sc>, Error = 
 pub(super) fn code_block_expr<'sc>(
     expr: impl Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
 ) -> impl Parser<Token<'sc>, ast::Block<'sc>, Error = ParseError> + Clone {
-    let code_block_body = choice((value_decl(expr.clone()),))
-        .repeated()
-        .then(expr)
-        .boxed();
+    let code_block_body = constraint_decl(expr.clone()).repeated().then(expr).boxed();
 
     code_block_body
         .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))

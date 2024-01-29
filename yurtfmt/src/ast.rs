@@ -68,6 +68,10 @@ pub(super) enum Decl<'sc> {
         variants: Vec<String>,
         span: Span,
     },
+    Comment {
+        content: String,
+        span: Span,
+    },
 }
 
 impl<'sc> Format for Decl<'sc> {
@@ -210,6 +214,9 @@ impl<'sc> Format for Decl<'sc> {
             Self::Enum { name, variants, .. } => {
                 formatted_code.write(&format!("enum {name} = {};", &variants.join(" | ")));
             }
+            Self::Comment { content, .. } => {
+                formatted_code.write_line(content);
+            }
         }
 
         Ok(())
@@ -230,7 +237,8 @@ impl<'sc> Spanned for Decl<'sc> {
             | Enum { span, .. }
             | Interface { span, .. }
             | Contract { span, .. }
-            | NewType { span, .. } => span,
+            | NewType { span, .. }
+            | Comment { span, .. } => span,
         }
     }
 }

@@ -7,8 +7,9 @@ on:
   pull_request: null
 
 env:
-  RUST_VERSION: 1.74.0
-  NIGHTLY_RUST_VERSION: nightly-2023-07-01
+  RUST_VERSION: 1.75.0
+  NIGHTLY_RUST_VERSION: nightly-2023-12-25
+  SCIP_VERSION: 8.0.3
 
 permissions: read-all
 
@@ -27,11 +28,22 @@ jobs:
         uses: trunk-io/trunk-action@v1
 
   build:
-    name: Cargo Build
+    name: Cargo Build and Test Workspace
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: test
+          allow-softlinks: true
+
+      - name: Install dependencies (SCIPOptSuite)
+        run: |
+          conda install -y --prefix $CONDA/envs/test --channel conda-forge scip
+          echo "LD_LIBRARY_PATH=$CONDA/envs/test/lib" >> "${GITHUB_ENV}"
+          echo "CONDA_PREFIX=$CONDA/envs/test" >> "${GITHUB_ENV}"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
@@ -42,6 +54,15 @@ jobs:
 
       - name: Build Workspace
         run: cargo build --release
+
+      - name: Install cargo-nextest
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-nextest
+          locked: true
+
+      - name: Run workspace tests
+        run: cargo nextest run --release --locked
 
   cargo-unused-deps-check:
     name: Cargo Unused Dependencies Check
@@ -85,26 +106,3 @@ jobs:
 
       - name: Run Cargo.toml linter
         run: git ls-files | grep Cargo.toml$ | xargs --verbose -n 1 cargo-toml-lint
-
-  cargo-test-workspace:
-    name: Cargo Test Workspace Using nextest
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Install cargo-nextest
-        uses: baptiste0928/cargo-install@v2
-        with:
-          crate: cargo-nextest
-          locked: true
-
-      - name: Run workspace tests
-        run: cargo nextest run --release --locked

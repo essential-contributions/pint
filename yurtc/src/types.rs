@@ -32,7 +32,7 @@ pub enum Type {
         fields: Vec<(Option<Ident>, Self)>,
         span: Span,
     },
-    CustomType {
+    Custom {
         path: Path,
         span: Span,
     },
@@ -46,7 +46,7 @@ impl Spanned for Type {
             | Primitive { span, .. }
             | Array { span, .. }
             | Tuple { span, .. }
-            | CustomType { span, .. } => span,
+            | Custom { span, .. } => span,
         }
     }
 }

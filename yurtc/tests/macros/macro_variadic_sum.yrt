@@ -1,0 +1,29 @@
+macro @sum($x, &rest) {
+    @sum($x + &rest)
+}
+
+macro @sum($x) {
+    $x
+}
+
+
+let a: int = 4;
+let b: int = @sum(1; 2; 3; a);
+
+solve satisfy;
+
+// intermediate <<<
+// var ::a: int;
+// var ::b: int;
+// constraint (::a == 4);
+// constraint (::b == (((1 + 2) + 3) + ::a));
+// solve satisfy;
+// >>>
+
+// compiled_intent <<<
+// var ::a: int;
+// var ::b: int;
+// constraint (::a == 4);
+// constraint (::b == (((1 + 2) + 3) + ::a));
+// solve satisfy;
+// >>>

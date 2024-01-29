@@ -48,7 +48,7 @@ impl DisplayWithII for super::Type {
                 write!(f, "}}")
             }
 
-            super::Type::CustomType { path, .. } => write!(f, "{path}"),
+            super::Type::Custom { path, .. } => write!(f, "{path}"),
         }
     }
 }

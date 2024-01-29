@@ -1,0 +1,13 @@
+let x: int = 3..10;
+let y: int = 3..10;
+let z: int = 3..10;
+
+constraint x / y > y / z;
+
+solve satisfy;
+
+// solution <<<
+// ::x: 6
+// ::y: 3
+// ::z: 3
+// >>>
