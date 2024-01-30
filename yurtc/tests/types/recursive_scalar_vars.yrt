@@ -1,0 +1,11 @@
+let a = b + c;
+let b = c + a;
+let c = a - b;
+
+solve satisfy;
+
+// typecheck_failure <<<
+// expression has a recursive dependency
+// @8..13: cannot determine type of expression due to dependency
+// @8..9: dependency on expression is recursive
+// >>>

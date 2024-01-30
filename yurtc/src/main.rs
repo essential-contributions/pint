@@ -20,19 +20,8 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    // Flatten the intermediate intent
-    let mut flattened = match intermediate_intent.flatten() {
-        Ok(flattened) => flattened,
-        Err(error) => {
-            if !cfg!(test) {
-                error::print_errors(&vec![error::Error::Compile { error }]);
-            }
-            yurtc::yurtc_bail!(1, filepath)
-        }
-    };
-
     // Compile the flattened intent down to a final intent
-    let intent = match flattened.compile() {
+    let intent = match intermediate_intent.compile() {
         Ok(intent) => intent,
         Err(error) => {
             if !cfg!(test) {

@@ -1,0 +1,28 @@
+enum AttackingBird = Goose | Duck | Chicken;
+enum AppropriateDefence = Kick | Runaway | Duck | StareDown;
+
+macro @panicked_response($bird) {
+    if $bird != ::AttackingBird::Goose {
+        Duck
+    } else {
+        Kick
+    }
+}
+
+let unfortunate_action = @panicked_response(AttackingBird::Goose);
+
+solve satisfy;
+
+// intermediate <<<
+// var ::unfortunate_action;
+// enum ::AttackingBird = Goose | Duck | Chicken;
+// enum ::AppropriateDefence = Kick | Runaway | Duck | StareDown;
+// constraint (::unfortunate_action == if (::AttackingBird::Goose != ::AttackingBird::Goose) { ::Duck } else { ::Kick });
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// cannot find value `::Duck` in this scope
+// @190..194: not found in this scope
+// this symbol is a variant of enums `::AttackingBird` and `::AppropriateDefence` and may need a fully qualified path
+// >>>

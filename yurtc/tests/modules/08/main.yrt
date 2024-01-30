@@ -29,5 +29,5 @@ let b_variant = d::MyEnum::B;
 // >>>
 
 // compile_failure <<<
-// compiler internal error: Found untyped variable.
+// compiler internal error: Found unsupported types in final Intent.
 // >>>

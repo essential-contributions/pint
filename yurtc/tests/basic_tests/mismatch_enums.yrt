@@ -4,7 +4,7 @@ enum Chord = FFlatDiminished | EMinorOverG;
 let saddest_sound: Chord;
 
 // Saddest key is D-minor.  Should produce type error since `saddest_sound` is a `Chord`.
-constraint saddest_sound == DMinor;
+constraint saddest_sound == Key::DMinor;
 
 solve satisfy;
 
@@ -12,12 +12,12 @@ solve satisfy;
 // var ::saddest_sound: ::Chord;
 // enum ::Key = CMajor | DMinor;
 // enum ::Chord = FFlatDiminished | EMinorOverG;
-// constraint (::saddest_sound == ::DMinor);
+// constraint (::saddest_sound == ::Key::DMinor);
 // solve satisfy;
 // >>>
 
-// We'll get this error until we implement enum desugaring.  But then we should get a `Chord` isn't
-// a `Key` type error.
-// compile_failure <<<
-// compiler internal error: Found unsupported types in final Intent.
+// typecheck_failure <<<
+// binary operator type error
+// @218..229: operator `==` argument has unexpected type `::Key`
+// @201..214: expecting type `::Chord`
 // >>>

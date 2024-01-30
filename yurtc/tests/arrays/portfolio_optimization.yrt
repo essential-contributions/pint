@@ -42,7 +42,7 @@ constraint coeff[0][0] ==  0.08  &&
 // Amount invested in each asset 
 let x: real[4]; 
 constraint forall i in 0..3 {
-    x[i] >= 0 && x[i] <= 10000.0 * 10000.0
+    x[i] >= 0.0 && x[i] <= 10000.0 * 10000.0
 };
 
 // Invest no more than a total of B (Use a `fold` or `sum` here when available)

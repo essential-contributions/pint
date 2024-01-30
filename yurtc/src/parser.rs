@@ -160,6 +160,7 @@ impl ProjectParser {
         // expression.
         for (call_expr_key, body_expr_key) in call_replacements {
             self.intent.replace_exprs(call_expr_key, body_expr_key);
+            self.intent.exprs.remove(call_expr_key);
         }
 
         self

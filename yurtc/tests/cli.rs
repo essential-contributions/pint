@@ -147,6 +147,7 @@ fn explicit_output() {
     check(&output.stdout, expect_test::expect![""]);
 }
 
+#[cfg(feature = "solver-scip")]
 #[test]
 fn solve() {
     let mut input_file = tempfile::NamedTempFile::new().unwrap();

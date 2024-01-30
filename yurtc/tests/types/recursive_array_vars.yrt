@@ -1,0 +1,11 @@
+let a = [c[1], b];
+let b = c[1];
+let c = [[b][0], a[1]];
+
+solve satisfy;
+
+// typecheck_failure <<<
+// expression has a recursive dependency
+// @27..28: cannot determine type of expression due to dependency
+// @41..55: dependency on expression is recursive
+// >>>

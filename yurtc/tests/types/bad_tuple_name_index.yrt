@@ -1,0 +1,11 @@
+let a = { x: 11, y: 22.2 };
+
+constraint a.z > 33;
+
+solve satisfy;
+
+// typecheck_failure <<<
+// invalid tuple accessor
+// @40..43: unable to get field from tuple using `z`
+// tuple has type `{x: int, y: real}`
+// >>>

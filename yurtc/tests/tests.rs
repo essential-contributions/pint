@@ -23,47 +23,24 @@ mod cli;
 mod e2e {
     use crate::run_tests;
 
-    #[test]
-    fn basic_tests() {
-        if let Err(err) = run_tests("basic_tests") {
-            eprintln!("{err}");
-        }
+    macro_rules! e2e_test {
+        ($name: ident) => {
+            #[test]
+            fn $name() {
+                if let Err(err) = run_tests(stringify!($name)) {
+                    eprintln!("{err}");
+                }
+            }
+        };
     }
 
-    #[test]
-    fn macros() {
-        if let Err(err) = run_tests("macros") {
-            eprintln!("{err}");
-        }
-    }
-
-    #[test]
-    fn forall() {
-        if let Err(err) = run_tests("forall") {
-            eprintln!("{err}");
-        }
-    }
-
-    #[test]
-    fn arrays() {
-        if let Err(err) = run_tests("arrays") {
-            eprintln!("{err}");
-        }
-    }
-
-    #[test]
-    fn modules() {
-        if let Err(err) = run_tests("modules") {
-            eprintln!("{err}");
-        }
-    }
-
-    #[test]
-    fn asm() {
-        if let Err(err) = run_tests("asm") {
-            eprintln!("{err}");
-        }
-    }
+    e2e_test!(basic_tests);
+    e2e_test!(macros);
+    e2e_test!(types);
+    e2e_test!(forall);
+    e2e_test!(arrays);
+    e2e_test!(modules);
+    e2e_test!(asm);
 }
 
 fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
@@ -113,6 +90,9 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
         // Parse the project and check its output.
         let ii = parse_test_and_check(&path, &test_data, &mut failed_tests);
 
+        // Type check the intermediate intent.
+        let ii = type_check(ii, &test_data, &mut failed_tests, &path);
+
         // Flatten the intermediate intent check the result.
         let ii = flatten_and_check(ii, &test_data, &mut failed_tests, &path);
 
@@ -141,6 +121,7 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
 struct TestData {
     intermediate: Option<String>,
     parse_failure: Option<String>,
+    typecheck_failure: Option<String>,
     flattened: Option<String>,
     flattening_failure: Option<String>,
     compiled_intent: Option<String>,
@@ -191,6 +172,7 @@ fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
         None,
         ParseFailure,
         IntermediateIntent,
+        TypeCheckFailure,
         FlattenedIntent,
         FlatteningFailure,
         CompiledIntent,
@@ -204,7 +186,7 @@ fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
 
     let comment_re = regex::Regex::new(r"^\s*//")?;
     let open_sect_re = regex::Regex::new(
-        r"^\s*//\s*(intermediate|parse_failure|flattened|flattening_failure|compiled_intent|compile_failure|solution|solve_failure|db)\s*<<<",
+        r"^\s*//\s*(intermediate|parse_failure|typecheck_failure|flattened|flattening_failure|compiled_intent|compile_failure|solution|solve_failure|db)\s*<<<",
     )?;
     let close_sect_re = regex::Regex::new(r"^\s*//\s*>>>")?;
 
@@ -227,6 +209,7 @@ fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
                 "parse_failure" => cur_section = Section::ParseFailure,
                 "flattened" => cur_section = Section::FlattenedIntent,
                 "flattening_failure" => cur_section = Section::FlatteningFailure,
+                "typecheck_failure" => cur_section = Section::TypeCheckFailure,
                 "compiled_intent" => cur_section = Section::CompiledIntent,
                 "compile_failure" => cur_section = Section::CompileFailure,
                 "solution" => cur_section = Section::Solution,
@@ -253,6 +236,9 @@ fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
                 }
                 Section::ParseFailure => {
                     test_data.parse_failure = Some(section_str);
+                }
+                Section::TypeCheckFailure => {
+                    test_data.typecheck_failure = Some(section_str);
                 }
                 Section::FlattenedIntent => {
                     test_data.flattened = Some(section_str);
@@ -339,6 +325,46 @@ fn parse_test_and_check(
     }
 }
 
+fn type_check(
+    ii: Option<IntermediateIntent>,
+    test_data: &TestData,
+    failed_tests: &mut Vec<String>,
+    path: &Path,
+) -> Option<IntermediateIntent> {
+    ii.and_then(|ii| {
+        ii.type_check()
+            .map(|checked| {
+                if test_data.typecheck_failure.is_some() {
+                    failed_tests.push(path.display().to_string());
+                    println!(
+                        "{} {}.",
+                        Red.paint("UNEXPECTED SUCCESSFUL TYPE CHECK"),
+                        Cyan.paint(path.display().to_string()),
+                    );
+                }
+                checked
+            })
+            .map_err(|err| {
+                if let Some(typecheck_error_str) = &test_data.typecheck_failure {
+                    similar_asserts::assert_eq!(
+                        typecheck_error_str.trim_end(),
+                        err.display_raw().trim_end()
+                    );
+                } else {
+                    failed_tests.push(path.display().to_string());
+                    println!(
+                        "{} {}. {}\n{}",
+                        Red.paint("FAILED TO TYPE CHECK INTERMEDIATE INTENT"),
+                        Cyan.paint(path.display().to_string()),
+                        Red.paint("Reported errors:"),
+                        Yellow.paint(err.display_raw().trim_end()),
+                    );
+                }
+            })
+            .ok()
+    })
+}
+
 fn flatten_and_check(
     ii: Option<IntermediateIntent>,
     test_data: &TestData,
@@ -390,8 +416,8 @@ fn compile_to_final_intent_and_check(
     failed_tests: &mut Vec<String>,
     path: &Path,
 ) -> Option<Intent> {
-    ii.and_then(|mut ii| {
-        ii.compile()
+    ii.and_then(|ii| {
+        ii.to_intent()
             .map(|intent| {
                 if let Some(expected_intent_str) = &test_data.compiled_intent {
                     similar_asserts::assert_eq!(

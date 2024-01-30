@@ -1,0 +1,13 @@
+let a = 11;
+let b: int;
+let c = false;
+
+constraint b < if c { 22 } else { 33 };
+constraint b > if a { 44 } else { 55 };
+
+solve satisfy;
+
+// typecheck_failure <<<
+// condition in if-expression must be a boolean
+// @98..99: condition must be a boolean
+// >>>

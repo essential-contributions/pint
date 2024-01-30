@@ -16,7 +16,7 @@ solve satisfy;
 
 // parse_failure <<<
 // macro call is recursive
-// @103..109: macro '::@a' is recursively called
-// @6..12: macro '::@a' declared here
+// @103..109: macro `::@a` is recursively called
+// @6..12: macro `::@a` declared here
 // a macro called recursively with the same number of arguments will cause a non-terminating loop during expansion
 // >>>

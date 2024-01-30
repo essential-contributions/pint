@@ -46,6 +46,7 @@ pub enum Expr {
     },
     Array {
         elements: Vec<ExprKey>,
+        range_expr: ExprKey,
         span: Span,
     },
     ArrayElementAccess {
@@ -135,6 +136,26 @@ pub enum BinaryOp {
     // Logical
     LogicalAnd,
     LogicalOr,
+}
+
+impl BinaryOp {
+    pub(crate) fn as_str(&self) -> &'static str {
+        match self {
+            BinaryOp::Add => "+",
+            BinaryOp::Sub => "-",
+            BinaryOp::Mul => "*",
+            BinaryOp::Div => "/",
+            BinaryOp::Mod => "%",
+            BinaryOp::Equal => "==",
+            BinaryOp::NotEqual => "!=",
+            BinaryOp::LessThanOrEqual => "<=",
+            BinaryOp::LessThan => "<",
+            BinaryOp::GreaterThanOrEqual => ">=",
+            BinaryOp::GreaterThan => ">",
+            BinaryOp::LogicalAnd => "&&",
+            BinaryOp::LogicalOr => "||",
+        }
+    }
 }
 
 impl Spanned for Expr {

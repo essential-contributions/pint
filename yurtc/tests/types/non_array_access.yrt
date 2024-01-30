@@ -1,0 +1,10 @@
+let a: real;
+
+constraint a[0] == a[1];
+
+solve satisfy;
+
+// typecheck_failure <<<
+// attempt to access array element from a non-array value
+// @25..29: value must be an array; found `real`
+// >>>

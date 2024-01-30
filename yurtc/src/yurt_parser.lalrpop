@@ -158,14 +158,10 @@ pub LetDecl: () = {
     <l:@L> "let" <let_name:LetName> ":" <ty:Type> <init:LetInit?> <r:@R> => {
         context
             .ii
-            .insert_var(
-                context.mod_prefix,
-                let_name.1,
-                &let_name.0,
-                Some(ty),
-            )
+            .insert_var(context.mod_prefix, let_name.1, &let_name.0, Some(ty))
             .map(|var_key| {
                 if let Some(expr_key) = init {
+                    context.ii.var_inits.insert(var_key, expr_key);
                     context.ii.insert_eq_or_ineq_constraint(
                         var_key,
                         expr_key,
@@ -180,13 +176,9 @@ pub LetDecl: () = {
     <l:@L> "let" <let_name:LetName> <init:LetInit> <r:@R> => {
         context
             .ii
-            .insert_var(
-                context.mod_prefix,
-                let_name.1,
-                &let_name.0,
-                None,
-            )
+            .insert_var(context.mod_prefix, let_name.1, &let_name.0, None)
             .map(|var_key| {
+                context.ii.var_inits.insert(var_key, init);
                 context
                     .ii
                     .insert_eq_or_ineq_constraint(var_key, init, (context.span_from)(l, r));
@@ -259,6 +251,7 @@ pub StateDecl: () = {
                 init_key,
                 (context.span_from)(l, r),
             )
+            .map(|_| ())
             .unwrap_or_else(|error| {
                 errors.push(Error::Parse { error });
             });
@@ -791,7 +784,23 @@ BlockExpr: ExprKey = {
 };
 
 GeneratorRange: (Ident, ExprKey) = {
-    <index:Ident> "in" <range:Range> => (index, range)
+    <index:Ident> "in" <range:Range> => {
+        // Generators for `forall` are always `int`s and need to be saved in the ephemeral list.
+        context
+            .ii
+            .insert_ephemeral(
+                context.mod_prefix,
+                &index,
+                Type::Primitive {
+                    kind: PrimitiveKind::Int,
+                    span: index.span.clone(),
+                },
+            )
+            .unwrap_or_else(|error| {
+                errors.push(Error::Parse { error });
+            });
+        (index, range)
+    }
 }
 
 ForAllExpr: Expr = {
@@ -879,9 +888,14 @@ FnCallExpr: Expr = {
 };
 
 ArrayExpr: Expr = {
-    <l:@L> "[" <elements:SepList<Expr, ",">> "]" <r:@R> => {
+    <l:@L> "[" <il:@L> <elements:SepList<Expr, ",">> <ir:@R> "]" <r:@R> => {
+        let range_expr = context.ii.exprs.insert(Expr::Immediate {
+            value: Immediate::Int(elements.len() as i64),
+            span: (context.span_from)(il, ir),
+        });
         Expr::Array {
             elements,
+            range_expr,
             span: (context.span_from)(l, r),
         }
     },
