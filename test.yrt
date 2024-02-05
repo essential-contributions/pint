@@ -1,0 +1,25 @@
+    let   x   = 5;
+
+   let y     =     7.777;
+
+    let   bool_var   = true;
+
+  let       bool_var   =false;
+
+    let  str_var =     "sample";
+
+    let str1 = "abc \
+        def";
+
+    let str2 = "abc
+        def";
+
+ let  real_var  =    8.8888E+5;
+
+     let hex_var =   0xFF;
+
+let bin_var  =0b1010;
+
+let         bigint_var=1234567890123456789012345678901234567890;
+
+let x = y in        1..2;

@@ -14,9 +14,14 @@ pub(super) fn parse_str_to_ast(source: &str) -> Result<ast::Ast<'_>, Vec<Formatt
     let (tokens, lex_errors) = lexer::lex(source);
     errors.extend(lex_errors);
 
+    // Remove newlines from token stream
+    let tokens_without_newlines = tokens
+        .into_iter()
+        .filter(|token| !matches!(token, (Token::Newline, _)));
+
     // Provide a token stream
     let eoi_span = source.len()..source.len();
-    let token_stream = Stream::from_iter(eoi_span, tokens.into_iter());
+    let token_stream = Stream::from_iter(eoi_span.clone(), tokens_without_newlines.into_iter());
 
     // Parse the token stream
     match yurt_program().parse(token_stream) {

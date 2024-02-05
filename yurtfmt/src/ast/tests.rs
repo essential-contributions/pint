@@ -1,5 +1,6 @@
 #[cfg(test)]
 use crate::formatter::{Format, FormattedCode};
+use crate::lexer::Token;
 
 #[cfg(test)]
 use crate::parser::*;
@@ -28,7 +29,13 @@ macro_rules! run_formatter {
                 })
             )
         } else {
-            let token_stream = Stream::from_iter($source.len()..$source.len(), toks.into_iter());
+            let toks_without_newlines = toks
+                .into_iter()
+                .filter(|token| !matches!(token, (Token::Newline, _)));
+            let token_stream = Stream::from_iter(
+                $source.len()..$source.len(),
+                toks_without_newlines.into_iter(),
+            );
             match $parser.parse(token_stream) {
                 Ok(ast) => {
                     let mut formatted_code = FormattedCode::new();
@@ -174,7 +181,7 @@ let bin_var :  int=0b1010;
         &run_formatter!(
             yurt_program(),
             r#"
-            let   t 
+            let   t
             : {  int , real
             , string };
             "#
@@ -323,7 +330,7 @@ fn use_statements() {
             " use a::b::{
             self   as ab , c,
             d::{
-            e, f::g} 
+            e, f::g}
             };"
         ),
         expect!["use a::b::{self as ab, c, d::{e, f::g}};"],
@@ -419,8 +426,8 @@ fn custom_types() {
         &run_formatter!(
             yurt_program(),
             r#"
-                type MyTuple =  { 
-                    x:  int , y:    real, z: 
+                type MyTuple =  {
+                    x:  int , y:    real, z:
                 string };
             "#
         ),
@@ -432,8 +439,8 @@ fn custom_types() {
         &run_formatter!(
             yurt_program(),
             r#"
-                type   MyTuple 
-            = { real, 
+                type   MyTuple
+            = { real,
                 bool, z
             :   string };
             "#
@@ -470,7 +477,7 @@ fn interface_test() {
     check(
         &run_formatter!(
             yurt_program(),
-            "interface   IERC20     {fn totalSupply()  -> int; 
+            "interface   IERC20     {fn totalSupply()  -> int;
             fn     balanceOf(account:    int)   -> int;
                 fn allowance(owner:  int, spender:   int) -> int;
         }   "
@@ -496,13 +503,13 @@ fn contract_decl() {
     check(
         &run_formatter!(
             yurt_program(),
-            "contract   MyToken(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)  
-            implements    IERC20, 
+            "contract   MyToken(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)
+            implements    IERC20,
             Ownable  {
-                  fn foo()  -> 
-            int; 
-                fn 
-            bar()  ->    
+                  fn foo()  ->
+            int;
+                fn
+            bar()  ->
         int;
     } "
         ),
@@ -516,8 +523,8 @@ fn contract_decl() {
     check(
         &run_formatter!(
             yurt_program(),
-            "   contract    
-        MyToken(foo)  
+            "   contract
+        MyToken(foo)
             implements IERC20, Ownable
              {}  "
         ),
@@ -528,9 +535,9 @@ fn contract_decl() {
     check(
         &run_formatter!(
             yurt_program(),
-            " contract    MyToken(foo)  
+            " contract    MyToken(foo)
         {
-            
+
         } "
         ),
         expect![[r#"
@@ -544,20 +551,20 @@ fn state_decl() {
     check(
         &run_formatter!(
             yurt_program(),
-            "  state x:   int   = 
+            "  state x:   int   =
             MyContract::getBalance;
-            
+
                 state y=  CryptoExchange::convertToEth;
-       state z :  int  
+       state z :  int
        =   totalSupply + mintedTokens;
-            state  w =   
+            state  w =
             -  5.5  ;
-            
+
             state v   :  bool = !isWhitelisted;
 
             state u
-            = Token::Metadata::uri;      
-            
+            = Token::Metadata::uri;
+
     state tx: int = CryptoUtils::hashTransaction;
             "
         ),
@@ -579,13 +586,11 @@ fn extern_decl() {
         &run_formatter!(
             yurt_program(),
             "extern    {
-                  fn  eth_getBalance(address:   string) 
-        ->   
+                  fn  eth_getBalance(address:   string)
+        ->
 string;
-                
-             
-                
-                 fn eth_gasPrice()   
+
+                 fn eth_gasPrice()
 -> string;
         }   "
         ),
@@ -599,8 +604,8 @@ string;
     check(
         &run_formatter!(
             yurt_program(),
-            "  extern    
-            {}  
+            "  extern
+            {}
   "
         ),
         expect![[r#"
@@ -612,9 +617,9 @@ string;
             yurt_program(),
             "  extern
             {
-             fn 
-             eth_blockNumber() ->    
-             
+             fn
+             eth_blockNumber() ->
+
              string;
             } "
         ),
@@ -628,10 +633,10 @@ string;
         &run_formatter!(
             yurt_program(),
             "extern{
-                fn    eth_getCode( address 
+                fn    eth_getCode( address
                 :
-                string 
-                , blockTag  
+                string
+                , blockTag
                 :  string) -> string;
             }"
         ),
@@ -645,13 +650,13 @@ string;
         &run_formatter!(
             yurt_program(),
             "extern {
-                
-            fn eth_call(   transaction  
-            
-            :string,    
-            
-            blockTag: string  ) ->  
-            
+
+            fn eth_call(   transaction
+
+            :string,
+
+            blockTag: string  ) ->
+
             string;
             } "
         ),
@@ -700,17 +705,17 @@ fn array_types() {
         &run_formatter!(
             type_(expr()),
             "string[
-Day
-]"
+    Day
+    ]"
         ),
         expect![[r#"string[Day]"#]],
     );
     check(
         &run_formatter!(
             type_(expr()),
-            "bool [  10  ] [ 
-Colour
-]"
+            "bool [  10  ] [
+    Colour
+    ]"
         ),
         expect![[r#"bool[10][Colour]"#]],
     );
@@ -723,7 +728,7 @@ Colour
             type_(expr()),
             "
 
-real [   0   ] [ 2 ]"
+    real [   0   ] [ 2 ]"
         ),
         expect![[r#"real[0][2]"#]],
     );
@@ -731,10 +736,10 @@ real [   0   ] [ 2 ]"
         &run_formatter!(
             type_(expr()),
             "string[
-N
-][
-Colour
-]"
+    N
+    ][
+    Colour
+    ]"
         ),
         expect![[r#"string[N][Colour]"#]],
     );
@@ -757,7 +762,7 @@ fn call_expressions() {
     check(
         &run_formatter!(
             expr(),
-            "foo( 5, 
+            "foo( 5,
             2 )"
         ),
         expect![[r#"foo(5, 2)"#]],
@@ -780,7 +785,7 @@ fn call_expressions() {
     check(
         &run_formatter!(
             expr(),
-            "foo(   5 , 
+            "foo(   5 ,
     10  ,
      20   )"
         ),
@@ -794,7 +799,7 @@ fn call_expressions() {
         &run_formatter!(
             expr(),
             "
-        
+
 foo  (  5,2  )"
         ),
         expect![[r#"foo(5, 2)"#]],
@@ -826,7 +831,7 @@ fn in_expressions() {
     check(
         &run_formatter!(
             expr(),
-            "x in   y 
+            "x in   y
 &&    z in w"
         ),
         expect![[r#"x in y && z in w"#]],
@@ -875,7 +880,7 @@ fn casting() {
     check(
         &run_formatter!(
             expr(),
-            "5 as { x: int, 
+            "5 as { x: int,
             y: real,    z: string }"
         ),
         expect![[r#"5 as { x: int, y: real, z: string }"#]],
@@ -891,10 +896,10 @@ fn if_exprs() {
     check(
         &run_formatter!(
             expr(),
-            "if 
-        1 == 
-        2 {         3 } 
-        else {  
+            "if
+        1 ==
+        2 {         3 }
+        else {
             4 }"
         ),
         expect![[r#"
@@ -919,8 +924,8 @@ fn cond_exprs() {
     check(
         &run_formatter!(
             cond_expr(expr()),
-            "cond 
-            {  
+            "cond
+            {
     else => a
     , }"
         ),
@@ -933,9 +938,9 @@ fn cond_exprs() {
         &run_formatter!(
             cond_expr(expr()),
             "cond {
-            
+
               a =>
-               b,  
+               b,
         else => c }"
         ),
         expect![[r#"
@@ -947,8 +952,8 @@ fn cond_exprs() {
     check(
         &run_formatter!(
             cond_expr(expr()),
-            "cond { 
-                a           =>{ 
+            "cond {
+                a           =>{
                     b  },else => c,  }"
         ),
         expect![[r#"
@@ -981,7 +986,7 @@ fn tuple_expressions() {
     check(
         &run_formatter!(
             expr(),
-            "{0, 
+            "{0,
          }"
         ),
         expect_test::expect!["{ 0, }"],
@@ -1001,7 +1006,7 @@ fn tuple_expressions() {
     check(
         &run_formatter!(
             expr(),
-            "{x: 0, 
+            "{x: 0,
              y:   1.0, z: \"foo\"}"
         ),
         expect_test::expect![[r#"{ x: 0, y: 1.0, z: "foo" }"#]],
@@ -1017,7 +1022,7 @@ fn tuple_expressions() {
     check(
         &run_formatter!(
             expr(),
-            "{x:        0, 
+            "{x:        0,
                 {y:1.0, \"bar\"}, z:\"foo\"
             }"
         ),
@@ -1041,7 +1046,7 @@ fn tuple_expressions() {
     check(
         &run_formatter!(
             expr(),
-            "{ x: { 42, }, y: if c { 2 } 
+            "{ x: { 42, }, y: if c { 2 }
             else { 3 }, z: foo() }"
         ),
         expect_test::expect![
@@ -1094,7 +1099,7 @@ fn tuple_field_accesses() {
     check(
         &run_formatter!(
             expr(),
-            "{0, 
+            "{0,
             1}.0"
         ),
         expect_test::expect!["{ 0, 1 }.0"],
@@ -1112,7 +1117,7 @@ fn tuple_field_accesses() {
     check(
         &run_formatter!(
             expr(),
-            "t.0 
+            "t.0
         .0"
         ),
         expect_test::expect!["t.0.0"],
@@ -1120,7 +1125,7 @@ fn tuple_field_accesses() {
     check(
         &run_formatter!(
             expr(),
-            "t.x 
+            "t.x
         .y"
         ),
         expect_test::expect!["t.x.y"],
@@ -1128,7 +1133,7 @@ fn tuple_field_accesses() {
     check(
         &run_formatter!(
             expr(),
-            "t      .1 .2.2. 
+            "t      .1 .2.2.
          3 .     13 . 1.1"
         ),
         expect_test::expect!["t.1.2.2.3.13.1.1"],
@@ -1137,8 +1142,8 @@ fn tuple_field_accesses() {
         &run_formatter!(
             expr(),
             "t
-         .x .1.2. 
-          w . 
+         .x .1.2.
+          w .
            t. 3.4"
         ),
         expect_test::expect!["t.x.1.2.w.t.3.4"],
@@ -1154,7 +1159,7 @@ fn tuple_field_accesses() {
     check(
         &run_formatter!(
             expr(),
-            "{ {0, 
+            "{ {0,
             0}, }.
             0"
         ),
@@ -1163,7 +1168,7 @@ fn tuple_field_accesses() {
     check(
         &run_formatter!(
             expr(),
-            "{ {0, 
+            "{ {0,
             0}, }.a"
         ),
         expect_test::expect!["{ { 0, 0 }, }.a"],
@@ -1197,9 +1202,9 @@ fn tuple_field_accesses() {
     check(
         &run_formatter!(
             expr(),
-            "1 
-        + 
-        2 
+            "1
+        +
+        2
         .3"
         ),
         expect_test::expect!["1 + 2.3"],
@@ -1207,7 +1212,7 @@ fn tuple_field_accesses() {
     check(
         &run_formatter!(
             expr(),
-            "1 
+            "1
         + 2                 .a"
         ),
         expect_test::expect!["1 + 2.a"],
@@ -1239,8 +1244,8 @@ fn array_expressions() {
     check(
         &run_formatter!(
             expr(),
-            r#"[[1, 
-        2], 
+            r#"[[1,
+        2],
         3]"#
         ),
         expect_test::expect!["[[1, 2], 3]"],
@@ -1261,7 +1266,7 @@ fn array_expressions() {
         &run_formatter!(
             expr(),
             r#"[
-                [   foo (  ) ,  2] ,    [if  true  
+                [   foo (  ) ,  2] ,    [if  true
                 {1}else{2}  ,      t    .0]]"#
         ),
         expect_test::expect![
@@ -1298,7 +1303,7 @@ fn array_element_accesses() {
         &run_formatter!(
             expr(),
             r#"{ a }
-        [N] [   foo()][     M   ][  4   
+        [N] [   foo()][     M   ][  4
         ]"#
         ),
         expect_test::expect![[r#"
@@ -1312,8 +1317,8 @@ fn array_element_accesses() {
             r#"foo(
 
         )[
-            { 
-                M 
+            {
+                M
             }][
                 if true { 1 } else { 3 }]"#
         ),
@@ -1369,8 +1374,8 @@ fn single_line_comments() {
         &run_formatter!(
             yurt_program(),
             r#"// This comment is allowed
-            constraint h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 
-                     + h9 + h10 + h11 + h12 + h13 + h14 + h15 
+            constraint h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8
+                     + h9 + h10 + h11 + h12 + h13 + h14 + h15
                      + h16 + h17 + h18 == 72;"#
         ),
         expect_test::expect!["// This comment is allowed\nconstraint h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 + h9 + h10 + h11 + h12 + h13 + h14 + h15 + h16 + h17 + h18 == 72;\n"],
@@ -1379,7 +1384,7 @@ fn single_line_comments() {
         &run_formatter!(
             yurt_program(),
             r#"constraint h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 // this is not supported for now
-            + h9 + h10 + h11 + h12 + h13 + h14 + h15 
+            + h9 + h10 + h11 + h12 + h13 + h14 + h15
             + h16 + h17 + h18 == 72;"#
         ),
         expect_test::expect![
