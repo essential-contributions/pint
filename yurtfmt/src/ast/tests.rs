@@ -29,9 +29,24 @@ macro_rules! run_formatter {
                 })
             )
         } else {
-            let toks_without_newlines = toks
-                .into_iter()
-                .filter(|token| !matches!(token, (Token::Newline, _)));
+            // Preserve only newlines following semicolons from token stream
+            let mut tokens_iter = toks.into_iter().peekable();
+            let mut toks_without_newlines = Vec::new();
+            let mut prev_token = None;
+
+            while let Some(token) = tokens_iter.next() {
+                let token_clone = token.clone();
+                match token {
+                    (Token::Newline, _) if matches!(prev_token, Some((Token::Semi, _))) => {
+                        if matches!(tokens_iter.peek(), Some((Token::Newline, _))) {
+                            toks_without_newlines.push(token);
+                        }
+                    }
+                    (Token::Newline, _) => {}
+                    _ => toks_without_newlines.push(token),
+                }
+                prev_token = Some(token_clone);
+            }
             let token_stream = Stream::from_iter(
                 $source.len()..$source.len(),
                 toks_without_newlines.into_iter(),
@@ -110,18 +125,29 @@ let x = y in        1..2;
         ),
         expect![[r#"
                 let x = 5;
+
                 let y = 7.777;
+
                 let bool_var = true;
+
                 let bool_var = false;
+
                 let str_var = "sample";
+
                 let str1 = "abc \
                         def";
+
                 let str2 = "abc
                         def";
+
                 let real_var = 8.8888E+5;
+
                 let hex_var = 0xFF;
+
                 let bin_var = 0b1010;
+
                 let bigint_var = 1234567890123456789012345678901234567890;
+
                 let x = y in 1..2;
             "#]],
     );
@@ -151,13 +177,21 @@ let bin_var :  int=0b1010;
         ),
         expect![[r#"
                 let x: int = 5;
+
                 let y: real = 7.777;
+
                 let bool_var: bool = true;
+
                 let str_var: string = "this sample has spaces";
+
                 let real_var: real = 8.8888E+5;
+
                 let hex_var: int = 0xFF;
+
                 let bin_var: int = 0b1010;
+
                 let bigint_var: int = 1234567890123456789012345678901234567890;
+
                 let x: int = y in 1..2;
             "#]],
     );
@@ -167,7 +201,6 @@ let bin_var :  int=0b1010;
             yurt_program(),
             r#"
     let     x ;
-
     let  bool_var   ;
         "#
         ),
@@ -199,17 +232,11 @@ fn solve_decls() {
             yurt_program(),
             r#"
                  solve    satisfy   ;
-
           solve    minimize   ;
-
 solve  maximize ;
-
                solve minimize   foo;
-
    solve   maximize foo   ;
-
                     solve   minimize x    +y   ;
-
         solve   maximize y-    x   ;
   "#
         ),
@@ -570,11 +597,15 @@ fn state_decl() {
         ),
         expect![[r#"
             state x: int = MyContract::getBalance;
+
             state y = CryptoExchange::convertToEth;
             state z: int = totalSupply + mintedTokens;
             state w = -5.5;
+
             state v: bool = !isWhitelisted;
+
             state u = Token::Metadata::uri;
+
             state tx: int = CryptoUtils::hashTransaction;
           "#]],
     );
@@ -910,6 +941,7 @@ fn if_exprs() {
         }"#]],
     );
 }
+
 #[test]
 fn cond_exprs() {
     check(
