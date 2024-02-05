@@ -489,13 +489,14 @@ fn func_decl() {
         y: real
             )   ->       real {
     y + 1
-            }
-            "#
+            }"#
         ),
         expect![[r#"
-            fn foo(x: real, y: real) -> real {
-                y + 1
-            }"#]],
+        fn foo(x: real, y: real) -> real {
+            y + 1
+        }
+        
+        "#]],
     );
 }
 

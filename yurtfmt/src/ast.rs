@@ -165,6 +165,8 @@ impl<'sc> Format for Decl<'sc> {
                 fn_sig.format(formatted_code)?;
                 formatted_code.write(" ");
                 body.format(formatted_code)?;
+                formatted_code.write_line("");
+                formatted_code.write_line("");
             }
             Self::Interface { name, fn_sigs, .. } => {
                 formatted_code.write(&format!("interface {name} {{"));
