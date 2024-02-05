@@ -14,10 +14,26 @@ pub(super) fn parse_str_to_ast(source: &str) -> Result<ast::Ast<'_>, Vec<Formatt
     let (tokens, lex_errors) = lexer::lex(source);
     errors.extend(lex_errors);
 
-    // Remove newlines from token stream
-    let tokens_without_newlines = tokens
-        .into_iter()
-        .filter(|token| !matches!(token, (Token::Newline, _)));
+    // Preserve only newlines following semicolons from token stream
+    let mut tokens_iter = tokens.into_iter().peekable();
+    let mut tokens_without_newlines = Vec::new();
+    let mut prev_token = None;
+
+    while let Some(token) = tokens_iter.next() {
+        let token_clone = token.clone();
+        match token {
+            (Token::Newline, _) if matches!(prev_token, Some((Token::Semi, _))) => {
+                if matches!(tokens_iter.peek(), Some((Token::Newline, _))) {
+                    tokens_without_newlines.push(token);
+                }
+            }
+            (Token::Newline, _) => {}
+            _ => tokens_without_newlines.push(token),
+        }
+        prev_token = Some(token_clone);
+    }
+
+    println!("tokens: {:?}", tokens_without_newlines);
 
     // Provide a token stream
     let eoi_span = source.len()..source.len();
@@ -56,6 +72,7 @@ pub(super) fn yurt_program<'sc>(
         contract_decl(),
         extern_decl(),
         comment_decl(),
+        newline_decl(),
     ))
     .repeated()
     .then_ignore(end())
@@ -246,6 +263,12 @@ fn enum_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseErro
 fn comment_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
     select! { Token::Comment(content) => content.to_owned() }
         .map_with_span(|content, span| ast::Decl::Comment { content, span })
+        .boxed()
+}
+
+fn newline_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+    just(Token::Newline)
+        .map_with_span(|_, span| ast::Decl::Newline { span })
         .boxed()
 }
 

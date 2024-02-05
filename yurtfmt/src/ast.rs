@@ -72,6 +72,9 @@ pub(super) enum Decl<'sc> {
         content: String,
         span: Span,
     },
+    Newline {
+        span: Span,
+    },
 }
 
 impl<'sc> Format for Decl<'sc> {
@@ -217,6 +220,9 @@ impl<'sc> Format for Decl<'sc> {
             Self::Comment { content, .. } => {
                 formatted_code.write_line(content);
             }
+            Self::Newline { .. } => {
+                formatted_code.write_line("");
+            }
         }
 
         Ok(())
@@ -238,7 +244,8 @@ impl<'sc> Spanned for Decl<'sc> {
             | Interface { span, .. }
             | Contract { span, .. }
             | NewType { span, .. }
-            | Comment { span, .. } => span,
+            | Comment { span, .. }
+            | Newline { span } => span,
         }
     }
 }

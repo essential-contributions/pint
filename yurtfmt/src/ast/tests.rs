@@ -1389,7 +1389,7 @@ fn single_line_comments() {
         ),
         expect_test::expect![
             r#"
-            Error formatting starting at location 49 and ending at location 81
+            Error formatting starting at location 49 and ending at location 82
             "#
         ],
     );

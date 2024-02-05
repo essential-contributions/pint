@@ -27,9 +27,14 @@ fn newlines() {
 #[test]
 fn comments() {
     assert_eq!(lex_one_success("//"), Token::Comment("//"));
+    assert_eq!(lex_one_success("//\n"), Token::Comment("//\n"));
     assert_eq!(lex_one_success("// Hello"), Token::Comment("// Hello"));
-    assert_eq!(lex_one_success("// Hello\n"), Token::Comment("// Hello"));
-    assert_eq!(lex_one_success("// Hello\r"), Token::Comment("// Hello"));
+    assert_eq!(lex_one_success("// Hello\n"), Token::Comment("// Hello\n"));
+    assert_eq!(lex_one_success("// Hello\r"), Token::Comment("// Hello\r"));
+    assert_eq!(
+        lex_one_success("// Hello\r\n"),
+        Token::Comment("// Hello\r\n")
+    );
 }
 
 #[test]
