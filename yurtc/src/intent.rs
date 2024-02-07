@@ -10,7 +10,7 @@ type Path = String;
 /// A checked and verified representation of an intent ready to be solved.
 #[derive(Debug)]
 pub struct Intent {
-    pub states: Vec<State>,
+    pub states: Vec<StateVar>,
     pub vars: Vec<Variable>,
     pub constraints: Vec<Expression>,
     pub directive: SolveDirective,
@@ -19,7 +19,7 @@ pub struct Intent {
 /// A representation of state fetched from a blockchain.  This is almost always a contract method
 /// call or a blockchain attribute call.
 #[derive(Debug)]
-pub struct State {
+pub struct StateVar {
     pub name: Path,
     pub ty: Type,
     pub expr: Expression,
