@@ -45,6 +45,7 @@ yansi = { workspace = true }
 
 [dev-dependencies]
 intent-server = { git = "ssh://git@github.com/essential-contributions/intent-server.git" }
+tempfile = { version = "3.9.0" }
 
 [features]
 default = ["solver-scip", "solver-pcp"]
