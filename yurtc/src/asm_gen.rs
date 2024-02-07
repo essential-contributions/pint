@@ -7,6 +7,9 @@ use constraint_asm::*;
 use essential_types::slots::*;
 use state_asm::*;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Default)]
 pub struct AsmBuilder {
     // Opcodes to read state
