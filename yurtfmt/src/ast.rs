@@ -1,7 +1,6 @@
 use crate::{
     error::FormatterError,
     formatter::{Format, FormattedCode},
-    span::{Span, Spanned},
 };
 use std::fmt::Write;
 
@@ -14,67 +13,54 @@ pub(super) type Ast<'sc> = Vec<Decl<'sc>>;
 pub(super) enum Decl<'sc> {
     Use {
         use_tree: UseTree,
-        span: Span,
     },
     Value {
         name: String,
         ty: Option<Type<'sc>>,
         init: Option<Expr<'sc>>,
-        span: Span,
     },
     Contract {
         name: String,
         expr: Expr<'sc>,
         paths: Option<Vec<Path>>,
         fn_sigs: Vec<FnSig<'sc>>,
-        span: Span,
     },
     Solve {
         directive: String,
         expr: Option<Expr<'sc>>,
-        span: Span,
     },
     NewType {
         name: String,
         ty: Type<'sc>,
-        span: Span,
     },
     Constraint {
         expr: Expr<'sc>,
-        span: Span,
     },
     Fn {
         fn_sig: FnSig<'sc>,
         body: Block<'sc>,
-        span: Span,
     },
     Interface {
         name: String,
         fn_sigs: Vec<FnSig<'sc>>,
-        span: Span,
     },
     State {
         name: String,
         ty: Option<Type<'sc>>,
         expr: Expr<'sc>,
-        span: Span,
     },
+    #[allow(dead_code)]
     Extern {
         fn_sigs: Vec<FnSig<'sc>>,
-        span: Span,
     },
     Enum {
         name: String,
         variants: Vec<String>,
-        span: Span,
     },
     Comment {
         content: String,
-        span: Span,
     },
-    Newline {
-        span: Span,
-    },
+    Newline,
 }
 
 impl<'sc> Format for Decl<'sc> {
@@ -231,50 +217,26 @@ impl<'sc> Format for Decl<'sc> {
     }
 }
 
-impl<'sc> Spanned for Decl<'sc> {
-    fn span(&self) -> &Span {
-        use Decl::*;
-        match &self {
-            Use { span, .. }
-            | Value { span, .. }
-            | State { span, .. }
-            | Constraint { span, .. }
-            | Fn { span, .. }
-            | Solve { span, .. }
-            | Extern { span, .. }
-            | Enum { span, .. }
-            | Interface { span, .. }
-            | Contract { span, .. }
-            | NewType { span, .. }
-            | Comment { span, .. }
-            | Newline { span } => span,
-        }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum UseTree {
-    Name(String, Span),
+    Name(String),
     Path {
         prefix: String,
         suffix: Box<UseTree>,
-        span: Span,
     },
     Group {
         imports: Vec<UseTree>,
-        span: Span,
     },
     Alias {
         name: String,
         alias: String,
-        span: Span,
     },
 }
 
 impl Format for UseTree {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
-            Self::Name(name, _) => {
+            Self::Name(name) => {
                 formatted_code.write(name);
             }
             Self::Path { prefix, suffix, .. } => {
@@ -301,22 +263,11 @@ impl Format for UseTree {
     }
 }
 
-impl Spanned for UseTree {
-    fn span(&self) -> &Span {
-        use UseTree::*;
-        match &self {
-            Path { span, .. } | Group { span, .. } | Alias { span, .. } => span,
-            Name(_, span) => span,
-        }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct FnSig<'sc> {
     pub(super) name: String,
     pub(super) params: Option<Vec<(String, Type<'sc>)>>,
     pub(super) return_type: Type<'sc>,
-    pub(super) span: Span,
 }
 
 impl<'sc> Format for FnSig<'sc> {
@@ -342,17 +293,10 @@ impl<'sc> Format for FnSig<'sc> {
     }
 }
 
-impl<'sc> Spanned for FnSig<'sc> {
-    fn span(&self) -> &Span {
-        &self.span
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct Block<'sc> {
     pub(super) statements: Vec<Decl<'sc>>,
     pub(super) final_expr: Box<Expr<'sc>>,
-    pub(super) span: Span,
 }
 
 impl<'sc> Format for Block<'sc> {
@@ -380,24 +324,18 @@ impl<'sc> Format for Block<'sc> {
     }
 }
 
-impl<'sc> Spanned for Block<'sc> {
-    fn span(&self) -> &Span {
-        &self.span
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Type<'sc> {
-    Primitive(String, Span),
-    Tuple(Vec<(Option<String>, Self)>, Span),
-    Array((Box<Self>, Vec<Expr<'sc>>), Span),
+    Primitive(String),
+    Tuple(Vec<(Option<String>, Self)>),
+    Array(Box<Self>, Vec<Expr<'sc>>),
 }
 
 impl<'sc> Format for Type<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
-            Type::Primitive(primitive_ty, _) => formatted_code.write(primitive_ty),
-            Type::Tuple(tuple_ty, _) => {
+            Type::Primitive(primitive_ty) => formatted_code.write(primitive_ty),
+            Type::Tuple(tuple_ty) => {
                 formatted_code.write("{ ");
 
                 for (i, (name, ty)) in tuple_ty.iter().enumerate() {
@@ -415,7 +353,7 @@ impl<'sc> Format for Type<'sc> {
 
                 formatted_code.write(" }");
             }
-            Type::Array((array_ty, array_exprs), _) => {
+            Type::Array(array_ty, array_exprs) => {
                 array_ty.format(formatted_code)?;
 
                 for expr in array_exprs {
@@ -429,17 +367,8 @@ impl<'sc> Format for Type<'sc> {
     }
 }
 
-impl<'sc> Spanned for Type<'sc> {
-    fn span(&self) -> &Span {
-        use Type::*;
-        match &self {
-            Primitive(_, span) | Tuple(_, span) | Array(_, span) => span,
-        }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct Immediate(pub String, pub Span);
+pub(super) struct Immediate(pub String);
 
 impl Format for Immediate {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
@@ -449,17 +378,10 @@ impl Format for Immediate {
     }
 }
 
-impl Spanned for Immediate {
-    fn span(&self) -> &Span {
-        &self.1
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Path {
     pub pre_colon: bool,
     pub idents: Vec<String>,
-    pub span: Span,
 }
 
 impl Format for Path {
@@ -473,17 +395,10 @@ impl Format for Path {
     }
 }
 
-impl Spanned for Path {
-    fn span(&self) -> &Span {
-        &self.span
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct UnaryOp<'sc> {
     pub prefix_op: &'sc str,
     pub expr: Box<Expr<'sc>>,
-    pub span: Span,
 }
 
 impl<'sc> Format for UnaryOp<'sc> {
@@ -494,18 +409,11 @@ impl<'sc> Format for UnaryOp<'sc> {
     }
 }
 
-impl<'sc> Spanned for UnaryOp<'sc> {
-    fn span(&self) -> &Span {
-        &self.span
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct BinaryOp<'sc> {
     pub op: &'sc str,
     pub lhs: Box<Expr<'sc>>,
     pub rhs: Box<Expr<'sc>>,
-    pub span: Span,
 }
 
 impl<'sc> Format for BinaryOp<'sc> {
@@ -521,7 +429,6 @@ impl<'sc> Format for BinaryOp<'sc> {
 pub(super) struct Call<'sc> {
     pub path: Path,
     pub args: Vec<Expr<'sc>>,
-    pub span: Span,
 }
 
 impl<'sc> Format for Call<'sc> {
@@ -542,17 +449,10 @@ impl<'sc> Format for Call<'sc> {
     }
 }
 
-impl<'sc> Spanned for Call<'sc> {
-    fn span(&self) -> &Span {
-        &self.span
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct In<'sc> {
     pub lhs: Box<Expr<'sc>>,
     pub rhs: Box<Expr<'sc>>,
-    pub span: Span,
 }
 
 impl<'sc> Format for In<'sc> {
@@ -564,17 +464,10 @@ impl<'sc> Format for In<'sc> {
     }
 }
 
-impl<'sc> Spanned for In<'sc> {
-    fn span(&self) -> &Span {
-        &self.span
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Range<'sc> {
     pub lb: Box<Expr<'sc>>,
     pub ub: Box<Expr<'sc>>,
-    pub span: Span,
 }
 
 impl<'sc> Format for Range<'sc> {
@@ -586,17 +479,10 @@ impl<'sc> Format for Range<'sc> {
     }
 }
 
-impl<'sc> Spanned for Range<'sc> {
-    fn span(&self) -> &Span {
-        &self.span
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Cast<'sc> {
     pub value: Box<Expr<'sc>>,
     pub ty: Type<'sc>,
-    pub span: Span,
 }
 
 impl<'sc> Format for Cast<'sc> {
@@ -609,18 +495,11 @@ impl<'sc> Format for Cast<'sc> {
     }
 }
 
-impl<'sc> Spanned for Cast<'sc> {
-    fn span(&self) -> &Span {
-        &self.span
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct If<'sc> {
     pub condition: Box<Expr<'sc>>,
     pub true_code_block: Block<'sc>,
     pub false_code_block: Block<'sc>,
-    pub span: Span,
 }
 
 impl<'sc> Format for If<'sc> {
@@ -637,17 +516,10 @@ impl<'sc> Format for If<'sc> {
     }
 }
 
-impl<'sc> Spanned for If<'sc> {
-    fn span(&self) -> &Span {
-        &self.span
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Cond<'sc> {
     pub cond_branches: Vec<(Expr<'sc>, Expr<'sc>)>,
     pub else_branch: Box<Expr<'sc>>,
-    pub span: Span,
 }
 
 impl<'sc> Format for Cond<'sc> {
@@ -677,16 +549,9 @@ impl<'sc> Format for Cond<'sc> {
     }
 }
 
-impl<'sc> Spanned for Cond<'sc> {
-    fn span(&self) -> &Span {
-        &self.span
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct TupleExpr<'sc> {
     pub fields: Vec<(Option<String>, Expr<'sc>)>,
-    pub span: Span,
 }
 
 impl<'sc> Format for TupleExpr<'sc> {
@@ -718,17 +583,10 @@ impl<'sc> Format for TupleExpr<'sc> {
     }
 }
 
-impl<'sc> Spanned for TupleExpr<'sc> {
-    fn span(&self) -> &Span {
-        &self.span
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct TupleFieldAccess<'sc> {
     pub tuple: Box<Expr<'sc>>,
     pub field: String,
-    pub span: Span,
 }
 
 impl<'sc> Format for TupleFieldAccess<'sc> {
@@ -739,16 +597,9 @@ impl<'sc> Format for TupleFieldAccess<'sc> {
     }
 }
 
-impl<'sc> Spanned for TupleFieldAccess<'sc> {
-    fn span(&self) -> &Span {
-        &self.span
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct ArrayExpr<'sc> {
     pub elements: Vec<Expr<'sc>>,
-    pub span: Span,
 }
 
 impl<'sc> Format for ArrayExpr<'sc> {
@@ -768,17 +619,10 @@ impl<'sc> Format for ArrayExpr<'sc> {
     }
 }
 
-impl<'sc> Spanned for ArrayExpr<'sc> {
-    fn span(&self) -> &Span {
-        &self.span
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct ArrayElementAccess<'sc> {
     pub array: Box<Expr<'sc>>,
     pub index: Box<Expr<'sc>>,
-    pub span: Span,
 }
 
 impl<'sc> Format for ArrayElementAccess<'sc> {
@@ -788,12 +632,6 @@ impl<'sc> Format for ArrayElementAccess<'sc> {
         self.index.format(formatted_code)?;
         formatted_code.write("]");
         Ok(())
-    }
-}
-
-impl<'sc> Spanned for ArrayElementAccess<'sc> {
-    fn span(&self) -> &Span {
-        &self.span
     }
 }
 

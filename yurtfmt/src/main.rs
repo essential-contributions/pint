@@ -4,7 +4,6 @@ mod error;
 mod formatter;
 mod lexer;
 mod parser;
-mod span;
 
 use error::print_on_failure;
 use formatter::Format;
