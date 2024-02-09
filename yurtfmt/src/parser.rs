@@ -70,7 +70,7 @@ pub(super) fn yurt_program<'sc>(
         type_decl(),
         interface_decl(),
         contract_decl(),
-        extern_decl(),
+        // extern_decl(), // disabled for the time being, we may be removing them
         comment_decl(),
         newline_decl(),
     ))
