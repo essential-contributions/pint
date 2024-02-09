@@ -1,8 +1,0 @@
-fn foo(x: real, y: real) -> real {
-    y + 1
-}
-
-fn foo(x: real, y: real) -> real {
-    y + 1
-}
-
