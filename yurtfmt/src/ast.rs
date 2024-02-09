@@ -49,7 +49,6 @@ pub(super) enum Decl<'sc> {
         ty: Option<Type<'sc>>,
         expr: Expr<'sc>,
     },
-    #[allow(dead_code)]
     Extern {
         fn_sigs: Vec<FnSig<'sc>>,
     },

@@ -70,7 +70,7 @@ pub(super) fn yurt_program<'sc>(
         type_decl(),
         interface_decl(),
         contract_decl(),
-        // extern_decl(), // disabled for the time being, we may be removing them
+        extern_decl(),
         comment_decl(),
         newline_decl(),
     ))
@@ -211,13 +211,14 @@ fn state_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseErr
         .map(|((name, ty), expr)| ast::Decl::State { name, ty, expr })
 }
 
-#[allow(dead_code)]
 fn extern_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
     just(Token::Extern)
         .ignore_then(
-            (fn_sig().then_ignore(just(Token::Semi)))
-                .repeated()
-                .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
+            (fn_sig()
+                .then_ignore(just(Token::Semi))
+                .then_ignore(just(Token::Newline).or_not()))
+            .repeated()
+            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
         )
         .map(|fn_sigs| ast::Decl::Extern { fn_sigs })
         .boxed()

@@ -613,6 +613,94 @@ fn state_decl() {
 }
 
 #[test]
+fn extern_decl() {
+    check(
+        &run_formatter!(
+            yurt_program(),
+            "extern    {
+                  fn  eth_getBalance(address:   string)
+        ->
+string;
+
+                 fn eth_gasPrice()
+-> string;
+        }   "
+        ),
+        expect![[r#"
+            extern {
+                fn eth_getBalance(address: string) -> string;
+                fn eth_gasPrice() -> string;
+            }
+        "#]],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            "  extern
+            {}
+  "
+        ),
+        expect![[r#"
+            extern {}
+        "#]],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            "  extern
+            {
+             fn
+             eth_blockNumber() ->
+
+             string;
+            } "
+        ),
+        expect![[r#"
+            extern {
+                fn eth_blockNumber() -> string;
+            }
+        "#]],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            "extern{
+                fn    eth_getCode( address
+                :
+                string
+                , blockTag
+                :  string) -> string;
+            }"
+        ),
+        expect![[r#"
+            extern {
+                fn eth_getCode(address: string, blockTag: string) -> string;
+            }
+        "#]],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            "extern {
+
+            fn eth_call(   transaction
+
+            :string,
+
+            blockTag: string  ) ->
+
+            string;
+            } "
+        ),
+        expect![[r#"
+            extern {
+                fn eth_call(transaction: string, blockTag: string) -> string;
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn enum_decl() {
     check(
         &run_formatter!(yurt_program(), "   enum   Colour=Red|Green|Blue  ;  "),
