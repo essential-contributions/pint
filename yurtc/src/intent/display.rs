@@ -1,6 +1,6 @@
 use crate::{
     expr,
-    intent::{Expression, SolveDirective, State, Type, Variable},
+    intent::{Expression, SolveDirective, StateVar, Type, Variable},
     util::write_many,
 };
 use std::fmt::{Display, Formatter, Result};
@@ -12,7 +12,7 @@ impl Display for Variable {
     }
 }
 
-impl Display for State {
+impl Display for StateVar {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "state {}: {} = {}", self.name, self.ty, self.expr)?;
         Ok(())

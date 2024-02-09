@@ -21,6 +21,11 @@ jobs:
       contents: read
       checks: write
     steps:
+      - name: Provide Access to Private Repos
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -31,6 +36,11 @@ jobs:
     name: Cargo Build and Test Workspace
     runs-on: ubuntu-latest
     steps:
+      - name: Provide Access to Private Repos
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -56,7 +66,7 @@ jobs:
         run: cargo build --release
 
       - name: Install cargo-nextest
-        uses: baptiste0928/cargo-install@v2
+        uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-nextest
           locked: true
@@ -68,6 +78,11 @@ jobs:
     name: Cargo Unused Dependencies Check
     runs-on: ubuntu-latest
     steps:
+      - name: Provide Access to Private Repos
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -79,7 +94,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Install cargo-udeps
-        uses: baptiste0928/cargo-install@v2
+        uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-udeps
           locked: true

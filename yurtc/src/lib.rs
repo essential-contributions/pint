@@ -1,6 +1,7 @@
 #[macro_use]
 pub mod error;
 
+pub mod asm_gen;
 mod contract;
 mod expr;
 pub mod intent;

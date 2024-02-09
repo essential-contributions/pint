@@ -22,6 +22,8 @@ lalrpop = "0.20"
 anyhow = { workspace = true }
 ariadne = { workspace = true }
 clap = { workspace = true }
+constraint_asm = { git = "ssh://git@github.com/essential-contributions/intent-server.git" }
+essential_types = { git = "ssh://git@github.com/essential-contributions/intent-server.git" }
 expect-test = { workspace = true }
 gcollections = "1.4.0"
 intervallum = "1.2.0"
@@ -33,10 +35,17 @@ num-bigint = "0.4"
 num-traits = "0.2"
 regex = "1.9"
 russcip = { git = "https://github.com/mohammadfawaz/russcip", branch = "mohammadfawaz/indicator_constraints", optional = true }
+serde = { version = "1.0.195", features = ["derive"] }
+serde_json = "1.0.111"
 similar-asserts = { version = "1.5", default-features = false }
 slotmap = "1.0"
+state_asm = { git = "ssh://git@github.com/essential-contributions/intent-server.git" }
 thiserror = { workspace = true }
 yansi = { workspace = true }
+
+[dev-dependencies]
+intent-server = { git = "ssh://git@github.com/essential-contributions/intent-server.git" }
+tempfile = { version = "3.9.0" }
 
 [features]
 default = ["solver-scip", "solver-pcp"]
