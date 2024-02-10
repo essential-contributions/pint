@@ -296,9 +296,7 @@ fn ident<'sc>() -> impl Parser<Token<'sc>, String, Error = ParseError> + Clone {
 }
 
 fn immediate<'sc>() -> impl Parser<Token<'sc>, ast::Immediate, Error = ParseError> + Clone {
-    select! { Token::Literal(str) => str }
-        .map(|str| ast::Immediate(str.to_string()))
-        .boxed()
+    select! { Token::Literal(str) => ast::Immediate(str.to_string()) }.boxed()
 }
 
 pub(super) fn type_<'sc>(
@@ -315,8 +313,7 @@ pub(super) fn type_<'sc>(
             .boxed();
 
         let type_atom = choice((
-            select! { Token::Primitive(type_str) => type_str }
-                .map(|type_str| ast::Type::Primitive(type_str.parse().unwrap())),
+            select! { Token::Primitive(type_str) => ast::Type::Primitive(type_str.parse().unwrap()) },
             tuple,
         ))
         .boxed();
@@ -418,12 +415,7 @@ where
     P: Parser<Token<'sc>, ast::Expr<'sc>, Error = ParseError> + Clone + 'sc,
 {
     parser
-        .then(
-            (just(Token::As))
-                .ignore_then(type_(expr))
-                .map(|ty| (ty))
-                .repeated(),
-        )
+        .then((just(Token::As)).ignore_then(type_(expr)).repeated())
         .foldl(|value, ty| {
             ast::Expr::Cast(ast::Cast {
                 value: Box::new(value),
@@ -463,7 +455,6 @@ where
         .then(
             just(Token::In)
                 .ignore_then(range(expr.clone()).or(expr))
-                .map(|rhs| (rhs))
                 .repeated(),
         )
         .foldl(|lhs, rhs| {
@@ -508,7 +499,6 @@ where
                 select! { Token::BinaryOp(op) => op },
             ))
             .then(parser)
-            .map(|binary_op| (binary_op))
             .repeated(),
         )
         .foldl(|lhs, (op, rhs)| {
@@ -581,12 +571,7 @@ where
     let index = immediate().map(|immediate| immediate.0).or(ident());
 
     parser
-        .then(
-            just(Token::Dot)
-                .ignore_then(index)
-                .map(|field| (field))
-                .repeated(),
-        )
+        .then(just(Token::Dot).ignore_then(index).repeated())
         .foldl(|expr, field| {
             ast::Expr::TupleFieldAccess(ast::TupleFieldAccess {
                 tuple: Box::new(expr),
@@ -606,7 +591,6 @@ where
     parser
         .then(
             expr.delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
-                .map(|index| (index))
                 .repeated(),
         )
         .foldl(|expr, index| {
