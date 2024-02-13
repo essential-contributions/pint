@@ -2,6 +2,7 @@
 pub mod error;
 
 pub mod asm_gen;
+pub mod cli;
 mod contract;
 mod expr;
 pub mod intent;

@@ -17,6 +17,7 @@ use yurtc::{
     error::ReportableError,
     intent::{Intent, IntermediateIntent},
 };
+mod cli;
 
 #[cfg(test)]
 mod e2e {

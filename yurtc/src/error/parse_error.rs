@@ -214,10 +214,10 @@ fn format_optional_token(token: &Option<String>) -> String {
     }
 }
 
-fn format_expected_tokens_message(expected: &mut Vec<Option<String>>) -> String {
+fn format_expected_tokens_message(expected: &mut [Option<String>]) -> String {
     format!(
         "expected {}",
-        match &expected[..] {
+        match expected {
             [] => "something else".to_string(),
             [expected] => format_optional_token(expected),
             _ => {
@@ -237,10 +237,7 @@ fn format_expected_tokens_message(expected: &mut Vec<Option<String>>) -> String 
     )
 }
 
-fn format_expected_found_error(
-    expected: &mut Vec<Option<String>>,
-    found: &Option<String>,
-) -> String {
+fn format_expected_found_error(expected: &mut [Option<String>], found: &Option<String>) -> String {
     format!(
         "{}, found {}",
         format_expected_tokens_message(expected),

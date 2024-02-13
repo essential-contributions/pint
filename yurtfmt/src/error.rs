@@ -66,7 +66,7 @@ pub(super) fn print_on_failure(filename: &str, source: &str, errs: &Vec<Formatte
                     .with_color(Color::Red),
             )
             .finish()
-            .print((filename, Source::from(source)))
+            .eprint((filename, Source::from(source)))
             .unwrap();
     };
 

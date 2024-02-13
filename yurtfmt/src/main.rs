@@ -1,10 +1,13 @@
 mod ast;
+mod cli;
 #[macro_use]
 mod error;
 mod formatter;
 mod lexer;
 mod parser;
 
+use clap::Parser;
+use cli::Args;
 use error::print_on_failure;
 use formatter::Format;
 use std::{
@@ -13,8 +16,10 @@ use std::{
 };
 
 fn main() -> anyhow::Result<()> {
-    let srcs = parse_cli();
-    srcs.iter()
+    let args = Args::parse();
+
+    args.filepaths
+        .iter()
         .map(|src| format_file(src))
         .collect::<anyhow::Result<Vec<_>>>()?;
 
@@ -48,17 +53,4 @@ fn format_file(filename: &str) -> anyhow::Result<()> {
     write(Path::new(&filename), formatted_code.as_str())?;
 
     Ok(())
-}
-
-fn parse_cli() -> Vec<String> {
-    clap::command!()
-        .arg(
-            clap::Arg::new("filename")
-                .required(true)
-                .action(clap::ArgAction::Append),
-        )
-        .get_matches()
-        .get_many::<String>("filename")
-        .map(|fs| fs.cloned().collect())
-        .unwrap()
 }
