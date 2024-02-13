@@ -3,6 +3,7 @@ use crate::{
     expr::{BinaryOp, Expr, Immediate, UnaryOp},
     intermediate::{ExprKey, IntermediateIntent, State as StateVar},
     span::empty_span,
+    types::{PrimitiveKind, Type},
 };
 use constraint_asm::{Access, Alu, Op, Pred};
 use essential_types::{
@@ -10,6 +11,7 @@ use essential_types::{
     slots::{Slots, StateSlot},
 };
 use state_asm::*;
+use std::collections::HashMap;
 
 #[cfg(test)]
 mod tests;
@@ -22,6 +24,9 @@ pub struct AsmBuilder {
     c_asm: Vec<Vec<Op>>,
     // Collection of state slots
     s_slots: Vec<StateSlot>,
+    // Maps indices of `let` variables (which may be wider than a word) to a list of low level
+    // word-wide decision variables
+    var_to_d_vars: HashMap<usize, Vec<usize>>,
 }
 
 impl AsmBuilder {
@@ -31,7 +36,6 @@ impl AsmBuilder {
     fn compile_state(
         &mut self,
         state: &StateVar,
-        idx: usize,
         intent: &IntermediateIntent,
     ) -> Result<(), CompileError> {
         // If the RHS of `state` variable initialization is a call of the form
@@ -41,40 +45,60 @@ impl AsmBuilder {
             if name.ends_with("::storage::get") {
                 // Expecting a single argument that is an integer
                 assert_eq!(args.len(), 1);
-                let arg = &args[0];
-                let arg = match &intent.exprs[*arg] {
-                    Expr::Immediate {
-                        value: Immediate::BigInt(val),
-                        ..
-                    } => val.clone(),
-                    Expr::Immediate {
-                        value: Immediate::Int(val),
-                        ..
-                    } => (*val).into(),
-                    _ => panic!("bad storage::get argument"),
-                };
 
-                // State assembly for reading into a slot
-                let mut s_asm = vec![];
+                let mut asm = Vec::new();
+
+                // Compile key
+                self.compile_expr(&mut asm, &args[0], intent)?;
+                let mut s_asm = asm
+                    .iter()
+                    .map(|op| StateReadOp::Constraint(*op))
+                    .collect::<Vec<_>>();
+
                 s_asm.push(StateReadOp::Constraint(Op::Push(1)));
                 s_asm.push(StateReadOp::Memory(Memory::Alloc));
-                let digits = arg.to_u64_digits().1;
-                for d in (0..4usize.saturating_sub(digits.len()))
-                    .map(|_| 0)
-                    .chain(digits.into_iter().rev())
-                {
-                    s_asm.push(StateReadOp::Constraint(Op::Push(d)));
-                }
                 s_asm.push(StateReadOp::Constraint(Op::Push(1)));
                 s_asm.push(StateReadOp::State(State::StateReadWordRange));
                 s_asm.push(StateReadOp::ControlFlow(ControlFlow::Halt));
+
                 self.s_asm.push(s_asm);
 
+                let slot_idx = self.s_asm.len() - 1;
                 self.s_slots.push(StateSlot {
-                    index: idx as u32,
+                    index: slot_idx as u32,
                     amount: 1,
-                    program_index: idx as u16,
+                    program_index: slot_idx as u16,
                 });
+            } else if name.ends_with("::storage::get_extern") {
+                // Expecting a single argument that is an integer
+                assert_eq!(args.len(), 2);
+
+                let mut asm = Vec::new();
+
+                // persistent intent address followed by key
+                self.compile_expr(&mut asm, &args[0], intent)?;
+                self.compile_expr(&mut asm, &args[1], intent)?;
+                let mut s_asm = asm
+                    .iter()
+                    .map(|op| StateReadOp::Constraint(*op))
+                    .collect::<Vec<_>>();
+
+                s_asm.push(StateReadOp::Constraint(Op::Push(1)));
+                s_asm.push(StateReadOp::Memory(Memory::Alloc));
+                s_asm.push(StateReadOp::Constraint(Op::Push(1)));
+                s_asm.push(StateReadOp::State(State::StateReadWordRangeExtern));
+                s_asm.push(StateReadOp::ControlFlow(ControlFlow::Halt));
+
+                self.s_asm.push(s_asm);
+
+                let slot_idx = self.s_asm.len() - 1;
+                self.s_slots.push(StateSlot {
+                    index: slot_idx as u32,
+                    amount: 1,
+                    program_index: slot_idx as u16,
+                });
+            } else {
+                unimplemented!("Other calls are currently not supported")
             }
         }
 
@@ -84,6 +108,7 @@ impl AsmBuilder {
     /// Generates assembly for an `ExprKey`.
     fn compile_expr(
         &mut self,
+        asm: &mut Vec<Op>,
         expr: &ExprKey,
         intent: &IntermediateIntent,
     ) -> Result<(), CompileError> {
@@ -91,42 +116,58 @@ impl AsmBuilder {
         // constraint being processed.
         //
         // Assume that there exists at least a single entry in `self.c_asm`.
-        assert!(!self.c_asm.is_empty());
-        let idx = self.c_asm.len() - 1;
         match &intent.exprs[*expr] {
             Expr::Immediate { value, .. } => match value {
-                Immediate::Int(val) => self.c_asm[idx].push(Op::Push(*val as u64)),
+                Immediate::Int(val) => asm.push(Op::Push(*val)),
+                Immediate::B256(val) => {
+                    asm.push(Op::Push(val[0] as i64));
+                    asm.push(Op::Push(val[1] as i64));
+                    asm.push(Op::Push(val[2] as i64));
+                    asm.push(Op::Push(val[3] as i64));
+                }
                 _ => unimplemented!("other literal types are not yet supported"),
             },
             Expr::BinaryOp { op, lhs, rhs, .. } => {
-                self.compile_expr(lhs, intent)?;
-                self.compile_expr(rhs, intent)?;
+                self.compile_expr(asm, lhs, intent)?;
+                self.compile_expr(asm, rhs, intent)?;
                 match op {
-                    BinaryOp::Add => self.c_asm[idx].push(Op::Alu(Alu::Add)),
-                    BinaryOp::Sub => self.c_asm[idx].push(Op::Alu(Alu::Sub)),
-                    BinaryOp::Mul => self.c_asm[idx].push(Op::Alu(Alu::Mul)),
-                    BinaryOp::Div => self.c_asm[idx].push(Op::Alu(Alu::Div)),
-                    BinaryOp::Mod => self.c_asm[idx].push(Op::Alu(Alu::Mod)),
-                    BinaryOp::Equal => self.c_asm[idx].push(Op::Pred(Pred::Eq)),
+                    BinaryOp::Add => asm.push(Op::Alu(Alu::Add)),
+                    BinaryOp::Sub => asm.push(Op::Alu(Alu::Sub)),
+                    BinaryOp::Mul => asm.push(Op::Alu(Alu::Mul)),
+                    BinaryOp::Div => asm.push(Op::Alu(Alu::Div)),
+                    BinaryOp::Mod => asm.push(Op::Alu(Alu::Mod)),
+                    BinaryOp::Equal => {
+                        if matches!(
+                            intent.expr_types[*lhs],
+                            Type::Primitive {
+                                kind: PrimitiveKind::B256,
+                                ..
+                            }
+                        ) {
+                            asm.push(Op::Pred(Pred::Eq4));
+                        } else {
+                            asm.push(Op::Pred(Pred::Eq));
+                        }
+                    }
                     BinaryOp::NotEqual => {
-                        self.c_asm[idx].push(Op::Pred(Pred::Eq));
-                        self.c_asm[idx].push(Op::Pred(Pred::Not));
+                        asm.push(Op::Pred(Pred::Eq));
+                        asm.push(Op::Pred(Pred::Not));
                     }
-                    BinaryOp::LessThanOrEqual => self.c_asm[idx].push(Op::Pred(Pred::Lte)),
-                    BinaryOp::LessThan => self.c_asm[idx].push(Op::Pred(Pred::Lt)),
+                    BinaryOp::LessThanOrEqual => asm.push(Op::Pred(Pred::Lte)),
+                    BinaryOp::LessThan => asm.push(Op::Pred(Pred::Lt)),
                     BinaryOp::GreaterThanOrEqual => {
-                        self.c_asm[idx].push(Op::Pred(Pred::Gte));
+                        asm.push(Op::Pred(Pred::Gte));
                     }
-                    BinaryOp::GreaterThan => self.c_asm[idx].push(Op::Pred(Pred::Gt)),
-                    BinaryOp::LogicalAnd => self.c_asm[idx].push(Op::Pred(Pred::And)),
-                    BinaryOp::LogicalOr => self.c_asm[idx].push(Op::Pred(Pred::Or)),
+                    BinaryOp::GreaterThan => asm.push(Op::Pred(Pred::Gt)),
+                    BinaryOp::LogicalAnd => asm.push(Op::Pred(Pred::And)),
+                    BinaryOp::LogicalOr => asm.push(Op::Pred(Pred::Or)),
                 }
             }
             Expr::UnaryOp { op, expr, .. } => {
-                self.compile_expr(expr, intent)?;
+                self.compile_expr(asm, expr, intent)?;
                 match op {
                     UnaryOp::Not => {
-                        self.c_asm[idx].push(Op::Pred(Pred::Not));
+                        asm.push(Op::Pred(Pred::Not));
                     }
                     UnaryOp::NextState => {
                         // This is pretty hacky. It assumes that the next state operator is applied
@@ -134,17 +175,14 @@ impl AsmBuilder {
                         // which would have to be `Push(0)` and `Access(Access::State)`, and adds
                         // `Push(1)` and a `Access(Access:State)`. We're basically switching from
                         // reading the current state to reading the next state.
-                        assert!(matches!(
-                            self.c_asm[idx].last(),
-                            Some(&Op::Access(Access::State))
-                        ));
-                        self.c_asm[idx].pop();
+                        assert!(matches!(asm.last(), Some(&Op::Access(Access::State))));
+                        asm.pop();
 
-                        assert!(matches!(self.c_asm[idx].last(), Some(&Op::Push(0))));
-                        self.c_asm[idx].pop();
+                        assert!(matches!(asm.last(), Some(&Op::Push(0))));
+                        asm.pop();
 
-                        self.c_asm[idx].push(Op::Push(1)); // 1 means "next state"
-                        self.c_asm[idx].push(Op::Access(Access::State));
+                        asm.push(Op::Push(1)); // 1 means "next state"
+                        asm.push(Op::Access(Access::State));
                     }
                     UnaryOp::Neg => unimplemented!("Unary::Neg is not yet supported"),
                     UnaryOp::Error => unreachable!("unexpected Unary::Error"),
@@ -152,11 +190,15 @@ impl AsmBuilder {
             }
             Expr::PathByName(path, _) => {
                 // Search for a decision variable or a state variable.
-                self.compile_path(&path.to_string(), intent);
+                self.compile_path(asm, &path.to_string(), intent);
             }
             Expr::PathByKey(var_key, _) => {
                 // Search for a decision variable or a state variable.
-                self.compile_path(&intent.vars[*var_key].name, intent);
+                self.compile_path(asm, &intent.vars[*var_key].name, intent);
+            }
+            Expr::FnCall { name, args, .. } if name.ends_with("::context::sender") => {
+                assert!(args.is_empty());
+                asm.push(Op::Access(Access::Sender));
             }
             Expr::FnCall { .. } | Expr::If { .. } => {
                 unimplemented!("calls and `if` expressions are not yet supported")
@@ -182,19 +224,20 @@ impl AsmBuilder {
 
     /// Compile a path expression. Assumes that each path expressions corresponds to a decision
     /// variable or a state variable.
-    fn compile_path(&mut self, path: &String, intent: &IntermediateIntent) {
-        let idx = self.c_asm.len() - 1;
+    fn compile_path(&mut self, asm: &mut Vec<Op>, path: &String, intent: &IntermediateIntent) {
         let var_index = intent.vars.iter().position(|var| &var.1.name == path);
         let state_index = intent.states.iter().position(|state| &state.1.name == path);
         match (var_index, state_index) {
             (Some(var_index), None) => {
-                self.c_asm[idx].push(Op::Push(var_index as u64));
-                self.c_asm[idx].push(Op::Access(Access::DecisionVar));
+                for d_var in &self.var_to_d_vars[&var_index] {
+                    asm.push(Op::Push(*d_var as i64));
+                    asm.push(Op::Access(Access::DecisionVar));
+                }
             }
             (None, Some(state_index)) => {
-                self.c_asm[idx].push(Op::Push(state_index as u64));
-                self.c_asm[idx].push(Op::Push(0)); // 0 means "current state"
-                self.c_asm[idx].push(Op::Access(Access::State));
+                asm.push(Op::Push(state_index as i64));
+                asm.push(Op::Push(0)); // 0 means "current state"
+                asm.push(Op::Access(Access::State));
             }
             _ => unreachable!("guaranteed by semantic analysis"),
         }
@@ -206,9 +249,10 @@ impl AsmBuilder {
         expr: &ExprKey,
         intent: &IntermediateIntent,
     ) -> Result<(), CompileError> {
-        self.c_asm.push(vec![]);
-
-        self.compile_expr(expr, intent)
+        let mut asm = Vec::new();
+        self.compile_expr(&mut asm, expr, intent)?;
+        self.c_asm.push(asm);
+        Ok(())
     }
 }
 
@@ -217,8 +261,31 @@ impl AsmBuilder {
 pub fn intent_to_asm(final_intent: &IntermediateIntent) -> Result<Intent, CompileError> {
     let mut builder = AsmBuilder::default();
 
-    for (idx, (_, state)) in final_intent.states.iter().enumerate() {
-        builder.compile_state(state, idx, final_intent)?;
+    // low level decision variable index
+    let mut d_var = 0;
+    for (idx, var) in final_intent.vars.iter().enumerate() {
+        if matches!(
+            final_intent.var_types[var.0],
+            Type::Primitive {
+                kind: PrimitiveKind::B256,
+                ..
+            }
+        ) {
+            // `B256` variables map to 4 separate low level decision variables, 1 word wide each.
+            builder
+                .var_to_d_vars
+                .insert(idx, vec![d_var, d_var + 1, d_var + 2, d_var + 3]);
+            d_var += 4;
+        } else {
+            // All other primitive types (ignoring strings) are 1 word wide.
+            builder.var_to_d_vars.insert(idx, vec![d_var]);
+            d_var += 1;
+        }
+    }
+    let total_decision_vars = d_var;
+
+    for (_, state) in &final_intent.states {
+        builder.compile_state(state, final_intent)?;
     }
 
     for (constraint, _) in &final_intent.constraints {
@@ -228,9 +295,8 @@ pub fn intent_to_asm(final_intent: &IntermediateIntent) -> Result<Intent, Compil
     Ok(Intent {
         slots: Slots {
             state: builder.s_slots,
-            decision_variables: final_intent.vars.len() as u32,
-            input_message_args: Some(vec![]),
-            output_messages_args: vec![],
+            decision_variables: total_decision_vars as u32,
+            permits: 0,
         },
         state_read: builder
             .s_asm
@@ -244,4 +310,26 @@ pub fn intent_to_asm(final_intent: &IntermediateIntent) -> Result<Intent, Compil
             .collect(),
         directive: Directive::Satisfy,
     })
+}
+
+/// Given an `Intent`, print the contained assembly. This prints both the constraints assembly as
+/// well as the state reads assembly.
+pub fn print_asm(intent: &essential_types::intent::Intent) {
+    println!("\n;; --- Constraints ---");
+    for (idx, constraint) in intent.constraints.iter().enumerate() {
+        let ops: Vec<Op> = serde_json::from_str(&String::from_utf8_lossy(constraint)).unwrap();
+        println!("\nconstraint {idx}");
+        for op in ops {
+            println!("  {:?}", op);
+        }
+    }
+    println!("\n;; --- State Reads ---");
+    for (idx, state_read) in intent.state_read.iter().enumerate() {
+        let ops: Vec<StateReadOp> =
+            serde_json::from_str(&String::from_utf8_lossy(state_read)).unwrap();
+        println!("\nstate read {idx}");
+        for op in ops {
+            println!("  {:?}", op);
+        }
+    }
 }

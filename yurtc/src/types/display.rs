@@ -17,6 +17,7 @@ impl DisplayWithII for super::Type {
                 super::PrimitiveKind::Int => write!(f, "int"),
                 super::PrimitiveKind::Real => write!(f, "real"),
                 super::PrimitiveKind::String => write!(f, "string"),
+                super::PrimitiveKind::B256 => write!(f, "b256"),
             },
 
             super::Type::Array { ty, range, .. } => {

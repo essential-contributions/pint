@@ -1,13 +1,13 @@
 use essential_types::{
-    intent::{Directive, Intent},
+    intent::Directive,
     slots::Slots,
-    solution::{
-        InputMessage, KeyMutation, Mutation, OutputMessage, Solution, SolutionData, StateMutation,
-    },
+    solution::{KeyMutation, Mutation, Sender, Solution, SolutionData, StateMutation},
+    IntentAddress, SourceAddress,
 };
 use intent_server::{intent::ToIntentAddress, Server};
 use num_traits::Num;
 use std::{
+    collections::HashMap,
     fs::{read_dir, File},
     io::{BufRead, BufReader},
     path::{Path, PathBuf},
@@ -441,7 +441,76 @@ fn solve_and_check(
     });
 }
 
+/// Deploys a trivial persistent intent set that does nothing. It just has some database that we
+/// can use to test things like `get_extern`. This is likely temporary until we have a good way of
+/// having multiple *.yrt intents interact with each other in tests.
+fn deploy_trivial_persistent_intent(server: &mut Server) {
+    let persistent_intent = essential_types::intent::Intent {
+        slots: Slots {
+            decision_variables: 0,
+            state: vec![],
+            permits: 1,
+        },
+        state_read: vec![],
+        constraints: vec![],
+        directive: Directive::Satisfy,
+    };
+    let deployed_set_address = server
+        .deploy_intent_set(vec![persistent_intent.clone()])
+        .expect("failed to deploy intent set!");
+
+    server
+        .db()
+        .stage(deployed_set_address.clone().into(), [0, 0, 0, 1], Some(69));
+    server.db().commit();
+}
+
+/// Submits a trivial transient intent that does nothing. Mostly used for solving a persistent
+/// intent
+fn submit_trivial_transient_intent(server: &mut Server) -> IntentAddress {
+    // Create a trivial transient intent that does nothing. It's only used to
+    // interact with the deployed intent above
+    let transient_intent = essential_types::intent::Intent {
+        slots: Slots {
+            decision_variables: 0,
+            state: vec![],
+            permits: 1,
+        },
+        state_read: vec![],
+        constraints: vec![],
+        directive: Directive::Satisfy,
+    };
+
+    let transient_intent_address = transient_intent.intent_address();
+
+    // Submit the transient intent to the intent pool
+    server
+        .submit_intent(transient_intent)
+        .expect("failed to submit transient intent to intent pool!");
+
+    transient_intent_address
+}
+
 fn validate_solution(final_intent: Option<IntermediateIntent>, test_data: &TestData) {
+    // Arbitrary EOA user address. Eventually, this should be config parameter per test.
+    let eoa_address = [1, 2, 3, 4];
+
+    // Convert a `&str` representing a 256-bit hex number (without `0x`) into an array of 4 `i64`
+    let hex_to_4_ints = |num: &str| -> [i64; 4] {
+        let digits = num_bigint::BigInt::from_str_radix(&num, 16)
+            .expect("must be a hex")
+            .to_u64_digits()
+            .1
+            .iter()
+            .map(|d| *d as i64)
+            .rev()
+            .collect::<Vec<_>>();
+        [vec![0; 4 - digits.len()], digits]
+            .concat()
+            .try_into()
+            .unwrap()
+    };
+
     final_intent.as_ref().and_then(|final_intent| {
         yurtc::asm_gen::intent_to_asm(&final_intent)
             .map(|persistent_intent| {
@@ -450,6 +519,9 @@ fn validate_solution(final_intent: Option<IntermediateIntent>, test_data: &TestD
 
                 // Spin up a serve instance
                 let mut server = Server::new();
+
+                deploy_trivial_persistent_intent(&mut server);
+                let transient_intent_address = submit_trivial_transient_intent(&mut server);
 
                 // Deploy the set of intents. For now, this deploys a set that contains a single
                 // intent. When we have the ability to extract multiple persistent intents from a
@@ -467,22 +539,12 @@ fn validate_solution(final_intent: Option<IntermediateIntent>, test_data: &TestD
                             split.len() == 2,
                             "each line in the db must contain a key and value"
                         );
-                        let key = num_bigint::BigInt::from_str_radix(&split[0][2..], 16)
-                            .expect("key must be a hex value");
-                        let value = split[1].parse::<u64>().expect("value must be a u64");
 
-                        // Populate the database
+                        // <key: hex> <value: i64>
                         server.db().stage(
                             deployed_set_address.clone().into(),
-                            key.to_u64_digits()
-                                .1
-                                .iter()
-                                .rev()
-                                .copied()
-                                .collect::<Vec<_>>()
-                                .try_into()
-                                .unwrap(),
-                            Some(value),
+                            hex_to_4_ints(&split[0][2..]),
+                            Some(split[1].parse::<i64>().expect("value must be a i64")),
                         );
                         server.db().commit();
                     }
@@ -491,106 +553,88 @@ fn validate_solution(final_intent: Option<IntermediateIntent>, test_data: &TestD
                 // Parse a solution. Each line in the solution section is a path to a decision
                 // variable followed by a number OR a hex key followed by a number
                 if let Some(sol) = &test_data.solution {
-                    let mut decision_variables = vec![0; final_intent.vars.len()];
-                    let mut state_mutations = vec![];
+                    // Maps a given decision variable name to its low level decision variables.
+                    // Each Yurt variable may require multiple low level decision variables,
+                    // depending how wide the data type is.
+                    let mut decision_variables_map: HashMap<String, Vec<i64>> = HashMap::new();
+                    let mut state_mutations: HashMap<[i64; 4], Vec<Mutation>> = HashMap::new();
 
                     for line in sol.lines() {
                         let split = line.split_ascii_whitespace().collect::<Vec<_>>();
-                        assert!(
-                            split.len() == 2,
-                            "each line in solution must contain a name or path or key and value"
-                        );
 
                         // If the line starts with a hex key, then this is a state mutation.
                         // Otherwise, assume it's a decision var.
-                        if split[0].starts_with("0x") {
-                            let key = num_bigint::BigInt::from_str_radix(&split[0][2..], 16)
-                                .expect("must be a hex");
-                            let value = split[1].parse::<u64>().expect("value must be a u64");
-                            state_mutations.push(Mutation::Key(KeyMutation {
-                                key: key
-                                    .to_u64_digits()
-                                    .1
-                                    .iter()
-                                    .rev()
-                                    .copied()
-                                    .collect::<Vec<_>>()
-                                    .try_into()
-                                    .unwrap(),
-                                value: Some(value),
-                            }));
+                        if split.len() == 2 && split[0].starts_with("0x") {
+                            // <key: hex> <value: i64>
+                            let mutation = Mutation::Key(KeyMutation {
+                                key: hex_to_4_ints(&split[0][2..]),
+                                value: Some(split[1].parse::<i64>().expect("value must be a i64")),
+                            });
+                            state_mutations
+                                .entry(deployed_set_address)
+                                .and_modify(|value| value.push(mutation.clone()))
+                                .or_insert(vec![mutation]);
+                        } else if split.len() == 3 {
+                            // <address: hex> <key: hex> <value: i64>
+                            let mutation = Mutation::Key(KeyMutation {
+                                key: hex_to_4_ints(&split[1][2..]),
+                                value: Some(split[2].parse::<i64>().expect("value must be a i64")),
+                            });
+                            state_mutations
+                                .entry(hex_to_4_ints(&split[0][2..]))
+                                .and_modify(|value| value.push(mutation.clone()))
+                                .or_insert(vec![mutation]);
                         } else {
-                            decision_variables[final_intent
-                                .vars
-                                .iter()
-                                .position(|var| var.1.name == split[0])
-                                .expect("var name must exist")] =
-                                split[1].parse::<u64>().expect("expecting a decimal");
+                            // <var: String> <value: i64>
+                            decision_variables_map.insert(
+                                split[0].to_string(),
+                                split[1..]
+                                    .iter()
+                                    .map(|d| d.parse::<i64>().expect("expecting a decimal"))
+                                    .collect(),
+                            );
                         }
                     }
 
-                    // Create a trivial transient intent that does nothing. It's only used to
-                    // interact with the deployed intent above
-                    let transient_intent = Intent {
-                        slots: Slots {
-                            decision_variables: 0,
-                            state: vec![],
-                            input_message_args: None,
-                            output_messages_args: vec![vec![]],
-                        },
-                        state_read: vec![],
-                        constraints: vec![],
-                        directive: Directive::Satisfy,
-                    };
-                    let transient_intent_address = transient_intent.intent_address();
+                    let mut decision_variables = vec![];
+                    for var in &final_intent.vars {
+                        decision_variables.extend(&decision_variables_map[&var.1.name]);
+                    }
 
                     // Craft a solution, starting with the transitions for each intent.
                     let transitions = [
                         // solution data for the trivial transient intent
-                        (
-                            transient_intent_address.clone(),
-                            SolutionData {
-                                // No decision variables
-                                decision_variables: vec![],
-                                // Transient intents have no input messages
-                                input_message: None,
-                                // A single output message with no arguments
-                                output_messages: vec![OutputMessage { args: vec![] }],
-                            },
-                        ),
+                        SolutionData {
+                            intent_to_solve: SourceAddress::transient(
+                                transient_intent_address.clone(),
+                            ),
+                            // No decision variables
+                            decision_variables: vec![],
+                            sender: Sender::Eoa(eoa_address),
+                        },
                         // solution data for the deployed intent set. This includes some assignment
                         // of all of its decision variables as well as specifying an input message
-                        (
-                            deployed_set_address.into(),
-                            SolutionData {
-                                decision_variables,
-                                input_message: Some(InputMessage {
-                                    // The sender is the trivial transient intent above
-                                    sender: transient_intent_address.into(),
-                                    // The recipient is the address of the persistent intent (not
-                                    // the address of the whole deployed set!)
-                                    recipient: persistent_intent.intent_address(),
-                                    // No arguments needed
-                                    args: vec![],
-                                }),
-                                output_messages: vec![],
-                            },
-                        ),
+                        SolutionData {
+                            decision_variables,
+                            intent_to_solve: SourceAddress::persistent(
+                                deployed_set_address.clone().into(),
+                                persistent_intent.intent_address(),
+                            ),
+                            sender: Sender::transient(eoa_address, transient_intent_address),
+                        },
                     ];
 
                     let solution = Solution {
                         data: transitions.into_iter().collect(),
-                        // State mutations for the deployed intent set
-                        state_mutations: vec![StateMutation {
-                            address: deployed_set_address.clone().into(),
-                            mutations: state_mutations,
-                        }],
+                        // State mutations for the deployed intent sets
+                        state_mutations: state_mutations
+                            .iter()
+                            .map(|(k, v)| StateMutation {
+                                address: (*k).into(),
+                                mutations: v.clone(),
+                            })
+                            .collect::<Vec<_>>(),
                     };
-
-                    // Submit the transient intent to the intent pool
-                    server
-                        .submit_intent(transient_intent)
-                        .expect("failed to submit transient intent to intent pool!");
 
                     // check the solution for both intents. Expect a `1` for each intent, hence a
                     // total utility of `2`.

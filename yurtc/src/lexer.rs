@@ -85,6 +85,8 @@ pub enum Token {
     False,
     #[token("string")]
     String,
+    #[token("b256")]
+    B256,
 
     #[token("fn")]
     Fn,
@@ -182,6 +184,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::True,
     Token::False,
     Token::String,
+    Token::B256,
     Token::ForAll,
     Token::Fn,
     Token::If,
@@ -248,6 +251,7 @@ impl fmt::Display for Token {
             Token::True => write!(f, "true"),
             Token::False => write!(f, "false"),
             Token::String => write!(f, "string"),
+            Token::B256 => write!(f, "b256"),
             Token::Fn => write!(f, "fn"),
             Token::Macro => write!(f, "macro"),
             Token::MacroName(name) => write!(f, "{name}"),

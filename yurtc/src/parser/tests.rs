@@ -178,18 +178,160 @@ fn immediates() {
     check(&run_parser!(immediate, "0x88"), expect_test::expect!["136"]);
     check(&run_parser!(immediate, "0b111"), expect_test::expect!["7"]);
     check(&run_parser!(immediate, "1"), expect_test::expect!["1"]);
+
+    // i64 hex literals
+    check(
+        &run_parser!(immediate, "0x0000000000000011"),
+        expect_test::expect!["17"],
+    );
+
+    check(
+        &run_parser!(
+            immediate,
+            "0xFFFFFFFFFFFFFFF" // 15 digits
+        ),
+        expect_test::expect!["1152921504606846975"],
+    );
+
+    check(
+        &run_parser!(
+            immediate,
+            "0x7FFFFFFFFFFFFFFF" // 16 digits and positive (top bit is 0)
+        ),
+        expect_test::expect!["9223372036854775807"],
+    );
+
+    check(
+        &run_parser!(
+            immediate,
+            "0x8FFFFFFFFFFFFFFF" // 16 digits and negative (top bit is 1)
+        ),
+        expect_test::expect!["-8070450532247928833"],
+    );
+
+    check(
+        &run_parser!(immediate, "0xFFFFFFFFFFFFFFFF"),
+        expect_test::expect!["-1"],
+    );
+
+    // i64 binary literals
+    check(
+        &run_parser!(
+            immediate,
+            "0b0000000000000000000000000000000000000000000000000000000000010001"
+        ),
+        expect_test::expect!["17"],
+    );
+
+    check(
+        &run_parser!(
+            immediate,
+            "0b111111111111111111111111111111111111111111111111111111111111111" // 63 digits
+        ),
+        expect_test::expect!["9223372036854775807"],
+    );
+
+    check(
+        &run_parser!(
+            immediate,
+            "0b0111111111111111111111111111111111111111111111111111111111111111" // 64 digits and positive (top bit is 0)
+        ),
+        expect_test::expect!["9223372036854775807"],
+    );
+
+    check(
+        &run_parser!(
+            immediate,
+            "0b1111111111111111111111111111111111111111111111111111111111111111" // 64 digits and negative (top bit is 1)
+        ),
+        expect_test::expect!["-1"],
+    );
+
+    // b256 hex literals
+    check(
+        &run_parser!(
+            immediate,
+            "0x3333333333333333333333333333333333333333333333333333333333333333"
+        ),
+        expect_test::expect!["0x3333333333333333333333333333333333333333333333333333333333333333"],
+    );
+
+    check(
+        &run_parser!(
+            immediate,
+            "0x8000000000000000000000000000000000000000000000000000000000000001"
+        ),
+        expect_test::expect!["0x8000000000000000000000000000000000000000000000000000000000000001"],
+    );
+
+    check(
+        &run_parser!(
+            immediate,
+            "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+        ),
+        expect_test::expect!["0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"],
+    );
+
+    // b256 binary literals
+    check(
+        &run_parser!(immediate, "0b1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"),
+        expect_test::expect!["0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"],
+    );
+
+    check(
+        &run_parser!(immediate, "0b1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011"),
+        expect_test::expect!["0x8000000000000000000000000000000000000000000000000000000000000003"],
+    );
+
+    // Bad lengths
     check(
         &run_parser!(immediate, "0x4f3f4f3f4f3f4f3f4f3f4f3f4f"),
-        expect_test::expect!["6278618198356320102092284837711"],
+        expect_test::expect![[r#"
+            unexpected hexadecimal integer literal length
+            @0..28: 26 is not a valid number of digits in a hexadecimal integer literal
+            number of digits must be either 64 or between 1 and 16
+        "#]],
     );
+
+    check(
+        &run_parser!(
+            immediate,
+            "0x18000000000000000000000000000000000000000000000000000000000000001"
+        ),
+        expect_test::expect![[r#"
+            unexpected hexadecimal integer literal length
+            @0..67: 65 is not a valid number of digits in a hexadecimal integer literal
+            number of digits must be either 64 or between 1 and 16
+        "#]],
+    );
+
     check(
             &run_parser!(immediate, "0b1000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-            expect_test::expect!["19342813113834066795298816"],
+            expect_test::expect![[r#"
+                unexpected binary integer literal length
+                @0..87: 85 is not a valid number of digits in a binary integer literal
+                number of digits must be either 256 or between 1 and 64
+            "#]],
         );
+
+    check(
+        &run_parser!(immediate, "0b11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011"),
+        expect_test::expect![[r#"
+            unexpected binary integer literal length
+            @0..259: 257 is not a valid number of digits in a binary integer literal
+            number of digits must be either 256 or between 1 and 64
+        "#]],
+    );
+
     check(
         &run_parser!(immediate, "9223372036854775808"),
-        expect_test::expect!["9223372036854775808"],
+        expect_test::expect![[r#"
+            integer literal is too large
+            @0..19: integer literal is too large
+            value exceeds limit of `9,223,372,036,854,775,807`
+        "#]],
     );
+
     check(
         &run_parser!(immediate, "1.3"),
         expect_test::expect!["1.3e0"],
@@ -466,7 +608,7 @@ fn unary_op_exprs() {
             expr,
             "-0b1101000000001100101010101010101010101010101010101101010101010101"
         ),
-        expect_test::expect!["-14991544909594023253"],
+        expect_test::expect!["--3455199164115528363"],
     );
     check(
         &run_parser!(expr, "! - - !  --  -1"),
@@ -1605,8 +1747,8 @@ fn casting() {
     check(
         &run_parser!(let_decl, r#"let x = 5 as"#),
         expect_test::expect![[r#"
-            expected `::`, `bool_ty`, `ident`, `int_ty`, `real_ty`, `string_ty`, or `{`, found `end of file`
-            @12..12: expected `::`, `bool_ty`, `ident`, `int_ty`, `real_ty`, `string_ty`, or `{`
+            expected `::`, `b256_ty`, `bool_ty`, `ident`, `int_ty`, `real_ty`, `string_ty`, or `{`, found `end of file`
+            @12..12: expected `::`, `b256_ty`, `bool_ty`, `ident`, `int_ty`, `real_ty`, `string_ty`, or `{`
         "#]],
     );
 }
@@ -1796,24 +1938,37 @@ fn big_ints() {
             "let blah = 1234567890123456789012345678901234567890"
         ),
         expect_test::expect![[r#"
-            var ::blah;
-            constraint (::blah == 1234567890123456789012345678901234567890);"#]],
+            integer literal is too large
+            @11..51: integer literal is too large
+            value exceeds limit of `9,223,372,036,854,775,807`
+        "#]],
     );
+
     check(
-        &run_parser!(let_decl, "let blah = 0xfeedbadf00d2adeadcafed00dbabeface"),
+        &run_parser!(let_decl, "let blah = 0xfeedbadfd2adeadc"),
         // Confirmed by using the Python REPL to convert from hex to dec...
         expect_test::expect![[r#"
             var ::blah;
-            constraint (::blah == 5421732407698601623698172315373246806734);"#]],
+            constraint (::blah == -77200148120343844);"#]],
     );
+
+    check(
+        &run_parser!(
+            let_decl,
+            "let blah = 0xfeedbadfd2adeadcafed00dbabefacefeedbadf00d2adeadcafed00dbabeface"
+        ),
+        expect_test::expect![[r#"
+            var ::blah;
+            constraint (::blah == 0xFEEDBADFD2ADEADCAFED00DBABEFACEFEEDBADF00D2ADEADCAFED00DBABEFACE);"#]],
+    );
+
     check(
         &run_parser!(
             yp::ExprParser::new(),
-            "0b110100101001010101010101010101010011010011010101010101010101010101010101010 + \
-            0b01001001010110101010101001010101010010100100101001010010100100100001010"
+            "0b1101001010010101010101010101010100110100110101010101010101010101 + \
+             0b0100100101011010101010100101010101001010010010100101001010010010"
         ),
-        // Again confirmed using the Python REPL.  Handy.
-        expect_test::expect!["(31076614848392666458794 + 676572722683907229962)"],
+        expect_test::expect!["(-3272615729767819947 + 5285724395968025234)"],
     );
 }
 

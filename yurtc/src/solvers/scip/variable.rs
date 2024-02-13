@@ -104,7 +104,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                     msg: "(scip) strings are not yet currently supported",
                     span: empty_span(),
                 }),
-                expr::Immediate::BigInt(_) => Err(SolveError::Internal {
+                expr::Immediate::B256(_) | expr::Immediate::Error => Err(SolveError::Internal {
                     msg: "(scip) Big integers are not yet supported",
                     span: empty_span(),
                 }),

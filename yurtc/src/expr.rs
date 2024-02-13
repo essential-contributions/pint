@@ -101,11 +101,12 @@ pub enum TupleAccess {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Immediate {
+    Error,
     Real(f64),
     Int(i64),
-    BigInt(num_bigint::BigInt),
     Bool(bool),
     String(String),
+    B256([u64; 4]),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

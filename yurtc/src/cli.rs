@@ -10,4 +10,7 @@ pub struct Args {
 
     #[arg(long = "output", short = 'o')]
     pub output: Option<String>,
+
+    #[arg(long = "print-asm")]
+    pub print_asm: bool,
 }
