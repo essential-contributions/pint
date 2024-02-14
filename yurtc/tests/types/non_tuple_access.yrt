@@ -1,0 +1,10 @@
+let a: bool;
+
+constraint a.0 == a.bar;
+
+solve satisfy;
+
+// typecheck_failure <<<
+// attempt to access tuple field from a non-tuple value
+// @25..28: value must be a tuple; found `bool`
+// >>>

@@ -1,0 +1,12 @@
+enum Foo = Bar | Baz;
+enum Bar = Baz | Xyzzy;
+
+let a = Baz;
+
+solve satisfy;
+
+// typecheck_failure <<<
+// cannot find value `::Baz` in this scope
+// @55..58: not found in this scope
+// this symbol is a variant of enums `::Foo` and `::Bar` and may need a fully qualified path
+// >>>

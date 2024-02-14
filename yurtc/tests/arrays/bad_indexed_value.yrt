@@ -4,8 +4,9 @@ constraint foo()[0] == 3;
 
 solve satisfy;
 
-// flattening_failure <<<
-// cannot index into value
-// @24..29: this must be an array
-// @30..31: invalid indexing here
+// This is pending whatever we decide for functions in the future.  For now we can't type-check an
+// unknown function like this.
+
+// typecheck_failure <<<
+// compiler internal error: unable to check type of FnCall
 // >>>

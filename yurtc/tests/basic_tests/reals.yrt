@@ -1,5 +1,5 @@
-let x: real = 1..4;
-let y: real = 1..4;
+let x: real = 1.0..4.0;
+let y: real = 1.0..4.0;
 
 constraint x + y == 3.3;
 
@@ -8,10 +8,10 @@ solve satisfy;
 // intermediate <<<
 // var ::x: real;
 // var ::y: real;
-// constraint (::x >= 1);
-// constraint (::x <= 4);
-// constraint (::y >= 1);
-// constraint (::y <= 4);
+// constraint (::x >= 1e0);
+// constraint (::x <= 4e0);
+// constraint (::y >= 1e0);
+// constraint (::y <= 4e0);
 // constraint ((::x + ::y) == 3.3e0);
 // solve satisfy;
 // >>>

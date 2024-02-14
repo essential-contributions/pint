@@ -6,7 +6,7 @@ impl Display for super::IntermediateIntent {
             writeln!(f, "{};", self.with_ii(var.0))?;
         }
         for state in &self.states {
-            writeln!(f, "{};", self.with_ii(state))?;
+            writeln!(f, "{};", self.with_ii(state.0))?;
         }
         for r#enum in &self.enums {
             writeln!(f, "{};", self.with_ii(r#enum))?;

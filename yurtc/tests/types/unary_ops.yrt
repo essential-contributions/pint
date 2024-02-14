@@ -1,0 +1,15 @@
+// We don't have error recovery in the middle end yet so it'll bail on the first one.
+// When we do, these should all be errors.
+
+let a = -true;
+let b = -{1,2};
+
+let c = !11;
+let d = !"sure";
+
+solve satisfy;
+
+// typecheck_failure <<<
+// unary operator type error
+// @138..143: operator `-` argument has unexpected type `bool`
+// >>>

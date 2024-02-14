@@ -5,7 +5,7 @@ let t3: { x: int } = { 0, }; let t3_0 = t3.0; let t3_x = t3.x;
 let t4: { x: int } = { x: 0, }; let t4_0 = t4.0; let t4_x = t4.x;
 let t5: { x: int, } = { x: 0 }; let t5_0 = t5.0; let t5_x = t5.x;
 
-let t5a = { 0, 5.0 }; let t5a_0 = t5.0; let t5a_1 = t5.1;
+let t5a = { 0, 5.0 }; let t5a_0 = t5.0; let t5a_1 = t5a.1;
 let t6 = { x: 0, 5.0 }; let t6_0 = t6.0; let t6_x = t6.x; let t6_1 = t6.1;
 let t7: { x: int, real } = { 0, 5.0 }; let t7_0 = t7.0; let t7_x = t7.x; let t7_1 = t7.1;
 let t8: { x: int, real } = { x: 0, 5.0 }; let t8_0 = t8.0; let t8_x = t8.x; let t8_1 = t8.1;
@@ -109,7 +109,7 @@ let t14_z_w = t14.z.w;
 // constraint (::t5_x == ::t5.x);
 // constraint (::t5a == {0, 5e0});
 // constraint (::t5a_0 == ::t5.0);
-// constraint (::t5a_1 == ::t5.1);
+// constraint (::t5a_1 == ::t5a.1);
 // constraint (::t6 == {x: 0, 5e0});
 // constraint (::t6_0 == ::t6.0);
 // constraint (::t6_x == ::t6.x);
@@ -159,5 +159,5 @@ let t14_z_w = t14.z.w;
 
 // We'll get this error until we implement type inference.
 // compile_failure <<<
-// compiler internal error: Found untyped variable.
+// compiler internal error: Found unsupported types in final Intent.
 // >>>

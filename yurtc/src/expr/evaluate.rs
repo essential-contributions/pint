@@ -30,6 +30,7 @@ impl Expr {
                     .ok_or_else(|| CompileError::SymbolNotFound {
                         name: path.to_string(),
                         span: span.clone(),
+                        enum_names: Vec::new(),
                     })
             }
             Expr::UnaryOp { op, expr, .. } => {
@@ -225,13 +226,22 @@ impl ExprKey {
                     span,
                 }
             }
-            Expr::Array { elements, span } => {
+            Expr::Array {
+                elements,
+                range_expr,
+                span,
+            } => {
                 let elements = elements
                     .iter()
                     .map(|element| element.plug_in(ii, values_map))
                     .collect::<Vec<_>>();
+                let range_expr = range_expr.plug_in(ii, values_map);
 
-                Expr::Array { elements, span }
+                Expr::Array {
+                    elements,
+                    range_expr,
+                    span,
+                }
             }
             Expr::ArrayElementAccess { array, index, span } => {
                 let array = array.plug_in(ii, values_map);

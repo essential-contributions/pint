@@ -10,6 +10,7 @@ use thiserror::Error;
 use yansi::{Color, Style};
 
 pub(super) use compile_error::CompileError;
+pub(super) use compile_error::LargeTypeError;
 pub(super) use lex_error::LexError;
 pub(super) use parse_error::ParseError;
 pub(super) use solve_error::SolveError;

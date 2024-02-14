@@ -9,56 +9,51 @@ use crate::{
     span::{empty_span, Span},
 };
 
-/// Converts an `IntermediateIntent` to a flattened `IntermediateIntent`. This means that all the
-/// syntactic sugar of Yurt (such as enums, foralls, etc.) should be resolved into primitive
-/// elements in this function.
-pub(super) fn flatten(mut context: IntermediateIntent) -> super::Result<IntermediateIntent> {
-    // Transformations
-    unroll_foralls(&mut context)?;
-    scalarize(&mut context)?;
+impl IntermediateIntent {
+    /// Converts an `IntermediateIntent` to a flattened `IntermediateIntent`. This means that all the
+    /// syntactic sugar of Yurt (such as enums, foralls, etc.) should be resolved into primitive
+    /// elements in this function.
+    pub fn flatten(mut self) -> super::Result<Self> {
+        // Transformations
+        unroll_foralls(&mut self)?;
+        scalarize(&mut self)?;
 
-    Ok(context)
-}
+        Ok(self)
+    }
 
-/// Converts a final flattened `IntermediateIntent` into a final `Intent`
-pub(super) fn compile(context: &IntermediateIntent) -> super::Result<Intent> {
-    Ok(Intent {
-        states: convert_states(context)?,
-        vars: convert_vars(context)?,
-        constraints: convert_constraints(context)?,
-        directive: convert_directive(context)?,
-    })
+    /// Converts a final flattened `IntermediateIntent` into a final `Intent`
+    pub fn to_intent(&self) -> super::Result<Intent> {
+        Ok(Intent {
+            states: convert_states(self)?,
+            vars: convert_vars(self)?,
+            constraints: convert_constraints(self)?,
+            directive: convert_directive(self)?,
+        })
+    }
 }
 
 fn convert_states(context: &IntermediateIntent) -> super::Result<Vec<intent::StateVar>> {
     context
         .states
         .iter()
-        .map(
-            |State {
-                 name,
-                 ty,
-                 expr: expr_key,
-                 span,
-             }| {
-                ty.as_ref()
-                    .ok_or_else(|| CompileError::Internal {
-                        msg: "Found untyped state.",
-                        span: span.clone(),
-                    })
-                    .and_then(|ty| {
-                        convert_type(ty, span).and_then(|ty| {
-                            convert_expr_key(context, *expr_key, span).map(|expr| {
-                                intent::StateVar {
-                                    name: name.clone(),
-                                    ty,
-                                    expr,
-                                }
-                            })
+        .map(|(state_key, State { name, expr, span })| {
+            context
+                .state_types
+                .get(state_key)
+                .ok_or_else(|| CompileError::Internal {
+                    msg: "Found untyped state.",
+                    span: span.clone(),
+                })
+                .and_then(|ty| {
+                    convert_type(ty, span).and_then(|ty| {
+                        convert_expr_key(context, *expr, span).map(|expr| intent::StateVar {
+                            name: name.clone(),
+                            ty,
+                            expr,
                         })
                     })
-            },
-        )
+                })
+        })
         .collect()
 }
 
@@ -66,8 +61,10 @@ fn convert_vars(context: &IntermediateIntent) -> super::Result<Vec<intent::Varia
     context
         .vars
         .iter()
-        .map(|(_, Var { name, ty, span })| {
-            ty.as_ref()
+        .map(|(var_key, Var { name, span })| {
+            context
+                .var_types
+                .get(var_key)
                 .ok_or_else(|| CompileError::Internal {
                     msg: "Found untyped variable.",
                     span: span.clone(),

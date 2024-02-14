@@ -3,7 +3,7 @@
 enum Skill = Nunchuck | BowHunting | ComputerHacking;
 
 let pedro_skill: Skill;
-constraint pedro_skill == Skill::Nunchuck || Skill::BowHunting;
+constraint pedro_skill == Skill::Nunchuck || pedro_skill == Skill::BowHunting;
 
 let kip_skill: kip::Skill;
 
@@ -19,10 +19,10 @@ solve satisfy;
 // enum ::Skill = Nunchuck | BowHunting | ComputerHacking;
 // enum ::kip::Skill = ChattingOnlineWithBabes | CageFighting;
 // enum ::debbie::Skill = GlamourShots | Handicrafts;
-// constraint ((::pedro_skill == ::Skill::Nunchuck) || ::Skill::BowHunting);
+// constraint ((::pedro_skill == ::Skill::Nunchuck) || (::pedro_skill == ::Skill::BowHunting));
 // constraint ((::debbie::debbie_skill == ::debbie::Skill::Handicrafts) && (::kip_skill == ::kip::Skill::CageFighting));
 // constraint (::kip::kip_skill == ::kip::Skill::ChattingOnlineWithBabes);
-// constraint (::debbie::debbie_skill == (::debbie::Skill::GlamourShots || ::debbie::Skill::Handicrafts));
+// constraint (::debbie::debbie_skill == ::debbie::Skill::GlamourShots);
 // solve satisfy;
 // >>>
 

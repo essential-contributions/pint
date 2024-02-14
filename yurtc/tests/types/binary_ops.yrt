@@ -1,0 +1,36 @@
+// We don't have error recovery in the middle end yet so it'll bail on the first one.
+// When we do, these should all be errors.
+
+let a = 11 + false;
+let b = 22 - true;
+let c = [1,2] * 33;
+let d = "four" / 44;
+
+enum T = FortyTwo | FleventyFive;
+let e = 55 % T::FortyTwo;
+
+// Numerics are allowed, but they must match.
+let f = 66 + 77.7;
+let g = 88 - 99.9;
+let h = 10.10 * 11;
+let i = 12 / 13.13;
+let j = 14.14 % 15;
+
+// `==` and `!=` take any type but they must be equivalent.
+let k = 16 == T::FleventyFive;
+let l = 17 != true;
+
+let m = true > false;
+let n = 18 >= 19.19;
+let o = 20 < "21";
+let p = 22 <= [23, 23];
+
+let q = true && 24;
+let r = 25.25 || false;
+
+solve satisfy;
+
+// typecheck_failure <<<
+// binary operator type error
+// @143..148: operator `+` argument has unexpected type `bool`
+// >>>

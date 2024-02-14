@@ -1,3 +1,8 @@
+// <disabled>
+//
+// I'm disabling this for now due to type checking and functions.  This one _could_ be type checked,
+// since `hello_world()` is well defined, but external functions are currently getting redesigned.
+
 use a::b;
 
 extern {
