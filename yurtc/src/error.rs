@@ -101,7 +101,7 @@ where
 
         report_builder
             .finish()
-            .print(
+            .eprint(
                 FnCache::new(|id: &&str| {
                     Err(Box::new(format!("Failed to fetch source '{id}'")) as _)
                 })
