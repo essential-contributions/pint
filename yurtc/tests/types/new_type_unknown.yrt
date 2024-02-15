@@ -1,0 +1,10 @@
+type Ambiguous = NonExistentEnum;
+
+let a = Ambiguous::MissingVariant;
+
+solve satisfy;
+
+// typecheck_failure <<<
+// cannot find value `::Ambiguous::MissingVariant` in this scope
+// @43..68: not found in this scope
+// >>>

@@ -1,0 +1,113 @@
+// <no-solve>  State isn't allowed.
+
+enum TheLetterA = T | U | V;
+
+type A = TheLetterA;
+
+let t: A = A::T;
+let u: TheLetterA = A::U;
+let v: A = TheLetterA::V;
+
+type I = int;
+
+let i: I = 11;
+let j: {I, real} = {22, 33.3};
+
+enum Experience = Real | Unreal;
+
+type Real = real;
+
+let r: Real = 44.4;
+let e: Experience = Experience::Real;
+
+type Hooray = int[3];
+
+let h: Hooray;
+constraint h[1] == 55;
+
+type Point = { x: real, y: real };
+
+let p: Point = { 66.6, 77.7 };
+constraint r < p.y;
+
+let q: real = i as Real;
+
+state x: I = ::storage::get(0);
+
+solve satisfy;
+
+// intermediate <<<
+// var ::t: ::A;
+// var ::u: ::TheLetterA;
+// var ::v: ::A;
+// var ::i: ::I;
+// var ::j: {::I, real};
+// var ::r: ::Real;
+// var ::e: ::Experience;
+// var ::h: ::Hooray;
+// var ::p: ::Point;
+// var ::q: real;
+// state ::x: ::I = ::storage::get(0);
+// enum ::TheLetterA = T | U | V;
+// enum ::Experience = Real | Unreal;
+// type ::A = ::TheLetterA;
+// type ::I = int;
+// type ::Real = real;
+// type ::Hooray = int[3];
+// type ::Point = {x: real, y: real};
+// constraint (::t == ::A::T);
+// constraint (::u == ::A::U);
+// constraint (::v == ::TheLetterA::V);
+// constraint (::i == 11);
+// constraint (::j == {22, 3.33e1});
+// constraint (::r == 4.44e1);
+// constraint (::e == ::Experience::Real);
+// constraint (::h[1] == 55);
+// constraint (::p == {6.66e1, 7.77e1});
+// constraint (::r < ::p.y);
+// constraint (::q == ::i as ::Real);
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::t: int;
+// var ::u: int;
+// var ::v: int;
+// var ::i: int;
+// var ::j: {int, real};
+// var ::r: real;
+// var ::e: int;
+// var ::p: {x: real, y: real};
+// var ::q: real;
+// var ::h[0]: int;
+// var ::h[1]: int;
+// var ::h[2]: int;
+// state ::x: int = ::storage::get(0);
+// enum ::TheLetterA = T | U | V;
+// enum ::Experience = Real | Unreal;
+// type ::A = ::TheLetterA;
+// type ::I = int;
+// type ::Real = real;
+// type ::Hooray = int[3];
+// type ::Point = {x: real, y: real};
+// constraint (::t == 0);
+// constraint (::u == 1);
+// constraint (::v == 2);
+// constraint (::i == 11);
+// constraint (::j == {22, 3.33e1});
+// constraint (::r == 4.44e1);
+// constraint (::e == 0);
+// constraint (::h[1] == 55);
+// constraint (::p == {6.66e1, 7.77e1});
+// constraint (::r < ::p.y);
+// constraint (::q == ::i as real);
+// constraint (::t >= 0);
+// constraint (::t <= 2);
+// constraint (::u >= 0);
+// constraint (::u <= 2);
+// constraint (::v >= 0);
+// constraint (::v <= 2);
+// constraint (::e >= 0);
+// constraint (::e <= 1);
+// solve satisfy;
+// >>>

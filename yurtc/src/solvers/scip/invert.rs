@@ -8,18 +8,17 @@ impl<'a> super::Solver<'a, ProblemCreated> {
     pub(super) fn invert_expression(&mut self, expr: &ExprKey) -> Result<ExprKey, SolveError> {
         let expr_inv = match self.intent.exprs[*expr].clone() {
             expr::Expr::Immediate { value, span } => match value {
-                expr::Immediate::Bool(val) => expr::Expr::Immediate {
-                    value: expr::Immediate::Bool(!val),
+                expr::Immediate::Int(val) => expr::Expr::Immediate {
+                    value: expr::Immediate::Int((val == 0) as i64),
                     span: span.clone(),
                 },
                 _ => {
                     return Err(SolveError::Internal {
-                        msg: "(scip) attempting to invert a non-Boolean immediate value",
+                        msg: "(scip) attempting to invert a non-Integer immediate value",
                         span: empty_span(),
                     })
                 }
             },
-
             expr::Expr::PathByName(path, span) => {
                 // The inverse of a path expression is another path expression with the same name but
                 // with a `!` added as a prefix. This guarantees uniquness of the name.

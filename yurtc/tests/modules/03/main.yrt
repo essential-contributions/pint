@@ -9,15 +9,15 @@ solve minimize a;
 
 // parse_failure <<<
 // symbol `a` has already been declared
-// @7..8: previous declaration of the value `a` here
+// @7..8: previous declaration of the symbol `a` here
 // @83..84: `a` redeclared here
 // `a` must be declared or imported only once in this scope
 // symbol `a` has already been declared
-// @7..8: previous declaration of the value `a` here
+// @7..8: previous declaration of the symbol `a` here
 // @90..91: `a` redeclared here
 // `a` must be declared or imported only once in this scope
 // symbol `a` has already been declared
-// @7..8: previous declaration of the value `a` here
+// @7..8: previous declaration of the symbol `a` here
 // @102..103: `a` redeclared here
 // `a` must be declared or imported only once in this scope
 // >>>

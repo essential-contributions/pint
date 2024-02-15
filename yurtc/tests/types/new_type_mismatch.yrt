@@ -1,0 +1,12 @@
+type I = int;
+
+let i: I = 11;
+let j: I = 22.2;
+
+solve satisfy;
+
+// typecheck_failure <<<
+// binary operator type error
+// @41..45: operator `==` argument has unexpected type `real`
+// @34..35: expecting type `::I (int)`
+// >>>

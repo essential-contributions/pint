@@ -2,7 +2,6 @@ use crate::{
     contract::{ContractDecl, InterfaceDecl},
     error::{CompileError, ParseError},
     expr::{self, Expr, Ident},
-    intermediate::transform::{scalarize, unroll_foralls},
     span::{empty_span, Span},
     types::{EnumDecl, EphemeralDecl, FnSig, NewTypeDecl, Path, Type},
 };
@@ -56,14 +55,6 @@ pub struct IntermediateIntent {
 }
 
 impl IntermediateIntent {
-    pub fn flatten(mut self) -> Result<Self> {
-        // Transformations
-        unroll_foralls(&mut self)?;
-        scalarize(&mut self)?;
-
-        Ok(self)
-    }
-
     pub fn compile(self) -> Result<IntermediateIntent> {
         self.type_check()?.flatten()
     }
