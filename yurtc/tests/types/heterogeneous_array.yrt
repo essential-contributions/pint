@@ -1,0 +1,11 @@
+let ary: int[4];
+
+constraint ary == [1, true, 22.2, "foo"];
+
+solve satisfy;
+
+// typecheck_failure <<<
+// array element type mismatch
+// @40..44: array element has type `bool`
+// expecting array element type `int`
+// >>>

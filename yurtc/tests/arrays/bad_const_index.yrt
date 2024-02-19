@@ -5,7 +5,8 @@ constraint a[-1.2] == 3;
 
 solve satisfy;
 
-// flattening_failure <<<
-// attempt to use an invalid constant as an array index
-// @42..46: this must be a non-negative integer value
+// typecheck_failure <<<
+// attempt to index an array with a non-integer
+// @42..46: array access must be an int value
+// found access using type `real`
 // >>>

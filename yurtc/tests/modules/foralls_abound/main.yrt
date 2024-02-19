@@ -1,0 +1,22 @@
+// <disabled>
+//
+// Due to bug? in forall unrolling in the `b` module.
+
+let ary: int[4];
+
+constraint forall i in 0..2 {
+    ary[i] > ary[i + 1]
+};
+
+constraint ary[0] == b::bry[0];
+
+solve satisfy;
+
+// intermediate <<<
+// var ::ary: int[4];
+// var ::b::bry: int[4];
+// constraint forall i in 0..2, { (::ary[::i] > ::ary[(::i + 1)]) };
+// constraint (::ary[0] == ::b::bry[0]);
+// constraint forall i in 1..3, { (::b::bry[::b::i] < ::b::bry[(::b::i - 1)]) };
+// solve satisfy;
+// >>>

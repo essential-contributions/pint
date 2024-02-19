@@ -54,10 +54,10 @@ fn scalarize_array(
                     for i in 0..val {
                         let new_var = Var {
                             name: format!("{name}[{i}]"),
-                            ty: Some(ty.clone()),
                             span: span.clone(),
                         };
                         let new_var_key = ii.vars.insert(new_var.clone());
+                        ii.var_types.insert(new_var_key, ty.clone());
 
                         // Recurse for arrays of arrays
                         if let Type::Array {
@@ -205,7 +205,7 @@ pub(crate) fn scalarize(ii: &mut IntermediateIntent) -> Result<(), CompileError>
         .iter()
         .filter_map(|(key, var)| {
             // Only collect arrays
-            if let Some(Type::Array { ty, range, span }) = &var.ty {
+            if let Some(Type::Array { ty, range, span }) = &ii.var_types.get(key) {
                 Some((key, var.name.clone(), ty.clone(), *range, span.clone()))
             } else {
                 None

@@ -4,13 +4,14 @@ use crate::{
     expr::{self, Expr, Ident},
     intent::{Intent, Path},
     span::{empty_span, Span},
-    types::{EnumDecl, FnSig, NewTypeDecl, Type},
+    types::{EnumDecl, EphemeralDecl, FnSig, NewTypeDecl, Type},
 };
 use std::{
     collections::HashMap,
     fmt::{self, Formatter},
 };
 
+mod analyse;
 mod compile;
 mod display;
 mod transform;
@@ -18,6 +19,7 @@ mod transform;
 type Result<T> = std::result::Result<T, CompileError>;
 
 slotmap::new_key_type! { pub struct VarKey; }
+slotmap::new_key_type! { pub struct StateKey; }
 slotmap::new_key_type! { pub struct ExprKey; }
 slotmap::new_key_type! { pub struct CallKey; }
 
@@ -26,17 +28,27 @@ slotmap::new_key_type! { pub struct CallKey; }
 #[derive(Debug, Default)]
 pub struct IntermediateIntent {
     pub vars: slotmap::SlotMap<VarKey, Var>,
-    pub exprs: slotmap::SlotMap<ExprKey, Expr>,
+    pub var_types: slotmap::SecondaryMap<VarKey, Type>,
 
-    pub states: Vec<State>,
+    pub states: slotmap::SlotMap<StateKey, State>,
+    pub state_types: slotmap::SecondaryMap<StateKey, Type>,
+
+    pub exprs: slotmap::SlotMap<ExprKey, Expr>,
+    pub expr_types: slotmap::SecondaryMap<ExprKey, Type>,
+
     pub constraints: Vec<(ExprKey, Span)>,
     pub directives: Vec<(SolveFunc, Span)>,
 
+    pub ephemerals: Vec<EphemeralDecl>,
     pub enums: Vec<EnumDecl>,
     pub new_types: Vec<NewTypeDecl>,
+
     pub interfaces: Vec<InterfaceDecl>,
     pub contracts: Vec<ContractDecl>,
     pub externs: Vec<(Vec<FnSig>, Span)>,
+
+    // Each of the initialised variables.  Used by type inference.
+    pub var_inits: slotmap::SecondaryMap<VarKey, ExprKey>,
 
     // CallKey is used in a secondary map in the parser context to access the actual call data.
     pub calls: slotmap::SlotMap<CallKey, Path>,
@@ -45,16 +57,12 @@ pub struct IntermediateIntent {
 }
 
 impl IntermediateIntent {
-    pub fn compile(&mut self) -> Result<Intent> {
-        compile::compile(self)
-    }
-
-    pub fn flatten(self) -> Result<IntermediateIntent> {
-        compile::flatten(self)
+    pub fn compile(self) -> Result<Intent> {
+        self.type_check()?.flatten()?.to_intent()
     }
 
     /// Helps out some `thing: T` by adding `self` as context.
-    pub fn with_ii<T>(&self, thing: T) -> WithII<'_, T> {
+    pub fn with_ii<T>(&self, thing: T) -> WithII<T> {
         WithII { thing, ii: self }
     }
 
@@ -69,11 +77,35 @@ impl IntermediateIntent {
             self.add_top_level_symbol(mod_prefix, local_scope, name, name.span.clone())?;
         let var_key = self.vars.insert(Var {
             name: full_name,
-            ty,
             span: name.span.clone(),
         });
+        if let Some(ty) = ty {
+            self.var_types.insert(var_key, ty);
+        }
 
         Ok(var_key)
+    }
+
+    pub fn insert_ephemeral(
+        &mut self,
+        mod_prefix: &str,
+        name: &Ident,
+        ty: Type,
+    ) -> std::result::Result<(), ParseError> {
+        let full_name = Self::make_full_symbol(mod_prefix, None, name);
+        if !self
+            .ephemerals
+            .iter()
+            .any(|eph_decl| eph_decl.name == full_name)
+        {
+            self.add_top_level_symbol_with_name(name, full_name.clone(), name.span.clone())?;
+            self.ephemerals.push(EphemeralDecl {
+                name: full_name,
+                ty,
+                span: name.span.clone(),
+            });
+        }
+        Ok(())
     }
 
     pub fn insert_eq_or_ineq_constraint(&mut self, var_key: VarKey, expr_key: ExprKey, span: Span) {
@@ -117,17 +149,44 @@ impl IntermediateIntent {
         ty: Option<Type>,
         expr: ExprKey,
         span: Span,
-    ) -> std::result::Result<(), ParseError> {
+    ) -> std::result::Result<StateKey, ParseError> {
         let name = self.add_top_level_symbol(mod_prefix, None, name, span.clone())?;
+        let state_key = self.states.insert(State { name, expr, span });
+        if let Some(ty) = ty {
+            self.state_types.insert(state_key, ty);
+        }
 
-        self.states.push(State {
-            name,
-            ty,
-            expr,
-            span,
-        });
+        Ok(state_key)
+    }
 
-        Ok(())
+    fn make_full_symbol(mod_prefix: &str, local_scope: Option<&str>, name: &Ident) -> String {
+        let local_scope_str = local_scope
+            .map(|ls| ls.to_owned() + "::")
+            .unwrap_or_default();
+        mod_prefix.to_owned() + &local_scope_str + &name.name
+    }
+
+    fn add_top_level_symbol_with_name(
+        &mut self,
+        short_name: &Ident,
+        full_name: String,
+        span: Span,
+    ) -> std::result::Result<String, ParseError> {
+        self.top_level_symbols
+            .get(&full_name)
+            .map(|prev_span| {
+                // Name clash.
+                Err(ParseError::NameClash {
+                    sym: short_name.name.clone(),
+                    span: short_name.span.clone(),
+                    prev_span: prev_span.clone(),
+                })
+            })
+            .unwrap_or_else(|| {
+                // Not found in the symbol table.
+                self.top_level_symbols.insert(full_name.clone(), span);
+                Ok(full_name)
+            })
     }
 
     pub fn add_top_level_symbol(
@@ -137,25 +196,8 @@ impl IntermediateIntent {
         name: &Ident,
         span: Span,
     ) -> std::result::Result<String, ParseError> {
-        let local_scope_str = local_scope
-            .map(|ls| ls.to_owned() + "::")
-            .unwrap_or_default();
-        let full_name = mod_prefix.to_owned() + &local_scope_str + &name.name;
-        self.top_level_symbols
-            .get(&full_name)
-            .map(|prev_span| {
-                // Name clash.
-                Err(ParseError::NameClash {
-                    sym: name.name.clone(),
-                    span: name.span.clone(),
-                    prev_span: prev_span.clone(),
-                })
-            })
-            .unwrap_or_else(|| {
-                // Not found in the symbol table.
-                self.top_level_symbols.insert(full_name.clone(), span);
-                Ok(full_name)
-            })
+        let full_name = Self::make_full_symbol(mod_prefix, local_scope, name);
+        self.add_top_level_symbol_with_name(name, full_name, span)
     }
 
     pub fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
@@ -168,6 +210,12 @@ impl IntermediateIntent {
                 *expr = new_expr;
             }
         });
+
+        self.var_inits.iter_mut().for_each(|(_, expr)| {
+            if *expr == old_expr {
+                *expr = new_expr;
+            }
+        });
     }
 
     pub fn replace_exprs_by_map(&mut self, expr_map: &HashMap<ExprKey, ExprKey>) {
@@ -176,6 +224,12 @@ impl IntermediateIntent {
             .for_each(|(_, expr)| expr.replace_ref_by_map(expr_map));
 
         self.constraints.iter_mut().for_each(|(expr, _)| {
+            if let Some(new_expr) = expr_map.get(expr) {
+                *expr = *new_expr;
+            }
+        });
+
+        self.var_inits.iter_mut().for_each(|(_, expr)| {
             if let Some(new_expr) = expr_map.get(expr) {
                 *expr = *new_expr;
             }
@@ -266,39 +320,33 @@ impl IntermediateIntent {
 #[derive(Clone, Debug)]
 pub struct State {
     name: Path,
-    ty: Option<Type>,
     expr: ExprKey,
     span: Span,
 }
 
-impl DisplayWithII for &State {
+impl DisplayWithII for StateKey {
     fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
-        write!(f, "state {}", self.name)?;
-        if let Some(ty) = &self.ty {
+        let state = &ii.states[*self];
+        write!(f, "state {}", state.name)?;
+        if let Some(ty) = ii.state_types.get(*self) {
             write!(f, ": {}", ii.with_ii(ty))?;
         }
-        write!(f, " = {}", ii.with_ii(&self.expr))?;
-        Ok(())
+        write!(f, " = {}", ii.with_ii(&state.expr))
     }
 }
+
 /// A decision variable with an optional type.
 #[derive(Clone, Debug)]
 pub struct Var {
     pub(crate) name: Path,
-    ty: Option<Type>,
     span: Span,
 }
 
 impl DisplayWithII for VarKey {
     fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
-        write!(f, "{}", ii.with_ii(&ii.vars[*self]))
-    }
-}
-
-impl DisplayWithII for &Var {
-    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
-        write!(f, "var {}", self.name)?;
-        if let Some(ty) = &self.ty {
+        let var = &ii.vars[*self];
+        write!(f, "var {}", var.name)?;
+        if let Some(ty) = ii.var_types.get(*self) {
             write!(f, ": {}", ii.with_ii(ty))?;
         }
         Ok(())
@@ -324,7 +372,7 @@ pub enum SolveFunc {
 }
 
 impl DisplayWithII for SolveFunc {
-    fn fmt(&self, f: &mut Formatter<'_>, ii: &IntermediateIntent) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> std::fmt::Result {
         write!(f, "solve ")?;
         match self {
             SolveFunc::Satisfy => write!(f, "satisfy"),
@@ -347,7 +395,7 @@ impl<'a, T> WithII<'a, T> {
 }
 
 pub(crate) trait DisplayWithII {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>, ii: &IntermediateIntent) -> fmt::Result;
+    fn fmt(&self, f: &mut fmt::Formatter, ii: &IntermediateIntent) -> fmt::Result;
 }
 
 impl<T: DisplayWithII> fmt::Display for WithII<'_, T> {
@@ -357,7 +405,7 @@ impl<T: DisplayWithII> fmt::Display for WithII<'_, T> {
 }
 
 impl<T: DisplayWithII> DisplayWithII for &T {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>, ii: &IntermediateIntent) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter, ii: &IntermediateIntent) -> fmt::Result {
         (*self).fmt(f, ii)
     }
 }

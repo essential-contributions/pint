@@ -12,7 +12,10 @@ solve satisfy;
 // solve satisfy;
 // >>>
 
-// We'll get this error until we implement type inference.
-// compile_failure <<<
-// compiler internal error: Found untyped variable.
+// compiled_intent <<<
+// var ::a: int;
+// var ::b::b: int;
+// constraint (::a == ::b::b);
+// constraint (::b::b == 1);
+// solve satisfy;
 // >>>

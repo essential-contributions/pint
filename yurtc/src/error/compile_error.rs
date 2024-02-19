@@ -76,7 +76,11 @@ pub enum CompileError {
     #[error("invalid bound for `forall` index `{name}`")]
     InvalidForAllIndexBound { name: String, span: Span },
     #[error("cannot find value `{name}` in this scope")]
-    SymbolNotFound { name: String, span: Span },
+    SymbolNotFound {
+        name: String,
+        span: Span,
+        enum_names: Vec<String>,
+    },
     #[error("attempt to use a non-constant value as an array length")]
     NonConstArrayLength { span: Span },
     #[error("attempt to use an invalid constant as an array length")]
@@ -87,6 +91,66 @@ pub enum CompileError {
     InvalidConstArrayIndex { span: Span },
     #[error("cannot index into value")]
     CannotIndexIntoValue { span: Span, index_span: Span },
+    #[error("unable to determine expression type")]
+    UnknownType { span: Span },
+    #[error("condition in if-expression must be a boolean")]
+    IfCondTypeNotBool(Span),
+    #[error("branches in if-expression must have the same type")]
+    IfBranchesTypeMismatch { large_err: Box<LargeTypeError> },
+    #[error("attempt to access array element from a non-array value")]
+    ArrayAccessNonArray { non_array_type: String, span: Span },
+    #[error("attempt to index an array with a non-integer")]
+    ArrayAccessWithNonInt { found_ty: String, span: Span },
+    #[error("attempt to access tuple field from a non-tuple value")]
+    TupleAccessNonTuple { non_tuple_type: String, span: Span },
+    #[error("invalid tuple accessor")]
+    InvalidTupleAccessor {
+        accessor: String,
+        tuple_type: String,
+        span: Span,
+    },
+    #[error("illegal empty array value")]
+    EmptyArrayExpression { span: Span },
+    #[error("array element type mismatch")]
+    NonHomogeneousArrayElement {
+        expected_ty: String,
+        ty: String,
+        span: Span,
+    },
+    #[error("{arity} operator type error")]
+    OperatorTypeError {
+        arity: &'static str,
+        large_err: Box<LargeTypeError>,
+    },
+    #[error("expression has a recursive dependency")]
+    ExprRecursion {
+        dependant_span: Span,
+        dependency_span: Span,
+    },
+}
+
+// This is here purely at the suggestion of Clippy, who pointed out that these error variants are
+// quite large and any time you use a `Result` which wraps a `CompileError`, even if there is no
+// error, the compiler needs to stack allocate enough space for the largest variant.  These were
+// getting above 144 bytes, so instead they're boxed and put in this separate enum.  It's not
+// pretty but it'll do for now.
+
+#[derive(Debug)]
+pub enum LargeTypeError {
+    IfBranchesTypeMismatch {
+        then_type: String,
+        then_span: Span,
+        else_type: String,
+        else_span: Span,
+        span: Span,
+    },
+    OperatorTypeError {
+        op: &'static str,
+        expected_ty: String,
+        found_ty: String,
+        span: Span,
+        expected_span: Option<Span>,
+    },
 }
 
 impl ReportableError for CompileError {
@@ -219,12 +283,12 @@ impl ReportableError for CompileError {
             } => {
                 vec![
                     ErrorLabel {
-                        message: format!("macro '{name}' is recursively called"),
+                        message: format!("macro `{name}` is recursively called"),
                         span: call_span.clone(),
                         color: Color::Red,
                     },
                     ErrorLabel {
-                        message: format!("macro '{name}' declared here"),
+                        message: format!("macro `{name}` declared here"),
                         span: decl_span.clone(),
                         color: Color::Blue,
                     },
@@ -305,6 +369,136 @@ impl ReportableError for CompileError {
                 ]
             }
 
+            UnknownType { span } => vec![ErrorLabel {
+                message: "type of this expression is ambiguous".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            IfCondTypeNotBool(span) => {
+                vec![ErrorLabel {
+                    message: "condition must be a boolean".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            ArrayAccessNonArray {
+                non_array_type,
+                span,
+            } => {
+                vec![ErrorLabel {
+                    message: format!("value must be an array; found `{non_array_type}`"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            ArrayAccessWithNonInt { span, .. } => {
+                vec![ErrorLabel {
+                    message: "array access must be an int value".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            TupleAccessNonTuple {
+                non_tuple_type,
+                span,
+            } => {
+                vec![ErrorLabel {
+                    message: format!("value must be a tuple; found `{non_tuple_type}`"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            InvalidTupleAccessor { accessor, span, .. } => vec![ErrorLabel {
+                message: format!("unable to get field from tuple using `{accessor}`"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            EmptyArrayExpression { span } => vec![ErrorLabel {
+                message: "empty array values are illegal".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            NonHomogeneousArrayElement { ty, span, .. } => {
+                vec![ErrorLabel {
+                    message: format!("array element has type `{ty}`"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            ExprRecursion {
+                dependant_span,
+                dependency_span,
+            } => vec![
+                ErrorLabel {
+                    message: "cannot determine type of expression due to dependency".to_string(),
+                    span: dependant_span.clone(),
+                    color: Color::Red,
+                },
+                ErrorLabel {
+                    message: "dependency on expression is recursive".to_string(),
+                    span: dependency_span.clone(),
+                    color: Color::Red,
+                },
+            ],
+
+            IfBranchesTypeMismatch { large_err } | OperatorTypeError { large_err, .. } => {
+                match &**large_err {
+                    LargeTypeError::IfBranchesTypeMismatch {
+                        then_type,
+                        then_span,
+                        else_type,
+                        else_span,
+                        ..
+                    } => vec![
+                        ErrorLabel {
+                            message: format!("'then' branch has the type `{then_type}`"),
+                            span: then_span.clone(),
+                            color: Color::Red,
+                        },
+                        ErrorLabel {
+                            message: format!("'else' branch has the type `{else_type}`"),
+                            span: else_span.clone(),
+                            color: Color::Red,
+                        },
+                    ],
+
+                    LargeTypeError::OperatorTypeError {
+                        op,
+                        found_ty,
+                        expected_ty,
+                        span,
+                        expected_span,
+                        ..
+                    } => {
+                        let mut labels = vec![ErrorLabel {
+                            message: format!(
+                                "operator `{op}` argument has unexpected type `{found_ty}`"
+                            ),
+                            span: span.clone(),
+                            color: Color::Red,
+                        }];
+
+                        if let Some(span) = expected_span {
+                            labels.push(ErrorLabel {
+                                message: format!("expecting type `{expected_ty}`"),
+                                span: span.clone(),
+                                color: Color::Blue,
+                            });
+                        }
+
+                        labels
+                    }
+                }
+            }
+
             Internal { .. } | FileIO { .. } => Vec::new(),
         }
     }
@@ -361,6 +555,18 @@ impl ReportableError for CompileError {
                 Some("`forall` index bound must be an integer literal".to_string())
             }
 
+            InvalidTupleAccessor { tuple_type, .. } => {
+                Some(format!("tuple has type `{tuple_type}`"))
+            }
+
+            NonHomogeneousArrayElement { expected_ty, .. } => {
+                Some(format!("expecting array element type `{expected_ty}`"))
+            }
+
+            ArrayAccessWithNonInt { found_ty, .. } => {
+                Some(format!("found access using type `{found_ty}`"))
+            }
+
             Internal { .. }
             | FileIO { .. }
             | MacroNotFound { .. }
@@ -373,7 +579,15 @@ impl ReportableError for CompileError {
             | CannotIndexIntoValue { .. }
             | MacroMultiplePacks { .. }
             | MacroUnknownPack { .. }
-            | MacroNonUniqueParamCounts { .. } => None,
+            | MacroNonUniqueParamCounts { .. }
+            | UnknownType { .. }
+            | IfCondTypeNotBool(_)
+            | IfBranchesTypeMismatch { .. }
+            | OperatorTypeError { .. }
+            | ArrayAccessNonArray { .. }
+            | TupleAccessNonTuple { .. }
+            | EmptyArrayExpression { .. }
+            | ExprRecursion { .. } => None,
         }
     }
 
@@ -384,10 +598,35 @@ impl ReportableError for CompileError {
     fn help(&self) -> Option<String> {
         use CompileError::*;
         match self {
+            SymbolNotFound { enum_names, .. } if !enum_names.is_empty() => {
+                Some(format!(
+                    "this symbol is a variant of enum{} {} and may need a fully qualified path",
+                    if enum_names.len() > 1 { "s" } else { "" },
+                    enum_names
+                        .iter()
+                        .enumerate()
+                        .map(|(idx, enum_name)| {
+                            if idx + 2 == enum_names.len() {
+                                // 2nd last
+                                format!("`{enum_name}` and ")
+                            } else if idx + 1 == enum_names.len() {
+                                // last
+                                format!("`{enum_name}`")
+                            } else {
+                                // otherwise...
+                                format!("`{enum_name}`, ")
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                        .join("")
+                ))
+            }
+
             MacroCallMismatch { name, .. } => Some(format!(
                 "a macro named `{name}` is defined but not with the required \
                 signature to fulfill this call"
             )),
+
             _ => None,
         }
     }
@@ -421,7 +660,26 @@ impl Spanned for CompileError {
             | InvalidConstArrayLength { span }
             | NonConstArrayLength { span }
             | InvalidConstArrayIndex { span }
-            | CannotIndexIntoValue { span, .. } => span,
+            | CannotIndexIntoValue { span, .. }
+            | UnknownType { span }
+            | IfCondTypeNotBool(span)
+            | ArrayAccessNonArray { span, .. }
+            | ArrayAccessWithNonInt { span, .. }
+            | TupleAccessNonTuple { span, .. }
+            | InvalidTupleAccessor { span, .. }
+            | EmptyArrayExpression { span }
+            | NonHomogeneousArrayElement { span, .. }
+            | ExprRecursion {
+                dependant_span: span,
+                ..
+            } => span,
+
+            IfBranchesTypeMismatch { large_err } | OperatorTypeError { large_err, .. } => {
+                match &**large_err {
+                    LargeTypeError::IfBranchesTypeMismatch { span, .. }
+                    | LargeTypeError::OperatorTypeError { span, .. } => span,
+                }
+            }
         }
     }
 }

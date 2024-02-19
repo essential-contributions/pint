@@ -1,0 +1,10 @@
+let ary: int[10];
+
+constraint ary != [];
+
+solve satisfy;
+
+// typecheck_failure <<<
+// illegal empty array value
+// @37..39: empty array values are illegal
+// >>>

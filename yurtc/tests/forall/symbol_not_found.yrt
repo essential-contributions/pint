@@ -2,7 +2,7 @@ constraint forall i in 0..5 where j != 3 { true };
 
 solve satisfy;
 
-// flattening_failure <<<
+// typecheck_failure <<<
 // cannot find value `::j` in this scope
 // @34..35: not found in this scope
 // >>>
