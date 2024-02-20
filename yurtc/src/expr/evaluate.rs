@@ -1,7 +1,7 @@
 use crate::{
     error::CompileError,
     expr::{BinaryOp, Expr, Immediate, UnaryOp},
-    intent::intermediate::{ExprKey, IntermediateIntent},
+    intermediate::{ExprKey, IntermediateIntent},
     span::empty_span,
     types::Path,
 };

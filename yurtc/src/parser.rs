@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error},
     expr::Ident,
-    intent::intermediate::{CallKey, ExprKey, IntermediateIntent},
+    intermediate::{CallKey, ExprKey, IntermediateIntent},
     lexer,
     macros::{self, MacroCall, MacroDecl, MacroExpander},
     span::{self, Span},

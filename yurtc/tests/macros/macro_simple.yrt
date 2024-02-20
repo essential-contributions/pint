@@ -18,7 +18,7 @@ solve satisfy;
 // solve satisfy;
 // >>>
 
-// compiled_intent <<<
+// flattened <<<
 // var ::id: int;
 // var ::anon@0::b: int;
 // constraint (::anon@0::b > 1);

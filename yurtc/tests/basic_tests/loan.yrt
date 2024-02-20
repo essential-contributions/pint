@@ -36,7 +36,7 @@ solve satisfy;
 // solve satisfy;
 // >>>
 
-// compiled_intent <<<
+// flattened <<<
 // var ::r: real;
 // var ::p: real;
 // var ::i: real;

@@ -1,3 +1,4 @@
+// <no-solve>
 // Colouring Australia using 3 colours
 
 enum Colour = Red | Green | Blue;
@@ -43,9 +44,4 @@ solve satisfy;
 // constraint (::q != ::nsw);
 // constraint (::nsw != ::v);
 // solve satisfy;
-// >>>
-
-// We'll get this error until we implement enum desugaring.
-// compile_failure <<<
-// compiler internal error: Found unsupported types in final Intent.
 // >>>

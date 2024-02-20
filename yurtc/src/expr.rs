@@ -1,5 +1,5 @@
 use crate::{
-    intent::intermediate::{CallKey, ExprKey, VarKey},
+    intermediate::{CallKey, ExprKey, VarKey},
     span::{Span, Spanned},
     types::{Path, Type},
 };

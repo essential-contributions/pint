@@ -1,5 +1,5 @@
 use essential_types::{
-    intent::Directive,
+    intent::{Directive, Intent},
     slots::Slots,
     solution::{
         InputMessage, KeyMutation, Mutation, OutputMessage, Solution, SolutionData, StateMutation,
@@ -13,10 +13,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use yansi::Color::{Cyan, Red, Yellow};
-use yurtc::{
-    error::ReportableError,
-    intent::{Intent, IntermediateIntent},
-};
+use yurtc::{error::ReportableError, intermediate::IntermediateIntent};
 mod cli;
 
 #[cfg(test)]
@@ -94,19 +91,15 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
         let ii = type_check(ii, &test_data, &mut failed_tests, &path);
 
         // Flatten the intermediate intent check the result.
-        let ii = flatten_and_check(ii, &test_data, &mut failed_tests, &path);
-
-        // Compile down to the final intent and check the output.
-        let final_intent =
-            compile_to_final_intent_and_check(ii, &test_data, &mut failed_tests, &path);
+        let mut ii = flatten_and_check(ii, &test_data, &mut failed_tests, &path);
 
         if validate {
             // Check a given solution. This uses the `db` section if present and checks the solution
             // against an intent server.
-            validate_solution(&final_intent, &test_data);
+            validate_solution(&ii, &test_data);
         } else if !skip_solve {
             // Solve the final intent and check the solution
-            solve_and_check(final_intent, &test_data, &mut failed_tests, &path);
+            solve_and_check(&mut ii, &test_data, &mut failed_tests, &path);
         }
     }
 
@@ -124,8 +117,6 @@ struct TestData {
     typecheck_failure: Option<String>,
     flattened: Option<String>,
     flattening_failure: Option<String>,
-    compiled_intent: Option<String>,
-    compile_failure: Option<String>,
     solution: Option<String>,
     solve_failure: Option<String>,
     db: Option<String>,
@@ -139,8 +130,6 @@ struct TestData {
 // `>>>`.  The tags are
 //   * `intermediate`
 //   * `parse_failure`
-//   * `compiled_intent`
-//   * `compile_failure`
 //   * `solution`
 //   * `solve_failure`
 //   * `db`
@@ -175,8 +164,6 @@ fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
         TypeCheckFailure,
         FlattenedIntent,
         FlatteningFailure,
-        CompiledIntent,
-        CompileFailure,
         Solution,
         SolveFailure,
         Db,
@@ -186,7 +173,7 @@ fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
 
     let comment_re = regex::Regex::new(r"^\s*//")?;
     let open_sect_re = regex::Regex::new(
-        r"^\s*//\s*(intermediate|parse_failure|typecheck_failure|flattened|flattening_failure|compiled_intent|compile_failure|solution|solve_failure|db)\s*<<<",
+        r"^\s*//\s*(intermediate|parse_failure|typecheck_failure|flattened|flattening_failure|solution|solve_failure|db)\s*<<<",
     )?;
     let close_sect_re = regex::Regex::new(r"^\s*//\s*>>>")?;
 
@@ -210,8 +197,6 @@ fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
                 "flattened" => cur_section = Section::FlattenedIntent,
                 "flattening_failure" => cur_section = Section::FlatteningFailure,
                 "typecheck_failure" => cur_section = Section::TypeCheckFailure,
-                "compiled_intent" => cur_section = Section::CompiledIntent,
-                "compile_failure" => cur_section = Section::CompileFailure,
                 "solution" => cur_section = Section::Solution,
                 "solve_failure" => cur_section = Section::SolveFailure,
                 "db" => cur_section = Section::Db,
@@ -245,12 +230,6 @@ fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
                 }
                 Section::FlatteningFailure => {
                     test_data.flattening_failure = Some(section_str);
-                }
-                Section::CompiledIntent => {
-                    test_data.compiled_intent = Some(section_str);
-                }
-                Section::CompileFailure => {
-                    test_data.compile_failure = Some(section_str);
                 }
                 Section::Solution => {
                     test_data.solution = Some(section_str);
@@ -410,57 +389,12 @@ fn flatten_and_check(
     })
 }
 
-fn compile_to_final_intent_and_check(
-    ii: Option<IntermediateIntent>,
-    test_data: &TestData,
-    failed_tests: &mut Vec<String>,
-    path: &Path,
-) -> Option<Intent> {
-    ii.and_then(|ii| {
-        ii.to_intent()
-            .map(|intent| {
-                if let Some(expected_intent_str) = &test_data.compiled_intent {
-                    similar_asserts::assert_eq!(
-                        expected_intent_str.trim(),
-                        format!("{intent}").trim()
-                    );
-                } else if test_data.compile_failure.is_some() {
-                    failed_tests.push(path.display().to_string());
-                    println!(
-                        "{} {}.",
-                        Red.paint("UNEXPECTED SUCCESSFUL COMPILE"),
-                        Cyan.paint(path.display().to_string()),
-                    );
-                }
-                intent
-            })
-            .map_err(|err| {
-                if let Some(compile_error_str) = &test_data.compile_failure {
-                    similar_asserts::assert_eq!(
-                        compile_error_str.trim_end(),
-                        err.display_raw().trim_end()
-                    );
-                } else {
-                    failed_tests.push(path.display().to_string());
-                    println!(
-                        "{} {}. {}\n{}",
-                        Red.paint("FAILED TO COMPILE TO FINAL INTENT"),
-                        Cyan.paint(path.display().to_string()),
-                        Red.paint("Reported errors:"),
-                        Yellow.paint(err.display_raw().trim_end()),
-                    );
-                }
-            })
-            .ok()
-    })
-}
-
 #[cfg(not(feature = "solver-scip"))]
-fn solve_and_check(_: Option<Intent>, _: &TestData, _: &mut Vec<String>, _: &Path) {}
+fn solve_and_check(_: Option<IntermediateIntent>, _: &TestData, _: &mut Vec<String>, _: &Path) {}
 
 #[cfg(feature = "solver-scip")]
 fn solve_and_check(
-    ii: Option<Intent>,
+    ii: &mut Option<IntermediateIntent>,
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
     path: &Path,
@@ -468,8 +402,8 @@ fn solve_and_check(
     use russcip::ProblemCreated;
     use yurtc::solvers::scip::Solver;
 
-    ii.and_then(|ii| {
-        Solver::<ProblemCreated>::new(&ii)
+    ii.as_mut().and_then(|ii| {
+        Solver::<ProblemCreated>::new(ii)
             .solve()
             .map(|solver| {
                 if let Some(expected_solution_str) = &test_data.solution {
@@ -507,7 +441,7 @@ fn solve_and_check(
     });
 }
 
-fn validate_solution(final_intent: &Option<Intent>, test_data: &TestData) {
+fn validate_solution(final_intent: &Option<IntermediateIntent>, test_data: &TestData) {
     final_intent.as_ref().and_then(|final_intent| {
         yurtc::asm_gen::intent_to_asm(&final_intent)
             .map(|persistent_intent| {
@@ -589,7 +523,7 @@ fn validate_solution(final_intent: &Option<Intent>, test_data: &TestData) {
                             decision_variables[final_intent
                                 .vars
                                 .iter()
-                                .position(|var| var.name == split[0])
+                                .position(|var| var.1.name == split[0])
                                 .expect("var name must exist")] =
                                 split[1].parse::<u64>().expect("expecting a decimal");
                         }
@@ -597,7 +531,7 @@ fn validate_solution(final_intent: &Option<Intent>, test_data: &TestData) {
 
                     // Create a trivial transient intent that does nothing. It's only used to
                     // interact with the deployed intent above
-                    let transient_intent = essential_types::intent::Intent {
+                    let transient_intent = Intent {
                         slots: Slots {
                             decision_variables: 0,
                             state: vec![],

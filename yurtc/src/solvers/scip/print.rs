@@ -1,4 +1,4 @@
-use crate::intent::SolveDirective;
+use crate::intermediate::SolveFunc;
 use russcip::{prelude::*, Solved};
 use std::fmt::Write;
 use yansi::{Color, Style};
@@ -31,7 +31,9 @@ impl<'a> super::Solver<'a, Solved> {
                         }
                     });
 
-                if !matches!(self.intent.directive, SolveDirective::Satisfy) {
+                // Assume that there exists exactly a single solve directive. This should have been
+                // checked by now
+                if !matches!(self.intent.directives[0].0, SolveFunc::Satisfy) {
                     println!(
                         "    {}: {:.3}",
                         Style::new(Color::Green).bold().paint("Objective value:"),
@@ -80,7 +82,10 @@ impl<'a> super::Solver<'a, Solved> {
                         acc
                     },
                 );
-                if matches!(self.intent.directive, SolveDirective::Satisfy) {
+
+                // Assume that there exists exactly a single solve directive. This should have been
+                // checked by now
+                if matches!(self.intent.directives[0].0, SolveFunc::Satisfy) {
                     solution
                 } else {
                     format!("{solution}objective: {:.3}", self.model.obj_val())

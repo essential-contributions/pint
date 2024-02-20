@@ -1,13 +1,12 @@
-use super::invert::invert_expression;
-use crate::{error::SolveError, expr, intent::Expression, span::empty_span};
+use crate::{error::SolveError, expr, intermediate::ExprKey, span::empty_span};
 use russcip::{prelude::*, ProblemCreated};
 
 impl<'a> super::Solver<'a, ProblemCreated> {
-    pub(super) fn convert_constraint(&mut self, constraint: &Expression) -> Result<(), SolveError> {
+    pub(super) fn convert_constraint(&mut self, constraint: &ExprKey) -> Result<(), SolveError> {
         let new_cons_name = self.new_cons_name();
-        match constraint {
-            Expression::Immediate(imm) => {
-                match imm {
+        match self.intent.exprs[*constraint].clone() {
+            expr::Expr::Immediate { value, .. } => {
+                match value {
                     expr::Immediate::Bool(val) => {
                         if !val {
                             // If the immediate is `false`, then insert a trivially infeasible
@@ -23,7 +22,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                 }
             }
 
-            Expression::Path(_) => {
+            expr::Expr::PathByName(..) | expr::Expr::PathByKey(..) => {
                 // Convert the constraint expression itself into a variable and enforce the
                 // variable to be equal to 1.
                 let var = self.expr_to_var(constraint)?;
@@ -31,9 +30,9 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                     .add_cons(vec![var.clone()], &[1.], 1., 1., &new_cons_name);
             }
 
-            Expression::UnaryOp { op, expr } => match op {
+            expr::Expr::UnaryOp { op, expr, .. } => match op {
                 expr::UnaryOp::Not => {
-                    let not_expr = invert_expression(expr)?;
+                    let not_expr = self.invert_expression(&expr)?;
                     self.convert_constraint(&not_expr)?;
                 }
                 _ => {
@@ -43,24 +42,26 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                     })
                 }
             },
-            Expression::BinaryOp {
+            expr::Expr::BinaryOp {
                 op: expr::BinaryOp::LogicalAnd,
                 lhs: lhs_expr,
                 rhs: rhs_expr,
+                ..
             } => {
                 // enforce both the lhs and the rhs as seaprate constraints
-                self.convert_constraint(lhs_expr)?;
-                self.convert_constraint(rhs_expr)?;
+                self.convert_constraint(&lhs_expr)?;
+                self.convert_constraint(&rhs_expr)?;
             }
 
-            Expression::BinaryOp {
+            expr::Expr::BinaryOp {
                 op,
                 lhs: lhs_expr,
                 rhs: rhs_expr,
+                ..
             } => {
                 // Convert the LHS and RHS into new variables
-                let lhs = self.expr_to_var(lhs_expr)?;
-                let rhs = self.expr_to_var(rhs_expr)?;
+                let lhs = self.expr_to_var(&lhs_expr)?;
+                let rhs = self.expr_to_var(&rhs_expr)?;
                 let lhs_type = lhs.var_type();
                 let rhs_type = rhs.var_type();
 
@@ -211,9 +212,20 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                 }
             }
 
-            _ => {
+            expr::Expr::If { .. }
+            | expr::Expr::FnCall { .. }
+            | expr::Expr::Error(_)
+            | expr::Expr::MacroCall { .. }
+            | expr::Expr::Array { .. }
+            | expr::Expr::ArrayElementAccess { .. }
+            | expr::Expr::Tuple { .. }
+            | expr::Expr::TupleFieldAccess { .. }
+            | expr::Expr::Cast { .. }
+            | expr::Expr::In { .. }
+            | expr::Expr::Range { .. }
+            | expr::Expr::ForAll { .. } => {
                 return Err(SolveError::Internal {
-                    msg: "(scip) only binary operators in constraints are expected",
+                    msg: "(scip) unexpected expression in constraint",
                     span: empty_span(),
                 })
             }

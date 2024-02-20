@@ -1,6 +1,6 @@
 use crate::{
     error::Error,
-    intent::intermediate::{CallKey, ExprKey},
+    intermediate::{CallKey, ExprKey},
     macros::{MacroCall, MacroDecl},
     parser::Ident,
     parser::{IntermediateIntent, NextModPath, UsePath},

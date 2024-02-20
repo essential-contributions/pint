@@ -10,7 +10,7 @@ fn main() -> anyhow::Result<()> {
     let filepath = Path::new(&args.filepath);
 
     // Lex + Parse
-    let intermediate_intent = match parser::parse_project(filepath) {
+    let initial_ii = match parser::parse_project(filepath) {
         Ok(ii) => ii,
         Err(errors) => {
             if !cfg!(test) {
@@ -20,9 +20,10 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    // Compile the flattened intent down to a final intent
-    let intent = match intermediate_intent.compile() {
-        Ok(intent) => intent,
+    // Convert the initial IntermediateIntent to a final IntermediateIntent by performing type
+    // checking, flattening, optimizations, etc.
+    let mut final_ii = match initial_ii.compile() {
+        Ok(ii) => ii,
         Err(error) => {
             if !cfg!(test) {
                 error::print_errors(&vec![error::Error::Compile { error }]);
@@ -38,7 +39,7 @@ fn main() -> anyhow::Result<()> {
     // numbers, etc.) and so, we can solve more intents than we can generate assembly for. When
     // this changes, we will always generate assembly and only solve when requested via `--solve`.
     if args.solve {
-        if args.solve && !cfg!(feature = "solver-scip") && !cfg!(feature = "solver-pcp") {
+        if args.solve && !cfg!(feature = "solver-scip") {
             eprintln!("Solving is disabled in this build.");
         }
 
@@ -47,9 +48,9 @@ fn main() -> anyhow::Result<()> {
             use russcip::ProblemCreated;
             use yurtc::solvers::scip::*;
 
-            // Solve the final intent. This assumes, for now, that the final intent has no
-            // state variables
-            let solver = Solver::<ProblemCreated>::new(&intent);
+            // Solve the final intermediate intent. This assumes, for now, that the final
+            // intermediate intent has no state variables
+            let solver = Solver::<ProblemCreated>::new(&mut final_ii);
             let solver = match solver.solve() {
                 Ok(solver) => solver,
                 Err(error) => {
@@ -64,8 +65,8 @@ fn main() -> anyhow::Result<()> {
     } else {
         // This is WIP. So far, simply print the serialized JSON to `<filename>.json` or to
         // `<output>`. That'll likely change in the future when we decide on a serialized scheme.
-        match intent_to_asm(&intent) {
-            Ok(intent) => {
+        match intent_to_asm(&final_ii) {
+            Ok(final_ii) => {
                 serde_json::to_writer(
                     if let Some(output) = args.output {
                         let output_file_path = PathBuf::from(&output);
@@ -77,7 +78,7 @@ fn main() -> anyhow::Result<()> {
                     } else {
                         File::create(filepath.with_extension("json"))?
                     },
-                    &intent,
+                    &final_ii,
                 )?;
             }
             Err(error) => {
