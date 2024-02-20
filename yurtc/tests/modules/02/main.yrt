@@ -27,7 +27,7 @@ solve satisfy;
 // solve satisfy;
 // >>>
 
-// compiled_intent <<<
+// flattened <<<
 // var ::c: int;
 // var ::a::b: int;
 // state ::d: bool = ::hello_world();

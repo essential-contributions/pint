@@ -13,7 +13,7 @@ fn check(actual: &str, expect: expect_test::Expect) {
 fn compile(code: &str) -> essential_types::intent::Intent {
     let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
     write!(tmpfile.as_file_mut(), "{}", code).unwrap();
-    let intent = parse_project(tmpfile.path()).unwrap().compile().unwrap();
+    let intent = parse_project(tmpfile.path()).unwrap();
     intent_to_asm(&intent).unwrap()
 }
 

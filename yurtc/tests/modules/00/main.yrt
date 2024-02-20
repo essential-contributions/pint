@@ -12,7 +12,7 @@ solve satisfy;
 // solve satisfy;
 // >>>
 
-// compiled_intent <<<
+// flattened <<<
 // var ::a: int;
 // var ::b::b: int;
 // constraint (::a == ::b::b);

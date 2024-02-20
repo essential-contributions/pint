@@ -1,3 +1,5 @@
+// <no-solve>
+
 use b_mod::{s0, s1};
 use ::b_mod::{s2, s3};
 use b_mod::s4;
@@ -32,8 +34,4 @@ enum U = V | W;
 // constraint (::b_mod::s2 == ::b_mod::c_mod::A::B);
 // constraint (::b_mod::s3 == ::b_mod::c_mod::A::C);
 // constraint (::b_mod::s4 == ::b_mod::c_mod::A::B);
-// >>>
-
-// compile_failure <<<
-// compiler internal error: Found unsupported types in final Intent.
 // >>>

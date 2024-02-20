@@ -1,6 +1,6 @@
 use crate::{
     error::{Error, ReportableError},
-    intent::intermediate::{DisplayWithII, IntermediateIntent},
+    intermediate::{DisplayWithII, IntermediateIntent},
     lexer::{self, KEYWORDS},
     parser::ParserContext,
     span::Span,

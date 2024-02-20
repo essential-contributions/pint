@@ -1,6 +1,6 @@
 use crate::{
     expr::Ident,
-    intent::intermediate::ExprKey,
+    intermediate::ExprKey,
     span::{Span, Spanned},
 };
 

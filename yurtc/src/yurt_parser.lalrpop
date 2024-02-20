@@ -2,7 +2,7 @@ use crate::{
     contract::{ContractDecl, InterfaceDecl},
     error::{Error, ParseError},
     expr::*,
-    intent::intermediate::{ExprKey, SolveFunc},
+    intermediate::{ExprKey, SolveFunc},
     lexer,
     macros::{MacroCall, MacroDecl},
     parser::{ParserContext, UsePath, UseTree::{self, Path as UseTreePath}, NextModPath},

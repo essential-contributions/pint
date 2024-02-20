@@ -28,7 +28,7 @@ solve satisfy;
 // solve satisfy;
 // >>>
 
-// compiled_intent <<<
+// flattened <<<
 // var ::v: int;
 // constraint (::v == 0);
 // constraint (::v == 0);

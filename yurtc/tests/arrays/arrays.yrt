@@ -22,8 +22,3 @@ let one = nums()[1];
 // fn ::nums() -> int[4] { [0, 1, 2, 3] };
 // let ::one = ::nums()[1];
 // >>>
-
-// We'll get this error until we implement array destructuring.
-// compile_failure <<<
-// compiler internal error: Found unsupported types in final Intent.
-// >>>
