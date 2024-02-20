@@ -33,8 +33,6 @@ pub(super) fn parse_str_to_ast(source: &str) -> Result<ast::Ast<'_>, Vec<Formatt
         prev_token = Some(token_clone);
     }
 
-    println!("tokens: {:?}", tokens_without_newlines);
-
     // Provide a token stream
     let eoi_span = source.len()..source.len();
     let token_stream = Stream::from_iter(eoi_span.clone(), tokens_without_newlines.into_iter());
