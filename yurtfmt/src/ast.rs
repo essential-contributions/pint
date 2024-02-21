@@ -90,7 +90,6 @@ impl<'sc> Format for Decl<'sc> {
                 expr,
                 paths,
                 fn_sigs,
-                ..
             } => {
                 formatted_code.write(&format!("contract {name}("));
                 expr.format(formatted_code)?;
@@ -205,7 +204,7 @@ impl<'sc> Format for Decl<'sc> {
             Self::Comment { content } => {
                 formatted_code.write_line(content);
             }
-            Self::Newline { .. } => {
+            Self::Newline => {
                 formatted_code.write_line("");
             }
         }
