@@ -96,7 +96,6 @@ impl AsmBuilder {
         match &intent.exprs[*expr] {
             Expr::Immediate { value, .. } => match value {
                 Immediate::Int(val) => self.c_asm[idx].push(Op::Push(*val as u64)),
-                Immediate::Bool(val) => self.c_asm[idx].push(Op::Push(*val as u64)),
                 _ => unimplemented!("other literal types are not yet supported"),
             },
             Expr::BinaryOp { op, lhs, rhs, .. } => {

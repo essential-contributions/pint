@@ -196,21 +196,27 @@ fn scalarize_array_access(
 /// The above is not valid Yurt, of course, because the square brackets are not allowed in
 /// identifiers, but internally, this is fine and helps make the loopkup quite easy.
 pub(crate) fn scalarize(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
+    fn get_array_params(ary_ty: &Type) -> Option<(Type, ExprKey, Span)> {
+        match ary_ty {
+            Type::Alias { ty, .. } => get_array_params(ty),
+            Type::Array { ty, range, span } => Some((*ty.clone(), *range, span.clone())),
+            _ => None,
+        }
+    }
+
     // First, convert decision variables that are arrays into `n` new decision variables that
     // represent the individual elements of the array, where `n` is the length of the array
     ii.vars
         .iter()
         .filter_map(|(key, var)| {
             // Only collect arrays
-            if let Some(Type::Array { ty, range, span }) = &ii.var_types.get(key) {
-                Some((key, var.name.clone(), ty.clone(), *range, span.clone()))
-            } else {
-                None
-            }
+            ii.var_types.get(key).and_then(|var_ty| {
+                get_array_params(var_ty).map(|ary_params| (key, var.name.clone(), ary_params))
+            })
         })
         .collect::<Vec<_>>()
         .iter()
-        .try_for_each(|(key, name, ty, range, span)| {
+        .try_for_each(|(key, name, (ty, range, span))| {
             scalarize_array(ii, *key, name, ty, *range, span)
         })?;
 

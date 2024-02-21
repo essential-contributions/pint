@@ -14,11 +14,11 @@ let parse_error
 // @0..11: type annotation or initializer needed
 // consider giving `untyped` an explicit type or an initializer
 // symbol `clash` has already been declared
-// @17..22: previous declaration of the value `clash` here
+// @17..22: previous declaration of the symbol `clash` here
 // @32..37: `clash` redeclared here
 // `clash` must be declared or imported only once in this scope
 // symbol `clash` has already been declared
-// @17..22: previous declaration of the value `clash` here
+// @17..22: previous declaration of the symbol `clash` here
 // @47..52: `clash` redeclared here
 // `clash` must be declared or imported only once in this scope
 // empty tuple types are not allowed

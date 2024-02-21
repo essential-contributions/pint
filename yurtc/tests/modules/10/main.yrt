@@ -20,59 +20,59 @@ extern { fn E() -> bool; }
 
 // parse_failure <<<
 // symbol `E` has already been declared
-// @7..8: previous declaration of the value `E` here
+// @7..8: previous declaration of the symbol `E` here
 // @39..40: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `E` has already been declared
-// @7..8: previous declaration of the value `E` here
+// @7..8: previous declaration of the symbol `E` here
 // @56..57: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `E` has already been declared
-// @7..8: previous declaration of the value `E` here
+// @7..8: previous declaration of the symbol `E` here
 // @73..74: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `E` has already been declared
-// @7..8: previous declaration of the value `E` here
+// @7..8: previous declaration of the symbol `E` here
 // @87..88: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `E` has already been declared
-// @7..8: previous declaration of the value `E` here
+// @7..8: previous declaration of the symbol `E` here
 // @121..122: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `E` has already been declared
-// @7..8: previous declaration of the value `E` here
+// @7..8: previous declaration of the symbol `E` here
 // @136..137: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `E` has already been declared
-// @7..8: previous declaration of the value `E` here
+// @7..8: previous declaration of the symbol `E` here
 // @157..158: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `F` has already been declared
-// @4..5: previous declaration of the value `F` here
+// @4..5: previous declaration of the symbol `F` here
 // @17..18: `F` redeclared here
 // `F` must be declared or imported only once in this scope
 // symbol `F` has already been declared
-// @4..5: previous declaration of the value `F` here
+// @4..5: previous declaration of the symbol `F` here
 // @34..35: `F` redeclared here
 // `F` must be declared or imported only once in this scope
 // symbol `F` has already been declared
-// @4..5: previous declaration of the value `F` here
+// @4..5: previous declaration of the symbol `F` here
 // @51..52: `F` redeclared here
 // `F` must be declared or imported only once in this scope
 // symbol `F` has already been declared
-// @4..5: previous declaration of the value `F` here
+// @4..5: previous declaration of the symbol `F` here
 // @65..66: `F` redeclared here
 // `F` must be declared or imported only once in this scope
 // symbol `F` has already been declared
-// @4..5: previous declaration of the value `F` here
+// @4..5: previous declaration of the symbol `F` here
 // @99..100: `F` redeclared here
 // `F` must be declared or imported only once in this scope
 // symbol `F` has already been declared
-// @4..5: previous declaration of the value `F` here
+// @4..5: previous declaration of the symbol `F` here
 // @114..115: `F` redeclared here
 // `F` must be declared or imported only once in this scope
 // symbol `F` has already been declared
-// @4..5: previous declaration of the value `F` here
+// @4..5: previous declaration of the symbol `F` here
 // @135..136: `F` redeclared here
 // `F` must be declared or imported only once in this scope
 // >>>

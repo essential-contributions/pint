@@ -57,6 +57,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                     ..
                 } => VarType::Continuous,
                 Type::Primitive { .. }
+                | Type::Alias { .. }
                 | Type::Error(_)
                 | Type::Array { .. }
                 | Type::Tuple { .. }

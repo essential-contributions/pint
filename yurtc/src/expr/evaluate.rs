@@ -311,6 +311,13 @@ impl ExprKey {
                 }
             }
         };
-        ii.exprs.insert(plugged)
+
+        // Insert the new plugged expression and its type.
+        let plugged_key = ii.exprs.insert(plugged);
+        if let Some(expr_ty) = ii.expr_types.get(self) {
+            ii.expr_types.insert(plugged_key, expr_ty.clone());
+        }
+
+        plugged_key
     }
 }

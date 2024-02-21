@@ -91,15 +91,15 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
         let ii = type_check(ii, &test_data, &mut failed_tests, &path);
 
         // Flatten the intermediate intent check the result.
-        let mut ii = flatten_and_check(ii, &test_data, &mut failed_tests, &path);
+        let ii = flatten_and_check(ii, &test_data, &mut failed_tests, &path);
 
         if validate {
             // Check a given solution. This uses the `db` section if present and checks the solution
             // against an intent server.
-            validate_solution(&ii, &test_data);
+            validate_solution(ii, &test_data);
         } else if !skip_solve {
             // Solve the final intent and check the solution
-            solve_and_check(&mut ii, &test_data, &mut failed_tests, &path);
+            solve_and_check(ii, &test_data, &mut failed_tests, &path);
         }
     }
 
@@ -394,7 +394,7 @@ fn solve_and_check(_: Option<IntermediateIntent>, _: &TestData, _: &mut Vec<Stri
 
 #[cfg(feature = "solver-scip")]
 fn solve_and_check(
-    ii: &mut Option<IntermediateIntent>,
+    ii: Option<IntermediateIntent>,
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
     path: &Path,
@@ -402,8 +402,8 @@ fn solve_and_check(
     use russcip::ProblemCreated;
     use yurtc::solvers::scip::Solver;
 
-    ii.as_mut().and_then(|ii| {
-        Solver::<ProblemCreated>::new(ii)
+    ii.and_then(|mut ii| {
+        Solver::<ProblemCreated>::new(&mut ii)
             .solve()
             .map(|solver| {
                 if let Some(expected_solution_str) = &test_data.solution {
@@ -441,7 +441,7 @@ fn solve_and_check(
     });
 }
 
-fn validate_solution(final_intent: &Option<IntermediateIntent>, test_data: &TestData) {
+fn validate_solution(final_intent: Option<IntermediateIntent>, test_data: &TestData) {
     final_intent.as_ref().and_then(|final_intent| {
         yurtc::asm_gen::intent_to_asm(&final_intent)
             .map(|persistent_intent| {

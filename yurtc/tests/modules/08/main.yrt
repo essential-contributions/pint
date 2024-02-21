@@ -12,6 +12,8 @@ let c4 = b::c;
 let a_variant = MyEnum::A;
 let b_variant = d::MyEnum::B;
 
+solve satisfy;
+
 // intermediate <<<
 // var ::c1;
 // var ::c2;
@@ -28,4 +30,28 @@ let b_variant = d::MyEnum::B;
 // constraint (::a_variant == ::d::MyEnum::A);
 // constraint (::b_variant == ::d::MyEnum::B);
 // constraint (::b::c == 5);
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::c1: int;
+// var ::c2: int;
+// var ::c3: int;
+// var ::c4: int;
+// var ::a_variant: int;
+// var ::b_variant: int;
+// var ::b::c: int;
+// enum ::d::MyEnum = A | B;
+// constraint (::c1 == ::b::c);
+// constraint (::c2 == ::b::c);
+// constraint (::c3 == ::b::c);
+// constraint (::c4 == ::b::c);
+// constraint (::a_variant == 0);
+// constraint (::b_variant == 1);
+// constraint (::b::c == 5);
+// constraint (::a_variant >= 0);
+// constraint (::a_variant <= 1);
+// constraint (::b_variant >= 0);
+// constraint (::b_variant <= 1);
+// solve satisfy;
 // >>>
