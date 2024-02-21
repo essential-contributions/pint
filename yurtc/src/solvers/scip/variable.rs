@@ -1,38 +1,39 @@
-use super::invert::invert_expression;
 use crate::{
     error::SolveError,
     expr,
-    intent::{self, Expression, SolveDirective, Type},
+    intermediate::{ExprKey, SolveFunc, VarKey},
     span::empty_span,
+    types::{PrimitiveKind, Type},
 };
 use russcip::{prelude::*, ProblemCreated, Variable};
 use std::rc::Rc;
 
 impl<'a> super::Solver<'a, ProblemCreated> {
-    pub(super) fn convert_variable(
-        &mut self,
-        variable: &intent::Variable,
-    ) -> Result<(), SolveError> {
+    pub(super) fn convert_variable(&mut self, variable: &VarKey) -> Result<(), SolveError> {
+        let ty = &self.intent.var_types[*variable];
+        let name = &self.intent.vars[*variable].name;
         self.model.add_var(
             /* Bounds */
-            if matches!(variable.ty, Type::Bool) {
-                0.
-            } else {
-                -f64::INFINITY
-            }, // TODO: We can do better with a proper static analysis
-            if matches!(variable.ty, Type::Bool) {
-                1.
-            } else {
-                f64::INFINITY
-            }, // TODO: We can do better with a proper static analysis
+            if ty.is_bool() { 0. } else { -f64::INFINITY }, // TODO: We can do better with a proper static analysis
+            if ty.is_bool() { 1. } else { f64::INFINITY }, // TODO: We can do better with a proper static analysis
             /* Objective coefficient */
             //
             // Assume that the objective function is previously converted into a single path. Now,
             // Set the coefficient to 1 for this variable if it matches that path.
-            match &self.intent.directive {
-                SolveDirective::Satisfy => 0.,
-                SolveDirective::Minimize(path) | SolveDirective::Maximize(path) => {
-                    if path == &variable.name {
+            match &self.intent.directives[0].0 {
+                SolveFunc::Satisfy => 0.,
+                SolveFunc::Minimize(expr) | SolveFunc::Maximize(expr) => {
+                    if match &self.intent.exprs[*expr] {
+                        expr::Expr::PathByName(path, _) => path,
+                        expr::Expr::PathByKey(var_key, _) => &self.intent.vars[*var_key].name,
+                        _ => {
+                            return Err(SolveError::Internal {
+                                msg: "(scip) objective function must have been converted to a path",
+                                span: empty_span(),
+                            })
+                        }
+                    } == name
+                    {
                         1.
                     } else {
                         0.
@@ -40,15 +41,28 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                 }
             },
             /* Variable name */
-            &variable.name.clone(),
+            &name.clone(),
             /* Variable type */
-            match variable.ty {
-                Type::Bool => VarType::Binary,
-                Type::Int => VarType::Integer,
-                Type::Real => VarType::Continuous,
-                Type::String => {
+            match ty {
+                Type::Primitive {
+                    kind: PrimitiveKind::Bool,
+                    ..
+                } => VarType::Binary,
+                Type::Primitive {
+                    kind: PrimitiveKind::Int,
+                    ..
+                } => VarType::Integer,
+                Type::Primitive {
+                    kind: PrimitiveKind::Real,
+                    ..
+                } => VarType::Continuous,
+                Type::Primitive { .. }
+                | Type::Error(_)
+                | Type::Array { .. }
+                | Type::Tuple { .. }
+                | Type::Custom { .. } => {
                     return Err(SolveError::Internal {
-                        msg: "(scip) string types are not yet supported",
+                        msg: "(scip) other types are not supported",
                         span: empty_span(),
                     })
                 }
@@ -59,20 +73,20 @@ impl<'a> super::Solver<'a, ProblemCreated> {
 
     /// Converts an `intent::Expression` to an `Rc<Variable>`. Works recursively, converting
     /// sub-expressions as needed.
-    pub(super) fn expr_to_var(&mut self, expr: &Expression) -> Result<Rc<Variable>, SolveError> {
-        match expr {
-            Expression::Immediate(imm) => match imm {
+    pub(super) fn expr_to_var(&mut self, expr: &ExprKey) -> Result<Rc<Variable>, SolveError> {
+        match self.intent.exprs[*expr].clone() {
+            expr::Expr::Immediate { value, .. } => match value {
                 expr::Immediate::Real(val) => {
                     let new_var_name = self.new_var_name();
                     Ok(self
                         .model
-                        .add_var(*val, *val, 0., &new_var_name, VarType::Continuous))
+                        .add_var(val, val, 0., &new_var_name, VarType::Continuous))
                 }
                 expr::Immediate::Int(val) => {
                     let new_var_name = self.new_var_name();
                     Ok(self.model.add_var(
-                        *val as f64,
-                        *val as f64,
+                        val as f64,
+                        val as f64,
                         0.,
                         &new_var_name,
                         VarType::Integer,
@@ -80,7 +94,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                 }
                 expr::Immediate::Bool(val) => {
                     let new_var_name = self.new_var_name();
-                    let val = if *val { 1. } else { 0. };
+                    let val = if val { 1. } else { 0. };
                     Ok(self
                         .model
                         .add_var(val, val, 0., &new_var_name, VarType::Integer))
@@ -95,7 +109,48 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                 }),
             },
 
-            Expression::Path(path) => {
+            expr::Expr::PathByName(path, _) => {
+                if let Some(var) = self.model.vars().iter().find(|v| v.name() == path) {
+                    Ok(var.clone())
+                } else {
+                    // If not found, then it's possible that the path starts with `!` and the
+                    // rest of it matches an existing variable.
+                    //
+                    // Paths that start with a `!` represents the inverse of the variable with the
+                    // same name but without the `!`.
+
+                    // First, find the var with the same name without the `!`, if available.
+                    // Error out otherwise.
+                    let var = self
+                        .model
+                        .vars()
+                        .iter()
+                        .find(|v| "!".to_owned() + &v.name() == path)
+                        .ok_or(SolveError::Internal {
+                            msg: "(scip) cannot find variable for path expression",
+                            span: empty_span(),
+                        })
+                        .cloned()?;
+
+                    // Then, create the inverse variable which has to be a Binary variable.
+                    let bin_name = self.new_var_name();
+                    let inverse = self.model.add_var(0., 1., 0., &bin_name, VarType::Binary);
+
+                    // Now, ensure that `var + inverse == 1`.
+                    let new_cons_name = self.new_cons_name();
+                    self.model.add_cons(
+                        vec![var.clone(), inverse.clone()],
+                        &[1., 1.],
+                        1.,
+                        1.,
+                        &new_cons_name,
+                    );
+                    Ok(inverse)
+                }
+            }
+
+            expr::Expr::PathByKey(var_key, _) => {
+                let path = &self.intent.vars[var_key].name;
                 if let Some(var) = self.model.vars().iter().find(|v| &v.name() == path) {
                     Ok(var.clone())
                 } else {
@@ -135,10 +190,10 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                 }
             }
 
-            Expression::UnaryOp { op, expr } => {
+            expr::Expr::UnaryOp { op, expr, .. } => {
                 match op {
                     expr::UnaryOp::Neg => {
-                        let expr = self.expr_to_var(expr)?;
+                        let expr = self.expr_to_var(&expr)?;
                         let new_var_name = self.new_var_name();
                         let new_cons_name = self.new_cons_name();
                         let neg_var = self.model.add_var(
@@ -159,7 +214,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         Ok(neg_var)
                     }
                     expr::UnaryOp::Not => {
-                        let not_expr = invert_expression(expr)?;
+                        let not_expr = self.invert_expression(&expr)?;
                         Ok(self.expr_to_var(&not_expr)?)
                     }
                     expr::UnaryOp::NextState => Err(SolveError::Internal {
@@ -173,15 +228,16 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                 }
             }
 
-            Expression::BinaryOp {
+            expr::Expr::BinaryOp {
                 op,
                 lhs: lhs_expr,
                 rhs: rhs_expr,
+                ..
             } => {
                 // Add an auxilliary variable constrain it to be equal to the result of the binary
                 // operation.
-                let lhs = self.expr_to_var(lhs_expr)?;
-                let rhs = self.expr_to_var(rhs_expr)?;
+                let lhs = self.expr_to_var(&lhs_expr)?;
+                let rhs = self.expr_to_var(&rhs_expr)?;
                 let lhs_type = lhs.var_type();
                 let rhs_type = rhs.var_type();
 
@@ -546,8 +602,19 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                 }
             }
 
-            Expression::Call { .. } | Expression::If { .. } => Err(SolveError::Internal {
-                msg: "(scip) calls and if expressions are not yet supported",
+            expr::Expr::If { .. }
+            | expr::Expr::FnCall { .. }
+            | expr::Expr::Error(_)
+            | expr::Expr::MacroCall { .. }
+            | expr::Expr::Array { .. }
+            | expr::Expr::ArrayElementAccess { .. }
+            | expr::Expr::Tuple { .. }
+            | expr::Expr::TupleFieldAccess { .. }
+            | expr::Expr::Cast { .. }
+            | expr::Expr::In { .. }
+            | expr::Expr::Range { .. }
+            | expr::Expr::ForAll { .. } => Err(SolveError::Internal {
+                msg: "(scip) all other exprs are not supported",
                 span: empty_span(),
             }),
         }

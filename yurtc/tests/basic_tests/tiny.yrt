@@ -7,7 +7,7 @@ solve satisfy;
 // solve satisfy;
 // >>>
 
-// compiled_intent <<<<
+// flattened <<<<
 // var ::a: int;
 // constraint (::a == 1);
 // solve satisfy;

@@ -101,7 +101,7 @@ lalrpop_mod!(#[allow(unused)] pub yurt_parser);
 #[test]
 fn gather_use_paths() {
     let parser = yurt_parser::UseTreeParser::new();
-    let mut ii = crate::intent::intermediate::IntermediateIntent::default();
+    let mut ii = crate::intermediate::IntermediateIntent::default();
     let filepath = std::rc::Rc::from(std::path::Path::new("test"));
 
     let mut to_use_paths = |src: &str| -> Vec<UsePath> {

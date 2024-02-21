@@ -20,7 +20,7 @@ solve satisfy;
 // solve satisfy;
 // >>>
 
-// compiled_intent <<<
+// flattened <<<
 // var ::a: int;
 // var ::b: int;
 // constraint (::a == 4);

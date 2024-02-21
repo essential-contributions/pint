@@ -1,10 +1,7 @@
 use crate::{
     error::CompileError,
     expr::{BinaryOp, Ident, Immediate},
-    intent::{
-        intermediate::{Expr, ExprKey},
-        IntermediateIntent,
-    },
+    intermediate::{Expr, ExprKey, IntermediateIntent},
     span::{empty_span, Span, Spanned},
 };
 use itertools::Itertools;

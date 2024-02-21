@@ -34,7 +34,7 @@ solve satisfy;
 // solve satisfy;
 // >>>
 
-// compiled_intent <<<
+// flattened <<<
 // var ::a: int;
 // var ::d::d: int;
 // constraint (::a <= (11 + 22));

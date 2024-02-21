@@ -1,3 +1,5 @@
+// <no-solve>
+
 use ::b::c;
 use ::d::MyEnum;
 use b;
@@ -26,8 +28,4 @@ let b_variant = d::MyEnum::B;
 // constraint (::a_variant == ::d::MyEnum::A);
 // constraint (::b_variant == ::d::MyEnum::B);
 // constraint (::b::c == 5);
-// >>>
-
-// compile_failure <<<
-// compiler internal error: Found unsupported types in final Intent.
 // >>>
