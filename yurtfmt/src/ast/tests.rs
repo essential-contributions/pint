@@ -1508,7 +1508,12 @@ fn blank_lines() {
             yurt_program(),
             r#"
             extern {
-                fn eth_call(transaction: string, blockTag: string) -> string;
+                fn eth_call
+                (
+                transaction: string, 
+                blockTag: string) 
+                -> 
+                string;
             }
             
         "#
