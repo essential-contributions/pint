@@ -65,12 +65,12 @@ pub(super) enum Decl<'sc> {
 impl<'sc> Format for Decl<'sc> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
-            Self::Use { use_tree, .. } => {
+            Self::Use { use_tree } => {
                 formatted_code.write("use ");
                 use_tree.format(formatted_code)?;
                 formatted_code.write(";");
             }
-            Self::Value { name, ty, init, .. } => {
+            Self::Value { name, ty, init } => {
                 formatted_code.write(&format!("let {name}"));
 
                 if let Some(ty) = ty {
@@ -124,9 +124,7 @@ impl<'sc> Format for Decl<'sc> {
                 formatted_code.decrease_indent();
                 formatted_code.write_line("}");
             }
-            Self::Solve {
-                directive, expr, ..
-            } => {
+            Self::Solve { directive, expr } => {
                 formatted_code.write(&format!("solve {directive}"));
 
                 if let Some(expr) = expr {
@@ -136,24 +134,24 @@ impl<'sc> Format for Decl<'sc> {
 
                 formatted_code.write_line(";");
             }
-            Self::NewType { name, ty, .. } => {
+            Self::NewType { name, ty } => {
                 formatted_code.write(&format!("type {name} = "));
                 ty.format(formatted_code)?;
                 formatted_code.write_line(";");
             }
-            Self::Constraint { expr, .. } => {
+            Self::Constraint { expr } => {
                 formatted_code.write("constraint ");
                 expr.format(formatted_code)?;
                 formatted_code.write_line(";");
             }
-            Self::Fn { fn_sig, body, .. } => {
+            Self::Fn { fn_sig, body } => {
                 fn_sig.format(formatted_code)?;
                 formatted_code.write(" ");
                 body.format(formatted_code)?;
                 formatted_code.write_line("");
                 formatted_code.write_line("");
             }
-            Self::Interface { name, fn_sigs, .. } => {
+            Self::Interface { name, fn_sigs } => {
                 formatted_code.write(&format!("interface {name} {{"));
 
                 formatted_code.increase_indent();
@@ -171,7 +169,7 @@ impl<'sc> Format for Decl<'sc> {
 
                 formatted_code.write_line("}");
             }
-            Self::State { name, ty, expr, .. } => {
+            Self::State { name, ty, expr } => {
                 formatted_code.write(&format!("state {name}"));
 
                 if let Some(ty) = ty {
@@ -183,7 +181,7 @@ impl<'sc> Format for Decl<'sc> {
                 expr.format(formatted_code)?;
                 formatted_code.write_line(";");
             }
-            Self::Extern { fn_sigs, .. } => {
+            Self::Extern { fn_sigs } => {
                 formatted_code.write("extern {");
 
                 formatted_code.increase_indent();
@@ -201,10 +199,10 @@ impl<'sc> Format for Decl<'sc> {
 
                 formatted_code.write_line("}");
             }
-            Self::Enum { name, variants, .. } => {
+            Self::Enum { name, variants } => {
                 formatted_code.write(&format!("enum {name} = {};", &variants.join(" | ")));
             }
-            Self::Comment { content, .. } => {
+            Self::Comment { content } => {
                 formatted_code.write_line(content);
             }
             Self::Newline { .. } => {
@@ -238,11 +236,11 @@ impl Format for UseTree {
             Self::Name(name) => {
                 formatted_code.write(name);
             }
-            Self::Path { prefix, suffix, .. } => {
+            Self::Path { prefix, suffix } => {
                 formatted_code.write(&format!("{prefix}::"));
                 suffix.format(formatted_code)?;
             }
-            Self::Group { imports, .. } => {
+            Self::Group { imports } => {
                 formatted_code.write("{");
                 for (i, import) in imports.iter().enumerate() {
                     import.format(formatted_code)?;
@@ -253,7 +251,7 @@ impl Format for UseTree {
                 }
                 formatted_code.write("}");
             }
-            Self::Alias { name, alias, .. } => {
+            Self::Alias { name, alias } => {
                 formatted_code.write(&format!("{name} as {alias}"));
             }
         }
