@@ -127,6 +127,10 @@ pub enum CompileError {
         dependant_span: Span,
         dependency_span: Span,
     },
+    #[error("invalid cast")]
+    BadCastTo { ty: String, span: Span },
+    #[error("invalid cast")]
+    BadCastFrom { ty: String, span: Span },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -499,6 +503,18 @@ impl ReportableError for CompileError {
                 }
             }
 
+            BadCastTo { ty, span } => vec![ErrorLabel {
+                message: format!("illegal cast to a `{ty}`"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            BadCastFrom { ty, span } => vec![ErrorLabel {
+                message: format!("illegal cast from a `{ty}`"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             Internal { .. } | FileIO { .. } => Vec::new(),
         }
     }
@@ -587,7 +603,9 @@ impl ReportableError for CompileError {
             | ArrayAccessNonArray { .. }
             | TupleAccessNonTuple { .. }
             | EmptyArrayExpression { .. }
-            | ExprRecursion { .. } => None,
+            | ExprRecursion { .. }
+            | BadCastTo { .. }
+            | BadCastFrom { .. } => None,
         }
     }
 
@@ -626,6 +644,13 @@ impl ReportableError for CompileError {
                 "a macro named `{name}` is defined but not with the required \
                 signature to fulfill this call"
             )),
+
+            BadCastTo { .. } => Some("casts may only be made to an int or a real".to_string()),
+            BadCastFrom { .. } => Some(
+                "casts may only be made from an int to a real, from a bool to an int or \
+                from an enum to an int"
+                    .to_string(),
+            ),
 
             _ => None,
         }
@@ -672,7 +697,9 @@ impl Spanned for CompileError {
             | ExprRecursion {
                 dependant_span: span,
                 ..
-            } => span,
+            }
+            | BadCastTo { span, .. }
+            | BadCastFrom { span, .. } => span,
 
             IfBranchesTypeMismatch { large_err } | OperatorTypeError { large_err, .. } => {
                 match &**large_err {

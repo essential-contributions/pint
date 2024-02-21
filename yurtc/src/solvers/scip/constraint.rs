@@ -7,8 +7,8 @@ impl<'a> super::Solver<'a, ProblemCreated> {
         match self.intent.exprs[*constraint].clone() {
             expr::Expr::Immediate { value, .. } => {
                 match value {
-                    expr::Immediate::Bool(val) => {
-                        if !val {
+                    expr::Immediate::Int(val) => {
+                        if val == 0 {
                             // If the immediate is `false`, then insert a trivially infeasible
                             // constraint: 0 == 1
                             self.model.add_cons(vec![], &[], 1., 1., &new_cons_name);
@@ -16,7 +16,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                     }
                     _ => return Err(SolveError::Internal {
                         msg:
-                            "(scip) attempting to convert a non-Boolean immediate into a constraint",
+                            "(scip) attempting to convert a non-Integer immediate into a constraint",
                         span: empty_span(),
                     }),
                 }

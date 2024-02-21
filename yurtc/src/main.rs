@@ -22,6 +22,7 @@ fn main() -> anyhow::Result<()> {
 
     // Convert the initial IntermediateIntent to a final IntermediateIntent by performing type
     // checking, flattening, optimizations, etc.
+    #[allow(unused_mut)]
     let mut final_ii = match initial_ii.compile() {
         Ok(ii) => ii,
         Err(error) => {

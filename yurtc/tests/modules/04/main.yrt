@@ -26,3 +26,26 @@ solve satisfy;
 // constraint (::debbie::debbie_skill == ::debbie::Skill::GlamourShots);
 // solve satisfy;
 // >>>
+
+// flattened <<<
+// var ::pedro_skill: int;
+// var ::kip_skill: int;
+// var ::kip::kip_skill: int;
+// var ::debbie::debbie_skill: int;
+// enum ::Skill = Nunchuck | BowHunting | ComputerHacking;
+// enum ::kip::Skill = ChattingOnlineWithBabes | CageFighting;
+// enum ::debbie::Skill = GlamourShots | Handicrafts;
+// constraint ((::pedro_skill == 0) || (::pedro_skill == 1));
+// constraint ((::debbie::debbie_skill == 1) && (::kip_skill == 1));
+// constraint (::kip::kip_skill == 0);
+// constraint (::debbie::debbie_skill == 0);
+// constraint (::pedro_skill >= 0);
+// constraint (::pedro_skill <= 2);
+// constraint (::kip_skill >= 0);
+// constraint (::kip_skill <= 1);
+// constraint (::kip::kip_skill >= 0);
+// constraint (::kip::kip_skill <= 1);
+// constraint (::debbie::debbie_skill >= 0);
+// constraint (::debbie::debbie_skill <= 1);
+// solve satisfy;
+// >>>

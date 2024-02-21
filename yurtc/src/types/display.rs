@@ -2,13 +2,13 @@ use crate::intermediate::{DisplayWithII, IntermediateIntent};
 use std::fmt::{Formatter, Result};
 
 impl DisplayWithII for super::Path {
-    fn fmt(&self, f: &mut Formatter<'_>, _ii: &IntermediateIntent) -> Result {
+    fn fmt(&self, f: &mut Formatter, _ii: &IntermediateIntent) -> Result {
         write!(f, "{self}")
     }
 }
 
 impl DisplayWithII for super::Type {
-    fn fmt(&self, f: &mut Formatter<'_>, ii: &IntermediateIntent) -> Result {
+    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> Result {
         match self {
             super::Type::Error(..) => write!(f, "Error"),
 
@@ -20,7 +20,7 @@ impl DisplayWithII for super::Type {
             },
 
             super::Type::Array { ty, range, .. } => {
-                write!(f, "{}[", ii.with_ii(*ty.clone()))?;
+                write!(f, "{}[", ii.with_ii(&**ty))?;
                 write!(f, "{}]", ii.with_ii(range))
             }
 
@@ -33,7 +33,7 @@ impl DisplayWithII for super::Type {
                         if let Some(name) = &$field.0 {
                             write!($f, "{}: ", name.name)?;
                         }
-                        write!($f, "{}", $ii.with_ii($field.1.clone()))?;
+                        write!($f, "{}", $ii.with_ii(&$field.1))?;
                     }};
                 }
 
@@ -49,12 +49,16 @@ impl DisplayWithII for super::Type {
             }
 
             super::Type::Custom { path, .. } => write!(f, "{path}"),
+
+            super::Type::Alias { path, ty, .. } => {
+                write!(f, "{path} ({})", ii.with_ii(&**ty))
+            }
         }
     }
 }
 
 impl DisplayWithII for super::FnSig {
-    fn fmt(&self, f: &mut Formatter<'_>, ii: &IntermediateIntent) -> Result {
+    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> Result {
         write!(f, "fn {}(", self.name)?;
         let mut i = self.params.iter();
         if let Some((id, ty)) = i.next() {
@@ -63,12 +67,12 @@ impl DisplayWithII for super::FnSig {
         for (id, ty) in i {
             write!(f, ", {id}: {}", ii.with_ii(ty))?;
         }
-        write!(f, ") -> {}", ii.with_ii(self.return_type.clone()))
+        write!(f, ") -> {}", ii.with_ii(&self.return_type))
     }
 }
 
 impl DisplayWithII for super::EnumDecl {
-    fn fmt(&self, f: &mut Formatter<'_>, _ii: &IntermediateIntent) -> Result {
+    fn fmt(&self, f: &mut Formatter, _ii: &IntermediateIntent) -> Result {
         write!(f, "enum {} = ", self.name)?;
         crate::util::write_many!(f, self.variants, " | ");
         Ok(())
@@ -76,8 +80,7 @@ impl DisplayWithII for super::EnumDecl {
 }
 
 impl DisplayWithII for super::NewTypeDecl {
-    fn fmt(&self, f: &mut Formatter<'_>, ii: &IntermediateIntent) -> Result {
-        write!(f, "type {} = {}", self.name, ii.with_ii(self.ty.clone()))?;
-        Ok(())
+    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> Result {
+        write!(f, "type {} = {}", self.name, ii.with_ii(&self.ty))
     }
 }

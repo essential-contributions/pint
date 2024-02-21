@@ -45,3 +45,38 @@ solve satisfy;
 // constraint (::nsw != ::v);
 // solve satisfy;
 // >>>
+
+// flattened <<<
+// var ::wa: int;
+// var ::nt: int;
+// var ::sa: int;
+// var ::q: int;
+// var ::nsw: int;
+// var ::v: int;
+// var ::t: int;
+// enum ::Colour = Red | Green | Blue;
+// constraint (::wa != ::nt);
+// constraint (::wa != ::sa);
+// constraint (::nt != ::sa);
+// constraint (::nt != ::q);
+// constraint (::sa != ::q);
+// constraint (::sa != ::nsw);
+// constraint (::sa != ::v);
+// constraint (::q != ::nsw);
+// constraint (::nsw != ::v);
+// constraint (::wa >= 0);
+// constraint (::wa <= 2);
+// constraint (::nt >= 0);
+// constraint (::nt <= 2);
+// constraint (::sa >= 0);
+// constraint (::sa <= 2);
+// constraint (::q >= 0);
+// constraint (::q <= 2);
+// constraint (::nsw >= 0);
+// constraint (::nsw <= 2);
+// constraint (::v >= 0);
+// constraint (::v <= 2);
+// constraint (::t >= 0);
+// constraint (::t <= 2);
+// solve satisfy;
+// >>>

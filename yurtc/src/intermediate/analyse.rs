@@ -16,6 +16,64 @@ enum Inference {
 
 impl IntermediateIntent {
     pub fn type_check(mut self) -> super::Result<Self> {
+        self.lower_newtypes()?;
+        self.type_check_all_exprs()?;
+        Ok(self)
+    }
+
+    fn lower_newtypes(&mut self) -> super::Result<()> {
+        use std::borrow::BorrowMut;
+
+        fn replace_custom_type(new_types: &[NewTypeDecl], ty: &mut Type) {
+            match ty {
+                Type::Custom { path, .. } => {
+                    if let Some((new_ty, new_span)) =
+                        new_types.iter().find_map(|NewTypeDecl { name, ty, span }| {
+                            (&name.name == path).then_some((ty, span))
+                        })
+                    {
+                        *ty = Type::Alias {
+                            path: path.clone(),
+                            ty: Box::new(new_ty.clone()),
+                            span: new_span.clone(),
+                        };
+                    }
+                }
+
+                Type::Array { ty, .. } => {
+                    replace_custom_type(new_types, ty.borrow_mut());
+                }
+
+                Type::Tuple { fields, .. } => {
+                    for (_, ty) in fields.iter_mut() {
+                        replace_custom_type(new_types, ty);
+                    }
+                }
+
+                Type::Error(_) | Type::Primitive { .. } | Type::Alias { .. } => {}
+            }
+        }
+
+        // Loop for every known var or state type, or any `as` cast expr, and replace any custom
+        // types which match with the type alias.
+        for (_, ty) in self.var_types.iter_mut() {
+            replace_custom_type(&self.new_types, ty);
+        }
+
+        for (_, ty) in self.state_types.iter_mut() {
+            replace_custom_type(&self.new_types, ty);
+        }
+
+        for (_, expr) in &mut self.exprs {
+            if let Expr::Cast { ty, .. } = expr {
+                replace_custom_type(&self.new_types, ty.borrow_mut());
+            }
+        }
+
+        Ok(())
+    }
+
+    fn type_check_all_exprs(&mut self) -> super::Result<()> {
         // Attempt to infer all the types of each expr.
         let mut queue = Vec::new();
 
@@ -95,7 +153,7 @@ impl IntermediateIntent {
             }
         }
 
-        Ok(self)
+        Ok(())
     }
 
     fn infer_expr_key_type(&self, expr_key: ExprKey) -> super::Result<Inference> {
@@ -118,9 +176,9 @@ impl IntermediateIntent {
                 span.clone(),
             ))),
 
-            Expr::PathByKey(var_key, span) => self.infer_expr_key_path_by_key(*var_key, span),
+            Expr::PathByKey(var_key, span) => self.infer_path_by_key(*var_key, span),
 
-            Expr::PathByName(path, span) => self.infer_expr_key_path_by_name(path, span),
+            Expr::PathByName(path, span) => self.infer_path_by_name(path, span),
 
             Expr::UnaryOp {
                 op,
@@ -210,7 +268,7 @@ impl IntermediateIntent {
         }
     }
 
-    fn infer_expr_key_path_by_key(&self, var_key: VarKey, span: &Span) -> super::Result<Inference> {
+    fn infer_path_by_key(&self, var_key: VarKey, span: &Span) -> super::Result<Inference> {
         if let Some(ty) = self.var_types.get(var_key) {
             Ok(Inference::Type(ty.clone()))
         } else if let Some(init_expr_key) = self.var_inits.get(var_key) {
@@ -229,14 +287,14 @@ impl IntermediateIntent {
         }
     }
 
-    fn infer_expr_key_path_by_name(&self, path: &Path, span: &Span) -> super::Result<Inference> {
+    fn infer_path_by_name(&self, path: &Path, span: &Span) -> super::Result<Inference> {
         if let Some(var_key) = self
             .vars
             .iter()
             .find_map(|(var_key, var)| (&var.name == path).then_some(var_key))
         {
             // It's a var.
-            self.infer_expr_key_path_by_key(var_key, span)
+            self.infer_path_by_key(var_key, span)
         } else if let Some((state_key, state)) =
             self.states.iter().find(|(_, state)| (&state.name == path))
         {
@@ -255,50 +313,82 @@ impl IntermediateIntent {
         {
             // It's an ephemeral value.
             Ok(Inference::Type(ty.clone()))
+        } else if let Some(ty) = self
+            .new_types
+            .iter()
+            .find_map(|NewTypeDecl { name, ty, .. }| (&name.name == path).then_some(ty))
+        {
+            // It's a fully matched newtype.
+            Ok(Inference::Type(ty.clone()))
         } else {
-            // None of the above.  If we're searching for an enum variant and it appears to be
-            // unqualified then we can report some hints.
-            let mut err_potential_enums = Vec::new();
+            // None of the above.  That leaves enums.
+            self.infer_enum_variant_by_name(path, span)
+        }
+    }
 
-            // Otherwise, is it in the map of self.new_types, or does it match an enum variant?
-            if let Some(ty) = self
-                .new_types
-                .iter()
-                .find_map(|NewTypeDecl { name, ty, .. }| (&name.name == path).then(|| ty.clone()))
-                .or(self.enums.iter().find_map(
-                    |EnumDecl {
-                         name: enum_name,
-                         variants,
-                         span,
-                     }| {
-                        variants
-                            .iter()
-                            .any(|variant| {
-                                if path[2..] == variant.name {
-                                    err_potential_enums.push(enum_name.name.clone());
-                                }
-
-                                let mut full_variant = enum_name.name.clone();
-                                full_variant.push_str("::");
-                                full_variant.push_str(&variant.name);
-
-                                &full_variant == path
-                            })
-                            .then(|| Type::Custom {
-                                path: enum_name.name.clone(),
-                                span: span.clone(),
-                            })
-                    },
-                ))
+    fn infer_enum_variant_by_name(&self, path: &Path, span: &Span) -> super::Result<Inference> {
+        // Check first if the path prefix matches a new type.
+        for NewTypeDecl { name, ty, .. } in &self.new_types {
+            if let Type::Custom {
+                path: enum_path,
+                span,
+            } = ty
             {
-                Ok(Inference::Type(ty.clone()))
-            } else {
-                Err(CompileError::SymbolNotFound {
-                    name: path.clone(),
-                    span: span.clone(),
-                    enum_names: err_potential_enums,
-                })
+                // This new type is to an enum.  Does the new type path match the passed path?
+                if path.starts_with(&name.name) {
+                    // Yep, we might have an enum wrapped in a new type.
+                    let new_type_len = name.name.len();
+                    if path.chars().nth(new_type_len) == Some(':') {
+                        // Definitely worth trying.  Recurse.
+                        let new_path = enum_path.clone() + &path[new_type_len..];
+                        match self.infer_enum_variant_by_name(&new_path, span) {
+                            ty @ Ok(_) => {
+                                // We found an enum variant.
+                                return ty;
+                            }
+                            Err(_) => {}
+                        }
+                    }
+                }
             }
+        }
+
+        // If we're searching for an enum variant and it appears to be unqualified then we can
+        // report some hints.
+        let mut err_potential_enums = Vec::new();
+
+        if let Some(ty) = self.enums.iter().find_map(
+            |EnumDecl {
+                 name: enum_name,
+                 variants,
+                 span,
+             }| {
+                variants
+                    .iter()
+                    .any(|variant| {
+                        if path[2..] == variant.name {
+                            err_potential_enums.push(enum_name.name.clone());
+                        }
+
+                        let mut full_variant = enum_name.name.clone();
+                        full_variant.push_str("::");
+                        full_variant.push_str(&variant.name);
+
+                        &full_variant == path
+                    })
+                    .then(|| Type::Custom {
+                        path: enum_name.name.clone(),
+                        span: span.clone(),
+                    })
+            },
+        ) {
+            Ok(Inference::Type(ty.clone()))
+        } else {
+            Err(CompileError::SymbolNotFound {
+                name: path.clone(),
+                span: span.clone(),
+                enum_names: err_potential_enums,
+            })
         }
     }
 
@@ -596,8 +686,8 @@ impl IntermediateIntent {
                     span: self.expr_key_to_span(index_expr_key),
                 })
             } else if let Some(ary_ty) = self.expr_types.get(array_expr_key) {
-                if let Type::Array { ty, .. } = ary_ty {
-                    Ok(Inference::Type(*ty.clone()))
+                if let Some(ty) = ary_ty.get_array_el_type() {
+                    Ok(Inference::Type(ty.clone()))
                 } else {
                     Err(CompileError::ArrayAccessNonArray {
                         non_array_type: self.with_ii(ary_ty).to_string(),
@@ -645,7 +735,7 @@ impl IntermediateIntent {
         span: &Span,
     ) -> super::Result<Inference> {
         if let Some(tuple_ty) = self.expr_types.get(tuple_expr_key) {
-            if let Type::Tuple { fields, .. } = tuple_ty {
+            if tuple_ty.is_tuple() {
                 match field {
                     TupleAccess::Error => Err(CompileError::Internal {
                         msg: "unable to type check tuple field access error",
@@ -653,8 +743,8 @@ impl IntermediateIntent {
                     }),
 
                     TupleAccess::Index(idx) => {
-                        if let Some(field_ty) = fields.get(*idx).map(|(_, ty)| ty.clone()) {
-                            Ok(Inference::Type(field_ty))
+                        if let Some(field_ty) = tuple_ty.get_tuple_field_type_by_idx(*idx) {
+                            Ok(Inference::Type(field_ty.clone()))
                         } else {
                             Err(CompileError::InvalidTupleAccessor {
                                 accessor: idx.to_string(),
@@ -665,12 +755,8 @@ impl IntermediateIntent {
                     }
 
                     TupleAccess::Name(name) => {
-                        if let Some(field_ty) = fields.iter().find_map(|(field_name, ty)| {
-                            field_name.as_ref().and_then(|field_name| {
-                                (field_name.name == name.name).then(|| ty.clone())
-                            })
-                        }) {
-                            Ok(Inference::Type(field_ty))
+                        if let Some(field_ty) = tuple_ty.get_tuple_field_type_by_name(name) {
+                            Ok(Inference::Type(field_ty.clone()))
                         } else {
                             Err(CompileError::InvalidTupleAccessor {
                                 accessor: name.name.clone(),

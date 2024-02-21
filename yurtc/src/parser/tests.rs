@@ -265,11 +265,11 @@ fn use_statements() {
         &run_parser!(yurt, "use a::b; use a::c as b; use ::c::d as b;", mod_path),
         expect_test::expect![[r#"
             symbol `b` has already been declared
-            @7..8: previous declaration of the value `b` here
+            @7..8: previous declaration of the symbol `b` here
             @17..23: `b` redeclared here
             `b` must be declared or imported only once in this scope
             symbol `b` has already been declared
-            @7..8: previous declaration of the value `b` here
+            @7..8: previous declaration of the symbol `b` here
             @34..40: `b` redeclared here
             `b` must be declared or imported only once in this scope
         "#]],
@@ -1948,11 +1948,11 @@ let parse_error
             @1..12: type annotation or initializer needed
             consider giving `untyped` an explicit type or an initializer
             symbol `clash` has already been declared
-            @18..23: previous declaration of the value `clash` here
+            @18..23: previous declaration of the symbol `clash` here
             @33..38: `clash` redeclared here
             `clash` must be declared or imported only once in this scope
             symbol `clash` has already been declared
-            @18..23: previous declaration of the value `clash` here
+            @18..23: previous declaration of the symbol `clash` here
             @48..53: `clash` redeclared here
             `clash` must be declared or imported only once in this scope
             empty tuple types are not allowed

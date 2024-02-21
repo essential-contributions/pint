@@ -1,16 +1,22 @@
+// <no-solve>
+//
+// This is disabled for now for a couple of reasons:
+// a) there isn't a single solution, so comparing the output with a single answer could fail.
+// b) it's slow.
+
 // Basic sudoku
 
 let grid: int[9][9];
 
-constraint forall i in 0..8 { 
+constraint forall i in 0..8 {
     forall j in 0..8 {
         // Each entry is an integer between 1 and 9
-        grid[i][j] >= 1 && grid[i][j] <= 9 
+        grid[i][j] >= 1 && grid[i][j] <= 9
     }
 };
 
 constraint forall k in 0..8 {
-    forall i in 0..8, j in 0..8 where i < j { 
+    forall i in 0..8, j in 0..8 where i < j {
         // Unique entries in each column `k`
         grid[i][k] != grid[j][k] &&
 
