@@ -1427,3 +1427,120 @@ fn single_line_comments() {
         ],
     );
 }
+
+#[test]
+fn blank_lines() {
+    // Blank lines are preserved only after a semicolon token
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"
+            let x = 5;
+        "#
+        ),
+        expect_test::expect![
+            r#"
+            let x = 5;
+        "#
+        ],
+    );
+    // Only one blank line is preserved if more than one is present
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"
+            let x = 5;
+
+
+
+            let y = 3;
+        "#
+        ),
+        expect_test::expect![
+            r#"
+            let x = 5;
+
+            let y = 3;
+        "#
+        ],
+    );
+    // Blank lines are not added if they were not present
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"
+            let x = 5;
+            let y = 3;
+        "#
+        ),
+        expect_test::expect![
+            r#"
+            let x = 5;
+            let y = 3;
+        "#
+        ],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"
+            let x = 5;
+            let y = 3;
+
+
+
+
+            let z = 1;
+        "#
+        ),
+        expect_test::expect![
+            r#"
+            let x = 5;
+            let y = 3;
+
+            let z = 1;
+        "#
+        ],
+    );
+    // Blank lines are not preserved after any token other than a semicolon
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"
+            extern {
+                fn eth_call(transaction: string, blockTag: string) -> string;
+            }
+            
+        "#
+        ),
+        expect_test::expect![
+            r#"
+            extern {
+                fn eth_call(transaction: string, blockTag: string) -> string;
+            }
+        "#
+        ],
+    );
+    check(
+        &run_formatter!(
+            yurt_program(),
+            r#"
+            extern {
+                fn eth_call(transaction: string, blockTag: string) -> string;
+            }
+            
+
+
+
+
+        "#
+        ),
+        expect_test::expect![
+            r#"
+            extern {
+                fn eth_call(transaction: string, blockTag: string) -> string;
+            }
+        "#
+        ],
+    );
+}
