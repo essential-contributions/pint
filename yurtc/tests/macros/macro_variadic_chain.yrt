@@ -30,7 +30,7 @@ solve satisfy;
 // solve satisfy;
 // >>>
 
-// compiled_intent <<<
+// flattened <<<
 // var ::x: int;
 // var ::y: int;
 // var ::z: int;

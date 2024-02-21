@@ -17,7 +17,7 @@ solve satisfy;
 // solve satisfy;
 // >>>
 
-// compiled_intent <<<
+// flattened <<<
 // var ::b_mod::c_mod::c: int;
 // var ::b_mod::e_mod::f_mod::f: int;
 // var ::a_mod::a: int;

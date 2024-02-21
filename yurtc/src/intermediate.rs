@@ -2,9 +2,9 @@ use crate::{
     contract::{ContractDecl, InterfaceDecl},
     error::{CompileError, ParseError},
     expr::{self, Expr, Ident},
-    intent::{Intent, Path},
+    intermediate::transform::{scalarize, unroll_foralls},
     span::{empty_span, Span},
-    types::{EnumDecl, EphemeralDecl, FnSig, NewTypeDecl, Type},
+    types::{EnumDecl, EphemeralDecl, FnSig, NewTypeDecl, Path, Type},
 };
 use std::{
     collections::HashMap,
@@ -12,7 +12,6 @@ use std::{
 };
 
 mod analyse;
-mod compile;
 mod display;
 mod transform;
 
@@ -57,8 +56,16 @@ pub struct IntermediateIntent {
 }
 
 impl IntermediateIntent {
-    pub fn compile(self) -> Result<Intent> {
-        self.type_check()?.flatten()?.to_intent()
+    pub fn flatten(mut self) -> Result<Self> {
+        // Transformations
+        unroll_foralls(&mut self)?;
+        scalarize(&mut self)?;
+
+        Ok(self)
+    }
+
+    pub fn compile(self) -> Result<IntermediateIntent> {
+        self.type_check()?.flatten()
     }
 
     /// Helps out some `thing: T` by adding `self` as context.
@@ -151,7 +158,7 @@ impl IntermediateIntent {
         span: Span,
     ) -> std::result::Result<StateKey, ParseError> {
         let name = self.add_top_level_symbol(mod_prefix, None, name, span.clone())?;
-        let state_key = self.states.insert(State { name, expr, span });
+        let state_key = self.states.insert(State { name, expr });
         if let Some(ty) = ty {
             self.state_types.insert(state_key, ty);
         }
@@ -319,9 +326,8 @@ impl IntermediateIntent {
 /// A state specification with an optional type.
 #[derive(Clone, Debug)]
 pub struct State {
-    name: Path,
-    expr: ExprKey,
-    span: Span,
+    pub name: Path,
+    pub expr: ExprKey,
 }
 
 impl DisplayWithII for StateKey {
@@ -338,7 +344,7 @@ impl DisplayWithII for StateKey {
 /// A decision variable with an optional type.
 #[derive(Clone, Debug)]
 pub struct Var {
-    pub(crate) name: Path,
+    pub name: Path,
     span: Span,
 }
 

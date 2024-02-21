@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter, Result};
 
 use crate::{
     expr,
-    intent::intermediate::{DisplayWithII, IntermediateIntent},
+    intermediate::{DisplayWithII, IntermediateIntent},
     util::{write_many_iter, write_many_with_ii},
 };
 

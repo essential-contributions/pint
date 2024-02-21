@@ -1,6 +1,6 @@
 use crate::{
     expr::Ident,
-    intent::intermediate::{DisplayWithII, ExprKey, IntermediateIntent},
+    intermediate::{DisplayWithII, ExprKey, IntermediateIntent},
     span::{Span, Spanned},
     types::{FnSig, Path},
     util::write_many,

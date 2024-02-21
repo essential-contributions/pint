@@ -5,7 +5,7 @@ pub mod asm_gen;
 pub mod cli;
 mod contract;
 mod expr;
-pub mod intent;
+pub mod intermediate;
 mod lexer;
 mod macros;
 pub mod parser;

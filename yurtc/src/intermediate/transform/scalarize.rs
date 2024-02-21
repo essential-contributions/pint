@@ -1,10 +1,7 @@
 use crate::{
     error::CompileError,
     expr::Immediate,
-    intent::{
-        intermediate::{Expr, ExprKey, Var, VarKey},
-        IntermediateIntent,
-    },
+    intermediate::{Expr, ExprKey, IntermediateIntent, Var, VarKey},
     span::{empty_span, Span, Spanned},
     types::{Path, PrimitiveKind, Type},
 };

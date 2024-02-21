@@ -1,4 +1,4 @@
-use crate::intent::intermediate::{DisplayWithII, IntermediateIntent};
+use crate::intermediate::{DisplayWithII, IntermediateIntent};
 use std::fmt::{Formatter, Result};
 
 impl DisplayWithII for super::Path {
