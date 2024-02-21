@@ -145,7 +145,7 @@ impl ReportableError for ParseError {
             } => {
                 vec![
                     ErrorLabel {
-                        message: format!("previous declaration of the value `{sym}` here"),
+                        message: format!("previous declaration of the symbol `{sym}` here"),
                         span: prev_span.clone(),
                         color: Color::Blue,
                     },

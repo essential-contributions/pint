@@ -15,6 +15,8 @@ constraint s4 == ::b_mod::c_mod::A::B;
 
 enum U = V | W;
 
+solve satisfy;
+
 // intermediate <<<
 // var ::b_mod::s0;
 // var ::b_mod::s1;
@@ -34,4 +36,37 @@ enum U = V | W;
 // constraint (::b_mod::s2 == ::b_mod::c_mod::A::B);
 // constraint (::b_mod::s3 == ::b_mod::c_mod::A::C);
 // constraint (::b_mod::s4 == ::b_mod::c_mod::A::B);
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::b_mod::s0: int;
+// var ::b_mod::s1: int;
+// var ::b_mod::s2: int;
+// var ::b_mod::s3: int;
+// var ::b_mod::s4: int;
+// enum ::U = V | W;
+// enum ::b_mod::c_mod::A = B | C | D;
+// enum ::b_mod::X = Y | Z;
+// constraint (::b_mod::s0 == 0);
+// constraint (::b_mod::s1 == 1);
+// constraint (::b_mod::s2 == 0);
+// constraint (::b_mod::s3 == 1);
+// constraint (::b_mod::s4 == 0);
+// constraint (::b_mod::s0 == 0);
+// constraint (::b_mod::s1 == 1);
+// constraint (::b_mod::s2 == 0);
+// constraint (::b_mod::s3 == 1);
+// constraint (::b_mod::s4 == 0);
+// constraint (::b_mod::s0 >= 0);
+// constraint (::b_mod::s0 <= 2);
+// constraint (::b_mod::s1 >= 0);
+// constraint (::b_mod::s1 <= 2);
+// constraint (::b_mod::s2 >= 0);
+// constraint (::b_mod::s2 <= 2);
+// constraint (::b_mod::s3 >= 0);
+// constraint (::b_mod::s3 <= 2);
+// constraint (::b_mod::s4 >= 0);
+// constraint (::b_mod::s4 <= 2);
+// solve satisfy;
 // >>>
