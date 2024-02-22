@@ -14,9 +14,28 @@ pub(super) fn parse_str_to_ast(source: &str) -> Result<ast::Ast<'_>, Vec<Formatt
     let (tokens, lex_errors) = lexer::lex(source);
     errors.extend(lex_errors);
 
+    // Preserve only newlines following semicolons from token stream
+    let mut tokens_iter = tokens.into_iter().peekable();
+    let mut tokens_without_newlines = Vec::new();
+    let mut prev_token = None;
+
+    while let Some(token) = tokens_iter.next() {
+        let token_clone = token.clone();
+        match token {
+            (Token::Newline, _) if matches!(prev_token, Some((Token::Semi, _))) => {
+                if matches!(tokens_iter.peek(), Some((Token::Newline, _))) {
+                    tokens_without_newlines.push(token);
+                }
+            }
+            (Token::Newline, _) => {}
+            _ => tokens_without_newlines.push(token),
+        }
+        prev_token = Some(token_clone);
+    }
+
     // Provide a token stream
     let eoi_span = source.len()..source.len();
-    let token_stream = Stream::from_iter(eoi_span, tokens.into_iter());
+    let token_stream = Stream::from_iter(eoi_span.clone(), tokens_without_newlines.into_iter());
 
     // Parse the token stream
     match yurt_program().parse(token_stream) {
@@ -51,6 +70,7 @@ pub(super) fn yurt_program<'sc>(
         contract_decl(),
         extern_decl(),
         comment_decl(),
+        newline_decl(),
     ))
     .repeated()
     .then_ignore(end())
@@ -192,9 +212,11 @@ fn state_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseErr
 fn extern_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
     just(Token::Extern)
         .ignore_then(
-            (fn_sig().then_ignore(just(Token::Semi)))
-                .repeated()
-                .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
+            (fn_sig()
+                .then_ignore(just(Token::Semi))
+                .then_ignore(just(Token::Newline).or_not()))
+            .repeated()
+            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
         )
         .map(|fn_sigs| ast::Decl::Extern { fn_sigs })
         .boxed()
@@ -216,6 +238,10 @@ fn comment_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseE
     select! { Token::Comment(content) => content.to_owned() }
         .map(|content| ast::Decl::Comment { content })
         .boxed()
+}
+
+fn newline_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
+    just(Token::Newline).map(|_| ast::Decl::Newline).boxed()
 }
 
 pub(super) fn fn_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone
@@ -297,7 +323,7 @@ pub(super) fn type_<'sc>(
                     .repeated()
                     .at_least(1),
             )
-            .map(|(ty, ranges)| ast::Type::Array((Box::new(ty), ranges)))
+            .map(|(ty, ranges)| ast::Type::Array(Box::new(ty), ranges))
             .boxed();
 
         choice((array, type_atom))

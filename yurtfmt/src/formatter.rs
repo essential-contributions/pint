@@ -55,7 +55,9 @@ impl FormattedCode {
 
     pub fn write_line(&mut self, s: &str) {
         self.write(s);
-        self.code.push('\n');
+        if !s.ends_with('\n') {
+            self.code.push('\n');
+        }
     }
 
     fn get_indentation(&self) -> String {

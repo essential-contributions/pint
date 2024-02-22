@@ -6,7 +6,7 @@ use logos::Logos;
 use std::fmt;
 
 #[derive(Clone, Debug, Eq, Hash, Logos, PartialEq)]
-#[logos(skip r"[ \t\n\r\f]+")]
+#[logos(skip r"[ \t\r\f]+")]
 #[logos(error = LexError)]
 pub(super) enum Token<'sc> {
     #[token("=")]
@@ -103,8 +103,11 @@ pub(super) enum Token<'sc> {
     )]
     Literal(&'sc str),
 
-    #[regex(r"//[^\n\r]*", |lex| lex.slice())]
+    #[regex(r"//.*\n?", |lex| lex.slice())]
     Comment(&'sc str),
+
+    #[regex(r"\n|\\n")]
+    Newline,
 }
 
 pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<FormatterError>) {
@@ -161,6 +164,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Ident(ident) => write!(f, "{ident}"),
             Token::Literal(contents) => write!(f, "{contents}"),
             Token::Comment(contents) => write!(f, "{contents}"),
+            Token::Newline => write!(f, r#"\n"#),
         }
     }
 }
