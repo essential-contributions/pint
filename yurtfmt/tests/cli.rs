@@ -137,6 +137,7 @@ fn multiple_file() {
         expect_test::expect![[r#"
             let x = 5;
             constraint x > 3 + 9;
+            
             solve satisfy;
         "#]],
     );

@@ -1,0 +1,19 @@
+// <validate>
+
+// db <<<
+// 0x0000000000000001000000000000000200000000000000030000000000000004 42
+// >>>
+
+// solution <<<
+// ::sender 1 2 3 4
+// 0x0000000000000001000000000000000200000000000000030000000000000004 168
+// >>>
+
+let sender = context::sender();
+state balance: int = storage::get(sender); // 42
+state also_balance: int = storage::get(context::sender()); // 42
+
+constraint balance' == (balance + also_balance) * 2; // (42 + 42) * 2
+
+solve satisfy;
+

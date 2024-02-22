@@ -3,7 +3,7 @@ use std::{
     fs::{create_dir_all, File},
     path::{Path, PathBuf},
 };
-use yurtc::{asm_gen::intent_to_asm, cli::Args, error, parser};
+use yurtc::{asm_gen, cli::Args, error, parser};
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
@@ -66,8 +66,11 @@ fn main() -> anyhow::Result<()> {
     } else {
         // This is WIP. So far, simply print the serialized JSON to `<filename>.json` or to
         // `<output>`. That'll likely change in the future when we decide on a serialized scheme.
-        match intent_to_asm(&final_ii) {
-            Ok(final_ii) => {
+        match asm_gen::intent_to_asm(&final_ii) {
+            Ok(intent) => {
+                if args.print_asm {
+                    asm_gen::print_asm(&intent);
+                }
                 serde_json::to_writer(
                     if let Some(output) = args.output {
                         let output_file_path = PathBuf::from(&output);
@@ -79,7 +82,7 @@ fn main() -> anyhow::Result<()> {
                     } else {
                         File::create(filepath.with_extension("json"))?
                     },
-                    &final_ii,
+                    &intent,
                 )?;
             }
             Err(error) => {

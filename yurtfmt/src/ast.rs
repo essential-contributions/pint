@@ -59,6 +59,7 @@ pub(super) enum Decl<'sc> {
     Comment {
         content: String,
     },
+    Newline,
 }
 
 impl<'sc> Format for Decl<'sc> {
@@ -146,6 +147,8 @@ impl<'sc> Format for Decl<'sc> {
                 fn_sig.format(formatted_code)?;
                 formatted_code.write(" ");
                 body.format(formatted_code)?;
+                formatted_code.write_line("");
+                formatted_code.write_line("");
             }
             Self::Interface { name, fn_sigs } => {
                 formatted_code.write(&format!("interface {name} {{"));
@@ -200,6 +203,9 @@ impl<'sc> Format for Decl<'sc> {
             }
             Self::Comment { content } => {
                 formatted_code.write_line(content);
+            }
+            Self::Newline => {
+                formatted_code.write_line("");
             }
         }
 
@@ -318,7 +324,7 @@ impl<'sc> Format for Block<'sc> {
 pub(super) enum Type<'sc> {
     Primitive(String),
     Tuple(Vec<(Option<String>, Self)>),
-    Array((Box<Self>, Vec<Expr<'sc>>)),
+    Array(Box<Self>, Vec<Expr<'sc>>),
 }
 
 impl<'sc> Format for Type<'sc> {
@@ -343,7 +349,7 @@ impl<'sc> Format for Type<'sc> {
 
                 formatted_code.write(" }");
             }
-            Type::Array((array_ty, array_exprs)) => {
+            Type::Array(array_ty, array_exprs) => {
                 array_ty.format(formatted_code)?;
 
                 for expr in array_exprs {

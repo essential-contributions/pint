@@ -192,9 +192,16 @@ impl IntermediateIntent {
 
             Expr::FnCall { name, span, .. } => {
                 // For now, this very special case is all we support.
-                if name.as_str() == "::storage::get" {
+                if name.as_str().ends_with("::storage::get")
+                    || name.as_str().ends_with("::storage::get_extern")
+                {
                     Ok(Inference::Type(Type::Primitive {
                         kind: PrimitiveKind::Int,
+                        span: span.clone(),
+                    }))
+                } else if name.as_str().ends_with("::context::sender") {
+                    Ok(Inference::Type(Type::Primitive {
+                        kind: PrimitiveKind::B256,
                         span: span.clone(),
                     }))
                 } else {
@@ -253,7 +260,7 @@ impl IntermediateIntent {
                 kind: PrimitiveKind::Real,
                 span: span.clone(),
             },
-            Immediate::Int(_) | Immediate::BigInt(_) => Type::Primitive {
+            Immediate::Int(_) => Type::Primitive {
                 kind: PrimitiveKind::Int,
                 span: span.clone(),
             },
@@ -265,6 +272,11 @@ impl IntermediateIntent {
                 kind: PrimitiveKind::String,
                 span: span.clone(),
             },
+            Immediate::B256(_) => Type::Primitive {
+                kind: PrimitiveKind::B256,
+                span: span.clone(),
+            },
+            Immediate::Error => Type::Error(span.clone()),
         }
     }
 

@@ -14,6 +14,7 @@ pub enum PrimitiveKind {
     Int,
     Real,
     String,
+    B256,
 }
 
 #[derive(Clone, Debug)]

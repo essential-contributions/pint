@@ -12,13 +12,29 @@ fn lex_one_success(src: &str) -> Token<'_> {
 }
 
 #[test]
+fn newlines() {
+    assert_eq!(lex_one_success("\\n"), Token::Newline);
+    assert_eq!(lex_one_success(r"\n"), Token::Newline);
+    assert_eq!(
+        lex_one_success(
+            r"
+            "
+        ),
+        Token::Newline
+    );
+}
+
+#[test]
 fn comments() {
     assert_eq!(lex_one_success("//"), Token::Comment("//"));
+    assert_eq!(lex_one_success("//\n"), Token::Comment("//\n"));
     assert_eq!(lex_one_success("// Hello"), Token::Comment("// Hello"));
-    assert_eq!(lex_one_success("// Hello\n"), Token::Comment("// Hello"));
-    assert_eq!(lex_one_success("// Hello\r\n"), Token::Comment("// Hello"));
-    assert_eq!(lex_one_success("// Hello\r"), Token::Comment("// Hello"));
-    assert_eq!(lex_one_success("// Hello\n\r"), Token::Comment("// Hello"));
+    assert_eq!(lex_one_success("// Hello\n"), Token::Comment("// Hello\n"));
+    assert_eq!(lex_one_success("// Hello\r"), Token::Comment("// Hello\r"));
+    assert_eq!(
+        lex_one_success("// Hello\r\n"),
+        Token::Comment("// Hello\r\n")
+    );
 }
 
 #[test]

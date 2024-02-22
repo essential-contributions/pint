@@ -53,6 +53,12 @@ pub enum ParseError {
     SelfWithEmptyPrefix { span: Span },
     #[error("`self` is only allowed at the end of a use path")]
     SelfNotAtTheEnd { span: Span },
+    #[error("unexpected binary integer literal length")]
+    BinaryLiteralLength { digits: usize, span: Span },
+    #[error("unexpected hexadecimal integer literal length")]
+    HexLiteralLength { digits: usize, span: Span },
+    #[error("integer literal is too large")]
+    IntLiteralTooLarge { span: Span },
 }
 
 impl ReportableError for ParseError {
@@ -178,6 +184,31 @@ impl ReportableError for ParseError {
                     color: Color::Red,
                 }]
             }
+            BinaryLiteralLength { digits, span } => {
+                vec![ErrorLabel {
+                    message: format!(
+                        "{digits} is not a valid number of digits in a binary integer literal"
+                    ),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+            HexLiteralLength { digits, span } => {
+                vec![ErrorLabel {
+                    message: format!(
+                        "{digits} is not a valid number of digits in a hexadecimal integer literal"
+                    ),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+            IntLiteralTooLarge { span } => {
+                vec![ErrorLabel {
+                    message: "integer literal is too large".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
         }
     }
 
@@ -187,6 +218,15 @@ impl ReportableError for ParseError {
             NameClash { sym, .. } => Some(format!(
                 "`{sym}` must be declared or imported only once in this scope"
             )),
+            BinaryLiteralLength { .. } => {
+                Some("number of digits must be either 256 or between 1 and 64".to_string())
+            }
+            HexLiteralLength { .. } => {
+                Some("number of digits must be either 64 or between 1 and 16".to_string())
+            }
+            IntLiteralTooLarge { .. } => {
+                Some("value exceeds limit of `9,223,372,036,854,775,807`".to_string())
+            }
             _ => None,
         }
     }
@@ -263,6 +303,9 @@ impl Spanned for ParseError {
             | UnsupportedLeadingPlus { span, .. }
             | SelfWithEmptyPrefix { span, .. }
             | SelfNotAtTheEnd { span, .. }
+            | BinaryLiteralLength { span, .. }
+            | HexLiteralLength { span, .. }
+            | IntLiteralTooLarge { span, .. }
             | Lex { span } => span,
 
             InvalidToken => unreachable!("The `InvalidToken` error is always wrapped in `Lex`."),
