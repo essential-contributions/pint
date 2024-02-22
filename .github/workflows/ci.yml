@@ -8,7 +8,7 @@ on:
 
 env:
   RUST_VERSION: 1.76.0
-  NIGHTLY_RUST_VERSION: nightly-2023-12-25
+  NIGHTLY_RUST_VERSION: nightly-2024-02-10
   SCIP_VERSION: 8.0.3
 
 permissions: read-all

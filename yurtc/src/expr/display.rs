@@ -158,11 +158,18 @@ impl Display for super::Ident {
 impl Display for super::Immediate {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match self {
+            super::Immediate::Error => write!(f, "Error"),
             super::Immediate::Real(n) => write!(f, "{n:e}"),
             super::Immediate::Int(n) => write!(f, "{n}"),
-            super::Immediate::BigInt(n) => write!(f, "{n}"),
             super::Immediate::Bool(b) => write!(f, "{b}"),
             super::Immediate::String(s) => write!(f, "{s:?}"),
+            super::Immediate::B256(val) => {
+                write!(
+                    f,
+                    "0x{:016X}{:016X}{:016X}{:016X}",
+                    val[0], val[1], val[2], val[3]
+                )
+            }
         }
     }
 }

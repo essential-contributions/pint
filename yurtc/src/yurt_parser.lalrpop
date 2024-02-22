@@ -481,6 +481,7 @@ PrimitiveType: PrimitiveKind = {
     "real_ty" => PrimitiveKind::Real,
     "bool_ty" => PrimitiveKind::Bool,
     "string_ty" => PrimitiveKind::String,
+    "b256_ty" => PrimitiveKind::B256,
 }
 
 TupleFields: Vec<(Option<Ident>, Type)> = {
@@ -1066,26 +1067,92 @@ pub Immediate: Immediate = {
 };
 
 ImmediateInt: Immediate = {
-    <s:"int_lit"> => {
-        use num_traits::Num;
-
-        let (radix, offset) = match s.chars().nth(1) {
-            Some('b') => (2, 2),
-            Some('x') => (16, 2),
-            _ => (10, 0),
-        };
-
-        // Try to parse as an i64 first
-        i64::from_str_radix(&s[offset..], radix)
-            .map(Immediate::Int)
-            .or_else(|_| {
-                // Try a big-int if that fails and return an Immedate::BigInt.  The BigInt
-                // FromStr::from_str() isn't smart about radices though.
-                num_bigint::BigInt::from_str_radix(&s[offset..], radix).map(Immediate::BigInt)
-            })
-            .unwrap()
+    <l:@L> <s:"int_lit"> <r:@R>=> {
+        let span = (context.span_from)(l, r);
+        match s.chars().nth(1) {
+            Some('b') => {
+                let digits = s.len() - 2;
+                match digits {
+                    1..=63 => Immediate::Int(i64::from_str_radix(&s[2..], 2).unwrap()),
+                    64 => {
+                        // Full 64 bits are specified: check the MSB which represents the sign bit,
+                        // and parse accordingly.
+                        if &s[2..3] == "1" {
+                            // Negative integer. Parse as `u64` then convert to `i64`.
+                            Immediate::Int(u64::from_str_radix(&s[2..], 2).unwrap() as i64)
+                        } else {
+                            // Positive integer. Parse as `i64` directly.
+                            Immediate::Int(i64::from_str_radix(&s[2..], 2).unwrap())
+                        }
+                    }
+                    256 => {
+                        let offset = 2;
+                        Immediate::B256([
+                            u64::from_str_radix(&s[offset..offset + 64], 2).unwrap(),
+                            u64::from_str_radix(&s[offset + 64..offset + 128], 2).unwrap(),
+                            u64::from_str_radix(&s[offset + 128..offset + 192], 2).unwrap(),
+                            u64::from_str_radix(&s[offset + 192..offset + 256], 2).unwrap(),
+                        ])
+                    }
+                    _ => {
+                        errors.push(Error::Parse {
+                            error: ParseError::BinaryLiteralLength {
+                                digits,
+                                span: span.clone(),
+                            },
+                        });
+                        Immediate::Error
+                    }
+                }
+            }
+            Some('x') => {
+                let digits = s.len() - 2;
+                match digits {
+                    1..=15 => Immediate::Int(i64::from_str_radix(&s[2..], 16).unwrap()),
+                    16 => {
+                        // Full 16 hex digits are specified: check the MSB which represents the sign
+                        // bit, and parse accordingly.
+                        match &s[2..3] {
+                            // Negative integer. Parse as `u64` then convert to `i64`.
+                            "8" | "9" | "a" | "A" | "b" | "B" | "c" | "C" | "d" | "D" | "e"
+                            | "E" | "f" | "F" => {
+                                Immediate::Int(u64::from_str_radix(&s[2..], 16).unwrap() as i64)
+                            }
+                            // Positive integer. Parse as `i64` directly.
+                            _ => Immediate::Int(i64::from_str_radix(&s[2..], 16).unwrap()),
+                        }
+                    }
+                    64 => {
+                        let offset = 2;
+                        Immediate::B256([
+                            u64::from_str_radix(&s[offset..offset + 16], 16).unwrap(),
+                            u64::from_str_radix(&s[offset + 16..offset + 32], 16).unwrap(),
+                            u64::from_str_radix(&s[offset + 32..offset + 48], 16).unwrap(),
+                            u64::from_str_radix(&s[offset + 48..offset + 64], 16).unwrap(),
+                        ])
+                    }
+                    _ => {
+                        errors.push(Error::Parse {
+                            error: ParseError::HexLiteralLength {
+                                digits,
+                                span: span.clone(),
+                            },
+                        });
+                        Immediate::Error
+                    }
+                }
+            }
+            _ => match s.parse::<i64>() {
+                Ok(val) => Immediate::Int(val),
+                Err(_) => {
+                    errors.push(Error::Parse {
+                        error: ParseError::IntLiteralTooLarge { span: span.clone() },
+                    });
+                    Immediate::Error
+                }
+            },
+        }
     }
-
 };
 
 pub Ident: Ident = {
@@ -1185,6 +1252,7 @@ extern {
         "real_ty" => lexer::Token::Real,
         "bool_ty" => lexer::Token::Bool,
         "string_ty" => lexer::Token::String,
+        "b256_ty" => lexer::Token::B256,
 
         "int_lit" => lexer::Token::IntLiteral(<String>),
         "real_lit" => lexer::Token::RealLiteral(<String>),

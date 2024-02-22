@@ -3,6 +3,7 @@ use crate::{
     expr::{BinaryOp, Ident, Immediate},
     intermediate::{Expr, ExprKey, IntermediateIntent},
     span::{empty_span, Span, Spanned},
+    types::{PrimitiveKind, Type},
 };
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
@@ -154,9 +155,17 @@ fn unroll_forall(
         // If all conditions are satisifed (or if none are present), then update the resulting
         // expression by ANDing it with the newly unrolled `forall` body.
         if satisfied {
+            let lhs = ii.exprs.insert(unrolled.clone());
+            ii.expr_types.insert(
+                lhs,
+                Type::Primitive {
+                    kind: PrimitiveKind::Bool,
+                    span: span.clone(),
+                },
+            );
             unrolled = Expr::BinaryOp {
                 op: BinaryOp::LogicalAnd,
-                lhs: ii.exprs.insert(unrolled.clone()),
+                lhs,
                 rhs: body.plug_in(ii, &values_map),
                 span: span.clone(),
             };
