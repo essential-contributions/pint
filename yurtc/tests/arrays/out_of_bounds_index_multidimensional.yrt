@@ -1,11 +1,11 @@
-let b: int[4];
+let b: int[4][2];
 
-constraint b[4] == 2;
+constraint b[5][1] == 2;
 
 solve satisfy;
 
 // flattening_failure <<<
 // attempt to access array with out of bounds index
-// @29..30: array index is out of bounds
+// @32..33: array index is out of bounds
 // >>>
 

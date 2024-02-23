@@ -38,6 +38,7 @@ fn scalarize_array(
     ty: &Type,
     range: ExprKey,
     span: &Span,
+    array_sizes: &mut HashMap<String, i64>,
 ) -> Result<(), CompileError> {
     match ty {
         Type::Array { .. }
@@ -48,6 +49,7 @@ fn scalarize_array(
             let range = ii.exprs.get(range).expect("expr key guaranteed to exist");
             match range.evaluate(ii, &HashMap::new()) {
                 Ok(Immediate::Int(val)) if val > 0 => {
+                    array_sizes.insert(name.clone(), val);
                     for i in 0..val {
                         let new_var = Var {
                             name: format!("{name}[{i}]"),
@@ -70,6 +72,7 @@ fn scalarize_array(
                                 inner_ty,
                                 *inner_range,
                                 span,
+                                array_sizes,
                             )?;
                         }
                     }
@@ -117,21 +120,21 @@ fn scalarize_array_access(
     array: ExprKey,
     index: ExprKey,
     span: &Span,
-    valid_paths: &HashSet<String>,
+    array_sizes: &HashMap<String, i64>,
 ) -> Result<Path, CompileError> {
     let index = ii.exprs.get(index).expect("expr key guaranteed to exist");
     let index_value = index.evaluate(ii, &HashMap::new());
     let index_span = index.span().clone();
     let array = ii.exprs.get(array).expect("expr key guaranteed to exist");
     macro_rules! handle_array_access {
-        ($path: expr) => {{
+        ($path: expr, $size: expr) => {{
             // Try to evaluate the index using compile-time evaluation
             // Index must be a non-negative integer
             match &index_value {
                 Ok(Immediate::Int(val)) if *val >= 0 => {
                     let path = format!("{}[{val}]", $path);
 
-                    if !&valid_paths.contains(&path) {
+                    if val >= $size {
                         return Err(CompileError::ArrayIndexOutOfBounds { span: index_span });
                     }
 
@@ -149,24 +152,20 @@ fn scalarize_array_access(
 
     match &array {
         Expr::PathByName(path, _) => {
-            handle_array_access!(path)
+            handle_array_access!(path, &array_sizes[path])
         }
         Expr::PathByKey(path_key, _) => {
-            handle_array_access!(&ii.vars[*path_key].name)
+            let path = &ii.vars[*path_key].name;
+            handle_array_access!(path, &array_sizes[path])
         }
         Expr::ArrayElementAccess {
             array: array_inner,
             index: index_inner,
             ..
         } => {
-            handle_array_access!(scalarize_array_access(
-                ii,
-                key,
-                *array_inner,
-                *index_inner,
-                span,
-                valid_paths,
-            )?)
+            let path =
+                scalarize_array_access(ii, key, *array_inner, *index_inner, span, array_sizes)?;
+            handle_array_access!(path, &array_sizes[&path])
         }
         // Now this does not catch paths that do not represent arrays just yet. That is,
         // you could still index into a variable of type `int` or even a type name. Once we
@@ -211,6 +210,8 @@ pub(crate) fn scalarize(ii: &mut IntermediateIntent) -> Result<(), CompileError>
         }
     }
 
+    let mut array_sizes: HashMap<String, i64> = HashMap::new();
+
     // First, convert decision variables that are arrays into `n` new decision variables that
     // represent the individual elements of the array, where `n` is the length of the array
     ii.vars
@@ -224,23 +225,8 @@ pub(crate) fn scalarize(ii: &mut IntermediateIntent) -> Result<(), CompileError>
         .collect::<Vec<_>>()
         .iter()
         .try_for_each(|(key, name, (ty, range, span))| {
-            scalarize_array(ii, *key, name, ty, *range, span)
+            scalarize_array(ii, *key, name, ty, *range, span, &mut array_sizes)
         })?;
-
-    // Build a set of valid paths to check for out of bounds array accesses
-    let mut valid_paths = HashSet::new();
-    for (_, value) in ii.vars.iter() {
-        let path = value.name.clone();
-        valid_paths.insert(path.clone());
-
-        // Insert all possible partial paths
-        let mut partial_path = String::new();
-        for part in path.split('[') {
-            partial_path.push_str(part);
-            valid_paths.insert(partial_path.clone());
-            partial_path.push('[');
-        }
-    }
 
     // Next, change each array element access into its scalarized variable
     ii.exprs
@@ -256,8 +242,7 @@ pub(crate) fn scalarize(ii: &mut IntermediateIntent) -> Result<(), CompileError>
         .collect::<Vec<_>>()
         .iter()
         .try_for_each(|(key, array, index, span)| {
-            scalarize_array_access(ii, *key, *array, *index, span, &valid_paths)?;
-            //dbg!(ii.exprs.get(*key).unwrap());
+            scalarize_array_access(ii, *key, *array, *index, span, &array_sizes)?;
             Ok(())
         })
 }
