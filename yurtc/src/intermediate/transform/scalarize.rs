@@ -5,7 +5,7 @@ use crate::{
     span::{empty_span, Span, Spanned},
     types::{Path, PrimitiveKind, Type},
 };
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// Scalarize an array by converting it into `n` decision variables where `n` is the total size of
 /// the array (taking into account multi-dimensional arrays0. These new variables represent the
