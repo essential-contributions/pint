@@ -28,6 +28,10 @@ let p = 22 <= [23, 23];
 let q = true && 24;
 let r = 25.25 || false;
 
+// Tuples can compare with `==` or `!=` too.
+let s = {true, 26} == {27, false};
+let t = {28.28, 29} != {30, 31};
+
 solve satisfy;
 
 // typecheck_failure <<<
