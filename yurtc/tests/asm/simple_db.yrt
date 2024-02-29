@@ -1,5 +1,61 @@
 // <validate>
 
+// intermediate <<<
+// var ::e_old;
+// var ::e_new;
+// var ::w: int;
+// var ::u: int;
+// var ::v: int;
+// var ::a: int[5];
+// state ::x: int = ::storage::get(0x000000000000000E000000000000000E000000000000000E000000000000000E);
+// state ::y: int = ::storage::get(0x000000000000000E000000000000000E000000000000000E000000000000000F);
+// state ::z: int = ::storage::get(0x000000000000000E000000000000000E000000000000000E000000000000000A);
+// state ::external: int = ::storage::get_extern(0x44E1AA05940F0A9C02572FCFFC641FA7B3A8F036F07C5B87F17D276E0957CF89, 0x0000000000000000000000000000000000000000000000000000000000000001);
+// constraint (::e_old == ::external);
+// constraint (::e_new == ::external');
+// constraint (::w == (::x + 99));
+// constraint (::u == (::y * 3));
+// constraint (::v == (::z * ::z));
+// constraint forall i in 0..4, { (::a[::i] == (::i * ::i)) };
+// constraint ((::x' - ::x) == 1);
+// constraint (::y' == (::y + 4));
+// constraint (((::x' + ::y') > 89) && ((::x' * ::y') > 1932));
+// constraint (::x < ::y);
+// constraint (((::w + ::u) + ::v) == 2206);
+// constraint ((::external' - ::external) == 1);
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::e_old: int;
+// var ::e_new: int;
+// var ::w: int;
+// var ::u: int;
+// var ::v: int;
+// var ::a[0]: int;
+// var ::a[1]: int;
+// var ::a[2]: int;
+// var ::a[3]: int;
+// var ::a[4]: int;
+// state ::x: int = ::storage::get(0x000000000000000E000000000000000E000000000000000E000000000000000E);
+// state ::y: int = ::storage::get(0x000000000000000E000000000000000E000000000000000E000000000000000F);
+// state ::z: int = ::storage::get(0x000000000000000E000000000000000E000000000000000E000000000000000A);
+// state ::external: int = ::storage::get_extern(0x44E1AA05940F0A9C02572FCFFC641FA7B3A8F036F07C5B87F17D276E0957CF89, 0x0000000000000000000000000000000000000000000000000000000000000001);
+// constraint (::e_old == ::external);
+// constraint (::e_new == ::external');
+// constraint (::w == (::x + 99));
+// constraint (::u == (::y * 3));
+// constraint (::v == (::z * ::z));
+// constraint (((((1 && (::a[0] == (0 * 0))) && (::a[1] == (1 * 1))) && (::a[2] == (2 * 2))) && (::a[3] == (3 * 3))) && (::a[4] == (4 * 4)));
+// constraint ((::x' - ::x) == 1);
+// constraint (::y' == (::y + 4));
+// constraint (((::x' + ::y') > 89) && ((::x' * ::y') > 1932));
+// constraint (::x < ::y);
+// constraint (((::w + ::u) + ::v) == 2206);
+// constraint ((::external' - ::external) == 1);
+// solve satisfy;
+// >>>
+
 // db <<<
 // 0x000000000000000E000000000000000E000000000000000E000000000000000E 42
 // 0x000000000000000E000000000000000E000000000000000E000000000000000F 43

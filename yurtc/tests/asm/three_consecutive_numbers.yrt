@@ -1,5 +1,21 @@
 // <validate>
 
+// intermediate <<<
+// var ::x: int[3];
+// constraint forall i in 1..2, { (::x[::i] == (::x[(::i - 1)] + 1)) };
+// constraint (((::x[0] + ::x[1]) + ::x[2]) == ((::x[0] * ::x[1]) * ::x[2]));
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::x[0]: int;
+// var ::x[1]: int;
+// var ::x[2]: int;
+// constraint ((1 && (::x[1] == (::x[0] + 1))) && (::x[2] == (::x[1] + 1)));
+// constraint (((::x[0] + ::x[1]) + ::x[2]) == ((::x[0] * ::x[1]) * ::x[2]));
+// solve satisfy;
+// >>>
+
 // solution <<<
 // ::x[0] 1
 // ::x[1] 2

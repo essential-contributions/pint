@@ -12,6 +12,38 @@ constraint forall i in 0..1, j in 0..2 {
 
 solve satisfy;
 
+// intermediate <<<
+// var ::a: int[3][2][1];
+// var ::b: int[3][2];
+// constraint (::a[0][0][0] == 0);
+// constraint (::a[0][0][1] == 1);
+// constraint (::a[0][1][0] == 2);
+// constraint (::a[0][1][2] == 4);
+// constraint forall i in 0..1, j in 0..2, { ((::b[::i][::j] - ::a[0][::i][::j]) == 0) };
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::b[0][0]: int;
+// var ::b[0][1]: int;
+// var ::a[0][0][0]: int;
+// var ::a[0][0][1]: int;
+// var ::a[0][0][2]: int;
+// var ::a[0][1][0]: int;
+// var ::a[0][1][1]: int;
+// var ::a[0][1][2]: int;
+// var ::b[0][2]: int;
+// var ::b[1][0]: int;
+// var ::b[1][1]: int;
+// var ::b[1][2]: int;
+// constraint (::a[0][0][0] == 0);
+// constraint (::a[0][0][1] == 1);
+// constraint (::a[0][1][0] == 2);
+// constraint (::a[0][1][2] == 4);
+// constraint ((((((1 && ((::b[0][0] - ::a[0][0][0]) == 0)) && ((::b[0][1] - ::a[0][0][1]) == 0)) && ((::b[0][2] - ::a[0][0][2]) == 0)) && ((::b[1][0] - ::a[0][1][0]) == 0)) && ((::b[1][1] - ::a[0][1][1]) == 0)) && ((::b[1][2] - ::a[0][1][2]) == 0));
+// solve satisfy;
+// >>>
+
 // solution <<<
 // ::b[0][0]: 0
 // ::b[0][1]: 1

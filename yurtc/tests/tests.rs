@@ -85,22 +85,23 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
         let test_data = parse_test_data(&path)?;
 
         // Parse the project and check its output.
-        let ii = parse_test_and_check(&path, &test_data, &mut failed_tests);
-
-        // Type check the intermediate intent.
-        let ii = type_check(ii, &test_data, &mut failed_tests, &path);
-
-        // Flatten the intermediate intent check the result.
-        let ii = flatten_and_check(ii, &test_data, &mut failed_tests, &path);
-
-        if validate {
-            // Check a given solution. This uses the `db` section if present and checks the solution
-            // against an intent server.
-            validate_solution(ii, &test_data);
-        } else if !skip_solve {
-            // Solve the final intent and check the solution
-            solve_and_check(ii, &test_data, &mut failed_tests, &path);
-        }
+        parse_test_and_check(&path, &test_data, &mut failed_tests)
+            .and_then(|ii|
+                // Type check the intermediate intent.
+                type_check(ii, &test_data, &mut failed_tests, &path))
+            .and_then(|ii|
+                // Flatten the intermediate intent check the result.
+                flatten_and_check(ii, &test_data, &mut failed_tests, &path))
+            .map(|ii| {
+                if validate {
+                    // Check a given solution. This uses the `db` section if present and checks the
+                    // solution against an intent server.
+                    validate_solution(ii, &test_data);
+                } else if !skip_solve {
+                    // Solve the final intent and check the solution
+                    solve_and_check(ii, &test_data, &mut failed_tests, &path);
+                }
+            });
     }
 
     if !failed_tests.is_empty() {
@@ -298,6 +299,13 @@ fn parse_test_and_check(
                     Red.paint("UNEXPECTED SUCCESSFUL COMPILE"),
                     Cyan.paint(path.display().to_string()),
                 );
+            } else {
+                failed_tests.push(path.display().to_string());
+                println!(
+                    "{} {}.",
+                    Red.paint("MISSING 'intermediate' OR 'parse_failure' DIRECTIVE"),
+                    Cyan.paint(path.display().to_string()),
+                );
             }
             Some(ii)
         }
@@ -305,96 +313,99 @@ fn parse_test_and_check(
 }
 
 fn type_check(
-    ii: Option<IntermediateIntent>,
+    ii: IntermediateIntent,
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
     path: &Path,
 ) -> Option<IntermediateIntent> {
-    ii.and_then(|ii| {
-        ii.type_check()
-            .map(|checked| {
-                if test_data.typecheck_failure.is_some() {
-                    failed_tests.push(path.display().to_string());
-                    println!(
-                        "{} {}.",
-                        Red.paint("UNEXPECTED SUCCESSFUL TYPE CHECK"),
-                        Cyan.paint(path.display().to_string()),
-                    );
-                }
-                checked
-            })
-            .map_err(|err| {
-                if let Some(typecheck_error_str) = &test_data.typecheck_failure {
-                    similar_asserts::assert_eq!(
-                        typecheck_error_str.trim_end(),
-                        err.display_raw().trim_end()
-                    );
-                } else {
-                    failed_tests.push(path.display().to_string());
-                    println!(
-                        "{} {}. {}\n{}",
-                        Red.paint("FAILED TO TYPE CHECK INTERMEDIATE INTENT"),
-                        Cyan.paint(path.display().to_string()),
-                        Red.paint("Reported errors:"),
-                        Yellow.paint(err.display_raw().trim_end()),
-                    );
-                }
-            })
-            .ok()
-    })
+    ii.type_check()
+        .map(|checked| {
+            if test_data.typecheck_failure.is_some() {
+                failed_tests.push(path.display().to_string());
+                println!(
+                    "{} {}.",
+                    Red.paint("UNEXPECTED SUCCESSFUL TYPE CHECK"),
+                    Cyan.paint(path.display().to_string()),
+                );
+            }
+            checked
+        })
+        .map_err(|err| {
+            if let Some(typecheck_error_str) = &test_data.typecheck_failure {
+                similar_asserts::assert_eq!(
+                    typecheck_error_str.trim_end(),
+                    err.display_raw().trim_end()
+                );
+            } else {
+                failed_tests.push(path.display().to_string());
+                println!(
+                    "{} {}. {}\n{}",
+                    Red.paint("FAILED TO TYPE CHECK INTERMEDIATE INTENT"),
+                    Cyan.paint(path.display().to_string()),
+                    Red.paint("Reported errors:"),
+                    Yellow.paint(err.display_raw().trim_end()),
+                );
+            }
+        })
+        .ok()
 }
 
 fn flatten_and_check(
-    ii: Option<IntermediateIntent>,
+    ii: IntermediateIntent,
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
     path: &Path,
 ) -> Option<IntermediateIntent> {
-    ii.and_then(|ii| {
-        ii.flatten()
-            .map(|flattened| {
-                if let Some(expected_flattened_str) = &test_data.flattened {
-                    similar_asserts::assert_eq!(
-                        expected_flattened_str.trim(),
-                        format!("{flattened}").trim()
-                    );
-                } else if test_data.flattening_failure.is_some() {
-                    failed_tests.push(path.display().to_string());
-                    println!(
-                        "{} {}.",
-                        Red.paint("UNEXPECTED SUCCESSFUL COMPILE"),
-                        Cyan.paint(path.display().to_string()),
-                    );
-                }
-                flattened
-            })
-            .map_err(|err| {
-                if let Some(flattening_error_str) = &test_data.flattening_failure {
-                    similar_asserts::assert_eq!(
-                        flattening_error_str.trim_end(),
-                        err.display_raw().trim_end()
-                    );
-                } else {
-                    failed_tests.push(path.display().to_string());
-                    println!(
-                        "{} {}. {}\n{}",
-                        Red.paint("FAILED TO FLATTEN INTERMEDIATE INTENT"),
-                        Cyan.paint(path.display().to_string()),
-                        Red.paint("Reported errors:"),
-                        Yellow.paint(err.display_raw().trim_end()),
-                    );
-                }
-            })
-            .ok()
-    })
+    ii.flatten()
+        .map(|flattened| {
+            if let Some(expected_flattened_str) = &test_data.flattened {
+                similar_asserts::assert_eq!(
+                    expected_flattened_str.trim(),
+                    format!("{flattened}").trim()
+                );
+            } else if test_data.flattening_failure.is_some() {
+                failed_tests.push(path.display().to_string());
+                println!(
+                    "{} {}.",
+                    Red.paint("UNEXPECTED SUCCESSFUL COMPILE"),
+                    Cyan.paint(path.display().to_string()),
+                );
+            } else {
+                failed_tests.push(path.display().to_string());
+                println!(
+                    "{} {}.",
+                    Red.paint("MISSING 'flattened' OR 'flattening_failure' DIRECTIVE"),
+                    Cyan.paint(path.display().to_string()),
+                );
+            }
+            flattened
+        })
+        .map_err(|err| {
+            if let Some(flattening_error_str) = &test_data.flattening_failure {
+                similar_asserts::assert_eq!(
+                    flattening_error_str.trim_end(),
+                    err.display_raw().trim_end()
+                );
+            } else {
+                failed_tests.push(path.display().to_string());
+                println!(
+                    "{} {}. {}\n{}",
+                    Red.paint("FAILED TO FLATTEN INTERMEDIATE INTENT"),
+                    Cyan.paint(path.display().to_string()),
+                    Red.paint("Reported errors:"),
+                    Yellow.paint(err.display_raw().trim_end()),
+                );
+            }
+        })
+        .ok()
 }
 
 #[cfg(not(feature = "solver-scip"))]
-fn solve_and_check(_: Option<IntermediateIntent>, _: &TestData, _: &mut Vec<String>, _: &Path) {}
+fn solve_and_check(_: IntermediateIntent, _: &TestData, _: &mut Vec<String>, _: &Path) {}
 
 #[cfg(feature = "solver-scip")]
 fn solve_and_check(
-    ii: Option<IntermediateIntent>,
+    mut ii: IntermediateIntent,
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
     path: &Path,
@@ -402,43 +413,48 @@ fn solve_and_check(
     use russcip::ProblemCreated;
     use yurtc::solvers::scip::Solver;
 
-    ii.and_then(|mut ii| {
-        Solver::<ProblemCreated>::new(&mut ii)
-            .solve()
-            .map(|solver| {
-                if let Some(expected_solution_str) = &test_data.solution {
-                    similar_asserts::assert_eq!(
-                        expected_solution_str.trim(),
-                        solver.display_solution_raw().trim()
-                    );
-                } else if test_data.solve_failure.is_some() {
-                    failed_tests.push(path.display().to_string());
-                    println!(
-                        "{} {}.",
-                        Red.paint("UNEXPECTED SUCCESSFUL SOLVE"),
-                        Cyan.paint(path.display().to_string()),
-                    );
-                }
-            })
-            .map_err(|err| {
-                if let Some(solve_error_str) = &test_data.solve_failure {
-                    similar_asserts::assert_eq!(
-                        solve_error_str.trim_end(),
-                        err.display_raw().trim_end()
-                    );
-                } else {
-                    failed_tests.push(path.display().to_string());
-                    println!(
-                        "{} {}. {}\n{}",
-                        Red.paint("FAILED TO SOLVE TO FINAL INTENT"),
-                        Cyan.paint(path.display().to_string()),
-                        Red.paint("Reported errors:"),
-                        Yellow.paint(err.display_raw().trim_end()),
-                    );
-                }
-            })
-            .ok()
-    });
+    Solver::<ProblemCreated>::new(&mut ii)
+        .solve()
+        .map(|solver| {
+            if let Some(expected_solution_str) = &test_data.solution {
+                similar_asserts::assert_eq!(
+                    expected_solution_str.trim(),
+                    solver.display_solution_raw().trim()
+                );
+            } else if test_data.solve_failure.is_some() {
+                failed_tests.push(path.display().to_string());
+                println!(
+                    "{} {}.",
+                    Red.paint("UNEXPECTED SUCCESSFUL SOLVE"),
+                    Cyan.paint(path.display().to_string()),
+                );
+            } else {
+                failed_tests.push(path.display().to_string());
+                println!(
+                    "{} {}.",
+                    Red.paint("MISSING 'solution' OR 'solve_failure' DIRECTIVE"),
+                    Cyan.paint(path.display().to_string()),
+                );
+            }
+        })
+        .map_err(|err| {
+            if let Some(solve_error_str) = &test_data.solve_failure {
+                similar_asserts::assert_eq!(
+                    solve_error_str.trim_end(),
+                    err.display_raw().trim_end()
+                );
+            } else {
+                failed_tests.push(path.display().to_string());
+                println!(
+                    "{} {}. {}\n{}",
+                    Red.paint("FAILED TO SOLVE TO FINAL INTENT"),
+                    Cyan.paint(path.display().to_string()),
+                    Red.paint("Reported errors:"),
+                    Yellow.paint(err.display_raw().trim_end()),
+                );
+            }
+        })
+        .ok();
 }
 
 /// Deploys a trivial persistent intent set that does nothing. It just has some database that we
@@ -491,7 +507,7 @@ fn submit_trivial_transient_intent(server: &mut Server) -> IntentAddress {
     transient_intent_address
 }
 
-fn validate_solution(final_intent: Option<IntermediateIntent>, test_data: &TestData) {
+fn validate_solution(final_intent: IntermediateIntent, test_data: &TestData) {
     // Arbitrary EOA user address. Eventually, this should be config parameter per test.
     let eoa_address = [1, 2, 3, 4];
 
@@ -511,141 +527,137 @@ fn validate_solution(final_intent: Option<IntermediateIntent>, test_data: &TestD
             .unwrap()
     };
 
-    final_intent.as_ref().and_then(|final_intent| {
-        yurtc::asm_gen::intent_to_asm(&final_intent)
-            .map(|persistent_intent| {
-                // For now, intents here are treated as persistent. A trivial transient intent is
-                // later specified to interact with the persistent intent, for testing purposes.
+    yurtc::asm_gen::intent_to_asm(&final_intent)
+        .map(|persistent_intent| {
+            // For now, intents here are treated as persistent. A trivial transient intent is
+            // later specified to interact with the persistent intent, for testing purposes.
 
-                // Spin up a serve instance
-                let mut server = Server::new();
+            // Spin up a serve instance
+            let mut server = Server::new();
 
-                deploy_trivial_persistent_intent(&mut server);
-                let transient_intent_address = submit_trivial_transient_intent(&mut server);
+            deploy_trivial_persistent_intent(&mut server);
+            let transient_intent_address = submit_trivial_transient_intent(&mut server);
 
-                // Deploy the set of intents. For now, this deploys a set that contains a single
-                // intent. When we have the ability to extract multiple persistent intents from a
-                // Yurt program, then we should deploy the whole set.
-                let deployed_set_address = server
-                    .deploy_intent_set(vec![persistent_intent.clone()])
-                    .expect("failed to deploy intent set!");
+            // Deploy the set of intents. For now, this deploys a set that contains a single
+            // intent. When we have the ability to extract multiple persistent intents from a
+            // Yurt program, then we should deploy the whole set.
+            let deployed_set_address = server
+                .deploy_intent_set(vec![persistent_intent.clone()])
+                .expect("failed to deploy intent set!");
 
-                // Populate the database of the server if a db section is specified
-                if let Some(db) = &test_data.db {
-                    for line in db.lines() {
-                        // Collect key and value. Assume the key is a hex and the value is a u64
-                        let split = line.split_ascii_whitespace().collect::<Vec<_>>();
-                        assert!(
-                            split.len() == 2,
-                            "each line in the db must contain a key and value"
-                        );
-
-                        // <key: hex> <value: i64>
-                        server.db().stage(
-                            deployed_set_address.clone().into(),
-                            hex_to_4_ints(&split[0][2..]),
-                            Some(split[1].parse::<i64>().expect("value must be a i64")),
-                        );
-                        server.db().commit();
-                    }
-                }
-
-                // Parse a solution. Each line in the solution section is a path to a decision
-                // variable followed by a number OR a hex key followed by a number
-                if let Some(sol) = &test_data.solution {
-                    // Maps a given decision variable name to its low level decision variables.
-                    // Each Yurt variable may require multiple low level decision variables,
-                    // depending how wide the data type is.
-                    let mut decision_variables_map: HashMap<String, Vec<i64>> = HashMap::new();
-                    let mut state_mutations: HashMap<[i64; 4], Vec<Mutation>> = HashMap::new();
-
-                    for line in sol.lines() {
-                        let split = line.split_ascii_whitespace().collect::<Vec<_>>();
-
-                        // If the line starts with a hex key, then this is a state mutation.
-                        // Otherwise, assume it's a decision var.
-                        if split.len() == 2 && split[0].starts_with("0x") {
-                            // <key: hex> <value: i64>
-                            let mutation = Mutation::Key(KeyMutation {
-                                key: hex_to_4_ints(&split[0][2..]),
-                                value: Some(split[1].parse::<i64>().expect("value must be a i64")),
-                            });
-                            state_mutations
-                                .entry(deployed_set_address)
-                                .and_modify(|value| value.push(mutation.clone()))
-                                .or_insert(vec![mutation]);
-                        } else if split.len() == 3 {
-                            // <address: hex> <key: hex> <value: i64>
-                            let mutation = Mutation::Key(KeyMutation {
-                                key: hex_to_4_ints(&split[1][2..]),
-                                value: Some(split[2].parse::<i64>().expect("value must be a i64")),
-                            });
-                            state_mutations
-                                .entry(hex_to_4_ints(&split[0][2..]))
-                                .and_modify(|value| value.push(mutation.clone()))
-                                .or_insert(vec![mutation]);
-                        } else {
-                            // <var: String> <value: i64>
-                            decision_variables_map.insert(
-                                split[0].to_string(),
-                                split[1..]
-                                    .iter()
-                                    .map(|d| d.parse::<i64>().expect("expecting a decimal"))
-                                    .collect(),
-                            );
-                        }
-                    }
-
-                    let mut decision_variables = vec![];
-                    for var in &final_intent.vars {
-                        decision_variables.extend(&decision_variables_map[&var.1.name]);
-                    }
-
-                    // Craft a solution, starting with the transitions for each intent.
-                    let transitions = [
-                        // solution data for the trivial transient intent
-                        SolutionData {
-                            intent_to_solve: SourceAddress::transient(
-                                transient_intent_address.clone(),
-                            ),
-                            // No decision variables
-                            decision_variables: vec![],
-                            sender: Sender::Eoa(eoa_address),
-                        },
-                        // solution data for the deployed intent set. This includes some assignment
-                        // of all of its decision variables as well as specifying an input message
-                        SolutionData {
-                            decision_variables,
-                            intent_to_solve: SourceAddress::persistent(
-                                deployed_set_address.clone().into(),
-                                persistent_intent.intent_address(),
-                            ),
-                            sender: Sender::transient(eoa_address, transient_intent_address),
-                        },
-                    ];
-
-                    let solution = Solution {
-                        data: transitions.into_iter().collect(),
-                        // State mutations for the deployed intent sets
-                        state_mutations: state_mutations
-                            .iter()
-                            .map(|(k, v)| StateMutation {
-                                address: (*k).into(),
-                                mutations: v.clone(),
-                            })
-                            .collect::<Vec<_>>(),
-                    };
-
-                    // check the solution for both intents. Expect a `1` for each intent, hence a
-                    // total utility of `2`.
-                    assert_eq!(
-                        server
-                            .submit_solution(solution)
-                            .expect("failed to submit and check solution"),
-                        2
+            // Populate the database of the server if a db section is specified
+            if let Some(db) = &test_data.db {
+                for line in db.lines() {
+                    // Collect key and value. Assume the key is a hex and the value is a u64
+                    let split = line.split_ascii_whitespace().collect::<Vec<_>>();
+                    assert!(
+                        split.len() == 2,
+                        "each line in the db must contain a key and value"
                     );
+
+                    // <key: hex> <value: i64>
+                    server.db().stage(
+                        deployed_set_address.clone().into(),
+                        hex_to_4_ints(&split[0][2..]),
+                        Some(split[1].parse::<i64>().expect("value must be a i64")),
+                    );
+                    server.db().commit();
                 }
-            })
-            .ok()
-    });
+            }
+
+            // Parse a solution. Each line in the solution section is a path to a decision
+            // variable followed by a number OR a hex key followed by a number
+            if let Some(sol) = &test_data.solution {
+                // Maps a given decision variable name to its low level decision variables.
+                // Each Yurt variable may require multiple low level decision variables,
+                // depending how wide the data type is.
+                let mut decision_variables_map: HashMap<String, Vec<i64>> = HashMap::new();
+                let mut state_mutations: HashMap<[i64; 4], Vec<Mutation>> = HashMap::new();
+
+                for line in sol.lines() {
+                    let split = line.split_ascii_whitespace().collect::<Vec<_>>();
+
+                    // If the line starts with a hex key, then this is a state mutation.
+                    // Otherwise, assume it's a decision var.
+                    if split.len() == 2 && split[0].starts_with("0x") {
+                        // <key: hex> <value: i64>
+                        let mutation = Mutation::Key(KeyMutation {
+                            key: hex_to_4_ints(&split[0][2..]),
+                            value: Some(split[1].parse::<i64>().expect("value must be a i64")),
+                        });
+                        state_mutations
+                            .entry(deployed_set_address)
+                            .and_modify(|value| value.push(mutation.clone()))
+                            .or_insert(vec![mutation]);
+                    } else if split.len() == 3 {
+                        // <address: hex> <key: hex> <value: i64>
+                        let mutation = Mutation::Key(KeyMutation {
+                            key: hex_to_4_ints(&split[1][2..]),
+                            value: Some(split[2].parse::<i64>().expect("value must be a i64")),
+                        });
+                        state_mutations
+                            .entry(hex_to_4_ints(&split[0][2..]))
+                            .and_modify(|value| value.push(mutation.clone()))
+                            .or_insert(vec![mutation]);
+                    } else {
+                        // <var: String> <value: i64>
+                        decision_variables_map.insert(
+                            split[0].to_string(),
+                            split[1..]
+                                .iter()
+                                .map(|d| d.parse::<i64>().expect("expecting a decimal"))
+                                .collect(),
+                        );
+                    }
+                }
+
+                let mut decision_variables = vec![];
+                for var in &final_intent.vars {
+                    decision_variables.extend(&decision_variables_map[&var.1.name]);
+                }
+
+                // Craft a solution, starting with the transitions for each intent.
+                let transitions = [
+                    // solution data for the trivial transient intent
+                    SolutionData {
+                        intent_to_solve: SourceAddress::transient(transient_intent_address.clone()),
+                        // No decision variables
+                        decision_variables: vec![],
+                        sender: Sender::Eoa(eoa_address),
+                    },
+                    // solution data for the deployed intent set. This includes some assignment
+                    // of all of its decision variables as well as specifying an input message
+                    SolutionData {
+                        decision_variables,
+                        intent_to_solve: SourceAddress::persistent(
+                            deployed_set_address.clone().into(),
+                            persistent_intent.intent_address(),
+                        ),
+                        sender: Sender::transient(eoa_address, transient_intent_address),
+                    },
+                ];
+
+                let solution = Solution {
+                    data: transitions.into_iter().collect(),
+                    // State mutations for the deployed intent sets
+                    state_mutations: state_mutations
+                        .iter()
+                        .map(|(k, v)| StateMutation {
+                            address: (*k).into(),
+                            mutations: v.clone(),
+                        })
+                        .collect::<Vec<_>>(),
+                };
+
+                // check the solution for both intents. Expect a `1` for each intent, hence a
+                // total utility of `2`.
+                assert_eq!(
+                    server
+                        .submit_solution(solution)
+                        .expect("failed to submit and check solution"),
+                    2
+                );
+            }
+        })
+        .ok();
 }

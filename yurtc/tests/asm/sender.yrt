@@ -1,5 +1,23 @@
 // <validate>
 
+// intermediate <<<
+// var ::sender;
+// state ::balance: int = ::storage::get(::sender);
+// state ::also_balance: int = ::storage::get(::context::sender());
+// constraint (::sender == ::context::sender());
+// constraint (::balance' == ((::balance + ::also_balance) * 2));
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::sender: b256;
+// state ::balance: int = ::storage::get(::sender);
+// state ::also_balance: int = ::storage::get(::context::sender());
+// constraint (::sender == ::context::sender());
+// constraint (::balance' == ((::balance + ::also_balance) * 2));
+// solve satisfy;
+// >>>
+
 // db <<<
 // 0x0000000000000001000000000000000200000000000000030000000000000004 42
 // >>>

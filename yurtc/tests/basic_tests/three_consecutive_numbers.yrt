@@ -7,10 +7,28 @@ let x2: int;
 // Make sure the numbers are consecutive
 constraint x1 == x0 + 1 && x2 == x1 + 1;
 
-// Make sure their sum is equal to their product 
+// Make sure their sum is equal to their product
 constraint x0 + x1 + x2 == x0 * x1 * x2;
 
 solve satisfy;
+
+// intermediate <<<
+// var ::x0: int;
+// var ::x1: int;
+// var ::x2: int;
+// constraint ((::x1 == (::x0 + 1)) && (::x2 == (::x1 + 1)));
+// constraint (((::x0 + ::x1) + ::x2) == ((::x0 * ::x1) * ::x2));
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::x0: int;
+// var ::x1: int;
+// var ::x2: int;
+// constraint ((::x1 == (::x0 + 1)) && (::x2 == (::x1 + 1)));
+// constraint (((::x0 + ::x1) + ::x2) == ((::x0 * ::x1) * ::x2));
+// solve satisfy;
+// >>>
 
 // solution <<<
 // ::x0: -1

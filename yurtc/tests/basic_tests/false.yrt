@@ -2,6 +2,16 @@ constraint false;
 
 solve satisfy;
 
+// intermediate <<<
+// constraint false;
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// constraint 0;
+// solve satisfy;
+// >>>
+
 // solution <<<
 // infeasible
 // >>>

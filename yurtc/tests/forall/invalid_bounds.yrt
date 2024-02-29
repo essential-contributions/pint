@@ -5,6 +5,13 @@ constraint forall i in j..k { true };
 
 solve satisfy;
 
+// intermediate <<<
+// var ::j: int;
+// var ::k: int;
+// constraint forall i in ::j..::k, { true };
+// solve satisfy;
+// >>>
+
 // flattening_failure <<<
 // invalid bound for `forall` index `i`
 // @48..49: invalid bound for `forall` index `i`

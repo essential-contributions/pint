@@ -2,6 +2,11 @@ constraint forall i in 0..5 where j != 3 { true };
 
 solve satisfy;
 
+// intermediate <<<
+// constraint forall i in 0..5, where (::j != 3) { true };
+// solve satisfy;
+// >>>
+
 // typecheck_failure <<<
 // cannot find value `::j` in this scope
 // @34..35: not found in this scope

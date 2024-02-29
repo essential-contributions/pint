@@ -27,6 +27,74 @@ constraint q3 + 1 != q4;
 
 solve satisfy;
 
+// intermediate <<<
+// var ::variables::q1: int;
+// var ::variables::q2: int;
+// var ::variables::q3: int;
+// var ::variables::q4: int;
+// constraint (::variables::q1 != ::variables::q2);
+// constraint (::variables::q1 != ::variables::q3);
+// constraint (::variables::q1 != ::variables::q4);
+// constraint (::variables::q2 != ::variables::q3);
+// constraint (::variables::q2 != ::variables::q4);
+// constraint (::variables::q3 != ::variables::q4);
+// constraint ((::variables::q1 + 1) != (::variables::q2 + 2));
+// constraint ((::variables::q1 + 1) != (::variables::q3 + 3));
+// constraint ((::variables::q1 + 1) != (::variables::q4 + 4));
+// constraint ((::variables::q2 + 2) != (::variables::q3 + 3));
+// constraint ((::variables::q2 + 2) != (::variables::q4 + 4));
+// constraint ((::variables::q3 + 3) != (::variables::q4 + 4));
+// constraint ((::variables::q1 + 1) != ::variables::q2);
+// constraint ((::variables::q1 + 2) != ::variables::q3);
+// constraint ((::variables::q1 + 3) != ::variables::q4);
+// constraint ((::variables::q2 + 1) != ::variables::q3);
+// constraint ((::variables::q2 + 2) != ::variables::q4);
+// constraint ((::variables::q3 + 1) != ::variables::q4);
+// constraint (::variables::q1 >= 1);
+// constraint (::variables::q1 <= 4);
+// constraint (::variables::q2 >= 1);
+// constraint (::variables::q2 <= 4);
+// constraint (::variables::q3 >= 1);
+// constraint (::variables::q3 <= 4);
+// constraint (::variables::q4 >= 1);
+// constraint (::variables::q4 <= 4);
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::variables::q1: int;
+// var ::variables::q2: int;
+// var ::variables::q3: int;
+// var ::variables::q4: int;
+// constraint (::variables::q1 != ::variables::q2);
+// constraint (::variables::q1 != ::variables::q3);
+// constraint (::variables::q1 != ::variables::q4);
+// constraint (::variables::q2 != ::variables::q3);
+// constraint (::variables::q2 != ::variables::q4);
+// constraint (::variables::q3 != ::variables::q4);
+// constraint ((::variables::q1 + 1) != (::variables::q2 + 2));
+// constraint ((::variables::q1 + 1) != (::variables::q3 + 3));
+// constraint ((::variables::q1 + 1) != (::variables::q4 + 4));
+// constraint ((::variables::q2 + 2) != (::variables::q3 + 3));
+// constraint ((::variables::q2 + 2) != (::variables::q4 + 4));
+// constraint ((::variables::q3 + 3) != (::variables::q4 + 4));
+// constraint ((::variables::q1 + 1) != ::variables::q2);
+// constraint ((::variables::q1 + 2) != ::variables::q3);
+// constraint ((::variables::q1 + 3) != ::variables::q4);
+// constraint ((::variables::q2 + 1) != ::variables::q3);
+// constraint ((::variables::q2 + 2) != ::variables::q4);
+// constraint ((::variables::q3 + 1) != ::variables::q4);
+// constraint (::variables::q1 >= 1);
+// constraint (::variables::q1 <= 4);
+// constraint (::variables::q2 >= 1);
+// constraint (::variables::q2 <= 4);
+// constraint (::variables::q3 >= 1);
+// constraint (::variables::q3 <= 4);
+// constraint (::variables::q4 >= 1);
+// constraint (::variables::q4 <= 4);
+// solve satisfy;
+// >>>
+
 // solution <<<
 // ::variables::q1: 3
 // ::variables::q2: 1

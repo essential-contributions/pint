@@ -4,6 +4,13 @@ constraint a.z > 33;
 
 solve satisfy;
 
+// intermediate <<<
+// var ::a;
+// constraint (::a == {x: 11, y: 2.22e1});
+// constraint (::a.z > 33);
+// solve satisfy;
+// >>>
+
 // typecheck_failure <<<
 // invalid tuple accessor
 // @40..43: unable to get field from tuple using `z`

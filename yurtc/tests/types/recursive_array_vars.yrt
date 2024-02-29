@@ -4,6 +4,16 @@ let c = [[b][0], a[1]];
 
 solve satisfy;
 
+// intermediate <<<
+// var ::a;
+// var ::b;
+// var ::c;
+// constraint (::a == [::c[1], ::b]);
+// constraint (::b == ::c[1]);
+// constraint (::c == [[::b][0], ::a[1]]);
+// solve satisfy;
+// >>>
+
 // typecheck_failure <<<
 // expression has a recursive dependency
 // @27..28: cannot determine type of expression due to dependency
