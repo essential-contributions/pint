@@ -5,6 +5,13 @@ constraint a[n] == 3;
 
 solve satisfy;
 
+// intermediate <<<
+// var ::n: int;
+// var ::a: int[10];
+// constraint (::a[::n] == 3);
+// solve satisfy;
+// >>>
+
 // flattening_failure <<<
 // attempt to use a non-constant value as an array index
 // @42..43: this must be a constant

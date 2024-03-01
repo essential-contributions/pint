@@ -1,3 +1,5 @@
+// <no-solve>
+
 use ::a_mod::a;
 
 constraint a > b_mod::c_mod::c;

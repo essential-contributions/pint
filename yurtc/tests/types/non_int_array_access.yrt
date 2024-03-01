@@ -4,6 +4,12 @@ constraint ary[false] == ary[11.1];
 
 solve satisfy;
 
+// intermediate <<<
+// var ::ary: int[2];
+// constraint (::ary[false] == ::ary[1.11e1]);
+// solve satisfy;
+// >>>
+
 // typecheck_failure <<<
 // attempt to index an array with a non-integer
 // @33..38: array access must be an int value

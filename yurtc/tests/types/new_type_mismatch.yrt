@@ -5,6 +5,15 @@ let j: I = 22.2;
 
 solve satisfy;
 
+// intermediate <<<
+// var ::i: ::I;
+// var ::j: ::I;
+// type ::I = int;
+// constraint (::i == 11);
+// constraint (::j == 2.22e1);
+// solve satisfy;
+// >>>
+
 // typecheck_failure <<<
 // binary operator type error
 // @41..45: operator `==` argument has unexpected type `real`

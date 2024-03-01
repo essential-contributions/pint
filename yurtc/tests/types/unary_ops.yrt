@@ -9,6 +9,18 @@ let d = !"sure";
 
 solve satisfy;
 
+// intermediate <<<
+// var ::a;
+// var ::b;
+// var ::c;
+// var ::d;
+// constraint (::a == -true);
+// constraint (::b == -{1, 2});
+// constraint (::c == !11);
+// constraint (::d == !"sure");
+// solve satisfy;
+// >>>
+
 // typecheck_failure <<<
 // unary operator type error
 // @138..143: operator `-` argument has unexpected type `bool`
