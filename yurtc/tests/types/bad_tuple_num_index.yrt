@@ -4,6 +4,13 @@ constraint a.4 == 44;
 
 solve satisfy;
 
+// intermediate <<<
+// var ::a;
+// constraint (::a == {11, 22, 33});
+// constraint (::a.4 == 44);
+// solve satisfy;
+// >>>
+
 // typecheck_failure <<<
 // invalid tuple accessor
 // @36..39: unable to get field from tuple using `4`

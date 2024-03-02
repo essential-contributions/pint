@@ -28,7 +28,56 @@ let p = 22 <= [23, 23];
 let q = true && 24;
 let r = 25.25 || false;
 
+// Tuples can compare with `==` or `!=` too.
+let s = {true, 26} == {27, false};
+let t = {28.28, 29} != {30, 31};
+
 solve satisfy;
+
+// intermediate <<<
+// var ::a;
+// var ::b;
+// var ::c;
+// var ::d;
+// var ::e;
+// var ::f;
+// var ::g;
+// var ::h;
+// var ::i;
+// var ::j;
+// var ::k;
+// var ::l;
+// var ::m;
+// var ::n;
+// var ::o;
+// var ::p;
+// var ::q;
+// var ::r;
+// var ::s;
+// var ::t;
+// enum ::T = FortyTwo | FleventyFive;
+// constraint (::a == (11 + false));
+// constraint (::b == (22 - true));
+// constraint (::c == ([1, 2] * 33));
+// constraint (::d == ("four" / 44));
+// constraint (::e == (55 % ::T::FortyTwo));
+// constraint (::f == (66 + 7.77e1));
+// constraint (::g == (88 - 9.99e1));
+// constraint (::h == (1.01e1 * 11));
+// constraint (::i == (12 / 1.313e1));
+// constraint (::j == (1.414e1 % 15));
+// constraint (::k == (16 == ::T::FleventyFive));
+// constraint (::l == (17 != true));
+// constraint (::m == (true > false));
+// constraint (::n == (18 >= 1.919e1));
+// constraint (::o == (20 < "21"));
+// constraint (::p == (22 <= [23, 23]));
+// constraint (::q == (true && 24));
+// constraint (::r == (2.525e1 || false));
+// constraint (::s == ({true, 26} == {27, false}));
+// constraint (::t == ({2.828e1, 29} != {30, 31}));
+// solve satisfy;
+// >>>
 
 // typecheck_failure <<<
 // binary operator type error

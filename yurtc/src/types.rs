@@ -130,6 +130,16 @@ impl Type {
         })
     }
 
+    pub fn get_tuple_fields(&self) -> Option<&[(Option<Ident>, Self)]> {
+        check_alias!(self, get_tuple_fields, {
+            if let Type::Tuple { fields, .. } = self {
+                Some(fields)
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn get_tuple_field_type_by_idx(&self, idx: usize) -> Option<&Type> {
         check_alias!(self, get_tuple_field_type_by_idx, idx, {
             if let Type::Tuple { fields, .. } = self {

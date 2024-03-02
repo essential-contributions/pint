@@ -5,6 +5,13 @@ constraint a[-1.2] == 3;
 
 solve satisfy;
 
+// intermediate <<<
+// var ::n: int;
+// var ::a: int[10];
+// constraint (::a[-1.2e0] == 3);
+// solve satisfy;
+// >>>
+
 // typecheck_failure <<<
 // attempt to index an array with a non-integer
 // @42..46: array access must be an int value

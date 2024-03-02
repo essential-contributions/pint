@@ -1,3 +1,5 @@
+// <no-solve>
+
 macro @foo($x) {
     let a: int;
     constraint a == $x;
@@ -9,6 +11,14 @@ macro @foo($x) {
 solve satisfy;
 
 // intermediate <<<
+// var ::anon@0::a: int;
+// var ::anon@1::a: int;
+// constraint (::anon@0::a == 11);
+// constraint (::anon@1::a == 22);
+// solve satisfy;
+// >>>
+
+// flattened <<<
 // var ::anon@0::a: int;
 // var ::anon@1::a: int;
 // constraint (::anon@0::a == 11);

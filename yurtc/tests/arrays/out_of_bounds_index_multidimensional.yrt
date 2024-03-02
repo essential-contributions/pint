@@ -4,6 +4,12 @@ constraint b[5][1] == 2;
 
 solve satisfy;
 
+// intermediate <<<
+// var ::b: int[2][4];
+// constraint (::b[5][1] == 2);
+// solve satisfy;
+// >>>
+
 // flattening_failure <<<
 // attempt to access array with out of bounds index
 // @32..33: array index is out of bounds

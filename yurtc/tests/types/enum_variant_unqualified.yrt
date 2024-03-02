@@ -5,6 +5,14 @@ let a = Baz;
 
 solve satisfy;
 
+// intermediate <<<
+// var ::a;
+// enum ::Foo = Bar | Baz;
+// enum ::Bar = Baz | Xyzzy;
+// constraint (::a == ::Baz);
+// solve satisfy;
+// >>>
+
 // typecheck_failure <<<
 // cannot find value `::Baz` in this scope
 // @55..58: not found in this scope

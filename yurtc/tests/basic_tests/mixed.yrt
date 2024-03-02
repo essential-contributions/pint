@@ -18,6 +18,18 @@ solve maximize y;
 // solve maximize ::y;
 // >>>
 
+// flattened <<<
+// var ::x: int;
+// var ::y: real;
+// constraint (::x >= 1);
+// constraint (::x <= 5);
+// constraint (::y >= 1.1e0);
+// constraint (::y <= 5.5e0);
+// constraint (::x > 2);
+// constraint (::y <= 1.9e0);
+// solve maximize ::y;
+// >>>
+
 // solution <<<
 // ::x: 3
 // ::y: 1.900

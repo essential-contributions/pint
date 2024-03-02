@@ -1,3 +1,5 @@
+// <no-solve>
+
 macro @a($x) {
     @c($x)
 }

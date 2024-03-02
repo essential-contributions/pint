@@ -16,6 +16,17 @@ solve satisfy;
 // solve satisfy;
 // >>>
 
+// flattened <<<
+// var ::x: real;
+// var ::y: real;
+// constraint (::x >= 1e0);
+// constraint (::x <= 4e0);
+// constraint (::y >= 1e0);
+// constraint (::y <= 4e0);
+// constraint ((::x + ::y) == 3.3e0);
+// solve satisfy;
+// >>>
+
 // solution <<<
 // ::x: 2.300
 // ::y: 1.000

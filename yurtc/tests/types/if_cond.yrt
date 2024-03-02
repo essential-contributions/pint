@@ -7,6 +7,17 @@ constraint b > if a { 44 } else { 55 };
 
 solve satisfy;
 
+// intermediate <<<
+// var ::a;
+// var ::b: int;
+// var ::c;
+// constraint (::a == 11);
+// constraint (::c == false);
+// constraint (::b < if ::c { 22 } else { 33 });
+// constraint (::b > if ::a { 44 } else { 55 });
+// solve satisfy;
+// >>>
+
 // typecheck_failure <<<
 // condition in if-expression must be a boolean
 // @98..99: condition must be a boolean

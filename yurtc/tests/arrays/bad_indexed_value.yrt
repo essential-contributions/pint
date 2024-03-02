@@ -4,6 +4,12 @@ constraint foo()[0] == 3;
 
 solve satisfy;
 
+// intermediate <<<
+// var ::n: int;
+// constraint (::foo()[0] == 3);
+// solve satisfy;
+// >>>
+
 // This is pending whatever we decide for functions in the future.  For now we can't type-check an
 // unknown function like this.
 

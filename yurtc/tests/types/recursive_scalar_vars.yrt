@@ -4,6 +4,16 @@ let c = a - b;
 
 solve satisfy;
 
+// intermediate <<<
+// var ::a;
+// var ::b;
+// var ::c;
+// constraint (::a == (::b + ::c));
+// constraint (::b == (::c + ::a));
+// constraint (::c == (::a - ::b));
+// solve satisfy;
+// >>>
+
 // typecheck_failure <<<
 // expression has a recursive dependency
 // @8..13: cannot determine type of expression due to dependency
