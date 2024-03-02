@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["yurtc", "yurtfmt"]
+members = ["yurt-solve", "yurtc", "yurtfmt"]
 
 [workspace.dependencies]
 yansi = "0.5"

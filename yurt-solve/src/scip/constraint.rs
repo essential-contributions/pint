@@ -1,14 +1,24 @@
-use crate::{error::SolveError, expr, intermediate::ExprKey, span::empty_span};
+use crate::{
+    error::SolveError,
+    flatyurt::{BinaryOp, Expr, Immediate, UnaryOp},
+};
 use russcip::{prelude::*, ProblemCreated};
 
 impl<'a> super::Solver<'a, ProblemCreated> {
-    pub(super) fn convert_constraint(&mut self, constraint: &ExprKey) -> Result<(), SolveError> {
+    pub(super) fn convert_constraint(&mut self, constraint_expr: &Expr) -> Result<(), SolveError> {
         let new_cons_name = self.new_cons_name();
-        match self.intent.exprs[*constraint].clone() {
-            expr::Expr::Immediate { value, .. } => {
+        match constraint_expr {
+            Expr::Immediate(value) => {
                 match value {
-                    expr::Immediate::Int(val) => {
-                        if val == 0 {
+                    Immediate::Bool(val) => {
+                        if !val {
+                            // If the immediate is `false`, then insert a trivially infeasible
+                            // constraint: 0 == 1
+                            self.model.add_cons(vec![], &[], 1., 1., &new_cons_name);
+                        }
+                    }
+                    Immediate::Int(val) => {
+                        if *val == 0 {
                             // If the immediate is `false`, then insert a trivially infeasible
                             // constraint: 0 == 1
                             self.model.add_cons(vec![], &[], 1., 1., &new_cons_name);
@@ -17,56 +27,53 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                     _ => return Err(SolveError::Internal {
                         msg:
                             "(scip) attempting to convert a non-Integer immediate into a constraint",
-                        span: empty_span(),
                     }),
                 }
             }
 
-            expr::Expr::PathByName(..) | expr::Expr::PathByKey(..) => {
+            Expr::Path(_) => {
                 // Convert the constraint expression itself into a variable and enforce the
                 // variable to be equal to 1.
-                let var = self.expr_to_var(constraint)?;
+                let var = self.expr_to_var(constraint_expr)?;
                 self.model
                     .add_cons(vec![var.clone()], &[1.], 1., 1., &new_cons_name);
             }
 
-            expr::Expr::UnaryOp { op, expr, .. } => match op {
-                expr::UnaryOp::Not => {
-                    let not_expr = self.invert_expression(&expr)?;
+            Expr::UnaryOp { op, expr } => match op {
+                UnaryOp::Not => {
+                    let not_expr = Self::invert_expression(expr)?;
                     self.convert_constraint(&not_expr)?;
                 }
-                _ => {
+                UnaryOp::Neg => {
                     return Err(SolveError::Internal {
                         msg: "(scip) Non-Boolean binary op expression cannot be constraints",
-                        span: empty_span(),
                     })
                 }
             },
-            expr::Expr::BinaryOp {
-                op: expr::BinaryOp::LogicalAnd,
-                lhs: lhs_expr,
-                rhs: rhs_expr,
-                ..
+
+            Expr::BinaryOp {
+                op: BinaryOp::LogicalAnd,
+                lhs,
+                rhs,
             } => {
                 // enforce both the lhs and the rhs as seaprate constraints
-                self.convert_constraint(&lhs_expr)?;
-                self.convert_constraint(&rhs_expr)?;
+                self.convert_constraint(lhs)?;
+                self.convert_constraint(rhs)?;
             }
 
-            expr::Expr::BinaryOp {
+            Expr::BinaryOp {
                 op,
                 lhs: lhs_expr,
                 rhs: rhs_expr,
-                ..
             } => {
                 // Convert the LHS and RHS into new variables
-                let lhs = self.expr_to_var(&lhs_expr)?;
-                let rhs = self.expr_to_var(&rhs_expr)?;
+                let lhs = self.expr_to_var(lhs_expr)?;
+                let rhs = self.expr_to_var(rhs_expr)?;
                 let lhs_type = lhs.var_type();
                 let rhs_type = rhs.var_type();
 
                 match op {
-                    expr::BinaryOp::Equal => {
+                    BinaryOp::Equal => {
                         // 0 <= lhs - rhs <= 0
                         self.model.add_cons(
                             vec![lhs.clone(), rhs.clone()],
@@ -77,7 +84,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         );
                     }
 
-                    expr::BinaryOp::NotEqual => {
+                    BinaryOp::NotEqual => {
                         if lhs_type != VarType::Continuous && rhs_type != VarType::Continuous {
                             // Use indicator constraints here: `lhs != rhs` is equivalent to:
                             // ```
@@ -128,12 +135,11 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                             return Err(SolveError::Internal {
                                 msg:
                                     "(scip) not equal constraint is not supported for non-integers",
-                                span: empty_span(),
                             });
                         }
                     }
 
-                    expr::BinaryOp::LessThanOrEqual => {
+                    BinaryOp::LessThanOrEqual => {
                         // 0 <= -lhs + rhs <= f64::INFINITY
                         self.model.add_cons(
                             vec![lhs.clone(), rhs.clone()],
@@ -144,7 +150,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         );
                     }
 
-                    expr::BinaryOp::LessThan => {
+                    BinaryOp::LessThan => {
                         if lhs_type != VarType::Continuous && rhs_type != VarType::Continuous {
                             // 1 <= -lhs + rhs <= f64::INFINITY
                             self.model.add_cons(
@@ -157,12 +163,11 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         } else {
                             return Err(SolveError::Internal {
                                 msg: "(scip) strict inequalities not supported for non-integers",
-                                span: empty_span(),
                             });
                         }
                     }
 
-                    expr::BinaryOp::GreaterThanOrEqual => {
+                    BinaryOp::GreaterThanOrEqual => {
                         // 0 <= lhs - rhs <= f64::INFINITY
                         self.model.add_cons(
                             vec![lhs.clone(), rhs.clone()],
@@ -173,7 +178,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         );
                     }
 
-                    expr::BinaryOp::GreaterThan => {
+                    BinaryOp::GreaterThan => {
                         if lhs_type != VarType::Continuous && rhs_type != VarType::Continuous {
                             // 1 <= lhs - rhs <= f64::INFINITY
                             self.model.add_cons(
@@ -186,12 +191,11 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         } else {
                             return Err(SolveError::Internal {
                                 msg: "(scip) strict inequalities not supported for non-integers",
-                                span: empty_span(),
                             });
                         }
                     }
 
-                    expr::BinaryOp::LogicalOr => {
+                    BinaryOp::LogicalOr => {
                         // At least one of the operands should be 1
                         // `1 <= lhs + rhs <= 2`
                         self.model.add_cons(
@@ -206,28 +210,9 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                     _ => {
                         return Err(SolveError::Internal {
                             msg: "(scip) Non-Boolean unary op expressions cannot be constraints",
-                            span: empty_span(),
                         })
                     }
                 }
-            }
-
-            expr::Expr::If { .. }
-            | expr::Expr::FnCall { .. }
-            | expr::Expr::Error(_)
-            | expr::Expr::MacroCall { .. }
-            | expr::Expr::Array { .. }
-            | expr::Expr::ArrayElementAccess { .. }
-            | expr::Expr::Tuple { .. }
-            | expr::Expr::TupleFieldAccess { .. }
-            | expr::Expr::Cast { .. }
-            | expr::Expr::In { .. }
-            | expr::Expr::Range { .. }
-            | expr::Expr::ForAll { .. } => {
-                return Err(SolveError::Internal {
-                    msg: "(scip) unexpected expression in constraint",
-                    span: empty_span(),
-                })
             }
         }
         Ok(())
