@@ -158,12 +158,22 @@ fn scalarize_array_access(
     }
 
     match &array {
-        Expr::PathByName(path, _) => {
-            handle_array_access!(path, &array_sizes[path])
-        }
+        Expr::PathByName(path, _) => match array_sizes.get(path) {
+            Some(size) => handle_array_access!(path, size),
+            None => Err(CompileError::Internal {
+                msg: "Array size not found for given path",
+                span: index_span,
+            }),
+        },
         Expr::PathByKey(path_key, _) => {
             let path = &ii.vars[*path_key].name;
-            handle_array_access!(path, &array_sizes[path])
+            match array_sizes.get(path) {
+                Some(size) => handle_array_access!(path, size),
+                None => Err(CompileError::Internal {
+                    msg: "Array size not found for given path",
+                    span: index_span,
+                }),
+            }
         }
         Expr::ArrayElementAccess {
             array: array_inner,
@@ -172,7 +182,13 @@ fn scalarize_array_access(
         } => {
             let path =
                 scalarize_array_access(ii, key, *array_inner, *index_inner, span, array_sizes)?;
-            handle_array_access!(path, &array_sizes[&path])
+            match &array_sizes.get(&path) {
+                Some(size) => handle_array_access!(path, size),
+                None => Err(CompileError::Internal {
+                    msg: "Array size not found for given path",
+                    span: index_span,
+                }),
+            }
         }
         // Now this does not catch paths that do not represent arrays just yet. That is,
         // you could still index into a variable of type `int` or even a type name. Once we
