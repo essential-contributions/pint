@@ -1893,7 +1893,6 @@ fn out_of_order_decls() {
 solve maximize low;
 constraint low < high;
 let high = 2.0;
-solve satisfy;
 let low = 1.0;
 "#;
 
@@ -1905,8 +1904,7 @@ let low = 1.0;
             constraint (::low < ::high);
             constraint (::high == 2e0);
             constraint (::low == 1e0);
-            solve maximize ::low;
-            solve satisfy;"#]],
+            solve maximize ::low;"#]],
     );
 }
 
