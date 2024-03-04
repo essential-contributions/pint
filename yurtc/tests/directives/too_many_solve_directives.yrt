@@ -1,0 +1,15 @@
+let b = 3;
+let c = 2;
+let b1: int;
+constraint b1 == b + c;
+solve minimize b + c;
+solve satisfy;
+solve maximize b - c;
+
+// parse_failure <<<
+// `solve` item can only appear once
+// @81..94: `solve` item can only appear once
+// `solve` item can only appear once
+// @96..116: `solve` item can only appear once
+// >>>
+

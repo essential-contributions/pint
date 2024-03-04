@@ -38,6 +38,7 @@ mod e2e {
     e2e_test!(arrays);
     e2e_test!(modules);
     e2e_test!(asm);
+    e2e_test!(directives);
 }
 
 fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
