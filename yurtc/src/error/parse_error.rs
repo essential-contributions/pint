@@ -60,7 +60,9 @@ pub enum ParseError {
     #[error("integer literal is too large")]
     IntLiteralTooLarge { span: Span },
     #[error("`solve` item can only appear once")]
-    TooManySolveDirections { span: Span },
+    TooManySolveDirectives { span: Span },
+    #[error("`solve` directive must be placed in the main or top-level file")]
+    SolveDirectiveMustBeTopLevel { span: Span },
 }
 
 impl ReportableError for ParseError {
@@ -211,9 +213,17 @@ impl ReportableError for ParseError {
                     color: Color::Red,
                 }]
             }
-            TooManySolveDirections { span } => {
+            TooManySolveDirectives { span } => {
                 vec![ErrorLabel {
                     message: "`solve` item can only appear once".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+            SolveDirectiveMustBeTopLevel { span } => {
+                vec![ErrorLabel {
+                    message: "`solve` directive must be placed in the main or top-level file"
+                        .to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -315,7 +325,8 @@ impl Spanned for ParseError {
             | BinaryLiteralLength { span, .. }
             | HexLiteralLength { span, .. }
             | IntLiteralTooLarge { span, .. }
-            | TooManySolveDirections { span, .. }
+            | TooManySolveDirectives { span, .. }
+            | SolveDirectiveMustBeTopLevel { span, .. }
             | Lex { span } => span,
 
             InvalidToken => unreachable!("The `InvalidToken` error is always wrapped in `Lex`."),

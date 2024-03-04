@@ -267,7 +267,9 @@ pub ConstraintDecl: () = {
 pub SolveDecl: () = {
     <l:@L> <sd:SolveDeclInner> <r:@R> => {
         if context.ii.directives.len() >= 1 {
-            errors.push(Error::Parse { error: ParseError::TooManySolveDirections { span: (context.span_from)(l, r) }, });
+            errors.push(Error::Parse { error: ParseError::TooManySolveDirectives { span: (context.span_from)(l, r) }, });
+        } else if !context.mod_path.is_empty() {
+            errors.push(Error::Parse { error: ParseError::SolveDirectiveMustBeTopLevel { span: (context.span_from)(l, r) }, });
         } else {
             context
                 .ii

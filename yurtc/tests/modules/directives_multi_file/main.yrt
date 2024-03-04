@@ -1,0 +1,10 @@
+// <no-solve>
+
+let a: int;
+
+constraint a == b::b;
+
+// parse_failure <<<
+// `solve` directive must be placed in the main or top-level file
+// @12..25: `solve` directive must be placed in the main or top-level file
+// >>>
