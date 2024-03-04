@@ -59,6 +59,8 @@ pub enum ParseError {
     HexLiteralLength { digits: usize, span: Span },
     #[error("integer literal is too large")]
     IntLiteralTooLarge { span: Span },
+    #[error("`solve` item can only appear once")]
+    TooManySolveDirections { span: Span },
 }
 
 impl ReportableError for ParseError {
@@ -209,6 +211,13 @@ impl ReportableError for ParseError {
                     color: Color::Red,
                 }]
             }
+            TooManySolveDirections { span } => {
+                vec![ErrorLabel {
+                    message: "`solve` item can only appear once".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
         }
     }
 
@@ -306,6 +315,7 @@ impl Spanned for ParseError {
             | BinaryLiteralLength { span, .. }
             | HexLiteralLength { span, .. }
             | IntLiteralTooLarge { span, .. }
+            | TooManySolveDirections { span, .. }
             | Lex { span } => span,
 
             InvalidToken => unreachable!("The `InvalidToken` error is always wrapped in `Lex`."),

@@ -266,10 +266,14 @@ pub ConstraintDecl: () = {
 
 pub SolveDecl: () = {
     <l:@L> <sd:SolveDeclInner> <r:@R> => {
-        context
-            .ii
-            .directives
-            .push((sd.clone(), (context.span_from)(l, r)));
+        if context.ii.directives.len() >= 1 {
+            errors.push(Error::Parse { error: ParseError::TooManySolveDirections { span: (context.span_from)(l, r) }, });
+        } else {
+            context
+                .ii
+                .directives
+                .push((sd.clone(), (context.span_from)(l, r)));
+        }
     }
 }
 
