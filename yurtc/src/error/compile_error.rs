@@ -101,8 +101,19 @@ pub enum CompileError {
     IfBranchesTypeMismatch { large_err: Box<LargeTypeError> },
     #[error("attempt to access array element from a non-array value")]
     ArrayAccessNonArray { non_array_type: String, span: Span },
-    #[error("attempt to index an array with a non-integer")]
-    ArrayAccessWithNonInt { found_ty: String, span: Span },
+    #[error("attempt to index an array with a mismatched value")]
+    ArrayAccessWithWrongType {
+        found_ty: String,
+        expected_ty: String,
+        span: Span,
+    },
+    #[error("comparison between differently sized arrays")]
+    MismatchedArrayComparisonSizes {
+        op: String,
+        lhs_size: i64,
+        rhs_size: i64,
+        span: Span,
+    },
     #[error("attempt to access tuple field from a non-tuple value")]
     TupleAccessNonTuple { non_tuple_type: String, span: Span },
     #[error("invalid tuple accessor")]
@@ -408,13 +419,25 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            ArrayAccessWithNonInt { span, .. } => {
+            ArrayAccessWithWrongType {
+                expected_ty, span, ..
+            } => {
                 vec![ErrorLabel {
-                    message: "array access must be an int value".to_string(),
+                    message: if expected_ty == "int" {
+                        "array access must be with an int value".to_string()
+                    } else {
+                        format!("array access must be with a `{expected_ty}` variant")
+                    },
                     span: span.clone(),
                     color: Color::Red,
                 }]
             }
+
+            MismatchedArrayComparisonSizes { span, .. } => vec![ErrorLabel {
+                message: "cannot compare arrays of different sizes".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
 
             TupleAccessNonTuple {
                 non_tuple_type,
@@ -581,6 +604,16 @@ impl ReportableError for CompileError {
                 Some("`forall` index bound must be an integer literal".to_string())
             }
 
+            MismatchedArrayComparisonSizes {
+                op,
+                lhs_size,
+                rhs_size,
+                ..
+            } => Some(format!(
+                "the left-hand side argument of the `{op}` operator has {lhs_size} \
+                    elements while the right-hand side argument has {rhs_size} elements"
+            )),
+
             InvalidTupleAccessor { tuple_type, .. } => {
                 Some(format!("tuple has type `{tuple_type}`"))
             }
@@ -589,7 +622,7 @@ impl ReportableError for CompileError {
                 Some(format!("expecting array element type `{expected_ty}`"))
             }
 
-            ArrayAccessWithNonInt { found_ty, .. } => {
+            ArrayAccessWithWrongType { found_ty, .. } => {
                 Some(format!("found access using type `{found_ty}`"))
             }
 
@@ -701,7 +734,8 @@ impl Spanned for CompileError {
             | UnknownType { span }
             | IfCondTypeNotBool(span)
             | ArrayAccessNonArray { span, .. }
-            | ArrayAccessWithNonInt { span, .. }
+            | ArrayAccessWithWrongType { span, .. }
+            | MismatchedArrayComparisonSizes { span, .. }
             | TupleAccessNonTuple { span, .. }
             | InvalidTupleAccessor { span, .. }
             | EmptyArrayExpression { span }

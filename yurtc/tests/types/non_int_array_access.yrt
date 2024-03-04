@@ -11,7 +11,7 @@ solve satisfy;
 // >>>
 
 // typecheck_failure <<<
-// attempt to index an array with a non-integer
-// @33..38: array access must be an int value
+// attempt to index an array with a mismatched value
+// @33..38: array access must be with an int value
 // found access using type `bool`
 // >>>

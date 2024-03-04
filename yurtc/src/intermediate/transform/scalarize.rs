@@ -3,13 +3,198 @@ use crate::{
     expr::{BinaryOp, Immediate, TupleAccess},
     intermediate::{Expr, ExprKey, IntermediateIntent, Var, VarKey},
     span::{empty_span, Span, Spanned},
-    types::{Path, PrimitiveKind, Type},
+    types::{PrimitiveKind, Type},
 };
 use std::collections::{BTreeMap, HashMap};
 
+macro_rules! iterate {
+    ($continue_expr: expr, $msg: literal, $modified: ident) => {
+        for loop_check in 0.. {
+            if !$continue_expr {
+                break;
+            }
+
+            $modified = true;
+
+            if loop_check > 10_000 {
+                return Err(CompileError::Internal {
+                    msg: concat!("infinite loop in ", $msg),
+                    span: empty_span(),
+                });
+            }
+        }
+    };
+
+    ($continue_expr: expr, $msg: literal) => {
+        let mut _modified = false;
+        iterate!($continue_expr, $msg, _modified);
+    };
+}
+
 pub(crate) fn scalarize(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
-    scalarize_arrays(ii)?;
-    scalarize_tuples(ii)?;
+    // Before we start, make sure all the array types have their sizes determined.
+    fix_array_sizes(ii)?;
+
+    iterate!(
+        {
+            let mut modified = false;
+            modified |= scalarize_arrays(ii)?;
+            modified |= scalarize_tuples(ii)?;
+            modified
+        },
+        "scalarize()"
+    );
+
+    Ok(())
+}
+
+/// Scalarize arrays by converting each array of size `n` into `n` new decision variable that
+/// represent the individual elements of the array. The names of the individual elements are chosen
+/// to be `<array-name>[<index>]..[<index>]`.
+///
+/// For example, consider the following:
+///
+/// ```yurt
+/// let a: int[3];
+///
+/// constraint a[2] == 3;
+/// ```
+///
+/// this becomes
+///
+/// ```yurt
+/// let a[0]: int;
+/// let a[1]: int;
+/// let a[2]: int;
+///
+/// constraint a[2] == 3; // here, `a[2]` is an `Expr::PathByName( .. )`
+/// ```
+///
+/// The above is not valid Yurt, of course, because the square brackets are not allowed in
+/// identifiers, but internally, this is fine and helps make the lookup quite easy.
+fn scalarize_arrays(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
+    let mut modified = false;
+
+    // Convert all comparisons (via `==` or `!=`) of arrays to element-by-element comparisons.
+    iterate!(
+        lower_array_compares(ii)?,
+        "lower_array_compares()",
+        modified
+    );
+
+    // Scalarize arrays one at a time.
+    iterate!(scalarize_array(ii)?, "scalarize_array()", modified);
+
+    Ok(modified)
+}
+
+fn fix_array_sizes(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
+    // Given a variable with an array type of unknown size and a range expression, determine the
+    // array size and return a new array type.
+    fn fix_array_size(
+        ii: &mut IntermediateIntent,
+        mut el_ty: Type,
+        range_expr_key: ExprKey,
+        array_ty_span: Span,
+    ) -> Result<Type, CompileError> {
+        if !(el_ty.is_array() || el_ty.is_int() || el_ty.is_real() || el_ty.is_bool()) {
+            // Eventually, this will go away. Hence why it's an internal error for the time being.
+            return Err(CompileError::Internal {
+                msg: "only arrays of ints, reals, and bools are currently supported",
+                span: empty_span(),
+            });
+        }
+
+        // We have a nested array.  We need to fix its size first (if necessary) so that we can use
+        // the new element type in the parent array.
+        if el_ty.is_array() {
+            let Some((inner_el_ty, inner_range_key, inner_size, inner_span)) =
+                get_array_params(&el_ty)
+            else {
+                return Err(CompileError::Internal {
+                    msg: "failed to get params for type we know is an array?",
+                    span: el_ty.span().clone(),
+                });
+            };
+
+            if inner_size.is_none() {
+                el_ty = fix_array_size(
+                    ii,
+                    inner_el_ty.clone(),
+                    *inner_range_key,
+                    inner_span.clone(),
+                )?;
+            }
+        }
+
+        let range_expr = ii
+            .exprs
+            .get(range_expr_key)
+            .expect("expr key guaranteed to exist");
+
+        if let Expr::PathByName(path, _) = range_expr {
+            // It's hopefully an enum for the range expression.
+            if let Some(val) = ii.enums.iter().find_map(|enum_decl| {
+                (&enum_decl.name.name == path).then_some(enum_decl.variants.len() as i64)
+            }) {
+                Ok(Type::Array {
+                    ty: Box::new(el_ty),
+                    range: range_expr_key,
+                    size: Some(val),
+                    span: array_ty_span,
+                })
+            } else {
+                Err(CompileError::NonConstArrayLength {
+                    span: range_expr.span().clone(),
+                })
+            }
+        } else {
+            match range_expr.evaluate(ii, &HashMap::new()) {
+                Ok(Immediate::Int(val)) if val > 0 => Ok(Type::Array {
+                    ty: Box::new(el_ty),
+                    range: range_expr_key,
+                    size: Some(val),
+                    span: array_ty_span,
+                }),
+                Ok(_) => Err(CompileError::InvalidConstArrayLength {
+                    span: range_expr.span().clone(),
+                }),
+                _ => Err(CompileError::NonConstArrayLength {
+                    span: range_expr.span().clone(),
+                }),
+            }
+        }
+    }
+
+    // Find all the vars or exprs (depending on how this macro is called) which are have array
+    // types which are not yet fixed.  Save the var or expr key, the element type and the range
+    // expression and then determine the size and save it back.
+
+    macro_rules! update_types {
+        ($iter: expr, $key_ty: ty, $types_map: expr) => {
+            let candidates: Vec<($key_ty, Type, ExprKey, Span)> = $iter
+                .filter_map(|(key, _)| {
+                    $types_map
+                        .get(key)
+                        .and_then(get_array_params)
+                        .and_then(|(el_ty, range, size, span)| {
+                            // Only collect if size is None.
+                            (size.is_none()).then(|| (key, el_ty.clone(), *range, span.clone()))
+                        })
+                })
+                .collect();
+
+            for (key, el_ty, range_expr_key, array_ty_span) in candidates {
+                let fixed_ty = fix_array_size(ii, el_ty, range_expr_key, array_ty_span)?;
+                if let Some(old_ty) = $types_map.get_mut(key) {
+                    *old_ty = fixed_ty;
+                }
+            }
+        };
+    }
+
+    update_types!(ii.vars.iter(), VarKey, ii.var_types);
+    update_types!(ii.exprs.iter(), ExprKey, ii.expr_types);
 
     Ok(())
 }
@@ -38,70 +223,55 @@ pub(crate) fn scalarize(ii: &mut IntermediateIntent) -> Result<(), CompileError>
 ///
 /// The above is not valid Yurt, of course, because the square brackets are not allowed in
 /// identifiers, but internally, this is fine and helps make the lookup quite easy.
-fn scalarize_array(
-    ii: &mut IntermediateIntent,
-    key: VarKey,
-    name: &String,
-    ty: &Type,
-    range: ExprKey,
-    span: &Span,
-    array_sizes: &mut HashMap<String, i64>,
-) -> Result<(), CompileError> {
-    match ty {
-        Type::Array { .. }
-        | Type::Primitive {
-            kind: PrimitiveKind::Int | PrimitiveKind::Real | PrimitiveKind::Bool,
-            ..
-        } => {
-            let range = ii.exprs.get(range).expect("expr key guaranteed to exist");
-            match range.evaluate(ii, &HashMap::new()) {
-                Ok(Immediate::Int(val)) if val > 0 => {
-                    array_sizes.insert(name.clone(), val);
-                    for i in 0..val {
-                        let new_var = Var {
-                            name: format!("{name}[{i}]"),
-                            span: span.clone(),
-                        };
-                        let new_var_key = ii.vars.insert(new_var.clone());
-                        ii.var_types.insert(new_var_key, ty.clone());
-
-                        // Recurse for arrays of arrays
-                        if let Type::Array {
-                            ty: inner_ty,
-                            range: inner_range,
-                            ..
-                        } = ty
-                        {
-                            scalarize_array(
-                                ii,
-                                new_var_key,
-                                &new_var.name,
-                                inner_ty,
-                                *inner_range,
-                                span,
-                                array_sizes,
-                            )?;
-                        }
-                    }
-                    ii.vars.remove(key);
-                    Ok(())
-                }
-                Ok(_) => Err(CompileError::InvalidConstArrayLength {
-                    span: range.span().clone(),
-                }),
-                _ => Err(CompileError::NonConstArrayLength {
-                    span: range.span().clone(),
-                }),
-            }
-        }
-        _ => {
-            // Eventually, this will go away. Hence why it's an internal error for the time being
-            Err(CompileError::Internal {
-                msg: "only arrays of ints, reals, and bools are currently supported",
-                span: empty_span(),
+fn scalarize_array(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
+    // Find the next array variable to convert.
+    let Some((array_var_key, el_ty, array_size, span)) =
+        ii.var_types.iter().find_map(|(var_key, var_ty)| {
+            get_array_params(var_ty).map(|(el_ty, _range, array_size, span)| {
+                (var_key, el_ty.clone(), *array_size, span.clone())
             })
-        }
-    }
+        })
+    else {
+        // No array vars found.
+        return Ok(false);
+    };
+
+    let array_size = array_size.ok_or_else(|| CompileError::Internal {
+        msg: "non-fixed array size found in scalarize_array()",
+        span: span.clone(),
+    })?;
+
+    let array_name = ii
+        .vars
+        .get(array_var_key)
+        .map(|var| var.name.clone())
+        .ok_or_else(|| CompileError::Internal {
+            msg: "missing name for array variable in scalarize_array()",
+            span: span.clone(),
+        })?;
+
+    // Convert decision variables that are arrays into `n` new decision variables that represent
+    // the individual elements of the array, where `n` is the length of the array.
+    let new_var_keys = (0..array_size)
+        .map(|idx| {
+            let new_var = Var {
+                name: format!("{array_name}[{idx}]"),
+                span: span.clone(),
+            };
+            let new_var_key = ii.vars.insert(new_var);
+            ii.var_types.insert(new_var_key, el_ty.clone());
+            new_var_key
+        })
+        .collect::<Vec<_>>();
+
+    // Change each array element access into its scalarized variable.
+    scalarize_array_access(ii, &array_name, array_var_key, array_size, &new_var_keys)?;
+
+    // Remove the old array variable.
+    ii.vars.remove(array_var_key);
+    ii.var_types.remove(array_var_key);
+
+    Ok(true)
 }
 
 /// Scalarize an array access by converting it to a simple path expression that looks like
@@ -123,150 +293,223 @@ fn scalarize_array(
 /// scalarize_array(..)`
 fn scalarize_array_access(
     ii: &mut IntermediateIntent,
-    key: ExprKey,
-    array: ExprKey,
-    index: ExprKey,
-    span: &Span,
-    array_sizes: &HashMap<String, i64>,
-) -> Result<Path, CompileError> {
-    let index = ii.exprs.get(index).expect("expr key guaranteed to exist");
-    let index_value = index.evaluate(ii, &HashMap::new());
-    let index_span = index.span().clone();
-    let array = ii.exprs.get(array).expect("expr key guaranteed to exist");
-    macro_rules! handle_array_access {
-        ($path: expr, $size: expr) => {{
-            // Try to evaluate the index using compile-time evaluation
-            // Index must be a non-negative integer
-            match &index_value {
-                Ok(Immediate::Int(val)) if *val >= 0 => {
-                    let path = format!("{}[{val}]", $path);
-
-                    if val >= $size {
-                        return Err(CompileError::ArrayIndexOutOfBounds { span: index_span });
+    array_var_name: &String,
+    array_var_key: VarKey,
+    array_size: i64,
+    new_array_var_keys: &[VarKey],
+) -> Result<(), CompileError> {
+    // Gather all accesses into this specific array.
+    let accesses: Vec<(ExprKey, ExprKey, Span)> = ii
+        .exprs
+        .iter()
+        .filter_map(|(expr_key, expr)| {
+            if let Expr::ArrayElementAccess { array, index, span } = expr {
+                match ii.exprs.get(*array).expect("expr key guaranteed to exist") {
+                    Expr::PathByName(path, _) if path == array_var_name => {
+                        Some((expr_key, *index, span.clone()))
                     }
 
-                    *ii.exprs
-                        .get_mut(key)
-                        .expect("key guaranteed to exist in the map!") =
-                        Expr::PathByName(path.clone(), span.clone());
-                    Ok(path)
+                    Expr::PathByKey(path_var_key, _) if *path_var_key == array_var_key => {
+                        Some((expr_key, *index, span.clone()))
+                    }
+
+                    _ => None,
                 }
-                Ok(_) => Err(CompileError::InvalidConstArrayIndex { span: index_span }),
-                _ => Err(CompileError::NonConstArrayIndex { span: index_span }),
-            }
-        }};
-    }
-
-    match &array {
-        Expr::PathByName(path, _) => match array_sizes.get(path) {
-            Some(size) => handle_array_access!(path, size),
-            None => Err(CompileError::Internal {
-                msg: "Array size not found for given path",
-                span: index_span,
-            }),
-        },
-        Expr::PathByKey(path_key, _) => {
-            let path = &ii.vars[*path_key].name;
-            match array_sizes.get(path) {
-                Some(size) => handle_array_access!(path, size),
-                None => Err(CompileError::Internal {
-                    msg: "Array size not found for given path",
-                    span: index_span,
-                }),
-            }
-        }
-        Expr::ArrayElementAccess {
-            array: array_inner,
-            index: index_inner,
-            ..
-        } => {
-            let path =
-                scalarize_array_access(ii, key, *array_inner, *index_inner, span, array_sizes)?;
-            match &array_sizes.get(&path) {
-                Some(size) => handle_array_access!(path, size),
-                None => Err(CompileError::Internal {
-                    msg: "Array size not found for given path",
-                    span: index_span,
-                }),
-            }
-        }
-        // Now this does not catch paths that do not represent arrays just yet. That is,
-        // you could still index into a variable of type `int` or even a type name. Once we
-        // have a type checker and expressions hold types, then we can improve this check.
-        _ => Err(CompileError::CannotIndexIntoValue {
-            span: array.span().clone(),
-            index_span: index.span().clone(),
-        }),
-    }
-}
-
-/// Scalarize arrays by converting each array of size `n` into `n` new decision variable that
-/// represent the individual elements of the array. The names of the individual elements are chosen
-/// to be `<array-name>[<index>]..[<index>]`.
-///
-/// For example, consider the following:
-///
-/// ```yurt
-/// let a: int[3];
-///
-/// constraint a[2] == 3;
-/// ```
-///
-/// this becomes
-///
-/// ```yurt
-/// let a[0]: int;
-/// let a[1]: int;
-/// let a[2]: int;
-///
-/// constraint a[2] == 3; // here, `a[2]` is an `Expr::PathByName( .. )`
-/// ```
-///
-/// The above is not valid Yurt, of course, because the square brackets are not allowed in
-/// identifiers, but internally, this is fine and helps make the lookup quite easy.
-fn scalarize_arrays(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
-    fn get_array_params(ary_ty: &Type) -> Option<(Type, ExprKey, Span)> {
-        match ary_ty {
-            Type::Alias { ty, .. } => get_array_params(ty),
-            Type::Array { ty, range, span } => Some((*ty.clone(), *range, span.clone())),
-            _ => None,
-        }
-    }
-
-    let mut array_sizes: HashMap<String, i64> = HashMap::new();
-
-    // First, convert decision variables that are arrays into `n` new decision variables that
-    // represent the individual elements of the array, where `n` is the length of the array
-    ii.vars
-        .iter()
-        .filter_map(|(key, var)| {
-            // Only collect arrays
-            ii.var_types.get(key).and_then(|var_ty| {
-                get_array_params(var_ty).map(|ary_params| (key, var.name.clone(), ary_params))
-            })
-        })
-        .collect::<Vec<_>>()
-        .iter()
-        .try_for_each(|(key, name, (ty, range, span))| {
-            scalarize_array(ii, *key, name, ty, *range, span, &mut array_sizes)
-        })?;
-
-    // Next, change each array element access into its scalarized variable
-    ii.exprs
-        .iter()
-        .filter_map(|(key, expr)| {
-            // Only collect array element accesses
-            if let Expr::ArrayElementAccess { array, index, span } = expr {
-                Some((key, *array, *index, span.clone()))
             } else {
                 None
             }
         })
-        .collect::<Vec<_>>()
+        .collect();
+
+    for (array_access_key, index_key, span) in accesses {
+        let index_expr = ii
+            .exprs
+            .get(index_key)
+            .expect("expr key guaranteed to exist");
+        let index_span = index_expr.span().clone();
+        let index_value = index_expr.evaluate(ii, &HashMap::new()).map_err(|_| {
+            CompileError::NonConstArrayIndex {
+                span: index_span.clone(),
+            }
+        })?;
+
+        // Index must be an integer in range.
+        match index_value {
+            Immediate::Int(imm_val) => {
+                if imm_val < 0 || imm_val >= array_size {
+                    return Err(CompileError::ArrayIndexOutOfBounds { span: index_span });
+                }
+
+                let new_access_key = ii.exprs.insert(Expr::PathByKey(
+                    new_array_var_keys[imm_val as usize],
+                    span.clone(),
+                ));
+
+                ii.replace_exprs(array_access_key, new_access_key);
+                ii.exprs.remove(array_access_key);
+                ii.expr_types.remove(array_access_key);
+            }
+
+            _ => {
+                return Err(CompileError::InvalidConstArrayIndex { span: index_span });
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn get_array_params(ary_ty: &Type) -> Option<(&Type, &ExprKey, &Option<i64>, &Span)> {
+    match ary_ty {
+        Type::Alias { ty, .. } => get_array_params(ty),
+        Type::Array {
+            ty,
+            range,
+            size,
+            span,
+        } => Some((ty, range, size, span)),
+        _ => None,
+    }
+}
+
+fn lower_array_compares(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
+    // Find comparisons between arrays and save the op details.
+    let array_compare_ops = ii
+        .exprs
         .iter()
-        .try_for_each(|(key, array, index, span)| {
-            scalarize_array_access(ii, *key, *array, *index, span, &array_sizes).map(|_| ())
+        .filter_map(|(key, expr)| match expr {
+            Expr::BinaryOp { op, lhs, rhs, span }
+                if (*op == BinaryOp::Equal || *op == BinaryOp::NotEqual) =>
+            {
+                ii.expr_types.get(*lhs).and_then(get_array_params).and_then(
+                    |(lhs_el_ty, _, lhs_opt_size, _)| {
+                        ii.expr_types.get(*rhs).and_then(get_array_params).map(
+                            |(_rhs_el_ty, _, rhs_opt_size, _)| {
+                                // Save all the details.
+                                (
+                                    key,
+                                    *op,
+                                    *lhs,
+                                    *lhs_opt_size,
+                                    *rhs,
+                                    *rhs_opt_size,
+                                    lhs_el_ty.clone(),
+                                    span.clone(),
+                                )
+                            },
+                        )
+                    },
+                )
+            }
+            _ => None,
         })
+        .collect::<Vec<_>>();
+
+    if array_compare_ops.is_empty() {
+        return Ok(false);
+    }
+
+    let get_array_size = |array_ty: &Option<i64>| {
+        array_ty.ok_or_else(|| CompileError::Internal {
+            msg: "array type in missing its size in lower_array_compares()",
+            span: empty_span(),
+        })
+    };
+
+    for (op_expr_key, op, lhs_array_key, lhs_opt_size, rhs_array_key, rhs_opt_size, el_ty, span) in
+        array_compare_ops
+    {
+        let lhs_size = get_array_size(&lhs_opt_size)?;
+        let rhs_size = get_array_size(&rhs_opt_size)?;
+
+        if lhs_size != rhs_size {
+            // This *should* be done by the type checker but we currently only evaluate the ranges
+            // within those types as the first step in scalarisation, not at type check time.  This
+            // may change in the future.
+            return Err(CompileError::MismatchedArrayComparisonSizes {
+                op: op.to_string(),
+                lhs_size,
+                rhs_size,
+                span,
+            });
+        }
+
+        // Pair up each element with an individual `op` operation and then chain them together
+        // with a series of `&&` operations.  Twice we collect into a temporary Vec to avoid
+        // borrowing problems with `ii.exprs`.
+        let and_chain_expr_key = (0..lhs_size)
+            .map(|idx| {
+                let imm_idx_key = ii.exprs.insert(Expr::Immediate {
+                    value: Immediate::Int(idx),
+                    span: empty_span(),
+                });
+
+                ii.expr_types.insert(
+                    imm_idx_key,
+                    Type::Primitive {
+                        kind: PrimitiveKind::Int,
+                        span: span.clone(),
+                    },
+                );
+
+                let lhs_access_expr_key = ii.exprs.insert(Expr::ArrayElementAccess {
+                    array: lhs_array_key,
+                    index: imm_idx_key,
+                    span: span.clone(),
+                });
+
+                let rhs_access_expr_key = ii.exprs.insert(Expr::ArrayElementAccess {
+                    array: rhs_array_key,
+                    index: imm_idx_key,
+                    span: span.clone(),
+                });
+
+                ii.expr_types.insert(lhs_access_expr_key, el_ty.clone());
+                ii.expr_types.insert(rhs_access_expr_key, el_ty.clone());
+
+                ii.exprs.insert(Expr::BinaryOp {
+                    op,
+                    lhs: lhs_access_expr_key,
+                    rhs: rhs_access_expr_key,
+                    span: span.clone(),
+                })
+            })
+            .collect::<Vec<_>>()
+            .into_iter()
+            .reduce(|acc, cmp_op_key| {
+                let and_op_key = ii.exprs.insert(Expr::BinaryOp {
+                    op: BinaryOp::LogicalAnd,
+                    lhs: acc,
+                    rhs: cmp_op_key,
+                    span: span.clone(),
+                });
+
+                ii.expr_types.insert(
+                    and_op_key,
+                    Type::Primitive {
+                        kind: PrimitiveKind::Bool,
+                        span: span.clone(),
+                    },
+                );
+
+                and_op_key
+            })
+            .expect("there must be 1 or more array elements");
+
+        ii.expr_types.insert(
+            and_chain_expr_key,
+            Type::Primitive {
+                kind: PrimitiveKind::Bool,
+                span: span.clone(),
+            },
+        );
+
+        ii.replace_exprs(op_expr_key, and_chain_expr_key);
+        ii.exprs.remove(op_expr_key);
+        ii.expr_types.remove(op_expr_key);
+    }
+
+    Ok(true)
 }
 
 /// Scalarize tuples by extracting the tuple fields out into their own decision variables.  The
@@ -290,44 +533,35 @@ fn scalarize_arrays(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
 /// constraint a.x < 11;    // `a.x` is now a path expr, an illegal identifier usually.
 ///
 /// ```
-fn scalarize_tuples(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
-    macro_rules! iterate {
-        ($continue_expr: expr, $msg: literal) => {
-            for loop_check in 0.. {
-                if !$continue_expr {
-                    break;
-                }
-
-                if loop_check > 10_000 {
-                    return Err(CompileError::Internal {
-                        msg: concat!("infinite loop in ", $msg),
-                        span: empty_span(),
-                    });
-                }
-            }
-        };
-    }
-
+fn scalarize_tuples(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
     // First we need to lower any aggregate comparisons.  It is valid to use `==` or `!=` to
     // compare whole tuples, but we must split these comparisons into field-by-field ops before we
     // scalarise.
-    //
+
+    let mut modified = false;
+
     // Do it in a loop so we can lower nested tuples.  I.e., we might create a new field-by-field
     // comparison between inner tuples and so they need to be lowered too.
-    iterate!(lower_tuple_compares(ii)?, "lower_tuple_compares()");
+    iterate!(
+        lower_tuple_compares(ii)?,
+        "lower_tuple_compares()",
+        modified
+    );
 
     // Split all tuple vars into their fields.  We accumulate a set of var_keys which need to be
     // removed once we're done.
     let mut old_tuple_vars = Vec::new();
     iterate!(
         split_tuple_vars(ii, &mut old_tuple_vars)?,
-        "split_tuple_vars()"
+        "split_tuple_vars()",
+        modified
     );
     for var_key in old_tuple_vars {
         ii.vars.remove(var_key);
+        ii.var_types.remove(var_key);
     }
 
-    Ok(())
+    Ok(modified)
 }
 
 fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
@@ -464,6 +698,7 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, CompileErro
 
         ii.replace_exprs(expr_key, and_chain_expr_key);
         ii.exprs.remove(expr_key);
+        ii.expr_types.remove(expr_key);
     }
 
     Ok(modified)
@@ -517,13 +752,13 @@ fn split_tuple_vars(
             name: opt_sym_name.as_ref().unwrap_or(&idx_name).clone(),
             span,
         });
-        ii.var_types.insert(new_var_key, field_ty);
+        ii.var_types.insert(new_var_key, field_ty.clone());
 
         // Add both names to this map so we cover both potential uses below.
-        new_tuple_vars.insert(idx_name, new_var_key);
         if let Some(sym_name) = opt_sym_name {
-            new_tuple_vars.insert(sym_name, new_var_key);
+            new_tuple_vars.insert(sym_name, (new_var_key, field_ty.clone()));
         }
+        new_tuple_vars.insert(idx_name, (new_var_key, field_ty));
     }
 
     let mut new_accesses = Vec::new();
@@ -541,10 +776,17 @@ fn split_tuple_vars(
 
                 let access_name = tuple_name + "." + &field_name;
 
-                if let Some(new_tuple_var_key) = new_tuple_vars.get(&access_name) {
+                if let Some((new_tuple_var_key, new_tuple_var_ty)) =
+                    new_tuple_vars.get(&access_name)
+                {
                     // We've matched this tuple field access with one of the new split vars we
                     // created above.  Mark this expr to be replaced.
-                    new_accesses.push((expr_key, *new_tuple_var_key, span.clone()));
+                    new_accesses.push((
+                        expr_key,
+                        *new_tuple_var_key,
+                        new_tuple_var_ty,
+                        span.clone(),
+                    ));
                 }
             };
 
@@ -563,9 +805,13 @@ fn split_tuple_vars(
     }
 
     // Replace all the old tuple accesses with new PathByKey exprs.
-    for (old_expr_key, new_var_key, span) in new_accesses {
+    for (old_expr_key, new_var_key, new_tuple_var_ty, span) in new_accesses {
         let new_expr_key = ii.exprs.insert(Expr::PathByKey(new_var_key, span));
+        ii.expr_types.insert(new_expr_key, new_tuple_var_ty.clone());
+
         ii.replace_exprs(old_expr_key, new_expr_key);
+        ii.exprs.remove(old_expr_key);
+        ii.expr_types.remove(old_expr_key);
     }
 
     Ok(true)

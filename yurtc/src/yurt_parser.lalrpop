@@ -262,7 +262,7 @@ pub ConstraintDecl: () = {
 
 pub SolveDecl: () = {
     <l:@L> <sd:SolveDeclInner> <r:@R> => {
-        if let Some((_, prev_span)) = context.ii.directives.get(0) {
+        if let Some((_, prev_span)) = context.ii.directives.first() {
             errors.push(Error::Parse {
                 error: ParseError::TooManySolveDirectives {
                     span: (context.span_from)(l, r),
@@ -409,6 +409,7 @@ ArrayType: Type = {
         ranges.iter().rev().fold(ty, |acc, range| Type::Array {
             ty: Box::new(acc),
             range: *range,
+            size: None,
             span: (context.span_from)(l, r),
         })
     },

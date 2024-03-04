@@ -27,6 +27,7 @@ pub enum Type {
     Array {
         ty: Box<Self>,
         range: ExprKey,
+        size: Option<i64>,
         span: Span,
     },
     Tuple {
@@ -120,10 +121,24 @@ impl Type {
         check_alias!(self, is_tuple, matches!(self, Type::Tuple { .. }))
     }
 
+    pub fn is_array(&self) -> bool {
+        check_alias!(self, is_array, matches!(self, Type::Array { .. }))
+    }
+
     pub fn get_array_el_type(&self) -> Option<&Type> {
         check_alias!(self, get_array_el_type, {
             if let Type::Array { ty, .. } = self {
                 Some(ty)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn get_array_range_expr(&self) -> Option<ExprKey> {
+        check_alias!(self, get_array_range_expr, {
+            if let Type::Array { range, .. } = self {
+                Some(*range)
             } else {
                 None
             }

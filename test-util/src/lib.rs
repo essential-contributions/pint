@@ -149,7 +149,11 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
         // Match a close tag.
         if close_sect_re.is_match(&line) {
             // We must have already opened a section.
-            assert!(cur_section != Section::None);
+            assert!(
+                cur_section != Section::None,
+                "Unmatched section closing tag found. \
+                    There's probably a typo in the section open tag."
+            );
 
             // Gather the section lines into a single string.
             let section_str = section_lines.join("\n");

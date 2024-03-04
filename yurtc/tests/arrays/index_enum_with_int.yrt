@@ -1,0 +1,19 @@
+enum Num = Zero | One | Two | Three;
+let ary: int[Num];
+
+constraint ary[1] == 1;
+
+solve satisfy;
+
+// intermediate <<<
+// var ::ary: int[::Num];
+// enum ::Num = Zero | One | Two | Three;
+// constraint (::ary[1] == 1);
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// attempt to index an array with a mismatched value
+// @72..73: array access must be with a `::Num` variant
+// found access using type `int`
+// >>>
