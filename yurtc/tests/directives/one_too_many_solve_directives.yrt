@@ -9,4 +9,3 @@ solve maximize b - c;
 // `solve` item can only appear once
 // @74..94: `solve` item can only appear once
 // >>>
-
