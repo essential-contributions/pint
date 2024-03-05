@@ -1,39 +1,31 @@
 use crate::{
     error::SolveError,
-    expr,
-    intermediate::{ExprKey, SolveFunc, VarKey},
-    span::empty_span,
-    types::{PrimitiveKind, Type},
+    flatyurt::{BinaryOp, Expr, Immediate, Solve, Type, UnaryOp, Var},
 };
 use russcip::{prelude::*, ProblemCreated, Variable};
 use std::rc::Rc;
 
+// These are the default bounds chosen for all variable, except for bools. We can do better with
+// some data flow analysis.
+const DEFAULT_LB: f64 = -f64::INFINITY;
+const DEFAULT_UB: f64 = f64::INFINITY;
+
 impl<'a> super::Solver<'a, ProblemCreated> {
-    pub(super) fn convert_variable(&mut self, variable: &VarKey) -> Result<(), SolveError> {
-        let ty = &self.intent.var_types[*variable];
-        let name = &self.intent.vars[*variable].name;
+    pub(super) fn convert_variable(&mut self, var: &Var) {
+        let ty = &var.ty;
+        let name = &var.name;
+
         self.model.add_var(
             /* Bounds */
-            if ty.is_bool() { 0. } else { -f64::INFINITY }, // TODO: We can do better with a proper static analysis
-            if ty.is_bool() { 1. } else { f64::INFINITY }, // TODO: We can do better with a proper static analysis
+            if ty == &Type::Bool { 0. } else { DEFAULT_LB },
+            if ty == &Type::Bool { 1. } else { DEFAULT_UB },
             /* Objective coefficient */
-            //
-            // Assume that the objective function is previously converted into a single path. Now,
-            // Set the coefficient to 1 for this variable if it matches that path.
-            match &self.intent.directives[0].0 {
-                SolveFunc::Satisfy => 0.,
-                SolveFunc::Minimize(expr) | SolveFunc::Maximize(expr) => {
-                    if match &self.intent.exprs[*expr] {
-                        expr::Expr::PathByName(path, _) => path,
-                        expr::Expr::PathByKey(var_key, _) => &self.intent.vars[*var_key].name,
-                        _ => {
-                            return Err(SolveError::Internal {
-                                msg: "(scip) objective function must have been converted to a path",
-                                span: empty_span(),
-                            })
-                        }
-                    } == name
-                    {
+            // Set the coefficient to 1 for this variable if it matches that name indicated in the
+            // solve directive
+            match &self.flatyurt.solve {
+                Solve::Satisfy => 0.,
+                Solve::Minimize(name) | Solve::Maximize(name) => {
+                    if var.name == *name {
                         1.
                     } else {
                         0.
@@ -44,74 +36,45 @@ impl<'a> super::Solver<'a, ProblemCreated> {
             &name.clone(),
             /* Variable type */
             match ty {
-                Type::Primitive {
-                    kind: PrimitiveKind::Bool,
-                    ..
-                } => VarType::Binary,
-                Type::Primitive {
-                    kind: PrimitiveKind::Int,
-                    ..
-                } => VarType::Integer,
-                Type::Primitive {
-                    kind: PrimitiveKind::Real,
-                    ..
-                } => VarType::Continuous,
-                Type::Primitive { .. }
-                | Type::Alias { .. }
-                | Type::Error(_)
-                | Type::Array { .. }
-                | Type::Tuple { .. }
-                | Type::Custom { .. } => {
-                    return Err(SolveError::Internal {
-                        msg: "(scip) other types are not supported",
-                        span: empty_span(),
-                    })
-                }
+                Type::Bool => VarType::Binary,
+                Type::Int => VarType::Integer,
+                Type::Real => VarType::Continuous,
             },
         );
-        Ok(())
     }
 
-    /// Converts an `intent::Expression` to an `Rc<Variable>`. Works recursively, converting
+    /// Converts an `flatyurt::Expr` to an `Rc<Variable>`. Works recursively, converting
     /// sub-expressions as needed.
-    pub(super) fn expr_to_var(&mut self, expr: &ExprKey) -> Result<Rc<Variable>, SolveError> {
-        match self.intent.exprs[*expr].clone() {
-            expr::Expr::Immediate { value, .. } => match value {
-                expr::Immediate::Real(val) => {
+    pub(super) fn expr_to_var(&mut self, expr: &Expr) -> Result<Rc<Variable>, SolveError> {
+        match expr {
+            Expr::Immediate(value) => match value {
+                Immediate::Real(val) => {
                     let new_var_name = self.new_var_name();
                     Ok(self
                         .model
-                        .add_var(val, val, 0., &new_var_name, VarType::Continuous))
+                        .add_var(*val, *val, 0., &new_var_name, VarType::Continuous))
                 }
-                expr::Immediate::Int(val) => {
+                Immediate::Int(val) => {
                     let new_var_name = self.new_var_name();
                     Ok(self.model.add_var(
-                        val as f64,
-                        val as f64,
+                        *val as f64,
+                        *val as f64,
                         0.,
                         &new_var_name,
                         VarType::Integer,
                     ))
                 }
-                expr::Immediate::Bool(val) => {
+                Immediate::Bool(val) => {
                     let new_var_name = self.new_var_name();
-                    let val = if val { 1. } else { 0. };
+                    let val = if *val { 1. } else { 0. };
                     Ok(self
                         .model
                         .add_var(val, val, 0., &new_var_name, VarType::Integer))
                 }
-                expr::Immediate::String(_) => Err(SolveError::Internal {
-                    msg: "(scip) strings are not yet currently supported",
-                    span: empty_span(),
-                }),
-                expr::Immediate::B256(_) | expr::Immediate::Error => Err(SolveError::Internal {
-                    msg: "(scip) Big integers are not yet supported",
-                    span: empty_span(),
-                }),
             },
 
-            expr::Expr::PathByName(path, _) => {
-                if let Some(var) = self.model.vars().iter().find(|v| v.name() == path) {
+            Expr::Path(path) => {
+                if let Some(var) = self.model.vars().iter().find(|v| v.name() == *path) {
                     Ok(var.clone())
                 } else {
                     // If not found, then it's possible that the path starts with `!` and the
@@ -126,10 +89,9 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         .model
                         .vars()
                         .iter()
-                        .find(|v| "!".to_owned() + &v.name() == path)
+                        .find(|v| "!".to_owned() + &v.name() == *path)
                         .ok_or(SolveError::Internal {
                             msg: "(scip) cannot find variable for path expression",
-                            span: empty_span(),
                         })
                         .cloned()?;
 
@@ -150,51 +112,10 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                 }
             }
 
-            expr::Expr::PathByKey(var_key, _) => {
-                let path = &self.intent.vars[var_key].name;
-                if let Some(var) = self.model.vars().iter().find(|v| &v.name() == path) {
-                    Ok(var.clone())
-                } else {
-                    // If not found, then it's possible that the path starts with `!` and the
-                    // rest of it matches an existing variable.
-                    //
-                    // Paths that start with a `!` represents the inverse of the variable with the
-                    // same name but without the `!`.
-
-                    // First, find the var with the same name without the `!`, if available.
-                    // Error out otherwise.
-                    let var = self
-                        .model
-                        .vars()
-                        .iter()
-                        .find(|v| &("!".to_owned() + &v.name()) == path)
-                        .ok_or(SolveError::Internal {
-                            msg: "(scip) cannot find variable for path expression",
-                            span: empty_span(),
-                        })
-                        .cloned()?;
-
-                    // Then, create the inverse variable which has to be a Binary variable.
-                    let bin_name = self.new_var_name();
-                    let inverse = self.model.add_var(0., 1., 0., &bin_name, VarType::Binary);
-
-                    // Now, ensure that `var + inverse == 1`.
-                    let new_cons_name = self.new_cons_name();
-                    self.model.add_cons(
-                        vec![var.clone(), inverse.clone()],
-                        &[1., 1.],
-                        1.,
-                        1.,
-                        &new_cons_name,
-                    );
-                    Ok(inverse)
-                }
-            }
-
-            expr::Expr::UnaryOp { op, expr, .. } => {
+            Expr::UnaryOp { op, expr } => {
                 match op {
-                    expr::UnaryOp::Neg => {
-                        let expr = self.expr_to_var(&expr)?;
+                    UnaryOp::Neg => {
+                        let expr = self.expr_to_var(expr)?;
                         let new_var_name = self.new_var_name();
                         let new_cons_name = self.new_cons_name();
                         let neg_var = self.model.add_var(
@@ -214,31 +135,22 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         );
                         Ok(neg_var)
                     }
-                    expr::UnaryOp::Not => {
-                        let not_expr = self.invert_expression(&expr)?;
+                    UnaryOp::Not => {
+                        let not_expr = Self::invert_expression(expr)?;
                         Ok(self.expr_to_var(&not_expr)?)
                     }
-                    expr::UnaryOp::NextState => Err(SolveError::Internal {
-                        msg: "(scip) unsupported next state unary operator",
-                        span: empty_span(),
-                    }),
-                    expr::UnaryOp::Error => Err(SolveError::Internal {
-                        msg: "(scip) unexpected error recovery",
-                        span: empty_span(),
-                    }),
                 }
             }
 
-            expr::Expr::BinaryOp {
+            Expr::BinaryOp {
                 op,
                 lhs: lhs_expr,
                 rhs: rhs_expr,
-                ..
             } => {
                 // Add an auxilliary variable constrain it to be equal to the result of the binary
                 // operation.
-                let lhs = self.expr_to_var(&lhs_expr)?;
-                let rhs = self.expr_to_var(&rhs_expr)?;
+                let lhs = self.expr_to_var(lhs_expr)?;
+                let rhs = self.expr_to_var(rhs_expr)?;
                 let lhs_type = lhs.var_type();
                 let rhs_type = rhs.var_type();
 
@@ -251,7 +163,6 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                     _ => {
                         return Err(SolveError::Internal {
                             msg: "(scip) incompatible variable types encountered",
-                            span: empty_span(),
                         });
                     }
                 };
@@ -259,7 +170,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                 let new_cons_name = self.new_cons_name();
 
                 match op {
-                    expr::BinaryOp::Add => {
+                    BinaryOp::Add => {
                         let add_var = self.model.add_var(
                             lhs.lb() + rhs.lb(),
                             lhs.ub() + rhs.ub(),
@@ -277,7 +188,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         );
                         Ok(add_var)
                     }
-                    expr::BinaryOp::Sub => {
+                    BinaryOp::Sub => {
                         let sub_var = self.model.add_var(
                             lhs.lb() - rhs.ub(),
                             lhs.ub() - rhs.lb(),
@@ -295,7 +206,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         );
                         Ok(sub_var)
                     }
-                    expr::BinaryOp::Mul => {
+                    BinaryOp::Mul => {
                         let bounds = [
                             lhs.lb() * rhs.lb(),
                             lhs.lb() * rhs.ub(),
@@ -328,7 +239,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         );
                         Ok(mult_var)
                     }
-                    expr::BinaryOp::Div => {
+                    BinaryOp::Div => {
                         // TODO: compute better bounds for this variable
                         let div_var = self.model.add_var(
                             -f64::INFINITY,
@@ -350,7 +261,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         );
                         Ok(div_var)
                     }
-                    expr::BinaryOp::Mod => {
+                    BinaryOp::Mod => {
                         if lhs_type != VarType::Continuous && rhs_type != VarType::Continuous {
                             let quotion_name = self.new_var_name();
                             let quotion = self.model.add_var(
@@ -384,11 +295,10 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                             // Modulo is not supported for non-integers
                             Err(SolveError::Internal {
                                 msg: "(scip) modulo expressions are supported for non-integers",
-                                span: empty_span(),
                             })
                         }
                     }
-                    expr::BinaryOp::Equal => {
+                    BinaryOp::Equal => {
                         // `lhs == rhs` is equivalent to:
                         // ```
                         // lhs <= rhs && lhs >= rhs
@@ -440,7 +350,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         );
                         Ok(bin3)
                     }
-                    expr::BinaryOp::NotEqual => {
+                    BinaryOp::NotEqual => {
                         if lhs_type != VarType::Continuous && rhs_type != VarType::Continuous {
                             // `lhs != rhs` is equivalent to:
                             // ```
@@ -496,11 +406,10 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                             Err(SolveError::Internal {
                                 msg:
                                     "(scip) not equal constraint is not supported for non-integers",
-                                span: empty_span(),
                             })
                         }
                     }
-                    expr::BinaryOp::LessThanOrEqual => {
+                    BinaryOp::LessThanOrEqual => {
                         // `bin *implies* lhs -rhs <= 0`
                         let bin_name = self.new_var_name();
                         let bin = self.model.add_var(0., 1., 0., &bin_name, VarType::Binary);
@@ -514,7 +423,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         );
                         Ok(bin)
                     }
-                    expr::BinaryOp::LessThan => {
+                    BinaryOp::LessThan => {
                         if lhs_type != VarType::Continuous && rhs_type != VarType::Continuous {
                             // `bin *implies* lhs -rhs <= -1`
                             let bin_name = self.new_var_name();
@@ -531,11 +440,10 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         } else {
                             Err(SolveError::Internal {
                                 msg: "(scip) strict inequalities not supported for non-integers",
-                                span: empty_span(),
                             })
                         }
                     }
-                    expr::BinaryOp::GreaterThanOrEqual => {
+                    BinaryOp::GreaterThanOrEqual => {
                         // `bin *implies* -lhs +rhs <= 0`
                         let bin_name = self.new_var_name();
                         let bin = self.model.add_var(0., 1., 0., &bin_name, VarType::Binary);
@@ -549,7 +457,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         );
                         Ok(bin)
                     }
-                    expr::BinaryOp::GreaterThan => {
+                    BinaryOp::GreaterThan => {
                         if lhs_type != VarType::Continuous && rhs_type != VarType::Continuous {
                             // `bin *implies* -lhs +rhs <= -1`
                             let bin_name = self.new_var_name();
@@ -566,11 +474,10 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         } else {
                             Err(SolveError::Internal {
                                 msg: "(scip) strict inequalities not supported for non-integers",
-                                span: empty_span(),
                             })
                         }
                     }
-                    expr::BinaryOp::LogicalAnd => {
+                    BinaryOp::LogicalAnd => {
                         // `bin *implies* -lhs - rhs <= -2`.
                         // That is, both `lhs` and `rhs` must be 1.
                         let bin_name = self.new_var_name();
@@ -585,7 +492,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                         );
                         Ok(bin)
                     }
-                    expr::BinaryOp::LogicalOr => {
+                    BinaryOp::LogicalOr => {
                         // `bin *implies* -lhs - rhs <= -1`.
                         // That is, at least one of `lhs` and `rhs` must be 1.
                         let bin_name = self.new_var_name();
@@ -602,22 +509,6 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                     }
                 }
             }
-
-            expr::Expr::If { .. }
-            | expr::Expr::FnCall { .. }
-            | expr::Expr::Error(_)
-            | expr::Expr::MacroCall { .. }
-            | expr::Expr::Array { .. }
-            | expr::Expr::ArrayElementAccess { .. }
-            | expr::Expr::Tuple { .. }
-            | expr::Expr::TupleFieldAccess { .. }
-            | expr::Expr::Cast { .. }
-            | expr::Expr::In { .. }
-            | expr::Expr::Range { .. }
-            | expr::Expr::ForAll { .. } => Err(SolveError::Internal {
-                msg: "(scip) all other exprs are not supported",
-                span: empty_span(),
-            }),
         }
     }
 }

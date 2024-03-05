@@ -89,6 +89,8 @@ pub enum CompileError {
     NonConstArrayIndex { span: Span },
     #[error("attempt to use an invalid constant as an array index")]
     InvalidConstArrayIndex { span: Span },
+    #[error("attempt to access array with out of bounds index")]
+    ArrayIndexOutOfBounds { span: Span },
     #[error("cannot index into value")]
     CannotIndexIntoValue { span: Span, index_span: Span },
     #[error("unable to determine expression type")]
@@ -358,6 +360,14 @@ impl ReportableError for CompileError {
                 }]
             }
 
+            ArrayIndexOutOfBounds { span } => {
+                vec![ErrorLabel {
+                    message: "array index is out of bounds".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
             CannotIndexIntoValue { span, index_span } => {
                 vec![
                     ErrorLabel {
@@ -592,6 +602,7 @@ impl ReportableError for CompileError {
             | InvalidConstArrayLength { .. }
             | NonConstArrayIndex { .. }
             | InvalidConstArrayIndex { .. }
+            | ArrayIndexOutOfBounds { .. }
             | CannotIndexIntoValue { .. }
             | MacroMultiplePacks { .. }
             | MacroUnknownPack { .. }
@@ -685,6 +696,7 @@ impl Spanned for CompileError {
             | InvalidConstArrayLength { span }
             | NonConstArrayLength { span }
             | InvalidConstArrayIndex { span }
+            | ArrayIndexOutOfBounds { span }
             | CannotIndexIntoValue { span, .. }
             | UnknownType { span }
             | IfCondTypeNotBool(span)

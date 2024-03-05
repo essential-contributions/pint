@@ -1,0 +1,26 @@
+[package]
+name = "yurt_solve"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+name = "yurt_solve"
+path = "src/lib.rs"
+
+[build-dependencies]
+lalrpop = "0.20"
+
+[dependencies]
+expect-test = { workspace = true }
+lalrpop-util = { version = "0.20", features = ["lexer", "unicode"] }
+russcip = { git = "https://github.com/mohammadfawaz/russcip", branch = "mohammadfawaz/indicator_constraints", optional = true }
+thiserror = { workspace = true }
+yansi = { workspace = true }
+
+[features]
+default = ["solver-scip"]
+solver-scip = ["dep:russcip"]

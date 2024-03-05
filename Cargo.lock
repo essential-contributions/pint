@@ -1511,6 +1511,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09041cd90cf85f7f8b2df60c646f853b7f535ce68f85244eb6731cf89fa498ec"
 
 [[package]]
+name = "yurt_solve"
+version = "0.1.0"
+dependencies = [
+ "expect-test",
+ "lalrpop",
+ "lalrpop-util",
+ "russcip",
+ "thiserror",
+ "yansi",
+]
+
+[[package]]
 name = "yurtc"
 version = "0.1.0"
 dependencies = [
@@ -1528,7 +1540,6 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "regex",
- "russcip",
  "serde",
  "serde_json",
  "similar-asserts",
@@ -1538,6 +1549,7 @@ dependencies = [
  "test_bin",
  "thiserror",
  "yansi",
+ "yurt_solve",
 ]
 
 [[package]]

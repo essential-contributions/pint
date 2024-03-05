@@ -46,17 +46,21 @@ fn main() -> anyhow::Result<()> {
 
         #[cfg(feature = "solver-scip")]
         if args.solve {
-            use russcip::ProblemCreated;
-            use yurtc::solvers::scip::*;
-
-            // Solve the final intermediate intent. This assumes, for now, that the final
-            // intermediate intent has no state variables
-            let solver = Solver::<ProblemCreated>::new(&mut final_ii);
+            let flatyurt = match yurt_solve::parse_flatyurt(&format!("{final_ii}")[..]) {
+                Ok(flatyurt) => flatyurt,
+                Err(err) => {
+                    if !cfg!(test) {
+                        eprintln!("Malformed FlatYurt: {err}");
+                    }
+                    yurtc::yurtc_bail!(1, filepath)
+                }
+            };
+            let solver = yurt_solve::solver(&flatyurt);
             let solver = match solver.solve() {
                 Ok(solver) => solver,
-                Err(error) => {
+                Err(err) => {
                     if !cfg!(test) {
-                        error::print_errors(&vec![error::Error::Solve { error }]);
+                        eprintln!("Solver failed: {err}");
                     }
                     yurtc::yurtc_bail!(1, filepath)
                 }

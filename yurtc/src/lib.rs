@@ -9,7 +9,6 @@ pub mod intermediate;
 mod lexer;
 mod macros;
 pub mod parser;
-pub mod solvers;
 mod span;
 mod types;
 mod util;
