@@ -1,7 +1,6 @@
 mod compile_error;
 mod lex_error;
 mod parse_error;
-mod solve_error;
 
 use crate::span::{Span, Spanned};
 use ariadne::{FnCache, Label, Report, ReportKind, Source};
@@ -13,7 +12,6 @@ pub(super) use compile_error::CompileError;
 pub(super) use compile_error::LargeTypeError;
 pub(super) use lex_error::LexError;
 pub(super) use parse_error::ParseError;
-pub(super) use solve_error::SolveError;
 
 /// An error label used for pretty printing error messages to the terminal
 pub struct ErrorLabel {
@@ -31,8 +29,6 @@ pub enum Error {
     Parse { error: ParseError },
     #[error("{error}")]
     Compile { error: CompileError },
-    #[error("{error}")]
-    Solve { error: SolveError },
     #[error("{child}")]
     MacroBodyWrapper {
         child: Box<Self>,
@@ -154,7 +150,6 @@ impl ReportableError for Error {
             },
             Parse { error } => error.labels(),
             Compile { error } => error.labels(),
-            Solve { error } => error.labels(),
             MacroBodyWrapper {
                 child,
                 macro_name,
@@ -177,7 +172,6 @@ impl ReportableError for Error {
             Lex { .. } => None,
             Parse { error } => error.note(),
             Compile { error } => error.note(),
-            Solve { error } => error.note(),
             MacroBodyWrapper { child, .. } => child.note(),
         }
     }
@@ -188,7 +182,6 @@ impl ReportableError for Error {
             Lex { .. } => None,
             Parse { error } => error.code().map(|code| format!("P{code}")),
             Compile { error } => error.code().map(|code| format!("C{code}")),
-            Solve { error } => error.code().map(|code| format!("S{code}")),
             MacroBodyWrapper { child, .. } => child.code(),
         }
     }
@@ -199,7 +192,6 @@ impl ReportableError for Error {
             Lex { .. } => None,
             Parse { error } => error.help(),
             Compile { error } => error.help(),
-            Solve { error } => error.help(),
             MacroBodyWrapper { child, .. } => child.help(),
         }
     }
@@ -212,7 +204,6 @@ impl Spanned for Error {
             Lex { span, .. } => span,
             Parse { error } => error.span(),
             Compile { error } => error.span(),
-            Solve { error } => error.span(),
             MacroBodyWrapper { child, .. } => child.span(),
         }
     }

@@ -405,15 +405,14 @@ fn solve_and_check(_: IntermediateIntent, _: &TestData, _: &mut Vec<String>, _: 
 
 #[cfg(feature = "solver-scip")]
 fn solve_and_check(
-    mut ii: IntermediateIntent,
+    ii: IntermediateIntent,
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
     path: &Path,
 ) {
-    use russcip::ProblemCreated;
-    use yurtc::solvers::scip::Solver;
-
-    Solver::<ProblemCreated>::new(&mut ii)
+    let flatyurt = yurt_solve::parse_flatyurt(&format!("{ii}")[..]).expect("malformed FlatYurt");
+    let solver = yurt_solve::solver(&flatyurt);
+    solver
         .solve()
         .map(|solver| {
             if let Some(expected_solution_str) = &test_data.solution {
@@ -441,7 +440,7 @@ fn solve_and_check(
             if let Some(solve_error_str) = &test_data.solve_failure {
                 similar_asserts::assert_eq!(
                     solve_error_str.trim_end(),
-                    err.display_raw().trim_end()
+                    format!("{err}").trim_end()
                 );
             } else {
                 failed_tests.push(path.display().to_string());
@@ -450,7 +449,7 @@ fn solve_and_check(
                     Red.paint("FAILED TO SOLVE TO FINAL INTENT"),
                     Cyan.paint(path.display().to_string()),
                     Red.paint("Reported errors:"),
-                    Yellow.paint(err.display_raw().trim_end()),
+                    Yellow.paint(format!("{err}").trim_end())
                 );
             }
         })
