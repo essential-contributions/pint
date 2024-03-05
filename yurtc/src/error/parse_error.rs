@@ -59,9 +59,9 @@ pub enum ParseError {
     HexLiteralLength { digits: usize, span: Span },
     #[error("integer literal is too large")]
     IntLiteralTooLarge { span: Span },
-    #[error("`solve` item can only appear once")]
+    #[error("`solve` directive must only appear once")]
     TooManySolveDirectives { span: Span },
-    #[error("`solve` directive must be placed in the main or top-level file")]
+    #[error("`solve` directive must only appear in the top level module")]
     SolveDirectiveMustBeTopLevel { span: Span },
 }
 
@@ -215,14 +215,14 @@ impl ReportableError for ParseError {
             }
             TooManySolveDirectives { span } => {
                 vec![ErrorLabel {
-                    message: "`solve` item can only appear once".to_string(),
+                    message: "`solve` directive must only appear once".to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
             }
             SolveDirectiveMustBeTopLevel { span } => {
                 vec![ErrorLabel {
-                    message: "`solve` directive must be placed in the main or top-level file"
+                    message: "`solve` directive must only appear in the top level module"
                         .to_string(),
                     span: span.clone(),
                     color: Color::Red,

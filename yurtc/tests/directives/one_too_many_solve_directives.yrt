@@ -6,6 +6,6 @@ solve satisfy;
 solve maximize b - c;
 
 // parse_failure <<<
-// `solve` item can only appear once
-// @74..94: `solve` item can only appear once
+// `solve` directive must only appear once
+// @74..94: `solve` directive must only appear once
 // >>>
