@@ -218,7 +218,7 @@ impl ReportableError for ParseError {
             TooManySolveDirectives { span, prev_span } => {
                 vec![
                     ErrorLabel {
-                        message: format!("previous declaration of the `solve` directive here"),
+                        message: "previous declaration of the `solve` directive here".to_string(),
                         span: prev_span.clone(),
                         color: Color::Blue,
                     },
