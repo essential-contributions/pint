@@ -1,0 +1,13 @@
+constraint b[1] == 2;
+
+solve satisfy;
+
+// intermediate <<<
+// constraint (::b[1] == 2);
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// cannot find value `::b` in this scope
+// @11..12: not found in this scope
+// >>>
