@@ -60,7 +60,10 @@ pub enum ParseError {
     #[error("integer literal is too large")]
     IntLiteralTooLarge { span: Span },
     #[error("`solve` directive must only appear once")]
-    TooManySolveDirectives { span: Span },
+    TooManySolveDirectives {
+        span: Span,      // Actual error location
+        prev_span: Span, // Span of the previous occurrence
+    },
     #[error("`solve` directive must only appear in the top level module")]
     SolveDirectiveMustBeTopLevel { span: Span },
 }
@@ -147,7 +150,6 @@ impl ReportableError for ParseError {
                     color: Color::Red,
                 }]
             }
-
             NameClash {
                 sym,
                 span,
@@ -213,12 +215,19 @@ impl ReportableError for ParseError {
                     color: Color::Red,
                 }]
             }
-            TooManySolveDirectives { span } => {
-                vec![ErrorLabel {
-                    message: "`solve` directive must only appear once".to_string(),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
+            TooManySolveDirectives { span, prev_span } => {
+                vec![
+                    ErrorLabel {
+                        message: format!("previous declaration of the `solve` directive here"),
+                        span: prev_span.clone(),
+                        color: Color::Blue,
+                    },
+                    ErrorLabel {
+                        message: "`solve` directive must only appear once".to_string(),
+                        span: span.clone(),
+                        color: Color::Red,
+                    },
+                ]
             }
             SolveDirectiveMustBeTopLevel { span } => {
                 vec![ErrorLabel {

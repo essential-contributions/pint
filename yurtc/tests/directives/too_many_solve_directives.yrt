@@ -8,7 +8,9 @@ solve maximize b - c;
 
 // parse_failure <<<
 // `solve` directive must only appear once
+// @59..79: previous declaration of the `solve` directive here
 // @81..94: `solve` directive must only appear once
 // `solve` directive must only appear once
+// @59..79: previous declaration of the `solve` directive here
 // @96..116: `solve` directive must only appear once
 // >>>
