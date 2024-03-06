@@ -1,0 +1,33 @@
+[package]
+name = "tests"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+anyhow = { workspace = true }
+essential_types = { git = "ssh://git@github.com/essential-contributions/intent-server.git" }
+intent-server = { git = "ssh://git@github.com/essential-contributions/intent-server.git" }
+num-bigint = "0.4"
+num-traits = "0.2"
+regex = "1.10"
+test-util = { path = "../test-util" }
+yansi = { workspace = true }
+yurt_solve = { path = "../yurt-solve", default-features = false }
+yurtc = { path = "../yurtc", default-features = false }
+
+[[test]]
+name = "solver_tests"
+path = "solver_tests.rs"
+
+[[test]]
+name = "validation_tests"
+path = "validation_tests.rs"
+
+[features]
+default = ["solver-scip"]
+solver-scip = ["yurt_solve/solver-scip", "yurtc/solver-scip"]

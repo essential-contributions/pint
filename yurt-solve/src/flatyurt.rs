@@ -1,4 +1,5 @@
 mod display;
+pub mod evaluate;
 #[cfg(test)]
 mod tests;
 

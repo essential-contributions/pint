@@ -1,4 +1,3 @@
-// <no-solve>
 macro @a_macro($a, $0, $type) {
     let $a: $type = $0;
     let b: $type;

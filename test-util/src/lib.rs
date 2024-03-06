@@ -1,0 +1,201 @@
+use num_traits::Num;
+use std::{
+    fs::File,
+    io::{BufRead, BufReader},
+    path::Path,
+};
+
+/// Given a `Result`, unwrap it or emit the errors and `continue;`. Will fail if used outside a
+/// loop due to `continue;`.
+#[macro_export]
+macro_rules! unwrap_or_continue {
+    ($step: expr, $step_name: expr, $failed: expr, $path: expr) => {{
+        match $step {
+            Ok(output) => output,
+            Err(err) => {
+                $failed.push($path.clone());
+                eprintln!(
+                    "{}",
+                    Red.paint(format!(
+                        "Failed to {} {}: \n{}",
+                        $step_name,
+                        $path.display(),
+                        err
+                    ))
+                );
+                continue;
+            }
+        }
+    }};
+}
+
+/// Given an `&str` that represents a hexadecimal number, split it into 4 hexadecimal numbers,
+/// convert each number to an `i64`, and return an array of the 4 `i64`s produced. Panics upon
+/// failure.
+pub fn hex_to_4_ints(num: &str) -> [i64; 4] {
+    let digits = num_bigint::BigInt::from_str_radix(num, 16)
+        .expect("must be a hex")
+        .to_u64_digits()
+        .1
+        .iter()
+        .map(|d| *d as i64)
+        .rev()
+        .collect::<Vec<_>>();
+
+    [vec![0; 4 - digits.len()], digits]
+        .concat()
+        .try_into()
+        .unwrap()
+}
+
+#[derive(Default)]
+pub struct TestData {
+    pub intermediate: Option<String>,
+    pub parse_failure: Option<String>,
+    pub typecheck_failure: Option<String>,
+    pub flattened: Option<String>,
+    pub flattening_failure: Option<String>,
+    pub solution: Option<String>,
+    pub solve_failure: Option<String>,
+    pub db: Option<String>,
+}
+
+// Search for sections within a file which contain the expected output from different stages of
+// compilation.  These are within comments in the Yurt source file and are separated with special
+// tags.
+//
+// A section containing a single expected result string has a tag and is delimited by `<<<` and
+// `>>>`. The tags are
+//   * intermediate
+//   * parse_failure
+//   * typecheck_failure
+//   * flattened
+//   * flattening_failure
+//   * solution
+//   * solve_failure
+//   * db
+//
+// e.g. A simple test file may be:
+// | let a: int;
+// | constraint a == 42;
+// | solve satisfy;
+// |
+// | // intermediate <<<
+// | // let ::a: int;
+// | // constraint (::a == 42);
+// | // solve satisfy;
+// | // >>>
+//
+// Similarly, an error may be tested:
+// | state life = total_shambles();
+// | solve my tax problem;
+// |
+// | // parse_failure <<<
+// | // expected `maximize`, `minimize`, or `satisfy`, found `my`
+// | // >>>
+pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
+    let mut test_data = TestData::default();
+
+    #[derive(PartialEq)]
+    enum Section {
+        None,
+        ParseFailure,
+        IntermediateIntent,
+        TypeCheckFailure,
+        FlattenedIntent,
+        FlatteningFailure,
+        Solution,
+        SolveFailure,
+        Db,
+    }
+    let mut cur_section = Section::None;
+    let mut section_lines = Vec::<String>::new();
+
+    let comment_re = regex::Regex::new(r"^\s*//")?;
+    let open_sect_re = regex::Regex::new(
+        r"^\s*//\s*(intermediate|parse_failure|typecheck_failure|flattened|flattening_failure|solution|solve_failure|db)\s*<<<",
+    )?;
+    let close_sect_re = regex::Regex::new(r"^\s*//\s*>>>")?;
+
+    let handle = File::open(path)?;
+    for line in BufReader::new(handle).lines() {
+        let line = line?;
+
+        // Ignore any line which is not a comment.
+        if !comment_re.is_match(&line) {
+            continue;
+        }
+
+        // Match an open tag.
+        if let Some(tag) = open_sect_re.captures(&line) {
+            // We shouldn't already be in a section.
+            assert!(cur_section == Section::None && section_lines.is_empty());
+
+            match &tag[1] {
+                "intermediate" => cur_section = Section::IntermediateIntent,
+                "parse_failure" => cur_section = Section::ParseFailure,
+                "flattened" => cur_section = Section::FlattenedIntent,
+                "flattening_failure" => cur_section = Section::FlatteningFailure,
+                "typecheck_failure" => cur_section = Section::TypeCheckFailure,
+                "solution" => cur_section = Section::Solution,
+                "solve_failure" => cur_section = Section::SolveFailure,
+                "db" => cur_section = Section::Db,
+                _ => unreachable!("We can't capture strings not in the regex."),
+            }
+
+            continue;
+        }
+
+        // Match a close tag.
+        if close_sect_re.is_match(&line) {
+            // We must have already opened a section.
+            assert!(cur_section != Section::None);
+
+            // Gather the section lines into a single string.
+            let section_str = section_lines.join("\n");
+
+            // Store it in the correct part of our result.
+            match cur_section {
+                Section::IntermediateIntent => {
+                    test_data.intermediate = Some(section_str);
+                }
+                Section::ParseFailure => {
+                    test_data.parse_failure = Some(section_str);
+                }
+                Section::TypeCheckFailure => {
+                    test_data.typecheck_failure = Some(section_str);
+                }
+                Section::FlattenedIntent => {
+                    test_data.flattened = Some(section_str);
+                }
+                Section::FlatteningFailure => {
+                    test_data.flattening_failure = Some(section_str);
+                }
+                Section::Solution => {
+                    test_data.solution = Some(section_str);
+                }
+                Section::SolveFailure => {
+                    test_data.solve_failure = Some(section_str);
+                }
+                Section::Db => {
+                    test_data.db = Some(section_str);
+                }
+                Section::None => unreachable!("Can't be none, already checked."),
+            }
+
+            // Reset the section.
+            cur_section = Section::None;
+            section_lines.clear();
+
+            continue;
+        }
+
+        // Otherwise add this string to the section lines if we're in a section.
+        if cur_section != Section::None {
+            // We're stripping exactly '// ' from the line, presumably.  Three characters.
+            section_lines.push(line[3..].to_owned());
+        }
+    }
+
+    Ok(test_data)
+}

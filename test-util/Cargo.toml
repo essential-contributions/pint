@@ -1,0 +1,18 @@
+[package]
+name = "test-util"
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+name = "test_util"
+path = "src/lib.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+num-bigint = "0.4"
+num-traits = "0.2"
+regex = "1.10"

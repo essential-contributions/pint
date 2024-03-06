@@ -1,5 +1,3 @@
-// <no-solve>
-
 macro @foo($x) {
     let a: int;
     constraint a == $x;

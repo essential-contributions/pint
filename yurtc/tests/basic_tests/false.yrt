@@ -11,7 +11,3 @@ solve satisfy;
 // constraint 0;
 // solve satisfy;
 // >>>
-
-// solution <<<
-// infeasible
-// >>>

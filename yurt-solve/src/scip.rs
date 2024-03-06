@@ -7,9 +7,10 @@ mod variable;
 
 use crate::{
     error::SolveError,
-    flatyurt::{Decl, FlatYurt, Solve},
+    flatyurt::{evaluate::evaluate_expr, Decl, FlatYurt, Immediate, Solve},
 };
 use russcip::{prelude::*, ProblemCreated, Solved};
+use std::collections::HashMap;
 
 pub struct Solver<'a, State> {
     model: Model<State>,
@@ -73,5 +74,72 @@ impl<'a> Solver<'a, ProblemCreated> {
             unique_var_suffix: self.unique_var_suffix,
             unique_cons_suffix: self.unique_cons_suffix,
         })
+    }
+}
+
+impl<'a> super::Solver<'a, Solved> {
+    /// Returns a `HashMap` that contains a solution. It maps decision variable names, as
+    /// `String`s, to `flatyurt::Immediate` values. Returns an empty `HashMap` in case a solution
+    /// cannot be found
+    #[allow(unused)]
+    pub fn solution(&self) -> HashMap<String, Immediate> {
+        match self.model.status() {
+            Status::Optimal => {
+                let sol = self.model.best_sol().unwrap();
+
+                // Assume that the vars in `self.flatyurt` have been converted first before any
+                // additional helper variables are introduced. That is, if `self.flatyurt`
+                // contains `n` variables, then the first `n` elements of `self.model.vars()`
+                // correspond to those `n` variables.
+                self.model
+                    .vars()
+                    .iter()
+                    .take(
+                        self.flatyurt
+                            .decls
+                            .iter()
+                            .filter(|decl| matches!(decl, Decl::Var(_)))
+                            .count(),
+                    )
+                    .map(|var| {
+                        (
+                            var.name(),
+                            match var.var_type() {
+                                VarType::Binary => Immediate::Bool(sol.val(var.clone()) != 0.0),
+                                VarType::Integer | VarType::ImplInt => {
+                                    Immediate::Int(sol.val(var.clone()) as i64)
+                                }
+                                VarType::Continuous => Immediate::Real(sol.val(var.clone())),
+                            },
+                        )
+                    })
+                    .collect::<HashMap<_, _>>()
+            }
+            _ => HashMap::new(),
+        }
+    }
+
+    /// Verify that the solution produced by the solver satisfies the constraints. This is mostly
+    /// useful for testing purposes.
+    pub fn verify_solution(&self) -> bool {
+        let solution = self.solution();
+        let constraints = self
+            .flatyurt
+            .decls
+            .iter()
+            .filter_map(|decl| match decl {
+                Decl::Constraint(constraint) => Some(constraint),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        constraints
+            .iter()
+            .all(|constraint| match evaluate_expr(&constraint.0, &solution) {
+                Immediate::Bool(val) => val,
+                Immediate::Int(1) => true,
+                Immediate::Int(0) => false,
+                _ => panic!("constraint expression cannot evaluate to non-bool"),
+            })
     }
 }

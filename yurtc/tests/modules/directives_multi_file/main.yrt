@@ -1,5 +1,3 @@
-// <no-solve>
-
 let a: int;
 
 constraint a == b::b;

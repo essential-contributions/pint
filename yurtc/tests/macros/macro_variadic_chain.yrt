@@ -1,5 +1,3 @@
-// <no-solve>
-
 macro @chain($a, &rest) {
     let $a: int;
     @chain_next($a; &rest)

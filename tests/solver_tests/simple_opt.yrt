@@ -1,0 +1,6 @@
+let x: int;
+
+constraint x >= -10;
+let obj: int = x*x + 2*x - 8;
+
+solve minimize obj;

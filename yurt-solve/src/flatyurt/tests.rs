@@ -164,7 +164,7 @@ fn solve_decls() {
         &run_parser!(solve, "solve maximize (x + y);"),
         expect_test::expect![[r##"
             Unrecognized token `(` found at 15:16
-            Expected one of "::" or r#"[A-Za-z_][A-Za-z_0-9\\[\\]\\.]*"#"##]],
+            Expected one of "::" or r#"[A-Za-z_][A-Za-z_0-9@\\[\\]\\.]*"#"##]],
     );
 
     check(
@@ -209,10 +209,15 @@ fn unary_op_exprs() {
     check(&run_parser!(expr, "! (- x)"), expect_test::expect!["!-x"]);
 
     check(
+        &run_parser!(expr, "! ( ! (x + y) && false )"),
+        expect_test::expect!["!(!(x + y) && false)"],
+    );
+
+    check(
         &run_parser!(expr, "+x"),
         expect_test::expect![[r##"
             Unrecognized token `+` found at 0:1
-            Expected one of "!", "(", "-", "::", "false", "true", r#"[0-9]+"#, r#"[0-9]+\\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+"# or r#"[A-Za-z_][A-Za-z_0-9\\[\\]\\.]*"#"##]],
+            Expected one of "!", "(", "-", "::", "false", "true", r#"[0-9]+"#, r#"[0-9]+\\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+"# or r#"[A-Za-z_][A-Za-z_0-9@\\[\\]\\.]*"#"##]],
     );
 }
 
@@ -424,15 +429,15 @@ fn names() {
     check(
         &run_parser!(name, "foo::"),
         expect_test::expect![[r##"
-        Unrecognized EOF found at 5
-        Expected one of r#"[A-Za-z_][A-Za-z_0-9\\[\\]\\.]*"#"##]],
+            Unrecognized EOF found at 5
+            Expected one of r#"[A-Za-z_][A-Za-z_0-9@\\[\\]\\.]*"#"##]],
     );
 
     check(
         &run_parser!(name, "12_12"),
         expect_test::expect![[r##"
-        Unrecognized token `12` found at 0:2
-        Expected one of "::" or r#"[A-Za-z_][A-Za-z_0-9\\[\\]\\.]*"#"##]],
+            Unrecognized token `12` found at 0:2
+            Expected one of "::" or r#"[A-Za-z_][A-Za-z_0-9@\\[\\]\\.]*"#"##]],
     );
 
     check(

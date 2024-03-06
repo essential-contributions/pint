@@ -1,5 +1,3 @@
-// <no-solve>
-
 use ::b::c;
 use ::d::MyEnum;
 use b;

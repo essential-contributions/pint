@@ -26,8 +26,3 @@ solve satisfy;
 // constraint ((::x + ::y) == 3.3e0);
 // solve satisfy;
 // >>>
-
-// solution <<<
-// ::x: 2.300
-// ::y: 1.000
-// >>>

@@ -1,4 +1,3 @@
-// <no-solve>
 // A bunch of enums *with the same name* all in different files should all have unique paths.
 
 enum Skill = Nunchuck | BowHunting | ComputerHacking;

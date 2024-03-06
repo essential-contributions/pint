@@ -34,6 +34,3 @@ solve satisfy;
 // contract ::MyToken(917551056842671309452305380979543736893630245704) implements ::IERC20, ::Ownable { fn ::MyToken::custom_function() -> int; }
 // solve satisfy;
 // >>>
-
-// solution <<<
-// >>>

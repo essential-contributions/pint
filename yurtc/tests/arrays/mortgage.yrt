@@ -73,35 +73,3 @@ solve minimize P;
 // constraint ((((((((((((((((((((((((1 && (::mortgage[1] == ((::mortgage[0] + (::mortgage[0] * ::I)) - ::R))) && (::mortgage[2] == ((::mortgage[1] + (::mortgage[1] * ::I)) - ::R))) && (::mortgage[3] == ((::mortgage[2] + (::mortgage[2] * ::I)) - ::R))) && (::mortgage[4] == ((::mortgage[3] + (::mortgage[3] * ::I)) - ::R))) && (::mortgage[5] == ((::mortgage[4] + (::mortgage[4] * ::I)) - ::R))) && (::mortgage[6] == ((::mortgage[5] + (::mortgage[5] * ::I)) - ::R))) && (::mortgage[7] == ((::mortgage[6] + (::mortgage[6] * ::I)) - ::R))) && (::mortgage[8] == ((::mortgage[7] + (::mortgage[7] * ::I)) - ::R))) && (::mortgage[9] == ((::mortgage[8] + (::mortgage[8] * ::I)) - ::R))) && (::mortgage[10] == ((::mortgage[9] + (::mortgage[9] * ::I)) - ::R))) && (::mortgage[11] == ((::mortgage[10] + (::mortgage[10] * ::I)) - ::R))) && (::mortgage[12] == ((::mortgage[11] + (::mortgage[11] * ::I)) - ::R))) && (::mortgage[13] == ((::mortgage[12] + (::mortgage[12] * ::I)) - ::R))) && (::mortgage[14] == ((::mortgage[13] + (::mortgage[13] * ::I)) - ::R))) && (::mortgage[15] == ((::mortgage[14] + (::mortgage[14] * ::I)) - ::R))) && (::mortgage[16] == ((::mortgage[15] + (::mortgage[15] * ::I)) - ::R))) && (::mortgage[17] == ((::mortgage[16] + (::mortgage[16] * ::I)) - ::R))) && (::mortgage[18] == ((::mortgage[17] + (::mortgage[17] * ::I)) - ::R))) && (::mortgage[19] == ((::mortgage[18] + (::mortgage[18] * ::I)) - ::R))) && (::mortgage[20] == ((::mortgage[19] + (::mortgage[19] * ::I)) - ::R))) && (::mortgage[21] == ((::mortgage[20] + (::mortgage[20] * ::I)) - ::R))) && (::mortgage[22] == ((::mortgage[21] + (::mortgage[21] * ::I)) - ::R))) && (::mortgage[23] == ((::mortgage[22] + (::mortgage[22] * ::I)) - ::R))) && (::mortgage[24] == ((::mortgage[23] + (::mortgage[23] * ::I)) - ::R)));
 // solve minimize ::P;
 // >>>
-
-// solution <<<
-// ::I: 0.100
-// ::R: 150.000
-// ::P: 1361.556
-// ::mortgage[0]: 1347.712
-// ::mortgage[1]: 1332.483
-// ::mortgage[2]: 1315.731
-// ::mortgage[3]: 1297.304
-// ::mortgage[4]: 1277.035
-// ::mortgage[5]: 1254.738
-// ::mortgage[6]: 1230.212
-// ::mortgage[7]: 1203.233
-// ::mortgage[8]: 1173.556
-// ::mortgage[9]: 1140.912
-// ::mortgage[10]: 1105.003
-// ::mortgage[11]: 1065.503
-// ::mortgage[12]: 1022.054
-// ::mortgage[13]: 974.259
-// ::mortgage[14]: 921.685
-// ::mortgage[15]: 863.854
-// ::mortgage[16]: 800.239
-// ::mortgage[17]: 730.263
-// ::mortgage[18]: 653.289
-// ::mortgage[19]: 568.618
-// ::mortgage[20]: 475.480
-// ::mortgage[21]: 373.028
-// ::mortgage[22]: 260.331
-// ::mortgage[23]: 136.364
-// ::mortgage[24]: 0.000
-// objective: 1361.556
-// >>>
