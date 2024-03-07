@@ -6,7 +6,7 @@ use crate::span::{Span, Spanned};
 use ariadne::{FnCache, Label, Report, ReportKind, Source};
 use std::fmt::Write;
 use thiserror::Error;
-use yansi::{Color, Paint};
+use yansi::{Color, Style};
 
 pub(super) use compile_error::CompileError;
 pub(super) use compile_error::LargeTypeError;
@@ -69,29 +69,17 @@ where
 
         let error_file: &str = &format!("{}", self.span().context().display());
         let mut report_builder = Report::build(ReportKind::Error, error_file, self.span().start())
-            .with_message(format!("{}", self.bold()))
+            .with_message(format!("{}", Style::default().bold().paint(self)))
             .with_labels(
                 self.labels()
                     .iter()
                     .enumerate()
                     .map(|(index, label)| {
                         let filepath: &str = &filepaths_and_sources[index].0;
+                        let style = Style::new(label.color).bold();
                         Label::new((filepath, label.span.start()..label.span.end()))
-                            .with_message(label.message.bold().paint(label.color))
-                            .with_color(match label.color {
-                                Color::Fixed(val) => ariadne::Color::Fixed(val),
-                                Color::Rgb(r, g, b) => ariadne::Color::RGB(r, g, b),
-                                Color::Black => ariadne::Color::Black,
-                                Color::Red => ariadne::Color::Red,
-                                Color::Green => ariadne::Color::Green,
-                                Color::Yellow => ariadne::Color::Yellow,
-                                Color::Blue => ariadne::Color::Blue,
-                                Color::Magenta => ariadne::Color::Magenta,
-                                Color::Cyan => ariadne::Color::Cyan,
-                                Color::White => ariadne::Color::White,
-                                // Should probably avoid using the "Bright" colors for now
-                                _ => ariadne::Color::Default,
-                            })
+                            .with_message(style.paint(label.message.clone()))
+                            .with_color(label.color)
                     })
                     .collect::<Vec<_>>(),
             );

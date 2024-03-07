@@ -3,7 +3,7 @@ resolver = "2"
 members = ["yurt-solve", "yurtc", "yurtfmt"]
 
 [workspace.dependencies]
-yansi = "1.0"
+yansi = "0.5"
 anyhow = "1.0"
 ariadne = "0.4"
 chumsky = "0.9"

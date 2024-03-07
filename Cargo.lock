@@ -90,7 +90,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd002a6223f12c7a95cdd4b1cb3a0149d22d37f7a9ecdb2cb691a071fe236c29"
 dependencies = [
  "unicode-width",
- "yansi 0.5.1",
+ "yansi",
 ]
 
 [[package]]
@@ -180,9 +180,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.89"
+version = "1.0.90"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0ba8f7aaa012f30d5b2861462f6708eccd49c3c39863fe083a308035f63d723"
+checksum = "8cd6604a82acf3039f1144f54b8eb34e91ffba622051189e71b781822d5ee1f5"
 
 [[package]]
 name = "cexpr"
@@ -1492,12 +1492,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09041cd90cf85f7f8b2df60c646f853b7f535ce68f85244eb6731cf89fa498ec"
 
 [[package]]
-name = "yansi"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c2861d76f58ec8fc95708b9b1e417f7b12fd72ad33c01fa6886707092dea0d3"
-
-[[package]]
 name = "yurt_solve"
 version = "0.1.0"
 dependencies = [
@@ -1506,7 +1500,7 @@ dependencies = [
  "lalrpop-util",
  "russcip",
  "thiserror",
- "yansi 1.0.0",
+ "yansi",
 ]
 
 [[package]]
@@ -1535,7 +1529,7 @@ dependencies = [
  "tempfile",
  "test_bin",
  "thiserror",
- "yansi 1.0.0",
+ "yansi",
  "yurt_solve",
 ]
 
@@ -1554,7 +1548,7 @@ dependencies = [
  "tempfile",
  "test_bin",
  "thiserror",
- "yansi 1.0.0",
+ "yansi",
 ]
 
 [[package]]
