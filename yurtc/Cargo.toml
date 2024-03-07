@@ -31,8 +31,8 @@ logos = { workspace = true }
 num-bigint = "0.4"
 num-traits = "0.2"
 regex = "1.10"
-serde = { version = "1.0.195", features = ["derive"] }
-serde_json = "1.0.111"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 similar-asserts = { version = "1.5", default-features = false }
 slotmap = "1.0"
 state_asm = { git = "ssh://git@github.com/essential-contributions/intent-server.git" }
