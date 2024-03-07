@@ -90,7 +90,7 @@ pub(super) enum Token<'sc> {
     #[token("solve")]
     Solve,
 
-    #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice())]
+    #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice(), priority = 1)]
     Ident(&'sc str),
     #[regex(
         r#"(?x)

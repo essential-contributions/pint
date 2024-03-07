@@ -1,7 +1,7 @@
 use crate::flatyurt::{Decl, Solve};
 use russcip::{prelude::*, Solved};
 use std::fmt::Write;
-use yansi::{Color, Style};
+use yansi::Paint;
 
 impl<'a> super::Solver<'a, Solved> {
     /// Pretty print the output of the solver which includes a valid solution for all the variables
@@ -10,13 +10,8 @@ impl<'a> super::Solver<'a, Solved> {
     pub fn print_solution(&self) {
         match self.model.status() {
             Status::Optimal => {
-                println!(
-                    "   {}",
-                    Style::new(Color::Green)
-                        .bold()
-                        .paint("Problem is satisfiable")
-                );
-                println!("    {}", Style::new(Color::Green).bold().paint("Solution:"));
+                println!("   {}", "Problem is satisfiable".green().bold());
+                println!("    {}", "Solution:".green().bold());
                 let sol = self.model.best_sol().unwrap();
 
                 // Assume that the vars in `self.flatyurt` have been converted first before any
@@ -46,29 +41,20 @@ impl<'a> super::Solver<'a, Solved> {
                 if !matches!(self.flatyurt.solve, Solve::Satisfy) {
                     println!(
                         "    {}: {:.3}",
-                        Style::new(Color::Green).bold().paint("Objective value:"),
+                        "Objective value:".green().bold(),
                         self.model.obj_val()
                     );
                 }
             }
-            Status::Infeasible => println!(
-                "   {}",
-                Style::new(Color::Red).bold().paint("Problem is infeasible")
-            ),
-            Status::Unbounded => println!(
-                "   {}",
-                Style::new(Color::Red).bold().paint("Problem is unbounded")
-            ),
-            Status::Inforunbd => println!(
-                "   {}",
-                Style::new(Color::Red)
-                    .bold()
-                    .paint("Problem is infeasible or unbounded")
-            ),
+            Status::Infeasible => println!("   {}", "Problem is infeasible".red().bold(),),
+            Status::Unbounded => println!("   {}", "Problem is unbounded".red().bold()),
+            Status::Inforunbd => {
+                println!("   {}", "Problem is infeasible or unbounded".red().bold())
+            }
             _ => println!(
                 "   {} {:?}",
-                Style::new(Color::Red).bold().paint("SCIP status:"),
-                Style::new(Color::Red).bold().paint(self.model.status())
+                "SCIP status:".red().bold(),
+                self.model.status().red().bold(),
             ),
         }
     }
