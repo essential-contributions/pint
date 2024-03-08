@@ -1,0 +1,3 @@
+enum MyEnum = A | B;
+
+type MyType = MyEnum;

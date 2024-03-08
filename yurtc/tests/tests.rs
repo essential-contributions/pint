@@ -5,7 +5,7 @@ use std::{
 };
 use test_util::{parse_test_data, TestData};
 use yansi::Color::{Cyan, Red, Yellow};
-use yurtc::{error::ReportableError, intermediate::IntermediateIntent};
+use yurtc::{error::ReportableError, intermediate::Program};
 
 mod cli;
 
@@ -33,6 +33,7 @@ mod e2e {
     e2e_test!(asm);
     e2e_test!(directives);
     e2e_test!(canonicalizes);
+    e2e_test!(sets_of_intents);
 }
 
 fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
@@ -86,7 +87,7 @@ fn parse_test_and_check(
     path: &Path,
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
-) -> Option<IntermediateIntent> {
+) -> Option<Program> {
     match yurtc::parser::parse_project(path) {
         Err(errs) => {
             let errs_str = errs
@@ -135,11 +136,11 @@ fn parse_test_and_check(
 }
 
 fn type_check(
-    ii: IntermediateIntent,
+    ii: Program,
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
     path: &Path,
-) -> Option<IntermediateIntent> {
+) -> Option<Program> {
     ii.type_check()
         .map(|checked| {
             if test_data.typecheck_failure.is_some() {
@@ -154,10 +155,7 @@ fn type_check(
         })
         .map_err(|err| {
             if let Some(typecheck_error_str) = &test_data.typecheck_failure {
-                similar_asserts::assert_eq!(
-                    typecheck_error_str.trim_end(),
-                    err.display_raw().trim_end()
-                );
+                similar_asserts::assert_eq!(typecheck_error_str.trim_end(), format!("{err}"));
             } else {
                 failed_tests.push(path.display().to_string());
                 println!(
@@ -165,7 +163,7 @@ fn type_check(
                     Red.paint("FAILED TO TYPE CHECK INTERMEDIATE INTENT"),
                     Cyan.paint(path.display().to_string()),
                     Red.paint("Reported errors:"),
-                    Yellow.paint(err.display_raw().trim_end()),
+                    Yellow.paint(format!("{err}")),
                 );
             }
         })
@@ -173,11 +171,11 @@ fn type_check(
 }
 
 fn flatten_and_check(
-    ii: IntermediateIntent,
+    ii: Program,
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
     path: &Path,
-) -> Option<IntermediateIntent> {
+) -> Option<Program> {
     ii.flatten()
         .map(|flattened| {
             if let Some(expected_flattened_str) = &test_data.flattened {
@@ -204,10 +202,7 @@ fn flatten_and_check(
         })
         .map_err(|err| {
             if let Some(flattening_error_str) = &test_data.flattening_failure {
-                similar_asserts::assert_eq!(
-                    flattening_error_str.trim_end(),
-                    err.display_raw().trim_end()
-                );
+                similar_asserts::assert_eq!(flattening_error_str.trim_end(), format!("{err}"));
             } else {
                 failed_tests.push(path.display().to_string());
                 println!(
@@ -215,7 +210,7 @@ fn flatten_and_check(
                     Red.paint("FAILED TO FLATTEN INTERMEDIATE INTENT"),
                     Cyan.paint(path.display().to_string()),
                     Red.paint("Reported errors:"),
-                    Yellow.paint(err.display_raw().trim_end()),
+                    Yellow.paint(format!("{err}")),
                 );
             }
         })

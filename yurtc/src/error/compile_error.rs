@@ -1,6 +1,6 @@
 use crate::{
     error::{ErrorLabel, ReportableError},
-    span::{Span, Spanned},
+    span::{empty_span, Span, Spanned},
 };
 use std::path::PathBuf;
 use thiserror::Error;
@@ -146,6 +146,8 @@ pub enum CompileError {
     BadCastFrom { ty: String, span: Span },
     #[error("`solve` directive missing from this project")]
     MissingSolveDirective { span: Span },
+    #[error("invalid declartion outside an `intent {{ .. }}` declaration")]
+    InvalidDeclOutsideIntentDecl { kind: String, span: Span },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -556,7 +558,27 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
-            Internal { .. } | FileIO { .. } => Vec::new(),
+            InvalidDeclOutsideIntentDecl { kind, span } => vec![ErrorLabel {
+                message: format!(
+                    "invalid {kind} declaration outside an `intent {{ .. }}` declaration"
+                ),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            Internal { msg, span } => {
+                if span == &empty_span() {
+                    Vec::new()
+                } else {
+                    vec![ErrorLabel {
+                        message: msg.to_string(),
+                        span: span.clone(),
+                        color: Color::Red,
+                    }]
+                }
+            }
+
+            FileIO { .. } => Vec::new(),
         }
     }
 
@@ -637,6 +659,12 @@ impl ReportableError for CompileError {
             MissingSolveDirective { .. } => {
                 Some("solve` directive must appear exactly once in a project and must appear in the top level module".to_string())
             }
+
+            InvalidDeclOutsideIntentDecl { .. } => Some(
+                "only `enum` and `type` declarations \
+                 are allowed outside an `intent { .. }` declaration"
+                    .to_string(),
+            ),
 
             Internal { .. }
             | FileIO { .. }
@@ -758,7 +786,8 @@ impl Spanned for CompileError {
             }
             | BadCastTo { span, .. }
             | BadCastFrom { span, .. }
-            | MissingSolveDirective { span, .. } => span,
+            | MissingSolveDirective { span, .. }
+            | InvalidDeclOutsideIntentDecl { span, .. } => span,
 
             IfBranchesTypeMismatch { large_err } | OperatorTypeError { large_err, .. } => {
                 match &**large_err {

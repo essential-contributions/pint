@@ -1,0 +1,40 @@
+// These are not okay
+let x: int;
+state y: int = foo();
+constraint x == 3;
+solve satisfy;
+
+// These are okay
+enum Foo = A | B;
+type Boo = Foo;
+
+intent Baz {}
+
+// intermediate <<<
+// var ::x: int;
+// state ::y: int = ::foo();
+// enum ::Foo = A | B;
+// type ::Boo = ::Foo;
+// constraint (::x == 3);
+// solve satisfy;
+// 
+// intent ::Baz {
+//     enum ::Foo = A | B;
+//     type ::Boo = ::Foo;
+// }
+// >>>
+
+// typecheck_failure <<<
+// invalid declartion outside an `intent { .. }` declaration
+// @26..27: invalid variable declaration outside an `intent { .. }` declaration
+// only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
+// invalid declartion outside an `intent { .. }` declaration
+// @34..54: invalid state declaration outside an `intent { .. }` declaration
+// only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
+// invalid declartion outside an `intent { .. }` declaration
+// @56..73: invalid constraint declaration outside an `intent { .. }` declaration
+// only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
+// invalid declartion outside an `intent { .. }` declaration
+// @75..88: invalid solve directive declaration outside an `intent { .. }` declaration
+// only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
+// >>>

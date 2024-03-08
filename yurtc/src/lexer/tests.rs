@@ -165,7 +165,6 @@ fn strings() {
 #[test]
 fn variables() {
     assert_eq!(lex_one_success("let"), Token::Let);
-    assert_eq!(lex_one_success("state"), Token::State);
 }
 
 #[test]
@@ -223,6 +222,12 @@ fn r#as() {
 #[test]
 fn r#in() {
     assert_eq!(lex_one_success("in"), Token::In);
+}
+
+#[test]
+fn blockchain_items() {
+    assert_eq!(lex_one_success("state"), Token::State);
+    assert_eq!(lex_one_success("intent"), Token::Intent);
 }
 
 #[test]

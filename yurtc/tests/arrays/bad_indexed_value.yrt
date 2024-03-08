@@ -15,4 +15,5 @@ solve satisfy;
 
 // typecheck_failure <<<
 // compiler internal error: unable to check type of FnCall
+// @24..29: unable to check type of FnCall
 // >>>

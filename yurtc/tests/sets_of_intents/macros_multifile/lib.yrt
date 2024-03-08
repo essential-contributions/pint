@@ -1,0 +1,28 @@
+macro @equal($x, $y) {
+    $x == $y
+}
+
+macro @foo($x) {
+    let a: int;
+    constraint a == $x;
+}
+
+macro @a($x) {
+    @c($x)
+}
+
+macro @b($y) {
+    @c($y)
+}
+
+macro @c($z) {
+    $z == 0
+}
+
+macro @sum($x, &rest) {
+    @sum($x + &rest)
+}
+
+macro @sum($x) {
+    $x
+}

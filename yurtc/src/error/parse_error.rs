@@ -66,6 +66,8 @@ pub enum ParseError {
     },
     #[error("`solve` directive must only appear in the top level module")]
     SolveDirectiveMustBeTopLevel { span: Span },
+    #[error("`solve` directive must only appear outside an `intent` declaration")]
+    SolveDirectiveMustBeOutsideIntent { span: Span },
 }
 
 impl ReportableError for ParseError {
@@ -237,6 +239,14 @@ impl ReportableError for ParseError {
                     color: Color::Red,
                 }]
             }
+            SolveDirectiveMustBeOutsideIntent { span } => {
+                vec![ErrorLabel {
+                    message: "`solve` directive must only appear outside an `intent` declaration"
+                        .to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
         }
     }
 
@@ -336,6 +346,7 @@ impl Spanned for ParseError {
             | IntLiteralTooLarge { span, .. }
             | TooManySolveDirectives { span, .. }
             | SolveDirectiveMustBeTopLevel { span, .. }
+            | SolveDirectiveMustBeOutsideIntent { span, .. }
             | Lex { span } => span,
 
             InvalidToken => unreachable!("The `InvalidToken` error is always wrapped in `Lex`."),

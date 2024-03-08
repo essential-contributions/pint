@@ -1,15 +1,16 @@
 use crate::{
-    error::{CompileError, ParseError},
+    error::{CompileError, Errors, ParseError},
     expr::{self, Expr, Ident},
     span::{empty_span, Span},
     types::{EnumDecl, EphemeralDecl, FnSig, NewTypeDecl, Path, Type},
 };
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     fmt::{self, Formatter},
 };
 
 mod analyse;
+mod check_program_kind;
 mod display;
 mod transform;
 
@@ -19,6 +20,45 @@ slotmap::new_key_type! { pub struct VarKey; }
 slotmap::new_key_type! { pub struct StateKey; }
 slotmap::new_key_type! { pub struct ExprKey; }
 slotmap::new_key_type! { pub struct CallKey; }
+
+#[derive(Debug, Default, Clone)]
+pub enum ProgramKind {
+    #[default]
+    Stateless,
+    Stateful,
+}
+
+/// A Program is a collection of intents. There are two types of programs:
+///
+/// * Stateless: these must have a single II in the `BTreeMap` with an the name
+/// `Program::ROOT_II_NAME` and cannot own state.
+/// * Stateful: these must have at least one intent other than the root intent. The root intent,
+/// which has the name `Program::ROOT_II_NAME`, contains everything that lives outside `intent { ..
+/// }` declarations. Stateful programs are allowed to own state and the state is shared by all
+/// intents.
+#[derive(Debug, Default)]
+pub struct Program {
+    pub kind: ProgramKind,
+    pub iis: BTreeMap<String, IntermediateIntent>,
+}
+
+impl Program {
+    pub const ROOT_II_NAME: &'static str = "";
+
+    pub fn compile(self) -> std::result::Result<Self, Errors> {
+        self.type_check()?.flatten()
+    }
+
+    /// The root intent is the one named `Intents::ROOT_II_NAME`
+    pub fn root_ii(&self) -> &IntermediateIntent {
+        self.iis.get(Self::ROOT_II_NAME).unwrap()
+    }
+
+    /// The root intent is the one named `Intents::ROOT_II_NAME`
+    pub fn root_ii_mut(&mut self) -> &mut IntermediateIntent {
+        self.iis.get_mut(Self::ROOT_II_NAME).unwrap()
+    }
+}
 
 /// An in-progress intent, possibly malformed or containing redundant information.  Designed to be
 /// iterated upon and to be reduced to an [Intent].
@@ -46,14 +86,10 @@ pub struct IntermediateIntent {
     // CallKey is used in a secondary map in the parser context to access the actual call data.
     pub calls: slotmap::SlotMap<CallKey, Path>,
 
-    pub top_level_symbols: HashMap<String, Span>,
+    pub top_level_symbols: BTreeMap<String, Span>,
 }
 
 impl IntermediateIntent {
-    pub fn compile(self) -> Result<IntermediateIntent> {
-        self.type_check()?.flatten()
-    }
-
     /// Helps out some `thing: T` by adding `self` as context.
     pub fn with_ii<T>(&self, thing: T) -> WithII<T> {
         WithII { thing, ii: self }
@@ -144,7 +180,11 @@ impl IntermediateIntent {
         span: Span,
     ) -> std::result::Result<StateKey, ParseError> {
         let name = self.add_top_level_symbol(mod_prefix, None, name, span.clone())?;
-        let state_key = self.states.insert(State { name, expr });
+        let state_key = self.states.insert(State {
+            name,
+            expr,
+            span: span.clone(),
+        });
         if let Some(ty) = ty {
             self.state_types.insert(state_key, ty);
         }
@@ -314,6 +354,7 @@ impl IntermediateIntent {
 pub struct State {
     pub name: Path,
     pub expr: ExprKey,
+    pub span: Span,
 }
 
 impl DisplayWithII for StateKey {

@@ -1,9 +1,9 @@
-use super::{Expr, ExprKey, Ident, IntermediateIntent, VarKey};
-
+use super::{Expr, ExprKey, Ident, IntermediateIntent, Program, VarKey};
 use crate::{
-    error::{CompileError, LargeTypeError},
+    error::{CompileError, Error, Errors, LargeTypeError},
     expr::{BinaryOp, Immediate, TupleAccess, UnaryOp},
     span::{empty_span, Span, Spanned},
+    transform,
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
 
@@ -14,13 +14,31 @@ enum Inference {
     Dependencies(Vec<ExprKey>),
 }
 
-impl IntermediateIntent {
-    pub fn type_check(mut self) -> super::Result<Self> {
-        self.lower_newtypes()?;
-        self.type_check_all_exprs()?;
-        Ok(self)
-    }
+impl Program {
+    pub fn type_check(mut self) -> Result<Self, Errors> {
+        self = self.check_program_kind()?;
+        let errors = self
+            .iis
+            .values_mut()
+            .flat_map(|ii| {
+                let mut errs = Vec::new();
 
+                transform!(ii.lower_newtypes(), errs);
+
+                transform!(ii.type_check_all_exprs(), errs);
+
+                errs
+            })
+            .collect::<Vec<_>>();
+
+        errors
+            .is_empty()
+            .then(|| Ok(self))
+            .unwrap_or_else(|| Err(Errors(errors)))
+    }
+}
+
+impl IntermediateIntent {
     fn lower_newtypes(&mut self) -> super::Result<()> {
         use std::borrow::BorrowMut;
 
