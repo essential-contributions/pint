@@ -21,6 +21,10 @@ russcip = { git = "https://github.com/mohammadfawaz/russcip", branch = "mohammad
 thiserror = { workspace = true }
 yansi = { workspace = true }
 
+[dev-dependencies]
+anyhow = { workspace = true }
+test-util = { path = "../test-util" }
+
 [features]
 default = ["solver-scip"]
 solver-scip = ["dep:russcip"]

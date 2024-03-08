@@ -33,9 +33,3 @@ solve satisfy;
 // constraint ((::x / ::y) > (::y / ::z));
 // solve satisfy;
 // >>>
-
-// solution <<<
-// ::x: 6
-// ::y: 3
-// ::z: 3
-// >>>

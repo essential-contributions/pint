@@ -1,5 +1,3 @@
-// <no-solve>
-//
 // This is disabled for now for a couple of reasons:
 // a) there isn't a single solution, so comparing the output with a single answer could fail.
 // b) it's slow.

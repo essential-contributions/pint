@@ -1,0 +1,15 @@
+// Temporarily disabling solving while the CI is solving some values to -0 instead of 0.
+
+let a: int[1][2][3];
+let b: int[2][3];
+
+constraint a[0][0][0] == 0;
+constraint a[0][0][1] == 1;
+constraint a[0][1][0] == 2;
+constraint a[0][1][2] == 4;
+
+constraint forall i in 0..1, j in 0..2 {
+    b[i][j] - a[0][i][j] == 0
+};
+
+solve satisfy;

@@ -3,7 +3,7 @@ use std::{
     fs::{create_dir_all, File},
     path::{Path, PathBuf},
 };
-use yurtc::{asm_gen, cli::Args, error, parser};
+use yurtc::{asm_gen, cli::Args, error, error::Errors, parser};
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
@@ -16,7 +16,7 @@ fn main() -> anyhow::Result<()> {
             if !cfg!(test) {
                 error::print_errors(&errors);
             }
-            yurtc::yurtc_bail!(errors.len(), filepath)
+            yurtc::yurtc_bail!(errors.0.len(), filepath)
         }
     };
 
@@ -27,7 +27,7 @@ fn main() -> anyhow::Result<()> {
         Ok(ii) => ii,
         Err(error) => {
             if !cfg!(test) {
-                error::print_errors(&vec![error::Error::Compile { error }]);
+                error::print_errors(&Errors(vec![error::Error::Compile { error }]));
             }
             yurtc::yurtc_bail!(1, filepath)
         }
@@ -91,7 +91,7 @@ fn main() -> anyhow::Result<()> {
             }
             Err(error) => {
                 if !cfg!(test) {
-                    error::print_errors(&vec![error::Error::Compile { error }]);
+                    error::print_errors(&Errors(vec![error::Error::Compile { error }]));
                 }
                 yurtc::yurtc_bail!(1, filepath)
             }

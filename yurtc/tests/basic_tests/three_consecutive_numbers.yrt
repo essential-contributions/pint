@@ -29,9 +29,3 @@ solve satisfy;
 // constraint (((::x0 + ::x1) + ::x2) == ((::x0 * ::x1) * ::x2));
 // solve satisfy;
 // >>>
-
-// solution <<<
-// ::x0: -1
-// ::x1: 0
-// ::x2: 1
-// >>>

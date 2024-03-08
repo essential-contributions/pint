@@ -1,0 +1,3 @@
+macro @e_macro($id) {
+    ::f::@f_macro($id; 3)
+}

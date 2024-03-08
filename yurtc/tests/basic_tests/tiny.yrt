@@ -12,7 +12,3 @@ solve satisfy;
 // constraint (::a == 1);
 // solve satisfy;
 // >>>
-
-// solution <<<<
-// ::a: 1
-// >>>

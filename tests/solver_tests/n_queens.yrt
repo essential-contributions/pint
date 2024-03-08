@@ -1,0 +1,20 @@
+// n-Queens problem:: Place n queens on an nxn chessboard so that none can attack another.
+
+// Queen in column i is in row q[i]
+let q: int[16];
+
+// Rows must be in 1..n
+constraint forall i in 0..15 {
+    q[i] >= 0 && q[i] <= 15
+};
+
+constraint forall i in 0..15, j in 0..15 where i < j {
+    // Distinct rows
+    q[i] != q[j] &&
+
+    // Distinct diagonals
+    q[i] + i != q[j] + j &&
+    q[i] - i != q[j] - j
+};
+
+solve satisfy;

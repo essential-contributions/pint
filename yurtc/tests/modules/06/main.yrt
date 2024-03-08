@@ -1,5 +1,3 @@
-// <no-solve>
-
 use b_mod::{s0, s1};
 use ::b_mod::{s2, s3};
 use b_mod::s4;

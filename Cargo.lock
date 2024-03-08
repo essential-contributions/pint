@@ -1233,10 +1233,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "test-util"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "num-bigint",
+ "num-traits",
+ "regex",
+]
+
+[[package]]
 name = "test_bin"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e7a7de15468c6e65dd7db81cf3822c1ec94c71b2a3c1a976ea8e4696c91115c"
+
+[[package]]
+name = "tests"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "essential_types",
+ "intent-server",
+ "num-bigint",
+ "num-traits",
+ "regex",
+ "test-util",
+ "yansi",
+ "yurt_solve",
+ "yurtc",
+]
 
 [[package]]
 name = "thiserror"
@@ -1495,10 +1521,12 @@ checksum = "09041cd90cf85f7f8b2df60c646f853b7f535ce68f85244eb6731cf89fa498ec"
 name = "yurt_solve"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "expect-test",
  "lalrpop",
  "lalrpop-util",
  "russcip",
+ "test-util",
  "thiserror",
  "yansi",
 ]
@@ -1513,20 +1541,17 @@ dependencies = [
  "constraint_asm",
  "essential_types",
  "expect-test",
- "intent-server",
  "itertools 0.12.1",
  "lalrpop",
  "lalrpop-util",
  "logos",
- "num-bigint",
- "num-traits",
  "regex",
- "serde",
  "serde_json",
  "similar-asserts",
  "slotmap",
  "state_asm",
  "tempfile",
+ "test-util",
  "test_bin",
  "thiserror",
  "yansi",

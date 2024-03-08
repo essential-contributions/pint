@@ -1,0 +1,80 @@
+// Basic sudoku
+
+let grid: int[9][9];
+
+// Input grid
+
+constraint grid[0][1] == 2;
+constraint grid[0][5] == 9;
+constraint grid[0][6] == 6;
+
+constraint grid[1][0] == 5;
+constraint grid[1][1] == 8;
+constraint grid[1][4] == 6;
+constraint grid[1][5] == 2;
+
+constraint grid[2][0] == 7;
+constraint grid[2][2] == 6;
+constraint grid[2][4] == 3;
+constraint grid[2][7] == 1;
+constraint grid[2][8] == 9;
+
+constraint grid[3][0] == 4;
+constraint grid[3][1] == 7;
+constraint grid[3][2] == 2;
+constraint grid[3][6] == 5;
+constraint grid[3][7] == 6;
+
+constraint grid[4][0] == 9;
+constraint grid[4][1] == 5;
+constraint grid[4][3] == 6;
+constraint grid[4][6] == 3;
+constraint grid[4][7] == 4;
+constraint grid[4][8] == 2;
+
+constraint grid[5][1] == 3;
+constraint grid[5][2] == 8;
+constraint grid[5][5] == 4;
+constraint grid[5][6] == 1;
+constraint grid[5][8] == 7;
+
+constraint grid[6][0] == 8;
+constraint grid[6][1] == 1;
+constraint grid[6][2] == 7;
+constraint grid[6][5] == 5;
+constraint grid[6][8] == 6;
+
+constraint grid[7][0] == 3;
+constraint grid[7][3] == 7;
+constraint grid[7][8] == 1;
+
+constraint grid[8][4] == 9;
+constraint grid[8][7] == 7;
+
+// Sudoku rules
+
+constraint forall i in 0..8 {
+    forall j in 0..8 {
+        // Each entry is an integer between 1 and 9
+        grid[i][j] >= 1 && grid[i][j] <= 9
+    }
+};
+
+constraint forall k in 0..8 {
+    forall i in 0..8, j in 0..8 where i < j {
+        // Unique entries in each column `k`
+        grid[i][k] != grid[j][k] &&
+
+        // Unique entries in each row `k`
+        grid[k][i] != grid[k][j]
+    }
+};
+
+constraint forall k1 in 0..2, k2 in 0..2 {
+    forall i1 in 0..2, j1 in 0..2, i2 in 0..2, j2 in 0..2 where i1 < i2 || j2 < j2 {
+        // Unique entries in each 3x3 subgrid `(k1, k2)`
+        grid[k1*3 + i1][k2*3 + j1] != grid[k1*3 + i2][k2*3 + j2]
+    }
+};
+
+solve satisfy;

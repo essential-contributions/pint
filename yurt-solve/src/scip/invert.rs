@@ -12,6 +12,8 @@ impl<'a> super::Solver<'a, ProblemCreated> {
         match expr {
             Expr::Immediate(value) => match value {
                 Immediate::Bool(val) => Ok(Expr::Immediate(Immediate::Bool(!val))),
+                Immediate::Int(val) if *val == 1 => Ok(Expr::Immediate(Immediate::Int(0))),
+                Immediate::Int(val) if *val == 0 => Ok(Expr::Immediate(Immediate::Int(1))),
                 _ => Err(SolveError::Internal {
                     msg: "(scip) attempting to invert a non-Boolean immediate value",
                 }),

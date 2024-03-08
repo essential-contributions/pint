@@ -1,4 +1,3 @@
-// <no-solve>
 // Temporarily disabling solving while the CI is solving some values to -0 instead of 0.
 //
 // Find distinct digits for the letters D, E, M, N, O, R, S, Y such that S and M are different from
@@ -125,15 +124,4 @@ solve satisfy;
 // constraint ((((((((((((((((((((((((((((::s != ::e) && (::s != ::n)) && (::s != ::d)) && (::s != ::m)) && (::s != ::o)) && (::s != ::r)) && (::s != ::y)) && (::e != ::n)) && (::e != ::d)) && (::e != ::m)) && (::e != ::o)) && (::e != ::r)) && (::e != ::y)) && (::n != ::d)) && (::n != ::m)) && (::n != ::o)) && (::n != ::r)) && (::n != ::y)) && (::d != ::m)) && (::d != ::o)) && (::d != ::r)) && (::d != ::y)) && (::m != ::o)) && (::m != ::r)) && (::m != ::y)) && (::o != ::r)) && (::o != ::y)) && (::r != ::y));
 // constraint (((((((((1000 * ::s) + (100 * ::e)) + (10 * ::n)) + ::d) + (1000 * ::m)) + (100 * ::o)) + (10 * ::r)) + ::e) == (((((10000 * ::m) + (1000 * ::o)) + (100 * ::n)) + (10 * ::e)) + ::y));
 // solve satisfy;
-// >>>
-
-// solution <<<
-// ::s: 9
-// ::e: 5
-// ::n: 6
-// ::d: 7
-// ::m: 1
-// ::o: 0
-// ::r: 8
-// ::y: 2
 // >>>

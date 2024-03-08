@@ -44,8 +44,3 @@ solve satisfy;
 // constraint (::d::d == 44);
 // solve satisfy;
 // >>>
-
-// solution <<<
-// ::a: 33
-// ::d::d: 44
-// >>>

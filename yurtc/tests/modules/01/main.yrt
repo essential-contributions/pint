@@ -17,8 +17,3 @@ solve satisfy;
 // constraint (::d::e == 10);
 // solve satisfy;
 // >>>
-
-// solution <<<
-// ::d::e: 10
-// ::a::b::c: 10
-// >>>

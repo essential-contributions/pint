@@ -1,4 +1,3 @@
-// <no-solve>
 // Colouring Australia using 3 colours
 
 enum Colour = Red | Green | Blue;
