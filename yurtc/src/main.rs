@@ -10,8 +10,8 @@ fn main() -> anyhow::Result<()> {
     let filepath = Path::new(&args.filepath);
 
     // Lex + Parse
-    let initial_ii = match parser::parse_project(filepath) {
-        Ok(ii) => ii,
+    let initial_iis = match parser::parse_project(filepath) {
+        Ok(iis) => iis,
         Err(errors) => {
             if !cfg!(test) {
                 error::print_errors(&errors);
@@ -23,7 +23,11 @@ fn main() -> anyhow::Result<()> {
     // Convert the initial IntermediateIntent to a final IntermediateIntent by performing type
     // checking, flattening, optimizations, etc.
     #[allow(unused_mut)]
-    let mut final_ii = match initial_ii.compile() {
+    let mut final_iis = &match initial_iis
+        .values()
+        .map(|ii| ii.clone().compile())
+        .collect::<Result<Vec<_>, _>>()
+    {
         Ok(ii) => ii,
         Err(error) => {
             if !cfg!(test) {
@@ -40,6 +44,7 @@ fn main() -> anyhow::Result<()> {
     // numbers, etc.) and so, we can solve more intents than we can generate assembly for. When
     // this changes, we will always generate assembly and only solve when requested via `--solve`.
     if args.solve {
+        let final_ii = &final_iis[0];
         if args.solve && !cfg!(feature = "solver-scip") {
             eprintln!("Solving is disabled in this build.");
         }
@@ -70,10 +75,14 @@ fn main() -> anyhow::Result<()> {
     } else {
         // This is WIP. So far, simply print the serialized JSON to `<filename>.json` or to
         // `<output>`. That'll likely change in the future when we decide on a serialized scheme.
-        match asm_gen::intent_to_asm(&final_ii) {
-            Ok(intent) => {
+        match final_iis
+            .iter()
+            .map(asm_gen::intent_to_asm)
+            .collect::<Result<Vec<_>, _>>()
+        {
+            Ok(intents) => {
                 if args.print_asm {
-                    asm_gen::print_asm(&intent);
+                    intents.iter().for_each(asm_gen::print_asm);
                 }
                 serde_json::to_writer(
                     if let Some(output) = args.output {
@@ -86,7 +95,7 @@ fn main() -> anyhow::Result<()> {
                     } else {
                         File::create(filepath.with_extension("json"))?
                     },
-                    &intent,
+                    &intents,
                 )?;
             }
             Err(error) => {

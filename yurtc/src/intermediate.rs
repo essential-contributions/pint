@@ -22,8 +22,10 @@ slotmap::new_key_type! { pub struct CallKey; }
 
 /// An in-progress intent, possibly malformed or containing redundant information.  Designed to be
 /// iterated upon and to be reduced to an [Intent].
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct IntermediateIntent {
+    pub name: String,
+
     pub vars: slotmap::SlotMap<VarKey, Var>,
     pub var_types: slotmap::SecondaryMap<VarKey, Type>,
 

@@ -8,6 +8,7 @@ use crate::{
 };
 
 use std::{
+    collections::HashMap,
     fs,
     path::{Path, PathBuf},
     rc::Rc,
@@ -26,7 +27,7 @@ pub(crate) use context::ParserContext;
 #[cfg(test)]
 mod tests;
 
-pub fn parse_project(root_src_path: &Path) -> Result<IntermediateIntent, Errors> {
+pub fn parse_project(root_src_path: &Path) -> Result<HashMap<String, IntermediateIntent>, Errors> {
     ProjectParser::new(PathBuf::from(root_src_path))
         .parse_project()
         .finalize()
@@ -34,7 +35,7 @@ pub fn parse_project(root_src_path: &Path) -> Result<IntermediateIntent, Errors>
 
 #[derive(Default)]
 struct ProjectParser {
-    intent: IntermediateIntent,
+    intents: HashMap<String, IntermediateIntent>,
     macros: Vec<MacroDecl>,
     macro_calls: slotmap::SecondaryMap<CallKey, (ExprKey, MacroCall)>,
     proj_root_path: PathBuf,
@@ -72,6 +73,7 @@ impl ProjectParser {
         Self {
             proj_root_path,
             root_src_path,
+            intents: HashMap::from([("".to_string(), IntermediateIntent::default())]),
 
             ..Self::default()
         }
@@ -159,16 +161,23 @@ impl ProjectParser {
         // For each call we need to replace its user (there should be just one) with the macro body
         // expression.
         for (call_expr_key, body_expr_key) in call_replacements {
-            self.intent.replace_exprs(call_expr_key, body_expr_key);
-            self.intent.exprs.remove(call_expr_key);
+            self.intents
+                .get_mut("")
+                .unwrap()
+                .replace_exprs(call_expr_key, body_expr_key);
+            self.intents
+                .get_mut("")
+                .unwrap()
+                .exprs
+                .remove(call_expr_key);
         }
 
         self
     }
 
-    fn finalize(self) -> Result<IntermediateIntent, Errors> {
+    fn finalize(self) -> Result<HashMap<String, IntermediateIntent>, Errors> {
         if self.errors.is_empty() {
-            Ok(self.intent)
+            Ok(self.intents)
         } else {
             Err(Errors(self.errors))
         }
@@ -209,7 +218,8 @@ macro_rules! parse_with {
             $mod_path,
             mod_prefix: &mod_prefix,
             local_scope: $local_scope,
-            ii: &mut $self.intent,
+            iis: &mut $self.intents,
+            current_ii: &mut String::new(),
             macros: &mut $self.macros,
             macro_calls: &mut $self.macro_calls,
             span_from: &span_from,

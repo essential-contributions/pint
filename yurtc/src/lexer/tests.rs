@@ -165,7 +165,6 @@ fn strings() {
 #[test]
 fn variables() {
     assert_eq!(lex_one_success("let"), Token::Let);
-    assert_eq!(lex_one_success("state"), Token::State);
 }
 
 #[test]
@@ -226,6 +225,11 @@ fn r#in() {
 }
 
 #[test]
+fn blockchain_items() {
+    assert_eq!(lex_one_success("state"), Token::State);
+    assert_eq!(lex_one_success("intent"), Token::Intent);
+}
+
 fn forall() {
     assert_eq!(lex_one_success("forall"), Token::ForAll);
     assert_eq!(lex_one_success("where"), Token::Where);
