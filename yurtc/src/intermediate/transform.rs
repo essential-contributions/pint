@@ -1,7 +1,9 @@
+mod canonicalize;
 mod lower;
 mod scalarize;
 mod unroll;
 
+use canonicalize::canonicalize;
 use lower::{lower_aliases, lower_bools, lower_casts, lower_enums};
 use scalarize::scalarize;
 use unroll::unroll_foralls;
@@ -22,6 +24,8 @@ impl super::IntermediateIntent {
         // Lower casts after aliases since we're leaving `int -> real` behind, but it's much easier
         // if the `real` isn't still an alias.
         lower_casts(&mut self)?;
+
+        canonicalize(&mut self)?;
 
         Ok(self)
     }
