@@ -20,7 +20,7 @@ Identifiers have the following syntax:
 
 For example, `___j_Bond_007_` is a valid identifier.
 
-A number of keywords are reserved and cannot be used as identifiers. The keywords are: `as`, `bool`, `cond`, `constraint`, `contract`, `else`, `enum`, `extern`, `false`, `fn`, `if`, `implements`, `in`, `interface`, `int`, `let`, `macro`, `maximize`, `minimize`, `real`, `satisfy`, `self`, `solve`, `state`, `string`, `true`, `type`, `use`.
+A number of keywords are reserved and cannot be used as identifiers. The keywords are: `as`, `bool`, `cond`, `constraint`, `else`, `enum`, `false`, `fn`, `if`, `in`, `int`, `let`, `macro`, `maximize`, `minimize`, `real`, `satisfy`, `self`, `solve`, `state`, `string`, `true`, `type`, `use`.
 
 ### Paths
 
@@ -40,6 +40,6 @@ x::y::z
 x
 ```
 
-Paths can be used in [Import Items](items/imports.md). They can also be used in expressions to directly refer to an item in a different module or [contract](items/contracts.md).
+Paths can be used in [Import Items](items/imports.md). They can also be used in expressions to directly refer to an item in a different module.
 
 Paths that start with `::` are absolute paths from the root of the project. Paths that don't start with `::` are relative paths.

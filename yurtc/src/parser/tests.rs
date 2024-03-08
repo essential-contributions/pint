@@ -535,12 +535,12 @@ fn state_decls() {
     let state = yp::StateDeclParser::new();
 
     check(
-        &run_parser!(state, "state x: int = MyContract::foo()"),
-        expect_test::expect!["state ::x: int = ::MyContract::foo();"],
+        &run_parser!(state, "state x: int = MyPath::foo()"),
+        expect_test::expect!["state ::x: int = ::MyPath::foo();"],
     );
     check(
-        &run_parser!(state, "state y = MyContract::bar()"),
-        expect_test::expect!["state ::y = ::MyContract::bar();"],
+        &run_parser!(state, "state y = MyPath::bar()"),
+        expect_test::expect!["state ::y = ::MyPath::bar();"],
     );
 }
 
@@ -1967,115 +1967,6 @@ fn big_ints() {
              0b0100100101011010101010100101010101001010010010100101001010010010"
         ),
         expect_test::expect!["(-3272615729767819947 + 5285724395968025234)"],
-    );
-}
-
-#[test]
-fn interface() {
-    let interface_decl = yp::InterfaceDeclParser::new();
-
-    let src = r#"
-interface Foo {
-    fn foo(x: real, y: int[5]) -> real;
-    fn bar(x: bool,) -> real;
-    fn baz() -> { int, real };
-}
-"#;
-
-    check(
-        &run_parser!(interface_decl, src),
-        expect_test::expect!["interface ::Foo { fn ::Foo::foo(x: real, y: int[5]) -> real; fn ::Foo::bar(x: bool) -> real; fn ::Foo::baz() -> {int, real}; }"],
-    );
-
-    check(
-        &run_parser!(interface_decl, "interface Foo {}"),
-        expect_test::expect!["interface ::Foo { }"],
-    );
-}
-
-#[test]
-fn contract() {
-    let contract_decl = yp::ContractDeclParser::new();
-
-    check(
-        &run_parser!(contract_decl, "contract Foo(0) {}"),
-        expect_test::expect!["contract ::Foo(0) { }"],
-    );
-
-    check(
-        &run_parser!(
-            contract_decl,
-            "contract Foo(0) { fn foo(x: int) -> real; fn bar(y: real, z: { Bar, }) -> string;}"
-        ),
-        expect_test::expect!["contract ::Foo(0) { fn ::Foo::foo(x: int) -> real; fn ::Foo::bar(y: real, z: {::Bar}) -> string; }"],
-    );
-
-    check(
-        &run_parser!(contract_decl, "contract Foo(if true {0} else {1}) {}"),
-        expect_test::expect!["contract ::Foo(if true { 0 } else { 1 }) { }"],
-    );
-
-    check(
-        &run_parser!(
-            contract_decl,
-            "contract Foo(0) implements X::Bar, ::Y::Baz {}"
-        ),
-        expect_test::expect!["contract ::Foo(0) implements ::X::Bar, ::Y::Baz { }"],
-    );
-
-    check(
-        &run_parser!(
-            contract_decl,
-            "contract Foo(0) implements Bar { fn baz(x: real) -> int; }"
-        ),
-        expect_test::expect![
-            "contract ::Foo(0) implements ::Bar { fn ::Foo::baz(x: real) -> int; }"
-        ],
-    );
-
-    check(
-        &run_parser!(contract_decl, "contract Foo { }"),
-        expect_test::expect![[r#"
-            expected `(`, found `{`
-            @13..14: expected `(`
-        "#]],
-    );
-
-    check(
-        &run_parser!(contract_decl, "contract Foo(0) implements { }"),
-        expect_test::expect![[r#"
-            expected `::`, or `ident`, found `{`
-            @27..28: expected `::`, or `ident`
-        "#]],
-    );
-}
-
-#[test]
-fn extern_test() {
-    let extern_decl = yp::ExternDeclParser::new();
-
-    check(
-        &run_parser!(extern_decl, "extern {}"),
-        expect_test::expect!["extern { }"],
-    );
-    check(
-        &run_parser!(extern_decl, "extern { fn foo() -> string; }"),
-        expect_test::expect!["extern { fn ::foo() -> string; }"],
-    );
-    check(
-        &run_parser!(extern_decl, "extern { fn foo(x: int, y: real) -> int; }"),
-        expect_test::expect!["extern { fn ::foo(x: int, y: real) -> int; }"],
-    );
-    check(
-        &run_parser!(extern_decl, "extern { fn foo() -> int; fn bar() -> real; }"),
-        expect_test::expect!["extern { fn ::foo() -> int; fn ::bar() -> real; }"],
-    );
-    check(
-        &run_parser!(extern_decl, "extern { fn foo(); }"),
-        expect_test::expect![[r#"
-            expected `->`, found `;`
-            @17..18: expected `->`
-        "#]],
     );
 }
 

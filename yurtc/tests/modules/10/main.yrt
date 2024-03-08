@@ -10,13 +10,7 @@ type E = string;
 
 let E = 4;
 
-state E = MyContract::foo();
-
-interface E {}
-
-contract E(0) {}
-
-extern { fn E() -> bool; }
+state E = MyPath::foo();
 
 // parse_failure <<<
 // symbol `E` has already been declared
@@ -35,18 +29,6 @@ extern { fn E() -> bool; }
 // @7..8: previous declaration of the symbol `E` here
 // @87..88: `E` redeclared here
 // `E` must be declared or imported only once in this scope
-// symbol `E` has already been declared
-// @7..8: previous declaration of the symbol `E` here
-// @121..122: `E` redeclared here
-// `E` must be declared or imported only once in this scope
-// symbol `E` has already been declared
-// @7..8: previous declaration of the symbol `E` here
-// @136..137: `E` redeclared here
-// `E` must be declared or imported only once in this scope
-// symbol `E` has already been declared
-// @7..8: previous declaration of the symbol `E` here
-// @157..158: `E` redeclared here
-// `E` must be declared or imported only once in this scope
 // symbol `F` has already been declared
 // @4..5: previous declaration of the symbol `F` here
 // @17..18: `F` redeclared here
@@ -63,16 +45,6 @@ extern { fn E() -> bool; }
 // @4..5: previous declaration of the symbol `F` here
 // @65..66: `F` redeclared here
 // `F` must be declared or imported only once in this scope
-// symbol `F` has already been declared
-// @4..5: previous declaration of the symbol `F` here
-// @99..100: `F` redeclared here
-// `F` must be declared or imported only once in this scope
-// symbol `F` has already been declared
-// @4..5: previous declaration of the symbol `F` here
-// @114..115: `F` redeclared here
-// `F` must be declared or imported only once in this scope
-// symbol `F` has already been declared
-// @4..5: previous declaration of the symbol `F` here
-// @135..136: `F` redeclared here
-// `F` must be declared or imported only once in this scope
+// expected `::`, found `F`
+// @99..100: expected `::`
 // >>>

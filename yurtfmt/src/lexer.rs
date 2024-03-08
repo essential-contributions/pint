@@ -70,16 +70,8 @@ pub(super) enum Token<'sc> {
     Cond,
     #[token("enum")]
     Enum,
-    #[token("contract")]
-    Contract,
-    #[token("implements")]
-    Implements,
-    #[token("interface")]
-    Interface,
     #[token("state")]
     State,
-    #[token("extern")]
-    Extern,
 
     #[regex(r"satisfy|minimize|maximize", |lex| lex.slice())]
     Directive(&'sc str),
@@ -152,11 +144,7 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Else => write!(f, "else"),
             Token::Cond => write!(f, "cond"),
             Token::Enum => write!(f, "enum"),
-            Token::Contract => write!(f, "contract"),
-            Token::Implements => write!(f, "implements"),
-            Token::Interface => write!(f, "interface"),
             Token::State => write!(f, "state"),
-            Token::Extern => write!(f, "extern"),
             Token::Directive(contents) => write!(f, "{contents}"),
             Token::Use => write!(f, "use"),
             Token::As => write!(f, "as"),

@@ -226,14 +226,6 @@ fn r#in() {
 }
 
 #[test]
-fn blockchain_items() {
-    assert_eq!(lex_one_success("interface"), Token::Interface);
-    assert_eq!(lex_one_success("contract"), Token::Contract);
-    assert_eq!(lex_one_success("implements"), Token::Implements);
-    assert_eq!(lex_one_success("extern"), Token::Extern);
-}
-
-#[test]
 fn forall() {
     assert_eq!(lex_one_success("forall"), Token::ForAll);
     assert_eq!(lex_one_success("where"), Token::Where);

@@ -136,15 +136,6 @@ pub enum Token {
     #[token("as")]
     As,
 
-    #[token("interface")]
-    Interface,
-    #[token("contract")]
-    Contract,
-    #[token("implements")]
-    Implements,
-    #[token("extern")]
-    Extern,
-
     #[token("in")]
     In,
 
@@ -202,10 +193,6 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::SelfTok,
     Token::As,
     Token::Enum,
-    Token::Interface,
-    Token::Contract,
-    Token::Implements,
-    Token::Extern,
     Token::In,
     Token::Type,
     Token::Where,
@@ -299,10 +286,6 @@ impl fmt::Display for Token {
             Token::Use => write!(f, "use"),
             Token::SelfTok => write!(f, "self"),
             Token::As => write!(f, "as"),
-            Token::Interface => write!(f, "interface"),
-            Token::Contract => write!(f, "contract"),
-            Token::Implements => write!(f, "implements"),
-            Token::Extern => write!(f, "extern"),
             Token::In => write!(f, "in"),
             Token::ForAll => write!(f, "forall"),
             Token::Where => write!(f, "where"),
