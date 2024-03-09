@@ -19,12 +19,6 @@ pub(super) enum Decl<'sc> {
         ty: Option<Type<'sc>>,
         init: Option<Expr<'sc>>,
     },
-    Contract {
-        name: String,
-        expr: Expr<'sc>,
-        paths: Option<Vec<Path>>,
-        fn_sigs: Vec<FnSig<'sc>>,
-    },
     Solve {
         directive: String,
         expr: Option<Expr<'sc>>,
@@ -40,17 +34,10 @@ pub(super) enum Decl<'sc> {
         fn_sig: FnSig<'sc>,
         body: Block<'sc>,
     },
-    Interface {
-        name: String,
-        fn_sigs: Vec<FnSig<'sc>>,
-    },
     State {
         name: String,
         ty: Option<Type<'sc>>,
         expr: Expr<'sc>,
-    },
-    Extern {
-        fn_sigs: Vec<FnSig<'sc>>,
     },
     Enum {
         name: String,
@@ -85,44 +72,6 @@ impl<'sc> Format for Decl<'sc> {
 
                 formatted_code.write_line(";");
             }
-            Self::Contract {
-                name,
-                expr,
-                paths,
-                fn_sigs,
-            } => {
-                formatted_code.write(&format!("contract {name}("));
-                expr.format(formatted_code)?;
-                formatted_code.write(")");
-
-                if let Some(paths) = paths {
-                    formatted_code.write(" implements ");
-
-                    for (i, path) in paths.iter().enumerate() {
-                        path.format(formatted_code)?;
-
-                        // If not the last element, add a comma
-                        if i < paths.len() - 1 {
-                            formatted_code.write(", ");
-                        }
-                    }
-                }
-
-                formatted_code.write(" {");
-                formatted_code.increase_indent();
-
-                for (i, fn_sig) in fn_sigs.iter().enumerate() {
-                    if i == 0 {
-                        formatted_code.write_line("");
-                    }
-
-                    fn_sig.format(formatted_code)?;
-                    formatted_code.write_line(";");
-                }
-
-                formatted_code.decrease_indent();
-                formatted_code.write_line("}");
-            }
             Self::Solve { directive, expr } => {
                 formatted_code.write(&format!("solve {directive}"));
 
@@ -150,24 +99,6 @@ impl<'sc> Format for Decl<'sc> {
                 formatted_code.write_line("");
                 formatted_code.write_line("");
             }
-            Self::Interface { name, fn_sigs } => {
-                formatted_code.write(&format!("interface {name} {{"));
-
-                formatted_code.increase_indent();
-
-                for (i, fn_sig) in fn_sigs.iter().enumerate() {
-                    if i == 0 {
-                        formatted_code.write_line("");
-                    }
-
-                    fn_sig.format(formatted_code)?;
-                    formatted_code.write_line(";");
-                }
-
-                formatted_code.decrease_indent();
-
-                formatted_code.write_line("}");
-            }
             Self::State { name, ty, expr } => {
                 formatted_code.write(&format!("state {name}"));
 
@@ -179,24 +110,6 @@ impl<'sc> Format for Decl<'sc> {
                 formatted_code.write(" = ");
                 expr.format(formatted_code)?;
                 formatted_code.write_line(";");
-            }
-            Self::Extern { fn_sigs } => {
-                formatted_code.write("extern {");
-
-                formatted_code.increase_indent();
-
-                for (i, fn_sig) in fn_sigs.iter().enumerate() {
-                    if i == 0 {
-                        formatted_code.write_line("");
-                    }
-
-                    fn_sig.format(formatted_code)?;
-                    formatted_code.write_line(";");
-                }
-
-                formatted_code.decrease_indent();
-
-                formatted_code.write_line("}");
             }
             Self::Enum { name, variants } => {
                 formatted_code.write(&format!("enum {name} = {};", &variants.join(" | ")));

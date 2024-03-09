@@ -16,9 +16,6 @@ Items can occur in any order; identifiers need not be declared before they are u
          | <macro-item>
          | <enum-decl-item>
          | <solve-item>
-         | <interface-item>
-         | <contract-item>
-         | <extern-item>
          | <new-type-item>
 ```
 
@@ -37,9 +34,3 @@ Enum declaration items describe C-style enumerations ([Enum Declaration Items](i
 New Type items let you assign a new name to an existing type, simplifying complex type definitions or providing more context for certain types (["New Type" Items](items/new_types.md)).
 
 Solve items specify exact what kind of solution the user is interested in: plain satisfaction, or the minimization/maximization of an expression. Each intent must have at most one solve item ([Solve Items](items/solve.md)).
-
-Interface items contain lists of smart contract methods that a [contract](items/contracts.md) can have ([Interface Items](items/interfaces.md)).
-
-Contract items describe actual deployed contracts with a known contract ID and a list of available methods ([contract Items](items/contracts.md)).
-
-"Extern" items contain lists of external functions that allow accessing data on a blockchain (["Extern" Items](items/externs.md)).

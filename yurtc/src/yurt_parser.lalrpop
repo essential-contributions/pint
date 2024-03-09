@@ -1,5 +1,4 @@
 use crate::{
-    contract::{ContractDecl, InterfaceDecl},
     error::{Error, ParseError},
     expr::*,
     intermediate::{ExprKey, SolveFunc},
@@ -37,9 +36,6 @@ DeclBarringMacro: () = {
     EnumDecl ";",
     NewTypeDecl ";",
     MacroCallDecl ";",
-    InterfaceDecl,
-    ContractDecl,
-    ExternDecl,
 };
 
 UseStatement: () = {
@@ -366,70 +362,6 @@ FnSig: FnSig = {
             return_type,
             span: (context.span_from)(l, r),
         }
-    }
-}
-
-pub InterfaceDecl: () = {
-    <l:@L> "interface" <name:Ident> "{" <functions:(<FnSig> ";")*> "}" <r:@R> => {
-        let full_interface_path = context.add_top_level_symbol(name, context.mod_prefix, errors);
-        let interface_decl = InterfaceDecl {
-            name: full_interface_path.clone(),
-            functions: functions
-                .iter()
-                .map(|fn_sig| FnSig {
-                    name: context.add_top_level_symbol(
-                        fn_sig.name.clone(),
-                        &(full_interface_path.name.clone() + "::"),
-                        errors,
-                    ),
-                    ..fn_sig.clone()
-                })
-                .collect(),
-            span: (context.span_from)(l, r),
-        };
-        context.ii.interfaces.push(interface_decl);
-    }
-}
-
-pub ContractDecl: () = {
-    <l:@L> "contract" <name:Ident> "(" <id:Expr> ")"
-        <interfaces: ("implements" <Sep1ListNoTrail<Path, ",">>)?>
-        "{" <functions:(<FnSig> ";")*> "}" <r:@R> => {
-        let full_contract_path = context.add_top_level_symbol(name, context.mod_prefix, errors);
-        let contract_decl = ContractDecl {
-            name: full_contract_path.clone(),
-            id,
-            interfaces: interfaces.unwrap_or_default().to_vec(),
-            functions: functions
-                .iter()
-                .map(|fn_sig| FnSig {
-                    name: context.add_top_level_symbol(
-                        fn_sig.name.clone(),
-                        &(full_contract_path.name.clone() + "::"),
-                        errors,
-                    ),
-                    ..fn_sig.clone()
-                })
-                .collect(),
-            span: (context.span_from)(l, r),
-        };
-        context.ii.contracts.push(contract_decl);
-    }
-}
-
-pub ExternDecl: () = {
-    <l:@L> "extern" "{" <functions:(<FnSig> ";")*> "}" <r:@R> => {
-        let functions = functions
-            .iter()
-            .map(|fn_sig| FnSig {
-                name: context.add_top_level_symbol(fn_sig.name.clone(), context.mod_prefix, errors),
-                ..fn_sig.clone()
-            })
-            .collect();
-        context
-            .ii
-            .externs
-            .push((functions, (context.span_from)(l, r)));
     }
 }
 
@@ -1289,10 +1221,6 @@ extern {
         "type" => lexer::Token::Type,
         "constraint" => lexer::Token::Constraint,
         "as" => lexer::Token::As,
-        "interface" => lexer::Token::Interface,
-        "contract" => lexer::Token::Contract,
-        "implements" => lexer::Token::Implements,
-        "extern" => lexer::Token::Extern,
 
         "solve" => lexer::Token::Solve,
         "satisfy" => lexer::Token::Satisfy,

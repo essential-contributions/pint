@@ -66,9 +66,6 @@ pub(super) fn yurt_program<'sc>(
         constraint_decl(expr()),
         enum_decl(),
         type_decl(),
-        interface_decl(),
-        contract_decl(),
-        extern_decl(),
         comment_decl(),
         newline_decl(),
     ))
@@ -159,44 +156,6 @@ fn constraint_decl<'sc>(
         .boxed()
 }
 
-fn contract_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
-    let expr = expr()
-        .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
-        .boxed();
-
-    let paths = just(Token::Implements)
-        .ignore_then(path().separated_by(just(Token::Comma)))
-        .boxed();
-
-    let fn_sigs = (fn_sig().then_ignore(just(Token::Semi)))
-        .repeated()
-        .delimited_by(just(Token::BraceOpen), just(Token::BraceClose))
-        .boxed();
-
-    just(Token::Contract)
-        .ignore_then(ident())
-        .then(expr)
-        .then(paths.or_not())
-        .then(fn_sigs)
-        .map(|(((name, expr), paths), fn_sigs)| ast::Decl::Contract {
-            name,
-            expr,
-            paths,
-            fn_sigs,
-        })
-        .boxed()
-}
-
-fn interface_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
-    just(Token::Interface)
-        .ignore_then(ident())
-        .then_ignore(just(Token::BraceOpen))
-        .then((fn_sig().then_ignore(just(Token::Semi))).repeated())
-        .then_ignore(just(Token::BraceClose))
-        .map(|(name, fn_sigs)| ast::Decl::Interface { name, fn_sigs })
-        .boxed()
-}
-
 fn state_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
     let type_spec = just(Token::Colon).ignore_then(type_(expr())).boxed();
 
@@ -207,19 +166,6 @@ fn state_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseErr
         .then(expr())
         .then_ignore(just(Token::Semi))
         .map(|((name, ty), expr)| ast::Decl::State { name, ty, expr })
-}
-
-fn extern_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {
-    just(Token::Extern)
-        .ignore_then(
-            (fn_sig()
-                .then_ignore(just(Token::Semi))
-                .then_ignore(just(Token::Newline).or_not()))
-            .repeated()
-            .delimited_by(just(Token::BraceOpen), just(Token::BraceClose)),
-        )
-        .map(|fn_sigs| ast::Decl::Extern { fn_sigs })
-        .boxed()
 }
 
 fn enum_decl<'sc>() -> impl Parser<Token<'sc>, ast::Decl<'sc>, Error = ParseError> + Clone {

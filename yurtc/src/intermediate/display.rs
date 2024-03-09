@@ -17,19 +17,6 @@ impl Display for super::IntermediateIntent {
         for constraint in &self.constraints {
             writeln!(f, "constraint {};", self.with_ii(constraint.0))?;
         }
-        for interface in &self.interfaces {
-            writeln!(f, "{}", self.with_ii(interface))?;
-        }
-        for contract in &self.contracts {
-            writeln!(f, "{}", self.with_ii(contract))?;
-        }
-        for r#extern in &self.externs {
-            write!(f, "extern {{")?;
-            for fn_sig in &r#extern.0 {
-                write!(f, " {};", self.with_ii(fn_sig))?;
-            }
-            writeln!(f, " }}")?;
-        }
         for directive in &self.directives {
             writeln!(f, "{};", self.with_ii(directive.0.clone()))?;
         }
