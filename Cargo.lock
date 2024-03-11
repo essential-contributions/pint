@@ -394,12 +394,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86e3bdc80eee6e16b2b6b0f87fbc98c04bee3455e35174c0de1a125d0688c632"
 
 [[package]]
-name = "doc-comment"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
-
-[[package]]
 name = "ed25519"
 version = "2.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -956,10 +950,10 @@ checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
 
 [[package]]
 name = "russcip"
-version = "0.2.6"
-source = "git+https://github.com/mohammadfawaz/russcip?branch=mohammadfawaz/indicator_constraints#feb56fbb11882fa5e46aec103db09b72fc1717e4"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc867e2dfd78fd5a4e10363848ca52752daea495a06455e4027c1c7b057c004d"
 dependencies = [
- "doc-comment",
  "scip-sys",
 ]
 
@@ -1014,9 +1008,9 @@ dependencies = [
 
 [[package]]
 name = "scip-sys"
-version = "0.1.5"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0b55ed1bc9debe53b72ec833d1c3c5526fdc09e54f09ad6ba9ef62356164119"
+checksum = "5cdfd33890b1d39e1048608d403c9573f3c574f8753ea6aeba4a274623980bad"
 dependencies = [
  "bindgen",
  "cc",
