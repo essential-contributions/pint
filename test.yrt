@@ -1,0 +1,50 @@
+
+let a = 3;
+let b = a + a;
+
+let z: int;
+constraint z == b;
+solve maximize z;
+
+solve minimize b;
+
+
+// solve maximize a < b;
+
+// (
+            Minimize(
+                ExprKey(
+                    13v1,
+                ),
+            ),
+            "test.yrt":78..94,
+        ),
+
+
+// Exprs and expr_types slot maps share keys
+// use the same key for the expr and the type for the same expr
+// the key in the solve directive is the corresponding key for the expr in both slot maps
+
+// 1. create a variable
+// in the vars slot map add a new var
+// the name is tricky, you cannot choose a name that the user could choose in their program
+// the way we address this is by choosing a name that is not allowed -- ala how array names are given brackets
+// we need something different for directive variables
+// one approach in the past was to put __ in front of the variable, we would need to make sure that the user cannot enter that <- new issue
+// lets start with __objective -- fine to hard code because we'll only ever have one
+// when creating a var you set the name and span in the vars slotmap
+// the span should just be the span of the expr that is already in the directive in the ii
+// 2. get a key back from the slotmap and use that to insert into the var_types slotmap
+// get the type from the expr type in the directive already in the ii
+// 3. create a binary expression for the constraint
+// binary expr where the left is the path to the var and the right side is the expr key from the directive
+// create an expr object and insert in the exprs slotmap
+// first you need to create an expr then you can use that expr key in the binary op expr
+// make sure each expr get a corresponding slot in the expr_types slotmap
+// use the key from the binary expr to insert a type in expr_types and into the constraint vector
+// == returns bool so that means the new binaryop expr should be of bool type
+// 4. replace the expr key for the solve directive with the expr key for the name expr
+
+// all spans should point to the initial span
+// all things that were created are basically inside the original expr
+// it means all errors point to that expr
