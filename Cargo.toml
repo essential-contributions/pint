@@ -12,6 +12,9 @@ expect-test = "1.4"
 itertools = "0.12"
 logos = "0.14"
 thiserror = "1.0"
+constraint-asm = { git = "ssh://git@github.com/essential-contributions/essential-base.git", package = "essential-constraint-asm" }
+state-asm = { git = "ssh://git@github.com/essential-contributions/essential-base.git", package = "essential-state-asm" }
+essential-types = { git = "ssh://git@github.com/essential-contributions/essential-base.git" }
 
 [workspace.package]
 edition = "2021"

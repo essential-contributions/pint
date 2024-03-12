@@ -10,7 +10,7 @@ publish = false
 
 [dependencies]
 anyhow = { workspace = true }
-essential_types = { git = "ssh://git@github.com/essential-contributions/intent-server.git" }
+essential-types = { workspace = true }
 intent-server = { git = "ssh://git@github.com/essential-contributions/intent-server.git" }
 num-bigint = "0.4"
 num-traits = "0.2"

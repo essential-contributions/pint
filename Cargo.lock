@@ -456,6 +456,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "essential-constraint-asm"
+version = "0.1.0"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#a2f981b9fcb0941eb67830a25daa9c103b5edfce"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "essential-state-asm"
+version = "0.1.0"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#a2f981b9fcb0941eb67830a25daa9c103b5edfce"
+dependencies = [
+ "essential-constraint-asm",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "essential-types"
+version = "0.1.0"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#a2f981b9fcb0941eb67830a25daa9c103b5edfce"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "essential_types"
 version = "0.1.0"
 source = "git+ssh://git@github.com/essential-contributions/intent-server.git#d32d381ae311b26d36a12d20210d23fa3f06339f"
@@ -1247,7 +1275,7 @@ name = "tests"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "essential_types",
+ "essential-types",
  "intent-server",
  "num-bigint",
  "num-traits",
@@ -1532,8 +1560,9 @@ dependencies = [
  "anyhow",
  "ariadne",
  "clap",
- "constraint_asm",
- "essential_types",
+ "essential-constraint-asm",
+ "essential-state-asm",
+ "essential-types",
  "expect-test",
  "itertools 0.12.1",
  "lalrpop",
@@ -1543,7 +1572,6 @@ dependencies = [
  "serde_json",
  "similar-asserts",
  "slotmap",
- "state_asm",
  "tempfile",
  "test-util",
  "test_bin",
