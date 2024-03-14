@@ -174,13 +174,12 @@ fn fix_array_sizes(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
         ($iter: expr, $key_ty: ty, $types_map: expr) => {
             let candidates: Vec<($key_ty, Type, ExprKey, Span)> = $iter
                 .filter_map(|(key, _)| {
-                    $types_map
-                        .get(key)
-                        .and_then(get_array_params)
-                        .and_then(|(el_ty, range, size, span)| {
+                    $types_map.get(key).and_then(get_array_params).and_then(
+                        |(el_ty, range, size, span)| {
                             // Only collect if size is None.
                             (size.is_none()).then(|| (key, el_ty.clone(), *range, span.clone()))
-                        })
+                        },
+                    )
                 })
                 .collect();
 
