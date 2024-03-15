@@ -12,8 +12,13 @@ impl super::IntermediateIntent {
     pub fn flatten(mut self) -> super::Result<Self> {
         // Transformations.
         unroll_foralls(&mut self)?;
-        scalarize(&mut self)?;
         lower_enums(&mut self)?;
+
+        // Scalarize after lowering enums so we only have to deal with integer indices.
+        scalarize(&mut self)?;
+
+        // Lower bools after scalarization since it creates new comparison expressions which will
+        // return bools.
         lower_bools(&mut self)?;
 
         // This could be done straight after type checking but any error which prints the type

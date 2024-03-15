@@ -1,0 +1,31 @@
+let b = 3;
+let c = 2;
+let b1: int;
+constraint b1 == b + c;
+solve satisfy;
+
+// intermediate <<<
+// var ::b;
+// var ::c;
+// var ::b1: int;
+// constraint (::b == 3);
+// constraint (::c == 2);
+// constraint (::b1 == (::b + ::c));
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::b: int;
+// var ::c: int;
+// var ::b1: int;
+// constraint (::b == 3);
+// constraint (::c == 2);
+// constraint (::b1 == (::b + ::c));
+// solve satisfy;
+// >>>
+
+// solution <<<
+// ::b: 3
+// ::c: 2
+// ::b1: 5
+// >>>

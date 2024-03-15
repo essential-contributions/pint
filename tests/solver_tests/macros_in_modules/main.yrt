@@ -1,0 +1,24 @@
+// Call a macro in a module, should be expanded in the current scope.
+
+use c;
+use d::d;
+use e::@e_macro;
+
+let a: int;
+constraint ::b::@b_macro(a; 11 + 22);
+constraint c::@c_macro(a; 33);
+
+// A local macro which when called from other modules should expand in the correct scope.
+
+macro @main_macro($id) {
+    $id == 44
+}
+
+constraint a != d;
+
+// A macro which calls another macro in a module we haven't referenced before.  `@e_macro()` calls
+// `::f::@f_macro()` but before now we haven't used `::f` in `main`.
+
+constraint @e_macro(a);
+
+solve satisfy;

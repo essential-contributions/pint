@@ -54,7 +54,7 @@ match {
     "false",
 
     // Identifiers
-    r"[A-Za-z_][A-Za-z_0-9\[\]\.]*",
+    r"[A-Za-z_][A-Za-z_0-9@\[\]\.]*",
 
     // Skip whitespace and comments
     r"\s*" => { },
@@ -122,7 +122,7 @@ BinaryOpOp: BinaryOp = {
 };
 
 UnaryOp: Expr = {
-    <op:UnaryOpOp> <expr:UnaryOp> => {
+    <op:UnaryOpOp> <expr:Expr> => {
         Expr::UnaryOp {
             op,
             expr: Box::new(expr),
@@ -155,13 +155,13 @@ pub(crate) Immediate: Immediate = {
 
 IntLit: i64 = <s:r"[0-9]+"> =>? {
     i64::from_str(s).map_err(|_| ParseError::User {
-        error: "integer literal is too large"
+        error: "integer literal is too large",
     })
 };
 
 RealLit: f64 = <s:r"[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+"> =>? {
     f64::from_str(s).map_err(|_| ParseError::User {
-        error: "unable to parse real literal"
+        error: "unable to parse real literal",
     })
 };
 
@@ -178,7 +178,7 @@ pub(crate) Type: Type = {
 /////////////
 /// Names ///
 /////////////
-Ident: String =  <s:r"[A-Za-z_][A-Za-z_0-9\[\]\.]*"> => s.to_string();
+Ident: String =  <s:r"[A-Za-z_][A-Za-z_0-9@\[\]\.]*"> => s.to_string();
 
 pub(crate) Name: String = {
     "::" <suffix:NameSuffix> => format!("::{suffix}"),

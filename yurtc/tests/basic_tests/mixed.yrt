@@ -29,9 +29,3 @@ solve maximize y;
 // constraint (::y <= 1.9e0);
 // solve maximize ::y;
 // >>>
-
-// solution <<<
-// ::x: 3
-// ::y: 1.900
-// objective: 1.900
-// >>>

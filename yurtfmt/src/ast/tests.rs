@@ -501,86 +501,12 @@ fn func_decl() {
 }
 
 #[test]
-fn interface_test() {
-    check(
-        &run_formatter!(
-            yurt_program(),
-            "interface   IERC20     {fn totalSupply()  -> int;
-            fn     balanceOf(account:    int)   -> int;
-                fn allowance(owner:  int, spender:   int) -> int;
-        }   "
-        ),
-        expect![[r#"
-            interface IERC20 {
-                fn totalSupply() -> int;
-                fn balanceOf(account: int) -> int;
-                fn allowance(owner: int, spender: int) -> int;
-            }
-        "#]],
-    );
-    check(
-        &run_formatter!(yurt_program(), "interface IERC20  {}  "),
-        expect![[r#"
-            interface IERC20 {}
-        "#]],
-    );
-}
-
-#[test]
-fn contract_decl() {
-    check(
-        &run_formatter!(
-            yurt_program(),
-            "contract   MyToken(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)
-            implements    IERC20,
-            Ownable  {
-                  fn foo()  ->
-            int;
-                fn
-            bar()  ->
-        int;
-    } "
-        ),
-        expect![[r#"
-            contract MyToken(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) implements IERC20, Ownable {
-                fn foo() -> int;
-                fn bar() -> int;
-            }
-        "#]],
-    );
-    check(
-        &run_formatter!(
-            yurt_program(),
-            "   contract
-        MyToken(foo)
-            implements IERC20, Ownable
-             {}  "
-        ),
-        expect![[r#"
-            contract MyToken(foo) implements IERC20, Ownable {}
-        "#]],
-    );
-    check(
-        &run_formatter!(
-            yurt_program(),
-            " contract    MyToken(foo)
-        {
-
-        } "
-        ),
-        expect![[r#"
-            contract MyToken(foo) {}
-        "#]],
-    );
-}
-
-#[test]
 fn state_decl() {
     check(
         &run_formatter!(
             yurt_program(),
             "  state x:   int   =
-            MyContract::getBalance;
+            MyPath::getBalance;
 
                 state y=  CryptoExchange::convertToEth;
        state z :  int
@@ -597,7 +523,7 @@ fn state_decl() {
             "
         ),
         expect![[r#"
-            state x: int = MyContract::getBalance;
+            state x: int = MyPath::getBalance;
 
             state y = CryptoExchange::convertToEth;
             state z: int = totalSupply + mintedTokens;
@@ -609,94 +535,6 @@ fn state_decl() {
 
             state tx: int = CryptoUtils::hashTransaction;
           "#]],
-    );
-}
-
-#[test]
-fn extern_decl() {
-    check(
-        &run_formatter!(
-            yurt_program(),
-            "extern    {
-                  fn  eth_getBalance(address:   string)
-        ->
-string;
-
-                 fn eth_gasPrice()
--> string;
-        }   "
-        ),
-        expect![[r#"
-            extern {
-                fn eth_getBalance(address: string) -> string;
-                fn eth_gasPrice() -> string;
-            }
-        "#]],
-    );
-    check(
-        &run_formatter!(
-            yurt_program(),
-            "  extern
-            {}
-  "
-        ),
-        expect![[r#"
-            extern {}
-        "#]],
-    );
-    check(
-        &run_formatter!(
-            yurt_program(),
-            "  extern
-            {
-             fn
-             eth_blockNumber() ->
-
-             string;
-            } "
-        ),
-        expect![[r#"
-            extern {
-                fn eth_blockNumber() -> string;
-            }
-        "#]],
-    );
-    check(
-        &run_formatter!(
-            yurt_program(),
-            "extern{
-                fn    eth_getCode( address
-                :
-                string
-                , blockTag
-                :  string) -> string;
-            }"
-        ),
-        expect![[r#"
-            extern {
-                fn eth_getCode(address: string, blockTag: string) -> string;
-            }
-        "#]],
-    );
-    check(
-        &run_formatter!(
-            yurt_program(),
-            "extern {
-
-            fn eth_call(   transaction
-
-            :string,
-
-            blockTag: string  ) ->
-
-            string;
-            } "
-        ),
-        expect![[r#"
-            extern {
-                fn eth_call(transaction: string, blockTag: string) -> string;
-            }
-        "#]],
     );
 }
 
@@ -1507,32 +1345,25 @@ fn blank_lines() {
         &run_formatter!(
             yurt_program(),
             r#"
-            extern {
-                fn eth_call
+                fn some_call
                 (
                 transaction: string, 
                 blockTag: string) 
                 -> 
                 string;
-            }
             
         "#
         ),
-        expect_test::expect![
-            r#"
-            extern {
-                fn eth_call(transaction: string, blockTag: string) -> string;
-            }
-        "#
-        ],
+        expect_test::expect![[r#"
+            Error formatting starting at location 163 and ending at location 164
+        "#]],
     );
     check(
         &run_formatter!(
             yurt_program(),
             r#"
-            extern {
-                fn eth_call(transaction: string, blockTag: string) -> string;
-            }
+                
+                fn some_call(transaction: string, blockTag: string) -> string;
             
 
 
@@ -1540,12 +1371,8 @@ fn blank_lines() {
 
         "#
         ),
-        expect_test::expect![
-            r#"
-            extern {
-                fn eth_call(transaction: string, blockTag: string) -> string;
-            }
-        "#
-        ],
+        expect_test::expect![[r#"
+            Error formatting starting at location 95 and ending at location 96
+        "#]],
     );
 }

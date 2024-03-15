@@ -3,8 +3,7 @@ pub mod error;
 
 pub mod asm_gen;
 pub mod cli;
-mod contract;
-mod expr;
+pub mod expr;
 pub mod intermediate;
 mod lexer;
 mod macros;

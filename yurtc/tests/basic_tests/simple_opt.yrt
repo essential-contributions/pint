@@ -20,9 +20,3 @@ solve minimize obj;
 // constraint (::obj == (((::x * ::x) + (2 * ::x)) - 8));
 // solve minimize ::obj;
 // >>>
-
-// solution <<<
-// ::x: -1
-// ::obj: -9
-// objective: -9.000
-// >>>

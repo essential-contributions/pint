@@ -1,5 +1,3 @@
-// <no-solve>
-
 let a: {int, {int, bool, {int, bool, real}, real}, bool, real} =
   {11, {22, false, {33, true, 44.4}, 55.5}, false, 66.6};
 

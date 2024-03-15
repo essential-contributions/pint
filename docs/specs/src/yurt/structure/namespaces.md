@@ -19,7 +19,7 @@ let x = 6;
 
 ```yurt
 let x = 5;
-state x = MyContract::bar();
+state x = MyPath::bar();
 ```
 
 Note, however, that [macro](../items/macros.md) bodies **are allowed** to declare new variables with names that have been used outside the macro body, because macro expansion is designed to be [hygienic](../items/macros.md#hygiene). For example, the following is allowed:

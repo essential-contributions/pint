@@ -1,0 +1,8 @@
+let a: int;
+
+constraint a == b::b;
+
+// parse_failure <<<
+// `solve` directive must only appear in the top level module
+// @12..25: `solve` directive must only appear in the top level module
+// >>>

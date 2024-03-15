@@ -1,5 +1,3 @@
-// <no-solve>
-
 let a: int[4];
 let b: int[4];
 

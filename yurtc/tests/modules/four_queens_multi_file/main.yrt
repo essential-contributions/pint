@@ -94,10 +94,3 @@ solve satisfy;
 // constraint (::variables::q4 <= 4);
 // solve satisfy;
 // >>>
-
-// solution <<<
-// ::variables::q1: 3
-// ::variables::q2: 1
-// ::variables::q3: 4
-// ::variables::q4: 2
-// >>>

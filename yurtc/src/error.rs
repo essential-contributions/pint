@@ -4,7 +4,7 @@ mod parse_error;
 
 use crate::span::{Span, Spanned};
 use ariadne::{FnCache, Label, Report, ReportKind, Source};
-use std::fmt::Write;
+use std::fmt::{Display, Formatter, Result, Write};
 use thiserror::Error;
 use yansi::{Color, Style};
 
@@ -35,6 +35,23 @@ pub enum Error {
         macro_name: String,
         macro_span: Span,
     },
+}
+
+#[derive(Debug)]
+pub struct Errors(pub Vec<Error>);
+
+impl Display for Errors {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(
+            f,
+            "{}",
+            self.0
+                .iter()
+                .map(|err| err.display_raw())
+                .collect::<String>()
+                .trim_end()
+        )
+    }
 }
 
 /// Types that implement this trait can be pretty printed to the terminal using the `ariadne` crate
@@ -210,8 +227,8 @@ impl Spanned for Error {
 }
 
 /// Print a list of [`Error`] using the `ariadne` crate
-pub fn print_errors(errs: &Vec<Error>) {
-    for err in errs {
+pub fn print_errors(errs: &Errors) {
+    for err in &errs.0 {
         err.print();
     }
 }

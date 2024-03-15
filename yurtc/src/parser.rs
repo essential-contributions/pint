@@ -1,5 +1,5 @@
 use crate::{
-    error::{CompileError, Error},
+    error::{CompileError, Error, Errors},
     expr::Ident,
     intermediate::{CallKey, ExprKey, IntermediateIntent},
     lexer,
@@ -26,7 +26,7 @@ pub(crate) use context::ParserContext;
 #[cfg(test)]
 mod tests;
 
-pub fn parse_project(root_src_path: &Path) -> Result<IntermediateIntent, Vec<Error>> {
+pub fn parse_project(root_src_path: &Path) -> Result<IntermediateIntent, Errors> {
     ProjectParser::new(PathBuf::from(root_src_path))
         .parse_project()
         .finalize()
@@ -166,11 +166,11 @@ impl ProjectParser {
         self
     }
 
-    fn finalize(self) -> Result<IntermediateIntent, Vec<Error>> {
+    fn finalize(self) -> Result<IntermediateIntent, Errors> {
         if self.errors.is_empty() {
             Ok(self.intent)
         } else {
-            Err(self.errors)
+            Err(Errors(self.errors))
         }
     }
 }

@@ -1,5 +1,3 @@
-// <no-solve>  State isn't allowed.
-
 enum TheLetterA = T | U | V;
 
 type A = TheLetterA;

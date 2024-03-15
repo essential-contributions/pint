@@ -1,5 +1,3 @@
-// <no-solve>
-
 let t0 = { 0, }; let t0_0 = t0.0;
 let t1 = { x: 0 }; let t1_0 = t1.0; let t1_x = t1.x;
 let t2 = { x: 0, }; let t2_0 = t2.0; let t2_x = t2.x;

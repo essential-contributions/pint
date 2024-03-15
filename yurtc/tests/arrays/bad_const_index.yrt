@@ -13,7 +13,7 @@ solve satisfy;
 // >>>
 
 // typecheck_failure <<<
-// attempt to index an array with a non-integer
-// @42..46: array access must be an int value
+// attempt to index an array with a mismatched value
+// @42..46: array access must be with an int value
 // found access using type `real`
 // >>>

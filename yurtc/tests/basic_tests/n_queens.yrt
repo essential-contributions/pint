@@ -1,9 +1,3 @@
-// <no-solve>
-//
-// This is disabled for now for a couple of reasons:
-// a) there isn't a single solution, so comparing the output with a single answer could fail.
-// b) it's slow.
-
 // n-Queens problem:: Place n queens on an nxn chessboard so that none can attack another.
 
 // Queen in column i is in row q[i]

@@ -17,9 +17,13 @@ lalrpop = "0.20"
 [dependencies]
 expect-test = { workspace = true }
 lalrpop-util = { version = "0.20", features = ["lexer", "unicode"] }
-russcip = { git = "https://github.com/mohammadfawaz/russcip", branch = "mohammadfawaz/indicator_constraints", optional = true }
+russcip = { version = "0.3.0", optional = true }
 thiserror = { workspace = true }
 yansi = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+test-util = { path = "../test-util" }
 
 [features]
 default = ["solver-scip"]

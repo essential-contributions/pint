@@ -1,5 +1,4 @@
 use crate::{
-    contract::{ContractDecl, InterfaceDecl},
     error::{CompileError, ParseError},
     expr::{self, Expr, Ident},
     span::{empty_span, Span},
@@ -40,10 +39,6 @@ pub struct IntermediateIntent {
     pub ephemerals: Vec<EphemeralDecl>,
     pub enums: Vec<EnumDecl>,
     pub new_types: Vec<NewTypeDecl>,
-
-    pub interfaces: Vec<InterfaceDecl>,
-    pub contracts: Vec<ContractDecl>,
-    pub externs: Vec<(Vec<FnSig>, Span)>,
 
     // Each of the initialised variables.  Used by type inference.
     pub var_inits: slotmap::SecondaryMap<VarKey, ExprKey>,
