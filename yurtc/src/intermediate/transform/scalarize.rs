@@ -264,7 +264,14 @@ fn scalarize_array(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
         .collect::<Vec<_>>();
 
     // Change each array element access into its scalarized variable.
-    scalarize_array_access(ii, &array_name, array_var_key, array_size, &new_var_keys)?;
+    scalarize_array_access(
+        ii,
+        &array_name,
+        array_var_key,
+        array_size,
+        el_ty,
+        &new_var_keys,
+    )?;
 
     // Remove the old array variable.
     ii.vars.remove(array_var_key);
@@ -295,6 +302,7 @@ fn scalarize_array_access(
     array_var_name: &String,
     array_var_key: VarKey,
     array_size: i64,
+    el_ty: Type,
     new_array_var_keys: &[VarKey],
 ) -> Result<(), CompileError> {
     // Gather all accesses into this specific array.
@@ -343,6 +351,7 @@ fn scalarize_array_access(
                     new_array_var_keys[imm_val as usize],
                     span.clone(),
                 ));
+                ii.expr_types.insert(new_access_key, el_ty.clone());
 
                 ii.replace_exprs(array_access_key, new_access_key);
                 ii.exprs.remove(array_access_key);
