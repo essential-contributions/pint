@@ -1,5 +1,3 @@
-// <<disabled>>
-
 let a: real[5];
 let a1 = a[1];
 
@@ -7,18 +5,61 @@ enum Colour = Red | Green | Blue;
 let b: real[Colour][3];
 let b_r_2 = b[Colour::Red][2];
 
-fn nums() -> int[4] {
-    [0, 1, 2, 3]
-}
+let c: int[4] = [0, 1, 2, 3];
+let c1 = [0, 1, 2, 4];
 
-let one = nums()[1];
+let cb: bool = c != c1;
+
+solve satisfy;
 
 // intermediate <<<
-// let ::a: real[5];
-// let ::a1 = ::a[1];
+// var ::a: real[5];
+// var ::a1;
+// var ::b: real[3][::Colour];
+// var ::b_r_2;
+// var ::c: int[4];
+// var ::c1;
+// var ::cb: bool;
 // enum ::Colour = Red | Green | Blue;
-// let ::b: real[3][::Colour];
-// let ::b_r_2 = ::b[::Colour::Red][2];
-// fn ::nums() -> int[4] { [0, 1, 2, 3] };
-// let ::one = ::nums()[1];
+// constraint (::a1 == ::a[1]);
+// constraint (::b_r_2 == ::b[::Colour::Red][2]);
+// constraint (::c == [0, 1, 2, 3]);
+// constraint (::c1 == [0, 1, 2, 4]);
+// constraint (::cb == (::c != ::c1));
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::c[0]: int;
+// var ::a1: real;
+// var ::b[0][0]: real;
+// var ::b_r_2: real;
+// var ::c1[0]: int;
+// var ::b[1][0]: real;
+// var ::cb: int;
+// var ::a[0]: real;
+// var ::a[1]: real;
+// var ::a[2]: real;
+// var ::a[3]: real;
+// var ::a[4]: real;
+// var ::b[2][0]: real;
+// var ::b[0][1]: real;
+// var ::b[0][2]: real;
+// var ::c[1]: int;
+// var ::c[2]: int;
+// var ::c[3]: int;
+// var ::c1[1]: int;
+// var ::c1[2]: int;
+// var ::c1[3]: int;
+// var ::b[1][1]: real;
+// var ::b[1][2]: real;
+// var ::b[2][1]: real;
+// var ::b[2][2]: real;
+// enum ::Colour = Red | Green | Blue;
+// constraint (::a1 == ::a[1]);
+// constraint (::b_r_2 == ::b[0][2]);
+// constraint ((((::c[0] == [0, 1, 2, 3][0]) && (::c[1] == [0, 1, 2, 3][1])) && (::c[2] == [0, 1, 2, 3][2])) && (::c[3] == [0, 1, 2, 3][3]));
+// constraint ((((::c1[0] == [0, 1, 2, 4][0]) && (::c1[1] == [0, 1, 2, 4][1])) && (::c1[2] == [0, 1, 2, 4][2])) && (::c1[3] == [0, 1, 2, 4][3]));
+// constraint (::cb == ((((::c[0] != ::c1[0]) && (::c[1] != ::c1[1])) && (::c[2] != ::c1[2])) && (::c[3] != ::c1[3])));
+// solve satisfy;
 // >>>

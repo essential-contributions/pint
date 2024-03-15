@@ -375,9 +375,10 @@ impl IntermediateIntent {
                  variants,
                  span,
              }| {
-                variants
-                    .iter()
-                    .any(|variant| {
+                // The path might be to the enum itself, or to its variants, in which case the
+                // returned type is the enum.
+                (&enum_name.name == path
+                    || variants.iter().any(|variant| {
                         if path[2..] == variant.name {
                             err_potential_enums.push(enum_name.name.clone());
                         }
@@ -387,11 +388,11 @@ impl IntermediateIntent {
                         full_variant.push_str(&variant.name);
 
                         &full_variant == path
-                    })
-                    .then(|| Type::Custom {
-                        path: enum_name.name.clone(),
-                        span: span.clone(),
-                    })
+                    }))
+                .then(|| Type::Custom {
+                    path: enum_name.name.clone(),
+                    span: span.clone(),
+                })
             },
         ) {
             Ok(Inference::Type(ty.clone()))
@@ -675,6 +676,7 @@ impl IntermediateIntent {
                 Inference::Type(Type::Array {
                     ty: Box::new(el0_ty.clone()),
                     range: range_expr_key,
+                    size: Some(element_exprs.len() as i64),
                     span: span.clone(),
                 })
             } else {
@@ -692,14 +694,32 @@ impl IntermediateIntent {
         span: &Span,
     ) -> super::Result<Inference> {
         if let Some(index_ty) = self.expr_types.get(index_expr_key) {
-            if !index_ty.is_int() {
-                Err(CompileError::ArrayAccessWithNonInt {
-                    found_ty: self.with_ii(index_ty).to_string(),
-                    span: self.expr_key_to_span(index_expr_key),
-                })
-            } else if let Some(ary_ty) = self.expr_types.get(array_expr_key) {
-                if let Some(ty) = ary_ty.get_array_el_type() {
-                    Ok(Inference::Type(ty.clone()))
+            if let Some(ary_ty) = self.expr_types.get(array_expr_key) {
+                if let Some(range_expr_key) = ary_ty.get_array_range_expr() {
+                    if let Some(range_ty) = self.expr_types.get(range_expr_key) {
+                        // OK, we have the array type, its range type (must be an int or enum) and
+                        // the index type.  Make sure they match.  It's probably just enough to
+                        // check the latter but we might as well confirm it all.
+                        if (!index_ty.is_int() && !index_ty.is_enum()) || index_ty != range_ty {
+                            Err(CompileError::ArrayAccessWithWrongType {
+                                found_ty: self.with_ii(index_ty).to_string(),
+                                expected_ty: self.with_ii(range_ty).to_string(),
+                                span: self.expr_key_to_span(index_expr_key),
+                            })
+                        } else {
+                            // The access seems valid, return the array element type.
+                            ary_ty
+                                .get_array_el_type()
+                                .map(|ty| Inference::Type(ty.clone()))
+                                .ok_or_else(|| CompileError::Internal {
+                                    msg: "failed to get array element type \
+                                    in infer_array_access_expr()",
+                                    span: span.clone(),
+                                })
+                        }
+                    } else {
+                        Ok(Inference::Dependant(range_expr_key))
+                    }
                 } else {
                     Err(CompileError::ArrayAccessNonArray {
                         non_array_type: self.with_ii(ary_ty).to_string(),
