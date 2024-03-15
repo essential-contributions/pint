@@ -9,22 +9,35 @@ use crate::{
 };
 
 pub(crate) fn canonicalize(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
-    canonicalize_directives(ii)?;
+    canonicalize_directive(ii)?;
 
     Ok(())
 }
 
-// TODO: add proper documentation
-
-// This is a simple transformation as follows:
-// solve maximize <expr>;
-// becomes:
-// let __objective: <type_of_expr>;
-// constraint __objective == <expr>;
-// solve maximize __objective;
-fn canonicalize_directives(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
-    // get the directive
-    let directive = ii
+/// Canonicalize the solve directive by transforming any maximize or minimize directive into a form
+/// that is suitable for constraint-based mathematical solvers.
+///
+/// This function performs a transformation similar to the following example:
+///
+/// ```yurt
+/// solve maximize <expr>;
+/// ```
+///
+/// becomes:
+///
+/// ```yurt
+/// let __objective: <type_of_expr>;
+/// constraint __objective == <expr>;
+/// solve maximize __objective;
+/// ```
+///
+/// This transformation is necessary because while the `solve maximize <expr>` or `solve minimize <expr>`
+/// form is convenient for the user, it is not in the proper form for the solvers. This function
+/// therefore transforms the solve directive into a form that can be handled by the solver.
+///
+/// Note that the actual transformation may vary depending on the specific details of the solve directive
+fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
+    let (solve_func, directive_span) = ii
         .directives
         .first()
         .ok_or_else(|| CompileError::MissingSolveDirective {
@@ -32,40 +45,49 @@ fn canonicalize_directives(ii: &mut IntermediateIntent) -> Result<(), CompileErr
         })?
         .clone();
 
-    let (solve_func, span) = &directive;
-    let expr_key = match solve_func {
+    let directive_expr_key = match solve_func {
         Satisfy => return Ok(()),
         Minimize(expr_key) | Maximize(expr_key) => expr_key,
     };
 
-    let expr_type = ii
+    let directive_expr_type = ii
         .expr_types
-        .get(*expr_key)
+        .get(directive_expr_key)
         .ok_or_else(|| CompileError::Internal {
             msg: "invalid intermediate intent expression_types slotmap key",
             span: empty_span(), // @mohammad what do we do if there is no span? -- placeholder for now
         })?
         .clone();
 
-    let ident = Ident {
-        name: "__objective".to_string(),
-        span: span.clone(),
-    };
-    let expr_type_clone = expr_type.clone();
-    let var_key = ii.insert_var("", None, &ident, Some(expr_type.clone()))?;
+    let expr_type_clone = directive_expr_type.clone();
+    let objective_var_key = ii.insert_var(
+        "",
+        None,
+        &Ident {
+            name: "__objective".to_string(),
+            span: directive_span.clone(),
+        },
+        Some(directive_expr_type.clone()),
+    )?;
 
-    let new_expr_key = ii.exprs.insert(Expr::PathByKey(var_key, span.clone()));
-    let _ = ii.expr_types.insert(new_expr_key, expr_type_clone);
+    let objective_expr_key = ii
+        .exprs
+        .insert(Expr::PathByKey(objective_var_key, directive_span.clone()));
+    let _ = ii.expr_types.insert(objective_expr_key, expr_type_clone);
 
-    ii.insert_eq_or_ineq_constraint(var_key, *expr_key, span.clone());
+    ii.insert_eq_or_ineq_constraint(
+        objective_var_key,
+        directive_expr_key,
+        directive_span.clone(),
+    );
 
-    let updated_solve_func = match solve_func {
+    let canonicalized_solve_func = match solve_func {
         Satisfy => return Ok(()),
-        Minimize(_) => SolveFunc::Minimize(new_expr_key),
-        Maximize(_) => SolveFunc::Maximize(new_expr_key),
+        Minimize(_) => SolveFunc::Minimize(objective_expr_key),
+        Maximize(_) => SolveFunc::Maximize(objective_expr_key),
     };
-    let updated_directive = (updated_solve_func, span.clone());
-    ii.directives[0] = updated_directive;
+    let canonicalized_directive = (canonicalized_solve_func, directive_span.clone());
+    ii.directives[0] = canonicalized_directive;
 
     Ok(())
 }
