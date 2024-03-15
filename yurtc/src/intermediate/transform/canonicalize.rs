@@ -52,9 +52,7 @@ fn canonicalize_directives(ii: &mut IntermediateIntent) -> Result<(), CompileErr
         span: span.clone(),
     };
     let expr_type_clone = expr_type.clone();
-    let var_key = ii
-        .insert_var("", None, &ident, Some(expr_type.clone()))
-        .expect("todo: handle parse error as compile error");
+    let var_key = ii.insert_var("", None, &ident, Some(expr_type.clone()))?;
 
     let new_expr_key = ii.exprs.insert(Expr::PathByKey(var_key, span.clone()));
     let _ = ii.expr_types.insert(new_expr_key, expr_type_clone);

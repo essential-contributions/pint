@@ -1,5 +1,5 @@
 use crate::{
-    error::{ErrorLabel, ReportableError},
+    error::{ErrorLabel, ParseError, ReportableError},
     span::{Span, Spanned},
 };
 use std::path::PathBuf;
@@ -8,6 +8,8 @@ use yansi::Color;
 
 #[derive(Error, Debug)]
 pub enum CompileError {
+    #[error(transparent)]
+    ParseError(#[from] ParseError),
     #[error("compiler internal error: {msg}")]
     Internal { msg: &'static str, span: Span },
     #[error("couldn't read {file}: {error}")]
@@ -556,6 +558,8 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            ParseError(parse_error) => parse_error.labels(),
+
             Internal { .. } | FileIO { .. } => Vec::new(),
         }
     }
@@ -634,7 +638,8 @@ impl ReportableError for CompileError {
                 Some(format!("found access using type `{found_ty}`"))
             }
 
-            Internal { .. }
+            ParseError { .. }
+            | Internal { .. }
             | FileIO { .. }
             | MacroNotFound { .. }
             | MacroUndefinedParam { .. }
@@ -714,6 +719,7 @@ impl Spanned for CompileError {
     fn span(&self) -> &Span {
         use CompileError::*;
         match self {
+            ParseError(parse_error) => parse_error.span(),
             FileIO { span, .. }
             | Internal { span, .. }
             | DualModulity { span, .. }
