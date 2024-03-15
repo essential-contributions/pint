@@ -1,11 +1,12 @@
 use crate::{
     error::CompileError,
-    expr::{Expr, Ident},
+    expr::{self, Expr, Ident},
     intermediate::{
         IntermediateIntent,
         SolveFunc::{self, *},
     },
     span::empty_span,
+    types::{PrimitiveKind, Type},
 };
 
 pub(crate) fn canonicalize(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
@@ -40,9 +41,7 @@ fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileErro
     let (solve_func, directive_span) = ii
         .directives
         .first()
-        .ok_or_else(|| CompileError::MissingSolveDirective {
-            span: empty_span(), // @mohammad what do we do if there is no span? -- placeholder for now
-        })?
+        .ok_or_else(|| CompileError::MissingSolveDirective { span: empty_span() })?
         .clone();
 
     let directive_expr_key = match solve_func {
@@ -55,13 +54,14 @@ fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileErro
         .get(directive_expr_key)
         .ok_or_else(|| CompileError::Internal {
             msg: "invalid intermediate intent expression_types slotmap key",
-            span: empty_span(), // @mohammad what do we do if there is no span? -- placeholder for now
+            span: empty_span(),
         })?
         .clone();
 
-    // create the new objective variable -- let __objective: <type_of_expr>;
+    // create the new objective variable
+    // let __objective: <type_of_expr>;
     let expr_type_clone = directive_expr_type.clone();
-    let objective_var_key = ii.insert_var(
+    let _ = ii.insert_var(
         "",
         None,
         &Ident {
@@ -71,18 +71,28 @@ fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileErro
         Some(directive_expr_type.clone()),
     )?;
 
-    // create the new objective constraint -- constraint __objective == <expr>;
-    ii.insert_eq_or_ineq_constraint(
-        objective_var_key,
-        directive_expr_key,
+    // update the directive expression to be the newly created objective variable
+    // solve maximize __objective;
+    let objective_expr_key = ii.exprs.insert(Expr::PathByName(
+        "__objective".to_string(),
         directive_span.clone(),
-    );
-
-    // update the directive expression to be the newly created objective variable -- solve maximize __objective;
-    let objective_expr_key = ii
-        .exprs
-        .insert(Expr::PathByKey(objective_var_key, directive_span.clone()));
+    ));
     let _ = ii.expr_types.insert(objective_expr_key, expr_type_clone);
+
+    let eq_expr_key = ii.exprs.insert(Expr::BinaryOp {
+        op: expr::BinaryOp::Equal,
+        lhs: objective_expr_key,
+        rhs: directive_expr_key,
+        span: directive_span.clone(),
+    });
+    ii.expr_types.insert(
+        eq_expr_key,
+        Type::Primitive {
+            kind: PrimitiveKind::Bool,
+            span: directive_span.clone(),
+        },
+    );
+    ii.constraints.push((eq_expr_key, directive_span.clone()));
 
     let canonicalized_solve_func = match solve_func {
         Satisfy => return Ok(()),

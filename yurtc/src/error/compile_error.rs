@@ -552,15 +552,9 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
-            MissingSolveDirective { span } => vec![ErrorLabel {
-                message: "`solve` directive must appear once".to_string(),
-                span: span.clone(),
-                color: Color::Red,
-            }],
-
             ParseError(parse_error) => parse_error.labels(),
 
-            Internal { .. } | FileIO { .. } => Vec::new(),
+            Internal { .. } | FileIO { .. } | MissingSolveDirective { .. } => Vec::new(),
         }
     }
 
