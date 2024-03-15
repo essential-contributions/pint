@@ -46,7 +46,7 @@ fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileErro
         .clone();
 
     let directive_expr_key = match solve_func {
-        Satisfy => return Ok(()),
+        Satisfy => return Ok(()), // we only need to transform a maximize or minimize directive
         Minimize(expr_key) | Maximize(expr_key) => expr_key,
     };
 
@@ -59,6 +59,7 @@ fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileErro
         })?
         .clone();
 
+    // create the new objective variable -- let __objective: <type_of_expr>;
     let expr_type_clone = directive_expr_type.clone();
     let objective_var_key = ii.insert_var(
         "",
@@ -70,16 +71,18 @@ fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileErro
         Some(directive_expr_type.clone()),
     )?;
 
-    let objective_expr_key = ii
-        .exprs
-        .insert(Expr::PathByKey(objective_var_key, directive_span.clone()));
-    let _ = ii.expr_types.insert(objective_expr_key, expr_type_clone);
-
+    // create the new objective constraint -- constraint __objective == <expr>;
     ii.insert_eq_or_ineq_constraint(
         objective_var_key,
         directive_expr_key,
         directive_span.clone(),
     );
+
+    // update the directive expression to be the newly created objective variable -- solve maximize __objective;
+    let objective_expr_key = ii
+        .exprs
+        .insert(Expr::PathByKey(objective_var_key, directive_span.clone()));
+    let _ = ii.expr_types.insert(objective_expr_key, expr_type_clone);
 
     let canonicalized_solve_func = match solve_func {
         Satisfy => return Ok(()),
