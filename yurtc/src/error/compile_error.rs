@@ -144,6 +144,8 @@ pub enum CompileError {
     BadCastTo { ty: String, span: Span },
     #[error("invalid cast")]
     BadCastFrom { ty: String, span: Span },
+    #[error("`solve` directive must appear once")]
+    MissingSolveDirective { span: Span },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -548,6 +550,12 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            MissingSolveDirective { span } => vec![ErrorLabel {
+                message: "`solve` directive must appear once".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             Internal { .. } | FileIO { .. } => Vec::new(),
         }
     }
@@ -649,7 +657,8 @@ impl ReportableError for CompileError {
             | EmptyArrayExpression { .. }
             | ExprRecursion { .. }
             | BadCastTo { .. }
-            | BadCastFrom { .. } => None,
+            | BadCastFrom { .. }
+            | MissingSolveDirective { .. } => None,
         }
     }
 
@@ -745,7 +754,8 @@ impl Spanned for CompileError {
                 ..
             }
             | BadCastTo { span, .. }
-            | BadCastFrom { span, .. } => span,
+            | BadCastFrom { span, .. }
+            | MissingSolveDirective { span, .. } => span,
 
             IfBranchesTypeMismatch { large_err } | OperatorTypeError { large_err, .. } => {
                 match &**large_err {
