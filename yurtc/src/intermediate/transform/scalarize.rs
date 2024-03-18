@@ -642,12 +642,8 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, CompileErro
                 // We use the same named accessor as LHS.
                 lhs_field_access.clone()
             } else {
-                // Use the field at field_idx, but still by name if it has one.
-                rhs_fields[field_idx]
-                    .0
-                    .as_ref()
-                    .map(|field_name| TupleAccess::Name(field_name.clone()))
-                    .unwrap_or_else(|| TupleAccess::Index(field_idx))
+                // Use the field at field_idx.
+                TupleAccess::Index(field_idx)
             };
 
             let lhs_access = ii.exprs.insert(Expr::TupleFieldAccess {
