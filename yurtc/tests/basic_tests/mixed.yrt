@@ -21,11 +21,13 @@ solve maximize y;
 // flattened <<<
 // var ::x: int;
 // var ::y: real;
+// var __objective: real;
 // constraint (::x >= 1);
 // constraint (::x <= 5);
 // constraint (::y >= 1.1e0);
 // constraint (::y <= 5.5e0);
 // constraint (::x > 2);
 // constraint (::y <= 1.9e0);
-// solve maximize ::y;
+// constraint (__objective == ::y);
+// solve maximize __objective;
 // >>>

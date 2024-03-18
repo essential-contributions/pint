@@ -41,6 +41,7 @@ solve minimize P;
 // var ::I: real;
 // var ::R: real;
 // var ::P: real;
+// var __objective: real;
 // var ::mortgage[0]: real;
 // var ::mortgage[1]: real;
 // var ::mortgage[2]: real;
@@ -71,5 +72,6 @@ solve minimize P;
 // constraint (((((((((((((((((((((((((1 && (::mortgage[0] >= 0e0)) && (::mortgage[1] >= 0e0)) && (::mortgage[2] >= 0e0)) && (::mortgage[3] >= 0e0)) && (::mortgage[4] >= 0e0)) && (::mortgage[5] >= 0e0)) && (::mortgage[6] >= 0e0)) && (::mortgage[7] >= 0e0)) && (::mortgage[8] >= 0e0)) && (::mortgage[9] >= 0e0)) && (::mortgage[10] >= 0e0)) && (::mortgage[11] >= 0e0)) && (::mortgage[12] >= 0e0)) && (::mortgage[13] >= 0e0)) && (::mortgage[14] >= 0e0)) && (::mortgage[15] >= 0e0)) && (::mortgage[16] >= 0e0)) && (::mortgage[17] >= 0e0)) && (::mortgage[18] >= 0e0)) && (::mortgage[19] >= 0e0)) && (::mortgage[20] >= 0e0)) && (::mortgage[21] >= 0e0)) && (::mortgage[22] >= 0e0)) && (::mortgage[23] >= 0e0)) && (::mortgage[24] >= 0e0));
 // constraint (::mortgage[0] == ((::P + (::P * ::I)) - ::R));
 // constraint ((((((((((((((((((((((((1 && (::mortgage[1] == ((::mortgage[0] + (::mortgage[0] * ::I)) - ::R))) && (::mortgage[2] == ((::mortgage[1] + (::mortgage[1] * ::I)) - ::R))) && (::mortgage[3] == ((::mortgage[2] + (::mortgage[2] * ::I)) - ::R))) && (::mortgage[4] == ((::mortgage[3] + (::mortgage[3] * ::I)) - ::R))) && (::mortgage[5] == ((::mortgage[4] + (::mortgage[4] * ::I)) - ::R))) && (::mortgage[6] == ((::mortgage[5] + (::mortgage[5] * ::I)) - ::R))) && (::mortgage[7] == ((::mortgage[6] + (::mortgage[6] * ::I)) - ::R))) && (::mortgage[8] == ((::mortgage[7] + (::mortgage[7] * ::I)) - ::R))) && (::mortgage[9] == ((::mortgage[8] + (::mortgage[8] * ::I)) - ::R))) && (::mortgage[10] == ((::mortgage[9] + (::mortgage[9] * ::I)) - ::R))) && (::mortgage[11] == ((::mortgage[10] + (::mortgage[10] * ::I)) - ::R))) && (::mortgage[12] == ((::mortgage[11] + (::mortgage[11] * ::I)) - ::R))) && (::mortgage[13] == ((::mortgage[12] + (::mortgage[12] * ::I)) - ::R))) && (::mortgage[14] == ((::mortgage[13] + (::mortgage[13] * ::I)) - ::R))) && (::mortgage[15] == ((::mortgage[14] + (::mortgage[14] * ::I)) - ::R))) && (::mortgage[16] == ((::mortgage[15] + (::mortgage[15] * ::I)) - ::R))) && (::mortgage[17] == ((::mortgage[16] + (::mortgage[16] * ::I)) - ::R))) && (::mortgage[18] == ((::mortgage[17] + (::mortgage[17] * ::I)) - ::R))) && (::mortgage[19] == ((::mortgage[18] + (::mortgage[18] * ::I)) - ::R))) && (::mortgage[20] == ((::mortgage[19] + (::mortgage[19] * ::I)) - ::R))) && (::mortgage[21] == ((::mortgage[20] + (::mortgage[20] * ::I)) - ::R))) && (::mortgage[22] == ((::mortgage[21] + (::mortgage[21] * ::I)) - ::R))) && (::mortgage[23] == ((::mortgage[22] + (::mortgage[22] * ::I)) - ::R))) && (::mortgage[24] == ((::mortgage[23] + (::mortgage[23] * ::I)) - ::R)));
-// solve minimize ::P;
+// constraint (__objective == ::P);
+// solve minimize __objective;
 // >>>

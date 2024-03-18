@@ -1,0 +1,17 @@
+let x = 1..10;
+let z = 1..10;
+constraint z * x == 10;
+
+// intermediate <<<
+// var ::x;
+// var ::z;
+// constraint (::x >= 1);
+// constraint (::x <= 10);
+// constraint (::z >= 1);
+// constraint (::z <= 10);
+// constraint ((::z * ::x) == 10);
+// >>>
+
+// flattening_failure <<<
+// `solve` directive must appear once
+// >>>
