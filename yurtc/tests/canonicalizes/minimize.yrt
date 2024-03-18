@@ -26,9 +26,3 @@ solve minimize z + x;
 // constraint (__objective == (::z + ::x));
 // solve minimize __objective;
 // >>>
-
-// solution <<<
-// ::x: 2
-// ::z: 5
-// __objective: 7
-// >>>

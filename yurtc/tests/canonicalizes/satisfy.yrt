@@ -24,8 +24,3 @@ solve satisfy;
 // constraint ((::z * ::x) == 10);
 // solve satisfy;
 // >>>
-
-// solution <<<
-// ::x: 10
-// ::z: 1
-// >>>
