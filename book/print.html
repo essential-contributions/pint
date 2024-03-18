@@ -148,21 +148,21 @@
 
                 <div id="content" class="content">
                     <main>
-                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
+                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="the-book-of-yurt"><a class="header" href="#the-book-of-yurt">The Book of Yurt</a></h1>
 <p>Welcome to <em>The Book of Yurt</em>, an introductory book about the programming language <strong>Yurt</strong>. The Yurt programming language is a free and open-source <strong>constraint modeling language</strong>. Yurt can be used to model constraint satisfaction and optimization problems in a <strong>high-level</strong>, <strong>solver-independent</strong> way. What differentiates Yurt from other constraint modeling languages is that Yurt provides native syntax for reading and constraining <strong>blockchain state</strong> elements. Yurt also provides a suite of features you'd expect from a modern programming language, such as type safety, user-defined types, extensibility via user-defined macros and libraries, functional elements (<code>fold</code>, <code>map</code>, etc.), list comprehensions, and many others.</p>
 <p>A Yurt program is a <strong>collection of constraints</strong> on the solution space for a set of decision variables. Some of these decision variables represent the state of a blockchain at different points in time, allowing the constraints to restrict how the state is allowed to flow from one timestamp to the next.</p>
 <p>Constraint-based languages differ from imperative programming languages in that they do not specify explicit steps or instructions to be executed, but rather the properties of a solution to be found.</p>
 <h2 id="who-this-book-is-for"><a class="header" href="#who-this-book-is-for">Who This Book Is For</a></h2>
 <p>This book assumes that you’ve written code in another programming language but doesn’t make any assumptions about which one. More specifically, the book <strong>does not</strong> assume that you've used any constraint-based programming languages in the past. Constraint programming requires a different thinking process than imperative programming, which is something that this book tries to help you with.</p>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h1>
 <p>To get you started, this chapter discusses the following:</p>
 <ul>
 <li>Installing Yurt</li>
 <li>Writing your first Yurt programs</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
 <h3 id="dependencies"><a class="header" href="#dependencies">Dependencies</a></h3>
 <p>A prerequisite for installing and using <code>Yurt</code> is the Rust toolchain. Platform-specific instructions for installing <code>rustup</code> can be found <a href="https://www.rust-lang.org/tools/install">here</a>. Then, install the Rust toolchain with:</p>
@@ -178,7 +178,7 @@
 <p>You can update the toolchain with <code>Cargo</code> using:</p>
 <pre><code class="language-console">$ cargo update yurt
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="hello-world"><a class="header" href="#hello-world">Hello, World!</a></h2>
 <p>Now that you've installed Yurt, it's time to write your first Yurt program. It's traditional when learning a new language to write a little program that prints the text <code>Hello, world!</code></p>
 <h3 id="creating-a-project-directory"><a class="header" href="#creating-a-project-directory">Creating a Project Directory</a></h3>
@@ -230,7 +230,7 @@ print greeting;
 <blockquote>
 <p><strong>Note:</strong> Yurt programs that do not have any assignments satisfying <em>all</em> their constraints are called <strong>unsatisfiable</strong>.</p>
 </blockquote>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="hello-golf"><a class="header" href="#hello-golf">Hello, Golf!</a></h2>
 <p>Let's make things more interesting! While the &quot;Hello, world!&quot; program is a good introductory example for starting your Yurt journey, it is not a very interesting Yurt program because it has a single constraint that can be satisfied trivially. In this chapter, we go over another Yurt program that has a real world application.</p>
 <p>You're in charge of designing a new 18-hole golf course with a total &quot;par&quot; of 72. If you're not familiar with the term, &quot;par&quot; for a given golf hole is the predetermined number of strokes that a <em>proficient</em> golfer should require to complete the hole. Each golf hole is assigned a &quot;par&quot; of 3, 4, or 5 depending on its playing length. Your task is to come up with a &quot;par&quot; assignment for each of the 18 holes such that the total par is 72 (and then to design the actual holes after).</p>
@@ -361,10 +361,10 @@ print h;
 <blockquote>
 <p><strong>Note:</strong> there are other more concise ways of modeling the problem above in Yurt. Later chapters will describe additional Yurt tools that will allows us to write shorter and more maintainable code.</p>
 </blockquote>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="example"><a class="header" href="#example">Example</a></h1>
 <p>Some basic examples.</p>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="yurt-language-basics"><a class="header" href="#yurt-language-basics">Yurt Language Basics</a></h1>
 
                     </main>
