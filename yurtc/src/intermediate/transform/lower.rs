@@ -1,8 +1,8 @@
 use crate::{
     error::CompileError,
-    expr::{BinaryOp, Expr, Immediate},
+    expr::{BinaryOp, Expr, Immediate, TupleAccess},
     intermediate::IntermediateIntent,
-    span::{empty_span, Span},
+    span::{empty_span, Span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
 };
 
@@ -260,6 +260,140 @@ pub(crate) fn lower_aliases(ii: &mut IntermediateIntent) -> Result<(), CompileEr
     for (_, expr) in ii.exprs.iter_mut() {
         if let Expr::Cast { ty, .. } = expr {
             replace_alias(ty.borrow_mut());
+        }
+    }
+
+    Ok(())
+}
+
+pub(crate) fn lower_imm_accesses(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
+    let mut replace_direct_accesses = || {
+        let candidates = ii
+            .exprs
+            .iter()
+            .filter_map(|(expr_key, expr)| match expr {
+                Expr::ArrayElementAccess { array, index, .. } => {
+                    ii.exprs.get(*array).and_then(|array_expr| {
+                        matches!(array_expr, Expr::Array { .. })
+                            .then(|| (expr_key, Some((*array, *index)), None))
+                    })
+                }
+
+                Expr::TupleFieldAccess { tuple, field, .. } => {
+                    ii.exprs.get(*tuple).and_then(|tuple_expr| {
+                        matches!(tuple_expr, Expr::Tuple { .. })
+                            .then(|| (expr_key, None, Some((*tuple, field.clone()))))
+                    })
+                }
+
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        let mut replacements = Vec::new();
+        for (old_expr_key, array_idx, field_idx) in candidates {
+            assert!(
+                (array_idx.is_some() && field_idx.is_none())
+                    || (array_idx.is_none() && field_idx.is_some())
+            );
+
+            if let Some((array_key, array_idx_key)) = array_idx {
+                // We have an array access into an immediate.  Evaluate the index.
+                let Some(idx_expr) = ii.exprs.get(array_idx_key) else {
+                    return Err(CompileError::Internal {
+                        msg: "missing array index expression in lower_imm_accesses()",
+                        span: empty_span(),
+                    });
+                };
+
+                match idx_expr.evaluate(ii, &HashMap::new()) {
+                    Ok(Immediate::Int(idx_val)) if idx_val >= 0 => {
+                        let Some(Expr::Array { elements, .. }) = ii.exprs.get(array_key) else {
+                            return Err(CompileError::Internal {
+                                msg: "missing array expression in lower_imm_accesses()",
+                                span: empty_span(),
+                            });
+                        };
+
+                        // Save the original access expression key and the element it referred to.
+                        replacements.push((old_expr_key, elements[idx_val as usize]));
+                    }
+
+                    Ok(_) => {
+                        return Err(CompileError::InvalidConstArrayLength {
+                            span: idx_expr.span().clone(),
+                        })
+                    }
+
+                    _ => {
+                        return Err(CompileError::NonConstArrayLength {
+                            span: idx_expr.span().clone(),
+                        })
+                    }
+                }
+            }
+
+            if let Some((tuple_key, tuple_field_key)) = field_idx {
+                // We have a tuple access into an immediate.
+                let Some(Expr::Tuple { fields, .. }) = ii.exprs.get(tuple_key) else {
+                    return Err(CompileError::Internal {
+                        msg: "missing tuple expression in lower_imm_accesses()",
+                        span: empty_span(),
+                    });
+                };
+
+                let new_expr_key = match tuple_field_key {
+                    TupleAccess::Index(idx_val) => fields[idx_val].1,
+                    TupleAccess::Name(access_name) => fields
+                        .iter()
+                        .find_map(|(opt_name, field_key)| {
+                            opt_name.as_ref().and_then(|field_name| {
+                                (field_name.name == access_name.name).then_some(*field_key)
+                            })
+                        })
+                        .expect("missing tuple field"),
+
+                    TupleAccess::Error => unreachable!(),
+                };
+
+                // Save the original access expression key and the field it referred to.
+                replacements.push((old_expr_key, new_expr_key));
+            }
+        }
+
+        let modified = !replacements.is_empty();
+
+        // Iterate for each replacement without borrowing.
+        while let Some((old_expr_key, new_expr_key)) = replacements.pop() {
+            // Replace the old with the new throughout the II.
+            ii.replace_exprs(old_expr_key, new_expr_key);
+            ii.exprs.remove(old_expr_key);
+            ii.expr_types.remove(old_expr_key);
+
+            // But _also_ replace the old within `replacements` in case any of our new keys is now
+            // stale.
+            for (_, stale_expr_key) in &mut replacements {
+                if *stale_expr_key == old_expr_key {
+                    *stale_expr_key = new_expr_key;
+                }
+            }
+        }
+
+        Ok(modified)
+    };
+
+    // Replace all the direct array and tuple accesses until there are none left.  This will loop
+    // for all the nested aggregates.
+    for loop_check in 0.. {
+        if !replace_direct_accesses()? {
+            break;
+        }
+
+        if loop_check > 10_000 {
+            return Err(CompileError::Internal {
+                msg: "infinite loop in lower_imm_accesses()",
+                span: empty_span(),
+            });
         }
     }
 
