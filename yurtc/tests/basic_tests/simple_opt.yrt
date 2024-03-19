@@ -16,9 +16,9 @@ solve minimize obj;
 // flattened <<<
 // var ::x: int;
 // var ::obj: int;
-// var __objective: int;
+// var ~objective: int;
 // constraint (::x >= -10);
 // constraint (::obj == (((::x * ::x) + (2 * ::x)) - 8));
-// constraint (__objective == ::obj);
-// solve minimize __objective;
+// constraint (~objective == ::obj);
+// solve minimize ~objective;
 // >>>

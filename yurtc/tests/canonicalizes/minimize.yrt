@@ -17,12 +17,12 @@ solve minimize z + x;
 // flattened <<<
 // var ::x: int;
 // var ::z: int;
-// var __objective: int;
+// var ~objective: int;
 // constraint (::x >= 1);
 // constraint (::x <= 10);
 // constraint (::z >= 1);
 // constraint (::z <= 10);
 // constraint ((::z * ::x) == 10);
-// constraint (__objective == (::z + ::x));
-// solve minimize __objective;
+// constraint (~objective == (::z + ::x));
+// solve minimize ~objective;
 // >>>

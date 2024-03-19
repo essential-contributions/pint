@@ -27,9 +27,9 @@ pub(crate) fn canonicalize(ii: &mut IntermediateIntent) -> Result<(), CompileErr
 /// becomes:
 ///
 /// ```yurt
-/// let __objective: <type_of_expr>;
-/// constraint __objective == <expr>;
-/// solve maximize __objective;
+/// let ~objective: <type_of_expr>;
+/// constraint ~objective == <expr>;
+/// solve maximize ~objective;
 /// ```
 ///
 /// This transformation is necessary because while the `solve maximize <expr>` or `solve minimize <expr>`
@@ -59,22 +59,22 @@ fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileErro
         .clone();
 
     // create the new objective variable
-    // let __objective: <type_of_expr>;
+    // let ~objective: <type_of_expr>;
     let expr_type_clone = directive_expr_type.clone();
     let _ = ii.insert_var(
         "",
         None,
         &Ident {
-            name: "__objective".to_string(),
+            name: "~objective".to_string(),
             span: directive_span.clone(),
         },
         Some(directive_expr_type.clone()),
     )?;
 
     // update the directive expression to be the newly created objective variable
-    // solve maximize __objective;
+    // solve maximize ~objective;
     let objective_expr_key = ii.exprs.insert(Expr::PathByName(
-        "__objective".to_string(),
+        "~objective".to_string(),
         directive_span.clone(),
     ));
     let _ = ii.expr_types.insert(objective_expr_key, expr_type_clone);
