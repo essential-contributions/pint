@@ -49,6 +49,18 @@ fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileErro
         Minimize(expr_key) | Maximize(expr_key) => expr_key,
     };
 
+    // we only need to transform is the objective isn't already a var
+    let expr = ii
+        .exprs
+        .get(directive_expr_key)
+        .ok_or_else(|| CompileError::Internal {
+            msg: "invalid intermediate intent expression slotmap key",
+            span: empty_span(),
+        })?;
+    if let Expr::PathByName(_, _) | Expr::PathByKey(_, _) = expr {
+        return Ok(());
+    }
+
     let directive_expr_type = ii
         .expr_types
         .get(directive_expr_key)
