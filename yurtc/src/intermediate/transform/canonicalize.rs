@@ -61,7 +61,7 @@ fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileErro
     // create the new objective variable
     // let ~objective: <type_of_expr>;
     let expr_type_clone = directive_expr_type.clone();
-    let _ = ii.insert_var(
+    let objective_var_key = ii.insert_var(
         "",
         None,
         &Ident {
@@ -73,10 +73,9 @@ fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileErro
 
     // update the directive expression to be the newly created objective variable
     // solve maximize ~objective;
-    let objective_expr_key = ii.exprs.insert(Expr::PathByName(
-        "~objective".to_string(),
-        directive_span.clone(),
-    ));
+    let objective_expr_key = ii
+        .exprs
+        .insert(Expr::PathByKey(objective_var_key, directive_span.clone()));
     let _ = ii.expr_types.insert(objective_expr_key, expr_type_clone);
 
     let eq_expr_key = ii.exprs.insert(Expr::BinaryOp {
