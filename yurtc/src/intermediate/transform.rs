@@ -4,7 +4,7 @@ mod scalarize;
 mod unroll;
 
 use canonicalize::canonicalize;
-use lower::{lower_aliases, lower_bools, lower_casts, lower_enums};
+use lower::{lower_aliases, lower_bools, lower_casts, lower_enums, lower_imm_accesses};
 use scalarize::scalarize;
 use unroll::unroll_foralls;
 
@@ -14,8 +14,11 @@ impl super::IntermediateIntent {
         unroll_foralls(&mut self)?;
         lower_enums(&mut self)?;
 
-        // Scalarize after lowering enums so we only have to deal with integer indices.
+        // Scalarize after lowering enums so we only have to deal with integer indices and then
+        // lower array and tuple accesses into immediates.  After here there will no longer be
+        // aggregate types.
         scalarize(&mut self)?;
+        lower_imm_accesses(&mut self)?;
 
         // Lower bools after scalarization since it creates new comparison expressions which will
         // return bools.
