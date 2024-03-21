@@ -1,5 +1,5 @@
 use crate::{
-    error::{ErrorLabel, ParseError, ReportableError},
+    error::{ErrorLabel, ReportableError},
     span::{Span, Spanned},
 };
 use std::path::PathBuf;
@@ -8,8 +8,6 @@ use yansi::Color;
 
 #[derive(Error, Debug)]
 pub enum CompileError {
-    #[error(transparent)]
-    ParseError(#[from] ParseError),
     #[error("compiler internal error: {msg}")]
     Internal { msg: &'static str, span: Span },
     #[error("couldn't read {file}: {error}")]
@@ -552,8 +550,6 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
-            ParseError(parse_error) => parse_error.labels(),
-
             MissingSolveDirective { span } => vec![ErrorLabel {
                 message: "`solve` directive missing from this file".to_string(),
                 span: span.clone(),
@@ -644,8 +640,7 @@ impl ReportableError for CompileError {
 
             // solve` directive must appear exactly once in a project and must appear in the top level module
 
-            ParseError { .. }
-            | Internal { .. }
+            Internal { .. }
             | FileIO { .. }
             | MacroNotFound { .. }
             | MacroUndefinedParam { .. }
@@ -724,7 +719,6 @@ impl Spanned for CompileError {
     fn span(&self) -> &Span {
         use CompileError::*;
         match self {
-            ParseError(parse_error) => parse_error.span(),
             FileIO { span, .. }
             | Internal { span, .. }
             | DualModulity { span, .. }

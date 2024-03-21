@@ -1,9 +1,10 @@
 use crate::{
     error::CompileError,
-    expr::{self, Expr, Ident},
+    expr::{self, Expr},
     intermediate::{
         IntermediateIntent,
         SolveFunc::{self, *},
+        Var,
     },
     span::empty_span,
     types::{PrimitiveKind, Type},
@@ -69,15 +70,15 @@ fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileErro
     // create the new objective variable
     // let ~objective: <type_of_expr>;
     let expr_type_clone = directive_expr_type.clone();
-    let objective_var_key = ii.insert_var(
-        "",
-        None,
-        &Ident {
-            name: "~objective".to_string(),
-            span: directive_span.clone(),
-        },
-        Some(directive_expr_type.clone()),
-    )?;
+    let objective_var_name = "~objective".to_string();
+    ii.top_level_symbols
+        .insert(objective_var_name.clone(), directive_span.clone());
+    let objective_var_key = ii.vars.insert(Var {
+        name: objective_var_name,
+        span: directive_span.clone(),
+    });
+    ii.var_types
+        .insert(objective_var_key, directive_expr_type.clone());
 
     // update the directive expression to be the newly created objective variable
     // solve maximize ~objective;
