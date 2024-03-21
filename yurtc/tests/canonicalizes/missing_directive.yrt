@@ -13,5 +13,6 @@ constraint z * x == 10;
 // >>>
 
 // flattening_failure <<<
-// `solve` directive must appear once
+// `solve` directive missing from this project
+// solve` directive must appear exactly once in a project and must appear in the top level module
 // >>>

@@ -632,6 +632,12 @@ impl ReportableError for CompileError {
                 Some(format!("found access using type `{found_ty}`"))
             }
 
+            MissingSolveDirective { .. } => {
+                Some("solve` directive must appear exactly once in a project and must appear in the top level module".to_string())
+            }
+
+            // solve` directive must appear exactly once in a project and must appear in the top level module
+
             ParseError { .. }
             | Internal { .. }
             | FileIO { .. }
@@ -656,8 +662,7 @@ impl ReportableError for CompileError {
             | EmptyArrayExpression { .. }
             | ExprRecursion { .. }
             | BadCastTo { .. }
-            | BadCastFrom { .. }
-            | MissingSolveDirective { .. } => None,
+            | BadCastFrom { .. } => None,
         }
     }
 
