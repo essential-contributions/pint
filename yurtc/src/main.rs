@@ -43,13 +43,13 @@ fn main() -> anyhow::Result<()> {
     // numbers, etc.) and so, we can solve more intents than we can generate assembly for. When
     // this changes, we will always generate assembly and only solve when requested via `--solve`.
     if args.solve {
-        let flattened = &flattened.iis.get(&"".to_string()).unwrap();
         if args.solve && !cfg!(feature = "solver-scip") {
             eprintln!("Solving is disabled in this build.");
         }
 
         #[cfg(feature = "solver-scip")]
         if args.solve {
+            let flattened = &flattened.iis.get(&"".to_string()).unwrap();
             let flatyurt = match yurt_solve::parse_flatyurt(&format!("{flattened}")[..]) {
                 Ok(flatyurt) => flatyurt,
                 Err(err) => {

@@ -127,8 +127,8 @@ impl ProjectParser {
             }
 
             let keys = self.macro_calls.keys().cloned().collect::<Vec<_>>();
-            for current_ii in keys.clone() {
-                let macro_calls = self.macro_calls.get_mut(&current_ii).unwrap();
+            for current_ii in &keys {
+                let macro_calls = self.macro_calls.get_mut(current_ii).unwrap();
 
                 // Expand the next call. It may find new paths.
                 if let Some(call_key) = macro_calls.keys().nth(0) {
@@ -346,7 +346,7 @@ impl ProjectParser {
 
         parse_with!(
             self,
-            lexer::Lexer::new(&src_str, src_path),
+            lexer::Lexer::new(&src_str, src_path, mod_path),
             yurt_parser::YurtParser::new(),
             src_path,
             mod_path,
@@ -368,7 +368,7 @@ impl ProjectParser {
         self.unique_idx += 1;
         parse_with!(
             self,
-            lexer::Lexer::from_tokens(tokens, src_path),
+            lexer::Lexer::from_tokens(tokens, src_path, mod_path),
             yurt_parser::MacroBodyParser::new(),
             src_path,
             mod_path,

@@ -21,6 +21,10 @@ constraint a != d;
 
 constraint @e_macro(a);
 
+// A macro in ::g which in turn calls another macro in ::g -- local expansion still needs to resolve
+// the other ::g macro properly (i.e., not locally).
+g::@g_macro(55; 66; 77);
+
 solve satisfy;
 
 // intermediate <<<
@@ -31,6 +35,8 @@ solve satisfy;
 // constraint (::a != ::d::d);
 // constraint ((::a % 3) == 0);
 // constraint (::d::d == 44);
+// constraint (55 != 66);
+// constraint (66 != 77);
 // solve satisfy;
 // >>>
 
@@ -42,5 +48,7 @@ solve satisfy;
 // constraint (::a != ::d::d);
 // constraint ((::a % 3) == 0);
 // constraint (::d::d == 44);
+// constraint (55 != 66);
+// constraint (66 != 77);
 // solve satisfy;
 // >>>
