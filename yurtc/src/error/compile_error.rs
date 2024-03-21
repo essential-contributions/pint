@@ -146,7 +146,7 @@ pub enum CompileError {
     BadCastTo { ty: String, span: Span },
     #[error("invalid cast")]
     BadCastFrom { ty: String, span: Span },
-    #[error("`solve` directive must appear once")]
+    #[error("`solve` directive missing from this project")]
     MissingSolveDirective { span: Span },
 }
 
