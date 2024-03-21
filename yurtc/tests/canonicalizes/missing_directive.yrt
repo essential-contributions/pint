@@ -1,0 +1,19 @@
+let x = 1..10;
+let z = 1..10;
+constraint z * x == 10;
+
+// intermediate <<<
+// var ::x;
+// var ::z;
+// constraint (::x >= 1);
+// constraint (::x <= 10);
+// constraint (::z >= 1);
+// constraint (::z <= 10);
+// constraint ((::z * ::x) == 10);
+// >>>
+
+// flattening_failure <<<
+// `solve` directive missing from this project
+// @0..0: `solve` directive missing from this file
+// solve` directive must appear exactly once in a project and must appear in the top level module
+// >>>

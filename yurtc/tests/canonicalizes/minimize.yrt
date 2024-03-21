@@ -1,0 +1,28 @@
+let x = 1..10;
+let z = 1..10;
+constraint z * x == 10;
+solve minimize z + x;
+
+// intermediate <<<
+// var ::x;
+// var ::z;
+// constraint (::x >= 1);
+// constraint (::x <= 10);
+// constraint (::z >= 1);
+// constraint (::z <= 10);
+// constraint ((::z * ::x) == 10);
+// solve minimize (::z + ::x);
+// >>>
+
+// flattened <<<
+// var ::x: int;
+// var ::z: int;
+// var ~objective: int;
+// constraint (::x >= 1);
+// constraint (::x <= 10);
+// constraint (::z >= 1);
+// constraint (::z <= 10);
+// constraint ((::z * ::x) == 10);
+// constraint (~objective == (::z + ::x));
+// solve minimize ~objective;
+// >>>

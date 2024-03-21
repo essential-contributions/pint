@@ -54,7 +54,7 @@ match {
     "false",
 
     // Identifiers
-    r"[A-Za-z_][A-Za-z_0-9@\[\]\.]*",
+    r"[A-Za-z_~][A-Za-z_0-9@\[\]\.]*",
 
     // Skip whitespace and comments
     r"\s*" => { },
@@ -178,7 +178,7 @@ pub(crate) Type: Type = {
 /////////////
 /// Names ///
 /////////////
-Ident: String =  <s:r"[A-Za-z_][A-Za-z_0-9@\[\]\.]*"> => s.to_string();
+Ident: String =  <s:r"[A-Za-z_~][A-Za-z_0-9@\[\]\.]*"> => s.to_string();
 
 pub(crate) Name: String = {
     "::" <suffix:NameSuffix> => format!("::{suffix}"),

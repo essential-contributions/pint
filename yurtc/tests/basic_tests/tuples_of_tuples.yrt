@@ -14,6 +14,8 @@ let d: {int, int} = {77, 88};
 constraint c.0 == d;
 constraint c.1 != d;
 
+solve satisfy;
+
 // intermediate <<<
 // var ::a: {int, {int, bool, {int, bool, real}, real}, bool, real};
 // var ::b: real;
@@ -25,6 +27,7 @@ constraint c.1 != d;
 // constraint (::d == {77, 88});
 // constraint (::c.0 == ::d);
 // constraint (::c.1 != ::d);
+// solve satisfy;
 // >>>
 
 // flattened <<<
@@ -51,4 +54,5 @@ constraint c.1 != d;
 // constraint ((::d.0 == 77) && (::d.1 == 88));
 // constraint ((::c.0.width == ::d.0) && (::c.0.height == ::d.1));
 // constraint ((::c.1.x != ::d.0) && (::c.1.y != ::d.1));
+// solve satisfy;
 // >>>

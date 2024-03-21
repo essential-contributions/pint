@@ -144,6 +144,8 @@ pub enum CompileError {
     BadCastTo { ty: String, span: Span },
     #[error("invalid cast")]
     BadCastFrom { ty: String, span: Span },
+    #[error("`solve` directive missing from this project")]
+    MissingSolveDirective { span: Span },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -548,6 +550,12 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            MissingSolveDirective { span } => vec![ErrorLabel {
+                message: "`solve` directive missing from this file".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             Internal { .. } | FileIO { .. } => Vec::new(),
         }
     }
@@ -624,6 +632,10 @@ impl ReportableError for CompileError {
 
             ArrayAccessWithWrongType { found_ty, .. } => {
                 Some(format!("found access using type `{found_ty}`"))
+            }
+
+            MissingSolveDirective { .. } => {
+                Some("solve` directive must appear exactly once in a project and must appear in the top level module".to_string())
             }
 
             Internal { .. }
@@ -745,7 +757,8 @@ impl Spanned for CompileError {
                 ..
             }
             | BadCastTo { span, .. }
-            | BadCastFrom { span, .. } => span,
+            | BadCastFrom { span, .. }
+            | MissingSolveDirective { span, .. } => span,
 
             IfBranchesTypeMismatch { large_err } | OperatorTypeError { large_err, .. } => {
                 match &**large_err {

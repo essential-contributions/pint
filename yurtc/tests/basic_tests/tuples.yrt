@@ -24,6 +24,8 @@ let t14_z_1 = t14.z.1;
 let t14_z_2 = t14.z.2;
 let t14_z_w = t14.z.w;
 
+solve satisfy;
+
 // intermediate <<<
 // var ::t0;
 // var ::t0_0;
@@ -155,6 +157,7 @@ let t14_z_w = t14.z.w;
 // constraint (::t14_z_1 == ::t14.z.1);
 // constraint (::t14_z_2 == ::t14.z.2);
 // constraint (::t14_z_w == ::t14.z.w);
+// solve satisfy;
 // >>>
 
 // flattened <<<
@@ -301,4 +304,5 @@ let t14_z_w = t14.z.w;
 // constraint (::t14_z_1 == ::t14.z.1);
 // constraint (::t14_z_2 == ::t14.z.w);
 // constraint (::t14_z_w == ::t14.z.w);
+// solve satisfy;
 // >>>
