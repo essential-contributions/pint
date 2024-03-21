@@ -71,11 +71,42 @@ jobs:
           crate: cargo-nextest
           locked: true
 
-      - name: Run workspace tests without solver flow
-        run: cargo nextest run --release --locked --no-default-features
-
-      - name: Run workspace tests
+      - name: Run Workspace Tests
         run: cargo nextest run --release --locked
+
+  build_without_solver:
+    name: Cargo Build and Test Workspace Without Solver Flow
+    runs-on: ubuntu-latest
+    steps:
+      - name: Provide Access to Private Repos
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build Workspace
+        run: cargo build --release
+
+      - name: Install cargo-nextest
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-nextest
+          locked: true
+
+      - name: Build Workspace Without Solver
+        run: cargo build --release --no-default-features
+
+      - name: Run Workspace Tests Without Solver
+        run: cargo nextest run --release --locked --no-default-features
 
   cargo-unused-deps-check:
     name: Cargo Unused Dependencies Check
