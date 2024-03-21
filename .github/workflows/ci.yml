@@ -71,6 +71,9 @@ jobs:
           crate: cargo-nextest
           locked: true
 
+      - name: Run workspace tests without solver flow
+        run: cargo nextest run --release --locked --no-default-features
+
       - name: Run workspace tests
         run: cargo nextest run --release --locked
 
