@@ -49,7 +49,7 @@ fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileErro
         Minimize(expr_key) | Maximize(expr_key) => expr_key,
     };
 
-    // we only need to transform is the objective isn't already a var
+    // we only need to transform if the objective isn't already a var
     if matches!(
         ii.exprs.get(directive_expr_key),
         Some(Expr::PathByName(_, _)) | Some(Expr::PathByKey(_, _))

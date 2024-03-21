@@ -554,7 +554,13 @@ impl ReportableError for CompileError {
 
             ParseError(parse_error) => parse_error.labels(),
 
-            Internal { .. } | FileIO { .. } | MissingSolveDirective { .. } => Vec::new(),
+            MissingSolveDirective { span } => vec![ErrorLabel {
+                message: "`solve` directive missing from this file".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            Internal { .. } | FileIO { .. } => Vec::new(),
         }
     }
 
