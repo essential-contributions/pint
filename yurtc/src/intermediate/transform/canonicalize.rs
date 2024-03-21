@@ -88,7 +88,7 @@ fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileErro
     let objective_expr_key = ii
         .exprs
         .insert(Expr::PathByKey(objective_var_key, directive_span.clone()));
-    let _ = ii.expr_types.insert(objective_expr_key, expr_type_clone);
+    ii.expr_types.insert(objective_expr_key, expr_type_clone);
 
     let eq_expr_key = ii.exprs.insert(Expr::BinaryOp {
         op: expr::BinaryOp::Equal,
