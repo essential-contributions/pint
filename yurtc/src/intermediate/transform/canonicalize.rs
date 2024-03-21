@@ -50,14 +50,10 @@ fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileErro
     };
 
     // we only need to transform is the objective isn't already a var
-    let expr = ii
-        .exprs
-        .get(directive_expr_key)
-        .ok_or_else(|| CompileError::Internal {
-            msg: "invalid intermediate intent expression slotmap key",
-            span: empty_span(),
-        })?;
-    if let Expr::PathByName(_, _) | Expr::PathByKey(_, _) = expr {
+    if matches!(
+        ii.exprs.get(directive_expr_key),
+        Some(Expr::PathByName(_, _)) | Some(Expr::PathByKey(_, _))
+    ) {
         return Ok(());
     }
 
