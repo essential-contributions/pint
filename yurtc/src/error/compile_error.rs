@@ -638,8 +638,6 @@ impl ReportableError for CompileError {
                 Some("solve` directive must appear exactly once in a project and must appear in the top level module".to_string())
             }
 
-            // solve` directive must appear exactly once in a project and must appear in the top level module
-
             Internal { .. }
             | FileIO { .. }
             | MacroNotFound { .. }
