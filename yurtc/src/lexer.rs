@@ -101,7 +101,7 @@ pub enum Token {
     MacroParamPack(String),
     MacroBody(Vec<(usize, Token, usize)>),
     MacroCallArgs(Vec<Vec<(usize, Token, usize)>>),
-    MacroTag(Option<u64>),
+    MacroTag(Option<usize>),
 
     #[token("if")]
     If,
@@ -306,14 +306,20 @@ impl fmt::Display for Token {
 pub(super) struct Lexer<'a> {
     token_stream: TokenSource<'a>,
     filepath: Rc<std::path::Path>,
+    mod_path: &'a [String],
     state: LexerState,
 }
 
 impl<'sc> Lexer<'sc> {
-    pub(super) fn new(src: &'sc str, filepath: &Rc<std::path::Path>) -> Self {
+    pub(super) fn new(
+        src: &'sc str,
+        filepath: &Rc<std::path::Path>,
+        mod_path: &'sc [String],
+    ) -> Self {
         Self {
             token_stream: TokenSource::LogosLexer(Token::lexer(src)),
             filepath: filepath.clone(),
+            mod_path,
             state: LexerState::default(),
         }
     }
@@ -321,10 +327,12 @@ impl<'sc> Lexer<'sc> {
     pub(super) fn from_tokens(
         tokens: Vec<(usize, Token, usize)>,
         filepath: &Rc<std::path::Path>,
+        mod_path: &'sc [String],
     ) -> Self {
         Self {
             token_stream: TokenSource::VecToken(VecTokenSourceState::new(tokens)),
             filepath: filepath.clone(),
+            mod_path,
             state: LexerState::default(),
         }
     }
@@ -338,12 +346,15 @@ impl<'sc> Lexer<'sc> {
         let mut body_token_stream = self.token_stream.clone();
         let mut parsed_tok_count = 0;
 
+        let mut count_since_double_colon = 1;
+
         // We've already parsed the `{`.  We need to find the matching `}` while counting and
         // skipping nested `{`/`}` pairs.
         let mut body_toks = vec![(obrace_span.start, Token::BraceOpen, obrace_span.end)];
         let mut nest_depth = 0;
         loop {
             parsed_tok_count += 1;
+            count_since_double_colon += 1;
 
             let next_tok = body_token_stream.next();
             let next_span = body_token_stream.span();
@@ -384,9 +395,31 @@ impl<'sc> Lexer<'sc> {
                     }
                 }
 
+                Some(Ok(Token::DoubleColon)) => {
+                    push_tok!(Token::DoubleColon);
+                    count_since_double_colon = 0;
+                }
+
                 Some(Ok(tok @ Token::MacroName(_))) => {
-                    // If we see a macro name in a macro body then we inject an empty tag used by
-                    // recursion checking.
+                    // If we see a macro name in a macro body then we
+                    // a) inject an empty tag used by recursion checking, and
+                    // b) inject an absolute path for macros which don't have one.
+
+                    // This is to handle the edge case where we are currently parsing in a module
+                    // but will later re-parse during expansion in a different context, yet we're
+                    // now referring to a local macro call.  Without this hack the expansion will
+                    // attempt to refer to the local macro within the scope of that expansion, not
+                    // here in this module.
+
+                    if count_since_double_colon > 1 {
+                        // The previous token was _not_ a `::`, so this call must be local.
+                        push_tok!(Token::DoubleColon);
+                        for path_el in self.mod_path {
+                            push_tok!(Token::Ident((path_el.clone(), false)));
+                            push_tok!(Token::DoubleColon);
+                        }
+                    }
+
                     push_tok!(tok);
                     push_tok!(Token::MacroTag(None));
                 }

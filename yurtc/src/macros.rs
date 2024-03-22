@@ -52,7 +52,7 @@ pub(crate) struct MacroCall {
     pub(crate) mod_path: Vec<String>,
     pub(crate) args: Vec<Vec<(usize, Token, usize)>>,
     pub(crate) span: Span,
-    pub(crate) tag: Option<u64>,
+    pub(crate) parent_tag: Option<usize>,
 }
 
 impl fmt::Display for MacroCall {
@@ -106,8 +106,8 @@ pub(crate) fn verify_unique_set(macro_decls: &[MacroDecl]) -> Vec<Error> {
 
 #[derive(Default)]
 pub(crate) struct MacroExpander {
-    call_histories: HashMap<u64, Vec<(Path, usize)>>,
-    next_tag: u64,
+    call_history: Vec<(Path, usize)>, // Path to macro and number of args.
+    call_parents: HashMap<usize, usize>, // Indices into self.call_history.
 }
 
 impl MacroExpander {
@@ -120,23 +120,24 @@ impl MacroExpander {
         let macro_decl: &MacroDecl = match_macro(macro_decls, call)?;
         let mut errs = Vec::new();
 
-        // This tag identifies the current expansion chain.  Root calls from outside of macro
-        // bodies will be None and so we allocate a new unique tag.  Calls in macro bodies have
-        // this tag propogated and we track the expansion history to detect non-terminating
-        // recursion.
-        let tag = call.tag.unwrap_or_else(|| {
-            let tag = self.next_tag;
-            self.next_tag += 1;
-            tag
-        });
+        // This tag is for any further calls expanded in this call, to mark their parent.
+        let tag = self.call_history.len();
 
-        // If this 'call sig' -- the name and number of args -- has been used in this expansion
-        // chain before then we have illegal recursion.
+        // Store this 'call sig' -- the name and number of args -- in the call history.
         let call_sig = (call.name.clone(), call.args.len());
-        self.call_histories
-            .entry(tag)
-            .and_modify(|call_history| {
-                if call_history.contains(&call_sig) {
+        self.call_history.push(call_sig.clone());
+
+        if let Some(parent_tag) = call.parent_tag {
+            // Make a link from this call to the parent.
+            self.call_parents.insert(tag, parent_tag);
+
+            // Make a local mutable copy for searching the call history.
+            let mut parent_tag = parent_tag;
+
+            // Check the history of this call via the parent to find this call sig which would
+            // indicate non-terminating recursion.
+            loop {
+                if self.call_history[parent_tag] == call_sig {
                     errs.push(Error::Compile {
                         error: CompileError::MacroRecursion {
                             name: call.name.clone(),
@@ -145,9 +146,14 @@ impl MacroExpander {
                         },
                     });
                 }
-                call_history.push(call_sig.clone())
-            })
-            .or_insert(vec![call_sig]);
+
+                if let Some(grandparent_tag) = self.call_parents.get(&parent_tag) {
+                    parent_tag = *grandparent_tag;
+                } else {
+                    break;
+                }
+            }
+        }
 
         let param_idcs = HashMap::<&String, usize>::from_iter(
             macro_decl
@@ -209,10 +215,10 @@ impl MacroExpander {
                     }
                 }
 
-                Token::MacroTag(old_tag) => {
+                Token::MacroTag(empty_tag) => {
                     // This tag has been injected by the lexer.  We update the tag here for when
                     // its associated call is expanded.
-                    assert!(old_tag.is_none());
+                    assert!(empty_tag.is_none());
                     body.push((tok.0, Token::MacroTag(Some(tag)), tok.2))
                 }
 

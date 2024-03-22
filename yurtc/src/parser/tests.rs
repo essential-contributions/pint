@@ -27,7 +27,7 @@ macro_rules! parse_and_collect_errors {
         match $parser.parse(
             &mut $context,
             &mut errors,
-            lexer::Lexer::new($source, &filepath),
+            lexer::Lexer::new($source, &filepath, &[]),
         ) {
             Ok(result) => {
                 if errors.is_empty() {

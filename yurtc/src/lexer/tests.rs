@@ -292,7 +292,7 @@ fn macros_success() {
     let path = Rc::from(Path::new("test"));
 
     // Simple success cases.
-    let mut toks = Lexer::new("macro @name()", &Rc::clone(&path));
+    let mut toks = Lexer::new("macro @name()", &Rc::clone(&path), &[]);
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
     assert_eq!(
         toks.next().unwrap().unwrap().1,
@@ -302,7 +302,7 @@ fn macros_success() {
     assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
     assert!(toks.next().is_none());
 
-    let mut toks = Lexer::new("macro @name_x11($a)", &Rc::clone(&path));
+    let mut toks = Lexer::new("macro @name_x11($a)", &Rc::clone(&path), &[]);
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
     assert_eq!(
         toks.next().unwrap().unwrap().1,
@@ -313,7 +313,7 @@ fn macros_success() {
     assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
     assert!(toks.next().is_none());
 
-    let mut toks = Lexer::new("macro @name($Z, $9)", &Rc::clone(&path));
+    let mut toks = Lexer::new("macro @name($Z, $9)", &Rc::clone(&path), &[]);
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
     assert_eq!(
         toks.next().unwrap().unwrap().1,
@@ -326,7 +326,7 @@ fn macros_success() {
     assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
     assert!(toks.next().is_none());
 
-    let mut toks = Lexer::new("macro @name($Z, $9,)", &Rc::clone(&path));
+    let mut toks = Lexer::new("macro @name($Z, $9,)", &Rc::clone(&path), &[]);
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
     assert_eq!(
         toks.next().unwrap().unwrap().1,
@@ -340,7 +340,7 @@ fn macros_success() {
     assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
     assert!(toks.next().is_none());
 
-    let mut toks = Lexer::new("macro @name() {} constraint", &Rc::clone(&path));
+    let mut toks = Lexer::new("macro @name() {} constraint", &Rc::clone(&path), &[]);
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
     assert_eq!(
         toks.next().unwrap().unwrap().1,
@@ -355,7 +355,11 @@ fn macros_success() {
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Constraint, _)));
     assert!(toks.next().is_none());
 
-    let mut toks = Lexer::new(r#"macro @name() { let it "be" 88 ; }"#, &Rc::clone(&path));
+    let mut toks = Lexer::new(
+        r#"macro @name() { let it "be" 88 ; }"#,
+        &Rc::clone(&path),
+        &[],
+    );
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
     assert_eq!(
         toks.next().unwrap().unwrap().1,
@@ -381,7 +385,11 @@ fn macros_success() {
     }
 
     // Nested braces.
-    let mut toks = Lexer::new("macro @name() { a { b}{{}c}{ d }} let", &Rc::clone(&path));
+    let mut toks = Lexer::new(
+        "macro @name() { a { b}{{}c}{ d }} let",
+        &Rc::clone(&path),
+        &[],
+    );
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
     assert_eq!(
         toks.next().unwrap().unwrap().1,
@@ -422,7 +430,7 @@ fn macros_badly_formed() {
     let path = Rc::from(Path::new("test"));
 
     // Macro name has no `@`, should not parse the body.
-    let mut toks = Lexer::new("macro bad() { 11 }", &Rc::clone(&path));
+    let mut toks = Lexer::new("macro bad() { 11 }", &Rc::clone(&path), &[]);
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
     assert_eq!(
         toks.next().unwrap().unwrap().1,
@@ -436,7 +444,7 @@ fn macros_badly_formed() {
     assert!(toks.next().is_none());
 
     // Macro params have no `$`, should not parse the body.
-    let mut toks = Lexer::new("macro @name(bad, param) { 22 }", &Rc::clone(&path));
+    let mut toks = Lexer::new("macro @name(bad, param) { 22 }", &Rc::clone(&path), &[]);
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
     assert_eq!(
         toks.next().unwrap().unwrap().1,
@@ -458,7 +466,7 @@ fn macros_badly_formed() {
     assert!(matches!(toks.next().unwrap().unwrap(), (_, BraceClose, _)));
     assert!(toks.next().is_none());
 
-    let mut toks = Lexer::new("macro @name($good, bad) { 33 }", &Rc::clone(&path));
+    let mut toks = Lexer::new("macro @name($good, bad) { 33 }", &Rc::clone(&path), &[]);
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
     assert_eq!(
         toks.next().unwrap().unwrap().1,
@@ -481,7 +489,7 @@ fn macros_badly_formed() {
     assert!(toks.next().is_none());
 
     // Badly nested braces, should backtrack.
-    let mut toks = Lexer::new("macro @name() { { } let", &Rc::clone(&path));
+    let mut toks = Lexer::new("macro @name() { { } let", &Rc::clone(&path), &[]);
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
     assert_eq!(
         toks.next().unwrap().unwrap().1,
@@ -503,7 +511,7 @@ fn macros_call_success() {
 
     let path = Rc::from(Path::new("test"));
 
-    let mut toks = Lexer::new("@name()", &Rc::clone(&path));
+    let mut toks = Lexer::new("@name()", &Rc::clone(&path), &[]);
     assert_eq!(
         toks.next().unwrap().unwrap().1,
         MacroName("@name".to_owned()),
@@ -517,7 +525,7 @@ fn macros_call_success() {
         unreachable!()
     }
 
-    let mut toks = Lexer::new("11 + @name()", &Rc::clone(&path));
+    let mut toks = Lexer::new("11 + @name()", &Rc::clone(&path), &[]);
     assert_eq!(toks.next().unwrap().unwrap().1, IntLiteral("11".to_owned()),);
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Plus, _)));
     assert_eq!(
@@ -530,7 +538,7 @@ fn macros_call_success() {
     ));
     assert!(toks.next().is_none());
 
-    let mut toks = Lexer::new("@name(int)", &Rc::clone(&path));
+    let mut toks = Lexer::new("@name(int)", &Rc::clone(&path), &[]);
     assert_eq!(
         toks.next().unwrap().unwrap().1,
         MacroName("@name".to_owned()),
@@ -546,7 +554,7 @@ fn macros_call_success() {
         unreachable!()
     }
 
-    let mut toks = Lexer::new("@name(int; foo) || true", &Rc::clone(&path));
+    let mut toks = Lexer::new("@name(int; foo) || true", &Rc::clone(&path), &[]);
     assert_eq!(
         toks.next().unwrap().unwrap().1,
         MacroName("@name".to_owned()),
@@ -566,7 +574,7 @@ fn macros_call_success() {
         unreachable!()
     }
 
-    let mut toks = Lexer::new("@name(1 + 2; [1, 2];)", &Rc::clone(&path));
+    let mut toks = Lexer::new("@name(1 + 2; [1, 2];)", &Rc::clone(&path), &[]);
     assert_eq!(
         toks.next().unwrap().unwrap().1,
         MacroName("@name".to_owned()),
@@ -590,7 +598,7 @@ fn macros_call_success() {
         unreachable!()
     }
 
-    let mut toks = Lexer::new("@name(let i: int = 0;)", &Rc::clone(&path));
+    let mut toks = Lexer::new("@name(let i: int = 0;)", &Rc::clone(&path), &[]);
     assert_eq!(
         toks.next().unwrap().unwrap().1,
         MacroName("@name".to_owned()),
@@ -611,7 +619,7 @@ fn macros_call_success() {
         unreachable!()
     }
 
-    let mut toks = Lexer::new("@name(1,2,3,4,5,6,7,8)", &Rc::clone(&path));
+    let mut toks = Lexer::new("@name(1,2,3,4,5,6,7,8)", &Rc::clone(&path), &[]);
     assert_eq!(
         toks.next().unwrap().unwrap().1,
         MacroName("@name".to_owned()),
@@ -643,7 +651,7 @@ fn macros_call_badly_formed() {
     let path = Rc::from(Path::new("test"));
 
     // Macro name has no `@`.
-    let mut toks = Lexer::new("1 + name() + 2", &Rc::clone(&path));
+    let mut toks = Lexer::new("1 + name() + 2", &Rc::clone(&path), &[]);
     assert_eq!(toks.next().unwrap().unwrap().1, IntLiteral("1".to_owned()),);
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Plus, _)));
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Ident(_), _)));
@@ -654,7 +662,7 @@ fn macros_call_badly_formed() {
     assert!(toks.next().is_none());
 
     // No closing paren, should backtrack.
-    let mut toks = Lexer::new("@name(one; two", &Rc::clone(&path));
+    let mut toks = Lexer::new("@name(one; two", &Rc::clone(&path), &[]);
     assert_eq!(
         toks.next().unwrap().unwrap().1,
         MacroName("@name".to_owned()),

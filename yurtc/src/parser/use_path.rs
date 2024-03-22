@@ -131,7 +131,7 @@ fn gather_use_paths() {
                     next_paths: &mut Vec::new(),
                 },
                 &mut Vec::new(),
-                crate::lexer::Lexer::new(src, &filepath),
+                crate::lexer::Lexer::new(src, &filepath, &[]),
             )
             .expect("Failed to parse test case.")
             .gather_paths()

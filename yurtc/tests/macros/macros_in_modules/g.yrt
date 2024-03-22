@@ -1,0 +1,8 @@
+macro @g_macro($a, $b, $c) {
+    @g_local($a; $b);
+    @g_local($b; $c);
+}
+
+macro @g_local($x, $y) {
+    constraint $x != $y;
+}
