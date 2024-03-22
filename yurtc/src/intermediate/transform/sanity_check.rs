@@ -1,5 +1,9 @@
 use crate::{
-    error::CompileError, expr::Expr, intermediate::{IntermediateIntent, Program}, span::{empty_span, Spanned}, types::Type
+    error::CompileError,
+    expr::Expr,
+    intermediate::{IntermediateIntent, Program},
+    span::{empty_span, Spanned},
+    types::Type,
 };
 
 // make sure no foralls
@@ -24,9 +28,10 @@ pub(crate) fn sanity_check(program: &mut Program) -> Result<(), CompileError> {
 }
 
 fn check_expr_types(ii: &IntermediateIntent) -> Vec<CompileError> {
-    ii.expr_types.iter().filter_map(|(_, expr_type)| {
-        match expr_type {
-            Type::Error( span ) => Some(CompileError::Internal {
+    ii.expr_types
+        .iter()
+        .filter_map(|(_, expr_type)| match expr_type {
+            Type::Error(span) => Some(CompileError::Internal {
                 msg: "error expression present in final intent expr_types slotmap",
                 span: span.clone(),
             }),
@@ -34,11 +39,11 @@ fn check_expr_types(ii: &IntermediateIntent) -> Vec<CompileError> {
                 msg: "array present in final intent expr_types slotmap",
                 span: span.clone(),
             }),
-            Type::Tuple { span, ..  } => Some(CompileError::Internal {
+            Type::Tuple { span, .. } => Some(CompileError::Internal {
                 msg: "tuple present in final intent expr_types slotmap",
                 span: span.clone(),
             }),
-            Type::Custom {span, ..  } => Some(CompileError::Internal {
+            Type::Custom { span, .. } => Some(CompileError::Internal {
                 msg: "custom type present in final intent expr_types slotmap",
                 span: span.clone(),
             }),
@@ -46,13 +51,13 @@ fn check_expr_types(ii: &IntermediateIntent) -> Vec<CompileError> {
                 msg: "type alias present in final intent expr_types slotmap",
                 span: span.clone(),
             }),
-            _ => None
-        }
-    }).collect::<Vec<CompileError>>()
+            _ => None,
+        })
+        .collect::<Vec<CompileError>>()
 }
 
 fn check_exprs(ii: &IntermediateIntent, errors: &mut Vec<CompileError>) {
-    fn check_expr(expr: &Expr) -> Option<CompileError>{
+    fn check_expr(expr: &Expr) -> Option<CompileError> {
         match expr {
             Expr::Error(span) => Some(CompileError::Internal {
                 msg: "error expression present in final intent exprs slotmap",
@@ -82,7 +87,7 @@ fn check_exprs(ii: &IntermediateIntent, errors: &mut Vec<CompileError>) {
                 msg: "tuple field access present in final intent exprs slotmap",
                 span: span.clone(),
             }),
-            Expr::Cast {span, .. } => Some(CompileError::Internal {
+            Expr::Cast { span, .. } => Some(CompileError::Internal {
                 msg: "cast present in final intent exprs slotmap",
                 span: span.clone(),
             }),
@@ -98,7 +103,7 @@ fn check_exprs(ii: &IntermediateIntent, errors: &mut Vec<CompileError>) {
                 msg: "forall present in final intent exprs slotmap",
                 span: span.clone(),
             }),
-            _ => None
+            _ => None,
         }
     }
 
@@ -116,7 +121,7 @@ fn check_exprs(ii: &IntermediateIntent, errors: &mut Vec<CompileError>) {
         }
 
         if ii.expr_types.get(expr_key).is_none() {
-            errors.push(CompileError::Internal { 
+            errors.push(CompileError::Internal {
                 msg: "final intent expr_types slotmap is missing corresponding key from exprs slotmap", 
                 span: ii.exprs[expr_key].span().clone() })
         }
@@ -134,42 +139,46 @@ fn check_vars(ii: &IntermediateIntent, errors: &mut Vec<CompileError>) {
     let mut errors: Vec<CompileError> = Vec::new();
     for (var_key, _) in ii.vars.iter() {
         if ii.var_types.get(var_key).is_none() {
-            errors.push(CompileError::Internal { 
-                msg: "final intent var_types slotmap is missing corresponding key from vars slotmap", 
-                span: ii.vars[var_key].span.clone() })
+            errors.push(CompileError::Internal {
+                msg:
+                    "final intent var_types slotmap is missing corresponding key from vars slotmap",
+                span: ii.vars[var_key].span.clone(),
+            })
         }
     }
 }
 
 fn check_var_types(ii: &IntermediateIntent, errors: &mut Vec<CompileError>) {
     errors.append(
-        &mut ii.var_types.iter().filter_map(|(_, var_type)| {
-        match var_type {
-            Type::Error( span ) => Some(CompileError::Internal {
-                msg: "error var present in final intent var_types slotmap",
-                span: span.clone(),
-            }),
-            Type::Array { span, .. } => Some(CompileError::Internal {
-                msg: "array present in final intent var_types slotmap",
-                span: span.clone(),
-            }),
-            Type::Tuple { span, ..  } => Some(CompileError::Internal {
-                msg: "tuple present in final intent var_types slotmap",
-                span: span.clone(),
-            }),
-            Type::Custom {span, ..  } => Some(CompileError::Internal {
-                msg: "custom type present in final intent var_types slotmap",
-                span: span.clone(),
-            }),
-            Type::Alias { span, .. } => Some(CompileError::Internal {
-                msg: "type alias present in final intent var_types slotmap",
-                span: span.clone(),
-            }),
-            _ => None
-        }
-    }).collect::<Vec<CompileError>>());
+        &mut ii
+            .var_types
+            .iter()
+            .filter_map(|(_, var_type)| match var_type {
+                Type::Error(span) => Some(CompileError::Internal {
+                    msg: "error var present in final intent var_types slotmap",
+                    span: span.clone(),
+                }),
+                Type::Array { span, .. } => Some(CompileError::Internal {
+                    msg: "array present in final intent var_types slotmap",
+                    span: span.clone(),
+                }),
+                Type::Tuple { span, .. } => Some(CompileError::Internal {
+                    msg: "tuple present in final intent var_types slotmap",
+                    span: span.clone(),
+                }),
+                Type::Custom { span, .. } => Some(CompileError::Internal {
+                    msg: "custom type present in final intent var_types slotmap",
+                    span: span.clone(),
+                }),
+                Type::Alias { span, .. } => Some(CompileError::Internal {
+                    msg: "type alias present in final intent var_types slotmap",
+                    span: span.clone(),
+                }),
+                _ => None,
+            })
+            .collect::<Vec<CompileError>>(),
+    );
 }
-
 
 // TODO: add unit tests here
 // easiest way is to take a string that contains source code
