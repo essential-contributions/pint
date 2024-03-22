@@ -1,11 +1,13 @@
 mod canonicalize_solve_directive;
 mod lower;
+mod sanity_check;
 mod scalarize;
 mod unroll;
 
 use crate::error::{Error, Errors};
 use canonicalize_solve_directive::canonicalize_solve_directive;
 use lower::{lower_aliases, lower_bools, lower_casts, lower_enums, lower_imm_accesses};
+use sanity_check::sanity_check;
 use scalarize::scalarize;
 use unroll::unroll_foralls;
 
@@ -58,6 +60,9 @@ impl super::Program {
         // Transform the objective function, if present, into a path to a new variable that is
         // equal to the objective function expression.
         transform!(canonicalize_solve_directive(&mut self), errors);
+
+        // Ensure that the final intermediate intents is indeed final
+        transform!(sanity_check(&mut self), errors);
 
         errors
             .is_empty()
