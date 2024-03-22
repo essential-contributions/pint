@@ -1,0 +1,66 @@
+enum MyEnum = A | B;
+
+type MyType = MyEnum;
+
+intent Foo {
+    let x: int;
+    let y: MyEnum = MyEnum::A;
+    constraint x == 3;
+}
+
+intent Bar {
+    let x: int;
+    let y: MyType = MyType::A;
+    constraint x < 2;
+}
+
+// intermediate <<<
+// enum ::MyEnum = A | B;
+// type ::MyType = ::MyEnum;
+//
+// intent ::Bar {
+//     var ::x: int;
+//     var ::y: ::MyType;
+//     enum ::MyEnum = A | B;
+//     type ::MyType = ::MyEnum;
+//     constraint (::y == ::MyType::A);
+//     constraint (::x < 2);
+// }
+//
+// intent ::Foo {
+//     var ::x: int;
+//     var ::y: ::MyEnum;
+//     enum ::MyEnum = A | B;
+//     type ::MyType = ::MyEnum;
+//     constraint (::y == ::MyEnum::A);
+//     constraint (::x == 3);
+// }
+// >>>
+
+
+// flattened <<<
+// enum ::MyEnum = A | B;
+// type ::MyType = ::MyEnum;
+// 
+// intent ::Bar {
+//     var ::x: int;
+//     var ::y: int;
+//     enum ::MyEnum = A | B;
+//     type ::MyType = ::MyEnum;
+//     constraint (::y == 0);
+//     constraint (::x < 2);
+//     constraint (::y >= 0);
+//     constraint (::y <= 1);
+// }
+// 
+// intent ::Foo {
+//     var ::x: int;
+//     var ::y: int;
+//     enum ::MyEnum = A | B;
+//     type ::MyType = ::MyEnum;
+//     constraint (::y == 0);
+//     constraint (::x == 3);
+//     constraint (::y >= 0);
+//     constraint (::y <= 1);
+// }
+// >>>

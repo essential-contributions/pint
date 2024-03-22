@@ -1,11 +1,11 @@
 use crate::{
     error::{Error, ReportableError},
-    intermediate::{DisplayWithII, IntermediateIntent},
+    intermediate::{DisplayWithII, IntermediateIntent, Program, ProgramKind},
     lexer::{self, KEYWORDS},
     parser::ParserContext,
     span::Span,
 };
-use std::{path::Path, rc::Rc};
+use std::{collections::BTreeMap, path::Path, rc::Rc};
 
 #[cfg(test)]
 use yurt_parser as yp;
@@ -27,7 +27,7 @@ macro_rules! parse_and_collect_errors {
         match $parser.parse(
             &mut $context,
             &mut errors,
-            lexer::Lexer::new($source, &filepath),
+            lexer::Lexer::new($source, &filepath, &[]),
         ) {
             Ok(result) => {
                 if errors.is_empty() {
@@ -57,9 +57,19 @@ macro_rules! context {
                 .then(|| format!("::{}::", $mod_path.join("::")))
                 .unwrap_or("::".to_string()),
             local_scope: None,
-            ii: &mut IntermediateIntent::default(),
+            program: &mut Program {
+                kind: ProgramKind::Stateless,
+                iis: BTreeMap::from([(
+                    Program::ROOT_II_NAME.to_string(),
+                    IntermediateIntent::default(),
+                )]),
+            },
+            current_ii: &mut Program::ROOT_II_NAME.to_string(),
             macros: &mut vec![],
-            macro_calls: &mut slotmap::SecondaryMap::new(),
+            macro_calls: &mut BTreeMap::from([(
+                Program::ROOT_II_NAME.to_string(),
+                slotmap::SecondaryMap::new(),
+            )]),
             span_from: &|l, r| Span::new(Rc::from(Path::new("")), l..r),
             use_paths: &mut $use_paths,
             next_paths: &mut vec![],
@@ -89,7 +99,11 @@ macro_rules! run_parser {
 
         let parser_output = match result {
             Ok(item) => {
-                let result = format!("{}{}", context.ii, context.ii.with_ii(&item));
+                let result =
+                    format!("{}{}",
+                        context.program,
+                        context.program.root_ii().with_ii(&item)
+                    );
                 format!("{}{}",
                     use_paths
                         .iter()
@@ -1223,15 +1237,35 @@ fn macro_call() {
     let result = parse_and_collect_errors!(yp::ExprParser::new(), src, context);
 
     assert!(result.is_ok());
-    assert!(context.macro_calls.len() == 1);
+    assert!(
+        context
+            .macro_calls
+            .get(Program::ROOT_II_NAME)
+            .unwrap()
+            .len()
+            == 1
+    );
 
     check(
-        &context.ii.with_ii(&result.unwrap()).to_string(),
+        &context
+            .program
+            .root_ii()
+            .with_ii(&result.unwrap())
+            .to_string(),
         expect_test::expect!["::@foo(...)"],
     );
 
     check(
-        &context.macro_calls.iter().next().unwrap().1 .1.to_string(),
+        &context
+            .macro_calls
+            .get(Program::ROOT_II_NAME)
+            .unwrap()
+            .iter()
+            .next()
+            .unwrap()
+            .1
+             .1
+            .to_string(),
         expect_test::expect!["::@foo(a * 3; int; <= =>)"],
     );
 }
@@ -1865,6 +1899,39 @@ solve minimize mid;
             constraint (::mid > (::low_val * 2e0));
             constraint (::mid < ::high_val);
             solve minimize ::mid;"#]],
+    );
+}
+
+#[test]
+fn intents_decls() {
+    let src = r#"
+intent Foo { }
+intent Bar { 
+    let x: int;
+    constraint x == 1;
+}
+intent Baz {
+    enum MyEnum = A | B;
+    type MyType = MyEnum;
+}
+"#;
+
+    check(
+        &run_parser!(yp::YurtParser::new(), src),
+        expect_test::expect![[r#"
+
+            intent ::Bar {
+                var ::x: int;
+                constraint (::x == 1);
+            }
+
+            intent ::Baz {
+                enum ::MyEnum = A | B;
+                type ::MyType = ::MyEnum;
+            }
+
+            intent ::Foo {
+            }"#]],
     );
 }
 

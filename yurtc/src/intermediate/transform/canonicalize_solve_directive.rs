@@ -2,19 +2,13 @@ use crate::{
     error::CompileError,
     expr::{self, Expr},
     intermediate::{
-        IntermediateIntent,
+        IntermediateIntent, Program, ProgramKind,
         SolveFunc::{self, *},
         Var,
     },
     span::empty_span,
     types::{PrimitiveKind, Type},
 };
-
-pub(crate) fn canonicalize(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
-    canonicalize_directive(ii)?;
-
-    Ok(())
-}
 
 /// Canonicalize the solve directive by transforming any maximize or minimize directive into a form
 /// that is suitable for constraint-based mathematical solvers.
@@ -33,12 +27,23 @@ pub(crate) fn canonicalize(ii: &mut IntermediateIntent) -> Result<(), CompileErr
 /// solve maximize ~objective;
 /// ```
 ///
-/// This transformation is necessary because while the `solve maximize <expr>` or `solve minimize <expr>`
-/// form is convenient for the user, it is not in the proper form for the solvers. This function
-/// therefore transforms the solve directive into a form that can be handled by the solver.
+/// This transformation is necessary because while the `solve maximize <expr>` or `solve minimize
+/// <expr>` form is convenient for the user, it is not in the proper form for the solvers. This
+/// function therefore transforms the solve directive into a form that can be handled by the
+/// solver.
 ///
-/// Note that the actual transformation may vary depending on the specific details of the solve directive
-fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
+/// Note that the actual transformation may vary depending on the specific details of the solve
+/// directive
+pub(crate) fn canonicalize_solve_directive(program: &mut Program) -> Result<(), CompileError> {
+    // Stateful programs should not have solve directives
+    if matches!(program.kind, ProgramKind::Stateful) {
+        return Ok(());
+    }
+
+    // Only look at the root II. No other IIs are expected here because we now know that this is a
+    // statelss program.
+    let ii: &mut IntermediateIntent = program.root_ii_mut();
+
     let (solve_func, directive_span) = ii
         .directives
         .first()
@@ -69,7 +74,6 @@ fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileErro
 
     // create the new objective variable
     // let ~objective: <type_of_expr>;
-    let expr_type_clone = directive_expr_type.clone();
     let objective_var_name = "~objective".to_string();
     ii.top_level_symbols
         .insert(objective_var_name.clone(), directive_span.clone());
@@ -85,7 +89,8 @@ fn canonicalize_directive(ii: &mut IntermediateIntent) -> Result<(), CompileErro
     let objective_expr_key = ii
         .exprs
         .insert(Expr::PathByKey(objective_var_key, directive_span.clone()));
-    ii.expr_types.insert(objective_expr_key, expr_type_clone);
+    ii.expr_types
+        .insert(objective_expr_key, directive_expr_type.clone());
 
     let eq_expr_key = ii.exprs.insert(Expr::BinaryOp {
         op: expr::BinaryOp::Equal,

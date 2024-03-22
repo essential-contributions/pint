@@ -1,0 +1,3 @@
+enum Foo = C | D;
+type Bar = Foo; 
+enum Baz = X | Y;

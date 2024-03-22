@@ -100,8 +100,10 @@ lalrpop_mod!(#[allow(unused)] pub yurt_parser);
 
 #[test]
 fn gather_use_paths() {
+    use crate::intermediate::{IntermediateIntent, Program, ProgramKind};
+    use std::collections::BTreeMap;
     let parser = yurt_parser::UseTreeParser::new();
-    let mut ii = crate::intermediate::IntermediateIntent::default();
+    let mut current_ii = Program::ROOT_II_NAME.to_string();
     let filepath = std::rc::Rc::from(std::path::Path::new("test"));
 
     let mut to_use_paths = |src: &str| -> Vec<UsePath> {
@@ -111,15 +113,25 @@ fn gather_use_paths() {
                     mod_path: &[],
                     mod_prefix: "",
                     local_scope: None,
-                    ii: &mut ii,
+                    program: &mut Program {
+                        kind: ProgramKind::Stateless,
+                        iis: BTreeMap::from([(
+                            Program::ROOT_II_NAME.to_string(),
+                            IntermediateIntent::default(),
+                        )]),
+                    },
+                    current_ii: &mut current_ii,
                     macros: &mut Vec::new(),
-                    macro_calls: &mut slotmap::SecondaryMap::new(),
+                    macro_calls: &mut BTreeMap::from([(
+                        Program::ROOT_II_NAME.to_string(),
+                        slotmap::SecondaryMap::new(),
+                    )]),
                     span_from: &|_, _| span::empty_span(),
                     use_paths: &mut Vec::new(),
                     next_paths: &mut Vec::new(),
                 },
                 &mut Vec::new(),
-                crate::lexer::Lexer::new(src, &filepath),
+                crate::lexer::Lexer::new(src, &filepath, &[]),
             )
             .expect("Failed to parse test case.")
             .gather_paths()

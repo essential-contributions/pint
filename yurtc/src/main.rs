@@ -3,15 +3,15 @@ use std::{
     fs::{create_dir_all, File},
     path::{Path, PathBuf},
 };
-use yurtc::{asm_gen, cli::Args, error, error::Errors, parser};
+use yurtc::{asm_gen::program_to_intents, cli::Args, error, parser};
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let filepath = Path::new(&args.filepath);
 
     // Lex + Parse
-    let initial_ii = match parser::parse_project(filepath) {
-        Ok(ii) => ii,
+    let parsed = match parser::parse_project(filepath) {
+        Ok(parsed) => parsed,
         Err(errors) => {
             if !cfg!(test) {
                 error::print_errors(&errors);
@@ -20,14 +20,17 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    // Convert the initial IntermediateIntent to a final IntermediateIntent by performing type
-    // checking, flattening, optimizations, etc.
-    #[allow(unused_mut)]
-    let mut final_ii = match initial_ii.compile() {
-        Ok(ii) => ii,
-        Err(error) => {
+    // Type check and flatten
+    let flattened = match parsed.compile() {
+        Ok(flattened) => {
+            if args.print_flat {
+                println!("{flattened}");
+            }
+            flattened
+        }
+        Err(errors) => {
             if !cfg!(test) {
-                error::print_errors(&Errors(vec![error::Error::Compile { error }]));
+                error::print_errors(&errors);
             }
             yurtc::yurtc_bail!(1, filepath)
         }
@@ -46,7 +49,8 @@ fn main() -> anyhow::Result<()> {
 
         #[cfg(feature = "solver-scip")]
         if args.solve {
-            let flatyurt = match yurt_solve::parse_flatyurt(&format!("{final_ii}")[..]) {
+            let flattened = &flattened.iis.get(&"".to_string()).unwrap();
+            let flatyurt = match yurt_solve::parse_flatyurt(&format!("{flattened}")[..]) {
                 Ok(flatyurt) => flatyurt,
                 Err(err) => {
                     if !cfg!(test) {
@@ -70,10 +74,10 @@ fn main() -> anyhow::Result<()> {
     } else {
         // This is WIP. So far, simply print the serialized JSON to `<filename>.json` or to
         // `<output>`. That'll likely change in the future when we decide on a serialized scheme.
-        match asm_gen::intent_to_asm(&final_ii) {
-            Ok(intent) => {
+        match program_to_intents(&flattened) {
+            Ok(intents) => {
                 if args.print_asm {
-                    asm_gen::print_asm(&intent);
+                    println!("{intents}");
                 }
                 serde_json::to_writer(
                     if let Some(output) = args.output {
@@ -86,12 +90,12 @@ fn main() -> anyhow::Result<()> {
                     } else {
                         File::create(filepath.with_extension("json"))?
                     },
-                    &intent,
+                    &intents.intents,
                 )?;
             }
-            Err(error) => {
+            Err(errors) => {
                 if !cfg!(test) {
-                    error::print_errors(&Errors(vec![error::Error::Compile { error }]));
+                    error::print_errors(&errors);
                 }
                 yurtc::yurtc_bail!(1, filepath)
             }

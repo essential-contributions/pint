@@ -1,0 +1,33 @@
+// db <<<
+// 0x000000000000000E000000000000000E000000000000000E000000000000000E 42
+// 0x000000000000000E000000000000000E000000000000000E000000000000000F 43
+// 0x000000000000000E000000000000000E000000000000000E000000000000000A 44
+// >>>
+
+intent Simple {
+    state x: int = storage::get(0x000000000000000E000000000000000E000000000000000E000000000000000E); // 42
+    state y: int = storage::get(0x000000000000000E000000000000000E000000000000000E000000000000000F); // 43
+    state z: int = storage::get(0x000000000000000E000000000000000E000000000000000E000000000000000A); // 44
+    state external: int = storage::get_extern(
+        0x3B2EA551FA5DA48C26FEA34730EA2F131BA0F396DFF61DAA2F990129229F35A1,
+        0x0000000000000000000000000000000000000000000000000000000000000001,
+    ); // 69
+
+    let w: int = x + 99; // 141
+    let u: int = y * 3;  // 129
+    let v: int = z * z;  // 1936
+    let e_old = external;
+    let e_new = external';
+
+    let a: int[5];
+
+    constraint forall i in 0..4 {
+        a[i] == i*i
+    };
+    constraint x' - x == 1; // x' == 43
+    constraint y' == y + 4; // y' == 47
+    constraint x' + y' > 89 && x' * y' > 1932;
+    constraint x < y;
+    constraint w + u + v == 2206;
+    constraint external' - external == 1;
+}

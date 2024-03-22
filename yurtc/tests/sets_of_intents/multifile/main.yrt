@@ -1,0 +1,62 @@
+use baz::MyEnum;
+use ::baz::MyType;
+
+intent Bar {
+    let y: int;
+    constraint y == 4;
+
+    let e1 = MyEnum::A;
+    let f1 = MyType::B;
+
+    let e2 = ::baz::MyEnum::B;
+    let f2 = baz::MyType::A;
+}
+
+// intermediate <<<
+// enum ::baz::MyEnum = A | B;
+// type ::baz::MyType = ::baz::MyEnum;
+//
+// intent ::Bar {
+//     var ::y: int;
+//     var ::e1;
+//     var ::f1;
+//     var ::e2;
+//     var ::f2;
+//     enum ::baz::MyEnum = A | B;
+//     type ::baz::MyType = ::baz::MyEnum;
+//     constraint (::y == 4);
+//     constraint (::e1 == ::baz::MyEnum::A);
+//     constraint (::f1 == ::baz::MyType::B);
+//     constraint (::e2 == ::baz::MyEnum::B);
+//     constraint (::f2 == ::baz::MyType::A);
+// }
+// >>>
+
+
+// flattened <<<
+// enum ::baz::MyEnum = A | B;
+// type ::baz::MyType = ::baz::MyEnum;
+//
+// intent ::Bar {
+//     var ::y: int;
+//     var ::e1: int;
+//     var ::f1: int;
+//     var ::e2: int;
+//     var ::f2: int;
+//     enum ::baz::MyEnum = A | B;
+//     type ::baz::MyType = ::baz::MyEnum;
+//     constraint (::y == 4);
+//     constraint (::e1 == 0);
+//     constraint (::f1 == 1);
+//     constraint (::e2 == 1);
+//     constraint (::f2 == 0);
+//     constraint (::e1 >= 0);
+//     constraint (::e1 <= 1);
+//     constraint (::f1 >= 0);
+//     constraint (::f1 <= 1);
+//     constraint (::e2 >= 0);
+//     constraint (::e2 <= 1);
+//     constraint (::f2 >= 0);
+//     constraint (::f2 <= 1);
+// }
+// >>>

@@ -32,8 +32,8 @@ macro_rules! unwrap_or_continue {
 /// Given an `&str` that represents a hexadecimal number, split it into 4 hexadecimal numbers,
 /// convert each number to an `i64`, and return an array of the 4 `i64`s produced. Panics upon
 /// failure.
-pub fn hex_to_4_ints(num: &str) -> [i64; 4] {
-    let digits = num_bigint::BigInt::from_str_radix(num, 16)
+pub fn hex_to_four_ints(num: &str) -> [i64; 4] {
+    let digits = num_bigint::BigInt::from_str_radix(&num[2..], 16)
         .expect("must be a hex")
         .to_u64_digits()
         .1
@@ -48,6 +48,34 @@ pub fn hex_to_4_ints(num: &str) -> [i64; 4] {
         .unwrap()
 }
 
+/// Given an `&str` that represents a hexadecimal number, split it into 32 bytes (`u8`s), and
+/// return an array of the 32 `u8`s produced. Panics upon failure
+pub fn hex_to_bytes(num: &str) -> [u8; 32] {
+    num[2..]
+        .as_bytes()
+        .chunks(2)
+        .enumerate()
+        .fold([0u8; 32], |mut acc, (idx, chunk)| {
+            acc[idx] = u8::from_str_radix(std::str::from_utf8(chunk).unwrap(), 16).unwrap();
+            acc
+        })
+}
+
+/// Given an array of 4 `i64`s, convert them to hexadecimal and concatinate the result into a
+/// single string.
+pub fn four_ints_to_hex(arr: [i64; 4]) -> String {
+    arr.iter()
+        .fold("0x".to_string(), |acc, &num| acc + &format!("{:016X}", num))
+}
+
+/// Given an array of 32 `u8`s, convert them to hexadecimal and concatinate the result into a
+/// single string.
+pub fn bytes_to_hex(arr: [u8; 32]) -> String {
+    arr.iter().fold("0x".to_string(), |acc, &byte| {
+        acc + &format!("{:02X}", byte)
+    })
+}
+
 #[derive(Default)]
 pub struct TestData {
     pub intermediate: Option<String>,
@@ -55,8 +83,6 @@ pub struct TestData {
     pub typecheck_failure: Option<String>,
     pub flattened: Option<String>,
     pub flattening_failure: Option<String>,
-    pub solution: Option<String>,
-    pub solve_failure: Option<String>,
     pub db: Option<String>,
 }
 
@@ -71,8 +97,6 @@ pub struct TestData {
 //   * typecheck_failure
 //   * flattened
 //   * flattening_failure
-//   * solution
-//   * solve_failure
 //   * db
 //
 // e.g. A simple test file may be:
@@ -104,8 +128,6 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
         TypeCheckFailure,
         FlattenedIntent,
         FlatteningFailure,
-        Solution,
-        SolveFailure,
         Db,
     }
     let mut cur_section = Section::None;
@@ -113,7 +135,7 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
 
     let comment_re = regex::Regex::new(r"^\s*//")?;
     let open_sect_re = regex::Regex::new(
-        r"^\s*//\s*(intermediate|parse_failure|typecheck_failure|flattened|flattening_failure|solution|solve_failure|db)\s*<<<",
+        r"^\s*//\s*(intermediate|parse_failure|typecheck_failure|flattened|flattening_failure|db)\s*<<<",
     )?;
     let close_sect_re = regex::Regex::new(r"^\s*//\s*>>>")?;
 
@@ -137,8 +159,6 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
                 "flattened" => cur_section = Section::FlattenedIntent,
                 "flattening_failure" => cur_section = Section::FlatteningFailure,
                 "typecheck_failure" => cur_section = Section::TypeCheckFailure,
-                "solution" => cur_section = Section::Solution,
-                "solve_failure" => cur_section = Section::SolveFailure,
                 "db" => cur_section = Section::Db,
                 _ => unreachable!("We can't capture strings not in the regex."),
             }
@@ -175,12 +195,6 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
                 Section::FlatteningFailure => {
                     test_data.flattening_failure = Some(section_str);
                 }
-                Section::Solution => {
-                    test_data.solution = Some(section_str);
-                }
-                Section::SolveFailure => {
-                    test_data.solve_failure = Some(section_str);
-                }
                 Section::Db => {
                     test_data.db = Some(section_str);
                 }
@@ -196,8 +210,13 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
 
         // Otherwise add this string to the section lines if we're in a section.
         if cur_section != Section::None {
-            // We're stripping exactly '// ' from the line, presumably.  Three characters.
-            section_lines.push(line[3..].to_owned());
+            // We're stripping exactly '// ' from the line, presumably. Three characters.
+            // Unless the whole line is just `//`. In that case, just push an empty string.
+            if line == "//" {
+                section_lines.push("".to_string());
+            } else {
+                section_lines.push(line[3..].to_owned());
+            }
         }
     }
 

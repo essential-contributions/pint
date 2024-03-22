@@ -1,13 +1,14 @@
 use crate::{
-    error::{CompileError, Error, Errors},
+    error::{CompileError, Error, Errors, ParseError},
     expr::Ident,
-    intermediate::{CallKey, ExprKey, IntermediateIntent},
+    intermediate::{CallKey, ExprKey, IntermediateIntent, Program},
     lexer,
     macros::{self, MacroCall, MacroDecl, MacroExpander},
     span::{self, Span},
 };
 
 use std::{
+    collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
     rc::Rc,
@@ -26,7 +27,7 @@ pub(crate) use context::ParserContext;
 #[cfg(test)]
 mod tests;
 
-pub fn parse_project(root_src_path: &Path) -> Result<IntermediateIntent, Errors> {
+pub fn parse_project(root_src_path: &Path) -> Result<Program, Errors> {
     ProjectParser::new(PathBuf::from(root_src_path))
         .parse_project()
         .finalize()
@@ -34,9 +35,9 @@ pub fn parse_project(root_src_path: &Path) -> Result<IntermediateIntent, Errors>
 
 #[derive(Default)]
 struct ProjectParser {
-    intent: IntermediateIntent,
+    program: Program,
     macros: Vec<MacroDecl>,
-    macro_calls: slotmap::SecondaryMap<CallKey, (ExprKey, MacroCall)>,
+    macro_calls: BTreeMap<String, slotmap::SecondaryMap<CallKey, (ExprKey, MacroCall)>>,
     proj_root_path: PathBuf,
     root_src_path: PathBuf,
     visited_paths: Vec<PathBuf>,
@@ -69,18 +70,30 @@ impl ProjectParser {
             .parent()
             .map_or_else(|| PathBuf::from("/"), PathBuf::from);
 
-        Self {
+        let mut project_parser = Self {
             proj_root_path,
             root_src_path,
+            macro_calls: BTreeMap::from([(
+                Program::ROOT_II_NAME.to_string(),
+                slotmap::SecondaryMap::default(),
+            )]),
 
             ..Self::default()
-        }
+        };
+
+        // Start with an empty II with an empty name. This is the "root intent".
+        project_parser.program.iis.insert(
+            Program::ROOT_II_NAME.to_string(),
+            IntermediateIntent::default(),
+        );
+
+        project_parser
     }
 
     /// Parse the project starting with the `root_src_path` and return an intermediate intent. Upon
     /// failure, return a vector of all compile errors encountered.
     fn parse_project(mut self) -> Self {
-        let mut call_replacements = Vec::<(ExprKey, ExprKey)>::new();
+        let mut call_replacements = Vec::<(String, ExprKey, ExprKey)>::new();
         let mut macro_expander = MacroExpander::default();
         let mut pending_paths = vec![(self.root_src_path.clone(), Vec::new())];
 
@@ -113,34 +126,54 @@ impl ProjectParser {
                 return self;
             }
 
-            // Expand the next call.  It may find new paths.
-            if let Some(call_key) = self.macro_calls.keys().nth(0) {
-                let (call_expr_key, call) = self
-                    .macro_calls
-                    .remove(call_key)
-                    .expect("Call key must be valid.");
+            let keys = self.macro_calls.keys().cloned().collect::<Vec<_>>();
+            for current_ii in &keys {
+                let macro_calls = self.macro_calls.get_mut(current_ii).unwrap();
 
-                match macro_expander.expand_call(&self.macros, &call) {
-                    Ok((tokens, decl_sig_span)) => {
-                        let (body_expr, next_paths) = self.parse_macro_body(
-                            tokens,
-                            &decl_sig_span.context,
-                            &call.mod_path,
-                            &call,
-                        );
+                // Expand the next call. It may find new paths.
+                if let Some(call_key) = macro_calls.keys().nth(0) {
+                    let (call_expr_key, call) = macro_calls
+                        .remove(call_key)
+                        .expect("Call key must be valid.");
 
-                        self.analyse_and_add_paths(&call.mod_path, &next_paths, &mut pending_paths);
+                    match macro_expander.expand_call(&self.macros, &call) {
+                        Ok((tokens, decl_sig_span)) => {
+                            let (body_expr, next_paths) = self.parse_macro_body(
+                                tokens,
+                                &decl_sig_span.context,
+                                &call.mod_path,
+                                &call,
+                                current_ii.clone(),
+                            );
 
-                        if let Some(expr_key) = body_expr {
-                            call_replacements.push((call_expr_key, expr_key));
+                            self.analyse_and_add_paths(
+                                &call.mod_path,
+                                &next_paths,
+                                &mut pending_paths,
+                            );
+
+                            if let Some(expr_key) = body_expr {
+                                call_replacements.push((
+                                    current_ii.clone(),
+                                    call_expr_key,
+                                    expr_key,
+                                ));
+                            }
                         }
+                        Err(mut errs) => self.errors.append(&mut errs),
                     }
-                    Err(mut errs) => self.errors.append(&mut errs),
+                }
+            }
+
+            for current_ii in keys {
+                let macro_calls = self.macro_calls.get_mut(&current_ii).unwrap();
+                if macro_calls.is_empty() {
+                    self.macro_calls.remove(&current_ii);
                 }
             }
 
             // If there's no more work then there's no more work.
-            if pending_paths.is_empty() && self.macro_calls.is_empty() {
+            if pending_paths.is_empty() && self.macro_calls.iter().all(|(_, v)| v.is_empty()) {
                 break;
             }
 
@@ -158,20 +191,63 @@ impl ProjectParser {
 
         // For each call we need to replace its user (there should be just one) with the macro body
         // expression.
-        for (call_expr_key, body_expr_key) in call_replacements {
-            self.intent.replace_exprs(call_expr_key, body_expr_key);
-            self.intent.exprs.remove(call_expr_key);
+        for (current_ii, call_expr_key, body_expr_key) in call_replacements {
+            self.program
+                .iis
+                .get_mut(&current_ii)
+                .unwrap()
+                .replace_exprs(call_expr_key, body_expr_key);
+            self.program
+                .iis
+                .get_mut(&current_ii)
+                .unwrap()
+                .exprs
+                .remove(call_expr_key);
         }
 
         self
     }
 
-    fn finalize(self) -> Result<IntermediateIntent, Errors> {
-        if self.errors.is_empty() {
-            Ok(self.intent)
-        } else {
-            Err(Errors(self.errors))
-        }
+    fn finalize(mut self) -> Result<Program, Errors> {
+        // Insert all enums and new types from the root II into each non-root II (i.e. those
+        // declared using an `intent { }` decl). Also, insert all top symbols since shadowing is
+        // not allowed. That is, we can't use a symbol inside an `intent { .. }` that was already
+        // used in the root II.
+        let enums = self.program.root_ii().enums.clone();
+        let new_types = self.program.root_ii().new_types.clone();
+        let root_symbols = self.program.root_ii().top_level_symbols.clone();
+        self.program
+            .iis
+            .iter_mut()
+            .filter(|(name, _)| *name != &Program::ROOT_II_NAME.to_string())
+            .for_each(|(_, ii)| {
+                ii.new_types.extend_from_slice(&new_types);
+                ii.enums.extend_from_slice(&enums);
+                for (symbol, span) in &root_symbols {
+                    // We could call `ii.add_top_level_symbol_with_name` directly here, but then
+                    // the spans would be reversed so I decided to do this manually. We want the
+                    // actual error to point to the symbol inside the `intent` decl.
+                    ii.top_level_symbols
+                        .get(symbol)
+                        .map(|prev_span| {
+                            self.errors.push(Error::Parse {
+                                error: ParseError::NameClash {
+                                    sym: symbol.clone(),
+                                    span: prev_span.clone(),
+                                    prev_span: span.clone(),
+                                },
+                            });
+                        })
+                        .unwrap_or_else(|| {
+                            ii.top_level_symbols.insert(symbol.clone(), span.clone());
+                        });
+                }
+            });
+
+        self.errors
+            .is_empty()
+            .then(|| Ok(self.program))
+            .unwrap_or_else(|| Err(Errors(self.errors)))
     }
 }
 
@@ -190,7 +266,9 @@ macro_rules! parse_with {
      $src_path: ident,
      $mod_path: ident,
      $local_scope: expr,
-     $macro_ctx: expr) => {{
+     $macro_ctx: expr,
+     $current_ii: expr,
+     ) => {{
         let span_from = |start, end| Span {
             context: Rc::clone($src_path),
             range: start..end,
@@ -202,6 +280,7 @@ macro_rules! parse_with {
             .collect::<Vec<_>>()
             .concat();
         mod_prefix.push_str("::");
+        let mut current_ii = $current_ii.to_string();
 
         let mut next_paths = Vec::new();
 
@@ -209,7 +288,8 @@ macro_rules! parse_with {
             $mod_path,
             mod_prefix: &mod_prefix,
             local_scope: $local_scope,
-            ii: &mut $self.intent,
+            program: &mut $self.program,
+            current_ii: &mut current_ii,
             macros: &mut $self.macros,
             macro_calls: &mut $self.macro_calls,
             span_from: &span_from,
@@ -257,14 +337,22 @@ impl ProjectParser {
             String::new()
         });
 
+        let mut mod_prefix = mod_path
+            .iter()
+            .map(|el| format!("::{el}"))
+            .collect::<Vec<_>>()
+            .concat();
+        mod_prefix.push_str("");
+
         parse_with!(
             self,
-            lexer::Lexer::new(&src_str, src_path),
+            lexer::Lexer::new(&src_str, src_path, mod_path),
             yurt_parser::YurtParser::new(),
             src_path,
             mod_path,
             None,                           // local_scope
-            Option::<(String, Span)>::None  // macro_ctx
+            Option::<(String, Span)>::None, // macro_ctx
+            Program::ROOT_II_NAME, // The II when we explore a new module is always the root II
         )
     }
 
@@ -274,18 +362,19 @@ impl ProjectParser {
         src_path: &Rc<Path>,
         mod_path: &[String],
         macro_call: &MacroCall,
+        current_ii: String,
     ) -> (Option<ExprKey>, Vec<NextModPath>) {
         let local_scope = format!("anon@{}", self.unique_idx);
         self.unique_idx += 1;
-
         parse_with!(
             self,
-            lexer::Lexer::from_tokens(tokens, src_path),
+            lexer::Lexer::from_tokens(tokens, src_path, mod_path),
             yurt_parser::MacroBodyParser::new(),
             src_path,
             mod_path,
             Some(&local_scope),
-            Some((macro_call.name.clone(), macro_call.span.clone()))
+            Some((macro_call.name.clone(), macro_call.span.clone())),
+            current_ii,
         )
     }
 
