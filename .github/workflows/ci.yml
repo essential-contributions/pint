@@ -93,17 +93,14 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Build Workspace
-        run: cargo build --release
+      - name: Build Workspace Without Solver
+        run: cargo build --release --no-default-features
 
       - name: Install cargo-nextest
         uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-nextest
           locked: true
-
-      - name: Build Workspace Without Solver
-        run: cargo build --release --no-default-features
 
       - name: Run Workspace Tests Without Solver
         run: cargo nextest run --release --locked --no-default-features
