@@ -23,9 +23,3 @@ solve satisfy;
 // constraint (::b1 == (::b + ::c));
 // solve satisfy;
 // >>>
-
-// solution <<<
-// ::b: 3
-// ::c: 2
-// ::b1: 5
-// >>>

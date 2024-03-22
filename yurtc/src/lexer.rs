@@ -136,6 +136,9 @@ pub enum Token {
     #[token("as")]
     As,
 
+    #[token("intent")]
+    Intent,
+
     #[token("in")]
     In,
 
@@ -193,6 +196,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::SelfTok,
     Token::As,
     Token::Enum,
+    Token::Intent,
     Token::In,
     Token::Type,
     Token::Where,
@@ -286,6 +290,7 @@ impl fmt::Display for Token {
             Token::Use => write!(f, "use"),
             Token::SelfTok => write!(f, "self"),
             Token::As => write!(f, "as"),
+            Token::Intent => write!(f, "intent"),
             Token::In => write!(f, "in"),
             Token::ForAll => write!(f, "forall"),
             Token::Where => write!(f, "where"),

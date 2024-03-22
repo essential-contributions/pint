@@ -1,7 +1,7 @@
 use crate::{
-    error::CompileError,
+    error::{CompileError, Error, Errors},
     expr::{BinaryOp, Expr, Immediate, UnaryOp},
-    intermediate::{ExprKey, IntermediateIntent, State as StateVar},
+    intermediate::{ExprKey, IntermediateIntent, Program, ProgramKind, State as StateVar},
     span::empty_span,
     types::{PrimitiveKind, Type},
 };
@@ -10,11 +10,66 @@ use essential_types::{
     intent::{Directive, Intent},
     slots::{Slots, StateSlot},
 };
-use state_asm::*;
-use std::collections::HashMap;
+use state_asm::{ControlFlow, Memory, State, StateReadOp};
+use std::collections::{BTreeMap, HashMap};
 
+mod display;
 #[cfg(test)]
 mod tests;
+
+#[derive(Debug, Default, Clone)]
+pub struct Intents {
+    pub kind: ProgramKind,
+    pub intents: BTreeMap<String, Intent>,
+}
+
+impl Intents {
+    pub const ROOT_INTENT_NAME: &'static str = "";
+
+    /// The root intent is the one named `Intents::ROOT_INTENT_NAME`
+    pub fn root_intent(&self) -> &Intent {
+        self.intents.get(Self::ROOT_INTENT_NAME).unwrap()
+    }
+}
+
+/// Convert a `Program` into `Intents`
+pub fn program_to_intents(program: &Program) -> Result<Intents, Errors> {
+    let mut intents: BTreeMap<String, Intent> = BTreeMap::new();
+    let mut errors = vec![];
+    match program.kind {
+        ProgramKind::Stateless => {
+            let (name, ii) = program.iis.iter().next().unwrap();
+            match intent_to_asm(ii) {
+                Ok(intent) => {
+                    intents.insert(name.to_string(), intent);
+                }
+                Err(error) => errors.push(Error::Compile { error }),
+            }
+        }
+        ProgramKind::Stateful => {
+            for (name, ii) in program.iis.iter() {
+                if name != Program::ROOT_II_NAME {
+                    match intent_to_asm(ii) {
+                        Ok(intent) => {
+                            intents.insert(name.to_string(), intent);
+                        }
+                        Err(error) => errors.push(Error::Compile { error }),
+                    }
+                }
+            }
+        }
+    }
+
+    errors
+        .is_empty()
+        .then(|| {
+            Ok(Intents {
+                kind: program.kind.clone(),
+                intents,
+            })
+        })
+        .unwrap_or_else(|| Err(Errors(errors)))
+}
 
 #[derive(Default)]
 pub struct AsmBuilder {
@@ -310,26 +365,4 @@ pub fn intent_to_asm(final_intent: &IntermediateIntent) -> Result<Intent, Compil
             .collect(),
         directive: Directive::Satisfy,
     })
-}
-
-/// Given an `Intent`, print the contained assembly. This prints both the constraints assembly as
-/// well as the state reads assembly.
-pub fn print_asm(intent: &essential_types::intent::Intent) {
-    println!("\n;; --- Constraints ---");
-    for (idx, constraint) in intent.constraints.iter().enumerate() {
-        let ops: Vec<Op> = serde_json::from_str(&String::from_utf8_lossy(constraint)).unwrap();
-        println!("\nconstraint {idx}");
-        for op in ops {
-            println!("  {:?}", op);
-        }
-    }
-    println!("\n;; --- State Reads ---");
-    for (idx, state_read) in intent.state_read.iter().enumerate() {
-        let ops: Vec<StateReadOp> =
-            serde_json::from_str(&String::from_utf8_lossy(state_read)).unwrap();
-        println!("\nstate read {idx}");
-        for op in ops {
-            println!("  {:?}", op);
-        }
-    }
 }

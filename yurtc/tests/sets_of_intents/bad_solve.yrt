@@ -1,0 +1,8 @@
+intent Foo {
+    solve satisfy;
+}
+
+// parse_failure <<<
+// `solve` directive must only appear outside an `intent` declaration
+// @17..30: `solve` directive must only appear outside an `intent` declaration
+// >>>

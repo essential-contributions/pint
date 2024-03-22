@@ -1,25 +1,32 @@
+use anyhow::anyhow;
 use essential_types::{
-    intent::Directive,
-    slots::Slots,
     solution::{KeyMutation, Mutation, Sender, Solution, SolutionData, StateMutation},
     IntentAddress, SourceAddress,
 };
 use intent_server::{intent::ToIntentAddress, Server};
-use std::{collections::HashMap, fs::read_dir, path::PathBuf};
-use test_util::{hex_to_4_ints, parse_test_data, unwrap_or_continue};
+use std::{collections::BTreeMap, fs::read_dir, path::PathBuf};
+use test_util::{
+    bytes_to_hex, four_ints_to_hex, hex_to_bytes, hex_to_four_ints, parse_test_data,
+    unwrap_or_continue,
+};
 use yansi::Color::Red;
-
-// Arbitrary EOA user address. Eventually, this should be config parameter per test.
-const EOA_ADDRESS: [i64; 4] = [1, 2, 3, 4];
 
 #[test]
 fn validation_e2e() -> anyhow::Result<()> {
+    let mut server = Server::new();
+    deploy(&mut server)?;
+    submit_and_check_solution(&mut server)?;
+    Ok(())
+}
+
+/// Deploy all persistent intents under `validation_tests/deployed`
+fn deploy(server: &mut Server) -> anyhow::Result<()> {
     // Loop for each file or directory in the `sub_dir`.
-    let dir: PathBuf = format!("validation_tests").into();
+    let dir: PathBuf = format!("validation_tests/deployed").into();
     let mut failed_tests = vec![];
     for entry in read_dir(dir)? {
         let entry = entry?;
-        println!("Testing {}.", entry.path().display());
+        println!("Deploying {}.", entry.path().display());
 
         // If it's a file it's expected to be a self contained Yurt script.  If it's a directory
         // then `main.yrt` must exist within and will be used.
@@ -28,7 +35,7 @@ fn validation_e2e() -> anyhow::Result<()> {
             path.push("main.yrt");
         }
 
-        // Produce the initial `IntermediateIntent`
+        // Produce the initial parsed program
         let parsed = unwrap_or_continue!(
             yurtc::parser::parse_project(&path),
             "parse yurt",
@@ -36,43 +43,31 @@ fn validation_e2e() -> anyhow::Result<()> {
             path
         );
 
-        // Parsed II -> Type-checked II
-        let type_checked =
-            unwrap_or_continue!(parsed.type_check(), "type check", failed_tests, path);
+        // Parsed program -> Flattened program
+        let flattened = unwrap_or_continue!(parsed.compile(), "compile", failed_tests, path);
 
-        // Type checked II -> Flattened II
-        let flattened = unwrap_or_continue!(type_checked.flatten(), "flatten", failed_tests, path);
-
-        //
-        let persistent_intent = unwrap_or_continue!(
-            yurtc::asm_gen::intent_to_asm(&flattened),
+        // Flattened program -> Assembly (aka collection of Intents)
+        let intents = unwrap_or_continue!(
+            yurtc::asm_gen::program_to_intents(&flattened),
             "asm gen",
             failed_tests,
             path
         );
 
-        // Parse the file for the expected results for Yurt parsing, optimising and final output,
-        // or errors at any of those stages.
-        let test_data = parse_test_data(&path)?;
+        // Get the addresses of all produced persistent intents
+        let intents_addresses = intents
+            .intents
+            .iter()
+            .map(|(name, intent)| (name, intent.intent_address()))
+            .collect::<BTreeMap<_, _>>();
 
-        // For now, intents here are treated as persistent. A trivial transient intent is
-        // later specified to interact with the persistent intent, for testing purposes.
-
-        // Spin up a serve instance
-        let mut server = Server::new();
-
-        deploy_trivial_persistent_intent(&mut server);
-        let transient_intent_address = submit_trivial_transient_intent(&mut server);
-
-        // Deploy the set of intents. For now, this deploys a set that contains a single
-        // intent. When we have the ability to extract multiple persistent intents from a
-        // Yurt program, then we should deploy the whole set.
+        // Deploy the set of intents.
         let deployed_set_address = server
-            .deploy_intent_set(vec![persistent_intent.clone()])
+            .deploy_intent_set(intents.intents.values().cloned().collect())
             .expect("failed to deploy intent set!");
 
         // Populate the database of the server if a db section is specified
-        if let Some(db) = &test_data.db {
+        if let Some(db) = &parse_test_data(&path)?.db {
             for line in db.lines() {
                 // Collect key and value. Assume the key is a hex and the value is a u64
                 let split = line.split_ascii_whitespace().collect::<Vec<_>>();
@@ -84,108 +79,22 @@ fn validation_e2e() -> anyhow::Result<()> {
                 // <key: hex> <value: i64>
                 server.db().stage(
                     deployed_set_address.clone().into(),
-                    hex_to_4_ints(&split[0][2..]),
+                    hex_to_four_ints(&split[0]),
                     Some(split[1].parse::<i64>().expect("value must be a i64")),
                 );
                 server.db().commit();
             }
         }
 
-        // Parse a solution. Each line in the solution section is a path to a decision
-        // variable followed by a number OR a hex key followed by a number
-        if let Some(sol) = &test_data.solution {
-            // Maps a given decision variable name to its low level decision variables.
-            // Each Yurt variable may require multiple low level decision variables,
-            // depending how wide the data type is.
-            let mut decision_variables_map: HashMap<String, Vec<i64>> = HashMap::new();
-            let mut state_mutations: HashMap<[i64; 4], Vec<Mutation>> = HashMap::new();
-
-            for line in sol.lines() {
-                let split = line.split_ascii_whitespace().collect::<Vec<_>>();
-
-                // If the line starts with a hex key, then this is a state mutation.
-                // Otherwise, assume it's a decision var.
-                if split.len() == 2 && split[0].starts_with("0x") {
-                    // <key: hex> <value: i64>
-                    let mutation = Mutation::Key(KeyMutation {
-                        key: hex_to_4_ints(&split[0][2..]),
-                        value: Some(split[1].parse::<i64>().expect("value must be a i64")),
-                    });
-                    state_mutations
-                        .entry(deployed_set_address)
-                        .and_modify(|value| value.push(mutation.clone()))
-                        .or_insert(vec![mutation]);
-                } else if split.len() == 3 {
-                    // <address: hex> <key: hex> <value: i64>
-                    let mutation = Mutation::Key(KeyMutation {
-                        key: hex_to_4_ints(&split[1][2..]),
-                        value: Some(split[2].parse::<i64>().expect("value must be a i64")),
-                    });
-                    state_mutations
-                        .entry(hex_to_4_ints(&split[0][2..]))
-                        .and_modify(|value| value.push(mutation.clone()))
-                        .or_insert(vec![mutation]);
-                } else {
-                    // <var: String> <value: i64>
-                    decision_variables_map.insert(
-                        split[0].to_string(),
-                        split[1..]
-                            .iter()
-                            .map(|d| d.parse::<i64>().expect("expecting a decimal"))
-                            .collect(),
-                    );
-                }
-            }
-
-            let mut decision_variables = vec![];
-            for var in &flattened.vars {
-                decision_variables.extend(&decision_variables_map[&var.1.name]);
-            }
-
-            // Craft a solution, starting with the transitions for each intent.
-            let transitions = [
-                // solution data for the trivial transient intent
-                SolutionData {
-                    intent_to_solve: SourceAddress::transient(transient_intent_address.clone()),
-                    // No decision variables
-                    decision_variables: vec![],
-                    sender: Sender::Eoa(EOA_ADDRESS),
-                },
-                // solution data for the deployed intent set. This includes some assignment
-                // of all of its decision variables as well as specifying an input message
-                SolutionData {
-                    decision_variables,
-                    intent_to_solve: SourceAddress::persistent(
-                        deployed_set_address.clone().into(),
-                        persistent_intent.intent_address(),
-                    ),
-                    sender: Sender::transient(EOA_ADDRESS, transient_intent_address),
-                },
-            ];
-
-            let solution = Solution {
-                data: transitions.into_iter().collect(),
-                // State mutations for the deployed intent sets
-                state_mutations: state_mutations
-                    .iter()
-                    .map(|(k, v)| StateMutation {
-                        address: (*k).into(),
-                        mutations: v.clone(),
-                    })
-                    .collect::<Vec<_>>(),
-            };
-
-            // check the solution for both intents. Expect a `1` for each intent, hence a
-            // total utility of `2`.
-            match server.submit_solution(solution) {
-                Ok(2) => {}
-                _ => failed_tests.push(path),
-            };
-        }
+        println!("  Set address: {}", four_ints_to_hex(deployed_set_address));
+        println!("  Individual intent addresses:");
+        intents_addresses
+            .iter()
+            .for_each(|(name, address)| println!("    {name}: {}", bytes_to_hex(address.0)));
     }
 
     if !failed_tests.is_empty() {
-        println!("Failed validation E2E tests");
+        println!("Failed deploying E2E tests");
         failed_tests.iter().for_each(|path: &std::path::PathBuf| {
             println!("{}", Red.paint(path.display().to_string()),)
         });
@@ -195,52 +104,217 @@ fn validation_e2e() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Deploys a trivial persistent intent set that does nothing. It just has some database that we
-/// can use to test things like `get_extern`. This is likely temporary until we have a good way of
-/// having multiple *.yrt intents interact with each other in tests.
-fn deploy_trivial_persistent_intent(server: &mut Server) {
-    let persistent_intent = essential_types::intent::Intent {
-        slots: Slots {
-            decision_variables: 0,
-            state: vec![],
-            permits: 1,
-        },
-        state_read: vec![],
-        constraints: vec![],
-        directive: Directive::Satisfy,
-    };
-    let deployed_set_address = server
-        .deploy_intent_set(vec![persistent_intent.clone()])
-        .expect("failed to deploy intent set!");
+/// Submit every intent under `validation_tests/submitted` and check their solutions. The solution
+/// files have the same name as the Yurt files but a `toml` extension.
+fn submit_and_check_solution(server: &mut Server) -> anyhow::Result<()> {
+    // Loop for each file or directory in the `sub_dir`.
+    let dir: PathBuf = format!("validation_tests/submitted").into();
+    let mut failed_tests = vec![];
+    for entry in read_dir(dir)? {
+        let entry = entry?;
 
-    server
-        .db()
-        .stage(deployed_set_address.clone().into(), [0, 0, 0, 1], Some(69));
-    server.db().commit();
+        // If it's a file it's expected to be a self contained Yurt script.  If it's a directory
+        // then `main.yrt` must exist within and will be used.
+        let mut path = entry.path();
+        if entry.file_type()?.is_dir() {
+            path.push("main.yrt");
+        }
+
+        // Only go over Yurt file
+        if path.extension().unwrap() != "yrt" {
+            continue;
+        }
+
+        println!("Submitting {}.", entry.path().display());
+
+        // Produce the initial parsed program
+        let parsed = unwrap_or_continue!(
+            yurtc::parser::parse_project(&path),
+            "parse yurt",
+            failed_tests,
+            path
+        );
+
+        // Parsed program -> Flattened program
+        let flattened = unwrap_or_continue!(parsed.compile(), "compile", failed_tests, path);
+
+        // Flattened program -> Assembly (aka collection of Intents)
+        let intents = unwrap_or_continue!(
+            yurtc::asm_gen::program_to_intents(&flattened),
+            "asm gen",
+            failed_tests,
+            path
+        );
+
+        // Extract the transient intent. There should be a single intent in `intents`.
+        let mut intent = intents.root_intent().clone();
+        let intent_address = intent.intent_address();
+
+        // Enforce a single permit for now. This should change in the future
+        intent.slots.permits = 1;
+
+        // Submit the transient intent to the server
+        server
+            .submit_intent(intent)
+            .expect("failed to submit transient intent to intent pool!");
+        println!(
+            "  Submitted intent address: {}",
+            bytes_to_hex(intent_address.0.clone())
+        );
+
+        // Parse the solution `toml` file which must have the same name as the Yurt file but with a
+        // `toml` extension.
+        let solution = parse_solution(&path.with_extension("toml"))?;
+
+        // check the solution for both intents. Expect a `1` for each intent, hence a
+        // total utility of `2`.
+        match server.submit_solution(solution) {
+            Ok(2) => {}
+            _ => {
+                println!("{}", Red.paint("    Validation failed"));
+                failed_tests.push(path)
+            }
+        };
+    }
+
+    if !failed_tests.is_empty() {
+        println!("Failed submitting and validating validation E2E tests");
+        failed_tests.iter().for_each(|path: &std::path::PathBuf| {
+            println!("{}", Red.paint(path.display().to_string()))
+        });
+        panic!();
+    }
+
+    Ok(())
 }
 
-/// Submits a trivial transient intent that does nothing. Mostly used for solving a persistent
-/// intent
-fn submit_trivial_transient_intent(server: &mut Server) -> IntentAddress {
-    // Create a trivial transient intent that does nothing. It's only used to
-    // interact with the deployed intent above
-    let transient_intent = essential_types::intent::Intent {
-        slots: Slots {
-            decision_variables: 0,
-            state: vec![],
-            permits: 1,
-        },
-        state_read: vec![],
-        constraints: vec![],
-        directive: Directive::Satisfy,
+/// Parse a `toml` file into a `Solution`
+fn parse_solution(path: &std::path::Path) -> anyhow::Result<Solution> {
+    let toml_content_str = std::fs::read_to_string(path)?;
+    let toml_content = toml_content_str.parse::<toml::Value>()?;
+
+    let data = match toml_content.get("data") {
+        Some(data) => data
+            .as_array()
+            .unwrap_or(&Vec::new())
+            .iter()
+            .map(|e| {
+                // Decision variables are in a list of integers
+                let decision_variables = e
+                    .get("decision_variables")
+                    .and_then(|dv| dv.as_array())
+                    .unwrap_or(&Vec::new())
+                    .iter()
+                    .map(|d| {
+                        d.as_integer()
+                            .ok_or_else(|| anyhow!("Invalid integer value in decision_variables"))
+                    })
+                    .collect::<anyhow::Result<Vec<_>>>()?;
+
+                // The sender is either an `Eoa` or a `Transient`
+                let sender = match e.get("sender") {
+                    Some(sender) => match (sender.get("Eoa"), sender.get("Transient")) {
+                        (Some(eoa), None) => Sender::Eoa(hex_to_four_ints(
+                            &eoa.as_str().ok_or_else(|| anyhow!("Invalid eoa sender"))?,
+                        )),
+                        (None, Some(transient)) => Sender::transient(
+                            hex_to_four_ints(
+                                &transient
+                                    .get("eoa")
+                                    .and_then(|eoa| eoa.as_str())
+                                    .ok_or_else(|| anyhow!("Invalid eoa for transient sender"))?,
+                            ),
+                            IntentAddress(hex_to_bytes(
+                                &transient
+                                    .get("intent")
+                                    .and_then(|intent| intent.as_str())
+                                    .ok_or_else(|| {
+                                        anyhow!("Invalid intent for transient sender")
+                                    })?,
+                            )),
+                        ),
+                        _ => return Err(anyhow!("Invalid sender")),
+                    },
+                    None => return Err(anyhow!("'sender' field is missing")),
+                };
+
+                // The intent to solve is either `Transient` or `Persistent`
+                let intent_to_solve = match e.get("intent_to_solve") {
+                    Some(intent_to_solve) => match (
+                        intent_to_solve.get("Transient"),
+                        intent_to_solve.get("Persistent"),
+                    ) {
+                        (Some(s), None) => SourceAddress::transient(IntentAddress(hex_to_bytes(
+                            &s.as_str()
+                                .ok_or_else(|| anyhow!("Invalid transient intent_to_solve"))?,
+                        ))),
+                        (None, Some(s)) => SourceAddress::persistent(
+                            IntentAddress(hex_to_bytes(
+                                &s.get("set").and_then(|set| set.as_str()).ok_or_else(|| {
+                                    anyhow!("Invalid persistent intent_to_solve set")
+                                })?,
+                            )),
+                            IntentAddress(hex_to_bytes(
+                                &s.get("intent")
+                                    .and_then(|intent| intent.as_str())
+                                    .ok_or_else(|| {
+                                        anyhow!("Invalid persistent intent_to_solve intent")
+                                    })?,
+                            )),
+                        ),
+                        _ => return Err(anyhow!("Invalid intent_to_solve")),
+                    },
+                    None => return Err(anyhow!("'intent_to_solve' field is missing")),
+                };
+
+                Ok(SolutionData {
+                    decision_variables,
+                    sender,
+                    intent_to_solve,
+                })
+            })
+            .collect::<anyhow::Result<Vec<_>>>()?,
+        None => Vec::new(),
     };
 
-    let transient_intent_address = transient_intent.intent_address();
+    let state_mutations = match toml_content.get("state_mutations") {
+        Some(mutations) => mutations
+            .as_array()
+            .unwrap_or(&Vec::new())
+            .iter()
+            .map(|e| {
+                let address = e
+                    .get("address")
+                    .and_then(|addr| addr.as_str())
+                    .ok_or_else(|| anyhow!("'address' field is missing or not a string"))?;
+                let mutations = e
+                    .get("mutations")
+                    .and_then(|muta| muta.as_array())
+                    .ok_or_else(|| anyhow!("'mutations' field is missing or not an array"))?
+                    .iter()
+                    .map(|mutation| {
+                        Ok(Mutation::Key(KeyMutation {
+                            key: hex_to_four_ints(
+                                mutation
+                                    .get("key")
+                                    .and_then(|key| key.as_str())
+                                    .ok_or_else(|| anyhow!("Invalid mutation key"))?,
+                            ),
+                            value: mutation.get("value").and_then(|val| val.as_integer()),
+                        }))
+                    })
+                    .collect::<anyhow::Result<Vec<_>>>()?;
+                Ok(StateMutation {
+                    address: IntentAddress(hex_to_bytes(address)),
+                    mutations,
+                })
+            })
+            .collect::<anyhow::Result<Vec<_>>>()?,
+        None => Vec::new(),
+    };
 
-    // Submit the transient intent to the intent pool
-    server
-        .submit_intent(transient_intent)
-        .expect("failed to submit transient intent to intent pool!");
-
-    transient_intent_address
+    Ok(Solution {
+        data,
+        state_mutations,
+    })
 }
