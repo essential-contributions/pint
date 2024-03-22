@@ -1,5 +1,5 @@
 use crate::{
-    error::CompileError,
+    error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp, Immediate, TupleAccess},
     intermediate::{Expr, ExprKey, IntermediateIntent, Var, VarKey},
     span::{empty_span, Span, Spanned},
@@ -8,7 +8,7 @@ use crate::{
 use std::collections::{BTreeMap, HashMap};
 
 macro_rules! iterate {
-    ($continue_expr: expr, $msg: literal, $modified: ident) => {
+    ($handler: expr, $continue_expr: expr, $msg: literal, $modified: ident) => {
         for loop_check in 0.. {
             if !$continue_expr {
                 break;
@@ -17,29 +17,35 @@ macro_rules! iterate {
             $modified = true;
 
             if loop_check > 10_000 {
-                return Err(CompileError::Internal {
-                    msg: concat!("infinite loop in ", $msg),
-                    span: empty_span(),
-                });
+                return Err($handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: concat!("infinite loop in ", $msg),
+                        span: empty_span(),
+                    },
+                }));
             }
         }
     };
 
-    ($continue_expr: expr, $msg: literal) => {
+    ($handler: expr, $continue_expr: expr, $msg: literal) => {
         let mut _modified = false;
-        iterate!($continue_expr, $msg, _modified);
+        iterate!($handler, $continue_expr, $msg, _modified);
     };
 }
 
-pub(crate) fn scalarize(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
+pub(crate) fn scalarize(
+    handler: &Handler,
+    ii: &mut IntermediateIntent,
+) -> Result<(), ErrorEmitted> {
     // Before we start, make sure all the array types have their sizes determined.
-    fix_array_sizes(ii)?;
+    fix_array_sizes(handler, ii)?;
 
     iterate!(
+        handler,
         {
             let mut modified = false;
-            modified |= scalarize_arrays(ii)?;
-            modified |= scalarize_tuples(ii)?;
+            modified |= scalarize_arrays(handler, ii)?;
+            modified |= scalarize_tuples(handler, ii)?;
             modified
         },
         "scalarize()"
@@ -72,37 +78,46 @@ pub(crate) fn scalarize(ii: &mut IntermediateIntent) -> Result<(), CompileError>
 ///
 /// The above is not valid Yurt, of course, because the square brackets are not allowed in
 /// identifiers, but internally, this is fine and helps make the lookup quite easy.
-fn scalarize_arrays(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
+fn scalarize_arrays(handler: &Handler, ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitted> {
     let mut modified = false;
 
     // Convert all comparisons (via `==` or `!=`) of arrays to element-by-element comparisons.
     iterate!(
-        lower_array_compares(ii)?,
+        handler,
+        lower_array_compares(handler, ii)?,
         "lower_array_compares()",
         modified
     );
 
     // Scalarize arrays one at a time.
-    iterate!(scalarize_array(ii)?, "scalarize_array()", modified);
+    iterate!(
+        handler,
+        scalarize_array(handler, ii)?,
+        "scalarize_array()",
+        modified
+    );
 
     Ok(modified)
 }
 
-fn fix_array_sizes(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
+fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(), ErrorEmitted> {
     // Given a variable with an array type of unknown size and a range expression, determine the
     // array size and return a new array type.
     fn fix_array_size(
+        handler: &Handler,
         ii: &mut IntermediateIntent,
         mut el_ty: Type,
         range_expr_key: ExprKey,
         array_ty_span: Span,
-    ) -> Result<Type, CompileError> {
+    ) -> Result<Type, ErrorEmitted> {
         if !(el_ty.is_array() || el_ty.is_int() || el_ty.is_real() || el_ty.is_bool()) {
             // Eventually, this will go away. Hence why it's an internal error for the time being.
-            return Err(CompileError::Internal {
-                msg: "only arrays of ints, reals, and bools are currently supported",
-                span: empty_span(),
-            });
+            return Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "only arrays of ints, reals, and bools are currently supported",
+                    span: empty_span(),
+                },
+            }));
         }
 
         // We have a nested array.  We need to fix its size first (if necessary) so that we can use
@@ -111,14 +126,17 @@ fn fix_array_sizes(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
             let Some((inner_el_ty, inner_range_key, inner_size, inner_span)) =
                 get_array_params(&el_ty)
             else {
-                return Err(CompileError::Internal {
-                    msg: "failed to get params for type we know is an array?",
-                    span: el_ty.span().clone(),
-                });
+                return Err(handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "failed to get params for type we know is an array?",
+                        span: el_ty.span().clone(),
+                    },
+                }));
             };
 
             if inner_size.is_none() {
                 el_ty = fix_array_size(
+                    handler,
                     ii,
                     inner_el_ty.clone(),
                     *inner_range_key,
@@ -144,24 +162,30 @@ fn fix_array_sizes(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
                     span: array_ty_span,
                 })
             } else {
-                Err(CompileError::NonConstArrayLength {
-                    span: range_expr.span().clone(),
-                })
+                Err(handler.emit_err(Error::Compile {
+                    error: CompileError::NonConstArrayLength {
+                        span: range_expr.span().clone(),
+                    },
+                }))
             }
         } else {
-            match range_expr.evaluate(ii, &HashMap::new()) {
+            match range_expr.evaluate(handler, ii, &HashMap::new()) {
                 Ok(Immediate::Int(val)) if val > 0 => Ok(Type::Array {
                     ty: Box::new(el_ty),
                     range: range_expr_key,
                     size: Some(val),
                     span: array_ty_span,
                 }),
-                Ok(_) => Err(CompileError::InvalidConstArrayLength {
-                    span: range_expr.span().clone(),
-                }),
-                _ => Err(CompileError::NonConstArrayLength {
-                    span: range_expr.span().clone(),
-                }),
+                Ok(_) => Err(handler.emit_err(Error::Compile {
+                    error: CompileError::InvalidConstArrayLength {
+                        span: range_expr.span().clone(),
+                    },
+                })),
+                _ => Err(handler.emit_err(Error::Compile {
+                    error: CompileError::NonConstArrayLength {
+                        span: range_expr.span().clone(),
+                    },
+                })),
             }
         }
     }
@@ -184,7 +208,7 @@ fn fix_array_sizes(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
                 .collect();
 
             for (key, el_ty, range_expr_key, array_ty_span) in candidates {
-                let fixed_ty = fix_array_size(ii, el_ty, range_expr_key, array_ty_span)?;
+                let fixed_ty = fix_array_size(handler, ii, el_ty, range_expr_key, array_ty_span)?;
                 if let Some(old_ty) = $types_map.get_mut(key) {
                     *old_ty = fixed_ty;
                 }
@@ -222,7 +246,7 @@ fn fix_array_sizes(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
 ///
 /// The above is not valid Yurt, of course, because the square brackets are not allowed in
 /// identifiers, but internally, this is fine and helps make the lookup quite easy.
-fn scalarize_array(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
+fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitted> {
     // Find the next array variable to convert.
     let Some((array_var_key, el_ty, array_size, span)) =
         ii.var_types.iter().find_map(|(var_key, var_ty)| {
@@ -235,18 +259,26 @@ fn scalarize_array(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
         return Ok(false);
     };
 
-    let array_size = array_size.ok_or_else(|| CompileError::Internal {
-        msg: "non-fixed array size found in scalarize_array()",
-        span: span.clone(),
+    let array_size = array_size.ok_or_else(|| {
+        handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "non-fixed array size found in scalarize_array()",
+                span: span.clone(),
+            },
+        })
     })?;
 
     let array_name = ii
         .vars
         .get(array_var_key)
         .map(|var| var.name.clone())
-        .ok_or_else(|| CompileError::Internal {
-            msg: "missing name for array variable in scalarize_array()",
-            span: span.clone(),
+        .ok_or_else(|| {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "missing name for array variable in scalarize_array()",
+                    span: span.clone(),
+                },
+            })
         })?;
 
     // Convert decision variables that are arrays into `n` new decision variables that represent
@@ -265,6 +297,7 @@ fn scalarize_array(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
 
     // Change each array element access into its scalarized variable.
     scalarize_array_access(
+        handler,
         ii,
         &array_name,
         array_var_key,
@@ -298,13 +331,14 @@ fn scalarize_array(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
 /// This matches the name of variable `a[2][3]` introduced when array `a` is scalaried in `fn
 /// scalarize_array(..)`
 fn scalarize_array_access(
+    handler: &Handler,
     ii: &mut IntermediateIntent,
     array_var_name: &String,
     array_var_key: VarKey,
     array_size: i64,
     el_ty: Type,
     new_array_var_keys: &[VarKey],
-) -> Result<(), CompileError> {
+) -> Result<(), ErrorEmitted> {
     // Gather all accesses into this specific array.
     let accesses: Vec<(ExprKey, ExprKey, Span)> = ii
         .exprs
@@ -334,17 +368,23 @@ fn scalarize_array_access(
             .get(index_key)
             .expect("expr key guaranteed to exist");
         let index_span = index_expr.span().clone();
-        let index_value = index_expr.evaluate(ii, &HashMap::new()).map_err(|_| {
-            CompileError::NonConstArrayIndex {
-                span: index_span.clone(),
-            }
-        })?;
+        let index_value = index_expr
+            .evaluate(handler, ii, &HashMap::new())
+            .map_err(|_| {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::NonConstArrayIndex {
+                        span: index_span.clone(),
+                    },
+                })
+            })?;
 
         // Index must be an integer in range.
         match index_value {
             Immediate::Int(imm_val) => {
                 if imm_val < 0 || imm_val >= array_size {
-                    return Err(CompileError::ArrayIndexOutOfBounds { span: index_span });
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::ArrayIndexOutOfBounds { span: index_span },
+                    }));
                 }
 
                 let new_access_key = ii.exprs.insert(Expr::PathByKey(
@@ -359,7 +399,9 @@ fn scalarize_array_access(
             }
 
             _ => {
-                return Err(CompileError::InvalidConstArrayIndex { span: index_span });
+                return Err(handler.emit_err(Error::Compile {
+                    error: CompileError::InvalidConstArrayIndex { span: index_span },
+                }));
             }
         }
     }
@@ -380,7 +422,10 @@ fn get_array_params(ary_ty: &Type) -> Option<(&Type, &ExprKey, &Option<i64>, &Sp
     }
 }
 
-fn lower_array_compares(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
+fn lower_array_compares(
+    handler: &Handler,
+    ii: &mut IntermediateIntent,
+) -> Result<bool, ErrorEmitted> {
     // Find comparisons between arrays and save the op details.
     let array_compare_ops = ii
         .exprs
@@ -418,15 +463,20 @@ fn lower_array_compares(ii: &mut IntermediateIntent) -> Result<bool, CompileErro
     }
 
     let get_array_size = |array_ty: &Option<i64>| {
-        array_ty.ok_or_else(|| CompileError::Internal {
-            msg: "array type in missing its size in lower_array_compares()",
-            span: empty_span(),
+        array_ty.ok_or_else(|| {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "array type in missing its size in lower_array_compares()",
+                    span: empty_span(),
+                },
+            })
         })
     };
 
     for (op_expr_key, op, lhs_array_key, lhs_opt_size, rhs_array_key, rhs_opt_size, el_ty, span) in
         array_compare_ops
     {
+        dbg!(&ii.exprs.get(rhs_array_key));
         let lhs_size = get_array_size(&lhs_opt_size)?;
         let rhs_size = get_array_size(&rhs_opt_size)?;
 
@@ -434,12 +484,14 @@ fn lower_array_compares(ii: &mut IntermediateIntent) -> Result<bool, CompileErro
             // This *should* be done by the type checker but we currently only evaluate the ranges
             // within those types as the first step in scalarisation, not at type check time.  This
             // may change in the future.
-            return Err(CompileError::MismatchedArrayComparisonSizes {
-                op: op.to_string(),
-                lhs_size,
-                rhs_size,
-                span,
-            });
+            return Err(handler.emit_err(Error::Compile {
+                error: CompileError::MismatchedArrayComparisonSizes {
+                    op: op.to_string(),
+                    lhs_size,
+                    rhs_size,
+                    span,
+                },
+            }));
         }
 
         // Pair up each element with an individual `op` operation and then chain them together
@@ -541,7 +593,7 @@ fn lower_array_compares(ii: &mut IntermediateIntent) -> Result<bool, CompileErro
 /// constraint a.x < 11;    // `a.x` is now a path expr, an illegal identifier usually.
 ///
 /// ```
-fn scalarize_tuples(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
+fn scalarize_tuples(handler: &Handler, ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitted> {
     // First we need to lower any aggregate comparisons.  It is valid to use `==` or `!=` to
     // compare whole tuples, but we must split these comparisons into field-by-field ops before we
     // scalarise.
@@ -551,6 +603,7 @@ fn scalarize_tuples(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
     // Do it in a loop so we can lower nested tuples.  I.e., we might create a new field-by-field
     // comparison between inner tuples and so they need to be lowered too.
     iterate!(
+        handler,
         lower_tuple_compares(ii)?,
         "lower_tuple_compares()",
         modified
@@ -560,7 +613,8 @@ fn scalarize_tuples(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
     // removed once we're done.
     let mut old_tuple_vars = Vec::new();
     iterate!(
-        split_tuple_vars(ii, &mut old_tuple_vars)?,
+        handler,
+        split_tuple_vars(handler, ii, &mut old_tuple_vars)?,
         "split_tuple_vars()",
         modified
     );
@@ -572,7 +626,7 @@ fn scalarize_tuples(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
     Ok(modified)
 }
 
-fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, CompileError> {
+fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitted> {
     // Gather all the valid binary op exprs.
     let mut tuple_compare_ops = Vec::new();
     for (expr_key, expr) in &ii.exprs {
@@ -709,9 +763,10 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, CompileErro
 }
 
 fn split_tuple_vars(
+    handler: &Handler,
     ii: &mut IntermediateIntent,
     old_tuple_vars: &mut Vec<VarKey>,
-) -> Result<bool, CompileError> {
+) -> Result<bool, ErrorEmitted> {
     let mut new_vars = Vec::new();
 
     // Iterate for all the tuple vars and gather their fields into `new_vars`.
@@ -722,10 +777,12 @@ fn split_tuple_vars(
         }
 
         let Some(var_ty) = ii.var_types.get(var_key) else {
-            return Err(CompileError::Internal {
-                msg: "missing var type in split_tuple_vars",
-                span: span.clone(),
-            });
+            return Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "missing var type in split_tuple_vars",
+                    span: span.clone(),
+                },
+            }));
         };
 
         if let Some(fields) = var_ty.get_tuple_fields() {

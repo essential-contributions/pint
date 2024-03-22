@@ -17,20 +17,35 @@ fn solver_e2e() {
             path.push("main.yrt");
         }
 
+        // Error handler
+        let handler = yurtc::error::Handler::default();
+
         // Produce the initial `IntermediateIntent`
         let parsed = unwrap_or_continue!(
-            yurtc::parser::parse_project(&path),
+            yurtc::parser::parse_project(&handler, &path),
             "parse yurt",
             failed_tests,
-            path
+            path,
+            handler
         );
 
         // Parsed II -> Type-checked II
-        let type_checked =
-            unwrap_or_continue!(parsed.type_check(), "type check", failed_tests, path);
+        let type_checked = unwrap_or_continue!(
+            parsed.type_check(&handler),
+            "type check",
+            failed_tests,
+            path,
+            handler
+        );
 
         // Type checked II -> Flattened II
-        let flattened = unwrap_or_continue!(type_checked.flatten(), "flatten", failed_tests, path);
+        let flattened = unwrap_or_continue!(
+            type_checked.flatten(&handler),
+            "flatten",
+            failed_tests,
+            path,
+            handler
+        );
 
         // Flattened II -> FlatYurt
         #[allow(unused)]

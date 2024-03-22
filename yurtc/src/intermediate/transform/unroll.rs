@@ -1,5 +1,5 @@
 use crate::{
-    error::CompileError,
+    error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp, Ident, Immediate},
     intermediate::{Expr, ExprKey, IntermediateIntent},
     span::{empty_span, Span, Spanned},
@@ -28,12 +28,13 @@ use std::collections::{HashMap, HashSet};
 /// && a[2] != b[2]
 /// ```
 fn unroll_forall(
+    handler: &Handler,
     ii: &mut IntermediateIntent,
     gen_ranges: &Vec<(Ident, ExprKey)>,
     conditions: &Vec<ExprKey>,
     body: ExprKey,
     span: &Span,
-) -> Result<Expr, CompileError> {
+) -> Result<Expr, ErrorEmitted> {
     // Sanity check
     let mut indices = HashSet::new();
     for range in gen_ranges {
@@ -46,11 +47,13 @@ fn unroll_forall(
                 .expect("Index guaranteed to be in gen_ranges");
 
             // Error out
-            return Err(CompileError::DuplicateForAllIndex {
-                name: range.0.name.clone(),
-                span: range.0.span.clone(),
-                prev_span: first_occurance.0.span.clone(),
-            });
+            return Err(handler.emit_err(Error::Compile {
+                error: CompileError::DuplicateForAllIndex {
+                    name: range.0.name.clone(),
+                    span: range.0.span.clone(),
+                    prev_span: first_occurance.0.span.clone(),
+                },
+            }));
         }
     }
 
@@ -82,17 +85,21 @@ fn unroll_forall(
                         ) =>
                         {
                             // Bad lower bound
-                            Err(CompileError::InvalidForAllIndexBound {
-                                name: gen_ranges[i].0.name.clone(),
-                                span: lb.span().clone(),
-                            })
+                            Err(handler.emit_err(Error::Compile {
+                                error: CompileError::InvalidForAllIndexBound {
+                                    name: gen_ranges[i].0.name.clone(),
+                                    span: lb.span().clone(),
+                                },
+                            }))
                         }
                         _ => {
                             // Bad upper bound
-                            Err(CompileError::InvalidForAllIndexBound {
-                                name: gen_ranges[i].0.name.clone(),
-                                span: ub.span().clone(),
-                            })
+                            Err(handler.emit_err(Error::Compile {
+                                error: CompileError::InvalidForAllIndexBound {
+                                    name: gen_ranges[i].0.name.clone(),
+                                    span: ub.span().clone(),
+                                },
+                            }))
                         }
                     }
                 }
@@ -136,7 +143,7 @@ fn unroll_forall(
                 .exprs
                 .get(*condition)
                 .expect("guaranteed by parser")
-                .evaluate(ii, &values_map)?
+                .evaluate(handler, ii, &values_map)?
             {
                 Immediate::Bool(false) => {
                     satisfied = false;
@@ -144,10 +151,12 @@ fn unroll_forall(
                 }
                 Immediate::Bool(true) => {}
                 _ => {
-                    return Err(CompileError::Internal {
-                        msg: "type error: boolean expression expected",
-                        span: empty_span(),
-                    })
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "type error: boolean expression expected",
+                            span: empty_span(),
+                        },
+                    }))
                 }
             }
         }
@@ -177,7 +186,10 @@ fn unroll_forall(
 
 /// Given an `IntermediateIntent`, unroll all `forall` expressions and replace them in the
 /// expressions map with their unrolled version
-pub(crate) fn unroll_foralls(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
+pub(crate) fn unroll_foralls(
+    handler: &Handler,
+    ii: &mut IntermediateIntent,
+) -> Result<(), ErrorEmitted> {
     ii.exprs
         .iter()
         .filter_map(|(key, expr)| {
@@ -208,7 +220,7 @@ pub(crate) fn unroll_foralls(ii: &mut IntermediateIntent) -> Result<(), CompileE
             *ii.exprs
                 .get_mut(*key)
                 .expect("key guaranteed to exist in the map!") =
-                unroll_forall(ii, gen_ranges, conditions, *body, span)?;
+                unroll_forall(handler, ii, gen_ranges, conditions, *body, span)?;
 
             // Clean up all keys used by the `forall` now that it's gone
             gen_ranges

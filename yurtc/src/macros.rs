@@ -1,5 +1,5 @@
 use crate::{
-    error::{CompileError, Error},
+    error::{CompileError, Error, ErrorEmitted, Handler},
     expr::Ident,
     lexer::Token,
     span::Span,
@@ -74,8 +74,10 @@ impl fmt::Display for MacroCall {
     }
 }
 
-pub(crate) fn verify_unique_set(macro_decls: &[MacroDecl]) -> Vec<Error> {
-    let mut errors = Vec::new();
+pub(crate) fn verify_unique_set(
+    handler: &Handler,
+    macro_decls: &[MacroDecl],
+) -> Result<(), ErrorEmitted> {
     let mut sigs_set = HashMap::<_, Span>::new();
 
     for MacroDecl {
@@ -89,7 +91,7 @@ pub(crate) fn verify_unique_set(macro_decls: &[MacroDecl]) -> Vec<Error> {
         // The key is name, number of params and whether it has a parameter pack.
         let entry = sigs_set.entry((name.name.clone(), params.len(), pack.is_some()));
         if let Entry::Occupied(prev_span) = entry {
-            errors.push(Error::Compile {
+            handler.emit_err(Error::Compile {
                 error: CompileError::MacroDeclClash {
                     name: name.name.clone(),
                     span: sig_span.clone(),
@@ -101,7 +103,7 @@ pub(crate) fn verify_unique_set(macro_decls: &[MacroDecl]) -> Vec<Error> {
         }
     }
 
-    errors
+    Ok(())
 }
 
 #[derive(Default)]
@@ -114,11 +116,11 @@ impl MacroExpander {
     #[allow(clippy::type_complexity)]
     pub(crate) fn expand_call(
         &mut self,
+        handler: &Handler,
         macro_decls: &[MacroDecl],
         call: &MacroCall,
-    ) -> Result<(Vec<(usize, Token, usize)>, Span), Vec<Error>> {
-        let macro_decl: &MacroDecl = match_macro(macro_decls, call)?;
-        let mut errs = Vec::new();
+    ) -> Result<(Vec<(usize, Token, usize)>, Span), ErrorEmitted> {
+        let macro_decl: &MacroDecl = match_macro(handler, macro_decls, call)?;
 
         // This tag is for any further calls expanded in this call, to mark their parent.
         let tag = self.call_history.len();
@@ -138,7 +140,7 @@ impl MacroExpander {
             // indicate non-terminating recursion.
             loop {
                 if self.call_history[parent_tag] == call_sig {
-                    errs.push(Error::Compile {
+                    handler.emit_err(Error::Compile {
                         error: CompileError::MacroRecursion {
                             name: call.name.clone(),
                             call_span: call.span.clone(),
@@ -170,7 +172,7 @@ impl MacroExpander {
                     if let Some(&idx) = param_idcs.get(param) {
                         body.append(&mut call.args[idx].clone());
                     } else {
-                        errs.push(Error::Compile {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::MacroUndefinedParam {
                                 name: param.clone(),
                                 span: Span {
@@ -190,7 +192,7 @@ impl MacroExpander {
                         .map(|pack_id| &pack_id.name != pack_name)
                         .unwrap_or(true)
                     {
-                        errs.push(Error::Compile {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::MacroUnknownPack {
                                 actual_pack: macro_decl
                                     .pack
@@ -226,18 +228,19 @@ impl MacroExpander {
             }
         }
 
-        if errs.is_empty() {
-            Ok((body, macro_decl.sig_span.clone()))
-        } else {
-            Err(errs)
+        if handler.has_errors() {
+            return Err(handler.cancel());
         }
+
+        Ok((body, macro_decl.sig_span.clone()))
     }
 }
 
 fn match_macro<'a>(
+    handler: &Handler,
     macro_decls: &'a [MacroDecl],
     call: &MacroCall,
-) -> Result<&'a MacroDecl, Vec<Error>> {
+) -> Result<&'a MacroDecl, ErrorEmitted> {
     // This method does a lot of validation which will be duplicated for each call.  To avoid this
     // some preprocessing could be done after parsing a module to perform them first.  It is
     // convenient to do them here because we're necessarily collecting all macros by name.
@@ -248,12 +251,12 @@ fn match_macro<'a>(
         .filter(|md| md.name.name == call.name)
         .collect::<Vec<_>>();
     if named_macros.is_empty() {
-        return Err(vec![Error::Compile {
+        return Err(handler.emit_err(Error::Compile {
             error: CompileError::MacroNotFound {
                 name: call.name.clone(),
                 span: call.span.clone(),
             },
-        }]);
+        }));
     }
 
     // Confirm that at most one version has a param pack.
@@ -262,13 +265,13 @@ fn match_macro<'a>(
         .filter_map(|&md| md.pack.as_ref().map(|_| &md.sig_span))
         .collect::<Vec<_>>();
     if pack_spans.len() > 1 {
-        return Err(vec![Error::Compile {
+        return Err(handler.emit_err(Error::Compile {
             // Just take the first two.
             error: CompileError::MacroMultiplePacks {
                 span0: pack_spans[0].clone(),
                 span1: pack_spans[1].clone(),
             },
-        }]);
+        }));
     }
 
     // Sort them by param count, putting the param pack version last if it exists.
@@ -282,14 +285,14 @@ fn match_macro<'a>(
     // All must be unique counts.
     for pair in named_macros.windows(2) {
         if pair[0].params.len() == pair[1].params.len() && pair[1].pack.is_none() {
-            return Err(vec![Error::Compile {
+            return Err(handler.emit_err(Error::Compile {
                 error: CompileError::MacroNonUniqueParamCounts {
                     name: pair[0].name.name.clone(),
                     count: pair[0].params.len(),
                     span0: pair[0].sig_span.clone(),
                     span1: pair[1].sig_span.clone(),
                 },
-            }]);
+            }));
         }
     }
 
@@ -305,14 +308,14 @@ fn match_macro<'a>(
         })
         .copied()
         .ok_or_else(|| {
-            vec![Error::Compile {
+            handler.emit_err(Error::Compile {
                 error: CompileError::MacroCallMismatch {
                     name: call.name.clone(),
                     arg_count: call.args.len(),
                     param_counts_descr: format_param_counts_descr(&named_macros),
                     span: call.span.clone(),
                 },
-            }]
+            })
         })
 }
 

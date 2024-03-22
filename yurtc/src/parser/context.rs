@@ -1,5 +1,5 @@
 use crate::{
-    error::Error,
+    error::Handler,
     intermediate::{CallKey, ExprKey, IntermediateIntent, Program},
     macros::{MacroCall, MacroDecl},
     parser::{Ident, NextModPath, UsePath},
@@ -24,16 +24,18 @@ pub struct ParserContext<'a> {
 impl<'a> ParserContext<'a> {
     pub fn add_top_level_symbol(
         &mut self,
+        handler: &Handler,
         mut ident: Ident,
         prefix: &str,
-        errors: &mut Vec<Error>,
     ) -> Ident {
-        match self
-            .current_ii()
-            .add_top_level_symbol(prefix, None, &ident, ident.span.clone())
-        {
-            Ok(name) => ident.name = name,
-            Err(error) => errors.push(Error::Parse { error }),
+        if let Ok(name) = self.current_ii().add_top_level_symbol(
+            handler,
+            prefix,
+            None,
+            &ident,
+            ident.span.clone(),
+        ) {
+            ident.name = name
         }
         ident
     }
