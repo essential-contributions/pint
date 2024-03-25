@@ -1,0 +1,25 @@
+macro @add($a, $b) {
+    $a + $b
+}
+
+let a: int[2] = [11, 22];
+let b: int = 33;
+
+let x: int = @add(~foo);
+let y: int = @add(~b; 44);
+
+solve satisfy;
+
+// parse_failure <<<
+// undefined spliced variable
+// @98..102: unable to splice unknown variable `::foo`
+// unable to match macro call
+// @93..103: unable to match call to macro `::@add`
+// the valid number of arguments may be exactly 2 but this call passes 1 arguments
+// a macro named `::@add` is defined but not with the required signature to fulfill this call
+// spliced variable `::b` must be an array
+// @123..125: unable to splice non-array variable `::b`
+// expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `enum`, `false`, `forall`, `ident`, `if`, `int_lit`, `let`, `macro_name`, `real_lit`, `solve`, `state`, `str_lit`, `true`, `type`, `use`, `{`, or `}`, found `~b`
+// @123..125: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `enum`, `false`, `forall`, `ident`, `if`, `int_lit`, `let`, `macro_name`, `real_lit`, `solve`, `state`, `str_lit`, `true`, `type`, `use`, `{`, or `}`
+// @118..130: when making macro call to '::@add'
+// >>>

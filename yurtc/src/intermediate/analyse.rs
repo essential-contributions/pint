@@ -178,12 +178,20 @@ impl IntermediateIntent {
         expr_key: ExprKey,
     ) -> Result<Inference, ErrorEmitted> {
         let expr: &Expr = self.exprs.get(expr_key).ok_or_else(|| {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "orphaned expr key when type checking",
-                    span: empty_span(),
-                },
-            })
+            if let Some(span) = self.removed_macro_calls.get(expr_key) {
+                // This dependant expression was actually a macro call which expanded to just
+                // declarations, not another expression.  We can set a specific error in this case.
+                handler.emit_err(Error::Compile {
+                    error: CompileError::MacroCallWasNotExpression { span: span.clone() },
+                })
+            } else {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "orphaned expr key when type checking",
+                        span: empty_span(),
+                    },
+                })
+            }
         })?;
 
         match expr {
