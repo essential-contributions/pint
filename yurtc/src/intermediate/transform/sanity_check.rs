@@ -14,17 +14,26 @@ use crate::{
 // check verification pass has to be the last pass
 // ideally all internal compile errors, and not user facing
 
-// @mohammad do we return a vec of errors? Or do we short circuit on the first one?? -- yes. Make sure we have all of the internal errors everywhere
+pub(crate) fn sanity_check(program: &mut Program) -> Result<(), Vec<CompileError>> {
+    let errors: Vec<CompileError> = program
+        .iis
+        .values()
+        .flat_map(|ii| {
+            println!("{:#?}", ii);
+            let mut ii_errors = check_expr_types(ii);
+            println!("{:?}", ii_errors);
+            check_exprs(ii, &mut ii_errors);
+            check_var_types(ii, &mut ii_errors);
+            check_vars(ii, &mut ii_errors);
+            ii_errors
+        })
+        .collect();
 
-pub(crate) fn sanity_check(program: &mut Program) -> Result<(), CompileError> {
-    for ii in program.iis.values() {
-        let mut errors = check_expr_types(ii);
-        check_exprs(ii, &mut errors);
-        check_var_types(ii, &mut errors);
-        check_vars(ii, &mut errors);
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
     }
-
-    Ok(())
 }
 
 fn check_expr_types(ii: &IntermediateIntent) -> Vec<CompileError> {
@@ -114,7 +123,6 @@ fn check_exprs(ii: &IntermediateIntent, errors: &mut Vec<CompileError>) {
         });
     };
 
-    let mut errors: Vec<CompileError> = Vec::new();
     for (expr_key, expr) in ii.exprs.iter() {
         if let Some(error) = check_expr(expr) {
             errors.push(error);
@@ -180,8 +188,124 @@ fn check_var_types(ii: &IntermediateIntent, errors: &mut Vec<CompileError>) {
     );
 }
 
+#[cfg(test)]
+fn check(actual: &str, expect: expect_test::Expect) {
+    expect.assert_eq(actual);
+}
+
+#[cfg(test)]
+fn run_test(src: &str) -> String {
+    format!("{}", run_without_transforms(src))
+}
+
+#[cfg(test)]
+fn run_without_transforms(src: &str) -> crate::error::Errors {
+    use crate::error::Error;
+
+    let parsed_source = run_parser(src);
+    let mut type_checked_source = parsed_source.type_check().expect("Failed to type check");
+    match sanity_check(&mut type_checked_source) {
+        Ok(_) => crate::error::Errors(vec![]),
+        Err(errors) => {
+            let mut final_errors = vec![];
+            for error in errors {
+                final_errors.push(Error::Compile { error });
+            }
+            crate::error::Errors(final_errors)
+        }
+    }
+}
+
+#[cfg(test)]
+fn run_parser(src: &str) -> Program {
+    use crate::intermediate::ProgramKind;
+    use crate::parser::yurt_parser;
+    use crate::span;
+    use std::collections::BTreeMap;
+
+    let parser = yurt_parser::YurtParser::new();
+    let mut current_ii = Program::ROOT_II_NAME.to_string();
+    let filepath = std::rc::Rc::from(std::path::Path::new("test"));
+    let mut program = Program {
+        kind: ProgramKind::Stateless,
+        iis: BTreeMap::from([(
+            Program::ROOT_II_NAME.to_string(),
+            IntermediateIntent::default(),
+        )]),
+    };
+
+    parser
+        .parse(
+            &mut crate::parser::ParserContext {
+                mod_path: &[],
+                mod_prefix: "",
+                local_scope: None,
+                program: &mut program,
+                current_ii: &mut current_ii,
+                macros: &mut Vec::new(),
+                macro_calls: &mut BTreeMap::from([(
+                    Program::ROOT_II_NAME.to_string(),
+                    slotmap::SecondaryMap::new(),
+                )]),
+                span_from: &|_, _| span::empty_span(),
+                use_paths: &mut Vec::new(),
+                next_paths: &mut Vec::new(),
+            },
+            &mut Vec::new(),
+            crate::lexer::Lexer::new(src, &filepath, &[]),
+        )
+        .expect("Failed to parse test case.");
+
+    program
+}
+
+#[test]
+fn exprs() {
+    let src = "let a = [1, 2, 3];";
+    check(
+        &run_test(src),
+        expect_test::expect![[
+            r#"compiler internal error: array present in final intent expr_types slotmap
+            compiler internal error: array present in final intent expr_types slotmap
+            compiler internal error: array present in final intent exprs slotmap
+            compiler internal error: array present in final intent var_types slotmap"#
+        ]],
+    )
+}
+// @mohammad, please check errors in test.yrt. It seems like our final intent is pretty screwed? What is expected from
+// let a = [1, 2, 3];
+// solve satisfy;
+
 // TODO: add unit tests here
 // easiest way is to take a string that contains source code
 // run the parser on it
 // program will come out of it
 // then run the checker directly on that
+
+// ---
+
+// Tests that fail sanity check with transforms applied
+/* let a = [1, 2, 3]; */
+/* let a : int[3] = [1, 2, 3]; */
+/*
+type AccountTuple = { id: int, balance: real, address: string };
+let walletDetails: AccountTuple = {id: 1, balance: 2.0, address: "0x1234...ABCD"};
+ */
+/* let t: { x: int, y: real } = { y: 5.0, x: 6 }; */
+
+// Looks like array expr, tuple expr, enum types all fail
+
+// ---
+
+// Tests that don't fail sanity check
+/* let a = int[3]; */
+/* constraint forall i in 0..17 {
+    true
+}; */
+/* type Address = string;
+type AccountTuple = { id: int, balance: real, address: string }; */
+/* type Address = string;
+let myAddress: Address = "0x1234567890abcdef"; */
+/* let x = t.1; */
+
+// Looks like tuple field access, tuple types, new types, foralls, array types, enum decls all work fine

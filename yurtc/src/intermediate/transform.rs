@@ -62,7 +62,11 @@ impl super::Program {
         transform!(canonicalize_solve_directive(&mut self), errors);
 
         // Ensure that the final intermediate intents is indeed final
-        transform!(sanity_check(&mut self), errors);
+        if let Err(e) = sanity_check(&mut self) {
+            for error in e {
+                errors.push(Error::Compile { error })
+            }
+        }
 
         errors
             .is_empty()
