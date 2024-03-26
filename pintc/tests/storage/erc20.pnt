@@ -1,0 +1,154 @@
+storage {
+    balances: (b256 => int),
+    total_supply: int,
+}
+
+// Transfer `value` from `from` to `to`
+intent Transfer {
+    let from: b256;
+    let to: b256;
+    let value: int;
+
+    let owner = context::sender();
+    
+    constraint from != 0x0000000000000000000000000000000000000000000000000000000000000000;
+    constraint to != 0x0000000000000000000000000000000000000000000000000000000000000000;
+
+    state from_balance = storage::balances[from];
+    constraint from_balance >= value;
+    constraint from_balance' == from_balance - value;
+
+    state to_balance = storage::balances[to];
+    constraint to_balance' == to_balance + value;
+}
+
+// Mint `value` to `account`
+intent Mint {
+    let account: b256;
+    let value: int;
+    
+    state total_supply = storage::total_supply;
+    constraint total_supply' == total_supply + value;
+
+    state account_balance = storage::balances[account];
+    constraint account_balance' == account_balance + value;
+}
+
+// Burn `value` from `account`
+intent Burn {
+    let account: b256;
+    let value: int;
+
+    state account_balance = storage::balances[account];
+    constraint account_balance >= value;
+    constraint account_balance' == account_balance - value;
+
+    state total_supply = storage::total_supply;
+    constraint total_supply' == total_supply - value;
+}
+
+// intermediate <<<
+// storage {
+//     balances: ( b256 => int ),
+//     total_supply: int,
+// }
+// 
+// intent ::Burn {
+//     storage {
+//         balances: ( b256 => int ),
+//         total_supply: int,
+//     }
+//     var ::account: b256;
+//     var ::value: int;
+//     state ::account_balance = storage::balances[::account];
+//     state ::total_supply = storage::total_supply;
+//     constraint (::account_balance >= ::value);
+//     constraint (::account_balance' == (::account_balance - ::value));
+//     constraint (::total_supply' == (::total_supply - ::value));
+// }
+// 
+// intent ::Mint {
+//     storage {
+//         balances: ( b256 => int ),
+//         total_supply: int,
+//     }
+//     var ::account: b256;
+//     var ::value: int;
+//     state ::total_supply = storage::total_supply;
+//     state ::account_balance = storage::balances[::account];
+//     constraint (::total_supply' == (::total_supply + ::value));
+//     constraint (::account_balance' == (::account_balance + ::value));
+// }
+// 
+// intent ::Transfer {
+//     storage {
+//         balances: ( b256 => int ),
+//         total_supply: int,
+//     }
+//     var ::from: b256;
+//     var ::to: b256;
+//     var ::value: int;
+//     var ::owner;
+//     state ::from_balance = storage::balances[::from];
+//     state ::to_balance = storage::balances[::to];
+//     constraint (::owner == ::context::sender());
+//     constraint (::from != 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::to != 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::from_balance >= ::value);
+//     constraint (::from_balance' == (::from_balance - ::value));
+//     constraint (::to_balance' == (::to_balance + ::value));
+// }
+// >>>
+
+// flattened <<<
+// storage {
+//     balances: ( b256 => int ),
+//     total_supply: int,
+// }
+// 
+// intent ::Burn {
+//     storage {
+//         balances: ( b256 => int ),
+//         total_supply: int,
+//     }
+//     var ::account: b256;
+//     var ::value: int;
+//     state ::account_balance: int = storage::balances[::account];
+//     state ::total_supply: int = storage::total_supply;
+//     constraint (::account_balance >= ::value);
+//     constraint (::account_balance' == (::account_balance - ::value));
+//     constraint (::total_supply' == (::total_supply - ::value));
+// }
+// 
+// intent ::Mint {
+//     storage {
+//         balances: ( b256 => int ),
+//         total_supply: int,
+//     }
+//     var ::account: b256;
+//     var ::value: int;
+//     state ::total_supply: int = storage::total_supply;
+//     state ::account_balance: int = storage::balances[::account];
+//     constraint (::total_supply' == (::total_supply + ::value));
+//     constraint (::account_balance' == (::account_balance + ::value));
+// }
+// 
+// intent ::Transfer {
+//     storage {
+//         balances: ( b256 => int ),
+//         total_supply: int,
+//     }
+//     var ::from: b256;
+//     var ::to: b256;
+//     var ::value: int;
+//     var ::owner: b256;
+//     state ::from_balance: int = storage::balances[::from];
+//     state ::to_balance: int = storage::balances[::to];
+//     constraint (::owner == ::context::sender());
+//     constraint (::from != 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::to != 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::from_balance >= ::value);
+//     constraint (::from_balance' == (::from_balance - ::value));
+//     constraint (::to_balance' == (::to_balance + ::value));
+// }
+// >>>

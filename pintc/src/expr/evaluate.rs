@@ -185,7 +185,10 @@ impl ExprKey {
             .clone();
 
         let plugged = match expr {
-            Expr::Immediate { .. } | Expr::MacroCall { .. } | Expr::Error(_) => expr,
+            Expr::Immediate { .. }
+            | Expr::StorageAccess { .. }
+            | Expr::MacroCall { .. }
+            | Expr::Error(_) => expr,
             Expr::PathByName(ref path, ref span) => {
                 let span = span.clone();
                 values_map.get(path).map_or(expr, |value| Expr::Immediate {
@@ -255,11 +258,11 @@ impl ExprKey {
                     span,
                 }
             }
-            Expr::ArrayElementAccess { array, index, span } => {
-                let array = array.plug_in(ii, values_map);
+            Expr::Index { expr, index, span } => {
+                let expr = expr.plug_in(ii, values_map);
                 let index = index.plug_in(ii, values_map);
 
-                Expr::ArrayElementAccess { array, index, span }
+                Expr::Index { expr, index, span }
             }
             Expr::Tuple { fields, span } => {
                 let fields = fields

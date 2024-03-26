@@ -1,14 +1,14 @@
 use crate::{
-    error::{Error, Handler, ParseError},
+    error::{CompileError, Error, Handler, ParseError},
     expr::*,
-    intermediate::{ExprKey, IntermediateIntent, Program, ProgramKind, SolveFunc},
+    intermediate::{ExprKey, IntermediateIntent, Program, ProgramKind, SolveFunc, StorageVar},
     lexer,
     macros::{MacroCall, MacroDecl},
     parser::{
         NextModPath, ParserContext, UsePath,
         UseTree::{self, Path as UseTreePath},
     },
-    span,
+    span::{self, Spanned},
     types::{EnumDecl, FnSig, NewTypeDecl, Path, PrimitiveKind, Type},
 };
 
@@ -26,9 +26,10 @@ pub Pint: () = {
 ////////////////////
 
 Decl: () = {
-    IntentDecl,
     DeclBarringMacro,
+    IntentDecl,
     MacroDecl,
+    StorageDecl,
 };
 
 DeclBarringMacro: () = {
@@ -84,6 +85,83 @@ pub IntentClose: () = {
         // At the end of the intent declaration, return back to the root II
         *context.current_ii = Program::ROOT_II_NAME.to_string();
     }
+}
+
+pub StorageVar: StorageVar = {
+    <l:@L> <name:Ident> ":" <ty:StorageVarType> <r:@R> => {
+        let span = (context.span_from)(l, r);
+        if ty.is_bool() || ty.is_int() {
+            StorageVar {
+                name: name.to_string(),
+                ty,
+                span,
+            }
+        } else if let Type::Map {
+            ref ty_from,
+            ref ty_to,
+            ..
+        } = ty
+        {
+            if (ty_from.is_bool() || ty_from.is_int() || ty_from.is_b256())
+                && (ty_to.is_bool() || ty_to.is_int())
+            {
+                StorageVar {
+                    name: name.to_string(),
+                    ty,
+                    span,
+                }
+            } else {
+                // TODO: allow arbitrary types in storage maps
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "currently in storage maps, keys must be int, bool, or b256 /
+                              and values must be int and bool",
+                        span: span::empty_span(),
+                    },
+                });
+                StorageVar {
+                    name: name.to_string(),
+                    ty: Type::Error(ty.span().clone()),
+                    span,
+                }
+            }
+        } else {
+            // TODO: allow arbitrary types in storage blocks
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "only ints, bools, and maps are currently allowed in a storage block",
+                    span: span::empty_span(),
+                },
+            });
+            StorageVar {
+                name: name.to_string(),
+                ty: Type::Error(ty.span().clone()),
+                span,
+            }
+        }
+    }
+}
+
+pub StorageDecl: () = {
+    <l:@L> "storage" "{" <storage_vars:SepList<StorageVar, ",">>  "}" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        if let Some((_, prev_span)) = &context.current_ii().storage {
+            // Multiple `storage` blocks are not allowed
+            handler.emit_err(Error::Parse {
+                error: ParseError::TooManyStorageBlocks {
+                    span,
+                    prev_span: prev_span.clone(),
+                },
+            });
+        } else if !context.mod_path.is_empty() {
+            // `storage` blocks in sub-modules are not allowed
+            handler.emit_err(Error::Parse {
+                error: ParseError::StorageDirectiveMustBeTopLevel { span },
+            });
+        } else {
+            context.current_ii().storage = Some((storage_vars, span));
+        }
+    },
 }
 
 UseStatement: () = {
@@ -281,16 +359,15 @@ LetInit: ExprKey = {
 };
 
 pub StateDecl: () = {
-    <l:@L> "state" <name:Ident> <ty:(":" <Type>)?> "=" <init:FnCallExpr> <r:@R> => {
+    <l:@L> "state" <name:Ident> <ty:(":" <Type>)?> "=" <init:StateInit> <r:@R> => {
         // Return the index to the new state in the IntermediateIntent::states Vec.
-        let init_key = context.current_ii().exprs.insert(init);
         let span = (context.span_from)(l, r);
         let mod_prefix = context.mod_prefix;
         let _ = context
             .current_ii()
-            .insert_state(handler, mod_prefix, &name, ty, init_key, span)
+            .insert_state(handler, mod_prefix, &name, ty, init, span)
             .map(|_| ());
-    }
+    },
 };
 
 pub ConstraintDecl: () = {
@@ -485,6 +562,24 @@ TupleFields: Vec<(Option<Ident>, Type)> = {
 TupleField: (Option<Ident>, Type) = {
     <id:(<Ident> ":")?> <ty:Type> => (id, ty),
 };
+
+/////////////////////
+/// Storage Types ///
+/////////////////////
+
+// Does not yet allow for maps inside maps and is only to be used in storage blocks
+MapType: Type = {
+    <l:@L> "(" <ty_from:Type> "=>" <ty_to:Type> ")" <r:@R> => Type::Map {
+        ty_from: Box::new(ty_from),
+        ty_to: Box::new(ty_to),
+        span: (context.span_from)(l, r),
+    }
+}
+
+pub StorageVarType: Type = {
+    <MapType>,
+    <Type>,
+}
 
 ///////////////////
 /// Expressions ///
@@ -700,21 +795,21 @@ TupleFieldOp: ExprKey = {
             }
         }
     },
-    <ArrayElOp>,
+    <IndexOp>,
 };
 
-ArrayElOp: ExprKey = {
-    <l:@L> <array:ArrayElOp> "[" <index:Expr> "]" <r:@R> => {
+IndexOp: ExprKey = {
+    <l:@L> <expr:IndexOp> "[" <index:Expr> "]" <r:@R> => {
         let span = (context.span_from)(l, r);
         context
             .current_ii()
             .exprs
-            .insert(Expr::ArrayElementAccess { array, index, span })
+            .insert(Expr::Index { expr, index, span })
     },
-    <l:@L> <array:ArrayElOp> "[" "]" <r:@R> => {
+    <l:@L> <expr:IndexOp> "[" "]" <r:@R> => {
         let span = (context.span_from)(l, r);
         handler.emit_err(Error::Parse {
-            error: ParseError::EmptyArrayAccess { span: span.clone() },
+            error: ParseError::EmptyIndexAccess { span: span.clone() },
         });
 
         // Recover with a malformed expression
@@ -1192,6 +1287,53 @@ IdentFromToken<Tok>: Ident = {
     }
 }
 
+//////////////////////////////////
+/// Storage Access Expressions ///
+//////////////////////////////////
+
+pub StateInit: ExprKey = {
+    <StorageIndexOp>,
+    <call:FnCallExpr> => context.current_ii().exprs.insert(call),
+}
+
+pub StorageIndexOp: ExprKey = {
+    // Even though we don't allow complex types in storage maps just yet, this does support indexing
+    // into a map of maps.
+    <l:@L> <expr:StorageIndexOp> "[" <index:Expr> "]" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context
+            .current_ii()
+            .exprs
+            .insert(Expr::Index { expr, index, span })
+    },
+    <l:@L> <expr:StorageIndexOp> "[" "]" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        handler.emit_err(Error::Parse {
+            error: ParseError::EmptyIndexAccess { span: span.clone() },
+        });
+
+        // Recover with a malformed expression
+        context.current_ii().exprs.insert(Expr::Error(span))
+    },
+    <StorageAccess>,
+};
+
+StorageAccess: ExprKey = {
+    <l:@L> "storage" "::" <name:Ident> <r:@R> => {
+        let span = (context.span_from)(l, r);
+        let expr = if !context.mod_path.is_empty() {
+            // `storage` blocks in sub-modules are not allowed
+            handler.emit_err(Error::Parse {
+                error: ParseError::StorageAccessMustBeTopLevel { span: span.clone() },
+            });
+            Expr::Error(span)
+        } else {
+            Expr::StorageAccess(name.to_string(), span)
+        };
+        context.current_ii().exprs.insert(expr)
+    }
+}
+
 /////////////
 /// Utils ///
 /////////////
@@ -1293,6 +1435,7 @@ extern {
         "self" => lexer::Token::SelfTok,
         "let" => lexer::Token::Let,
         "state" => lexer::Token::State,
+        "storage" => lexer::Token::Storage,
         "enum" => lexer::Token::Enum,
         "type" => lexer::Token::Type,
         "constraint" => lexer::Token::Constraint,

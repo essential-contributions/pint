@@ -1,0 +1,52 @@
+storage {
+    i: int,    
+    b: bool,
+    map1: (int => int),
+    map2: (b256 => bool),
+}
+
+let x = 5;
+let address = 0x2222222222222222222222222222222222222222222222222222222222222222;
+
+state i1: bool = storage::i;
+
+state b1: int = storage::b;
+
+state map_1_access: bool = storage::map1[x];
+
+state map_2_access: int = storage::map2[address];
+
+solve satisfy;
+
+// intermediate <<<
+// storage {
+//     i: int,
+//     b: bool,
+//     map1: ( int => int ),
+//     map2: ( b256 => bool ),
+// }
+// var ::x;
+// var ::address;
+// state ::i1: bool = storage::i;
+// state ::b1: int = storage::b;
+// state ::map_1_access: bool = storage::map1[::x];
+// state ::map_2_access: int = storage::map2[::address];
+// constraint (::x == 5);
+// constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// state variable initialization type error
+// @203..213: initializing expression has unexpected type `int`
+// @196..200: expecting type `bool`
+// state variable initialization type error
+// @232..242: initializing expression has unexpected type `bool`
+// @226..229: expecting type `int`
+// state variable initialization type error
+// @272..288: initializing expression has unexpected type `int`
+// @265..269: expecting type `bool`
+// state variable initialization type error
+// @317..339: initializing expression has unexpected type `bool`
+// @311..314: expecting type `int`
+// >>>

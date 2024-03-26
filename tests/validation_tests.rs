@@ -170,10 +170,11 @@ fn submit_and_check_solution(server: &mut Server) -> anyhow::Result<()> {
 
         // Extract the transient intent. There should be a single intent in `intents`.
         let mut intent = intents.root_intent().clone();
-        let intent_address = intent.intent_address();
 
         // Enforce a single permit for now. This should change in the future
         intent.slots.permits = 1;
+
+        let intent_address = intent.intent_address();
 
         // Submit the transient intent to the server
         server
@@ -192,8 +193,12 @@ fn submit_and_check_solution(server: &mut Server) -> anyhow::Result<()> {
         // total utility of `2`.
         match server.submit_solution(solution) {
             Ok(2) => {}
-            _ => {
-                println!("{}", Red.paint("    Validation failed"));
+            Ok(_) => println!("{}", Red.paint("    Validation failed")),
+            Err(err) => {
+                println!(
+                    "{}",
+                    Red.paint(format!("    Error submitting intent: {err}"))
+                );
                 failed_tests.push(path)
             }
         };

@@ -228,6 +228,7 @@ fn r#in() {
 fn blockchain_items() {
     assert_eq!(lex_one_success("state"), Token::State);
     assert_eq!(lex_one_success("intent"), Token::Intent);
+    assert_eq!(lex_one_success("storage"), Token::Storage);
 }
 
 #[test]

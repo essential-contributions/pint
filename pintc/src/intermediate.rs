@@ -88,6 +88,9 @@ pub struct IntermediateIntent {
     // Keep track of obsolete expanded macro calls in case they're erroneously depended upon.
     pub removed_macro_calls: slotmap::SecondaryMap<ExprKey, Span>,
 
+    // A list of all storage variables in the order in which they were declared
+    pub storage: Option<(Vec<StorageVar>, Span)>,
+
     pub top_level_symbols: BTreeMap<String, Span>,
 }
 
@@ -338,8 +341,8 @@ impl IntermediateIntent {
             Expr::Array { elements, .. } => {
                 elements.iter().for_each(|expr| self.remove_expr(*expr));
             }
-            Expr::ArrayElementAccess { array, index, .. } => {
-                self.remove_expr(*array);
+            Expr::Index { expr, index, .. } => {
+                self.remove_expr(*expr);
                 self.remove_expr(*index);
             }
             Expr::Tuple { fields, .. } => {
@@ -374,6 +377,7 @@ impl IntermediateIntent {
             Expr::Immediate { .. }
             | Expr::PathByName { .. }
             | Expr::PathByKey { .. }
+            | Expr::StorageAccess { .. }
             | Expr::MacroCall { .. }
             | Expr::Range { .. }
             | Expr::Error(_) => {}
@@ -462,6 +466,19 @@ impl DisplayWithII for SolveFunc {
             SolveFunc::Minimize(key) => write!(f, "minimize {}", ii.with_ii(key)),
             SolveFunc::Maximize(key) => write!(f, "maximize {}", ii.with_ii(key)),
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct StorageVar {
+    pub name: Path,
+    pub ty: Type,
+    pub span: Span,
+}
+
+impl DisplayWithII for StorageVar {
+    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
+        write!(f, "{}: {},", self.name, ii.with_ii(&self.ty))
     }
 }
 
@@ -581,8 +598,8 @@ impl<'a> Iterator for Exprs<'a> {
                 push_if_new!(self, range_expr);
             }
 
-            Expr::ArrayElementAccess { array, index, .. } => {
-                push_if_new!(self, array);
+            Expr::Index { expr, index, .. } => {
+                push_if_new!(self, expr);
                 push_if_new!(self, index);
             }
 
@@ -627,6 +644,7 @@ impl<'a> Iterator for Exprs<'a> {
 
             Expr::Error(_)
             | Expr::Immediate { .. }
+            | Expr::StorageAccess(_, _)
             | Expr::PathByKey(_, _)
             | Expr::PathByName(_, _)
             | Expr::MacroCall { .. } => {}

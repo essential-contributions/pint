@@ -5,7 +5,7 @@ use crate::{
     span::empty_span,
     types::{PrimitiveKind, Type},
 };
-use constraint_asm::{Access, Alu, Op, Pred};
+use constraint_asm::{Access, Alu, Crypto, Op, Pred};
 use essential_types::{
     intent::{Directive, Intent},
     slots::{Slots, StateSlot},
@@ -79,7 +79,7 @@ pub struct AsmBuilder {
 impl AsmBuilder {
     /// Generates assembly for reading from state and creates a new state slot
     /// This is pretty limited for now and only supports simple integer reads using the syntax
-    /// `state x = storage::get(<key>)`
+    /// `state x = storage_lib::get(<key>)`
     fn compile_state(
         &mut self,
         handler: &Handler,
@@ -87,67 +87,153 @@ impl AsmBuilder {
         intent: &IntermediateIntent,
     ) -> Result<(), ErrorEmitted> {
         // If the RHS of `state` variable initialization is a call of the form
-        // `::storage::get(..)`, then this is a read from state. This is pretty simplistic and
+        // `::storage_lib::get(..)`, then this is a read from state. This is pretty simplistic and
         // fragile for now and is likely to change in the future.
-        if let Expr::FnCall { name, args, .. } = &intent.exprs[state.expr] {
-            if name.ends_with("::storage::get") {
-                // Expecting a single argument that is an integer
-                assert_eq!(args.len(), 1);
+        match &intent.exprs[state.expr] {
+            Expr::FnCall { name, args, .. } => {
+                if name.ends_with("::storage_lib::get") {
+                    // Expecting a single argument that is an integer
+                    assert_eq!(args.len(), 1);
 
-                let mut asm = Vec::new();
+                    let mut asm = Vec::new();
 
-                // Compile key
-                self.compile_expr(handler, &mut asm, &args[0], intent)?;
-                let mut s_asm = asm
-                    .iter()
-                    .map(|op| StateReadOp::Constraint(*op))
-                    .collect::<Vec<_>>();
+                    // Compile key
+                    self.compile_expr(handler, &mut asm, &args[0], intent)?;
+                    let mut s_asm = asm
+                        .iter()
+                        .map(|op| StateReadOp::Constraint(*op))
+                        .collect::<Vec<_>>();
 
-                s_asm.push(StateReadOp::Constraint(Op::Push(1)));
-                s_asm.push(StateReadOp::Memory(Memory::Alloc));
-                s_asm.push(StateReadOp::Constraint(Op::Push(1)));
-                s_asm.push(StateReadOp::State(State::StateReadWordRange));
-                s_asm.push(StateReadOp::ControlFlow(ControlFlow::Halt));
+                    s_asm.push(StateReadOp::Constraint(Op::Push(1)));
+                    s_asm.push(StateReadOp::Memory(Memory::Alloc));
+                    s_asm.push(StateReadOp::Constraint(Op::Push(1)));
+                    s_asm.push(StateReadOp::State(State::StateReadWordRange));
+                    s_asm.push(StateReadOp::ControlFlow(ControlFlow::Halt));
 
-                self.s_asm.push(s_asm);
+                    self.s_asm.push(s_asm);
 
-                let slot_idx = self.s_asm.len() - 1;
-                self.s_slots.push(StateSlot {
-                    index: slot_idx as u32,
-                    amount: 1,
-                    program_index: slot_idx as u16,
-                });
-            } else if name.ends_with("::storage::get_extern") {
-                // Expecting a single argument that is an integer
-                assert_eq!(args.len(), 2);
+                    let slot_idx = self.s_asm.len() - 1;
+                    self.s_slots.push(StateSlot {
+                        index: slot_idx as u32,
+                        amount: 1,
+                        program_index: slot_idx as u16,
+                    });
+                } else if name.ends_with("::storage_lib::get_extern") {
+                    // Expecting a single argument that is an integer
+                    assert_eq!(args.len(), 2);
 
-                let mut asm = Vec::new();
+                    let mut asm = Vec::new();
 
-                // persistent intent address followed by key
-                self.compile_expr(handler, &mut asm, &args[0], intent)?;
-                self.compile_expr(handler, &mut asm, &args[1], intent)?;
-                let mut s_asm = asm
-                    .iter()
-                    .map(|op| StateReadOp::Constraint(*op))
-                    .collect::<Vec<_>>();
+                    // persistent intent address followed by key
+                    self.compile_expr(handler, &mut asm, &args[0], intent)?;
+                    self.compile_expr(handler, &mut asm, &args[1], intent)?;
+                    let mut s_asm = asm
+                        .iter()
+                        .map(|op| StateReadOp::Constraint(*op))
+                        .collect::<Vec<_>>();
 
-                s_asm.push(StateReadOp::Constraint(Op::Push(1)));
-                s_asm.push(StateReadOp::Memory(Memory::Alloc));
-                s_asm.push(StateReadOp::Constraint(Op::Push(1)));
-                s_asm.push(StateReadOp::State(State::StateReadWordRangeExtern));
-                s_asm.push(StateReadOp::ControlFlow(ControlFlow::Halt));
+                    s_asm.push(StateReadOp::Constraint(Op::Push(1)));
+                    s_asm.push(StateReadOp::Memory(Memory::Alloc));
+                    s_asm.push(StateReadOp::Constraint(Op::Push(1)));
+                    s_asm.push(StateReadOp::State(State::StateReadWordRangeExtern));
+                    s_asm.push(StateReadOp::ControlFlow(ControlFlow::Halt));
 
-                self.s_asm.push(s_asm);
+                    self.s_asm.push(s_asm);
 
-                let slot_idx = self.s_asm.len() - 1;
-                self.s_slots.push(StateSlot {
-                    index: slot_idx as u32,
-                    amount: 1,
-                    program_index: slot_idx as u16,
-                });
-            } else {
-                unimplemented!("Other calls are currently not supported")
+                    let slot_idx = self.s_asm.len() - 1;
+                    self.s_slots.push(StateSlot {
+                        index: slot_idx as u32,
+                        amount: 1,
+                        program_index: slot_idx as u16,
+                    });
+                } else {
+                    unimplemented!("Other calls are currently not supported")
+                }
             }
+            Expr::StorageAccess(name, _) => {
+                // Get the index of the storage variable in the storage block declaration
+                let index = intent
+                    .storage
+                    .as_ref()
+                    .expect("a storage block must have been declared")
+                    .0
+                    .iter()
+                    .position(|var| var.name == *name)
+                    .expect("storage access should have been checked before");
+
+                // The index determines where the variable is located in storage. For now, we only
+                // handle primitive types, so the keys are consecutive 0x00..00, 0x00.001,
+                // 0x00..002, etc. and match the index of each variable.
+                self.s_asm.push(vec![
+                    StateReadOp::Constraint(Op::Push(0)),
+                    StateReadOp::Constraint(Op::Push(0)),
+                    StateReadOp::Constraint(Op::Push(0)),
+                    StateReadOp::Constraint(Op::Push(index as i64)),
+                    StateReadOp::Constraint(Op::Push(1)),
+                    StateReadOp::Memory(Memory::Alloc),
+                    StateReadOp::Constraint(Op::Push(1)),
+                    StateReadOp::State(State::StateReadWordRange),
+                    StateReadOp::ControlFlow(ControlFlow::Halt),
+                ]);
+
+                let slot_idx = self.s_asm.len() - 1;
+                self.s_slots.push(StateSlot {
+                    index: slot_idx as u32,
+                    amount: 1,
+                    program_index: slot_idx as u16,
+                });
+            }
+            Expr::Index { expr, index, .. } => {
+                if let Some(Expr::StorageAccess(name, _)) = intent.exprs.get(*expr) {
+                    // Only handle simple map accesses. No nested maps are supported yet and no
+                    // array accesses.
+
+                    // First, get the storage index of the map in the storage block
+                    let storage_index = intent
+                        .storage
+                        .as_ref()
+                        .expect("a storage block must have been declared")
+                        .0
+                        .iter()
+                        .position(|var| var.name == *name)
+                        .expect("storage access should have been checked before");
+
+                    // Push storage index on the stack
+                    let mut asm = vec![Op::Push(storage_index as i64)];
+
+                    // Compile index
+                    self.compile_expr(handler, &mut asm, index, intent)?;
+                    let mut s_asm = asm
+                        .iter()
+                        .map(|op| StateReadOp::Constraint(*op))
+                        .collect::<Vec<_>>();
+
+                    // Sha256 to get the actual key. Here, we need the length of the key as well,
+                    // so we rely on the size of the type to get that. Only primitive types
+                    // (including `b256`) are currently supported)
+                    s_asm.push(StateReadOp::Constraint(Op::Push(
+                        1 + intent.expr_types[*index].size() as i64,
+                    )));
+                    s_asm.push(StateReadOp::Constraint(Op::Crypto(Crypto::Sha256)));
+
+                    // Now do the actual reading
+                    s_asm.push(StateReadOp::Constraint(Op::Push(1)));
+                    s_asm.push(StateReadOp::Memory(Memory::Alloc));
+                    s_asm.push(StateReadOp::Constraint(Op::Push(1)));
+                    s_asm.push(StateReadOp::State(State::StateReadWordRange));
+                    s_asm.push(StateReadOp::ControlFlow(ControlFlow::Halt));
+
+                    self.s_asm.push(s_asm);
+
+                    let slot_idx = self.s_asm.len() - 1;
+                    self.s_slots.push(StateSlot {
+                        index: slot_idx as u32,
+                        amount: 1,
+                        program_index: slot_idx as u16,
+                    });
+                }
+            }
+            _ => unreachable!("there really shouldn't be anything else at this stage"),
         }
 
         Ok(())
@@ -245,6 +331,14 @@ impl AsmBuilder {
                 // Search for a decision variable or a state variable.
                 self.compile_path(asm, &intent.vars[*var_key].name, intent);
             }
+            Expr::StorageAccess(_, _) => {
+                return Err(handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "unexpected storage access",
+                        span: empty_span(),
+                    },
+                }));
+            }
             Expr::FnCall { name, args, .. } if name.ends_with("::context::sender") => {
                 assert!(args.is_empty());
                 asm.push(Op::Access(Access::Sender));
@@ -255,7 +349,7 @@ impl AsmBuilder {
             Expr::Error(_)
             | Expr::MacroCall { .. }
             | Expr::Array { .. }
-            | Expr::ArrayElementAccess { .. }
+            | Expr::Index { .. }
             | Expr::Tuple { .. }
             | Expr::TupleFieldAccess { .. }
             | Expr::Cast { .. }

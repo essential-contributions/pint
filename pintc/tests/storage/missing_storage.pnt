@@ -1,0 +1,27 @@
+storage {
+    x: int,
+}
+
+intent Foo {
+    state y = storage::y;
+}
+
+// intermediate <<<
+// storage {
+//     x: int,
+// }
+// 
+// intent ::Foo {
+//     storage {
+//         x: int,
+//     }
+//     state ::y = storage::y;
+// }
+// >>>
+
+// typecheck_failure <<<
+// cannot find storage variable `y`
+// @52..62: not found in storage declaration
+// unable to determine expression type
+// @42..62: type of this expression is ambiguous
+// >>>

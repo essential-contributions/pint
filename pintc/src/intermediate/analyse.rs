@@ -60,6 +60,11 @@ impl IntermediateIntent {
                     }
                 }
 
+                Type::Map { ty_from, ty_to, .. } => {
+                    replace_custom_type(new_types, ty_from);
+                    replace_custom_type(new_types, ty_to);
+                }
+
                 Type::Error(_) | Type::Primitive { .. } | Type::Alias { .. } => {}
             }
         }
@@ -87,6 +92,7 @@ impl IntermediateIntent {
         self.constraints
             .iter()
             .map(|(key, _)| *key)
+            .chain(self.states.iter().map(|(_, state)| state.expr))
             .chain(
                 self.directives
                     .iter()
@@ -100,7 +106,7 @@ impl IntermediateIntent {
                 }
             });
 
-        // Confirm now that all the variables are typed.
+        // Confirm now that all decision variables are typed.
         for (var_key, var) in &self.vars {
             if self.var_types.get(var_key).is_none() {
                 if let Some(init_expr_key) = self.var_inits.get(var_key) {
@@ -124,6 +130,48 @@ impl IntermediateIntent {
                         },
                     });
                 }
+            }
+        }
+
+        // Confirm now that all state variables are typed.
+        for (state_key, state) in &self.states {
+            if let Some(state_ty) = self.state_types.get(state_key) {
+                self.expr_types
+                    .get(state.expr)
+                    .map(|expr_ty| {
+                        if state_ty != expr_ty {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::StateVarInitTypeError {
+                                    large_err: Box::new(LargeTypeError::StateVarInitTypeError {
+                                        expected_ty: self.with_ii(state_ty).to_string(),
+                                        found_ty: self.with_ii(expr_ty).to_string(),
+                                        span: self.expr_key_to_span(state.expr),
+                                        expected_span: Some(state_ty.span().clone()),
+                                    }),
+                                },
+                            });
+                        }
+                    })
+                    .unwrap_or_else(|| {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::UnknownType {
+                                span: state.span.clone(),
+                            },
+                        });
+                    });
+            } else {
+                self.expr_types
+                    .get(state.expr)
+                    .map(|expr_ty| {
+                        self.state_types.insert(state_key, expr_ty.clone());
+                    })
+                    .unwrap_or_else(|| {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::UnknownType {
+                                span: state.span.clone(),
+                            },
+                        });
+                    });
             }
         }
     }
@@ -221,6 +269,8 @@ impl IntermediateIntent {
 
             Expr::PathByName(path, span) => self.infer_path_by_name(path, span),
 
+            Expr::StorageAccess(name, span) => self.infer_storage_access(name, span),
+
             Expr::UnaryOp {
                 op,
                 expr: op_expr_key,
@@ -233,8 +283,8 @@ impl IntermediateIntent {
 
             Expr::FnCall { name, span, .. } => {
                 // For now, this very special case is all we support.
-                if name.as_str().ends_with("::storage::get")
-                    || name.as_str().ends_with("::storage::get_extern")
+                if name.as_str().ends_with("::storage_lib::get")
+                    || name.as_str().ends_with("::storage_lib::get_extern")
                 {
                     Ok(Inference::Type(Type::Primitive {
                         kind: PrimitiveKind::Int,
@@ -268,9 +318,7 @@ impl IntermediateIntent {
                 span,
             } => self.infer_array_expr(*range_expr, elements, span),
 
-            Expr::ArrayElementAccess { array, index, span } => {
-                self.infer_array_access_expr(*array, *index, span)
-            }
+            Expr::Index { expr, index, span } => self.infer_index_expr(*expr, *index, span),
 
             Expr::Tuple { fields, span } => self.infer_tuple_expr(fields, span),
 
@@ -381,6 +429,26 @@ impl IntermediateIntent {
         } else {
             // None of the above.  That leaves enums.
             self.infer_enum_variant_by_name(path, span)
+        }
+    }
+
+    fn infer_storage_access(&self, name: &String, span: &Span) -> Result<Inference, Error> {
+        match self.storage.as_ref() {
+            Some(storage) => match storage.0.iter().find(|s_var| s_var.name == *name) {
+                Some(s_var) => Ok(Inference::Type(s_var.ty.clone())),
+                None => Err(Error::Compile {
+                    error: CompileError::StorageSymbolNotFound {
+                        name: name.clone(),
+                        span: span.clone(),
+                    },
+                }),
+            },
+            None => Err(Error::Compile {
+                error: CompileError::MissingStorageBlock {
+                    name: name.clone(),
+                    span: span.clone(),
+                },
+            }),
         }
     }
 
@@ -893,56 +961,76 @@ impl IntermediateIntent {
         }
     }
 
-    fn infer_array_access_expr(
+    fn infer_index_expr(
         &self,
         array_expr_key: ExprKey,
         index_expr_key: ExprKey,
         span: &Span,
     ) -> Result<Inference, Error> {
-        if let Some(index_ty) = self.expr_types.get(index_expr_key) {
-            if let Some(ary_ty) = self.expr_types.get(array_expr_key) {
-                if let Some(range_expr_key) = ary_ty.get_array_range_expr() {
-                    if let Some(range_ty) = self.expr_types.get(range_expr_key) {
-                        // OK, we have the array type, its range type (must be an int or enum) and
-                        // the index type.  Make sure they match.  It's probably just enough to
-                        // check the latter but we might as well confirm it all.
-                        if (!index_ty.is_int() && !index_ty.is_enum()) || index_ty != range_ty {
-                            Err(Error::Compile {
-                                error: CompileError::ArrayAccessWithWrongType {
-                                    found_ty: self.with_ii(index_ty).to_string(),
-                                    expected_ty: self.with_ii(range_ty).to_string(),
-                                    span: self.expr_key_to_span(index_expr_key),
-                                },
-                            })
-                        } else {
-                            // The access seems valid, return the array element type.
-                            ary_ty
-                                .get_array_el_type()
-                                .map(|ty| Inference::Type(ty.clone()))
-                                .ok_or_else(|| Error::Compile {
-                                    error: CompileError::Internal {
-                                        msg: "failed to get array element type \
-                                    in infer_array_access_expr()",
-                                        span: span.clone(),
-                                    },
-                                })
-                        }
-                    } else {
-                        Ok(Inference::Dependant(range_expr_key))
-                    }
-                } else {
-                    Err(Error::Compile {
-                        error: CompileError::ArrayAccessNonArray {
-                            non_array_type: self.with_ii(ary_ty).to_string(),
-                            span: span.clone(),
-                        },
-                    })
-                }
+        let index_ty = match self.expr_types.get(index_expr_key) {
+            Some(ty) => ty,
+            None => return Ok(Inference::Dependant(index_expr_key)),
+        };
+
+        let ary_ty = match self.expr_types.get(array_expr_key) {
+            Some(ty) => ty,
+            None => return Ok(Inference::Dependant(array_expr_key)),
+        };
+
+        if let Some(range_expr_key) = ary_ty.get_array_range_expr() {
+            // Is this an array?
+            let range_ty = match self.expr_types.get(range_expr_key) {
+                Some(ty) => ty,
+                None => return Ok(Inference::Dependant(range_expr_key)),
+            };
+
+            if (!index_ty.is_int() && !index_ty.is_enum()) || index_ty != range_ty {
+                Err(Error::Compile {
+                    error: CompileError::ArrayAccessWithWrongType {
+                        found_ty: self.with_ii(index_ty).to_string(),
+                        expected_ty: self.with_ii(range_ty).to_string(),
+                        span: self.expr_key_to_span(index_expr_key),
+                    },
+                })
+            } else if let Some(ty) = ary_ty.get_array_el_type() {
+                Ok(Inference::Type(ty.clone()))
             } else {
-                Ok(Inference::Dependant(array_expr_key))
+                Err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "failed to get array element type \
+                          in infer_index_expr()",
+                        span: span.clone(),
+                    },
+                })
+            }
+        } else if let Some(from_ty) = ary_ty.get_map_ty_from() {
+            // Is this a storage map?
+            if from_ty != index_ty {
+                Err(Error::Compile {
+                    error: CompileError::StorageMapAccessWithWrongType {
+                        found_ty: self.with_ii(index_ty).to_string(),
+                        expected_ty: self.with_ii(from_ty).to_string(),
+                        span: self.expr_key_to_span(index_expr_key),
+                    },
+                })
+            } else if let Some(ty) = ary_ty.get_map_ty_to() {
+                Ok(Inference::Type(ty.clone()))
+            } else {
+                Err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "failed to get array element type \
+                          in infer_index_expr()",
+                        span: span.clone(),
+                    },
+                })
             }
         } else {
-            Ok(Inference::Dependant(index_expr_key))
+            Err(Error::Compile {
+                error: CompileError::IndexExprNonIndexable {
+                    non_indexable_type: self.with_ii(ary_ty).to_string(),
+                    span: span.clone(),
+                },
+            })
         }
     }
 
