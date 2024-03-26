@@ -1,5 +1,5 @@
 use crate::{
-    error::{CompileError, Error, Errors},
+    error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp, Expr, Immediate, UnaryOp},
     intermediate::{ExprKey, IntermediateIntent, Program, ProgramKind, State as StateVar},
     span::empty_span,
@@ -33,42 +33,34 @@ impl Intents {
 }
 
 /// Convert a `Program` into `Intents`
-pub fn program_to_intents(program: &Program) -> Result<Intents, Errors> {
+pub fn program_to_intents(handler: &Handler, program: &Program) -> Result<Intents, ErrorEmitted> {
     let mut intents: BTreeMap<String, Intent> = BTreeMap::new();
-    let mut errors = vec![];
     match program.kind {
         ProgramKind::Stateless => {
             let (name, ii) = program.iis.iter().next().unwrap();
-            match intent_to_asm(ii) {
-                Ok(intent) => {
-                    intents.insert(name.to_string(), intent);
-                }
-                Err(error) => errors.push(Error::Compile { error }),
+            if let Ok(intent) = handler.scope(|handler| intent_to_asm(handler, ii)) {
+                intents.insert(name.to_string(), intent);
             }
         }
         ProgramKind::Stateful => {
             for (name, ii) in program.iis.iter() {
                 if name != Program::ROOT_II_NAME {
-                    match intent_to_asm(ii) {
-                        Ok(intent) => {
-                            intents.insert(name.to_string(), intent);
-                        }
-                        Err(error) => errors.push(Error::Compile { error }),
+                    if let Ok(intent) = handler.scope(|handler| intent_to_asm(handler, ii)) {
+                        intents.insert(name.to_string(), intent);
                     }
                 }
             }
         }
     }
 
-    errors
-        .is_empty()
-        .then(|| {
-            Ok(Intents {
-                kind: program.kind.clone(),
-                intents,
-            })
-        })
-        .unwrap_or_else(|| Err(Errors(errors)))
+    if handler.has_errors() {
+        return Err(handler.cancel());
+    }
+
+    Ok(Intents {
+        kind: program.kind.clone(),
+        intents,
+    })
 }
 
 #[derive(Default)]
@@ -90,9 +82,10 @@ impl AsmBuilder {
     /// `state x = storage::get(<key>)`
     fn compile_state(
         &mut self,
+        handler: &Handler,
         state: &StateVar,
         intent: &IntermediateIntent,
-    ) -> Result<(), CompileError> {
+    ) -> Result<(), ErrorEmitted> {
         // If the RHS of `state` variable initialization is a call of the form
         // `::storage::get(..)`, then this is a read from state. This is pretty simplistic and
         // fragile for now and is likely to change in the future.
@@ -104,7 +97,7 @@ impl AsmBuilder {
                 let mut asm = Vec::new();
 
                 // Compile key
-                self.compile_expr(&mut asm, &args[0], intent)?;
+                self.compile_expr(handler, &mut asm, &args[0], intent)?;
                 let mut s_asm = asm
                     .iter()
                     .map(|op| StateReadOp::Constraint(*op))
@@ -131,8 +124,8 @@ impl AsmBuilder {
                 let mut asm = Vec::new();
 
                 // persistent intent address followed by key
-                self.compile_expr(&mut asm, &args[0], intent)?;
-                self.compile_expr(&mut asm, &args[1], intent)?;
+                self.compile_expr(handler, &mut asm, &args[0], intent)?;
+                self.compile_expr(handler, &mut asm, &args[1], intent)?;
                 let mut s_asm = asm
                     .iter()
                     .map(|op| StateReadOp::Constraint(*op))
@@ -163,10 +156,11 @@ impl AsmBuilder {
     /// Generates assembly for an `ExprKey`.
     fn compile_expr(
         &mut self,
+        handler: &Handler,
         asm: &mut Vec<Op>,
         expr: &ExprKey,
         intent: &IntermediateIntent,
-    ) -> Result<(), CompileError> {
+    ) -> Result<(), ErrorEmitted> {
         // Always push to the vector of ops corresponding to the last constraint, i.e. the current
         // constraint being processed.
         //
@@ -183,8 +177,8 @@ impl AsmBuilder {
                 _ => unimplemented!("other literal types are not yet supported"),
             },
             Expr::BinaryOp { op, lhs, rhs, .. } => {
-                self.compile_expr(asm, lhs, intent)?;
-                self.compile_expr(asm, rhs, intent)?;
+                self.compile_expr(handler, asm, lhs, intent)?;
+                self.compile_expr(handler, asm, rhs, intent)?;
                 match op {
                     BinaryOp::Add => asm.push(Op::Alu(Alu::Add)),
                     BinaryOp::Sub => asm.push(Op::Alu(Alu::Sub)),
@@ -219,7 +213,7 @@ impl AsmBuilder {
                 }
             }
             Expr::UnaryOp { op, expr, .. } => {
-                self.compile_expr(asm, expr, intent)?;
+                self.compile_expr(handler, asm, expr, intent)?;
                 match op {
                     UnaryOp::Not => {
                         asm.push(Op::Pred(Pred::Not));
@@ -268,10 +262,12 @@ impl AsmBuilder {
             | Expr::In { .. }
             | Expr::Range { .. }
             | Expr::ForAll { .. } => {
-                return Err(CompileError::Internal {
-                    msg: "Unexpected expression during assembly generation",
-                    span: empty_span(),
-                });
+                return Err(handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "Unexpected expression during assembly generation",
+                        span: empty_span(),
+                    },
+                }));
             }
         }
         Ok(())
@@ -301,11 +297,12 @@ impl AsmBuilder {
     /// Generates assembly for a given constraint
     fn compile_constraint(
         &mut self,
+        handler: &Handler,
         expr: &ExprKey,
         intent: &IntermediateIntent,
-    ) -> Result<(), CompileError> {
+    ) -> Result<(), ErrorEmitted> {
         let mut asm = Vec::new();
-        self.compile_expr(&mut asm, expr, intent)?;
+        self.compile_expr(handler, &mut asm, expr, intent)?;
         self.c_asm.push(asm);
         Ok(())
     }
@@ -313,7 +310,10 @@ impl AsmBuilder {
 
 /// Converts a `crate::IntermediateIntent` into a `Intent` which
 /// includes generating assembly for the constraints and for state reads.
-pub fn intent_to_asm(final_intent: &IntermediateIntent) -> Result<Intent, CompileError> {
+pub fn intent_to_asm(
+    handler: &Handler,
+    final_intent: &IntermediateIntent,
+) -> Result<Intent, ErrorEmitted> {
     let mut builder = AsmBuilder::default();
 
     // low level decision variable index
@@ -340,11 +340,15 @@ pub fn intent_to_asm(final_intent: &IntermediateIntent) -> Result<Intent, Compil
     let total_decision_vars = d_var;
 
     for (_, state) in &final_intent.states {
-        builder.compile_state(state, final_intent)?;
+        let _ = builder.compile_state(handler, state, final_intent);
     }
 
     for (constraint, _) in &final_intent.constraints {
-        builder.compile_constraint(constraint, final_intent)?;
+        let _ = builder.compile_constraint(handler, constraint, final_intent);
+    }
+
+    if handler.has_errors() {
+        return Err(handler.cancel());
     }
 
     Ok(Intent {

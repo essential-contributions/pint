@@ -5,7 +5,10 @@ use std::{
 };
 use test_util::{parse_test_data, TestData};
 use yansi::Color::{Cyan, Red, Yellow};
-use yurtc::{error::ReportableError, intermediate::Program};
+use yurtc::{
+    error::{Errors, Handler, ReportableError},
+    intermediate::Program,
+};
 
 mod cli;
 
@@ -88,10 +91,11 @@ fn parse_test_and_check(
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
 ) -> Option<Program> {
-    match yurtc::parser::parse_project(path) {
-        Err(errs) => {
-            let errs_str = errs
-                .0
+    let handler = Handler::default();
+    match yurtc::parser::parse_project(&handler, path) {
+        Err(_) => {
+            let errs_str = handler
+                .consume()
                 .iter()
                 .map(|err| err.display_raw())
                 .collect::<String>()
@@ -141,7 +145,8 @@ fn type_check(
     failed_tests: &mut Vec<String>,
     path: &Path,
 ) -> Option<Program> {
-    ii.type_check()
+    let handler = Handler::default();
+    ii.type_check(&handler)
         .map(|checked| {
             if test_data.typecheck_failure.is_some() {
                 failed_tests.push(path.display().to_string());
@@ -153,7 +158,8 @@ fn type_check(
             }
             checked
         })
-        .map_err(|err| {
+        .map_err(|_| {
+            let err = Errors(handler.consume());
             if let Some(typecheck_error_str) = &test_data.typecheck_failure {
                 similar_asserts::assert_eq!(typecheck_error_str.trim_end(), format!("{err}"));
             } else {
@@ -176,7 +182,8 @@ fn flatten_and_check(
     failed_tests: &mut Vec<String>,
     path: &Path,
 ) -> Option<Program> {
-    ii.flatten()
+    let handler = Handler::default();
+    ii.flatten(&handler)
         .map(|flattened| {
             if let Some(expected_flattened_str) = &test_data.flattened {
                 similar_asserts::assert_eq!(
@@ -200,7 +207,8 @@ fn flatten_and_check(
             }
             flattened
         })
-        .map_err(|err| {
+        .map_err(|_| {
+            let err = Errors(handler.consume());
             if let Some(flattening_error_str) = &test_data.flattening_failure {
                 similar_asserts::assert_eq!(flattening_error_str.trim_end(), format!("{err}"));
             } else {

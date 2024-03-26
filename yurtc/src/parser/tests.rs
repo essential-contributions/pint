@@ -1,5 +1,5 @@
 use crate::{
-    error::{Error, ReportableError},
+    error::{Error, Handler, ReportableError},
     intermediate::{DisplayWithII, IntermediateIntent, Program, ProgramKind},
     lexer::{self, KEYWORDS},
     parser::ParserContext,
@@ -22,25 +22,25 @@ lalrpop_mod!(#[allow(unused)] pub yurt_parser);
 macro_rules! parse_and_collect_errors {
     ($parser: expr, $source: expr, $context: expr) => {{
         let filepath = Rc::from(Path::new("test"));
-        let mut errors = Vec::new();
 
+        let handler = Handler::default();
         match $parser.parse(
             &mut $context,
-            &mut errors,
+            &handler,
             lexer::Lexer::new($source, &filepath, &[]),
         ) {
             Ok(result) => {
-                if errors.is_empty() {
-                    Ok(result)
+                if handler.has_errors() {
+                    Err(handler.consume())
                 } else {
-                    Err(errors)
+                    Ok(result)
                 }
             }
             Err(lalrpop_err) => {
-                errors.push(Error::Parse {
+                handler.emit_err(Error::Parse {
                     error: (lalrpop_err, &filepath).into(),
                 });
-                Err(errors)
+                Err(handler.consume())
             }
         }
     }};

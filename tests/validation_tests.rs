@@ -35,23 +35,34 @@ fn deploy(server: &mut Server) -> anyhow::Result<()> {
             path.push("main.yrt");
         }
 
+        // Error handler
+        let handler = yurtc::error::Handler::default();
+
         // Produce the initial parsed program
         let parsed = unwrap_or_continue!(
-            yurtc::parser::parse_project(&path),
+            yurtc::parser::parse_project(&handler, &path),
             "parse yurt",
             failed_tests,
-            path
+            path,
+            handler
         );
 
         // Parsed program -> Flattened program
-        let flattened = unwrap_or_continue!(parsed.compile(), "compile", failed_tests, path);
+        let flattened = unwrap_or_continue!(
+            parsed.compile(&handler),
+            "compile",
+            failed_tests,
+            path,
+            handler
+        );
 
         // Flattened program -> Assembly (aka collection of Intents)
         let intents = unwrap_or_continue!(
-            yurtc::asm_gen::program_to_intents(&flattened),
+            yurtc::asm_gen::program_to_intents(&handler, &flattened),
             "asm gen",
             failed_tests,
-            path
+            path,
+            handler
         );
 
         // Get the addresses of all produced persistent intents
@@ -127,23 +138,34 @@ fn submit_and_check_solution(server: &mut Server) -> anyhow::Result<()> {
 
         println!("Submitting {}.", entry.path().display());
 
+        // Error handler
+        let handler = yurtc::error::Handler::default();
+
         // Produce the initial parsed program
         let parsed = unwrap_or_continue!(
-            yurtc::parser::parse_project(&path),
+            yurtc::parser::parse_project(&handler, &path),
             "parse yurt",
             failed_tests,
-            path
+            path,
+            handler
         );
 
         // Parsed program -> Flattened program
-        let flattened = unwrap_or_continue!(parsed.compile(), "compile", failed_tests, path);
+        let flattened = unwrap_or_continue!(
+            parsed.compile(&handler),
+            "compile",
+            failed_tests,
+            path,
+            handler
+        );
 
         // Flattened program -> Assembly (aka collection of Intents)
         let intents = unwrap_or_continue!(
-            yurtc::asm_gen::program_to_intents(&flattened),
+            yurtc::asm_gen::program_to_intents(&handler, &flattened),
             "asm gen",
             failed_tests,
-            path
+            path,
+            handler
         );
 
         // Extract the transient intent. There should be a single intent in `intents`.

@@ -1,5 +1,5 @@
 use crate::{
-    error::{CompileError, Error, Errors, ParseError},
+    error::{CompileError, Error, ErrorEmitted, Handler, ParseError},
     expr::Ident,
     intermediate::{CallKey, ExprKey, IntermediateIntent, Program},
     lexer,
@@ -27,22 +27,20 @@ pub(crate) use context::ParserContext;
 #[cfg(test)]
 mod tests;
 
-pub fn parse_project(root_src_path: &Path) -> Result<Program, Errors> {
-    ProjectParser::new(PathBuf::from(root_src_path))
+pub fn parse_project(handler: &Handler, root_src_path: &Path) -> Result<Program, ErrorEmitted> {
+    ProjectParser::new(handler, PathBuf::from(root_src_path))
         .parse_project()
         .finalize()
 }
 
-#[derive(Default)]
-struct ProjectParser {
+struct ProjectParser<'a> {
     program: Program,
     macros: Vec<MacroDecl>,
     macro_calls: BTreeMap<String, slotmap::SecondaryMap<CallKey, (ExprKey, MacroCall)>>,
     proj_root_path: PathBuf,
     root_src_path: PathBuf,
     visited_paths: Vec<PathBuf>,
-    errors: Vec<Error>,
-
+    handler: &'a Handler,
     unique_idx: u64,
 }
 
@@ -64,21 +62,24 @@ pub(crate) struct NextModPath {
     pub(crate) span: Span,
 }
 
-impl ProjectParser {
-    fn new(root_src_path: PathBuf) -> Self {
+impl<'a> ProjectParser<'a> {
+    fn new(handler: &'a Handler, root_src_path: PathBuf) -> Self {
         let proj_root_path = root_src_path
             .parent()
             .map_or_else(|| PathBuf::from("/"), PathBuf::from);
 
         let mut project_parser = Self {
-            proj_root_path,
-            root_src_path,
+            program: Program::default(),
+            macros: vec![],
             macro_calls: BTreeMap::from([(
                 Program::ROOT_II_NAME.to_string(),
                 slotmap::SecondaryMap::default(),
             )]),
-
-            ..Self::default()
+            proj_root_path,
+            root_src_path,
+            visited_paths: vec![],
+            handler,
+            unique_idx: 0,
         };
 
         // Start with an empty II with an empty name. This is the "root intent".
@@ -116,9 +117,11 @@ impl ProjectParser {
 
             // Perform macro expansion for any new calls we have parsed. First, check for multiple
             // macros with the same signature.
-            let mut errs = macros::verify_unique_set(&self.macros);
-            let some_non_unique = !errs.is_empty();
-            self.errors.append(&mut errs);
+
+            let some_non_unique = self
+                .handler
+                .scope(|handler| macros::verify_unique_set(handler, &self.macros))
+                .is_err();
 
             // Abort here if we have non-unique macro declarations since call expansion assumes
             // that there will be a single match.
@@ -136,31 +139,23 @@ impl ProjectParser {
                         .remove(call_key)
                         .expect("Call key must be valid.");
 
-                    match macro_expander.expand_call(&self.macros, &call) {
-                        Ok((tokens, decl_sig_span)) => {
-                            let (body_expr, next_paths) = self.parse_macro_body(
-                                tokens,
-                                &decl_sig_span.context,
-                                &call.mod_path,
-                                &call,
-                                current_ii.clone(),
-                            );
+                    if let Ok((tokens, decl_sig_span)) = self
+                        .handler
+                        .scope(|handler| macro_expander.expand_call(handler, &self.macros, &call))
+                    {
+                        let (body_expr, next_paths) = self.parse_macro_body(
+                            tokens,
+                            &decl_sig_span.context,
+                            &call.mod_path,
+                            &call,
+                            current_ii.clone(),
+                        );
 
-                            self.analyse_and_add_paths(
-                                &call.mod_path,
-                                &next_paths,
-                                &mut pending_paths,
-                            );
+                        self.analyse_and_add_paths(&call.mod_path, &next_paths, &mut pending_paths);
 
-                            if let Some(expr_key) = body_expr {
-                                call_replacements.push((
-                                    current_ii.clone(),
-                                    call_expr_key,
-                                    expr_key,
-                                ));
-                            }
+                        if let Some(expr_key) = body_expr {
+                            call_replacements.push((current_ii.clone(), call_expr_key, expr_key));
                         }
-                        Err(mut errs) => self.errors.append(&mut errs),
                     }
                 }
             }
@@ -179,7 +174,7 @@ impl ProjectParser {
 
             // If the loop has gone for too long then there's an internal error. Arbitrary limit...
             if loop_count > 10_000 {
-                self.errors.push(Error::Compile {
+                self.handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "Infinite loop in project parser",
                         span: span::empty_span(),
@@ -208,7 +203,7 @@ impl ProjectParser {
         self
     }
 
-    fn finalize(mut self) -> Result<Program, Errors> {
+    fn finalize(mut self) -> Result<Program, ErrorEmitted> {
         // Insert all enums and new types from the root II into each non-root II (i.e. those
         // declared using an `intent { }` decl). Also, insert all top symbols since shadowing is
         // not allowed. That is, we can't use a symbol inside an `intent { .. }` that was already
@@ -230,7 +225,7 @@ impl ProjectParser {
                     ii.top_level_symbols
                         .get(symbol)
                         .map(|prev_span| {
-                            self.errors.push(Error::Parse {
+                            self.handler.emit_err(Error::Parse {
                                 error: ParseError::NameClash {
                                     sym: symbol.clone(),
                                     span: prev_span.clone(),
@@ -244,10 +239,11 @@ impl ProjectParser {
                 }
             });
 
-        self.errors
-            .is_empty()
-            .then(|| Ok(self.program))
-            .unwrap_or_else(|| Err(Errors(self.errors)))
+        if self.handler.has_errors() {
+            return Err(self.handler.cancel());
+        }
+
+        Ok(self.program)
     }
 }
 
@@ -268,6 +264,7 @@ macro_rules! parse_with {
      $local_scope: expr,
      $macro_ctx: expr,
      $current_ii: expr,
+     $handler: expr,
      ) => {{
         let span_from = |start, end| Span {
             context: Rc::clone($src_path),
@@ -297,37 +294,37 @@ macro_rules! parse_with {
             next_paths: &mut next_paths,
         };
 
-        let mut parse_errors = Vec::new();
+        let local_handler = Handler::default();
 
         let parsed_val = $parser
-            .parse(&mut context, &mut parse_errors, $tokens)
+            .parse(&mut context, &local_handler, $tokens)
             .map_err(|lalrpop_err| {
-                parse_errors.push(Error::Parse {
+                local_handler.emit_err(Error::Parse {
                     error: (lalrpop_err, $src_path).into(),
                 });
             })
             .unwrap_or_default();
 
         if let Some((macro_name, macro_span)) = $macro_ctx {
-            for err in parse_errors {
-                $self.errors.push(Error::MacroBodyWrapper {
+            for err in local_handler.consume() {
+                $handler.emit_err(Error::MacroBodyWrapper {
                     child: Box::new(err),
                     macro_name: macro_name.clone(),
                     macro_span: macro_span.clone(),
-                })
+                });
             }
         } else {
-            $self.errors.append(&mut parse_errors)
+            $self.handler.append(local_handler)
         }
 
         (parsed_val, next_paths)
     }};
 }
 
-impl ProjectParser {
+impl<'a> ProjectParser<'a> {
     fn parse_module(&mut self, src_path: &Rc<Path>, mod_path: &[String]) -> ((), Vec<NextModPath>) {
         let src_str = fs::read_to_string(src_path).unwrap_or_else(|io_err| {
-            self.errors.push(Error::Compile {
+            self.handler.emit_err(Error::Compile {
                 error: CompileError::FileIO {
                     error: io_err,
                     file: src_path.to_path_buf(),
@@ -353,6 +350,7 @@ impl ProjectParser {
             None,                           // local_scope
             Option::<(String, Span)>::None, // macro_ctx
             Program::ROOT_II_NAME, // The II when we explore a new module is always the root II
+            self.handler,
         )
     }
 
@@ -375,6 +373,7 @@ impl ProjectParser {
             Some(&local_scope),
             Some((macro_call.name.clone(), macro_call.span.clone())),
             current_ii,
+            self.handler,
         )
     }
 
@@ -413,7 +412,7 @@ impl ProjectParser {
                 let path_enum = enum_path_strs.join("::");
                 let path_full = format!("{path_mod}::{suffix}");
 
-                self.errors.push(Error::Compile {
+                self.handler.emit_err(Error::Compile {
                     error: CompileError::NoFileFoundForPath {
                         path_full: path_full.clone(),
                         path_mod,
@@ -464,7 +463,7 @@ impl ProjectParser {
             (true, false) => Some((next_path, next_mod_path)),
             (false, true) => Some((alternative_next_path, next_mod_path)),
             (true, true) => {
-                self.errors.push(Error::Compile {
+                self.handler.emit_err(Error::Compile {
                     error: CompileError::DualModulity {
                         mod_path: next_mod_path.join("::"),
                         file_path_a: next_path,

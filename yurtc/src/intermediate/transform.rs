@@ -3,65 +3,49 @@ mod lower;
 mod scalarize;
 mod unroll;
 
-use crate::error::{Error, Errors};
+use crate::error::{ErrorEmitted, Handler};
 use canonicalize_solve_directive::canonicalize_solve_directive;
 use lower::{lower_aliases, lower_bools, lower_casts, lower_enums, lower_imm_accesses};
 use scalarize::scalarize;
 use unroll::unroll_foralls;
 
-#[macro_export]
-macro_rules! transform {
-    ($result:expr, $errs:ident) => {
-        if let Err(error) = $result {
-            $errs.push(Error::Compile { error });
-        }
-    };
-}
-
 impl super::Program {
-    pub fn flatten(mut self) -> Result<Self, Errors> {
-        let mut errors: Vec<Error> = self
-            .iis
-            .values_mut()
-            .flat_map(|ii| {
-                let mut errs = Vec::new();
+    pub fn flatten(mut self, handler: &Handler) -> Result<Self, ErrorEmitted> {
+        for ii in self.iis.values_mut() {
+            // Unroll each forall into one large conjuction
+            let _ = unroll_foralls(handler, ii);
 
-                // Unroll each forall into one large conjuction
-                transform!(unroll_foralls(ii), errs);
+            // Transform each enum variant into its integer discriminant
+            let _ = lower_enums(handler, ii);
 
-                // Transform each enum variant into its integer discriminant
-                transform!(lower_enums(ii), errs);
+            // Scalarize after lowering enums so we only have to deal with integer indices and
+            // then lower array and tuple accesses into immediates.  After here there will no
+            // longer be aggregate types.
+            let _ = scalarize(handler, ii);
+            let _ = lower_imm_accesses(handler, ii);
 
-                // Scalarize after lowering enums so we only have to deal with integer indices and
-                // then lower array and tuple accesses into immediates.  After here there will no
-                // longer be aggregate types.
-                transform!(scalarize(ii), errs);
-                transform!(lower_imm_accesses(ii), errs);
+            // Lower bools after scalarization since it creates new comparison expressions
+            // which will return bools.
+            let _ = lower_bools(ii);
 
-                // Lower bools after scalarization since it creates new comparison expressions
-                // which will return bools.
-                transform!(lower_bools(ii), errs);
+            // This could be done straight after type checking but any error which prints the
+            // type until now will have the more informative aliased description.  e.g.,
+            // `Height (int)` rather than just `int`.
+            let _ = lower_aliases(ii);
 
-                // This could be done straight after type checking but any error which prints the
-                // type until now will have the more informative aliased description.  e.g.,
-                // `Height (int)` rather than just `int`.
-                transform!(lower_aliases(ii), errs);
-
-                // Lower casts after aliases since we're leaving `int -> real` behind, but it's
-                // much easier if the `real` isn't still an alias.
-                transform!(lower_casts(ii), errs);
-
-                errs
-            })
-            .collect();
+            // Lower casts after aliases since we're leaving `int -> real` behind, but it's
+            // much easier if the `real` isn't still an alias.
+            let _ = lower_casts(handler, ii);
+        }
 
         // Transform the objective function, if present, into a path to a new variable that is
         // equal to the objective function expression.
-        transform!(canonicalize_solve_directive(&mut self), errors);
+        let _ = canonicalize_solve_directive(handler, &mut self);
 
-        errors
-            .is_empty()
-            .then(|| Ok(self))
-            .unwrap_or_else(|| Err(Errors(errors)))
+        if handler.has_errors() {
+            return Err(handler.cancel());
+        }
+
+        Ok(self)
     }
 }

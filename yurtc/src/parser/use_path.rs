@@ -100,7 +100,10 @@ lalrpop_mod!(#[allow(unused)] pub yurt_parser);
 
 #[test]
 fn gather_use_paths() {
-    use crate::intermediate::{IntermediateIntent, Program, ProgramKind};
+    use crate::{
+        error::Handler,
+        intermediate::{IntermediateIntent, Program, ProgramKind},
+    };
     use std::collections::BTreeMap;
     let parser = yurt_parser::UseTreeParser::new();
     let mut current_ii = Program::ROOT_II_NAME.to_string();
@@ -130,7 +133,7 @@ fn gather_use_paths() {
                     use_paths: &mut Vec::new(),
                     next_paths: &mut Vec::new(),
                 },
-                &mut Vec::new(),
+                &Handler::default(),
                 crate::lexer::Lexer::new(src, &filepath, &[]),
             )
             .expect("Failed to parse test case.")
