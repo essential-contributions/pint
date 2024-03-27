@@ -68,5 +68,5 @@ impl Handler {
 /// Proof that an error was emitted through a `Handler`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ErrorEmitted {
-    pub _priv: (),
+    _priv: (),
 }

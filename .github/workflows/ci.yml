@@ -7,7 +7,7 @@ on:
   pull_request: null
 
 env:
-  RUST_VERSION: 1.76.0
+  RUST_VERSION: 1.77.0
   NIGHTLY_RUST_VERSION: nightly-2024-02-10
   SCIP_VERSION: 8.0.3
 
