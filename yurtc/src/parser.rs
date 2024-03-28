@@ -141,8 +141,7 @@ impl<'a> ProjectParser<'a> {
 
                     macros::splice_args(
                         self.handler,
-                        self
-                            .program
+                        self.program
                             .iis
                             .get(current_ii)
                             .expect("Call key must be valid"),
