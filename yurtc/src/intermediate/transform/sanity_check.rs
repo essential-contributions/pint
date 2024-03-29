@@ -301,6 +301,23 @@ fn run_parser(src: &str, handler: &Handler) -> Program {
 }
 
 #[test]
+fn exprs() {
+    // need to test for: macrocall, fncall, if, array, arrayelementaccess, tuple, tuplefieldaccess, cast, in, range, forall
+    let src = "let t = { y: 3, 2 };
+    let x = t.1;";
+    check(
+        &run_test(src),
+        expect_test::expect![[r#"
+        compiler internal error: tuple present in final intent expr_types slotmap
+        compiler internal error: tuple present in final intent expr_types slotmap
+        compiler internal error: tuple present in final intent expr_types slotmap
+        compiler internal error: tuple present in final intent exprs slotmap
+        compiler internal error: tuple field access present in final intent exprs slotmap
+        compiler internal error: tuple present in final intent var_types slotmap"#]],
+    );
+}
+
+#[test]
 fn expr_types() {
     let src = "let a = [1, 2, 3];";
     check(
