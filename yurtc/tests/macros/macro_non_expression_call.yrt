@@ -1,0 +1,25 @@
+macro @decls_only($a) {
+    constraint $a > 0;
+}
+
+// @decls_only() doesn't return an expression and can't be used here.
+let x = @decls_only(11);
+
+// This is OK.
+@decls_only(22);
+
+solve satisfy;
+
+// intermediate <<<
+// var ::x;
+// constraint (::x == <REMOVED MACRO CALL>);
+// constraint (11 > 0);
+// constraint (22 > 0);
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// macro call is not an expression
+// @128..143: macro call does not expand to an expression
+// macros which contain only declarations may only be used at the top level of an intent and not as an expression
+// >>>

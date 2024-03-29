@@ -85,6 +85,9 @@ pub struct IntermediateIntent {
     // CallKey is used in a secondary map in the parser context to access the actual call data.
     pub calls: slotmap::SlotMap<CallKey, Path>,
 
+    // Keep track of obsolete expanded macro calls in case they're erroneously depended upon.
+    pub removed_macro_calls: slotmap::SecondaryMap<ExprKey, Span>,
+
     pub top_level_symbols: BTreeMap<String, Span>,
 }
 

@@ -94,7 +94,7 @@ impl<'a> ProjectParser<'a> {
     /// Parse the project starting with the `root_src_path` and return an intermediate intent. Upon
     /// failure, return a vector of all compile errors encountered.
     fn parse_project(mut self) -> Self {
-        let mut call_replacements = Vec::<(String, ExprKey, ExprKey)>::new();
+        let mut call_replacements = Vec::<(String, ExprKey, Option<ExprKey>, Span)>::new();
         let mut macro_expander = MacroExpander::default();
         let mut pending_paths = vec![(self.root_src_path.clone(), Vec::new())];
 
@@ -135,9 +135,18 @@ impl<'a> ProjectParser<'a> {
 
                 // Expand the next call. It may find new paths.
                 if let Some(call_key) = macro_calls.keys().nth(0) {
-                    let (call_expr_key, call) = macro_calls
+                    let (call_expr_key, mut call) = macro_calls
                         .remove(call_key)
                         .expect("Call key must be valid.");
+
+                    macros::splice_args(
+                        self.handler,
+                        self.program
+                            .iis
+                            .get(current_ii)
+                            .expect("Call key must be valid"),
+                        &mut call,
+                    );
 
                     if let Ok((tokens, decl_sig_span)) = self
                         .handler
@@ -153,9 +162,12 @@ impl<'a> ProjectParser<'a> {
 
                         self.analyse_and_add_paths(&call.mod_path, &next_paths, &mut pending_paths);
 
-                        if let Some(expr_key) = body_expr {
-                            call_replacements.push((current_ii.clone(), call_expr_key, expr_key));
-                        }
+                        call_replacements.push((
+                            current_ii.clone(),
+                            call_expr_key,
+                            body_expr,
+                            call.span.clone(),
+                        ));
                     }
                 }
             }
@@ -185,19 +197,20 @@ impl<'a> ProjectParser<'a> {
         }
 
         // For each call we need to replace its user (there should be just one) with the macro body
-        // expression.
-        for (current_ii, call_expr_key, body_expr_key) in call_replacements {
-            self.program
-                .iis
-                .get_mut(&current_ii)
-                .unwrap()
-                .replace_exprs(call_expr_key, body_expr_key);
-            self.program
-                .iis
-                .get_mut(&current_ii)
-                .unwrap()
-                .exprs
-                .remove(call_expr_key);
+        // expression.  Or, for macros which only had declarations and no body expression, just
+        // delete the call.
+        for (current_ii, call_expr_key, body_expr_key, span) in call_replacements {
+            let ii = self.program.iis.get_mut(&current_ii).unwrap();
+
+            if let Some(body_expr_key) = body_expr_key {
+                ii.replace_exprs(call_expr_key, body_expr_key);
+            } else {
+                // Keep track of the removed macro for type-checking, in case the intent
+                // erroneously expected the macro call to be an expression (and not just
+                // declarations).
+                ii.removed_macro_calls.insert(call_expr_key, span);
+            }
+            ii.exprs.remove(call_expr_key);
         }
 
         self
