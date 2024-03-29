@@ -1,5 +1,5 @@
 use crate::{
-    error::CompileError,
+    error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{self, Expr},
     intermediate::{
         IntermediateIntent, Program, ProgramKind,
@@ -34,7 +34,10 @@ use crate::{
 ///
 /// Note that the actual transformation may vary depending on the specific details of the solve
 /// directive
-pub(crate) fn canonicalize_solve_directive(program: &mut Program) -> Result<(), CompileError> {
+pub(crate) fn canonicalize_solve_directive(
+    handler: &Handler,
+    program: &mut Program,
+) -> Result<(), ErrorEmitted> {
     // Stateful programs should not have solve directives
     if matches!(program.kind, ProgramKind::Stateful) {
         return Ok(());
@@ -47,7 +50,11 @@ pub(crate) fn canonicalize_solve_directive(program: &mut Program) -> Result<(), 
     let (solve_func, directive_span) = ii
         .directives
         .first()
-        .ok_or_else(|| CompileError::MissingSolveDirective { span: empty_span() })?
+        .ok_or_else(|| {
+            handler.emit_err(Error::Compile {
+                error: CompileError::MissingSolveDirective { span: empty_span() },
+            })
+        })?
         .clone();
 
     let directive_expr_key = match solve_func {
@@ -66,9 +73,13 @@ pub(crate) fn canonicalize_solve_directive(program: &mut Program) -> Result<(), 
     let directive_expr_type = ii
         .expr_types
         .get(directive_expr_key)
-        .ok_or_else(|| CompileError::Internal {
-            msg: "invalid intermediate intent expression_types slotmap key",
-            span: empty_span(),
+        .ok_or_else(|| {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "invalid intermediate intent expression_types slotmap key",
+                    span: empty_span(),
+                },
+            })
         })?
         .clone();
 

@@ -1,7 +1,7 @@
 use crate::{
-    error::CompileError,
+    error::{CompileError, Error, ErrorEmitted},
     expr::Expr,
-    intermediate::{IntermediateIntent, Program},
+    intermediate::{Handler, IntermediateIntent, Program},
     span::{empty_span, Spanned},
     types::Type,
 };
@@ -14,178 +14,222 @@ use crate::{
 // check verification pass has to be the last pass
 // ideally all internal compile errors, and not user facing
 
-pub(crate) fn sanity_check(program: &mut Program) -> Result<(), Vec<CompileError>> {
-    let errors: Vec<CompileError> = program
-        .iis
-        .values()
-        .flat_map(|ii| {
-            println!("{:#?}", ii);
-            let mut ii_errors = check_expr_types(ii);
-            println!("{:?}", ii_errors);
-            check_exprs(ii, &mut ii_errors);
-            check_var_types(ii, &mut ii_errors);
-            check_vars(ii, &mut ii_errors);
-            ii_errors
-        })
-        .collect();
+pub(crate) fn sanity_check(handler: &Handler, program: &mut Program) -> Result<(), ErrorEmitted> {
+    program.iis.values().for_each(|ii| {
+        check_expr_types(ii, handler);
+        check_exprs(ii, handler);
+        check_var_types(ii, handler);
+        check_vars(ii, handler);
+    });
 
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(errors)
-    }
+    Ok(())
 }
 
-fn check_expr_types(ii: &IntermediateIntent) -> Vec<CompileError> {
-    ii.expr_types
-        .iter()
-        .filter_map(|(_, expr_type)| match expr_type {
-            Type::Error(span) => Some(CompileError::Internal {
-                msg: "error expression present in final intent expr_types slotmap",
-                span: span.clone(),
-            }),
-            Type::Array { span, .. } => Some(CompileError::Internal {
-                msg: "array present in final intent expr_types slotmap",
-                span: span.clone(),
-            }),
-            Type::Tuple { span, .. } => Some(CompileError::Internal {
-                msg: "tuple present in final intent expr_types slotmap",
-                span: span.clone(),
-            }),
-            Type::Custom { span, .. } => Some(CompileError::Internal {
-                msg: "custom type present in final intent expr_types slotmap",
-                span: span.clone(),
-            }),
-            Type::Alias { span, .. } => Some(CompileError::Internal {
-                msg: "type alias present in final intent expr_types slotmap",
-                span: span.clone(),
-            }),
-            _ => None,
-        })
-        .collect::<Vec<CompileError>>()
+fn check_expr_types(ii: &IntermediateIntent, handler: &Handler) {
+    ii.expr_types.iter().for_each(|(_, expr_type)| {
+        if let Type::Error(span) = expr_type {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "error expression present in final intent expr_types slotmap",
+                    span: span.clone(),
+                },
+            });
+        } else if let Type::Array { span, .. } = expr_type {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "array present in final intent expr_types slotmap",
+                    span: span.clone(),
+                },
+            });
+        } else if let Type::Tuple { span, .. } = expr_type {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "tuple present in final intent expr_types slotmap",
+                    span: span.clone(),
+                },
+            });
+        } else if let Type::Custom { span, .. } = expr_type {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "custom type present in final intent expr_types slotmap",
+                    span: span.clone(),
+                },
+            });
+        } else if let Type::Alias { span, .. } = expr_type {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "type alias present in final intent expr_types slotmap",
+                    span: span.clone(),
+                },
+            });
+        }
+    })
 }
 
-fn check_exprs(ii: &IntermediateIntent, errors: &mut Vec<CompileError>) {
-    fn check_expr(expr: &Expr) -> Option<CompileError> {
-        match expr {
-            Expr::Error(span) => Some(CompileError::Internal {
-                msg: "error expression present in final intent exprs slotmap",
-                span: span.clone(),
-            }),
-            Expr::MacroCall { span, .. } => Some(CompileError::Internal {
-                msg: "macro call present in final intent exprs slotmap",
-                span: span.clone(),
-            }),
-            Expr::If { span, .. } => Some(CompileError::Internal {
-                msg: "if expression present in final intent exprs slotmap",
-                span: span.clone(),
-            }),
-            Expr::Array { span, .. } => Some(CompileError::Internal {
-                msg: "array present in final intent exprs slotmap",
-                span: span.clone(),
-            }),
-            Expr::ArrayElementAccess { span, .. } => Some(CompileError::Internal {
-                msg: "array element access present in final intent exprs slotmap",
-                span: span.clone(),
-            }),
-            Expr::Tuple { span, .. } => Some(CompileError::Internal {
-                msg: "tuple present in final intent exprs slotmap",
-                span: span.clone(),
-            }),
-            Expr::TupleFieldAccess { span, .. } => Some(CompileError::Internal {
-                msg: "tuple field access present in final intent exprs slotmap",
-                span: span.clone(),
-            }),
-            Expr::Cast { span, .. } => Some(CompileError::Internal {
-                msg: "cast present in final intent exprs slotmap",
-                span: span.clone(),
-            }),
-            Expr::In { span, .. } => Some(CompileError::Internal {
-                msg: "in expression in final intent exprs slotmap",
-                span: span.clone(),
-            }),
-            Expr::Range { span, .. } => Some(CompileError::Internal {
-                msg: "range present in final intent exprs slotmap",
-                span: span.clone(),
-            }),
-            Expr::ForAll { span, .. } => Some(CompileError::Internal {
-                msg: "forall present in final intent exprs slotmap",
-                span: span.clone(),
-            }),
-            _ => None,
+fn check_exprs(ii: &IntermediateIntent, handler: &Handler) {
+    fn check_expr(expr: &Expr, handler: &Handler) {
+        if let Expr::Error(span) = expr {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "error expression present in final intent exprs slotmap",
+                    span: span.clone(),
+                },
+            });
+        } else if let Expr::MacroCall { span, .. } = expr {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "macro call present in final intent exprs slotmap",
+                    span: span.clone(),
+                },
+            });
+        } else if let Expr::If { span, .. } = expr {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "if expression present in final intent exprs slotmap",
+                    span: span.clone(),
+                },
+            });
+        } else if let Expr::Array { span, .. } = expr {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "array present in final intent exprs slotmap",
+                    span: span.clone(),
+                },
+            });
+        } else if let Expr::ArrayElementAccess { span, .. } = expr {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "array element access present in final intent exprs slotmap",
+                    span: span.clone(),
+                },
+            });
+        } else if let Expr::Tuple { span, .. } = expr {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "tuple present in final intent exprs slotmap",
+                    span: span.clone(),
+                },
+            });
+        } else if let Expr::TupleFieldAccess { span, .. } = expr {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "tuple field access present in final intent exprs slotmap",
+                    span: span.clone(),
+                },
+            });
+        } else if let Expr::Cast { span, .. } = expr {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "cast present in final intent exprs slotmap",
+                    span: span.clone(),
+                },
+            });
+        } else if let Expr::In { span, .. } = expr {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "in expression in final intent exprs slotmap",
+                    span: span.clone(),
+                },
+            });
+        } else if let Expr::Range { span, .. } = expr {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "range present in final intent exprs slotmap",
+                    span: span.clone(),
+                },
+            });
+        } else if let Expr::ForAll { span, .. } = expr {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "forall present in final intent exprs slotmap",
+                    span: span.clone(),
+                },
+            });
         }
     }
 
     if ii.exprs.len() != ii.expr_types.len() {
-        errors.push(CompileError::Internal {
-            msg: "mismatched final intent exprs and expr_types slotmaps",
-            span: empty_span(),
+        handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "mismatched final intent exprs and expr_types slotmaps",
+                span: empty_span(),
+            },
         });
     };
 
     for (expr_key, expr) in ii.exprs.iter() {
-        if let Some(error) = check_expr(expr) {
-            errors.push(error);
-        }
+        check_expr(expr, handler);
 
         if ii.expr_types.get(expr_key).is_none() {
-            errors.push(CompileError::Internal {
-                msg: "final intent expr_types slotmap is missing corresponding key from exprs slotmap", 
-                span: ii.exprs[expr_key].span().clone() })
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "final intent expr_types slotmap is missing corresponding key from exprs slotmap", 
+                span: ii.exprs[expr_key].span().clone() }});
         }
     }
 }
 
-fn check_vars(ii: &IntermediateIntent, errors: &mut Vec<CompileError>) {
+fn check_vars(ii: &IntermediateIntent, handler: &Handler) {
     if ii.vars.len() != ii.var_types.len() {
-        errors.push(CompileError::Internal {
-            msg: "mismatched final intent vars and var_types slotmaps",
-            span: empty_span(),
+        handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "mismatched final intent vars and var_types slotmaps",
+                span: empty_span(),
+            },
         });
     };
 
-    let mut errors: Vec<CompileError> = Vec::new();
     for (var_key, _) in ii.vars.iter() {
         if ii.var_types.get(var_key).is_none() {
-            errors.push(CompileError::Internal {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
                 msg:
                     "final intent var_types slotmap is missing corresponding key from vars slotmap",
                 span: ii.vars[var_key].span.clone(),
-            })
+            }});
         }
     }
 }
 
-fn check_var_types(ii: &IntermediateIntent, errors: &mut Vec<CompileError>) {
-    errors.append(
-        &mut ii
-            .var_types
-            .iter()
-            .filter_map(|(_, var_type)| match var_type {
-                Type::Error(span) => Some(CompileError::Internal {
+fn check_var_types(ii: &IntermediateIntent, handler: &Handler) {
+    ii.var_types.iter().for_each(|(_, var_type)| {
+        if let Type::Error(span) = var_type {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
                     msg: "error var present in final intent var_types slotmap",
                     span: span.clone(),
-                }),
-                Type::Array { span, .. } => Some(CompileError::Internal {
+                },
+            });
+        } else if let Type::Array { span, .. } = var_type {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
                     msg: "array present in final intent var_types slotmap",
                     span: span.clone(),
-                }),
-                Type::Tuple { span, .. } => Some(CompileError::Internal {
+                },
+            });
+        } else if let Type::Tuple { span, .. } = var_type {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
                     msg: "tuple present in final intent var_types slotmap",
                     span: span.clone(),
-                }),
-                Type::Custom { span, .. } => Some(CompileError::Internal {
+                },
+            });
+        } else if let Type::Custom { span, .. } = var_type {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
                     msg: "custom type present in final intent var_types slotmap",
                     span: span.clone(),
-                }),
-                Type::Alias { span, .. } => Some(CompileError::Internal {
+                },
+            });
+        } else if let Type::Alias { span, .. } = var_type {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
                     msg: "type alias present in final intent var_types slotmap",
                     span: span.clone(),
-                }),
-                _ => None,
-            })
-            .collect::<Vec<CompileError>>(),
-    );
+                },
+            });
+        }
+    });
 }
 
 #[cfg(test)]
@@ -195,29 +239,26 @@ fn check(actual: &str, expect: expect_test::Expect) {
 
 #[cfg(test)]
 fn run_test(src: &str) -> String {
-    format!("{}", run_without_transforms(src))
+    use crate::error;
+
+    let errors = run_without_transforms(src);
+    let errors = error::Errors(errors);
+    errors.to_string()
 }
 
 #[cfg(test)]
-fn run_without_transforms(src: &str) -> crate::error::Errors {
-    use crate::error::Error;
-
-    let parsed_source = run_parser(src);
-    let mut type_checked_source = parsed_source.type_check().expect("Failed to type check");
-    match sanity_check(&mut type_checked_source) {
-        Ok(_) => crate::error::Errors(vec![]),
-        Err(errors) => {
-            let mut final_errors = vec![];
-            for error in errors {
-                final_errors.push(Error::Compile { error });
-            }
-            crate::error::Errors(final_errors)
-        }
-    }
+fn run_without_transforms(src: &str) -> Vec<Error> {
+    let handler = Handler::default();
+    let parsed_source = run_parser(src, &handler);
+    let mut type_checked_source = parsed_source
+        .type_check(&handler)
+        .expect("Failed to type check");
+    let _ = sanity_check(&handler, &mut type_checked_source);
+    handler.consume()
 }
 
 #[cfg(test)]
-fn run_parser(src: &str) -> Program {
+fn run_parser(src: &str, handler: &Handler) -> Program {
     use crate::intermediate::ProgramKind;
     use crate::parser::yurt_parser;
     use crate::span;
@@ -251,7 +292,7 @@ fn run_parser(src: &str) -> Program {
                 use_paths: &mut Vec::new(),
                 next_paths: &mut Vec::new(),
             },
-            &mut Vec::new(),
+            handler,
             crate::lexer::Lexer::new(src, &filepath, &[]),
         )
         .expect("Failed to parse test case.");
@@ -264,12 +305,11 @@ fn exprs() {
     let src = "let a = [1, 2, 3];";
     check(
         &run_test(src),
-        expect_test::expect![[
-            r#"compiler internal error: array present in final intent expr_types slotmap
+        expect_test::expect![[r#"
+            compiler internal error: array present in final intent expr_types slotmap
             compiler internal error: array present in final intent expr_types slotmap
             compiler internal error: array present in final intent exprs slotmap
-            compiler internal error: array present in final intent var_types slotmap"#
-        ]],
+            compiler internal error: array present in final intent var_types slotmap"#]],
     )
 }
 // @mohammad, please check errors in test.yrt. It seems like our final intent is pretty screwed? What is expected from

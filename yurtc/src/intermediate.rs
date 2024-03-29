@@ -1,5 +1,5 @@
 use crate::{
-    error::{CompileError, Errors, ParseError},
+    error::{Error, ErrorEmitted, Handler, ParseError},
     expr::{self, Expr, Ident},
     span::{empty_span, Span},
     types::{EnumDecl, EphemeralDecl, FnSig, NewTypeDecl, Path, Type},
@@ -13,8 +13,6 @@ mod analyse;
 mod check_program_kind;
 mod display;
 mod transform;
-
-type Result<T> = std::result::Result<T, CompileError>;
 
 slotmap::new_key_type! { pub struct VarKey; }
 slotmap::new_key_type! { pub struct StateKey; }
@@ -45,8 +43,9 @@ pub struct Program {
 impl Program {
     pub const ROOT_II_NAME: &'static str = "";
 
-    pub fn compile(self) -> std::result::Result<Self, Errors> {
-        self.type_check()?.flatten()
+    pub fn compile(self, handler: &Handler) -> Result<Self, ErrorEmitted> {
+        let type_checked = handler.scope(|handler| self.type_check(handler))?;
+        handler.scope(|handler| type_checked.flatten(handler))
     }
 
     /// The root intent is the one named `Intents::ROOT_II_NAME`
@@ -97,13 +96,14 @@ impl IntermediateIntent {
 
     pub fn insert_var(
         &mut self,
+        handler: &Handler,
         mod_prefix: &str,
         local_scope: Option<&str>,
         name: &Ident,
         ty: Option<Type>,
-    ) -> std::result::Result<VarKey, ParseError> {
+    ) -> std::result::Result<VarKey, ErrorEmitted> {
         let full_name =
-            self.add_top_level_symbol(mod_prefix, local_scope, name, name.span.clone())?;
+            self.add_top_level_symbol(handler, mod_prefix, local_scope, name, name.span.clone())?;
         let var_key = self.vars.insert(Var {
             name: full_name,
             span: name.span.clone(),
@@ -117,17 +117,23 @@ impl IntermediateIntent {
 
     pub fn insert_ephemeral(
         &mut self,
+        handler: &Handler,
         mod_prefix: &str,
         name: &Ident,
         ty: Type,
-    ) -> std::result::Result<(), ParseError> {
+    ) -> std::result::Result<(), ErrorEmitted> {
         let full_name = Self::make_full_symbol(mod_prefix, None, name);
         if !self
             .ephemerals
             .iter()
             .any(|eph_decl| eph_decl.name == full_name)
         {
-            self.add_top_level_symbol_with_name(name, full_name.clone(), name.span.clone())?;
+            self.add_top_level_symbol_with_name(
+                handler,
+                name,
+                full_name.clone(),
+                name.span.clone(),
+            )?;
             self.ephemerals.push(EphemeralDecl {
                 name: full_name,
                 ty,
@@ -173,13 +179,14 @@ impl IntermediateIntent {
 
     pub fn insert_state(
         &mut self,
+        handler: &Handler,
         mod_prefix: &str,
         name: &Ident,
         ty: Option<Type>,
         expr: ExprKey,
         span: Span,
-    ) -> std::result::Result<StateKey, ParseError> {
-        let name = self.add_top_level_symbol(mod_prefix, None, name, span.clone())?;
+    ) -> std::result::Result<StateKey, ErrorEmitted> {
+        let name = self.add_top_level_symbol(handler, mod_prefix, None, name, span.clone())?;
         let state_key = self.states.insert(State {
             name,
             expr,
@@ -201,19 +208,22 @@ impl IntermediateIntent {
 
     fn add_top_level_symbol_with_name(
         &mut self,
+        handler: &Handler,
         short_name: &Ident,
         full_name: String,
         span: Span,
-    ) -> std::result::Result<String, ParseError> {
+    ) -> std::result::Result<String, ErrorEmitted> {
         self.top_level_symbols
             .get(&full_name)
             .map(|prev_span| {
                 // Name clash.
-                Err(ParseError::NameClash {
-                    sym: short_name.name.clone(),
-                    span: short_name.span.clone(),
-                    prev_span: prev_span.clone(),
-                })
+                Err(handler.emit_err(Error::Parse {
+                    error: ParseError::NameClash {
+                        sym: short_name.name.clone(),
+                        span: short_name.span.clone(),
+                        prev_span: prev_span.clone(),
+                    },
+                }))
             })
             .unwrap_or_else(|| {
                 // Not found in the symbol table.
@@ -224,13 +234,14 @@ impl IntermediateIntent {
 
     pub fn add_top_level_symbol(
         &mut self,
+        handler: &Handler,
         mod_prefix: &str,
         local_scope: Option<&str>,
         name: &Ident,
         span: Span,
-    ) -> std::result::Result<String, ParseError> {
+    ) -> std::result::Result<String, ErrorEmitted> {
         let full_name = Self::make_full_symbol(mod_prefix, local_scope, name);
-        self.add_top_level_symbol_with_name(name, full_name, span)
+        self.add_top_level_symbol_with_name(handler, name, full_name, span)
     }
 
     pub fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {

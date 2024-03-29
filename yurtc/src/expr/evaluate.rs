@@ -1,5 +1,5 @@
 use crate::{
-    error::CompileError,
+    error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp, Expr, Immediate, UnaryOp},
     intermediate::{ExprKey, IntermediateIntent},
     span::empty_span,
@@ -15,39 +15,41 @@ impl Expr {
     /// `PathByName`, `UnaryOp`, `BinaryOp`.
     pub(crate) fn evaluate(
         &self,
+        handler: &Handler,
         ii: &IntermediateIntent,
         values_map: &HashMap<Path, Immediate>,
-    ) -> Result<Immediate, CompileError> {
+    ) -> Result<Immediate, ErrorEmitted> {
         use BinaryOp::*;
-        use Immediate::*;
-        use UnaryOp::*;
+        use Immediate::{Bool, Int, Real};
+        use UnaryOp::{Neg, Not};
         match self {
             Expr::Immediate { value: imm, .. } => Ok(imm.clone()),
-            Expr::PathByName(path, span) => {
-                values_map
-                    .get(path)
-                    .cloned()
-                    .ok_or_else(|| CompileError::SymbolNotFound {
+            Expr::PathByName(path, span) => values_map.get(path).cloned().ok_or_else(|| {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::SymbolNotFound {
                         name: path.to_string(),
                         span: span.clone(),
                         enum_names: Vec::new(),
-                    })
-            }
+                    },
+                })
+            }),
             Expr::UnaryOp { op, expr, .. } => {
                 let expr = ii
                     .exprs
                     .get(*expr)
                     .expect("guaranteed by parser")
-                    .evaluate(ii, values_map)?;
+                    .evaluate(handler, ii, values_map)?;
 
                 match (expr, op) {
                     (Real(expr), Neg) => Ok(Real(-expr)),
                     (Int(expr), Neg) => Ok(Int(-expr)),
                     (Bool(expr), Not) => Ok(Bool(!expr)),
-                    _ => Err(CompileError::Internal {
-                        msg: "type error: invalid unary op for expression",
-                        span: empty_span(),
-                    }),
+                    _ => Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "type error: invalid unary op for expression",
+                            span: empty_span(),
+                        },
+                    })),
                 }
             }
             Expr::BinaryOp { op, lhs, rhs, .. } => {
@@ -55,13 +57,13 @@ impl Expr {
                     .exprs
                     .get(*lhs)
                     .expect("guaranteed by parser")
-                    .evaluate(ii, values_map)?;
+                    .evaluate(handler, ii, values_map)?;
 
                 let rhs = ii
                     .exprs
                     .get(*rhs)
                     .expect("guaranteed by parser")
-                    .evaluate(ii, values_map)?;
+                    .evaluate(handler, ii, values_map)?;
 
                 match (lhs, rhs) {
                     (Real(lhs), Real(rhs)) => match op {
@@ -79,10 +81,12 @@ impl Expr {
                         GreaterThan => Ok(Bool(lhs > rhs)),
                         GreaterThanOrEqual => Ok(Bool(lhs >= rhs)),
 
-                        _ => Err(CompileError::Internal {
-                            msg: "type error: invalid binary op for reals",
-                            span: empty_span(),
-                        }),
+                        _ => Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "type error: invalid binary op for reals",
+                                span: empty_span(),
+                            },
+                        })),
                     },
                     (Int(lhs), Int(rhs)) => match op {
                         // Arithmetic
@@ -100,10 +104,12 @@ impl Expr {
                         GreaterThan => Ok(Bool(lhs > rhs)),
                         GreaterThanOrEqual => Ok(Bool(lhs >= rhs)),
 
-                        _ => Err(CompileError::Internal {
-                            msg: "type error: invalid binary op for ints",
-                            span: empty_span(),
-                        }),
+                        _ => Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "type error: invalid binary op for ints",
+                                span: empty_span(),
+                            },
+                        })),
                     },
                     (Bool(lhs), Bool(rhs)) => match op {
                         // Comparison
@@ -118,22 +124,28 @@ impl Expr {
                         LogicalAnd => Ok(Bool(lhs && rhs)),
                         LogicalOr => Ok(Bool(lhs || rhs)),
 
-                        _ => Err(CompileError::Internal {
-                            msg: "type error: invalid binary op for bools",
-                            span: empty_span(),
-                        }),
+                        _ => Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "type error: invalid binary op for bools",
+                                span: empty_span(),
+                            },
+                        })),
                     },
-                    _ => Err(CompileError::Internal {
-                        msg: "compile-time evaluation for \"big ints\" and \"strings\" \
+                    _ => Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "compile-time evaluation for \"big ints\" and \"strings\" \
                               not currently supported",
-                        span: empty_span(),
-                    }),
+                            span: empty_span(),
+                        },
+                    })),
                 }
             }
-            _ => Err(CompileError::Internal {
-                msg: "unexpected expression during compile-time evaluation",
-                span: empty_span(),
-            }),
+            _ => Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "unexpected expression during compile-time evaluation",
+                    span: empty_span(),
+                },
+            })),
         }
     }
 }

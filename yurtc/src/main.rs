@@ -10,29 +10,34 @@ fn main() -> anyhow::Result<()> {
     let filepath = Path::new(&args.filepath);
 
     // Lex + Parse
-    let parsed = match parser::parse_project(filepath) {
+    let handler = error::Handler::default();
+    let parsed = match parser::parse_project(&handler, filepath) {
         Ok(parsed) => parsed,
-        Err(errors) => {
+        Err(_) => {
+            let errors = handler.consume();
+            let errors_len = errors.len();
             if !cfg!(test) {
-                error::print_errors(&errors);
+                error::print_errors(&error::Errors(errors));
             }
-            yurtc::yurtc_bail!(errors.0.len(), filepath)
+            yurtc::yurtc_bail!(errors_len, filepath)
         }
     };
 
     // Type check and flatten
-    let flattened = match parsed.compile() {
+    let flattened = match handler.scope(|handler| parsed.compile(handler)) {
         Ok(flattened) => {
             if args.print_flat {
                 println!("{flattened}");
             }
             flattened
         }
-        Err(errors) => {
+        Err(_) => {
+            let errors = handler.consume();
+            let errors_len = errors.len();
             if !cfg!(test) {
-                error::print_errors(&errors);
+                error::print_errors(&error::Errors(errors));
             }
-            yurtc::yurtc_bail!(1, filepath)
+            yurtc::yurtc_bail!(errors_len, filepath)
         }
     };
 
@@ -74,7 +79,7 @@ fn main() -> anyhow::Result<()> {
     } else {
         // This is WIP. So far, simply print the serialized JSON to `<filename>.json` or to
         // `<output>`. That'll likely change in the future when we decide on a serialized scheme.
-        match program_to_intents(&flattened) {
+        match handler.scope(|handler| program_to_intents(handler, &flattened)) {
             Ok(intents) => {
                 if args.print_asm {
                     println!("{intents}");
@@ -93,11 +98,13 @@ fn main() -> anyhow::Result<()> {
                     &intents.intents,
                 )?;
             }
-            Err(errors) => {
+            Err(_) => {
+                let errors = handler.consume();
+                let errors_len = errors.len();
                 if !cfg!(test) {
-                    error::print_errors(&errors);
+                    error::print_errors(&error::Errors(errors));
                 }
-                yurtc::yurtc_bail!(1, filepath)
+                yurtc::yurtc_bail!(errors_len, filepath)
             }
         };
     }

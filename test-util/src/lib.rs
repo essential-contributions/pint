@@ -7,12 +7,16 @@ use std::{
 
 /// Given a `Result`, unwrap it or emit the errors and `continue;`. Will fail if used outside a
 /// loop due to `continue;`.
+///
+/// This macro has two patterns. One that accepts a "handler" containing the errors and another
+/// that does not. If a handler is passed, then extract the errors from it and print them.
+/// Otherwise, print the error inside the `Result`.
 #[macro_export]
 macro_rules! unwrap_or_continue {
     ($step: expr, $step_name: expr, $failed: expr, $path: expr) => {{
         match $step {
             Ok(output) => output,
-            Err(err) => {
+            Err(errs) => {
                 $failed.push($path.clone());
                 eprintln!(
                     "{}",
@@ -20,7 +24,27 @@ macro_rules! unwrap_or_continue {
                         "Failed to {} {}: \n{}",
                         $step_name,
                         $path.display(),
-                        err
+                        errs,
+                    ))
+                );
+                continue;
+            }
+        }
+    }};
+
+    ($step: expr, $step_name: expr, $failed: expr, $path: expr, $handler: expr) => {{
+        match $step {
+            Ok(output) => output,
+            Err(_) => {
+                let errs = yurtc::error::Errors($handler.consume());
+                $failed.push($path.clone());
+                eprintln!(
+                    "{}",
+                    Red.paint(format!(
+                        "Failed to {} {}: \n{}",
+                        $step_name,
+                        $path.display(),
+                        errs,
                     ))
                 );
                 continue;

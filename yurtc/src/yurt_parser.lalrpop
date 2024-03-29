@@ -1,5 +1,5 @@
 use crate::{
-    error::{Error, ParseError},
+    error::{Error, ParseError, Handler},
     expr::*,
     intermediate::{ExprKey, SolveFunc, IntermediateIntent, ProgramKind, Program},
     lexer,
@@ -11,7 +11,7 @@ use crate::{
 
 grammar<'a>(
     context: &mut ParserContext<'a>,
-    errors: &mut Vec<Error>,
+    handler: &Handler,
 );
 
 pub Yurt: () = {
@@ -43,12 +43,12 @@ pub IntentOpen: () = {
     <l:@L> "intent" <name:Ident> "{" <r:@R> => {
         // To detect name clashes
         let name = context.add_top_level_symbol(
+            handler,
             Ident {
                 name: name.to_string(),
                 span: (context.span_from)(l, r),
             },
             context.mod_prefix,
-            errors,
         );
 
         // Brand new II in the program
@@ -88,7 +88,7 @@ UseStatement: () = {
         // use tree is not absolute, and append to the current list of use paths in our context.
         let mod_prefix = context.mod_prefix;
         let mod_path = context.mod_path;
-        let mut local_errors = Vec::new();
+        let local_handler = Handler::default();
         let mut new_use_paths = ut
             .gather_paths()
             .into_iter()
@@ -105,7 +105,7 @@ UseStatement: () = {
                     .take(use_path.path.len() - 1)
                     .any(|elem| elem == "self")
                 {
-                    local_errors.push(Error::Parse {
+                    local_handler.emit_err(Error::Parse {
                         error: ParseError::SelfNotAtTheEnd {
                             // We can use a better span here but that's okay for now. Ideally, we
                             // would use the span of the `self` ident itself, but we don't have that
@@ -127,7 +127,7 @@ UseStatement: () = {
                     // Check that the prefix `use_path.path` matches the current `mod_path` because
                     // we may in a module other than the root module
                     if use_path.path == mod_path {
-                        local_errors.push(Error::Parse {
+                        local_handler.emit_err(Error::Parse {
                             error: ParseError::SelfWithEmptyPrefix {
                                 span: use_path.span.clone(),
                             },
@@ -159,6 +159,7 @@ UseStatement: () = {
                 context
                     .current_ii()
                     .add_top_level_symbol(
+                        &local_handler,
                         mod_prefix,
                         None,
                         &Ident {
@@ -171,14 +172,11 @@ UseStatement: () = {
                         use_path.span.clone(),
                     )
                     .map(|_| use_path.clone())
-                    .unwrap_or_else(|error| {
-                        errors.push(Error::Parse { error });
-                        use_path
-                    })
+                    .unwrap_or_else(|error| use_path)
             })
             .collect::<Vec<_>>();
 
-        errors.extend(local_errors);
+        handler.append(local_handler);
         context.use_paths.append(&mut new_use_paths);
     }
 };
@@ -199,9 +197,9 @@ pub UseTree: UseTree = {
 pub LetDecl: () = {
     <l:@L> "let" <let_name:LetName> ":" <ty:Type> <init:LetInit?> <r:@R> => {
         let mod_prefix = context.mod_prefix;
-        context
+        let _ = context
             .current_ii()
-            .insert_var(mod_prefix, let_name.1, &let_name.0, Some(ty))
+            .insert_var(handler, mod_prefix, let_name.1, &let_name.0, Some(ty))
             .map(|var_key| {
                 if let Some(expr_key) = init {
                     context.current_ii().var_inits.insert(var_key, expr_key);
@@ -210,29 +208,23 @@ pub LetDecl: () = {
                         .current_ii()
                         .insert_eq_or_ineq_constraint(var_key, expr_key, span);
                 }
-            })
-            .unwrap_or_else(|error| {
-                errors.push(Error::Parse { error });
             });
     },
     <l:@L> "let" <let_name:LetName> <init:LetInit> <r:@R> => {
         let mod_prefix = context.mod_prefix;
-        context
+        let _ = context
             .current_ii()
-            .insert_var(mod_prefix, let_name.1, &let_name.0, None)
+            .insert_var(handler, mod_prefix, let_name.1, &let_name.0, None)
             .map(|var_key| {
                 context.current_ii().var_inits.insert(var_key, init);
                 let span = (context.span_from)(l, r);
                 context
                     .current_ii()
                     .insert_eq_or_ineq_constraint(var_key, init, span);
-            })
-            .unwrap_or_else(|error| {
-                errors.push(Error::Parse { error });
             });
     },
     <l:@L> "let" <name:Ident> <r:@R> => {
-        errors.push(Error::Parse {
+        handler.emit_err(Error::Parse {
             error: ParseError::UntypedVariable {
                 name: name.name,
                 span: (context.span_from)(l, r),
@@ -288,13 +280,10 @@ pub StateDecl: () = {
         let init_key = context.current_ii().exprs.insert(init);
         let span = (context.span_from)(l, r);
         let mod_prefix = context.mod_prefix;
-        context
+        let _ = context
             .current_ii()
-            .insert_state(mod_prefix, &name, ty, init_key, span)
-            .map(|_| ())
-            .unwrap_or_else(|error| {
-                errors.push(Error::Parse { error });
-            });
+            .insert_state(handler, mod_prefix, &name, ty, init_key, span)
+            .map(|_| ());
     }
 };
 
@@ -310,7 +299,7 @@ pub SolveDecl: () = {
         let span = (context.span_from)(l, r);
         if let Some((_, prev_span)) = context.current_ii().directives.first() {
             // Multiple `solve` directives are not allowed
-            errors.push(Error::Parse {
+            handler.emit_err(Error::Parse {
                 error: ParseError::TooManySolveDirectives {
                     span,
                     prev_span: prev_span.clone(),
@@ -318,14 +307,14 @@ pub SolveDecl: () = {
             });
         } else if !context.mod_path.is_empty() {
             // `solve` directives in sub-modules are not allowed
-            errors.push(Error::Parse {
+            handler.emit_err(Error::Parse {
                 error: ParseError::SolveDirectiveMustBeTopLevel { span },
             });
         } else if context.current_ii != Program::ROOT_II_NAME {
             // `solve` directives inside an `intent` declaration are not allowed
-            errors.push(Error::Parse {
+            handler.emit_err(Error::Parse {
                 error: ParseError::SolveDirectiveMustBeOutsideIntent { span },
-            })
+            });
         } else {
             context.current_ii().directives.push((sd.clone(), span));
         }
@@ -342,7 +331,7 @@ pub EnumDecl: () = {
     <l:@L> "enum" <name:Ident> "=" <variants:Sep1ListNoTrail<Ident, "|">> <r:@R> => {
         let current_ii = context.current_ii.clone();
         let enum_decl = EnumDecl {
-            name: context.add_top_level_symbol(name, context.mod_prefix, errors),
+            name: context.add_top_level_symbol(handler, name, context.mod_prefix),
             variants,
             span: (context.span_from)(l, r),
         };
@@ -354,7 +343,7 @@ pub NewTypeDecl: () = {
     <l:@L> "type" <name:Ident> "=" <ty:Type> <r:@R> => {
         let current_ii = context.current_ii.clone();
         let new_type_decl = NewTypeDecl {
-            name: context.add_top_level_symbol(name, context.mod_prefix, errors),
+            name: context.add_top_level_symbol(handler, name, context.mod_prefix),
             ty,
             span: (context.span_from)(l, r),
         };
@@ -437,7 +426,7 @@ TypeAtom: Type = {
     },
     <l:@L> "{" "}" <r:@R> => {
         let span = (context.span_from)(l, r);
-        errors.push(Error::Parse {
+        handler.emit_err(Error::Parse {
             error: ParseError::EmptyTupleType { span: span.clone() },
         });
 
@@ -465,7 +454,7 @@ ArrayType: Type = {
     },
     <l:@L> <ty:TypeAtom> "[" "]" <r:@R> => {
         let span = (context.span_from)(l, r);
-        errors.push(Error::Parse {
+        handler.emit_err(Error::Parse {
             error: ParseError::EmptyArrayType { span: span.clone() },
         });
 
@@ -629,7 +618,7 @@ TupleFieldOp: ExprKey = {
                 .map(TupleAccess::Index)
                 .unwrap_or_else(|_| {
                     // Recover with a malformed field access
-                    errors.push(Error::Parse {
+                    handler.emit_err(Error::Parse {
                         error: ParseError::InvalidIntegerTupleIndex {
                             span: index_span,
                             index: num_str.to_string(),
@@ -647,7 +636,7 @@ TupleFieldOp: ExprKey = {
                     .parse::<usize>()
                     .map(TupleAccess::Index)
                     .unwrap_or_else(|_| {
-                        errors.push(Error::Parse {
+                        handler.emit_err(Error::Parse {
                             error: ParseError::InvalidIntegerTupleIndex {
                                 span: (context.span_from)(m, m + dot_index),
                                 index: num_str[0..dot_index].to_string(),
@@ -662,7 +651,7 @@ TupleFieldOp: ExprKey = {
                     .parse::<usize>()
                     .map(TupleAccess::Index)
                     .unwrap_or_else(|_| {
-                        errors.push(Error::Parse {
+                        handler.emit_err(Error::Parse {
                             error: ParseError::InvalidIntegerTupleIndex {
                                 span: (context.span_from)(m + dot_index + 1, r),
                                 index: num_str[(dot_index + 1)..].to_string(),
@@ -688,7 +677,7 @@ TupleFieldOp: ExprKey = {
                 })
             }
             None => {
-                errors.push(Error::Parse {
+                handler.emit_err(Error::Parse {
                     error: ParseError::InvalidTupleIndex {
                         span: (context.span_from)(m, r),
                         index: num_str.to_string(),
@@ -718,7 +707,7 @@ ArrayElOp: ExprKey = {
     },
     <l:@L> <array:ArrayElOp> "[" "]" <r:@R> => {
         let span = (context.span_from)(l, r);
-        errors.push(Error::Parse {
+        handler.emit_err(Error::Parse {
             error: ParseError::EmptyArrayAccess { span: span.clone() },
         });
 
@@ -753,7 +742,7 @@ UnaryOp: ExprKey = {
 
 UnaryOpOp: UnaryOp = {
     <l:@L> "+" <r:@R> => {
-        errors.push(Error::Parse {
+        handler.emit_err(Error::Parse {
             error: ParseError::UnsupportedLeadingPlus {
                 span: (context.span_from)(l, r),
             },
@@ -795,19 +784,15 @@ GeneratorRange: (Ident, ExprKey) = {
     <index:Ident> "in" <range:Range> => {
         // Generators for `forall` are always `int`s and need to be saved in the ephemeral list.
         let mod_prefix = context.mod_prefix;
-        context
-            .current_ii()
-            .insert_ephemeral(
-                mod_prefix,
-                &index,
-                Type::Primitive {
-                    kind: PrimitiveKind::Int,
-                    span: index.span.clone(),
-                },
-            )
-            .unwrap_or_else(|error| {
-                errors.push(Error::Parse { error });
-            });
+        let _ = context.current_ii().insert_ephemeral(
+            handler,
+            mod_prefix,
+            &index,
+            Type::Primitive {
+                kind: PrimitiveKind::Int,
+                span: index.span.clone(),
+            },
+        );
         (index, range)
     }
 }
@@ -923,7 +908,7 @@ TupleExpr: Expr = {
     },
     <l:@L> "{" "}" <r:@R> => {
         let span = (context.span_from)(l, r);
-        errors.push(Error::Parse {
+        handler.emit_err(Error::Parse {
             error: ParseError::EmptyTupleExpr { span: span.clone() },
         });
 
@@ -1107,7 +1092,7 @@ ImmediateInt: Immediate = {
                         ])
                     }
                     _ => {
-                        errors.push(Error::Parse {
+                        handler.emit_err(Error::Parse {
                             error: ParseError::BinaryLiteralLength {
                                 digits,
                                 span: span.clone(),
@@ -1144,7 +1129,7 @@ ImmediateInt: Immediate = {
                         ])
                     }
                     _ => {
-                        errors.push(Error::Parse {
+                        handler.emit_err(Error::Parse {
                             error: ParseError::HexLiteralLength {
                                 digits,
                                 span: span.clone(),
@@ -1157,7 +1142,7 @@ ImmediateInt: Immediate = {
             _ => match s.parse::<i64>() {
                 Ok(val) => Immediate::Int(val),
                 Err(_) => {
-                    errors.push(Error::Parse {
+                    handler.emit_err(Error::Parse {
                         error: ParseError::IntLiteralTooLarge { span: span.clone() },
                     });
                     Immediate::Error

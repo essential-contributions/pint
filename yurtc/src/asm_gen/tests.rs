@@ -1,5 +1,6 @@
 use crate::{
     asm_gen::{program_to_intents, Intents},
+    error::Handler,
     parser::parse_project,
 };
 use essential_types::slots::*;
@@ -15,8 +16,12 @@ fn check(actual: &str, expect: expect_test::Expect) {
 fn compile(code: &str) -> Intents {
     let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
     write!(tmpfile.as_file_mut(), "{}", code).unwrap();
-    let program = parse_project(tmpfile.path()).unwrap().compile().unwrap();
-    program_to_intents(&program).unwrap()
+    let handler = Handler::default();
+    let program = parse_project(&handler, tmpfile.path())
+        .unwrap()
+        .compile(&handler)
+        .unwrap();
+    program_to_intents(&handler, &program).unwrap()
 }
 
 #[test]

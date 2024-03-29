@@ -1,5 +1,5 @@
 use crate::{
-    error::CompileError,
+    error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp, Expr, Immediate, TupleAccess},
     intermediate::IntermediateIntent,
     span::{empty_span, Span, Spanned},
@@ -8,7 +8,10 @@ use crate::{
 
 use std::collections::HashMap;
 
-pub(crate) fn lower_enums(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
+pub(crate) fn lower_enums(
+    handler: &Handler,
+    ii: &mut IntermediateIntent,
+) -> Result<(), ErrorEmitted> {
     // Each enum has its variants indexed from 0.  Gather all the enum declarations and create a
     // map from path to integer index.
     let mut variant_map = HashMap::new();
@@ -69,10 +72,12 @@ pub(crate) fn lower_enums(ii: &mut IntermediateIntent) -> Result<(), CompileErro
             let variant_max = match variant_count_map.get(ty.get_enum_name().unwrap()) {
                 Some(c) => *c as i64 - 1,
                 None => {
-                    return Err(CompileError::Internal {
-                        msg: "unable to get enum variant count",
-                        span: empty_span(),
-                    })
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "unable to get enum variant count",
+                            span: empty_span(),
+                        },
+                    }))
                 }
             };
 
@@ -113,17 +118,19 @@ pub(crate) fn lower_enums(ii: &mut IntermediateIntent) -> Result<(), CompileErro
     // Not sure at this stage if we'll ever allow state to be an enum.
     for (_, ty) in ii.state_types.iter_mut() {
         if ty.is_enum() {
-            return Err(CompileError::Internal {
-                msg: "found state with an enum type",
-                span: empty_span(),
-            });
+            return Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "found state with an enum type",
+                    span: empty_span(),
+                },
+            }));
         }
     }
 
     Ok(())
 }
 
-pub(crate) fn lower_bools(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
+pub(crate) fn lower_bools(ii: &mut IntermediateIntent) -> Result<(), ErrorEmitted> {
     // Just do a blanket replacement of all bool types with int types.
     let int_ty = Type::Primitive {
         kind: PrimitiveKind::Int,
@@ -165,7 +172,10 @@ pub(crate) fn lower_bools(ii: &mut IntermediateIntent) -> Result<(), CompileErro
     Ok(())
 }
 
-pub(crate) fn lower_casts(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
+pub(crate) fn lower_casts(
+    handler: &Handler,
+    ii: &mut IntermediateIntent,
+) -> Result<(), ErrorEmitted> {
     // FROM  TO    ACTION
     // int   int   No-op
     // int   real  Produce the closest possible real
@@ -174,25 +184,30 @@ pub(crate) fn lower_casts(ii: &mut IntermediateIntent) -> Result<(), CompileErro
     // bool  int   Boolean to integer cast (performed in lower_bools())
 
     fn check_cast_types(
+        handler: &Handler,
         ii: &IntermediateIntent,
         from_ty: &Type,
         to_ty: &Type,
         span: &Span,
-    ) -> Result<(), CompileError> {
+    ) -> Result<(), ErrorEmitted> {
         if !to_ty.is_int() && !to_ty.is_real() {
             // We can only cast to ints or reals.
-            Err(CompileError::BadCastTo {
-                ty: ii.with_ii(to_ty).to_string(),
-                span: span.clone(),
-            })
+            Err(handler.emit_err(Error::Compile {
+                error: CompileError::BadCastTo {
+                    ty: ii.with_ii(to_ty).to_string(),
+                    span: span.clone(),
+                },
+            }))
         } else if (to_ty.is_int() && !from_ty.is_int() && !from_ty.is_enum() && !from_ty.is_bool())
             || (to_ty.is_real() && !from_ty.is_int() && !from_ty.is_real())
         {
             // We can only cast to ints from ints, enums or bools and to reals from ints or reals.
-            Err(CompileError::BadCastFrom {
-                ty: ii.with_ii(from_ty).to_string(),
-                span: span.clone(),
-            })
+            Err(handler.emit_err(Error::Compile {
+                error: CompileError::BadCastFrom {
+                    ty: ii.with_ii(from_ty).to_string(),
+                    span: span.clone(),
+                },
+            }))
         } else {
             Ok(())
         }
@@ -206,15 +221,16 @@ pub(crate) fn lower_casts(ii: &mut IntermediateIntent) -> Result<(), CompileErro
             span,
         } = expr
         {
-            let from_ty = ii
-                .expr_types
-                .get(*value)
-                .ok_or_else(|| CompileError::Internal {
-                    msg: "unable to get expression type while lowering casts",
-                    span: span.clone(),
-                })?;
+            let from_ty = ii.expr_types.get(*value).ok_or_else(|| {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "unable to get expression type while lowering casts",
+                        span: span.clone(),
+                    },
+                })
+            })?;
 
-            check_cast_types(ii, from_ty, to_ty, span)?;
+            check_cast_types(handler, ii, from_ty, to_ty, span)?;
             if !(from_ty.is_int() && to_ty.is_real()) {
                 replacements.push((old_expr_key, *value));
             }
@@ -228,7 +244,7 @@ pub(crate) fn lower_casts(ii: &mut IntermediateIntent) -> Result<(), CompileErro
     Ok(())
 }
 
-pub(crate) fn lower_aliases(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
+pub(crate) fn lower_aliases(ii: &mut IntermediateIntent) -> Result<(), ErrorEmitted> {
     use std::borrow::BorrowMut;
 
     fn replace_alias(old_ty: &mut Type) {
@@ -266,7 +282,10 @@ pub(crate) fn lower_aliases(ii: &mut IntermediateIntent) -> Result<(), CompileEr
     Ok(())
 }
 
-pub(crate) fn lower_imm_accesses(ii: &mut IntermediateIntent) -> Result<(), CompileError> {
+pub(crate) fn lower_imm_accesses(
+    handler: &Handler,
+    ii: &mut IntermediateIntent,
+) -> Result<(), ErrorEmitted> {
     let mut replace_direct_accesses = || {
         let candidates = ii
             .exprs
@@ -300,19 +319,23 @@ pub(crate) fn lower_imm_accesses(ii: &mut IntermediateIntent) -> Result<(), Comp
             if let Some((array_key, array_idx_key)) = array_idx {
                 // We have an array access into an immediate.  Evaluate the index.
                 let Some(idx_expr) = ii.exprs.get(array_idx_key) else {
-                    return Err(CompileError::Internal {
-                        msg: "missing array index expression in lower_imm_accesses()",
-                        span: empty_span(),
-                    });
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "missing array index expression in lower_imm_accesses()",
+                            span: empty_span(),
+                        },
+                    }));
                 };
 
-                match idx_expr.evaluate(ii, &HashMap::new()) {
+                match idx_expr.evaluate(handler, ii, &HashMap::new()) {
                     Ok(Immediate::Int(idx_val)) if idx_val >= 0 => {
                         let Some(Expr::Array { elements, .. }) = ii.exprs.get(array_key) else {
-                            return Err(CompileError::Internal {
-                                msg: "missing array expression in lower_imm_accesses()",
-                                span: empty_span(),
-                            });
+                            return Err(handler.emit_err(Error::Compile {
+                                error: CompileError::Internal {
+                                    msg: "missing array expression in lower_imm_accesses()",
+                                    span: empty_span(),
+                                },
+                            }));
                         };
 
                         // Save the original access expression key and the element it referred to.
@@ -320,15 +343,19 @@ pub(crate) fn lower_imm_accesses(ii: &mut IntermediateIntent) -> Result<(), Comp
                     }
 
                     Ok(_) => {
-                        return Err(CompileError::InvalidConstArrayLength {
-                            span: idx_expr.span().clone(),
-                        })
+                        return Err(handler.emit_err(Error::Compile {
+                            error: CompileError::InvalidConstArrayLength {
+                                span: idx_expr.span().clone(),
+                            },
+                        }))
                     }
 
                     _ => {
-                        return Err(CompileError::NonConstArrayLength {
-                            span: idx_expr.span().clone(),
-                        })
+                        return Err(handler.emit_err(Error::Compile {
+                            error: CompileError::NonConstArrayLength {
+                                span: idx_expr.span().clone(),
+                            },
+                        }))
                     }
                 }
             }
@@ -336,10 +363,12 @@ pub(crate) fn lower_imm_accesses(ii: &mut IntermediateIntent) -> Result<(), Comp
             if let Some((tuple_key, tuple_field_key)) = field_idx {
                 // We have a tuple access into an immediate.
                 let Some(Expr::Tuple { fields, .. }) = ii.exprs.get(tuple_key) else {
-                    return Err(CompileError::Internal {
-                        msg: "missing tuple expression in lower_imm_accesses()",
-                        span: empty_span(),
-                    });
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "missing tuple expression in lower_imm_accesses()",
+                            span: empty_span(),
+                        },
+                    }));
                 };
 
                 let new_expr_key = match tuple_field_key {
@@ -390,10 +419,12 @@ pub(crate) fn lower_imm_accesses(ii: &mut IntermediateIntent) -> Result<(), Comp
         }
 
         if loop_check > 10_000 {
-            return Err(CompileError::Internal {
-                msg: "infinite loop in lower_imm_accesses()",
-                span: empty_span(),
-            });
+            return Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "infinite loop in lower_imm_accesses()",
+                    span: empty_span(),
+                },
+            }));
         }
     }
 
