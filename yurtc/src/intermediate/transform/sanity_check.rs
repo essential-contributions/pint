@@ -301,7 +301,7 @@ fn run_parser(src: &str, handler: &Handler) -> Program {
 }
 
 #[test]
-fn exprs() {
+fn expr_types() {
     let src = "let a = [1, 2, 3];";
     check(
         &run_test(src),
@@ -310,6 +310,32 @@ fn exprs() {
             compiler internal error: array present in final intent expr_types slotmap
             compiler internal error: array present in final intent exprs slotmap
             compiler internal error: array present in final intent var_types slotmap"#]],
+    );
+    let src = "let t = { x: 5, 3 };";
+    check(
+        &run_test(src),
+        expect_test::expect![[r#"
+            compiler internal error: tuple present in final intent expr_types slotmap
+            compiler internal error: tuple present in final intent expr_types slotmap
+            compiler internal error: tuple present in final intent exprs slotmap
+            compiler internal error: tuple present in final intent var_types slotmap"#]],
+    );
+    let src = "enum MyEnum = Variant1 | Variant2;
+    let x = MyEnum;";
+    check(
+        &run_test(src),
+        expect_test::expect![[r#"
+        compiler internal error: custom type present in final intent expr_types slotmap
+        compiler internal error: custom type present in final intent expr_types slotmap
+        compiler internal error: custom type present in final intent var_types slotmap"#]],
+    );
+    let src = "type MyAliasInt = int;
+    let x: MyAliasInt = 3;";
+    check(
+        &run_test(src),
+        expect_test::expect![[r#"
+        compiler internal error: type alias present in final intent expr_types slotmap
+        compiler internal error: type alias present in final intent var_types slotmap"#]],
     )
 }
 
