@@ -312,6 +312,40 @@ fn exprs() {
             compiler internal error: array present in final intent var_types slotmap"#]],
     )
 }
+
+#[test]
+fn var_types() {
+    let src = "let t: { int, real, string };";
+    check(
+        &run_test(src),
+        expect_test::expect![[
+            r#"compiler internal error: tuple present in final intent var_types slotmap"#
+        ]],
+    );
+    let src = "let a: int[5];";
+    check(
+        &run_test(src),
+        expect_test::expect![[
+            r#"compiler internal error: array present in final intent var_types slotmap"#
+        ]],
+    );
+    let src = "let x: MyEnum;";
+    check(
+        &run_test(src),
+        expect_test::expect![[
+            r#"compiler internal error: custom type present in final intent var_types slotmap"#
+        ]],
+    );
+    let src = "type MyAliasInt = int;
+    let x: MyAliasInt;";
+    check(
+        &run_test(src),
+        expect_test::expect![[
+            r#"compiler internal error: type alias present in final intent var_types slotmap"#
+        ]],
+    )
+}
+
 // @mohammad, please check errors in test.yrt. It seems like our final intent is pretty screwed? What is expected from
 // let a = [1, 2, 3];
 // solve satisfy;
