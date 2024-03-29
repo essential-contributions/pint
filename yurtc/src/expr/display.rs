@@ -8,7 +8,11 @@ use crate::{
 
 impl DisplayWithII for super::ExprKey {
     fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> Result {
-        write!(f, "{}", ii.with_ii(&ii.exprs[*self]))
+        if ii.removed_macro_calls.contains_key(*self) {
+            write!(f, "<REMOVED MACRO CALL>")
+        } else {
+            write!(f, "{}", ii.with_ii(&ii.exprs[*self]))
+        }
     }
 }
 

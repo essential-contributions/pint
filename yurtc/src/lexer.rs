@@ -99,6 +99,8 @@ pub enum Token {
     MacroParam(String),
     #[regex(r"&[A-Za-z_0-9]+", |lex| lex.slice().to_string())]
     MacroParamPack(String),
+    #[regex(r"~[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice().to_string())]
+    MacroSplice(String),
     MacroBody(Vec<(usize, Token, usize)>),
     MacroCallArgs(Vec<Vec<(usize, Token, usize)>>),
     MacroTag(Option<usize>),
@@ -246,7 +248,9 @@ impl fmt::Display for Token {
             Token::Fn => write!(f, "fn"),
             Token::Macro => write!(f, "macro"),
             Token::MacroName(name) => write!(f, "{name}"),
-            Token::MacroParam(arg) | Token::MacroParamPack(arg) => write!(f, "{arg}"),
+            Token::MacroParam(arg) | Token::MacroParamPack(arg) | Token::MacroSplice(arg) => {
+                write!(f, "{arg}")
+            }
             Token::MacroBody(body) => write!(
                 f,
                 "{{ {} }}",
@@ -614,6 +618,7 @@ impl<'a> Iterator for Lexer<'a> {
                 }
                 Token::MacroParam(_)
                 | Token::MacroParamPack(_)
+                | Token::MacroSplice(_)
                 | Token::Comma
                 | Token::ParenClose
                     if self.state == LexerState::MacroParams =>

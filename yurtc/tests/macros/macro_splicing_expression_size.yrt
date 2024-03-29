@@ -1,0 +1,22 @@
+macro @sum($x, &rest) {
+    @sum($x + &rest)
+}
+
+macro @sum($x) {
+    $x
+}
+
+let ary: int[10 + 1];
+
+let a = @sum(~ary);
+
+solve satisfy;
+
+// parse_failure <<<
+// unable to determine spliced array size
+// @111..115: unable to determine spliced array size for `::ary` while parsing
+// macro array splicing is currently limited to immediate integer sizes or enums
+// expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `enum`, `false`, `forall`, `ident`, `if`, `int_lit`, `let`, `macro_name`, `real_lit`, `solve`, `state`, `str_lit`, `true`, `type`, `use`, `{`, or `}`, found `~ary`
+// @111..115: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `enum`, `false`, `forall`, `ident`, `if`, `int_lit`, `let`, `macro_name`, `real_lit`, `solve`, `state`, `str_lit`, `true`, `type`, `use`, `{`, or `}`
+// @106..116: when making macro call to '::@sum'
+// >>>

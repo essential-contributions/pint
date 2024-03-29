@@ -476,7 +476,6 @@ fn lower_array_compares(
     for (op_expr_key, op, lhs_array_key, lhs_opt_size, rhs_array_key, rhs_opt_size, el_ty, span) in
         array_compare_ops
     {
-        dbg!(&ii.exprs.get(rhs_array_key));
         let lhs_size = get_array_size(&lhs_opt_size)?;
         let rhs_size = get_array_size(&rhs_opt_size)?;
 

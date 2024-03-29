@@ -67,6 +67,14 @@ pub enum CompileError {
         call_span: Span,
         decl_span: Span,
     },
+    #[error("undefined spliced variable")]
+    MacroUnrecognizedSpliceVar { var_name: String, span: Span },
+    #[error("spliced variable `{var_name}` must be an array")]
+    MacroSpliceVarNotArray { var_name: String, span: Span },
+    #[error("unable to determine spliced array size")]
+    MacroSpliceArrayUnknownSize { var_name: String, span: Span },
+    #[error("macro call is not an expression")]
+    MacroCallWasNotExpression { span: Span },
     #[error("`forall` index `{name}` has already been declared")]
     DuplicateForAllIndex {
         name: String,
@@ -314,6 +322,40 @@ impl ReportableError for CompileError {
                         color: Color::Blue,
                     },
                 ]
+            }
+
+            MacroUnrecognizedSpliceVar { var_name, span } => {
+                vec![ErrorLabel {
+                    message: format!("unable to splice unknown variable `{var_name}`"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            MacroSpliceVarNotArray { var_name, span } => {
+                vec![ErrorLabel {
+                    message: format!("unable to splice non-array variable `{var_name}`"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            MacroSpliceArrayUnknownSize { var_name, span } => {
+                vec![ErrorLabel {
+                    message: format!(
+                        "unable to determine spliced array size for `{var_name}` while parsing"
+                    ),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            MacroCallWasNotExpression { span } => {
+                vec![ErrorLabel {
+                    message: "macro call does not expand to an expression".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
             }
 
             DuplicateForAllIndex {
@@ -626,6 +668,17 @@ impl ReportableError for CompileError {
                     .to_string(),
             ),
 
+            MacroSpliceArrayUnknownSize { .. } => Some(
+                "macro array splicing is currently limited to immediate integer sizes or enums"
+                    .to_string(),
+            ),
+
+            MacroCallWasNotExpression { .. } => Some(
+                "macros which contain only declarations may only be used at the top level of \
+                an intent and not as an expression"
+                    .to_string(),
+            ),
+
             DuplicateForAllIndex { name, .. } => Some(format!(
                 "`forall` index `{name}` must be declared only once in this scope"
             )),
@@ -656,9 +709,11 @@ impl ReportableError for CompileError {
                 Some(format!("found access using type `{found_ty}`"))
             }
 
-            MissingSolveDirective { .. } => {
-                Some("solve` directive must appear exactly once in a project and must appear in the top level module".to_string())
-            }
+            MissingSolveDirective { .. } => Some(
+                "`solve` directive must appear exactly once in a project and \
+                     must appear in the top level module"
+                    .to_string(),
+            ),
 
             InvalidDeclOutsideIntentDecl { .. } => Some(
                 "only `enum` and `type` declarations \
@@ -680,6 +735,8 @@ impl ReportableError for CompileError {
             | MacroMultiplePacks { .. }
             | MacroUnknownPack { .. }
             | MacroNonUniqueParamCounts { .. }
+            | MacroUnrecognizedSpliceVar { .. }
+            | MacroSpliceVarNotArray { .. }
             | UnknownType { .. }
             | IfCondTypeNotBool(_)
             | IfBranchesTypeMismatch { .. }
@@ -762,6 +819,10 @@ impl Spanned for CompileError {
             | MacroRecursion {
                 call_span: span, ..
             }
+            | MacroUnrecognizedSpliceVar { span, .. }
+            | MacroSpliceVarNotArray { span, .. }
+            | MacroSpliceArrayUnknownSize { span, .. }
+            | MacroCallWasNotExpression { span }
             | DuplicateForAllIndex { span, .. }
             | InvalidForAllIndexBound { span, .. }
             | SymbolNotFound { span, .. }
