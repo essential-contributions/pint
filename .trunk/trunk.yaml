@@ -24,10 +24,10 @@ lint:
           value: ${env.SSH_AUTH_SOCK}
           optional: true
   enabled:
-    - checkov@3.2.46
+    - checkov@3.2.49
     - osv-scanner@1.7.0
     - oxipng@9.0.0
-    - trivy@0.50.0
+    - trivy@0.50.1
     - trufflehog@3.71.0
     - actionlint@1.6.27
     - clippy@1.77.0
