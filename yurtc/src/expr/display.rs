@@ -121,13 +121,14 @@ impl DisplayWithII for &super::Expr {
                 write!(f, "{}..{}", ii.with_ii(lb), ii.with_ii(ub))
             }
 
-            super::Expr::ForAll {
+            super::Expr::Generator {
+                kind,
                 gen_ranges,
                 body,
                 conditions,
                 ..
             } => {
-                write!(f, "forall")?;
+                write!(f, "{kind}")?;
                 for (ident, range) in gen_ranges {
                     write!(f, " {} in {},", ident, ii.with_ii(range))?;
                 }
@@ -194,6 +195,15 @@ impl Display for super::BinaryOp {
             expr::BinaryOp::Mul => write!(f, "*"),
             expr::BinaryOp::NotEqual => write!(f, "!="),
             expr::BinaryOp::Sub => write!(f, "-"),
+        }
+    }
+}
+
+impl Display for super::GeneratorKind {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        match self {
+            Self::ForAll => write!(f, "forall"),
+            Self::Exists => write!(f, "exists"),
         }
     }
 }

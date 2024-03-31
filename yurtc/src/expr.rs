@@ -78,7 +78,8 @@ pub enum Expr {
         ub: ExprKey,
         span: Span,
     },
-    ForAll {
+    Generator {
+        kind: GeneratorKind,
         gen_ranges: Vec<(Ident, ExprKey)>,
         conditions: Vec<ExprKey>,
         body: ExprKey,
@@ -159,6 +160,12 @@ impl BinaryOp {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum GeneratorKind {
+    ForAll,
+    Exists,
+}
+
 impl Spanned for Expr {
     fn span(&self) -> &Span {
         match self {
@@ -177,7 +184,7 @@ impl Spanned for Expr {
             | Expr::TupleFieldAccess { span, .. }
             | Expr::Cast { span, .. }
             | Expr::In { span, .. }
-            | Expr::ForAll { span, .. }
+            | Expr::Generator { span, .. }
             | Expr::Range { span, .. } => span,
         }
     }
@@ -220,7 +227,7 @@ impl Expr {
                 replace(lb);
                 replace(ub);
             }
-            Expr::ForAll {
+            Expr::Generator {
                 gen_ranges,
                 conditions,
                 body,

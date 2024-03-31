@@ -1,0 +1,60 @@
+// Duplicate indices
+constraint forall i in 1..2, i in 3..4 { true };
+constraint exists p in 5..6, p in 7..8 { true };
+
+// Invalid bounds
+let j: int;
+let k: int;
+let b: int;
+let c: int;
+constraint forall i in j..k { true };
+constraint exists a in b..c { true };
+
+// Symbol not found
+constraint forall i in 0..5 where j != 3 { true };
+constraint exists i in 0..6 where j != 4 { true };
+
+// Type error
+constraint forall i in 0..3 where i { true };
+constraint exists i in 0..3 where i { true };
+
+solve satisfy;
+
+// intermediate <<<
+// var ::j: int;
+// var ::k: int;
+// var ::b: int;
+// var ::c: int;
+// constraint forall i in 1..2, i in 3..4, { true };
+// constraint exists p in 5..6, p in 7..8, { true };
+// constraint forall i in ::j..::k, { true };
+// constraint exists a in ::b..::c, { true };
+// constraint forall i in 0..5, where (::j != 3) { true };
+// constraint exists i in 0..6, where (::j != 4) { true };
+// constraint forall i in 0..3, where ::i { true };
+// constraint exists i in 0..3, where ::i { true };
+// solve satisfy;
+// >>>
+
+// flattening_failure <<<
+// generator index `i` has already been declared
+// @39..40: previous declaration of the index `i` here
+// @50..51: `i` redeclared here
+// generator index `i` must be declared only once in this scope
+// generator index `p` has already been declared
+// @88..89: previous declaration of the index `p` here
+// @99..100: `p` redeclared here
+// generator index `p` must be declared only once in this scope
+// invalid bound for generator index `i`
+// @209..210: invalid bound for generator index `i`
+// generator index bound must be an integer literal
+// invalid bound for generator index `a`
+// @247..248: invalid bound for generator index `a`
+// generator index bound must be an integer literal
+// cannot find value `::j` in this scope
+// @317..318: not found in this scope
+// cannot find value `::j` in this scope
+// @368..369: not found in this scope
+// compiler internal error: type error: boolean expression expected
+// compiler internal error: type error: boolean expression expected
+// >>>

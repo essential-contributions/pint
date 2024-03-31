@@ -1,6 +1,6 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{BinaryOp, Ident, Immediate},
+    expr::{BinaryOp, GeneratorKind, Ident, Immediate},
     intermediate::{Expr, ExprKey, IntermediateIntent},
     span::{empty_span, Span, Spanned},
     types::{PrimitiveKind, Type},
@@ -9,8 +9,8 @@ use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
 /// Given an `IntermediateIntent`, a list of indices with their ranges `gen_ranges`, an optional
-/// list of `conditions`, and a `forall` body, return a new expression that is the conjunction of
-/// all the possible valid `forall` bodies.
+/// list of `conditions`, and a generator body, return a new expression that is the conjunction of
+/// all the possible valid generator bodies.
 ///
 /// For example,
 /// ```yurt
@@ -27,9 +27,10 @@ use std::collections::{HashMap, HashSet};
 /// && a[1] != b[2]
 /// && a[2] != b[2]
 /// ```
-fn unroll_forall(
+fn unroll_generator(
     handler: &Handler,
     ii: &mut IntermediateIntent,
+    kind: &GeneratorKind,
     gen_ranges: &Vec<(Ident, ExprKey)>,
     conditions: &Vec<ExprKey>,
     body: ExprKey,
@@ -48,7 +49,7 @@ fn unroll_forall(
 
             // Error out
             return Err(handler.emit_err(Error::Compile {
-                error: CompileError::DuplicateForAllIndex {
+                error: CompileError::DuplicateGeneratorIndex {
                     name: range.0.name.clone(),
                     span: range.0.span.clone(),
                     prev_span: first_occurance.0.span.clone(),
@@ -86,7 +87,7 @@ fn unroll_forall(
                         {
                             // Bad lower bound
                             Err(handler.emit_err(Error::Compile {
-                                error: CompileError::InvalidForAllIndexBound {
+                                error: CompileError::InvalidGeneratorIndexBound {
                                     name: gen_ranges[i].0.name.clone(),
                                     span: lb.span().clone(),
                                 },
@@ -95,7 +96,7 @@ fn unroll_forall(
                         _ => {
                             // Bad upper bound
                             Err(handler.emit_err(Error::Compile {
-                                error: CompileError::InvalidForAllIndexBound {
+                                error: CompileError::InvalidGeneratorIndexBound {
                                     name: gen_ranges[i].0.name.clone(),
                                     span: ub.span().clone(),
                                 },
@@ -122,9 +123,12 @@ fn unroll_forall(
     //    `product_of_ranges`.
     // 2. All the conditions which restrict the possible index combinations.
 
-    // Base value = `true`
+    // Base value = `true` for foralls and `false` for exists
     let mut unrolled = Expr::Immediate {
-        value: Immediate::Bool(true),
+        value: Immediate::Bool(match kind {
+            GeneratorKind::ForAll => true,
+            GeneratorKind::Exists => false,
+        }),
         span: span.clone(),
     };
 
@@ -162,7 +166,7 @@ fn unroll_forall(
         }
 
         // If all conditions are satisifed (or if none are present), then update the resulting
-        // expression by ANDing it with the newly unrolled `forall` body.
+        // expression by ANDing it with the newly unrolled generator body.
         if satisfied {
             let lhs = ii.exprs.insert(unrolled.clone());
             ii.expr_types.insert(
@@ -173,7 +177,10 @@ fn unroll_forall(
                 },
             );
             unrolled = Expr::BinaryOp {
-                op: BinaryOp::LogicalAnd,
+                op: match kind {
+                    GeneratorKind::ForAll => BinaryOp::LogicalAnd,
+                    GeneratorKind::Exists => BinaryOp::LogicalOr,
+                },
                 lhs,
                 rhs: body.plug_in(ii, &values_map),
                 span: span.clone(),
@@ -184,17 +191,18 @@ fn unroll_forall(
     Ok(unrolled)
 }
 
-/// Given an `IntermediateIntent`, unroll all `forall` expressions and replace them in the
+/// Given an `IntermediateIntent`, unroll all generator expressions and replace them in the
 /// expressions map with their unrolled version
-pub(crate) fn unroll_foralls(
+pub(crate) fn unroll_generators(
     handler: &Handler,
     ii: &mut IntermediateIntent,
 ) -> Result<(), ErrorEmitted> {
     ii.exprs
         .iter()
         .filter_map(|(key, expr)| {
-            // Only collect foralls
-            if let Expr::ForAll {
+            // Only collect generators
+            if let Expr::Generator {
+                kind,
                 gen_ranges,
                 conditions,
                 body,
@@ -203,6 +211,7 @@ pub(crate) fn unroll_foralls(
             {
                 Some((
                     key,
+                    kind.clone(),
                     gen_ranges.clone(),
                     conditions.clone(),
                     *body,
@@ -214,21 +223,28 @@ pub(crate) fn unroll_foralls(
         })
         .collect::<Vec<_>>()
         .iter()
-        .try_for_each(|(key, gen_ranges, conditions, body, span)| {
-            // Update the key of the `forall` to map to the new unrolled expression (the big
+        .for_each(|(key, kind, gen_ranges, conditions, body, span)| {
+            // Update the key of the generator to map to the new unrolled expression (the big
             // conjunction)
-            *ii.exprs
-                .get_mut(*key)
-                .expect("key guaranteed to exist in the map!") =
-                unroll_forall(handler, ii, gen_ranges, conditions, *body, span)?;
+            if let Ok(unrolled) =
+                unroll_generator(handler, ii, kind, gen_ranges, conditions, *body, span)
+            {
+                *ii.exprs
+                    .get_mut(*key)
+                    .expect("key guaranteed to exist in the map!") = unrolled;
 
-            // Clean up all keys used by the `forall` now that it's gone
-            gen_ranges
-                .iter()
-                .for_each(|(_, expr)| ii.remove_expr(*expr));
-            conditions.iter().for_each(|expr| ii.remove_expr(*expr));
-            ii.remove_expr(*body);
+                // Clean up all keys used by the generator now that it's gone
+                gen_ranges
+                    .iter()
+                    .for_each(|(_, expr)| ii.remove_expr(*expr));
+                conditions.iter().for_each(|expr| ii.remove_expr(*expr));
+                ii.remove_expr(*body);
+            }
+        });
 
-            Ok(())
-        })
+    if handler.has_errors() {
+        return Err(handler.cancel());
+    }
+
+    Ok(())
 }

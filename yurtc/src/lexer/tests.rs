@@ -231,8 +231,9 @@ fn blockchain_items() {
 }
 
 #[test]
-fn forall() {
+fn generators() {
     assert_eq!(lex_one_success("forall"), Token::ForAll);
+    assert_eq!(lex_one_success("exists"), Token::Exists);
     assert_eq!(lex_one_success("where"), Token::Where);
 }
 
