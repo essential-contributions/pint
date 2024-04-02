@@ -769,7 +769,7 @@ TermInner: Expr = {
         }
     },
     <IfExpr>,
-    <ForAllExpr>,
+    <GeneratorExpr>,
     <FnCallExpr>,
     <ArrayExpr>,
     <TupleExpr>,
@@ -782,7 +782,7 @@ BlockExpr: ExprKey = {
 
 GeneratorRange: (Ident, ExprKey) = {
     <index:Ident> "in" <range:Range> => {
-        // Generators for `forall` are always `int`s and need to be saved in the ephemeral list.
+        // Generators for `forall`/`exists` are always `int`s and need to be saved in the ephemeral list.
         let mod_prefix = context.mod_prefix;
         let _ = context.current_ii().insert_ephemeral(
             handler,
@@ -797,11 +797,23 @@ GeneratorRange: (Ident, ExprKey) = {
     }
 }
 
-ForAllExpr: Expr = {
+GeneratorExpr: Expr = {
     <l:@L> "forall" <gen_ranges:Sep1ListNoTrail<GeneratorRange, ",">>
             <conditions: ("where" <Sep1ListNoTrail<Expr, ",">>)?>
             "{" <body:Expr> "}" <r:@R> => {
-        Expr::ForAll {
+        Expr::Generator {
+            kind: GeneratorKind::ForAll,
+            gen_ranges,
+            conditions: conditions.unwrap_or_default(),
+            body,
+            span: (context.span_from)(l, r),
+        }
+    },
+    <l:@L> "exists" <gen_ranges:Sep1ListNoTrail<GeneratorRange, ",">>
+            <conditions: ("where" <Sep1ListNoTrail<Expr, ",">>)?>
+            "{" <body:Expr> "}" <r:@R> => {
+        Expr::Generator {
+            kind: GeneratorKind::Exists,
             gen_ranges,
             conditions: conditions.unwrap_or_default(),
             body,
@@ -1281,6 +1293,7 @@ extern {
         "in" => lexer::Token::In,
 
         "forall" => lexer::Token::ForAll,
+        "exists" => lexer::Token::Exists,
         "where" => lexer::Token::Where,
 
         "ident" => lexer::Token::Ident(<(String, bool)>),

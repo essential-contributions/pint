@@ -75,14 +75,19 @@ pub enum CompileError {
     MacroSpliceArrayUnknownSize { var_name: String, span: Span },
     #[error("macro call is not an expression")]
     MacroCallWasNotExpression { span: Span },
-    #[error("`forall` index `{name}` has already been declared")]
-    DuplicateForAllIndex {
+    #[error("`{gen_kind}` index `{name}` has already been declared")]
+    DuplicateGeneratorIndex {
         name: String,
+        gen_kind: String,
         span: Span,
         prev_span: Span,
     },
-    #[error("invalid bound for `forall` index `{name}`")]
-    InvalidForAllIndexBound { name: String, span: Span },
+    #[error("invalid bound for `{gen_kind}` index `{name}`")]
+    InvalidGeneratorIndexBound {
+        name: String,
+        gen_kind: String,
+        span: Span,
+    },
     #[error("cannot find value `{name}` in this scope")]
     SymbolNotFound {
         name: String,
@@ -358,10 +363,11 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            DuplicateForAllIndex {
+            DuplicateGeneratorIndex {
                 name,
                 span,
                 prev_span,
+                ..
             } => {
                 vec![
                     ErrorLabel {
@@ -377,9 +383,13 @@ impl ReportableError for CompileError {
                 ]
             }
 
-            InvalidForAllIndexBound { name, span } => {
+            InvalidGeneratorIndexBound {
+                name,
+                gen_kind,
+                span,
+            } => {
                 vec![ErrorLabel {
-                    message: format!("invalid bound for `forall` index `{name}`"),
+                    message: format!("invalid bound for `{gen_kind}` index `{name}`"),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -679,13 +689,13 @@ impl ReportableError for CompileError {
                     .to_string(),
             ),
 
-            DuplicateForAllIndex { name, .. } => Some(format!(
-                "`forall` index `{name}` must be declared only once in this scope"
+            DuplicateGeneratorIndex { name, gen_kind, .. } => Some(format!(
+                "`{gen_kind}` index `{name}` must be declared only once in this scope"
             )),
 
-            InvalidForAllIndexBound { .. } => {
-                Some("`forall` index bound must be an integer literal".to_string())
-            }
+            InvalidGeneratorIndexBound { gen_kind, .. } => Some(format!(
+                "`{gen_kind}` index bound must be an integer literal"
+            )),
 
             MismatchedArrayComparisonSizes {
                 op,
@@ -823,8 +833,8 @@ impl Spanned for CompileError {
             | MacroSpliceVarNotArray { span, .. }
             | MacroSpliceArrayUnknownSize { span, .. }
             | MacroCallWasNotExpression { span }
-            | DuplicateForAllIndex { span, .. }
-            | InvalidForAllIndexBound { span, .. }
+            | DuplicateGeneratorIndex { span, .. }
+            | InvalidGeneratorIndexBound { span, .. }
             | SymbolNotFound { span, .. }
             | NonConstArrayIndex { span }
             | InvalidConstArrayLength { span }

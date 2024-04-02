@@ -299,7 +299,8 @@ impl ExprKey {
 
                 Expr::Range { lb, ub, span }
             }
-            Expr::ForAll {
+            Expr::Generator {
+                kind,
                 gen_ranges,
                 conditions,
                 body,
@@ -315,7 +316,8 @@ impl ExprKey {
                     .collect::<Vec<_>>();
                 let body = body.plug_in(ii, values_map);
 
-                Expr::ForAll {
+                Expr::Generator {
+                    kind,
                     gen_ranges,
                     conditions,
                     body,

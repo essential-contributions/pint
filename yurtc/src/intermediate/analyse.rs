@@ -282,7 +282,7 @@ impl IntermediateIntent {
                 span: span.clone(),
             })),
 
-            Expr::ForAll { span, .. } => Ok(Inference::Type(Type::Primitive {
+            Expr::Generator { span, .. } => Ok(Inference::Type(Type::Primitive {
                 kind: PrimitiveKind::Bool,
                 span: span.clone(),
             })),

@@ -1,0 +1,13 @@
+let a: int[2][2];
+
+constraint forall i in 0..1, j in 0..1 {
+    a[i][j] >= 0
+};
+
+constraint exists i in 0..1, j in 0..1 {
+    a[i][j] == 69
+};
+
+constraint a[0][0] + a[0][1] + a[1][0] + a[1][1] <= 100;
+
+solve satisfy;
