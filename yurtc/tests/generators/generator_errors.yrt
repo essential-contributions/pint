@@ -37,20 +37,20 @@ solve satisfy;
 // >>>
 
 // flattening_failure <<<
-// generator index `i` has already been declared
+// `forall` index `i` has already been declared
 // @39..40: previous declaration of the index `i` here
 // @50..51: `i` redeclared here
-// generator index `i` must be declared only once in this scope
-// generator index `p` has already been declared
+// `forall` index `i` must be declared only once in this scope
+// `exists` index `p` has already been declared
 // @88..89: previous declaration of the index `p` here
 // @99..100: `p` redeclared here
-// generator index `p` must be declared only once in this scope
-// invalid bound for generator index `i`
-// @209..210: invalid bound for generator index `i`
-// generator index bound must be an integer literal
-// invalid bound for generator index `a`
-// @247..248: invalid bound for generator index `a`
-// generator index bound must be an integer literal
+// `exists` index `p` must be declared only once in this scope
+// invalid bound for `forall` index `i`
+// @209..210: invalid bound for `forall` index `i`
+// `forall` index bound must be an integer literal
+// invalid bound for `exists` index `a`
+// @247..248: invalid bound for `exists` index `a`
+// `exists` index bound must be an integer literal
 // cannot find value `::j` in this scope
 // @317..318: not found in this scope
 // cannot find value `::j` in this scope

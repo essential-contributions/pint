@@ -51,6 +51,7 @@ fn unroll_generator(
             return Err(handler.emit_err(Error::Compile {
                 error: CompileError::DuplicateGeneratorIndex {
                     name: range.0.name.clone(),
+                    gen_kind: kind.to_string(),
                     span: range.0.span.clone(),
                     prev_span: first_occurance.0.span.clone(),
                 },
@@ -89,6 +90,7 @@ fn unroll_generator(
                             Err(handler.emit_err(Error::Compile {
                                 error: CompileError::InvalidGeneratorIndexBound {
                                     name: gen_ranges[i].0.name.clone(),
+                                    gen_kind: kind.to_string(),
                                     span: lb.span().clone(),
                                 },
                             }))
@@ -98,6 +100,7 @@ fn unroll_generator(
                             Err(handler.emit_err(Error::Compile {
                                 error: CompileError::InvalidGeneratorIndexBound {
                                     name: gen_ranges[i].0.name.clone(),
+                                    gen_kind: kind.to_string(),
                                     span: ub.span().clone(),
                                 },
                             }))
