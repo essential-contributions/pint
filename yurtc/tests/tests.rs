@@ -30,7 +30,7 @@ mod e2e {
     e2e_test!(basic_tests);
     e2e_test!(macros);
     e2e_test!(types);
-    e2e_test!(forall);
+    e2e_test!(generators);
     e2e_test!(arrays);
     e2e_test!(modules);
     e2e_test!(asm);

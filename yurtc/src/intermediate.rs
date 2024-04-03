@@ -338,7 +338,7 @@ impl IntermediateIntent {
                 self.remove_expr(*value);
                 self.remove_expr(*collection);
             }
-            Expr::ForAll {
+            Expr::Generator {
                 gen_ranges,
                 conditions,
                 body,

@@ -9,13 +9,13 @@ use canonicalize_solve_directive::canonicalize_solve_directive;
 use lower::{lower_aliases, lower_bools, lower_casts, lower_enums, lower_imm_accesses};
 use sanity_check::sanity_check;
 use scalarize::scalarize;
-use unroll::unroll_foralls;
+use unroll::unroll_generators;
 
 impl super::Program {
     pub fn flatten(mut self, handler: &Handler) -> Result<Self, ErrorEmitted> {
         for ii in self.iis.values_mut() {
-            // Unroll each forall into one large conjuction
-            let _ = unroll_foralls(handler, ii);
+            // Unroll each generator into one large conjuction
+            let _ = handler.scope(|handler| unroll_generators(handler, ii));
 
             // Transform each enum variant into its integer discriminant
             let _ = lower_enums(handler, ii);

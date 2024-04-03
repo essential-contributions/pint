@@ -147,6 +147,8 @@ pub enum Token {
     // Generators
     #[token("forall")]
     ForAll,
+    #[token("exists")]
+    Exists,
     #[token("where")]
     Where,
 
@@ -182,6 +184,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::String,
     Token::B256,
     Token::ForAll,
+    Token::Exists,
     Token::Fn,
     Token::If,
     Token::Else,
@@ -297,6 +300,7 @@ impl fmt::Display for Token {
             Token::Intent => write!(f, "intent"),
             Token::In => write!(f, "in"),
             Token::ForAll => write!(f, "forall"),
+            Token::Exists => write!(f, "exists"),
             Token::Where => write!(f, "where"),
             Token::Ident((ident, _)) => write!(f, "{ident}"),
             Token::RealLiteral(ident) => write!(f, "{ident}"),

@@ -261,7 +261,7 @@ impl AsmBuilder {
             | Expr::Cast { .. }
             | Expr::In { .. }
             | Expr::Range { .. }
-            | Expr::ForAll { .. } => {
+            | Expr::Generator { .. } => {
                 return Err(handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "Unexpected expression during assembly generation",
