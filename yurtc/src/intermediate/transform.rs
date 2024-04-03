@@ -46,11 +46,6 @@ impl super::Program {
 
         // Ensure that the final intermediate intents is indeed final
         let _ = sanity_check(handler, &mut self);
-        // if let Err(e) = sanity_check(&mut self) {
-        //     for error in e {
-        //         errors.push(Error::Compile { error })
-        //     }
-        // }
 
         if handler.has_errors() {
             return Err(handler.cancel());

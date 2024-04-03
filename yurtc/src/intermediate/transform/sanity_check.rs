@@ -25,126 +25,147 @@ pub(crate) fn sanity_check(handler: &Handler, program: &mut Program) -> Result<(
     Ok(())
 }
 
+// TODO: change if lets to match -- easier to read
 fn check_expr_types(ii: &IntermediateIntent, handler: &Handler) {
-    ii.expr_types.iter().for_each(|(_, expr_type)| {
-        if let Type::Error(span) = expr_type {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "error expression present in final intent expr_types slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Type::Array { span, .. } = expr_type {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "array present in final intent expr_types slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Type::Tuple { span, .. } = expr_type {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "tuple present in final intent expr_types slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Type::Custom { span, .. } = expr_type {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "custom type present in final intent expr_types slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Type::Alias { span, .. } = expr_type {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "type alias present in final intent expr_types slotmap",
-                    span: span.clone(),
-                },
-            });
-        }
-    })
+    ii.expr_types
+        .iter()
+        .for_each(|(_, expr_type)| match expr_type {
+            Type::Error(span) => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "error expression present in final intent expr_types slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Type::Array { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "array present in final intent expr_types slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Type::Tuple { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "tuple present in final intent expr_types slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Type::Custom { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "custom type present in final intent expr_types slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Type::Alias { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "type alias present in final intent expr_types slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            _ => {}
+        })
 }
 
 fn check_exprs(ii: &IntermediateIntent, handler: &Handler) {
     fn check_expr(expr: &Expr, handler: &Handler) {
-        if let Expr::Error(span) = expr {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "error expression present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Expr::MacroCall { span, .. } = expr {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "macro call present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Expr::If { span, .. } = expr {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "if expression present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Expr::Array { span, .. } = expr {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "array present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Expr::ArrayElementAccess { span, .. } = expr {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "array element access present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Expr::Tuple { span, .. } = expr {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "tuple present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Expr::TupleFieldAccess { span, .. } = expr {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "tuple field access present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Expr::Cast { span, .. } = expr {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "cast present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Expr::In { span, .. } = expr {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "in expression in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Expr::Range { span, .. } = expr {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "range present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Expr::ForAll { span, .. } = expr {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "forall present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
+        match expr {
+            Expr::Error(span) => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "error expression present in final intent exprs slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Expr::MacroCall { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "macro call present in final intent exprs slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Expr::If { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "if expression present in final intent exprs slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Expr::Array { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "array present in final intent exprs slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Expr::ArrayElementAccess { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "array element access present in final intent exprs slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Expr::Tuple { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "tuple present in final intent exprs slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Expr::TupleFieldAccess { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "tuple field access present in final intent exprs slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Expr::Cast { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "cast present in final intent exprs slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Expr::In { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "in expression in final intent exprs slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Expr::Range { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "range present in final intent exprs slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Expr::ForAll { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "forall present in final intent exprs slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            _ => {}
         }
     }
 
@@ -190,46 +211,52 @@ fn check_vars(ii: &IntermediateIntent, handler: &Handler) {
         }
     }
 }
-
 fn check_var_types(ii: &IntermediateIntent, handler: &Handler) {
-    ii.var_types.iter().for_each(|(_, var_type)| {
-        if let Type::Error(span) = var_type {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "error var present in final intent var_types slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Type::Array { span, .. } = var_type {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "array present in final intent var_types slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Type::Tuple { span, .. } = var_type {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "tuple present in final intent var_types slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Type::Custom { span, .. } = var_type {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "custom type present in final intent var_types slotmap",
-                    span: span.clone(),
-                },
-            });
-        } else if let Type::Alias { span, .. } = var_type {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "type alias present in final intent var_types slotmap",
-                    span: span.clone(),
-                },
-            });
-        }
-    });
+    ii.var_types
+        .iter()
+        .for_each(|(_, var_type)| match var_type {
+            Type::Error(span) => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "error var present in final intent var_types slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Type::Array { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "array present in final intent var_types slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Type::Tuple { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "tuple present in final intent var_types slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Type::Custom { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "custom type present in final intent var_types slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            Type::Alias { span, .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "type alias present in final intent var_types slotmap",
+                        span: span.clone(),
+                    },
+                });
+            }
+            _ => {}
+        });
 }
 
 #[cfg(test)]
@@ -240,10 +267,7 @@ fn check(actual: &str, expect: expect_test::Expect) {
 #[cfg(test)]
 fn run_test(src: &str) -> String {
     use crate::error;
-
-    let errors = run_without_transforms(src);
-    let errors = error::Errors(errors);
-    errors.to_string()
+    error::Errors(run_without_transforms(src)).to_string()
 }
 
 #[cfg(test)]
@@ -302,7 +326,6 @@ fn run_parser(src: &str, handler: &Handler) -> Program {
 
 #[test]
 fn exprs() {
-    // @mohammad should we be testing for fncalls?
     // macrocall
     let src = "macro @equal($x, $y) {
         $x == $y
@@ -318,11 +341,11 @@ fn exprs() {
     check(
         &run_test(src),
         expect_test::expect![[r#"
-    compiler internal error: mismatched final intent exprs and expr_types slotmaps
-    compiler internal error: macro call present in final intent exprs slotmap
-    compiler internal error: final intent expr_types slotmap is missing corresponding key from exprs slotmap
-    compiler internal error: macro call present in final intent exprs slotmap
-    compiler internal error: final intent expr_types slotmap is missing corresponding key from exprs slotmap"#]],
+        compiler internal error: mismatched final intent exprs and expr_types slotmaps
+        compiler internal error: macro call present in final intent exprs slotmap
+        compiler internal error: final intent expr_types slotmap is missing corresponding key from exprs slotmap
+        compiler internal error: macro call present in final intent exprs slotmap
+        compiler internal error: final intent expr_types slotmap is missing corresponding key from exprs slotmap"#]],
     );
     // tuple and tuple field access
     let src = "let t = { y: 3, 2 };
@@ -385,7 +408,7 @@ fn exprs() {
             r#"compiler internal error: range present in final intent exprs slotmap"#
         ]],
     );
-    // forall -- currently has a mismatched slotmap size
+    // forall
     let src = "let k: int;
     constraint forall i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { !(i - j < k) };";
     check(
@@ -404,20 +427,20 @@ fn expr_types() {
     check(
         &run_test(src),
         expect_test::expect![[r#"
-            compiler internal error: array present in final intent expr_types slotmap
-            compiler internal error: array present in final intent expr_types slotmap
-            compiler internal error: array present in final intent exprs slotmap
-            compiler internal error: array present in final intent var_types slotmap"#]],
+        compiler internal error: array present in final intent expr_types slotmap
+        compiler internal error: array present in final intent expr_types slotmap
+        compiler internal error: array present in final intent exprs slotmap
+        compiler internal error: array present in final intent var_types slotmap"#]],
     );
     // tuple
     let src = "let t = { x: 5, 3 };";
     check(
         &run_test(src),
         expect_test::expect![[r#"
-            compiler internal error: tuple present in final intent expr_types slotmap
-            compiler internal error: tuple present in final intent expr_types slotmap
-            compiler internal error: tuple present in final intent exprs slotmap
-            compiler internal error: tuple present in final intent var_types slotmap"#]],
+        compiler internal error: tuple present in final intent expr_types slotmap
+        compiler internal error: tuple present in final intent expr_types slotmap
+        compiler internal error: tuple present in final intent exprs slotmap
+        compiler internal error: tuple present in final intent var_types slotmap"#]],
     );
     // custom / enum
     let src = "enum MyEnum = Variant1 | Variant2;
@@ -514,3 +537,9 @@ let myAddress: Address = "0x1234567890abcdef"; */
 /* let x = t.1; */
 
 // Looks like tuple field access, tuple types, new types, foralls, array types, enum decls all work fine
+
+// TODO: Identify which tests are causing which issues. Open an issue for each type.
+// each issue is probably an easy fix and there is only a few areas that are causing the issue
+// explain exactly what's going on in each issue. "My sanity check shows x. We actually want x."
+// Can easily reach out to Toby and Mohammad to help with tough ones
+// just triage the problems first
