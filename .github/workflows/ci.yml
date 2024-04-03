@@ -20,6 +20,8 @@ jobs:
     permissions:
       contents: read
       checks: write
+    env:
+        CARGO_NET_GIT_FETCH_WITH_CLI: 'true'
     steps:
       - name: Provide Access to Private Repos
         uses: webfactory/ssh-agent@v0.9.0
@@ -36,6 +38,8 @@ jobs:
   build:
     name: Cargo Build and Test Workspace
     runs-on: ubuntu-latest
+    env:
+        CARGO_NET_GIT_FETCH_WITH_CLI: 'true'
     steps:
       - name: Provide Access to Private Repos
         uses: webfactory/ssh-agent@v0.9.0
@@ -80,6 +84,8 @@ jobs:
   cargo-unused-deps-check:
     name: Cargo Unused Dependencies Check
     runs-on: ubuntu-latest
+    env:
+        CARGO_NET_GIT_FETCH_WITH_CLI: 'true'
     steps:
       - name: Provide Access to Private Repos
         uses: webfactory/ssh-agent@v0.9.0
