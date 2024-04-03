@@ -842,6 +842,65 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5be167a7af36ee22fe3115051bc51f6e6c7054c9348e28deb4f49bd6f705a315"
 
 [[package]]
+name = "pint_solve"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "expect-test",
+ "lalrpop",
+ "lalrpop-util",
+ "russcip",
+ "test-util",
+ "thiserror",
+ "yansi",
+]
+
+[[package]]
+name = "pintc"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ariadne",
+ "clap",
+ "constraint_asm",
+ "essential_types",
+ "expect-test",
+ "itertools 0.12.1",
+ "lalrpop",
+ "lalrpop-util",
+ "logos",
+ "pint_solve",
+ "regex",
+ "serde_json",
+ "similar-asserts",
+ "slotmap",
+ "state_asm",
+ "tempfile",
+ "test-util",
+ "test_bin",
+ "thiserror",
+ "yansi",
+]
+
+[[package]]
+name = "pintfmt"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ariadne",
+ "chumsky",
+ "clap",
+ "expect-test",
+ "itertools 0.12.1",
+ "logos",
+ "regex",
+ "tempfile",
+ "test_bin",
+ "thiserror",
+ "yansi",
+]
+
+[[package]]
 name = "pkcs8"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1260,14 +1319,14 @@ dependencies = [
  "intent-server",
  "num-bigint",
  "num-traits",
+ "pint_solve",
+ "pintc",
  "regex",
  "serde",
  "serde_json",
  "test-util",
  "toml",
  "yansi",
- "yurt_solve",
- "yurtc",
 ]
 
 [[package]]
@@ -1565,65 +1624,6 @@ name = "yansi"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09041cd90cf85f7f8b2df60c646f853b7f535ce68f85244eb6731cf89fa498ec"
-
-[[package]]
-name = "yurt_solve"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "expect-test",
- "lalrpop",
- "lalrpop-util",
- "russcip",
- "test-util",
- "thiserror",
- "yansi",
-]
-
-[[package]]
-name = "yurtc"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ariadne",
- "clap",
- "constraint_asm",
- "essential_types",
- "expect-test",
- "itertools 0.12.1",
- "lalrpop",
- "lalrpop-util",
- "logos",
- "regex",
- "serde_json",
- "similar-asserts",
- "slotmap",
- "state_asm",
- "tempfile",
- "test-util",
- "test_bin",
- "thiserror",
- "yansi",
- "yurt_solve",
-]
-
-[[package]]
-name = "yurtfmt"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ariadne",
- "chumsky",
- "clap",
- "expect-test",
- "itertools 0.12.1",
- "logos",
- "regex",
- "tempfile",
- "test_bin",
- "thiserror",
- "yansi",
-]
 
 [[package]]
 name = "zerocopy"

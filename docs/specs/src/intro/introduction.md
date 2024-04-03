@@ -1,6 +1,6 @@
 # Introduction
 
-This chapter describes the motivation behind the intent-centric Domain Specific Language (DSL) Yurt and the programming paradigm that Yurt exhibits.
+This chapter describes the motivation behind the intent-centric Domain Specific Language (DSL) Pint and the programming paradigm that Pint exhibits.
 
 ## Motivation
 

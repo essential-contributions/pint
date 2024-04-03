@@ -1,2 +1,2 @@
-# Syntax highlighting of Yurt files as rust
-*.yrt linguist-language=Rust
+# Syntax highlighting of Pint files as rust
+*.pnt linguist-language=Rust

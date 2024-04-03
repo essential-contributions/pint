@@ -28,20 +28,20 @@ fn deploy(server: &mut Server) -> anyhow::Result<()> {
         let entry = entry?;
         println!("Deploying {}.", entry.path().display());
 
-        // If it's a file it's expected to be a self contained Yurt script.  If it's a directory
-        // then `main.yrt` must exist within and will be used.
+        // If it's a file it's expected to be a self contained pint script.  If it's a directory
+        // then `main.pnt` must exist within and will be used.
         let mut path = entry.path();
         if entry.file_type()?.is_dir() {
-            path.push("main.yrt");
+            path.push("main.pnt");
         }
 
         // Error handler
-        let handler = yurtc::error::Handler::default();
+        let handler = pintc::error::Handler::default();
 
         // Produce the initial parsed program
         let parsed = unwrap_or_continue!(
-            yurtc::parser::parse_project(&handler, &path),
-            "parse yurt",
+            pintc::parser::parse_project(&handler, &path),
+            "parse pint",
             failed_tests,
             path,
             handler
@@ -58,7 +58,7 @@ fn deploy(server: &mut Server) -> anyhow::Result<()> {
 
         // Flattened program -> Assembly (aka collection of Intents)
         let intents = unwrap_or_continue!(
-            yurtc::asm_gen::program_to_intents(&handler, &flattened),
+            pintc::asm_gen::program_to_intents(&handler, &flattened),
             "asm gen",
             failed_tests,
             path,
@@ -116,7 +116,7 @@ fn deploy(server: &mut Server) -> anyhow::Result<()> {
 }
 
 /// Submit every intent under `validation_tests/submitted` and check their solutions. The solution
-/// files have the same name as the Yurt files but a `toml` extension.
+/// files have the same name as the pint files but a `toml` extension.
 fn submit_and_check_solution(server: &mut Server) -> anyhow::Result<()> {
     // Loop for each file or directory in the `sub_dir`.
     let dir: PathBuf = format!("validation_tests/submitted").into();
@@ -124,27 +124,27 @@ fn submit_and_check_solution(server: &mut Server) -> anyhow::Result<()> {
     for entry in read_dir(dir)? {
         let entry = entry?;
 
-        // If it's a file it's expected to be a self contained Yurt script.  If it's a directory
-        // then `main.yrt` must exist within and will be used.
+        // If it's a file it's expected to be a self contained pint script.  If it's a directory
+        // then `main.pnt` must exist within and will be used.
         let mut path = entry.path();
         if entry.file_type()?.is_dir() {
-            path.push("main.yrt");
+            path.push("main.pnt");
         }
 
-        // Only go over Yurt file
-        if path.extension().unwrap() != "yrt" {
+        // Only go over pint file
+        if path.extension().unwrap() != "pnt" {
             continue;
         }
 
         println!("Submitting {}.", entry.path().display());
 
         // Error handler
-        let handler = yurtc::error::Handler::default();
+        let handler = pintc::error::Handler::default();
 
         // Produce the initial parsed program
         let parsed = unwrap_or_continue!(
-            yurtc::parser::parse_project(&handler, &path),
-            "parse yurt",
+            pintc::parser::parse_project(&handler, &path),
+            "parse pint",
             failed_tests,
             path,
             handler
@@ -161,7 +161,7 @@ fn submit_and_check_solution(server: &mut Server) -> anyhow::Result<()> {
 
         // Flattened program -> Assembly (aka collection of Intents)
         let intents = unwrap_or_continue!(
-            yurtc::asm_gen::program_to_intents(&handler, &flattened),
+            pintc::asm_gen::program_to_intents(&handler, &flattened),
             "asm gen",
             failed_tests,
             path,
@@ -184,7 +184,7 @@ fn submit_and_check_solution(server: &mut Server) -> anyhow::Result<()> {
             bytes_to_hex(intent_address.0.clone())
         );
 
-        // Parse the solution `toml` file which must have the same name as the Yurt file but with a
+        // Parse the solution `toml` file which must have the same name as the pint file but with a
         // `toml` extension.
         let solution = parse_solution(&path.with_extension("toml"))?;
 

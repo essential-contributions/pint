@@ -1,0 +1,198 @@
+use crate::flatpint::{
+    BinaryOp, Constraint, Decl, Expr, FlatPint, Immediate, Solve, Type, UnaryOp, Var,
+};
+use lalrpop_util::ParseError;
+use std::str::FromStr;
+
+grammar;
+
+//////////////
+/// Tokens ///
+//////////////
+match {
+    // Punctuation
+    "::",
+    ":",
+    ";",
+    "=",
+
+    // Ops
+    "&&",
+    "||",
+    "==",
+    "!=",
+    "<",
+    "<=",
+    ">",
+    ">=",
+    "*",
+    "/",
+    "%",
+    "+",
+    "-",
+    "!",
+    "(",
+    ")",
+
+    // Types
+    "int",
+    "real",
+    "bool",
+
+    // Directives
+    "var",
+    "constraint",
+    "solve",
+    "satisfy",
+    "minimize",
+    "maximize",
+
+    // Literals
+    r"[0-9]+",
+    r"[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+",
+    "true",
+    "false",
+
+    // Identifiers
+    r"[A-Za-z_~][A-Za-z_0-9@\[\]\.]*",
+
+    // Skip whitespace and comments
+    r"\s*" => { },
+    r"//[^\n\r]*[\n\r]*" => { }, // `// comment`
+}
+
+////////////////////
+/// Declarations ///
+////////////////////
+
+pub(crate) FlatPint: FlatPint = {
+    <decls: Decl*> <solve: Solve> => FlatPint { decls, solve }
+};
+
+Decl: Decl = {
+    <var:Var> => Decl::Var(var),
+    <constraint:Constraint> => Decl::Constraint(constraint),
+}
+
+pub(crate) Var: Var = {
+    "var" <var_name:Name> ":" <ty:Type> ";" => Var { name: var_name, ty }
+}
+
+pub(crate) Constraint: Constraint = {
+    "constraint" <expr:Expr> ";" => Constraint(expr)
+}
+
+pub(crate) Solve: Solve = {
+    "solve" "satisfy" ";" => Solve::Satisfy,
+    "solve" "minimize" <obj:Name> ";" => Solve::Minimize(obj),
+    "solve" "maximize" <obj:Name> ";" => Solve::Maximize(obj),
+}
+
+///////////////////
+/// Expressions ///
+///////////////////
+pub(crate) Expr: Expr = {
+    "(" <lhs:Expr> <op:BinaryOpOp> <rhs:Expr> ")" => {
+        Expr::BinaryOp {
+            op,
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+    <UnaryOp>
+}
+
+BinaryOpOp: BinaryOp = {
+    "||" => BinaryOp::LogicalOr,
+    "&&" => BinaryOp::LogicalAnd,
+
+    "==" => BinaryOp::Equal,
+    "!=" => BinaryOp::NotEqual,
+    "<" => BinaryOp::LessThan,
+    "<=" => BinaryOp::LessThanOrEqual,
+    ">" => BinaryOp::GreaterThan,
+    ">=" => BinaryOp::GreaterThanOrEqual,
+
+    "+" => BinaryOp::Add,
+    "-" => BinaryOp::Sub,
+
+    "*" => BinaryOp::Mul,
+    "/" => BinaryOp::Div,
+    "%" => BinaryOp::Mod,
+};
+
+UnaryOp: Expr = {
+    <op:UnaryOpOp> <expr:Expr> => {
+        Expr::UnaryOp {
+            op,
+            expr: Box::new(expr),
+        }
+    },
+    <Term>,
+}
+
+UnaryOpOp: UnaryOp = {
+    "-" => UnaryOp::Neg,
+    "!" => UnaryOp::Not,
+};
+
+Term: Expr = {
+    <imm:Immediate> => {
+        Expr::Immediate(imm)
+    },
+    <id:Name> => {
+        Expr::Path(id)
+    },
+    "(" <Expr> ")"
+}
+
+pub(crate) Immediate: Immediate = {
+    <int:IntLit> => Immediate::Int(int),
+    <real:RealLit> => Immediate::Real(real),
+    "true" => Immediate::Bool(true),
+    "false" => Immediate::Bool(false),
+}
+
+IntLit: i64 = <s:r"[0-9]+"> =>? {
+    i64::from_str(s).map_err(|_| ParseError::User {
+        error: "integer literal is too large",
+    })
+};
+
+RealLit: f64 = <s:r"[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+"> =>? {
+    f64::from_str(s).map_err(|_| ParseError::User {
+        error: "unable to parse real literal",
+    })
+};
+
+/////////////
+/// Types ///
+/////////////
+
+pub(crate) Type: Type = {
+    "int" => Type::Int,
+    "real" => Type::Real,
+    "bool" => Type::Bool,
+}
+
+/////////////
+/// Names ///
+/////////////
+Ident: String =  <s:r"[A-Za-z_~][A-Za-z_0-9@\[\]\.]*"> => s.to_string();
+
+pub(crate) Name: String = {
+    "::" <suffix:NameSuffix> => format!("::{suffix}"),
+    <NameSuffix>,
+}
+
+NameSuffix: String = {
+    <els:(Ident "::")*> <last:Ident> => {
+        format!(
+            "{}{last}",
+            els.iter()
+                .map(|el| format!("{}::", el.0))
+                .collect::<Vec<_>>()
+                .concat()
+        )
+    }
+}

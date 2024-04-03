@@ -1,4 +1,4 @@
-# Yurt Specifications
+# Pint Specifications
 
 1. [Introduction](src/intro/introduction.md): introduces the motivation behind the language and its high level use model.
 1. [Transactions](src/intro/transactions.md): thoughts on how to model transactions using the DSL.
