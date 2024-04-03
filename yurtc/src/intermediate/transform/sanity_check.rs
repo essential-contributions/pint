@@ -6,14 +6,6 @@ use crate::{
     types::Type,
 };
 
-// make sure no foralls
-// no arrays
-// no type aliases
-// check there is a matching expr and expr_type for everything
-// check there is a matching var and var_type for everything
-// check verification pass has to be the last pass
-// ideally all internal compile errors, and not user facing
-
 pub(crate) fn sanity_check(handler: &Handler, program: &mut Program) -> Result<(), ErrorEmitted> {
     program.iis.values().for_each(|ii| {
         check_expr_types(ii, handler);
@@ -25,7 +17,6 @@ pub(crate) fn sanity_check(handler: &Handler, program: &mut Program) -> Result<(
     Ok(())
 }
 
-// TODO: change if lets to match -- easier to read
 fn check_expr_types(ii: &IntermediateIntent, handler: &Handler) {
     ii.expr_types
         .iter()
@@ -499,44 +490,6 @@ fn var_types() {
         ]],
     )
 }
-
-// @mohammad, please check errors in test.yrt. It seems like our final intent is pretty screwed? What is expected from
-// let a = [1, 2, 3];
-// solve satisfy;
-
-// TODO: add unit tests here
-// easiest way is to take a string that contains source code
-// run the parser on it
-// program will come out of it
-// then run the checker directly on that
-
-// ---
-
-// Tests that fail sanity check with transforms applied
-/* let a = [1, 2, 3]; */
-/* let a : int[3] = [1, 2, 3]; */
-/*
-type AccountTuple = { id: int, balance: real, address: string };
-let walletDetails: AccountTuple = {id: 1, balance: 2.0, address: "0x1234...ABCD"};
- */
-/* let t: { x: int, y: real } = { y: 5.0, x: 6 }; */
-
-// Looks like array expr, tuple expr, enum types all fail
-
-// ---
-
-// Tests that don't fail sanity check
-/* let a = int[3]; */
-/* constraint forall i in 0..17 {
-    true
-}; */
-/* type Address = string;
-type AccountTuple = { id: int, balance: real, address: string }; */
-/* type Address = string;
-let myAddress: Address = "0x1234567890abcdef"; */
-/* let x = t.1; */
-
-// Looks like tuple field access, tuple types, new types, foralls, array types, enum decls all work fine
 
 // TODO: Identify which tests are causing which issues. Open an issue for each type.
 // each issue is probably an easy fix and there is only a few areas that are causing the issue
