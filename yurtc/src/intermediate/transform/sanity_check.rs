@@ -1,6 +1,6 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted},
-    expr::Expr,
+    expr::{Expr, GeneratorKind},
     intermediate::{Handler, IntermediateIntent, Program},
     span::{empty_span, Spanned},
     types::Type,
@@ -148,14 +148,24 @@ fn check_exprs(ii: &IntermediateIntent, handler: &Handler) {
                     },
                 });
             }
-            Expr::ForAll { span, .. } => {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "forall present in final intent exprs slotmap",
-                        span: span.clone(),
-                    },
-                });
-            }
+            Expr::Generator { kind, span, .. } => match kind {
+                GeneratorKind::ForAll => {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "forall generator present in final intent exprs slotmap",
+                            span: span.clone(),
+                        },
+                    });
+                }
+                GeneratorKind::Exists => {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "exists generator present in final intent exprs slotmap",
+                            span: span.clone(),
+                        },
+                    });
+                }
+            },
             _ => {}
         }
     }
@@ -407,7 +417,24 @@ fn exprs() {
         expect_test::expect![[r#"
         compiler internal error: range present in final intent exprs slotmap
         compiler internal error: range present in final intent exprs slotmap
-        compiler internal error: forall present in final intent exprs slotmap"#]],
+        compiler internal error: forall generator present in final intent exprs slotmap"#]],
+    );
+    // exists
+    let src = "let a: int[2][2];
+    constraint exists i in 0..1, j in 0..1 {
+        a[i][j] == 70
+    };";
+    check(
+        &run_test(src),
+        expect_test::expect![[r#"
+        compiler internal error: array present in final intent expr_types slotmap
+        compiler internal error: array present in final intent expr_types slotmap
+        compiler internal error: range present in final intent exprs slotmap
+        compiler internal error: range present in final intent exprs slotmap
+        compiler internal error: array element access present in final intent exprs slotmap
+        compiler internal error: array element access present in final intent exprs slotmap
+        compiler internal error: exists generator present in final intent exprs slotmap
+        compiler internal error: array present in final intent var_types slotmap"#]],
     );
 }
 
