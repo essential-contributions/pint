@@ -1,4 +1,4 @@
-# The Book of Yurt
+# The Book of Pint
 
 ## Building From Source
 

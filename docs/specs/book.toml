@@ -3,11 +3,11 @@ authors = ["Essential Contributions <contact@essentialcontributions.com> "]
 language = "en"
 multilingual = false
 src = "src"
-title = "Yurt Specification"
+title = "Pint Specification"
 
 [output.html]
-additional-js = ["theme/yurt.js", "theme/bnf.js"]
-git-repository-url = "https://github.com/essential-contributions/yurt"
+additional-js = ["theme/pint.js", "theme/bnf.js"]
+git-repository-url = "https://github.com/essential-contributions/pint"
 
 [preprocessor.katex]
 after = ["links"]

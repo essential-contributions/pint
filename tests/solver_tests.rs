@@ -10,20 +10,20 @@ fn solver_e2e() {
         let entry = entry.unwrap();
         println!("Testing {}.", entry.path().display());
 
-        // If it's a file it's expected to be a self contained Yurt script.  If it's a directory
-        // then `main.yrt` must exist within and will be used.
+        // If it's a file it's expected to be a self contained pint script.  If it's a directory
+        // then `main.pnt` must exist within and will be used.
         let mut path = entry.path();
         if entry.file_type().unwrap().is_dir() {
-            path.push("main.yrt");
+            path.push("main.pnt");
         }
 
         // Error handler
-        let handler = yurtc::error::Handler::default();
+        let handler = pintc::error::Handler::default();
 
         // Produce the initial `IntermediateIntent`
         let parsed = unwrap_or_continue!(
-            yurtc::parser::parse_project(&handler, &path),
-            "parse yurt",
+            pintc::parser::parse_project(&handler, &path),
+            "parse pint",
             failed_tests,
             path,
             handler
@@ -47,20 +47,20 @@ fn solver_e2e() {
             handler
         );
 
-        // Flattened II -> FlatYurt
+        // Flattened II -> Flatpint
         #[allow(unused)]
-        let flatyurt = unwrap_or_continue!(
-            yurt_solve::parse_flatyurt(&format!("{flattened}",)[..]),
-            "parse FlatYurt",
+        let flatpint = unwrap_or_continue!(
+            pint_solve::parse_flatpint(&format!("{flattened}",)[..]),
+            "parse Flatpint",
             failed_tests,
             path
         );
 
         #[cfg(feature = "solver-scip")]
         {
-            // FlatYurt -> solve
+            // Flatpint -> solve
             let solver = unwrap_or_continue!(
-                yurt_solve::solver(&flatyurt).solve(),
+                pint_solve::solver(&flatpint).solve(),
                 "solve",
                 failed_tests,
                 path

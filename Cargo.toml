@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["yurt-solve", "yurtc", "yurtfmt", "tests", "test-util"]
+members = ["pint-solve", "pintc", "pintfmt", "tests", "test-util"]
 
 [workspace.dependencies]
 yansi = "0.5"
@@ -18,4 +18,4 @@ edition = "2021"
 authors = ["Essential Contributions <contact@essentialcontributions.com>"]
 homepage = "https://essential.builders/"
 license = "Apache-2.0"
-repository = "https://github.com/essential-contributions/yurt"
+repository = "https://github.com/essential-contributions/pint"
