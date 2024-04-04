@@ -1,6 +1,6 @@
 ### Macro Items
 
-Macro items describe user defined operations. They can take the form of a 'regular' macro, or of a specialized 'function-style' macro.
+Macro items describe reusable operations.
 
 Regular macros have the following syntax:
 
@@ -8,10 +8,11 @@ Regular macros have the following syntax:
 <macro-name> ::= @[A-Za-z_][A-Za-z0-9_]*
 
 <macro-param> ::= $[A-Za-z0-9]+
+<macro-param-pack> ::= &[A-Za-z0-9]+
 
 <macro-body-item> ::= <tok> | <macro-param>     % where <tok> is any valid parsable source token.
 
-<macro-item> ::= "macro" <macro-name> "(" [ <macro-param> "," ... ] ")" "{" <macro-body-item>* "}"
+<macro-item> ::= "macro" <macro-name> "(" [ <macro-param> "," ... ] ("," macro-param-pack)? ")" "{" <macro-body-item>* "}"
 ```
 
 Macro expansion is the very first operation performed by the compiler. Any macro call expression is expanded in-place, replaced by the contents of the macro as parameterized by the call arguments.
@@ -221,60 +222,58 @@ constraint z > y + 10;
 z
 ```
 
-#### Path Resolution
+#### Array Argument Splicing
 
-Note that paths in macro bodies are resolved relative to the module from which they are called, _not_ necessarily where they are declared. That is, a macro declared in a different module but expanded locally will be parsed as if the macro body was declared locally.
-
-For example:
+An extension to macro argument packing is array splicing which expands all the elements of an array variable in place as the arguments to a macro call. This is done by prefixing the array name with a tilde `~`.
 
 ```pint
-// Declared in `utils/byte.pnt`.
-macro @in_byte_range($a) {
-    // Using a relative path to the `ranges` module.
-    constraint $a >= ranges::byte_min && $a <= ranges::byte_max;
-}
+let num_array: int[4];
+
+constraint @sum(~num_array) < 8;
 ```
 
-and
+This is equivalent to:
 
 ```pint
-// Declared in `main.pnt`.
-let a: int;
-utils::byte::@in_byte_range(a);
+let num_array: int[4];
+
+constraint @sum(num_array[0]; num_array[1]; num_array[2]; num_array[3]) < 8;
 ```
 
-This will only compile if `ranges` is a top-level module, in either `ranges.pnt` or `ranges/ranges.pnt`, and _not_ if it exists in `utils/ranges.pnt` as might be expected when writing the `utils::byte` module.
+Array splicing is usually only useful with variadic macros which can handle arrays of different sizes, though a non-variadic macro may be called with array splicing if the array size exactly matches the number of required arguments.
 
-`use` statements are applied locally also, so putting a `use ::utils::ranges;` at the start of `utils.pnt` will not change this behaviour.
-
-Therefore it is better practice to always use full absolute paths to external symbols (i.e., any paths not passed to, or declared within the macro body) in macro bodies. For example, if `utils/ranges.pnt` _was_ where `byte_min` and `byte_max` are declared, then the following is preferred:
+The array element accesses are expanded in place and the argument separators are only placed _between_ them and not at their ends. The following:
 
 ```pint
-macro @in_byte_range($a) {
-    constraint $a >= ::utils::ranges::byte_min && $a <= ::utils::ranges::byte_max;
-}
+let two: int[2];
+
+let x = @foo(~two + ~two + ~two);
 ```
 
-#### Function-style Macros
-
-Pint also supports 'function-style' macros which are more constrained but also stricter in their use. Function-style macros look like function declarations and are called with standard expression arguments.
-
-Function-style macros must have a final expression in their body and they may only be called as a sub-expression. Each parameter is a typed identifier and a return type (i.e., the type of the final body expression) must be specified.
-
-```bnf
-<function-sig> ::= "fn" <ident> "(" [ <param> "," ... ] ")" "->" <ty>
-
-<function-item> ::= <function-sig> <block-expr>
-
-<param> ::= <ident> ":" <ty>
-```
-
-For example, the following macro expands to a boolean expression which tests if the parameter is an even number:
+expands to:
 
 ```pint
-fn is_even(x: int) -> bool {
-    x % 2 == 0
-}
+let two: int[2];
+
+let x = @foo(two[0]; two[1] + two[0]; two[1] + two[0]; two[1]);
 ```
 
-The extra type information is used to confirm correct use, which is not directly possible with regular macros. Expansion otherwise follows the regular macro procedures.
+The three spliced arrays make up a total of 4 separate arguments in this specific case.
+
+Similarly:
+
+```pint
+let nums = [1, 2, 3];
+
+let x = @sum(100 + ~nums * 200);
+```
+
+expands to:
+
+```pint
+let nums = [1, 2, 3];
+
+let x = @sum(100 + nums[0]; nums[1]; nums[2] * 200);
+```
+
+The arithmetic add and multiply are applied to the first and last elements of the array in this example.
