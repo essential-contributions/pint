@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>The Book of Yurt</title>
+        <title>The Book of Pint</title>
         <meta name="robots" content="noindex" />
 
 
@@ -84,7 +84,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="the-book-of-yurt.html">The Book of Yurt</a></li><li class="chapter-item expanded "><a href="getting_started/index.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="getting_started/installation.html"><strong aria-hidden="true">1.1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="getting_started/hello-world.html"><strong aria-hidden="true">1.2.</strong> Hello, World!</a></li><li class="chapter-item expanded "><a href="getting_started/hello-golf.html"><strong aria-hidden="true">1.3.</strong> Hello, Golf!</a></li></ol></li><li class="chapter-item expanded "><a href="examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li class="chapter-item expanded "><a href="basics/index.html"><strong aria-hidden="true">3.</strong> Yurt Language Basics</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="the-book-of-pint.html">The Book of Pint</a></li><li class="chapter-item expanded "><a href="getting_started/index.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="getting_started/installation.html"><strong aria-hidden="true">1.1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="getting_started/hello-world.html"><strong aria-hidden="true">1.2.</strong> Hello, World!</a></li><li class="chapter-item expanded "><a href="getting_started/hello-golf.html"><strong aria-hidden="true">1.3.</strong> Hello, Golf!</a></li></ol></li><li class="chapter-item expanded "><a href="examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li class="chapter-item expanded "><a href="basics/index.html"><strong aria-hidden="true">3.</strong> Pint Language Basics</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -113,13 +113,13 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">The Book of Yurt</h1>
+                    <h1 class="menu-title">The Book of Pint</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
-                        <a href="https://github.com/essential-contributions/yurt" title="Git repository" aria-label="Git repository">
+                        <a href="https://github.com/essential-contributions/pint" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
 
@@ -149,49 +149,44 @@
                 <div id="content" class="content">
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="the-book-of-yurt"><a class="header" href="#the-book-of-yurt">The Book of Yurt</a></h1>
-<p>Welcome to <em>The Book of Yurt</em>, an introductory book about the programming language <strong>Yurt</strong>. The Yurt programming language is a free and open-source <strong>constraint modeling language</strong>. Yurt can be used to model constraint satisfaction and optimization problems in a <strong>high-level</strong>, <strong>solver-independent</strong> way. What differentiates Yurt from other constraint modeling languages is that Yurt provides native syntax for reading and constraining <strong>blockchain state</strong> elements. Yurt also provides a suite of features you'd expect from a modern programming language, such as type safety, user-defined types, extensibility via user-defined macros and libraries, functional elements (<code>fold</code>, <code>map</code>, etc.), list comprehensions, and many others.</p>
-<p>A Yurt program is a <strong>collection of constraints</strong> on the solution space for a set of decision variables. Some of these decision variables represent the state of a blockchain at different points in time, allowing the constraints to restrict how the state is allowed to flow from one timestamp to the next.</p>
-<p>Constraint-based languages differ from imperative programming languages in that they do not specify explicit steps or instructions to be executed, but rather the properties of a solution to be found.</p>
-<h2 id="who-this-book-is-for"><a class="header" href="#who-this-book-is-for">Who This Book Is For</a></h2>
-<p>This book assumes that you’ve written code in another programming language but doesn’t make any assumptions about which one. More specifically, the book <strong>does not</strong> assume that you've used any constraint-based programming languages in the past. Constraint programming requires a different thinking process than imperative programming, which is something that this book tries to help you with.</p>
+<h1 id="the-book-of-pint"><a class="header" href="#the-book-of-pint">The Book of Pint</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h1>
 <p>To get you started, this chapter discusses the following:</p>
 <ul>
-<li>Installing Yurt</li>
-<li>Writing your first Yurt programs</li>
+<li>Installing Pint</li>
+<li>Writing your first Pint programs</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
 <h3 id="dependencies"><a class="header" href="#dependencies">Dependencies</a></h3>
-<p>A prerequisite for installing and using <code>Yurt</code> is the Rust toolchain. Platform-specific instructions for installing <code>rustup</code> can be found <a href="https://www.rust-lang.org/tools/install">here</a>. Then, install the Rust toolchain with:</p>
+<p>A prerequisite for installing and using <code>Pint</code> is the Rust toolchain. Platform-specific instructions for installing <code>rustup</code> can be found <a href="https://www.rust-lang.org/tools/install">here</a>. Then, install the Rust toolchain with:</p>
 <pre><code class="language-console">$ rustup install stable
 </code></pre>
-<p>The Yurt toolchain is built and tested against the latest <a href="https://github.com/rust-lang/rust/releases/latest"><code>stable</code> Rust toolchain version</a>. Ensure you are using the latest <code>stable</code> version of Rust with:</p>
+<p>The Pint toolchain is built and tested against the latest <a href="https://github.com/rust-lang/rust/releases/latest"><code>stable</code> Rust toolchain version</a>. Ensure you are using the latest <code>stable</code> version of Rust with:</p>
 <pre><code class="language-console">$ rustup update &amp;&amp; rustup default stable
 </code></pre>
 <h3 id="installing-from-cargo"><a class="header" href="#installing-from-cargo">Installing from <code>Cargo</code></a></h3>
-<p>The Yurt toolchain can be installed using <code>Cargo</code> with:</p>
-<pre><code class="language-console">$ cargo install yurt
+<p>The Pint toolchain can be installed using <code>Cargo</code> with:</p>
+<pre><code class="language-console">$ cargo install pint
 </code></pre>
 <p>You can update the toolchain with <code>Cargo</code> using:</p>
-<pre><code class="language-console">$ cargo update yurt
+<pre><code class="language-console">$ cargo update pint
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="hello-world"><a class="header" href="#hello-world">Hello, World!</a></h2>
-<p>Now that you've installed Yurt, it's time to write your first Yurt program. It's traditional when learning a new language to write a little program that prints the text <code>Hello, world!</code></p>
+<p>Now that you've installed Pint, it's time to write your first Pint program. It's traditional when learning a new language to write a little program that prints the text <code>Hello, world!</code></p>
 <h3 id="creating-a-project-directory"><a class="header" href="#creating-a-project-directory">Creating a Project Directory</a></h3>
-<p>You'll start by making a directory to store your Yurt code. It doesn't matter to Yurt where your code lives, but for the exercise and projects in this book, we suggest making a <code>projects</code> directory in your home directory and keeping all your projects there.</p>
+<p>You'll start by making a directory to store your Pint code. It doesn't matter to Pint where your code lives, but for the exercise and projects in this book, we suggest making a <code>projects</code> directory in your home directory and keeping all your projects there.</p>
 <p>Open a terminal and enter the following commands to make a <code>projects</code> directory and a directory for the &quot;Hello, world!&quot; project within the <code>projects</code> directory:</p>
 <pre><code class="language-console">$ mkdir ~/projects
 $ cd ~/projects
 $ mkdir hello_world
 $ cd hello_world
 </code></pre>
-<h3 id="writing-a-yurt-program"><a class="header" href="#writing-a-yurt-program">Writing a Yurt Program</a></h3>
-<p>Next, make a new source file and call it <code>main.yrt</code>. Yurt files always end with the <code>yrt</code> extension. Now open the <code>main.yrt</code> file you just created and enter the code below:</p>
-<pre><code class="language-yurt">let greeting: string;
+<h3 id="writing-a-pint-program"><a class="header" href="#writing-a-pint-program">Writing a Pint Program</a></h3>
+<p>Next, make a new source file and call it <code>main.pnt</code>. Pint files always end with the <code>pnt</code> extension. Now open the <code>main.pnt</code> file you just created and enter the code below:</p>
+<pre><code class="language-pint">let greeting: string;
 
 constraint greeting == &quot;Hello, world!&quot;;
 
@@ -200,53 +195,53 @@ solve satisfy;
 print greeting;
 </code></pre>
 <p>Save the file and go back to your terminal window in the <code>~/projects/hello_world/</code> directory. Enter the following command to compile and <strong>solve</strong> the file:</p>
-<pre><code class="language-console">$ yurtc --solve main.rs
+<pre><code class="language-console">$ pintc --solve main.rs
 </code></pre>
 <p>The following should be printed to the terminal:</p>
 <pre><code class="language-console">&quot;Hello, world!&quot;
 </code></pre>
-<p>Congratulations! You've officially written your first Yurt program.</p>
+<p>Congratulations! You've officially written your first Pint program.</p>
 <blockquote>
-<p><strong>Note:</strong> Yurt programs are not &quot;run&quot; like traditional programs. They are &quot;solved&quot;.</p>
+<p><strong>Note:</strong> Pint programs are not &quot;run&quot; like traditional programs. They are &quot;solved&quot;.</p>
 </blockquote>
-<h3 id="anatomy-of-a-yurt-program"><a class="header" href="#anatomy-of-a-yurt-program">Anatomy of a Yurt program</a></h3>
+<h3 id="anatomy-of-a-pint-program"><a class="header" href="#anatomy-of-a-pint-program">Anatomy of a Pint program</a></h3>
 <p>Let's review this &quot;Hello, world!&quot; program in detail.</p>
 <p>The first line in this program is:</p>
-<pre><code class="language-yurt">let greeting: string;
+<pre><code class="language-pint">let greeting: string;
 </code></pre>
-<p>which declares a new <strong>decision variable</strong> called <code>greeting</code> and specifies its type to be a <code>string</code>, which is a <strong>primitive type</strong> in <code>Yurt.</code></p>
+<p>which declares a new <strong>decision variable</strong> called <code>greeting</code> and specifies its type to be a <code>string</code>, which is a <strong>primitive type</strong> in <code>Pint.</code></p>
 <p>The second line is:</p>
-<pre><code class="language-yurt">constraint greeting == &quot;Hello, world!&quot;;
+<pre><code class="language-pint">constraint greeting == &quot;Hello, world!&quot;;
 </code></pre>
-<p>which defines a new <strong>constraint</strong>. Constraints are the building blocks of any Yurt program; they contain all the &quot;useful&quot; logic! The above constraint imposes the restriction that any <strong>assignment</strong> of the decision variable <code>greeting</code> must satisfy the Boolean condition <code>greeting == &quot;Hello, world!&quot;</code>.</p>
+<p>which defines a new <strong>constraint</strong>. Constraints are the building blocks of any Pint program; they contain all the &quot;useful&quot; logic! The above constraint imposes the restriction that any <strong>assignment</strong> of the decision variable <code>greeting</code> must satisfy the Boolean condition <code>greeting == &quot;Hello, world!&quot;</code>.</p>
 <p>The third line is:</p>
-<pre><code class="language-yurt">solve satisfy;
+<pre><code class="language-pint">solve satisfy;
 </code></pre>
 <p>This is a directive that describes what kind of program this is. In this case, this is a <strong>satisfaction program</strong>: we wish to find a value for <code>greeting</code> that satisfies the constraint but we do not care which one.</p>
 <p>The fourth line is</p>
-<pre><code class="language-yurt">print greeting;
+<pre><code class="language-pint">print greeting;
 </code></pre>
-<p>which simply prints a valid assignment of <code>greeting</code>. The program above is trivial in the sense that there is a single assignment of <code>greeting</code> that satisfies the constraint. That single assignment is, of course, <code>greeting = &quot;Hello, world!&quot;</code>, which is why we see <code>Hello, World!</code> in the terminal after running <code>yurtc --solve main.yrt</code>.</p>
+<p>which simply prints a valid assignment of <code>greeting</code>. The program above is trivial in the sense that there is a single assignment of <code>greeting</code> that satisfies the constraint. That single assignment is, of course, <code>greeting = &quot;Hello, world!&quot;</code>, which is why we see <code>Hello, World!</code> in the terminal after running <code>pintc --solve main.pnt</code>.</p>
 <blockquote>
-<p><strong>Note:</strong> Yurt programs that do not have any assignments satisfying <em>all</em> their constraints are called <strong>unsatisfiable</strong>.</p>
+<p><strong>Note:</strong> Pint programs that do not have any assignments satisfying <em>all</em> their constraints are called <strong>unsatisfiable</strong>.</p>
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="hello-golf"><a class="header" href="#hello-golf">Hello, Golf!</a></h2>
-<p>Let's make things more interesting! While the &quot;Hello, world!&quot; program is a good introductory example for starting your Yurt journey, it is not a very interesting Yurt program because it has a single constraint that can be satisfied trivially. In this chapter, we go over another Yurt program that has a real world application.</p>
+<p>Let's make things more interesting! While the &quot;Hello, world!&quot; program is a good introductory example for starting your Pint journey, it is not a very interesting Pint program because it has a single constraint that can be satisfied trivially. In this chapter, we go over another Pint program that has a real world application.</p>
 <p>You're in charge of designing a new 18-hole golf course with a total &quot;par&quot; of 72. If you're not familiar with the term, &quot;par&quot; for a given golf hole is the predetermined number of strokes that a <em>proficient</em> golfer should require to complete the hole. Each golf hole is assigned a &quot;par&quot; of 3, 4, or 5 depending on its playing length. Your task is to come up with a &quot;par&quot; assignment for each of the 18 holes such that the total par is 72 (and then to design the actual holes after).</p>
 <p>Create a new project under <code>~/projects</code> and call it <code>golf</code>:</p>
 <pre><code class="language-console">$ cd ~/projects
 $ mkdir golf
 $ cd golf
 </code></pre>
-<p>Next, make a new source file and call it <code>main.yrt</code>. In order to model the problem above using Yurt, we have to think about 2 things:</p>
+<p>Next, make a new source file and call it <code>main.pnt</code>. In order to model the problem above using Pint, we have to think about 2 things:</p>
 <ol>
 <li>What decision variables should we define and solve for that would help us solve our design problem?</li>
 <li>What constraints exactly describe the requirements of the problem?</li>
 </ol>
 <h3 id="decision-variables"><a class="header" href="#decision-variables">Decision Variables</a></h3>
 <p>Recall that our goal is to assign a par value for each of the 18 golf holes. One way of representing these values is using 18 <strong>integer</strong> decision variables as follows:</p>
-<pre><code class="language-yurt">let h0: int;
+<pre><code class="language-pint">let h0: int;
 let h1: int;
 .
 .
@@ -254,22 +249,22 @@ let h17: int;
 </code></pre>
 <p>Notice the <code>int</code> (integer) primitive type that annotates each variable. Par values have to be integers!</p>
 <p>A better way and more concise way of rewriting the above is using an array of 18 <code>int</code> values as follows:</p>
-<pre><code class="language-yurt">let h: int[18];
+<pre><code class="language-pint">let h: int[18];
 </code></pre>
 <p>The type <code>int[18]</code> describes an array of 18 integers.</p>
 <h3 id="constraints"><a class="header" href="#constraints">Constraints</a></h3>
 <h4 id="par-values-constraints"><a class="header" href="#par-values-constraints">Par Values Constraints</a></h4>
-<p>The first constraint that the design problem imposes is that each hole is assigned a par value of 3, 4, or 5. There are two ways to model this in Yurt.</p>
+<p>The first constraint that the design problem imposes is that each hole is assigned a par value of 3, 4, or 5. There are two ways to model this in Pint.</p>
 <p>We can use the comparison operators to indicate that each par is greater or equal (<code>&gt;=</code>) to 3 and (<code>&amp;&amp;</code>) less than or equal (<code>&lt;=</code>) to 5:</p>
-<pre><code class="language-yurt">constraint h[0] &gt;= 3 &amp;&amp; h[0] &lt;= 5;
+<pre><code class="language-pint">constraint h[0] &gt;= 3 &amp;&amp; h[0] &lt;= 5;
 constraint h[1] &gt;= 3 &amp;&amp; h[1] &lt;= 5;
 .
 .
 constraint h[17] &gt;= 3 &amp;&amp; h[17] &lt;= 5;
 </code></pre>
-<p>Notice the use of the array element access syntax using <code>[..]</code>. In Yurt, <code>h[i]</code> is the <code>i+1</code>th element in array <code>h</code>.</p>
+<p>Notice the use of the array element access syntax using <code>[..]</code>. In Pint, <code>h[i]</code> is the <code>i+1</code>th element in array <code>h</code>.</p>
 <p>Alternatively, we can constraint each element in <code>h</code> using <code>in</code> and a <strong>range</strong> expression as follows:</p>
-<pre><code class="language-yurt">constraint h[0] in 3..5;
+<pre><code class="language-pint">constraint h[0] in 3..5;
 constraint h[1] in 3..5;
 .
 .
@@ -278,17 +273,17 @@ constraint h[17] in 3..5;
 <p>The expression <code>h[i] in 3..5</code> means: <code>h[i]</code> belongs to the set of integers between 3 and 5 inclusive. If <code>h</code> was an array of <code>real</code> values instead, then the range <code>3..5</code> would refer to the set of real numbers between 3 and 5 inclusive.</p>
 <h4 id="total-par-constraint"><a class="header" href="#total-par-constraint">Total Par Constraint</a></h4>
 <p>The problem definition imposes another requirement: the total par of the golf course should be 72. The way to represent this constraint is using a summation as follows:</p>
-<pre><code class="language-yurt">constraint h[0] + h[1] + h[2] + h[3] + h[4] + h[5] + h[6]
+<pre><code class="language-pint">constraint h[0] + h[1] + h[2] + h[3] + h[4] + h[5] + h[6]
          + h[7] + h[8] + h[9] + h[10] + h[11] + h[12] + h[13]
          + h[14] + h[15] + h[16] + h[17] == 72
 </code></pre>
 <h3 id="final-program"><a class="header" href="#final-program">Final Program</a></h3>
 <p>To finish our program, we need a <code>solve</code> directive and an (optional) <code>print</code> directive. Because we do not have an objective function to optimize for, we can simply use a <code>solve satisfy</code> directive.</p>
 <blockquote>
-<p><strong>Note:</strong> some modeling problems require optimizing (i.e. maximizing or minimizing) some objective function. Modeling these problems in Yurt require using the directives <code>solve maximize &lt;expr&gt;;</code> or <code>solve minimize &lt;expr&gt;;</code> where <code>&lt;expr&gt;</code> is any valid Yurt expression. The goal of an optimization problem is to find the <em>best</em> solution satisfying the constraints instead of <em>any</em> solution.</p>
+<p><strong>Note:</strong> some modeling problems require optimizing (i.e. maximizing or minimizing) some objective function. Modeling these problems in Pint require using the directives <code>solve maximize &lt;expr&gt;;</code> or <code>solve minimize &lt;expr&gt;;</code> where <code>&lt;expr&gt;</code> is any valid Pint expression. The goal of an optimization problem is to find the <em>best</em> solution satisfying the constraints instead of <em>any</em> solution.</p>
 </blockquote>
 <p>Our final program now looks like this:</p>
-<pre><code class="language-yurt">let h: int[18];
+<pre><code class="language-pint">let h: int[18];
 
 constraint h[0] in 3..5;
 constraint h[1] in 3..5;
@@ -317,8 +312,8 @@ solve satisfy;
 
 print h;
 </code></pre>
-<p>Open the <code>main.yrt</code> file you created earlier and paste the code above. Save the file, go back to your terminal window in the <code>~/projects/golf/</code> directory, and enter the following command to compile and solve the program:</p>
-<pre><code class="language-console">$ yurtc --solve main.rs
+<p>Open the <code>main.pnt</code> file you created earlier and paste the code above. Save the file, go back to your terminal window in the <code>~/projects/golf/</code> directory, and enter the following command to compile and solve the program:</p>
+<pre><code class="language-console">$ pintc --solve main.rs
 </code></pre>
 <p>The following should be printed to the terminal:</p>
 <pre><code class="language-console">[3, 3, 3, 3, 3, 3, 3, 3, 3, 5, 5, 5, 5, 5, 5, 5, 5, 5];
@@ -331,7 +326,7 @@ print h;
 <h3 id="lets-make-it-more-interesting"><a class="header" href="#lets-make-it-more-interesting">Let's Make it More Interesting</a></h3>
 <p>You may notice that the solution above does not have any par 4 holes (again, the solution you see in your terminal might be different). This is probably undesirable for most players. Because our program did not impose any requirements on the statistical distribution of pars, the programmatic solver is free to choose a &quot;boring&quot; solution, as long as it satisfies the constraints.</p>
 <p>To make the golf course more interesting, we may want to be more specific about the distribution of par values. Assume that we would like to have <strong>exactly 6 par 4 holes</strong> in our new golf course. There are multiple ways of modeling this, but here's one them:</p>
-<pre><code class="language-yurt">constraint  (h[0] == 4) as int
+<pre><code class="language-pint">constraint  (h[0] == 4) as int
           + (h[1] == 4) as int
           + (h[2] == 4) as int
           + (h[3] == 4) as int
@@ -351,21 +346,21 @@ print h;
           + (h[17] == 4) as int == 6;
 </code></pre>
 <p>The left-hand side of the equality above counts the number of elements in array <code>h</code> that are equal to 4. Since the expression <code>h[i] == 4</code> is a <code>bool</code>, we need to cast it to an <code>int</code>, using <code>as int</code>, in order to be able to use addition (<code>+</code>).</p>
-<p>Adding the constraint above to our program from earlier and running <code>yurtc --solve main.yrt</code> results in the following solution:</p>
+<p>Adding the constraint above to our program from earlier and running <code>pintc --solve main.pnt</code> results in the following solution:</p>
 <pre><code class="language-console">[5, 5, 3, 4, 3, 4, 5, 4, 4, 4, 5, 5, 3, 3, 3, 3, 5, 4];
 </code></pre>
 <p>which is certainly a much more interesting distribution of par values.</p>
 <blockquote>
-<p><strong>Note:</strong> Yurt statements can be written in any order so feel free to paste the new constraint anywhere in your code, but keep in mind that readability is a critical property of good code.</p>
+<p><strong>Note:</strong> Pint statements can be written in any order so feel free to paste the new constraint anywhere in your code, but keep in mind that readability is a critical property of good code.</p>
 </blockquote>
 <blockquote>
-<p><strong>Note:</strong> there are other more concise ways of modeling the problem above in Yurt. Later chapters will describe additional Yurt tools that will allows us to write shorter and more maintainable code.</p>
+<p><strong>Note:</strong> there are other more concise ways of modeling the problem above in Pint. Later chapters will describe additional Pint tools that will allows us to write shorter and more maintainable code.</p>
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="example"><a class="header" href="#example">Example</a></h1>
 <p>Some basic examples.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="yurt-language-basics"><a class="header" href="#yurt-language-basics">Yurt Language Basics</a></h1>
+<h1 id="pint-language-basics"><a class="header" href="#pint-language-basics">Pint Language Basics</a></h1>
 
                     </main>
 
@@ -401,7 +396,7 @@ print h;
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/yurt.js"></script>
+        <script src="theme/pint.js"></script>
         <script src="theme/bnf.js"></script>
 
         <script>

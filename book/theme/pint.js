@@ -1,5 +1,5 @@
-hljs.registerLanguage("yurt", (hljs) => ({
-  name: "Yurt",
+hljs.registerLanguage("pint", (hljs) => ({
+  name: "Pint",
   keywords: {
     keyword:
       "as bool cond constraint contract else enum extern forall fn if implements in interface int let macro maximize minimize real satisfy solve state string type use where",
