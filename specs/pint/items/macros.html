@@ -149,15 +149,16 @@
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h3 id="macro-items"><a class="header" href="#macro-items">Macro Items</a></h3>
-<p>Macro items describe user defined operations. They can take the form of a 'regular' macro, or of a specialized 'function-style' macro.</p>
+<p>Macro items describe reusable operations.</p>
 <p>Regular macros have the following syntax:</p>
 <pre><code class="language-bnf">&lt;macro-name&gt; ::= @[A-Za-z_][A-Za-z0-9_]*
 
 &lt;macro-param&gt; ::= $[A-Za-z0-9]+
+&lt;macro-param-pack&gt; ::= &amp;[A-Za-z0-9]+
 
 &lt;macro-body-item&gt; ::= &lt;tok&gt; | &lt;macro-param&gt;     % where &lt;tok&gt; is any valid parsable source token.
 
-&lt;macro-item&gt; ::= &quot;macro&quot; &lt;macro-name&gt; &quot;(&quot; [ &lt;macro-param&gt; &quot;,&quot; ... ] &quot;)&quot; &quot;{&quot; &lt;macro-body-item&gt;* &quot;}&quot;
+&lt;macro-item&gt; ::= &quot;macro&quot; &lt;macro-name&gt; &quot;(&quot; [ &lt;macro-param&gt; &quot;,&quot; ... ] (&quot;,&quot; macro-param-pack)? &quot;)&quot; &quot;{&quot; &lt;macro-body-item&gt;* &quot;}&quot;
 </code></pre>
 <p>Macro expansion is the very first operation performed by the compiler. Any macro call expression is expanded in-place, replaced by the contents of the macro as parameterized by the call arguments.</p>
 <p>Macros are intended to be a generalized method for code re-use. The macro parameters are special identifiers starting with a <code>$</code>, e.g., <code>$max</code> or <code>$0</code>.</p>
@@ -300,42 +301,40 @@ let z: int;
 constraint z &gt; y + 10;
 z
 </code></pre>
-<h4 id="path-resolution"><a class="header" href="#path-resolution">Path Resolution</a></h4>
-<p>Note that paths in macro bodies are resolved relative to the module from which they are called, <em>not</em> necessarily where they are declared. That is, a macro declared in a different module but expanded locally will be parsed as if the macro body was declared locally.</p>
-<p>For example:</p>
-<pre><code class="language-pint">// Declared in `utils/byte.pnt`.
-macro @in_byte_range($a) {
-    // Using a relative path to the `ranges` module.
-    constraint $a &gt;= ranges::byte_min &amp;&amp; $a &lt;= ranges::byte_max;
-}
-</code></pre>
-<p>and</p>
-<pre><code class="language-pint">// Declared in `main.pnt`.
-let a: int;
-utils::byte::@in_byte_range(a);
-</code></pre>
-<p>This will only compile if <code>ranges</code> is a top-level module, in either <code>ranges.pnt</code> or <code>ranges/ranges.pnt</code>, and <em>not</em> if it exists in <code>utils/ranges.pnt</code> as might be expected when writing the <code>utils::byte</code> module.</p>
-<p><code>use</code> statements are applied locally also, so putting a <code>use ::utils::ranges;</code> at the start of <code>utils.pnt</code> will not change this behaviour.</p>
-<p>Therefore it is better practice to always use full absolute paths to external symbols (i.e., any paths not passed to, or declared within the macro body) in macro bodies. For example, if <code>utils/ranges.pnt</code> <em>was</em> where <code>byte_min</code> and <code>byte_max</code> are declared, then the following is preferred:</p>
-<pre><code class="language-pint">macro @in_byte_range($a) {
-    constraint $a &gt;= ::utils::ranges::byte_min &amp;&amp; $a &lt;= ::utils::ranges::byte_max;
-}
-</code></pre>
-<h4 id="function-style-macros"><a class="header" href="#function-style-macros">Function-style Macros</a></h4>
-<p>Pint also supports 'function-style' macros which are more constrained but also stricter in their use. Function-style macros look like function declarations and are called with standard expression arguments.</p>
-<p>Function-style macros must have a final expression in their body and they may only be called as a sub-expression. Each parameter is a typed identifier and a return type (i.e., the type of the final body expression) must be specified.</p>
-<pre><code class="language-bnf">&lt;function-sig&gt; ::= &quot;fn&quot; &lt;ident&gt; &quot;(&quot; [ &lt;param&gt; &quot;,&quot; ... ] &quot;)&quot; &quot;-&gt;&quot; &lt;ty&gt;
+<h4 id="array-argument-splicing"><a class="header" href="#array-argument-splicing">Array Argument Splicing</a></h4>
+<p>An extension to macro argument packing is array splicing which expands all the elements of an array variable in place as the arguments to a macro call. This is done by prefixing the array name with a tilde <code>~</code>.</p>
+<pre><code class="language-pint">let num_array: int[4];
 
-&lt;function-item&gt; ::= &lt;function-sig&gt; &lt;block-expr&gt;
+constraint @sum(~num_array) &lt; 8;
+</code></pre>
+<p>This is equivalent to:</p>
+<pre><code class="language-pint">let num_array: int[4];
 
-&lt;param&gt; ::= &lt;ident&gt; &quot;:&quot; &lt;ty&gt;
+constraint @sum(num_array[0]; num_array[1]; num_array[2]; num_array[3]) &lt; 8;
 </code></pre>
-<p>For example, the following macro expands to a boolean expression which tests if the parameter is an even number:</p>
-<pre><code class="language-pint">fn is_even(x: int) -&gt; bool {
-    x % 2 == 0
-}
+<p>Array splicing is usually only useful with variadic macros which can handle arrays of different sizes, though a non-variadic macro may be called with array splicing if the array size exactly matches the number of required arguments.</p>
+<p>The array element accesses are expanded in place and the argument separators are only placed <em>between</em> them and not at their ends. The following:</p>
+<pre><code class="language-pint">let two: int[2];
+
+let x = @foo(~two + ~two + ~two);
 </code></pre>
-<p>The extra type information is used to confirm correct use, which is not directly possible with regular macros. Expansion otherwise follows the regular macro procedures.</p>
+<p>expands to:</p>
+<pre><code class="language-pint">let two: int[2];
+
+let x = @foo(two[0]; two[1] + two[0]; two[1] + two[0]; two[1]);
+</code></pre>
+<p>The three spliced arrays make up a total of 4 separate arguments in this specific case.</p>
+<p>Similarly:</p>
+<pre><code class="language-pint">let nums = [1, 2, 3];
+
+let x = @sum(100 + ~nums * 200);
+</code></pre>
+<p>expands to:</p>
+<pre><code class="language-pint">let nums = [1, 2, 3];
+
+let x = @sum(100 + nums[0]; nums[1]; nums[2] * 200);
+</code></pre>
+<p>The arithmetic add and multiply are applied to the first and last elements of the array in this example.</p>
 
                     </main>
 
