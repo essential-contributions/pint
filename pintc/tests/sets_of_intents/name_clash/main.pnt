@@ -27,15 +27,15 @@ intent Boo {
 // parse_failure <<<
 // symbol `Foo` has already been declared
 // @20..23: previous declaration of the symbol `Foo` here
-// @34..46: `Foo` redeclared here
+// @34..44: `Foo` redeclared here
 // `Foo` must be declared or imported only once in this scope
 // symbol `Bar` has already been declared
 // @94..97: previous declaration of the symbol `Bar` here
-// @106..118: `Bar` redeclared here
+// @106..116: `Bar` redeclared here
 // `Bar` must be declared or imported only once in this scope
 // symbol `Boo` has already been declared
-// @161..173: previous declaration of the symbol `Boo` here
-// @197..209: `Boo` redeclared here
+// @161..171: previous declaration of the symbol `Boo` here
+// @197..207: `Boo` redeclared here
 // `Boo` must be declared or imported only once in this scope
 // symbol `::Foo` has already been declared
 // @20..23: previous declaration of the symbol `::Foo` here

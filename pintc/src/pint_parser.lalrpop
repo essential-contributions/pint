@@ -1,12 +1,15 @@
 use crate::{
-    error::{Error, ParseError, Handler},
+    error::{Error, Handler, ParseError},
     expr::*,
-    intermediate::{ExprKey, SolveFunc, IntermediateIntent, ProgramKind, Program},
+    intermediate::{ExprKey, IntermediateIntent, Program, ProgramKind, SolveFunc},
     lexer,
     macros::{MacroCall, MacroDecl},
-    parser::{ParserContext, UsePath, UseTree::{self, Path as UseTreePath}, NextModPath},
-    types::{EnumDecl, Path, FnSig, NewTypeDecl, PrimitiveKind, Type},
+    parser::{
+        NextModPath, ParserContext, UsePath,
+        UseTree::{self, Path as UseTreePath},
+    },
     span,
+    types::{EnumDecl, FnSig, NewTypeDecl, Path, PrimitiveKind, Type},
 };
 
 grammar<'a>(
@@ -39,13 +42,18 @@ DeclBarringMacro: () = {
     MacroCallDecl ";",
 };
 
+pub IntentDecl: () = {
+    IntentOpen DeclBarringMacro* IntentClose,
+}
+
 pub IntentOpen: () = {
-    <l:@L> "intent" <name:Ident> "{" <r:@R> => {
+    <l:@L> "intent" <name:Ident> <r:@R> "{" => {
         // To detect name clashes
         let name = context.add_top_level_symbol(
             handler,
             Ident {
                 name: name.to_string(),
+                hygienic: false,
                 span: (context.span_from)(l, r),
             },
             context.mod_prefix,
@@ -71,12 +79,8 @@ pub IntentOpen: () = {
     }
 }
 
-pub IntentDecl: () = {
-    <l:@L> IntentOpen DeclBarringMacro* IntentClose <r:@R> => { },
-}
-
 pub IntentClose: () = {
-    <l:@L> "}" <r:@R> => {
+    "}" => {
         // At the end of the intent declaration, return back to the root II
         *context.current_ii = Program::ROOT_II_NAME.to_string();
     }
@@ -167,6 +171,7 @@ UseStatement: () = {
                                 .alias
                                 .clone()
                                 .unwrap_or(use_path.path[use_path.path.len() - 1].clone()),
+                            hygienic: false,
                             span: use_path.span.clone(),
                         },
                         use_path.span.clone(),
@@ -262,6 +267,7 @@ LetName: (Ident, Option<&'a str>) = {
 
         let name = Ident {
             name: id.0.to_owned(),
+            hygienic: id.1,
             span: (context.span_from)(l, r),
         };
 
@@ -999,7 +1005,7 @@ PathWithLast<Last>: Path = {
             .use_paths
             .iter()
             .find(|use_path| use_path.matches_suffix(&path_prefix))
-            .map(|use_path| {
+            .and_then(|use_path| {
                 // We've found a use path which matches.  Construct a full path by joining the it
                 // with the parsed path. `parsed_path_iter` is our parsed path except for the first
                 // element.
@@ -1038,7 +1044,13 @@ PathWithLast<Last>: Path = {
                     span: (context.span_from)(l, r),
                 });
 
-                full_path_str
+                if last.hygienic {
+                    // This identifier is hygienic and should not have 'use' paths prepended
+                    // afterall.
+                    None
+                } else {
+                    Some(full_path_str)
+                }
             })
             .unwrap_or_else(|| {
                 // We didn't find a matching use path.  Just return the parsed path as is.
@@ -1167,6 +1179,7 @@ ImmediateInt: Immediate = {
 pub Ident: Ident = {
     <l:@L> <id:"ident"> <r:@R> => Ident {
         name: id.0.to_string(),
+        hygienic: id.1,
         span: (context.span_from)(l, r),
     }
 }
@@ -1174,6 +1187,7 @@ pub Ident: Ident = {
 IdentFromToken<Tok>: Ident = {
     <l:@L> <id:Tok> <r:@R> => Ident {
         name: id.to_string(),
+        hygienic: false,
         span: (context.span_from)(l, r),
     }
 }
