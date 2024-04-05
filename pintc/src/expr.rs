@@ -90,6 +90,7 @@ pub enum Expr {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Ident {
     pub(super) name: String,
+    pub(super) hygienic: bool,
     pub(super) span: Span,
 }
 

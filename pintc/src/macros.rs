@@ -355,7 +355,22 @@ impl MacroExpander {
             match &tok.1 {
                 Token::MacroParam(param) => {
                     if let Some(&idx) = param_idcs.get(param) {
-                        body.append(&mut call.args[idx].clone());
+                        let mut arg_toks = call.args[idx]
+                            .iter()
+                            .map(|tok| {
+                                if let (l, Token::Ident((id, _)), r) = tok {
+                                    // When identifiers are passed to a macro we set the special
+                                    // flag to true to indicate adding a local scope to it should
+                                    // _not_ be done.  We don't need/want hygiene for these
+                                    // identifiers.
+                                    (*l, Token::Ident((id.clone(), true)), *r)
+                                } else {
+                                    tok.clone()
+                                }
+                            })
+                            .collect();
+
+                        body.append(&mut arg_toks);
                     } else {
                         handler.emit_err(Error::Compile {
                             error: CompileError::MacroUndefinedParam {

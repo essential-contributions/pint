@@ -494,16 +494,6 @@ impl<'sc> Lexer<'sc> {
                     ));
                 }
 
-                Some(Ok(Token::Ident((s, _)))) => {
-                    // When identifiers are in macro args we set the flag to true. Then while
-                    // parsing expanded macro bodies, the `let` decls can implement hygiene.
-                    let tok_span = args_token_stream.span();
-                    all_args
-                        .last_mut()
-                        .expect("Args vec is always valid.")
-                        .push((tok_span.start, Token::Ident((s, true)), tok_span.end))
-                }
-
                 // A regular parameter token.
                 Some(Ok(tok)) => {
                     let tok_span = args_token_stream.span();
