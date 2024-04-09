@@ -517,9 +517,3 @@ fn var_types() {
         ]],
     )
 }
-
-// TODO: Identify which tests are causing which issues. Open an issue for each type.
-// each issue is probably an easy fix and there is only a few areas that are causing the issue
-// explain exactly what's going on in each issue. "My sanity check shows x. We actually want x."
-// Can easily reach out to Toby and Mohammad to help with tough ones
-// just triage the problems first
