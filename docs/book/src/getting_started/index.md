@@ -2,5 +2,5 @@
 
 To get you started, this chapter discusses the following:
 
-- Installing Yurt
-- Writing your first Yurt programs
+- Installing Pint
+- Writing your first Pint programs

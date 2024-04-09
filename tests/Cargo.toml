@@ -14,14 +14,14 @@ essential_types = { git = "ssh://git@github.com/essential-contributions/intent-s
 intent-server = { git = "ssh://git@github.com/essential-contributions/intent-server.git" }
 num-bigint = "0.4"
 num-traits = "0.2"
+pint_solve = { path = "../pint-solve", default-features = false }
+pintc = { path = "../pintc", default-features = false }
 regex = "1.10"
 serde = "1.0"
 serde_json = "1.0"
 test-util = { path = "../test-util" }
 toml = "0.8"
 yansi = { workspace = true }
-yurt_solve = { path = "../yurt-solve", default-features = false }
-yurtc = { path = "../yurtc", default-features = false }
 
 [[test]]
 name = "solver_tests"
@@ -33,4 +33,4 @@ path = "validation_tests.rs"
 
 [features]
 default = ["solver-scip"]
-solver-scip = ["yurt_solve/solver-scip", "yurtc/solver-scip"]
+solver-scip = ["pint_solve/solver-scip", "pintc/solver-scip"]

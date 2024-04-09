@@ -57,10 +57,10 @@ jobs:
           publish_dir: ./docs/specs/book
           destination_dir: ./specs
 
-      - name: Build Yurt Book
+      - name: Build Pint Book
         run: mdbook build docs/book
 
-      - name: Deploy Yurt Book
+      - name: Deploy Pint Book
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

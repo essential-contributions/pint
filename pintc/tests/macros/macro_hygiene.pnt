@@ -1,0 +1,34 @@
+macro @foo($x) {
+    let a: int;
+    constraint a == $x;
+}
+
+@foo(11);
+@foo(22);
+
+let a: int;
+@foo(a);
+
+solve satisfy;
+
+// intermediate <<<
+// var ::a: int;
+// var ::anon@0::a: int;
+// var ::anon@1::a: int;
+// var ::anon@2::a: int;
+// constraint (::anon@0::a == 11);
+// constraint (::anon@1::a == 22);
+// constraint (::anon@2::a == ::a);
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::a: int;
+// var ::anon@0::a: int;
+// var ::anon@1::a: int;
+// var ::anon@2::a: int;
+// constraint (::anon@0::a == 11);
+// constraint (::anon@1::a == 22);
+// constraint (::anon@2::a == ::a);
+// solve satisfy;
+// >>>

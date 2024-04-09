@@ -1,0 +1,30 @@
+[package]
+name = "pint_solve"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+name = "pint_solve"
+path = "src/lib.rs"
+
+[build-dependencies]
+lalrpop = "0.20"
+
+[dependencies]
+expect-test = { workspace = true }
+lalrpop-util = { version = "0.20", features = ["lexer", "unicode"] }
+russcip = { version = "0.3.0", optional = true }
+thiserror = { workspace = true }
+yansi = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+test-util = { path = "../test-util" }
+
+[features]
+default = ["solver-scip"]
+solver-scip = ["dep:russcip"]

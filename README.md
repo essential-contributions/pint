@@ -1,14 +1,14 @@
-# The Yurt Programming Language
+# The Pint Programming Language
 
 [![build](https://github.com/essential-contributions/DSL/actions/workflows/ci.yml/badge.svg)](https://github.com/essential-contributions/DSL/actions/workflows/ci.yml)
 
-Yurt is a Domain Specific Language (DSL) for intent expression using constraints on state transitions on arbitrary blockchain architecture.
+Pint is a Domain Specific Language (DSL) for intent expression using constraints on state transitions on arbitrary blockchain architecture.
 
 ## Dependencies
 
 ### Rust
 
-Yurt is built in Rust. To begin, install the Rust toolchain following instructions at <https://www.rust-lang.org/tools/install>. Then configure your Rust toolchain to use Rust `stable`:
+Pint is built in Rust. To begin, install the Rust toolchain following instructions at <https://www.rust-lang.org/tools/install>. Then configure your Rust toolchain to use Rust `stable`:
 
 ```sh
 rustup default stable
@@ -22,7 +22,7 @@ export PATH="${HOME}/.cargo/bin:${PATH}"
 
 ### SCIP
 
-Yurt uses [SCIP](https://www.scipopt.org/) as its default solver. To install SCIP, use your favourite package manager and, if needed, set the environment variable `SCIPOPTDIR` to where SCIP is installed.
+Pint uses [SCIP](https://www.scipopt.org/) as its default solver. To install SCIP, use your favourite package manager and, if needed, set the environment variable `SCIPOPTDIR` to where SCIP is installed.
 
 For example, Homebrew can be used to install SCIP on MacOS:
 
@@ -35,26 +35,26 @@ If SCIP is not available with your package manager, you may use [Miniconda](http
 
 ## Building
 
-Clone the repository and build the Yurt compiler and tooling:
+Clone the repository and build the Pint compiler and tooling:
 
 ```sh
-git clone git@github.com:essential-contributions/yurt.git
-cd yurt
+git clone git@github.com:essential-contributions/pint.git
+cd pint
 cargo build
 ```
 
-Confirm that `yurtc` and `yurtfmt` built successfully:
+Confirm that `pintc` and `pintfmt` built successfully:
 
 ```sh
-cargo run --bin yurtc -- --help
-cargo run --bin yurtfmt -- --help
+cargo run --bin pintc -- --help
+cargo run --bin pintfmt -- --help
 ```
 
 ## Testing
 
 ### Running Unit Tests
 
-Unit tests can be run using `cargo test` in the `yurt` directory. However, it is recommended that the tests are run using the [`cargo-nextest`](https://nexte.st/) package instead. To install `cargo-nextest`:
+Unit tests can be run using `cargo test` in the `pint` directory. However, it is recommended that the tests are run using the [`cargo-nextest`](https://nexte.st/) package instead. To install `cargo-nextest`:
 
 ```sh
 cargo install cargo-nextest

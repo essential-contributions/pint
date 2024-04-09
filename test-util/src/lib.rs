@@ -36,7 +36,7 @@ macro_rules! unwrap_or_continue {
         match $step {
             Ok(output) => output,
             Err(_) => {
-                let errs = yurtc::error::Errors($handler.consume());
+                let errs = pintc::error::Errors($handler.consume());
                 $failed.push($path.clone());
                 eprintln!(
                     "{}",
@@ -111,7 +111,7 @@ pub struct TestData {
 }
 
 // Search for sections within a file which contain the expected output from different stages of
-// compilation.  These are within comments in the Yurt source file and are separated with special
+// compilation.  These are within comments in the Pint source file and are separated with special
 // tags.
 //
 // A section containing a single expected result string has a tag and is delimited by `<<<` and
