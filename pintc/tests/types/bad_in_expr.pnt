@@ -1,0 +1,41 @@
+let x: int;
+
+constraint x in 11..22 in 13..20;
+constraint x in 15.5..18.3;
+
+let y: bool;
+constraint y in "foo"..false;
+
+enum SupperGuest = Bartholomew | JamesL | Andrew | Judas | Peter | John | Thomas | JamesG | Philip | Matthew | Jude | Simon;
+let z: SupperGuest;
+constraint z in [1, 4, 7];
+constraint x in [SupperGuest::Andrew, SupperGuest::Philip];
+
+solve satisfy;
+
+// intermediate <<<
+// var ::x: int;
+// var ::y: bool;
+// var ::z: ::SupperGuest;
+// enum ::SupperGuest = Bartholomew | JamesL | Andrew | Judas | Peter | John | Thomas | JamesG | Philip | Matthew | Jude | Simon;
+// constraint ::x in 11..22 in 13..20;
+// constraint ::x in 1.55e1..1.83e1;
+// constraint ::y in "foo"..false;
+// constraint ::z in [1, 4, 7];
+// constraint ::x in [::SupperGuest::Andrew, ::SupperGuest::Philip];
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// value type and range type differ
+// @39..41: range type mismatch; expecting `bool` type, found `int` type
+// value type and range type differ
+// @63..67: range type mismatch; expecting `int` type, found `real` type
+// left and right types in range differ
+// @112..117: expecting `string` type , found `bool` type
+// value type and array element type in range differ
+// @282..283: array element type mismatch; expecting `::SupperGuest` type, found `int` type
+// value type and array element type in range differ
+// @120..243: array element type mismatch; expecting `int` type, found `::SupperGuest` type
+// >>>
+

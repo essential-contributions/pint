@@ -7,32 +7,6 @@ use crate::{
 };
 use std::collections::{BTreeMap, HashMap};
 
-macro_rules! iterate {
-    ($handler: expr, $continue_expr: expr, $msg: literal, $modified: ident) => {
-        for loop_check in 0.. {
-            if !$continue_expr {
-                break;
-            }
-
-            $modified = true;
-
-            if loop_check > 10_000 {
-                return Err($handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: concat!("infinite loop in ", $msg),
-                        span: empty_span(),
-                    },
-                }));
-            }
-        }
-    };
-
-    ($handler: expr, $continue_expr: expr, $msg: literal) => {
-        let mut _modified = false;
-        iterate!($handler, $continue_expr, $msg, _modified);
-    };
-}
-
 pub(crate) fn scalarize(
     handler: &Handler,
     ii: &mut IntermediateIntent,
@@ -197,7 +171,7 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
     macro_rules! update_types {
         ($iter: expr, $key_ty: ty, $types_map: expr) => {
             let candidates: Vec<($key_ty, Type, ExprKey, Span)> = $iter
-                .filter_map(|(key, _)| {
+                .filter_map(|key| {
                     $types_map.get(key).and_then(get_array_params).and_then(
                         |(el_ty, range, size, span)| {
                             // Only collect if size is None.
@@ -216,8 +190,8 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
         };
     }
 
-    update_types!(ii.vars.iter(), VarKey, ii.var_types);
-    update_types!(ii.exprs.iter(), ExprKey, ii.expr_types);
+    update_types!(ii.vars.iter().map(|k| k.0), VarKey, ii.var_types);
+    update_types!(ii.exprs(), ExprKey, ii.expr_types);
 
     Ok(())
 }

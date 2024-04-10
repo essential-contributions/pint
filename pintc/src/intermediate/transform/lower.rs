@@ -2,7 +2,7 @@ use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp, Expr, Immediate, TupleAccess},
     intermediate::IntermediateIntent,
-    span::{empty_span, Span, Spanned},
+    span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
 };
 
@@ -41,8 +41,8 @@ pub(crate) fn lower_enums(
 
     // Find all the expressions referring to the variants and save them in a list.
     let mut replacements = Vec::new();
-    for (old_expr_key, expr) in &ii.exprs {
-        if let Expr::PathByName(path, _span) = expr {
+    for old_expr_key in ii.exprs() {
+        if let Some(Expr::PathByName(path, _span)) = ii.exprs.get(old_expr_key) {
             if let Some(idx) = variant_map.get(path) {
                 replacements.push((old_expr_key, idx));
             }
@@ -130,7 +130,7 @@ pub(crate) fn lower_enums(
     Ok(())
 }
 
-pub(crate) fn lower_bools(ii: &mut IntermediateIntent) -> Result<(), ErrorEmitted> {
+pub(crate) fn lower_bools(ii: &mut IntermediateIntent) {
     // Just do a blanket replacement of all bool types with int types.
     let int_ty = Type::Primitive {
         kind: PrimitiveKind::Int,
@@ -168,58 +168,20 @@ pub(crate) fn lower_bools(ii: &mut IntermediateIntent) -> Result<(), ErrorEmitte
             };
         }
     }
-
-    Ok(())
 }
 
 pub(crate) fn lower_casts(
     handler: &Handler,
     ii: &mut IntermediateIntent,
 ) -> Result<(), ErrorEmitted> {
-    // FROM  TO    ACTION
-    // int   int   No-op
-    // int   real  Produce the closest possible real
-    // real  real  No-op
-    // enum  int   Enum cast (performed in lower_enums())
-    // bool  int   Boolean to integer cast (performed in lower_bools())
-
-    fn check_cast_types(
-        handler: &Handler,
-        ii: &IntermediateIntent,
-        from_ty: &Type,
-        to_ty: &Type,
-        span: &Span,
-    ) -> Result<(), ErrorEmitted> {
-        if !to_ty.is_int() && !to_ty.is_real() {
-            // We can only cast to ints or reals.
-            Err(handler.emit_err(Error::Compile {
-                error: CompileError::BadCastTo {
-                    ty: ii.with_ii(to_ty).to_string(),
-                    span: span.clone(),
-                },
-            }))
-        } else if (to_ty.is_int() && !from_ty.is_int() && !from_ty.is_enum() && !from_ty.is_bool())
-            || (to_ty.is_real() && !from_ty.is_int() && !from_ty.is_real())
-        {
-            // We can only cast to ints from ints, enums or bools and to reals from ints or reals.
-            Err(handler.emit_err(Error::Compile {
-                error: CompileError::BadCastFrom {
-                    ty: ii.with_ii(from_ty).to_string(),
-                    span: span.clone(),
-                },
-            }))
-        } else {
-            Ok(())
-        }
-    }
-
     let mut replacements = Vec::new();
-    for (old_expr_key, expr) in &ii.exprs {
-        if let Expr::Cast {
+
+    for old_expr_key in ii.exprs() {
+        if let Some(Expr::Cast {
             value,
             ty: to_ty,
             span,
-        } = expr
+        }) = ii.exprs.get(old_expr_key)
         {
             let from_ty = ii.expr_types.get(*value).ok_or_else(|| {
                 handler.emit_err(Error::Compile {
@@ -230,7 +192,7 @@ pub(crate) fn lower_casts(
                 })
             })?;
 
-            check_cast_types(handler, ii, from_ty, to_ty, span)?;
+            // The type checker will have already rejected bad cast types.
             if !(from_ty.is_int() && to_ty.is_real()) {
                 replacements.push((old_expr_key, *value));
             }
@@ -244,7 +206,7 @@ pub(crate) fn lower_casts(
     Ok(())
 }
 
-pub(crate) fn lower_aliases(ii: &mut IntermediateIntent) -> Result<(), ErrorEmitted> {
+pub(crate) fn lower_aliases(ii: &mut IntermediateIntent) {
     use std::borrow::BorrowMut;
 
     fn replace_alias(old_ty: &mut Type) {
@@ -278,8 +240,6 @@ pub(crate) fn lower_aliases(ii: &mut IntermediateIntent) -> Result<(), ErrorEmit
             replace_alias(ty.borrow_mut());
         }
     }
-
-    Ok(())
 }
 
 pub(crate) fn lower_imm_accesses(
@@ -288,25 +248,26 @@ pub(crate) fn lower_imm_accesses(
 ) -> Result<(), ErrorEmitted> {
     let mut replace_direct_accesses = || {
         let candidates = ii
-            .exprs
-            .iter()
-            .filter_map(|(expr_key, expr)| match expr {
-                Expr::ArrayElementAccess { array, index, .. } => {
-                    ii.exprs.get(*array).and_then(|array_expr| {
-                        matches!(array_expr, Expr::Array { .. })
-                            .then(|| (expr_key, Some((*array, *index)), None))
-                    })
-                }
+            .exprs()
+            .filter_map(
+                |expr_key| match ii.exprs.get(expr_key).expect("invalid key in iter") {
+                    Expr::ArrayElementAccess { array, index, .. } => {
+                        ii.exprs.get(*array).and_then(|array_expr| {
+                            matches!(array_expr, Expr::Array { .. })
+                                .then(|| (expr_key, Some((*array, *index)), None))
+                        })
+                    }
 
-                Expr::TupleFieldAccess { tuple, field, .. } => {
-                    ii.exprs.get(*tuple).and_then(|tuple_expr| {
-                        matches!(tuple_expr, Expr::Tuple { .. })
-                            .then(|| (expr_key, None, Some((*tuple, field.clone()))))
-                    })
-                }
+                    Expr::TupleFieldAccess { tuple, field, .. } => {
+                        ii.exprs.get(*tuple).and_then(|tuple_expr| {
+                            matches!(tuple_expr, Expr::Tuple { .. })
+                                .then(|| (expr_key, None, Some((*tuple, field.clone()))))
+                        })
+                    }
 
-                _ => None,
-            })
+                    _ => None,
+                },
+            )
             .collect::<Vec<_>>();
 
         let mut replacements = Vec::new();
@@ -429,4 +390,109 @@ pub(crate) fn lower_imm_accesses(
     }
 
     Ok(())
+}
+
+pub(crate) fn lower_ins(
+    handler: &Handler,
+    ii: &mut IntermediateIntent,
+) -> Result<(), ErrorEmitted> {
+    let mut in_range_collections = Vec::new();
+    let mut array_collections = Vec::new();
+
+    // Collect all the `in` expressions which need to be replaced.  (Copy them out of the II.)
+    for expr_key in ii.exprs() {
+        if let Some(Expr::In {
+            value,
+            collection,
+            span,
+        }) = ii.exprs.get(expr_key)
+        {
+            if let Some(collection_expr) = ii.exprs.get(*collection) {
+                match collection_expr {
+                    Expr::Range { lb, ub, span } => {
+                        in_range_collections.push((expr_key, *value, *lb, *ub, span.clone()));
+                    }
+
+                    Expr::Array { elements, span, .. } => {
+                        array_collections.push((expr_key, *value, elements.clone(), span.clone()));
+                    }
+
+                    _ => {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "invalid collection (not range or array) in `in` expr",
+                                span: span.clone(),
+                            },
+                        });
+                    }
+                }
+            } else {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "missing collection in `in` expr",
+                        span: span.clone(),
+                    },
+                });
+            }
+        }
+    }
+
+    // Replace the range expressions first. `x in l..u` becomes `(x >= l) && (x <= u)`.
+    for (in_expr_key, value_key, lower_bounds_key, upper_bounds_key, span) in in_range_collections {
+        let lb_cmp_key = ii.exprs.insert(Expr::BinaryOp {
+            op: BinaryOp::GreaterThanOrEqual,
+            lhs: value_key,
+            rhs: lower_bounds_key,
+            span: span.clone(),
+        });
+
+        let ub_cmp_key = ii.exprs.insert(Expr::BinaryOp {
+            op: BinaryOp::LessThanOrEqual,
+            lhs: value_key,
+            rhs: upper_bounds_key,
+            span: span.clone(),
+        });
+
+        let and_key = ii.exprs.insert(Expr::BinaryOp {
+            op: BinaryOp::LogicalAnd,
+            lhs: lb_cmp_key,
+            rhs: ub_cmp_key,
+            span: span.clone(),
+        });
+
+        ii.replace_exprs(in_expr_key, and_key);
+    }
+
+    // Replace the array expressions.  `x in [a, b, c]` becomes `(x == a) || (x == b) || (x == c)`.
+    for (in_expr_key, value_key, elements, span) in array_collections {
+        let or_key = elements
+            .into_iter()
+            .map(|el_expr_key| {
+                ii.exprs.insert(Expr::BinaryOp {
+                    op: BinaryOp::Equal,
+                    lhs: value_key,
+                    rhs: el_expr_key,
+                    span: span.clone(),
+                })
+            })
+            .collect::<Vec<_>>() // Collect into Vec to avoid borrowing ii.exprs conflict.
+            .into_iter()
+            .reduce(|lhs, rhs| {
+                ii.exprs.insert(Expr::BinaryOp {
+                    op: BinaryOp::LogicalOr,
+                    lhs,
+                    rhs,
+                    span: span.clone(),
+                })
+            })
+            .expect("can't have empty array expressions");
+
+        ii.replace_exprs(in_expr_key, or_key);
+    }
+
+    if handler.has_errors() {
+        Err(handler.cancel())
+    } else {
+        Ok(())
+    }
 }

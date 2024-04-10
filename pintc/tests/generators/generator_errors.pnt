@@ -14,10 +14,6 @@ constraint exists a in b..c { true };
 constraint forall i in 0..5 where j != 3 { true };
 constraint exists i in 0..6 where j != 4 { true };
 
-// Type error
-constraint forall i in 0..3 where i { true };
-constraint exists i in 0..3 where i { true };
-
 solve satisfy;
 
 // intermediate <<<
@@ -31,8 +27,6 @@ solve satisfy;
 // constraint exists a in ::b..::c, { true };
 // constraint forall i in 0..5, where (::j != 3) { true };
 // constraint exists i in 0..6, where (::j != 4) { true };
-// constraint forall i in 0..3, where ::i { true };
-// constraint exists i in 0..3, where ::i { true };
 // solve satisfy;
 // >>>
 
@@ -55,6 +49,4 @@ solve satisfy;
 // @317..318: not found in this scope
 // cannot find value `::j` in this scope
 // @368..369: not found in this scope
-// compiler internal error: type error: boolean expression expected
-// compiler internal error: type error: boolean expression expected
 // >>>

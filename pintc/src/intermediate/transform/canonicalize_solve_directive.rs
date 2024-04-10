@@ -44,7 +44,7 @@ pub(crate) fn canonicalize_solve_directive(
     }
 
     // Only look at the root II. No other IIs are expected here because we now know that this is a
-    // statelss program.
+    // stateless program.
     let ii: &mut IntermediateIntent = program.root_ii_mut();
 
     let (solve_func, directive_span) = ii
@@ -123,8 +123,7 @@ pub(crate) fn canonicalize_solve_directive(
         Minimize(_) => SolveFunc::Minimize(objective_expr_key),
         Maximize(_) => SolveFunc::Maximize(objective_expr_key),
     };
-    let canonicalized_directive = (canonicalized_solve_func, directive_span.clone());
-    ii.directives[0] = canonicalized_directive;
+    ii.directives[0] = (canonicalized_solve_func, directive_span.clone());
 
     Ok(())
 }

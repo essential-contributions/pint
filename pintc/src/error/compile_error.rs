@@ -88,6 +88,24 @@ pub enum CompileError {
         gen_kind: String,
         span: Span,
     },
+    #[error("range for `{gen_kind}` must be an `int`")]
+    NonIntGeneratorRange {
+        ty: String,
+        gen_kind: String,
+        span: Span,
+    },
+    #[error("condition for `{gen_kind}` must be a `bool`")]
+    NonBoolGeneratorCondition {
+        ty: String,
+        gen_kind: String,
+        span: Span,
+    },
+    #[error("body for `{gen_kind}` must be a `bool` expression")]
+    NonBoolGeneratorBody {
+        ty: String,
+        gen_kind: String,
+        span: Span,
+    },
     #[error("cannot find value `{name}` in this scope")]
     SymbolNotFound {
         name: String,
@@ -161,6 +179,26 @@ pub enum CompileError {
     MissingSolveDirective { span: Span },
     #[error("invalid declartion outside an `intent {{ .. }}` declaration")]
     InvalidDeclOutsideIntentDecl { kind: String, span: Span },
+    #[error("left and right types in range differ")]
+    RangeTypesMismatch {
+        lb_ty: String,
+        ub_ty: String,
+        span: Span,
+    },
+    #[error("range type must be numeric")]
+    RangeTypesNonNumeric { ty: String, span: Span },
+    #[error("value type and range type differ")]
+    InExprTypesMismatch {
+        val_ty: String,
+        range_ty: String,
+        span: Span,
+    },
+    #[error("value type and array element type in range differ")]
+    InExprTypesArrayMismatch {
+        val_ty: String,
+        el_ty: String,
+        span: Span,
+    },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -395,6 +433,20 @@ impl ReportableError for CompileError {
                 }]
             }
 
+            NonIntGeneratorRange { ty, span, .. } => vec![ErrorLabel {
+                message: format!("invalid type `{ty}`, expecting `int`"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            NonBoolGeneratorCondition { ty, span, .. } | NonBoolGeneratorBody { ty, span, .. } => {
+                vec![ErrorLabel {
+                    message: format!("invalid type `{ty}`, expecting `bool`"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
             SymbolNotFound { span, .. } => {
                 vec![ErrorLabel {
                     message: "not found in this scope".to_string(),
@@ -618,6 +670,42 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            RangeTypesMismatch { lb_ty, ub_ty, span } => vec![ErrorLabel {
+                message: format!("expecting `{lb_ty}` type , found `{ub_ty}` type"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            RangeTypesNonNumeric { ty, span } => vec![ErrorLabel {
+                message: format!("ranges must have numeric bounds; found `{ty}`"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            InExprTypesMismatch {
+                val_ty,
+                range_ty,
+                span,
+            } => vec![ErrorLabel {
+                message: format!(
+                    "range type mismatch; expecting `{val_ty}` type, found `{range_ty}` type"
+                ),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            InExprTypesArrayMismatch {
+                val_ty,
+                el_ty,
+                span,
+            } => vec![ErrorLabel {
+                message: format!(
+                    "array element type mismatch; expecting `{val_ty}` type, found `{el_ty}` type"
+                ),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             Internal { msg, span } => {
                 if span == &empty_span() {
                     Vec::new()
@@ -756,7 +844,14 @@ impl ReportableError for CompileError {
             | EmptyArrayExpression { .. }
             | ExprRecursion { .. }
             | BadCastTo { .. }
-            | BadCastFrom { .. } => None,
+            | BadCastFrom { .. }
+            | RangeTypesMismatch { .. }
+            | RangeTypesNonNumeric { .. }
+            | InExprTypesMismatch { .. }
+            | InExprTypesArrayMismatch { .. }
+            | NonIntGeneratorRange { .. }
+            | NonBoolGeneratorCondition { .. }
+            | NonBoolGeneratorBody { .. } => None,
         }
     }
 
@@ -835,6 +930,9 @@ impl Spanned for CompileError {
             | MacroCallWasNotExpression { span }
             | DuplicateGeneratorIndex { span, .. }
             | InvalidGeneratorIndexBound { span, .. }
+            | NonIntGeneratorRange { span, .. }
+            | NonBoolGeneratorCondition { span, .. }
+            | NonBoolGeneratorBody { span, .. }
             | SymbolNotFound { span, .. }
             | NonConstArrayIndex { span }
             | InvalidConstArrayLength { span }
@@ -858,7 +956,11 @@ impl Spanned for CompileError {
             | BadCastTo { span, .. }
             | BadCastFrom { span, .. }
             | MissingSolveDirective { span, .. }
-            | InvalidDeclOutsideIntentDecl { span, .. } => span,
+            | InvalidDeclOutsideIntentDecl { span, .. }
+            | RangeTypesMismatch { span, .. }
+            | RangeTypesNonNumeric { span, .. }
+            | InExprTypesMismatch { span, .. }
+            | InExprTypesArrayMismatch { span, .. } => span,
 
             IfBranchesTypeMismatch { large_err } | OperatorTypeError { large_err, .. } => {
                 match &**large_err {

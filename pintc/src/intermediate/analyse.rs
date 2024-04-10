@@ -1,7 +1,7 @@
 use super::{Expr, ExprKey, Ident, IntermediateIntent, Program, VarKey};
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
-    expr::{BinaryOp, Immediate, TupleAccess, UnaryOp},
+    expr::{BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
@@ -18,20 +18,20 @@ impl Program {
         self = handler.scope(|handler| self.check_program_kind(handler))?;
 
         for ii in self.iis.values_mut() {
-            let _ = ii.lower_newtypes();
-            let _ = ii.type_check_all_exprs(handler);
+            ii.lower_newtypes();
+            ii.type_check_all_exprs(handler);
         }
 
         if handler.has_errors() {
-            return Err(handler.cancel());
+            Err(handler.cancel())
+        } else {
+            Ok(self)
         }
-
-        Ok(self)
     }
 }
 
 impl IntermediateIntent {
-    fn lower_newtypes(&mut self) -> Result<(), ErrorEmitted> {
+    fn lower_newtypes(&mut self) {
         use std::borrow::BorrowMut;
 
         fn replace_custom_type(new_types: &[NewTypeDecl], ty: &mut Type) {
@@ -79,68 +79,26 @@ impl IntermediateIntent {
                 replace_custom_type(&self.new_types, ty.borrow_mut());
             }
         }
-
-        Ok(())
     }
 
-    fn type_check_all_exprs(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
-        // Attempt to infer all the types of each expr.
-        let mut queue = Vec::new();
-
-        // Utility to check for recursion in the queue.  A macro to avoid borrowing self.
-        macro_rules! push_to_queue {
-            ($dependant_key: ident, $dependency_key: ident) => {
-                if queue.contains(&$dependency_key) {
-                    Err(handler.emit_err(Error::Compile {
-                        error: CompileError::ExprRecursion {
-                            dependant_span: self.expr_key_to_span($dependant_key),
-                            dependency_span: self.expr_key_to_span($dependency_key),
-                        },
-                    }))
-                } else {
-                    queue.push($dependency_key);
-                    Ok(())
+    fn type_check_all_exprs(&mut self, handler: &Handler) {
+        // Check all the 'root' exprs (constraints and directives) one at a time, gathering errors
+        // as we go.  Copying the keys out first to avoid borrowing conflict.
+        self.constraints
+            .iter()
+            .map(|(key, _)| *key)
+            .chain(
+                self.directives
+                    .iter()
+                    .filter_map(|(solve_func, _)| solve_func.get_expr().cloned()),
+            )
+            .collect::<Vec<_>>()
+            .into_iter()
+            .for_each(|expr_key| {
+                if let Err(err) = self.type_check_next_expr(expr_key) {
+                    handler.emit_err(err);
                 }
-            };
-        }
-
-        for expr_key in self.exprs.keys() {
-            // Start with this key.
-            queue.push(expr_key);
-
-            // Infer each expr type, or their dependencies.
-            while let Some(next_key) = queue.last().cloned() {
-                // We may already know this expr type, in which case we can pop it from the queue,
-                // or we can infer it.
-                if self.expr_types.contains_key(next_key) {
-                    queue.pop();
-                } else {
-                    match self.infer_expr_key_type(handler, next_key)? {
-                        // Successfully inferred its type.  Save it and pop it from the queue.
-                        Inference::Type(ty) => {
-                            self.expr_types.insert(next_key, ty);
-                            queue.pop();
-                        }
-
-                        // Some dependencies need to be inferred before we can get back to this
-                        // expr.  When pushing dependencies we need to check if they're already
-                        // queued, in which case we have a recursive dependency and an error.
-                        Inference::Dependant(dep_expr_key) => {
-                            push_to_queue!(next_key, dep_expr_key)?
-                        }
-                        Inference::Dependencies(mut dep_expr_keys) => dep_expr_keys
-                            .drain(..)
-                            .try_for_each(|dep_expr_key| push_to_queue!(next_key, dep_expr_key))?,
-
-                        // Some expressions (e.g., macro calls) just aren't valid any longer and
-                        // are best ignored.
-                        Inference::Ignored => {
-                            queue.pop();
-                        }
-                    }
-                }
-            }
-        }
+            });
 
         // Confirm now that all the variables are typed.
         for (var_key, var) in &self.vars {
@@ -151,20 +109,76 @@ impl IntermediateIntent {
                             self.var_types.insert(var_key, ty.clone());
                         }
                         None => {
-                            return Err(handler.emit_err(Error::Compile {
+                            handler.emit_err(Error::Compile {
                                 error: CompileError::UnknownType {
                                     span: var.span.clone(),
                                 },
-                            }));
+                            });
                         }
                     }
                 } else {
-                    return Err(handler.emit_err(Error::Compile {
+                    handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
                             msg: "untyped variable has no initialiser",
                             span: var.span.clone(),
                         },
-                    }));
+                    });
+                }
+            }
+        }
+    }
+
+    fn type_check_next_expr(&mut self, expr_key: ExprKey) -> Result<(), Error> {
+        // Attempt to infer all the types of each expr.
+        let mut queue = Vec::new();
+
+        // Utility to check for recursion in the queue.  A macro to avoid borrowing self.
+        macro_rules! push_to_queue {
+            ($dependant_key: ident, $dependency_key: ident) => {
+                if queue.contains(&$dependency_key) {
+                    Err(Error::Compile {
+                        error: CompileError::ExprRecursion {
+                            dependant_span: self.expr_key_to_span($dependant_key),
+                            dependency_span: self.expr_key_to_span($dependency_key),
+                        },
+                    })
+                } else {
+                    queue.push($dependency_key);
+                    Ok(())
+                }
+            };
+        }
+
+        // Start with this key.
+        queue.push(expr_key);
+
+        // Infer each expr type, or their dependencies.
+        while let Some(next_key) = queue.last().cloned() {
+            // We may already know this expr type, in which case we can pop it from the queue,
+            // or we can infer it.
+            if self.expr_types.contains_key(next_key) {
+                queue.pop();
+            } else {
+                match self.infer_expr_key_type(next_key)? {
+                    // Successfully inferred its type.  Save it and pop it from the queue.
+                    Inference::Type(ty) => {
+                        self.expr_types.insert(next_key, ty);
+                        queue.pop();
+                    }
+
+                    // Some dependencies need to be inferred before we can get back to this
+                    // expr.  When pushing dependencies we need to check if they're already
+                    // queued, in which case we have a recursive dependency and an error.
+                    Inference::Dependant(dep_expr_key) => push_to_queue!(next_key, dep_expr_key)?,
+                    Inference::Dependencies(mut dep_expr_keys) => dep_expr_keys
+                        .drain(..)
+                        .try_for_each(|dep_expr_key| push_to_queue!(next_key, dep_expr_key))?,
+
+                    // Some expressions (e.g., macro calls) just aren't valid any longer and
+                    // are best ignored.
+                    Inference::Ignored => {
+                        queue.pop();
+                    }
                 }
             }
         }
@@ -172,54 +186,48 @@ impl IntermediateIntent {
         Ok(())
     }
 
-    fn infer_expr_key_type(
-        &self,
-        handler: &Handler,
-        expr_key: ExprKey,
-    ) -> Result<Inference, ErrorEmitted> {
+    fn infer_expr_key_type(&self, expr_key: ExprKey) -> Result<Inference, Error> {
         let expr: &Expr = self.exprs.get(expr_key).ok_or_else(|| {
             if let Some(span) = self.removed_macro_calls.get(expr_key) {
                 // This dependant expression was actually a macro call which expanded to just
                 // declarations, not another expression.  We can set a specific error in this case.
-                handler.emit_err(Error::Compile {
+                Error::Compile {
                     error: CompileError::MacroCallWasNotExpression { span: span.clone() },
-                })
+                }
             } else {
-                handler.emit_err(Error::Compile {
+                Error::Compile {
                     error: CompileError::Internal {
                         msg: "orphaned expr key when type checking",
                         span: empty_span(),
                     },
-                })
+                }
             }
         })?;
 
         match expr {
-            Expr::Error(span) => Err(handler.emit_err(Error::Compile {
+            Expr::Error(span) => Err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "unable to type check from error expression",
                     span: span.clone(),
                 },
-            })),
+            }),
 
             Expr::Immediate { value, span } => Ok(Inference::Type(Self::get_immediate_type(
                 value,
                 span.clone(),
             ))),
 
-            Expr::PathByKey(var_key, span) => self.infer_path_by_key(handler, *var_key, span),
+            Expr::PathByKey(var_key, span) => self.infer_path_by_key(*var_key, span),
 
-            Expr::PathByName(path, span) => self.infer_path_by_name(handler, path, span),
+            Expr::PathByName(path, span) => self.infer_path_by_name(path, span),
 
             Expr::UnaryOp {
                 op,
                 expr: op_expr_key,
                 span,
-            } => self.infer_unary_op(handler, *op, *op_expr_key, span),
+            } => self.infer_unary_op(*op, *op_expr_key, span),
 
-            Expr::BinaryOp { op, lhs, rhs, span } => {
-                self.infer_binary_op(handler, *op, *lhs, *rhs, span)
-            }
+            Expr::BinaryOp { op, lhs, rhs, span } => self.infer_binary_op(*op, *lhs, *rhs, span),
 
             Expr::MacroCall { .. } => Ok(Inference::Ignored),
 
@@ -238,12 +246,12 @@ impl IntermediateIntent {
                         span: span.clone(),
                     }))
                 } else {
-                    Err(handler.emit_err(Error::Compile {
+                    Err(Error::Compile {
                         error: CompileError::Internal {
                             msg: "unable to check type of FnCall",
                             span: span.clone(),
                         },
-                    }))
+                    })
                 }
             }
 
@@ -252,40 +260,41 @@ impl IntermediateIntent {
                 then_block,
                 else_block,
                 span,
-            } => self.infer_if_expr(handler, *condition, *then_block, *else_block, span),
+            } => self.infer_if_expr(*condition, *then_block, *else_block, span),
 
             Expr::Array {
                 elements,
                 range_expr,
                 span,
-            } => self.infer_array_expr(handler, *range_expr, elements, span),
+            } => self.infer_array_expr(*range_expr, elements, span),
 
             Expr::ArrayElementAccess { array, index, span } => {
-                self.infer_array_access_expr(handler, *array, *index, span)
+                self.infer_array_access_expr(*array, *index, span)
             }
 
             Expr::Tuple { fields, span } => self.infer_tuple_expr(fields, span),
 
             Expr::TupleFieldAccess { tuple, field, span } => {
-                self.infer_tuple_access_expr(handler, *tuple, field, span)
+                self.infer_tuple_access_expr(*tuple, field, span)
             }
 
-            Expr::Cast { ty, .. } => Ok(Inference::Type(*ty.clone())),
+            Expr::Cast { value, ty, span } => self.infer_cast_expr(*value, ty, span),
 
-            Expr::In { span, .. } => Ok(Inference::Type(Type::Primitive {
-                kind: PrimitiveKind::Bool,
-                span: span.clone(),
-            })),
+            Expr::In {
+                value,
+                collection,
+                span,
+            } => self.infer_in_expr(*value, *collection, span),
 
-            Expr::Range { span, .. } => Ok(Inference::Type(Type::Primitive {
-                kind: PrimitiveKind::Int,
-                span: span.clone(),
-            })),
+            Expr::Range { lb, ub, span } => self.infer_range_expr(*lb, *ub, span),
 
-            Expr::Generator { span, .. } => Ok(Inference::Type(Type::Primitive {
-                kind: PrimitiveKind::Bool,
-                span: span.clone(),
-            })),
+            Expr::Generator {
+                kind,
+                gen_ranges,
+                conditions,
+                body,
+                span,
+            } => self.infer_generator_expr(kind, gen_ranges, conditions, *body, span),
         }
     }
 
@@ -315,12 +324,7 @@ impl IntermediateIntent {
         }
     }
 
-    fn infer_path_by_key(
-        &self,
-        handler: &Handler,
-        var_key: VarKey,
-        span: &Span,
-    ) -> Result<Inference, ErrorEmitted> {
+    fn infer_path_by_key(&self, var_key: VarKey, span: &Span) -> Result<Inference, Error> {
         if let Some(ty) = self.var_types.get(var_key) {
             Ok(Inference::Type(ty.clone()))
         } else if let Some(init_expr_key) = self.var_inits.get(var_key) {
@@ -332,28 +336,23 @@ impl IntermediateIntent {
                 Ok(Inference::Dependant(*init_expr_key))
             }
         } else {
-            Err(handler.emit_err(Error::Compile {
+            Err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "untyped variable doesn't have initialiser",
                     span: span.clone(),
                 },
-            }))
+            })
         }
     }
 
-    fn infer_path_by_name(
-        &self,
-        handler: &Handler,
-        path: &Path,
-        span: &Span,
-    ) -> Result<Inference, ErrorEmitted> {
+    fn infer_path_by_name(&self, path: &Path, span: &Span) -> Result<Inference, Error> {
         if let Some(var_key) = self
             .vars
             .iter()
             .find_map(|(var_key, var)| (&var.name == path).then_some(var_key))
         {
             // It's a var.
-            self.infer_path_by_key(handler, var_key, span)
+            self.infer_path_by_key(var_key, span)
         } else if let Some((state_key, state)) =
             self.states.iter().find(|(_, state)| (&state.name == path))
         {
@@ -381,16 +380,11 @@ impl IntermediateIntent {
             Ok(Inference::Type(ty.clone()))
         } else {
             // None of the above.  That leaves enums.
-            self.infer_enum_variant_by_name(handler, path, span)
+            self.infer_enum_variant_by_name(path, span)
         }
     }
 
-    fn infer_enum_variant_by_name(
-        &self,
-        handler: &Handler,
-        path: &Path,
-        span: &Span,
-    ) -> Result<Inference, ErrorEmitted> {
+    fn infer_enum_variant_by_name(&self, path: &Path, span: &Span) -> Result<Inference, Error> {
         // Check first if the path prefix matches a new type.
         for NewTypeDecl { name, ty, .. } in &self.new_types {
             if let Type::Custom {
@@ -405,7 +399,7 @@ impl IntermediateIntent {
                     if path.chars().nth(new_type_len) == Some(':') {
                         // Definitely worth trying.  Recurse.
                         let new_path = enum_path.clone() + &path[new_type_len..];
-                        match self.infer_enum_variant_by_name(handler, &new_path, span) {
+                        match self.infer_enum_variant_by_name(&new_path, span) {
                             ty @ Ok(_) => {
                                 // We found an enum variant.
                                 return ty;
@@ -449,30 +443,29 @@ impl IntermediateIntent {
         ) {
             Ok(Inference::Type(ty.clone()))
         } else {
-            Err(handler.emit_err(Error::Compile {
+            Err(Error::Compile {
                 error: CompileError::SymbolNotFound {
                     name: path.clone(),
                     span: span.clone(),
                     enum_names: err_potential_enums,
                 },
-            }))
+            })
         }
     }
 
     fn infer_unary_op(
         &self,
-        handler: &Handler,
         op: UnaryOp,
         rhs_expr_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, ErrorEmitted> {
+    ) -> Result<Inference, Error> {
         match op {
-            UnaryOp::Error => Err(handler.emit_err(Error::Compile {
+            UnaryOp::Error => Err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "unable to type check unary op error",
                     span: span.clone(),
                 },
-            })),
+            }),
 
             UnaryOp::Neg => {
                 // RHS must be an int or real.
@@ -480,7 +473,7 @@ impl IntermediateIntent {
                     if ty.is_num() {
                         Ok(Inference::Type(ty.clone()))
                     } else {
-                        Err(handler.emit_err(Error::Compile {
+                        Err(Error::Compile {
                             error: CompileError::OperatorTypeError {
                                 arity: "unary",
                                 large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -491,7 +484,7 @@ impl IntermediateIntent {
                                     expected_span: None,
                                 }),
                             },
-                        }))
+                        })
                     }
                 } else {
                     Ok(Inference::Dependant(rhs_expr_key))
@@ -504,7 +497,7 @@ impl IntermediateIntent {
                     if ty.is_bool() {
                         Ok(Inference::Type(ty.clone()))
                     } else {
-                        Err(handler.emit_err(Error::Compile {
+                        Err(Error::Compile {
                             error: CompileError::OperatorTypeError {
                                 arity: "unary",
                                 large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -515,7 +508,7 @@ impl IntermediateIntent {
                                     expected_span: None,
                                 }),
                             },
-                        }))
+                        })
                     }
                 } else {
                     Ok(Inference::Dependant(rhs_expr_key))
@@ -532,15 +525,14 @@ impl IntermediateIntent {
 
     fn infer_binary_op(
         &self,
-        handler: &Handler,
         op: BinaryOp,
         lhs_expr_key: ExprKey,
         rhs_expr_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, ErrorEmitted> {
+    ) -> Result<Inference, Error> {
         let check_numeric_args = |lhs_ty: &Type, rhs_ty: &Type, ty_str: &str| {
             if !lhs_ty.is_num() {
-                Err(handler.emit_err(Error::Compile {
+                Err(Error::Compile {
                     error: CompileError::OperatorTypeError {
                         arity: "binary",
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -551,9 +543,9 @@ impl IntermediateIntent {
                             expected_span: None,
                         }),
                     },
-                }))
+                })
             } else if !rhs_ty.is_num() {
-                Err(handler.emit_err(Error::Compile {
+                Err(Error::Compile {
                     error: CompileError::OperatorTypeError {
                         arity: "binary",
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -564,10 +556,10 @@ impl IntermediateIntent {
                             expected_span: None,
                         }),
                     },
-                }))
+                })
             } else if lhs_ty != rhs_ty {
                 // Here we assume the LHS is the 'correct' type.
-                Err(handler.emit_err(Error::Compile {
+                Err(Error::Compile {
                     error: CompileError::OperatorTypeError {
                         arity: "binary",
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -578,7 +570,7 @@ impl IntermediateIntent {
                             expected_span: Some(self.expr_key_to_span(lhs_expr_key)),
                         }),
                     },
-                }))
+                })
             } else {
                 Ok(())
             }
@@ -602,7 +594,7 @@ impl IntermediateIntent {
                         // Both args must be equatable, which at this stage is any type; binary op
                         // type is bool.
                         if &lhs_ty != rhs_ty {
-                            Err(handler.emit_err(Error::Compile {
+                            Err(Error::Compile {
                                 error: CompileError::OperatorTypeError {
                                     arity: "binary",
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -613,7 +605,7 @@ impl IntermediateIntent {
                                         expected_span: Some(self.expr_key_to_span(lhs_expr_key)),
                                     }),
                                 },
-                            }))
+                            })
                         } else {
                             Ok(Inference::Type(Type::Primitive {
                                 kind: PrimitiveKind::Bool,
@@ -638,7 +630,7 @@ impl IntermediateIntent {
                     BinaryOp::LogicalAnd | BinaryOp::LogicalOr => {
                         // Both arg types and binary op type are all bool.
                         if !lhs_ty.is_bool() {
-                            Err(handler.emit_err(Error::Compile {
+                            Err(Error::Compile {
                                 error: CompileError::OperatorTypeError {
                                     arity: "binary",
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -649,9 +641,9 @@ impl IntermediateIntent {
                                         expected_span: Some(span.clone()),
                                     }),
                                 },
-                            }))
+                            })
                         } else if !rhs_ty.is_bool() {
-                            Err(handler.emit_err(Error::Compile {
+                            Err(Error::Compile {
                                 error: CompileError::OperatorTypeError {
                                     arity: "binary",
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -662,7 +654,7 @@ impl IntermediateIntent {
                                         expected_span: Some(span.clone()),
                                     }),
                                 },
-                            }))
+                            })
                         } else {
                             Ok(Inference::Type(lhs_ty.clone()))
                         }
@@ -678,23 +670,22 @@ impl IntermediateIntent {
 
     fn infer_if_expr(
         &self,
-        handler: &Handler,
         cond_expr_key: ExprKey,
         then_expr_key: ExprKey,
         else_expr_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, ErrorEmitted> {
+    ) -> Result<Inference, Error> {
         if let Some(cond_ty) = self.expr_types.get(cond_expr_key) {
             if !cond_ty.is_bool() {
-                Err(handler.emit_err(Error::Compile {
+                Err(Error::Compile {
                     error: CompileError::IfCondTypeNotBool(self.expr_key_to_span(cond_expr_key)),
-                }))
+                })
             } else if let Some(then_ty) = self.expr_types.get(then_expr_key) {
                 if let Some(else_ty) = self.expr_types.get(else_expr_key) {
                     if then_ty == else_ty {
                         Ok(Inference::Type(then_ty.clone()))
                     } else {
-                        Err(handler.emit_err(Error::Compile {
+                        Err(Error::Compile {
                             error: CompileError::IfBranchesTypeMismatch {
                                 large_err: Box::new(LargeTypeError::IfBranchesTypeMismatch {
                                     then_type: self.with_ii(then_ty).to_string(),
@@ -704,7 +695,7 @@ impl IntermediateIntent {
                                     span: span.clone(),
                                 }),
                             },
-                        }))
+                        })
                     }
                 } else {
                     Ok(Inference::Dependant(else_expr_key))
@@ -717,17 +708,150 @@ impl IntermediateIntent {
         }
     }
 
+    fn infer_range_expr(
+        &self,
+        lower_bound_key: ExprKey,
+        upper_bound_key: ExprKey,
+        span: &Span,
+    ) -> Result<Inference, Error> {
+        if let Some(lb_ty) = self.expr_types.get(lower_bound_key) {
+            if let Some(ub_ty) = self.expr_types.get(upper_bound_key) {
+                if lb_ty != ub_ty {
+                    Err(Error::Compile {
+                        error: CompileError::RangeTypesMismatch {
+                            lb_ty: self.with_ii(lb_ty).to_string(),
+                            ub_ty: self.with_ii(ub_ty).to_string(),
+                            span: ub_ty.span().clone(),
+                        },
+                    })
+                } else if !lb_ty.is_num() {
+                    Err(Error::Compile {
+                        error: CompileError::RangeTypesNonNumeric {
+                            ty: self.with_ii(lb_ty).to_string(),
+                            span: span.clone(),
+                        },
+                    })
+                } else {
+                    Ok(Inference::Type(lb_ty.clone()))
+                }
+            } else {
+                Ok(Inference::Dependant(upper_bound_key))
+            }
+        } else {
+            Ok(Inference::Dependant(lower_bound_key))
+        }
+    }
+
+    fn infer_cast_expr(
+        &self,
+        value_key: ExprKey,
+        to_ty: &Type,
+        span: &Span,
+    ) -> Result<Inference, Error> {
+        // FROM  TO    ACTION
+        // int   int   No-op
+        // int   real  Produce the closest possible real
+        // real  real  No-op
+        // enum  int   Enum cast (performed in lower_enums())
+        // bool  int   Boolean to integer cast (performed in lower_bools())
+
+        if let Some(from_ty) = self.expr_types.get(value_key) {
+            if !to_ty.is_int() && !to_ty.is_real() {
+                // We can only cast to ints or reals.
+                Err(Error::Compile {
+                    error: CompileError::BadCastTo {
+                        ty: self.with_ii(to_ty).to_string(),
+                        span: span.clone(),
+                    },
+                })
+            } else if (to_ty.is_int()
+                && !from_ty.is_int()
+                && !from_ty.is_enum()
+                && !from_ty.is_bool())
+                || (to_ty.is_real() && !from_ty.is_int() && !from_ty.is_real())
+            {
+                // We can only cast to ints from ints, enums or bools and to reals from ints or reals.
+                Err(Error::Compile {
+                    error: CompileError::BadCastFrom {
+                        ty: self.with_ii(from_ty).to_string(),
+                        span: span.clone(),
+                    },
+                })
+            } else {
+                Ok(Inference::Type(to_ty.clone()))
+            }
+        } else {
+            Ok(Inference::Dependant(value_key))
+        }
+    }
+
+    fn infer_in_expr(
+        &self,
+        value_key: ExprKey,
+        collection_key: ExprKey,
+        span: &Span,
+    ) -> Result<Inference, Error> {
+        // If the collection is a range, then it must be between ints or reals and the value must
+        // match.  If it's an array it can be any type but still the value must match the array
+        // element type.
+        if let Some(value_ty) = self.expr_types.get(value_key) {
+            if let Some(collection_ty) = self.expr_types.get(collection_key) {
+                if collection_ty.is_num() {
+                    if value_ty != collection_ty {
+                        Err(Error::Compile {
+                            error: CompileError::InExprTypesMismatch {
+                                val_ty: self.with_ii(value_ty).to_string(),
+                                range_ty: self.with_ii(collection_ty).to_string(),
+                                span: collection_ty.span().clone(),
+                            },
+                        })
+                    } else {
+                        Ok(Inference::Type(Type::Primitive {
+                            kind: PrimitiveKind::Bool,
+                            span: span.clone(),
+                        }))
+                    }
+                } else if let Some(el_ty) = collection_ty.get_array_el_type() {
+                    if value_ty != el_ty {
+                        Err(Error::Compile {
+                            error: CompileError::InExprTypesArrayMismatch {
+                                val_ty: self.with_ii(value_ty).to_string(),
+                                el_ty: self.with_ii(el_ty).to_string(),
+                                span: el_ty.span().clone(),
+                            },
+                        })
+                    } else {
+                        Ok(Inference::Type(Type::Primitive {
+                            kind: PrimitiveKind::Bool,
+                            span: span.clone(),
+                        }))
+                    }
+                } else {
+                    Err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "range ty is not numeric or array?",
+                            span: span.clone(),
+                        },
+                    })
+                }
+            } else {
+                Ok(Inference::Dependant(collection_key))
+            }
+        } else {
+            Ok(Inference::Dependant(value_key))
+        }
+    }
+
     fn infer_array_expr(
         &self,
-        handler: &Handler,
         range_expr_key: ExprKey,
         element_exprs: &[ExprKey],
         span: &Span,
-    ) -> Result<Inference, ErrorEmitted> {
+    ) -> Result<Inference, Error> {
         if element_exprs.is_empty() {
-            return Err(handler.emit_err(Error::Compile {
+            return Err(Error::Compile {
                 error: CompileError::EmptyArrayExpression { span: span.clone() },
-            }));
+            });
         }
 
         let mut elements = element_exprs.iter();
@@ -741,13 +865,13 @@ impl IntermediateIntent {
             for el_key in elements {
                 if let Some(el_ty) = self.expr_types.get(*el_key) {
                     if el_ty != el0_ty {
-                        return Err(handler.emit_err(Error::Compile {
+                        return Err(Error::Compile {
                             error: CompileError::NonHomogeneousArrayElement {
                                 expected_ty: self.with_ii(&el0_ty).to_string(),
                                 ty: self.with_ii(el_ty).to_string(),
                                 span: self.expr_key_to_span(*el_key),
                             },
-                        }));
+                        });
                     }
                 } else {
                     deps.push(*el_key);
@@ -771,11 +895,10 @@ impl IntermediateIntent {
 
     fn infer_array_access_expr(
         &self,
-        handler: &Handler,
         array_expr_key: ExprKey,
         index_expr_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, ErrorEmitted> {
+    ) -> Result<Inference, Error> {
         if let Some(index_ty) = self.expr_types.get(index_expr_key) {
             if let Some(ary_ty) = self.expr_types.get(array_expr_key) {
                 if let Some(range_expr_key) = ary_ty.get_array_range_expr() {
@@ -784,38 +907,36 @@ impl IntermediateIntent {
                         // the index type.  Make sure they match.  It's probably just enough to
                         // check the latter but we might as well confirm it all.
                         if (!index_ty.is_int() && !index_ty.is_enum()) || index_ty != range_ty {
-                            Err(handler.emit_err(Error::Compile {
+                            Err(Error::Compile {
                                 error: CompileError::ArrayAccessWithWrongType {
                                     found_ty: self.with_ii(index_ty).to_string(),
                                     expected_ty: self.with_ii(range_ty).to_string(),
                                     span: self.expr_key_to_span(index_expr_key),
                                 },
-                            }))
+                            })
                         } else {
                             // The access seems valid, return the array element type.
                             ary_ty
                                 .get_array_el_type()
                                 .map(|ty| Inference::Type(ty.clone()))
-                                .ok_or_else(|| {
-                                    handler.emit_err(Error::Compile {
-                                        error: CompileError::Internal {
-                                            msg: "failed to get array element type \
+                                .ok_or_else(|| Error::Compile {
+                                    error: CompileError::Internal {
+                                        msg: "failed to get array element type \
                                     in infer_array_access_expr()",
-                                            span: span.clone(),
-                                        },
-                                    })
+                                        span: span.clone(),
+                                    },
                                 })
                         }
                     } else {
                         Ok(Inference::Dependant(range_expr_key))
                     }
                 } else {
-                    Err(handler.emit_err(Error::Compile {
+                    Err(Error::Compile {
                         error: CompileError::ArrayAccessNonArray {
                             non_array_type: self.with_ii(ary_ty).to_string(),
                             span: span.clone(),
                         },
-                    }))
+                    })
                 }
             } else {
                 Ok(Inference::Dependant(array_expr_key))
@@ -829,7 +950,7 @@ impl IntermediateIntent {
         &self,
         fields: &[(Option<Ident>, ExprKey)],
         span: &Span,
-    ) -> Result<Inference, ErrorEmitted> {
+    ) -> Result<Inference, Error> {
         let mut field_tys = Vec::with_capacity(fields.len());
 
         let mut deps = Vec::new();
@@ -853,32 +974,31 @@ impl IntermediateIntent {
 
     fn infer_tuple_access_expr(
         &self,
-        handler: &Handler,
         tuple_expr_key: ExprKey,
         field: &TupleAccess,
         span: &Span,
-    ) -> Result<Inference, ErrorEmitted> {
+    ) -> Result<Inference, Error> {
         if let Some(tuple_ty) = self.expr_types.get(tuple_expr_key) {
             if tuple_ty.is_tuple() {
                 match field {
-                    TupleAccess::Error => Err(handler.emit_err(Error::Compile {
+                    TupleAccess::Error => Err(Error::Compile {
                         error: CompileError::Internal {
                             msg: "unable to type check tuple field access error",
                             span: span.clone(),
                         },
-                    })),
+                    }),
 
                     TupleAccess::Index(idx) => {
                         if let Some(field_ty) = tuple_ty.get_tuple_field_type_by_idx(*idx) {
                             Ok(Inference::Type(field_ty.clone()))
                         } else {
-                            Err(handler.emit_err(Error::Compile {
+                            Err(Error::Compile {
                                 error: CompileError::InvalidTupleAccessor {
                                     accessor: idx.to_string(),
                                     tuple_type: self.with_ii(tuple_ty).to_string(),
                                     span: span.clone(),
                                 },
-                            }))
+                            })
                         }
                     }
 
@@ -886,27 +1006,93 @@ impl IntermediateIntent {
                         if let Some(field_ty) = tuple_ty.get_tuple_field_type_by_name(name) {
                             Ok(Inference::Type(field_ty.clone()))
                         } else {
-                            Err(handler.emit_err(Error::Compile {
+                            Err(Error::Compile {
                                 error: CompileError::InvalidTupleAccessor {
                                     accessor: name.name.clone(),
                                     tuple_type: self.with_ii(&tuple_ty).to_string(),
                                     span: span.clone(),
                                 },
-                            }))
+                            })
                         }
                     }
                 }
             } else {
-                Err(handler.emit_err(Error::Compile {
+                Err(Error::Compile {
                     error: CompileError::TupleAccessNonTuple {
                         non_tuple_type: self.with_ii(tuple_ty).to_string(),
                         span: span.clone(),
                     },
-                }))
+                })
             }
         } else {
             Ok(Inference::Dependant(tuple_expr_key))
         }
+    }
+
+    fn infer_generator_expr(
+        &self,
+        kind: &GeneratorKind,
+        ranges: &[(Ident, ExprKey)],
+        conditions: &[ExprKey],
+        body_expr_key: ExprKey,
+        span: &Span,
+    ) -> Result<Inference, Error> {
+        let mut deps = Vec::new();
+
+        for (_, range_expr_key) in ranges {
+            if let Some(range_ty) = self.expr_types.get(*range_expr_key) {
+                if !range_ty.is_int() {
+                    return Err(Error::Compile {
+                        error: CompileError::NonIntGeneratorRange {
+                            ty: self.with_ii(range_ty).to_string(),
+                            gen_kind: kind.to_string(),
+                            span: self.expr_key_to_span(*range_expr_key),
+                        },
+                    });
+                }
+            } else {
+                deps.push(*range_expr_key);
+            }
+        }
+
+        for cond_expr_key in conditions {
+            if let Some(cond_ty) = self.expr_types.get(*cond_expr_key) {
+                if !cond_ty.is_bool() {
+                    return Err(Error::Compile {
+                        error: CompileError::NonBoolGeneratorCondition {
+                            ty: self.with_ii(cond_ty).to_string(),
+                            gen_kind: kind.to_string(),
+                            span: self.expr_key_to_span(*cond_expr_key),
+                        },
+                    });
+                }
+            } else {
+                deps.push(*cond_expr_key);
+            }
+        }
+
+        if let Some(body_ty) = self.expr_types.get(body_expr_key) {
+            if !body_ty.is_bool() {
+                return Err(Error::Compile {
+                    error: CompileError::NonBoolGeneratorBody {
+                        ty: self.with_ii(body_ty).to_string(),
+                        gen_kind: kind.to_string(),
+                        span: self.expr_key_to_span(body_expr_key),
+                    },
+                });
+            }
+        } else {
+            deps.push(body_expr_key);
+        }
+
+        Ok(if deps.is_empty() {
+            Inference::Type(Type::Primitive {
+                kind: PrimitiveKind::Bool,
+                span: span.clone(),
+            })
+        } else {
+            Inference::Dependencies(deps)
+        })
     }
 
     fn expr_key_to_span(&self, expr_key: ExprKey) -> Span {
