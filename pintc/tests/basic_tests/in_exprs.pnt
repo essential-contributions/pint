@@ -1,0 +1,69 @@
+enum Cake = Crab | Mud | Uranium | Urinal;
+
+let a: int;
+let b: real;
+let c: bool;
+let d: string;
+let e: Cake;
+let f: {bool, int};
+let g: int[2];
+
+constraint a in 11..22;
+constraint a in [11, 13, 17, 19];
+
+constraint b in 12.3..67.8;
+constraint b in [25.0, 29.97, 59.94];
+
+constraint c in [true, true];
+constraint d in ["foo", "bar"];
+constraint e in [Cake::Mud, Cake::Crab];
+constraint f in [{false, 66}, {true, 77}, {true, 88}];
+constraint g in [[-99, -99]];
+
+solve satisfy;
+
+// intermediate <<<
+// var ::a: int;
+// var ::b: real;
+// var ::c: bool;
+// var ::d: string;
+// var ::e: ::Cake;
+// var ::f: {bool, int};
+// var ::g: int[2];
+// enum ::Cake = Crab | Mud | Uranium | Urinal;
+// constraint ::a in 11..22;
+// constraint ::a in [11, 13, 17, 19];
+// constraint ::b in 1.23e1..6.78e1;
+// constraint ::b in [2.5e1, 2.997e1, 5.994e1];
+// constraint ::c in [true, true];
+// constraint ::d in ["foo", "bar"];
+// constraint ::e in [::Cake::Mud, ::Cake::Crab];
+// constraint ::f in [{false, 66}, {true, 77}, {true, 88}];
+// constraint ::g in [[-99, -99]];
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::a: int;
+// var ::b: real;
+// var ::c: int;
+// var ::d: string;
+// var ::e: int;
+// var ::f.0: int;
+// var ::g[0]: int;
+// var ::g[1]: int;
+// var ::f.1: int;
+// enum ::Cake = Crab | Mud | Uranium | Urinal;
+// constraint ((::a >= 11) && (::a <= 22));
+// constraint ((((::a == 11) || (::a == 13)) || (::a == 17)) || (::a == 19));
+// constraint ((::b >= 1.23e1) && (::b <= 6.78e1));
+// constraint (((::b == 2.5e1) || (::b == 2.997e1)) || (::b == 5.994e1));
+// constraint ((::c == 1) || (::c == 1));
+// constraint ((::d == "foo") || (::d == "bar"));
+// constraint ((::e == 1) || (::e == 0));
+// constraint ((((::f.0 == 0) && (::f.1 == 66)) || ((::f.0 == 1) && (::f.1 == 77))) || ((::f.0 == 1) && (::f.1 == 88)));
+// constraint ((::g[0] == -99) && (::g[1] == -99));
+// constraint (::e >= 0);
+// constraint (::e <= 3);
+// solve satisfy;
+// >>>

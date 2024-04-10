@@ -17,4 +17,6 @@ solve satisfy;
 // cannot find value `::Baz` in this scope
 // @55..58: not found in this scope
 // this symbol is a variant of enums `::Foo` and `::Bar` and may need a fully qualified path
+// unable to determine expression type
+// @51..52: type of this expression is ambiguous
 // >>>

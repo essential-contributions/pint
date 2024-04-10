@@ -60,9 +60,10 @@ fn unroll_generator(
     }
 
     // Compute the Cartesian product of all the ranges
-    let product_of_ranges = (0..gen_ranges.len())
-        .map(|i| {
-            match ii.exprs.get(gen_ranges[i].1).expect("guaranteed by parser") {
+    let product_of_ranges = gen_ranges
+        .iter()
+        .map(|range| {
+            match ii.exprs.get(range.1).expect("guaranteed by parser") {
                 Expr::Range { lb, ub, .. } => {
                     let lb = ii.exprs.get(*lb).expect("guaranteed by parser");
                     let ub = ii.exprs.get(*ub).expect("guaranteed by parser");
@@ -89,7 +90,7 @@ fn unroll_generator(
                             // Bad lower bound
                             Err(handler.emit_err(Error::Compile {
                                 error: CompileError::InvalidGeneratorIndexBound {
-                                    name: gen_ranges[i].0.name.clone(),
+                                    name: range.0.name.clone(),
                                     gen_kind: kind.to_string(),
                                     span: lb.span().clone(),
                                 },
@@ -99,7 +100,7 @@ fn unroll_generator(
                             // Bad upper bound
                             Err(handler.emit_err(Error::Compile {
                                 error: CompileError::InvalidGeneratorIndexBound {
-                                    name: gen_ranges[i].0.name.clone(),
+                                    name: range.0.name.clone(),
                                     gen_kind: kind.to_string(),
                                     span: ub.span().clone(),
                                 },
@@ -200,6 +201,8 @@ pub(crate) fn unroll_generators(
     handler: &Handler,
     ii: &mut IntermediateIntent,
 ) -> Result<(), ErrorEmitted> {
+    // Preferably we'd use `ii.exprs()` to iterate here but it introduces ordering problems.  See
+    // https://github.com/essential-contributions/pint/issues/539
     ii.exprs
         .iter()
         .filter_map(|(key, expr)| {

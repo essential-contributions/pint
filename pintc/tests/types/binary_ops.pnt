@@ -1,6 +1,3 @@
-// We don't have error recovery in the middle end yet so it'll bail on the first one.
-// When we do, these should all be errors.
-
 let a = 11 + false;
 let b = 22 - true;
 let c = [1,2] * 33;
@@ -81,5 +78,95 @@ solve satisfy;
 
 // typecheck_failure <<<
 // binary operator type error
-// @143..148: operator `+` argument has unexpected type `bool`
+// @13..18: operator `+` argument has unexpected type `bool`
+// binary operator type error
+// @33..37: operator `-` argument has unexpected type `bool`
+// binary operator type error
+// @47..52: operator `*` argument has unexpected type `int[2]`
+// binary operator type error
+// @67..73: operator `/` argument has unexpected type `string`
+// binary operator type error
+// @128..139: operator `%` argument has unexpected type `::T`
+// binary operator type error
+// @201..205: operator `+` argument has unexpected type `real`
+// @196..198: expecting type `int`
+// binary operator type error
+// @220..224: operator `-` argument has unexpected type `real`
+// @215..217: expecting type `int`
+// binary operator type error
+// @242..244: operator `*` argument has unexpected type `int`
+// @234..239: expecting type `real`
+// binary operator type error
+// @259..264: operator `/` argument has unexpected type `real`
+// @254..256: expecting type `int`
+// binary operator type error
+// @282..284: operator `%` argument has unexpected type `int`
+// @274..279: expecting type `real`
+// binary operator type error
+// @361..376: operator `==` argument has unexpected type `::T`
+// @355..357: expecting type `int`
+// binary operator type error
+// @392..396: operator `!=` argument has unexpected type `bool`
+// @386..388: expecting type `int`
+// binary operator type error
+// @407..411: operator `>` argument has unexpected type `bool`
+// binary operator type error
+// @435..440: operator `>=` argument has unexpected type `real`
+// @429..431: expecting type `int`
+// binary operator type error
+// @455..459: operator `<` argument has unexpected type `string`
+// binary operator type error
+// @475..483: operator `<=` argument has unexpected type `int[2]`
+// binary operator type error
+// @502..504: operator `&&` argument has unexpected type `int`
+// @494..504: expecting type `bool`
+// binary operator type error
+// @514..519: operator `||` argument has unexpected type `real`
+// @514..528: expecting type `bool`
+// binary operator type error
+// @598..609: operator `==` argument has unexpected type `{int, bool}`
+// @584..594: expecting type `{bool, int}`
+// binary operator type error
+// @634..642: operator `!=` argument has unexpected type `{int, int}`
+// @619..630: expecting type `{real, int}`
+// unable to determine expression type
+// @4..5: type of this expression is ambiguous
+// unable to determine expression type
+// @24..25: type of this expression is ambiguous
+// unable to determine expression type
+// @43..44: type of this expression is ambiguous
+// unable to determine expression type
+// @63..64: type of this expression is ambiguous
+// unable to determine expression type
+// @119..120: type of this expression is ambiguous
+// unable to determine expression type
+// @192..193: type of this expression is ambiguous
+// unable to determine expression type
+// @211..212: type of this expression is ambiguous
+// unable to determine expression type
+// @230..231: type of this expression is ambiguous
+// unable to determine expression type
+// @250..251: type of this expression is ambiguous
+// unable to determine expression type
+// @270..271: type of this expression is ambiguous
+// unable to determine expression type
+// @351..352: type of this expression is ambiguous
+// unable to determine expression type
+// @382..383: type of this expression is ambiguous
+// unable to determine expression type
+// @403..404: type of this expression is ambiguous
+// unable to determine expression type
+// @425..426: type of this expression is ambiguous
+// unable to determine expression type
+// @446..447: type of this expression is ambiguous
+// unable to determine expression type
+// @465..466: type of this expression is ambiguous
+// unable to determine expression type
+// @490..491: type of this expression is ambiguous
+// unable to determine expression type
+// @510..511: type of this expression is ambiguous
+// unable to determine expression type
+// @580..581: type of this expression is ambiguous
+// unable to determine expression type
+// @615..616: type of this expression is ambiguous
 // >>>

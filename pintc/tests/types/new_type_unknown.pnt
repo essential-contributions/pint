@@ -12,8 +12,8 @@ solve satisfy;
 // >>>
 
 // typecheck_failure <<<
-// cannot find value `::NonExistentEnum::MissingVariant` in this scope
-// @17..32: not found in this scope
 // cannot find value `::Ambiguous::MissingVariant` in this scope
 // @43..68: not found in this scope
+// unable to determine expression type
+// @39..40: type of this expression is ambiguous
 // >>>

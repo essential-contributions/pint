@@ -5,7 +5,7 @@ use crate::{
     types::{EnumDecl, EphemeralDecl, FnSig, NewTypeDecl, Path, Type},
 };
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap, HashSet},
     fmt::{self, Formatter},
 };
 
@@ -258,6 +258,14 @@ impl IntermediateIntent {
             }
         });
 
+        self.directives.iter_mut().for_each(|(solve_func, _)| {
+            if let Some(expr) = solve_func.get_mut_expr() {
+                if *expr == old_expr {
+                    *expr = new_expr;
+                }
+            }
+        });
+
         self.var_inits.iter_mut().for_each(|(_, expr)| {
             if *expr == old_expr {
                 *expr = new_expr;
@@ -276,11 +284,23 @@ impl IntermediateIntent {
             }
         });
 
+        self.directives.iter_mut().for_each(|(solve_func, _)| {
+            if let Some(expr) = solve_func.get_mut_expr() {
+                if let Some(new_expr) = expr_map.get(expr) {
+                    *expr = *new_expr;
+                }
+            }
+        });
+
         self.var_inits.iter_mut().for_each(|(_, expr)| {
             if let Some(new_expr) = expr_map.get(expr) {
                 *expr = *new_expr;
             }
         });
+    }
+
+    pub(crate) fn exprs(&self) -> Exprs {
+        Exprs::new(self)
     }
 
     /// Removes a key `expr_key` and all of its sub expressions from `self.exprs`.
@@ -418,6 +438,22 @@ pub enum SolveFunc {
     Maximize(ExprKey),
 }
 
+impl SolveFunc {
+    pub(crate) fn get_expr(&self) -> Option<&ExprKey> {
+        match self {
+            SolveFunc::Satisfy => None,
+            SolveFunc::Minimize(e) | SolveFunc::Maximize(e) => Some(e),
+        }
+    }
+
+    pub(crate) fn get_mut_expr(&mut self) -> Option<&mut ExprKey> {
+        match self {
+            SolveFunc::Satisfy => None,
+            SolveFunc::Minimize(e) | SolveFunc::Maximize(e) => Some(e),
+        }
+    }
+}
+
 impl DisplayWithII for SolveFunc {
     fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> std::fmt::Result {
         write!(f, "solve ")?;
@@ -454,5 +490,156 @@ impl<T: DisplayWithII> fmt::Display for WithII<'_, T> {
 impl<T: DisplayWithII> DisplayWithII for &T {
     fn fmt(&self, f: &mut fmt::Formatter, ii: &IntermediateIntent) -> fmt::Result {
         (*self).fmt(f, ii)
+    }
+}
+
+/// [`Exprs`] is an iterator for all the _reachable_ expressions in the IntermediateIntent.
+///
+/// This maybe overkill -- implementing an interator for a tree structure is tricky.  Below we have
+/// a queue and a visited set just to keep track of where we're up to.
+///
+/// Items are popped off the queue.  If they're a leaf they're next().  If they're a branch then
+/// them then their children and queued.  Once each child is visited the parent is also returned.
+/// The visited set is updated and used to avoid following a branch multiple times.
+///
+/// Like most iterators [`Exprs`] keeps a reference to the IntermediateIntent and so this iterator
+/// is mostly useful for finding or filtering for specific exprs for further processing, e.g., in a
+/// transform pass.  So perhaps, instead of this crazy impl Iterator it'd make more sense to have
+/// just a `gather_by()` method which takes a predicate and returns a `Vec` of matches.  We'll see.
+
+#[derive(Debug)]
+pub(crate) struct Exprs<'a> {
+    ii: &'a IntermediateIntent,
+    queue: Vec<ExprKey>,
+    visited: HashSet<ExprKey>,
+}
+
+impl<'a> Exprs<'a> {
+    fn new(ii: &'a IntermediateIntent) -> Exprs {
+        Exprs {
+            ii,
+            queue: ii.constraints.iter().rev().map(|c| c.0).collect(),
+            visited: HashSet::new(),
+        }
+    }
+}
+
+impl<'a> Iterator for Exprs<'a> {
+    type Item = ExprKey;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.queue.is_empty() {
+            return None;
+        }
+
+        macro_rules! push_if_new {
+            ($self: ident, $key: expr) => {
+                if !$self.visited.contains($key) {
+                    $self.queue.push(*$key);
+                }
+            };
+        }
+
+        // Get the next key and mark it as visited.
+        let next_key = self.queue.pop().unwrap();
+        self.visited.insert(next_key);
+
+        // Push its children to the queue.
+        match self.ii.exprs.get(next_key).expect("invalid key in queue") {
+            Expr::UnaryOp { expr, .. } => push_if_new!(self, expr),
+
+            Expr::BinaryOp { lhs, rhs, .. } => {
+                push_if_new!(self, lhs);
+                push_if_new!(self, rhs);
+            }
+
+            Expr::FnCall { args, .. } => {
+                for arg in args {
+                    push_if_new!(self, arg);
+                }
+            }
+
+            Expr::If {
+                condition,
+                then_block,
+                else_block,
+                ..
+            } => {
+                push_if_new!(self, condition);
+                push_if_new!(self, then_block);
+                push_if_new!(self, else_block);
+            }
+
+            Expr::Array {
+                elements,
+                range_expr,
+                ..
+            } => {
+                for el in elements {
+                    push_if_new!(self, el);
+                }
+                push_if_new!(self, range_expr);
+            }
+
+            Expr::ArrayElementAccess { array, index, .. } => {
+                push_if_new!(self, array);
+                push_if_new!(self, index);
+            }
+
+            Expr::Tuple { fields, .. } => {
+                for (_, field) in fields {
+                    push_if_new!(self, field);
+                }
+            }
+
+            Expr::TupleFieldAccess { tuple, .. } => push_if_new!(self, tuple),
+
+            Expr::Cast { value, .. } => push_if_new!(self, value),
+
+            Expr::In {
+                value, collection, ..
+            } => {
+                push_if_new!(self, value);
+                push_if_new!(self, collection);
+            }
+
+            Expr::Range { lb, ub, .. } => {
+                push_if_new!(self, lb);
+                push_if_new!(self, ub);
+            }
+
+            Expr::Generator {
+                gen_ranges,
+                conditions,
+                body,
+                ..
+            } => {
+                for (_, range) in gen_ranges {
+                    push_if_new!(self, range);
+                }
+
+                for cond in conditions {
+                    push_if_new!(self, cond);
+                }
+
+                push_if_new!(self, body);
+            }
+
+            Expr::Error(_)
+            | Expr::Immediate { .. }
+            | Expr::PathByKey(_, _)
+            | Expr::PathByName(_, _)
+            | Expr::MacroCall { .. } => {}
+        };
+
+        // If it has an array type then it also has an associated expr in the range.
+        self.ii
+            .expr_types
+            .get(next_key)
+            .and_then(|ty| ty.get_array_range_expr())
+            .iter()
+            .for_each(|range| push_if_new!(self, range));
+
+        Some(next_key)
     }
 }

@@ -22,4 +22,6 @@ solve satisfy;
 // macro call is not an expression
 // @128..143: macro call does not expand to an expression
 // macros which contain only declarations may only be used at the top level of an intent and not as an expression
+// unable to determine expression type
+// @124..125: type of this expression is ambiguous
 // >>>
