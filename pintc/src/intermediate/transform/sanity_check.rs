@@ -279,7 +279,6 @@ fn check(actual: &str, expect: expect_test::Expect) {
 fn run_test(src: &str) -> String {
     use crate::error;
     let (mut program, handler) = run_without_transforms(src);
-    println!("{:#?}", program.iis);
     let _ = sanity_check(&handler, &mut program);
     error::Errors(handler.consume()).to_string()
 }
@@ -288,13 +287,9 @@ fn run_test(src: &str) -> String {
 fn run_without_transforms(src: &str) -> (Program, Handler) {
     let handler = Handler::default();
     let parsed_source = run_parser(src, &handler);
-    let type_checked_source = match parsed_source.type_check(&handler) {
-        Ok(source) => source,
-        Err(e) => {
-            eprintln!("Failed to type check: {:?}", e);
-            panic!("Failed to type check");
-        }
-    };
+    let type_checked_source = parsed_source
+        .type_check(&handler)
+        .expect("Failed to type check");
     (type_checked_source, handler)
 }
 
