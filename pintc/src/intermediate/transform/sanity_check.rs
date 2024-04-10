@@ -62,6 +62,15 @@ fn check_states(ii: &IntermediateIntent, handler: &Handler) {
 }
 
 fn check_directive(ii: &IntermediateIntent, handler: &Handler) {
+    if ii.directives.len() > 1 {
+        handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "final intent contains more than one `solve` directive",
+                span: ii.directives.last().expect("guaranteed to exist").1.clone(),
+            },
+        });
+    }
+
     ii.directives
         .iter()
         .for_each(|(solve_func, _)| match solve_func {
@@ -269,18 +278,24 @@ fn check(actual: &str, expect: expect_test::Expect) {
 #[cfg(test)]
 fn run_test(src: &str) -> String {
     use crate::error;
-    error::Errors(run_without_transforms(src)).to_string()
+    let (mut program, handler) = run_without_transforms(src);
+    println!("{:#?}", program.iis);
+    let _ = sanity_check(&handler, &mut program);
+    error::Errors(handler.consume()).to_string()
 }
 
 #[cfg(test)]
-fn run_without_transforms(src: &str) -> Vec<Error> {
+fn run_without_transforms(src: &str) -> (Program, Handler) {
     let handler = Handler::default();
     let parsed_source = run_parser(src, &handler);
-    let mut type_checked_source = parsed_source
-        .type_check(&handler)
-        .expect("Failed to type check");
-    let _ = sanity_check(&handler, &mut type_checked_source);
-    handler.consume()
+    let type_checked_source = match parsed_source.type_check(&handler) {
+        Ok(source) => source,
+        Err(e) => {
+            eprintln!("Failed to type check: {:?}", e);
+            panic!("Failed to type check");
+        }
+    };
+    (type_checked_source, handler)
 }
 
 #[cfg(test)]
@@ -454,4 +469,88 @@ fn expr_types() {
             r#"compiler internal error: type alias present in final intent expr_types slotmap"#
         ]],
     )
+}
+
+#[test]
+fn states() {
+    use crate::error;
+    use crate::intermediate::State;
+
+    let src = "let a = 1;";
+    let (mut program, handler) = run_without_transforms(src);
+    program.iis.iter_mut().for_each(|(_, ii)| {
+        let dummy_expr_key = ii.exprs.insert(Expr::Error(empty_span()));
+        let dummy_state = State {
+            name: "test".to_owned(),
+            expr: dummy_expr_key,
+            span: empty_span(),
+        };
+        ii.states.insert(dummy_state);
+    });
+    let _ = sanity_check(&handler, &mut program);
+    check(
+        &error::Errors(handler.consume()).to_string(),
+        expect_test::expect![[r#"
+        compiler internal error: mismatched final intent states and state_types slotmaps
+        compiler internal error: final intent state_types slotmap is missing corresponding key from states slotmap"#]],
+    );
+}
+
+#[test]
+fn vars() {
+    use crate::error;
+    use crate::intermediate::Var;
+
+    let src = "let a = 1;";
+    let (mut program, handler) = run_without_transforms(src);
+    program.iis.iter_mut().for_each(|(_, ii)| {
+        ii.vars.insert(Var {
+            name: "test".to_owned(),
+            span: empty_span(),
+        });
+    });
+    let _ = sanity_check(&handler, &mut program);
+    check(
+        &error::Errors(handler.consume()).to_string(),
+        expect_test::expect![[r#"
+        compiler internal error: mismatched final intent vars and var_types slotmaps
+        compiler internal error: final intent var_types slotmap is missing corresponding key from vars slotmap"#]],
+    );
+}
+
+#[test]
+fn directives() {
+    use crate::error;
+
+    let src = "let a = 1;";
+    let (mut program, handler) = run_without_transforms(src);
+    program.iis.iter_mut().for_each(|(_, ii)| {
+        let solve_directive = (SolveFunc::Satisfy, empty_span());
+        ii.directives.push(solve_directive);
+
+        let dummy_expr_key = ii.exprs.insert(Expr::Error(empty_span()));
+        ii.expr_types.insert(
+            dummy_expr_key,
+            Type::Custom {
+                path: "::b".to_owned(),
+                span: empty_span(),
+            },
+        );
+
+        let maximize_directive = (SolveFunc::Maximize(dummy_expr_key), empty_span());
+        ii.directives.push(maximize_directive);
+
+        let minimize_directive = (SolveFunc::Minimize(dummy_expr_key), empty_span());
+        ii.directives.push(minimize_directive);
+    });
+    let _ = sanity_check(&handler, &mut program);
+    check(
+        &error::Errors(handler.consume()).to_string(),
+        expect_test::expect![[r#"
+        compiler internal error: final intent contains more than one `solve` directive
+        compiler internal error: custom type present in final intent expr_types slotmap
+        compiler internal error: error expression present in final intent exprs slotmap
+        compiler internal error: custom type present in final intent expr_types slotmap
+        compiler internal error: error expression present in final intent exprs slotmap"#]],
+    );
 }
