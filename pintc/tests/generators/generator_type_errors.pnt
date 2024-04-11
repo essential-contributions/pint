@@ -1,0 +1,47 @@
+// Range errors.
+constraint forall i in false..true { false };
+constraint exists i in false..true { false };
+constraint forall i in (1.2)..(3.4) { false };
+constraint exists i in (1.2)..(3.4) { false };
+
+// Constraint errors.
+constraint forall i in 0..3 where i { true };
+constraint exists i in 0..3 where i { true };
+
+// Body errors.
+
+constraint forall i in 0..3 { i + i };
+constraint exists i in 0..3 { i + i };
+
+solve satisfy;
+
+// intermediate <<<
+// constraint forall i in false..true, { false };
+// constraint exists i in false..true, { false };
+// constraint forall i in 1.2e0..3.4e0, { false };
+// constraint exists i in 1.2e0..3.4e0, { false };
+// constraint forall i in 0..3, where ::i { true };
+// constraint exists i in 0..3, where ::i { true };
+// constraint forall i in 0..3, { (::i + ::i) };
+// constraint exists i in 0..3, { (::i + ::i) };
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// range type must be numeric
+// @40..51: ranges must have numeric bounds; found `bool`
+// range type must be numeric
+// @86..97: ranges must have numeric bounds; found `bool`
+// range for `forall` must be an `int`
+// @132..144: invalid type `real`, expecting `int`
+// range for `exists` must be an `int`
+// @179..191: invalid type `real`, expecting `int`
+// condition for `forall` must be a `bool`
+// @260..261: invalid type `int`, expecting `bool`
+// condition for `exists` must be a `bool`
+// @306..307: invalid type `int`, expecting `bool`
+// body for `forall` must be a `bool` expression
+// @366..371: invalid type `int`, expecting `bool`
+// body for `exists` must be a `bool` expression
+// @405..410: invalid type `int`, expecting `bool`
+// >>>
