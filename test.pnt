@@ -1,0 +1,5 @@
+enum MyEnum = A | B;
+
+let y = MyEnum::A;
+
+solve satisfy;

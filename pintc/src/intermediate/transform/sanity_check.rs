@@ -6,6 +6,8 @@ use crate::{
     types::Type,
 };
 
+// TODO: find and fix where we are losing expr_types
+
 pub(crate) fn sanity_check(handler: &Handler, program: &mut Program) -> Result<(), ErrorEmitted> {
     program.iis.values().for_each(|ii| {
         check_constraints(ii, handler);
@@ -177,14 +179,15 @@ fn check_expr(expr_key: &ExprKey, handler: &Handler, ii: &IntermediateIntent) {
                 },
             });
         }
-        Expr::If { span, .. } => {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "if expression present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        }
+        // Disabled for now until if support is added.
+        // Expr::If { span, .. } => {
+        //     handler.emit_err(Error::Compile {
+        //         error: CompileError::Internal {
+        //             msg: "if expression present in final intent exprs slotmap",
+        //             span: span.clone(),
+        //         },
+        //     });
+        // }
         Expr::Array { span, .. } => {
             handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
@@ -217,22 +220,22 @@ fn check_expr(expr_key: &ExprKey, handler: &Handler, ii: &IntermediateIntent) {
                 },
             });
         }
-        Expr::Cast { span, .. } => {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "cast present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        }
-        Expr::In { span, .. } => {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "in expression in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        }
+        // Expr::Cast { span, .. } => {
+        //     handler.emit_err(Error::Compile {
+        //         error: CompileError::Internal {
+        //             msg: "cast present in final intent exprs slotmap",
+        //             span: span.clone(),
+        //         },
+        //     });
+        // }
+        // Expr::In { span, .. } => {
+        //     handler.emit_err(Error::Compile {
+        //         error: CompileError::Internal {
+        //             msg: "in expression in final intent exprs slotmap",
+        //             span: span.clone(),
+        //         },
+        //     });
+        // }
         Expr::Range { span, .. } => {
             handler.emit_err(Error::Compile {
                 error: CompileError::Internal {

@@ -49,4 +49,22 @@ solve satisfy;
 // @317..318: not found in this scope
 // cannot find value `::j` in this scope
 // @368..369: not found in this scope
+// compiler internal error: type error: boolean expression expected
+// compiler internal error: type error: boolean expression expected
+// compiler internal error: forall generator present in final intent exprs slotmap
+// @32..68: forall generator present in final intent exprs slotmap
+// compiler internal error: exists generator present in final intent exprs slotmap
+// @81..117: exists generator present in final intent exprs slotmap
+// compiler internal error: forall generator present in final intent exprs slotmap
+// @197..222: forall generator present in final intent exprs slotmap
+// compiler internal error: exists generator present in final intent exprs slotmap
+// @235..260: exists generator present in final intent exprs slotmap
+// compiler internal error: forall generator present in final intent exprs slotmap
+// @294..332: forall generator present in final intent exprs slotmap
+// compiler internal error: exists generator present in final intent exprs slotmap
+// @345..383: exists generator present in final intent exprs slotmap
+// compiler internal error: forall generator present in final intent exprs slotmap
+// @411..444: forall generator present in final intent exprs slotmap
+// compiler internal error: exists generator present in final intent exprs slotmap
+// @457..490: exists generator present in final intent exprs slotmap
 // >>>
