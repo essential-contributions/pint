@@ -1,8 +1,10 @@
 storage {
     i: int,    
     b: bool,
+    addr: b256,
     map1: (int => int),
     map2: (b256 => bool),
+    map3: (int => (int => b256)),
 }
 
 let x = 5;
@@ -20,6 +22,11 @@ state map_1_access_2: int = storage::map1[x];
 state map_2_access_1 = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
 state map_2_access_2: bool = storage::map2[address];
 
+state map_3_access_1 = storage::map3[42][69];
+state map_3_access_2: b256 = storage::map3[42][69];
+
+state addr = storage::addr;
+
 let and = b1 && map_2_access_1 && map_2_access_2;
 let sum = x + i0 + map_1_access_1 + map_1_access_2;
 
@@ -29,8 +36,10 @@ solve satisfy;
 // storage {
 //     i: int,
 //     b: bool,
+//     addr: b256,
 //     map1: ( int => int ),
 //     map2: ( b256 => bool ),
+//     map3: ( int => ( int => b256 ) ),
 // }
 // var ::x;
 // var ::address;
@@ -44,6 +53,9 @@ solve satisfy;
 // state ::map_1_access_2: int = storage::map1[::x];
 // state ::map_2_access_1 = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
 // state ::map_2_access_2: bool = storage::map2[::address];
+// state ::map_3_access_1 = storage::map3[42][69];
+// state ::map_3_access_2: b256 = storage::map3[42][69];
+// state ::addr = storage::addr;
 // constraint (::x == 5);
 // constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
 // constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));
@@ -55,8 +67,10 @@ solve satisfy;
 // storage {
 //     i: int,
 //     b: bool,
+//     addr: b256,
 //     map1: ( int => int ),
 //     map2: ( b256 => bool ),
+//     map3: ( int => ( int => b256 ) ),
 // }
 // var ::x: int;
 // var ::address: b256;
@@ -70,6 +84,9 @@ solve satisfy;
 // state ::map_1_access_2: int = storage::map1[::x];
 // state ::map_2_access_1: int = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
 // state ::map_2_access_2: int = storage::map2[::address];
+// state ::map_3_access_1: b256 = storage::map3[42][69];
+// state ::map_3_access_2: b256 = storage::map3[42][69];
+// state ::addr: b256 = storage::addr;
 // constraint (::x == 5);
 // constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
 // constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));

@@ -197,7 +197,7 @@ fn submit_and_check_solution(server: &mut Server) -> anyhow::Result<()> {
             Err(err) => {
                 println!(
                     "{}",
-                    Red.paint(format!("    Error submitting intent: {err}"))
+                    Red.paint(format!("    Error submitting solution: {err}"))
                 );
                 failed_tests.push(path)
             }

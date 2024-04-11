@@ -77,161 +77,73 @@ pub struct AsmBuilder {
 }
 
 impl AsmBuilder {
-    /// Generates assembly for reading from state and creates a new state slot
-    /// This is pretty limited for now and only supports simple integer reads using the syntax
-    /// `state x = storage_lib::get(<key>)`
-    fn compile_state(
+    /// Generates assembly for producing a storage key  where `expr` is stored.
+    fn compile_state_key(
         &mut self,
         handler: &Handler,
-        state: &StateVar,
+        s_asm: &mut Vec<StateReadOp>,
+        expr: &ExprKey,
         intent: &IntermediateIntent,
     ) -> Result<(), ErrorEmitted> {
-        // If the RHS of `state` variable initialization is a call of the form
-        // `::storage_lib::get(..)`, then this is a read from state. This is pretty simplistic and
-        // fragile for now and is likely to change in the future.
-        match &intent.exprs[state.expr] {
+        match &intent.exprs[*expr] {
             Expr::FnCall { name, args, .. } => {
                 if name.ends_with("::storage_lib::get") {
-                    // Expecting a single argument that is an integer
+                    // Expecting a single argument that is a `b256`
                     assert_eq!(args.len(), 1);
 
                     let mut asm = Vec::new();
-
-                    // Compile key
                     self.compile_expr(handler, &mut asm, &args[0], intent)?;
-                    let mut s_asm = asm
-                        .iter()
-                        .map(|op| StateReadOp::Constraint(*op))
-                        .collect::<Vec<_>>();
-
-                    s_asm.push(StateReadOp::Constraint(Op::Push(1)));
-                    s_asm.push(StateReadOp::Memory(Memory::Alloc));
-                    s_asm.push(StateReadOp::Constraint(Op::Push(1)));
-                    s_asm.push(StateReadOp::State(State::StateReadWordRange));
-                    s_asm.push(StateReadOp::ControlFlow(ControlFlow::Halt));
-
-                    self.s_asm.push(s_asm);
-
-                    let slot_idx = self.s_asm.len() - 1;
-                    self.s_slots.push(StateSlot {
-                        index: slot_idx as u32,
-                        amount: 1,
-                        program_index: slot_idx as u16,
-                    });
-                } else if name.ends_with("::storage_lib::get_extern") {
-                    // Expecting a single argument that is an integer
-                    assert_eq!(args.len(), 2);
-
-                    let mut asm = Vec::new();
-
-                    // persistent intent address followed by key
-                    self.compile_expr(handler, &mut asm, &args[0], intent)?;
-                    self.compile_expr(handler, &mut asm, &args[1], intent)?;
-                    let mut s_asm = asm
-                        .iter()
-                        .map(|op| StateReadOp::Constraint(*op))
-                        .collect::<Vec<_>>();
-
-                    s_asm.push(StateReadOp::Constraint(Op::Push(1)));
-                    s_asm.push(StateReadOp::Memory(Memory::Alloc));
-                    s_asm.push(StateReadOp::Constraint(Op::Push(1)));
-                    s_asm.push(StateReadOp::State(State::StateReadWordRangeExtern));
-                    s_asm.push(StateReadOp::ControlFlow(ControlFlow::Halt));
-
-                    self.s_asm.push(s_asm);
-
-                    let slot_idx = self.s_asm.len() - 1;
-                    self.s_slots.push(StateSlot {
-                        index: slot_idx as u32,
-                        amount: 1,
-                        program_index: slot_idx as u16,
-                    });
+                    s_asm.extend(asm.iter().map(|op| StateReadOp::Constraint(*op)));
                 } else {
                     unimplemented!("Other calls are currently not supported")
                 }
             }
             Expr::StorageAccess(name, _) => {
-                // Get the index of the storage variable in the storage block declaration
-                let index = intent
+                let storage = &intent
                     .storage
                     .as_ref()
                     .expect("a storage block must have been declared")
-                    .0
+                    .0;
+
+                // Get the index of the storage variable in the storage block declaration
+                let storage_index = storage
                     .iter()
                     .position(|var| var.name == *name)
                     .expect("storage access should have been checked before");
 
-                // The index determines where the variable is located in storage. For now, we only
-                // handle primitive types, so the keys are consecutive 0x00..00, 0x00.001,
-                // 0x00..002, etc. and match the index of each variable.
-                self.s_asm.push(vec![
-                    StateReadOp::Constraint(Op::Push(0)),
-                    StateReadOp::Constraint(Op::Push(0)),
-                    StateReadOp::Constraint(Op::Push(0)),
-                    StateReadOp::Constraint(Op::Push(index as i64)),
-                    StateReadOp::Constraint(Op::Push(1)),
-                    StateReadOp::Memory(Memory::Alloc),
-                    StateReadOp::Constraint(Op::Push(1)),
-                    StateReadOp::State(State::StateReadWordRange),
-                    StateReadOp::ControlFlow(ControlFlow::Halt),
-                ]);
+                // Get the storage key as the sum of the sizes of all the types in the storage
+                // block that preceed the storage variable accessed.
+                //
+                // The actual storage key is a `b256` that is sum computed, left padded with 0s.
+                let key: usize = storage
+                    .iter()
+                    .take(storage_index)
+                    .map(|storage_var| storage_var.ty.size())
+                    .sum();
 
-                let slot_idx = self.s_asm.len() - 1;
-                self.s_slots.push(StateSlot {
-                    index: slot_idx as u32,
-                    amount: 1,
-                    program_index: slot_idx as u16,
-                });
+                s_asm.extend(vec![
+                    StateReadOp::Constraint(Op::Push(0)),
+                    StateReadOp::Constraint(Op::Push(0)),
+                    StateReadOp::Constraint(Op::Push(0)),
+                    StateReadOp::Constraint(Op::Push(key as i64)),
+                ]);
             }
             Expr::Index { expr, index, .. } => {
-                if let Some(Expr::StorageAccess(name, _)) = intent.exprs.get(*expr) {
-                    // Only handle simple map accesses. No nested maps are supported yet and no
-                    // array accesses.
+                // Compile the key corresponding to `expr`
+                self.compile_state_key(handler, s_asm, expr, intent)?;
 
-                    // First, get the storage index of the map in the storage block
-                    let storage_index = intent
-                        .storage
-                        .as_ref()
-                        .expect("a storage block must have been declared")
-                        .0
-                        .iter()
-                        .position(|var| var.name == *name)
-                        .expect("storage access should have been checked before");
+                // Compile the index
+                let mut asm = vec![];
+                self.compile_expr(handler, &mut asm, index, intent)?;
+                s_asm.extend(asm.iter().map(|op| StateReadOp::Constraint(*op)));
 
-                    // Push storage index on the stack
-                    let mut asm = vec![Op::Push(storage_index as i64)];
-
-                    // Compile index
-                    self.compile_expr(handler, &mut asm, index, intent)?;
-                    let mut s_asm = asm
-                        .iter()
-                        .map(|op| StateReadOp::Constraint(*op))
-                        .collect::<Vec<_>>();
-
-                    // Sha256 to get the actual key. Here, we need the length of the key as well,
-                    // so we rely on the size of the type to get that. Only primitive types
-                    // (including `b256`) are currently supported)
-                    s_asm.push(StateReadOp::Constraint(Op::Push(
-                        1 + intent.expr_types[*index].size() as i64,
-                    )));
-                    s_asm.push(StateReadOp::Constraint(Op::Crypto(Crypto::Sha256)));
-
-                    // Now do the actual reading
-                    s_asm.push(StateReadOp::Constraint(Op::Push(1)));
-                    s_asm.push(StateReadOp::Memory(Memory::Alloc));
-                    s_asm.push(StateReadOp::Constraint(Op::Push(1)));
-                    s_asm.push(StateReadOp::State(State::StateReadWordRange));
-                    s_asm.push(StateReadOp::ControlFlow(ControlFlow::Halt));
-
-                    self.s_asm.push(s_asm);
-
-                    let slot_idx = self.s_asm.len() - 1;
-                    self.s_slots.push(StateSlot {
-                        index: slot_idx as u32,
-                        amount: 1,
-                        program_index: slot_idx as u16,
-                    });
-                }
+                // Sha256 the current key (4 words) with the compiled index to get the actual key.
+                // We also need the length of the data to hash, so we rely on the size of the type
+                // to get that.
+                s_asm.push(StateReadOp::Constraint(Op::Push(
+                    4 + intent.expr_types[*index].size() as i64,
+                )));
+                s_asm.push(StateReadOp::Constraint(Op::Crypto(Crypto::Sha256)));
             }
             _ => unreachable!("there really shouldn't be anything else at this stage"),
         }
@@ -305,19 +217,21 @@ impl AsmBuilder {
                         asm.push(Op::Pred(Pred::Not));
                     }
                     UnaryOp::NextState => {
-                        // This is pretty hacky. It assumes that the next state operator is applied
-                        // on a state var path directly. So, it pops out the idx two instructions
-                        // which would have to be `Push(0)` and `Access(Access::State)`, and adds
-                        // `Push(1)` and a `Access(Access:State)`. We're basically switching from
-                        // reading the current state to reading the next state.
-                        assert!(matches!(asm.last(), Some(&Op::Access(Access::State))));
-                        asm.pop();
-
-                        assert!(matches!(asm.last(), Some(&Op::Push(0))));
-                        asm.pop();
-
-                        asm.push(Op::Push(1)); // 1 means "next state"
-                        asm.push(Op::Access(Access::State));
+                        // This assumes that the next state operator is applied on a state var path
+                        // directly which should currently be guaranteed by the middleend.
+                        //
+                        // So, we simply change the second the last instruction to `Push(1)`
+                        // instead of `Push(0)`. This changes the `delta` for the state read
+                        // instruction from 0 to 1. We're basically switching from reading the
+                        // current state to reading the next state.
+                        assert!(matches!(
+                            asm.last(),
+                            Some(&Op::Access(Access::State | Access::StateRange))
+                        ));
+                        let len = asm.len();
+                        assert!(len >= 2);
+                        assert!(matches!(asm.get(asm.len() - 2), Some(&Op::Push(0))));
+                        asm[len - 2] = Op::Push(1);
                     }
                     UnaryOp::Neg => unimplemented!("Unary::Neg is not yet supported"),
                     UnaryOp::Error => unreachable!("unexpected Unary::Error"),
@@ -371,18 +285,39 @@ impl AsmBuilder {
     /// variable or a state variable.
     fn compile_path(&mut self, asm: &mut Vec<Op>, path: &String, intent: &IntermediateIntent) {
         let var_index = intent.vars.iter().position(|var| &var.1.name == path);
-        let state_index = intent.states.iter().position(|state| &state.1.name == path);
-        match (var_index, state_index) {
+        let state_and_index = intent
+            .states
+            .iter()
+            .enumerate()
+            .find(|(_, state)| &state.1.name == path);
+
+        match (var_index, state_and_index) {
             (Some(var_index), None) => {
                 for d_var in &self.var_to_d_vars[&var_index] {
                     asm.push(Op::Push(*d_var as i64));
                     asm.push(Op::Access(Access::DecisionVar));
                 }
             }
-            (None, Some(state_index)) => {
-                asm.push(Op::Push(state_index as i64));
-                asm.push(Op::Push(0)); // 0 means "current state"
-                asm.push(Op::Access(Access::State));
+            (None, Some((state_index, state))) => {
+                let mut slot_index = 0;
+                for (idx, state) in intent.states.iter().enumerate() {
+                    if idx < state_index {
+                        slot_index += intent.state_types[state.0].size();
+                    } else {
+                        break;
+                    }
+                }
+                let size = intent.state_types[state.0].size();
+                if size == 1 {
+                    asm.push(Op::Push(slot_index as i64));
+                    asm.push(Op::Push(0)); // 0 means "current state"
+                    asm.push(Op::Access(Access::State));
+                } else {
+                    asm.push(Op::Push(slot_index as i64));
+                    asm.push(Op::Push(size as i64)); // 0 means "current state"
+                    asm.push(Op::Push(0)); // 0 means "current state"
+                    asm.push(Op::Access(Access::StateRange));
+                }
             }
             _ => unreachable!("guaranteed by semantic analysis"),
         }
@@ -398,6 +333,69 @@ impl AsmBuilder {
         let mut asm = Vec::new();
         self.compile_expr(handler, &mut asm, expr, intent)?;
         self.c_asm.push(asm);
+        Ok(())
+    }
+
+    /// Generates assembly for a given state read
+    fn compile_state(
+        &mut self,
+        handler: &Handler,
+        state: &StateVar,
+        slot_idx: &mut u32,
+        intent: &IntermediateIntent,
+    ) -> Result<(), ErrorEmitted> {
+        let data_size = intent.expr_types[state.expr].size();
+        let mut s_asm = Vec::new();
+        match intent.exprs.get(state.expr) {
+            // This is a special case that we still handle separately. This won't be around for too
+            // long though.
+            Some(Expr::FnCall { name, args, .. })
+                if name.ends_with("::storage_lib::get_extern") =>
+            {
+                // Expecting a single argument that is an integer
+                assert_eq!(args.len(), 2);
+
+                // First, get the set-of-intents address and the storage key
+                let mut asm = Vec::new();
+                self.compile_expr(handler, &mut asm, &args[0], intent)?;
+                self.compile_expr(handler, &mut asm, &args[1], intent)?;
+                s_asm.extend(asm.iter().map(|op| StateReadOp::Constraint(*op)));
+
+                // Now, using the data size of the accessed type, produce an `Alloc` followed by a
+                // `StateReadWordRangeExtern` instruction
+                s_asm.extend(vec![
+                    StateReadOp::Constraint(Op::Push(data_size as i64)),
+                    StateReadOp::Memory(Memory::Alloc),
+                    StateReadOp::Constraint(Op::Push(data_size as i64)),
+                    StateReadOp::State(State::StateReadWordRangeExtern),
+                    StateReadOp::ControlFlow(ControlFlow::Halt),
+                ]);
+            }
+            _ => {
+                // First, get the storage key
+                self.compile_state_key(handler, &mut s_asm, &state.expr, intent)?;
+
+                // Now, using the data size of the accessed type, produce an `Alloc` followed by a
+                // `StateReadWordRange` instruction
+                s_asm.extend(vec![
+                    StateReadOp::Constraint(Op::Push(data_size as i64)),
+                    StateReadOp::Memory(Memory::Alloc),
+                    StateReadOp::Constraint(Op::Push(data_size as i64)),
+                    StateReadOp::State(State::StateReadWordRange),
+                    StateReadOp::ControlFlow(ControlFlow::Halt),
+                ]);
+            }
+        }
+        self.s_asm.push(s_asm);
+
+        // Now add the actual `StateSlot`
+        let program_idx = self.s_asm.len() - 1;
+        self.s_slots.push(StateSlot {
+            index: *slot_idx,
+            amount: data_size as u32,
+            program_index: program_idx as u16,
+        });
+        *slot_idx += data_size as u32;
         Ok(())
     }
 }
@@ -433,8 +431,9 @@ pub fn intent_to_asm(
     }
     let total_decision_vars = d_var;
 
+    let mut slot_idx = 0;
     for (_, state) in &final_intent.states {
-        let _ = builder.compile_state(handler, state, final_intent);
+        let _ = builder.compile_state(handler, state, &mut slot_idx, final_intent);
     }
 
     for (constraint, _) in &final_intent.constraints {
