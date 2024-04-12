@@ -98,12 +98,12 @@ fn compile_errors() {
                │             ─┬  
                │              ╰── empty tuple expression found
             ───╯
-            Error: missing array index
+            Error: missing array or map index
                ╭─[filepath:1:25]
                │
              1 │ let t: {} = {}; let a = a[]; solve satisfy;
                │                         ─┬─  
-               │                          ╰─── missing array element index
+               │                          ╰─── missing array or map element index
             ───╯
             Error: could not compile `filepath` due to 3 previous errors
         "#]],

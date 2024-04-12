@@ -217,13 +217,14 @@ impl<'a> ProjectParser<'a> {
     }
 
     fn finalize(mut self) -> Result<Program, ErrorEmitted> {
-        // Insert all enums and new types from the root II into each non-root II (i.e. those
-        // declared using an `intent { }` decl). Also, insert all top symbols since shadowing is
-        // not allowed. That is, we can't use a symbol inside an `intent { .. }` that was already
-        // used in the root II.
+        // Insert all enums, new types, and storage variables from the root II into each non-root
+        // II (i.e. those declared using an `intent { }` decl). Also, insert all top level symbols
+        // since shadowing is not allowed. That is, we can't use a symbol inside an `intent { .. }`
+        // that was already used in the root II.
         let enums = self.program.root_ii().enums.clone();
         let new_types = self.program.root_ii().new_types.clone();
         let root_symbols = self.program.root_ii().top_level_symbols.clone();
+        let storage = self.program.root_ii().storage.clone();
         self.program
             .iis
             .iter_mut()
@@ -231,6 +232,7 @@ impl<'a> ProjectParser<'a> {
             .for_each(|(_, ii)| {
                 ii.new_types.extend_from_slice(&new_types);
                 ii.enums.extend_from_slice(&enums);
+                ii.storage = storage.clone();
                 for (symbol, span) in &root_symbols {
                     // We could call `ii.add_top_level_symbol_with_name` directly here, but then
                     // the spans would be reversed so I decided to do this manually. We want the

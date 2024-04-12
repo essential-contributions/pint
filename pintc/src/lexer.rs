@@ -116,6 +116,8 @@ pub enum Token {
     Let,
     #[token("state")]
     State,
+    #[token("storage")]
+    Storage,
     #[token("enum")]
     Enum,
     #[token("type")]
@@ -191,6 +193,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Cond,
     Token::Let,
     Token::State,
+    Token::Storage,
     Token::Constraint,
     Token::Macro,
     Token::Maximize,
@@ -287,6 +290,7 @@ impl fmt::Display for Token {
             Token::Cond => write!(f, "cond"),
             Token::Let => write!(f, "let"),
             Token::State => write!(f, "state"),
+            Token::Storage => write!(f, "storage"),
             Token::Enum => write!(f, "enum"),
             Token::Type => write!(f, "type"),
             Token::Constraint => write!(f, "constraint"),

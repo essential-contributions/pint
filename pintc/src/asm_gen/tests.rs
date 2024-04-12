@@ -251,8 +251,8 @@ fn binary_ops() {
 fn state_read() {
     let intents = compile(
         r#"
-        state x: int = storage::get(0x0000000000000000000000000000000000000000000000000000000000000001);
-        state y: int = storage::get(0x0000000000000002000000000000000200000000000000020000000000000002);
+        state x: int = storage_lib::get(0x0000000000000000000000000000000000000000000000000000000000000001);
+        state y: int = storage_lib::get(0x0000000000000002000000000000000200000000000000020000000000000002);
         constraint x == y;
         constraint x' == y';
         solve satisfy;
@@ -328,11 +328,11 @@ fn state_read() {
 fn state_read_extern() {
     let intents = &compile(
         r#"
-        state x: int = storage::get_extern(
+        state x: int = storage_lib::get_extern(
             0x0000000000000001000000000000000200000000000000030000000000000004,
             0x0000000000000011000000000000002200000000000000330000000000000044,
         );
-        state y: int = storage::get_extern(
+        state y: int = storage_lib::get_extern(
             0x0000000000000005000000000000000600000000000000070000000000000008,
             0x0000000000000055000000000000006600000000000000770000000000000088,
         );
@@ -420,7 +420,7 @@ fn next_state() {
     let intents = &compile(
         r#"
         let diff: int = 5;
-        state x: int = storage::get(0x0000000000000000000000000000000000000000000000000000000000000003);
+        state x: int = storage_lib::get(0x0000000000000000000000000000000000000000000000000000000000000003);
         constraint x' - x == 5;
         solve satisfy;
         "#,
@@ -524,28 +524,86 @@ fn b256() {
 fn sender() {
     let intents = &compile(
         r#"
-        let s: b256;
-        constraint s == context::sender();
-        solve satisfy;
+storage {
+    supply: int,
+    map1: (int => int),
+    map2: (b256 => int),
+}
+
+intent Simple {
+    state supply = storage::supply;
+    state x = storage::map1[69];
+    state y = storage::map2[0x2222222222222222222222222222222222222222222222222222222222222222];
+
+    constraint supply' == 42;
+    constraint x' == 98;
+    constraint y' == 44;
+}
         "#,
     );
 
     check(
         &format!("{intents}"),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Push(0)
-              Access(DecisionVar)
-              Push(1)
-              Access(DecisionVar)
-              Push(2)
-              Access(DecisionVar)
-              Push(3)
-              Access(DecisionVar)
-              Access(Sender)
-              Pred(Eq4)
-            --- State Reads ---
+            intent ::Simple {
+                --- Constraints ---
+                constraint 0
+                  Push(0)
+                  Push(1)
+                  Access(State)
+                  Push(42)
+                  Pred(Eq)
+                constraint 1
+                  Push(1)
+                  Push(1)
+                  Access(State)
+                  Push(98)
+                  Pred(Eq)
+                constraint 2
+                  Push(2)
+                  Push(1)
+                  Access(State)
+                  Push(44)
+                  Pred(Eq)
+                --- State Reads ---
+                state read 0
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 1
+                  Constraint(Push(1))
+                  Constraint(Push(69))
+                  Constraint(Push(2))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 2
+                  Constraint(Push(2))
+                  Constraint(Push(2459565876494606882))
+                  Constraint(Push(2459565876494606882))
+                  Constraint(Push(2459565876494606882))
+                  Constraint(Push(2459565876494606882))
+                  Constraint(Push(5))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+            }
+
         "#]],
     );
 }
+
+#[test]
+fn storage_access() {}

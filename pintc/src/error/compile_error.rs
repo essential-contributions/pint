@@ -112,6 +112,10 @@ pub enum CompileError {
         span: Span,
         enum_names: Vec<String>,
     },
+    #[error("cannot find storage variable `{name}`")]
+    StorageSymbolNotFound { name: String, span: Span },
+    #[error("cannot find storage variable `{name}`")]
+    MissingStorageBlock { name: String, span: Span },
     #[error("attempt to use a non-constant value as an array length")]
     NonConstArrayLength { span: Span },
     #[error("attempt to use an invalid constant as an array length")]
@@ -130,10 +134,19 @@ pub enum CompileError {
     IfCondTypeNotBool(Span),
     #[error("branches in if-expression must have the same type")]
     IfBranchesTypeMismatch { large_err: Box<LargeTypeError> },
-    #[error("attempt to access array element from a non-array value")]
-    ArrayAccessNonArray { non_array_type: String, span: Span },
+    #[error("attempt to index into a non-indexable value")]
+    IndexExprNonIndexable {
+        non_indexable_type: String,
+        span: Span,
+    },
     #[error("attempt to index an array with a mismatched value")]
     ArrayAccessWithWrongType {
+        found_ty: String,
+        expected_ty: String,
+        span: Span,
+    },
+    #[error("attempt to index a storage map with a mismatched value")]
+    StorageMapAccessWithWrongType {
         found_ty: String,
         expected_ty: String,
         span: Span,
@@ -166,6 +179,8 @@ pub enum CompileError {
         arity: &'static str,
         large_err: Box<LargeTypeError>,
     },
+    #[error("state variable initialization type error")]
+    StateVarInitTypeError { large_err: Box<LargeTypeError> },
     #[error("expression has a recursive dependency")]
     ExprRecursion {
         dependant_span: Span,
@@ -218,6 +233,12 @@ pub enum LargeTypeError {
     },
     OperatorTypeError {
         op: &'static str,
+        expected_ty: String,
+        found_ty: String,
+        span: Span,
+        expected_span: Option<Span>,
+    },
+    StateVarInitTypeError {
         expected_ty: String,
         found_ty: String,
         span: Span,
@@ -455,6 +476,22 @@ impl ReportableError for CompileError {
                 }]
             }
 
+            StorageSymbolNotFound { span, .. } => {
+                vec![ErrorLabel {
+                    message: "not found in storage declaration".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            MissingStorageBlock { span, .. } => {
+                vec![ErrorLabel {
+                    message: "no storage declaration found in this program".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
             NonConstArrayLength { span } | NonConstArrayIndex { span } => {
                 vec![ErrorLabel {
                     message: "this must be a constant".to_string(),
@@ -516,12 +553,14 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            ArrayAccessNonArray {
-                non_array_type,
+            IndexExprNonIndexable {
+                non_indexable_type,
                 span,
             } => {
                 vec![ErrorLabel {
-                    message: format!("value must be an array; found `{non_array_type}`"),
+                    message: format!(
+                        "value must be an array or a storage map; found `{non_indexable_type}`"
+                    ),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -536,6 +575,16 @@ impl ReportableError for CompileError {
                     } else {
                         format!("array access must be with a `{expected_ty}` variant")
                     },
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            StorageMapAccessWithWrongType {
+                expected_ty, span, ..
+            } => {
+                vec![ErrorLabel {
+                    message: format!("storage map access must be with a `{expected_ty}` variant"),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -594,55 +643,81 @@ impl ReportableError for CompileError {
                 },
             ],
 
-            IfBranchesTypeMismatch { large_err } | OperatorTypeError { large_err, .. } => {
-                match &**large_err {
-                    LargeTypeError::IfBranchesTypeMismatch {
-                        then_type,
-                        then_span,
-                        else_type,
-                        else_span,
-                        ..
-                    } => vec![
-                        ErrorLabel {
-                            message: format!("'then' branch has the type `{then_type}`"),
-                            span: then_span.clone(),
-                            color: Color::Red,
-                        },
-                        ErrorLabel {
-                            message: format!("'else' branch has the type `{else_type}`"),
-                            span: else_span.clone(),
-                            color: Color::Red,
-                        },
-                    ],
+            IfBranchesTypeMismatch { large_err }
+            | OperatorTypeError { large_err, .. }
+            | StateVarInitTypeError { large_err, .. } => match &**large_err {
+                LargeTypeError::IfBranchesTypeMismatch {
+                    then_type,
+                    then_span,
+                    else_type,
+                    else_span,
+                    ..
+                } => vec![
+                    ErrorLabel {
+                        message: format!("'then' branch has the type `{then_type}`"),
+                        span: then_span.clone(),
+                        color: Color::Red,
+                    },
+                    ErrorLabel {
+                        message: format!("'else' branch has the type `{else_type}`"),
+                        span: else_span.clone(),
+                        color: Color::Red,
+                    },
+                ],
 
-                    LargeTypeError::OperatorTypeError {
-                        op,
-                        found_ty,
-                        expected_ty,
-                        span,
-                        expected_span,
-                        ..
-                    } => {
-                        let mut labels = vec![ErrorLabel {
-                            message: format!(
-                                "operator `{op}` argument has unexpected type `{found_ty}`"
-                            ),
+                LargeTypeError::OperatorTypeError {
+                    op,
+                    found_ty,
+                    expected_ty,
+                    span,
+                    expected_span,
+                    ..
+                } => {
+                    let mut labels = vec![ErrorLabel {
+                        message: format!(
+                            "operator `{op}` argument has unexpected type `{found_ty}`"
+                        ),
+                        span: span.clone(),
+                        color: Color::Red,
+                    }];
+
+                    if let Some(span) = expected_span {
+                        labels.push(ErrorLabel {
+                            message: format!("expecting type `{expected_ty}`"),
                             span: span.clone(),
-                            color: Color::Red,
-                        }];
-
-                        if let Some(span) = expected_span {
-                            labels.push(ErrorLabel {
-                                message: format!("expecting type `{expected_ty}`"),
-                                span: span.clone(),
-                                color: Color::Blue,
-                            });
-                        }
-
-                        labels
+                            color: Color::Blue,
+                        });
                     }
+
+                    labels
                 }
-            }
+
+                LargeTypeError::StateVarInitTypeError {
+                    found_ty,
+                    expected_ty,
+                    span,
+                    expected_span,
+                    ..
+                } => {
+                    let mut labels = vec![ErrorLabel {
+                        message: format!(
+                            "initializing expression has unexpected type `{found_ty}`"
+                        ),
+                        span: span.clone(),
+                        color: Color::Red,
+                    }];
+
+                    if let Some(span) = expected_span {
+                        labels.push(ErrorLabel {
+                            message: format!("expecting type `{expected_ty}`"),
+                            span: span.clone(),
+                            color: Color::Blue,
+                        });
+                    }
+
+                    labels
+                }
+            },
 
             BadCastTo { ty, span } => vec![ErrorLabel {
                 message: format!("illegal cast to a `{ty}`"),
@@ -807,6 +882,10 @@ impl ReportableError for CompileError {
                 Some(format!("found access using type `{found_ty}`"))
             }
 
+            StorageMapAccessWithWrongType { found_ty, .. } => {
+                Some(format!("found access using type `{found_ty}`"))
+            }
+
             MissingSolveDirective { .. } => Some(
                 "`solve` directive must appear exactly once in a project and \
                      must appear in the top level module"
@@ -824,6 +903,8 @@ impl ReportableError for CompileError {
             | MacroNotFound { .. }
             | MacroUndefinedParam { .. }
             | SymbolNotFound { .. }
+            | StorageSymbolNotFound { .. }
+            | MissingStorageBlock { .. }
             | NonConstArrayLength { .. }
             | InvalidConstArrayLength { .. }
             | NonConstArrayIndex { .. }
@@ -839,7 +920,8 @@ impl ReportableError for CompileError {
             | IfCondTypeNotBool(_)
             | IfBranchesTypeMismatch { .. }
             | OperatorTypeError { .. }
-            | ArrayAccessNonArray { .. }
+            | StateVarInitTypeError { .. }
+            | IndexExprNonIndexable { .. }
             | TupleAccessNonTuple { .. }
             | EmptyArrayExpression { .. }
             | ExprRecursion { .. }
@@ -934,6 +1016,8 @@ impl Spanned for CompileError {
             | NonBoolGeneratorCondition { span, .. }
             | NonBoolGeneratorBody { span, .. }
             | SymbolNotFound { span, .. }
+            | StorageSymbolNotFound { span, .. }
+            | MissingStorageBlock { span, .. }
             | NonConstArrayIndex { span }
             | InvalidConstArrayLength { span }
             | NonConstArrayLength { span }
@@ -942,8 +1026,9 @@ impl Spanned for CompileError {
             | CannotIndexIntoValue { span, .. }
             | UnknownType { span }
             | IfCondTypeNotBool(span)
-            | ArrayAccessNonArray { span, .. }
+            | IndexExprNonIndexable { span, .. }
             | ArrayAccessWithWrongType { span, .. }
+            | StorageMapAccessWithWrongType { span, .. }
             | MismatchedArrayComparisonSizes { span, .. }
             | TupleAccessNonTuple { span, .. }
             | InvalidTupleAccessor { span, .. }
@@ -962,12 +1047,13 @@ impl Spanned for CompileError {
             | InExprTypesMismatch { span, .. }
             | InExprTypesArrayMismatch { span, .. } => span,
 
-            IfBranchesTypeMismatch { large_err } | OperatorTypeError { large_err, .. } => {
-                match &**large_err {
-                    LargeTypeError::IfBranchesTypeMismatch { span, .. }
-                    | LargeTypeError::OperatorTypeError { span, .. } => span,
-                }
-            }
+            IfBranchesTypeMismatch { large_err }
+            | OperatorTypeError { large_err, .. }
+            | StateVarInitTypeError { large_err, .. } => match &**large_err {
+                LargeTypeError::IfBranchesTypeMismatch { span, .. }
+                | LargeTypeError::OperatorTypeError { span, .. }
+                | LargeTypeError::StateVarInitTypeError { span, .. } => span,
+            },
         }
     }
 }

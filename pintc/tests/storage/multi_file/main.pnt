@@ -1,0 +1,12 @@
+use lib::MyEnum;
+
+let e: MyEnum = MyEnum::A;
+
+solve satisfy;
+
+// parse_failure <<<
+// a `storage` block can only appear in the top level module
+// @22..45: a `storage` block can only appear in the top level module
+// `storage` access expressions can only appear in the top level module
+// @57..67: `storage` access expressions can only appear in the top level module
+// >>>

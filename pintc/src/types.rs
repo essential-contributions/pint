@@ -43,6 +43,11 @@ pub enum Type {
         ty: Box<Self>,
         span: Span,
     },
+    Map {
+        ty_from: Box<Self>,
+        ty_to: Box<Self>,
+        span: Span,
+    },
 }
 
 macro_rules! is_primitive {
@@ -91,8 +96,16 @@ impl Type {
         check_alias!(self, is_string, is_primitive!(self, PrimitiveKind::String))
     }
 
+    pub fn is_b256(&self) -> bool {
+        check_alias!(self, is_b256, is_primitive!(self, PrimitiveKind::B256))
+    }
+
     pub fn is_num(&self) -> bool {
         check_alias!(self, is_num, self.is_int() || self.is_real())
+    }
+
+    pub fn is_map(&self) -> bool {
+        check_alias!(self, is_map, matches!(self, Type::Map { .. }))
     }
 
     pub fn is_any_primitive(&self) -> bool {
@@ -145,6 +158,26 @@ impl Type {
         })
     }
 
+    pub fn get_map_ty_from(&self) -> Option<&Type> {
+        check_alias!(self, get_map_ty_from, {
+            if let Type::Map { ty_from, .. } = self {
+                Some(ty_from)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn get_map_ty_to(&self) -> Option<&Type> {
+        check_alias!(self, get_map_ty_to, {
+            if let Type::Map { ty_to, .. } = self {
+                Some(ty_to)
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn get_tuple_fields(&self) -> Option<&[(Option<Ident>, Self)]> {
         check_alias!(self, get_tuple_fields, {
             if let Type::Tuple { fields, .. } = self {
@@ -177,6 +210,20 @@ impl Type {
                 None
             }
         })
+    }
+
+    pub fn size(&self) -> usize {
+        match self {
+            Self::Primitive {
+                kind: PrimitiveKind::Bool | PrimitiveKind::Int | PrimitiveKind::Real,
+                ..
+            } => 1,
+            Self::Primitive {
+                kind: PrimitiveKind::B256,
+                ..
+            } => 4,
+            _ => unimplemented!("Size of non-primitive types is not yet specified"),
+        }
     }
 }
 
@@ -248,6 +295,19 @@ impl PartialEq for Type {
                 lhs_path == rhs_path
             }
 
+            (
+                Self::Map {
+                    ty_from: lhs_ty_from,
+                    ty_to: lhs_ty_to,
+                    ..
+                },
+                Self::Map {
+                    ty_from: rhs_ty_from,
+                    ty_to: rhs_ty_to,
+                    ..
+                },
+            ) => lhs_ty_from == rhs_ty_from && lhs_ty_to == rhs_ty_to,
+
             _ => false,
         }
     }
@@ -262,7 +322,8 @@ impl Spanned for Type {
             | Array { span, .. }
             | Tuple { span, .. }
             | Custom { span, .. }
-            | Alias { span, .. } => span,
+            | Alias { span, .. }
+            | Map { span, .. } => span,
         }
     }
 }

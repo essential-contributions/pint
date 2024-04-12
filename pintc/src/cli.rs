@@ -11,6 +11,9 @@ pub struct Args {
     #[arg(long = "output", short = 'o')]
     pub output: Option<String>,
 
+    #[arg(long = "print-parsed")]
+    pub print_parsed: bool,
+
     #[arg(long = "print-flat")]
     pub print_flat: bool,
 

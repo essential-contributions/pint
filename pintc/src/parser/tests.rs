@@ -183,6 +183,81 @@ fn types() {
         &run_parser!(type_, "::A::B::C::MyType"),
         expect_test::expect!["::A::B::C::MyType"],
     );
+
+    // Not allowed in arbitrary types
+    check(
+        &run_parser!(type_, "(int => bool)"),
+        expect_test::expect![[r#"
+            expected `::`, `b256_ty`, `bool_ty`, `ident`, `int_ty`, `real_ty`, `string_ty`, or `{`, found `(`
+            @0..1: expected `::`, `b256_ty`, `bool_ty`, `ident`, `int_ty`, `real_ty`, `string_ty`, or `{`
+        "#]],
+    );
+}
+
+#[test]
+fn storage_types() {
+    let storage_var_type = yp::StorageVarTypeParser::new();
+
+    // while not all of these are currently supported e2e, the `StorageVarTypeParser` does allow
+    // them, though some of them get blocked by the parser in `StateDeclParser`
+
+    check(
+        &run_parser!(storage_var_type, "int"),
+        expect_test::expect!["int"],
+    );
+    check(
+        &run_parser!(storage_var_type, "real"),
+        expect_test::expect!["real"],
+    );
+    check(
+        &run_parser!(storage_var_type, "bool"),
+        expect_test::expect!["bool"],
+    );
+    check(
+        &run_parser!(storage_var_type, "string"),
+        expect_test::expect!["string"],
+    );
+    check(
+        &run_parser!(storage_var_type, "{int, real, string}"),
+        expect_test::expect!["{int, real, string}"],
+    );
+    check(
+        &run_parser!(storage_var_type, "{int, {real, int}, string}"),
+        expect_test::expect!["{int, {real, int}, string}"],
+    );
+    check(
+        &run_parser!(storage_var_type, "{int, }"),
+        expect_test::expect!["{int}"],
+    );
+    check(
+        &run_parser!(storage_var_type, "{int}"),
+        expect_test::expect!["{int}"],
+    );
+    check(
+        &run_parser!(storage_var_type, "{}"),
+        expect_test::expect![[r#"
+            empty tuple types are not allowed
+            @0..2: empty tuple type found
+        "#]],
+    );
+    check(
+        &run_parser!(storage_var_type, "MyType"),
+        expect_test::expect!["::MyType"],
+    );
+    check(
+        &run_parser!(storage_var_type, "A::B::C::MyType"),
+        expect_test::expect!["::A::B::C::MyType"],
+    );
+    check(
+        &run_parser!(storage_var_type, "::A::B::C::MyType"),
+        expect_test::expect!["::A::B::C::MyType"],
+    );
+
+    // maps are allowed here
+    check(
+        &run_parser!(storage_var_type, "(int => bool)"),
+        expect_test::expect!["( int => bool )"],
+    );
 }
 
 #[test]
@@ -458,6 +533,103 @@ fn use_statements() {
             @39..49: `self` can only appear at the end of a use path
             expected `ident`, found `self`
             @64..68: expected `ident`
+        "#]],
+    );
+}
+
+#[test]
+fn storage_decl() {
+    let pint = yp::PintParser::new();
+
+    let src = r#"
+storage {
+    integer: int,    
+    boolean: bool,
+}
+"#;
+
+    check(
+        &run_parser!(pint, src),
+        expect_test::expect![[r#"
+            storage {
+                integer: int,
+                boolean: bool,
+            }"#]],
+    );
+
+    // No trailing comma
+    check(
+        &run_parser!(pint, r#"storage { x: int, y: bool }"#),
+        expect_test::expect![[r#"
+            storage {
+                x: int,
+                y: bool,
+            }"#]],
+    );
+
+    check(
+        &run_parser!(pint, r#"storage { }"#),
+        expect_test::expect![[r#"
+            storage {
+            }"#]],
+    );
+
+    check(
+        &run_parser!(pint, r#"storage { x, y }"#),
+        expect_test::expect![[r#"
+            expected `:`, found `,`
+            @11..12: expected `:`
+        "#]],
+    );
+}
+
+#[test]
+fn storage_access() {
+    let expr = yp::StateInitParser::new();
+
+    check(
+        &run_parser!(expr, r#"storage::foo"#),
+        expect_test::expect!["storage::foo"],
+    );
+
+    check(
+        &run_parser!(expr, r#"storage::balances[0x111]"#),
+        expect_test::expect!["storage::balances[273]"],
+    );
+
+    check(
+        &run_parser!(expr, r#"storage::balances[0x111][foo()][t[3].5]"#),
+        expect_test::expect!["storage::balances[273][::foo()][::t[3].5]"],
+    );
+
+    check(
+        &run_parser!(expr, r#"storage_lib::foo()"#),
+        expect_test::expect!["::storage_lib::foo()"],
+    );
+
+    let pint = yp::PintParser::new();
+
+    check(
+        &run_parser!(pint, r#"let x = storage::foo;"#),
+        expect_test::expect![[r#"
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `storage`
+            @8..15: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+        "#]],
+    );
+
+    check(
+        &run_parser!(pint, r#"let x = storage::map[4][3];"#),
+        expect_test::expect![[r#"
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `storage`
+            @8..15: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+        "#]],
+    );
+
+    check(
+        &run_parser!(pint, r#"constraint storage::map[69] == 0;"#),
+        expect_test::expect![[r#"
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `storage`
+            @11..18: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 }
@@ -1492,8 +1664,8 @@ fn array_element_accesses() {
     check(
         &run_parser!(yp::LetDeclParser::new(), r#"let x = a[]"#),
         expect_test::expect![[r#"
-            missing array index
-            @8..11: missing array element index
+            missing array or map index
+            @8..11: missing array or map element index
         "#]],
     );
 
@@ -2123,8 +2295,8 @@ let parse_error
             @81..83: empty tuple expression found
             empty array types are not allowed
             @102..107: empty array type found
-            missing array index
-            @132..135: missing array element index
+            missing array or map index
+            @132..135: missing array or map element index
             invalid integer `0x5` as tuple index
             @163..166: invalid integer as tuple index
             invalid value `1e5` as tuple index

@@ -217,6 +217,10 @@ pub(crate) fn lower_aliases(ii: &mut IntermediateIntent) {
 
             Type::Array { ty, .. } => replace_alias(ty),
             Type::Tuple { fields, .. } => fields.iter_mut().for_each(|(_, ty)| replace_alias(ty)),
+            Type::Map { ty_from, ty_to, .. } => {
+                replace_alias(ty_from);
+                replace_alias(ty_to);
+            }
 
             Type::Error(_) | Type::Primitive { .. } | Type::Custom { .. } => {}
         }
@@ -251,12 +255,10 @@ pub(crate) fn lower_imm_accesses(
             .exprs()
             .filter_map(
                 |expr_key| match ii.exprs.get(expr_key).expect("invalid key in iter") {
-                    Expr::ArrayElementAccess { array, index, .. } => {
-                        ii.exprs.get(*array).and_then(|array_expr| {
-                            matches!(array_expr, Expr::Array { .. })
-                                .then(|| (expr_key, Some((*array, *index)), None))
-                        })
-                    }
+                    Expr::Index { expr, index, .. } => ii.exprs.get(*expr).and_then(|array_expr| {
+                        matches!(array_expr, Expr::Array { .. })
+                            .then(|| (expr_key, Some((*expr, *index)), None))
+                    }),
 
                     Expr::TupleFieldAccess { tuple, field, .. } => {
                         ii.exprs.get(*tuple).and_then(|tuple_expr| {

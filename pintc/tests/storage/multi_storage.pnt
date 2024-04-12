@@ -1,0 +1,21 @@
+storage {
+    x: int,
+    y: bool,
+}
+
+storage {
+    z: (int => bool),
+}
+
+storage {
+    w: bool,
+}
+
+// parse_failure <<<
+// `storage` block has already been declared
+// @0..36: previous declaration of a `storage` block here
+// @38..71: another `storage` block is declared here
+// `storage` block has already been declared
+// @0..36: previous declaration of a `storage` block here
+// @73..97: another `storage` block is declared here
+// >>>

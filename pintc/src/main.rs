@@ -12,7 +12,12 @@ fn main() -> anyhow::Result<()> {
     // Lex + Parse
     let handler = error::Handler::default();
     let parsed = match parser::parse_project(&handler, filepath) {
-        Ok(parsed) => parsed,
+        Ok(parsed) => {
+            if args.print_parsed {
+                println!("{parsed}");
+            }
+            parsed
+        }
         Err(_) => {
             let errors = handler.consume();
             let errors_len = errors.len();

@@ -1,0 +1,164 @@
+storage {
+    i: int,    
+    b: bool,
+    map1: (int => int),
+    map2: (b256 => bool),
+}
+
+intent Foo { 
+    let x = 5;
+    let address = 0x2222222222222222222222222222222222222222222222222222222222222222;
+
+    state i0 = storage::i;
+    state i1: int = storage::i;
+
+    state b0 = storage::b;
+    state b1: bool = storage::b;
+
+    state map_1_access_1 = storage::map1[7];
+    state map_1_access_2: int = storage::map1[x];
+
+    state map_2_access_1 = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
+    state map_2_access_2: bool = storage::map2[address];
+
+    let and = b1 && map_2_access_1 && map_2_access_2;
+    let sum = x + i0 + map_1_access_1 + map_1_access_2;
+}
+
+intent Bar { 
+    let x = 5;
+    let address = 0x2222222222222222222222222222222222222222222222222222222222222222;
+
+    state i0 = storage::i;
+    state i1: int = storage::i;
+
+    state b0 = storage::b;
+    state b1: bool = storage::b;
+
+    state map_1_access_1 = storage::map1[7];
+    state map_1_access_2: int = storage::map1[x];
+
+    state map_2_access_1 = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
+    state map_2_access_2: bool = storage::map2[address];
+
+    let and = b1 && map_2_access_1 && map_2_access_2;
+    let sum = x + i0 + map_1_access_1 + map_1_access_2;
+}
+
+// intermediate <<<
+// storage {
+//     i: int,
+//     b: bool,
+//     map1: ( int => int ),
+//     map2: ( b256 => bool ),
+// }
+// 
+// intent ::Bar {
+//     storage {
+//         i: int,
+//         b: bool,
+//         map1: ( int => int ),
+//         map2: ( b256 => bool ),
+//     }
+//     var ::x;
+//     var ::address;
+//     var ::and;
+//     var ::sum;
+//     state ::i0 = storage::i;
+//     state ::i1: int = storage::i;
+//     state ::b0 = storage::b;
+//     state ::b1: bool = storage::b;
+//     state ::map_1_access_1 = storage::map1[7];
+//     state ::map_1_access_2: int = storage::map1[::x];
+//     state ::map_2_access_1 = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
+//     state ::map_2_access_2: bool = storage::map2[::address];
+//     constraint (::x == 5);
+//     constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
+//     constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));
+//     constraint (::sum == (((::x + ::i0) + ::map_1_access_1) + ::map_1_access_2));
+// }
+// 
+// intent ::Foo {
+//     storage {
+//         i: int,
+//         b: bool,
+//         map1: ( int => int ),
+//         map2: ( b256 => bool ),
+//     }
+//     var ::x;
+//     var ::address;
+//     var ::and;
+//     var ::sum;
+//     state ::i0 = storage::i;
+//     state ::i1: int = storage::i;
+//     state ::b0 = storage::b;
+//     state ::b1: bool = storage::b;
+//     state ::map_1_access_1 = storage::map1[7];
+//     state ::map_1_access_2: int = storage::map1[::x];
+//     state ::map_2_access_1 = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
+//     state ::map_2_access_2: bool = storage::map2[::address];
+//     constraint (::x == 5);
+//     constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
+//     constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));
+//     constraint (::sum == (((::x + ::i0) + ::map_1_access_1) + ::map_1_access_2));
+// }
+// >>>
+
+// flattened <<<
+// storage {
+//     i: int,
+//     b: bool,
+//     map1: ( int => int ),
+//     map2: ( b256 => bool ),
+// }
+// 
+// intent ::Bar {
+//     storage {
+//         i: int,
+//         b: bool,
+//         map1: ( int => int ),
+//         map2: ( b256 => bool ),
+//     }
+//     var ::x: int;
+//     var ::address: b256;
+//     var ::and: int;
+//     var ::sum: int;
+//     state ::i0: int = storage::i;
+//     state ::i1: int = storage::i;
+//     state ::b0: int = storage::b;
+//     state ::b1: int = storage::b;
+//     state ::map_1_access_1: int = storage::map1[7];
+//     state ::map_1_access_2: int = storage::map1[::x];
+//     state ::map_2_access_1: int = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
+//     state ::map_2_access_2: int = storage::map2[::address];
+//     constraint (::x == 5);
+//     constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
+//     constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));
+//     constraint (::sum == (((::x + ::i0) + ::map_1_access_1) + ::map_1_access_2));
+// }
+// 
+// intent ::Foo {
+//     storage {
+//         i: int,
+//         b: bool,
+//         map1: ( int => int ),
+//         map2: ( b256 => bool ),
+//     }
+//     var ::x: int;
+//     var ::address: b256;
+//     var ::and: int;
+//     var ::sum: int;
+//     state ::i0: int = storage::i;
+//     state ::i1: int = storage::i;
+//     state ::b0: int = storage::b;
+//     state ::b1: int = storage::b;
+//     state ::map_1_access_1: int = storage::map1[7];
+//     state ::map_1_access_2: int = storage::map1[::x];
+//     state ::map_2_access_1: int = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
+//     state ::map_2_access_2: int = storage::map2[::address];
+//     constraint (::x == 5);
+//     constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
+//     constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));
+//     constraint (::sum == (((::x + ::i0) + ::map_1_access_1) + ::map_1_access_2));
+// }
+// >>>

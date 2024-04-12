@@ -24,6 +24,7 @@ impl DisplayWithII for &super::Expr {
 
             super::Expr::PathByName(p, _) => write!(f, "{p}"),
             super::Expr::PathByKey(k, _) => write!(f, "{}", ii.vars[*k].name),
+            super::Expr::StorageAccess(p, _) => write!(f, "storage::{p}"),
 
             super::Expr::UnaryOp { op, expr, .. } => {
                 if matches!(op, expr::UnaryOp::NextState) {
@@ -62,8 +63,8 @@ impl DisplayWithII for &super::Expr {
                 }
             }
 
-            super::Expr::ArrayElementAccess { array, index, .. } => {
-                write!(f, "{}[{}]", ii.with_ii(array), ii.with_ii(index))
+            super::Expr::Index { expr, index, .. } => {
+                write!(f, "{}[{}]", ii.with_ii(expr), ii.with_ii(index))
             }
 
             super::Expr::Tuple { fields, .. } => {

@@ -18,6 +18,7 @@ pub enum Expr {
     },
     PathByKey(VarKey, Span),
     PathByName(Path, Span),
+    StorageAccess(String, Span),
     UnaryOp {
         op: UnaryOp,
         expr: ExprKey,
@@ -49,8 +50,8 @@ pub enum Expr {
         range_expr: ExprKey,
         span: Span,
     },
-    ArrayElementAccess {
-        array: ExprKey,
+    Index {
+        expr: ExprKey,
         index: ExprKey,
         span: Span,
     },
@@ -174,13 +175,14 @@ impl Spanned for Expr {
             | Expr::Immediate { span, .. }
             | Expr::PathByKey(_, span)
             | Expr::PathByName(_, span)
+            | Expr::StorageAccess(_, span)
             | Expr::UnaryOp { span, .. }
             | Expr::BinaryOp { span, .. }
             | Expr::MacroCall { span, .. }
             | Expr::FnCall { span, .. }
             | Expr::If { span, .. }
             | Expr::Array { span, .. }
-            | Expr::ArrayElementAccess { span, .. }
+            | Expr::Index { span, .. }
             | Expr::Tuple { span, .. }
             | Expr::TupleFieldAccess { span, .. }
             | Expr::Cast { span, .. }
@@ -211,8 +213,8 @@ impl Expr {
                 replace(else_block);
             }
             Expr::Array { elements, .. } => elements.iter_mut().for_each(replace),
-            Expr::ArrayElementAccess { array, index, .. } => {
-                replace(array);
+            Expr::Index { expr, index, .. } => {
+                replace(expr);
                 replace(index);
             }
             Expr::Tuple { fields, .. } => fields.iter_mut().for_each(|(_, expr)| replace(expr)),
@@ -241,6 +243,7 @@ impl Expr {
 
             Expr::MacroCall { .. }
             | Expr::PathByName(_, _)
+            | Expr::StorageAccess(_, _)
             | Expr::PathByKey(_, _)
             | Expr::Immediate { .. }
             | Expr::Error(_) => {}

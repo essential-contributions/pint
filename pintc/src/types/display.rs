@@ -54,6 +54,15 @@ impl DisplayWithII for super::Type {
             super::Type::Alias { path, ty, .. } => {
                 write!(f, "{path} ({})", ii.with_ii(&**ty))
             }
+
+            super::Type::Map { ty_from, ty_to, .. } => {
+                write!(
+                    f,
+                    "( {} => {} )",
+                    ii.with_ii(&**ty_from),
+                    ii.with_ii(&**ty_to)
+                )
+            }
         }
     }
 }
