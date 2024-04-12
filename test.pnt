@@ -1,5 +1,40 @@
-enum MyEnum = A | B;
+enum TheLetterA = T | U | V;
 
-let y = MyEnum::A;
+type A = TheLetterA;
+
+let t: A = A::T;
+let u: TheLetterA = A::U;
+let v: A = TheLetterA::V;
+
+type I = int;
+
+let i: I = 11;
+let j: {I, real} = {22, 33.3};
+
+enum Experience = Real | Unreal;
+
+type Real = real;
+
+let r: Real = 44.4;
+let e: Experience = Experience::Real;
+
+type Hooray = int[3];
+
+let h: Hooray;
+constraint h[1] == 55;
+
+type Point = { x: real, y: real };
+
+let p: Point = { 66.6, 77.7 };
+constraint r < p.y;
+
+let q: real = i as Real;
+
+state x: I = ::storage::get(0);
 
 solve satisfy;
+
+
+// lots of questions:
+// 1. if everything is removed except for what q needs, then we get the error that cast to ::real is illegal
+// 2. why does having the other stuff hide this error?

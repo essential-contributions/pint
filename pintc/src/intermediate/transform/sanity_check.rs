@@ -220,14 +220,24 @@ fn check_expr(expr_key: &ExprKey, handler: &Handler, ii: &IntermediateIntent) {
                 },
             });
         }
-        // Expr::Cast { span, .. } => {
-        //     handler.emit_err(Error::Compile {
-        //         error: CompileError::Internal {
-        //             msg: "cast present in final intent exprs slotmap",
-        //             span: span.clone(),
-        //         },
-        //     });
-        // }
+        Expr::Cast { span, value, .. } => {
+            // println!("ii: \n {} \n ------", ii);
+            println!("expr: \n {} \n -----", ii.with_ii(*expr_key));
+            let expr = ii.exprs.get(*expr_key).expect("");
+            println!("expr: \n {:?} \n -----", &expr);
+            println!("value: \n {:?} \n -----", ii.exprs.get(*value).expect(""));
+            println!(
+                "value_type: \n {:?} \n -----",
+                ii.expr_types.get(*value).expect("")
+            );
+
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "cast present in final intent exprs slotmap",
+                    span: span.clone(),
+                },
+            });
+        }
         // Expr::In { span, .. } => {
         //     handler.emit_err(Error::Compile {
         //         error: CompileError::Internal {

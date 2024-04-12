@@ -70,6 +70,7 @@ impl super::Program {
             // Lower casts after aliases since we're leaving `int -> real` behind, but it's
             // much easier if the `real` isn't still an alias.
             let _ = lower_casts(handler, ii);
+            let _ = lower_casts(handler, ii);
         }
 
         // Transform the objective function, if present, into a path to a new variable that is

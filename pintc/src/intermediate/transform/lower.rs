@@ -209,6 +209,11 @@ pub(crate) fn lower_casts(
             span,
         }) = ii.exprs.get(old_expr_key)
         {
+            println!(
+                "old_expr:\n{:?}\n------",
+                &ii.exprs.get(old_expr_key).expect("")
+            );
+
             let from_ty = ii.expr_types.get(*value).ok_or_else(|| {
                 handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
@@ -217,6 +222,23 @@ pub(crate) fn lower_casts(
                     },
                 })
             })?;
+
+            println!(
+                "old_expr_type: \n{:?}\n------",
+                &ii.expr_types.get(old_expr_key).expect("")
+            );
+
+            println!("from_ty: \n{:?}\n------", from_ty);
+
+            println!("to_ty: \n{:?}\n------", to_ty);
+
+            // note: this is not firing and when it does, we get a panic in the asm_gen because
+            // it is unsupported. Could we be getting this issue because we aren't able to
+            // make the transformation yet?
+            // after testing, it appears that may be the answer. The asm_gen doesn't support reals yet
+            // and panics on line 177 when replace is run
+            // theoretically this is what we want though. We want to replace the entire cast expr with
+            // the lowered expr
 
             // The type checker will have already rejected bad cast types.
             if !(from_ty.is_int() && to_ty.is_real()) {
