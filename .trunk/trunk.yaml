@@ -24,7 +24,7 @@ lint:
           value: ${env.SSH_AUTH_SOCK}
           optional: true
   enabled:
-    - checkov@3.2.53
+    - checkov@3.2.60
     - osv-scanner@1.7.0
     - oxipng@9.0.0
     - trivy@0.50.1
