@@ -1,9 +1,0 @@
-storage {
-    x: int,
-    y: int,
-}
-
-intent Foo {
-    state x = storage::x;
-    state y = storage::y;
-}
