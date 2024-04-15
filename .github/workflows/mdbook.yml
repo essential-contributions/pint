@@ -51,7 +51,7 @@ jobs:
         run: mdbook build docs/specs
 
       - name: Deploy Specs Book
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/specs/book
@@ -61,7 +61,7 @@ jobs:
         run: mdbook build docs/book
 
       - name: Deploy Pint Book
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/book/book
