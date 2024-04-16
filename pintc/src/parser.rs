@@ -203,8 +203,6 @@ impl<'a> ProjectParser<'a> {
             let ii = self.program.iis.get_mut(&current_ii).unwrap();
 
             if let Some(body_expr_key) = body_expr_key {
-                /*  @mohammad we are not adding an expr type for the binary expr here. That is the cause of the issue
-                What type should be there? The binary op in this particular example is an equal */
                 ii.replace_exprs(call_expr_key, body_expr_key);
             } else {
                 // Keep track of the removed macro for type-checking, in case the intent
