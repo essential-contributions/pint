@@ -6,8 +6,6 @@ use crate::{
     types::Type,
 };
 
-// TODO: find and fix where we are losing expr_types
-
 pub(crate) fn sanity_check(handler: &Handler, program: &mut Program) -> Result<(), ErrorEmitted> {
     program.iis.values().for_each(|ii| {
         check_constraints(ii, handler);
