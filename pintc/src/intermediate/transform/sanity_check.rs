@@ -182,7 +182,7 @@ fn check_expr(expr_key: &ExprKey, handler: &Handler, ii: &IntermediateIntent) {
                 },
             });
         }
-        // Disabled for now until if support is added.
+        // <<disabled>> for now until if support is added.
         // Expr::If { span, .. } => {
         //     handler.emit_err(Error::Compile {
         //         error: CompileError::Internal {
@@ -223,14 +223,6 @@ fn check_expr(expr_key: &ExprKey, handler: &Handler, ii: &IntermediateIntent) {
                 },
             });
         }
-        // Expr::Cast { span, .. } => {
-        //     handler.emit_err(Error::Compile {
-        //         error: CompileError::Internal {
-        //             msg: "cast present in final intent exprs slotmap",
-        //             span: span.clone(),
-        //         },
-        //     });
-        // }
         Expr::In { span, .. } => {
             handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
@@ -395,14 +387,6 @@ fn exprs() {
     //         r#"compiler internal error: if expression present in final intent exprs slotmap"#
     //     ]],
     // );
-    // cast
-    let src = "let x: real = 5 as real;";
-    check(
-        &run_test(src),
-        expect_test::expect![[
-            r#"compiler internal error: cast present in final intent exprs slotmap"#
-        ]],
-    );
     // in
     let src = "let x: bool = 5 in [3, 4, 5];";
     check(
