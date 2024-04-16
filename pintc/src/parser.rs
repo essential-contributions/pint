@@ -148,14 +148,10 @@ impl<'a> ProjectParser<'a> {
                         &mut call,
                     );
 
-                    println!("done splicing");
-
                     if let Ok((tokens, decl_sig_span)) = self
                         .handler
                         .scope(|handler| macro_expander.expand_call(handler, &self.macros, &call))
                     {
-                        println!("expanded, now parsing body");
-                        println!("macros: {:?}", &self.macros);
                         let (body_expr, next_paths) = self.parse_macro_body(
                             tokens,
                             &decl_sig_span.context,
@@ -164,13 +160,7 @@ impl<'a> ProjectParser<'a> {
                             current_ii.clone(),
                         );
 
-                        println!("macros:\n {:?} \n-------", &self.macros);
-
-                        println!("current_ii:\n {:#?}\n------", &current_ii);
-
                         self.analyse_and_add_paths(&call.mod_path, &next_paths, &mut pending_paths);
-
-                        println!("current_ii:\n {:#?}\n------", &current_ii);
 
                         call_replacements.push((
                             current_ii.clone(),
@@ -178,8 +168,6 @@ impl<'a> ProjectParser<'a> {
                             body_expr,
                             call.span.clone(),
                         ));
-
-                        println!("current_ii:\n {:#?}\n------", &current_ii);
                     }
                 }
             }
@@ -212,30 +200,13 @@ impl<'a> ProjectParser<'a> {
         // expression.  Or, for macros which only had declarations and no body expression, just
         // delete the call.
         for (current_ii, call_expr_key, body_expr_key, span) in call_replacements {
-            println!("entered das loop");
             let ii = self.program.iis.get_mut(&current_ii).unwrap();
 
             if let Some(body_expr_key) = body_expr_key {
                 /*  @mohammad we are not adding an expr type for the binary expr here. That is the cause of the issue
                 What type should be there? The binary op in this particular example is an equal */
                 ii.replace_exprs(call_expr_key, body_expr_key);
-                println!("_ii:\n {:#?}\n------", &ii);
-                println!(
-                    "replace old_key {:?} with new_key {:?}",
-                    call_expr_key, body_expr_key
-                );
-                println!("old_key_expr:\n {}\n------", &ii.with_ii(call_expr_key));
-                println!("new_key_expr:\n {}\n------", &ii.with_ii(body_expr_key));
-                println!(
-                    "new_key_expr:\n {:?}\n------",
-                    &ii.exprs.get(body_expr_key).expect("")
-                );
-                println!(
-                    "new_key_expr_type:\n {:?}\n------",
-                    &ii.expr_types.get(body_expr_key)
-                );
             } else {
-                println!("remove those macros");
                 // Keep track of the removed macro for type-checking, in case the intent
                 // erroneously expected the macro call to be an expression (and not just
                 // declarations).

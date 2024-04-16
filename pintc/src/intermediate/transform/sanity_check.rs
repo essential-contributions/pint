@@ -93,9 +93,6 @@ fn check_expr(expr_key: &ExprKey, handler: &Handler, ii: &IntermediateIntent) {
     let expr_type = match ii.expr_types.get(*expr_key) {
         Some(expr_type) => expr_type,
         None => {
-            println!("expr:\n {} \n-------", ii.with_ii(*expr_key));
-            println!("{}", &ii);
-            // println!("{:#?}", &ii);
             handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "invalid intermediate intent expr_types slotmap key",
