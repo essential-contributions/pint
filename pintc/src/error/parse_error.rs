@@ -29,8 +29,8 @@ pub enum ParseError {
     UntypedVariable { span: Span, name: String },
     #[error("empty array expressions are not allowed")]
     EmptyArrayExpr { span: Span },
-    #[error("missing array index")]
-    EmptyArrayAccess { span: Span },
+    #[error("missing array or map index")]
+    EmptyIndexAccess { span: Span },
     #[error("empty array types are not allowed")]
     EmptyArrayType { span: Span },
     #[error("invalid integer `{}` as tuple index", index)]
@@ -68,6 +68,15 @@ pub enum ParseError {
     SolveDirectiveMustBeTopLevel { span: Span },
     #[error("`solve` directive must only appear outside an `intent` declaration")]
     SolveDirectiveMustBeOutsideIntent { span: Span },
+    #[error("`storage` block has already been declared")]
+    TooManyStorageBlocks {
+        span: Span,      // Actual error location
+        prev_span: Span, // Span of the previous occurrence
+    },
+    #[error("a `storage` block can only appear in the top level module")]
+    StorageDirectiveMustBeTopLevel { span: Span },
+    #[error("`storage` access expressions can only appear in the top level module")]
+    StorageAccessMustBeTopLevel { span: Span },
 }
 
 impl ReportableError for ParseError {
@@ -110,9 +119,9 @@ impl ReportableError for ParseError {
                     color: Color::Red,
                 }]
             }
-            EmptyArrayAccess { span } => {
+            EmptyIndexAccess { span } => {
                 vec![ErrorLabel {
-                    message: "missing array element index".to_string(),
+                    message: "missing array or map element index".to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -247,6 +256,36 @@ impl ReportableError for ParseError {
                     color: Color::Red,
                 }]
             }
+            TooManyStorageBlocks { span, prev_span } => {
+                vec![
+                    ErrorLabel {
+                        message: "previous declaration of a `storage` block here".to_string(),
+                        span: prev_span.clone(),
+                        color: Color::Blue,
+                    },
+                    ErrorLabel {
+                        message: "another `storage` block is declared here".to_string(),
+                        span: span.clone(),
+                        color: Color::Red,
+                    },
+                ]
+            }
+            StorageDirectiveMustBeTopLevel { span } => {
+                vec![ErrorLabel {
+                    message: "a `storage` block can only appear in the top level module"
+                        .to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+            StorageAccessMustBeTopLevel { span } => {
+                vec![ErrorLabel {
+                    message: "`storage` access expressions can only appear in the top level module"
+                        .to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
         }
     }
 
@@ -331,7 +370,7 @@ impl Spanned for ParseError {
             | KeywordAsIdent { span, .. }
             | UntypedVariable { span, .. }
             | EmptyArrayExpr { span }
-            | EmptyArrayAccess { span }
+            | EmptyIndexAccess { span }
             | EmptyArrayType { span }
             | InvalidIntegerTupleIndex { span, .. }
             | InvalidTupleIndex { span, .. }
@@ -347,6 +386,9 @@ impl Spanned for ParseError {
             | TooManySolveDirectives { span, .. }
             | SolveDirectiveMustBeTopLevel { span, .. }
             | SolveDirectiveMustBeOutsideIntent { span, .. }
+            | TooManyStorageBlocks { span, .. }
+            | StorageDirectiveMustBeTopLevel { span, .. }
+            | StorageAccessMustBeTopLevel { span, .. }
             | Lex { span } => span,
 
             InvalidToken => unreachable!("The `InvalidToken` error is always wrapped in `Lex`."),

@@ -293,7 +293,7 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
 /// For example, this array element access:
 ///
 /// ```pint
-/// constraint a[2][3] == 3; // here, `a[2][3]` is an `Expr::ArrayElementAccess { .. }`
+/// constraint a[2][3] == 3; // here, `a[2][3]` is an `Expr::Index { .. }`
 /// ```
 ///
 /// becomes
@@ -318,8 +318,8 @@ fn scalarize_array_access(
         .exprs
         .iter()
         .filter_map(|(expr_key, expr)| {
-            if let Expr::ArrayElementAccess { array, index, span } = expr {
-                match ii.exprs.get(*array).expect("expr key guaranteed to exist") {
+            if let Expr::Index { expr, index, span } = expr {
+                match ii.exprs.get(*expr).expect("expr key guaranteed to exist") {
                     Expr::PathByName(path, _) if path == array_var_name => {
                         Some((expr_key, *index, span.clone()))
                     }
@@ -485,14 +485,14 @@ fn lower_array_compares(
                     },
                 );
 
-                let lhs_access_expr_key = ii.exprs.insert(Expr::ArrayElementAccess {
-                    array: lhs_array_key,
+                let lhs_access_expr_key = ii.exprs.insert(Expr::Index {
+                    expr: lhs_array_key,
                     index: imm_idx_key,
                     span: span.clone(),
                 });
 
-                let rhs_access_expr_key = ii.exprs.insert(Expr::ArrayElementAccess {
-                    array: rhs_array_key,
+                let rhs_access_expr_key = ii.exprs.insert(Expr::Index {
+                    expr: rhs_array_key,
                     index: imm_idx_key,
                     span: span.clone(),
                 });

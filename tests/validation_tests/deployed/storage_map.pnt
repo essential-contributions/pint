@@ -1,0 +1,15 @@
+storage {
+    supply: int,
+    map1: (int => int),
+    map2: (b256 => int),
+}
+
+intent Simple {
+    state supply = storage::supply;
+    state x = storage::map1[69];
+    state y = storage::map2[0x2222222222222222222222222222222222222222222222222222222222222222];
+
+    constraint supply' == 42;
+    constraint x' == 98;
+    constraint y' == 44;
+}

@@ -37,7 +37,7 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
 
       - name: Setup mdBook
-        uses: peaceiris/actions-mdbook@v1
+        uses: peaceiris/actions-mdbook@v2
         with:
           mdbook-version: 0.4.30
 
@@ -51,7 +51,7 @@ jobs:
         run: mdbook build docs/specs
 
       - name: Deploy Specs Book
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/specs/book
@@ -61,7 +61,7 @@ jobs:
         run: mdbook build docs/book
 
       - name: Deploy Pint Book
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/book/book

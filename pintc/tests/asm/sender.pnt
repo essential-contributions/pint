@@ -1,7 +1,7 @@
 // intermediate <<<
 // var ::sender;
-// state ::balance: int = ::storage::get(::sender);
-// state ::also_balance: int = ::storage::get(::context::sender());
+// state ::balance: int = ::storage_lib::get(::sender);
+// state ::also_balance: int = ::storage_lib::get(::context::sender());
 // constraint (::sender == ::context::sender());
 // constraint (::balance' == ((::balance + ::also_balance) * 2));
 // solve satisfy;
@@ -9,8 +9,8 @@
 
 // flattened <<<
 // var ::sender: b256;
-// state ::balance: int = ::storage::get(::sender);
-// state ::also_balance: int = ::storage::get(::context::sender());
+// state ::balance: int = ::storage_lib::get(::sender);
+// state ::also_balance: int = ::storage_lib::get(::context::sender());
 // constraint (::sender == ::context::sender());
 // constraint (::balance' == ((::balance + ::also_balance) * 2));
 // solve satisfy;
@@ -21,8 +21,8 @@
 // >>>
 
 let sender = context::sender();
-state balance: int = storage::get(sender); // 42
-state also_balance: int = storage::get(context::sender()); // 42
+state balance: int = storage_lib::get(sender); // 42
+state also_balance: int = storage_lib::get(context::sender()); // 42
 
 constraint balance' == (balance + also_balance) * 2; // (42 + 42) * 2
 

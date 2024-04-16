@@ -11,6 +11,6 @@ solve satisfy;
 // >>>
 
 // typecheck_failure <<<
-// attempt to access array element from a non-array value
-// @25..29: value must be an array; found `real`
+// attempt to index into a non-indexable value
+// @25..29: value must be an array or a storage map; found `real`
 // >>>

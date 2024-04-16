@@ -30,6 +30,13 @@ impl Display for super::IntermediateIntent {
 impl super::IntermediateIntent {
     fn fmt_with_indent(&self, f: &mut Formatter, indent: usize) -> Result {
         let indentation = " ".repeat(4 * indent);
+        if let Some(storage) = &self.storage {
+            writeln!(f, "{indentation}storage {{")?;
+            for storage_var in &storage.0 {
+                writeln!(f, "{indentation}    {}", self.with_ii(storage_var))?;
+            }
+            writeln!(f, "{indentation}}}")?;
+        }
         for var in &self.vars {
             writeln!(f, "{indentation}{};", self.with_ii(var.0))?;
         }

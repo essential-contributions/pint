@@ -1,0 +1,7 @@
+enum MyEnum = A | B;
+
+storage {
+    x: int,
+}
+
+state x = storage::x;

@@ -27,8 +27,8 @@ let parse_error
 // @80..82: empty tuple expression found
 // empty array types are not allowed
 // @101..106: empty array type found
-// missing array index
-// @131..134: missing array element index
+// missing array or map index
+// @131..134: missing array or map element index
 // invalid integer `0x5` as tuple index
 // @162..165: invalid integer as tuple index
 // invalid value `1e5` as tuple index
