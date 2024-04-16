@@ -196,7 +196,7 @@ fn check_expr(expr_key: &ExprKey, handler: &Handler, ii: &IntermediateIntent) {
                 },
             });
         }
-        Expr::ArrayElementAccess { span, .. } => {
+        Expr::Index { span, .. } => {
             handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "array element access present in final intent exprs slotmap",
