@@ -77,7 +77,9 @@ impl super::Program {
         let _ = canonicalize_solve_directive(handler, &mut self);
 
         // Ensure that the final intermediate intents is indeed final
-        let _ = sanity_check(handler, &mut self);
+        if !handler.has_errors() {
+            let _ = sanity_check(handler, &mut self);
+        }
 
         if handler.has_errors() {
             return Err(handler.cancel());

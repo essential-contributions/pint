@@ -124,6 +124,7 @@ pub(crate) fn lower_enums(
             // Replace the type.
             *ty = int_ty.clone();
 
+            // TODO: fix expects
             let var_name = &ii.vars.get(var_key).expect("msg").name;
 
             for (expr_key, expr) in ii.exprs.iter() {
@@ -463,6 +464,11 @@ pub(crate) fn lower_ins(
         }
     }
 
+    let bool_ty = Type::Primitive {
+        kind: PrimitiveKind::Bool,
+        span: empty_span(),
+    };
+
     // Replace the range expressions first. `x in l..u` becomes `(x >= l) && (x <= u)`.
     for (in_expr_key, value_key, lower_bounds_key, upper_bounds_key, span) in in_range_collections {
         let lb_cmp_key = ii.exprs.insert(Expr::BinaryOp {
@@ -471,6 +477,7 @@ pub(crate) fn lower_ins(
             rhs: lower_bounds_key,
             span: span.clone(),
         });
+        ii.expr_types.insert(lb_cmp_key, bool_ty.clone());
 
         let ub_cmp_key = ii.exprs.insert(Expr::BinaryOp {
             op: BinaryOp::LessThanOrEqual,
@@ -478,6 +485,7 @@ pub(crate) fn lower_ins(
             rhs: upper_bounds_key,
             span: span.clone(),
         });
+        ii.expr_types.insert(ub_cmp_key, bool_ty.clone());
 
         let and_key = ii.exprs.insert(Expr::BinaryOp {
             op: BinaryOp::LogicalAnd,
@@ -485,6 +493,7 @@ pub(crate) fn lower_ins(
             rhs: ub_cmp_key,
             span: span.clone(),
         });
+        ii.expr_types.insert(and_key, bool_ty.clone());
 
         ii.replace_exprs(in_expr_key, and_key);
     }
@@ -494,22 +503,26 @@ pub(crate) fn lower_ins(
         let or_key = elements
             .into_iter()
             .map(|el_expr_key| {
-                ii.exprs.insert(Expr::BinaryOp {
+                let cmp_eq_key = ii.exprs.insert(Expr::BinaryOp {
                     op: BinaryOp::Equal,
                     lhs: value_key,
                     rhs: el_expr_key,
                     span: span.clone(),
-                })
+                });
+                ii.expr_types.insert(cmp_eq_key, bool_ty.clone());
+                cmp_eq_key
             })
             .collect::<Vec<_>>() // Collect into Vec to avoid borrowing ii.exprs conflict.
             .into_iter()
             .reduce(|lhs, rhs| {
-                ii.exprs.insert(Expr::BinaryOp {
+                let cmp_or_key = ii.exprs.insert(Expr::BinaryOp {
                     op: BinaryOp::LogicalOr,
                     lhs,
                     rhs,
                     span: span.clone(),
-                })
+                });
+                ii.expr_types.insert(cmp_or_key, bool_ty.clone());
+                cmp_or_key
             })
             .expect("can't have empty array expressions");
 

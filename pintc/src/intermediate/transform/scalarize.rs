@@ -500,12 +500,20 @@ fn lower_array_compares(
                 ii.expr_types.insert(lhs_access_expr_key, el_ty.clone());
                 ii.expr_types.insert(rhs_access_expr_key, el_ty.clone());
 
-                ii.exprs.insert(Expr::BinaryOp {
+                let cmp_expr_key = ii.exprs.insert(Expr::BinaryOp {
                     op,
                     lhs: lhs_access_expr_key,
                     rhs: rhs_access_expr_key,
                     span: span.clone(),
-                })
+                });
+                ii.expr_types.insert(
+                    cmp_expr_key,
+                    Type::Primitive {
+                        kind: PrimitiveKind::Bool,
+                        span: span.clone(),
+                    },
+                );
+                cmp_expr_key
             })
             .collect::<Vec<_>>()
             .into_iter()

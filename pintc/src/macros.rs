@@ -13,6 +13,7 @@ use std::{
     rc::Rc,
 };
 
+#[derive(Debug)]
 pub(crate) struct MacroDecl {
     pub(crate) name: Ident,
     pub(crate) params: Vec<Ident>,
