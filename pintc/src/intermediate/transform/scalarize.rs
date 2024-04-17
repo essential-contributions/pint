@@ -164,7 +164,7 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
         }
     }
 
-    // Find all the vars or exprs (depending on how this macro is called) which are have array
+    // Find all the vars or exprs (depending on how this macro is called) which have array
     // types which are not yet fixed.  Save the var or expr key, the element type and the range
     // expression and then determine the size and save it back.
 
