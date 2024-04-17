@@ -19,6 +19,11 @@ pub enum Expr {
     PathByKey(VarKey, Span),
     PathByName(Path, Span),
     StorageAccess(String, Span),
+    ExternalStorageAccess {
+        extern_path: Path,
+        name: String,
+        span: Span,
+    },
     UnaryOp {
         op: UnaryOp,
         expr: ExprKey,
@@ -176,6 +181,7 @@ impl Spanned for Expr {
             | Expr::PathByKey(_, span)
             | Expr::PathByName(_, span)
             | Expr::StorageAccess(_, span)
+            | Expr::ExternalStorageAccess { span, .. }
             | Expr::UnaryOp { span, .. }
             | Expr::BinaryOp { span, .. }
             | Expr::MacroCall { span, .. }
@@ -244,6 +250,7 @@ impl Expr {
             Expr::MacroCall { .. }
             | Expr::PathByName(_, _)
             | Expr::StorageAccess(_, _)
+            | Expr::ExternalStorageAccess { .. }
             | Expr::PathByKey(_, _)
             | Expr::Immediate { .. }
             | Expr::Error(_) => {}

@@ -186,7 +186,8 @@ impl ExprKey {
 
         let plugged = match expr {
             Expr::Immediate { .. }
-            | Expr::StorageAccess { .. }
+            | Expr::StorageAccess(..)
+            | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
             | Expr::Error(_) => expr,
             Expr::PathByName(ref path, ref span) => {

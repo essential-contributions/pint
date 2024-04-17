@@ -1,0 +1,27 @@
+// from external1.pnt
+extern Extern1(0x1233683A8F6B8AF1707FF76F40FC5EE714872F88FAEBB8F22851E93F56770128) {
+    storage {
+        x: int,
+        y: int
+    }
+}
+
+// from external0.pnt
+extern Extern2(0x0C15A3534349FC710174299BA8F0347284955B35A28C01CF45A910495FA1EF2D) {
+    storage {
+        w: int,
+        z: int
+    }
+}
+
+intent Foo {
+    state x = Extern1::storage::x;
+    state y = Extern1::storage::y;
+    state w = Extern2::storage::w;
+    state z = Extern2::storage::z;
+
+    constraint x' - x == 1;
+    constraint y' - y == 2;
+    constraint w' - w == 3;
+    constraint z' - z == 4;
+}

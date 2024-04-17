@@ -37,6 +37,19 @@ impl super::IntermediateIntent {
             }
             writeln!(f, "{indentation}}}")?;
         }
+        for r#extern in &self.externs {
+            writeln!(
+                f,
+                "{indentation}extern {}({}) {{",
+                r#extern.name, r#extern.address
+            )?;
+            writeln!(f, "{indentation}    storage {{")?;
+            for storage_var in &r#extern.storage_vars {
+                writeln!(f, "{indentation}        {}", self.with_ii(storage_var))?;
+            }
+            writeln!(f, "{indentation}    }}")?;
+            writeln!(f, "{indentation}}}")?;
+        }
         for var in &self.vars {
             writeln!(f, "{indentation}{};", self.with_ii(var.0))?;
         }
