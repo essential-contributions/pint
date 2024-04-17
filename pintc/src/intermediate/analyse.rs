@@ -151,6 +151,14 @@ impl IntermediateIntent {
                                 },
                             });
                         }
+                        // State variables of type `Map` are not allowed
+                        if state_ty.is_map() {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::StateVarTypeIsMap {
+                                    span: state.span.clone(),
+                                },
+                            });
+                        }
                     })
                     .unwrap_or_else(|| {
                         handler.emit_err(Error::Compile {
@@ -164,6 +172,14 @@ impl IntermediateIntent {
                     .get(state.expr)
                     .map(|expr_ty| {
                         self.state_types.insert(state_key, expr_ty.clone());
+                        // State variables of type `Map` are not allowed
+                        if expr_ty.is_map() {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::StateVarTypeIsMap {
+                                    span: state.span.clone(),
+                                },
+                            });
+                        }
                     })
                     .unwrap_or_else(|| {
                         handler.emit_err(Error::Compile {

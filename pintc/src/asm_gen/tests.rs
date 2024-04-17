@@ -524,6 +524,36 @@ fn b256() {
 fn sender() {
     let intents = &compile(
         r#"
+        let s: b256;
+        constraint s == context::sender();
+        solve satisfy;
+        "#,
+    );
+
+    check(
+        &format!("{intents}"),
+        expect_test::expect![[r#"
+            --- Constraints ---
+            constraint 0
+              Push(0)
+              Access(DecisionVar)
+              Push(1)
+              Access(DecisionVar)
+              Push(2)
+              Access(DecisionVar)
+              Push(3)
+              Access(DecisionVar)
+              Access(Sender)
+              Pred(Eq4)
+            --- State Reads ---
+        "#]],
+    );
+}
+
+#[test]
+fn storage_access_basic_types() {
+    let intents = &compile(
+        r#"
 storage {
     supply: int,
     map1: (int => int),
@@ -577,9 +607,12 @@ intent Simple {
                   State(StateReadWordRange)
                   ControlFlow(Halt)
                 state read 1
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
                   Constraint(Push(1))
                   Constraint(Push(69))
-                  Constraint(Push(2))
+                  Constraint(Push(5))
                   Constraint(Crypto(Sha256))
                   Constraint(Push(1))
                   Memory(Alloc)
@@ -587,12 +620,15 @@ intent Simple {
                   State(StateReadWordRange)
                   ControlFlow(Halt)
                 state read 2
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
                   Constraint(Push(2))
                   Constraint(Push(2459565876494606882))
                   Constraint(Push(2459565876494606882))
                   Constraint(Push(2459565876494606882))
                   Constraint(Push(2459565876494606882))
-                  Constraint(Push(5))
+                  Constraint(Push(8))
                   Constraint(Crypto(Sha256))
                   Constraint(Push(1))
                   Memory(Alloc)
@@ -606,4 +642,215 @@ intent Simple {
 }
 
 #[test]
-fn storage_access() {}
+fn storage_access_b256_values() {
+    let intents = &compile(
+        r#"
+storage {
+    addr1: b256,
+    addr2: b256,
+    map1: (int => b256),
+    map2: (b256 => b256),
+}
+
+intent Simple {
+    state addr1 = storage::addr1;
+    state addr2 = storage::addr2;
+    state x = storage::map1[69];
+    state y = storage::map2[0x0000000000000001000000000000000200000000000000030000000000000004];
+
+    constraint addr1' == 0x0000000000000005000000000000000600000000000000070000000000000008;
+    constraint addr2' == 0x0000000000000011000000000000002200000000000000330000000000000044;
+    constraint x' == 0x0000000000000055000000000000006600000000000000770000000000000088;
+    constraint y' == 0x0000000000000155000000000000026600000000000003770000000000000488;
+}
+        "#,
+    );
+
+    check(
+        &format!("{intents}"),
+        expect_test::expect![[r#"
+            intent ::Simple {
+                --- Constraints ---
+                constraint 0
+                  Push(0)
+                  Push(4)
+                  Push(1)
+                  Access(StateRange)
+                  Push(5)
+                  Push(6)
+                  Push(7)
+                  Push(8)
+                  Pred(Eq4)
+                constraint 1
+                  Push(4)
+                  Push(4)
+                  Push(1)
+                  Access(StateRange)
+                  Push(17)
+                  Push(34)
+                  Push(51)
+                  Push(68)
+                  Pred(Eq4)
+                constraint 2
+                  Push(8)
+                  Push(4)
+                  Push(1)
+                  Access(StateRange)
+                  Push(85)
+                  Push(102)
+                  Push(119)
+                  Push(136)
+                  Pred(Eq4)
+                constraint 3
+                  Push(12)
+                  Push(4)
+                  Push(1)
+                  Access(StateRange)
+                  Push(341)
+                  Push(614)
+                  Push(887)
+                  Push(1160)
+                  Pred(Eq4)
+                --- State Reads ---
+                state read 0
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(4))
+                  Memory(Alloc)
+                  Constraint(Push(4))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 1
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(4))
+                  Constraint(Push(4))
+                  Memory(Alloc)
+                  Constraint(Push(4))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 2
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(8))
+                  Constraint(Push(69))
+                  Constraint(Push(5))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(4))
+                  Memory(Alloc)
+                  Constraint(Push(4))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 3
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(9))
+                  Constraint(Push(1))
+                  Constraint(Push(2))
+                  Constraint(Push(3))
+                  Constraint(Push(4))
+                  Constraint(Push(8))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(4))
+                  Memory(Alloc)
+                  Constraint(Push(4))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+            }
+
+        "#]],
+    );
+}
+
+#[test]
+fn storage_access_complex_maps() {
+    let intents = &compile(
+        r#"
+storage {
+    map_in_map: (int => (b256 => int)),
+    map_in_map_in_map: (int => (b256 => (int => b256))),
+}
+
+intent Simple {
+    state map_in_map_entry = storage::map_in_map[9][0x0000000000000001000000000000000200000000000000030000000000000004];
+    state map_in_map_in_map_entry = storage::map_in_map_in_map[88][0x0000000000000008000000000000000700000000000000060000000000000005][999];
+
+    constraint map_in_map_entry' == 42;
+    constraint map_in_map_in_map_entry' == 0x000000000000000F000000000000000F000000000000000F000000000000000F;
+}
+        "#,
+    );
+
+    check(
+        &format!("{intents}"),
+        expect_test::expect![[r#"
+            intent ::Simple {
+                --- Constraints ---
+                constraint 0
+                  Push(0)
+                  Push(1)
+                  Access(State)
+                  Push(42)
+                  Pred(Eq)
+                constraint 1
+                  Push(1)
+                  Push(4)
+                  Push(1)
+                  Access(StateRange)
+                  Push(15)
+                  Push(15)
+                  Push(15)
+                  Push(15)
+                  Pred(Eq4)
+                --- State Reads ---
+                state read 0
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(9))
+                  Constraint(Push(5))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(1))
+                  Constraint(Push(2))
+                  Constraint(Push(3))
+                  Constraint(Push(4))
+                  Constraint(Push(8))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 1
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(1))
+                  Constraint(Push(88))
+                  Constraint(Push(5))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(8))
+                  Constraint(Push(7))
+                  Constraint(Push(6))
+                  Constraint(Push(5))
+                  Constraint(Push(8))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(999))
+                  Constraint(Push(5))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(4))
+                  Memory(Alloc)
+                  Constraint(Push(4))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+            }
+
+        "#]],
+    );
+}
