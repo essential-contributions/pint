@@ -258,6 +258,11 @@ fn storage_types() {
         &run_parser!(storage_var_type, "(int => bool)"),
         expect_test::expect!["( int => bool )"],
     );
+
+    check(
+        &run_parser!(storage_var_type, "(int => (int => (b256 => b256)))"),
+        expect_test::expect!["( int => ( int => ( b256 => b256 ) ) )"],
+    );
 }
 
 #[test]
@@ -564,6 +569,20 @@ storage {
             storage {
                 x: int,
                 y: bool,
+            }"#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"storage { x: int, y: bool, z: b256, w: (int => (bool => b256)) }"#
+        ),
+        expect_test::expect![[r#"
+            storage {
+                x: int,
+                y: bool,
+                z: b256,
+                w: ( int => ( bool => b256 ) ),
             }"#]],
     );
 

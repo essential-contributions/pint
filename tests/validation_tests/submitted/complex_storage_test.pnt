@@ -1,0 +1,3 @@
+constraint true;
+
+solve satisfy;

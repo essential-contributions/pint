@@ -222,6 +222,10 @@ impl Type {
                 kind: PrimitiveKind::B256,
                 ..
             } => 4,
+            // The point here is that a `Map` takes up a storage slot, even though it doesn't
+            // actually store anything in it. The `Map` type is not really allowed anywhere else,
+            // so we can't have a decision variable of type `Map` for example.
+            Self::Map { .. } => 1,
             _ => unimplemented!("Size of non-primitive types is not yet specified"),
         }
     }

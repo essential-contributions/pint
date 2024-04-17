@@ -181,6 +181,8 @@ pub enum CompileError {
     },
     #[error("state variable initialization type error")]
     StateVarInitTypeError { large_err: Box<LargeTypeError> },
+    #[error("state variables cannot have storage map type")]
+    StateVarTypeIsMap { span: Span },
     #[error("expression has a recursive dependency")]
     ExprRecursion {
         dependant_span: Span,
@@ -642,6 +644,11 @@ impl ReportableError for CompileError {
                     color: Color::Red,
                 },
             ],
+            StateVarTypeIsMap { span } => vec![ErrorLabel {
+                message: "found state variable of type storage map here".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
 
             IfBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }
@@ -921,6 +928,7 @@ impl ReportableError for CompileError {
             | IfBranchesTypeMismatch { .. }
             | OperatorTypeError { .. }
             | StateVarInitTypeError { .. }
+            | StateVarTypeIsMap { .. }
             | IndexExprNonIndexable { .. }
             | TupleAccessNonTuple { .. }
             | EmptyArrayExpression { .. }
@@ -1045,6 +1053,7 @@ impl Spanned for CompileError {
             | RangeTypesMismatch { span, .. }
             | RangeTypesNonNumeric { span, .. }
             | InExprTypesMismatch { span, .. }
+            | StateVarTypeIsMap { span }
             | InExprTypesArrayMismatch { span, .. } => span,
 
             IfBranchesTypeMismatch { large_err }
