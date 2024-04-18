@@ -515,9 +515,9 @@ impl<T: DisplayWithII> DisplayWithII for &T {
 /// This maybe overkill -- implementing an interator for a tree structure is tricky.  Below we have
 /// a queue and a visited set just to keep track of where we're up to.
 ///
-/// Items are popped off the queue.  If they're a leaf they're next().  If they're a branch then
-/// them then their children and queued.  Once each child is visited the parent is also returned.
-/// The visited set is updated and used to avoid following a branch multiple times.
+/// Items are popped off the queue and are returned next.  If they're a branch then their children
+/// are queued.  The visited set is updated and used to avoid following a branch multiple
+/// times.
 ///
 /// Like most iterators [`Exprs`] keeps a reference to the IntermediateIntent and so this iterator
 /// is mostly useful for finding or filtering for specific exprs for further processing, e.g., in a
@@ -533,11 +533,24 @@ pub(crate) struct Exprs<'a> {
 
 impl<'a> Exprs<'a> {
     fn new(ii: &'a IntermediateIntent) -> Exprs {
-        Exprs {
-            ii,
-            queue: ii.constraints.iter().rev().map(|c| c.0).collect(),
-            visited: HashSet::new(),
-        }
+        // We start with all the constraint, directive and state exprs.
+        let queue = ii
+            .constraints
+            .iter()
+            .map(|c| c.0)
+            .chain(ii.states.iter().map(|(_, state)| state.expr))
+            .chain(
+                ii.directives
+                    .iter()
+                    .filter_map(|(solve_func, _)| solve_func.get_expr().cloned()),
+            )
+            .collect();
+
+        // We also need to avoid macro calls which are not actually expressions.  We can
+        // pre-populate the visited set to avoid them.
+        let visited = HashSet::from_iter(ii.removed_macro_calls.keys());
+
+        Exprs { ii, queue, visited }
     }
 }
 
@@ -549,7 +562,7 @@ impl<'a> Iterator for Exprs<'a> {
             return None;
         }
 
-        macro_rules! push_if_new {
+        macro_rules! queue_if_new {
             ($self: ident, $key: expr) => {
                 if !$self.visited.contains($key) {
                     $self.queue.push(*$key);
@@ -563,16 +576,16 @@ impl<'a> Iterator for Exprs<'a> {
 
         // Push its children to the queue.
         match self.ii.exprs.get(next_key).expect("invalid key in queue") {
-            Expr::UnaryOp { expr, .. } => push_if_new!(self, expr),
+            Expr::UnaryOp { expr, .. } => queue_if_new!(self, expr),
 
             Expr::BinaryOp { lhs, rhs, .. } => {
-                push_if_new!(self, lhs);
-                push_if_new!(self, rhs);
+                queue_if_new!(self, lhs);
+                queue_if_new!(self, rhs);
             }
 
             Expr::FnCall { args, .. } => {
                 for arg in args {
-                    push_if_new!(self, arg);
+                    queue_if_new!(self, arg);
                 }
             }
 
@@ -582,9 +595,9 @@ impl<'a> Iterator for Exprs<'a> {
                 else_block,
                 ..
             } => {
-                push_if_new!(self, condition);
-                push_if_new!(self, then_block);
-                push_if_new!(self, else_block);
+                queue_if_new!(self, condition);
+                queue_if_new!(self, then_block);
+                queue_if_new!(self, else_block);
             }
 
             Expr::Array {
@@ -593,36 +606,36 @@ impl<'a> Iterator for Exprs<'a> {
                 ..
             } => {
                 for el in elements {
-                    push_if_new!(self, el);
+                    queue_if_new!(self, el);
                 }
-                push_if_new!(self, range_expr);
+                queue_if_new!(self, range_expr);
             }
 
             Expr::Index { expr, index, .. } => {
-                push_if_new!(self, expr);
-                push_if_new!(self, index);
+                queue_if_new!(self, expr);
+                queue_if_new!(self, index);
             }
 
             Expr::Tuple { fields, .. } => {
                 for (_, field) in fields {
-                    push_if_new!(self, field);
+                    queue_if_new!(self, field);
                 }
             }
 
-            Expr::TupleFieldAccess { tuple, .. } => push_if_new!(self, tuple),
+            Expr::TupleFieldAccess { tuple, .. } => queue_if_new!(self, tuple),
 
-            Expr::Cast { value, .. } => push_if_new!(self, value),
+            Expr::Cast { value, .. } => queue_if_new!(self, value),
 
             Expr::In {
                 value, collection, ..
             } => {
-                push_if_new!(self, value);
-                push_if_new!(self, collection);
+                queue_if_new!(self, value);
+                queue_if_new!(self, collection);
             }
 
             Expr::Range { lb, ub, .. } => {
-                push_if_new!(self, lb);
-                push_if_new!(self, ub);
+                queue_if_new!(self, lb);
+                queue_if_new!(self, ub);
             }
 
             Expr::Generator {
@@ -632,14 +645,14 @@ impl<'a> Iterator for Exprs<'a> {
                 ..
             } => {
                 for (_, range) in gen_ranges {
-                    push_if_new!(self, range);
+                    queue_if_new!(self, range);
                 }
 
                 for cond in conditions {
-                    push_if_new!(self, cond);
+                    queue_if_new!(self, cond);
                 }
 
-                push_if_new!(self, body);
+                queue_if_new!(self, body);
             }
 
             Expr::Error(_)
@@ -656,7 +669,7 @@ impl<'a> Iterator for Exprs<'a> {
             .get(next_key)
             .and_then(|ty| ty.get_array_range_expr())
             .iter()
-            .for_each(|range| push_if_new!(self, range));
+            .for_each(|range| queue_if_new!(self, range));
 
         Some(next_key)
     }
