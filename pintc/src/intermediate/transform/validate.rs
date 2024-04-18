@@ -77,7 +77,7 @@ fn check_directive(ii: &IntermediateIntent, handler: &Handler) {
             SolveFunc::Minimize(expr_key) | SolveFunc::Maximize(expr_key) => {
                 check_expr(expr_key, handler, ii);
             }
-            _ => {}
+            SolveFunc::Satisfy => {}
         })
 }
 
@@ -143,7 +143,7 @@ fn check_expr(expr_key: &ExprKey, handler: &Handler, ii: &IntermediateIntent) {
                 },
             });
         }
-        _ => {}
+        Type::Primitive { .. } | Type::Map { .. } => {}
     }
 
     let expr = match ii.exprs.get(*expr_key) {
@@ -252,7 +252,15 @@ fn check_expr(expr_key: &ExprKey, handler: &Handler, ii: &IntermediateIntent) {
                 });
             }
         },
-        _ => {}
+        Expr::Immediate { .. }
+        | Expr::PathByKey(_, _)
+        | Expr::PathByName(_, _)
+        | Expr::StorageAccess(_, _)
+        | Expr::UnaryOp { .. }
+        | Expr::BinaryOp { .. }
+        | Expr::FnCall { .. }
+        | Expr::If { .. }
+        | Expr::Cast { .. } => {}
     }
 }
 
