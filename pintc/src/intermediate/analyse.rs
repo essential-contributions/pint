@@ -6,6 +6,8 @@ use crate::{
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
 
+use std::collections::HashSet;
+
 enum Inference {
     Ignored,
     Type(Type),
@@ -18,6 +20,7 @@ impl Program {
         self = handler.scope(|handler| self.check_program_kind(handler))?;
 
         for ii in self.iis.values_mut() {
+            ii.check_undefined_types(handler);
             ii.lower_newtypes();
             ii.type_check_all_exprs(handler);
         }
@@ -86,6 +89,41 @@ impl IntermediateIntent {
         }
     }
 
+    fn check_undefined_types(&mut self, handler: &Handler) {
+        let valid_custom_tys: HashSet<&String> = HashSet::from_iter(
+            self.enums
+                .iter()
+                .map(|ed| &ed.name.name)
+                .chain(self.new_types.iter().map(|ntd| &ntd.name.name)),
+        );
+
+        self.var_types
+            .values()
+            .chain(self.state_types.values())
+            .chain(self.expr_types.values())
+            .for_each(|ty| {
+                if let Type::Custom { path, span, .. } = ty {
+                    if !valid_custom_tys.contains(path) {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::UndefinedType { span: span.clone() },
+                        });
+                    }
+                }
+            });
+
+        for expr_key in self.exprs() {
+            if let Some(Expr::Cast { ty, .. }) = self.exprs.get(expr_key) {
+                if let Type::Custom { path, span, .. } = ty.as_ref() {
+                    if !valid_custom_tys.contains(path) {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::UndefinedType { span: span.clone() },
+                        });
+                    }
+                }
+            }
+        }
+    }
+
     fn type_check_all_exprs(&mut self, handler: &Handler) {
         // Check all the 'root' exprs (constraints and directives) one at a time, gathering errors
         // as we go.  Copying the keys out first to avoid borrowing conflict.
@@ -110,17 +148,14 @@ impl IntermediateIntent {
         for (var_key, var) in &self.vars {
             if self.var_types.get(var_key).is_none() {
                 if let Some(init_expr_key) = self.var_inits.get(var_key) {
-                    match self.expr_types.get(*init_expr_key) {
-                        Some(ty) => {
-                            self.var_types.insert(var_key, ty.clone());
-                        }
-                        None => {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::UnknownType {
-                                    span: var.span.clone(),
-                                },
-                            });
-                        }
+                    if let Some(ty) = self.expr_types.get(*init_expr_key) {
+                        self.var_types.insert(var_key, ty.clone());
+                    } else {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::UnknownType {
+                                span: var.span.clone(),
+                            },
+                        });
                     }
                 } else {
                     handler.emit_err(Error::Compile {
@@ -483,12 +518,9 @@ impl IntermediateIntent {
                     if path.chars().nth(new_type_len) == Some(':') {
                         // Definitely worth trying.  Recurse.
                         let new_path = enum_path.clone() + &path[new_type_len..];
-                        match self.infer_enum_variant_by_name(&new_path, span) {
-                            ty @ Ok(_) => {
-                                // We found an enum variant.
-                                return ty;
-                            }
-                            Err(_) => {}
+                        if let ty @ Ok(_) = self.infer_enum_variant_by_name(&new_path, span) {
+                            // We found an enum variant.
+                            return ty;
                         }
                     }
                 }

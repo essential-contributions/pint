@@ -1,0 +1,36 @@
+enum Baz = X | Y;
+type Xyzzy = int;
+
+let a: int;
+let b: Foo;
+let c = a as Bar;
+
+let d: Baz;
+let e = a as Xyzzy;
+
+solve satisfy;
+
+// intermediate <<<
+// var ::a: int;
+// var ::b: ::Foo;
+// var ::c;
+// var ::d: ::Baz;
+// var ::e;
+// enum ::Baz = X | Y;
+// type ::Xyzzy = int;
+// constraint (::c == ::a as ::Bar);
+// constraint (::e == ::a as ::Xyzzy);
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// undefined type
+// @56..59: type is undefined
+// undefined type
+// @74..77: type is undefined
+// invalid cast
+// @69..77: illegal cast to a `::Bar`
+// casts may only be made to an int or a real
+// unable to determine expression type
+// @65..66: type of this expression is ambiguous
+// >>>

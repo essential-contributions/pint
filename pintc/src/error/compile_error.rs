@@ -130,6 +130,8 @@ pub enum CompileError {
     CannotIndexIntoValue { span: Span, index_span: Span },
     #[error("unable to determine expression type")]
     UnknownType { span: Span },
+    #[error("undefined type")]
+    UndefinedType { span: Span },
     #[error("condition in if-expression must be a boolean")]
     IfCondTypeNotBool(Span),
     #[error("branches in if-expression must have the same type")]
@@ -547,6 +549,12 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            UndefinedType { span } => vec![ErrorLabel {
+                message: "type is undefined".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             IfCondTypeNotBool(span) => {
                 vec![ErrorLabel {
                     message: "condition must be a boolean".to_string(),
@@ -924,6 +932,7 @@ impl ReportableError for CompileError {
             | MacroUnrecognizedSpliceVar { .. }
             | MacroSpliceVarNotArray { .. }
             | UnknownType { .. }
+            | UndefinedType { .. }
             | IfCondTypeNotBool(_)
             | IfBranchesTypeMismatch { .. }
             | OperatorTypeError { .. }
@@ -1033,6 +1042,7 @@ impl Spanned for CompileError {
             | ArrayIndexOutOfBounds { span }
             | CannotIndexIntoValue { span, .. }
             | UnknownType { span }
+            | UndefinedType { span }
             | IfCondTypeNotBool(span)
             | IndexExprNonIndexable { span, .. }
             | ArrayAccessWithWrongType { span, .. }
