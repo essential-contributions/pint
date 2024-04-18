@@ -75,7 +75,7 @@ fn check_directive(ii: &IntermediateIntent, handler: &Handler) {
         .iter()
         .for_each(|(solve_func, _)| match solve_func {
             SolveFunc::Minimize(expr_key) | SolveFunc::Maximize(expr_key) => {
-                check_expr(expr_key, handler, ii);
+                let _ = check_expr(expr_key, handler, ii);
             }
             SolveFunc::Satisfy => {}
         })
@@ -83,23 +83,23 @@ fn check_directive(ii: &IntermediateIntent, handler: &Handler) {
 
 fn check_constraints(ii: &IntermediateIntent, handler: &Handler) {
     for expr_key in ii.exprs() {
-        check_expr(&expr_key, handler, ii);
+        let _ = check_expr(&expr_key, handler, ii);
     }
 }
 
-fn check_expr(expr_key: &ExprKey, handler: &Handler, ii: &IntermediateIntent) {
-    let expr_type = match ii.expr_types.get(*expr_key) {
-        Some(expr_type) => expr_type,
-        None => {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "invalid intermediate intent expr_types slotmap key",
-                    span: empty_span(),
-                },
-            });
-            return;
-        }
-    };
+fn check_expr(
+    expr_key: &ExprKey,
+    handler: &Handler,
+    ii: &IntermediateIntent,
+) -> Result<(), ErrorEmitted> {
+    let expr_type = ii.expr_types.get(*expr_key).ok_or_else(|| {
+        handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "invalid intermediate intent expr_types slotmap key",
+                span: empty_span(),
+            },
+        })
+    })?;
 
     // validate the expr_type is legal
     match expr_type {
@@ -146,121 +146,95 @@ fn check_expr(expr_key: &ExprKey, handler: &Handler, ii: &IntermediateIntent) {
         Type::Primitive { .. } | Type::Map { .. } => {}
     }
 
-    let expr = match ii.exprs.get(*expr_key) {
-        Some(expr) => expr,
-        None => {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "invalid intermediate intent exprs slotmap key",
-                    span: empty_span(),
-                },
-            });
-            return;
-        }
-    };
+    let expr = ii.exprs.get(*expr_key).ok_or_else(|| {
+        handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "invalid intermediate intent exprs slotmap key",
+                span: empty_span(),
+            },
+        })
+    })?;
 
     // then check the expr variant and make sure legal
     match expr {
-        Expr::Error(span) => {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "error expression present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        }
-        Expr::MacroCall { span, .. } => {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "macro call present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        }
+        Expr::Error(span) => Err(handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "error expression present in final intent exprs slotmap",
+                span: span.clone(),
+            },
+        })),
+        Expr::MacroCall { span, .. } => Err(handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "macro call present in final intent exprs slotmap",
+                span: span.clone(),
+            },
+        })),
         // <<disabled>> for now until if support is added.
-        // Expr::If { span, .. } => {
-        //     handler.emit_err(Error::Compile {
-        //         error: CompileError::Internal {
-        //             msg: "if expression present in final intent exprs slotmap",
-        //             span: span.clone(),
-        //         },
-        //     });
-        // }
-        Expr::Array { span, .. } => {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "array present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        }
-        Expr::Index { span, .. } => {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "array element access present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        }
-        Expr::Tuple { span, .. } => {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "tuple present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        }
-        Expr::TupleFieldAccess { span, .. } => {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "tuple field access present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        }
-        Expr::In { span, .. } => {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "in expression in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        }
-        Expr::Range { span, .. } => {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "range present in final intent exprs slotmap",
-                    span: span.clone(),
-                },
-            });
-        }
+        // Expr::If { span, .. } => Err(handler.emit_err(Error::Compile {
+        //     error: CompileError::Internal {
+        //         msg: "if expression present in final intent exprs slotmap",
+        //         span: span.clone(),
+        //     },
+        // })),
+        Expr::Array { span, .. } => Err(handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "array present in final intent exprs slotmap",
+                span: span.clone(),
+            },
+        })),
+        Expr::Index { span, .. } => Err(handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "array element access present in final intent exprs slotmap",
+                span: span.clone(),
+            },
+        })),
+        Expr::Tuple { span, .. } => Err(handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "tuple present in final intent exprs slotmap",
+                span: span.clone(),
+            },
+        })),
+        Expr::TupleFieldAccess { span, .. } => Err(handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "tuple field access present in final intent exprs slotmap",
+                span: span.clone(),
+            },
+        })),
+        Expr::In { span, .. } => Err(handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "in expression in final intent exprs slotmap",
+                span: span.clone(),
+            },
+        })),
+        Expr::Range { span, .. } => Err(handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "range present in final intent exprs slotmap",
+                span: span.clone(),
+            },
+        })),
         Expr::Generator { kind, span, .. } => match kind {
-            GeneratorKind::ForAll => {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "forall generator present in final intent exprs slotmap",
-                        span: span.clone(),
-                    },
-                });
-            }
-            GeneratorKind::Exists => {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "exists generator present in final intent exprs slotmap",
-                        span: span.clone(),
-                    },
-                });
-            }
+            GeneratorKind::ForAll => Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "forall generator present in final intent exprs slotmap",
+                    span: span.clone(),
+                },
+            })),
+            GeneratorKind::Exists => Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "exists generator present in final intent exprs slotmap",
+                    span: span.clone(),
+                },
+            })),
         },
         Expr::Immediate { .. }
-        | Expr::PathByKey(_, _)
-        | Expr::PathByName(_, _)
-        | Expr::StorageAccess(_, _)
+        | Expr::PathByKey(..)
+        | Expr::PathByName(..)
+        | Expr::StorageAccess(..)
         | Expr::UnaryOp { .. }
         | Expr::BinaryOp { .. }
         | Expr::FnCall { .. }
         | Expr::If { .. }
-        | Expr::Cast { .. } => {}
+        | Expr::Cast { .. } => Ok(()),
     }
 }
 
