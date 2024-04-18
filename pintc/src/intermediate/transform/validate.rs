@@ -6,7 +6,7 @@ use crate::{
     types::Type,
 };
 
-pub(crate) fn sanity_check(handler: &Handler, program: &mut Program) -> Result<(), ErrorEmitted> {
+pub(crate) fn validate(handler: &Handler, program: &mut Program) -> Result<(), ErrorEmitted> {
     program.iis.values().for_each(|ii| {
         check_constraints(ii, handler);
         check_vars(ii, handler);
@@ -265,7 +265,7 @@ fn check(actual: &str, expect: expect_test::Expect) {
 fn run_test(src: &str) -> String {
     use crate::error;
     let (mut program, handler) = run_without_transforms(src);
-    let _ = sanity_check(&handler, &mut program);
+    let _ = validate(&handler, &mut program);
     error::Errors(handler.consume()).to_string()
 }
 
@@ -474,7 +474,7 @@ fn states() {
         };
         ii.states.insert(dummy_state);
     });
-    let _ = sanity_check(&handler, &mut program);
+    let _ = validate(&handler, &mut program);
     check(
         &error::Errors(handler.consume()).to_string(),
         expect_test::expect![[r#"
@@ -496,7 +496,7 @@ fn vars() {
             span: empty_span(),
         });
     });
-    let _ = sanity_check(&handler, &mut program);
+    let _ = validate(&handler, &mut program);
     check(
         &error::Errors(handler.consume()).to_string(),
         expect_test::expect![[r#"
@@ -530,7 +530,7 @@ fn directives() {
         let minimize_directive = (SolveFunc::Minimize(dummy_expr_key), empty_span());
         ii.directives.push(minimize_directive);
     });
-    let _ = sanity_check(&handler, &mut program);
+    let _ = validate(&handler, &mut program);
     check(
         &error::Errors(handler.consume()).to_string(),
         expect_test::expect![[r#"

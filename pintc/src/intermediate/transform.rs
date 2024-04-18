@@ -29,16 +29,16 @@ macro_rules! iterate {
 
 mod canonicalize_solve_directive;
 mod lower;
-mod sanity_check;
 mod scalarize;
 mod unroll;
+mod validate;
 
 use crate::error::{ErrorEmitted, Handler};
 use canonicalize_solve_directive::canonicalize_solve_directive;
 use lower::{lower_aliases, lower_bools, lower_casts, lower_enums, lower_imm_accesses, lower_ins};
-use sanity_check::sanity_check;
 use scalarize::scalarize;
 use unroll::unroll_generators;
+use validate::validate;
 
 impl super::Program {
     pub fn flatten(mut self, handler: &Handler) -> Result<Self, ErrorEmitted> {
@@ -78,7 +78,7 @@ impl super::Program {
 
         // Ensure that the final intermediate intents is indeed final
         if !handler.has_errors() {
-            let _ = sanity_check(handler, &mut self);
+            let _ = validate(handler, &mut self);
         }
 
         if handler.has_errors() {
