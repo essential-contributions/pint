@@ -1,0 +1,8 @@
+storage {
+    t: { int, int },
+}
+
+intent Foo {
+    state t = storage::t;
+    state t0 = storage::t.0;
+}
