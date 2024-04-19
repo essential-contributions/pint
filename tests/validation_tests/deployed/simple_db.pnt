@@ -10,20 +10,30 @@ storage {
     z: int,
 }
 
+// from external0.pnt
+extern Extern(0x8D20B08BA777F56CE9E1F73BF6F973AF53FF37FCB91F8B55449E5CE84ACEF833) {
+    storage {
+        x: int,
+        y: int,
+    }
+}
+
 intent Simple {
     state x: int = storage::x;
     state y: int = storage::y;
     state z: int = storage::z;
-    state external: int = storage_lib::get_extern(
-        0x3B2EA551FA5DA48C26FEA34730EA2F131BA0F396DFF61DAA2F990129229F35A1,
+    state external_1 = Extern::storage::y; // 69
+
+    state external_2 = storage_lib::get_extern(
+        0x8D20B08BA777F56CE9E1F73BF6F973AF53FF37FCB91F8B55449E5CE84ACEF833,
         0x0000000000000000000000000000000000000000000000000000000000000001,
     ); // 69
 
     let w: int = x + 99; // 141
     let u: int = y * 3;  // 129
     let v: int = z * z;  // 1936
-    let e_old = external;
-    let e_new = external';
+    let e_old = external_1;
+    let e_new = external_2';
 
     let a: int[5];
 
@@ -35,5 +45,6 @@ intent Simple {
     constraint x' + y' > 89 && x' * y' > 1932;
     constraint x < y;
     constraint w + u + v == 2206;
-    constraint external' - external == 1;
+    constraint external_1' - external_1 == 1;
+    constraint external_2' - external_2 == 1;
 }

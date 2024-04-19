@@ -1,6 +1,6 @@
 use crate::{
     error::{Error, ErrorEmitted, Handler, ParseError},
-    expr::{self, Expr, Ident},
+    expr::{self, Expr, Ident, Immediate},
     span::{empty_span, Span},
     types::{EnumDecl, EphemeralDecl, FnSig, NewTypeDecl, Path, Type},
 };
@@ -90,6 +90,9 @@ pub struct IntermediateIntent {
 
     // A list of all storage variables in the order in which they were declared
     pub storage: Option<(Vec<StorageVar>, Span)>,
+
+    // A list of all storage variables in the order in which they were declared
+    pub externs: Vec<Extern>,
 
     pub top_level_symbols: BTreeMap<String, Span>,
 }
@@ -377,7 +380,8 @@ impl IntermediateIntent {
             Expr::Immediate { .. }
             | Expr::PathByName { .. }
             | Expr::PathByKey { .. }
-            | Expr::StorageAccess { .. }
+            | Expr::StorageAccess(..)
+            | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
             | Expr::Range { .. }
             | Expr::Error(_) => {}
@@ -480,6 +484,14 @@ impl DisplayWithII for StorageVar {
     fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
         write!(f, "{}: {},", self.name, ii.with_ii(&self.ty))
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct Extern {
+    pub name: Ident,
+    pub address: Immediate,
+    pub storage_vars: Vec<StorageVar>,
+    pub span: Span,
 }
 
 #[derive(Clone, Copy)]
@@ -657,7 +669,8 @@ impl<'a> Iterator for Exprs<'a> {
 
             Expr::Error(_)
             | Expr::Immediate { .. }
-            | Expr::StorageAccess(_, _)
+            | Expr::StorageAccess(..)
+            | Expr::ExternalStorageAccess { .. }
             | Expr::PathByKey(_, _)
             | Expr::PathByName(_, _)
             | Expr::MacroCall { .. } => {}

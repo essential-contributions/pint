@@ -225,6 +225,7 @@ impl<'a> ProjectParser<'a> {
         let new_types = self.program.root_ii().new_types.clone();
         let root_symbols = self.program.root_ii().top_level_symbols.clone();
         let storage = self.program.root_ii().storage.clone();
+        let externs = self.program.root_ii().externs.clone();
         self.program
             .iis
             .iter_mut()
@@ -233,6 +234,7 @@ impl<'a> ProjectParser<'a> {
                 ii.new_types.extend_from_slice(&new_types);
                 ii.enums.extend_from_slice(&enums);
                 ii.storage = storage.clone();
+                ii.externs = externs.clone();
                 for (symbol, span) in &root_symbols {
                     // We could call `ii.add_top_level_symbol_with_name` directly here, but then
                     // the spans would be reversed so I decided to do this manually. We want the

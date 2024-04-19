@@ -1,11 +1,11 @@
 use crate::{
     error::{CompileError, Error, Handler, ParseError},
     expr::*,
-    intermediate::{ExprKey, IntermediateIntent, Program, ProgramKind, SolveFunc, StorageVar},
+    intermediate::{ExprKey, IntermediateIntent, Program, ProgramKind, SolveFunc, StorageVar, Extern},
     lexer,
     macros::{MacroCall, MacroDecl},
     parser::{
-        NextModPath, ParserContext, UsePath,
+        ParserContext, UsePath,
         UseTree::{self, Path as UseTreePath},
     },
     span::{self, Spanned},
@@ -30,6 +30,7 @@ Decl: () = {
     IntentDecl,
     MacroDecl,
     StorageDecl,
+    ExternDecl,
 };
 
 DeclBarringMacro: () = {
@@ -162,6 +163,20 @@ pub StorageDecl: () = {
             context.current_ii().storage = Some((storage_vars, span));
         }
     },
+}
+
+pub ExternDecl: () = {
+    <l:@L> "extern" <name:Ident> "(" <imm:Immediate> ")" "{"
+        "storage" "{" <storage_vars:SepList<StorageVar, ",">> "}"
+    "}" <r:@R> => {
+        let extern_decl = Extern {
+            name: context.add_top_level_symbol(handler, name, context.mod_prefix),
+            address: imm,
+            storage_vars,
+            span: (context.span_from)(l, r),
+        };
+        context.current_ii().externs.push(extern_decl);
+    }
 }
 
 UseStatement: () = {
@@ -412,7 +427,6 @@ SolveDeclInner: SolveFunc = {
 
 pub EnumDecl: () = {
     <l:@L> "enum" <name:Ident> "=" <variants:Sep1ListNoTrail<Ident, "|">> <r:@R> => {
-        let current_ii = context.current_ii.clone();
         let enum_decl = EnumDecl {
             name: context.add_top_level_symbol(handler, name, context.mod_prefix),
             variants,
@@ -424,7 +438,6 @@ pub EnumDecl: () = {
 
 pub NewTypeDecl: () = {
     <l:@L> "type" <name:Ident> "=" <ty:Type> <r:@R> => {
-        let current_ii = context.current_ii.clone();
         let new_type_decl = NewTypeDecl {
             name: context.add_top_level_symbol(handler, name, context.mod_prefix),
             ty,
@@ -1063,114 +1076,12 @@ MacroPath: Path = {
 
 PathWithLast<Last>: Path = {
     <l:@L> "::" <els:(<Ident> "::")*> <last:Last> <r:@R> => {
-        if !els.is_empty() {
-            let path: Vec<_> = els.iter().map(|el| el.to_string()).collect();
-            context.next_paths.push(NextModPath {
-                is_abs: true,
-                mod_path_strs: path.clone(),
-                suffix: last.to_string(),
-                enum_path_strs: (path.len() > 1)
-                    .then_some(path.iter().take(path.len() - 1).cloned().collect()),
-                span: (context.span_from)(l, r),
-            });
-        }
-
-        let path = format!(
-            "::{}{last}",
-            els.iter()
-                .map(|el| format!("{el}::"))
-                .collect::<Vec<_>>()
-                .concat()
-        );
-        path
+        let span = (context.span_from)(l, r);
+        context.handle_absolute_path(els, last, true, span)
     },
-
     <l:@L> <els:(<Ident> "::")*> <last:Last> <r:@R> => {
-        // Check if any of the use statement matches the path. This requires
-        // that the alias (if it exists) or the last ident in the use statement
-        // matches the first ident in the path.
-        // For example:
-        // - `use a::b` and `b::c` match.
-        // - `use a::b as d` and `d::e` match.
-        let path_prefix = els
-            .first()
-            .map(|id| id.to_string())
-            .unwrap_or_else(|| last.to_string());
-        let full_absolute_path = context
-            .use_paths
-            .iter()
-            .find(|use_path| use_path.matches_suffix(&path_prefix))
-            .and_then(|use_path| {
-                // We've found a use path which matches.  Construct a full path by joining the it
-                // with the parsed path. `parsed_path_iter` is our parsed path except for the first
-                // element.
-                let parsed_path_iter = els
-                    .iter()
-                    .chain(std::iter::once(&last))
-                    .skip(1)
-                    .map(|el| el.to_string());
-
-                let mut full_path = use_path
-                    .path
-                    .iter()
-                    .cloned()
-                    .chain(parsed_path_iter)
-                    .collect::<Vec<_>>();
-
-                let full_path_str = full_path
-                    .iter()
-                    .map(|el| format!("::{el}"))
-                    .collect::<Vec<_>>()
-                    .concat();
-
-                // The next paths don't include the final element, only paths to modules or enums.
-                full_path.pop();
-                context.next_paths.push(NextModPath {
-                    is_abs: true,
-                    mod_path_strs: full_path.clone(),
-                    suffix: last.to_string(),
-                    enum_path_strs: (full_path.len() > 1).then_some(
-                        full_path
-                            .iter()
-                            .take(full_path.len() - 1)
-                            .cloned()
-                            .collect(),
-                    ),
-                    span: (context.span_from)(l, r),
-                });
-
-                if last.hygienic {
-                    // This identifier is hygienic and should not have 'use' paths prepended
-                    // afterall.
-                    None
-                } else {
-                    Some(full_path_str)
-                }
-            })
-            .unwrap_or_else(|| {
-                // We didn't find a matching use path.  Just return the parsed path as is.
-                if !els.is_empty() {
-                    let path: Vec<_> = els.iter().map(|el| el.to_string()).collect();
-                    context.next_paths.push(NextModPath {
-                        is_abs: false,
-                        mod_path_strs: path.clone(),
-                        suffix: last.to_string(),
-                        enum_path_strs: (path.len() > 1)
-                            .then_some(path.iter().take(path.len() - 1).cloned().collect()),
-                        span: (context.span_from)(l, r),
-                    });
-                }
-                format!(
-                    "{}{}{last}",
-                    context.mod_prefix,
-                    els.iter()
-                        .map(|el| format!("{el}::"))
-                        .collect::<Vec<_>>()
-                        .concat()
-                )
-            });
-
-        full_absolute_path
+        let span = (context.span_from)(l, r);
+        context.handle_relative_path(els, last, true, span)
     }
 };
 
@@ -1331,6 +1242,34 @@ StorageAccess: ExprKey = {
             Expr::StorageAccess(name.to_string(), span)
         };
         context.current_ii().exprs.insert(expr)
+    },
+    <l:@L> "::" <els:(<Ident> "::")*> <last:Ident> <r1:@R> "::" "storage" "::" <name:Ident> <r2:@R> => {
+        let path_span = (context.span_from)(l, r1);
+        let extern_path = context.handle_absolute_path(els, last, false, path_span);
+
+        let span = (context.span_from)(l, r2);
+        context
+            .current_ii()
+            .exprs
+            .insert(Expr::ExternalStorageAccess {
+                extern_path,
+                name: name.to_string(),
+                span,
+            })
+    },
+    <l:@L> <els:(<Ident> "::")*> <last:Ident> <r1:@R> "::" "storage" "::" <name:Ident> <r2:@R> => {
+        let path_span = (context.span_from)(l, r1);
+        let extern_path = context.handle_relative_path(els, last, false, path_span);
+
+        let span = (context.span_from)(l, r2);
+        context
+            .current_ii()
+            .exprs
+            .insert(Expr::ExternalStorageAccess {
+                extern_path,
+                name: name.to_string(),
+                span,
+            })
     }
 }
 
@@ -1436,6 +1375,7 @@ extern {
         "let" => lexer::Token::Let,
         "state" => lexer::Token::State,
         "storage" => lexer::Token::Storage,
+        "extern" => lexer::Token::Extern,
         "enum" => lexer::Token::Enum,
         "type" => lexer::Token::Type,
         "constraint" => lexer::Token::Constraint,

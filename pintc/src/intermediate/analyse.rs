@@ -322,6 +322,13 @@ impl IntermediateIntent {
 
             Expr::StorageAccess(name, span) => self.infer_storage_access(name, span),
 
+            Expr::ExternalStorageAccess {
+                extern_path,
+                name,
+                span,
+                ..
+            } => self.infer_external_storage_access(extern_path, name, span),
+
             Expr::UnaryOp {
                 op,
                 expr: op_expr_key,
@@ -501,6 +508,43 @@ impl IntermediateIntent {
                 },
             }),
         }
+    }
+
+    fn infer_external_storage_access(
+        &self,
+        extern_path: &Path,
+        name: &String,
+        span: &Span,
+    ) -> Result<Inference, Error> {
+        // First, get the `extern` declaration that this access refers to
+        let Some(r#extern) = self
+            .externs
+            .iter()
+            .find(|e| e.name.to_string() == *extern_path)
+        else {
+            return Err(Error::Compile {
+                error: CompileError::MissingExtern {
+                    name: extern_path.clone(),
+                    span: span.clone(),
+                },
+            });
+        };
+
+        // Then, look for the storage variable that this access refers to
+        let Some(s_var) = r#extern
+            .storage_vars
+            .iter()
+            .find(|s_var| s_var.name == *name)
+        else {
+            return Err(Error::Compile {
+                error: CompileError::StorageSymbolNotFound {
+                    name: name.clone(),
+                    span: span.clone(),
+                },
+            });
+        };
+
+        Ok(Inference::Type(s_var.ty.clone()))
     }
 
     fn infer_enum_variant_by_name(&self, path: &Path, span: &Span) -> Result<Inference, Error> {
