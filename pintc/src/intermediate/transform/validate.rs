@@ -210,7 +210,8 @@ fn check_expr(
         | Expr::BinaryOp { .. }
         | Expr::FnCall { .. }
         | Expr::If { .. }
-        | Expr::Cast { .. } => Ok(()),
+        | Expr::Cast { .. }
+        | Expr::ExternalStorageAccess { .. } => Ok(()),
     }
 }
 
