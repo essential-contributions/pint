@@ -46,13 +46,13 @@ solve satisfy;
 // >>>
 
 // flattened <<<
-// var ::wa: int;
-// var ::nt: int;
-// var ::sa: int;
-// var ::q: int;
-// var ::nsw: int;
-// var ::v: int;
-// var ::t: int;
+// var ::wa: ::Colour;
+// var ::nt: ::Colour;
+// var ::sa: ::Colour;
+// var ::q: ::Colour;
+// var ::nsw: ::Colour;
+// var ::v: ::Colour;
+// var ::t: ::Colour;
 // enum ::Colour = Red | Green | Blue;
 // constraint (::wa != ::nt);
 // constraint (::wa != ::sa);

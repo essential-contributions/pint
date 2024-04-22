@@ -44,7 +44,7 @@ intent Bar {
 // 
 // intent ::Bar {
 //     var ::x: int;
-//     var ::y: int;
+//     var ::y: ::MyEnum;
 //     enum ::MyEnum = A | B;
 //     type ::MyType = ::MyEnum;
 //     constraint (::y == 0);
@@ -55,7 +55,7 @@ intent Bar {
 // 
 // intent ::Foo {
 //     var ::x: int;
-//     var ::y: int;
+//     var ::y: ::MyEnum;
 //     enum ::MyEnum = A | B;
 //     type ::MyType = ::MyEnum;
 //     constraint (::y == 0);

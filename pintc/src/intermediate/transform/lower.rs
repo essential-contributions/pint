@@ -66,7 +66,6 @@ pub(crate) fn lower_enums(
 
     // Replace any var or state enum type with int.  Also add constraints to disallow vars or state
     // to have values outside of the enum.
-
     for (var_key, ty) in ii.var_types.iter_mut() {
         if ty.is_enum() {
             // Add the constraint.  Get the variant max for this enum first.
@@ -122,42 +121,9 @@ pub(crate) fn lower_enums(
             ii.constraints.push((upper_bound_cmp_key, empty_span()));
 
             // Replace the type.
-            *ty = int_ty.clone();
-
-            let var_name = &ii
-                .vars
-                .get(var_key)
-                .ok_or_else(|| {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "missing var for key in vars slotmap",
-                            span: empty_span(),
-                        },
-                    })
-                })?
-                .name;
-
-            for (expr_key, expr) in ii.exprs.iter() {
-                if let Expr::PathByName(name, _) = expr {
-                    if name == var_name {
-                        ii.expr_types.insert(expr_key, int_ty.clone());
-                    }
-                } else if let Expr::PathByKey(key, _) = expr {
-                    let name = &ii
-                        .vars
-                        .get(*key)
-                        .ok_or_else(|| {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::Internal {
-                                    msg: "missing var for key in vars slotmap",
-                                    span: empty_span(),
-                                },
-                            })
-                        })?
-                        .name;
-                    if name == var_name {
-                        ii.expr_types.insert(expr_key, int_ty.clone());
-                    }
+            for (_, expr_type) in ii.expr_types.iter_mut() {
+                if ty == expr_type {
+                    *expr_type = int_ty.clone();
                 }
             }
         }

@@ -68,12 +68,12 @@ solve satisfy;
 // >>>
 
 // flattened <<<
-// var ::t: int;
-// var ::u: int;
-// var ::v: int;
+// var ::t: ::TheLetterA;
+// var ::u: ::TheLetterA;
+// var ::v: ::TheLetterA;
 // var ::i: int;
 // var ::r: real;
-// var ::e: int;
+// var ::e: ::Experience;
 // var ::j.0: int;
 // var ::q: real;
 // var ::h[0]: int;
