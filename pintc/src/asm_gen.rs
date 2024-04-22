@@ -78,22 +78,35 @@ pub struct AsmBuilder {
 
 impl AsmBuilder {
     /// Generates assembly for producing a storage key  where `expr` is stored.
+    /// Returns a bool indicating whether this is an external key (i.e. a key that we need to
+    /// access via `StateReadWordRangeExtern`)
     fn compile_state_key(
         &mut self,
         handler: &Handler,
         s_asm: &mut Vec<StateReadOp>,
         expr: &ExprKey,
         intent: &IntermediateIntent,
-    ) -> Result<(), ErrorEmitted> {
+    ) -> Result<bool, ErrorEmitted> {
         match &intent.exprs[*expr] {
             Expr::FnCall { name, args, .. } => {
                 if name.ends_with("::storage_lib::get") {
-                    // Expecting a single argument that is a `b256`
+                    // Expecting a single argument that is a `b256`: a key
                     assert_eq!(args.len(), 1);
 
                     let mut asm = Vec::new();
                     self.compile_expr(handler, &mut asm, &args[0], intent)?;
                     s_asm.extend(asm.iter().map(|op| StateReadOp::Constraint(*op)));
+                    Ok(false)
+                } else if name.ends_with("::storage_lib::get_extern") {
+                    // Expecting two arguments that are both `b256`: an address and a key
+                    assert_eq!(args.len(), 2);
+
+                    // First, get the set-of-intents address and the storage key
+                    let mut asm = Vec::new();
+                    self.compile_expr(handler, &mut asm, &args[0], intent)?;
+                    self.compile_expr(handler, &mut asm, &args[1], intent)?;
+                    s_asm.extend(asm.iter().map(|op| StateReadOp::Constraint(*op)));
+                    Ok(true)
                 } else {
                     unimplemented!("Other calls are currently not supported")
                 }
@@ -127,10 +140,58 @@ impl AsmBuilder {
                     StateReadOp::Constraint(Op::Push(0)),
                     StateReadOp::Constraint(Op::Push(key as i64)),
                 ]);
+                Ok(false)
+            }
+            Expr::ExternalStorageAccess {
+                extern_path, name, ..
+            } => {
+                // Get the `extern` declaration that the storage access refers to
+                let r#extern = &intent
+                    .externs
+                    .iter()
+                    .find(|e| e.name.to_string() == *extern_path)
+                    .expect("an extern block named `extern_path` must have been declared");
+
+                // Get the index of the storage variable in the storage block declaration
+                let storage_index = r#extern
+                    .storage_vars
+                    .iter()
+                    .position(|var| var.name == *name)
+                    .expect("storage access should have been checked before");
+
+                // Get the storage key as the sum of the sizes of all the types in the storage
+                // block that preceed the storage variable accessed.
+                //
+                // The actual storage key is a `b256` that is sum computed, left padded with 0s.
+                let key: usize = r#extern
+                    .storage_vars
+                    .iter()
+                    .take(storage_index)
+                    .map(|storage_var| storage_var.ty.size())
+                    .sum();
+
+                let Immediate::B256(val) = r#extern.address else {
+                    panic!("the address of the external set-of-intents must be a `b256` immediate")
+                };
+
+                // Push the external set-of-intents address followed by the base key
+                s_asm.extend(vec![
+                    StateReadOp::Constraint(Op::Push(val[0] as i64)),
+                    StateReadOp::Constraint(Op::Push(val[1] as i64)),
+                    StateReadOp::Constraint(Op::Push(val[2] as i64)),
+                    StateReadOp::Constraint(Op::Push(val[3] as i64)),
+                    StateReadOp::Constraint(Op::Push(0)),
+                    StateReadOp::Constraint(Op::Push(0)),
+                    StateReadOp::Constraint(Op::Push(0)),
+                    StateReadOp::Constraint(Op::Push(key as i64)),
+                ]);
+
+                // This is external!
+                Ok(true)
             }
             Expr::Index { expr, index, .. } => {
                 // Compile the key corresponding to `expr`
-                self.compile_state_key(handler, s_asm, expr, intent)?;
+                let is_extern = self.compile_state_key(handler, s_asm, expr, intent)?;
 
                 // Compile the index
                 let mut asm = vec![];
@@ -144,11 +205,10 @@ impl AsmBuilder {
                     4 + intent.expr_types[*index].size() as i64,
                 )));
                 s_asm.push(StateReadOp::Constraint(Op::Crypto(Crypto::Sha256)));
+                Ok(is_extern)
             }
             _ => unreachable!("there really shouldn't be anything else at this stage"),
         }
-
-        Ok(())
     }
 
     /// Generates assembly for an `ExprKey`.
@@ -245,7 +305,7 @@ impl AsmBuilder {
                 // Search for a decision variable or a state variable.
                 self.compile_path(asm, &intent.vars[*var_key].name, intent);
             }
-            Expr::StorageAccess(_, _) => {
+            Expr::StorageAccess(_, _) | Expr::ExternalStorageAccess { .. } => {
                 return Err(handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "unexpected storage access",
@@ -346,46 +406,23 @@ impl AsmBuilder {
     ) -> Result<(), ErrorEmitted> {
         let data_size = intent.expr_types[state.expr].size();
         let mut s_asm = Vec::new();
-        match intent.exprs.get(state.expr) {
-            // This is a special case that we still handle separately. This won't be around for too
-            // long though.
-            Some(Expr::FnCall { name, args, .. })
-                if name.ends_with("::storage_lib::get_extern") =>
-            {
-                // Expecting a single argument that is an integer
-                assert_eq!(args.len(), 2);
 
-                // First, get the set-of-intents address and the storage key
-                let mut asm = Vec::new();
-                self.compile_expr(handler, &mut asm, &args[0], intent)?;
-                self.compile_expr(handler, &mut asm, &args[1], intent)?;
-                s_asm.extend(asm.iter().map(|op| StateReadOp::Constraint(*op)));
+        // First, get the storage key
+        let is_extern = self.compile_state_key(handler, &mut s_asm, &state.expr, intent)?;
 
-                // Now, using the data size of the accessed type, produce an `Alloc` followed by a
-                // `StateReadWordRangeExtern` instruction
-                s_asm.extend(vec![
-                    StateReadOp::Constraint(Op::Push(data_size as i64)),
-                    StateReadOp::Memory(Memory::Alloc),
-                    StateReadOp::Constraint(Op::Push(data_size as i64)),
-                    StateReadOp::State(State::StateReadWordRangeExtern),
-                    StateReadOp::ControlFlow(ControlFlow::Halt),
-                ]);
-            }
-            _ => {
-                // First, get the storage key
-                self.compile_state_key(handler, &mut s_asm, &state.expr, intent)?;
-
-                // Now, using the data size of the accessed type, produce an `Alloc` followed by a
-                // `StateReadWordRange` instruction
-                s_asm.extend(vec![
-                    StateReadOp::Constraint(Op::Push(data_size as i64)),
-                    StateReadOp::Memory(Memory::Alloc),
-                    StateReadOp::Constraint(Op::Push(data_size as i64)),
-                    StateReadOp::State(State::StateReadWordRange),
-                    StateReadOp::ControlFlow(ControlFlow::Halt),
-                ]);
-            }
-        }
+        // Now, using the data size of the accessed type, produce an `Alloc` followed by a
+        // `StateReadWordRange` instruction or a `StateReadWordRangeExtern` instruction
+        s_asm.extend(vec![
+            StateReadOp::Constraint(Op::Push(data_size as i64)),
+            StateReadOp::Memory(Memory::Alloc),
+            StateReadOp::Constraint(Op::Push(data_size as i64)),
+            if is_extern {
+                StateReadOp::State(State::StateReadWordRangeExtern)
+            } else {
+                StateReadOp::State(State::StateReadWordRange)
+            },
+            StateReadOp::ControlFlow(ControlFlow::Halt),
+        ]);
         self.s_asm.push(s_asm);
 
         // Now add the actual `StateSlot`

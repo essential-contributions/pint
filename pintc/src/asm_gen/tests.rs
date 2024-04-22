@@ -854,3 +854,154 @@ intent Simple {
         "#]],
     );
 }
+
+#[test]
+fn storage_external_access() {
+    let intents = &compile(
+        r#"
+extern Extern1(0x1233683A8F6B8AF1707FF76F40FC5EE714872F88FAEBB8F22851E93F56770128) {
+    storage {
+        x: int,
+        map: (int => (bool => b256)),
+    }
+}
+
+extern Extern2(0x0C15A3534349FC710174299BA8F0347284955B35A28C01CF45A910495FA1EF2D) {
+    storage {
+        w: int,
+        map: (b256 => (int => bool)),
+    }
+}
+
+intent Foo {
+    state x = Extern1::storage::x;
+    state y = Extern1::storage::map[3][true];
+    state w = Extern2::storage::w;
+    state z = Extern2::storage::map[0x1111111111111111111111111111111111111111111111111111111111111111][69];
+
+    constraint x' - x == 1;
+    constraint y == 0x2222222222222222222222222222222222222222222222222222222222222222;
+    constraint w' - w == 3;
+    constraint z' == false;
+}
+        "#,
+    );
+
+    check(
+        &format!("{intents}"),
+        expect_test::expect![[r#"
+            intent ::Foo {
+                --- Constraints ---
+                constraint 0
+                  Push(0)
+                  Push(1)
+                  Access(State)
+                  Push(0)
+                  Push(0)
+                  Access(State)
+                  Alu(Sub)
+                  Push(1)
+                  Pred(Eq)
+                constraint 1
+                  Push(1)
+                  Push(4)
+                  Push(0)
+                  Access(StateRange)
+                  Push(2459565876494606882)
+                  Push(2459565876494606882)
+                  Push(2459565876494606882)
+                  Push(2459565876494606882)
+                  Pred(Eq4)
+                constraint 2
+                  Push(5)
+                  Push(1)
+                  Access(State)
+                  Push(5)
+                  Push(0)
+                  Access(State)
+                  Alu(Sub)
+                  Push(3)
+                  Pred(Eq)
+                constraint 3
+                  Push(6)
+                  Push(1)
+                  Access(State)
+                  Push(0)
+                  Pred(Eq)
+                --- State Reads ---
+                state read 0
+                  Constraint(Push(1311506517218527985))
+                  Constraint(Push(8106469911493893863))
+                  Constraint(Push(1479203267986307314))
+                  Constraint(Push(2905359692873531688))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRangeExtern)
+                  ControlFlow(Halt)
+                state read 1
+                  Constraint(Push(1311506517218527985))
+                  Constraint(Push(8106469911493893863))
+                  Constraint(Push(1479203267986307314))
+                  Constraint(Push(2905359692873531688))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(1))
+                  Constraint(Push(3))
+                  Constraint(Push(5))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(1))
+                  Constraint(Push(5))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(4))
+                  Memory(Alloc)
+                  Constraint(Push(4))
+                  State(StateReadWordRangeExtern)
+                  ControlFlow(Halt)
+                state read 2
+                  Constraint(Push(870781680972594289))
+                  Constraint(Push(104754439867348082))
+                  Constraint(Push(-8893101603254697521))
+                  Constraint(Push(5019561167004233517))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRangeExtern)
+                  ControlFlow(Halt)
+                state read 3
+                  Constraint(Push(870781680972594289))
+                  Constraint(Push(104754439867348082))
+                  Constraint(Push(-8893101603254697521))
+                  Constraint(Push(5019561167004233517))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(1))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(8))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(69))
+                  Constraint(Push(5))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRangeExtern)
+                  ControlFlow(Halt)
+            }
+
+        "#]],
+    );
+}

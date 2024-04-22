@@ -603,6 +603,176 @@ storage {
 }
 
 #[test]
+fn extern_decl() {
+    let pint = yp::PintParser::new();
+
+    let src = r#"
+extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+    storage {
+        integer: int,    
+        boolean: bool,
+    }
+}
+"#;
+
+    check(
+        &run_parser!(pint, src),
+        expect_test::expect![[r#"
+            extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+                storage {
+                    integer: int,
+                    boolean: bool,
+                }
+            }"#]],
+    );
+
+    // No trailing comma
+    check(
+        &run_parser!(
+            pint,
+            r#"
+            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+                 storage { x: int, y: bool }
+            }"#
+        ),
+        expect_test::expect![[r#"
+            extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+                storage {
+                    x: int,
+                    y: bool,
+                }
+            }"#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"
+            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+                 storage { x: int, y: bool }
+            }
+            extern Bar(0x2222222222222222222222222222222222222222222222222222222222222222) {
+                 storage { x: int, y: bool }
+            }
+            "#
+        ),
+        expect_test::expect![[r#"
+            extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+                storage {
+                    x: int,
+                    y: bool,
+                }
+            }
+            extern ::Bar(0x2222222222222222222222222222222222222222222222222222222222222222) {
+                storage {
+                    x: int,
+                    y: bool,
+                }
+            }"#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"
+            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+                storage { x: int, y: bool, z: b256, w: (int => (bool => b256)) }
+            }"#
+        ),
+        expect_test::expect![[r#"
+            extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+                storage {
+                    x: int,
+                    y: bool,
+                    z: b256,
+                    w: ( int => ( bool => b256 ) ),
+                }
+            }"#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"
+            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) { storage { } }"#
+        ),
+        expect_test::expect![[r#"
+            extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+                storage {
+                }
+            }"#]],
+    );
+    check(
+        &run_parser!(
+            pint,
+            r#"
+            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) { storage { } }
+            extern Foo(0x2222222222222222222222222222222222222222222222222222222222222222) { storage { } }
+            "#
+        ),
+        expect_test::expect![[r#"
+            symbol `Foo` has already been declared
+            @20..23: previous declaration of the symbol `Foo` here
+            @127..130: `Foo` redeclared here
+            `Foo` must be declared or imported only once in this scope
+        "#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"
+            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+                storage { x, y }
+            }"#
+        ),
+        expect_test::expect![[r#"
+            expected `:`, found `,`
+            @121..122: expected `:`
+        "#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"
+            extern Foo { storage { x: int, y: int } }"#
+        ),
+        expect_test::expect![[r#"
+            expected `(`, found `{`
+            @24..25: expected `(`
+        "#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"
+            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) { }"#
+        ),
+        expect_test::expect![[r#"
+            expected `storage`, found `}`
+            @94..95: expected `storage`
+        "#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"
+            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) { 
+                storage { }
+                storage { }
+            }"#
+        ),
+        expect_test::expect![[r#"
+            expected `}`, found `storage`
+            @139..146: expected `}`
+        "#]],
+    );
+}
+
+#[test]
 fn storage_access() {
     let expr = yp::StateInitParser::new();
 
@@ -649,6 +819,57 @@ fn storage_access() {
         expect_test::expect![[r#"
             expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `storage`
             @11..18: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+        "#]],
+    );
+}
+
+#[test]
+fn external_storage_access() {
+    let expr = yp::StateInitParser::new();
+
+    check(
+        &run_parser!(expr, r#"Foo::storage::foo"#),
+        expect_test::expect!["::Foo::storage::foo"],
+    );
+
+    check(
+        &run_parser!(expr, r#"Foo::Bar::storage::balances[0x111]"#),
+        expect_test::expect!["::Foo::Bar::storage::balances[273]"],
+    );
+
+    check(
+        &run_parser!(expr, r#"::Foo::storage::balances[0x111][foo()][t[3].5]"#),
+        expect_test::expect!["::Foo::storage::balances[273][::foo()][::t[3].5]"],
+    );
+
+    check(
+        &run_parser!(expr, r#"Bar::storage_lib::foo()"#),
+        expect_test::expect!["::Bar::storage_lib::foo()"],
+    );
+
+    let pint = yp::PintParser::new();
+
+    check(
+        &run_parser!(pint, r#"let x = ::Foo::storage::foo;"#),
+        expect_test::expect![[r#"
+            expected `ident`, or `macro_name`, found `storage`
+            @15..22: expected `ident`, or `macro_name`
+        "#]],
+    );
+
+    check(
+        &run_parser!(pint, r#"let x = Bar::storage::map[4][3];"#),
+        expect_test::expect![[r#"
+            expected `ident`, or `macro_name`, found `storage`
+            @13..20: expected `ident`, or `macro_name`
+        "#]],
+    );
+
+    check(
+        &run_parser!(pint, r#"constraint ::Foo::storage::map[69] == 0;"#),
+        expect_test::expect![[r#"
+            expected `ident`, or `macro_name`, found `storage`
+            @18..25: expected `ident`, or `macro_name`
         "#]],
     );
 }

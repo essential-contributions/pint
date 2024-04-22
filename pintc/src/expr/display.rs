@@ -25,6 +25,9 @@ impl DisplayWithII for &super::Expr {
             super::Expr::PathByName(p, _) => write!(f, "{p}"),
             super::Expr::PathByKey(k, _) => write!(f, "{}", ii.vars[*k].name),
             super::Expr::StorageAccess(p, _) => write!(f, "storage::{p}"),
+            super::Expr::ExternalStorageAccess {
+                extern_path, name, ..
+            } => write!(f, "{extern_path}::storage::{name}"),
 
             super::Expr::UnaryOp { op, expr, .. } => {
                 if matches!(op, expr::UnaryOp::NextState) {

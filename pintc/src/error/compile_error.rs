@@ -116,6 +116,8 @@ pub enum CompileError {
     StorageSymbolNotFound { name: String, span: Span },
     #[error("cannot find storage variable `{name}`")]
     MissingStorageBlock { name: String, span: Span },
+    #[error("cannot find `extern` declaration `{name}`")]
+    MissingExtern { name: String, span: Span },
     #[error("attempt to use a non-constant value as an array length")]
     NonConstArrayLength { span: Span },
     #[error("attempt to use an invalid constant as an array length")]
@@ -130,6 +132,8 @@ pub enum CompileError {
     CannotIndexIntoValue { span: Span, index_span: Span },
     #[error("unable to determine expression type")]
     UnknownType { span: Span },
+    #[error("undefined type")]
+    UndefinedType { span: Span },
     #[error("condition in if-expression must be a boolean")]
     IfCondTypeNotBool(Span),
     #[error("branches in if-expression must have the same type")]
@@ -488,12 +492,18 @@ impl ReportableError for CompileError {
 
             MissingStorageBlock { span, .. } => {
                 vec![ErrorLabel {
-                    message: "no storage declaration found in this program".to_string(),
+                    message: "no `extern` declaration ".to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
             }
-
+            MissingExtern { name, span } => {
+                vec![ErrorLabel {
+                    message: format!("cannot find `extern` declaration `{name}`"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
             NonConstArrayLength { span } | NonConstArrayIndex { span } => {
                 vec![ErrorLabel {
                     message: "this must be a constant".to_string(),
@@ -543,6 +553,12 @@ impl ReportableError for CompileError {
 
             UnknownType { span } => vec![ErrorLabel {
                 message: "type of this expression is ambiguous".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            UndefinedType { span } => vec![ErrorLabel {
+                message: "type is undefined".to_string(),
                 span: span.clone(),
                 color: Color::Red,
             }],
@@ -912,6 +928,7 @@ impl ReportableError for CompileError {
             | SymbolNotFound { .. }
             | StorageSymbolNotFound { .. }
             | MissingStorageBlock { .. }
+            | MissingExtern { .. }
             | NonConstArrayLength { .. }
             | InvalidConstArrayLength { .. }
             | NonConstArrayIndex { .. }
@@ -924,6 +941,7 @@ impl ReportableError for CompileError {
             | MacroUnrecognizedSpliceVar { .. }
             | MacroSpliceVarNotArray { .. }
             | UnknownType { .. }
+            | UndefinedType { .. }
             | IfCondTypeNotBool(_)
             | IfBranchesTypeMismatch { .. }
             | OperatorTypeError { .. }
@@ -1026,6 +1044,7 @@ impl Spanned for CompileError {
             | SymbolNotFound { span, .. }
             | StorageSymbolNotFound { span, .. }
             | MissingStorageBlock { span, .. }
+            | MissingExtern { span, .. }
             | NonConstArrayIndex { span }
             | InvalidConstArrayLength { span }
             | NonConstArrayLength { span }
@@ -1033,6 +1052,7 @@ impl Spanned for CompileError {
             | ArrayIndexOutOfBounds { span }
             | CannotIndexIntoValue { span, .. }
             | UnknownType { span }
+            | UndefinedType { span }
             | IfCondTypeNotBool(span)
             | IndexExprNonIndexable { span, .. }
             | ArrayAccessWithWrongType { span, .. }
