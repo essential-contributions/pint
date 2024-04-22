@@ -309,86 +309,143 @@ impl IntermediateIntent {
         Exprs::new(self)
     }
 
-    /// Removes a key `expr_key` and all of its sub expressions from `self.exprs`.
-    ///
-    /// It *doee not* handle removing other objects that rely on `expr_key` such as constraints. It
-    /// is up to the caller to decide what to do with those.
-    ///
-    /// Assumes that `expr_key` and its sub expressions belongs to `self.exprs`. Panics otherwise.
-    pub(crate) fn remove_expr(&mut self, expr_key: ExprKey) {
+    pub(crate) fn visitor<F: FnMut(ExprKey, &Expr)>(&self, kind: VisitorKind, mut f: F) {
+        for expr_key in self.root_set() {
+            self.visitor_from_key(kind, expr_key, &mut |k, e| f(k, e));
+        }
+    }
+
+    // Panics if `root_key` is invalid.
+    fn visitor_from_key(
+        &self,
+        kind: VisitorKind,
+        expr_key: ExprKey,
+        f: &mut impl FnMut(ExprKey, &Expr),
+    ) {
         let expr = self
             .exprs
             .get(expr_key)
-            .expect("expr key must belong to ii.expr")
-            .clone();
+            .expect("expr key must belong to ii.expr");
 
-        match &expr {
-            Expr::UnaryOp { expr, .. } => self.remove_expr(*expr),
+        if kind == VisitorKind::DepthFirstParentsBeforeChildren {
+            // Visit the parent before recursing.
+            f(expr_key, expr);
+        }
+
+        match expr {
+            Expr::Error(_)
+            | Expr::Immediate { .. }
+            | Expr::PathByKey(_, _)
+            | Expr::PathByName(_, _)
+            | Expr::StorageAccess(_, _)
+            | Expr::ExternalStorageAccess { .. }
+            | Expr::MacroCall { .. } => {}
+
+            Expr::UnaryOp { expr, .. } => self.visitor_from_key(kind, *expr, f),
+
             Expr::BinaryOp { lhs, rhs, .. } => {
-                self.remove_expr(*lhs);
-                self.remove_expr(*rhs);
+                self.visitor_from_key(kind, *lhs, f);
+                self.visitor_from_key(kind, *rhs, f);
             }
+
             Expr::FnCall { args, .. } => {
-                args.iter().for_each(|expr| self.remove_expr(*expr));
+                for arg in args {
+                    self.visitor_from_key(kind, *arg, f);
+                }
             }
+
             Expr::If {
                 condition,
                 then_block,
                 else_block,
                 ..
             } => {
-                self.remove_expr(*condition);
-                self.remove_expr(*then_block);
-                self.remove_expr(*else_block);
+                self.visitor_from_key(kind, *condition, f);
+                self.visitor_from_key(kind, *then_block, f);
+                self.visitor_from_key(kind, *else_block, f);
             }
-            Expr::Array { elements, .. } => {
-                elements.iter().for_each(|expr| self.remove_expr(*expr));
+
+            Expr::Array {
+                elements,
+                range_expr,
+                ..
+            } => {
+                for element in elements {
+                    self.visitor_from_key(kind, *element, f);
+                }
+                self.visitor_from_key(kind, *range_expr, f);
             }
+
             Expr::Index { expr, index, .. } => {
-                self.remove_expr(*expr);
-                self.remove_expr(*index);
+                self.visitor_from_key(kind, *expr, f);
+                self.visitor_from_key(kind, *index, f);
             }
+
             Expr::Tuple { fields, .. } => {
-                fields.iter().for_each(|(_, expr)| self.remove_expr(*expr));
+                for (_, field) in fields {
+                    self.visitor_from_key(kind, *field, f);
+                }
             }
+
             Expr::TupleFieldAccess { tuple, .. } => {
-                self.remove_expr(*tuple);
+                self.visitor_from_key(kind, *tuple, f);
             }
-            Expr::Cast { value, .. } => {
-                // Should we handle the `ty` field here too since it also depends on an `ExprKey`
-                self.remove_expr(*value);
-            }
+
+            Expr::Cast { value, .. } => self.visitor_from_key(kind, *value, f),
+
             Expr::In {
                 value, collection, ..
             } => {
-                self.remove_expr(*value);
-                self.remove_expr(*collection);
+                self.visitor_from_key(kind, *value, f);
+                self.visitor_from_key(kind, *collection, f);
             }
+
+            Expr::Range { lb, ub, .. } => {
+                self.visitor_from_key(kind, *lb, f);
+                self.visitor_from_key(kind, *ub, f);
+            }
+
             Expr::Generator {
                 gen_ranges,
                 conditions,
                 body,
                 ..
             } => {
-                gen_ranges
-                    .iter()
-                    .for_each(|(_, expr)| self.remove_expr(*expr));
-                conditions.iter().for_each(|expr| self.remove_expr(*expr));
-                self.remove_expr(*body);
+                for (_, range) in gen_ranges {
+                    self.visitor_from_key(kind, *range, f);
+                }
+                for condition in conditions {
+                    self.visitor_from_key(kind, *condition, f);
+                }
+                self.visitor_from_key(kind, *body, f);
             }
-            // Nothing to do here. These do not depend on any `ExprKey`s
-            Expr::Immediate { .. }
-            | Expr::PathByName { .. }
-            | Expr::PathByKey { .. }
-            | Expr::StorageAccess(..)
-            | Expr::ExternalStorageAccess { .. }
-            | Expr::MacroCall { .. }
-            | Expr::Range { .. }
-            | Expr::Error(_) => {}
-        };
+        }
 
-        self.exprs.remove(expr_key);
+        if kind == VisitorKind::DepthFirstChildrenBeforeParents {
+            // Visit the parent after recursing.
+            f(expr_key, expr);
+        }
     }
+
+    /// Return an iterator to the 'root set' of expressions, based on the constraints, states and
+    /// directives.
+    fn root_set(&self) -> impl Iterator<Item = ExprKey> + '_ {
+        self.constraints
+            .iter()
+            .map(|c| c.0)
+            .chain(self.states.iter().map(|(_, state)| state.expr))
+            .chain(
+                self.directives
+                    .iter()
+                    .filter_map(|(solve_func, _)| solve_func.get_expr().cloned()),
+            )
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum VisitorKind {
+    DepthFirstChildrenBeforeParents,
+    DepthFirstParentsBeforeChildren,
 }
 
 /// A state specification with an optional type.
@@ -524,17 +581,12 @@ impl<T: DisplayWithII> DisplayWithII for &T {
 
 /// [`Exprs`] is an iterator for all the _reachable_ expressions in the IntermediateIntent.
 ///
-/// This maybe overkill -- implementing an interator for a tree structure is tricky.  Below we have
-/// a queue and a visited set just to keep track of where we're up to.
-///
 /// Items are popped off the queue and are returned next.  If they're a branch then their children
 /// are queued.  The visited set is updated and used to avoid following a branch multiple
 /// times.
 ///
-/// Like most iterators [`Exprs`] keeps a reference to the IntermediateIntent and so this iterator
-/// is mostly useful for finding or filtering for specific exprs for further processing, e.g., in a
-/// transform pass.  So perhaps, instead of this crazy impl Iterator it'd make more sense to have
-/// just a `gather_by()` method which takes a predicate and returns a `Vec` of matches.  We'll see.
+/// An alternative is to use `[IntermediateIntent::visitor]` which will also iterate
+/// for each reachable expression but does not implement `Interator` and instead takes a closure.
 
 #[derive(Debug)]
 pub(crate) struct Exprs<'a> {
@@ -546,17 +598,7 @@ pub(crate) struct Exprs<'a> {
 impl<'a> Exprs<'a> {
     fn new(ii: &'a IntermediateIntent) -> Exprs {
         // We start with all the constraint, directive and state exprs.
-        let queue = ii
-            .constraints
-            .iter()
-            .map(|c| c.0)
-            .chain(ii.states.iter().map(|(_, state)| state.expr))
-            .chain(
-                ii.directives
-                    .iter()
-                    .filter_map(|(solve_func, _)| solve_func.get_expr().cloned()),
-            )
-            .collect();
+        let queue = ii.root_set().collect();
 
         // We also need to avoid macro calls which are not actually expressions.  We can
         // pre-populate the visited set to avoid them.

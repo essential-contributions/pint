@@ -1,16 +1,16 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{BinaryOp, GeneratorKind, Ident, Immediate},
-    intermediate::{Expr, ExprKey, IntermediateIntent},
-    span::{empty_span, Span, Spanned},
+    expr::{BinaryOp, GeneratorKind, Immediate},
+    intermediate::{Expr, ExprKey, IntermediateIntent, VisitorKind},
+    span::{empty_span, Spanned},
     types::{PrimitiveKind, Type},
 };
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
-/// Given an `IntermediateIntent`, a list of indices with their ranges `gen_ranges`, an optional
-/// list of `conditions`, and a generator body, return a new expression that is the conjunction of
-/// all the possible valid generator bodies.
+/// Given an `IntermediateIntent`, and a generator expression containing a list of indices with
+/// their ranges `gen_ranges`, an optional list of `conditions`, and a body, return a new
+/// expression that is the conjunction or disjunction of all the possible valid generator bodies.
 ///
 /// For example,
 /// ```pint
@@ -20,7 +20,8 @@ use std::collections::{HashMap, HashSet};
 /// becomes
 ///
 /// ```pint
-///    a[0] != b[0]
+/// true
+/// && a[0] != b[0]
 /// && a[0] != b[1]
 /// && a[0] != a[2]
 /// && a[1] != b[1]
@@ -30,15 +31,22 @@ use std::collections::{HashMap, HashSet};
 fn unroll_generator(
     handler: &Handler,
     ii: &mut IntermediateIntent,
-    kind: &GeneratorKind,
-    gen_ranges: &Vec<(Ident, ExprKey)>,
-    conditions: &Vec<ExprKey>,
-    body: ExprKey,
-    span: &Span,
-) -> Result<Expr, ErrorEmitted> {
+    generator: Expr,
+) -> Result<ExprKey, ErrorEmitted> {
+    let Expr::Generator {
+        kind,
+        gen_ranges,
+        conditions,
+        body,
+        span,
+    } = generator
+    else {
+        unreachable!("only Expr::Generator is passed here")
+    };
+
     // Sanity check
     let mut indices = HashSet::new();
-    for range in gen_ranges {
+    for range in &gen_ranges {
         if !indices.insert(&range.0.name) {
             // The name is already in the HashSet, indicating a duplicate
             // Find the first occurance of the index
@@ -117,27 +125,33 @@ fn unroll_generator(
 
     // Collect the names of all the indices
     let indices = gen_ranges
-        .iter()
-        .map(|(index, _)| index.clone())
+        .into_iter()
+        .map(|(index, _)| index)
         .collect::<Vec<_>>();
 
-    // Generate a new expression that is the conjunction of all the unrolled expressions. Consider
-    // the following:
+    // Generate a new expression that is the conjunction or disjunction of all the unrolled
+    // expressions. Consider the following:
     // 1. All possible combinations of the indices given `gen_ranges`: this is tracked in
     //    `product_of_ranges`.
     // 2. All the conditions which restrict the possible index combinations.
 
+    let bool_ty = Type::Primitive {
+        kind: PrimitiveKind::Bool,
+        span: span.clone(),
+    };
+
     // Base value = `true` for foralls and `false` for exists
-    let mut unrolled = Expr::Immediate {
+    let mut unrolled = ii.exprs.insert(Expr::Immediate {
         value: Immediate::Bool(match kind {
             GeneratorKind::ForAll => true,
             GeneratorKind::Exists => false,
         }),
         span: span.clone(),
-    };
+    });
+    ii.expr_types.insert(unrolled, bool_ty.clone());
 
     for values in product_of_ranges {
-        // Build a map from indicies to their concrete values
+        // Build a map from indices to their concrete values
         let values_map = indices
             .iter()
             .zip(values.iter())
@@ -146,7 +160,7 @@ fn unroll_generator(
 
         // Check each condition, if available, against the values map above
         let mut satisfied = true;
-        for condition in conditions {
+        for condition in &conditions {
             match ii
                 .exprs
                 .get(*condition)
@@ -170,25 +184,19 @@ fn unroll_generator(
         }
 
         // If all conditions are satisifed (or if none are present), then update the resulting
-        // expression by ANDing it with the newly unrolled generator body.
+        // expression by joining it with the newly unrolled generator body.
         if satisfied {
-            let lhs = ii.exprs.insert(unrolled.clone());
-            ii.expr_types.insert(
-                lhs,
-                Type::Primitive {
-                    kind: PrimitiveKind::Bool,
-                    span: span.clone(),
-                },
-            );
-            unrolled = Expr::BinaryOp {
+            let rhs = body.plug_in(ii, &values_map);
+            unrolled = ii.exprs.insert(Expr::BinaryOp {
                 op: match kind {
                     GeneratorKind::ForAll => BinaryOp::LogicalAnd,
                     GeneratorKind::Exists => BinaryOp::LogicalOr,
                 },
-                lhs,
-                rhs: body.plug_in(ii, &values_map),
+                lhs: unrolled,
+                rhs,
                 span: span.clone(),
-            };
+            });
+            ii.expr_types.insert(unrolled, bool_ty.clone());
         }
     }
 
@@ -201,52 +209,37 @@ pub(crate) fn unroll_generators(
     handler: &Handler,
     ii: &mut IntermediateIntent,
 ) -> Result<(), ErrorEmitted> {
-    // Preferably we'd use `ii.exprs()` to iterate here but it introduces ordering problems.  See
-    // https://github.com/essential-contributions/pint/issues/539
-    ii.exprs
-        .iter()
-        .filter_map(|(key, expr)| {
-            // Only collect generators
-            if let Expr::Generator {
-                kind,
-                gen_ranges,
-                conditions,
-                body,
-                span,
-            } = expr
-            {
-                Some((
-                    key,
-                    kind.clone(),
-                    gen_ranges.clone(),
-                    conditions.clone(),
-                    *body,
-                    span.clone(),
-                ))
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>()
-        .iter()
-        .for_each(|(key, kind, gen_ranges, conditions, body, span)| {
-            // Update the key of the generator to map to the new unrolled expression (the big
-            // conjunction)
-            if let Ok(unrolled) =
-                unroll_generator(handler, ii, kind, gen_ranges, conditions, *body, span)
-            {
-                *ii.exprs
-                    .get_mut(*key)
-                    .expect("key guaranteed to exist in the map!") = unrolled;
+    // Perform a depth first iteration of all expressions searching for generators, ensuring that
+    // dependencies are detected.
+    //
+    // With nested generators, e.g.,
+    //     forall i in xs {
+    //         forall j in ys {
+    //             ...
+    //         }
+    //     }
+    // by explicitly going depth first and child-before-parent we'll always encounter the inner
+    // generator (`j in ys`) before the outer (`i in xs`).
 
-                // Clean up all keys used by the generator now that it's gone
-                gen_ranges
-                    .iter()
-                    .for_each(|(_, expr)| ii.remove_expr(*expr));
-                conditions.iter().for_each(|expr| ii.remove_expr(*expr));
-                ii.remove_expr(*body);
+    let mut generators = Vec::new();
+    ii.visitor(
+        VisitorKind::DepthFirstChildrenBeforeParents,
+        |expr_key: ExprKey, expr: &Expr| {
+            // Only collect generators and only by key since unrolling nested generators will
+            // update the outer generators.
+            if matches!(expr, Expr::Generator { .. }) {
+                generators.push(expr_key);
             }
-        });
+        },
+    );
+
+    for old_generator_key in generators {
+        // On success, update the key of the generator to map to the new unrolled expression.
+        let generator = ii.exprs.get(old_generator_key).unwrap().clone();
+        if let Ok(unrolled_generator_key) = unroll_generator(handler, ii, generator) {
+            ii.replace_exprs(old_generator_key, unrolled_generator_key);
+        }
+    }
 
     if handler.has_errors() {
         return Err(handler.cancel());

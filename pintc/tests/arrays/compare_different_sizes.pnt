@@ -20,9 +20,13 @@ solve satisfy;
 // solve satisfy;
 // >>>
 
-// Only getting the single error here until we support error recovery in the middle end.
-//
 // flattening_failure <<<
+// comparison between differently sized arrays
+// @113..131: cannot compare arrays of different sizes
+// the left-hand side argument of the `!=` operator has 2 elements while the right-hand side argument has 3 elements
+// comparison between differently sized arrays
+// @94..100: cannot compare arrays of different sizes
+// the left-hand side argument of the `!=` operator has 4 elements while the right-hand side argument has 2 elements
 // comparison between differently sized arrays
 // @75..81: cannot compare arrays of different sizes
 // the left-hand side argument of the `==` operator has 4 elements while the right-hand side argument has 5 elements

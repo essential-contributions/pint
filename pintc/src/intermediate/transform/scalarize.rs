@@ -315,24 +315,32 @@ fn scalarize_array_access(
 ) -> Result<(), ErrorEmitted> {
     // Gather all accesses into this specific array.
     let accesses: Vec<(ExprKey, ExprKey, Span)> = ii
-        .exprs
-        .iter()
-        .filter_map(|(expr_key, expr)| {
-            if let Expr::Index { expr, index, span } = expr {
-                match ii.exprs.get(*expr).expect("expr key guaranteed to exist") {
-                    Expr::PathByName(path, _) if path == array_var_name => {
-                        Some((expr_key, *index, span.clone()))
-                    }
+        .exprs()
+        .filter_map(|expr_key| {
+            ii.exprs.get(expr_key).and_then(|expr| {
+                if let Expr::Index {
+                    expr: idx_expr,
+                    index,
+                    span,
+                } = expr
+                {
+                    match ii.exprs.get(*idx_expr) {
+                        Some(Expr::PathByName(path, _)) if path == array_var_name => {
+                            Some((expr_key, *index, span.clone()))
+                        }
 
-                    Expr::PathByKey(path_var_key, _) if *path_var_key == array_var_key => {
-                        Some((expr_key, *index, span.clone()))
-                    }
+                        Some(Expr::PathByKey(path_var_key, _))
+                            if *path_var_key == array_var_key =>
+                        {
+                            Some((expr_key, *index, span.clone()))
+                        }
 
-                    _ => None,
+                        _ => None,
+                    }
+                } else {
+                    None
                 }
-            } else {
-                None
-            }
+            })
         })
         .collect();
 
@@ -402,10 +410,9 @@ fn lower_array_compares(
 ) -> Result<bool, ErrorEmitted> {
     // Find comparisons between arrays and save the op details.
     let array_compare_ops = ii
-        .exprs
-        .iter()
-        .filter_map(|(key, expr)| match expr {
-            Expr::BinaryOp { op, lhs, rhs, span }
+        .exprs()
+        .filter_map(|expr_key| match ii.exprs.get(expr_key) {
+            Some(Expr::BinaryOp { op, lhs, rhs, span })
                 if (*op == BinaryOp::Equal || *op == BinaryOp::NotEqual) =>
             {
                 ii.expr_types.get(*lhs).and_then(get_array_params).and_then(
@@ -414,7 +421,7 @@ fn lower_array_compares(
                             |(_rhs_el_ty, _, rhs_opt_size, _)| {
                                 // Save all the details.
                                 (
-                                    key,
+                                    expr_key,
                                     *op,
                                     *lhs,
                                     *lhs_opt_size,
@@ -436,20 +443,32 @@ fn lower_array_compares(
         return Ok(false);
     }
 
-    let get_array_size = |array_ty: &Option<i64>| {
-        array_ty.ok_or_else(|| {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "array type in missing its size in lower_array_compares()",
-                    span: empty_span(),
-                },
+    // Convert an array comparison into a chain of element comparisons.  Use a local function to
+    // simplify short-cutting on failure.
+    #[allow(clippy::too_many_arguments)]
+    fn build_logical_and_chain(
+        handler: &Handler,
+        ii: &mut IntermediateIntent,
+        op_expr_key: ExprKey,
+        op: BinaryOp,
+        lhs_array_key: ExprKey,
+        lhs_opt_size: Option<i64>,
+        rhs_array_key: ExprKey,
+        rhs_opt_size: Option<i64>,
+        el_ty: Type,
+        span: Span,
+    ) -> Result<(), ErrorEmitted> {
+        let get_array_size = |array_ty: &Option<i64>| {
+            array_ty.ok_or_else(|| {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "array type in missing its size in lower_array_compares()",
+                        span: empty_span(),
+                    },
+                })
             })
-        })
-    };
+        };
 
-    for (op_expr_key, op, lhs_array_key, lhs_opt_size, rhs_array_key, rhs_opt_size, el_ty, span) in
-        array_compare_ops
-    {
         let lhs_size = get_array_size(&lhs_opt_size)?;
         let rhs_size = get_array_size(&rhs_opt_size)?;
 
@@ -540,9 +559,21 @@ fn lower_array_compares(
         ii.replace_exprs(op_expr_key, and_chain_expr_key);
         ii.exprs.remove(op_expr_key);
         ii.expr_types.remove(op_expr_key);
+
+        Ok(())
     }
 
-    Ok(true)
+    // Loop for all the candidates, gathering any and all errors as we go.
+    for op in array_compare_ops {
+        let _ =
+            build_logical_and_chain(handler, ii, op.0, op.1, op.2, op.3, op.4, op.5, op.6, op.7);
+    }
+
+    if handler.has_errors() {
+        Err(handler.cancel())
+    } else {
+        Ok(true)
+    }
 }
 
 /// Scalarize tuples by extracting the tuple fields out into their own decision variables.  The
@@ -798,8 +829,8 @@ fn split_tuple_vars(
     let mut new_accesses = Vec::new();
 
     // Iterate for each tuple access which is into a var and get the new var key.
-    for (expr_key, expr) in ii.exprs.iter() {
-        if let Expr::TupleFieldAccess { tuple, field, span } = expr {
+    for expr_key in ii.exprs() {
+        if let Some(Expr::TupleFieldAccess { tuple, field, span }) = ii.exprs.get(expr_key) {
             let mut push_new_access = |tuple_name: String| {
                 // Work out the access name after the dot.
                 let field_name = match field {
