@@ -768,6 +768,492 @@ intent Simple {
 }
 
 #[test]
+fn storage_access_tuples() {
+    let intents = &compile(
+        r#"
+storage {
+    u: { b256, int },
+    t: { b256, { int, int } },
+    w: { addr: b256, inner: { x: int, int } },
+}
+
+intent Foo {
+    state u = storage::u;
+    state u0 = storage::u.0;
+    state u1 = storage::u.1;
+
+    state t = storage::t;
+    state t0 = storage::t .0;
+    state t10 = storage::t.1.0;
+    state t11 = storage::t.1.1;
+
+    state w = storage::w;
+    state w0 = storage::w .addr;
+    state w10 = storage::w.inner.x;
+    state w11 = storage::w.inner.1;
+}
+        "#,
+    );
+
+    check(
+        &format!("{intents}"),
+        expect_test::expect![[r#"
+            intent ::Foo {
+                --- Constraints ---
+                --- State Reads ---
+                state read 0
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(5))
+                  Memory(Alloc)
+                  Constraint(Push(5))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 1
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Pop)
+                  Constraint(Push(0))
+                  Constraint(Push(4))
+                  Memory(Alloc)
+                  Constraint(Push(4))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 2
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Pop)
+                  Constraint(Push(4))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 3
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(5))
+                  Constraint(Push(6))
+                  Memory(Alloc)
+                  Constraint(Push(6))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 4
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(5))
+                  Constraint(Pop)
+                  Constraint(Push(5))
+                  Constraint(Push(4))
+                  Memory(Alloc)
+                  Constraint(Push(4))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 5
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(5))
+                  Constraint(Pop)
+                  Constraint(Push(9))
+                  Constraint(Pop)
+                  Constraint(Push(9))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 6
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(5))
+                  Constraint(Pop)
+                  Constraint(Push(9))
+                  Constraint(Pop)
+                  Constraint(Push(10))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 7
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(11))
+                  Constraint(Push(6))
+                  Memory(Alloc)
+                  Constraint(Push(6))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 8
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(11))
+                  Constraint(Pop)
+                  Constraint(Push(11))
+                  Constraint(Push(4))
+                  Memory(Alloc)
+                  Constraint(Push(4))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 9
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(11))
+                  Constraint(Pop)
+                  Constraint(Push(15))
+                  Constraint(Pop)
+                  Constraint(Push(15))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 10
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(11))
+                  Constraint(Pop)
+                  Constraint(Push(15))
+                  Constraint(Pop)
+                  Constraint(Push(16))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+            }
+
+        "#]],
+    );
+}
+
+#[test]
+fn storage_access_tuples_in_maps() {
+    let intents = &compile(
+        r#"
+storage {
+    w: b256,
+    map_to_tuples: ( int => { b256, { int, int } } ),
+}
+
+intent Foo {
+    state map_to_tuples_69 = storage::map_to_tuples[69];
+    state map_to_tuples_69_0 = storage::map_to_tuples[69].0;
+    state map_to_tuples_69_1_0 = storage::map_to_tuples[69].1.0;
+    state map_to_tuples_69_1_1 = storage::map_to_tuples[69].1.1;
+}
+        "#,
+    );
+
+    check(
+        &format!("{intents}"),
+        expect_test::expect![[r#"
+            intent ::Foo {
+                --- Constraints ---
+                --- State Reads ---
+                state read 0
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(4))
+                  Constraint(Push(69))
+                  Constraint(Push(5))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(6))
+                  Memory(Alloc)
+                  Constraint(Push(6))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 1
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(4))
+                  Constraint(Push(69))
+                  Constraint(Push(5))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(0))
+                  Constraint(Alu(Add))
+                  Constraint(Push(4))
+                  Memory(Alloc)
+                  Constraint(Push(4))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 2
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(4))
+                  Constraint(Push(69))
+                  Constraint(Push(5))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(4))
+                  Constraint(Alu(Add))
+                  Constraint(Push(0))
+                  Constraint(Alu(Add))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+                state read 3
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(4))
+                  Constraint(Push(69))
+                  Constraint(Push(5))
+                  Constraint(Crypto(Sha256))
+                  Constraint(Push(4))
+                  Constraint(Alu(Add))
+                  Constraint(Push(1))
+                  Constraint(Alu(Add))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRange)
+                  ControlFlow(Halt)
+            }
+
+        "#]],
+    );
+}
+
+#[test]
+fn storage_access_tuples_extern() {
+    let intents = &compile(
+        r#"
+extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+    storage {
+        u: { b256, int },
+        t: { b256, { int, int } },
+        w: { addr: b256, inner: { x: int, int } },
+    }
+}
+
+intent Bar {
+    state foo_u = Foo::storage::u;
+    state foo_u0 = Foo::storage::u.0;
+    state foo_u1 = Foo::storage::u.1;
+
+    state foo_t = Foo::storage::t;
+    state foo_t0 = Foo::storage::t .0;
+    state foo_t10 = Foo::storage::t.1.0;
+    state foo_t11 = Foo::storage::t.1.1;
+
+    state foo_w = Foo::storage::w;
+    state foo_w0 = Foo::storage::w .addr;
+    state foo_w10 = Foo::storage::w.inner.x;
+    state foo_w11 = Foo::storage::w.inner.1;
+}
+        "#,
+    );
+
+    check(
+        &format!("{intents}"),
+        expect_test::expect![[r#"
+            intent ::Bar {
+                --- Constraints ---
+                --- State Reads ---
+                state read 0
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(5))
+                  Memory(Alloc)
+                  Constraint(Push(5))
+                  State(StateReadWordRangeExtern)
+                  ControlFlow(Halt)
+                state read 1
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Pop)
+                  Constraint(Push(0))
+                  Constraint(Push(4))
+                  Memory(Alloc)
+                  Constraint(Push(4))
+                  State(StateReadWordRangeExtern)
+                  ControlFlow(Halt)
+                state read 2
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Pop)
+                  Constraint(Push(4))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRangeExtern)
+                  ControlFlow(Halt)
+                state read 3
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(5))
+                  Constraint(Push(6))
+                  Memory(Alloc)
+                  Constraint(Push(6))
+                  State(StateReadWordRangeExtern)
+                  ControlFlow(Halt)
+                state read 4
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(5))
+                  Constraint(Pop)
+                  Constraint(Push(5))
+                  Constraint(Push(4))
+                  Memory(Alloc)
+                  Constraint(Push(4))
+                  State(StateReadWordRangeExtern)
+                  ControlFlow(Halt)
+                state read 5
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(5))
+                  Constraint(Pop)
+                  Constraint(Push(9))
+                  Constraint(Pop)
+                  Constraint(Push(9))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRangeExtern)
+                  ControlFlow(Halt)
+                state read 6
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(5))
+                  Constraint(Pop)
+                  Constraint(Push(9))
+                  Constraint(Pop)
+                  Constraint(Push(10))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRangeExtern)
+                  ControlFlow(Halt)
+                state read 7
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(11))
+                  Constraint(Push(6))
+                  Memory(Alloc)
+                  Constraint(Push(6))
+                  State(StateReadWordRangeExtern)
+                  ControlFlow(Halt)
+                state read 8
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(11))
+                  Constraint(Pop)
+                  Constraint(Push(11))
+                  Constraint(Push(4))
+                  Memory(Alloc)
+                  Constraint(Push(4))
+                  State(StateReadWordRangeExtern)
+                  ControlFlow(Halt)
+                state read 9
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(11))
+                  Constraint(Pop)
+                  Constraint(Push(15))
+                  Constraint(Pop)
+                  Constraint(Push(15))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRangeExtern)
+                  ControlFlow(Halt)
+                state read 10
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(1229782938247303441))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(0))
+                  Constraint(Push(11))
+                  Constraint(Pop)
+                  Constraint(Push(15))
+                  Constraint(Pop)
+                  Constraint(Push(16))
+                  Constraint(Push(1))
+                  Memory(Alloc)
+                  Constraint(Push(1))
+                  State(StateReadWordRangeExtern)
+                  ControlFlow(Halt)
+            }
+
+        "#]],
+    );
+}
+
+#[test]
 fn storage_access_complex_maps() {
     let intents = &compile(
         r#"

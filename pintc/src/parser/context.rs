@@ -1,5 +1,6 @@
 use crate::{
-    error::Handler,
+    error::{Error, Handler, ParseError},
+    expr::{Expr, TupleAccess},
     intermediate::{CallKey, ExprKey, IntermediateIntent, Program},
     macros::{MacroCall, MacroDecl},
     parser::{Ident, NextModPath, UsePath},
@@ -47,6 +48,143 @@ impl<'a> ParserContext<'a> {
         self.program.iis.get_mut(self.current_ii).unwrap()
     }
 
+    /// Handles a tuple access expression with an identifier.
+    ///
+    /// Given an `ExprKey` and an `Ident`, insert a new `TupleFieldAccess` expression into
+    /// `current_ii().exprs`. This function also takes two integers `l` and `r`:
+    /// - `l` is the source code location before the tuple access
+    /// - `r` is the source code location after the tuple access
+    pub fn handle_tuple_field_op_with_ident(
+        &mut self,
+        tuple: ExprKey,
+        name: Ident,
+        (l, r): (usize, usize),
+    ) -> ExprKey {
+        let span = (self.span_from)(l, r);
+        self.current_ii().exprs.insert(Expr::TupleFieldAccess {
+            tuple,
+            field: TupleAccess::Name(name),
+            span,
+        })
+    }
+
+    /// Handles a tuple access expression with an integer.
+    ///
+    /// Given an `ExprKey` and a string that represents an integer, insert a new `TupleFieldAccess`
+    /// expression into `current_ii().exprs`. This function also takes three integers `l`, `m`, and
+    /// `r`:
+    /// - `l` is the source code location before the tuple access
+    /// - `m` is the source code location before the integer used to access the tuple
+    /// - `r` is the source code location after the tuple access
+    pub fn handle_tuple_field_op_with_int(
+        &mut self,
+        handler: &Handler,
+        tuple: ExprKey,
+        int_str: String,
+        (l, m, r): (usize, usize, usize),
+    ) -> ExprKey {
+        let span = (self.span_from)(l, r);
+        let index_span = (self.span_from)(m, r);
+
+        self.current_ii().exprs.insert(Expr::TupleFieldAccess {
+            tuple,
+            field: int_str
+                .parse::<usize>()
+                .map(TupleAccess::Index)
+                .unwrap_or_else(|_| {
+                    // Recover with a malformed field access
+                    handler.emit_err(Error::Parse {
+                        error: ParseError::InvalidIntegerTupleIndex {
+                            span: index_span,
+                            index: int_str,
+                        },
+                    });
+                    TupleAccess::Error
+                }),
+            span,
+        })
+    }
+
+    /// Handles a tuple access expression with a real (e.g. `my_tuple.1.3 - the `1.3` here is a
+    /// real).
+    ///
+    /// Given an `ExprKey` and a string that represents a real, insert a new (nested)
+    /// `TupleFieldAccess` expression into `current_ii().exprs`. This function also takes three
+    /// integers `l`, `m`, and `r`:
+    /// - `l` is the source code location before the tuple access
+    /// - `m` is the source code location before the real used to access the tuple
+    /// - `r` is the source code location after the tuple access
+    pub fn handle_tuple_field_op_with_real(
+        &mut self,
+        handler: &Handler,
+        tuple: ExprKey,
+        real_str: String,
+        (l, m, r): (usize, usize, usize),
+    ) -> ExprKey {
+        match real_str.chars().position(|c| c == '.') {
+            Some(dot_index) => {
+                let first_index = real_str[0..dot_index]
+                    .parse::<usize>()
+                    .map(TupleAccess::Index)
+                    .unwrap_or_else(|_| {
+                        handler.emit_err(Error::Parse {
+                            error: ParseError::InvalidIntegerTupleIndex {
+                                span: (self.span_from)(m, m + dot_index),
+                                index: real_str[0..dot_index].to_string(),
+                            },
+                        });
+
+                        // Recover with a malformed tuple access
+                        TupleAccess::Error
+                    });
+
+                let second_index = real_str[(dot_index + 1)..]
+                    .parse::<usize>()
+                    .map(TupleAccess::Index)
+                    .unwrap_or_else(|_| {
+                        handler.emit_err(Error::Parse {
+                            error: ParseError::InvalidIntegerTupleIndex {
+                                span: (self.span_from)(m + dot_index + 1, r),
+                                index: real_str[(dot_index + 1)..].to_string(),
+                            },
+                        });
+
+                        // Recover with a malformed tuple access
+                        TupleAccess::Error
+                    });
+
+                let span = (self.span_from)(l, m + dot_index);
+                let lhs_access_key = self.current_ii().exprs.insert(Expr::TupleFieldAccess {
+                    tuple,
+                    field: first_index,
+                    span,
+                });
+
+                let span = (self.span_from)(l, r);
+                self.current_ii().exprs.insert(Expr::TupleFieldAccess {
+                    tuple: lhs_access_key,
+                    field: second_index,
+                    span,
+                })
+            }
+            None => {
+                handler.emit_err(Error::Parse {
+                    error: ParseError::InvalidTupleIndex {
+                        span: (self.span_from)(m, r),
+                        index: real_str.to_string(),
+                    },
+                });
+
+                // Recover with a malformed tuple access
+                let span = (self.span_from)(l, r);
+                self.current_ii().exprs.insert(Expr::TupleFieldAccess {
+                    tuple,
+                    field: TupleAccess::Error,
+                    span,
+                })
+            }
+        }
+    }
     /// Given a list of `Ident`s and a last `Ident` that represent a *absolute* path, produce a
     /// `Path` that represents that path and append an appropriate `NextModPath` to trigger a
     /// compilation of the module containing the path.
