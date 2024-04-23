@@ -341,13 +341,10 @@ impl IntermediateIntent {
 
             Expr::FnCall { name, args, span } => {
                 let mut deps = Vec::new();
-                // todo: filter instead of for loop
 
-                for arg_key in args {
-                    if self.expr_types.get(*arg_key).is_none() {
-                        deps.push(*arg_key);
-                    }
-                }
+                args.iter()
+                    .filter(|arg_key| self.expr_types.get(**arg_key).is_none())
+                    .for_each(|arg_key| deps.push(*arg_key));
 
                 if deps.is_empty() {
                     // For now, this very special case is all we support.
