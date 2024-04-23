@@ -1399,8 +1399,8 @@ extern {
         "macro_name" => lexer::Token::MacroName(<String>),
         "macro_param" => lexer::Token::MacroParam(<String>),
         "macro_param_pack" => lexer::Token::MacroParamPack(<String>),
-        "macro_body" => lexer::Token::MacroBody(<Vec<(usize, lexer::Token, usize)>>),
-        "macro_call_args" => lexer::Token::MacroCallArgs(<Vec<Vec<(usize, lexer::Token, usize)>>>),
+        "macro_body" => lexer::Token::MacroBody(<lexer::MacroBody>),
+        "macro_call_args" => lexer::Token::MacroCallArgs(<lexer::MacroCallArgs>),
         "macro_tag" => lexer::Token::MacroTag(<Option<usize>>),
     }
 }

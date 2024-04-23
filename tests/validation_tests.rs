@@ -22,7 +22,7 @@ fn validation_e2e() -> anyhow::Result<()> {
 /// Deploy all persistent intents under `validation_tests/deployed`
 fn deploy(server: &mut Server) -> anyhow::Result<()> {
     // Loop for each file or directory in the `sub_dir`.
-    let dir: PathBuf = format!("validation_tests/deployed").into();
+    let dir: PathBuf = "validation_tests/deployed".to_string().into();
     let mut failed_tests = vec![];
     for entry in read_dir(dir)? {
         let entry = entry?;
@@ -89,8 +89,8 @@ fn deploy(server: &mut Server) -> anyhow::Result<()> {
 
                 // <key: hex> <value: i64>
                 server.db().stage(
-                    deployed_set_address.clone().into(),
-                    hex_to_four_ints(&split[0]),
+                    deployed_set_address,
+                    hex_to_four_ints(split[0]),
                     Some(split[1].parse::<i64>().expect("value must be a i64")),
                 );
                 server.db().commit();
@@ -119,7 +119,7 @@ fn deploy(server: &mut Server) -> anyhow::Result<()> {
 /// files have the same name as the pint files but a `toml` extension.
 fn submit_and_check_solution(server: &mut Server) -> anyhow::Result<()> {
     // Loop for each file or directory in the `sub_dir`.
-    let dir: PathBuf = format!("validation_tests/submitted").into();
+    let dir: PathBuf = "validation_tests/submitted".to_string().into();
     let mut failed_tests = vec![];
     for entry in read_dir(dir)? {
         let entry = entry?;
@@ -182,7 +182,7 @@ fn submit_and_check_solution(server: &mut Server) -> anyhow::Result<()> {
             .expect("failed to submit transient intent to intent pool!");
         println!(
             "  Submitted intent address: {}",
-            bytes_to_hex(intent_address.0.clone())
+            bytes_to_hex(intent_address.0)
         );
 
         // Parse the solution `toml` file which must have the same name as the pint file but with a
@@ -242,17 +242,17 @@ fn parse_solution(path: &std::path::Path) -> anyhow::Result<Solution> {
                 let sender = match e.get("sender") {
                     Some(sender) => match (sender.get("Eoa"), sender.get("Transient")) {
                         (Some(eoa), None) => Sender::Eoa(hex_to_four_ints(
-                            &eoa.as_str().ok_or_else(|| anyhow!("Invalid eoa sender"))?,
+                            eoa.as_str().ok_or_else(|| anyhow!("Invalid eoa sender"))?,
                         )),
                         (None, Some(transient)) => Sender::transient(
                             hex_to_four_ints(
-                                &transient
+                                transient
                                     .get("eoa")
                                     .and_then(|eoa| eoa.as_str())
                                     .ok_or_else(|| anyhow!("Invalid eoa for transient sender"))?,
                             ),
                             IntentAddress(hex_to_bytes(
-                                &transient
+                                transient
                                     .get("intent")
                                     .and_then(|intent| intent.as_str())
                                     .ok_or_else(|| {
@@ -272,17 +272,17 @@ fn parse_solution(path: &std::path::Path) -> anyhow::Result<Solution> {
                         intent_to_solve.get("Persistent"),
                     ) {
                         (Some(s), None) => SourceAddress::transient(IntentAddress(hex_to_bytes(
-                            &s.as_str()
+                            s.as_str()
                                 .ok_or_else(|| anyhow!("Invalid transient intent_to_solve"))?,
                         ))),
                         (None, Some(s)) => SourceAddress::persistent(
                             IntentAddress(hex_to_bytes(
-                                &s.get("set").and_then(|set| set.as_str()).ok_or_else(|| {
+                                s.get("set").and_then(|set| set.as_str()).ok_or_else(|| {
                                     anyhow!("Invalid persistent intent_to_solve set")
                                 })?,
                             )),
                             IntentAddress(hex_to_bytes(
-                                &s.get("intent")
+                                s.get("intent")
                                     .and_then(|intent| intent.as_str())
                                     .ok_or_else(|| {
                                         anyhow!("Invalid persistent intent_to_solve intent")

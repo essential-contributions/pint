@@ -6,7 +6,7 @@ use yansi::Color::Red;
 #[test]
 fn flat_pint_solve() {
     // Loop for each file or directory in the `tests/tests`.
-    let dir: PathBuf = format!("tests/tests").into();
+    let dir: PathBuf = "tests/tests".to_string().into();
     let mut failed_tests = vec![];
     for entry in read_dir(dir).unwrap() {
         let path = entry.unwrap().path();

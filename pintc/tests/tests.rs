@@ -12,34 +12,6 @@ use yansi::Color::{Cyan, Red, Yellow};
 
 mod cli;
 
-#[cfg(test)]
-mod e2e {
-    use crate::run_tests;
-
-    macro_rules! e2e_test {
-        ($name: ident) => {
-            #[test]
-            fn $name() {
-                if let Err(err) = run_tests(stringify!($name)) {
-                    eprintln!("{err}");
-                }
-            }
-        };
-    }
-
-    e2e_test!(basic_tests);
-    e2e_test!(macros);
-    e2e_test!(types);
-    e2e_test!(generators);
-    e2e_test!(arrays);
-    e2e_test!(modules);
-    e2e_test!(asm);
-    e2e_test!(directives);
-    e2e_test!(canonicalizes);
-    e2e_test!(sets_of_intents);
-    e2e_test!(storage);
-}
-
 fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
     let mut failed_tests = vec![];
 
@@ -224,4 +196,32 @@ fn flatten_and_check(
             }
         })
         .ok()
+}
+
+#[cfg(test)]
+mod e2e {
+    use crate::run_tests;
+
+    macro_rules! e2e_test {
+        ($name: ident) => {
+            #[test]
+            fn $name() {
+                if let Err(err) = run_tests(stringify!($name)) {
+                    eprintln!("{err}");
+                }
+            }
+        };
+    }
+
+    e2e_test!(basic_tests);
+    e2e_test!(macros);
+    e2e_test!(types);
+    e2e_test!(generators);
+    e2e_test!(arrays);
+    e2e_test!(modules);
+    e2e_test!(asm);
+    e2e_test!(directives);
+    e2e_test!(canonicalizes);
+    e2e_test!(sets_of_intents);
+    e2e_test!(storage);
 }
