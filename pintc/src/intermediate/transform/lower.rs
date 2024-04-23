@@ -126,6 +126,7 @@ pub(crate) fn lower_enums(
                     *expr_type = int_ty.clone();
                 }
             }
+            *ty = int_ty.clone();
         }
     }
 

@@ -27,10 +27,10 @@ solve satisfy;
 // >>>
 
 // flattened <<<
-// var ::pedro_skill: ::Skill;
-// var ::kip_skill: ::kip::Skill;
-// var ::kip::kip_skill: ::kip::Skill;
-// var ::debbie::debbie_skill: ::debbie::Skill;
+// var ::pedro_skill: int;
+// var ::kip_skill: int;
+// var ::kip::kip_skill: int;
+// var ::debbie::debbie_skill: int;
 // enum ::Skill = Nunchuck | BowHunting | ComputerHacking;
 // enum ::kip::Skill = ChattingOnlineWithBabes | CageFighting;
 // enum ::debbie::Skill = GlamourShots | Handicrafts;

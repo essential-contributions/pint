@@ -38,11 +38,11 @@ solve satisfy;
 // >>>
 
 // flattened <<<
-// var ::b_mod::s0: ::b_mod::c_mod::A;
-// var ::b_mod::s1: ::b_mod::c_mod::A;
-// var ::b_mod::s2: ::b_mod::c_mod::A;
-// var ::b_mod::s3: ::b_mod::c_mod::A;
-// var ::b_mod::s4: ::b_mod::c_mod::A;
+// var ::b_mod::s0: int;
+// var ::b_mod::s1: int;
+// var ::b_mod::s2: int;
+// var ::b_mod::s3: int;
+// var ::b_mod::s4: int;
 // enum ::U = V | W;
 // enum ::b_mod::c_mod::A = B | C | D;
 // enum ::b_mod::X = Y | Z;

@@ -168,12 +168,18 @@ fn check_expr(
         //     "exprs"
         // )),
         Expr::Array { span, .. } => Err(emit_illegal_type_error!(handler, span, "array", "exprs")),
-        Expr::Index { span, .. } => Err(emit_illegal_type_error!(
-            handler,
-            span,
-            "array element access",
-            "exprs"
-        )),
+        Expr::Index { expr, span, .. } => {
+            if !ii.expr_types.get(*expr).expect("").is_map() {
+                Err(emit_illegal_type_error!(
+                    handler,
+                    span,
+                    "array element access",
+                    "exprs"
+                ))
+            } else {
+                Ok(())
+            }
+        }
         Expr::Tuple { span, .. } => Err(emit_illegal_type_error!(handler, span, "tuple", "exprs")),
         Expr::TupleFieldAccess { span, .. } => Err(emit_illegal_type_error!(
             handler,
@@ -349,11 +355,11 @@ fn exprs() {
     check(
         &run_test(src),
         expect_test::expect![[r#"
-        compiler internal error: tuple present in final intent expr_types slotmap
-        compiler internal error: tuple present in final intent exprs slotmap
-        compiler internal error: tuple present in final intent expr_types slotmap
-        compiler internal error: tuple field access present in final intent exprs slotmap
-        compiler internal error: tuple present in final intent expr_types slotmap"#]],
+            compiler internal error: tuple field access present in final intent exprs slotmap
+            compiler internal error: tuple present in final intent expr_types slotmap
+            compiler internal error: tuple present in final intent expr_types slotmap
+            compiler internal error: tuple present in final intent exprs slotmap
+            compiler internal error: tuple present in final intent expr_types slotmap"#]],
     );
     // array and array field access
     let src = "let a = [1, 2, 3];
@@ -361,11 +367,11 @@ fn exprs() {
     check(
         &run_test(src),
         expect_test::expect![[r#"
-        compiler internal error: array present in final intent expr_types slotmap
-        compiler internal error: array present in final intent exprs slotmap
-        compiler internal error: array present in final intent expr_types slotmap
-        compiler internal error: array element access present in final intent exprs slotmap
-        compiler internal error: array present in final intent expr_types slotmap"#]],
+            compiler internal error: array element access present in final intent exprs slotmap
+            compiler internal error: array present in final intent expr_types slotmap
+            compiler internal error: array present in final intent expr_types slotmap
+            compiler internal error: array present in final intent exprs slotmap
+            compiler internal error: array present in final intent expr_types slotmap"#]],
     );
     // <<disabled>> until if check is supported
     // if
@@ -437,8 +443,9 @@ fn states() {
     check(
         &error::Errors(handler.consume()).to_string(),
         expect_test::expect![[r#"
-        compiler internal error: mismatched final intent states and state_types slotmaps
-        compiler internal error: final intent state_types slotmap is missing corresponding key from states slotmap"#]],
+            compiler internal error: invalid intermediate intent expr_types slotmap key
+            compiler internal error: mismatched final intent states and state_types slotmaps
+            compiler internal error: final intent state_types slotmap is missing corresponding key from states slotmap"#]],
     );
 }
 
@@ -493,10 +500,14 @@ fn directives() {
     check(
         &error::Errors(handler.consume()).to_string(),
         expect_test::expect![[r#"
-        compiler internal error: final intent contains more than one `solve` directive
-        compiler internal error: custom type present in final intent expr_types slotmap
-        compiler internal error: error expression present in final intent exprs slotmap
-        compiler internal error: custom type present in final intent expr_types slotmap
-        compiler internal error: error expression present in final intent exprs slotmap"#]],
+            compiler internal error: custom type present in final intent expr_types slotmap
+            compiler internal error: error expression present in final intent exprs slotmap
+            compiler internal error: custom type present in final intent expr_types slotmap
+            compiler internal error: error expression present in final intent exprs slotmap
+            compiler internal error: final intent contains more than one `solve` directive
+            compiler internal error: custom type present in final intent expr_types slotmap
+            compiler internal error: error expression present in final intent exprs slotmap
+            compiler internal error: custom type present in final intent expr_types slotmap
+            compiler internal error: error expression present in final intent exprs slotmap"#]],
     );
 }

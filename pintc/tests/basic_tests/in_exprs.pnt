@@ -48,7 +48,7 @@ solve satisfy;
 // var ::b: real;
 // var ::c: int;
 // var ::d: string;
-// var ::e: ::Cake;
+// var ::e: int;
 // var ::f.0: int;
 // var ::g[0]: int;
 // var ::g[1]: int;

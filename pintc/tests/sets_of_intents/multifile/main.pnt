@@ -39,10 +39,10 @@ intent Bar {
 //
 // intent ::Bar {
 //     var ::y: int;
-//     var ::e1: ::baz::MyEnum;
-//     var ::f1: ::baz::MyEnum;
-//     var ::e2: ::baz::MyEnum;
-//     var ::f2: ::baz::MyEnum;
+//     var ::e1: int;
+//     var ::f1: int;
+//     var ::e2: int;
+//     var ::f2: int;
 //     enum ::baz::MyEnum = A | B;
 //     type ::baz::MyType = ::baz::MyEnum;
 //     constraint (::y == 4);
