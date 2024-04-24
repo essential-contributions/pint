@@ -331,13 +331,7 @@ impl AsmBuilder {
                     BinaryOp::Div => asm.push(Op::Alu(Alu::Div)),
                     BinaryOp::Mod => asm.push(Op::Alu(Alu::Mod)),
                     BinaryOp::Equal => {
-                        if matches!(
-                            intent.expr_types[*lhs],
-                            Type::Primitive {
-                                kind: PrimitiveKind::B256,
-                                ..
-                            }
-                        ) {
+                        if intent.expr_types[*lhs].is_b256() {
                             asm.push(Op::Pred(Pred::Eq4));
                         } else {
                             asm.push(Op::Pred(Pred::Eq));

@@ -117,6 +117,15 @@ fn check_expr(
         })
     })?;
 
+    let expr = ii.exprs.get(*expr_key).ok_or_else(|| {
+        handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "invalid intermediate intent exprs slotmap key",
+                span: empty_span(),
+            },
+        })
+    })?;
+
     // validate the expr_type is legal
     match expr_type {
         Type::Error(span) => {
@@ -126,7 +135,9 @@ fn check_expr(
             emit_illegal_type_error!(handler, span, "array", "expr_types");
         }
         Type::Tuple { span, .. } => {
-            emit_illegal_type_error!(handler, span, "tuple", "expr_types");
+            if !expr_is_for_storage(ii, expr) {
+                emit_illegal_type_error!(handler, span, "tuple", "expr_types");
+            }
         }
         Type::Custom { span, .. } => {
             emit_illegal_type_error!(handler, span, "custom type", "expr_types");
@@ -136,15 +147,6 @@ fn check_expr(
         }
         Type::Primitive { .. } | Type::Map { .. } => {}
     }
-
-    let expr = ii.exprs.get(*expr_key).ok_or_else(|| {
-        handler.emit_err(Error::Compile {
-            error: CompileError::Internal {
-                msg: "invalid intermediate intent exprs slotmap key",
-                span: empty_span(),
-            },
-        })
-    })?;
 
     // then check the expr variant and make sure legal
     match expr {
@@ -181,12 +183,18 @@ fn check_expr(
             }
         }
         Expr::Tuple { span, .. } => Err(emit_illegal_type_error!(handler, span, "tuple", "exprs")),
-        Expr::TupleFieldAccess { span, .. } => Err(emit_illegal_type_error!(
-            handler,
-            span,
-            "tuple field access",
-            "exprs"
-        )),
+        Expr::TupleFieldAccess { span, .. } => {
+            if !expr_is_for_storage(ii, expr) {
+                Err(emit_illegal_type_error!(
+                    handler,
+                    span,
+                    "tuple field access",
+                    "exprs"
+                ))
+            } else {
+                Ok(())
+            }
+        }
         Expr::In { span, .. } => Err(emit_illegal_type_error!(
             handler,
             span,
@@ -218,6 +226,37 @@ fn check_expr(
         | Expr::If { .. }
         | Expr::Cast { .. }
         | Expr::ExternalStorageAccess { .. } => Ok(()),
+    }
+}
+
+fn expr_is_for_storage(ii: &IntermediateIntent, expr: &Expr) -> bool {
+    match expr {
+        // Recurse for the tuple expr or index (possibly into a Map).
+        Expr::TupleFieldAccess { tuple: expr, .. } | Expr::Index { expr, .. } => ii
+            .exprs
+            .get(*expr)
+            .map(|agg_expr| expr_is_for_storage(ii, agg_expr))
+            .unwrap_or(false),
+
+        Expr::StorageAccess(_, _) | Expr::ExternalStorageAccess { .. } => true,
+
+        // In the future we'll add other 'illegal' aggregate expressions which will also need to be
+        // handled.
+        Expr::Error(_)
+        | Expr::Immediate { .. }
+        | Expr::PathByKey(_, _)
+        | Expr::PathByName(_, _)
+        | Expr::UnaryOp { .. }
+        | Expr::BinaryOp { .. }
+        | Expr::MacroCall { .. }
+        | Expr::FnCall { .. }
+        | Expr::If { .. }
+        | Expr::Array { .. }
+        | Expr::Tuple { .. }
+        | Expr::Cast { .. }
+        | Expr::In { .. }
+        | Expr::Range { .. }
+        | Expr::Generator { .. } => false,
     }
 }
 
