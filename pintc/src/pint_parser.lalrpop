@@ -91,7 +91,7 @@ pub IntentClose: () = {
 pub StorageVar: StorageVar = {
     <l:@L> <name:Ident> ":" <ty:StorageVarType> <r:@R> => {
         let span = (context.span_from)(l, r);
-        if ty.is_bool() || ty.is_int() || ty.is_b256() {
+        if ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() {
             StorageVar {
                 name: name.to_string(),
                 ty,
@@ -104,7 +104,11 @@ pub StorageVar: StorageVar = {
         } = ty
         {
             if (ty_from.is_bool() || ty_from.is_int() || ty_from.is_b256())
-                && (ty_to.is_bool() || ty_to.is_int() || ty_to.is_b256() || ty_to.is_map())
+                && (ty_to.is_bool()
+                    || ty_to.is_int()
+                    || ty_to.is_b256()
+                    || ty_to.is_map()
+                    || ty_to.is_tuple())
             {
                 StorageVar {
                     name: name.to_string(),
@@ -715,98 +719,13 @@ AsOp: ExprKey = {
 
 TupleFieldOp: ExprKey = {
     <l:@L> <tuple:TupleFieldOp> "." <name:Ident> <r:@R> => {
-        let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(Expr::TupleFieldAccess {
-            tuple,
-            field: TupleAccess::Name(name),
-            span,
-        })
+        context.handle_tuple_field_op_with_ident(tuple, name, (l, r))
     },
     <l:@L> <tuple:TupleFieldOp> "." <m:@L> <num_str:"int_lit"> <r:@R> => {
-        let span = (context.span_from)(l, r);
-        let index_span = (context.span_from)(m, r);
-        context.current_ii().exprs.insert(Expr::TupleFieldAccess {
-            tuple,
-            field: num_str
-                .parse::<usize>()
-                .map(TupleAccess::Index)
-                .unwrap_or_else(|_| {
-                    // Recover with a malformed field access
-                    handler.emit_err(Error::Parse {
-                        error: ParseError::InvalidIntegerTupleIndex {
-                            span: index_span,
-                            index: num_str.to_string(),
-                        },
-                    });
-                    TupleAccess::Error
-                }),
-            span,
-        })
+        context.handle_tuple_field_op_with_int(handler, tuple, num_str, (l, m, r))
     },
     <l:@L> <tuple:TupleFieldOp> "." <m:@L> <num_str:"real_lit"> <r:@R> => {
-        match num_str.chars().position(|c| c == '.') {
-            Some(dot_index) => {
-                let first_index = num_str[0..dot_index]
-                    .parse::<usize>()
-                    .map(TupleAccess::Index)
-                    .unwrap_or_else(|_| {
-                        handler.emit_err(Error::Parse {
-                            error: ParseError::InvalidIntegerTupleIndex {
-                                span: (context.span_from)(m, m + dot_index),
-                                index: num_str[0..dot_index].to_string(),
-                            },
-                        });
-
-                        // Recover with a malformed tuple access
-                        TupleAccess::Error
-                    });
-
-                let second_index = num_str[(dot_index + 1)..]
-                    .parse::<usize>()
-                    .map(TupleAccess::Index)
-                    .unwrap_or_else(|_| {
-                        handler.emit_err(Error::Parse {
-                            error: ParseError::InvalidIntegerTupleIndex {
-                                span: (context.span_from)(m + dot_index + 1, r),
-                                index: num_str[(dot_index + 1)..].to_string(),
-                            },
-                        });
-
-                        // Recover with a malformed tuple access
-                        TupleAccess::Error
-                    });
-
-                let span = (context.span_from)(l, m + dot_index);
-                let lhs_access_key = context.current_ii().exprs.insert(Expr::TupleFieldAccess {
-                    tuple,
-                    field: first_index,
-                    span,
-                });
-
-                let span = (context.span_from)(l, r);
-                context.current_ii().exprs.insert(Expr::TupleFieldAccess {
-                    tuple: lhs_access_key,
-                    field: second_index,
-                    span,
-                })
-            }
-            None => {
-                handler.emit_err(Error::Parse {
-                    error: ParseError::InvalidTupleIndex {
-                        span: (context.span_from)(m, r),
-                        index: num_str.to_string(),
-                    },
-                });
-
-                // Recover with a malformed tuple access
-                let span = (context.span_from)(l, r);
-                context.current_ii().exprs.insert(Expr::TupleFieldAccess {
-                    tuple,
-                    field: TupleAccess::Error,
-                    span,
-                })
-            }
-        }
+        context.handle_tuple_field_op_with_real(handler, tuple, num_str, (l, m, r))
     },
     <IndexOp>,
 };
@@ -1203,8 +1122,21 @@ IdentFromToken<Tok>: Ident = {
 //////////////////////////////////
 
 pub StateInit: ExprKey = {
-    <StorageIndexOp>,
+    <StorageTupleFieldOp>,
     <call:FnCallExpr> => context.current_ii().exprs.insert(call),
+}
+
+StorageTupleFieldOp: ExprKey = {
+    <l:@L> <tuple:StorageTupleFieldOp> "." <name:Ident> <r:@R> => {
+        context.handle_tuple_field_op_with_ident(tuple, name, (l, r))
+    },
+    <l:@L> <tuple:StorageTupleFieldOp> "." <m:@L> <num_str:"int_lit"> <r:@R> => {
+        context.handle_tuple_field_op_with_int(handler, tuple, num_str, (l, m, r))
+    },
+    <l:@L> <tuple:StorageTupleFieldOp> "." <m:@L> <num_str:"real_lit"> <r:@R> => {
+        context.handle_tuple_field_op_with_real(handler, tuple, num_str, (l, m, r))
+    },
+    <StorageIndexOp>
 }
 
 pub StorageIndexOp: ExprKey = {

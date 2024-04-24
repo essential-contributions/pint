@@ -782,15 +782,24 @@ fn storage_access() {
     );
 
     check(
+        &run_parser!(expr, r#"storage::foo.0.3"#),
+        expect_test::expect!["storage::foo.0.3"],
+    );
+
+    check(
         &run_parser!(expr, r#"storage::balances[0x111]"#),
         expect_test::expect!["storage::balances[273]"],
     );
 
     check(
-        &run_parser!(expr, r#"storage::balances[0x111][foo()][t[3].5]"#),
-        expect_test::expect!["storage::balances[273][::foo()][::t[3].5]"],
+        &run_parser!(expr, r#"storage::balances[0x111][foo()][t[3].5].2"#),
+        expect_test::expect!["storage::balances[273][::foo()][::t[3].5].2"],
     );
 
+    check(
+        &run_parser!(expr, r#"storage_lib::foo()"#),
+        expect_test::expect!["::storage_lib::foo()"],
+    );
     check(
         &run_parser!(expr, r#"storage_lib::foo()"#),
         expect_test::expect!["::storage_lib::foo()"],

@@ -1,6 +1,6 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{BinaryOp, Expr, Immediate, UnaryOp},
+    expr::{BinaryOp, Expr, Immediate, TupleAccess, UnaryOp},
     intermediate::{ExprKey, IntermediateIntent, Program, ProgramKind, State as StateVar},
     span::empty_span,
     types::{PrimitiveKind, Type},
@@ -76,17 +76,31 @@ pub struct AsmBuilder {
     var_to_d_vars: HashMap<usize, Vec<usize>>,
 }
 
+#[derive(Debug)]
+enum StorageKeyKind {
+    Static([i64; 4]),
+    Dynamic,
+}
+
+#[derive(Debug)]
+struct StorageKey {
+    kind: StorageKeyKind,
+    is_extern: bool,
+}
+
 impl AsmBuilder {
     /// Generates assembly for producing a storage key  where `expr` is stored.
-    /// Returns a bool indicating whether this is an external key (i.e. a key that we need to
-    /// access via `StateReadWordRangeExtern`)
+    /// Returns a `StorageKey`. The `StorageKey` contains two values:
+    /// - The kind of the storage key: static where the keys are known at compile-time or dynamic.
+    /// - Whether the key is internal or external. External keys should be accessed using
+    /// `StateReadWordRangeExtern`.
     fn compile_state_key(
         &mut self,
         handler: &Handler,
         s_asm: &mut Vec<StateReadOp>,
         expr: &ExprKey,
         intent: &IntermediateIntent,
-    ) -> Result<bool, ErrorEmitted> {
+    ) -> Result<StorageKey, ErrorEmitted> {
         match &intent.exprs[*expr] {
             Expr::FnCall { name, args, .. } => {
                 if name.ends_with("::storage_lib::get") {
@@ -96,7 +110,10 @@ impl AsmBuilder {
                     let mut asm = Vec::new();
                     self.compile_expr(handler, &mut asm, &args[0], intent)?;
                     s_asm.extend(asm.iter().map(|op| StateReadOp::Constraint(*op)));
-                    Ok(false)
+                    Ok(StorageKey {
+                        kind: StorageKeyKind::Dynamic,
+                        is_extern: false,
+                    })
                 } else if name.ends_with("::storage_lib::get_extern") {
                     // Expecting two arguments that are both `b256`: an address and a key
                     assert_eq!(args.len(), 2);
@@ -106,7 +123,10 @@ impl AsmBuilder {
                     self.compile_expr(handler, &mut asm, &args[0], intent)?;
                     self.compile_expr(handler, &mut asm, &args[1], intent)?;
                     s_asm.extend(asm.iter().map(|op| StateReadOp::Constraint(*op)));
-                    Ok(true)
+                    Ok(StorageKey {
+                        kind: StorageKeyKind::Dynamic,
+                        is_extern: true,
+                    })
                 } else {
                     unimplemented!("Other calls are currently not supported")
                 }
@@ -140,7 +160,10 @@ impl AsmBuilder {
                     StateReadOp::Constraint(Op::Push(0)),
                     StateReadOp::Constraint(Op::Push(key as i64)),
                 ]);
-                Ok(false)
+                Ok(StorageKey {
+                    kind: StorageKeyKind::Static([0, 0, 0, key as i64]),
+                    is_extern: false,
+                })
             }
             Expr::ExternalStorageAccess {
                 extern_path, name, ..
@@ -187,11 +210,16 @@ impl AsmBuilder {
                 ]);
 
                 // This is external!
-                Ok(true)
+                Ok(StorageKey {
+                    kind: StorageKeyKind::Static([0, 0, 0, key as i64]),
+                    is_extern: true,
+                })
             }
             Expr::Index { expr, index, .. } => {
                 // Compile the key corresponding to `expr`
-                let is_extern = self.compile_state_key(handler, s_asm, expr, intent)?;
+                let is_extern = self
+                    .compile_state_key(handler, s_asm, expr, intent)?
+                    .is_extern;
 
                 // Compile the index
                 let mut asm = vec![];
@@ -205,7 +233,66 @@ impl AsmBuilder {
                     4 + intent.expr_types[*index].size() as i64,
                 )));
                 s_asm.push(StateReadOp::Constraint(Op::Crypto(Crypto::Sha256)));
-                Ok(is_extern)
+
+                Ok(StorageKey {
+                    // This key is dynamic due to `Sha256`
+                    kind: StorageKeyKind::Dynamic,
+                    is_extern,
+                })
+            }
+            Expr::TupleFieldAccess { tuple, field, .. } => {
+                // Compile the key corresponding to `tuple`
+                let StorageKey { kind, is_extern } =
+                    self.compile_state_key(handler, s_asm, tuple, intent)?;
+
+                // Grab the fields of the tuple
+                let Type::Tuple { ref fields, .. } = intent.expr_types[*tuple] else {
+                    panic!("type must exist and be a tuple type");
+                };
+
+                // The field index is based on the type definition
+                let field_idx = match field {
+                    TupleAccess::Index(idx) => *idx,
+                    TupleAccess::Name(ident) => fields
+                        .iter()
+                        .position(|(field_name, _)| {
+                            field_name
+                                .as_ref()
+                                .map_or(false, |name| name.name == ident.name)
+                        })
+                        .expect("field name must exist, this was checked in type checking"),
+                    TupleAccess::Error => panic!("unexpected TupleAccess::Error"),
+                };
+
+                // This is the offset from the base key where the full tuple is stored.
+                let key_offset: usize =
+                    fields.iter().take(field_idx).map(|(_, ty)| ty.size()).sum();
+
+                // Increment the last word on the satck by `key_offset`. This works fine for the
+                // static case because all static keys start at zero (at least for now). For
+                // dynamic keys, this is not accurate due to a potential overflow. I'm going to
+                // keep this for now though so that we can keep things going, but we need a proper
+                // solution (`Add4` opcode, or storage reads with offset, or even a whole new
+                // storage design that uses b-trees.)
+                Ok(StorageKey {
+                    kind: match kind {
+                        StorageKeyKind::Dynamic => {
+                            // Increment the last word on the stack by `key_offset`
+                            s_asm.push(StateReadOp::Constraint(Op::Push(key_offset as i64)));
+                            s_asm.push(StateReadOp::Constraint(Op::Alu(Alu::Add)));
+                            StorageKeyKind::Dynamic
+                        }
+                        StorageKeyKind::Static(mut key) => {
+                            // Remove the last word on the stack and increment it by `key_offset`.
+                            // The last word should itself be `key[3]`.
+                            s_asm.push(StateReadOp::Constraint(Op::Pop));
+                            key[3] += key_offset as i64;
+                            s_asm.push(StateReadOp::Constraint(Op::Push(key[3])));
+                            StorageKeyKind::Static(key)
+                        }
+                    },
+                    is_extern,
+                })
             }
             _ => unreachable!("there really shouldn't be anything else at this stage"),
         }
@@ -408,7 +495,9 @@ impl AsmBuilder {
         let mut s_asm = Vec::new();
 
         // First, get the storage key
-        let is_extern = self.compile_state_key(handler, &mut s_asm, &state.expr, intent)?;
+        let is_extern = self
+            .compile_state_key(handler, &mut s_asm, &state.expr, intent)?
+            .is_extern;
 
         // Now, using the data size of the accessed type, produce an `Alloc` followed by a
         // `StateReadWordRange` instruction or a `StateReadWordRangeExtern` instruction

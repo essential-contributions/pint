@@ -222,6 +222,9 @@ impl Type {
                 kind: PrimitiveKind::B256,
                 ..
             } => 4,
+            Self::Tuple { fields, .. } => fields
+                .iter()
+                .fold(0, |acc, (_, field_ty)| acc + field_ty.size()),
             // The point here is that a `Map` takes up a storage slot, even though it doesn't
             // actually store anything in it. The `Map` type is not really allowed anywhere else,
             // so we can't have a decision variable of type `Map` for example.
