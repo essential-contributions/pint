@@ -49,23 +49,23 @@ pub(crate) fn lower_enums(
         }
     }
 
+    let int_ty = Type::Primitive {
+        kind: PrimitiveKind::Int,
+        span: empty_span(),
+    };
+
     // Replace the variant expressions with literal int equivalents.
     for (old_expr_key, idx) in replacements {
         let new_expr_key = ii.exprs.insert(Expr::Immediate {
             value: Immediate::Int(*idx as i64),
             span: empty_span(),
         });
+        ii.expr_types.insert(new_expr_key, int_ty.clone());
         ii.replace_exprs(old_expr_key, new_expr_key);
     }
 
     // Replace any var or state enum type with int.  Also add constraints to disallow vars or state
     // to have values outside of the enum.
-
-    let int_ty = Type::Primitive {
-        kind: PrimitiveKind::Int,
-        span: empty_span(),
-    };
-
     for (var_key, ty) in ii.var_types.iter_mut() {
         if ty.is_enum() {
             // Add the constraint.  Get the variant max for this enum first.
@@ -82,16 +82,24 @@ pub(crate) fn lower_enums(
             };
 
             let var_expr_key = ii.exprs.insert(Expr::PathByKey(var_key, empty_span()));
+            ii.expr_types.insert(var_expr_key, int_ty.clone());
 
             let lower_bound_key = ii.exprs.insert(Expr::Immediate {
                 value: Immediate::Int(0),
                 span: empty_span(),
             });
+            ii.expr_types.insert(lower_bound_key, int_ty.clone());
 
             let upper_bound_key = ii.exprs.insert(Expr::Immediate {
                 value: Immediate::Int(variant_max),
                 span: empty_span(),
             });
+            ii.expr_types.insert(upper_bound_key, int_ty.clone());
+
+            let bool_ty = Type::Primitive {
+                kind: PrimitiveKind::Bool,
+                span: empty_span(),
+            };
 
             let lower_bound_cmp_key = ii.exprs.insert(Expr::BinaryOp {
                 op: BinaryOp::GreaterThanOrEqual,
@@ -99,6 +107,7 @@ pub(crate) fn lower_enums(
                 rhs: lower_bound_key,
                 span: empty_span(),
             });
+            ii.expr_types.insert(lower_bound_cmp_key, bool_ty.clone());
 
             let upper_bound_cmp_key = ii.exprs.insert(Expr::BinaryOp {
                 op: BinaryOp::LessThanOrEqual,
@@ -106,11 +115,17 @@ pub(crate) fn lower_enums(
                 rhs: upper_bound_key,
                 span: empty_span(),
             });
+            ii.expr_types.insert(upper_bound_cmp_key, bool_ty.clone());
 
             ii.constraints.push((lower_bound_cmp_key, empty_span()));
             ii.constraints.push((upper_bound_cmp_key, empty_span()));
 
             // Replace the type.
+            for (_, expr_type) in ii.expr_types.iter_mut() {
+                if ty == expr_type {
+                    *expr_type = int_ty.clone();
+                }
+            }
             *ty = int_ty.clone();
         }
     }
@@ -439,6 +454,11 @@ pub(crate) fn lower_ins(
         }
     }
 
+    let bool_ty = Type::Primitive {
+        kind: PrimitiveKind::Bool,
+        span: empty_span(),
+    };
+
     // Replace the range expressions first. `x in l..u` becomes `(x >= l) && (x <= u)`.
     for (in_expr_key, value_key, lower_bounds_key, upper_bounds_key, span) in in_range_collections {
         let lb_cmp_key = ii.exprs.insert(Expr::BinaryOp {
@@ -447,6 +467,7 @@ pub(crate) fn lower_ins(
             rhs: lower_bounds_key,
             span: span.clone(),
         });
+        ii.expr_types.insert(lb_cmp_key, bool_ty.clone());
 
         let ub_cmp_key = ii.exprs.insert(Expr::BinaryOp {
             op: BinaryOp::LessThanOrEqual,
@@ -454,6 +475,7 @@ pub(crate) fn lower_ins(
             rhs: upper_bounds_key,
             span: span.clone(),
         });
+        ii.expr_types.insert(ub_cmp_key, bool_ty.clone());
 
         let and_key = ii.exprs.insert(Expr::BinaryOp {
             op: BinaryOp::LogicalAnd,
@@ -461,6 +483,7 @@ pub(crate) fn lower_ins(
             rhs: ub_cmp_key,
             span: span.clone(),
         });
+        ii.expr_types.insert(and_key, bool_ty.clone());
 
         ii.replace_exprs(in_expr_key, and_key);
     }
@@ -470,22 +493,26 @@ pub(crate) fn lower_ins(
         let or_key = elements
             .into_iter()
             .map(|el_expr_key| {
-                ii.exprs.insert(Expr::BinaryOp {
+                let cmp_eq_key = ii.exprs.insert(Expr::BinaryOp {
                     op: BinaryOp::Equal,
                     lhs: value_key,
                     rhs: el_expr_key,
                     span: span.clone(),
-                })
+                });
+                ii.expr_types.insert(cmp_eq_key, bool_ty.clone());
+                cmp_eq_key
             })
             .collect::<Vec<_>>() // Collect into Vec to avoid borrowing ii.exprs conflict.
             .into_iter()
             .reduce(|lhs, rhs| {
-                ii.exprs.insert(Expr::BinaryOp {
+                let cmp_or_key = ii.exprs.insert(Expr::BinaryOp {
                     op: BinaryOp::LogicalOr,
                     lhs,
                     rhs,
                     span: span.clone(),
-                })
+                });
+                ii.expr_types.insert(cmp_or_key, bool_ty.clone());
+                cmp_or_key
             })
             .expect("can't have empty array expressions");
 

@@ -339,27 +339,37 @@ impl IntermediateIntent {
 
             Expr::MacroCall { .. } => Ok(Inference::Ignored),
 
-            Expr::FnCall { name, span, .. } => {
-                // For now, this very special case is all we support.
-                if name.as_str().ends_with("::storage_lib::get")
-                    || name.as_str().ends_with("::storage_lib::get_extern")
-                {
-                    Ok(Inference::Type(Type::Primitive {
-                        kind: PrimitiveKind::Int,
-                        span: span.clone(),
-                    }))
-                } else if name.as_str().ends_with("::context::sender") {
-                    Ok(Inference::Type(Type::Primitive {
-                        kind: PrimitiveKind::B256,
-                        span: span.clone(),
-                    }))
-                } else {
-                    Err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "unable to check type of FnCall",
+            Expr::FnCall { name, args, span } => {
+                let mut deps = Vec::new();
+
+                args.iter()
+                    .filter(|arg_key| self.expr_types.get(**arg_key).is_none())
+                    .for_each(|arg_key| deps.push(*arg_key));
+
+                if deps.is_empty() {
+                    // For now, this very special case is all we support.
+                    if name.as_str().ends_with("::storage_lib::get")
+                        || name.as_str().ends_with("::storage_lib::get_extern")
+                    {
+                        Ok(Inference::Type(Type::Primitive {
+                            kind: PrimitiveKind::Int,
                             span: span.clone(),
-                        },
-                    })
+                        }))
+                    } else if name.as_str().ends_with("::context::sender") {
+                        Ok(Inference::Type(Type::Primitive {
+                            kind: PrimitiveKind::B256,
+                            span: span.clone(),
+                        }))
+                    } else {
+                        Err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "unable to check type of FnCall",
+                                span: span.clone(),
+                            },
+                        })
+                    }
+                } else {
+                    Ok(Inference::Dependencies(deps))
                 }
             }
 

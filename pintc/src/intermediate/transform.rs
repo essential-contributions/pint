@@ -31,12 +31,14 @@ mod canonicalize_solve_directive;
 mod lower;
 mod scalarize;
 mod unroll;
+mod validate;
 
 use crate::error::{ErrorEmitted, Handler};
 use canonicalize_solve_directive::canonicalize_solve_directive;
 use lower::{lower_aliases, lower_bools, lower_casts, lower_enums, lower_imm_accesses, lower_ins};
 use scalarize::scalarize;
 use unroll::unroll_generators;
+use validate::validate;
 
 impl super::Program {
     pub fn flatten(mut self, handler: &Handler) -> Result<Self, ErrorEmitted> {
@@ -73,6 +75,11 @@ impl super::Program {
         // Transform the objective function, if present, into a path to a new variable that is
         // equal to the objective function expression.
         let _ = canonicalize_solve_directive(handler, &mut self);
+
+        // Ensure that the final intermediate intents is indeed final
+        if !handler.has_errors() {
+            let _ = validate(handler, &mut self);
+        }
 
         if handler.has_errors() {
             return Err(handler.cancel());

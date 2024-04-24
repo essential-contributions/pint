@@ -164,7 +164,7 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
         }
     }
 
-    // Find all the vars or exprs (depending on how this macro is called) which are have array
+    // Find all the vars or exprs (depending on how this macro is called) which have array
     // types which are not yet fixed.  Save the var or expr key, the element type and the range
     // expression and then determine the size and save it back.
 
@@ -519,12 +519,20 @@ fn lower_array_compares(
                 ii.expr_types.insert(lhs_access_expr_key, el_ty.clone());
                 ii.expr_types.insert(rhs_access_expr_key, el_ty.clone());
 
-                ii.exprs.insert(Expr::BinaryOp {
+                let cmp_expr_key = ii.exprs.insert(Expr::BinaryOp {
                     op,
                     lhs: lhs_access_expr_key,
                     rhs: rhs_access_expr_key,
                     span: span.clone(),
-                })
+                });
+                ii.expr_types.insert(
+                    cmp_expr_key,
+                    Type::Primitive {
+                        kind: PrimitiveKind::Bool,
+                        span: span.clone(),
+                    },
+                );
+                cmp_expr_key
             })
             .collect::<Vec<_>>()
             .into_iter()
