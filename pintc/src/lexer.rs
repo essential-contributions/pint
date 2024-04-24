@@ -101,8 +101,8 @@ pub enum Token {
     MacroParamPack(String),
     #[regex(r"~[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice().to_string())]
     MacroSplice(String),
-    MacroBody(Vec<(usize, Token, usize)>),
-    MacroCallArgs(Vec<Vec<(usize, Token, usize)>>),
+    MacroBody(MacroBody),
+    MacroCallArgs(MacroCallArgs),
     MacroTag(Option<usize>),
 
     #[token("if")]
@@ -177,6 +177,9 @@ pub enum Token {
     #[regex(r"//[^\n\r]*", logos::skip)]
     Comment,
 }
+
+pub type MacroCallArgs = Vec<Vec<(usize, Token, usize)>>;
+pub type MacroBody = Vec<(usize, Token, usize)>;
 
 #[cfg(test)]
 pub(super) static KEYWORDS: &[Token] = &[

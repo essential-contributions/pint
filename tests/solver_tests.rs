@@ -4,7 +4,7 @@ use yansi::Color::Red;
 
 #[test]
 fn solver_e2e() {
-    let dir: PathBuf = format!("solver_tests").into();
+    let dir: PathBuf = "solver_tests".to_string().into();
     let mut failed_tests = vec![];
     for entry in read_dir(dir).unwrap() {
         let entry = entry.unwrap();
