@@ -1,0 +1,21 @@
+// ANCHOR: basic_if
+let number: int;
+
+let y = if number < 5 {
+    1
+} else {
+    2
+};
+// ANCHOR_END: basic_if
+
+// ANCHOR: basic_cond
+let x: int;
+let z = cond {
+    x == 0 => 0,
+    x > 0 && x <= 10 => 1,
+    x > 10 && x <= 100 => 2,
+    else => 3
+};
+// ANCHOR_END: basic_cond
+
+solve satisfy;

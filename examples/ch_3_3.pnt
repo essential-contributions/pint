@@ -1,0 +1,22 @@
+// ANCHOR: one_line_comment
+// hello, world
+// ANCHOR_END: one_line_comment
+
+
+// ANCHOR: multi_line_comment
+// This is some complicated code that requires multiple lines to explain:
+// 1. The first `intent`, called `GetRich` ensures that we're getting rich.
+// 2. The second `intent`, called `BeResponsible` ensures that 
+//    we're not gambling all the money away.
+// ANCHOR_END: multi_line_comment 
+
+// ANCHOR: eol_comment
+let big_answer = 42; // answer to life, the universe, and everything
+// ANCHOR_END: eol_comment 
+
+// ANCHOR: pre_comment
+// answer to life, the universe, and everything
+let big_answer_too = 42; 
+// ANCHOR_END: pre_comment 
+
+solve satisfy;

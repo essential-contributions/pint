@@ -1,0 +1,33 @@
+// ANCHOR: storage_block
+storage {
+    x: int,
+    a: b256,
+    t: { int, bool },
+    y: bool,
+}
+// ANCHOR_END: storage_block
+
+// ANCHOR: storage_access_1
+state x = storage::x;
+state b = storage::x;
+state t = storage::t;
+state t_1 = storage::t.1;
+// ANCHOR_END: storage_access_1
+
+// ANCHOR: state 
+state not_annotated = storage::x;
+state annotated: b256 = storage::a;
+// ANCHOR_END: state 
+
+// ANCHOR: constraint
+state t_0 = storage::t.0;
+state y = storage::y;
+constraint y && t_0 >= 42;
+// ANCHOR_END: constraint
+
+// ANCHOR: next_state
+state bal = storage::x;
+constraint bal' >= bal + 42;
+// ANCHOR_END: next_state 
+
+solve satisfy;

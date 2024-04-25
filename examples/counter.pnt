@@ -1,0 +1,15 @@
+storage {
+    counter: int,
+}
+
+intent Initialize {
+    let value: int;
+    state counter: int = storage::counter;
+    constraint counter' == value;
+}
+
+intent Increment {
+    let amount: int;
+    state counter: int = storage::counter;
+    constraint counter' == counter + amount;
+}

@@ -474,6 +474,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "examples-runner"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "num-bigint",
+ "num-traits",
+ "pintc",
+ "regex",
+ "serde",
+ "serde_json",
+ "test-util",
+ "yansi",
+]
+
+[[package]]
 name = "expect-test"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
