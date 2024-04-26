@@ -116,6 +116,8 @@ pub enum CompileError {
     StorageSymbolNotFound { name: String, span: Span },
     #[error("cannot find storage variable `{name}`")]
     MissingStorageBlock { name: String, span: Span },
+    #[error("state access must be bound to a state variable")]
+    InvalidStateAccess { span: Span },
     #[error("cannot find `extern` declaration `{name}`")]
     MissingExtern { name: String, span: Span },
     #[error("attempt to use a non-constant value as an array length")]
@@ -497,6 +499,15 @@ impl ReportableError for CompileError {
                     color: Color::Red,
                 }]
             }
+
+            InvalidStateAccess { span } => {
+                vec![ErrorLabel {
+                    message: "state access must be bound to a state variable".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
             MissingExtern { name, span } => {
                 vec![ErrorLabel {
                     message: format!("cannot find `extern` declaration `{name}`"),
@@ -504,6 +515,7 @@ impl ReportableError for CompileError {
                     color: Color::Red,
                 }]
             }
+
             NonConstArrayLength { span } | NonConstArrayIndex { span } => {
                 vec![ErrorLabel {
                     message: "this must be a constant".to_string(),
@@ -928,6 +940,7 @@ impl ReportableError for CompileError {
             | SymbolNotFound { .. }
             | StorageSymbolNotFound { .. }
             | MissingStorageBlock { .. }
+            | InvalidStateAccess { .. }
             | MissingExtern { .. }
             | NonConstArrayLength { .. }
             | InvalidConstArrayLength { .. }
@@ -1043,6 +1056,7 @@ impl Spanned for CompileError {
             | NonBoolGeneratorBody { span, .. }
             | SymbolNotFound { span, .. }
             | StorageSymbolNotFound { span, .. }
+            | InvalidStateAccess { span, .. }
             | MissingStorageBlock { span, .. }
             | MissingExtern { span, .. }
             | NonConstArrayIndex { span }

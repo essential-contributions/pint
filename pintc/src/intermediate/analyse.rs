@@ -685,11 +685,44 @@ impl IntermediateIntent {
                 }
             }
 
-            UnaryOp::NextState => Ok(if let Some(ty) = self.expr_types.get(rhs_expr_key) {
-                Inference::Type(ty.clone())
-            } else {
-                Inference::Dependant(rhs_expr_key)
-            }),
+            UnaryOp::NextState =>
+            // make sure expr type exists, make sure expr is path, then access state with same name
+            {
+                if let Some(ty) = self.expr_types.get(rhs_expr_key) {
+                    println!("we have arrived");
+                    // expr has to be a path by name or key
+                    match self.exprs.get(rhs_expr_key) {
+                        // expr must be a path
+                        Some(Expr::PathByName(name, span)) => {
+                            if self.states.iter().any(|(_, state)| state.name == *name) {
+                                Ok(Inference::Type(ty.clone()))
+                            } else {
+                                Err(Error::Compile {
+                                    error: CompileError::InvalidStateAccess { span: span.clone() },
+                                })
+                            }
+                        }
+                        Some(Expr::PathByKey(var_key, span)) => {
+                            // get the name
+                            // check how we handle errors for these if no corresponding key, are they internal?
+                            let name = &self.vars.get(*var_key).expect("failed to get var").name;
+                            if self.states.iter().any(|(_, state)| state.name == *name) {
+                                Ok(Inference::Type(ty.clone()))
+                            } else {
+                                Err(Error::Compile {
+                                    error: CompileError::InvalidStateAccess { span: span.clone() },
+                                })
+                            }
+                        }
+                        // Sorry Toby, seems best to do this
+                        _ => Err(Error::Compile {
+                            error: CompileError::InvalidStateAccess { span: span.clone() },
+                        }),
+                    }
+                } else {
+                    Ok(Inference::Dependant(rhs_expr_key))
+                }
+            }
         }
     }
 
