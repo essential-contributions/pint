@@ -465,6 +465,55 @@ dependencies = [
 ]
 
 [[package]]
+name = "essential-asm-gen"
+version = "0.1.0"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#c5402befbcc47c2950d8cf4b92733ba4c4f31615"
+dependencies = [
+ "essential-asm-spec",
+ "essential-types",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.60",
+]
+
+[[package]]
+name = "essential-asm-spec"
+version = "0.1.0"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#c5402befbcc47c2950d8cf4b92733ba4c4f31615"
+dependencies = [
+ "serde",
+ "serde_yaml",
+]
+
+[[package]]
+name = "essential-constraint-asm"
+version = "0.1.0"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#c5402befbcc47c2950d8cf4b92733ba4c4f31615"
+dependencies = [
+ "essential-asm-gen",
+ "essential-types",
+ "serde",
+]
+
+[[package]]
+name = "essential-state-asm"
+version = "0.1.0"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#c5402befbcc47c2950d8cf4b92733ba4c4f31615"
+dependencies = [
+ "essential-asm-gen",
+ "essential-constraint-asm",
+ "serde",
+]
+
+[[package]]
+name = "essential-types"
+version = "0.1.0"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#c5402befbcc47c2950d8cf4b92733ba4c4f31615"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "essential_types"
 version = "0.1.0"
 source = "git+ssh://git@github.com/essential-contributions/intent-server.git#36550d0bca6670b96e6626a20929a8fa36dc5918"
@@ -885,7 +934,8 @@ dependencies = [
  "anyhow",
  "ariadne",
  "clap",
- "constraint_asm",
+ "essential-constraint-asm",
+ "essential-state-asm",
  "essential_types",
  "expect-test",
  "itertools 0.12.1",
@@ -897,7 +947,6 @@ dependencies = [
  "serde_json",
  "similar-asserts",
  "slotmap",
- "state_asm",
  "tempfile",
  "test-util",
  "test_bin",
@@ -1150,6 +1199,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb3622f419d1296904700073ea6cc23ad690adbd66f13ea683df73298736f0c1"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "serde_yaml"
+version = "0.9.34+deprecated"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
+dependencies = [
+ "indexmap",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
 ]
 
 [[package]]
@@ -1439,6 +1501,12 @@ name = "unicode-xid"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f962df74c8c05a667b5ee8bcf162993134c104e96440b663c8daa176dc772d8c"
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
 
 [[package]]
 name = "utf8parse"

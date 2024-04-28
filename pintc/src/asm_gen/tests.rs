@@ -40,9 +40,9 @@ fn bool_literals() {
         expect_test::expect![[r#"
             --- Constraints ---
             constraint 0
-              Push(1)
+              Stack(Push(1))
             constraint 1
-              Push(0)
+              Stack(Push(0))
             --- State Reads ---
         "#]],
     );
@@ -63,14 +63,14 @@ fn int_literals() {
         expect_test::expect![[r#"
             --- Constraints ---
             constraint 0
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
-              Push(4)
+              Stack(Push(4))
               Pred(Eq)
             constraint 1
-              Push(1)
+              Stack(Push(1))
               Access(DecisionVar)
-              Push(819)
+              Stack(Push(819))
               Pred(Eq)
             --- State Reads ---
         "#]],
@@ -99,13 +99,13 @@ fn unary_not() {
         expect_test::expect![[r#"
             --- Constraints ---
             constraint 0
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
-              Push(1)
+              Stack(Push(1))
               Pred(Not)
               Pred(Eq)
             constraint 1
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
               Pred(Not)
             --- State Reads ---
@@ -143,103 +143,103 @@ fn binary_ops() {
         expect_test::expect![[r#"
             --- Constraints ---
             constraint 0
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
-              Push(1)
+              Stack(Push(1))
               Access(DecisionVar)
               Alu(Add)
-              Push(2)
+              Stack(Push(2))
               Access(DecisionVar)
               Pred(Eq)
             constraint 1
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
-              Push(1)
+              Stack(Push(1))
               Access(DecisionVar)
               Alu(Sub)
-              Push(2)
+              Stack(Push(2))
               Access(DecisionVar)
               Pred(Eq)
             constraint 2
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
-              Push(1)
+              Stack(Push(1))
               Access(DecisionVar)
               Alu(Mul)
-              Push(2)
+              Stack(Push(2))
               Access(DecisionVar)
               Pred(Eq)
             constraint 3
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
-              Push(1)
+              Stack(Push(1))
               Access(DecisionVar)
               Alu(Div)
-              Push(2)
+              Stack(Push(2))
               Access(DecisionVar)
               Pred(Eq)
             constraint 4
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
-              Push(1)
+              Stack(Push(1))
               Access(DecisionVar)
               Alu(Mod)
-              Push(2)
+              Stack(Push(2))
               Access(DecisionVar)
               Pred(Eq)
             constraint 5
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
-              Push(1)
+              Stack(Push(1))
               Access(DecisionVar)
               Pred(Eq)
               Pred(Not)
             constraint 6
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
-              Push(1)
+              Stack(Push(1))
               Access(DecisionVar)
               Pred(Eq)
             constraint 7
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
-              Push(1)
+              Stack(Push(1))
               Access(DecisionVar)
               Pred(Lte)
             constraint 8
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
-              Push(1)
+              Stack(Push(1))
               Access(DecisionVar)
               Pred(Lt)
             constraint 9
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
-              Push(1)
+              Stack(Push(1))
               Access(DecisionVar)
               Pred(Gte)
             constraint 10
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
-              Push(1)
+              Stack(Push(1))
               Access(DecisionVar)
               Pred(Gt)
             constraint 11
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
-              Push(1)
+              Stack(Push(1))
               Access(DecisionVar)
               Pred(Gt)
             constraint 12
-              Push(3)
+              Stack(Push(3))
               Access(DecisionVar)
-              Push(4)
+              Stack(Push(4))
               Access(DecisionVar)
               Pred(And)
             constraint 13
-              Push(3)
+              Stack(Push(3))
               Access(DecisionVar)
-              Push(4)
+              Stack(Push(4))
               Access(DecisionVar)
               Pred(Or)
             --- State Reads ---
@@ -264,41 +264,41 @@ fn state_read() {
         expect_test::expect![[r#"
             --- Constraints ---
             constraint 0
-              Push(0)
-              Push(0)
+              Stack(Push(0))
+              Stack(Push(0))
               Access(State)
-              Push(1)
-              Push(0)
+              Stack(Push(1))
+              Stack(Push(0))
               Access(State)
               Pred(Eq)
             constraint 1
-              Push(0)
-              Push(1)
+              Stack(Push(0))
+              Stack(Push(1))
               Access(State)
-              Push(1)
-              Push(1)
+              Stack(Push(1))
+              Stack(Push(1))
               Access(State)
               Pred(Eq)
             --- State Reads ---
             state read 0
-              Constraint(Push(0))
-              Constraint(Push(0))
-              Constraint(Push(0))
-              Constraint(Push(1))
-              Constraint(Push(1))
+              Constraint(Stack(Push(0)))
+              Constraint(Stack(Push(0)))
+              Constraint(Stack(Push(0)))
+              Constraint(Stack(Push(1)))
+              Constraint(Stack(Push(1)))
               Memory(Alloc)
-              Constraint(Push(1))
-              State(StateReadWordRange)
+              Constraint(Stack(Push(1)))
+              WordRange
               ControlFlow(Halt)
             state read 1
-              Constraint(Push(2))
-              Constraint(Push(2))
-              Constraint(Push(2))
-              Constraint(Push(2))
-              Constraint(Push(1))
+              Constraint(Stack(Push(2)))
+              Constraint(Stack(Push(2)))
+              Constraint(Stack(Push(2)))
+              Constraint(Stack(Push(2)))
+              Constraint(Stack(Push(1)))
               Memory(Alloc)
-              Constraint(Push(1))
-              State(StateReadWordRange)
+              Constraint(Stack(Push(1)))
+              WordRange
               ControlFlow(Halt)
         "#]],
     );
@@ -347,49 +347,49 @@ fn state_read_extern() {
         expect_test::expect![[r#"
             --- Constraints ---
             constraint 0
-              Push(0)
-              Push(0)
+              Stack(Push(0))
+              Stack(Push(0))
               Access(State)
-              Push(1)
-              Push(0)
+              Stack(Push(1))
+              Stack(Push(0))
               Access(State)
               Pred(Eq)
             constraint 1
-              Push(0)
-              Push(1)
+              Stack(Push(0))
+              Stack(Push(1))
               Access(State)
-              Push(1)
-              Push(1)
+              Stack(Push(1))
+              Stack(Push(1))
               Access(State)
               Pred(Eq)
             --- State Reads ---
             state read 0
-              Constraint(Push(1))
-              Constraint(Push(2))
-              Constraint(Push(3))
-              Constraint(Push(4))
-              Constraint(Push(17))
-              Constraint(Push(34))
-              Constraint(Push(51))
-              Constraint(Push(68))
-              Constraint(Push(1))
+              Constraint(Stack(Push(1)))
+              Constraint(Stack(Push(2)))
+              Constraint(Stack(Push(3)))
+              Constraint(Stack(Push(4)))
+              Constraint(Stack(Push(17)))
+              Constraint(Stack(Push(34)))
+              Constraint(Stack(Push(51)))
+              Constraint(Stack(Push(68)))
+              Constraint(Stack(Push(1)))
               Memory(Alloc)
-              Constraint(Push(1))
-              State(StateReadWordRangeExtern)
+              Constraint(Stack(Push(1)))
+              WordRangeExtern
               ControlFlow(Halt)
             state read 1
-              Constraint(Push(5))
-              Constraint(Push(6))
-              Constraint(Push(7))
-              Constraint(Push(8))
-              Constraint(Push(85))
-              Constraint(Push(102))
-              Constraint(Push(119))
-              Constraint(Push(136))
-              Constraint(Push(1))
+              Constraint(Stack(Push(5)))
+              Constraint(Stack(Push(6)))
+              Constraint(Stack(Push(7)))
+              Constraint(Stack(Push(8)))
+              Constraint(Stack(Push(85)))
+              Constraint(Stack(Push(102)))
+              Constraint(Stack(Push(119)))
+              Constraint(Stack(Push(136)))
+              Constraint(Stack(Push(1)))
               Memory(Alloc)
-              Constraint(Push(1))
-              State(StateReadWordRangeExtern)
+              Constraint(Stack(Push(1)))
+              WordRangeExtern
               ControlFlow(Halt)
         "#]],
     );
@@ -431,30 +431,30 @@ fn next_state() {
         expect_test::expect![[r#"
             --- Constraints ---
             constraint 0
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
-              Push(5)
+              Stack(Push(5))
               Pred(Eq)
             constraint 1
-              Push(0)
-              Push(1)
+              Stack(Push(0))
+              Stack(Push(1))
               Access(State)
-              Push(0)
-              Push(0)
+              Stack(Push(0))
+              Stack(Push(0))
               Access(State)
               Alu(Sub)
-              Push(5)
+              Stack(Push(5))
               Pred(Eq)
             --- State Reads ---
             state read 0
-              Constraint(Push(0))
-              Constraint(Push(0))
-              Constraint(Push(0))
-              Constraint(Push(3))
-              Constraint(Push(1))
+              Constraint(Stack(Push(0)))
+              Constraint(Stack(Push(0)))
+              Constraint(Stack(Push(0)))
+              Constraint(Stack(Push(3)))
+              Constraint(Stack(Push(1)))
               Memory(Alloc)
-              Constraint(Push(1))
-              State(StateReadWordRange)
+              Constraint(Stack(Push(1)))
+              WordRange
               ControlFlow(Halt)
         "#]],
     );
@@ -488,62 +488,32 @@ fn b256() {
         expect_test::expect![[r#"
             --- Constraints ---
             constraint 0
-              Push(0)
+              Stack(Push(0))
               Access(DecisionVar)
-              Push(1)
+              Stack(Push(1))
               Access(DecisionVar)
-              Push(2)
+              Stack(Push(2))
               Access(DecisionVar)
-              Push(3)
+              Stack(Push(3))
               Access(DecisionVar)
-              Push(5)
-              Push(6)
-              Push(7)
-              Push(8)
+              Stack(Push(5))
+              Stack(Push(6))
+              Stack(Push(7))
+              Stack(Push(8))
               Pred(Eq4)
             constraint 1
-              Push(4)
+              Stack(Push(4))
               Access(DecisionVar)
-              Push(5)
+              Stack(Push(5))
               Access(DecisionVar)
-              Push(6)
+              Stack(Push(6))
               Access(DecisionVar)
-              Push(7)
+              Stack(Push(7))
               Access(DecisionVar)
-              Push(-1152921504606846976)
-              Push(5764607523034234880)
-              Push(6917529027641081856)
-              Push(8070450532247928832)
-              Pred(Eq4)
-            --- State Reads ---
-        "#]],
-    );
-}
-
-#[test]
-fn sender() {
-    let intents = &compile(
-        r#"
-        let s: b256;
-        constraint s == context::sender();
-        solve satisfy;
-        "#,
-    );
-
-    check(
-        &format!("{intents}"),
-        expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Push(0)
-              Access(DecisionVar)
-              Push(1)
-              Access(DecisionVar)
-              Push(2)
-              Access(DecisionVar)
-              Push(3)
-              Access(DecisionVar)
-              Access(Sender)
+              Stack(Push(-1152921504606846976))
+              Stack(Push(5764607523034234880))
+              Stack(Push(6917529027641081856))
+              Stack(Push(8070450532247928832))
               Pred(Eq4)
             --- State Reads ---
         "#]],

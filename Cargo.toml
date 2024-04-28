@@ -8,9 +8,11 @@ anyhow = "1.0"
 ariadne = "0.4"
 chumsky = "0.9"
 clap = { version = "4.5", features = ["derive"] }
+constraint-asm = { git = "ssh://git@github.com/essential-contributions/essential-base.git", package = "essential-constraint-asm" }
 expect-test = "1.4"
 itertools = "0.12"
 logos = "0.14"
+state-asm = { git = "ssh://git@github.com/essential-contributions/essential-base.git", package = "essential-state-asm" }
 thiserror = "1.0"
 
 [workspace.package]

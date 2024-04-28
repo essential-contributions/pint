@@ -5,12 +5,13 @@ use crate::{
     span::empty_span,
     types::{PrimitiveKind, Type},
 };
-use constraint_asm::{Access, Alu, Crypto, Op, Pred};
 use essential_types::{
     intent::{Directive, Intent},
     slots::{Slots, StateSlot},
 };
-use state_asm::{ControlFlow, Memory, State, StateReadOp};
+use state_asm::{
+    Access, Alu, Constraint, ControlFlow, Crypto, Memory, Op as StateRead, Pred, Stack,
+};
 use std::collections::{BTreeMap, HashMap};
 
 mod display;
@@ -66,9 +67,9 @@ pub fn program_to_intents(handler: &Handler, program: &Program) -> Result<Intent
 #[derive(Default)]
 pub struct AsmBuilder {
     // Opcodes to read state
-    s_asm: Vec<Vec<StateReadOp>>,
+    s_asm: Vec<Vec<StateRead>>,
     // Opcodes to specify constraints
-    c_asm: Vec<Vec<Op>>,
+    c_asm: Vec<Vec<Constraint>>,
     // Collection of state slots
     s_slots: Vec<StateSlot>,
     // Maps indices of `let` variables (which may be wider than a word) to a list of low level
@@ -97,7 +98,7 @@ impl AsmBuilder {
     fn compile_state_key(
         &mut self,
         handler: &Handler,
-        s_asm: &mut Vec<StateReadOp>,
+        s_asm: &mut Vec<StateRead>,
         expr: &ExprKey,
         intent: &IntermediateIntent,
     ) -> Result<StorageKey, ErrorEmitted> {
@@ -109,7 +110,7 @@ impl AsmBuilder {
 
                     let mut asm = Vec::new();
                     self.compile_expr(handler, &mut asm, &args[0], intent)?;
-                    s_asm.extend(asm.iter().map(|op| StateReadOp::Constraint(*op)));
+                    s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
                     Ok(StorageKey {
                         kind: StorageKeyKind::Dynamic,
                         is_extern: false,
@@ -122,7 +123,7 @@ impl AsmBuilder {
                     let mut asm = Vec::new();
                     self.compile_expr(handler, &mut asm, &args[0], intent)?;
                     self.compile_expr(handler, &mut asm, &args[1], intent)?;
-                    s_asm.extend(asm.iter().map(|op| StateReadOp::Constraint(*op)));
+                    s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
                     Ok(StorageKey {
                         kind: StorageKeyKind::Dynamic,
                         is_extern: true,
@@ -154,11 +155,11 @@ impl AsmBuilder {
                     .map(|storage_var| storage_var.ty.size())
                     .sum();
 
-                s_asm.extend(vec![
-                    StateReadOp::Constraint(Op::Push(0)),
-                    StateReadOp::Constraint(Op::Push(0)),
-                    StateReadOp::Constraint(Op::Push(0)),
-                    StateReadOp::Constraint(Op::Push(key as i64)),
+                s_asm.extend([
+                    StateRead::from(Stack::Push(0)),
+                    Stack::Push(0).into(),
+                    Stack::Push(0).into(),
+                    Stack::Push(key as i64).into(),
                 ]);
                 Ok(StorageKey {
                     kind: StorageKeyKind::Static([0, 0, 0, key as i64]),
@@ -198,15 +199,15 @@ impl AsmBuilder {
                 };
 
                 // Push the external set-of-intents address followed by the base key
-                s_asm.extend(vec![
-                    StateReadOp::Constraint(Op::Push(val[0] as i64)),
-                    StateReadOp::Constraint(Op::Push(val[1] as i64)),
-                    StateReadOp::Constraint(Op::Push(val[2] as i64)),
-                    StateReadOp::Constraint(Op::Push(val[3] as i64)),
-                    StateReadOp::Constraint(Op::Push(0)),
-                    StateReadOp::Constraint(Op::Push(0)),
-                    StateReadOp::Constraint(Op::Push(0)),
-                    StateReadOp::Constraint(Op::Push(key as i64)),
+                s_asm.extend([
+                    StateRead::from(Stack::Push(val[0] as i64)),
+                    Stack::Push(val[1] as i64).into(),
+                    Stack::Push(val[2] as i64).into(),
+                    Stack::Push(val[3] as i64).into(),
+                    Stack::Push(0).into(),
+                    Stack::Push(0).into(),
+                    Stack::Push(0).into(),
+                    Stack::Push(key as i64).into(),
                 ]);
 
                 // This is external!
@@ -224,15 +225,13 @@ impl AsmBuilder {
                 // Compile the index
                 let mut asm = vec![];
                 self.compile_expr(handler, &mut asm, index, intent)?;
-                s_asm.extend(asm.iter().map(|op| StateReadOp::Constraint(*op)));
+                s_asm.extend(asm.iter().copied().map(StateRead::from));
 
                 // Sha256 the current key (4 words) with the compiled index to get the actual key.
                 // We also need the length of the data to hash, so we rely on the size of the type
                 // to get that.
-                s_asm.push(StateReadOp::Constraint(Op::Push(
-                    4 + intent.expr_types[*index].size() as i64,
-                )));
-                s_asm.push(StateReadOp::Constraint(Op::Crypto(Crypto::Sha256)));
+                s_asm.push(Stack::Push(4 + intent.expr_types[*index].size() as i64).into());
+                s_asm.push(Crypto::Sha256.into());
 
                 Ok(StorageKey {
                     // This key is dynamic due to `Sha256`
@@ -278,16 +277,16 @@ impl AsmBuilder {
                     kind: match kind {
                         StorageKeyKind::Dynamic => {
                             // Increment the last word on the stack by `key_offset`
-                            s_asm.push(StateReadOp::Constraint(Op::Push(key_offset as i64)));
-                            s_asm.push(StateReadOp::Constraint(Op::Alu(Alu::Add)));
+                            s_asm.push(Stack::Push(key_offset as i64).into());
+                            s_asm.push(Alu::Add.into());
                             StorageKeyKind::Dynamic
                         }
                         StorageKeyKind::Static(mut key) => {
                             // Remove the last word on the stack and increment it by `key_offset`.
                             // The last word should itself be `key[3]`.
-                            s_asm.push(StateReadOp::Constraint(Op::Pop));
+                            s_asm.push(Stack::Pop.into());
                             key[3] += key_offset as i64;
-                            s_asm.push(StateReadOp::Constraint(Op::Push(key[3])));
+                            s_asm.push(Stack::Push(key[3]).into());
                             StorageKeyKind::Static(key)
                         }
                     },
@@ -302,7 +301,7 @@ impl AsmBuilder {
     fn compile_expr(
         &mut self,
         handler: &Handler,
-        asm: &mut Vec<Op>,
+        asm: &mut Vec<Constraint>,
         expr: &ExprKey,
         intent: &IntermediateIntent,
     ) -> Result<(), ErrorEmitted> {
@@ -312,12 +311,12 @@ impl AsmBuilder {
         // Assume that there exists at least a single entry in `self.c_asm`.
         match &intent.exprs[*expr] {
             Expr::Immediate { value, .. } => match value {
-                Immediate::Int(val) => asm.push(Op::Push(*val)),
+                Immediate::Int(val) => asm.push(Stack::Push(*val).into()),
                 Immediate::B256(val) => {
-                    asm.push(Op::Push(val[0] as i64));
-                    asm.push(Op::Push(val[1] as i64));
-                    asm.push(Op::Push(val[2] as i64));
-                    asm.push(Op::Push(val[3] as i64));
+                    asm.push(Stack::Push(val[0] as i64).into());
+                    asm.push(Stack::Push(val[1] as i64).into());
+                    asm.push(Stack::Push(val[2] as i64).into());
+                    asm.push(Stack::Push(val[3] as i64).into());
                 }
                 _ => unimplemented!("other literal types are not yet supported"),
             },
@@ -325,37 +324,37 @@ impl AsmBuilder {
                 self.compile_expr(handler, asm, lhs, intent)?;
                 self.compile_expr(handler, asm, rhs, intent)?;
                 match op {
-                    BinaryOp::Add => asm.push(Op::Alu(Alu::Add)),
-                    BinaryOp::Sub => asm.push(Op::Alu(Alu::Sub)),
-                    BinaryOp::Mul => asm.push(Op::Alu(Alu::Mul)),
-                    BinaryOp::Div => asm.push(Op::Alu(Alu::Div)),
-                    BinaryOp::Mod => asm.push(Op::Alu(Alu::Mod)),
+                    BinaryOp::Add => asm.push(Alu::Add.into()),
+                    BinaryOp::Sub => asm.push(Alu::Sub.into()),
+                    BinaryOp::Mul => asm.push(Alu::Mul.into()),
+                    BinaryOp::Div => asm.push(Alu::Div.into()),
+                    BinaryOp::Mod => asm.push(Alu::Mod.into()),
                     BinaryOp::Equal => {
                         if intent.expr_types[*lhs].is_b256() {
-                            asm.push(Op::Pred(Pred::Eq4));
+                            asm.push(Pred::Eq4.into());
                         } else {
-                            asm.push(Op::Pred(Pred::Eq));
+                            asm.push(Pred::Eq.into());
                         }
                     }
                     BinaryOp::NotEqual => {
-                        asm.push(Op::Pred(Pred::Eq));
-                        asm.push(Op::Pred(Pred::Not));
+                        asm.push(Pred::Eq.into());
+                        asm.push(Pred::Not.into());
                     }
-                    BinaryOp::LessThanOrEqual => asm.push(Op::Pred(Pred::Lte)),
-                    BinaryOp::LessThan => asm.push(Op::Pred(Pred::Lt)),
+                    BinaryOp::LessThanOrEqual => asm.push(Pred::Lte.into()),
+                    BinaryOp::LessThan => asm.push(Pred::Lt.into()),
                     BinaryOp::GreaterThanOrEqual => {
-                        asm.push(Op::Pred(Pred::Gte));
+                        asm.push(Pred::Gte.into());
                     }
-                    BinaryOp::GreaterThan => asm.push(Op::Pred(Pred::Gt)),
-                    BinaryOp::LogicalAnd => asm.push(Op::Pred(Pred::And)),
-                    BinaryOp::LogicalOr => asm.push(Op::Pred(Pred::Or)),
+                    BinaryOp::GreaterThan => asm.push(Pred::Gt.into()),
+                    BinaryOp::LogicalAnd => asm.push(Pred::And.into()),
+                    BinaryOp::LogicalOr => asm.push(Pred::Or.into()),
                 }
             }
             Expr::UnaryOp { op, expr, .. } => {
                 self.compile_expr(handler, asm, expr, intent)?;
                 match op {
                     UnaryOp::Not => {
-                        asm.push(Op::Pred(Pred::Not));
+                        asm.push(Pred::Not.into());
                     }
                     UnaryOp::NextState => {
                         // This assumes that the next state operator is applied on a state var path
@@ -367,12 +366,15 @@ impl AsmBuilder {
                         // current state to reading the next state.
                         assert!(matches!(
                             asm.last(),
-                            Some(&Op::Access(Access::State | Access::StateRange))
+                            Some(&Constraint::Access(Access::State | Access::StateRange))
                         ));
                         let len = asm.len();
                         assert!(len >= 2);
-                        assert!(matches!(asm.get(asm.len() - 2), Some(&Op::Push(0))));
-                        asm[len - 2] = Op::Push(1);
+                        assert!(matches!(
+                            asm.get(asm.len() - 2),
+                            Some(&Constraint::Stack(Stack::Push(0)))
+                        ));
+                        asm[len - 2] = Stack::Push(1).into();
                     }
                     UnaryOp::Neg => unimplemented!("Unary::Neg is not yet supported"),
                     UnaryOp::Error => unreachable!("unexpected Unary::Error"),
@@ -396,7 +398,12 @@ impl AsmBuilder {
             }
             Expr::FnCall { name, args, .. } if name.ends_with("::context::sender") => {
                 assert!(args.is_empty());
-                asm.push(Op::Access(Access::Sender));
+                return Err(handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "Encountered removed `sender` op during assembly generation",
+                        span: empty_span(),
+                    },
+                }));
             }
             Expr::FnCall { .. } | Expr::If { .. } => {
                 unimplemented!("calls and `if` expressions are not yet supported")
@@ -424,7 +431,12 @@ impl AsmBuilder {
 
     /// Compile a path expression. Assumes that each path expressions corresponds to a decision
     /// variable or a state variable.
-    fn compile_path(&mut self, asm: &mut Vec<Op>, path: &String, intent: &IntermediateIntent) {
+    fn compile_path(
+        &mut self,
+        asm: &mut Vec<Constraint>,
+        path: &String,
+        intent: &IntermediateIntent,
+    ) {
         let var_index = intent.vars.iter().position(|var| &var.1.name == path);
         let state_and_index = intent
             .states
@@ -435,8 +447,8 @@ impl AsmBuilder {
         match (var_index, state_and_index) {
             (Some(var_index), None) => {
                 for d_var in &self.var_to_d_vars[&var_index] {
-                    asm.push(Op::Push(*d_var as i64));
-                    asm.push(Op::Access(Access::DecisionVar));
+                    asm.push(Stack::Push(*d_var as i64).into());
+                    asm.push(Access::DecisionVar.into());
                 }
             }
             (None, Some((state_index, state))) => {
@@ -450,14 +462,14 @@ impl AsmBuilder {
                 }
                 let size = intent.state_types[state.0].size();
                 if size == 1 {
-                    asm.push(Op::Push(slot_index as i64));
-                    asm.push(Op::Push(0)); // 0 means "current state"
-                    asm.push(Op::Access(Access::State));
+                    asm.push(Stack::Push(slot_index as i64).into());
+                    asm.push(Stack::Push(0).into()); // 0 means "current state"
+                    asm.push(Access::State.into());
                 } else {
-                    asm.push(Op::Push(slot_index as i64));
-                    asm.push(Op::Push(size as i64)); // 0 means "current state"
-                    asm.push(Op::Push(0)); // 0 means "current state"
-                    asm.push(Op::Access(Access::StateRange));
+                    asm.push(Stack::Push(slot_index as i64).into());
+                    asm.push(Stack::Push(size as i64).into()); // 0 means "current state"
+                    asm.push(Stack::Push(0).into()); // 0 means "current state"
+                    asm.push(Access::StateRange.into());
                 }
             }
             _ => unreachable!("guaranteed by semantic analysis"),
@@ -486,7 +498,7 @@ impl AsmBuilder {
         intent: &IntermediateIntent,
     ) -> Result<(), ErrorEmitted> {
         let data_size = intent.expr_types[state.expr].size();
-        let mut s_asm = Vec::new();
+        let mut s_asm: Vec<StateRead> = Vec::new();
 
         // First, get the storage key
         let is_extern = self
@@ -495,16 +507,16 @@ impl AsmBuilder {
 
         // Now, using the data size of the accessed type, produce an `Alloc` followed by a
         // `StateReadWordRange` instruction or a `StateReadWordRangeExtern` instruction
-        s_asm.extend(vec![
-            StateReadOp::Constraint(Op::Push(data_size as i64)),
-            StateReadOp::Memory(Memory::Alloc),
-            StateReadOp::Constraint(Op::Push(data_size as i64)),
+        s_asm.extend([
+            Stack::Push(data_size as i64).into(),
+            Memory::Alloc.into(),
+            Stack::Push(data_size as i64).into(),
             if is_extern {
-                StateReadOp::State(State::StateReadWordRangeExtern)
+                StateRead::WordRangeExtern.into()
             } else {
-                StateReadOp::State(State::StateReadWordRange)
+                StateRead::WordRange.into()
             },
-            StateReadOp::ControlFlow(ControlFlow::Halt),
+            StateRead::ControlFlow(ControlFlow::Halt),
         ]);
         self.s_asm.push(s_asm);
 
@@ -573,12 +585,12 @@ pub fn intent_to_asm(
         state_read: builder
             .s_asm
             .iter()
-            .map(|s_asm| serde_json::to_vec(s_asm).unwrap())
+            .map(|s_asm| state_asm::to_bytes(s_asm.iter().copied()).collect())
             .collect(),
         constraints: builder
             .c_asm
             .iter()
-            .map(|constraint| serde_json::to_vec(&constraint).unwrap())
+            .map(|c_asm| constraint_asm::to_bytes(c_asm.iter().copied()).collect())
             .collect(),
         directive: Directive::Satisfy,
     })
