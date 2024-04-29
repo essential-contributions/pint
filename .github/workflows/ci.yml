@@ -24,7 +24,9 @@ jobs:
       - name: Provide Access to Private Repos
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-private-key: |
+            ${{ secrets.SSH_PRIVATE_KEY }}
+            ${{ secrets.SSH_PRIVATE_KEY_BASE }}
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,7 +41,9 @@ jobs:
       - name: Provide Access to Private Repos
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-private-key: |
+            ${{ secrets.SSH_PRIVATE_KEY }}
+            ${{ secrets.SSH_PRIVATE_KEY_BASE }}
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -81,7 +85,9 @@ jobs:
       - name: Provide Access to Private Repos
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-private-key: |
+            ${{ secrets.SSH_PRIVATE_KEY }}
+            ${{ secrets.SSH_PRIVATE_KEY_BASE }}
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -112,7 +118,9 @@ jobs:
       - name: Provide Access to Private Repos
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-private-key: |
+            ${{ secrets.SSH_PRIVATE_KEY }}
+            ${{ secrets.SSH_PRIVATE_KEY_BASE }}
 
       - name: Checkout
         uses: actions/checkout@v4
