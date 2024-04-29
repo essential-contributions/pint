@@ -1,0 +1,70 @@
+// <disabled>
+// ANCHOR: alias
+type Kilometrers = int;
+// ANCHOR_END: alias 
+
+// ANCHOR: alias_same
+let x: int = 5;
+let y: Kilometrers = 5;
+constraint x == y;
+// ANCHOR_END: alias_same
+
+// ANCHOR: simple_struct 
+type User = {
+    active: bool,
+    address: b256,
+    balance: int,
+};
+// ANCHOR_END: simple_struct
+
+// ANCHOR: simple_struct_instance
+let user1: User = {
+    active: true,
+    address: 0x1111111111111111111111111111111111111111111111111111111111111111,
+    balance: 42,
+};
+// ANCHOR_END: simple_struct_instance
+
+// ANCHOR: simple_enum
+enum Token = DAI | USDC | USDT;
+// ANCHOR_END: simple_enum
+
+// ANCHOR: simple_enum_instances
+let dai = Token::DAI;
+let usdc = Token::USDC;
+let usdt = Token::USDT;
+// ANCHOR_END: simple_enum_instances
+
+// ANCHOR: enum_selection
+let amount: int;
+let token: Token = cond {
+    amount in 0..1000 => Token::DAI,
+    amount in 1001..2000  => Token::USDC,
+    else  => Token::USDT,
+};
+// ANCHOR_END: enum_selection
+
+// ANCHOR: enum_in_struct
+type Balance = {
+    token: Token,
+    bal: int, 
+};
+
+let user1_bal = {
+    token: Token::DAI,
+    bal: 42, 
+};
+
+let user2_bal = {
+    token: Token::USDC,
+    bal: 96, 
+};
+
+let user3_bal = {
+    token: Token::USDT,
+    bal: 100, 
+};
+// ANCHOR_END: enum_in_struct
+
+
+solve satisfy;

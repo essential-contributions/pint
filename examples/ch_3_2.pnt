@@ -1,0 +1,71 @@
+// ANCHOR: reals 
+let x = 1.05;
+let y = 42e8;
+let z = 2.5e-4;
+let w: real = 1.3E5;
+let u: real = 0.34;
+// ANCHOR_END: reals
+
+// ANCHOR: math_ops 
+// addition
+let sum = 1 + 2 + 3;
+
+// subtraction
+let difference = 15.3 - 1e-1;
+
+// multiplication
+let product = 42 * 42;
+
+// division
+let quotient = 3.3/2.0;
+let truncated = -5 / 3; // Results is -1
+
+// remainder
+let remainder = 34 % 3;
+// ANCHOR_END: math_ops 
+
+// ANCHOR: bools
+let t = true;
+let f: bool = false;
+// ANCHOR_END: bools 
+
+// ANCHOR: simple_tuple 
+let tup_1: { int, real, bool } = { 42, 4.2, true };
+// ANCHOR_END: simple_tuple
+
+// ANCHOR: tuple_access 
+let tup_2: { int, real, bool } = { 42, 4.2, true };
+let tup_2_first = tup_2.0;
+let tup_2_second = tup_2.1;
+let tup_2_third = tup_2.2;
+// ANCHOR_END: tuple_access
+
+// ANCHOR: simple_tuple_named
+let tup_3: { x: int, real, y: bool } = { 42, 4.2, true };
+// ANCHOR_END: simple_tuple_named
+
+// ANCHOR: tuple_access_named 
+let tup_4: { x: int, real, y: bool } = { 42, 4.2, true };
+let tup_4_first = tup_4.0;
+let tup_4_first_named = tup_4.x; // same as `tup_4.0`
+let tup_4_second = tup_4.1;
+let tup_4_third = tup_4.2;
+let tup_4_third_named = tup_4.y; // same as `tup_4.y`
+// ANCHOR_END: tuple_access_named
+
+
+// ANCHOR: simple_array
+let a = [1, 2, 3, 4, 5];
+// ANCHOR_END: simple_array
+
+// ANCHOR: array_type
+let b: int[5] = [1, 2, 3, 4, 5];
+// ANCHOR_END: array_type
+
+// ANCHOR: array_access
+let c: int[5] = [1, 2, 3, 4, 5];
+let c_first = c[0];
+let c_second = c[1];
+// ANCHOR_END: array_access
+
+solve satisfy;

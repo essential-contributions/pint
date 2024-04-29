@@ -1,0 +1,11 @@
+// ANCHOR: initialized 
+let bar: int;
+constraint bar == 42;
+// ANCHOR_END: initialized
+
+// ANCHOR: initialized_unannotated
+let baz: int;
+constraint baz == 43;
+// ANCHOR_END: initialized_unannotated
+
+solve satisfy;
