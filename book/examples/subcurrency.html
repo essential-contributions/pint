@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Hello, World! - The Book of Pint</title>
+        <title>Subcurrency - The Book of Pint</title>
 
 
         <!-- Custom HTML head -->
@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../the-book-of-pint.html">The Book of Pint</a></li><li class="chapter-item expanded "><a href="../getting_started/index.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../getting_started/installation.html"><strong aria-hidden="true">1.1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="../getting_started/hello-world.html" class="active"><strong aria-hidden="true">1.2.</strong> Hello, World!</a></li><li class="chapter-item expanded "><a href="../getting_started/hello-golf.html"><strong aria-hidden="true">1.3.</strong> Hello, Golf!</a></li></ol></li><li class="chapter-item expanded "><a href="../examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../examples/counter.html"><strong aria-hidden="true">2.1.</strong> Counter</a></li><li class="chapter-item expanded "><a href="../examples/subcurrency.html"><strong aria-hidden="true">2.2.</strong> Subcurrency</a></li></ol></li><li class="chapter-item expanded "><a href="../basics/index.html"><strong aria-hidden="true">3.</strong> Common Programming Concepts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../basics/variables.html"><strong aria-hidden="true">3.1.</strong> Variables</a></li><li class="chapter-item expanded "><a href="../basics/data_types.html"><strong aria-hidden="true">3.2.</strong> Data Types</a></li><li class="chapter-item expanded "><a href="../basics/comments.html"><strong aria-hidden="true">3.3.</strong> Comments</a></li><li class="chapter-item expanded "><a href="../basics/conditionals.html"><strong aria-hidden="true">3.4.</strong> Conditionals</a></li><li class="chapter-item expanded "><a href="../basics/custom_types.html"><strong aria-hidden="true">3.5.</strong> Custom Types</a></li></ol></li><li class="chapter-item expanded "><a href="../storage/index.html"><strong aria-hidden="true">4.</strong> Storage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../storage/static.html"><strong aria-hidden="true">4.1.</strong> Static Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/dynamic.html"><strong aria-hidden="true">4.2.</strong> Dynamic Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/layout.html"><strong aria-hidden="true">4.3.</strong> Storage Layout</a></li></ol></li><li class="chapter-item expanded "><a href="../appendix/index.html"><strong aria-hidden="true">5.</strong> Appendix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../appendix/keywords.html"><strong aria-hidden="true">5.1.</strong> A - Keywords</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../the-book-of-pint.html">The Book of Pint</a></li><li class="chapter-item expanded "><a href="../getting_started/index.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../getting_started/installation.html"><strong aria-hidden="true">1.1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="../getting_started/hello-world.html"><strong aria-hidden="true">1.2.</strong> Hello, World!</a></li><li class="chapter-item expanded "><a href="../getting_started/hello-golf.html"><strong aria-hidden="true">1.3.</strong> Hello, Golf!</a></li></ol></li><li class="chapter-item expanded "><a href="../examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../examples/counter.html"><strong aria-hidden="true">2.1.</strong> Counter</a></li><li class="chapter-item expanded "><a href="../examples/subcurrency.html" class="active"><strong aria-hidden="true">2.2.</strong> Subcurrency</a></li></ol></li><li class="chapter-item expanded "><a href="../basics/index.html"><strong aria-hidden="true">3.</strong> Common Programming Concepts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../basics/variables.html"><strong aria-hidden="true">3.1.</strong> Variables</a></li><li class="chapter-item expanded "><a href="../basics/data_types.html"><strong aria-hidden="true">3.2.</strong> Data Types</a></li><li class="chapter-item expanded "><a href="../basics/comments.html"><strong aria-hidden="true">3.3.</strong> Comments</a></li><li class="chapter-item expanded "><a href="../basics/conditionals.html"><strong aria-hidden="true">3.4.</strong> Conditionals</a></li><li class="chapter-item expanded "><a href="../basics/custom_types.html"><strong aria-hidden="true">3.5.</strong> Custom Types</a></li></ol></li><li class="chapter-item expanded "><a href="../storage/index.html"><strong aria-hidden="true">4.</strong> Storage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../storage/static.html"><strong aria-hidden="true">4.1.</strong> Static Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/dynamic.html"><strong aria-hidden="true">4.2.</strong> Dynamic Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/layout.html"><strong aria-hidden="true">4.3.</strong> Storage Layout</a></li></ol></li><li class="chapter-item expanded "><a href="../appendix/index.html"><strong aria-hidden="true">5.</strong> Appendix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../appendix/keywords.html"><strong aria-hidden="true">5.1.</strong> A - Keywords</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -148,67 +148,96 @@
                 <div id="content" class="content">
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h2 id="hello-world"><a class="header" href="#hello-world">Hello, World!</a></h2>
-<p>Now that you've installed Pint, it's time to write your first Pint program. It's traditional when learning a new language to write a little program that prints the text <code>Hello, world!</code></p>
-<h3 id="creating-a-project-directory"><a class="header" href="#creating-a-project-directory">Creating a Project Directory</a></h3>
-<p>You'll start by making a directory to store your Pint code. It doesn't matter to Pint where your code lives, but for the exercise and projects in this book, we suggest making a <code>projects</code> directory in your home directory and keeping all your projects there.</p>
-<p>Open a terminal and enter the following commands to make a <code>projects</code> directory and a directory for the &quot;Hello, world!&quot; project within the <code>projects</code> directory:</p>
-<pre><code class="language-console">$ mkdir ~/projects
-$ cd ~/projects
-$ mkdir hello_world
-$ cd hello_world
-</code></pre>
-<h3 id="writing-a-pint-program"><a class="header" href="#writing-a-pint-program">Writing a Pint Program</a></h3>
-<p>Next, make a new source file and call it <code>main.pnt</code>. Pint files always end with the <code>pnt</code> extension. Now open the <code>main.pnt</code> file you just created and enter the code below:</p>
-<pre><code class="language-pint">let greeting: string;
+<h2 id="subcurrency"><a class="header" href="#subcurrency">Subcurrency</a></h2>
+<p>The following contract implements the simplest form of a cryptocurrency. The contract allows only
+its creator to create new coins but anyone can send coins to each other.</p>
+<pre><code class="language-pint">storage {
+    total_supply: int,
+    balances: (b256 =&gt; int),
+}
 
-constraint greeting == &quot;Hello, world!&quot;;
+// Sends an amount of newly created coins to an address
+// Can only be called by the contract creator
+intent Mint {
+    let receiver: b256;
+    let amount: int;
 
-solve satisfy;
+    state receiver_balance = storage::balances[receiver];
+    state total_supply = storage::total_supply;
 
-print greeting;
+    constraint total_supply' == total_supply + amount;
+    constraint receiver_balance' == receiver_balance + amount;
+}
+
+// Sends an amount of existing coins from to an address
+intent Send {
+    let from: b256;
+    let receiver: b256;
+    let amount: int;
+
+    state from_balance = storage::balances[from];
+    state receiver_balance = storage::balances[receiver];
+
+    constraint amount &lt; from_balance;
+    constraint from_balance' == from_balance - amount;
+    constraint receiver_balance' == receiver_balance + amount;
+}
 </code></pre>
-<p>Save the file and go back to your terminal window in the <code>~/projects/hello_world/</code> directory. Enter the following command to compile and <strong>solve</strong> the file:</p>
-<pre><code class="language-console">$ pintc --solve main.rs
-</code></pre>
-<p>The following should be printed to the terminal:</p>
-<pre><code class="language-console">&quot;Hello, world!&quot;
-</code></pre>
-<p>Congratulations! You've officially written your first Pint program.</p>
+<p>This contract introduces some new concepts. Let's walk through it line by line.</p>
+<p>The contract starts with a <code>storage</code> declaration that contains two storage variables:</p>
+<ol>
+<li><code>total_supply</code> is of type <code>int</code> and represents the total supply of coins available at any given
+point in time.</li>
+<li><code>balances</code> is a <strong>map</strong> from <code>b256</code> to <code>int</code> and stores balances of addresses as integers.</li>
+</ol>
+<p>The contract also has two intents: <code>Mint</code> and <code>Send</code>.</p>
+<p>The <code>Mint</code> intent is quite simple:</p>
+<ol>
+<li>It declares two decision variables <code>receiver: b256</code> and <code>amount: int</code>. The goal of this intent to
+mint <code>amount</code> coins and send them to <code>receiver</code>.</li>
+<li>It initializes a <code>state</code> variables called <code>receiver_balance</code> using the storage access expression
+<code>storage::balances[receiver]</code>. This syntax returns the value in <code>balances</code> that <code>receiver</code> maps
+to. It also initializes another state variable called <code>total_supply</code> to <code>storage::total_supply</code>.</li>
+<li>It enforces two constraints:
+<ol>
+<li>the first constraint ensures that the total supply is incremented by <code>amount</code>.</li>
+<li>The second constraint ensures that the balance of <code>receiver</code> is incremented by <code>amount</code>.</li>
+</ol>
+</li>
+</ol>
+<p>The <code>Send</code> intent has the following structure:</p>
+<ol>
+<li>It declares three decision variables <code>from: b256</code>, <code>receiver: b256</code>, and <code>amount: int</code>. The goal
+of this intent to send <code>amount</code> coins from <code>from</code> to <code>receiver</code>.</li>
+<li>It initializes a <code>state</code> variable called <code>from_balance</code> to the balance of <code>from</code> and another
+variable called <code>receiver_balance</code> to the balance of <code>receiver</code>.</li>
+<li>It enforces three constraints
+<ol>
+<li>the first constraint ensures <code>from_balance</code> is larger than <code>amount</code>. That is, the from
+currently actually has enough coins to send to <code>receiver</code>.</li>
+<li>The second constraint effectively decrements the balance of <code>from</code> by <code>amount</code>, by requiring
+the next state of <code>from_balance</code> to be <code>from_balance + amount</code>.</li>
+<li>The third constraint effectively increments the balance of <code>receiver</code> by <code>amount</code>, by
+requiring the next state of <code>receiver_balance</code> to be <code>receiver_balance + amount</code>.</li>
+</ol>
+</li>
+</ol>
 <blockquote>
-<p><strong>Note:</strong> Pint programs are not &quot;run&quot; like traditional programs. They are &quot;solved&quot;.</p>
-</blockquote>
-<h3 id="anatomy-of-a-pint-program"><a class="header" href="#anatomy-of-a-pint-program">Anatomy of a Pint program</a></h3>
-<p>Let's review this &quot;Hello, world!&quot; program in detail.</p>
-<p>The first line in this program is:</p>
-<pre><code class="language-pint">let greeting: string;
-</code></pre>
-<p>which declares a new <strong>decision variable</strong> called <code>greeting</code> and specifies its type to be a <code>string</code>, which is a <strong>primitive type</strong> in <code>Pint.</code></p>
-<p>The second line is:</p>
-<pre><code class="language-pint">constraint greeting == &quot;Hello, world!&quot;;
-</code></pre>
-<p>which defines a new <strong>constraint</strong>. Constraints are the building blocks of any Pint program; they contain all the &quot;useful&quot; logic! The above constraint imposes the restriction that any <strong>assignment</strong> of the decision variable <code>greeting</code> must satisfy the Boolean condition <code>greeting == &quot;Hello, world!&quot;</code>.</p>
-<p>The third line is:</p>
-<pre><code class="language-pint">solve satisfy;
-</code></pre>
-<p>This is a directive that describes what kind of program this is. In this case, this is a <strong>satisfaction program</strong>: we wish to find a value for <code>greeting</code> that satisfies the constraint but we do not care which one.</p>
-<p>The fourth line is</p>
-<pre><code class="language-pint">print greeting;
-</code></pre>
-<p>which simply prints a valid assignment of <code>greeting</code>. The program above is trivial in the sense that there is a single assignment of <code>greeting</code> that satisfies the constraint. That single assignment is, of course, <code>greeting = &quot;Hello, world!&quot;</code>, which is why we see <code>Hello, World!</code> in the terminal after running <code>pintc --solve main.pnt</code>.</p>
-<blockquote>
-<p><strong>Note:</strong> Pint programs that do not have any assignments satisfying <em>all</em> their constraints are called <strong>unsatisfiable</strong>.</p>
+<p><strong>Note</strong> to make things simpler and easier to understand, this contract has no <em>authentication</em>
+anywhere in its code. That is, anyone can mint new tokens and initiate a transfer from an
+arbitrary address to another. This, of course, is not the desired behavior. That being said, we
+will cover authentication in a later chapter and discuss how to make this contract more secure.</p>
 </blockquote>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../getting_started/installation.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../examples/counter.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next" href="../getting_started/hello-golf.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="../basics/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -218,11 +247,11 @@ print greeting;
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../getting_started/installation.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../examples/counter.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next" href="../getting_started/hello-golf.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="../basics/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

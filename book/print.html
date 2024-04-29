@@ -84,7 +84,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="the-book-of-pint.html">The Book of Pint</a></li><li class="chapter-item expanded "><a href="getting_started/index.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="getting_started/installation.html"><strong aria-hidden="true">1.1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="getting_started/hello-world.html"><strong aria-hidden="true">1.2.</strong> Hello, World!</a></li><li class="chapter-item expanded "><a href="getting_started/hello-golf.html"><strong aria-hidden="true">1.3.</strong> Hello, Golf!</a></li></ol></li><li class="chapter-item expanded "><a href="examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li class="chapter-item expanded "><a href="basics/index.html"><strong aria-hidden="true">3.</strong> Pint Language Basics</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="the-book-of-pint.html">The Book of Pint</a></li><li class="chapter-item expanded "><a href="getting_started/index.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="getting_started/installation.html"><strong aria-hidden="true">1.1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="getting_started/hello-world.html"><strong aria-hidden="true">1.2.</strong> Hello, World!</a></li><li class="chapter-item expanded "><a href="getting_started/hello-golf.html"><strong aria-hidden="true">1.3.</strong> Hello, Golf!</a></li></ol></li><li class="chapter-item expanded "><a href="examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="examples/counter.html"><strong aria-hidden="true">2.1.</strong> Counter</a></li><li class="chapter-item expanded "><a href="examples/subcurrency.html"><strong aria-hidden="true">2.2.</strong> Subcurrency</a></li></ol></li><li class="chapter-item expanded "><a href="basics/index.html"><strong aria-hidden="true">3.</strong> Common Programming Concepts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="basics/variables.html"><strong aria-hidden="true">3.1.</strong> Variables</a></li><li class="chapter-item expanded "><a href="basics/data_types.html"><strong aria-hidden="true">3.2.</strong> Data Types</a></li><li class="chapter-item expanded "><a href="basics/comments.html"><strong aria-hidden="true">3.3.</strong> Comments</a></li><li class="chapter-item expanded "><a href="basics/conditionals.html"><strong aria-hidden="true">3.4.</strong> Conditionals</a></li><li class="chapter-item expanded "><a href="basics/custom_types.html"><strong aria-hidden="true">3.5.</strong> Custom Types</a></li></ol></li><li class="chapter-item expanded "><a href="storage/index.html"><strong aria-hidden="true">4.</strong> Storage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="storage/static.html"><strong aria-hidden="true">4.1.</strong> Static Storage Types</a></li><li class="chapter-item expanded "><a href="storage/dynamic.html"><strong aria-hidden="true">4.2.</strong> Dynamic Storage Types</a></li><li class="chapter-item expanded "><a href="storage/layout.html"><strong aria-hidden="true">4.3.</strong> Storage Layout</a></li></ol></li><li class="chapter-item expanded "><a href="appendix/index.html"><strong aria-hidden="true">5.</strong> Appendix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="appendix/keywords.html"><strong aria-hidden="true">5.1.</strong> A - Keywords</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -358,9 +358,728 @@ print h;
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="example"><a class="header" href="#example">Example</a></h1>
-<p>Some basic examples.</p>
+<p>This chapter includes some basic examples that show how Pint code looks like:</p>
+<ul>
+<li><a href="examples/./counter.html">Counter</a></li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="pint-language-basics"><a class="header" href="#pint-language-basics">Pint Language Basics</a></h1>
+<h2 id="counter"><a class="header" href="#counter">Counter</a></h2>
+<p>The &quot;counter&quot; is one of the simplest smart contract that can be written in Pint. It showcases how a
+contract can have multiple <code>intent</code>s and how it can declare and use storage.</p>
+<pre><code class="language-pint">storage {
+    counter: int,
+}
+
+intent Initialize {
+    let value: int;
+    state counter: int = storage::counter;
+    constraint counter' == value;
+}
+
+intent Increment {
+    let amount: int;
+    state counter: int = storage::counter;
+    constraint counter' == counter + amount;
+}
+</code></pre>
+<p>The contract starts by declaring a <code>storage</code> block which contains a single storage variable called
+<code>counter</code> of type <code>int</code> (i.e. integer). The contract later declares two separate <code>intent</code>
+declarations, each declaring three distinct statements. Let's walk through the first <code>intent</code>:</p>
+<ol>
+<li>The first statement declares a &quot;decision variable&quot;. Decision variables are quite different from
+the &quot;regular&quot; variables that you might be familiar with from imperative languages. Decision
+variables are variables that the <em>solver</em> is required to <em>find</em> values for. You can think of them
+as &quot;arguments&quot; that the solver has to set such that <em>every</em> <code>constraint</code> in the <code>intent</code>
+evaluates to <code>true</code>. In <code>Initialize</code>, we are declaring a single decision variable called <code>value</code>
+of type <code>int</code>. This is the value that we want our counter to get initialized to.</li>
+<li>The second statement declares a <code>state</code> variable and initializes it to <code>storage::counter</code>. State
+variables are special variables that always need to be initialized to a <em>storage</em> access
+expression. The statement <code>state counter: int = storage::counter</code> creates a state variable called
+<code>counter</code> and initializes it to the current value of <code>counter</code> declared in the <code>storage</code> block.</li>
+<li>The third statement contains the core logic of this <code>intent</code>. It <strong>declares</strong> that &quot;next value&quot;
+of <code>state counter</code> <strong>must</strong> be equal to <code>value</code>. Note the <code>'</code> notation here which can be only
+applied to a <code>state</code> variable and means &quot;the next value of after a valid state transition&quot;.</li>
+</ol>
+<p>The second <code>intent</code>, called <code>Increment</code>, has a similar structure to <code>Initialize</code>. However, instead
+of initializing <code>counter</code>, It increments it by <code>amount</code>. Note that both <code>counter</code> (the current
+value) and <code>counter'</code> (the next value) are both used in the constraint to enforce that the next
+value is dependent on the current value, which was not the case in <code>Initialize</code>.</p>
+<h3 id="solution"><a class="header" href="#solution">Solution</a></h3>
+<p>We won't go too deep into the solving process here but it's worth mentioning what a &quot;solution&quot; might
+look like. Broadly speaking, a solution contains two things:</p>
+<ol>
+<li>An assignment of all the decision variables in the intent.</li>
+<li>A list of all the state mutations proposed.</li>
+</ol>
+<p>For example, if a user wants the value of the counter to be <code>42</code> they (or an independent solver) can
+propose a solution to <code>intent Initialize</code> that looks like this:</p>
+<pre><code class="language-toml"># decision variables:
+value: 42
+
+# state mutations:
+0x0000000000000000000000000000000000000000000000000000000000000000: 42
+</code></pre>
+<p>This solution proposes a value of <code>42</code> for the decision variable <code>value</code> and a new value of <code>42</code> for
+the storage location <code>0x00...00</code> where <code>counter</code> is actually stored (we will go over the storage
+data layout later!). A solution must also indicate which intent is being solved using its address
+but we're omitting that here for simplicity.</p>
+<p>Alternatively, a solution to <code>intent Increment</code> can be proposed to satisfy the user requirements
+(<code>counter = 42</code>). If the current value of <code>counter</code> is <code>35</code>, then a solution to <code>intent Increment</code>
+can instead be proposed which looks like this:</p>
+<pre><code class="language-toml"># decision variables:
+amount: 7
+
+# state mutations:
+0x0000000000000000000000000000000000000000000000000000000000000000: 42
+</code></pre>
+<p>It should be clear that this solution satisfies the constraint <code>counter' == counter + amount;</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h2 id="subcurrency"><a class="header" href="#subcurrency">Subcurrency</a></h2>
+<p>The following contract implements the simplest form of a cryptocurrency. The contract allows only
+its creator to create new coins but anyone can send coins to each other.</p>
+<pre><code class="language-pint">storage {
+    total_supply: int,
+    balances: (b256 =&gt; int),
+}
+
+// Sends an amount of newly created coins to an address
+// Can only be called by the contract creator
+intent Mint {
+    let receiver: b256;
+    let amount: int;
+
+    state receiver_balance = storage::balances[receiver];
+    state total_supply = storage::total_supply;
+
+    constraint total_supply' == total_supply + amount;
+    constraint receiver_balance' == receiver_balance + amount;
+}
+
+// Sends an amount of existing coins from to an address
+intent Send {
+    let from: b256;
+    let receiver: b256;
+    let amount: int;
+
+    state from_balance = storage::balances[from];
+    state receiver_balance = storage::balances[receiver];
+
+    constraint amount &lt; from_balance;
+    constraint from_balance' == from_balance - amount;
+    constraint receiver_balance' == receiver_balance + amount;
+}
+</code></pre>
+<p>This contract introduces some new concepts. Let's walk through it line by line.</p>
+<p>The contract starts with a <code>storage</code> declaration that contains two storage variables:</p>
+<ol>
+<li><code>total_supply</code> is of type <code>int</code> and represents the total supply of coins available at any given
+point in time.</li>
+<li><code>balances</code> is a <strong>map</strong> from <code>b256</code> to <code>int</code> and stores balances of addresses as integers.</li>
+</ol>
+<p>The contract also has two intents: <code>Mint</code> and <code>Send</code>.</p>
+<p>The <code>Mint</code> intent is quite simple:</p>
+<ol>
+<li>It declares two decision variables <code>receiver: b256</code> and <code>amount: int</code>. The goal of this intent to
+mint <code>amount</code> coins and send them to <code>receiver</code>.</li>
+<li>It initializes a <code>state</code> variables called <code>receiver_balance</code> using the storage access expression
+<code>storage::balances[receiver]</code>. This syntax returns the value in <code>balances</code> that <code>receiver</code> maps
+to. It also initializes another state variable called <code>total_supply</code> to <code>storage::total_supply</code>.</li>
+<li>It enforces two constraints:
+<ol>
+<li>the first constraint ensures that the total supply is incremented by <code>amount</code>.</li>
+<li>The second constraint ensures that the balance of <code>receiver</code> is incremented by <code>amount</code>.</li>
+</ol>
+</li>
+</ol>
+<p>The <code>Send</code> intent has the following structure:</p>
+<ol>
+<li>It declares three decision variables <code>from: b256</code>, <code>receiver: b256</code>, and <code>amount: int</code>. The goal
+of this intent to send <code>amount</code> coins from <code>from</code> to <code>receiver</code>.</li>
+<li>It initializes a <code>state</code> variable called <code>from_balance</code> to the balance of <code>from</code> and another
+variable called <code>receiver_balance</code> to the balance of <code>receiver</code>.</li>
+<li>It enforces three constraints
+<ol>
+<li>the first constraint ensures <code>from_balance</code> is larger than <code>amount</code>. That is, the from
+currently actually has enough coins to send to <code>receiver</code>.</li>
+<li>The second constraint effectively decrements the balance of <code>from</code> by <code>amount</code>, by requiring
+the next state of <code>from_balance</code> to be <code>from_balance + amount</code>.</li>
+<li>The third constraint effectively increments the balance of <code>receiver</code> by <code>amount</code>, by
+requiring the next state of <code>receiver_balance</code> to be <code>receiver_balance + amount</code>.</li>
+</ol>
+</li>
+</ol>
+<blockquote>
+<p><strong>Note</strong> to make things simpler and easier to understand, this contract has no <em>authentication</em>
+anywhere in its code. That is, anyone can mint new tokens and initiate a transfer from an
+arbitrary address to another. This, of course, is not the desired behavior. That being said, we
+will cover authentication in a later chapter and discuss how to make this contract more secure.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="common-programming-concepts"><a class="header" href="#common-programming-concepts">Common Programming Concepts</a></h1>
+<p>This chapter covers concepts that appear in almost every programming language and how they work in Pint. Many programming languages have much in common at their core. None of the concepts presented in this chapter are unique to Pint, but we’ll discuss them in the context of Pint and particularly how they work in a constraint-based environment as opposed to imperative environments that you might be more familiar with.</p>
+<p>Specifically, you’ll learn about decision variables, basic types, comments, and conditionals. These foundations will be in every Pint program, and learning them early will give you a strong core to start from.</p>
+<blockquote>
+<p><strong>Keywords:</strong> The Pint language has a set of keywords that are reserved for use by the language only, much as in
+other languages. Keep in mind that you cannot use these words as names of variables or macros. Most
+of the keywords have special meanings, and you’ll be using them to do various tasks in your Pint
+programs; You can find a list of the keywords in Appendix A.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h2 id="decision-variables-1"><a class="header" href="#decision-variables-1">Decision Variables</a></h2>
+<p>A decision variable is a named variable that a solution is required to assign a value for. Decision
+variables are quite different from the &quot;regular&quot; variables that you might be used to in imperative
+programming languages. Decision variables do not get &quot;computed&quot; are &quot;assigned to&quot; in a Pint program
+since a Pint program is <strong>not actually executed but solved</strong> (and later validated against a solution).</p>
+<p>Decision variables can be declared using the <code>let</code> keyword and may be annotated with a type. We will
+go over the available data types in Pint, in detail, in a later chapter.</p>
+<p>Here's an example that shows how to declared a decision variable named <code>foo</code> of type <code>int</code>:</p>
+<pre><code class="language-pint">let foo: int;
+</code></pre>
+<p>You can think of the type annotation as a &quot;constraint&quot; on the decision variables: this decision
+variable can only take values in the set of signed integers (64-bit signed integers when targeting
+the EssentialVM). Any solution that proposes a value of <code>foo</code> must satisfy that constraint.</p>
+<p>A decision variable can also be &quot;initialized&quot;. Initializing a decision variable may seem like an odd
+concept because decision variables are declared to be solved for. However, an initialized decision
+variable is simply a decision variable with an extra implicit constraint. Here's how an initialized
+decision variable can be declared:</p>
+<pre><code class="language-pint">let bar: int = 42;
+</code></pre>
+<p>The above is equivalent to:</p>
+<pre><code class="language-pint">let bar: int;
+constraint bar == 42;
+</code></pre>
+<p>We will go over <code>constraint</code> statements in more detail later but it should be clear that this
+enforces <code>bar</code> to be <code>42</code>. Therefore, every proposed solution must also set <code>bar</code> to <code>42</code>.</p>
+<p>Skipping the type annotation is only allowed if the decision variable is &quot;initialized&quot;:</p>
+<pre><code class="language-pint">let baz = 43;
+</code></pre>
+<p>In this case, the compiler is able to <em>infer</em> the type of <code>baz</code> by realizing that the initializer
+<code>42</code> is of type <code>int</code>.</p>
+<p>Again, the above is equivalent to:</p>
+<pre><code class="language-pint">let baz: int;
+constraint baz == 43;
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h2 id="data-types"><a class="header" href="#data-types">Data Types</a></h2>
+<p>Every value in Pint is of a certain <em>data type</em>, which tells Pint and solvers what kind of data is
+being specified so they know how to work with that data. We'll look at two data type subsets: scalar
+and compound.</p>
+<p>Keep in mind that Pint is a <em>statically typed</em> language, which means that it must know the types of
+all variable at compile time. The compiler can often infer what type we want to use based on the
+value and how we use it. In cases when many types are possible, we must add a type annotation, as
+described in the <a href="basics/./variables.html">chapter on decision variables</a>.</p>
+<h3 id="scalar-types"><a class="header" href="#scalar-types">Scalar Types</a></h3>
+<p>A <em>scalar</em> type represents a single value. Pint has four primary scalar types: integers, reals,
+Booleans, and 256-bit hashes.</p>
+<h4 id="integer-type"><a class="header" href="#integer-type">Integer Type</a></h4>
+<p>An <em>integer</em> is a number without a fractional component. Pint has a single integer type called <code>int</code>
+which, if we're targeting the EssentialVM, represents a <strong>64-bit signed integer</strong> . An <code>int</code>,
+therefore, can store numbers from <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.0641em;vertical-align:-0.25em;"></span><span class="mord">−</span><span class="mopen">(</span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mbin mtight">−</span><span class="mord mtight">1</span></span></span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span> to <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8974em;vertical-align:-0.0833em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mbin mtight">−</span><span class="mord mtight">1</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span> inclusive, where <code>n</code> is the number
+of bits that represent the integer (64 in the case of EssentialVM).</p>
+<p>You can write integer literals in any of the forms shown in the table below. Note that number
+literals can use <code>_</code> as a visual separator to make the number easier to read, such as <code>1_000</code>,
+which will have the same value as if you had specified <code>1000</code>.</p>
+<div class="table-wrapper"><table><thead><tr><th>Number literals</th><th>Examples</th></tr></thead><tbody>
+<tr><td>Decimal</td><td><code>12_333</code></td></tr>
+<tr><td>Hex</td><td><code>0x123f</code></td></tr>
+<tr><td>Binary</td><td><code>0b1111_1101</code></td></tr>
+</tbody></table>
+</div>
+<h4 id="real-type"><a class="header" href="#real-type">Real Type</a></h4>
+<blockquote>
+<p><strong>Note</strong> Pint only has preliminary support for reals</p>
+</blockquote>
+<p>Pint also has a type called <code>real</code> that represents real values. Real values are usually represented
+in computers using floating-point or fixed-point numbers. Because Pint is a essentially a constraint
+modeling language, we do not specify exactly how a <code>real</code> is represented. What matters is that, a
+decision variable of type <code>real</code> is <strong>not</strong> constrained to be an integer. This has implications on
+constraint solvers where, in general, solving for a continuous variable (i.e. real) is much easier
+than solving for an integer.</p>
+<p>Here's an example that shows some decision variables initialized to real literals:</p>
+<pre><code class="language-pint">let x = 1.05;
+let y = 42e8;
+let z = 2.5e-4;
+let w: real = 1.3E5;
+let u: real = 0.34;
+</code></pre>
+<h4 id="numeric-operations"><a class="header" href="#numeric-operations">Numeric Operations</a></h4>
+<p>Pint supports the basic mathematical operations you’d expect for all the number types: addition, subtraction, multiplication, division, and remainder. Integer division truncates toward zero to the nearest integer. The following code shows how you’d use each numeric operation in a let statement:</p>
+<pre><code class="language-pint">// addition
+let sum = 1 + 2 + 3;
+
+// subtraction
+let difference = 15.3 - 1e-1;
+
+// multiplication
+let product = 42 * 42;
+
+// division
+let quotient = 3.3/2.0;
+let truncated = -5 / 3; // Results is -1
+
+// remainder
+let remainder = 34 % 3;
+</code></pre>
+<h4 id="the-boolean-type"><a class="header" href="#the-boolean-type">The Boolean Type</a></h4>
+<p>As in most other programming languages, a Boolean type in Pint has two possible values: <code>true</code> and
+<code>false</code>. The Boolean type in Pint is specified using <code>bool</code>. For example:</p>
+<pre><code class="language-pint">let t = true;
+let f: bool = false;
+</code></pre>
+<h3 id="compound-types"><a class="header" href="#compound-types">Compound Types</a></h3>
+<p>Compound types can group multiple values into one type. Pint has two primitive compound types:
+tuples and arrays.</p>
+<h4 id="the-tuple-type"><a class="header" href="#the-tuple-type">The Tuple Type</a></h4>
+<p>A tuple is a general way of grouping together a number of values with a variety of types into one
+compound type. Tuples have a fixed length: once declared, they cannot grow or shrink in size.</p>
+<p>We create a tuple by writing a comma-separated list of values inside curly brackets <code>{ .. }</code>. Each
+position in the tuple has a type, and the types of the different values in the tuple don’t have to
+be the same. We’ve added optional type annotations in this example:</p>
+<pre><code class="language-pint">let tup_1: { int, real, bool } = { 42, 4.2, true };
+</code></pre>
+<p>The variable <code>tup</code> binds to the entire tuple because a tuple is considered to be a single compound
+element. To get the individual values out of a tuple, we can use the period (<code>.</code>) operator followed
+by the index of the value we want to access. For example:</p>
+<pre><code class="language-pint">let tup_2: { int, real, bool } = { 42, 4.2, true };
+let tup_2_first = tup_2.0;
+let tup_2_second = tup_2.1;
+let tup_2_third = tup_2.2;
+</code></pre>
+<p>This program creates the tuple <code>tup_2</code> and then accesses each element of the tuple using their
+respective indices. As with most programming languages, the first index in a tuple is 0.</p>
+<p>It is also possible to name some or all the fields of a tuple type as follows:</p>
+<pre><code class="language-pint">let tup_3: { x: int, real, y: bool } = { 42, 4.2, true };
+</code></pre>
+<p>Note that only two out of the 3 fields are named. In order to access the individual elements of a
+tuple with named fields, the period (<code>.</code>) can be used as usual with either the index of the tuple
+field or its name. For example:</p>
+<pre><code class="language-pint">let tup_4: { x: int, real, y: bool } = { 42, 4.2, true };
+let tup_4_first = tup_4.0;
+let tup_4_first_named = tup_4.x; // same as `tup_4.0`
+let tup_4_second = tup_4.1;
+let tup_4_third = tup_4.2;
+let tup_4_third_named = tup_4.y; // same as `tup_4.y`
+</code></pre>
+<p>Tuples without any values are not allowed in <code>Pint</code>. That is, the following:</p>
+<pre><code class="language-pint">let empty: { } = { };
+</code></pre>
+<p>is disallowed and errors out as follows:</p>
+<pre><code class="language-console">Error: empty tuple types are not allowed
+    ╭─[ch_3_2.pnt:43:12]
+    │
+ 43 │ let empty: {} = {};
+    │            ─┬
+    │             ╰── empty tuple type found
+────╯
+Error: empty tuple expressions are not allowed
+    ╭─[ch_3_2.pnt:43:17]
+    │
+ 43 │ let empty: {} = {};
+    │                 ─┬
+    │                  ╰── empty tuple expression found
+────╯
+</code></pre>
+<h4 id="the-array-type"><a class="header" href="#the-array-type">The Array Type</a></h4>
+<p>Another way to have a collection of multiple values is with an array. Unlike a tuple, every element of an array must have the same type. Unlike arrays in some other languages, arrays in Pint have a fixed length.</p>
+<p>We write the values in an array as a comma-separated list inside square brackets:</p>
+<pre><code class="language-pint">let a = [1, 2, 3, 4, 5];
+</code></pre>
+<p>You write an array's type using the element type followed by its size between square brackets, like
+so:</p>
+<pre><code class="language-pint">let b: int[5] = [1, 2, 3, 4, 5];
+</code></pre>
+<p>Here, <code>int</code> is the type of each element. The number <code>5</code> indicates that the array contains five
+elements.</p>
+<p>You can access elements of an array using indexing, like this:</p>
+<pre><code class="language-pint">let c: int[5] = [1, 2, 3, 4, 5];
+let c_first = c[0];
+let c_second = c[1];
+</code></pre>
+<p>In this example, the variable named <code>c_first</code> will get the value <code>1</code> because that is the value at
+index <code>[0]</code> in the array. The variable named <code>c_second</code> will get the value <code>2</code> from index <code>[1]</code> in
+the array.</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h2 id="comments"><a class="header" href="#comments">Comments</a></h2>
+<p>All programmers strive to make their code easy to understand, but sometimes extra explanation is
+warranted. In these cases, programmers leave comments in their source code that the compiler will
+ignore but people reading the source code may find useful.</p>
+<p>Here’s a simple comment:</p>
+<pre><code class="language-pint">// hello, world
+</code></pre>
+<p>In Pint, the idiomatic comment style starts a comment with two slashes, and the comment continues
+until the end of the line. For comments that extend beyond a single line, you’ll need to include //
+on each line, like this:</p>
+<pre><code class="language-pint">// This is some complicated code that requires multiple lines to explain:
+// 1. The first `intent`, called `GetRich` ensures that we're getting rich.
+// 2. The second `intent`, called `BeResponsible` ensures that 
+//    we're not gambling all the money away.
+</code></pre>
+<p>Comments can also be placed at the end of lines containing code:</p>
+<pre><code class="language-pint">let big_answer = 42; // answer to life, the universe, and everything
+</code></pre>
+<p>But you’ll more often see them used in this format, with the comment on a separate line above the code it’s annotating:</p>
+<pre><code class="language-pint">// answer to life, the universe, and everything
+let big_answer_too = 42; 
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h2 id="conditionals"><a class="header" href="#conditionals">Conditionals</a></h2>
+<p>Pint has two different ways to express conditionals. <code>if</code> expressions and <code>cond</code> expressions.
+Conditionals allow you to &quot;branch&quot; your code depending on some condition(s). The word &quot;branch&quot; is
+between quotations because Pint is <strong>not</strong> an imperative language and does not &quot;execute&quot; code.
+Therefore, conditionals are simply a way of saying: &quot;this expression is equal to one of the
+following values, based on some condition(s)&quot;.</p>
+<h3 id="if-expressions"><a class="header" href="#if-expressions"><code>if</code> Expressions</a></h3>
+<p>An <code>if</code> expression allows you to select between two alternatives based on a condition. Every <code>if</code>
+expression has a corresponding <code>else</code> where the second alternative is added. The two alternatives
+must have the same type and that type determines the type of the whole <code>if</code> expression. For example:</p>
+<pre><code class="language-pint">let number: int;
+
+let y = if number &lt; 5 {
+    1
+} else {
+    2
+};
+</code></pre>
+<p>All <code>if</code> expressions start with the keyword <code>if</code>, followed by a condition. In this case, the
+condition checks whether or not the decision variable <code>number</code> has a value less than 5. We place the
+expression that should be chosen if the condition is <code>true</code> immediately after the condition inside
+curly brackets. The keyword <code>else</code> is then added followed by the expression that should be chosen if
+the condition is <code>false</code> (also between curly brackets). Both options, <code>1</code> and <code>2</code>, have the same
+type which is <code>int</code> and so, the type of <code>y</code> must also be <code>int</code>.</p>
+<p>If, for example, the types of the two expressions we're selecting from do not match, the compiler
+will emit a compiler error. For example, if we try to compile the following code:</p>
+<pre><code class="language-pint">let number: int;
+
+let y = if number &lt; 5 {
+    1
+} else {
+    2.0
+};
+</code></pre>
+<p>we will get the following error:</p>
+<pre><code class="language-console">Error: branches in if-expression must have the same type
+   ╭─[ch_3_4.pnt:4:9]
+   │
+ 5 │     1
+   │     ┬
+   │     ╰── 'then' branch has the type `int`
+   │
+ 7 │     2.0
+   │     ─┬─
+   │      ╰─── 'else' branch has the type `real`
+───╯
+</code></pre>
+<p>The condition of an <code>if</code> expression must be a <code>bool</code>. Otherwise, we will get a compiler error. For
+example, if we try to compile the following code:</p>
+<pre><code class="language-pint">let number: int;
+let y = if number {
+    1
+} else {
+    2
+};
+</code></pre>
+<p>we will get the following error:</p>
+<pre><code class="language-console">Error: condition in if-expression must be a boolean
+   ╭─[ch_3_4.pnt:4:12]
+   │
+ 4 │ let y = if number {
+   │            ───┬──
+   │               ╰──── condition must be a boolean
+───╯
+</code></pre>
+<p>Note that Pint will <strong>not</strong> automatically try to convert non-Boolean types to a Boolean. You must be
+explicit and always provide <code>if</code> with a <code>Boolean</code> as its condition.</p>
+<h3 id="cond-expressions"><a class="header" href="#cond-expressions"><code>cond</code> Expressions</a></h3>
+<p>Pint provides <code>cond</code> expressions. <code>cond</code> expressions are generalized <code>if</code> expressions that are not
+limited to only two branches. They provide selection from multiple alternatives, each based on some
+condition. For example:</p>
+<pre><code class="language-pint">let x: int;
+let z = cond {
+    x == 0 =&gt; 0,
+    x &gt; 0 &amp;&amp; x &lt;= 10 =&gt; 1,
+    x &gt; 10 &amp;&amp; x &lt;= 100 =&gt; 2,
+    else =&gt; 3
+};
+</code></pre>
+<p>All <code>cond</code> expressions start with the keyword <code>cond</code>, followed by a comma-separated list of statements
+in between curly brackets. Each statement describes a condition and an expression that should be
+returned by the <code>cond</code> if that condition is correct. The branches are evaluated in order and the
+first one to become active determines the value of the <code>cond</code> expression. If all branches fail, then
+the <code>cond</code> expression takes the value of the expression in the <code>else</code> branch, which must always be
+the last branch.</p>
+<p>In the example above, <code>z</code> is equal to <code>0</code> if <code>x == 0</code>, equal to <code>1</code> if <code>x</code> is between <code>0</code> and <code>10</code>,
+equal to <code>2</code> if <code>x</code> is between <code>10</code> and <code>100</code>, and equal to <code>3</code> otherwise.</p>
+<p>Every <code>cond</code> expression can be rewritten using one or more <code>if</code> expressions. However, <code>cond</code> tends to be more
+compact and more readable than nested <code>if</code> expressions. For example, the <code>cond</code> expression in the
+example above is equivalent to:</p>
+<pre><code class="language-pint">let x: int;
+let z = if x == 0 { 
+    0 
+} else {
+    if x &gt; 0 &amp;&amp; x &lt;= 10 {
+        1
+    } else {
+        if x &gt; 10 &amp;&amp; x &lt;= 100 {
+            2
+        } else {
+            3
+        }
+    }
+};
+</code></pre>
+<p>Similarly to <code>if</code> expressions, all candidate expressions must have the same type which determines
+the type of the whole <code>cond</code> expression. Also, every condition must be a <code>bool</code> or else a compiler
+error will be emitted.</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h2 id="custom-types"><a class="header" href="#custom-types">Custom Types</a></h2>
+<p>Custom data types are named types that you can define in your program to refer, via an alias, to a primitive type,
+a compound type, or an <code>enum</code>. Enums are another special class of custom types that define
+enumerations with named variants.</p>
+<h3 id="type-aliases"><a class="header" href="#type-aliases">Type Aliases</a></h3>
+<p>Pint provides the ability to declare a type alias to give an existing type another name. For this we
+use the <code>type</code> keyword. For example, we can create the alias <code>Kilometers</code> to <code>int</code> like so:</p>
+<pre><code class="language-pint">type Kilometrers = int;
+</code></pre>
+<p>Now, the alias <code>Kilometers</code> is a synonym for <code>int</code>. Values that have the type <code>Kilometers</code> will be
+treated the same as values of type <code>int</code>:</p>
+<pre><code class="language-pint">let x: int = 5;
+let y: Kilometrers = 5;
+constraint x == y;
+</code></pre>
+<p>Because <code>Kilometers</code> and <code>int</code> are the same type, we can compare values of both types.</p>
+<h3 id="defining-structs-using-type"><a class="header" href="#defining-structs-using-type">Defining structs using <code>type</code></a></h3>
+<p>Many programming languages offer the concept of a &quot;struct&quot; which lets you <strong>package</strong> together and
+<strong>name</strong> multiple related values that make up a meaningful group. While Pint does not offer a
+special <code>struct</code> construct, it does offer a way to name a tuple, name its fields, and access its
+elements as if it were a <code>struct</code>.</p>
+<p>To define a struct-like tuple (which we will just call a struct going forward), we use the <code>type</code>
+keyword followed by the name chosen for the tuple. We then use the <code>=</code> operator to bind the new
+type name to a tuple type with all of its fields named.</p>
+<p>For example:</p>
+<pre><code class="language-pint">type User = {
+    active: bool,
+    address: b256,
+    balance: int,
+};
+</code></pre>
+<p>To use a struct after we’ve defined it, we create an instance of that struct by specifying concrete
+values for each of the fields. We create an instance using the same tuple expression syntax:
+curly brackets containing <em>key: value</em> pairs, where the keys are the names of the fields and the
+values are the data we want to store in those fields. We don’t have to specify the fields in the
+same order in which we declared them in the struct. In other words, the struct definition is like a
+general template for the type, and instances fill in that template with particular data to create
+values of the type. For example, we can declare a particular <code>User</code> as shown below:</p>
+<pre><code class="language-pint">let user1: User = {
+    active: true,
+    address: 0x1111111111111111111111111111111111111111111111111111111111111111,
+    balance: 42,
+};
+</code></pre>
+<p>To get a specific value from a struct, we use the dot notation similarly to tuples. For example, to
+access this user's balance, we use <code>user1.balance</code>.</p>
+<h3 id="enumerations"><a class="header" href="#enumerations">Enumerations</a></h3>
+<p>Enums allow you to define a type by enumerating its possible variants. Where structs and tuples give
+you a way of grouping together related fields and data, like a <code>Rectangle</code> with its <code>width</code> and
+<code>height</code>, enums give you a way of saying a value is one of possible set of values. For example, we
+may want to say that <code>Rectangle</code> is one of a set of possible shapes that also includes <code>Circle</code> and
+<code>Triangle</code>. To do this, Pint allows us to encode these possibilities as an <code>enum</code>.</p>
+<p>Let’s look at a situation we might want to express in code and see why enums are useful. Say we need to work with three possible tokens: DAI, USDC, and USDT. Because these are the only tokens we want to work with, we can enumerate all possible variants, which is where enumeration gets its name:</p>
+<pre><code class="language-pint">enum Token = DAI | USDC | USDT;
+</code></pre>
+<p>Note how the possible variants of <code>Token</code> are separated by a <code>|</code>. <code>Token</code> is now a custom data type that we can use elsewhere in our code. Also, we can now create an
+instance of each of the three variants of <code>Token</code> like this:</p>
+<pre><code class="language-pint">let dai = Token::DAI;
+let usdc = Token::USDC;
+let usdt = Token::USDT;
+</code></pre>
+<p>Note that the variants of the enum are namespaced under its identifier, and we use a double colon to
+separate the two. This is useful because now all three values <code>Token::DAI</code>, <code>Token::USDC</code>, and
+<code>Token::USDT</code> are of the same type: <code>Token</code>. We can then, for instance, declare <code>token</code> to be of
+type <code>Token</code> and assign it to either variants depending on how large <code>amount</code>.</p>
+<pre><code class="language-pint">let amount: int;
+let token: Token = cond {
+    amount in 0..1000 =&gt; Token::DAI,
+    amount in 1001..2000  =&gt; Token::USDC,
+    else  =&gt; Token::USDT,
+};
+</code></pre>
+<p>We can even use enums inside structs as follows:</p>
+<pre><code class="language-pint">type Balance = {
+    token: Token,
+    bal: int, 
+};
+
+let user1_bal = {
+    token: Token::DAI,
+    bal: 42, 
+};
+
+let user2_bal = {
+    token: Token::USDC,
+    bal: 96, 
+};
+
+let user3_bal = {
+    token: Token::USDT,
+    bal: 100, 
+};
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="storage"><a class="header" href="#storage">Storage</a></h1>
+<p>Most useful Pint contracts require some sort of <em>persistent storage</em> that represent <em>state</em>.
+After all, a blockchain is a decentralized distributed database and contracts are a way to enforce
+rules on how &quot;entries&quot; in this database are allowed to change. Therefore, having the ability to
+express those database entries using variables and dynamic containers is quite useful Therefore,
+Pint offers a way to declare and access a variety of storage types.</p>
+<p>In this chapter, we will cover the following:</p>
+<ul>
+<li>How to declare and access storage variables with static types.</li>
+<li>How to declare and access storage variables with dynamic types.</li>
+<li>How storage addresses (i.e. &quot;keys&quot;) are assigned to storage variables and their content (for
+storage containers).</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h2 id="static-storage-types"><a class="header" href="#static-storage-types">Static Storage Types</a></h2>
+<p>All storage variables in a Pint contract must be declared inside a <code>storage</code> block, and there can only
+be a single <code>storage</code> block in a Pint contract. The <code>storage</code> block is optional and can be skipped
+if the contract does not need to manage any state, but such contracts are generally not very useful.</p>
+<p>Here's an example of a <code>storage</code> block:</p>
+<pre><code class="language-pint">storage {
+    x: int,
+    a: b256,
+    t: { int, bool },
+    y: bool,
+}
+</code></pre>
+<p>A <code>storage</code> starts with the keyword <code>storage</code> and followed by comma-separated list of variable
+declarations inside curly brackets. Each variable declaration is just an identifier with a type. In
+this chapter, we're only looking at storage variables that have static types, i.e., types that have
+known size and layout at compile-time. This pretty much covers every type we discussed so far! In
+the next chapter, we will introduce new storage-only types that are dynamically sized.</p>
+<p>Back to the example above, the declared <code>storage</code> block is fairly simple. It contains two variables
+that have primitive types and one variable that has a compound type (a tuple). Unlike decision
+variables, storage variables do not accept an initializer and <strong>must</strong> have a type annotation.</p>
+<h3 id="accessing-storage-variables"><a class="header" href="#accessing-storage-variables">Accessing Storage Variables</a></h3>
+<p>Storage variables are not useful unless we can read them and/or <em>propose modifications to them</em>.
+Recall that Pint is a declarative constraint-based language, and therefore, does not allow &quot;writing&quot;
+directly to a storage variable. Writing directly to storage is a concept you might be familiar with
+from other smart contract languages like <a href="https://soliditylang.org/">Solidity</a>, so you might be
+asking the following valid question: &quot;if I can't write to storage variables, how will their values
+ever change?&quot;</p>
+<p>The answer to this question lies at the core of what makes Pint and <em>declarative blockchains</em>
+actually <strong>declarative</strong>. Pint has no concept of &quot;updating&quot; state (or even decision variables for
+that matter). Pint simply <em>expresses</em> a desired outcome using <code>constraint</code> statements and relies on
+<em>solutions</em> to actually propose state changes.</p>
+<p>In order to express a desired outcome for a given storage variable, two things are needed:</p>
+<ol>
+<li>A way to read the <strong>current</strong> value of the variable.</li>
+<li>A way to express the <strong>future</strong> value of the variable.</li>
+</ol>
+<h4 id="reading-a-storage-variable"><a class="header" href="#reading-a-storage-variable">Reading a Storage Variable</a></h4>
+<p>Reading a storage variable should not be an unfamiliar concept to you if you've worked with other
+smart contract languages before like <a href="https://soliditylang.org/">Solidity</a>. The syntax for reading a
+storage variable in Pint requires the <code>storage</code> keyword again:</p>
+<pre><code class="language-pint">state x = storage::x;
+state b = storage::x;
+state t = storage::t;
+state t_1 = storage::t.1;
+</code></pre>
+<p>A few things to note here:</p>
+<ol>
+<li>Storage read expressions always start with <code>storage::</code> followed by the name of the variable we're
+trying to read. The <code>storage::</code> syntax means we're switching namespaces to that of the <code>storage</code>
+block.</li>
+<li>Each storage read expression is used to initialize a <code>state</code> variable. In fact, storage read
+expressions can <strong>only</strong> ever be used to initialize <code>state</code> variables. Using a storage read
+expression in other contexts, such as in <code>constraint storage::x == 5</code>, is illegal.</li>
+<li>Fields or elements of a compound type in storage can be accessed individually, such as
+<code>storage.t.1</code>.</li>
+</ol>
+<p>We haven't really explained what a <code>state</code> variable is so this is probably a good time to do so.</p>
+<h4 id="state-variables"><a class="header" href="#state-variables">State Variables</a></h4>
+<p>A state variable is a special type of variables that can only hold values read from storage. A
+<code>state</code> variable must <strong>always</strong> have an initializer and that initializer can only be a storage read
+expression. Type annotations for <code>state</code> declarations are optional:</p>
+<pre><code class="language-pint">state not_annotated = storage::x;
+state annotated: b256 = storage::a;
+</code></pre>
+<p>Once a <code>state</code> variable is declared, it can be used anywhere in its scope as if it were a decision
+variable. The only exception is that a <code>state</code> variable can accept the suffix unary operator <code>'</code>. We
+will go over that in the next section.</p>
+<pre><code class="language-pint">state t_0 = storage::t.0;
+state y = storage::y;
+constraint y &amp;&amp; t_0 &gt;= 42;
+</code></pre>
+<p>This is an example where two state variables are declared and later constrained as if they were
+decision variables. One important distinction to note here is that <code>state</code> variables are not
+actually <em>unknown</em>. By definition, decision variables are unknown at compile-time <em>and</em> at
+solve-time and they only become known <em>after</em> the solving process is finished. In contrast, <code>state</code>
+variables, while unknown at compile-time, are actually known at solve-time. Right before the solving
+process starts, every storage read expression is evaluated by directly inspecting the blockchain.
+The result is then assigned to the corresponding <code>state</code> variable which becomes known in preparation
+for solving.</p>
+<h4 id="next-state"><a class="header" href="#next-state">Next State</a></h4>
+<p>Recall that expressing a desired outcome for a given storage variable also requires a way to express
+the <strong>future</strong> value of the variable.</p>
+<p>In most imperative languages, statements like <code>x = x + 1</code> are common to mean &quot;<em>update</em> the value of
+<code>x</code> to be equal to the <em>current</em> value of <code>x</code> plus <code>1</code>&quot;. Because Pint is a constraint-based
+declarative language where the order of statements does not matter and there is no sequential
+execution, statements like <code>x = x + 1</code> cannot be written are not logical. Instead, Pint offers a
+special syntax, reserved for <code>state</code> variables, that means &quot;the future value of&quot;. Here's an example:</p>
+<pre><code class="language-pint">state bal = storage::x;
+constraint bal' &gt;= bal + 42;
+</code></pre>
+<p>Here, <code>bal'</code>, unlike <code>bal</code>, is unknown at solve-time. That is, <code>bal'</code> must be solved for as if it
+were a decision variable and every solution must include a proposed value for <code>bal'</code>. If, for
+example, the value of <code>bal</code> was read to be <code>100</code> at solve-time, a solver might propose that the next
+value of <code>bal</code> should be <code>150</code> (i.e. <code>bal' = 150</code>) which would be a valid solution because <code>150 &gt;= 100 + 42</code> (assuming all other constraints in the intent are also satisfied).</p>
+<p>This concludes our overview on storage which only focused on static storage types. In the next
+chapter, we will cover dynamic storage types which offer a lot more flexibility to what can be done
+in Pint.</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h2 id="dynamic-storage-types"><a class="header" href="#dynamic-storage-types">Dynamic Storage Types</a></h2>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h2 id="storage-layout"><a class="header" href="#storage-layout">Storage Layout</a></h2>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="appendix"><a class="header" href="#appendix">Appendix</a></h1>
+<p>The following sections contain reference material you may find useful in your Pint journey.</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h2 id="appendix-a-keywords"><a class="header" href="#appendix-a-keywords">Appendix A: Keywords</a></h2>
+<p>The following list contains keywords that are reserved for current use by the Pint language. As
+such, they cannot be used as identifiers. Identifiers are names of macros, variables, tuple fields,
+modules, or types.</p>
+<ul>
+<li><code>as</code> - perform primitive casting or rename items in <code>use</code> statements</li>
+<li><code>bool</code> - the Boolean type</li>
+<li><code>b256</code> - the 256-bit hash type</li>
+<li><code>cond</code> - select between multiple expressions based on some conditions</li>
+<li><code>constraint</code> - define a Boolean constraint that a proposed solution must satisfy</li>
+<li><code>else</code> - fallback for <code>if</code> and <code>cond</code> conditionals</li>
+<li><code>enum</code> - define an enumeration</li>
+<li><code>exists</code> - existential quantification: checks whether a statements is <code>true</code> for at least one
+element in a domain.</li>
+<li><code>extern</code> - link an external contract</li>
+<li><code>forall</code> - universal quantification: checks whether a statement is <code>true</code> for all elements in a
+domain</li>
+<li><code>if</code> - branch based on the result of a conditional expression</li>
+<li><code>in</code> - checks if an element belongs to a range or to an array</li>
+<li><code>intent</code> - define an intent</li>
+<li><code>int</code> - basic integer type</li>
+<li><code>let</code> - bind a decision variable</li>
+<li><code>macro</code> - define a macro</li>
+<li><code>maximize</code> - part of a <code>solve</code> statement: maximizes an objective function</li>
+<li><code>minimize</code> - part of a <code>solve</code> statement: minimizes an objective function</li>
+<li><code>real</code> - basic real type</li>
+<li><code>satisfy</code> - part of a <code>solve</code> statement: satisfy the constraints in the intent</li>
+<li><code>self</code> - used in <code>use</code> statements</li>
+<li><code>solve</code> - define what solve directive to use</li>
+<li><code>state</code> - bind a state variable</li>
+<li><code>storage</code> - declare a storage block</li>
+<li><code>string</code> - basic string type</li>
+<li><code>type</code> - define a new type</li>
+<li><code>use</code> - bring symbols into scope</li>
+<li><code>where</code> - denote clauses that constraint generator indices</li>
+</ul>
 
                     </main>
 
