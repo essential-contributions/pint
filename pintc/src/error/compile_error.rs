@@ -116,8 +116,8 @@ pub enum CompileError {
     StorageSymbolNotFound { name: String, span: Span },
     #[error("cannot find storage variable `{name}`")]
     MissingStorageBlock { name: String, span: Span },
-    #[error("state access must be bound to a state variable")]
-    InvalidStateAccess { span: Span },
+    #[error("`next state` access must be bound to a state variable")]
+    InvalidNextStateAccess { span: Span },
     #[error("cannot find `extern` declaration `{name}`")]
     MissingExtern { name: String, span: Span },
     #[error("attempt to use a non-constant value as an array length")]
@@ -500,9 +500,9 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            InvalidStateAccess { span } => {
+            InvalidNextStateAccess { span } => {
                 vec![ErrorLabel {
-                    message: "state access must be bound to a state variable".to_string(),
+                    message: "`next state` access must be bound to a state variable".to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -940,7 +940,7 @@ impl ReportableError for CompileError {
             | SymbolNotFound { .. }
             | StorageSymbolNotFound { .. }
             | MissingStorageBlock { .. }
-            | InvalidStateAccess { .. }
+            | InvalidNextStateAccess { .. }
             | MissingExtern { .. }
             | NonConstArrayLength { .. }
             | InvalidConstArrayLength { .. }
@@ -1056,7 +1056,7 @@ impl Spanned for CompileError {
             | NonBoolGeneratorBody { span, .. }
             | SymbolNotFound { span, .. }
             | StorageSymbolNotFound { span, .. }
-            | InvalidStateAccess { span, .. }
+            | InvalidNextStateAccess { span, .. }
             | MissingStorageBlock { span, .. }
             | MissingExtern { span, .. }
             | NonConstArrayIndex { span }
