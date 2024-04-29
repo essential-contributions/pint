@@ -1,0 +1,31 @@
+storage {
+    total_supply: int,
+    balances: (b256 => int),
+}
+
+// Sends an amount of newly created coins to an address
+// Can only be called by the contract creator
+intent Mint {
+    let receiver: b256;
+    let amount: int;
+
+    state receiver_balance = storage::balances[receiver];
+    state total_supply = storage::total_supply;
+
+    constraint total_supply' == total_supply + amount;
+    constraint receiver_balance' == receiver_balance + amount;
+}
+
+// Sends an amount of existing coins from to an address
+intent Send {
+    let from: b256;
+    let receiver: b256;
+    let amount: int;
+
+    state from_balance = storage::balances[from];
+    state receiver_balance = storage::balances[receiver];
+
+    constraint amount < from_balance;
+    constraint from_balance' == from_balance - amount;
+    constraint receiver_balance' == receiver_balance + amount;
+}
