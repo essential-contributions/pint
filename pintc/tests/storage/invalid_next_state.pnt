@@ -1,0 +1,15 @@
+let y: int;
+constraint y' == 5;
+solve satisfy;
+
+
+// intermediate <<<
+// var ::y: int;
+// constraint (::y' == 5);
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// `next state` access must be bound to a state variable
+// @23..24: `next state` access must be bound to a state variable
+// >>>

@@ -1,7 +1,10 @@
+use slotmap::SlotMap;
+
 use super::{Expr, ExprKey, Ident, IntermediateIntent, Program, VarKey};
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     expr::{BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
+    intermediate::{State, StateKey},
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
@@ -685,11 +688,49 @@ impl IntermediateIntent {
                 }
             }
 
-            UnaryOp::NextState => Ok(if let Some(ty) = self.expr_types.get(rhs_expr_key) {
-                Inference::Type(ty.clone())
-            } else {
-                Inference::Dependant(rhs_expr_key)
-            }),
+            UnaryOp::NextState => {
+                // Next state access must be a path that resolves to a state variable.
+                fn check_path_for_state_variable(
+                    states: &SlotMap<StateKey, State>,
+                    name: &str,
+                    span: &Span,
+                ) -> Result<(), Error> {
+                    if !states.iter().any(|(_, state)| state.name == name) {
+                        Err(Error::Compile {
+                            error: CompileError::InvalidNextStateAccess { span: span.clone() },
+                        })?
+                    }
+
+                    Ok(())
+                }
+
+                match self.exprs.get(rhs_expr_key) {
+                    Some(Expr::PathByName(name, span)) => {
+                        check_path_for_state_variable(&self.states, name, span)?;
+                    }
+                    Some(Expr::PathByKey(var_key, span)) => {
+                        if let Some(var) = &self.vars.get(*var_key) {
+                            check_path_for_state_variable(&self.states, &var.name, span)?;
+                        } else {
+                            Err(Error::Compile {
+                                error: CompileError::Internal {
+                                    msg: "`next state` var_key is missing from vars slotmap",
+                                    span: span.clone(),
+                                },
+                            })?
+                        }
+                    }
+                    _ => Err(Error::Compile {
+                        error: CompileError::InvalidNextStateAccess { span: span.clone() },
+                    })?,
+                }
+
+                if let Some(ty) = self.expr_types.get(rhs_expr_key) {
+                    Ok(Inference::Type(ty.clone()))
+                } else {
+                    Ok(Inference::Dependant(rhs_expr_key))
+                }
+            }
         }
     }
 
