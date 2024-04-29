@@ -1,56 +1,15 @@
-storage {
-    balances: (b256 => int),
-}
+let y: int;
+constraint y' == 5;
+solve satisfy;
 
-// Transfer `value` from `from` to `to`
-intent Transfer {
-    let from: b256;
-    let to: b256;
-    let value: int;
-    let y: int;
-
-    let owner = context::sender();
-    
-    constraint from != 0x0000000000000000000000000000000000000000000000000000000000000000;
-    constraint to != 0x0000000000000000000000000000000000000000000000000000000000000000;
-
-    state from_balance = storage::balances[from];
-    constraint from_balance >= value;
-    constraint from_balance' == from_balance - value;
-
-    state to_balance = storage::balances[to];
-    constraint to_balance' == to_balance + value;
-
-    constraint y' == 5;
-}
 
 // intermediate <<<
-// storage {
-//     balances: ( b256 => int ),
-// }
-// 
-// intent ::Transfer {
-//     storage {
-//         balances: ( b256 => int ),
-//     }
-//     var ::from: b256;
-//     var ::to: b256;
-//     var ::value: int;
-//     var ::y: int;
-//     var ::owner;
-//     state ::from_balance = storage::balances[::from];
-//     state ::to_balance = storage::balances[::to];
-//     constraint (::owner == ::context::sender());
-//     constraint (::from != 0x0000000000000000000000000000000000000000000000000000000000000000);
-//     constraint (::to != 0x0000000000000000000000000000000000000000000000000000000000000000);
-//     constraint (::from_balance >= ::value);
-//     constraint (::from_balance' == (::from_balance - ::value));
-//     constraint (::to_balance' == (::to_balance + ::value));
-//     constraint (::y' == 5);
-// }
+// var ::y: int;
+// constraint (::y' == 5);
+// solve satisfy;
 // >>>
 
 // typecheck_failure <<<
 // state access must be bound to a state variable
-// @651..652: state access must be bound to a state variable
+// @23..24: state access must be bound to a state variable
 // >>>
