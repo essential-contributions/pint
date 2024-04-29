@@ -10,6 +10,6 @@ solve satisfy;
 // >>>
 
 // typecheck_failure <<<
-// state access must be bound to a state variable
-// @23..24: state access must be bound to a state variable
+// `next state` access must be bound to a state variable
+// @23..24: `next state` access must be bound to a state variable
 // >>>

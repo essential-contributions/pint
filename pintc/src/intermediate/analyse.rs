@@ -689,43 +689,44 @@ impl IntermediateIntent {
             }
 
             UnaryOp::NextState => {
-                // State access must be a path that resolves to a state variable.
+                // Next state access must be a path that resolves to a state variable.
                 fn check_path_for_state_variable(
                     states: &SlotMap<StateKey, State>,
                     name: &str,
-                    ty: &Type,
                     span: &Span,
-                ) -> Result<Inference, Error> {
-                    if states.iter().any(|(_, state)| state.name == name) {
-                        Ok(Inference::Type(ty.clone()))
-                    } else {
+                ) -> Result<(), Error> {
+                    if !states.iter().any(|(_, state)| state.name == name) {
                         Err(Error::Compile {
-                            error: CompileError::InvalidStateAccess { span: span.clone() },
-                        })
+                            error: CompileError::InvalidNextStateAccess { span: span.clone() },
+                        })?
                     }
+
+                    Ok(())
+                }
+
+                match self.exprs.get(rhs_expr_key) {
+                    Some(Expr::PathByName(name, span)) => {
+                        check_path_for_state_variable(&self.states, name, span)?;
+                    }
+                    Some(Expr::PathByKey(var_key, span)) => {
+                        if let Some(var) = &self.vars.get(*var_key) {
+                            check_path_for_state_variable(&self.states, &var.name, span)?;
+                        } else {
+                            Err(Error::Compile {
+                                error: CompileError::Internal {
+                                    msg: "`next state` var_key is missing from vars slotmap",
+                                    span: span.clone(),
+                                },
+                            })?
+                        }
+                    }
+                    _ => Err(Error::Compile {
+                        error: CompileError::InvalidNextStateAccess { span: span.clone() },
+                    })?,
                 }
 
                 if let Some(ty) = self.expr_types.get(rhs_expr_key) {
-                    match self.exprs.get(rhs_expr_key) {
-                        Some(Expr::PathByName(name, span)) => {
-                            check_path_for_state_variable(&self.states, name, ty, span)
-                        }
-                        Some(Expr::PathByKey(var_key, span)) => {
-                            if let Some(var) = &self.vars.get(*var_key) {
-                                check_path_for_state_variable(&self.states, &var.name, ty, span)
-                            } else {
-                                Err(Error::Compile {
-                                    error: CompileError::Internal {
-                                        msg: "`next state` var_key is missing from vars slotmap",
-                                        span: span.clone(),
-                                    },
-                                })
-                            }
-                        }
-                        _ => Err(Error::Compile {
-                            error: CompileError::InvalidStateAccess { span: span.clone() },
-                        }),
-                    }
+                    Ok(Inference::Type(ty.clone()))
                 } else {
                     Ok(Inference::Dependant(rhs_expr_key))
                 }
