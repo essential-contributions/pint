@@ -1,7 +1,10 @@
+use slotmap::SlotMap;
+
 use super::{Expr, ExprKey, Ident, IntermediateIntent, Program, VarKey};
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     expr::{BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
+    intermediate::{State, StateKey},
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
@@ -685,47 +688,45 @@ impl IntermediateIntent {
                 }
             }
 
-            UnaryOp::NextState =>
-            // make sure expr type exists, make sure expr is path, then access state with same name
-            {
+            UnaryOp::NextState => {
+                // State access must be a path that resolves to a state variable.
+                fn check_path_for_state_variable(
+                    states: &SlotMap<StateKey, State>,
+                    name: &str,
+                    ty: &Type,
+                    span: &Span,
+                ) -> Result<Inference, Error> {
+                    if states.iter().any(|(_, state)| state.name == name) {
+                        Ok(Inference::Type(ty.clone()))
+                    } else {
+                        Err(Error::Compile {
+                            error: CompileError::InvalidStateAccess { span: span.clone() },
+                        })
+                    }
+                }
+
                 if let Some(ty) = self.expr_types.get(rhs_expr_key) {
-                    println!("Type found: {:?}", ty);
                     match self.exprs.get(rhs_expr_key) {
                         Some(Expr::PathByName(name, span)) => {
-                            println!("Expression is a PathByName: {:?}", name);
-                            if self.states.iter().any(|(_, state)| state.name == *name) {
-                                println!("State with matching name found");
-                                Ok(Inference::Type(ty.clone()))
-                            } else {
-                                println!("No state with matching name found");
-                                Err(Error::Compile {
-                                    error: CompileError::InvalidStateAccess { span: span.clone() },
-                                })
-                            }
+                            check_path_for_state_variable(&self.states, name, ty, span)
                         }
                         Some(Expr::PathByKey(var_key, span)) => {
-                            println!("Expression is a PathByKey: {:?}", var_key);
-                            let name = &self.vars.get(*var_key).expect("failed to get var").name;
-                            println!("Name associated with var_key: {:?}", name);
-                            if self.states.iter().any(|(_, state)| state.name == *name) {
-                                println!("State with matching name found");
-                                Ok(Inference::Type(ty.clone()))
+                            if let Some(var) = &self.vars.get(*var_key) {
+                                check_path_for_state_variable(&self.states, &var.name, ty, span)
                             } else {
-                                println!("No state with matching name found");
                                 Err(Error::Compile {
-                                    error: CompileError::InvalidStateAccess { span: span.clone() },
+                                    error: CompileError::Internal {
+                                        msg: "`next state` var_key is missing from vars slotmap",
+                                        span: span.clone(),
+                                    },
                                 })
                             }
                         }
-                        _ => {
-                            println!("Expression is not a PathByName or PathByKey");
-                            Err(Error::Compile {
-                                error: CompileError::InvalidStateAccess { span: span.clone() },
-                            })
-                        }
+                        _ => Err(Error::Compile {
+                            error: CompileError::InvalidStateAccess { span: span.clone() },
+                        }),
                     }
                 } else {
-                    println!("No type found for rhs_expr_key");
                     Ok(Inference::Dependant(rhs_expr_key))
                 }
             }
