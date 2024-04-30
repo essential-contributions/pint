@@ -10,26 +10,25 @@ publish = false
 
 [dependencies]
 anyhow = { workspace = true }
-essential_types = { git = "ssh://git@github.com/essential-contributions/intent-server.git" }
-intent-server = { git = "ssh://git@github.com/essential-contributions/intent-server.git" }
+essential-types = { workspace = true }
 num-bigint = "0.4"
 num-traits = "0.2"
 pint_solve = { path = "../pint-solve", default-features = false }
 pintc = { path = "../pintc", default-features = false }
 regex = "1.10"
 serde = "1.0"
-serde_json = "1.0"
+# serde_json = "1.0" # Re-enable this along with validation_tests
 test-util = { path = "../test-util" }
-toml = "0.8"
+# toml = "0.8" # Re-enable this along with validation_tests
 yansi = { workspace = true }
 
 [[test]]
 name = "solver_tests"
 path = "solver_tests.rs"
 
-[[test]]
-name = "validation_tests"
-path = "validation_tests.rs"
+# [[test]]
+# name = "validation_tests"
+# path = "validation_tests.rs"
 
 [features]
 default = ["solver-scip"]

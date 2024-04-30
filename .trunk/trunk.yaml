@@ -23,6 +23,9 @@ lint:
         - name: SSH_AUTH_SOCK
           value: ${env.SSH_AUTH_SOCK}
           optional: true
+        # Ensure cargo uses git via CLI for ssh-agent interop while essential-base is private.
+        - name: CARGO_NET_GIT_FETCH_WITH_CLI
+          value: true
   enabled:
     - checkov@3.2.74
     - osv-scanner@1.7.2

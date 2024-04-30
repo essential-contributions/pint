@@ -10,6 +10,7 @@ env:
   RUST_VERSION: 1.77.0
   NIGHTLY_RUST_VERSION: nightly-2024-02-10
   SCIP_VERSION: 8.0.3
+  CARGO_NET_GIT_FETCH_WITH_CLI: "true"
 
 permissions: read-all
 
@@ -24,7 +25,9 @@ jobs:
       - name: Provide Access to Private Repos
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-private-key: |
+            ${{ secrets.SSH_PRIVATE_KEY }}
+            ${{ secrets.SSH_PRIVATE_KEY_BASE }}
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,7 +42,9 @@ jobs:
       - name: Provide Access to Private Repos
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-private-key: |
+            ${{ secrets.SSH_PRIVATE_KEY }}
+            ${{ secrets.SSH_PRIVATE_KEY_BASE }}
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -81,7 +86,9 @@ jobs:
       - name: Provide Access to Private Repos
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-private-key: |
+            ${{ secrets.SSH_PRIVATE_KEY }}
+            ${{ secrets.SSH_PRIVATE_KEY_BASE }}
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -112,7 +119,9 @@ jobs:
       - name: Provide Access to Private Repos
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-private-key: |
+            ${{ secrets.SSH_PRIVATE_KEY }}
+            ${{ secrets.SSH_PRIVATE_KEY_BASE }}
 
       - name: Checkout
         uses: actions/checkout@v4

@@ -1,7 +1,6 @@
 use super::Intents;
 use crate::intermediate::ProgramKind;
-use constraint_asm::Op;
-use state_asm::StateReadOp;
+use state_asm::{Constraint, Op as StateRead};
 use std::fmt::{Display, Formatter};
 
 impl Display for Intents {
@@ -35,7 +34,9 @@ pub fn fmt_intent_with_indent(
     let indent = " ".repeat(4 * indent);
     writeln!(f, "{}--- Constraints ---", indent)?;
     for (idx, constraint) in intent.constraints.iter().enumerate() {
-        let ops: Vec<Op> = serde_json::from_str(&String::from_utf8_lossy(constraint)).unwrap();
+        let ops: Vec<Constraint> = constraint_asm::from_bytes(constraint.iter().copied())
+            .collect::<Result<_, _>>()
+            .unwrap();
         writeln!(f, "{}constraint {idx}", indent)?;
         for op in ops {
             writeln!(f, "{}  {:?}", indent, op)?;
@@ -43,8 +44,9 @@ pub fn fmt_intent_with_indent(
     }
     writeln!(f, "{}--- State Reads ---", indent)?;
     for (idx, state_read) in intent.state_read.iter().enumerate() {
-        let ops: Vec<StateReadOp> =
-            serde_json::from_str(&String::from_utf8_lossy(state_read)).unwrap();
+        let ops: Vec<StateRead> = state_asm::from_bytes(state_read.iter().copied())
+            .collect::<Result<_, _>>()
+            .unwrap();
         writeln!(f, "{}state read {idx}", indent)?;
         for op in ops {
             writeln!(f, "{}  {:?}", indent, op)?;
