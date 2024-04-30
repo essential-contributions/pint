@@ -10,7 +10,7 @@ env:
   RUST_VERSION: 1.77.0
   NIGHTLY_RUST_VERSION: nightly-2024-02-10
   SCIP_VERSION: 8.0.3
-  CARGO_NET_GIT_FETCH_WITH_CLI: 'true'
+  CARGO_NET_GIT_FETCH_WITH_CLI: "true"
 
 permissions: read-all
 
