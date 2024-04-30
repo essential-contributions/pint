@@ -57,7 +57,7 @@ impl IntermediateIntent {
                 }
 
                 Type::Array { ty, .. } => {
-                    replace_custom_type(new_types, ty.borrow_mut());
+                    replace_custom_type(new_types, ty);
                 }
 
                 Type::Tuple { fields, .. } => {
@@ -69,6 +69,10 @@ impl IntermediateIntent {
                 Type::Map { ty_from, ty_to, .. } => {
                     replace_custom_type(new_types, ty_from);
                     replace_custom_type(new_types, ty_to);
+                }
+
+                Type::Vector { ty, .. } => {
+                    replace_custom_type(new_types, ty);
                 }
 
                 Type::Error(_) | Type::Primitive { .. } | Type::Alias { .. } => {}
@@ -189,10 +193,18 @@ impl IntermediateIntent {
                                 },
                             });
                         }
-                        // State variables of type `Map` are not allowed
+                        // State variables of type `Map` and `Vector` are not allowed
                         if state_ty.is_map() {
                             handler.emit_err(Error::Compile {
-                                error: CompileError::StateVarTypeIsMap {
+                                error: CompileError::IllegalStateVarType {
+                                    ty_name: "storage map".to_string(),
+                                    span: state.span.clone(),
+                                },
+                            });
+                        } else if state_ty.is_vector() {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::IllegalStateVarType {
+                                    ty_name: "storage vector".to_string(),
                                     span: state.span.clone(),
                                 },
                             });
@@ -210,10 +222,18 @@ impl IntermediateIntent {
                     .get(state.expr)
                     .map(|expr_ty| {
                         self.state_types.insert(state_key, expr_ty.clone());
-                        // State variables of type `Map` are not allowed
+                        // State variables of type `Map` and `Vector` are not allowed
                         if expr_ty.is_map() {
                             handler.emit_err(Error::Compile {
-                                error: CompileError::StateVarTypeIsMap {
+                                error: CompileError::IllegalStateVarType {
+                                    ty_name: "storage map".to_string(),
+                                    span: state.span.clone(),
+                                },
+                            });
+                        } else if expr_ty.is_vector() {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::IllegalStateVarType {
+                                    ty_name: "storage vector".to_string(),
                                     span: state.span.clone(),
                                 },
                             });
@@ -1161,6 +1181,18 @@ impl IntermediateIntent {
                         span: span.clone(),
                     },
                 })
+            }
+        } else if let Some(ty) = ary_ty.get_vector_element_ty() {
+            // Is this a storage vector?
+            if !index_ty.is_int() {
+                Err(Error::Compile {
+                    error: CompileError::StorageVectorAccessWithWrongType {
+                        found_ty: self.with_ii(index_ty).to_string(),
+                        span: self.expr_key_to_span(index_expr_key),
+                    },
+                })
+            } else {
+                Ok(Inference::Type(ty.clone()))
             }
         } else {
             Err(Error::Compile {

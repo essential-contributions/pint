@@ -157,6 +157,8 @@ pub enum CompileError {
         expected_ty: String,
         span: Span,
     },
+    #[error("attempt to index a storage vector with a non-integer")]
+    StorageVectorAccessWithWrongType { found_ty: String, span: Span },
     #[error("comparison between differently sized arrays")]
     MismatchedArrayComparisonSizes {
         op: String,
@@ -187,8 +189,8 @@ pub enum CompileError {
     },
     #[error("state variable initialization type error")]
     StateVarInitTypeError { large_err: Box<LargeTypeError> },
-    #[error("state variables cannot have storage map type")]
-    StateVarTypeIsMap { span: Span },
+    #[error("illegal state variables type")]
+    IllegalStateVarType { ty_name: String, span: Span },
     #[error("expression has a recursive dependency")]
     ExprRecursion {
         dependant_span: Span,
@@ -620,6 +622,14 @@ impl ReportableError for CompileError {
                 }]
             }
 
+            StorageVectorAccessWithWrongType { span, .. } => {
+                vec![ErrorLabel {
+                    message: "storage vector access must be with an `int`".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
             MismatchedArrayComparisonSizes { span, .. } => vec![ErrorLabel {
                 message: "cannot compare arrays of different sizes".to_string(),
                 span: span.clone(),
@@ -672,8 +682,8 @@ impl ReportableError for CompileError {
                     color: Color::Red,
                 },
             ],
-            StateVarTypeIsMap { span } => vec![ErrorLabel {
-                message: "found state variable of type storage map here".to_string(),
+            IllegalStateVarType { ty_name, span } => vec![ErrorLabel {
+                message: format!("found state variable of type {ty_name} here"),
                 span: span.clone(),
                 color: Color::Red,
             }],
@@ -921,6 +931,10 @@ impl ReportableError for CompileError {
                 Some(format!("found access using type `{found_ty}`"))
             }
 
+            StorageVectorAccessWithWrongType { found_ty, .. } => {
+                Some(format!("found access using type `{found_ty}`"))
+            }
+
             MissingSolveDirective { .. } => Some(
                 "`solve` directive must appear exactly once in a project and \
                      must appear in the top level module"
@@ -959,7 +973,7 @@ impl ReportableError for CompileError {
             | IfBranchesTypeMismatch { .. }
             | OperatorTypeError { .. }
             | StateVarInitTypeError { .. }
-            | StateVarTypeIsMap { .. }
+            | IllegalStateVarType { .. }
             | IndexExprNonIndexable { .. }
             | TupleAccessNonTuple { .. }
             | EmptyArrayExpression { .. }
@@ -1071,6 +1085,7 @@ impl Spanned for CompileError {
             | IndexExprNonIndexable { span, .. }
             | ArrayAccessWithWrongType { span, .. }
             | StorageMapAccessWithWrongType { span, .. }
+            | StorageVectorAccessWithWrongType { span, .. }
             | MismatchedArrayComparisonSizes { span, .. }
             | TupleAccessNonTuple { span, .. }
             | InvalidTupleAccessor { span, .. }
@@ -1087,7 +1102,7 @@ impl Spanned for CompileError {
             | RangeTypesMismatch { span, .. }
             | RangeTypesNonNumeric { span, .. }
             | InExprTypesMismatch { span, .. }
-            | StateVarTypeIsMap { span }
+            | IllegalStateVarType { span, .. }
             | InExprTypesArrayMismatch { span, .. } => span,
 
             IfBranchesTypeMismatch { large_err }

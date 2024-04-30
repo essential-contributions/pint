@@ -236,7 +236,7 @@ pub(crate) fn lower_aliases(ii: &mut IntermediateIntent) {
                 replace_alias(ty_from);
                 replace_alias(ty_to);
             }
-
+            Type::Vector { ty, .. } => replace_alias(ty),
             Type::Error(_) | Type::Primitive { .. } | Type::Custom { .. } => {}
         }
     }

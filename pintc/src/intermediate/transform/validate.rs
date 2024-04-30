@@ -145,7 +145,7 @@ fn check_expr(
         Type::Alias { span, .. } => {
             emit_illegal_type_error!(handler, span, "type alias", "expr_types");
         }
-        Type::Primitive { .. } | Type::Map { .. } => {}
+        Type::Primitive { .. } | Type::Map { .. } | Type::Vector { .. } => {}
     }
 
     // then check the expr variant and make sure legal
@@ -171,7 +171,9 @@ fn check_expr(
         // )),
         Expr::Array { span, .. } => Err(emit_illegal_type_error!(handler, span, "array", "exprs")),
         Expr::Index { expr, span, .. } => {
-            if !ii.expr_types.get(*expr).expect("").is_map() {
+            if !ii.expr_types.get(*expr).expect("").is_map()
+                && !ii.expr_types.get(*expr).expect("").is_vector()
+            {
                 Err(emit_illegal_type_error!(
                     handler,
                     span,

@@ -1,0 +1,7 @@
+storage {
+    vec: bool[],
+}
+
+state x = storage::vec[5];
+
+solve satisfy;

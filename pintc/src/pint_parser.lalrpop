@@ -130,6 +130,38 @@ pub StorageVar: StorageVar = {
                     span,
                 }
             }
+        } else if let Type::Vector {
+            ty: ref el_ty,
+            ..
+        } = ty
+        {
+            if el_ty.is_bool()
+                || el_ty.is_int()
+             // || el_ty.is_b256()
+             // || el_ty.is_map()
+             || el_ty.is_vector()
+             // || el_ty.is_tuple()
+            {
+                StorageVar {
+                    name: name.to_string(),
+                    ty,
+                    span,
+                }
+            } else {
+                // TODO: allow arbitrary types in storage maps
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "currently in storage maps, keys must be int, bool, or b256 /
+                              and values must be int and bool",
+                        span: span::empty_span(),
+                    },
+                });
+                StorageVar {
+                    name: name.to_string(),
+                    ty: Type::Error(ty.span().clone()),
+                    span,
+                }
+            }
         } else {
             // TODO: allow arbitrary types in storage blocks
             handler.emit_err(Error::Compile {
@@ -584,7 +616,6 @@ TupleField: (Option<Ident>, Type) = {
 /// Storage Types ///
 /////////////////////
 
-// Does not yet allow for maps inside maps and is only to be used in storage blocks
 MapType: Type = {
     <l:@L> "(" <ty_from:Type> "=>" <ty_to:StorageVarType> ")" <r:@R> => Type::Map {
         ty_from: Box::new(ty_from),
@@ -593,9 +624,17 @@ MapType: Type = {
     }
 }
 
+VecType: Type = {
+    <l:@L> <ty:StorageVarType> "[" "]" <r:@R> => Type::Vector {
+        ty: Box::new(ty),
+        span: (context.span_from)(l, r),
+    }
+}
+
 pub StorageVarType: Type = {
     <MapType>,
-    <Type>,
+    <VecType>,
+    <TypeAtom>,
 }
 
 ///////////////////

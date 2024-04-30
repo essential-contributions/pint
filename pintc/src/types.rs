@@ -48,6 +48,10 @@ pub enum Type {
         ty_to: Box<Self>,
         span: Span,
     },
+    Vector {
+        ty: Box<Self>,
+        span: Span,
+    },
 }
 
 macro_rules! is_primitive {
@@ -106,6 +110,10 @@ impl Type {
 
     pub fn is_map(&self) -> bool {
         check_alias!(self, is_map, matches!(self, Type::Map { .. }))
+    }
+
+    pub fn is_vector(&self) -> bool {
+        check_alias!(self, is_map, matches!(self, Type::Vector { .. }))
     }
 
     pub fn is_any_primitive(&self) -> bool {
@@ -172,6 +180,16 @@ impl Type {
         check_alias!(self, get_map_ty_to, {
             if let Type::Map { ty_to, .. } = self {
                 Some(ty_to)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn get_vector_element_ty(&self) -> Option<&Type> {
+        check_alias!(self, get_vector_element_ty, {
+            if let Type::Vector { ty, .. } = self {
+                Some(ty)
             } else {
                 None
             }
@@ -330,7 +348,8 @@ impl Spanned for Type {
             | Tuple { span, .. }
             | Custom { span, .. }
             | Alias { span, .. }
-            | Map { span, .. } => span,
+            | Map { span, .. }
+            | Vector { span, .. } => span,
         }
     }
 }

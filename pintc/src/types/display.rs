@@ -63,6 +63,7 @@ impl DisplayWithII for super::Type {
                     ii.with_ii(&**ty_to)
                 )
             }
+            super::Type::Vector { ty, .. } => write!(f, "{}[]", ii.with_ii(&**ty)),
         }
     }
 }
