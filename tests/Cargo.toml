@@ -11,7 +11,6 @@ publish = false
 [dependencies]
 anyhow = { workspace = true }
 essential-types = { workspace = true }
-intent-server = { git = "ssh://git@github.com/essential-contributions/intent-server.git" }
 num-bigint = "0.4"
 num-traits = "0.2"
 pint_solve = { path = "../pint-solve", default-features = false }
