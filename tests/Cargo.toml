@@ -19,7 +19,7 @@ regex = "1.10"
 serde = "1.0"
 # serde_json = "1.0" # Re-enable this along with validation_tests
 test-util = { path = "../test-util" }
-toml = "0.8"
+# toml = "0.8" # Re-enable this along with validation_tests
 yansi = { workspace = true }
 
 [[test]]
