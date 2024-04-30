@@ -12,7 +12,6 @@ use test_util::{
 use yansi::Color::Red;
 
 #[test]
-#[ignore]
 fn validation_e2e() -> anyhow::Result<()> {
     let mut server = Server::new();
     deploy(&mut server)?;

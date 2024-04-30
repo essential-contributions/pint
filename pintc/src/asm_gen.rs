@@ -580,7 +580,6 @@ pub fn intent_to_asm(
         slots: Slots {
             state: builder.s_slots,
             decision_variables: total_decision_vars as u32,
-            permits: 0,
         },
         state_read: builder
             .s_asm

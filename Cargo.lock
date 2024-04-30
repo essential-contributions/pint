@@ -936,7 +936,7 @@ dependencies = [
  "clap",
  "essential-constraint-asm",
  "essential-state-asm",
- "essential_types",
+ "essential-types",
  "expect-test",
  "itertools 0.12.1",
  "lalrpop",
@@ -1401,7 +1401,7 @@ name = "tests"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "essential_types",
+ "essential-types",
  "intent-server",
  "num-bigint",
  "num-traits",
