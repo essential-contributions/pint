@@ -512,9 +512,9 @@ impl AsmBuilder {
             Memory::Alloc.into(),
             Stack::Push(data_size as i64).into(),
             if is_extern {
-                StateRead::WordRangeExtern.into()
+                StateRead::WordRangeExtern
             } else {
-                StateRead::WordRange.into()
+                StateRead::WordRange
             },
             StateRead::ControlFlow(ControlFlow::Halt),
         ]);
