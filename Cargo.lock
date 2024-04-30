@@ -1409,7 +1409,6 @@ dependencies = [
  "pintc",
  "regex",
  "serde",
- "serde_json",
  "test-util",
  "toml",
  "yansi",
