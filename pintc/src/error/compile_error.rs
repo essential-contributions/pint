@@ -200,7 +200,7 @@ pub enum CompileError {
     BadCastFrom { ty: String, span: Span },
     #[error("`solve` directive missing from this project")]
     MissingSolveDirective { span: Span },
-    #[error("invalid declartion outside an `intent {{ .. }}` declaration")]
+    #[error("invalid declaration outside an `intent {{ .. }}` declaration")]
     InvalidDeclOutsideIntentDecl { kind: String, span: Span },
     #[error("left and right types in range differ")]
     RangeTypesMismatch {

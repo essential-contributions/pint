@@ -19,6 +19,8 @@ use lalrpop_util::lalrpop_mod;
 lalrpop_mod!(#[allow(clippy::ptr_arg, clippy::type_complexity)] pub pint_parser);
 
 mod use_path;
+use pint_solve::flatpint::Type;
+use slotmap::SlotMap;
 pub(crate) use use_path::{UsePath, UseTree};
 
 mod context;
@@ -221,24 +223,82 @@ impl<'a> ProjectParser<'a> {
         // II (i.e. those declared using an `intent { }` decl). Also, insert all top level symbols
         // since shadowing is not allowed. That is, we can't use a symbol inside an `intent { .. }`
         // that was already used in the root II.
+
+        use crate::expr::Expr;
+        use crate::types::*;
+        fn deep_copy_new_types(
+            root_new_types: &Vec<NewTypeDecl>,
+            root_exprs: &SlotMap<ExprKey, Expr>,
+            ii: &mut IntermediateIntent,
+        ) {
+            // iterate over vector
+            // look for expr keys
+            // copy full expr (k,v) to exprs slotmap
+            // replace key in the newtypedecl
+            // watch out for nested
+            // just get the array working for now
+            // ii.new_types.extend_from_slice(&new_types);
+
+            // TODO: recurse if necessary
+            // TODO: handle all other types
+            for new_type in root_new_types {
+                if let Type::Array {
+                    ty,
+                    range,
+                    size,
+                    span,
+                } = &new_type.ty
+                {
+                    let range_expr = root_exprs.get(*range).expect("exists");
+                    let new_expr_key = ii.exprs.insert(range_expr.clone());
+                    ii.new_types.push(NewTypeDecl {
+                        name: new_type.name.clone(),
+                        ty: Type::Array {
+                            ty: ty.clone(),
+                            range: new_expr_key,
+                            size: size.clone(),
+                            span: span.clone(),
+                        },
+                        span: new_type.span.clone(),
+                    })
+                }
+            }
+        }
+
+        println!("Starting finalize function");
+
         let enums = self.program.root_ii().enums.clone();
         let new_types = self.program.root_ii().new_types.clone();
         let root_symbols = self.program.root_ii().top_level_symbols.clone();
         let storage = self.program.root_ii().storage.clone();
         let externs = self.program.root_ii().externs.clone();
+        let exprs = self.program.root_ii().exprs.clone();
+        // println!("Root II: {:#?}", self.program.root_ii());
+        // println!("Root enums: {:#?}", enums);
+        println!("Root new_types: {:#?}", new_types);
+        // println!("Root symbols: {:#?}", root_symbols);
+        // println!("Root storage: {:#?}", storage);
+        // println!("Root externs: {:#?}", externs);
+
+        // in the ideal we should have an exact copy of what is present in the root_ii in addition to the
+        // inner_ii
         self.program
             .iis
             .iter_mut()
             .filter(|(name, _)| *name != &Program::ROOT_II_NAME.to_string())
             .for_each(|(_, ii)| {
-                ii.new_types.extend_from_slice(&new_types);
-                ii.enums.extend_from_slice(&enums);
-                ii.storage = storage.clone();
-                ii.externs = externs.clone();
+                // ii.new_types.extend_from_slice(&new_types); // deep copy and add to the current array
+                deep_copy_new_types(&new_types, &exprs, ii);
+                println!("{:#?}", &ii.new_types);
+
+                ii.enums.extend_from_slice(&enums); // this is fine, we don't have exprs in them
+                ii.storage = storage.clone(); // this can have variables that have exprs to be copied
+                ii.externs = externs.clone(); // this can have variables that have exprs to be copied
+
+                // not concerned with the top level symbols, its everything else that could have
+                // an expr associated with it
+
                 for (symbol, span) in &root_symbols {
-                    // We could call `ii.add_top_level_symbol_with_name` directly here, but then
-                    // the spans would be reversed so I decided to do this manually. We want the
-                    // actual error to point to the symbol inside the `intent` decl.
                     ii.top_level_symbols
                         .get(symbol)
                         .map(|prev_span| {
@@ -254,12 +314,17 @@ impl<'a> ProjectParser<'a> {
                             ii.top_level_symbols.insert(symbol.clone(), span.clone());
                         });
                 }
+
+                println!("Root_II exprs: {:#?}", &exprs);
+                println!("II exprs: {:#?}", &ii.exprs);
             });
 
         if self.handler.has_errors() {
+            println!("Handler has errors, cancelling");
             return Err(self.handler.cancel());
         }
 
+        println!("Finalize function completed successfully");
         Ok(self.program)
     }
 }
