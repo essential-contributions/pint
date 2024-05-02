@@ -358,11 +358,6 @@ impl IntermediateIntent {
                             kind: PrimitiveKind::Int,
                             span: span.clone(),
                         }))
-                    } else if name.as_str().ends_with("::context::sender") {
-                        Ok(Inference::Type(Type::Primitive {
-                            kind: PrimitiveKind::B256,
-                            span: span.clone(),
-                        }))
                     } else {
                         Err(Error::Compile {
                             error: CompileError::Internal {
