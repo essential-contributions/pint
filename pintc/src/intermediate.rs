@@ -348,7 +348,7 @@ impl IntermediateIntent {
                 self.visitor_from_key(kind, *rhs, f);
             }
 
-            Expr::FnCall { args, .. } => {
+            Expr::IntrinsicCall { args, .. } => {
                 for arg in args {
                     self.visitor_from_key(kind, *arg, f);
                 }
@@ -637,7 +637,7 @@ impl<'a> Iterator for Exprs<'a> {
                 queue_if_new!(self, rhs);
             }
 
-            Expr::FnCall { args, .. } => {
+            Expr::IntrinsicCall { args, .. } => {
                 for arg in args {
                     queue_if_new!(self, arg);
                 }

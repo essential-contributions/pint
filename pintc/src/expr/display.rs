@@ -102,7 +102,7 @@ impl DisplayWithII for &super::Expr {
                 )
             }
 
-            super::Expr::FnCall { name, args, .. } => {
+            super::Expr::IntrinsicCall { name, args, .. } => {
                 write!(f, "{name}(")?;
                 write_many_with_ii!(f, args, ", ", ii);
                 write!(f, ")")

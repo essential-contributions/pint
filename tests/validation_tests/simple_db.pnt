@@ -24,7 +24,7 @@ intent Simple {
     state z: int = storage::z;
     state external_1 = Extern::storage::y; // 69
 
-    state external_2 = storage_lib::get_extern(
+    state external_2 = __storage_get_extern(
         0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE,
         0x0000000000000000000000000000000000000000000000000000000000000001,
     ); // 69

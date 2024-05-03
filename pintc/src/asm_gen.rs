@@ -103,8 +103,8 @@ impl AsmBuilder {
         intent: &IntermediateIntent,
     ) -> Result<StorageKey, ErrorEmitted> {
         match &intent.exprs[*expr] {
-            Expr::FnCall { name, args, .. } => {
-                if name.ends_with("::storage_lib::get") {
+            Expr::IntrinsicCall { name, args, .. } => {
+                if name.name.ends_with("__storage_get") {
                     // Expecting a single argument that is a `b256`: a key
                     assert_eq!(args.len(), 1);
 
@@ -115,7 +115,7 @@ impl AsmBuilder {
                         kind: StorageKeyKind::Dynamic,
                         is_extern: false,
                     })
-                } else if name.ends_with("::storage_lib::get_extern") {
+                } else if name.name.ends_with("__storage_get_extern") {
                     // Expecting two arguments that are both `b256`: an address and a key
                     assert_eq!(args.len(), 2);
 
@@ -330,10 +330,12 @@ impl AsmBuilder {
                     BinaryOp::Div => asm.push(Alu::Div.into()),
                     BinaryOp::Mod => asm.push(Alu::Mod.into()),
                     BinaryOp::Equal => {
-                        if intent.expr_types[*lhs].is_b256() {
-                            asm.push(Pred::Eq4.into());
-                        } else {
+                        let type_size = intent.expr_types[*lhs].size();
+                        if type_size == 1 {
                             asm.push(Pred::Eq.into());
+                        } else {
+                            asm.push(Stack::Push(type_size as i64).into());
+                            asm.push(Pred::EqRange.into());
                         }
                     }
                     BinaryOp::NotEqual => {
@@ -396,14 +398,142 @@ impl AsmBuilder {
                     },
                 }));
             }
-            Expr::FnCall { .. } | Expr::If { .. } => {
+            Expr::IntrinsicCall { name, args, span } => match &name.name[..] {
+                // Access ops
+                "__mut_keys_len" => {
+                    assert!(args.is_empty());
+                    asm.push(Constraint::Access(Access::MutKeysLen));
+                }
+
+                "__mut_keys_contains" => {
+                    assert_eq!(args.len(), 1);
+
+                    let mut_key = args[0];
+                    let mut_key_type = &intent.expr_types[mut_key];
+
+                    // Check that the mutable key is an array of integers
+                    let el_ty = mut_key_type.get_array_el_type().unwrap();
+                    assert!(el_ty.is_int());
+
+                    // Compile the mut key argument, insert its length, and then insert the
+                    // `Sha256` opcode
+                    self.compile_expr(handler, asm, &mut_key, intent)?;
+                    asm.push(Constraint::Stack(Stack::Push(mut_key_type.size() as i64)));
+                    asm.push(Constraint::Access(Access::MutKeysContains));
+                }
+
+                "__this_address" => {
+                    assert!(args.is_empty());
+                    asm.push(Constraint::Access(Access::ThisAddress));
+                }
+
+                "__this_set_address" => {
+                    assert!(args.is_empty());
+                    asm.push(Constraint::Access(Access::ThisSetAddress));
+                }
+
+                "__this_pathway" => {
+                    assert!(args.is_empty());
+                    asm.push(Constraint::Access(Access::ThisPathway));
+                }
+
+                // Crypto ops
+                "__sha256" => {
+                    assert_eq!(args.len(), 1);
+
+                    let data = args[0];
+                    let data_type = &intent.expr_types[data];
+
+                    // Compile the data argument, insert its length, and then insert the `Sha256`
+                    // opcode
+                    self.compile_expr(handler, asm, &data, intent)?;
+                    asm.push(Constraint::Stack(Stack::Push(data_type.size() as i64)));
+                    asm.push(Constraint::Crypto(Crypto::Sha256));
+                }
+
+                "__verify_ed25519" => {
+                    assert_eq!(args.len(), 3);
+
+                    let data = args[0];
+                    let signature = args[1];
+                    let public_key = args[2];
+
+                    let data_type = &intent.expr_types[data];
+                    let signature_type = &intent.expr_types[signature];
+                    let public_key_type = &intent.expr_types[public_key];
+
+                    // Check argument types:
+                    // - `data_type` can be anything, so nothing to check
+                    // - `signature_type` must be a `{ b256, b256 }`
+                    // - `public_key_type` must be a `b256`
+                    let fields = signature_type
+                        .get_tuple_fields()
+                        .expect("expecting a tuple here");
+                    assert!(fields.len() == 2 && fields[0].1.is_b256() && fields[1].1.is_b256());
+                    assert!(public_key_type.is_b256());
+
+                    // Compile all arguments separately and then insert the `VerifyEd25519` opcode
+                    self.compile_expr(handler, asm, &data, intent)?;
+                    asm.push(Constraint::Stack(Stack::Push(data_type.size() as i64)));
+                    self.compile_expr(handler, asm, &signature, intent)?;
+                    self.compile_expr(handler, asm, &public_key, intent)?;
+                    asm.push(Constraint::Crypto(Crypto::VerifyEd25519));
+                }
+
+                "__recover_secp256k1" => {
+                    assert_eq!(args.len(), 2);
+
+                    let data_hash = args[0];
+                    let signature = args[1];
+
+                    let data_hash_type = &intent.expr_types[data_hash];
+                    let signature_type = &intent.expr_types[signature];
+
+                    // Check argument types:
+                    // - `data_hash_type` must be a `b256`
+                    // - `signature_type` must be a `{ b256, b256, int }`
+                    assert!(data_hash_type.is_b256());
+                    let fields = signature_type
+                        .get_tuple_fields()
+                        .expect("expecting a tuple here");
+                    assert!(
+                        fields.len() == 3
+                            && fields[0].1.is_b256()
+                            && fields[1].1.is_b256()
+                            && fields[2].1.is_int()
+                    );
+
+                    // Compile all arguments separately and then insert the `VerifyEd25519` opcode
+                    self.compile_expr(handler, asm, &data_hash, intent)?;
+                    self.compile_expr(handler, asm, &signature, intent)?;
+                    asm.push(Constraint::Crypto(Crypto::RecoverSecp256k1));
+                }
+
+                _ => {
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "Unexpected intrinsic name",
+                            span: span.clone(),
+                        },
+                    }));
+                }
+            },
+            Expr::Tuple { fields, .. } => {
+                fields
+                    .iter()
+                    .try_for_each(|(_, field)| self.compile_expr(handler, asm, field, intent))?;
+            }
+            Expr::Array { elements, .. } => {
+                elements
+                    .iter()
+                    .try_for_each(|element| self.compile_expr(handler, asm, element, intent))?;
+            }
+            Expr::If { .. } => {
                 unimplemented!("calls and `if` expressions are not yet supported")
             }
             Expr::Error(_)
             | Expr::MacroCall { .. }
-            | Expr::Array { .. }
             | Expr::Index { .. }
-            | Expr::Tuple { .. }
             | Expr::TupleFieldAccess { .. }
             | Expr::Cast { .. }
             | Expr::In { .. }

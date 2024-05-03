@@ -276,9 +276,75 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
         &array_name,
         array_var_key,
         array_size,
-        el_ty,
+        el_ty.clone(),
         &new_var_keys,
     )?;
+
+    // Once we scalarize array accesses, we can look for all path expressions that match the name
+    // of the array and replace those with array expressions that contain paths to the new split
+    // vars
+    let mut array_path_to_replace = vec![];
+    for expr_key in ii.exprs() {
+        if let Some(Expr::PathByName(path, _)) = ii.exprs.get(expr_key) {
+            if *path == array_name {
+                array_path_to_replace.push(expr_key);
+            }
+        } else if let Some(Expr::PathByKey(key, _)) = ii.exprs.get(expr_key) {
+            let path = &ii
+                .vars
+                .get(*key)
+                .expect("missing var in scalarize_array")
+                .name;
+            if *path == array_name {
+                array_path_to_replace.push(expr_key);
+            }
+        }
+    }
+
+    for expr_key in array_path_to_replace {
+        // Create a new array expression containing all the split vars
+        let range_expr_key = ii.exprs.insert(Expr::Immediate {
+            value: Immediate::Int(new_var_keys.len() as i64),
+            span: empty_span(),
+        });
+        ii.expr_types.insert(
+            range_expr_key,
+            Type::Primitive {
+                kind: PrimitiveKind::Int,
+                span: span.clone(),
+            },
+        );
+
+        let new_expr = Expr::Array {
+            elements: new_var_keys
+                .iter()
+                .map(|key| {
+                    let el_key = ii.exprs.insert(Expr::PathByKey(*key, empty_span()));
+                    ii.expr_types.insert(el_key, el_ty.clone());
+                    el_key
+                })
+                .collect(),
+            range_expr: range_expr_key,
+            span: empty_span(),
+        };
+
+        // Insert the new array expression into `ii.exprs`
+        let new_expr_key = ii.exprs.insert(new_expr);
+        ii.expr_types.insert(
+            new_expr_key,
+            Type::Array {
+                ty: Box::new(el_ty.clone()),
+                range: range_expr_key,
+                size: Some(array_size),
+                span: empty_span(),
+            },
+        );
+
+        // Replace and tidy up
+        ii.replace_exprs(expr_key, new_expr_key);
+        ii.exprs.remove(expr_key);
+        ii.expr_types.remove(expr_key);
+    }
 
     // Remove the old array variable.
     ii.vars.remove(array_var_key);
@@ -412,8 +478,16 @@ fn lower_array_compares(
     let array_compare_ops = ii
         .exprs()
         .filter_map(|expr_key| match ii.exprs.get(expr_key) {
+            // Do not lower array compares if one of the two sides is an intrinsic calls.
+            // Intrinsic calls can be expensive to compute and so, we don't want to make multiple
+            // copies of them if we don't need to. We will rely on the backend to do the comparison
+            // instead.
+            //
+            // In the future, we may decided not to lower array compares at all.
             Some(Expr::BinaryOp { op, lhs, rhs, span })
-                if (*op == BinaryOp::Equal || *op == BinaryOp::NotEqual) =>
+                if (*op == BinaryOp::Equal || *op == BinaryOp::NotEqual)
+                    && !matches!(ii.exprs[*lhs], Expr::IntrinsicCall { .. })
+                    && !matches!(ii.exprs[*rhs], Expr::IntrinsicCall { .. }) =>
             {
                 ii.expr_types.get(*lhs).and_then(get_array_params).and_then(
                     |(lhs_el_ty, _, lhs_opt_size, _)| {
@@ -653,7 +727,17 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
                 // Type checking should ensure RHS is also a tuple.
                 assert!(ii.expr_types.get(*rhs).unwrap().is_tuple());
 
-                tuple_compare_ops.push((expr_key, *op, *lhs, *rhs, span.clone()));
+                // Do not lower tuple compares if one of the two sides is an intrinsic calls.
+                // Intrinsic calls can be expensive to compute and so, we don't want to make
+                // multiple copies of them if we don't need to. We will rely on the backend to do
+                // the comparison instead.
+                //
+                // In the future, we may decided not to lower tuple compares at all.
+                if !matches!(ii.exprs[*lhs], Expr::IntrinsicCall { .. })
+                    && !matches!(ii.exprs[*rhs], Expr::IntrinsicCall { .. })
+                {
+                    tuple_compare_ops.push((expr_key, *op, *lhs, *rhs, span.clone()));
+                }
             }
         }
     }
@@ -805,7 +889,12 @@ fn split_tuple_vars(
                 let new_sym_name = opt_field_name
                     .as_ref()
                     .map(|field_name| format!("{name}.{field_name}"));
-                new_vars.push(((new_idx_name, new_sym_name), span.clone(), field_ty.clone()));
+                new_vars.push((
+                    name.clone(),
+                    (new_idx_name, new_sym_name),
+                    span.clone(),
+                    field_ty.clone(),
+                ));
             }
 
             old_tuple_vars.push(var_key);
@@ -818,8 +907,11 @@ fn split_tuple_vars(
 
     let mut new_tuple_vars = BTreeMap::new();
 
+    // This `BTreeMap` maps tuple var names to the new vars that are introduced to replace them.
+    let mut tuple_name_to_split_tuple_vars: BTreeMap<String, Vec<VarKey>> = BTreeMap::new();
+
     // Add all the new vars to the intermediate intent and memo the new key.
-    for ((idx_name, opt_sym_name), span, field_ty) in new_vars {
+    for (name, (idx_name, opt_sym_name), span, field_ty) in new_vars {
         // Prefer the symbolic name if it's there.
         let new_var_key = ii.vars.insert(Var {
             name: opt_sym_name.as_ref().unwrap_or(&idx_name).clone(),
@@ -832,6 +924,11 @@ fn split_tuple_vars(
             new_tuple_vars.insert(sym_name, (new_var_key, field_ty.clone()));
         }
         new_tuple_vars.insert(idx_name, (new_var_key, field_ty));
+
+        tuple_name_to_split_tuple_vars
+            .entry(name.to_string().clone())
+            .and_modify(|v: &mut Vec<VarKey>| v.push(new_var_key))
+            .or_insert(vec![new_var_key]);
     }
 
     let mut new_accesses = Vec::new();
@@ -885,6 +982,59 @@ fn split_tuple_vars(
         ii.replace_exprs(old_expr_key, new_expr_key);
         ii.exprs.remove(old_expr_key);
         ii.expr_types.remove(old_expr_key);
+    }
+
+    // Now, we can search for all the paths that match the name of the original tuple.
+    let mut tuple_path_to_replace = vec![];
+    for expr_key in ii.exprs() {
+        if let Some(Expr::PathByName(path, _)) = ii.exprs.get(expr_key) {
+            if let Some(split_vars) = tuple_name_to_split_tuple_vars.get(path) {
+                tuple_path_to_replace.push((expr_key, split_vars));
+            }
+        } else if let Some(Expr::PathByKey(key, _)) = ii.exprs.get(expr_key) {
+            let path = &ii
+                .vars
+                .get(*key)
+                .expect("missing var in split_tuple_vars")
+                .name;
+            if let Some(split_vars) = tuple_name_to_split_tuple_vars.get(path) {
+                tuple_path_to_replace.push((expr_key, split_vars));
+            }
+        }
+    }
+
+    // Finally, replace those paths that refer to tuples with tuple expressions.
+    for (expr_key, split_vars) in tuple_path_to_replace {
+        let new_expr = Expr::Tuple {
+            fields: split_vars
+                .iter()
+                .map(|var_key| {
+                    (None, {
+                        let field_expr_key =
+                            ii.exprs.insert(Expr::PathByKey(*var_key, empty_span()));
+                        ii.expr_types
+                            .insert(field_expr_key, ii.var_types[*var_key].clone());
+                        field_expr_key
+                    })
+                })
+                .collect(),
+            span: empty_span(),
+        };
+        let new_expr_key = ii.exprs.insert(new_expr);
+        ii.expr_types.insert(
+            new_expr_key,
+            Type::Tuple {
+                fields: split_vars
+                    .iter()
+                    .map(|var_key| (None, ii.var_types[*var_key].clone()))
+                    .collect(),
+                span: empty_span(),
+            },
+        );
+
+        ii.replace_exprs(expr_key, new_expr_key);
+        ii.exprs.remove(expr_key);
+        ii.expr_types.remove(expr_key);
     }
 
     Ok(true)

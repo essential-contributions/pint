@@ -6,7 +6,7 @@ type F = string;
 
 let F = 4;
 
-state F = MyContract::foo();
+state F = __foo();
 
 interface F {}
 

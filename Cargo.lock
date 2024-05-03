@@ -512,7 +512,7 @@ dependencies = [
 [[package]]
 name = "essential-asm-gen"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#29b1b8a47950c61bd0c117e6ed8e40717ea73716"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#68762d5b30ca27a24e9e786db02aa52620ed8ad9"
 dependencies = [
  "essential-asm-spec",
  "essential-types",
@@ -524,7 +524,7 @@ dependencies = [
 [[package]]
 name = "essential-asm-spec"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#29b1b8a47950c61bd0c117e6ed8e40717ea73716"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#68762d5b30ca27a24e9e786db02aa52620ed8ad9"
 dependencies = [
  "serde",
  "serde_yaml",
@@ -533,7 +533,7 @@ dependencies = [
 [[package]]
 name = "essential-constraint-asm"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#29b1b8a47950c61bd0c117e6ed8e40717ea73716"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#68762d5b30ca27a24e9e786db02aa52620ed8ad9"
 dependencies = [
  "essential-asm-gen",
  "essential-types",
@@ -543,12 +543,13 @@ dependencies = [
 [[package]]
 name = "essential-constraint-vm"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#29b1b8a47950c61bd0c117e6ed8e40717ea73716"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#68762d5b30ca27a24e9e786db02aa52620ed8ad9"
 dependencies = [
  "ed25519-dalek",
  "essential-constraint-asm",
  "essential-types",
  "rayon",
+ "secp256k1",
  "sha2",
  "thiserror",
 ]
@@ -556,7 +557,7 @@ dependencies = [
 [[package]]
 name = "essential-state-asm"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#29b1b8a47950c61bd0c117e6ed8e40717ea73716"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#68762d5b30ca27a24e9e786db02aa52620ed8ad9"
 dependencies = [
  "essential-asm-gen",
  "essential-constraint-asm",
@@ -566,7 +567,7 @@ dependencies = [
 [[package]]
 name = "essential-state-read-vm"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#29b1b8a47950c61bd0c117e6ed8e40717ea73716"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#68762d5b30ca27a24e9e786db02aa52620ed8ad9"
 dependencies = [
  "essential-constraint-vm",
  "essential-state-asm",
@@ -577,7 +578,7 @@ dependencies = [
 [[package]]
 name = "essential-types"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#29b1b8a47950c61bd0c117e6ed8e40717ea73716"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#68762d5b30ca27a24e9e786db02aa52620ed8ad9"
 dependencies = [
  "serde",
 ]
@@ -1254,6 +1255,24 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
+
+[[package]]
+name = "secp256k1"
+version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0e0cc0f1cf93f4969faf3ea1c7d8a9faed25918d96affa959720823dfe86d4f3"
+dependencies = [
+ "secp256k1-sys",
+]
+
+[[package]]
+name = "secp256k1-sys"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1433bd67156263443f14d603720b082dd3121779323fce20cba2aa07b874bc1b"
+dependencies = [
+ "cc",
+]
 
 [[package]]
 name = "semver"
