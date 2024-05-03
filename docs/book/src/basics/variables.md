@@ -1,9 +1,10 @@
 ## Decision Variables
 
-A decision variable is a named variable that a solution is required to assign a value for. Decision
-variables are quite different from the "regular" variables that you might be used to in imperative
-programming languages. Decision variables do not get "computed" are "assigned to" in a Pint program
-since a Pint program is **not actually executed but solved** (and later validated against a solution).
+A decision variable is a named variable that every solution is required to assign a value for.
+Decision variables are quite different from "regular" variables that you might be used to in
+imperative programming languages. Decision variables do not get "computed" or "assigned to" in a
+Pint program since a Pint program is **not actually executed but solved** (and later validated
+against a solution).
 
 Decision variables can be declared using the `let` keyword and may be annotated with a type. We will
 go over the available data types in Pint, in detail, in a later chapter.
@@ -14,9 +15,10 @@ Here's an example that shows how to declared a decision variable named `foo` of 
 {{#include ../../../../examples/ch_3_1_a.pnt:annotated}}
 ```
 
-You can think of the type annotation as a "constraint" on the decision variables: this decision
-variable can only take values in the set of signed integers (64-bit signed integers when targeting
-the EssentialVM). Any solution that proposes a value of `foo` must satisfy that constraint.
+You can actually think of the type annotation as a "constraint" on the decision variable: this
+decision variable can only take values in the set of signed integers (64-bit signed integers when
+targeting the EssentialVM). Any solution that proposes a value of `foo` must satisfy that
+constraint.
 
 A decision variable can also be "initialized". Initializing a decision variable may seem like an odd
 concept because decision variables are declared to be solved for. However, an initialized decision
@@ -33,8 +35,10 @@ The above is equivalent to:
 {{#include ../../../../examples/ch_3_1_b.pnt:initialized}}
 ```
 
-We will go over `constraint` statements in more detail later but it should be clear that this
-enforces `bar` to be `42`. Therefore, every proposed solution must also set `bar` to `42`.
+We will go over `constraint` statements in more details later but it should hopefully be intuitive
+that this statement enforces `bar` to be equal to `42`. Therefore, every proposed solution must also
+set `bar` to `42`. Otherwise, this particular constraint will fail and the whole solution will be
+deemed invalid.
 
 Skipping the type annotation is only allowed if the decision variable is "initialized":
 

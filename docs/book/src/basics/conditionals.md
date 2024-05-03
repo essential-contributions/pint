@@ -24,7 +24,7 @@ the condition is `false` (also between curly brackets). Both options, `1` and `2
 type which is `int` and so, the type of `y` must also be `int`.
 
 If, for example, the types of the two expressions we're selecting from do not match, the compiler
-will emit a compiler error. For example, if we try to compile the following code:
+will emit a compile error. For example, if we try to compile the following code:
 
 ```pint
 let number: int;
@@ -52,7 +52,7 @@ Error: branches in if-expression must have the same type
 ───╯
 ```
 
-The condition of an `if` expression must be a `bool`. Otherwise, we will get a compiler error. For
+The condition of an `if` expression must be a `bool`. Otherwise, we will get a compile error. For
 example, if we try to compile the following code:
 
 ```pint
@@ -89,24 +89,24 @@ condition. For example:
 {{#include ../../../../examples/ch_3_4_a.pnt:basic_cond}}
 ```
 
-All `cond` expressions start with the keyword `cond`, followed by a comma-separated list of statements
-in between curly brackets. Each statement describes a condition and an expression that should be
-returned by the `cond` if that condition is correct. The branches are evaluated in order and the
-first one to become active determines the value of the `cond` expression. If all branches fail, then
-the `cond` expression takes the value of the expression in the `else` branch, which must always be
-the last branch.
+All `cond` expressions start with the keyword `cond`, followed by a comma-separated list of
+statements in between curly brackets. Each statement describes a condition and an expression that
+should be returned by the `cond` if that condition is correct. The branches are evaluated in order
+and the first one to become active determines the value of the `cond` expression. If all branches
+fail, then the `cond` expression takes the value of the expression in the `else` branch, which must
+always be the last branch.
 
 In the example above, `z` is equal to `0` if `x == 0`, equal to `1` if `x` is between `0` and `10`,
 equal to `2` if `x` is between `10` and `100`, and equal to `3` otherwise.
 
-Every `cond` expression can be rewritten using one or more `if` expressions. However, `cond` tends to be more
-compact and more readable than nested `if` expressions. For example, the `cond` expression in the
-example above is equivalent to:
+Every `cond` expression can be rewritten using one or more `if` expressions. However, `cond` tends
+to be more compact and more readable than nested `if` expressions. For example, the `cond`
+expression in the example above is equivalent to:
 
 ```pint
 {{#include ../../../../examples/ch_3_4_b.pnt:cond_unrolled}}
 ```
 
 Similarly to `if` expressions, all candidate expressions must have the same type which determines
-the type of the whole `cond` expression. Also, every condition must be a `bool` or else a compiler
+the type of the whole `cond` expression. Also, every condition must be a `bool` or else a compile
 error will be emitted.
