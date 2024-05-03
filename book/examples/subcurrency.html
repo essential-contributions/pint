@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../the-book-of-pint.html">The Book of Pint</a></li><li class="chapter-item expanded "><a href="../getting_started/index.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../getting_started/installation.html"><strong aria-hidden="true">1.1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="../getting_started/hello-world.html"><strong aria-hidden="true">1.2.</strong> Hello, World!</a></li><li class="chapter-item expanded "><a href="../getting_started/hello-golf.html"><strong aria-hidden="true">1.3.</strong> Hello, Golf!</a></li></ol></li><li class="chapter-item expanded "><a href="../examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../examples/counter.html"><strong aria-hidden="true">2.1.</strong> Counter</a></li><li class="chapter-item expanded "><a href="../examples/subcurrency.html" class="active"><strong aria-hidden="true">2.2.</strong> Subcurrency</a></li></ol></li><li class="chapter-item expanded "><a href="../basics/index.html"><strong aria-hidden="true">3.</strong> Common Programming Concepts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../basics/variables.html"><strong aria-hidden="true">3.1.</strong> Variables</a></li><li class="chapter-item expanded "><a href="../basics/data_types.html"><strong aria-hidden="true">3.2.</strong> Data Types</a></li><li class="chapter-item expanded "><a href="../basics/comments.html"><strong aria-hidden="true">3.3.</strong> Comments</a></li><li class="chapter-item expanded "><a href="../basics/conditionals.html"><strong aria-hidden="true">3.4.</strong> Conditionals</a></li><li class="chapter-item expanded "><a href="../basics/custom_types.html"><strong aria-hidden="true">3.5.</strong> Custom Types</a></li></ol></li><li class="chapter-item expanded "><a href="../storage/index.html"><strong aria-hidden="true">4.</strong> Storage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../storage/static.html"><strong aria-hidden="true">4.1.</strong> Static Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/dynamic.html"><strong aria-hidden="true">4.2.</strong> Dynamic Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/layout.html"><strong aria-hidden="true">4.3.</strong> Storage Layout</a></li></ol></li><li class="chapter-item expanded "><a href="../appendix/index.html"><strong aria-hidden="true">5.</strong> Appendix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../appendix/keywords.html"><strong aria-hidden="true">5.1.</strong> A - Keywords</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../the-book-of-pint.html">The Book of Pint</a></li><li class="chapter-item expanded "><a href="../getting_started/index.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../getting_started/installation.html"><strong aria-hidden="true">1.1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="../getting_started/hello-world.html"><strong aria-hidden="true">1.2.</strong> Hello, World!</a></li><li class="chapter-item expanded "><a href="../getting_started/hello-golf.html"><strong aria-hidden="true">1.3.</strong> Hello, Golf!</a></li></ol></li><li class="chapter-item expanded "><a href="../examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../examples/counter.html"><strong aria-hidden="true">2.1.</strong> Counter</a></li><li class="chapter-item expanded "><a href="../examples/subcurrency.html" class="active"><strong aria-hidden="true">2.2.</strong> Subcurrency</a></li></ol></li><li class="chapter-item expanded "><a href="../basics/index.html"><strong aria-hidden="true">3.</strong> Common Programming Concepts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../basics/variables.html"><strong aria-hidden="true">3.1.</strong> Decision Variables</a></li><li class="chapter-item expanded "><a href="../basics/data_types.html"><strong aria-hidden="true">3.2.</strong> Data Types</a></li><li class="chapter-item expanded "><a href="../basics/comments.html"><strong aria-hidden="true">3.3.</strong> Comments</a></li><li class="chapter-item expanded "><a href="../basics/conditionals.html"><strong aria-hidden="true">3.4.</strong> Conditionals</a></li><li class="chapter-item expanded "><a href="../basics/custom_types.html"><strong aria-hidden="true">3.5.</strong> Custom Types</a></li></ol></li><li class="chapter-item expanded "><a href="../storage/index.html"><strong aria-hidden="true">4.</strong> Storage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../storage/static.html"><strong aria-hidden="true">4.1.</strong> Statically-Sized Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/dynamic.html"><strong aria-hidden="true">4.2.</strong> Dynamically-Sized Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/layout.html"><strong aria-hidden="true">4.3.</strong> Storage Layout</a></li></ol></li><li class="chapter-item expanded "><a href="../appendix/index.html"><strong aria-hidden="true">5.</strong> Appendix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../appendix/keywords.html"><strong aria-hidden="true">5.1.</strong> A - Keywords</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -149,15 +149,14 @@
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="subcurrency"><a class="header" href="#subcurrency">Subcurrency</a></h2>
-<p>The following contract implements the simplest form of a cryptocurrency. The contract allows only
-its creator to create new coins but anyone can send coins to each other.</p>
+<p>The following contract implements the simplest form of a cryptocurrency. The contract allows the
+creation of new coins (i.e. minting) as well as sending coins from one address to another.</p>
 <pre><code class="language-pint">storage {
     total_supply: int,
     balances: (b256 =&gt; int),
 }
 
 // Sends an amount of newly created coins to an address
-// Can only be called by the contract creator
 intent Mint {
     let receiver: b256;
     let amount: int;
@@ -169,7 +168,7 @@ intent Mint {
     constraint receiver_balance' == receiver_balance + amount;
 }
 
-// Sends an amount of existing coins from to an address
+// Sends an amount of existing coins from address `from` to address `receiver`
 intent Send {
     let from: b256;
     let receiver: b256;
@@ -188,35 +187,38 @@ intent Send {
 <ol>
 <li><code>total_supply</code> is of type <code>int</code> and represents the total supply of coins available at any given
 point in time.</li>
-<li><code>balances</code> is a <strong>map</strong> from <code>b256</code> to <code>int</code> and stores balances of addresses as integers.</li>
+<li><code>balances</code> is a <strong>map</strong> from <code>b256</code> to <code>int</code> and stores balances of addresses as integers. <code>b256</code>
+is a primitive type that represents a 256-bit hash value and is used here to represent an
+address.</li>
 </ol>
-<p>The contract also has two intents: <code>Mint</code> and <code>Send</code>.</p>
-<p>The <code>Mint</code> intent is quite simple:</p>
+<p>The contract also declares two intents: <code>Mint</code> and <code>Send</code>.</p>
+<p>The <code>Mint</code> intent is fairly simple:</p>
 <ol>
 <li>It declares two decision variables <code>receiver: b256</code> and <code>amount: int</code>. The goal of this intent to
 mint <code>amount</code> coins and send them to <code>receiver</code>.</li>
-<li>It initializes a <code>state</code> variables called <code>receiver_balance</code> using the storage access expression
+<li>It initializes a <code>state</code> variable called <code>receiver_balance</code> using the storage access expression
 <code>storage::balances[receiver]</code>. This syntax returns the value in <code>balances</code> that <code>receiver</code> maps
-to. It also initializes another state variable called <code>total_supply</code> to <code>storage::total_supply</code>.</li>
+to. The intent also initializes another state variable called <code>total_supply</code> to
+<code>storage::total_supply</code>.</li>
 <li>It enforces two constraints:
 <ol>
-<li>the first constraint ensures that the total supply is incremented by <code>amount</code>.</li>
-<li>The second constraint ensures that the balance of <code>receiver</code> is incremented by <code>amount</code>.</li>
+<li>the first constraint requires the total supply to be incremented by <code>amount</code>.</li>
+<li>The second constraint requires the balance of <code>receiver</code> to be incremented by <code>amount</code>.</li>
 </ol>
 </li>
 </ol>
 <p>The <code>Send</code> intent has the following structure:</p>
 <ol>
 <li>It declares three decision variables <code>from: b256</code>, <code>receiver: b256</code>, and <code>amount: int</code>. The goal
-of this intent to send <code>amount</code> coins from <code>from</code> to <code>receiver</code>.</li>
+of this intent to send <code>amount</code> coins from address <code>from</code> to address <code>receiver</code>.</li>
 <li>It initializes a <code>state</code> variable called <code>from_balance</code> to the balance of <code>from</code> and another
 variable called <code>receiver_balance</code> to the balance of <code>receiver</code>.</li>
 <li>It enforces three constraints
 <ol>
-<li>the first constraint ensures <code>from_balance</code> is larger than <code>amount</code>. That is, the from
-currently actually has enough coins to send to <code>receiver</code>.</li>
+<li>the first constraint requires <code>from_balance</code> to be larger than <code>amount</code>. That is, the address
+<code>from</code> must currently actually have enough coins to send to <code>receiver</code>.</li>
 <li>The second constraint effectively decrements the balance of <code>from</code> by <code>amount</code>, by requiring
-the next state of <code>from_balance</code> to be <code>from_balance + amount</code>.</li>
+the next state of <code>from_balance</code> to be <code>from_balance - amount</code>.</li>
 <li>The third constraint effectively increments the balance of <code>receiver</code> by <code>amount</code>, by
 requiring the next state of <code>receiver_balance</code> to be <code>receiver_balance + amount</code>.</li>
 </ol>
@@ -224,9 +226,10 @@ requiring the next state of <code>receiver_balance</code> to be <code>receiver_b
 </ol>
 <blockquote>
 <p><strong>Note</strong> to make things simpler and easier to understand, this contract has no <em>authentication</em>
-anywhere in its code. That is, anyone can mint new tokens and initiate a transfer from an
-arbitrary address to another. This, of course, is not the desired behavior. That being said, we
-will cover authentication in a later chapter and discuss how to make this contract more secure.</p>
+anywhere in its code. That is, anyone can mint new coins and initiate a transfer from one
+arbitrary address to another. This, of course, is not the desired behavior for most
+cryptocurrencies. That being said, we will cover authentication in a later chapter and discuss how
+to use authentication make this contract more secure.</p>
 </blockquote>
 
                     </main>
