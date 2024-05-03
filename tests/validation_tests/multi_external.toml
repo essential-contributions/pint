@@ -1,0 +1,25 @@
+[[data]]
+decision_variables = []
+intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "::Foo" }
+
+[[data]]
+decision_variables = []
+intent_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", intent = "" }
+
+[[data]]
+decision_variables = []
+intent_to_solve = { set = "0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD", intent = "" }
+
+[[state_mutations]]
+pathway = 1
+mutations = [
+  { key = "0x0000000000000000000000000000000000000000000000000000000000000000", value = 43 },
+  { key = "0x0000000000000000000000000000000000000000000000000000000000000001", value = 71 },
+]
+
+[[state_mutations]]
+pathway = 2
+mutations = [
+  { key = "0x0000000000000000000000000000000000000000000000000000000000000000", value = 102 },
+  { key = "0x0000000000000000000000000000000000000000000000000000000000000001", value = 170 },
+]

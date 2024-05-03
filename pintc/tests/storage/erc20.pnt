@@ -9,8 +9,6 @@ intent Transfer {
     let to: b256;
     let value: int;
 
-    let owner = context::sender();
-    
     constraint from != 0x0000000000000000000000000000000000000000000000000000000000000000;
     constraint to != 0x0000000000000000000000000000000000000000000000000000000000000000;
 
@@ -88,10 +86,8 @@ intent Burn {
 //     var ::from: b256;
 //     var ::to: b256;
 //     var ::value: int;
-//     var ::owner;
 //     state ::from_balance = storage::balances[::from];
 //     state ::to_balance = storage::balances[::to];
-//     constraint (::owner == ::context::sender());
 //     constraint (::from != 0x0000000000000000000000000000000000000000000000000000000000000000);
 //     constraint (::to != 0x0000000000000000000000000000000000000000000000000000000000000000);
 //     constraint (::from_balance >= ::value);
@@ -141,10 +137,8 @@ intent Burn {
 //     var ::from: b256;
 //     var ::to: b256;
 //     var ::value: int;
-//     var ::owner: b256;
 //     state ::from_balance: int = storage::balances[::from];
 //     state ::to_balance: int = storage::balances[::to];
-//     constraint (::owner == ::context::sender());
 //     constraint (::from != 0x0000000000000000000000000000000000000000000000000000000000000000);
 //     constraint (::to != 0x0000000000000000000000000000000000000000000000000000000000000000);
 //     constraint (::from_balance >= ::value);
