@@ -1,0 +1,22 @@
+// ANCHOR: storage_block
+storage {
+    // ...
+    balances: (b256 => int),
+    // ...
+}
+// ANCHOR_END: storage_block
+
+// ANCHOR: storage_access_1
+let from_address: b256;
+let receiver_address: b256;
+state from_balance = storage::balances[from_address];
+state receiver_balance = storage::balances[receiver_address];
+// ANCHOR_END: storage_access_1
+
+// ANCHOR: next_state
+let my_address: b256;
+state my_bal = storage::balances[my_address];
+constraint my_bal' == my_bal + 1000000;
+// ANCHOR_END: next_state 
+
+solve satisfy;

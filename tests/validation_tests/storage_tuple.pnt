@@ -5,7 +5,7 @@ storage {
     map_to_tuples: ( int => { b256, { int, int } } ),
 }
 
-extern Foo(0x5AAC3B0C6DDDCBD755A1437AE556B725CC6143FE761ECDC2B38CE02D1FEFBE0E) {
+extern Foo(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE) {
     storage {
         u: { b256, int },
         t: { b256, { int, int } },

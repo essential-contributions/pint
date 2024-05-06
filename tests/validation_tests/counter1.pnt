@@ -17,8 +17,3 @@ intent Increment {
     state counter: int = storage::counter;
     constraint counter' == counter + amount;
 }
-
-intent Nonce {
-    let x: int;
-    constraint x > 1;
-}

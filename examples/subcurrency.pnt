@@ -4,7 +4,6 @@ storage {
 }
 
 // Sends an amount of newly created coins to an address
-// Can only be called by the contract creator
 intent Mint {
     let receiver: b256;
     let amount: int;
@@ -16,7 +15,7 @@ intent Mint {
     constraint receiver_balance' == receiver_balance + amount;
 }
 
-// Sends an amount of existing coins from to an address
+// Sends an amount of existing coins from address `from` to address `receiver`
 intent Send {
     let from: b256;
     let receiver: b256;

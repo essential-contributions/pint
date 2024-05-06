@@ -1,0 +1,9 @@
+[[data]]
+decision_variables = [{ inline = 69 }]
+intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "::Increment" }
+
+[[state_mutations]]
+pathway = 0
+mutations = [
+  { key = "0x0000000000000000000000000000000000000000000000000000000000000000", value = 111 },
+]

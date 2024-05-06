@@ -396,15 +396,6 @@ impl AsmBuilder {
                     },
                 }));
             }
-            Expr::FnCall { name, args, .. } if name.ends_with("::context::sender") => {
-                assert!(args.is_empty());
-                return Err(handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "Encountered removed `sender` op during assembly generation",
-                        span: empty_span(),
-                    },
-                }));
-            }
             Expr::FnCall { .. } | Expr::If { .. } => {
                 unimplemented!("calls and `if` expressions are not yet supported")
             }
