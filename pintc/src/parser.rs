@@ -226,6 +226,59 @@ impl<'a> ProjectParser<'a> {
 
         use crate::expr::Expr;
         use crate::types::*;
+
+        fn deep_copy_type(
+            new_type: &Type,
+            root_exprs: &SlotMap<ExprKey, Expr>,
+            ii: &mut IntermediateIntent,
+        ) -> Result<Type, Error> {
+            match &new_type {
+                Type::Array {
+                    ty,
+                    range,
+                    size,
+                    span,
+                } => {
+                    println!("deep copying my type");
+                    let range_expr = root_exprs.get(*range).expect("exists"); // this key leads to an expr that has other exprs that need to be copied
+                                                                              // TODO: recursively copy the exprs that are related to this expr
+                    println!("checking for range key: {:?}", range);
+                    let new_expr_key = ii.exprs.insert(range_expr.clone());
+                    let nested_ty =
+                        Box::new(deep_copy_type(ty, root_exprs, ii).expect("add error"));
+                    println!("nested_ty: {:?}", nested_ty);
+                    Ok(Type::Array {
+                        ty: nested_ty, // make recursive
+                        // ty: ty.clone(),
+                        range: new_expr_key,
+                        size: size.clone(),
+                        span: span.clone(),
+                    }) // TODO: need to consider nesting
+                }
+                Type::Tuple { fields, span } => {
+                    let mut new_fields: Vec<(Option<Ident>, Type)> = vec![];
+                    for field in fields {
+                        let new_field = (
+                            field.0.clone(),
+                            deep_copy_type(&field.1, root_exprs, ii).expect("add error"),
+                        );
+                        new_fields.push(new_field);
+                    }
+                    Ok(Type::Tuple {
+                        fields: new_fields,
+                        span: span.clone(),
+                    })
+                }
+                Type::Custom { .. } => todo!(),
+                Type::Alias { ty, .. } => todo!(),
+                Type::Map { ty_from, ty_to, .. } => todo!(),
+                Type::Error(_) => Ok(new_type.clone()),
+                Type::Primitive { .. } => Ok(new_type.clone()),
+            }
+        }
+
+        //
+
         fn deep_copy_new_types(
             root_new_types: &Vec<NewTypeDecl>,
             root_exprs: &SlotMap<ExprKey, Expr>,
@@ -241,27 +294,55 @@ impl<'a> ProjectParser<'a> {
 
             // TODO: recurse if necessary
             // TODO: handle all other types
+            // TODO: Do we need to handle other types when the only thing that can have an expr is an array?
+            // for new_type in root_new_types {
+            //     match &new_type.ty {
+            //         Type::Array {
+            //             ty,
+            //             range,
+            //             size,
+            //             span,
+            //         } => {
+            //             let new_type_decl = deep_copy_type(ty, root_exprs, ii).expect("add error");
+            //             ii.new_types.push(NewTypeDecl {
+            //                 name: new_type.name.clone(),
+            //                 ty: new_type_decl,
+            //                 span: new_type.span.clone(),
+            //             })
+            //         }
+            //         Type::Tuple { fields, span } => {
+            //             let mut new_fields: Vec<(Option<Ident>, Type)> = vec![];
+            //             for field in fields {
+            //                 let new_field = (
+            //                     field.0.clone(),
+            //                     deep_copy_type(&field.1, root_exprs, ii).expect("add error"),
+            //                 );
+            //                 new_fields.push(new_field);
+            //             }
+            //             ii.new_types.push(NewTypeDecl {
+            //                 name: new_type.name.clone(),
+            //                 ty: Type::Tuple {
+            //                     fields: new_fields,
+            //                     span: span.clone(),
+            //                 },
+            //                 span: new_type.span.clone(),
+            //             })
+            //         }
+            //         Type::Custom { .. } => todo!(),
+            //         Type::Alias { ty, .. } => todo!(),
+            //         Type::Map { ty_from, ty_to, .. } => todo!(),
+            //         Type::Error(_) => {}
+            //         Type::Primitive { .. } => {}
+            //     }
+            // }
             for new_type in root_new_types {
-                if let Type::Array {
-                    ty,
-                    range,
-                    size,
-                    span,
-                } = &new_type.ty
-                {
-                    let range_expr = root_exprs.get(*range).expect("exists");
-                    let new_expr_key = ii.exprs.insert(range_expr.clone());
-                    ii.new_types.push(NewTypeDecl {
-                        name: new_type.name.clone(),
-                        ty: Type::Array {
-                            ty: ty.clone(),
-                            range: new_expr_key,
-                            size: size.clone(),
-                            span: span.clone(),
-                        },
-                        span: new_type.span.clone(),
-                    })
-                }
+                let new_type_decl =
+                    deep_copy_type(&new_type.ty, root_exprs, ii).expect("add error");
+                ii.new_types.push(NewTypeDecl {
+                    name: new_type.name.clone(),
+                    ty: new_type_decl,
+                    span: new_type.span.clone(),
+                })
             }
         }
 
