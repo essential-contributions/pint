@@ -19,7 +19,6 @@ use lalrpop_util::lalrpop_mod;
 lalrpop_mod!(#[allow(clippy::ptr_arg, clippy::type_complexity)] pub pint_parser);
 
 mod use_path;
-use pint_solve::flatpint::Type;
 use slotmap::SlotMap;
 pub(crate) use use_path::{UsePath, UseTree};
 
@@ -227,6 +226,65 @@ impl<'a> ProjectParser<'a> {
         use crate::expr::Expr;
         use crate::types::*;
 
+        fn deep_copy_expr(
+            expr: &Expr,
+            root_exprs: &SlotMap<ExprKey, Expr>,
+            ii: &mut IntermediateIntent,
+        ) {
+            match expr {
+                Expr::Error(_)
+                | Expr::Immediate { .. }
+                | Expr::PathByKey(_, _)
+                | Expr::PathByName(_, _)
+                | Expr::StorageAccess(_, _)
+                | Expr::ExternalStorageAccess { .. }
+                | Expr::MacroCall { .. } => {}
+                Expr::UnaryOp { op, expr, span } => todo!(),
+                Expr::BinaryOp { op, lhs, rhs, span } => todo!(),
+                Expr::FnCall { name, args, span } => todo!(),
+                Expr::If {
+                    condition,
+                    then_block,
+                    else_block,
+                    span,
+                } => todo!(),
+                Expr::Array {
+                    elements,
+                    range_expr,
+                    span,
+                } => todo!(),
+                Expr::Index { expr, index, span } => todo!(),
+                Expr::Tuple { fields, .. } => {
+                    for (_, expr_key) in fields {
+                        let nested_expr = root_exprs.get(*expr_key).expect("exists");
+                        println!("nested tuple field expr: {:?}", &nested_expr);
+                        ii.exprs.insert(nested_expr.clone());
+                        deep_copy_expr(nested_expr, root_exprs, ii);
+                    }
+                }
+                Expr::TupleFieldAccess { tuple, .. } => {
+                    let nested_expr = root_exprs.get(*tuple).expect("exists");
+                    println!("nested tuple expr: {:?}", &nested_expr);
+                    ii.exprs.insert(nested_expr.clone());
+                    deep_copy_expr(nested_expr, root_exprs, ii);
+                }
+                Expr::Cast { value, ty, span } => todo!(),
+                Expr::In {
+                    value,
+                    collection,
+                    span,
+                } => todo!(),
+                Expr::Range { lb, ub, span } => todo!(),
+                Expr::Generator {
+                    kind,
+                    gen_ranges,
+                    conditions,
+                    body,
+                    span,
+                } => todo!(),
+            }
+        }
+
         fn deep_copy_type(
             new_type: &Type,
             root_exprs: &SlotMap<ExprKey, Expr>,
@@ -239,23 +297,23 @@ impl<'a> ProjectParser<'a> {
                     size,
                     span,
                 } => {
-                    println!("deep copying my type");
+                    println!("deep copying array type");
                     let range_expr = root_exprs.get(*range).expect("exists"); // this key leads to an expr that has other exprs that need to be copied
                                                                               // TODO: recursively copy the exprs that are related to this expr
-                    println!("checking for range key: {:?}", range);
                     let new_expr_key = ii.exprs.insert(range_expr.clone());
-                    let nested_ty =
-                        Box::new(deep_copy_type(ty, root_exprs, ii).expect("add error"));
-                    println!("nested_ty: {:?}", nested_ty);
+
+                    deep_copy_expr(range_expr, root_exprs, ii);
+                    println!("checking for range key: {:?}", range);
+                    println!("expr found: {:?}", &range_expr);
                     Ok(Type::Array {
-                        ty: nested_ty, // make recursive
-                        // ty: ty.clone(),
+                        ty: Box::new(deep_copy_type(ty, root_exprs, ii).expect("add error")),
                         range: new_expr_key,
                         size: size.clone(),
                         span: span.clone(),
-                    }) // TODO: need to consider nesting
+                    })
                 }
                 Type::Tuple { fields, span } => {
+                    println!("deep copying tuple type");
                     let mut new_fields: Vec<(Option<Ident>, Type)> = vec![];
                     for field in fields {
                         let new_field = (
@@ -269,11 +327,31 @@ impl<'a> ProjectParser<'a> {
                         span: span.clone(),
                     })
                 }
-                Type::Custom { .. } => todo!(),
-                Type::Alias { ty, .. } => todo!(),
-                Type::Map { ty_from, ty_to, .. } => todo!(),
-                Type::Error(_) => Ok(new_type.clone()),
-                Type::Primitive { .. } => Ok(new_type.clone()),
+                Type::Alias { path, ty, span } => {
+                    println!("deep copying alias type");
+                    Ok(Type::Alias {
+                        path: path.to_string(),
+                        ty: Box::new(deep_copy_type(ty, root_exprs, ii).expect("add error")),
+                        span: span.clone(),
+                    })
+                }
+                Type::Map {
+                    ty_from,
+                    ty_to,
+                    span,
+                } => {
+                    println!("deep copying map type");
+                    Ok(Type::Map {
+                        ty_from: Box::new(
+                            deep_copy_type(ty_from, root_exprs, ii).expect("add error"),
+                        ),
+                        ty_to: Box::new(deep_copy_type(ty_to, root_exprs, ii).expect("add error")),
+                        span: span.clone(),
+                    })
+                }
+                Type::Error(_) | Type::Primitive { .. } | Type::Custom { .. } => {
+                    Ok(new_type.clone())
+                }
             }
         }
 
