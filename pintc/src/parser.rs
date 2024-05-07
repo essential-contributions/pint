@@ -218,11 +218,6 @@ impl<'a> ProjectParser<'a> {
     }
 
     fn finalize(mut self) -> Result<Program, ErrorEmitted> {
-        // Insert all enums, new types, and storage variables from the root II into each non-root
-        // II (i.e. those declared using an `intent { }` decl). Also, insert all top level symbols
-        // since shadowing is not allowed. That is, we can't use a symbol inside an `intent { .. }`
-        // that was already used in the root II.
-
         use crate::expr::Expr;
         use crate::types::*;
 
@@ -230,7 +225,7 @@ impl<'a> ProjectParser<'a> {
             expr: &Expr,
             root_exprs: &SlotMap<ExprKey, Expr>,
             ii: &mut IntermediateIntent,
-        ) {
+        ) -> Result<(), Error> {
             match expr {
                 Expr::Error(_)
                 | Expr::Immediate { .. }
@@ -239,50 +234,124 @@ impl<'a> ProjectParser<'a> {
                 | Expr::StorageAccess(_, _)
                 | Expr::ExternalStorageAccess { .. }
                 | Expr::MacroCall { .. } => {}
-                Expr::UnaryOp { op, expr, span } => todo!(),
-                Expr::BinaryOp { op, lhs, rhs, span } => todo!(),
-                Expr::FnCall { name, args, span } => todo!(),
+                Expr::UnaryOp { expr, .. } => {
+                    let nested_expr = root_exprs.get(*expr).expect("exists");
+                    ii.exprs.insert(nested_expr.clone());
+                    deep_copy_expr(nested_expr, root_exprs, ii)?;
+                }
+                Expr::BinaryOp { lhs, rhs, .. } => {
+                    let mut nested_expr = root_exprs.get(*lhs).expect("exists");
+                    ii.exprs.insert(nested_expr.clone());
+                    deep_copy_expr(nested_expr, root_exprs, ii)?;
+                    nested_expr = root_exprs.get(*rhs).expect("exists");
+                    ii.exprs.insert(nested_expr.clone());
+                    deep_copy_expr(nested_expr, root_exprs, ii)?;
+                }
+                Expr::FnCall { args, .. } => {
+                    for nested_expr_key in args {
+                        let nested_expr = root_exprs.get(*nested_expr_key).expect("exists");
+                        ii.exprs.insert(nested_expr.clone());
+                        deep_copy_expr(nested_expr, root_exprs, ii)?;
+                    }
+                }
                 Expr::If {
                     condition,
                     then_block,
                     else_block,
-                    span,
-                } => todo!(),
+                    ..
+                } => {
+                    let mut nested_expr = root_exprs.get(*condition).expect("exists");
+                    ii.exprs.insert(nested_expr.clone());
+                    deep_copy_expr(nested_expr, root_exprs, ii)?;
+                    nested_expr = root_exprs.get(*then_block).expect("exists");
+                    ii.exprs.insert(nested_expr.clone());
+                    deep_copy_expr(nested_expr, root_exprs, ii)?;
+                    nested_expr = root_exprs.get(*else_block).expect("exists");
+                    ii.exprs.insert(nested_expr.clone());
+                    deep_copy_expr(nested_expr, root_exprs, ii)?;
+                }
                 Expr::Array {
                     elements,
                     range_expr,
-                    span,
-                } => todo!(),
-                Expr::Index { expr, index, span } => todo!(),
+                    ..
+                } => {
+                    for nested_expr_key in elements {
+                        let nested_expr = root_exprs.get(*nested_expr_key).expect("exists");
+                        ii.exprs.insert(nested_expr.clone());
+                        deep_copy_expr(nested_expr, root_exprs, ii)?;
+                    }
+                    let nested_expr = root_exprs.get(*range_expr).expect("exists");
+                    ii.exprs.insert(nested_expr.clone());
+                    deep_copy_expr(nested_expr, root_exprs, ii)?;
+                }
+                Expr::Index { expr, index, .. } => {
+                    let mut nested_expr = root_exprs.get(*expr).expect("exists");
+                    ii.exprs.insert(nested_expr.clone());
+                    deep_copy_expr(nested_expr, root_exprs, ii)?;
+                    nested_expr = root_exprs.get(*index).expect("exists");
+                    ii.exprs.insert(nested_expr.clone());
+                    deep_copy_expr(nested_expr, root_exprs, ii)?;
+                }
                 Expr::Tuple { fields, .. } => {
                     for (_, expr_key) in fields {
                         let nested_expr = root_exprs.get(*expr_key).expect("exists");
-                        println!("nested tuple field expr: {:?}", &nested_expr);
                         ii.exprs.insert(nested_expr.clone());
-                        deep_copy_expr(nested_expr, root_exprs, ii);
+                        deep_copy_expr(nested_expr, root_exprs, ii)?;
+                        println!("nested tuple field expr: {:?}", &nested_expr);
                     }
                 }
                 Expr::TupleFieldAccess { tuple, .. } => {
                     let nested_expr = root_exprs.get(*tuple).expect("exists");
-                    println!("nested tuple expr: {:?}", &nested_expr);
                     ii.exprs.insert(nested_expr.clone());
-                    deep_copy_expr(nested_expr, root_exprs, ii);
+                    deep_copy_expr(nested_expr, root_exprs, ii)?;
+                    println!("nested tuple expr: {:?}", &nested_expr);
                 }
-                Expr::Cast { value, ty, span } => todo!(),
+                Expr::Cast { value, ty, .. } => {
+                    let nested_expr = root_exprs.get(*value).expect("exists");
+                    ii.exprs.insert(nested_expr.clone());
+                    deep_copy_expr(nested_expr, root_exprs, ii)?;
+                    deep_copy_type(ty, root_exprs, ii)?;
+                }
                 Expr::In {
-                    value,
-                    collection,
-                    span,
-                } => todo!(),
-                Expr::Range { lb, ub, span } => todo!(),
+                    value, collection, ..
+                } => {
+                    let mut nested_expr = root_exprs.get(*value).expect("exists");
+                    ii.exprs.insert(nested_expr.clone());
+                    deep_copy_expr(nested_expr, root_exprs, ii)?;
+                    nested_expr = root_exprs.get(*collection).expect("exists");
+                    ii.exprs.insert(nested_expr.clone());
+                    deep_copy_expr(nested_expr, root_exprs, ii)?;
+                }
+                Expr::Range { lb, ub, .. } => {
+                    let mut nested_expr = root_exprs.get(*lb).expect("exists");
+                    ii.exprs.insert(nested_expr.clone());
+                    deep_copy_expr(nested_expr, root_exprs, ii)?;
+                    nested_expr = root_exprs.get(*ub).expect("exists");
+                    ii.exprs.insert(nested_expr.clone());
+                    deep_copy_expr(nested_expr, root_exprs, ii)?;
+                }
                 Expr::Generator {
-                    kind,
                     gen_ranges,
                     conditions,
                     body,
-                    span,
-                } => todo!(),
+                    ..
+                } => {
+                    for (_, nested_expr_key) in gen_ranges {
+                        let nested_expr = root_exprs.get(*nested_expr_key).expect("exists");
+                        ii.exprs.insert(nested_expr.clone());
+                        deep_copy_expr(nested_expr, root_exprs, ii)?;
+                    }
+                    for nested_expr_key in conditions {
+                        let nested_expr = root_exprs.get(*nested_expr_key).expect("exists");
+                        ii.exprs.insert(nested_expr.clone());
+                        deep_copy_expr(nested_expr, root_exprs, ii)?;
+                    }
+                    let nested_expr = root_exprs.get(*body).expect("exists");
+                    ii.exprs.insert(nested_expr.clone());
+                    deep_copy_expr(nested_expr, root_exprs, ii)?;
+                }
             }
+            Ok(())
         }
 
         fn deep_copy_type(
@@ -299,10 +368,9 @@ impl<'a> ProjectParser<'a> {
                 } => {
                     println!("deep copying array type");
                     let range_expr = root_exprs.get(*range).expect("exists"); // this key leads to an expr that has other exprs that need to be copied
-                                                                              // TODO: recursively copy the exprs that are related to this expr
+                    deep_copy_expr(range_expr, root_exprs, ii)?;
                     let new_expr_key = ii.exprs.insert(range_expr.clone());
 
-                    deep_copy_expr(range_expr, root_exprs, ii);
                     println!("checking for range key: {:?}", range);
                     println!("expr found: {:?}", &range_expr);
                     Ok(Type::Array {
@@ -355,64 +423,11 @@ impl<'a> ProjectParser<'a> {
             }
         }
 
-        //
-
         fn deep_copy_new_types(
             root_new_types: &Vec<NewTypeDecl>,
             root_exprs: &SlotMap<ExprKey, Expr>,
             ii: &mut IntermediateIntent,
         ) {
-            // iterate over vector
-            // look for expr keys
-            // copy full expr (k,v) to exprs slotmap
-            // replace key in the newtypedecl
-            // watch out for nested
-            // just get the array working for now
-            // ii.new_types.extend_from_slice(&new_types);
-
-            // TODO: recurse if necessary
-            // TODO: handle all other types
-            // TODO: Do we need to handle other types when the only thing that can have an expr is an array?
-            // for new_type in root_new_types {
-            //     match &new_type.ty {
-            //         Type::Array {
-            //             ty,
-            //             range,
-            //             size,
-            //             span,
-            //         } => {
-            //             let new_type_decl = deep_copy_type(ty, root_exprs, ii).expect("add error");
-            //             ii.new_types.push(NewTypeDecl {
-            //                 name: new_type.name.clone(),
-            //                 ty: new_type_decl,
-            //                 span: new_type.span.clone(),
-            //             })
-            //         }
-            //         Type::Tuple { fields, span } => {
-            //             let mut new_fields: Vec<(Option<Ident>, Type)> = vec![];
-            //             for field in fields {
-            //                 let new_field = (
-            //                     field.0.clone(),
-            //                     deep_copy_type(&field.1, root_exprs, ii).expect("add error"),
-            //                 );
-            //                 new_fields.push(new_field);
-            //             }
-            //             ii.new_types.push(NewTypeDecl {
-            //                 name: new_type.name.clone(),
-            //                 ty: Type::Tuple {
-            //                     fields: new_fields,
-            //                     span: span.clone(),
-            //                 },
-            //                 span: new_type.span.clone(),
-            //             })
-            //         }
-            //         Type::Custom { .. } => todo!(),
-            //         Type::Alias { ty, .. } => todo!(),
-            //         Type::Map { ty_from, ty_to, .. } => todo!(),
-            //         Type::Error(_) => {}
-            //         Type::Primitive { .. } => {}
-            //     }
-            // }
             for new_type in root_new_types {
                 let new_type_decl =
                     deep_copy_type(&new_type.ty, root_exprs, ii).expect("add error");
@@ -432,8 +447,6 @@ impl<'a> ProjectParser<'a> {
         let storage = self.program.root_ii().storage.clone();
         let externs = self.program.root_ii().externs.clone();
         let exprs = self.program.root_ii().exprs.clone();
-        // println!("Root II: {:#?}", self.program.root_ii());
-        // println!("Root enums: {:#?}", enums);
         println!("Root new_types: {:#?}", new_types);
         // println!("Root symbols: {:#?}", root_symbols);
         // println!("Root storage: {:#?}", storage);
@@ -446,16 +459,12 @@ impl<'a> ProjectParser<'a> {
             .iter_mut()
             .filter(|(name, _)| *name != &Program::ROOT_II_NAME.to_string())
             .for_each(|(_, ii)| {
-                // ii.new_types.extend_from_slice(&new_types); // deep copy and add to the current array
                 deep_copy_new_types(&new_types, &exprs, ii);
-                println!("{:#?}", &ii.new_types);
+                println!("ii new_types: {:#?}", &ii.new_types);
 
                 ii.enums.extend_from_slice(&enums); // this is fine, we don't have exprs in them
                 ii.storage = storage.clone(); // this can have variables that have exprs to be copied
                 ii.externs = externs.clone(); // this can have variables that have exprs to be copied
-
-                // not concerned with the top level symbols, its everything else that could have
-                // an expr associated with it
 
                 for (symbol, span) in &root_symbols {
                     ii.top_level_symbols
@@ -474,8 +483,8 @@ impl<'a> ProjectParser<'a> {
                         });
                 }
 
-                println!("Root_II exprs: {:#?}", &exprs);
-                println!("II exprs: {:#?}", &ii.exprs);
+                // println!("Root_II exprs: {:#?}", &exprs);
+                // println!("II exprs: {:#?}", &ii.exprs);
             });
 
         if self.handler.has_errors() {
