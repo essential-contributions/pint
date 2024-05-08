@@ -224,4 +224,5 @@ mod e2e {
     e2e_test!(canonicalizes);
     e2e_test!(sets_of_intents);
     e2e_test!(storage);
+    e2e_test!(root_types);
 }

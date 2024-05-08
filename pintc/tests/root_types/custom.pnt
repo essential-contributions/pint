@@ -1,0 +1,24 @@
+type myAlias = int;
+type myCustom = myAlias;
+
+intent Foo {}
+
+// flattened <<<
+// type ::myAlias = int;
+// type ::myCustom = ::myAlias;
+// 
+// intent ::Foo {
+//     type ::myAlias = int;
+//     type ::myCustom = ::myAlias;
+// }
+// >>>
+
+// intermediate <<<
+// type ::myAlias = int;
+// type ::myCustom = ::myAlias;
+// 
+// intent ::Foo {
+//     type ::myAlias = int;
+//     type ::myCustom = ::myAlias;
+// }
+// >>>

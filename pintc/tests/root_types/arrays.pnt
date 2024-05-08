@@ -1,0 +1,44 @@
+type myArray = int[2];
+type myMultiDimArray = int[2][2];
+type myArrayTuple = int[{3, 1}.0];
+type myTuple = { x: int };
+type myTupleArray = { x: int[5] };
+type myNestedArrayTuple = { y: { z: int[{4, 1}.0] } };
+
+intent Foo {}
+
+// flattened <<<
+// type ::myArray = int[2];
+// type ::myMultiDimArray = int[2][2];
+// type ::myArrayTuple = int[{3, 1}.0];
+// type ::myTuple = {x: int};
+// type ::myTupleArray = {x: int[5]};
+// type ::myNestedArrayTuple = {y: {z: int[{4, 1}.0]}};
+// 
+// intent ::Foo {
+//     type ::myArray = int[2];
+//     type ::myMultiDimArray = int[2][2];
+//     type ::myArrayTuple = int[1.0];
+//     type ::myTuple = {x: int};
+//     type ::myTupleArray = {x: int[5]};
+//     type ::myNestedArrayTuple = {y: {z: int[1.0]}};
+// }
+// >>>
+
+// intermediate <<<
+// type ::myArray = int[2];
+// type ::myMultiDimArray = int[2][2];
+// type ::myArrayTuple = int[{3, 1}.0];
+// type ::myTuple = {x: int};
+// type ::myTupleArray = {x: int[5]};
+// type ::myNestedArrayTuple = {y: {z: int[{4, 1}.0]}};
+// 
+// intent ::Foo {
+//     type ::myArray = int[2];
+//     type ::myMultiDimArray = int[2][2];
+//     type ::myArrayTuple = int[1.0];
+//     type ::myTuple = {x: int};
+//     type ::myTupleArray = {x: int[5]};
+//     type ::myNestedArrayTuple = {y: {z: int[1.0]}};
+// }
+// >>>

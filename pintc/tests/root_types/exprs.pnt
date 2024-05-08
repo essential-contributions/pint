@@ -1,0 +1,43 @@
+type myAliasForCast = int;
+type myNestedCast = int[4.0 as myAliasForCast];
+type myNestedUnaryOp = int[-3.0];
+type myNestedBinaryOp = int[1.0 + 2.0];
+type myNestedIf = int[if 1 > 0 {
+    5.0
+} else {
+    6.0
+}];
+
+intent Foo {}
+
+// flattened <<<
+// type ::myAliasForCast = int;
+// type ::myNestedCast = int[4e0 as int];
+// type ::myNestedUnaryOp = int[-3e0];
+// type ::myNestedBinaryOp = int[(1e0 + 2e0)];
+// type ::myNestedIf = int[if (1 > 0) { 5e0 } else { 6e0 }];
+// 
+// intent ::Foo {
+//     type ::myAliasForCast = int;
+//     type ::myNestedCast = int[4e0 as int];
+//     type ::myNestedUnaryOp = int[-3e0];
+//     type ::myNestedBinaryOp = int[(1e0 + 2e0)];
+//     type ::myNestedIf = int[if 0 { 5e0 } else { 6e0 }];
+// }
+// >>>
+
+// intermediate <<<
+// type ::myAliasForCast = int;
+// type ::myNestedCast = int[4e0 as ::myAliasForCast];
+// type ::myNestedUnaryOp = int[-3e0];
+// type ::myNestedBinaryOp = int[(1e0 + 2e0)];
+// type ::myNestedIf = int[if (1 > 0) { 5e0 } else { 6e0 }];
+// 
+// intent ::Foo {
+//     type ::myAliasForCast = int;
+//     type ::myNestedCast = int[4e0 as ::myAliasForCast];
+//     type ::myNestedUnaryOp = int[-3e0];
+//     type ::myNestedBinaryOp = int[(1e0 + 2e0)];
+//     type ::myNestedIf = int[if 0 { 5e0 } else { 6e0 }];
+// }
+// >>>
