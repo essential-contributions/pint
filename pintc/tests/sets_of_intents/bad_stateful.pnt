@@ -1,6 +1,6 @@
 // These are not okay
 let x: int;
-state y: int = foo();
+state y: int = __foo();
 constraint x == 3;
 solve satisfy;
 
@@ -12,7 +12,7 @@ intent Baz {}
 
 // intermediate <<<
 // var ::x: int;
-// state ::y: int = ::foo();
+// state ::y: int = __foo();
 // enum ::Foo = A | B;
 // type ::Boo = ::Foo;
 // constraint (::x == 3);
@@ -29,12 +29,12 @@ intent Baz {}
 // @26..27: invalid variable declaration outside an `intent { .. }` declaration
 // only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
 // invalid declartion outside an `intent { .. }` declaration
-// @34..54: invalid state declaration outside an `intent { .. }` declaration
+// @34..56: invalid state declaration outside an `intent { .. }` declaration
 // only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
 // invalid declartion outside an `intent { .. }` declaration
-// @56..73: invalid constraint declaration outside an `intent { .. }` declaration
+// @58..75: invalid constraint declaration outside an `intent { .. }` declaration
 // only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
 // invalid declartion outside an `intent { .. }` declaration
-// @75..88: invalid solve directive declaration outside an `intent { .. }` declaration
+// @77..90: invalid solve directive declaration outside an `intent { .. }` declaration
 // only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
 // >>>

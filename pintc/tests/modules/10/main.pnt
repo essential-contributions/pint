@@ -10,7 +10,7 @@ type E = string;
 
 let E = 4;
 
-state E = MyPath::foo();
+state E = __foo();
 
 // parse_failure <<<
 // symbol `E` has already been declared
@@ -46,5 +46,5 @@ state E = MyPath::foo();
 // @65..66: `F` redeclared here
 // `F` must be declared or imported only once in this scope
 // expected `::`, found `F`
-// @99..100: expected `::`
+// @89..90: expected `::`
 // >>>

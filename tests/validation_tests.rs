@@ -1,6 +1,7 @@
 mod utils;
 
 use anyhow::anyhow;
+use essential_constraint_vm::mut_keys_set;
 use essential_state_read_vm::{
     asm::{self, Op},
     constraint,
@@ -77,8 +78,9 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
         // This is the access that contains an access to some solution data and will contain the
         // pre and post states.
+        let mutable_keys = mut_keys_set(&solution, intent_to_check_index as u16);
         let mut access = Access {
-            solution: SolutionAccess::new(&solution, intent_to_check_index as u16),
+            solution: SolutionAccess::new(&solution, intent_to_check_index as u16, &mutable_keys),
             state_slots: StateSlots::EMPTY,
         };
 

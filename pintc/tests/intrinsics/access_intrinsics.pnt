@@ -1,0 +1,59 @@
+let mut_keys_len: int = __mut_keys_len();
+
+let key: int[5];
+let mut_keys_contains_1: bool = __mut_keys_contains(key);
+
+let z: int;
+let t: { int, int };
+let mut_keys_contains_2: bool = __mut_keys_contains([69, 70, 71, z, t.0]);
+
+let this_address: b256 = __this_address();
+
+let this_set_address: b256 = __this_set_address();
+
+let this_pathway: int = __this_pathway();
+
+solve satisfy;
+
+// intermediate <<<,
+// var ::mut_keys_len: int;
+// var ::key: int[5];
+// var ::mut_keys_contains_1: bool;
+// var ::z: int;
+// var ::t: {int, int};
+// var ::mut_keys_contains_2: bool;
+// var ::this_address: b256;
+// var ::this_set_address: b256;
+// var ::this_pathway: int;
+// constraint (::mut_keys_len == __mut_keys_len());
+// constraint (::mut_keys_contains_1 == __mut_keys_contains(::key));
+// constraint (::mut_keys_contains_2 == __mut_keys_contains([69, 70, 71, ::z, ::t.0]));
+// constraint (::this_address == __this_address());
+// constraint (::this_set_address == __this_set_address());
+// constraint (::this_pathway == __this_pathway());
+// solve satisfy;
+// >>>
+
+// flattened <<<,
+// var ::mut_keys_len: int;
+// var ::t.0: int;
+// var ::mut_keys_contains_1: int;
+// var ::z: int;
+// var ::mut_keys_contains_2: int;
+// var ::this_address: b256;
+// var ::this_set_address: b256;
+// var ::this_pathway: int;
+// var ::key[0]: int;
+// var ::key[1]: int;
+// var ::key[2]: int;
+// var ::key[3]: int;
+// var ::key[4]: int;
+// var ::t.1: int;
+// constraint (::mut_keys_len == __mut_keys_len());
+// constraint (::mut_keys_contains_1 == __mut_keys_contains([::key[0], ::key[1], ::key[2], ::key[3], ::key[4]]));
+// constraint (::mut_keys_contains_2 == __mut_keys_contains([69, 70, 71, ::z, ::t.0]));
+// constraint (::this_address == __this_address());
+// constraint (::this_set_address == __this_set_address());
+// constraint (::this_pathway == __this_pathway());
+// solve satisfy;
+// >>>

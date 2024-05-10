@@ -6,14 +6,16 @@ use crate::{
 use essential_types::slots::*;
 use std::io::Write;
 
+mod intrinsics;
+
 #[cfg(test)]
-fn check(actual: &str, expect: expect_test::Expect) {
+pub(super) fn check(actual: &str, expect: expect_test::Expect) {
     expect.assert_eq(actual);
 }
 
 /// Compile some code into `Intents`. Panics if anything fails.
 #[cfg(test)]
-fn compile(code: &str) -> Intents {
+pub(super) fn compile(code: &str) -> Intents {
     let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
     write!(tmpfile.as_file_mut(), "{}", code).unwrap();
     let handler = Handler::default();
@@ -251,8 +253,8 @@ fn binary_ops() {
 fn state_read() {
     let intents = compile(
         r#"
-        state x: int = storage_lib::get(0x0000000000000000000000000000000000000000000000000000000000000001);
-        state y: int = storage_lib::get(0x0000000000000002000000000000000200000000000000020000000000000002);
+        state x: int = __storage_get(0x0000000000000000000000000000000000000000000000000000000000000001);
+        state y: int = __storage_get(0x0000000000000002000000000000000200000000000000020000000000000002);
         constraint x == y;
         constraint x' == y';
         solve satisfy;
@@ -328,11 +330,11 @@ fn state_read() {
 fn state_read_extern() {
     let intents = &compile(
         r#"
-        state x: int = storage_lib::get_extern(
+        state x: int = __storage_get_extern(
             0x0000000000000001000000000000000200000000000000030000000000000004,
             0x0000000000000011000000000000002200000000000000330000000000000044,
         );
-        state y: int = storage_lib::get_extern(
+        state y: int = __storage_get_extern(
             0x0000000000000005000000000000000600000000000000070000000000000008,
             0x0000000000000055000000000000006600000000000000770000000000000088,
         );
@@ -420,7 +422,7 @@ fn next_state() {
     let intents = &compile(
         r#"
         let diff: int = 5;
-        state x: int = storage_lib::get(0x0000000000000000000000000000000000000000000000000000000000000003);
+        state x: int = __storage_get(0x0000000000000000000000000000000000000000000000000000000000000003);
         constraint x' - x == 5;
         solve satisfy;
         "#,
@@ -500,7 +502,8 @@ fn b256() {
               Stack(Push(6))
               Stack(Push(7))
               Stack(Push(8))
-              Pred(Eq4)
+              Stack(Push(4))
+              Pred(EqRange)
             constraint 1
               Stack(Push(4))
               Access(DecisionVar)
@@ -514,7 +517,8 @@ fn b256() {
               Stack(Push(5764607523034234880))
               Stack(Push(6917529027641081856))
               Stack(Push(8070450532247928832))
-              Pred(Eq4)
+              Stack(Push(4))
+              Pred(EqRange)
             --- State Reads ---
         "#]],
     );
@@ -650,7 +654,8 @@ intent Simple {
                   Stack(Push(6))
                   Stack(Push(7))
                   Stack(Push(8))
-                  Pred(Eq4)
+                  Stack(Push(4))
+                  Pred(EqRange)
                 constraint 1
                   Stack(Push(4))
                   Stack(Push(4))
@@ -660,7 +665,8 @@ intent Simple {
                   Stack(Push(34))
                   Stack(Push(51))
                   Stack(Push(68))
-                  Pred(Eq4)
+                  Stack(Push(4))
+                  Pred(EqRange)
                 constraint 2
                   Stack(Push(8))
                   Stack(Push(4))
@@ -670,7 +676,8 @@ intent Simple {
                   Stack(Push(102))
                   Stack(Push(119))
                   Stack(Push(136))
-                  Pred(Eq4)
+                  Stack(Push(4))
+                  Pred(EqRange)
                 constraint 3
                   Stack(Push(12))
                   Stack(Push(4))
@@ -680,7 +687,8 @@ intent Simple {
                   Stack(Push(614))
                   Stack(Push(887))
                   Stack(Push(1160))
-                  Pred(Eq4)
+                  Stack(Push(4))
+                  Pred(EqRange)
                 --- State Reads ---
                 state read 0
                   Constraint(Stack(Push(0)))
@@ -1262,7 +1270,8 @@ intent Simple {
                   Stack(Push(15))
                   Stack(Push(15))
                   Stack(Push(15))
-                  Pred(Eq4)
+                  Stack(Push(4))
+                  Pred(EqRange)
                 --- State Reads ---
                 state read 0
                   Constraint(Stack(Push(0)))
@@ -1367,7 +1376,8 @@ intent Foo {
                   Stack(Push(2459565876494606882))
                   Stack(Push(2459565876494606882))
                   Stack(Push(2459565876494606882))
-                  Pred(Eq4)
+                  Stack(Push(4))
+                  Pred(EqRange)
                 constraint 2
                   Stack(Push(5))
                   Stack(Push(1))

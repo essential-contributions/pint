@@ -21,3 +21,4 @@
   - [Storage Layout](storage/layout.md)
 - [Appendix](appendix/index.md)
   - [A - Keywords](appendix/keywords.md)
+  - [B - Compiler Intrinsics](appendix/intrinsics.md)

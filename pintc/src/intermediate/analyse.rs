@@ -1,4 +1,4 @@
-use slotmap::SlotMap;
+mod intrinsics;
 
 use super::{Expr, ExprKey, Ident, IntermediateIntent, Program, VarKey};
 use crate::{
@@ -8,7 +8,7 @@ use crate::{
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
-
+use slotmap::SlotMap;
 use std::collections::HashSet;
 
 enum Inference {
@@ -342,33 +342,8 @@ impl IntermediateIntent {
 
             Expr::MacroCall { .. } => Ok(Inference::Ignored),
 
-            Expr::FnCall { name, args, span } => {
-                let mut deps = Vec::new();
-
-                args.iter()
-                    .filter(|arg_key| self.expr_types.get(**arg_key).is_none())
-                    .for_each(|arg_key| deps.push(*arg_key));
-
-                if deps.is_empty() {
-                    // For now, this very special case is all we support.
-                    if name.as_str().ends_with("::storage_lib::get")
-                        || name.as_str().ends_with("::storage_lib::get_extern")
-                    {
-                        Ok(Inference::Type(Type::Primitive {
-                            kind: PrimitiveKind::Int,
-                            span: span.clone(),
-                        }))
-                    } else {
-                        Err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "unable to check type of FnCall",
-                                span: span.clone(),
-                            },
-                        })
-                    }
-                } else {
-                    Ok(Inference::Dependencies(deps))
-                }
+            Expr::IntrinsicCall { name, args, span } => {
+                self.infer_intrinsic_call_expr(name, args, span)
             }
 
             Expr::If {
@@ -1082,6 +1057,11 @@ impl IntermediateIntent {
                 } else {
                     deps.push(*el_key);
                 }
+            }
+
+            // Must also type check the range_expr
+            if self.expr_types.get(range_expr_key).is_none() {
+                deps.push(range_expr_key);
             }
 
             Ok(if deps.is_empty() {
