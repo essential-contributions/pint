@@ -1,7 +1,10 @@
 use crate::{
     error::{CompileError, Error, Handler, ParseError},
     expr::*,
-    intermediate::{ExprKey, IntermediateIntent, Program, ProgramKind, SolveFunc, StorageVar, Extern},
+    intermediate::{
+        ConstraintDecl, ExprKey, Extern, IfDecl, IntermediateIntent, Program, ProgramKind,
+        SolveFunc, StorageVar, BlockStatement,
+    },
     lexer,
     macros::{MacroCall, MacroDecl},
     parser::{
@@ -9,7 +12,7 @@ use crate::{
         UseTree::{self, Path as UseTreePath},
     },
     span::{self, Spanned},
-    types::{EnumDecl, FnSig, NewTypeDecl, Path, PrimitiveKind, Type},
+    types::{EnumDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
 
 grammar<'a>(
@@ -38,6 +41,7 @@ DeclBarringMacro: () = {
     LetDecl ";",
     StateDecl ";",
     ConstraintDecl ";",
+    IfDecl,
     SolveDecl ";",
     EnumDecl ";",
     NewTypeDecl ";",
@@ -401,10 +405,44 @@ pub StateDecl: () = {
 };
 
 pub ConstraintDecl: () = {
-    <l:@L> "constraint" <e:Expr> <r:@R> => {
-        let span = (context.span_from)(l, r);
-        context.current_ii().constraints.push((e, span));
+    <constraint: Constraint> => context.current_ii().constraints.push(constraint),
+};
+
+pub Constraint: ConstraintDecl = {
+    <l:@L> "constraint" <expr:Expr> <r:@R> => {
+        ConstraintDecl {
+            expr,
+            span: (context.span_from)(l, r),
+        }
     }
+};
+
+BlockStatement: BlockStatement = {
+    <constraint: Constraint> ";" => BlockStatement::Constraint(constraint),
+    <if_decl: If> => BlockStatement::If(if_decl),
+}
+
+ThenBlock: Vec<BlockStatement> = {
+    "{" <block_statements:BlockStatement*> "}" => block_statements
+};
+
+ElseBlock: Vec<BlockStatement> = {
+    "else" "{" <block_statements:BlockStatement*> "}" => block_statements
+};
+
+pub If: IfDecl = {
+    <l:@L> "if" <condition:Expr> <then_block:ThenBlock> <else_block:ElseBlock?> <r:@R> => {
+        IfDecl {
+            condition,
+            then_block,
+            else_block,
+            span: (context.span_from)(l, r),
+        }
+    }
+};
+
+pub IfDecl: () = {
+    <if_decl: If> => context.current_ii().if_decls.push(if_decl)
 };
 
 pub SolveDecl: () = {
@@ -506,17 +544,6 @@ FnParam: (Ident, Type)  = {
     <name:Ident> ":" <ty:Type> => (name, ty)
 }
 
-FnSig: FnSig = {
-    <l:@L> "fn" <name:Ident> "(" <params:SepList<FnParam, ",">> ")"  "->" <return_type:Type> <r:@R> => {
-        FnSig {
-            name,
-            params,
-            return_type,
-            span: (context.span_from)(l, r),
-        }
-    }
-}
-
 /////////////
 /// Types ///
 /////////////
@@ -616,8 +643,21 @@ pub StorageVarType: Type = {
 ///////////////////
 
 pub Expr: ExprKey = {
-    <LogicalOrOp>,
+    <SelectExpr>,
 };
+
+SelectExpr: ExprKey = {
+    <l:@L> <condition:LogicalOrOp> "?" <then_expr:SelectExpr> ":" <else_expr:SelectExpr> <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context.current_ii().exprs.insert(Expr::Select {
+            condition,
+            then_expr,
+            else_expr,
+            span,
+        })
+    },
+    <LogicalOrOp>
+}
 
 LogicalOrOp: ExprKey = {
     <l:@L> <lhs:LogicalOrOp> "||" <rhs:LogicalAndOp> <r:@R> => {
@@ -804,7 +844,6 @@ Term: ExprKey = {
     <MacroCallExpr>,
     <CondExpr>,
     "(" <Expr> ")",
-    <BlockExpr>,
 };
 
 TermInner: Expr = {
@@ -814,16 +853,11 @@ TermInner: Expr = {
             span: (context.span_from)(l, r),
         }
     },
-    <IfExpr>,
     <GeneratorExpr>,
     <IntrinsicCallExpr>,
     <ArrayExpr>,
     <TupleExpr>,
     <l:@L> <path:Path> <r:@R> => Expr::PathByName(path, (context.span_from)(l, r)),
-};
-
-BlockExpr: ExprKey = {
-    "{" (ConstraintDecl ";")* <Expr> "}"
 };
 
 GeneratorRange: (Ident, ExprKey) = {
@@ -868,17 +902,6 @@ GeneratorExpr: Expr = {
     }
 }
 
-IfExpr: Expr = {
-    <l:@L> "if" <condition:Expr> <then_block:BlockExpr> "else" <else_block:BlockExpr> <r:@R> => {
-        Expr::If {
-            condition,
-            then_block,
-            else_block,
-            span: (context.span_from)(l, r),
-        }
-    }
-}
-
 CondBranch: (ExprKey, ExprKey) = {
     <condition:Expr> "=>" <result:Expr> "," => (condition, result)
 };
@@ -889,19 +912,19 @@ ElseBranch: ExprKey = {
 
 CondExpr: ExprKey = {
     <l:@L> "cond" "{" <cond_branches: (<CondBranch>)*> <else_branch: ElseBranch> "}" <r:@R> => {
-        // De-sugar a `cond` into an `if/else` chain.
+        // De-sugar a `cond` into a select chain.
         //
-        // Build the `if/else` chain starting with the else branch and going up,
+        // Build the select chain starting with the else branch and going up,
         // hence the need to reverse the iterator below.
         cond_branches
             .iter()
             .rev()
             .fold(else_branch, |acc, (condition, result)| {
                 let span = (context.span_from)(l, r);
-                context.current_ii().exprs.insert(Expr::If {
+                context.current_ii().exprs.insert(Expr::Select {
                     condition: *condition,
-                    then_block: *result,
-                    else_block: acc,
+                    then_expr: *result,
+                    else_expr: acc,
                     span,
                 })
             })
@@ -1285,6 +1308,7 @@ extern {
         ";" => lexer::Token::Semi,
         "," => lexer::Token::Comma,
         "=" => lexer::Token::Eq,
+        "?" => lexer::Token::QuestionMark,
 
         "==" => lexer::Token::EqEq,
         "!=" => lexer::Token::NotEq,

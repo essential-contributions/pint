@@ -67,20 +67,6 @@ impl DisplayWithII for super::Type {
     }
 }
 
-impl DisplayWithII for super::FnSig {
-    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> Result {
-        write!(f, "fn {}(", self.name)?;
-        let mut i = self.params.iter();
-        if let Some((id, ty)) = i.next() {
-            write!(f, "{id}: {}", ii.with_ii(ty))?;
-        }
-        for (id, ty) in i {
-            write!(f, ", {id}: {}", ii.with_ii(ty))?;
-        }
-        write!(f, ") -> {}", ii.with_ii(&self.return_type))
-    }
-}
-
 impl DisplayWithII for super::EnumDecl {
     fn fmt(&self, f: &mut Formatter, _ii: &IntermediateIntent) -> Result {
         write!(f, "enum {} = ", self.name)?;

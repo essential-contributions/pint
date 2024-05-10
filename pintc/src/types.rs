@@ -384,17 +384,3 @@ impl Spanned for EphemeralDecl {
         &self.span
     }
 }
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct FnSig {
-    pub(super) name: Ident,
-    pub(super) params: Vec<(Ident, Type)>,
-    pub(super) return_type: Type,
-    pub(super) span: Span,
-}
-
-impl Spanned for FnSig {
-    fn span(&self) -> &Span {
-        &self.span
-    }
-}

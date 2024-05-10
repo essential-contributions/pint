@@ -4,7 +4,7 @@ use super::{Expr, ExprKey, Ident, IntermediateIntent, Program, VarKey};
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     expr::{BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
-    intermediate::{State, StateKey},
+    intermediate::{BlockStatement, ConstraintDecl, IfDecl, State, StateKey},
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
@@ -128,11 +128,12 @@ impl IntermediateIntent {
     }
 
     fn type_check_all_exprs(&mut self, handler: &Handler) {
-        // Check all the 'root' exprs (constraints and directives) one at a time, gathering errors
-        // as we go.  Copying the keys out first to avoid borrowing conflict.
+        // Check all the 'root' exprs (constraints, state initi exprs, and directives) one at a
+        // time, gathering errors as we go. Copying the keys out first to avoid borrowing
+        // conflict.
         self.constraints
             .iter()
-            .map(|(key, _)| *key)
+            .map(|ConstraintDecl { expr: key, .. }| *key)
             .chain(self.states.iter().map(|(_, state)| state.expr))
             .chain(
                 self.directives
@@ -146,6 +147,12 @@ impl IntermediateIntent {
                     handler.emit_err(err);
                 }
             });
+
+        // Now check all if declarations
+        self.if_decls
+            .clone()
+            .iter()
+            .for_each(|if_decl| self.type_check_if_decl(if_decl, handler));
 
         // Confirm now that all decision variables are typed.
         for (var_key, var) in &self.vars {
@@ -227,6 +234,53 @@ impl IntermediateIntent {
                         });
                     });
             }
+        }
+    }
+
+    // Type check an if statement and all of its sub-statements including other ifs. This is a
+    // recursive function.
+    fn type_check_if_decl(&mut self, if_decl: &IfDecl, handler: &Handler) {
+        let IfDecl {
+            condition,
+            then_block,
+            else_block,
+            ..
+        } = if_decl;
+
+        // Make sure the condition is a `bool`
+        if let Err(err) = self.type_check_next_expr(*condition) {
+            handler.emit_err(err);
+        } else if let Some(cond_ty) = self.expr_types.get(*condition) {
+            if !cond_ty.is_bool() {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::NonBoolConditional {
+                        ty: self.with_ii(cond_ty).to_string(),
+                        conditional: "`if` statement".to_string(),
+                        span: self.expr_key_to_span(*condition),
+                    },
+                });
+            }
+        }
+
+        // Type check each block statement in the "then" block
+        then_block.iter().for_each(|block_statement| {
+            self.type_check_block_statement(block_statement, handler);
+        });
+
+        // Type check each block statement in the "else" block, if available
+        else_block.iter().flatten().for_each(|block_statement| {
+            self.type_check_block_statement(block_statement, handler);
+        });
+    }
+
+    fn type_check_block_statement(&mut self, block_statement: &BlockStatement, handler: &Handler) {
+        match block_statement {
+            BlockStatement::Constraint(ConstraintDecl { expr, .. }) => {
+                if let Err(err) = self.type_check_next_expr(*expr) {
+                    handler.emit_err(err);
+                }
+            }
+            BlockStatement::If(if_decl) => self.type_check_if_decl(if_decl, handler),
         }
     }
 
@@ -346,12 +400,12 @@ impl IntermediateIntent {
                 self.infer_intrinsic_call_expr(name, args, span)
             }
 
-            Expr::If {
+            Expr::Select {
                 condition,
-                then_block,
-                else_block,
+                then_expr,
+                else_expr,
                 span,
-            } => self.infer_if_expr(*condition, *then_block, *else_block, span),
+            } => self.infer_select_expr(*condition, *then_expr, *else_expr, span),
 
             Expr::Array {
                 elements,
@@ -849,7 +903,7 @@ impl IntermediateIntent {
         }
     }
 
-    fn infer_if_expr(
+    fn infer_select_expr(
         &self,
         cond_expr_key: ExprKey,
         then_expr_key: ExprKey,
@@ -859,7 +913,11 @@ impl IntermediateIntent {
         if let Some(cond_ty) = self.expr_types.get(cond_expr_key) {
             if !cond_ty.is_bool() {
                 Err(Error::Compile {
-                    error: CompileError::IfCondTypeNotBool(self.expr_key_to_span(cond_expr_key)),
+                    error: CompileError::NonBoolConditional {
+                        ty: self.with_ii(cond_ty).to_string(),
+                        conditional: "select expression".to_string(),
+                        span: self.expr_key_to_span(cond_expr_key),
+                    },
                 })
             } else if let Some(then_ty) = self.expr_types.get(then_expr_key) {
                 if let Some(else_ty) = self.expr_types.get(else_expr_key) {
@@ -867,8 +925,8 @@ impl IntermediateIntent {
                         Ok(Inference::Type(then_ty.clone()))
                     } else {
                         Err(Error::Compile {
-                            error: CompileError::IfBranchesTypeMismatch {
-                                large_err: Box::new(LargeTypeError::IfBranchesTypeMismatch {
+                            error: CompileError::SelectBranchesTypeMismatch {
+                                large_err: Box::new(LargeTypeError::SelectBranchesTypeMismatch {
                                     then_type: self.with_ii(then_ty).to_string(),
                                     then_span: self.expr_key_to_span(then_expr_key),
                                     else_type: self.with_ii(else_ty).to_string(),

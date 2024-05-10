@@ -1,0 +1,36 @@
+[[data]]
+decision_variables = [
+  # First if statement
+  { inline = 1 },
+  { inline = 42 },
+  { inline = 69 },
+  { inline = 99 },
+  { inline = 1 },
+  { inline = 1 },
+  { inline = 0 },
+  # Second if statement
+  { inline = 42 },
+  { inline = 2 },
+  { inline = 69 },
+  { inline = 99 },
+  { inline = 1 },
+  { inline = 0 },
+  { inline = 0 },
+  # Third if statement
+  { inline = 69 },
+  { inline = 42 },
+  { inline = 3 },
+  { inline = 99 },
+  { inline = 0 },
+  { inline = 0 },
+  { inline = 1 },
+  # Fourt if statement
+  { inline = 99 },
+  { inline = 42 },
+  { inline = 69 },
+  { inline = 4 },
+  { inline = 0 },
+  { inline = 0 },
+  { inline = 0 },
+]
+intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "" }

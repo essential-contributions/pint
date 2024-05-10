@@ -225,20 +225,20 @@ impl ExprKey {
 
                 Expr::IntrinsicCall { name, args, span }
             }
-            Expr::If {
+            Expr::Select {
                 condition,
-                then_block,
-                else_block,
+                then_expr,
+                else_expr,
                 span,
             } => {
                 let condition = condition.plug_in(ii, values_map);
-                let then_block = then_block.plug_in(ii, values_map);
-                let else_block = else_block.plug_in(ii, values_map);
+                let then_expr = then_expr.plug_in(ii, values_map);
+                let else_expr = else_expr.plug_in(ii, values_map);
 
-                Expr::If {
+                Expr::Select {
                     condition,
-                    then_block,
-                    else_block,
+                    then_expr,
+                    else_expr,
                     span,
                 }
             }
