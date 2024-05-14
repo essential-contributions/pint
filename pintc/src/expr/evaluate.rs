@@ -217,13 +217,13 @@ impl ExprKey {
 
                 Expr::BinaryOp { op, lhs, rhs, span }
             }
-            Expr::FnCall { name, args, span } => {
+            Expr::IntrinsicCall { name, args, span } => {
                 let args = args
                     .iter()
                     .map(|arg| arg.plug_in(ii, values_map))
                     .collect::<Vec<_>>();
 
-                Expr::FnCall { name, args, span }
+                Expr::IntrinsicCall { name, args, span }
             }
             Expr::If {
                 condition,

@@ -222,6 +222,32 @@ pub enum CompileError {
         el_ty: String,
         span: Span,
     },
+    #[error("no intrinsic named `{name}` is found")]
+    MissingIntrinsic { name: String, span: Span },
+    #[error("this intrinsic takes {} but {}",
+        if *expected == 1 {
+            format!("{expected} argument")
+        } else {
+            format!("{expected} arguments")
+        },
+        if *found == 1 {
+            format!("{found} argument was supplied")
+        } else {
+            format!("{found} arguments were supplied")
+        }
+    )]
+    UnexpectedIntrinsicArgCount {
+        expected: usize,
+        found: usize,
+        span: Span,
+    },
+    #[error("mismatched types")]
+    MismatchedIntrinsicArgType {
+        expected: String,
+        found: String,
+        intrinsic_span: Span,
+        arg_span: Span,
+    },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -816,6 +842,36 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            MissingIntrinsic { span, .. } => vec![ErrorLabel {
+                message: "intrinsic not found".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            UnexpectedIntrinsicArgCount { span, .. } => vec![ErrorLabel {
+                message: "unexpected number of arguments here".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            MismatchedIntrinsicArgType {
+                expected,
+                found,
+                intrinsic_span,
+                arg_span,
+            } => vec![
+                ErrorLabel {
+                    message: format!("expected `{expected}`, found `{found}`"),
+                    span: arg_span.clone(),
+                    color: Color::Red,
+                },
+                ErrorLabel {
+                    message: "arguments to this intrinsic are incorrect`".to_string(),
+                    span: intrinsic_span.clone(),
+                    color: Color::Blue,
+                },
+            ],
+
             Internal { msg, span } => {
                 if span == &empty_span() {
                     Vec::new()
@@ -972,7 +1028,10 @@ impl ReportableError for CompileError {
             | InExprTypesArrayMismatch { .. }
             | NonIntGeneratorRange { .. }
             | NonBoolGeneratorCondition { .. }
-            | NonBoolGeneratorBody { .. } => None,
+            | NonBoolGeneratorBody { .. }
+            | MissingIntrinsic { .. }
+            | UnexpectedIntrinsicArgCount { .. }
+            | MismatchedIntrinsicArgType { .. } => None,
         }
     }
 
@@ -1088,7 +1147,10 @@ impl Spanned for CompileError {
             | RangeTypesNonNumeric { span, .. }
             | InExprTypesMismatch { span, .. }
             | StateVarTypeIsMap { span }
-            | InExprTypesArrayMismatch { span, .. } => span,
+            | InExprTypesArrayMismatch { span, .. }
+            | MissingIntrinsic { span, .. }
+            | UnexpectedIntrinsicArgCount { span, .. }
+            | MismatchedIntrinsicArgType { arg_span: span, .. } => span,
 
             IfBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }

@@ -39,8 +39,8 @@ pub enum Expr {
         call: CallKey,
         span: Span,
     },
-    FnCall {
-        name: Path,
+    IntrinsicCall {
+        name: Ident,
         args: Vec<ExprKey>,
         span: Span,
     },
@@ -185,7 +185,7 @@ impl Spanned for Expr {
             | Expr::UnaryOp { span, .. }
             | Expr::BinaryOp { span, .. }
             | Expr::MacroCall { span, .. }
-            | Expr::FnCall { span, .. }
+            | Expr::IntrinsicCall { span, .. }
             | Expr::If { span, .. }
             | Expr::Array { span, .. }
             | Expr::Index { span, .. }
@@ -207,7 +207,7 @@ impl Expr {
                 replace(lhs);
                 replace(rhs);
             }
-            Expr::FnCall { args, .. } => args.iter_mut().for_each(replace),
+            Expr::IntrinsicCall { args, .. } => args.iter_mut().for_each(replace),
             Expr::If {
                 condition,
                 then_block,

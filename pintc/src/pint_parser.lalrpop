@@ -337,6 +337,17 @@ pub LetDecl: () = {
 
 LetName: (Ident, Option<&'a str>) = {
     <l:@L> <id:"ident"> <r:@R> => {
+        let name = id.0.to_string();
+        let span = (context.span_from)(l, r);
+        if name.starts_with("__") {
+            handler.emit_err(Error::Parse {
+                error: ParseError::LeadingUnderscoresInIdent {
+                    span: span.clone(),
+                    name: name.clone(),
+                },
+            });
+        }
+
         // We special case the let name here, as we're interested in the associated flag (and this
         // is the only place where we care).  The flag indicates that this identifier was
         // substituted as a part of a macro argument during macro expansion.
@@ -363,9 +374,9 @@ LetName: (Ident, Option<&'a str>) = {
         }
 
         let name = Ident {
-            name: id.0.to_owned(),
+            name: name.clone(),
             hygienic: id.1,
-            span: (context.span_from)(l, r),
+            span,
         };
 
         (name, local_scope)
@@ -476,7 +487,9 @@ MacroParamList: (Vec<Ident>, Option<Ident>) = {
     <p:("," <IdentFromToken<"macro_param_pack">>)?> ","? => {
         v.push(e);
         (v, p)
-    }
+    },
+    // Empty parameter lists
+    => (Vec::new(), None),
 }
 
 MacroParam: Ident = IdentFromToken<"macro_param">;
@@ -803,7 +816,7 @@ TermInner: Expr = {
     },
     <IfExpr>,
     <GeneratorExpr>,
-    <FnCallExpr>,
+    <IntrinsicCallExpr>,
     <ArrayExpr>,
     <TupleExpr>,
     <l:@L> <path:Path> <r:@R> => Expr::PathByName(path, (context.span_from)(l, r)),
@@ -919,10 +932,10 @@ MacroCallExpr: ExprKey = {
     },
 };
 
-FnCallExpr: Expr = {
-    <l:@L> <path:Path> "(" <args:SepList<Expr, ",">> ")" <r:@R> => {
-        Expr::FnCall {
-            name: path,
+IntrinsicCallExpr: Expr = {
+    <l:@L> <ident:IntrinsicName> "(" <args:SepList<Expr, ",">> ")" <r:@R> => {
+        Expr::IntrinsicCall {
+            name: ident,
             args,
             span: (context.span_from)(l, r),
         }
@@ -1102,6 +1115,26 @@ ImmediateInt: Immediate = {
 };
 
 pub Ident: Ident = {
+    <l:@L> <id:"ident"> <r:@R> => {
+        let name = id.0.to_string();
+        let span = (context.span_from)(l, r);
+        if name.starts_with("__") {
+            handler.emit_err(Error::Parse {
+                error: ParseError::LeadingUnderscoresInIdent {
+                    span: span.clone(),
+                    name: name.clone(),
+                },
+            });
+        }
+        Ident {
+            name,
+            hygienic: id.1,
+            span,
+        }
+    }
+}
+
+pub IntrinsicName: Ident = {
     <l:@L> <id:"ident"> <r:@R> => Ident {
         name: id.0.to_string(),
         hygienic: id.1,
@@ -1123,7 +1156,7 @@ IdentFromToken<Tok>: Ident = {
 
 pub StateInit: ExprKey = {
     <StorageTupleFieldOp>,
-    <call:FnCallExpr> => context.current_ii().exprs.insert(call),
+    <call:IntrinsicCallExpr> => context.current_ii().exprs.insert(call),
 }
 
 StorageTupleFieldOp: ExprKey = {

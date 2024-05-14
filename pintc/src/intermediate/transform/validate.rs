@@ -131,21 +131,13 @@ fn check_expr(
         Type::Error(span) => {
             emit_illegal_type_error!(handler, span, "error expression", "expr_types");
         }
-        Type::Array { span, .. } => {
-            emit_illegal_type_error!(handler, span, "array", "expr_types");
-        }
-        Type::Tuple { span, .. } => {
-            if !expr_is_for_storage(ii, expr) {
-                emit_illegal_type_error!(handler, span, "tuple", "expr_types");
-            }
-        }
         Type::Custom { span, .. } => {
             emit_illegal_type_error!(handler, span, "custom type", "expr_types");
         }
         Type::Alias { span, .. } => {
             emit_illegal_type_error!(handler, span, "type alias", "expr_types");
         }
-        Type::Primitive { .. } | Type::Map { .. } => {}
+        Type::Array { .. } | Type::Tuple { .. } | Type::Primitive { .. } | Type::Map { .. } => {}
     }
 
     // then check the expr variant and make sure legal
@@ -169,7 +161,6 @@ fn check_expr(
         //     "if expression",
         //     "exprs"
         // )),
-        Expr::Array { span, .. } => Err(emit_illegal_type_error!(handler, span, "array", "exprs")),
         Expr::Index { expr, span, .. } => {
             if !ii.expr_types.get(*expr).expect("").is_map() {
                 Err(emit_illegal_type_error!(
@@ -182,7 +173,6 @@ fn check_expr(
                 Ok(())
             }
         }
-        Expr::Tuple { span, .. } => Err(emit_illegal_type_error!(handler, span, "tuple", "exprs")),
         Expr::TupleFieldAccess { span, .. } => {
             if !expr_is_for_storage(ii, expr) {
                 Err(emit_illegal_type_error!(
@@ -216,13 +206,15 @@ fn check_expr(
                 "exprs"
             )),
         },
-        Expr::Immediate { .. }
+        Expr::Array { .. }
+        | Expr::Tuple { .. }
+        | Expr::Immediate { .. }
         | Expr::PathByKey(..)
         | Expr::PathByName(..)
         | Expr::StorageAccess(..)
         | Expr::UnaryOp { .. }
         | Expr::BinaryOp { .. }
-        | Expr::FnCall { .. }
+        | Expr::IntrinsicCall { .. }
         | Expr::If { .. }
         | Expr::Cast { .. }
         | Expr::ExternalStorageAccess { .. } => Ok(()),
@@ -249,7 +241,7 @@ fn expr_is_for_storage(ii: &IntermediateIntent, expr: &Expr) -> bool {
         | Expr::UnaryOp { .. }
         | Expr::BinaryOp { .. }
         | Expr::MacroCall { .. }
-        | Expr::FnCall { .. }
+        | Expr::IntrinsicCall { .. }
         | Expr::If { .. }
         | Expr::Array { .. }
         | Expr::Tuple { .. }
@@ -330,24 +322,10 @@ fn run_parser(src: &str, handler: &Handler) -> Program {
 fn expr_types() {
     // array
     let src = "let a = [1, 2, 3];";
-    check(
-        &run_test(src),
-        expect_test::expect![[r#"
-        compiler internal error: array present in final intent expr_types slotmap
-        compiler internal error: array present in final intent exprs slotmap
-        compiler internal error: invalid intermediate intent expr_types slotmap key
-        compiler internal error: invalid intermediate intent expr_types slotmap key
-        compiler internal error: array present in final intent expr_types slotmap"#]],
-    );
+    check(&run_test(src), expect_test::expect![""]);
     // tuple
     let src = "let t = { x: 5, 3 };";
-    check(
-        &run_test(src),
-        expect_test::expect![[r#"
-        compiler internal error: tuple present in final intent expr_types slotmap
-        compiler internal error: tuple present in final intent exprs slotmap
-        compiler internal error: tuple present in final intent expr_types slotmap"#]],
-    );
+    check(&run_test(src), expect_test::expect![""]);
     // custom / enum
     let src = "enum MyEnum = Variant1 | Variant2;
     let x = MyEnum;";
@@ -393,24 +371,18 @@ fn exprs() {
     let x = t.1;";
     check(
         &run_test(src),
-        expect_test::expect![[r#"
-            compiler internal error: tuple field access present in final intent exprs slotmap
-            compiler internal error: tuple present in final intent expr_types slotmap
-            compiler internal error: tuple present in final intent expr_types slotmap
-            compiler internal error: tuple present in final intent exprs slotmap
-            compiler internal error: tuple present in final intent expr_types slotmap"#]],
+        expect_test::expect![
+            "compiler internal error: tuple field access present in final intent exprs slotmap"
+        ],
     );
     // array and array field access
     let src = "let a = [1, 2, 3];
     let b = a[1];";
     check(
         &run_test(src),
-        expect_test::expect![[r#"
-            compiler internal error: array element access present in final intent exprs slotmap
-            compiler internal error: array present in final intent expr_types slotmap
-            compiler internal error: array present in final intent expr_types slotmap
-            compiler internal error: array present in final intent exprs slotmap
-            compiler internal error: array present in final intent expr_types slotmap"#]],
+        expect_test::expect![
+            "compiler internal error: array element access present in final intent exprs slotmap"
+        ],
     );
     // <<disabled>> until if check is supported
     // if
@@ -427,12 +399,9 @@ fn exprs() {
     let src = "let x: bool = 5 in [3, 4, 5];";
     check(
         &run_test(src),
-        expect_test::expect![[r#"
-            compiler internal error: in expression present in final intent exprs slotmap
-            compiler internal error: array present in final intent expr_types slotmap
-            compiler internal error: array present in final intent exprs slotmap
-            compiler internal error: invalid intermediate intent expr_types slotmap key
-            compiler internal error: invalid intermediate intent expr_types slotmap key"#]],
+        expect_test::expect![
+            "compiler internal error: in expression present in final intent exprs slotmap"
+        ],
     );
     // forall
     let src = "let k: int;
@@ -454,9 +423,7 @@ fn exprs() {
         expect_test::expect![[r#"
             compiler internal error: exists generator present in final intent exprs slotmap
             compiler internal error: array element access present in final intent exprs slotmap
-            compiler internal error: array present in final intent expr_types slotmap
             compiler internal error: array element access present in final intent exprs slotmap
-            compiler internal error: array present in final intent expr_types slotmap
             compiler internal error: range present in final intent exprs slotmap
             compiler internal error: range present in final intent exprs slotmap"#]],
     );

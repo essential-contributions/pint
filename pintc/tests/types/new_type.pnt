@@ -30,7 +30,7 @@ constraint r < p.y;
 
 let q: real = i as Real;
 
-state x: I = ::storage_lib::get(0);
+state x: I = __storage_get(0);
 
 solve satisfy;
 
@@ -45,7 +45,7 @@ solve satisfy;
 // var ::h: ::Hooray;
 // var ::p: ::Point;
 // var ::q: real;
-// state ::x: ::I = ::storage_lib::get(0);
+// state ::x: ::I = __storage_get(0);
 // enum ::TheLetterA = T | U | V;
 // enum ::Experience = Real | Unreal;
 // type ::A = ::TheLetterA;
@@ -82,7 +82,7 @@ solve satisfy;
 // var ::j.1: real;
 // var ::p.x: real;
 // var ::p.y: real;
-// state ::x: int = ::storage_lib::get(0);
+// state ::x: int = __storage_get(0);
 // enum ::TheLetterA = T | U | V;
 // enum ::Experience = Real | Unreal;
 // type ::A = ::TheLetterA;

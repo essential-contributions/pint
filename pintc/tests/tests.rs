@@ -28,6 +28,11 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
             path.push("main.pnt");
         }
 
+        // Only go over pint file
+        if path.extension().unwrap() != "pnt" {
+            continue;
+        }
+
         // Tests are enabled and set to "solve" mode by default.
         // `<disabled>` disables tests from running completely
         let handle = File::open(path.clone())?;
@@ -224,5 +229,6 @@ mod e2e {
     e2e_test!(canonicalizes);
     e2e_test!(sets_of_intents);
     e2e_test!(storage);
+    e2e_test!(intrinsics);
     e2e_test!(root_types);
 }

@@ -4,12 +4,14 @@
 
 intent Initialize {
     let value: int;
-    state counter: int = storage_lib::get(0x000000000000000E000000000000000E000000000000000E000000000000000E);
+    state counter: int =
+        __storage_get(0x000000000000000E000000000000000E000000000000000E000000000000000E);
     constraint counter' == value;
 }
 
 intent Increment {
     let amount: int;
-    state counter: int = storage_lib::get(0x000000000000000E000000000000000E000000000000000E000000000000000E);
+    state counter: int =       
+        __storage_get(0x000000000000000E000000000000000E000000000000000E000000000000000E);
     constraint counter' == counter + amount;
 }

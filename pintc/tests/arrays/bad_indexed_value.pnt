@@ -1,19 +1,16 @@
 let n: int;
 
-constraint foo()[0] == 3;
+constraint __foo()[0] == 3;
 
 solve satisfy;
 
 // intermediate <<<
 // var ::n: int;
-// constraint (::foo()[0] == 3);
+// constraint (__foo()[0] == 3);
 // solve satisfy;
 // >>>
 
-// This is pending whatever we decide for functions in the future.  For now we can't type-check an
-// unknown function like this.
-
 // typecheck_failure <<<
-// compiler internal error: unable to check type of FnCall
-// @24..29: unable to check type of FnCall
+// no intrinsic named `__foo` is found
+// @24..31: intrinsic not found
 // >>>

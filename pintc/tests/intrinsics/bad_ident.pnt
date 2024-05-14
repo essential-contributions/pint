@@ -1,0 +1,48 @@
+use module::__x;
+
+storage {
+    __y: int,
+}
+extern __MyExtern(0x0000000000000000000000000000000000000000000000000000000000000000) {
+    storage {}
+}
+type T = { __x: int, y: bool };
+
+enum ___E = A | B;
+type __MyType = int;
+let __x = 5;
+
+constraint __x == 0;
+
+solve satisfy;
+
+// parse_failure <<<
+// expected identifier, found intrinsic name `__x`
+// @12..15: expected identifier, found intrinsic name
+// names that start with `__` are reserved for compiler intrinsics
+// expected identifier, found intrinsic name `__y`
+// @32..35: expected identifier, found intrinsic name
+// names that start with `__` are reserved for compiler intrinsics
+// expected identifier, found intrinsic name `__MyExtern`
+// @51..61: expected identifier, found intrinsic name
+// names that start with `__` are reserved for compiler intrinsics
+// expected identifier, found intrinsic name `__x`
+// @160..163: expected identifier, found intrinsic name
+// names that start with `__` are reserved for compiler intrinsics
+// expected identifier, found intrinsic name `___E`
+// @187..191: expected identifier, found intrinsic name
+// names that start with `__` are reserved for compiler intrinsics
+// expected identifier, found intrinsic name `__MyType`
+// @206..214: expected identifier, found intrinsic name
+// names that start with `__` are reserved for compiler intrinsics
+// expected identifier, found intrinsic name `__x`
+// @226..229: expected identifier, found intrinsic name
+// names that start with `__` are reserved for compiler intrinsics
+// symbol `__x` has already been declared
+// @12..15: previous declaration of the symbol `__x` here
+// @226..229: `__x` redeclared here
+// `__x` must be declared or imported only once in this scope
+// expected identifier, found intrinsic name `__x`
+// @247..250: expected identifier, found intrinsic name
+// names that start with `__` are reserved for compiler intrinsics
+// >>> 

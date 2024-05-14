@@ -218,18 +218,29 @@ impl Type {
                 kind: PrimitiveKind::Bool | PrimitiveKind::Int | PrimitiveKind::Real,
                 ..
             } => 1,
+
             Self::Primitive {
                 kind: PrimitiveKind::B256,
                 ..
             } => 4,
+
             Self::Tuple { fields, .. } => fields
                 .iter()
                 .fold(0, |acc, (_, field_ty)| acc + field_ty.size()),
+
+            Self::Array { ty, size, .. } => {
+                if let Some(size) = size {
+                    ty.size() * *size as usize
+                } else {
+                    unimplemented!("unable to find type size for array at the moment")
+                }
+            }
+
             // The point here is that a `Map` takes up a storage slot, even though it doesn't
             // actually store anything in it. The `Map` type is not really allowed anywhere else,
             // so we can't have a decision variable of type `Map` for example.
             Self::Map { .. } => 1,
-            _ => unimplemented!("Size of non-primitive types is not yet specified"),
+            _ => unimplemented!("Size of type is not yet specified"),
         }
     }
 }
