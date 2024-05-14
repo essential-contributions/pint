@@ -255,11 +255,11 @@ impl<'a> ProjectParser<'a> {
                     process_nested_expr!(lhs, "`lhs` of binary op", root_exprs, ii, handler)?;
                     process_nested_expr!(rhs, "`rhs` of binary op", root_exprs, ii, handler)?;
                 }
-                Expr::FnCall { args, .. } => {
+                Expr::IntrinsicCall { args, .. } => {
                     for arg_expr_key in args {
                         process_nested_expr!(
                             arg_expr_key,
-                            "fn call `arg`",
+                            "intrinsic call `arg`",
                             root_exprs,
                             ii,
                             handler
