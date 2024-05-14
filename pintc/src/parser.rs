@@ -375,7 +375,7 @@ impl<'a> ProjectParser<'a> {
                     Ok(Type::Array {
                         ty: Box::new(deep_copy_type(ty, root_exprs, ii, handler)?),
                         range: new_expr_key,
-                        size: size.clone(),
+                        size: *size,
                         span: span.clone(),
                     })
                 }
