@@ -219,6 +219,11 @@ impl<'a> ProjectParser<'a> {
     }
 
     fn finalize(mut self) -> Result<Program, ErrorEmitted> {
+        // Insert all enums, new types, and storage variables from the root II into each non-root
+        // II (i.e. those declared using an `intent { }` decl). Also, insert all top level symbols
+        // since shadowing is not allowed. That is, we can't use a symbol inside an `intent { .. }`
+        // that was already used in the root II.
+
         macro_rules! process_nested_expr {
             ($expr_key: expr, $error_msg: literal, $root_exprs: expr, $ii: expr, $handler: expr) => {{
                 let nested_expr = $root_exprs.get(*$expr_key).ok_or_else(|| {
@@ -448,6 +453,9 @@ impl<'a> ProjectParser<'a> {
                 ii.externs = externs.clone();
 
                 for (symbol, span) in &root_symbols {
+                    // We could call `ii.add_top_level_symbol_with_name` directly here, but then
+                    // the spans would be reversed so I decided to do this manually. We want the
+                    // actual error to point to the symbol inside the `intent` decl.
                     ii.top_level_symbols
                         .get(symbol)
                         .map(|prev_span| {
