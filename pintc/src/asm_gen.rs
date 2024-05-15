@@ -1,7 +1,9 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp, Expr, Immediate, TupleAccess, UnaryOp},
-    intermediate::{ExprKey, IntermediateIntent, Program, ProgramKind, State as StateVar},
+    intermediate::{
+        ConstraintDecl, ExprKey, IntermediateIntent, Program, ProgramKind, State as StateVar,
+    },
     span::empty_span,
     types::{PrimitiveKind, Type},
 };
@@ -528,8 +530,22 @@ impl AsmBuilder {
                     .iter()
                     .try_for_each(|element| self.compile_expr(handler, asm, element, intent))?;
             }
-            Expr::If { .. } => {
-                unimplemented!("calls and `if` expressions are not yet supported")
+            Expr::Select {
+                condition,
+                then_expr,
+                else_expr,
+                ..
+            } => {
+                let type_size = intent.expr_types[*then_expr].size();
+                self.compile_expr(handler, asm, else_expr, intent)?;
+                self.compile_expr(handler, asm, then_expr, intent)?;
+                self.compile_expr(handler, asm, condition, intent)?;
+                if type_size == 1 {
+                    asm.push(Constraint::Stack(Stack::Select));
+                } else {
+                    // `SelectRange` when it's available
+                    todo!()
+                }
             }
             Expr::Error(_)
             | Expr::MacroCall { .. }
@@ -689,7 +705,10 @@ pub fn intent_to_asm(
         let _ = builder.compile_state(handler, state, &mut slot_idx, final_intent);
     }
 
-    for (constraint, _) in &final_intent.constraints {
+    for ConstraintDecl {
+        expr: constraint, ..
+    } in &final_intent.constraints
+    {
         let _ = builder.compile_constraint(handler, constraint, final_intent);
     }
 

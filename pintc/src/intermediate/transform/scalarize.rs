@@ -478,16 +478,22 @@ fn lower_array_compares(
     let array_compare_ops = ii
         .exprs()
         .filter_map(|expr_key| match ii.exprs.get(expr_key) {
-            // Do not lower array compares if one of the two sides is an intrinsic calls.
-            // Intrinsic calls can be expensive to compute and so, we don't want to make multiple
-            // copies of them if we don't need to. We will rely on the backend to do the comparison
-            // instead.
+            // Do not lower array compares if one of the two sides is an intrinsic call or a
+            // select. Intrinsic calls and selects can be expensive to compute and so, we don't
+            // want to make multiple copies of them if we don't need to. We will rely on the
+            // backend to do the comparison instead.
             //
             // In the future, we may decided not to lower array compares at all.
             Some(Expr::BinaryOp { op, lhs, rhs, span })
                 if (*op == BinaryOp::Equal || *op == BinaryOp::NotEqual)
-                    && !matches!(ii.exprs[*lhs], Expr::IntrinsicCall { .. })
-                    && !matches!(ii.exprs[*rhs], Expr::IntrinsicCall { .. }) =>
+                    && !matches!(
+                        ii.exprs[*lhs],
+                        Expr::IntrinsicCall { .. } | Expr::Select { .. }
+                    )
+                    && !matches!(
+                        ii.exprs[*rhs],
+                        Expr::IntrinsicCall { .. } | Expr::Select { .. }
+                    ) =>
             {
                 ii.expr_types.get(*lhs).and_then(get_array_params).and_then(
                     |(lhs_el_ty, _, lhs_opt_size, _)| {
@@ -727,15 +733,19 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
                 // Type checking should ensure RHS is also a tuple.
                 assert!(ii.expr_types.get(*rhs).unwrap().is_tuple());
 
-                // Do not lower tuple compares if one of the two sides is an intrinsic calls.
-                // Intrinsic calls can be expensive to compute and so, we don't want to make
-                // multiple copies of them if we don't need to. We will rely on the backend to do
-                // the comparison instead.
+                // Do not lower tuple compares if one of the two sides is an intrinsic call or a
+                // select.  Intrinsic calls and selects can be expensive to compute and so, we
+                // don't want to make multiple copies of them if we don't need to. We will rely on
+                // the backend to do the comparison instead.
                 //
                 // In the future, we may decided not to lower tuple compares at all.
-                if !matches!(ii.exprs[*lhs], Expr::IntrinsicCall { .. })
-                    && !matches!(ii.exprs[*rhs], Expr::IntrinsicCall { .. })
-                {
+                if !matches!(
+                    ii.exprs[*lhs],
+                    Expr::IntrinsicCall { .. } | Expr::Select { .. }
+                ) && !matches!(
+                    ii.exprs[*rhs],
+                    Expr::IntrinsicCall { .. } | Expr::Select { .. }
+                ) {
                     tuple_compare_ops.push((expr_key, *op, *lhs, *rhs, span.clone()));
                 }
             }

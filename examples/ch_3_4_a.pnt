@@ -1,12 +1,8 @@
-// ANCHOR: basic_if
+// ANCHOR: basic_select
 let number: int;
 
-let y = if number < 5 {
-    1
-} else {
-    2
-};
-// ANCHOR_END: basic_if
+let y = number < 5 ? 1 : 2;
+// ANCHOR_END: basic_select
 
 // ANCHOR: basic_cond
 let x: int;
@@ -17,5 +13,35 @@ let z = cond {
     else => 3
 };
 // ANCHOR_END: basic_cond
+
+// ANCHOR: basic_if
+if number < 5 {
+    constraint x == y;
+} else {
+    constraint x != y;
+}
+// ANCHOR_END: basic_if
+
+// ANCHOR: complex_if
+if number < 5 {
+    constraint x == y;
+
+    if z > 0 {
+        constraint x > number;
+        constraint y > number;
+    }
+} else {
+    constraint x != y;
+
+    if z > 0 {
+        constraint x > number;
+        constraint y > number;
+    } else {
+        constraint x < number;
+        constraint y < number;
+    }
+}
+// ANCHOR_END: complex_if
+
 
 solve satisfy;

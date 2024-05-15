@@ -136,10 +136,14 @@ pub enum CompileError {
     UnknownType { span: Span },
     #[error("undefined type")]
     UndefinedType { span: Span },
-    #[error("condition in if-expression must be a boolean")]
-    IfCondTypeNotBool(Span),
-    #[error("branches in if-expression must have the same type")]
-    IfBranchesTypeMismatch { large_err: Box<LargeTypeError> },
+    #[error("condition for {conditional} must be a `bool`")]
+    NonBoolConditional {
+        ty: String,
+        conditional: String,
+        span: Span,
+    },
+    #[error("branches of a select expression must have the same type")]
+    SelectBranchesTypeMismatch { large_err: Box<LargeTypeError> },
     #[error("attempt to index into a non-indexable value")]
     IndexExprNonIndexable {
         non_indexable_type: String,
@@ -258,7 +262,7 @@ pub enum CompileError {
 
 #[derive(Debug)]
 pub enum LargeTypeError {
-    IfBranchesTypeMismatch {
+    SelectBranchesTypeMismatch {
         then_type: String,
         then_span: Span,
         else_type: String,
@@ -494,7 +498,9 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
-            NonBoolGeneratorCondition { ty, span, .. } | NonBoolGeneratorBody { ty, span, .. } => {
+            NonBoolConditional { ty, span, .. }
+            | NonBoolGeneratorCondition { ty, span, .. }
+            | NonBoolGeneratorBody { ty, span, .. } => {
                 vec![ErrorLabel {
                     message: format!("invalid type `{ty}`, expecting `bool`"),
                     span: span.clone(),
@@ -601,14 +607,6 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
-            IfCondTypeNotBool(span) => {
-                vec![ErrorLabel {
-                    message: "condition must be a boolean".to_string(),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
-            }
-
             IndexExprNonIndexable {
                 non_indexable_type,
                 span,
@@ -704,10 +702,10 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
-            IfBranchesTypeMismatch { large_err }
+            SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }
             | StateVarInitTypeError { large_err, .. } => match &**large_err {
-                LargeTypeError::IfBranchesTypeMismatch {
+                LargeTypeError::SelectBranchesTypeMismatch {
                     then_type,
                     then_span,
                     else_type,
@@ -1011,8 +1009,8 @@ impl ReportableError for CompileError {
             | MacroSpliceVarNotArray { .. }
             | UnknownType { .. }
             | UndefinedType { .. }
-            | IfCondTypeNotBool(_)
-            | IfBranchesTypeMismatch { .. }
+            | NonBoolConditional { .. }
+            | SelectBranchesTypeMismatch { .. }
             | OperatorTypeError { .. }
             | StateVarInitTypeError { .. }
             | StateVarTypeIsMap { .. }
@@ -1126,7 +1124,7 @@ impl Spanned for CompileError {
             | CannotIndexIntoValue { span, .. }
             | UnknownType { span }
             | UndefinedType { span }
-            | IfCondTypeNotBool(span)
+            | NonBoolConditional { span, .. }
             | IndexExprNonIndexable { span, .. }
             | ArrayAccessWithWrongType { span, .. }
             | StorageMapAccessWithWrongType { span, .. }
@@ -1152,10 +1150,10 @@ impl Spanned for CompileError {
             | UnexpectedIntrinsicArgCount { span, .. }
             | MismatchedIntrinsicArgType { arg_span: span, .. } => span,
 
-            IfBranchesTypeMismatch { large_err }
+            SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }
             | StateVarInitTypeError { large_err, .. } => match &**large_err {
-                LargeTypeError::IfBranchesTypeMismatch { span, .. }
+                LargeTypeError::SelectBranchesTypeMismatch { span, .. }
                 | LargeTypeError::OperatorTypeError { span, .. }
                 | LargeTypeError::StateVarInitTypeError { span, .. } => span,
             },

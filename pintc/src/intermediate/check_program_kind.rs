@@ -2,6 +2,7 @@ use super::{Program, ProgramKind};
 
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
+    intermediate::{ConstraintDecl, IfDecl},
     span::empty_span,
 };
 
@@ -57,10 +58,18 @@ impl Program {
                             },
                         });
                     }
-                    for (_, span) in &root_ii.constraints {
+                    for ConstraintDecl { span, .. } in &root_ii.constraints {
                         handler.emit_err(Error::Compile {
                             error: CompileError::InvalidDeclOutsideIntentDecl {
                                 kind: "constraint".to_string(),
+                                span: span.clone(),
+                            },
+                        });
+                    }
+                    for IfDecl { span, .. } in &root_ii.if_decls {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::InvalidDeclOutsideIntentDecl {
+                                kind: "`if` statement".to_string(),
                                 span: span.clone(),
                             },
                         });

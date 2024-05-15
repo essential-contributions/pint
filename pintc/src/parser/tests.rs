@@ -806,24 +806,24 @@ fn storage_access() {
     check(
         &run_parser!(pint, r#"let x = storage::foo;"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `storage`
-            @8..15: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `storage`
+            @8..15: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(pint, r#"let x = storage::map[4][3];"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `storage`
-            @8..15: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `storage`
+            @8..15: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(pint, r#"constraint storage::map[69] == 0;"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `storage`
-            @11..18: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `storage`
+            @11..18: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 }
@@ -982,6 +982,90 @@ fn constraint_decls() {
 }
 
 #[test]
+fn if_decls() {
+    // Argument just needs to be any expression, as far as the parser is concerned.
+    let if_decl = yp::IfDeclParser::new();
+
+    check(
+        &run_parser!(
+            if_decl,
+            r#"
+            if true { }
+        "#
+        ),
+        expect_test::expect![[r#"
+            if true {
+            }"#]],
+    );
+
+    check(
+        &run_parser!(
+            if_decl,
+            r#"
+            if true { } else { }
+        "#
+        ),
+        expect_test::expect![[r#"
+            if true {
+            } else {
+            }"#]],
+    );
+
+    check(
+        &run_parser!(
+            if_decl,
+            r#"
+            if condition { constraint x; }
+        "#
+        ),
+        expect_test::expect![[r#"
+            if ::condition {
+                constraint ::x
+            }"#]],
+    );
+
+    check(
+        &run_parser!(
+            if_decl,
+            r#"
+            if true { constraint x; } else { constraint y; }
+        "#
+        ),
+        expect_test::expect![[r#"
+            if true {
+                constraint ::x
+            } else {
+                constraint ::y
+            }"#]],
+    );
+
+    check(
+        &run_parser!(
+            if_decl,
+            r#"
+            if true { if false { constraint x; } else { constraint y; } } 
+            else { if __foo() { if boo && y { constraint true; constraint false; } } }
+        "#
+        ),
+        expect_test::expect![[r#"
+            if true {
+                if false {
+                    constraint ::x
+                } else {
+                    constraint ::y
+                }
+            } else {
+                if __foo() {
+                    if (::boo && ::y) {
+                        constraint true
+                        constraint false
+                    }
+                }
+            }"#]],
+    );
+}
+
+#[test]
 fn solve_decls() {
     let solve_decl = yp::SolveDeclParser::new();
 
@@ -1041,28 +1125,28 @@ fn unary_op_exprs() {
         expect_test::expect!["!--!---1"],
     );
     check(
-        &run_parser!(expr, "! {- x} '  '  "),
+        &run_parser!(expr, "! - x '  '  "),
         expect_test::expect!["!-::x''"],
     );
     check(
-        &run_parser!(expr, "+ { + x} '  '  "),
+        &run_parser!(expr, "+ + x '  '  "),
         expect_test::expect![[r#"
             leading `+` is not supported
             @0..1: unexpected `+`
             try removing the `+`
             leading `+` is not supported
-            @4..5: unexpected `+`
+            @2..3: unexpected `+`
             try removing the `+`
         "#]],
     );
     check(
-        &run_parser!(expr, "1 + + { + x}"),
+        &run_parser!(expr, "1 + +  + x"),
         expect_test::expect![[r#"
             leading `+` is not supported
             @4..5: unexpected `+`
             try removing the `+`
             leading `+` is not supported
-            @8..9: unexpected `+`
+            @7..8: unexpected `+`
             try removing the `+`
         "#]],
     );
@@ -1283,14 +1367,14 @@ fn parens_exprs() {
     check(
         &run_parser!(expr, "()"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `)`
-            @1..2: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `)`
+            @1..2: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
     check(
-        &run_parser!(expr, "(if a < b { 1 } else { 2 })"),
-        expect_test::expect!["if (::a < ::b) { 1 } else { 2 }"],
+        &run_parser!(expr, "(a < b) ? 1 : 2"),
+        expect_test::expect!["((::a < ::b) ? 1 : 2)"],
     );
     check(
         &run_parser!(expr, "(foo(a, b, c))"),
@@ -1398,14 +1482,14 @@ fn ranges() {
         expect_test::expect!["(1 + 2)..(3 + 4)"],
     );
     check(
-        &run_parser!(range, "-100.. -if c { 10 } else { 9 }"),
-        expect_test::expect!["-100..-if ::c { 10 } else { 9 }"],
+        &run_parser!(range, "-100.. (- ( c ? 10 : 9 ))"),
+        expect_test::expect!["-100..-(::c ? 10 : 9)"],
     );
     check(
         &run_parser!(range, "1...2"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `.`
-            @3..4: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `.`
+            @3..4: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
@@ -1428,8 +1512,8 @@ fn ranges() {
     check(
         &run_parser!(expr, "(1..2) + 3"),
         expect_test::expect![[r#"
-            expected `!=`, `&&`, `)`, `+`, `-`, `<`, `<=`, `==`, `>`, `>=`, `in`, or `||`, found `..`
-            @2..4: expected `!=`, `&&`, `)`, `+`, `-`, `<`, `<=`, `==`, `>`, `>=`, `in`, or `||`
+            expected `!=`, `&&`, `)`, `+`, `-`, `<`, `<=`, `==`, `>`, `>=`, `?`, `in`, or `||`, found `..`
+            @2..4: expected `!=`, `&&`, `)`, `+`, `-`, `<`, `<=`, `==`, `>`, `>=`, `?`, `in`, or `||`
         "#]],
     );
 }
@@ -1721,105 +1805,26 @@ fn fn_call() {
 }
 
 #[test]
-fn code_blocks() {
+fn select_exprs() {
     let expr = yp::ExprParser::new();
-    let mod_path = vec!["foo".to_string()];
 
     check(
-        &run_parser!(expr, "{ 0 }", mod_path),
-        expect_test::expect!["0"],
+        &run_parser!(expr, "c ? 1 : 0"),
+        expect_test::expect!["(::c ? 1 : 0)"],
+    );
+    check(
+        &run_parser!(expr, "c ? ( c ? 1 : 0 ) :  2 "),
+        expect_test::expect!["(::c ? (::c ? 1 : 0) : 2)"],
     );
 
     check(
         &run_parser!(
             expr,
-            "{
-                constraint y == 0;
-                constraint x > 0.0;
-                0.0
-            }",
-            mod_path
+            "c ? x ? { 1, 1 }.0 : a in b as int : a[5] ? b && 5 : __foo()"
         ),
-        expect_test::expect![[r#"
-            constraint (::foo::y == 0);
-            constraint (::foo::x > 0e0);
-            0e0"#]],
-    );
-
-    check(
-        &run_parser!(expr, "{ constraint { true }; x > 0 }", mod_path),
-        expect_test::expect![[r#"
-            constraint true;
-            (::foo::x > 0)"#]],
-    );
-
-    check(
-        &run_parser!(
-            expr,
-            "{
-                constraint {
-                    constraint y == 0;
-                    constraint x > 0.0;
-                    true
-                };
-                0.0
-            }",
-            mod_path
-        ),
-        expect_test::expect![[r#"
-            constraint (::foo::y == 0);
-            constraint (::foo::x > 0e0);
-            constraint true;
-            0e0"#]],
-    );
-
-    // No final expr
-    check(
-        &run_parser!(expr, "{ constraint x == 0; }", mod_path),
-        expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
-            @21..22: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
-        "#]],
-    );
-
-    // Use of `let`
-    check(
-        &run_parser!(expr, "{ let x = 0; 5 }", mod_path),
-        expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, `{`, or `}`, found `let`
-            @2..5: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, `{`, or `}`
-        "#]],
-    );
-
-    check(
-        &run_parser!(expr, "{}", mod_path),
-        expect_test::expect![[r#"
-            empty tuple expressions are not allowed
-            @0..2: empty tuple expression found
-        "#]],
-    );
-}
-
-#[test]
-fn if_exprs() {
-    let expr = yp::ExprParser::new();
-
-    check(
-        &run_parser!(expr, "if c { 1 }"),
-        expect_test::expect![[r#"
-            expected `else`, found `end of file`
-            @10..10: expected `else`
-        "#]],
-    );
-
-    check(
-        &run_parser!(expr, "if c { 1 } else { 0 }"),
-        expect_test::expect!["if ::c { 1 } else { 0 }"],
-    );
-
-    check(
-        &run_parser!(expr, "if c { if c { 1 } else { 0 } } else { 2 }"),
-        expect_test::expect!["if ::c { if ::c { 1 } else { 0 } } else { 2 }"],
+        expect_test::expect![
+            "(::c ? (::x ? {1, 1}.0 : ::a in ::b as int) : (::a[5] ? (::b && 5) : __foo()))"
+        ],
     );
 }
 
@@ -1843,8 +1848,8 @@ fn array_type() {
     );
 
     check(
-        &run_parser!(type_, r#"string[__foo()][{ 7 }][if true { 1 } else { 2 }]"#),
-        expect_test::expect!["string[if true { 1 } else { 2 }][7][__foo()]"],
+        &run_parser!(type_, r#"string[__foo()][ 7 ][true ?  1 : 2]"#),
+        expect_test::expect!["string[(true ? 1 : 2)][7][__foo()]"],
     );
 
     check(
@@ -1895,8 +1900,8 @@ fn array_expressions() {
     );
 
     check(
-        &run_parser!(expr, r#"[[__foo(), 2], [if true { 1 } else { 2 }, t.0]]"#),
-        expect_test::expect!["[[__foo(), 2], [if true { 1 } else { 2 }, ::t.0]]"],
+        &run_parser!(expr, r#"[[__foo(), 2], [ true ? 1 : 2, t.0]]"#),
+        expect_test::expect!["[[__foo(), 2], [(true ? 1 : 2), ::t.0]]"],
     );
 }
 
@@ -1915,13 +1920,13 @@ fn array_element_accesses() {
     );
 
     check(
-        &run_parser!(expr, r#"{ a }[N][__foo()][M][4]"#),
-        expect_test::expect!["::a[::N][__foo()][::M][4]"],
+        &run_parser!(expr, r#"{ a, b }[N][__foo()][M][4]"#),
+        expect_test::expect!["{::a, ::b}[::N][__foo()][::M][4]"],
     );
 
     check(
-        &run_parser!(expr, r#"__foo()[{ M }][if true { 1 } else { 3 }]"#),
-        expect_test::expect!["__foo()[::M][if true { 1 } else { 3 }]"],
+        &run_parser!(expr, r#"__foo()[ M ][true ? 1 : 3]"#),
+        expect_test::expect!["__foo()[::M][(true ? 1 : 3)]"],
     );
 
     check(
@@ -1942,9 +1947,13 @@ fn array_element_accesses() {
 fn tuple_expressions() {
     let expr = yp::ExprParser::new();
 
+    // Should probably allow this. Won't worry about it for now.
     check(
-        &run_parser!(expr, r#"{0}"#), // This is not a tuple. It is a code block expr.
-        expect_test::expect!["0"],
+        &run_parser!(expr, r#"{ 0 }"#),
+        expect_test::expect![[r#"
+            expected `,`, found `}`
+            @4..5: expected `,`
+        "#]],
     );
 
     check(
@@ -1983,16 +1992,13 @@ fn tuple_expressions() {
     );
 
     check(
-        &run_parser!(expr, r#"{ { 42 }, if c { 2 } else { 3 }, __foo() }"#),
-        expect_test::expect!["{42, if ::c { 2 } else { 3 }, __foo()}"],
+        &run_parser!(expr, r#"{ 42, c ?  2 : 3, __foo() }"#),
+        expect_test::expect!["{42, (::c ? 2 : 3), __foo()}"],
     );
 
     check(
-        &run_parser!(
-            expr,
-            r#"{ x: { 42 }, y: if c { 2 } else { 3 }, z: __foo() }"#
-        ),
-        expect_test::expect!["{x: 42, y: if ::c { 2 } else { 3 }, z: __foo()}"],
+        &run_parser!(expr, r#"{ x:  42 , y: c ?  2 : 3, z: __foo() }"#),
+        expect_test::expect!["{x: 42, y: (::c ? 2 : 3), z: __foo()}"],
     );
 }
 
@@ -2051,23 +2057,23 @@ fn tuple_field_accesses() {
     );
 
     check(
-        &run_parser!(expr, r#"{ {0, 0} }.0"#),
+        &run_parser!(expr, r#" {0, 0} .0"#),
         expect_test::expect!["{0, 0}.0"],
     );
 
     check(
-        &run_parser!(expr, r#"{ {0, 0} }.a"#),
+        &run_parser!(expr, r#" {0, 0} .a"#),
         expect_test::expect!["{0, 0}.a"],
     );
 
     check(
-        &run_parser!(expr, r#"if true { {0, 0} } else { {0, 0} }.0"#),
-        expect_test::expect!["if true { {0, 0} } else { {0, 0} }.0"],
+        &run_parser!(expr, r#"(true ? {0, 0} : {0, 0}).0"#),
+        expect_test::expect!["(true ? {0, 0} : {0, 0}).0"],
     );
 
     check(
-        &run_parser!(expr, r#"if true { {0, 0} } else { {0, 0} }.x"#),
-        expect_test::expect!["if true { {0, 0} } else { {0, 0} }.x"],
+        &run_parser!(expr, r#"(true ? {0, 0}  : {0, 0}).x"#),
+        expect_test::expect!["(true ? {0, 0} : {0, 0}).x"],
     );
 
     // This parses because `1 + 2` is an expression, but it should fail in semantic analysis.
@@ -2158,30 +2164,30 @@ fn cond_exprs() {
     );
 
     check(
-        &run_parser!(expr, r#"cond { else => { a } }"#),
+        &run_parser!(expr, r#"cond { else =>  a  }"#),
         expect_test::expect!["::a"],
     );
 
     check(
         &run_parser!(expr, r#"cond { a => b, else => c }"#),
-        expect_test::expect!["if ::a { ::b } else { ::c }"],
+        expect_test::expect!["(::a ? ::b : ::c)"],
     );
 
     check(
-        &run_parser!(expr, r#"cond { a => { b }, else => c, }"#),
-        expect_test::expect!["if ::a { ::b } else { ::c }"],
+        &run_parser!(expr, r#"cond { a =>  b , else => c, }"#),
+        expect_test::expect!["(::a ? ::b : ::c)"],
     );
 
     check(
-        &run_parser!(expr, r#"cond { a => b, { true } => d, else => f, }"#),
-        expect_test::expect!["if ::a { ::b } else { if true { ::d } else { ::f } }"],
+        &run_parser!(expr, r#"cond { a => b,  true  => d, else => f, }"#),
+        expect_test::expect!["(::a ? ::b : (true ? ::d : ::f))"],
     );
 
     check(
         &run_parser!(expr, r#"cond { a => b, }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
-            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
+            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
@@ -2257,8 +2263,8 @@ fn in_expr() {
     check(
         &run_parser!(yp::LetDeclParser::new(), r#"let x = 5 in"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `end of file`
-            @12..12: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `end of file`
+            @12..12: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 }
@@ -2308,8 +2314,8 @@ fn forall_expr() {
     check(
         &run_parser!(expr, r#"forall i in 0..3 { constraint x; true }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `constraint`
-            @19..29: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `constraint`
+            @19..29: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 }
@@ -2359,8 +2365,8 @@ fn exists_expr() {
     check(
         &run_parser!(expr, r#"exists i in 0..3 { constraint x; true }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `constraint`
-            @19..29: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `constraint`
+            @19..29: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 }
