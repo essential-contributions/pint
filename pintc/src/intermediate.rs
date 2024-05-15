@@ -1,22 +1,26 @@
 use crate::{
     error::{Error, ErrorEmitted, Handler, ParseError},
     expr::{self, Expr, Ident, Immediate},
-    span::{empty_span, Span},
+    span::Span,
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type},
 };
+use exprs::ExprsIter;
+pub use exprs::{ExprKey, Exprs};
+pub use states::{StateKey, _States};
 use std::{
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{BTreeMap, HashMap},
     fmt::{self, Formatter},
 };
+pub use vars::{VarKey, _Vars};
 
 mod analyse;
 mod check_program_kind;
 mod display;
+mod exprs;
+mod states;
 mod transform;
+mod vars;
 
-slotmap::new_key_type! { pub struct VarKey; }
-slotmap::new_key_type! { pub struct StateKey; }
-slotmap::new_key_type! { pub struct ExprKey; }
 slotmap::new_key_type! { pub struct CallKey; }
 
 #[derive(Debug, Default, Clone)]
@@ -63,14 +67,9 @@ impl Program {
 /// iterated upon and to be reduced to an [Intent].
 #[derive(Debug, Default)]
 pub struct IntermediateIntent {
-    pub vars: slotmap::SlotMap<VarKey, Var>,
-    pub var_types: slotmap::SecondaryMap<VarKey, Type>,
-
-    pub states: slotmap::SlotMap<StateKey, State>,
-    pub state_types: slotmap::SecondaryMap<StateKey, Type>,
-
-    pub exprs: slotmap::SlotMap<ExprKey, Expr>,
-    pub expr_types: slotmap::SecondaryMap<ExprKey, Type>,
+    pub _vars: _Vars,
+    pub _states: _States,
+    pub _exprs: Exprs,
 
     pub constraints: Vec<ConstraintDecl>,
     pub if_decls: Vec<IfDecl>,
@@ -104,13 +103,6 @@ impl IntermediateIntent {
         WithII { thing, ii: self }
     }
 
-    /// Insert an expression with its type into the appropriate maps
-    pub fn insert_expr(&mut self, expr: Expr, ty: Type) -> ExprKey {
-        let expr_key = self.exprs.insert(expr);
-        self.expr_types.insert(expr_key, ty);
-        expr_key
-    }
-
     pub fn insert_var(
         &mut self,
         handler: &Handler,
@@ -121,13 +113,17 @@ impl IntermediateIntent {
     ) -> std::result::Result<VarKey, ErrorEmitted> {
         let full_name =
             self.add_top_level_symbol(handler, mod_prefix, local_scope, name, name.span.clone())?;
-        let var_key = self.vars.insert(Var {
-            name: full_name,
-            span: name.span.clone(),
-        });
-        if let Some(ty) = ty {
-            self.var_types.insert(var_key, ty);
-        }
+        let var_key = self._vars.insert(
+            Var {
+                name: full_name,
+                span: name.span.clone(),
+            },
+            if let Some(ty) = ty {
+                ty
+            } else {
+                Type::Unknown(name.span.clone())
+            },
+        );
 
         Ok(var_key)
     }
@@ -161,41 +157,50 @@ impl IntermediateIntent {
     }
 
     pub fn insert_eq_or_ineq_constraint(&mut self, var_key: VarKey, expr_key: ExprKey, span: Span) {
-        let var_span = self
-            .vars
-            .get(var_key)
-            .map_or_else(empty_span, |v| v.span.clone());
+        let var_span = &var_key.get(self).span;
 
-        let var_expr_key = self.exprs.insert(Expr::PathByKey(var_key, var_span));
+        let var_expr_key = self._exprs.insert(
+            Expr::PathByKey(var_key, var_span.clone()),
+            Type::Unknown(var_span.clone()),
+        );
 
-        if let Some(Expr::Range { lb, ub, .. }) = self.exprs.get(expr_key).cloned() {
-            let geq_expr_key = self.exprs.insert(Expr::BinaryOp {
-                op: expr::BinaryOp::GreaterThanOrEqual,
-                lhs: var_expr_key,
-                rhs: lb,
-                span: span.clone(),
-            });
+        if let Some(Expr::Range { lb, ub, .. }) = expr_key.try_get(self).cloned() {
+            let geq_expr_key = self._exprs.insert(
+                Expr::BinaryOp {
+                    op: expr::BinaryOp::GreaterThanOrEqual,
+                    lhs: var_expr_key,
+                    rhs: lb,
+                    span: span.clone(),
+                },
+                Type::Unknown(span.clone()),
+            );
             self.constraints.push(ConstraintDecl {
                 expr: geq_expr_key,
                 span: span.clone(),
             });
-            let geq_expr_key = self.exprs.insert(Expr::BinaryOp {
-                op: expr::BinaryOp::LessThanOrEqual,
-                lhs: var_expr_key,
-                rhs: ub,
-                span: span.clone(),
-            });
+            let geq_expr_key = self._exprs.insert(
+                Expr::BinaryOp {
+                    op: expr::BinaryOp::LessThanOrEqual,
+                    lhs: var_expr_key,
+                    rhs: ub,
+                    span: span.clone(),
+                },
+                Type::Unknown(span.clone()),
+            );
             self.constraints.push(ConstraintDecl {
                 expr: geq_expr_key,
                 span,
             });
         } else {
-            let eq_expr_key = self.exprs.insert(Expr::BinaryOp {
-                op: expr::BinaryOp::Equal,
-                lhs: var_expr_key,
-                rhs: expr_key,
-                span: span.clone(),
-            });
+            let eq_expr_key = self._exprs.insert(
+                Expr::BinaryOp {
+                    op: expr::BinaryOp::Equal,
+                    lhs: var_expr_key,
+                    rhs: expr_key,
+                    span: span.clone(),
+                },
+                Type::Unknown(span.clone()),
+            );
             self.constraints.push(ConstraintDecl {
                 expr: eq_expr_key,
                 span,
@@ -213,14 +218,18 @@ impl IntermediateIntent {
         span: Span,
     ) -> std::result::Result<StateKey, ErrorEmitted> {
         let name = self.add_top_level_symbol(handler, mod_prefix, None, name, span.clone())?;
-        let state_key = self.states.insert(State {
-            name,
-            expr,
-            span: span.clone(),
-        });
-        if let Some(ty) = ty {
-            self.state_types.insert(state_key, ty);
-        }
+        let state_key = self._states.insert(
+            State {
+                name,
+                expr,
+                span: span.clone(),
+            },
+            if let Some(ty) = ty {
+                ty
+            } else {
+                Type::Unknown(span.clone())
+            },
+        );
 
         Ok(state_key)
     }
@@ -271,9 +280,8 @@ impl IntermediateIntent {
     }
 
     pub fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
-        self.exprs
-            .iter_mut()
-            .for_each(|(_, expr)| expr.replace_one_to_one(old_expr, new_expr));
+        self._exprs
+            .update_exprs(|_, expr| expr.replace_one_to_one(old_expr, new_expr));
 
         self.constraints
             .iter_mut()
@@ -299,9 +307,8 @@ impl IntermediateIntent {
     }
 
     pub fn replace_exprs_by_map(&mut self, expr_map: &HashMap<ExprKey, ExprKey>) {
-        self.exprs
-            .iter_mut()
-            .for_each(|(_, expr)| expr.replace_ref_by_map(expr_map));
+        self._exprs
+            .update_exprs(|_, expr| expr.replace_ref_by_map(expr_map));
 
         self.constraints
             .iter_mut()
@@ -326,8 +333,16 @@ impl IntermediateIntent {
         });
     }
 
-    pub(crate) fn exprs(&self) -> Exprs {
-        Exprs::new(self)
+    pub(crate) fn vars(&self) -> slotmap::basic::Iter<VarKey, Var> {
+        self._vars.vars()
+    }
+
+    pub(crate) fn states(&self) -> slotmap::basic::Iter<StateKey, State> {
+        self._states.states()
+    }
+
+    pub(crate) fn exprs(&self) -> ExprsIter {
+        ExprsIter::new(self)
     }
 
     pub(crate) fn visitor<F: FnMut(ExprKey, &Expr)>(&self, kind: VisitorKind, mut f: F) {
@@ -343,10 +358,7 @@ impl IntermediateIntent {
         expr_key: ExprKey,
         f: &mut impl FnMut(ExprKey, &Expr),
     ) {
-        let expr = self
-            .exprs
-            .get(expr_key)
-            .expect("expr key must belong to ii.expr");
+        let expr = expr_key.get(self);
 
         if kind == VisitorKind::DepthFirstParentsBeforeChildren {
             // Visit the parent before recursing.
@@ -454,7 +466,7 @@ impl IntermediateIntent {
         self.constraints
             .iter()
             .map(|c| c.expr)
-            .chain(self.states.iter().map(|(_, state)| state.expr))
+            .chain(self.states().map(|(_, state)| state.expr))
             .chain(
                 self.directives
                     .iter()
@@ -479,9 +491,10 @@ pub struct State {
 
 impl DisplayWithII for StateKey {
     fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
-        let state = &ii.states[*self];
+        let state = &self.get(ii);
         write!(f, "state {}", state.name)?;
-        if let Some(ty) = ii.state_types.get(*self) {
+        let ty = self.get_ty(ii);
+        if !ty.is_unknown() {
             write!(f, ": {}", ii.with_ii(ty))?;
         }
         write!(f, " = {}", ii.with_ii(&state.expr))
@@ -497,9 +510,10 @@ pub struct Var {
 
 impl DisplayWithII for VarKey {
     fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
-        let var = &ii.vars[*self];
+        let var = &self.get(ii);
         write!(f, "var {}", var.name)?;
-        if let Some(ty) = ii.var_types.get(*self) {
+        let ty = self.get_ty(ii);
+        if !ty.is_unknown() {
             write!(f, ": {}", ii.with_ii(ty))?;
         }
         Ok(())
@@ -651,156 +665,5 @@ impl<T: DisplayWithII> fmt::Display for WithII<'_, T> {
 impl<T: DisplayWithII> DisplayWithII for &T {
     fn fmt(&self, f: &mut fmt::Formatter, ii: &IntermediateIntent) -> fmt::Result {
         (*self).fmt(f, ii)
-    }
-}
-
-/// [`Exprs`] is an iterator for all the _reachable_ expressions in the IntermediateIntent.
-///
-/// Items are popped off the queue and are returned next.  If they're a branch then their children
-/// are queued.  The visited set is updated and used to avoid following a branch multiple
-/// times.
-///
-/// An alternative is to use `[IntermediateIntent::visitor]` which will also iterate
-/// for each reachable expression but does not implement `Interator` and instead takes a closure.
-
-#[derive(Debug)]
-pub(crate) struct Exprs<'a> {
-    ii: &'a IntermediateIntent,
-    queue: Vec<ExprKey>,
-    visited: HashSet<ExprKey>,
-}
-
-impl<'a> Exprs<'a> {
-    fn new(ii: &'a IntermediateIntent) -> Exprs {
-        // We start with all the constraint, directive and state exprs.
-        let queue = ii.root_set().collect();
-
-        // We also need to avoid macro calls which are not actually expressions.  We can
-        // pre-populate the visited set to avoid them.
-        let visited = HashSet::from_iter(ii.removed_macro_calls.keys());
-
-        Exprs { ii, queue, visited }
-    }
-}
-
-impl<'a> Iterator for Exprs<'a> {
-    type Item = ExprKey;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.queue.is_empty() {
-            return None;
-        }
-
-        macro_rules! queue_if_new {
-            ($self: ident, $key: expr) => {
-                if !$self.visited.contains($key) {
-                    $self.queue.push(*$key);
-                }
-            };
-        }
-
-        // Get the next key and mark it as visited.
-        let next_key = self.queue.pop().unwrap();
-        self.visited.insert(next_key);
-
-        // Push its children to the queue.
-        match self.ii.exprs.get(next_key).expect("invalid key in queue") {
-            Expr::UnaryOp { expr, .. } => queue_if_new!(self, expr),
-
-            Expr::BinaryOp { lhs, rhs, .. } => {
-                queue_if_new!(self, lhs);
-                queue_if_new!(self, rhs);
-            }
-
-            Expr::IntrinsicCall { args, .. } => {
-                for arg in args {
-                    queue_if_new!(self, arg);
-                }
-            }
-
-            Expr::Select {
-                condition,
-                then_expr,
-                else_expr,
-                ..
-            } => {
-                queue_if_new!(self, condition);
-                queue_if_new!(self, then_expr);
-                queue_if_new!(self, else_expr);
-            }
-
-            Expr::Array {
-                elements,
-                range_expr,
-                ..
-            } => {
-                for el in elements {
-                    queue_if_new!(self, el);
-                }
-                queue_if_new!(self, range_expr);
-            }
-
-            Expr::Index { expr, index, .. } => {
-                queue_if_new!(self, expr);
-                queue_if_new!(self, index);
-            }
-
-            Expr::Tuple { fields, .. } => {
-                for (_, field) in fields {
-                    queue_if_new!(self, field);
-                }
-            }
-
-            Expr::TupleFieldAccess { tuple, .. } => queue_if_new!(self, tuple),
-
-            Expr::Cast { value, .. } => queue_if_new!(self, value),
-
-            Expr::In {
-                value, collection, ..
-            } => {
-                queue_if_new!(self, value);
-                queue_if_new!(self, collection);
-            }
-
-            Expr::Range { lb, ub, .. } => {
-                queue_if_new!(self, lb);
-                queue_if_new!(self, ub);
-            }
-
-            Expr::Generator {
-                gen_ranges,
-                conditions,
-                body,
-                ..
-            } => {
-                for (_, range) in gen_ranges {
-                    queue_if_new!(self, range);
-                }
-
-                for cond in conditions {
-                    queue_if_new!(self, cond);
-                }
-
-                queue_if_new!(self, body);
-            }
-
-            Expr::Error(_)
-            | Expr::Immediate { .. }
-            | Expr::StorageAccess(..)
-            | Expr::ExternalStorageAccess { .. }
-            | Expr::PathByKey(_, _)
-            | Expr::PathByName(_, _)
-            | Expr::MacroCall { .. } => {}
-        };
-
-        // If it has an array type then it also has an associated expr in the range.
-        self.ii
-            .expr_types
-            .get(next_key)
-            .and_then(|ty| ty.get_array_range_expr())
-            .iter()
-            .for_each(|range| queue_if_new!(self, range));
-
-        Some(next_key)
     }
 }

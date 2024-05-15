@@ -34,11 +34,7 @@ impl Expr {
                 })
             }),
             Expr::UnaryOp { op, expr, .. } => {
-                let expr = ii
-                    .exprs
-                    .get(*expr)
-                    .expect("guaranteed by parser")
-                    .evaluate(handler, ii, values_map)?;
+                let expr = expr.get(ii).evaluate(handler, ii, values_map)?;
 
                 match (expr, op) {
                     (Real(expr), Neg) => Ok(Real(-expr)),
@@ -53,17 +49,9 @@ impl Expr {
                 }
             }
             Expr::BinaryOp { op, lhs, rhs, .. } => {
-                let lhs = ii
-                    .exprs
-                    .get(*lhs)
-                    .expect("guaranteed by parser")
-                    .evaluate(handler, ii, values_map)?;
+                let lhs = lhs.get(ii).evaluate(handler, ii, values_map)?;
 
-                let rhs = ii
-                    .exprs
-                    .get(*rhs)
-                    .expect("guaranteed by parser")
-                    .evaluate(handler, ii, values_map)?;
+                let rhs = rhs.get(ii).evaluate(handler, ii, values_map)?;
 
                 match (lhs, rhs) {
                     (Real(lhs), Real(rhs)) => match op {
@@ -178,11 +166,7 @@ impl ExprKey {
         ii: &mut IntermediateIntent,
         values_map: &HashMap<Path, Immediate>,
     ) -> ExprKey {
-        let expr = ii
-            .exprs
-            .get(self)
-            .expect("expr key must belong to ii.expr")
-            .clone();
+        let expr = self.get(ii).clone();
 
         let plugged = match expr {
             Expr::Immediate { .. }
@@ -200,7 +184,7 @@ impl ExprKey {
             Expr::PathByKey(key, ref span) => {
                 let span = span.clone();
                 values_map
-                    .get(&ii.vars[key].name)
+                    .get(&key.get(ii).name)
                     .map_or(expr, |value| Expr::Immediate {
                         value: value.clone(),
                         span,
@@ -331,11 +315,6 @@ impl ExprKey {
         };
 
         // Insert the new plugged expression and its type.
-        let plugged_key = ii.exprs.insert(plugged);
-        if let Some(expr_ty) = ii.expr_types.get(self) {
-            ii.expr_types.insert(plugged_key, expr_ty.clone());
-        }
-
-        plugged_key
+        ii._exprs.insert(plugged, self.get_ty(ii).clone())
     }
 }

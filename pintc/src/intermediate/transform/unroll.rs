@@ -71,10 +71,10 @@ fn unroll_generator(
     let product_of_ranges = gen_ranges
         .iter()
         .map(|range| {
-            match ii.exprs.get(range.1).expect("guaranteed by parser") {
+            match range.1.get(ii) {
                 Expr::Range { lb, ub, .. } => {
-                    let lb = ii.exprs.get(*lb).expect("guaranteed by parser");
-                    let ub = ii.exprs.get(*ub).expect("guaranteed by parser");
+                    let lb = lb.get(ii);
+                    let ub = ub.get(ii);
                     match (lb, ub) {
                         // Only support integer literals as bounds, for now
                         (
@@ -141,14 +141,16 @@ fn unroll_generator(
     };
 
     // Base value = `true` for foralls and `false` for exists
-    let mut unrolled = ii.exprs.insert(Expr::Immediate {
-        value: Immediate::Bool(match kind {
-            GeneratorKind::ForAll => true,
-            GeneratorKind::Exists => false,
-        }),
-        span: span.clone(),
-    });
-    ii.expr_types.insert(unrolled, bool_ty.clone());
+    let mut unrolled = ii._exprs.insert(
+        Expr::Immediate {
+            value: Immediate::Bool(match kind {
+                GeneratorKind::ForAll => true,
+                GeneratorKind::Exists => false,
+            }),
+            span: span.clone(),
+        },
+        bool_ty.clone(),
+    );
 
     for values in product_of_ranges {
         // Build a map from indices to their concrete values
@@ -161,12 +163,7 @@ fn unroll_generator(
         // Check each condition, if available, against the values map above
         let mut satisfied = true;
         for condition in &conditions {
-            match ii
-                .exprs
-                .get(*condition)
-                .expect("guaranteed by parser")
-                .evaluate(handler, ii, &values_map)?
-            {
+            match condition.get(ii).evaluate(handler, ii, &values_map)? {
                 Immediate::Bool(false) => {
                     satisfied = false;
                     break;
@@ -187,16 +184,18 @@ fn unroll_generator(
         // expression by joining it with the newly unrolled generator body.
         if satisfied {
             let rhs = body.plug_in(ii, &values_map);
-            unrolled = ii.exprs.insert(Expr::BinaryOp {
-                op: match kind {
-                    GeneratorKind::ForAll => BinaryOp::LogicalAnd,
-                    GeneratorKind::Exists => BinaryOp::LogicalOr,
+            unrolled = ii._exprs.insert(
+                Expr::BinaryOp {
+                    op: match kind {
+                        GeneratorKind::ForAll => BinaryOp::LogicalAnd,
+                        GeneratorKind::Exists => BinaryOp::LogicalOr,
+                    },
+                    lhs: unrolled,
+                    rhs,
+                    span: span.clone(),
                 },
-                lhs: unrolled,
-                rhs,
-                span: span.clone(),
-            });
-            ii.expr_types.insert(unrolled, bool_ty.clone());
+                bool_ty.clone(),
+            );
         }
     }
 
@@ -235,7 +234,7 @@ pub(crate) fn unroll_generators(
 
     for old_generator_key in generators {
         // On success, update the key of the generator to map to the new unrolled expression.
-        let generator = ii.exprs.get(old_generator_key).unwrap().clone();
+        let generator = old_generator_key.get(ii).clone();
         if let Ok(unrolled_generator_key) = unroll_generator(handler, ii, generator) {
             ii.replace_exprs(old_generator_key, unrolled_generator_key);
         }

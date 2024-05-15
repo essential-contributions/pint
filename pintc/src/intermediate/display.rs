@@ -50,11 +50,11 @@ impl super::IntermediateIntent {
             writeln!(f, "{indentation}    }}")?;
             writeln!(f, "{indentation}}}")?;
         }
-        for var in &self.vars {
-            writeln!(f, "{indentation}{};", self.with_ii(var.0))?;
+        for (var_key, _) in self.vars() {
+            writeln!(f, "{indentation}{};", self.with_ii(var_key))?;
         }
-        for state in &self.states {
-            writeln!(f, "{indentation}{};", self.with_ii(state.0))?;
+        for (state_key, _) in self.states() {
+            writeln!(f, "{indentation}{};", self.with_ii(state_key))?;
         }
         for r#enum in &self.enums {
             writeln!(f, "{indentation}{};", self.with_ii(r#enum))?;

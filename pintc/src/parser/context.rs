@@ -5,7 +5,7 @@ use crate::{
     macros::{MacroCall, MacroDecl},
     parser::{Ident, NextModPath, UsePath},
     span::Span,
-    types::Path,
+    types::{Path, Type},
 };
 use std::collections::BTreeMap;
 
@@ -61,11 +61,14 @@ impl<'a> ParserContext<'a> {
         (l, r): (usize, usize),
     ) -> ExprKey {
         let span = (self.span_from)(l, r);
-        self.current_ii().exprs.insert(Expr::TupleFieldAccess {
-            tuple,
-            field: TupleAccess::Name(name),
-            span,
-        })
+        self.current_ii()._exprs.insert(
+            Expr::TupleFieldAccess {
+                tuple,
+                field: TupleAccess::Name(name),
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
     }
 
     /// Handles a tuple access expression with an integer.
@@ -86,23 +89,26 @@ impl<'a> ParserContext<'a> {
         let span = (self.span_from)(l, r);
         let index_span = (self.span_from)(m, r);
 
-        self.current_ii().exprs.insert(Expr::TupleFieldAccess {
-            tuple,
-            field: int_str
-                .parse::<usize>()
-                .map(TupleAccess::Index)
-                .unwrap_or_else(|_| {
-                    // Recover with a malformed field access
-                    handler.emit_err(Error::Parse {
-                        error: ParseError::InvalidIntegerTupleIndex {
-                            span: index_span,
-                            index: int_str,
-                        },
-                    });
-                    TupleAccess::Error
-                }),
-            span,
-        })
+        self.current_ii()._exprs.insert(
+            Expr::TupleFieldAccess {
+                tuple,
+                field: int_str
+                    .parse::<usize>()
+                    .map(TupleAccess::Index)
+                    .unwrap_or_else(|_| {
+                        // Recover with a malformed field access
+                        handler.emit_err(Error::Parse {
+                            error: ParseError::InvalidIntegerTupleIndex {
+                                span: index_span,
+                                index: int_str,
+                            },
+                        });
+                        TupleAccess::Error
+                    }),
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
     }
 
     /// Handles a tuple access expression with a real (e.g. `my_tuple.1.3 - the `1.3` here is a
@@ -154,18 +160,24 @@ impl<'a> ParserContext<'a> {
                     });
 
                 let span = (self.span_from)(l, m + dot_index);
-                let lhs_access_key = self.current_ii().exprs.insert(Expr::TupleFieldAccess {
-                    tuple,
-                    field: first_index,
-                    span,
-                });
+                let lhs_access_key = self.current_ii()._exprs.insert(
+                    Expr::TupleFieldAccess {
+                        tuple,
+                        field: first_index,
+                        span: span.clone(),
+                    },
+                    Type::Unknown(span),
+                );
 
                 let span = (self.span_from)(l, r);
-                self.current_ii().exprs.insert(Expr::TupleFieldAccess {
-                    tuple: lhs_access_key,
-                    field: second_index,
-                    span,
-                })
+                self.current_ii()._exprs.insert(
+                    Expr::TupleFieldAccess {
+                        tuple: lhs_access_key,
+                        field: second_index,
+                        span: span.clone(),
+                    },
+                    Type::Unknown(span),
+                )
             }
             None => {
                 handler.emit_err(Error::Parse {
@@ -177,11 +189,14 @@ impl<'a> ParserContext<'a> {
 
                 // Recover with a malformed tuple access
                 let span = (self.span_from)(l, r);
-                self.current_ii().exprs.insert(Expr::TupleFieldAccess {
-                    tuple,
-                    field: TupleAccess::Error,
-                    span,
-                })
+                self.current_ii()._exprs.insert(
+                    Expr::TupleFieldAccess {
+                        tuple,
+                        field: TupleAccess::Error,
+                        span: span.clone(),
+                    },
+                    Type::Unknown(span),
+                )
             }
         }
     }

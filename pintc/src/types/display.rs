@@ -12,6 +12,8 @@ impl DisplayWithII for super::Type {
         match self {
             super::Type::Error(..) => write!(f, "Error"),
 
+            super::Type::Unknown(..) => write!(f, "Unknown"),
+
             super::Type::Primitive { kind, .. } => match kind {
                 super::PrimitiveKind::Bool => write!(f, "bool"),
                 super::PrimitiveKind::Int => write!(f, "int"),

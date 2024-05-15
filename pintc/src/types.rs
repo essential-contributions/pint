@@ -20,6 +20,7 @@ pub enum PrimitiveKind {
 #[derive(Clone, Debug)]
 pub enum Type {
     Error(Span),
+    Unknown(Span),
     Primitive {
         kind: PrimitiveKind,
         span: Span,
@@ -72,6 +73,10 @@ macro_rules! check_alias {
 }
 
 impl Type {
+    pub fn is_unknown(&self) -> bool {
+        matches!(self, Type::Unknown(_))
+    }
+
     pub fn is_alias(&self) -> Option<&Type> {
         if let Type::Alias { ty, .. } = self {
             Some(ty)
@@ -249,6 +254,7 @@ impl PartialEq for Type {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Error(_), Self::Error(_)) => true,
+            (Self::Unknown(_), Self::Unknown(_)) => true,
 
             (Self::Alias { ty: lhs_ty, .. }, rhs) => &**lhs_ty == rhs,
             (lhs, Self::Alias { ty: rhs_ty, .. }) => lhs == &**rhs_ty,
@@ -336,6 +342,7 @@ impl Spanned for Type {
         use Type::*;
         match &self {
             Error(span)
+            | Unknown(span)
             | Primitive { span, .. }
             | Array { span, .. }
             | Tuple { span, .. }

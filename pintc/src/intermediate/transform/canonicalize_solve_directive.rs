@@ -64,58 +64,47 @@ pub(crate) fn canonicalize_solve_directive(
 
     // we only need to transform if the objective isn't already a var
     if matches!(
-        ii.exprs.get(directive_expr_key),
+        directive_expr_key.try_get(ii),
         Some(Expr::PathByName(_, _)) | Some(Expr::PathByKey(_, _))
     ) {
         return Ok(());
     }
 
-    let directive_expr_type = ii
-        .expr_types
-        .get(directive_expr_key)
-        .ok_or_else(|| {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "invalid intermediate intent expression_types slotmap key",
-                    span: empty_span(),
-                },
-            })
-        })?
-        .clone();
+    let directive_expr_type = directive_expr_key.get_ty(ii).clone();
 
     // create the new objective variable
     // let ~objective: <type_of_expr>;
     let objective_var_name = "~objective".to_string();
     ii.top_level_symbols
         .insert(objective_var_name.clone(), directive_span.clone());
-    let objective_var_key = ii.vars.insert(Var {
-        name: objective_var_name,
-        span: directive_span.clone(),
-    });
-    ii.var_types
-        .insert(objective_var_key, directive_expr_type.clone());
+    let objective_var_key = ii._vars.insert(
+        Var {
+            name: objective_var_name,
+            span: directive_span.clone(),
+        },
+        directive_expr_type.clone(),
+    );
 
     // update the directive expression to be the newly created objective variable
     // solve maximize ~objective;
-    let objective_expr_key = ii
-        .exprs
-        .insert(Expr::PathByKey(objective_var_key, directive_span.clone()));
-    ii.expr_types
-        .insert(objective_expr_key, directive_expr_type.clone());
+    let objective_expr_key = ii._exprs.insert(
+        Expr::PathByKey(objective_var_key, directive_span.clone()),
+        directive_expr_type.clone(),
+    );
 
-    let eq_expr_key = ii.exprs.insert(Expr::BinaryOp {
-        op: expr::BinaryOp::Equal,
-        lhs: objective_expr_key,
-        rhs: directive_expr_key,
-        span: directive_span.clone(),
-    });
-    ii.expr_types.insert(
-        eq_expr_key,
+    let eq_expr_key = ii._exprs.insert(
+        Expr::BinaryOp {
+            op: expr::BinaryOp::Equal,
+            lhs: objective_expr_key,
+            rhs: directive_expr_key,
+            span: directive_span.clone(),
+        },
         Type::Primitive {
             kind: PrimitiveKind::Bool,
             span: directive_span.clone(),
         },
     );
+
     ii.constraints.push(ConstraintDecl {
         expr: eq_expr_key,
         span: directive_span.clone(),
