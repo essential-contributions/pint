@@ -45,6 +45,8 @@ pub enum Token {
     DoublePipe,
     #[token("'")]
     SingleQuote,
+    #[token("?")]
+    QuestionMark,
 
     #[token(";")]
     Semi,
@@ -237,6 +239,7 @@ impl fmt::Display for Token {
             Token::DoubleAmpersand => write!(f, "&&"),
             Token::DoublePipe => write!(f, "||"),
             Token::SingleQuote => write!(f, "'"),
+            Token::QuestionMark => write!(f, "?"),
             Token::Semi => write!(f, ";"),
             Token::Comma => write!(f, ","),
             Token::Star => write!(f, "*"),

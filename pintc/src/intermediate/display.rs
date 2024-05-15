@@ -63,7 +63,10 @@ impl super::IntermediateIntent {
             writeln!(f, "{indentation}{};", self.with_ii(new_type))?;
         }
         for constraint in &self.constraints {
-            writeln!(f, "{indentation}constraint {};", self.with_ii(constraint.0))?;
+            writeln!(f, "{indentation}{};", self.with_ii(constraint))?;
+        }
+        for if_decl in &self.if_decls {
+            if_decl.fmt_with_indent(f, self, indent)?;
         }
         for directive in &self.directives {
             writeln!(f, "{indentation}{};", self.with_ii(directive.0.clone()))?;

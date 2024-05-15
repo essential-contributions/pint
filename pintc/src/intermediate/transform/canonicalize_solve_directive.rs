@@ -2,7 +2,7 @@ use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{self, Expr},
     intermediate::{
-        IntermediateIntent, Program, ProgramKind,
+        ConstraintDecl, IntermediateIntent, Program, ProgramKind,
         SolveFunc::{self, *},
         Var,
     },
@@ -116,7 +116,10 @@ pub(crate) fn canonicalize_solve_directive(
             span: directive_span.clone(),
         },
     );
-    ii.constraints.push((eq_expr_key, directive_span.clone()));
+    ii.constraints.push(ConstraintDecl {
+        expr: eq_expr_key,
+        span: directive_span.clone(),
+    });
 
     let canonicalized_solve_func = match solve_func {
         Satisfy => return Ok(()),

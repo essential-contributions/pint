@@ -1,0 +1,115 @@
+let x_1: int;
+let y_1: int;
+let z_1: int;
+let w_1: int;
+let condition_1_a: bool = true;
+let condition_1_b: bool = true;
+let condition_1_c: bool;
+
+if condition_1_a {
+    if condition_1_b {
+        constraint x_1 == 1;
+    } else {
+        constraint y_1 == 2;
+    }
+} else {
+    if condition_1_c {
+        constraint z_1 == 3;
+    } else {
+        constraint w_1 == 4;
+    }
+}
+
+constraint x_1 == 1;
+constraint y_1 == 42;
+constraint z_1 == 69;
+constraint w_1 == 99;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+let x_2: int;
+let y_2: int;
+let z_2: int;
+let w_2: int;
+let condition_2_a: bool = true;
+let condition_2_b: bool = false;
+let condition_2_c: bool;
+
+if condition_2_a {
+    if condition_2_b {
+        constraint x_2 == 1;
+    } else {
+        constraint y_2 == 2;
+    }
+} else {
+    if condition_2_c {
+        constraint z_2 == 3;
+    } else {
+        constraint w_2 == 4;
+    }
+}
+
+constraint x_2 == 42;
+constraint y_2 == 2;
+constraint z_2 == 69;
+constraint w_2 == 99;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+let x_3: int;
+let y_3: int;
+let z_3: int;
+let w_3: int;
+let condition_3_a: bool = false;
+let condition_3_b: bool;
+let condition_3_c: bool = true;
+
+if condition_3_a {
+    if condition_3_b {
+        constraint x_3 == 1;
+    } else {
+        constraint y_3 == 2;
+    }
+} else {
+    if condition_3_c {
+        constraint z_3 == 3;
+    } else {
+        constraint w_3 == 4;
+    }
+}
+
+constraint x_3 == 69;
+constraint y_3 == 42;
+constraint z_3 == 3;
+constraint w_3 == 99;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+let x_4: int;
+let y_4: int;
+let z_4: int;
+let w_4: int;
+let condition_4_a: bool = false;
+let condition_4_b: bool;
+let condition_4_c: bool = false;
+
+if condition_4_a {
+    if condition_4_b {
+        constraint x_4 == 1;
+    } else {
+        constraint y_4 == 2;
+    }
+} else {
+    if condition_4_c {
+        constraint z_4 == 3;
+    } else {
+        constraint w_4 == 4;
+    }
+}
+
+constraint x_4 == 99;
+constraint y_4 == 42;
+constraint z_4 == 69;
+constraint w_4 == 4;
+
+solve satisfy;

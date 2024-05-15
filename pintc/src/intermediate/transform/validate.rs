@@ -11,6 +11,7 @@ pub(crate) fn validate(handler: &Handler, program: &mut Program) -> Result<(), E
         check_constraints(ii, handler);
         check_vars(ii, handler);
         check_states(ii, handler);
+        check_ifs(ii, handler);
         check_directive(ii, handler);
     });
 
@@ -58,6 +59,22 @@ fn check_states(ii: &IntermediateIntent, handler: &Handler) {
                 span: ii.states[state_key].span.clone(),
             }});
         }
+    }
+}
+
+fn check_ifs(ii: &IntermediateIntent, handler: &Handler) {
+    if !ii.if_decls.is_empty() {
+        handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "final intent contains if declarations",
+                span: ii
+                    .if_decls
+                    .last()
+                    .expect("guaranteed to exist")
+                    .span
+                    .clone(),
+            },
+        });
     }
 }
 
@@ -154,13 +171,6 @@ fn check_expr(
             "macro call",
             "exprs"
         )),
-        // <<disabled>> for now until if support is added.
-        // Expr::If { span, .. } => Err(emit_illegal_type_error!(
-        //     handler,
-        //     span,
-        //     "if expression",
-        //     "exprs"
-        // )),
         Expr::Index { expr, span, .. } => {
             if !ii.expr_types.get(*expr).expect("").is_map() {
                 Err(emit_illegal_type_error!(
@@ -215,7 +225,7 @@ fn check_expr(
         | Expr::UnaryOp { .. }
         | Expr::BinaryOp { .. }
         | Expr::IntrinsicCall { .. }
-        | Expr::If { .. }
+        | Expr::Select { .. }
         | Expr::Cast { .. }
         | Expr::ExternalStorageAccess { .. } => Ok(()),
     }
@@ -242,7 +252,7 @@ fn expr_is_for_storage(ii: &IntermediateIntent, expr: &Expr) -> bool {
         | Expr::BinaryOp { .. }
         | Expr::MacroCall { .. }
         | Expr::IntrinsicCall { .. }
-        | Expr::If { .. }
+        | Expr::Select { .. }
         | Expr::Array { .. }
         | Expr::Tuple { .. }
         | Expr::Cast { .. }
@@ -474,6 +484,19 @@ fn vars() {
         expect_test::expect![[r#"
         compiler internal error: mismatched final intent vars and var_types slotmaps
         compiler internal error: final intent var_types slotmap is missing corresponding key from vars slotmap"#]],
+    );
+}
+
+#[test]
+fn if_decls() {
+    use crate::error;
+
+    let src = "if true { constraint true; } solve satisfy;";
+    let (mut program, handler) = run_without_transforms(src);
+    let _ = validate(&handler, &mut program);
+    check(
+        &error::Errors(handler.consume()).to_string(),
+        expect_test::expect!["compiler internal error: final intent contains if declarations"],
     );
 }
 

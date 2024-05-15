@@ -30,7 +30,7 @@ fn examples_runner() -> anyhow::Result<()> {
             }
         }
 
-        println!("Deploying {}.", entry.path().display());
+        println!("Testing {}.", entry.path().display());
 
         // Error handler
         let handler = pintc::error::Handler::default();

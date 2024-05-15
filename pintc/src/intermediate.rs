@@ -2,7 +2,7 @@ use crate::{
     error::{Error, ErrorEmitted, Handler, ParseError},
     expr::{self, Expr, Ident, Immediate},
     span::{empty_span, Span},
-    types::{EnumDecl, EphemeralDecl, FnSig, NewTypeDecl, Path, Type},
+    types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type},
 };
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
@@ -72,7 +72,8 @@ pub struct IntermediateIntent {
     pub exprs: slotmap::SlotMap<ExprKey, Expr>,
     pub expr_types: slotmap::SecondaryMap<ExprKey, Type>,
 
-    pub constraints: Vec<(ExprKey, Span)>,
+    pub constraints: Vec<ConstraintDecl>,
+    pub if_decls: Vec<IfDecl>,
     pub directives: Vec<(SolveFunc, Span)>,
 
     pub ephemerals: Vec<EphemeralDecl>,
@@ -101,6 +102,13 @@ impl IntermediateIntent {
     /// Helps out some `thing: T` by adding `self` as context.
     pub fn with_ii<T>(&self, thing: T) -> WithII<T> {
         WithII { thing, ii: self }
+    }
+
+    /// Insert an expression with its type into the appropriate maps
+    pub fn insert_expr(&mut self, expr: Expr, ty: Type) -> ExprKey {
+        let expr_key = self.exprs.insert(expr);
+        self.expr_types.insert(expr_key, ty);
+        expr_key
     }
 
     pub fn insert_var(
@@ -167,14 +175,20 @@ impl IntermediateIntent {
                 rhs: lb,
                 span: span.clone(),
             });
-            self.constraints.push((geq_expr_key, span.clone()));
+            self.constraints.push(ConstraintDecl {
+                expr: geq_expr_key,
+                span: span.clone(),
+            });
             let geq_expr_key = self.exprs.insert(Expr::BinaryOp {
                 op: expr::BinaryOp::LessThanOrEqual,
                 lhs: var_expr_key,
                 rhs: ub,
                 span: span.clone(),
             });
-            self.constraints.push((geq_expr_key, span));
+            self.constraints.push(ConstraintDecl {
+                expr: geq_expr_key,
+                span,
+            });
         } else {
             let eq_expr_key = self.exprs.insert(Expr::BinaryOp {
                 op: expr::BinaryOp::Equal,
@@ -182,7 +196,10 @@ impl IntermediateIntent {
                 rhs: expr_key,
                 span: span.clone(),
             });
-            self.constraints.push((eq_expr_key, span));
+            self.constraints.push(ConstraintDecl {
+                expr: eq_expr_key,
+                span,
+            });
         }
     }
 
@@ -258,11 +275,13 @@ impl IntermediateIntent {
             .iter_mut()
             .for_each(|(_, expr)| expr.replace_one_to_one(old_expr, new_expr));
 
-        self.constraints.iter_mut().for_each(|(expr, _)| {
-            if *expr == old_expr {
-                *expr = new_expr;
-            }
-        });
+        self.constraints
+            .iter_mut()
+            .for_each(|ConstraintDecl { expr, .. }| {
+                if *expr == old_expr {
+                    *expr = new_expr;
+                }
+            });
 
         self.directives.iter_mut().for_each(|(solve_func, _)| {
             if let Some(expr) = solve_func.get_mut_expr() {
@@ -284,11 +303,13 @@ impl IntermediateIntent {
             .iter_mut()
             .for_each(|(_, expr)| expr.replace_ref_by_map(expr_map));
 
-        self.constraints.iter_mut().for_each(|(expr, _)| {
-            if let Some(new_expr) = expr_map.get(expr) {
-                *expr = *new_expr;
-            }
-        });
+        self.constraints
+            .iter_mut()
+            .for_each(|ConstraintDecl { expr, .. }| {
+                if let Some(new_expr) = expr_map.get(expr) {
+                    *expr = *new_expr;
+                }
+            });
 
         self.directives.iter_mut().for_each(|(solve_func, _)| {
             if let Some(expr) = solve_func.get_mut_expr() {
@@ -354,15 +375,15 @@ impl IntermediateIntent {
                 }
             }
 
-            Expr::If {
+            Expr::Select {
                 condition,
-                then_block,
-                else_block,
+                then_expr,
+                else_expr,
                 ..
             } => {
                 self.visitor_from_key(kind, *condition, f);
-                self.visitor_from_key(kind, *then_block, f);
-                self.visitor_from_key(kind, *else_block, f);
+                self.visitor_from_key(kind, *then_expr, f);
+                self.visitor_from_key(kind, *else_expr, f);
             }
 
             Expr::Array {
@@ -432,7 +453,7 @@ impl IntermediateIntent {
     fn root_set(&self) -> impl Iterator<Item = ExprKey> + '_ {
         self.constraints
             .iter()
-            .map(|c| c.0)
+            .map(|c| c.expr)
             .chain(self.states.iter().map(|(_, state)| state.expr))
             .chain(
                 self.directives
@@ -485,15 +506,69 @@ impl DisplayWithII for VarKey {
     }
 }
 
-/// A function (macro) to be applied and reduced where called.
-// TODO: This isn't read yet but will need to be as a part of semantic analysis and optimisation.
-#[allow(dead_code)]
-#[derive(Debug)]
-struct FnDecl {
-    sig: FnSig,
-    local_vars: Vec<(Var, Span)>,
-    local_constraints: Vec<(Expr, Span)>,
-    returned_constraint: Expr,
+#[derive(Clone, Debug)]
+pub struct ConstraintDecl {
+    pub expr: ExprKey,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub enum BlockStatement {
+    Constraint(ConstraintDecl),
+    If(IfDecl),
+}
+
+impl BlockStatement {
+    fn fmt_with_indent(
+        &self,
+        f: &mut Formatter,
+        ii: &IntermediateIntent,
+        indent: usize,
+    ) -> fmt::Result {
+        let indentation = " ".repeat(4 * indent);
+        match self {
+            Self::Constraint(constraint) => {
+                writeln!(f, "{indentation}constraint {}", ii.with_ii(constraint.expr))
+            }
+            Self::If(if_decl) => if_decl.fmt_with_indent(f, ii, indent),
+        }
+    }
+}
+
+impl DisplayWithII for ConstraintDecl {
+    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
+        write!(f, "constraint {}", ii.with_ii(self.expr))
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct IfDecl {
+    pub condition: ExprKey,
+    pub then_block: Vec<BlockStatement>,
+    pub else_block: Option<Vec<BlockStatement>>,
+    pub span: Span,
+}
+
+impl IfDecl {
+    fn fmt_with_indent(
+        &self,
+        f: &mut Formatter,
+        ii: &IntermediateIntent,
+        indent: usize,
+    ) -> fmt::Result {
+        let indentation = " ".repeat(4 * indent);
+        writeln!(f, "{indentation}if {} {{", ii.with_ii(self.condition))?;
+        for block_statament in &self.then_block {
+            block_statament.fmt_with_indent(f, ii, indent + 1)?;
+        }
+        if let Some(else_block) = &self.else_block {
+            writeln!(f, "{indentation}}} else {{")?;
+            for block_statament in else_block {
+                block_statament.fmt_with_indent(f, ii, indent + 1)?;
+            }
+        }
+        writeln!(f, "{indentation}}}")
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -643,15 +718,15 @@ impl<'a> Iterator for Exprs<'a> {
                 }
             }
 
-            Expr::If {
+            Expr::Select {
                 condition,
-                then_block,
-                else_block,
+                then_expr,
+                else_expr,
                 ..
             } => {
                 queue_if_new!(self, condition);
-                queue_if_new!(self, then_block);
-                queue_if_new!(self, else_block);
+                queue_if_new!(self, then_expr);
+                queue_if_new!(self, else_expr);
             }
 
             Expr::Array {

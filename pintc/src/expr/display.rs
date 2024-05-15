@@ -108,17 +108,17 @@ impl DisplayWithII for &super::Expr {
                 write!(f, ")")
             }
 
-            super::Expr::If {
+            super::Expr::Select {
                 condition,
-                then_block,
-                else_block,
+                then_expr,
+                else_expr,
                 ..
             } => write!(
                 f,
-                "if {} {{ {} }} else {{ {} }}",
+                "({} ? {} : {})",
                 ii.with_ii(condition),
-                ii.with_ii(then_block),
-                ii.with_ii(else_block)
+                ii.with_ii(then_expr),
+                ii.with_ii(else_expr)
             ),
 
             super::Expr::Range { lb, ub, .. } => {

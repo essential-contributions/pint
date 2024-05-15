@@ -35,7 +35,9 @@ mod validate;
 
 use crate::error::{ErrorEmitted, Handler};
 use canonicalize_solve_directive::canonicalize_solve_directive;
-use lower::{lower_aliases, lower_bools, lower_casts, lower_enums, lower_imm_accesses, lower_ins};
+use lower::{
+    lower_aliases, lower_bools, lower_casts, lower_enums, lower_ifs, lower_imm_accesses, lower_ins,
+};
 use scalarize::scalarize;
 use unroll::unroll_generators;
 use validate::validate;
@@ -43,6 +45,12 @@ use validate::validate;
 impl super::Program {
     pub fn flatten(mut self, handler: &Handler) -> Result<Self, ErrorEmitted> {
         for ii in self.iis.values_mut() {
+            // Transform each if declaration into a collection of constraints We do this first so
+            // that we don't have to worry about `if` declarations in any of the later passes. All
+            // other passes are safe to assume that `if` declarations and their content have
+            // already been converted to raw constraints.
+            lower_ifs(ii);
+
             // Unroll each generator into one large conjuction
             let _ = handler.scope(|handler| unroll_generators(handler, ii));
 

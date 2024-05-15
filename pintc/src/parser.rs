@@ -271,15 +271,15 @@ impl<'a> ProjectParser<'a> {
                         )?;
                     }
                 }
-                Expr::If {
+                Expr::Select {
                     condition,
-                    then_block,
-                    else_block,
+                    then_expr,
+                    else_expr,
                     ..
                 } => {
                     process_nested_expr!(condition, "if `condition`", root_exprs, ii, handler)?;
-                    process_nested_expr!(then_block, "if `then block`", root_exprs, ii, handler)?;
-                    process_nested_expr!(else_block, "if `else block`", root_exprs, ii, handler)?;
+                    process_nested_expr!(then_expr, "if `then expr`", root_exprs, ii, handler)?;
+                    process_nested_expr!(else_expr, "if `else expr`", root_exprs, ii, handler)?;
                 }
                 Expr::Array {
                     elements,

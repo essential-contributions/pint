@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{BinaryOp, Expr, Immediate, TupleAccess},
-    intermediate::IntermediateIntent,
+    expr::{BinaryOp, Expr, Immediate, TupleAccess, UnaryOp},
+    intermediate::{BlockStatement, ConstraintDecl, ExprKey, IfDecl, IntermediateIntent},
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
 };
@@ -117,8 +117,14 @@ pub(crate) fn lower_enums(
             });
             ii.expr_types.insert(upper_bound_cmp_key, bool_ty.clone());
 
-            ii.constraints.push((lower_bound_cmp_key, empty_span()));
-            ii.constraints.push((upper_bound_cmp_key, empty_span()));
+            ii.constraints.push(ConstraintDecl {
+                expr: lower_bound_cmp_key,
+                span: empty_span(),
+            });
+            ii.constraints.push(ConstraintDecl {
+                expr: upper_bound_cmp_key,
+                span: empty_span(),
+            });
 
             // Replace the type.
             for (_, expr_type) in ii.expr_types.iter_mut() {
@@ -524,4 +530,134 @@ pub(crate) fn lower_ins(
     } else {
         Ok(())
     }
+}
+
+/// Convert all `if` declarations into individual constraints that are pushed to `ii.constraints`.
+/// For example:
+///
+/// if c {
+///     if d {
+///         constraint x == y;
+///     } else {
+///         constraint 2 * x != y;
+///     }
+/// } else {
+///     constraint 3 * x != y;
+/// }
+///
+/// is equivalent to
+///
+/// constraint (!::c || (!::d || (::x == ::y)));
+/// constraint (!::c || (::d || ((2 * ::x) != ::y)));
+/// constraint (::c || ((3 * ::x) != ::y));
+///
+/// The transformation is recursive and uses the Boolean principle:
+/// `a ==> b` is equivalent to `!a || b`.
+///
+pub(crate) fn lower_ifs(ii: &mut IntermediateIntent) {
+    for if_decl in &ii.if_decls.clone() {
+        let all_exprs = convert_if(ii, if_decl);
+        for expr in all_exprs {
+            ii.constraints.push(ConstraintDecl {
+                expr,
+                span: empty_span(),
+            });
+        }
+    }
+
+    // Remove all `if_decls`. We don't need them anymore.
+    ii.if_decls.clear();
+}
+
+// Given an `IfDecl`, convert all of its statements to Boolean expressions and return all of
+// them in a `Vec<ExprKey>`. This follows the principle that `a ==> b` is equivalent to `!a || b`.
+fn convert_if(
+    ii: &mut IntermediateIntent,
+    IfDecl {
+        condition,
+        then_block,
+        else_block,
+        ..
+    }: &IfDecl,
+) -> Vec<ExprKey> {
+    let condition_inverse = ii.insert_expr(
+        Expr::UnaryOp {
+            op: UnaryOp::Not,
+            expr: *condition,
+            span: empty_span(),
+        },
+        Type::Primitive {
+            kind: PrimitiveKind::Bool,
+            span: empty_span(),
+        },
+    );
+
+    let mut all_exprs = vec![];
+
+    for statement in then_block {
+        // `condition => statement` i.e. `!condition || statement`
+        all_exprs.extend(convert_if_block_statement(ii, statement, condition_inverse));
+    }
+
+    if let Some(else_block) = else_block {
+        // `!condition => statement` i.e. `!!condition || statement`
+        for statement in else_block {
+            all_exprs.extend(convert_if_block_statement(
+                ii, statement,
+                *condition, // use condition is here since it's the inverse of the inverse,
+            ));
+        }
+    }
+
+    all_exprs
+}
+
+// Given a if block statement and the inverse of a condition, produce a list of `ExprKey`s that
+// contain all the converted statements.
+//
+// If `statement` is a `ConstraintDecl`, then the converted expression is `condition_inverse || expr`
+// where `expr` is the expression inside the constraint.  This is the Boolean equivalent of
+// `condition ==> expr`.
+//
+// If `statement` is an `IfDecl`, then recurse by calling `convert_if`.
+//
+fn convert_if_block_statement(
+    ii: &mut IntermediateIntent,
+    statement: &BlockStatement,
+    condition_inverse: ExprKey,
+) -> Vec<ExprKey> {
+    let bool_ty = Type::Primitive {
+        kind: PrimitiveKind::Bool,
+        span: empty_span(),
+    };
+
+    let mut converted_exprs = vec![];
+    match statement {
+        BlockStatement::Constraint(constraint_decl) => {
+            converted_exprs.push(ii.insert_expr(
+                Expr::BinaryOp {
+                    op: BinaryOp::LogicalOr,
+                    lhs: condition_inverse,
+                    rhs: constraint_decl.expr,
+                    span: empty_span(),
+                },
+                bool_ty.clone(),
+            ));
+        }
+        BlockStatement::If(if_decl) => {
+            for inner_expr in convert_if(ii, if_decl) {
+                converted_exprs.push(ii.insert_expr(
+                    Expr::BinaryOp {
+                        op: BinaryOp::LogicalOr,
+                        lhs: condition_inverse,
+                        rhs: inner_expr,
+                        span: empty_span(),
+                    },
+                    bool_ty.clone(),
+                ));
+            }
+        }
+    }
+
+    converted_exprs
 }
