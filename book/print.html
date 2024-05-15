@@ -759,74 +759,61 @@ let big_answer_too = 42;
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="conditionals"><a class="header" href="#conditionals">Conditionals</a></h2>
-<p>Pint has two different ways to express conditionals. <code>if</code> expressions and <code>cond</code> expressions.
-Conditionals allow you to &quot;branch&quot; your code depending on some condition(s). The word &quot;branch&quot; is
-between quotations because Pint is <strong>not</strong> an imperative language and does not &quot;execute&quot; code.
-Therefore, conditionals are simply a way of saying: &quot;this expression is equal to one of the
-following values, based on some condition(s)&quot;.</p>
-<h3 id="if-expressions"><a class="header" href="#if-expressions"><code>if</code> Expressions</a></h3>
-<p>An <code>if</code> expression allows you to select between two alternatives based on a condition. Every <code>if</code>
-expression has a corresponding <code>else</code> where the second alternative is added. The two alternatives
-must have the same type and that type determines the type of the whole <code>if</code> expression. For example:</p>
+<p>Pint has three different ways to express conditionals: select expressions, <code>cond</code> expressions, and
+<code>if</code> statements. Conditionals allow you to &quot;branch&quot; your code depending on some condition(s). The
+word &quot;branch&quot; is between quotations because Pint is <strong>not</strong> an imperative language and does not
+&quot;execute&quot; code. Therefore, conditionals are simply a way of saying: &quot;choose between some expressions
+or some constraints based on some condition(s)&quot;.</p>
+<h3 id="select-expressions"><a class="header" href="#select-expressions">Select Expressions</a></h3>
+<p>A select expression allows you to select between two alternatives based on a condition. The two
+alternatives must have the same type and that type determines the type of the whole select
+expression. For example:</p>
 <pre><code class="language-pint">let number: int;
 
-let y = if number &lt; 5 {
-    1
-} else {
-    2
-};
+let y = number &lt; 5 ? 1 : 2;
 </code></pre>
-<p>All <code>if</code> expressions start with the keyword <code>if</code>, followed by a condition. In this case, the
+<p>All select expressions start with a condition followed by the <code>?</code> symbol. In this case, the
 condition checks whether or not the decision variable <code>number</code> has a value less than 5. We place the
-expression that should be chosen if the condition is <code>true</code> immediately after the condition inside
-curly brackets. The keyword <code>else</code> is then added followed by the expression that should be chosen if
-the condition is <code>false</code> (also between curly brackets). Both options, <code>1</code> and <code>2</code>, have the same
-type which is <code>int</code> and so, the type of <code>y</code> must also be <code>int</code>.</p>
+expression that should be chosen if the condition is <code>true</code> immediately after the <code>?</code> symbol. The
+symbol <code>:</code> is then added followed by the expression that should be chosen if the condition is
+<code>false</code>. Both options, <code>1</code> and <code>2</code>, have the same type which is <code>int</code> and so, the type of <code>y</code> must
+also be <code>int</code>.</p>
 <p>If, for example, the types of the two expressions we're selecting from do not match, the compiler
 will emit a compile error. For example, if we try to compile the following code:</p>
 <pre><code class="language-pint">let number: int;
 
-let y = if number &lt; 5 {
-    1
-} else {
-    2.0
-};
+let y = number &lt; 5 ? 1 : 2.0;
 </code></pre>
 <p>we will get the following error:</p>
-<pre><code class="language-console">Error: branches in if-expression must have the same type
-   ╭─[ch_3_4.pnt:4:9]
+<pre><code class="language-console">Error: branches of a select expression must have the same type
+   ╭─[test.pnt:3:9]
    │
- 5 │     1
-   │     ┬
-   │     ╰── 'then' branch has the type `int`
-   │
- 7 │     2.0
-   │     ─┬─
-   │      ╰─── 'else' branch has the type `real`
+ 3 │ let y = number &lt; 5 ? 1 : 2.0;
+   │                      ┬   ─┬─
+   │                      ╰──────── 'then' branch has the type `int`
+   │                           │
+   │                           ╰─── 'else' branch has the type `real`
 ───╯
 </code></pre>
-<p>The condition of an <code>if</code> expression must be a <code>bool</code>. Otherwise, we will get a compile error. For
+<p>The condition of a select expression must be a <code>bool</code>. Otherwise, we will get a compile error. For
 example, if we try to compile the following code:</p>
 <pre><code class="language-pint">let number: int;
-let y = if number {
-    1
-} else {
-    2
-};
+
+let y = number ? 1 : 2;
 </code></pre>
 <p>we will get the following error:</p>
-<pre><code class="language-console">Error: condition in if-expression must be a boolean
-   ╭─[ch_3_4.pnt:4:12]
+<pre><code class="language-console">Error: condition for select expression must be a `bool`
+   ╭─[test.pnt:3:9]
    │
- 4 │ let y = if number {
-   │            ───┬──
-   │               ╰──── condition must be a boolean
+ 3 │ let y = number ? 1 : 2;
+   │         ───┬──
+   │            ╰──── invalid type `int`, expecting `bool`
 ───╯
 </code></pre>
 <p>Note that Pint will <strong>not</strong> automatically try to convert non-Boolean types to a Boolean. You must be
-explicit and always provide <code>if</code> with a <code>Boolean</code> as its condition.</p>
+explicit and always provide a select expression with a <code>Boolean</code> as its condition.</p>
 <h3 id="cond-expressions"><a class="header" href="#cond-expressions"><code>cond</code> Expressions</a></h3>
-<p>Pint provides <code>cond</code> expressions. <code>cond</code> expressions are generalized <code>if</code> expressions that are not
+<p>Pint provides <code>cond</code> expressions. <code>cond</code> expressions are generalized select expressions that are not
 limited to only two branches. They provide selection from multiple alternatives, each based on some
 condition. For example:</p>
 <pre><code class="language-pint">let x: int;
@@ -843,29 +830,59 @@ should be returned by the <code>cond</code> if that condition is correct. The br
 and the first one to become active determines the value of the <code>cond</code> expression. If all branches
 fail, then the <code>cond</code> expression takes the value of the expression in the <code>else</code> branch, which must
 always be the last branch.</p>
-<p>In the example above, <code>z</code> is equal to <code>0</code> if <code>x == 0</code>, equal to <code>1</code> if <code>x</code> is between <code>0</code> and <code>10</code>,
+<p>in the example above, <code>z</code> is equal to <code>0</code> if <code>x == 0</code>, equal to <code>1</code> if <code>x</code> is between <code>0</code> and <code>10</code>,
 equal to <code>2</code> if <code>x</code> is between <code>10</code> and <code>100</code>, and equal to <code>3</code> otherwise.</p>
-<p>Every <code>cond</code> expression can be rewritten using one or more <code>if</code> expressions. However, <code>cond</code> tends
-to be more compact and more readable than nested <code>if</code> expressions. For example, the <code>cond</code>
+<p>every <code>cond</code> expression can be rewritten using one or more select expressions. however, <code>cond</code> tends
+to be more compact and more readable than nested select expressions. for example, the <code>cond</code>
 expression in the example above is equivalent to:</p>
 <pre><code class="language-pint">let x: int;
-let z = if x == 0 { 
-    0 
-} else {
-    if x &gt; 0 &amp;&amp; x &lt;= 10 {
-        1
-    } else {
-        if x &gt; 10 &amp;&amp; x &lt;= 100 {
-            2
-        } else {
-            3
-        }
-    }
-};
+let z = x == 0 ? 0 :
+               x &gt; 0 &amp;&amp; x &lt;= 10 ? 1
+                 : x &gt; 10 &amp;&amp; x &lt;= 100 ? 2 : 3;
 </code></pre>
-<p>Similarly to <code>if</code> expressions, all candidate expressions must have the same type which determines
-the type of the whole <code>cond</code> expression. Also, every condition must be a <code>bool</code> or else a compile
+<p>similarly to select expressions, all candidate expressions must have the same type which determines
+the type of the whole <code>cond</code> expression. also, every condition must be a <code>bool</code> or else a compile
 error will be emitted.</p>
+<h3 id="if-statements"><a class="header" href="#if-statements"><code>if</code> Statements</a></h3>
+<p><code>if</code> statements are the last class of conditionals we will look at. Unlike select and <code>cond</code>
+expressions, <code>if</code> statements are <strong>not</strong> expressions, that is, they do not hold any values. Instead,
+they allow predicating <em>blocks of code</em> based on some condition. A block of code in the context of
+an <code>if</code> statement is a collection of constraints and other <code>if</code> statements. For example:</p>
+<pre><code class="language-pint">if number &lt; 5 {
+    constraint x == y;
+} else {
+    constraint x != y;
+}
+</code></pre>
+<p>All <code>if</code> statements start with the keyword <code>if</code>, followed by a condition. In this case, the
+condition checks whether or not the decision variable <code>number</code> has a value less than 5. The code
+block that should be &quot;active&quot; if the condition is <code>true</code> is placed immediate after the condition
+inside curly brackets. Optionally, the keyword <code>else</code> is then added followed by the code block that
+should be active if the condition is <code>false</code> (also between curly brackets). In the example above,
+the <code>if</code> statement can be read as follows: &quot;if <code>number</code> is less than 5, then <code>x</code> must be equal to
+<code>y</code>. Otherwise, <code>x</code> must not be equal to <code>y</code>&quot;.</p>
+<p>Similarly to select expressions, the condition of an <code>if</code> statement must be a <code>bool</code>. Otherwise we
+will get a compile error.</p>
+<p><code>if</code> statements can be nested and can contain an arbitrary number of constraints:</p>
+<pre><code class="language-pint">if number &lt; 5 {
+    constraint x == y;
+
+    if z &gt; 0 {
+        constraint x &gt; number;
+        constraint y &gt; number;
+    }
+} else {
+    constraint x != y;
+
+    if z &gt; 0 {
+        constraint x &gt; number;
+        constraint y &gt; number;
+    } else {
+        constraint x &lt; number;
+        constraint y &lt; number;
+    }
+}
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="custom-types"><a class="header" href="#custom-types">Custom Types</a></h2>
 <p>Custom data types are named types that you can define in your program to refer, via an alias, to a
