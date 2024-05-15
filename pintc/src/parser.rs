@@ -1,10 +1,11 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, ParseError},
-    expr::Ident,
+    expr::{Expr, Ident},
     intermediate::{CallKey, ExprKey, IntermediateIntent, Program},
     lexer,
     macros::{self, MacroCall, MacroDecl, MacroExpander},
-    span::{self, Span},
+    span::{self, empty_span, Span},
+    types::*,
 };
 
 use std::{
@@ -19,6 +20,7 @@ use lalrpop_util::lalrpop_mod;
 lalrpop_mod!(#[allow(clippy::ptr_arg, clippy::type_complexity)] pub pint_parser);
 
 mod use_path;
+use slotmap::SlotMap;
 pub(crate) use use_path::{UsePath, UseTree};
 
 mod context;
@@ -221,20 +223,235 @@ impl<'a> ProjectParser<'a> {
         // II (i.e. those declared using an `intent { }` decl). Also, insert all top level symbols
         // since shadowing is not allowed. That is, we can't use a symbol inside an `intent { .. }`
         // that was already used in the root II.
+
+        macro_rules! process_nested_expr {
+            ($expr_key: expr, $error_msg: literal, $root_exprs: expr, $ii: expr, $handler: expr) => {{
+                let nested_expr = $root_exprs.get(*$expr_key).ok_or_else(|| {
+                    $handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: concat!("missing ", $error_msg, " expr key in exprs slotmap"),
+                            span: empty_span(),
+                        },
+                    })
+                })?;
+                $ii.exprs.insert(nested_expr.clone());
+                deep_copy_expr(nested_expr, $root_exprs, $ii, $handler)
+            }};
+        }
+
+        fn deep_copy_expr(
+            expr: &Expr,
+            root_exprs: &SlotMap<ExprKey, Expr>,
+            ii: &mut IntermediateIntent,
+            handler: &Handler,
+        ) -> Result<(), ErrorEmitted> {
+            match expr {
+                Expr::Error(_)
+                | Expr::Immediate { .. }
+                | Expr::PathByKey(_, _)
+                | Expr::PathByName(_, _)
+                | Expr::StorageAccess(_, _)
+                | Expr::ExternalStorageAccess { .. }
+                | Expr::MacroCall { .. } => {}
+                Expr::UnaryOp { expr, .. } => {
+                    process_nested_expr!(expr, "unary op", root_exprs, ii, handler)?;
+                }
+                Expr::BinaryOp { lhs, rhs, .. } => {
+                    process_nested_expr!(lhs, "`lhs` of binary op", root_exprs, ii, handler)?;
+                    process_nested_expr!(rhs, "`rhs` of binary op", root_exprs, ii, handler)?;
+                }
+                Expr::IntrinsicCall { args, .. } => {
+                    for arg_expr_key in args {
+                        process_nested_expr!(
+                            arg_expr_key,
+                            "intrinsic call `arg`",
+                            root_exprs,
+                            ii,
+                            handler
+                        )?;
+                    }
+                }
+                Expr::Select {
+                    condition,
+                    then_expr,
+                    else_expr,
+                    ..
+                } => {
+                    process_nested_expr!(condition, "if `condition`", root_exprs, ii, handler)?;
+                    process_nested_expr!(then_expr, "if `then expr`", root_exprs, ii, handler)?;
+                    process_nested_expr!(else_expr, "if `else expr`", root_exprs, ii, handler)?;
+                }
+                Expr::Array {
+                    elements,
+                    range_expr,
+                    ..
+                } => {
+                    for element_expr_key in elements {
+                        process_nested_expr!(
+                            element_expr_key,
+                            "array `element`",
+                            root_exprs,
+                            ii,
+                            handler
+                        )?;
+                    }
+                    process_nested_expr!(range_expr, "array `range`", root_exprs, ii, handler)?;
+                }
+                Expr::Index { expr, index, .. } => {
+                    process_nested_expr!(expr, "index `expr`", root_exprs, ii, handler)?;
+                    process_nested_expr!(index, "index `index`", root_exprs, ii, handler)?;
+                }
+                Expr::Tuple { fields, .. } => {
+                    for (_, field_expr_key) in fields {
+                        process_nested_expr!(
+                            field_expr_key,
+                            "tuple `field`",
+                            root_exprs,
+                            ii,
+                            handler
+                        )?;
+                    }
+                }
+                Expr::TupleFieldAccess { tuple, .. } => {
+                    process_nested_expr!(tuple, "tuple field access", root_exprs, ii, handler)?;
+                }
+                Expr::Cast { value, ty, .. } => {
+                    process_nested_expr!(value, "cast `value`", root_exprs, ii, handler)?;
+                    deep_copy_type(ty, root_exprs, ii, handler)?;
+                }
+                Expr::In {
+                    value, collection, ..
+                } => {
+                    process_nested_expr!(value, "in `value`", root_exprs, ii, handler)?;
+                    process_nested_expr!(collection, "in `collection`", root_exprs, ii, handler)?;
+                }
+                Expr::Range { lb, ub, .. } => {
+                    process_nested_expr!(lb, "range `lower bound`", root_exprs, ii, handler)?;
+                    process_nested_expr!(ub, "range `upper bound`", root_exprs, ii, handler)?;
+                }
+                Expr::Generator {
+                    gen_ranges,
+                    conditions,
+                    body,
+                    ..
+                } => {
+                    for (_, range_expr_key) in gen_ranges {
+                        process_nested_expr!(
+                            range_expr_key,
+                            "generator `range`",
+                            root_exprs,
+                            ii,
+                            handler
+                        )?;
+                    }
+                    for condition_expr_key in conditions {
+                        process_nested_expr!(
+                            condition_expr_key,
+                            "generator `condition`",
+                            root_exprs,
+                            ii,
+                            handler
+                        )?;
+                    }
+                    process_nested_expr!(body, "generator `body`", root_exprs, ii, handler)?;
+                }
+            }
+            Ok(())
+        }
+
+        fn deep_copy_type(
+            new_type: &Type,
+            root_exprs: &SlotMap<ExprKey, Expr>,
+            ii: &mut IntermediateIntent,
+            handler: &Handler,
+        ) -> Result<Type, ErrorEmitted> {
+            match &new_type {
+                Type::Array {
+                    ty,
+                    range,
+                    size,
+                    span,
+                } => {
+                    let range_expr = root_exprs.get(*range).expect("exists");
+
+                    deep_copy_expr(range_expr, root_exprs, ii, handler)?;
+                    let new_expr_key = ii.exprs.insert(range_expr.clone());
+
+                    Ok(Type::Array {
+                        ty: Box::new(deep_copy_type(ty, root_exprs, ii, handler)?),
+                        range: new_expr_key,
+                        size: *size,
+                        span: span.clone(),
+                    })
+                }
+                Type::Tuple { fields, span } => {
+                    let mut new_fields: Vec<(Option<Ident>, Type)> = vec![];
+                    for field in fields {
+                        let new_field = (
+                            field.0.clone(),
+                            deep_copy_type(&field.1, root_exprs, ii, handler)?,
+                        );
+                        new_fields.push(new_field);
+                    }
+                    Ok(Type::Tuple {
+                        fields: new_fields,
+                        span: span.clone(),
+                    })
+                }
+                Type::Alias { path, ty, span } => Ok(Type::Alias {
+                    path: path.to_string(),
+                    ty: Box::new(deep_copy_type(ty, root_exprs, ii, handler)?),
+                    span: span.clone(),
+                }),
+                Type::Map {
+                    ty_from,
+                    ty_to,
+                    span,
+                } => Ok(Type::Map {
+                    ty_from: Box::new(deep_copy_type(ty_from, root_exprs, ii, handler)?),
+                    ty_to: Box::new(deep_copy_type(ty_to, root_exprs, ii, handler)?),
+                    span: span.clone(),
+                }),
+                Type::Error(_) | Type::Primitive { .. } | Type::Custom { .. } => {
+                    Ok(new_type.clone())
+                }
+            }
+        }
+
+        fn deep_copy_new_types(
+            root_new_types: &Vec<NewTypeDecl>,
+            root_exprs: &SlotMap<ExprKey, Expr>,
+            ii: &mut IntermediateIntent,
+            handler: &Handler,
+        ) -> Result<(), ErrorEmitted> {
+            for new_type in root_new_types {
+                let new_type_decl = deep_copy_type(&new_type.ty, root_exprs, ii, handler)?;
+                ii.new_types.push(NewTypeDecl {
+                    name: new_type.name.clone(),
+                    ty: new_type_decl,
+                    span: new_type.span.clone(),
+                })
+            }
+            Ok(())
+        }
+
         let enums = self.program.root_ii().enums.clone();
         let new_types = self.program.root_ii().new_types.clone();
         let root_symbols = self.program.root_ii().top_level_symbols.clone();
         let storage = self.program.root_ii().storage.clone();
         let externs = self.program.root_ii().externs.clone();
+        let exprs = self.program.root_ii().exprs.clone();
+
         self.program
             .iis
             .iter_mut()
             .filter(|(name, _)| *name != &Program::ROOT_II_NAME.to_string())
             .for_each(|(_, ii)| {
-                ii.new_types.extend_from_slice(&new_types);
+                let _ = deep_copy_new_types(&new_types, &exprs, ii, self.handler);
                 ii.enums.extend_from_slice(&enums);
                 ii.storage = storage.clone();
                 ii.externs = externs.clone();
+
                 for (symbol, span) in &root_symbols {
                     // We could call `ii.add_top_level_symbol_with_name` directly here, but then
                     // the spans would be reversed so I decided to do this manually. We want the

@@ -73,7 +73,7 @@ impl DisplayWithII for &super::Expr {
             super::Expr::Tuple { fields, .. } => {
                 write!(f, "{{")?;
                 let mut i = fields.iter().map(|(name, val)| {
-                    // This is the only place where we're building strings.  Could be aleviated
+                    // This is the only place where we're building strings.  Could be alleviated
                     // if the named tuple field was a struct which could be Display.
                     format!(
                         "{}{}",
@@ -153,7 +153,7 @@ impl DisplayWithII for super::Immediate {
 }
 
 impl DisplayWithII for super::Ident {
-    fn fmt(&self, f: &mut Formatter, _: &IntermediateIntent) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter, _: &IntermediateIntent) -> Result {
         write!(f, "{self}")
     }
 }
