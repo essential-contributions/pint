@@ -61,7 +61,7 @@ pub(crate) fn lower_enums(
 
     // Replace the variant expressions with literal int equivalents.
     for (old_expr_key, idx) in replacements {
-        let new_expr_key = ii._exprs.insert(
+        let new_expr_key = ii.exprs.insert(
             Expr::Immediate {
                 value: Immediate::Int(*idx as i64),
                 span: empty_span(),
@@ -94,10 +94,10 @@ pub(crate) fn lower_enums(
         };
 
         let var_expr_key = ii
-            ._exprs
+            .exprs
             .insert(Expr::PathByKey(var_key, empty_span()), int_ty.clone());
 
-        let lower_bound_key = ii._exprs.insert(
+        let lower_bound_key = ii.exprs.insert(
             Expr::Immediate {
                 value: Immediate::Int(0),
                 span: empty_span(),
@@ -105,7 +105,7 @@ pub(crate) fn lower_enums(
             int_ty.clone(),
         );
 
-        let upper_bound_key = ii._exprs.insert(
+        let upper_bound_key = ii.exprs.insert(
             Expr::Immediate {
                 value: Immediate::Int(variant_max),
                 span: empty_span(),
@@ -113,7 +113,7 @@ pub(crate) fn lower_enums(
             int_ty.clone(),
         );
 
-        let lower_bound_cmp_key = ii._exprs.insert(
+        let lower_bound_cmp_key = ii.exprs.insert(
             Expr::BinaryOp {
                 op: BinaryOp::GreaterThanOrEqual,
                 lhs: var_expr_key,
@@ -123,7 +123,7 @@ pub(crate) fn lower_enums(
             bool_ty.clone(),
         );
 
-        let upper_bound_cmp_key = ii._exprs.insert(
+        let upper_bound_cmp_key = ii.exprs.insert(
             Expr::BinaryOp {
                 op: BinaryOp::LessThanOrEqual,
                 lhs: var_expr_key,
@@ -143,7 +143,7 @@ pub(crate) fn lower_enums(
         });
 
         // Replace the type.
-        ii._exprs.update_types(|_, expr_type| {
+        ii.exprs.update_types(|_, expr_type| {
             if ty == *expr_type {
                 *expr_type = int_ty.clone();
             }
@@ -151,7 +151,7 @@ pub(crate) fn lower_enums(
     }
 
     // Now do the actual type update from enum to int
-    ii._vars.update_types(|_, ty| {
+    ii.vars.update_types(|_, ty| {
         if ty.is_enum() {
             *ty = int_ty.clone()
         }
@@ -179,26 +179,26 @@ pub(crate) fn lower_bools(ii: &mut IntermediateIntent) {
         span: empty_span(),
     };
 
-    ii._vars.update_types(|_, ty| {
+    ii.vars.update_types(|_, ty| {
         if ty.is_bool() {
             *ty = int_ty.clone();
         }
     });
 
-    ii._exprs.update_types(|_, expr_type| {
+    ii.exprs.update_types(|_, expr_type| {
         if expr_type.is_bool() {
             *expr_type = int_ty.clone();
         }
     });
 
-    ii._states.update_types(|_, ty| {
+    ii.states.update_types(|_, ty| {
         if ty.is_bool() {
             *ty = int_ty.clone();
         }
     });
 
     // Replace any literal true or false falures with int equivalents.
-    ii._exprs.update_exprs(|_, expr| {
+    ii.exprs.update_exprs(|_, expr| {
         if let Expr::Immediate {
             value: Immediate::Bool(bool_val),
             span,
@@ -270,11 +270,11 @@ pub(crate) fn lower_aliases(ii: &mut IntermediateIntent) {
     }
 
     // Replace aliases with the actual type.
-    ii._vars.update_types(|_, var| replace_alias(var));
-    ii._states.update_types(|_, state| replace_alias(state));
-    ii._exprs.update_types(|_, expr| replace_alias(expr));
+    ii.vars.update_types(|_, var| replace_alias(var));
+    ii.states.update_types(|_, state| replace_alias(state));
+    ii.exprs.update_types(|_, expr| replace_alias(expr));
 
-    ii._exprs.update_exprs(|_, expr| {
+    ii.exprs.update_exprs(|_, expr| {
         if let Expr::Cast { ty, .. } = expr {
             replace_alias(ty.borrow_mut());
         }
@@ -392,7 +392,7 @@ pub(crate) fn lower_imm_accesses(
         while let Some((old_expr_key, new_expr_key)) = replacements.pop() {
             // Replace the old with the new throughout the II.
             ii.replace_exprs(old_expr_key, new_expr_key);
-            ii._exprs.remove(old_expr_key);
+            ii.exprs.remove(old_expr_key);
 
             // But _also_ replace the old within `replacements` in case any of our new keys is now
             // stale.
@@ -478,7 +478,7 @@ pub(crate) fn lower_ins(
 
     // Replace the range expressions first. `x in l..u` becomes `(x >= l) && (x <= u)`.
     for (in_expr_key, value_key, lower_bounds_key, upper_bounds_key, span) in in_range_collections {
-        let lb_cmp_key = ii._exprs.insert(
+        let lb_cmp_key = ii.exprs.insert(
             Expr::BinaryOp {
                 op: BinaryOp::GreaterThanOrEqual,
                 lhs: value_key,
@@ -488,7 +488,7 @@ pub(crate) fn lower_ins(
             bool_ty.clone(),
         );
 
-        let ub_cmp_key = ii._exprs.insert(
+        let ub_cmp_key = ii.exprs.insert(
             Expr::BinaryOp {
                 op: BinaryOp::LessThanOrEqual,
                 lhs: value_key,
@@ -498,7 +498,7 @@ pub(crate) fn lower_ins(
             bool_ty.clone(),
         );
 
-        let and_key = ii._exprs.insert(
+        let and_key = ii.exprs.insert(
             Expr::BinaryOp {
                 op: BinaryOp::LogicalAnd,
                 lhs: lb_cmp_key,
@@ -516,7 +516,7 @@ pub(crate) fn lower_ins(
         let or_key = elements
             .into_iter()
             .map(|el_expr_key| {
-                ii._exprs.insert(
+                ii.exprs.insert(
                     Expr::BinaryOp {
                         op: BinaryOp::Equal,
                         lhs: value_key,
@@ -529,7 +529,7 @@ pub(crate) fn lower_ins(
             .collect::<Vec<_>>() // Collect into Vec to avoid borrowing ii.exprs conflict.
             .into_iter()
             .reduce(|lhs, rhs| {
-                ii._exprs.insert(
+                ii.exprs.insert(
                     Expr::BinaryOp {
                         op: BinaryOp::LogicalOr,
                         lhs,
@@ -599,7 +599,7 @@ fn convert_if(
         ..
     }: &IfDecl,
 ) -> Vec<ExprKey> {
-    let condition_inverse = ii._exprs.insert(
+    let condition_inverse = ii.exprs.insert(
         Expr::UnaryOp {
             op: UnaryOp::Not,
             expr: *condition,
@@ -653,7 +653,7 @@ fn convert_if_block_statement(
     let mut converted_exprs = vec![];
     match statement {
         BlockStatement::Constraint(constraint_decl) => {
-            converted_exprs.push(ii._exprs.insert(
+            converted_exprs.push(ii.exprs.insert(
                 Expr::BinaryOp {
                     op: BinaryOp::LogicalOr,
                     lhs: condition_inverse,
@@ -665,7 +665,7 @@ fn convert_if_block_statement(
         }
         BlockStatement::If(if_decl) => {
             for inner_expr in convert_if(ii, if_decl) {
-                converted_exprs.push(ii._exprs.insert(
+                converted_exprs.push(ii.exprs.insert(
                     Expr::BinaryOp {
                         op: BinaryOp::LogicalOr,
                         lhs: condition_inverse,

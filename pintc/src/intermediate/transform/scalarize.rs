@@ -242,7 +242,7 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
     // the individual elements of the array, where `n` is the length of the array.
     let new_var_keys = (0..array_size)
         .map(|idx| {
-            ii._vars.insert(
+            ii.vars.insert(
                 Var {
                     name: format!("{array_name}[{idx}]"),
                     span: span.clone(),
@@ -282,7 +282,7 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
 
     for expr_key in array_path_to_replace {
         // Create a new array expression containing all the split vars
-        let range_expr_key = ii._exprs.insert(
+        let range_expr_key = ii.exprs.insert(
             Expr::Immediate {
                 value: Immediate::Int(new_var_keys.len() as i64),
                 span: empty_span(),
@@ -297,7 +297,7 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
             elements: new_var_keys
                 .iter()
                 .map(|key| {
-                    ii._exprs
+                    ii.exprs
                         .insert(Expr::PathByKey(*key, empty_span()), el_ty.clone())
                 })
                 .collect(),
@@ -305,8 +305,8 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
             span: empty_span(),
         };
 
-        // Insert the new array expression into `ii._exprs.exprs`
-        let new_expr_key = ii._exprs.insert(
+        // Insert the new array expression into `ii.exprs`
+        let new_expr_key = ii.exprs.insert(
             new_expr,
             Type::Array {
                 ty: Box::new(el_ty.clone()),
@@ -318,11 +318,11 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
 
         // Replace and tidy up
         ii.replace_exprs(expr_key, new_expr_key);
-        ii._exprs.remove(expr_key);
+        ii.exprs.remove(expr_key);
     }
 
     // Remove the old array variable.
-    ii._vars.remove(array_var_key);
+    ii.vars.remove(array_var_key);
 
     Ok(true)
 }
@@ -406,13 +406,13 @@ fn scalarize_array_access(
                     }));
                 }
 
-                let new_access_key = ii._exprs.insert(
+                let new_access_key = ii.exprs.insert(
                     Expr::PathByKey(new_array_var_keys[imm_val as usize], span.clone()),
                     el_ty.clone(),
                 );
 
                 ii.replace_exprs(array_access_key, new_access_key);
-                ii._exprs.remove(array_access_key);
+                ii.exprs.remove(array_access_key);
             }
 
             _ => {
@@ -533,10 +533,10 @@ fn lower_array_compares(
 
         // Pair up each element with an individual `op` operation and then chain them together
         // with a series of `&&` operations.  Twice we collect into a temporary Vec to avoid
-        // borrowing problems with `ii._exprs.exprs`.
+        // borrowing problems with `ii.exprs`.
         let and_chain_expr_key = (0..lhs_size)
             .map(|idx| {
-                let imm_idx_key = ii._exprs.insert(
+                let imm_idx_key = ii.exprs.insert(
                     Expr::Immediate {
                         value: Immediate::Int(idx),
                         span: empty_span(),
@@ -547,7 +547,7 @@ fn lower_array_compares(
                     },
                 );
 
-                let lhs_access_expr_key = ii._exprs.insert(
+                let lhs_access_expr_key = ii.exprs.insert(
                     Expr::Index {
                         expr: lhs_array_key,
                         index: imm_idx_key,
@@ -556,7 +556,7 @@ fn lower_array_compares(
                     el_ty.clone(),
                 );
 
-                let rhs_access_expr_key = ii._exprs.insert(
+                let rhs_access_expr_key = ii.exprs.insert(
                     Expr::Index {
                         expr: rhs_array_key,
                         index: imm_idx_key,
@@ -565,7 +565,7 @@ fn lower_array_compares(
                     el_ty.clone(),
                 );
 
-                ii._exprs.insert(
+                ii.exprs.insert(
                     Expr::BinaryOp {
                         op,
                         lhs: lhs_access_expr_key,
@@ -581,7 +581,7 @@ fn lower_array_compares(
             .collect::<Vec<_>>()
             .into_iter()
             .reduce(|acc, cmp_op_key| {
-                ii._exprs.insert(
+                ii.exprs.insert(
                     Expr::BinaryOp {
                         op: BinaryOp::LogicalAnd,
                         lhs: acc,
@@ -597,7 +597,7 @@ fn lower_array_compares(
             .expect("there must be 1 or more array elements");
 
         ii.replace_exprs(op_expr_key, and_chain_expr_key);
-        ii._exprs.remove(op_expr_key);
+        ii.exprs.remove(op_expr_key);
 
         Ok(())
     }
@@ -662,7 +662,7 @@ fn scalarize_tuples(handler: &Handler, ii: &mut IntermediateIntent) -> Result<bo
         modified
     );
     for var_key in old_tuple_vars {
-        ii._vars.remove(var_key);
+        ii.vars.remove(var_key);
     }
 
     Ok(modified)
@@ -746,7 +746,7 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
                 TupleAccess::Index(field_idx)
             };
 
-            let lhs_access = ii._exprs.insert(
+            let lhs_access = ii.exprs.insert(
                 Expr::TupleFieldAccess {
                     tuple: lhs_tuple_key,
                     field: lhs_field_access,
@@ -755,7 +755,7 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
                 field_ty.clone(),
             );
 
-            let rhs_access = ii._exprs.insert(
+            let rhs_access = ii.exprs.insert(
                 Expr::TupleFieldAccess {
                     tuple: rhs_tuple_key,
                     field: rhs_field_access,
@@ -764,7 +764,7 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
                 field_ty.clone(),
             );
 
-            new_field_compare_ops.push(ii._exprs.insert(
+            new_field_compare_ops.push(ii.exprs.insert(
                 Expr::BinaryOp {
                     op,
                     lhs: lhs_access,
@@ -781,7 +781,7 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
         let and_chain_expr_key = new_field_compare_ops
             .into_iter()
             .reduce(|acc, compare_op_key| {
-                ii._exprs.insert(
+                ii.exprs.insert(
                     Expr::BinaryOp {
                         op: BinaryOp::LogicalAnd,
                         lhs: acc,
@@ -797,7 +797,7 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
             .expect("there must be 1 or more tuple fields");
 
         ii.replace_exprs(expr_key, and_chain_expr_key);
-        ii._exprs.remove(expr_key);
+        ii.exprs.remove(expr_key);
     }
 
     Ok(modified)
@@ -848,7 +848,7 @@ fn split_tuple_vars(
     // Add all the new vars to the intermediate intent and memo the new key.
     for (name, (idx_name, opt_sym_name), span, field_ty) in new_vars {
         // Prefer the symbolic name if it's there.
-        let new_var_key = ii._vars.insert(
+        let new_var_key = ii.vars.insert(
             Var {
                 name: opt_sym_name.as_ref().unwrap_or(&idx_name).clone(),
                 span,
@@ -908,11 +908,11 @@ fn split_tuple_vars(
     // Replace all the old tuple accesses with new PathByKey exprs.
     for (old_expr_key, new_var_key, new_tuple_var_ty, span) in new_accesses {
         let new_expr_key = ii
-            ._exprs
+            .exprs
             .insert(Expr::PathByKey(new_var_key, span), new_tuple_var_ty.clone());
 
         ii.replace_exprs(old_expr_key, new_expr_key);
-        ii._exprs.remove(old_expr_key);
+        ii.exprs.remove(old_expr_key);
     }
 
     // Now, we can search for all the paths that match the name of the original tuple.
@@ -937,7 +937,7 @@ fn split_tuple_vars(
                 .iter()
                 .map(|var_key| {
                     (None, {
-                        ii._exprs.insert(
+                        ii.exprs.insert(
                             Expr::PathByKey(*var_key, empty_span()),
                             var_key.get_ty(ii).clone(),
                         )
@@ -946,7 +946,7 @@ fn split_tuple_vars(
                 .collect(),
             span: empty_span(),
         };
-        let new_expr_key = ii._exprs.insert(
+        let new_expr_key = ii.exprs.insert(
             new_expr,
             Type::Tuple {
                 fields: split_vars
@@ -958,7 +958,7 @@ fn split_tuple_vars(
         );
 
         ii.replace_exprs(expr_key, new_expr_key);
-        ii._exprs.remove(expr_key);
+        ii.exprs.remove(expr_key);
     }
 
     Ok(true)

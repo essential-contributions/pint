@@ -4,12 +4,12 @@ use crate::types::Type;
 slotmap::new_key_type! { pub struct VarKey; }
 
 #[derive(Debug, Default, Clone)]
-pub struct _Vars {
+pub struct Vars {
     vars: slotmap::SlotMap<VarKey, Var>,
     var_types: slotmap::SecondaryMap<VarKey, Type>,
 }
 
-impl _Vars {
+impl Vars {
     /// Returns a read-only iterator to the `vars` map
     pub fn vars(&self) -> slotmap::basic::Iter<VarKey, Var> {
         self.vars.iter()
@@ -48,24 +48,24 @@ impl VarKey {
     /// Returns an `Option` containing the `Var` corresponding to key `self`. Returns `None` if
     /// the key can't be found in the `vars` map.
     pub fn try_get<'a>(&'a self, ii: &'a IntermediateIntent) -> Option<&Var> {
-        ii._vars.vars.get(*self)
+        ii.vars.vars.get(*self)
     }
 
     /// Returns the `Var` corresponding to key `self`. Panics if the key can't be found in the
     /// `vars` map.
     pub fn get<'a>(&'a self, ii: &'a IntermediateIntent) -> &Var {
-        ii._vars.vars.get(*self).unwrap()
+        ii.vars.vars.get(*self).unwrap()
     }
 
     /// Returns the type of key `self` given an `IntermediateIntent`. Panics if the type can't be
     /// found in the `var_types` map.
     pub fn get_ty<'a>(&'a self, ii: &'a IntermediateIntent) -> &Type {
-        ii._vars.var_types.get(*self).unwrap()
+        ii.vars.var_types.get(*self).unwrap()
     }
 
     /// Set the type of key `self` in an `IntermediateIntent`. Panics if the type can't be found in
     /// the `var_types` map.
     pub fn set_ty<'a>(&'a self, ty: Type, ii: &'a mut IntermediateIntent) {
-        ii._vars.var_types.insert(*self, ty);
+        ii.vars.var_types.insert(*self, ty);
     }
 }

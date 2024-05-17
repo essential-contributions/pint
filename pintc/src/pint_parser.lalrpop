@@ -649,7 +649,7 @@ Expr: ExprKey = {
 SelectExpr: ExprKey = {
     <l:@L> <condition:LogicalOrOp> "?" <then_expr:SelectExpr> ":" <else_expr:SelectExpr> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii()._exprs.insert(Expr::Select {
+        context.current_ii().exprs.insert(Expr::Select {
             condition,
             then_expr,
             else_expr,
@@ -662,7 +662,7 @@ SelectExpr: ExprKey = {
 LogicalOrOp: ExprKey = {
     <l:@L> <lhs:LogicalOrOp> "||" <rhs:LogicalAndOp> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii()._exprs.insert(Expr::BinaryOp {
+        context.current_ii().exprs.insert(Expr::BinaryOp {
             op: BinaryOp::LogicalOr,
             lhs,
             rhs,
@@ -675,7 +675,7 @@ LogicalOrOp: ExprKey = {
 LogicalAndOp: ExprKey = {
     <l:@L> <lhs:LogicalAndOp> "&&" <rhs:Comparison> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii()._exprs.insert(Expr::BinaryOp {
+        context.current_ii().exprs.insert(Expr::BinaryOp {
             op: BinaryOp::LogicalAnd,
             lhs,
             rhs,
@@ -690,7 +690,7 @@ Comparison: ExprKey = {
         let span = (context.span_from)(l, r);
         context
             .current_ii()
-            ._exprs
+            .exprs
             .insert(Expr::BinaryOp { op, lhs, rhs, span: span.clone() }, Type::Unknown(span))
     },
     <InOp>,
@@ -708,7 +708,7 @@ RelOpOp: BinaryOp = {
 InOp: ExprKey = {
      <l:@L> <value:InOp> "in" <collection:Additive> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii()._exprs.insert(Expr::In {
+        context.current_ii().exprs.insert(Expr::In {
             value,
             collection,
             span: span.clone(),
@@ -716,7 +716,7 @@ InOp: ExprKey = {
      },
      <l:@L> <value:InOp> "in" <collection:Range> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii()._exprs.insert(Expr::In {
+        context.current_ii().exprs.insert(Expr::In {
             value,
             collection,
             span: span.clone(),
@@ -730,7 +730,7 @@ Additive: ExprKey = {
         let span = (context.span_from)(l, r);
         context
             .current_ii()
-            ._exprs
+            .exprs
             .insert(Expr::BinaryOp { op, lhs, rhs, span: span.clone() }, Type::Unknown(span))
     },
     <Multiplicative>,
@@ -746,7 +746,7 @@ Multiplicative: ExprKey = {
         let span = (context.span_from)(l, r);
         context
             .current_ii()
-            ._exprs
+            .exprs
             .insert(Expr::BinaryOp { op, lhs, rhs, span: span.clone() }, Type::Unknown(span))
     },
     <AsOp>,
@@ -761,7 +761,7 @@ MultOpOp: BinaryOp = {
 AsOp: ExprKey = {
      <l:@L> <value:AsOp> "as" <ty:Type> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii()._exprs.insert(Expr::Cast {
+        context.current_ii().exprs.insert(Expr::Cast {
             value,
             ty: Box::new(ty),
             span: span.clone(),
@@ -788,7 +788,7 @@ IndexOp: ExprKey = {
         let span = (context.span_from)(l, r);
         context
             .current_ii()
-            ._exprs
+            .exprs
             .insert(Expr::Index { expr, index, span: span.clone() }, Type::Unknown(span))
     },
     <l:@L> <expr:IndexOp> "[" "]" <r:@R> => {
@@ -800,7 +800,7 @@ IndexOp: ExprKey = {
         // Recover with a malformed expression
         context
             .current_ii()
-            ._exprs
+            .exprs
             .insert(Expr::Error(span.clone()), Type::Unknown(span))
     },
     <PrimeOp>,
@@ -809,7 +809,7 @@ IndexOp: ExprKey = {
 PrimeOp: ExprKey = {
     <l:@L> <expr:PrimeOp> "'" <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii()._exprs.insert(Expr::UnaryOp {
+        context.current_ii().exprs.insert(Expr::UnaryOp {
             op: UnaryOp::NextState,
             expr,
             span: span.clone(),
@@ -823,7 +823,7 @@ UnaryOp: ExprKey = {
         let span = (context.span_from)(l, r);
         context
             .current_ii()
-            ._exprs
+            .exprs
             .insert(Expr::UnaryOp { op, expr, span: span.clone() }, Type::Unknown(span))
     },
     <Term>,
@@ -845,7 +845,7 @@ UnaryOpOp: UnaryOp = {
 Term: ExprKey = {
     <e:TermInner> => {
         let span = e.span().clone();
-        context.current_ii()._exprs.insert(e, Type::Unknown(span))
+        context.current_ii().exprs.insert(e, Type::Unknown(span))
     },
     <MacroCallExpr>,
     <CondExpr>,
@@ -927,7 +927,7 @@ CondExpr: ExprKey = {
             .rev()
             .fold(else_branch, |acc, (condition, result)| {
                 let span = (context.span_from)(l, r);
-                context.current_ii()._exprs.insert(Expr::Select {
+                context.current_ii().exprs.insert(Expr::Select {
                     condition: *condition,
                     then_expr: *result,
                     else_expr: acc,
@@ -948,7 +948,7 @@ MacroCallExpr: ExprKey = {
             span: span.clone(),
             parent_tag: tag.flatten(),
         };
-        let call_expr_key = context.current_ii()._exprs.insert(Expr::MacroCall {
+        let call_expr_key = context.current_ii().exprs.insert(Expr::MacroCall {
             call: call_key,
             span: span.clone(),
         }, Type::Unknown(span));
@@ -974,7 +974,7 @@ IntrinsicCallExpr: Expr = {
 ArrayExpr: Expr = {
     <l:@L> "[" <il:@L> <elements:SepList<Expr, ",">> <ir:@R> "]" <r:@R> => {
         let span = (context.span_from)(il, ir);
-        let range_expr = context.current_ii()._exprs.insert(Expr::Immediate {
+        let range_expr = context.current_ii().exprs.insert(Expr::Immediate {
             value: Immediate::Int(elements.len() as i64),
             span: span.clone(),
         }, Type::Unknown(span));
@@ -1022,7 +1022,7 @@ Range: ExprKey = {
         let span = (context.span_from)(l, r);
         context
             .current_ii()
-            ._exprs
+            .exprs
             .insert(Expr::Range { lb, ub, span: span.clone() }, Type::Unknown(span))
     }
 }
@@ -1187,7 +1187,7 @@ StateInit: ExprKey = {
     <StorageTupleFieldOp>,
     <call:IntrinsicCallExpr> => {
         let span = call.span().clone();
-        context.current_ii()._exprs.insert(call,
+        context.current_ii().exprs.insert(call,
     Type::Unknown(span))
     },
 }
@@ -1212,7 +1212,7 @@ StorageIndexOp: ExprKey = {
         let span = (context.span_from)(l, r);
         context
             .current_ii()
-            ._exprs
+            .exprs
             .insert(Expr::Index { expr, index, span: span.clone() }, Type::Unknown(span))
     },
     <l:@L> <expr:StorageIndexOp> "[" "]" <r:@R> => {
@@ -1224,7 +1224,7 @@ StorageIndexOp: ExprKey = {
         // Recover with a malformed expression
         context
             .current_ii()
-            ._exprs
+            .exprs
             .insert(Expr::Error(span.clone()), Type::Unknown(span))
     },
     <StorageAccess>,
@@ -1242,7 +1242,7 @@ StorageAccess: ExprKey = {
         } else {
             Expr::StorageAccess(name.to_string(), span.clone())
         };
-        context.current_ii()._exprs.insert(expr, Type::Unknown(span))
+        context.current_ii().exprs.insert(expr, Type::Unknown(span))
     },
     <l:@L> "::" <els:(<Ident> "::")*> <last:Ident> <r1:@R> "::" "storage" "::" <name:Ident> <r2:@R> => {
         let path_span = (context.span_from)(l, r1);
@@ -1251,7 +1251,7 @@ StorageAccess: ExprKey = {
         let span = (context.span_from)(l, r2);
         context
             .current_ii()
-            ._exprs
+            .exprs
             .insert(Expr::ExternalStorageAccess {
                 extern_path,
                 name: name.to_string(),
@@ -1265,7 +1265,7 @@ StorageAccess: ExprKey = {
         let span = (context.span_from)(l, r2);
         context
             .current_ii()
-            ._exprs
+            .exprs
             .insert(Expr::ExternalStorageAccess {
                 extern_path,
                 name: name.to_string(),

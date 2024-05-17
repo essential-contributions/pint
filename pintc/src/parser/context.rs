@@ -61,7 +61,7 @@ impl<'a> ParserContext<'a> {
         (l, r): (usize, usize),
     ) -> ExprKey {
         let span = (self.span_from)(l, r);
-        self.current_ii()._exprs.insert(
+        self.current_ii().exprs.insert(
             Expr::TupleFieldAccess {
                 tuple,
                 field: TupleAccess::Name(name),
@@ -89,7 +89,7 @@ impl<'a> ParserContext<'a> {
         let span = (self.span_from)(l, r);
         let index_span = (self.span_from)(m, r);
 
-        self.current_ii()._exprs.insert(
+        self.current_ii().exprs.insert(
             Expr::TupleFieldAccess {
                 tuple,
                 field: int_str
@@ -160,7 +160,7 @@ impl<'a> ParserContext<'a> {
                     });
 
                 let span = (self.span_from)(l, m + dot_index);
-                let lhs_access_key = self.current_ii()._exprs.insert(
+                let lhs_access_key = self.current_ii().exprs.insert(
                     Expr::TupleFieldAccess {
                         tuple,
                         field: first_index,
@@ -170,7 +170,7 @@ impl<'a> ParserContext<'a> {
                 );
 
                 let span = (self.span_from)(l, r);
-                self.current_ii()._exprs.insert(
+                self.current_ii().exprs.insert(
                     Expr::TupleFieldAccess {
                         tuple: lhs_access_key,
                         field: second_index,
@@ -189,7 +189,7 @@ impl<'a> ParserContext<'a> {
 
                 // Recover with a malformed tuple access
                 let span = (self.span_from)(l, r);
-                self.current_ii()._exprs.insert(
+                self.current_ii().exprs.insert(
                     Expr::TupleFieldAccess {
                         tuple,
                         field: TupleAccess::Error,

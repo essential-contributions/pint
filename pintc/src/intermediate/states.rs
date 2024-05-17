@@ -4,12 +4,12 @@ use crate::types::Type;
 slotmap::new_key_type! { pub struct StateKey; }
 
 #[derive(Debug, Default, Clone)]
-pub struct _States {
+pub struct States {
     states: slotmap::SlotMap<StateKey, State>,
     state_types: slotmap::SecondaryMap<StateKey, Type>,
 }
 
-impl _States {
+impl States {
     /// Returns a read-only iterator to the `states` map
     pub fn states(&self) -> slotmap::basic::Iter<StateKey, State> {
         self.states.iter()
@@ -48,24 +48,24 @@ impl StateKey {
     /// Returns an `Option` containing the `State` corresponding to key `self`. Returns `None` if
     /// the key can't be found in the `states` map.
     pub fn try_get<'a>(&'a self, ii: &'a IntermediateIntent) -> Option<&State> {
-        ii._states.states.get(*self)
+        ii.states.states.get(*self)
     }
 
     /// Returns the `State` corresponding to key `self`. Panics if the key can't be found in the
     /// `states` map.
     pub fn get<'a>(&'a self, ii: &'a IntermediateIntent) -> &State {
-        ii._states.states.get(*self).unwrap()
+        ii.states.states.get(*self).unwrap()
     }
 
     /// Returns the type of key `self` given an `IntermediateIntent`. Panics if the type can't be
     /// found in the `state_types` map.
     pub fn get_ty<'a>(&'a self, ii: &'a IntermediateIntent) -> &Type {
-        ii._states.state_types.get(*self).unwrap()
+        ii.states.state_types.get(*self).unwrap()
     }
 
     /// Set the type of key `self` in an `IntermediateIntent`. Panics if the type can't be found in
     /// the `state_types` map.
     pub fn set_ty<'a>(&'a self, ty: Type, ii: &'a mut IntermediateIntent) {
-        ii._states.state_types.insert(*self, ty);
+        ii.states.state_types.insert(*self, ty);
     }
 }

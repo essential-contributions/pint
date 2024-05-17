@@ -77,7 +77,7 @@ pub(crate) fn canonicalize_solve_directive(
     let objective_var_name = "~objective".to_string();
     ii.top_level_symbols
         .insert(objective_var_name.clone(), directive_span.clone());
-    let objective_var_key = ii._vars.insert(
+    let objective_var_key = ii.vars.insert(
         Var {
             name: objective_var_name,
             span: directive_span.clone(),
@@ -87,12 +87,12 @@ pub(crate) fn canonicalize_solve_directive(
 
     // update the directive expression to be the newly created objective variable
     // solve maximize ~objective;
-    let objective_expr_key = ii._exprs.insert(
+    let objective_expr_key = ii.exprs.insert(
         Expr::PathByKey(objective_var_key, directive_span.clone()),
         directive_expr_type.clone(),
     );
 
-    let eq_expr_key = ii._exprs.insert(
+    let eq_expr_key = ii.exprs.insert(
         Expr::BinaryOp {
             op: expr::BinaryOp::Equal,
             lhs: objective_expr_key,

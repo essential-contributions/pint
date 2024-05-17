@@ -141,7 +141,7 @@ fn unroll_generator(
     };
 
     // Base value = `true` for foralls and `false` for exists
-    let mut unrolled = ii._exprs.insert(
+    let mut unrolled = ii.exprs.insert(
         Expr::Immediate {
             value: Immediate::Bool(match kind {
                 GeneratorKind::ForAll => true,
@@ -184,7 +184,7 @@ fn unroll_generator(
         // expression by joining it with the newly unrolled generator body.
         if satisfied {
             let rhs = body.plug_in(ii, &values_map);
-            unrolled = ii._exprs.insert(
+            unrolled = ii.exprs.insert(
                 Expr::BinaryOp {
                     op: match kind {
                         GeneratorKind::ForAll => BinaryOp::LogicalAnd,

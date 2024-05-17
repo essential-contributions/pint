@@ -211,7 +211,7 @@ impl<'a> ProjectParser<'a> {
                 // declarations).
                 ii.removed_macro_calls.insert(call_expr_key, span);
             }
-            ii._exprs.remove(call_expr_key);
+            ii.exprs.remove(call_expr_key);
         }
 
         self
@@ -223,17 +223,6 @@ impl<'a> ProjectParser<'a> {
         // since shadowing is not allowed. That is, we can't use a symbol inside an `intent { .. }`
         // that was already used in the root II.
 
-        /*macro_rules! process_nested_expr {
-            ($expr_key: expr, $error_msg: literal, $root_exprs: expr, $ii: expr, $handler: expr) => {{
-                let nested_expr = $root_exprs.get(*$expr_key).get($ii).clone();
-                $ii._exprs.insert(
-                    nested_expr.clone(),
-                    Type::Unknown(nested_expr.span().clone()),
-                );
-                deep_copy_expr(&nested_expr, $root_exprs, $ii, $handler)
-            }};
-        }*/
-
         macro_rules! process_nested_expr {
             ($expr_key: expr, $error_msg: literal, $root_exprs: expr, $ii: expr, $handler: expr) => {{
                 let nested_expr = $root_exprs.get(*$expr_key).ok_or_else(|| {
@@ -244,7 +233,7 @@ impl<'a> ProjectParser<'a> {
                         },
                     })
                 })?;
-                $ii._exprs.insert(
+                $ii.exprs.insert(
                     nested_expr.clone(),
                     Type::Unknown(nested_expr.span().clone()),
                 );
@@ -388,7 +377,7 @@ impl<'a> ProjectParser<'a> {
                     let range_expr = root_exprs.get(*range).expect("exists");
                     deep_copy_expr(range_expr, root_exprs, ii, handler)?;
                     let new_expr_key = ii
-                        ._exprs
+                        .exprs
                         .insert(range_expr.clone(), Type::Unknown(range_expr.span().clone()));
 
                     Ok(Type::Array {
@@ -455,7 +444,7 @@ impl<'a> ProjectParser<'a> {
         let root_symbols = self.program.root_ii().top_level_symbols.clone();
         let storage = self.program.root_ii().storage.clone();
         let externs = self.program.root_ii().externs.clone();
-        let exprs = self.program.root_ii()._exprs.clone();
+        let exprs = self.program.root_ii().exprs.clone();
 
         self.program
             .iis

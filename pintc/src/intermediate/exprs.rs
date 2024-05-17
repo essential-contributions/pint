@@ -50,25 +50,25 @@ impl ExprKey {
     /// Returns an `Option` containing the `Expr` corresponding to key `self`. Returns `None` if
     /// the key can't be found in the `exprs` map.
     pub fn try_get<'a>(&'a self, ii: &'a IntermediateIntent) -> Option<&Expr> {
-        ii._exprs.exprs.get(*self)
+        ii.exprs.exprs.get(*self)
     }
 
     /// Returns the `Expr` corresponding to key `self`. Panics if the key can't be found in the
     /// `exprs` map.
     pub fn get<'a>(&'a self, ii: &'a IntermediateIntent) -> &Expr {
-        ii._exprs.exprs.get(*self).unwrap()
+        ii.exprs.exprs.get(*self).unwrap()
     }
 
     /// Returns the type of key `self` given an `IntermediateIntent`. Panics if the type can't be
     /// found in the `expr_types` map.
     pub fn get_ty<'a>(&'a self, ii: &'a IntermediateIntent) -> &Type {
-        ii._exprs.expr_types.get(*self).unwrap()
+        ii.exprs.expr_types.get(*self).unwrap()
     }
 
     /// Set the type of key `self` in an `IntermediateIntent`. Panics if the type can't be found in
     /// the `expr_types` map.
     pub fn set_ty<'a>(&'a self, ty: Type, ii: &'a mut IntermediateIntent) {
-        ii._exprs.expr_types.insert(*self, ty);
+        ii.exprs.expr_types.insert(*self, ty);
     }
 }
 

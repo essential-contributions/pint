@@ -91,13 +91,13 @@ impl IntermediateIntent {
 
         // Loop for every known var or state type, or any `as` cast expr, and replace any custom
         // types which match with the type alias.
-        self._vars
+        self.vars
             .update_types(|_, ty| replace_custom_type(&self.new_types, ty));
 
-        self._states
+        self.states
             .update_types(|_, ty| replace_custom_type(&self.new_types, ty));
 
-        self._exprs.update_exprs(|_, expr| {
+        self.exprs.update_exprs(|_, expr| {
             if let Expr::Cast { ty, .. } = expr {
                 replace_custom_type(&self.new_types, ty.borrow_mut());
             }
@@ -208,7 +208,7 @@ impl IntermediateIntent {
             }
         }
 
-        self._vars.update_types(|var_key, ty| {
+        self.vars.update_types(|var_key, ty| {
             if let Some(new_ty) = var_key_to_new_type.get(&var_key) {
                 *ty = new_ty.clone()
             }
@@ -252,7 +252,6 @@ impl IntermediateIntent {
                 let expr_ty = state.expr.get_ty(self).clone();
                 if !expr_ty.is_unknown() {
                     state_key_to_new_type.insert(state_key, expr_ty.clone());
-                    // self._states.state_types.insert(state_key, expr_ty.clone());
                     // State variables of type `Map` are not allowed
                     if expr_ty.is_map() {
                         handler.emit_err(Error::Compile {
@@ -270,7 +269,7 @@ impl IntermediateIntent {
                 }
             }
         }
-        self._states.update_types(|state_key, ty| {
+        self.states.update_types(|state_key, ty| {
             if let Some(new_ty) = state_key_to_new_type.get(&state_key) {
                 *ty = new_ty.clone()
             }

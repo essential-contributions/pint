@@ -434,14 +434,14 @@ fn states() {
     let (mut program, handler) = run_without_transforms(src);
     program.iis.iter_mut().for_each(|(_, ii)| {
         let dummy_expr_key = ii
-            ._exprs
+            .exprs
             .insert(Expr::Error(empty_span()), Type::Unknown(empty_span()));
         let dummy_state = State {
             name: "test".to_owned(),
             expr: dummy_expr_key,
             span: empty_span(),
         };
-        ii._states.insert(dummy_state, Type::Unknown(empty_span()));
+        ii.states.insert(dummy_state, Type::Unknown(empty_span()));
     });
     let _ = validate(&handler, &mut program);
     check(
@@ -462,7 +462,7 @@ fn vars() {
     let src = "let a = 1;";
     let (mut program, handler) = run_without_transforms(src);
     program.iis.iter_mut().for_each(|(_, ii)| {
-        ii._vars.insert(
+        ii.vars.insert(
             Var {
                 name: "test".to_owned(),
                 span: empty_span(),
@@ -500,7 +500,7 @@ fn directives() {
         let solve_directive = (SolveFunc::Satisfy, empty_span());
         ii.directives.push(solve_directive);
 
-        let dummy_expr_key = ii._exprs.insert(
+        let dummy_expr_key = ii.exprs.insert(
             Expr::Error(empty_span()),
             Type::Custom {
                 path: "::b".to_owned(),

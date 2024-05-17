@@ -6,12 +6,12 @@ use crate::{
 };
 use exprs::ExprsIter;
 pub use exprs::{ExprKey, Exprs};
-pub use states::{StateKey, _States};
+pub use states::{StateKey, States};
 use std::{
     collections::{BTreeMap, HashMap},
     fmt::{self, Formatter},
 };
-pub use vars::{VarKey, _Vars};
+pub use vars::{VarKey, Vars};
 
 mod analyse;
 mod check_program_kind;
@@ -67,9 +67,9 @@ impl Program {
 /// iterated upon and to be reduced to an [Intent].
 #[derive(Debug, Default)]
 pub struct IntermediateIntent {
-    pub _vars: _Vars,
-    pub _states: _States,
-    pub _exprs: Exprs,
+    pub vars: Vars,
+    pub states: States,
+    pub exprs: Exprs,
 
     pub constraints: Vec<ConstraintDecl>,
     pub if_decls: Vec<IfDecl>,
@@ -113,7 +113,7 @@ impl IntermediateIntent {
     ) -> std::result::Result<VarKey, ErrorEmitted> {
         let full_name =
             self.add_top_level_symbol(handler, mod_prefix, local_scope, name, name.span.clone())?;
-        let var_key = self._vars.insert(
+        let var_key = self.vars.insert(
             Var {
                 name: full_name,
                 span: name.span.clone(),
@@ -159,13 +159,13 @@ impl IntermediateIntent {
     pub fn insert_eq_or_ineq_constraint(&mut self, var_key: VarKey, expr_key: ExprKey, span: Span) {
         let var_span = &var_key.get(self).span;
 
-        let var_expr_key = self._exprs.insert(
+        let var_expr_key = self.exprs.insert(
             Expr::PathByKey(var_key, var_span.clone()),
             Type::Unknown(var_span.clone()),
         );
 
         if let Some(Expr::Range { lb, ub, .. }) = expr_key.try_get(self).cloned() {
-            let geq_expr_key = self._exprs.insert(
+            let geq_expr_key = self.exprs.insert(
                 Expr::BinaryOp {
                     op: expr::BinaryOp::GreaterThanOrEqual,
                     lhs: var_expr_key,
@@ -178,7 +178,7 @@ impl IntermediateIntent {
                 expr: geq_expr_key,
                 span: span.clone(),
             });
-            let geq_expr_key = self._exprs.insert(
+            let geq_expr_key = self.exprs.insert(
                 Expr::BinaryOp {
                     op: expr::BinaryOp::LessThanOrEqual,
                     lhs: var_expr_key,
@@ -192,7 +192,7 @@ impl IntermediateIntent {
                 span,
             });
         } else {
-            let eq_expr_key = self._exprs.insert(
+            let eq_expr_key = self.exprs.insert(
                 Expr::BinaryOp {
                     op: expr::BinaryOp::Equal,
                     lhs: var_expr_key,
@@ -218,7 +218,7 @@ impl IntermediateIntent {
         span: Span,
     ) -> std::result::Result<StateKey, ErrorEmitted> {
         let name = self.add_top_level_symbol(handler, mod_prefix, None, name, span.clone())?;
-        let state_key = self._states.insert(
+        let state_key = self.states.insert(
             State {
                 name,
                 expr,
@@ -280,7 +280,7 @@ impl IntermediateIntent {
     }
 
     pub fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
-        self._exprs
+        self.exprs
             .update_exprs(|_, expr| expr.replace_one_to_one(old_expr, new_expr));
 
         self.constraints
@@ -307,7 +307,7 @@ impl IntermediateIntent {
     }
 
     pub fn replace_exprs_by_map(&mut self, expr_map: &HashMap<ExprKey, ExprKey>) {
-        self._exprs
+        self.exprs
             .update_exprs(|_, expr| expr.replace_ref_by_map(expr_map));
 
         self.constraints
@@ -334,11 +334,11 @@ impl IntermediateIntent {
     }
 
     pub(crate) fn vars(&self) -> slotmap::basic::Iter<VarKey, Var> {
-        self._vars.vars()
+        self.vars.vars()
     }
 
     pub(crate) fn states(&self) -> slotmap::basic::Iter<StateKey, State> {
-        self._states.states()
+        self.states.states()
     }
 
     pub(crate) fn exprs(&self) -> ExprsIter {

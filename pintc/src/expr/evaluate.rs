@@ -315,6 +315,6 @@ impl ExprKey {
         };
 
         // Insert the new plugged expression and its type.
-        ii._exprs.insert(plugged, self.get_ty(ii).clone())
+        ii.exprs.insert(plugged, self.get_ty(ii).clone())
     }
 }
