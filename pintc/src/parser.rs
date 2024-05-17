@@ -710,3 +710,32 @@ impl<'a> ProjectParser<'a> {
         }
     }
 }
+
+pub(crate) enum TestWrapper {
+    Expr(ExprKey),
+    Type(Type),
+    Ident(Ident),
+    #[allow(dead_code)]
+    UseTree(UseTree),
+}
+
+impl TestWrapper {
+    #[allow(dead_code)]
+    fn gather_paths(&self) -> Vec<UsePath> {
+        let TestWrapper::UseTree(u) = self else {
+            panic!("Must call gather_paths() only for UseTree tests.");
+        };
+        u.gather_paths()
+    }
+}
+
+impl crate::intermediate::DisplayWithII for TestWrapper {
+    fn fmt(&self, f: &mut std::fmt::Formatter, ii: &IntermediateIntent) -> std::fmt::Result {
+        match self {
+            TestWrapper::Expr(e) => e.fmt(f, ii),
+            TestWrapper::Type(t) => t.fmt(f, ii),
+            TestWrapper::Ident(i) => i.fmt(f, ii),
+            TestWrapper::UseTree(_) => panic!("DisplayWithII not avilable for UseTree"),
+        }
+    }
+}

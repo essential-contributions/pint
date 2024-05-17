@@ -142,147 +142,171 @@ fn check(actual: &str, expect: expect_test::Expect) {
 
 #[test]
 fn types() {
-    let type_ = yp::TypeParser::new();
+    let type_ = yp::TestDelegateParser::new();
 
-    check(&run_parser!(type_, "int"), expect_test::expect!["int"]);
-    check(&run_parser!(type_, "real"), expect_test::expect!["real"]);
-    check(&run_parser!(type_, "bool"), expect_test::expect!["bool"]);
     check(
-        &run_parser!(type_, "string"),
+        &run_parser!(type_, "###type### int"),
+        expect_test::expect!["int"],
+    );
+    check(
+        &run_parser!(type_, "###type### real"),
+        expect_test::expect!["real"],
+    );
+    check(
+        &run_parser!(type_, "###type### bool"),
+        expect_test::expect!["bool"],
+    );
+    check(
+        &run_parser!(type_, "###type### string"),
         expect_test::expect!["string"],
     );
     check(
-        &run_parser!(type_, "{int, real, string}"),
+        &run_parser!(type_, "###type### {int, real, string}"),
         expect_test::expect!["{int, real, string}"],
     );
     check(
-        &run_parser!(type_, "{int, {real, int}, string}"),
+        &run_parser!(type_, "###type### {int, {real, int}, string}"),
         expect_test::expect!["{int, {real, int}, string}"],
     );
     check(
-        &run_parser!(type_, "{int, }"),
+        &run_parser!(type_, "###type### {int, }"),
         expect_test::expect!["{int}"],
     );
-    check(&run_parser!(type_, "{int}"), expect_test::expect!["{int}"]);
     check(
-        &run_parser!(type_, "{}"),
+        &run_parser!(type_, "###type### {int}"),
+        expect_test::expect!["{int}"],
+    );
+    check(
+        &run_parser!(type_, "###type### {}"),
         expect_test::expect![[r#"
             empty tuple types are not allowed
-            @0..2: empty tuple type found
+            @11..13: empty tuple type found
         "#]],
     );
     check(
-        &run_parser!(type_, "MyType"),
+        &run_parser!(type_, "###type### MyType"),
         expect_test::expect!["::MyType"],
     );
     check(
-        &run_parser!(type_, "A::B::C::MyType"),
+        &run_parser!(type_, "###type### A::B::C::MyType"),
         expect_test::expect!["::A::B::C::MyType"],
     );
     check(
-        &run_parser!(type_, "::A::B::C::MyType"),
+        &run_parser!(type_, "###type### ::A::B::C::MyType"),
         expect_test::expect!["::A::B::C::MyType"],
     );
 
     // Not allowed in arbitrary types
     check(
-        &run_parser!(type_, "(int => bool)"),
+        &run_parser!(type_, "###type### (int => bool)"),
         expect_test::expect![[r#"
             expected `::`, `b256_ty`, `bool_ty`, `ident`, `int_ty`, `real_ty`, `string_ty`, or `{`, found `(`
-            @0..1: expected `::`, `b256_ty`, `bool_ty`, `ident`, `int_ty`, `real_ty`, `string_ty`, or `{`
+            @11..12: expected `::`, `b256_ty`, `bool_ty`, `ident`, `int_ty`, `real_ty`, `string_ty`, or `{`
         "#]],
     );
 }
 
 #[test]
 fn storage_types() {
-    let storage_var_type = yp::StorageVarTypeParser::new();
+    let storage_var_type = yp::TestDelegateParser::new();
 
     // while not all of these are currently supported e2e, the `StorageVarTypeParser` does allow
     // them, though some of them get blocked by the parser in `StateDeclParser`
 
     check(
-        &run_parser!(storage_var_type, "int"),
+        &run_parser!(storage_var_type, "###svtype### int"),
         expect_test::expect!["int"],
     );
     check(
-        &run_parser!(storage_var_type, "real"),
+        &run_parser!(storage_var_type, "###svtype### real"),
         expect_test::expect!["real"],
     );
     check(
-        &run_parser!(storage_var_type, "bool"),
+        &run_parser!(storage_var_type, "###svtype### bool"),
         expect_test::expect!["bool"],
     );
     check(
-        &run_parser!(storage_var_type, "string"),
+        &run_parser!(storage_var_type, "###svtype### string"),
         expect_test::expect!["string"],
     );
     check(
-        &run_parser!(storage_var_type, "{int, real, string}"),
+        &run_parser!(storage_var_type, "###svtype### {int, real, string}"),
         expect_test::expect!["{int, real, string}"],
     );
     check(
-        &run_parser!(storage_var_type, "{int, {real, int}, string}"),
+        &run_parser!(storage_var_type, "###svtype### {int, {real, int}, string}"),
         expect_test::expect!["{int, {real, int}, string}"],
     );
     check(
-        &run_parser!(storage_var_type, "{int, }"),
+        &run_parser!(storage_var_type, "###svtype### {int, }"),
         expect_test::expect!["{int}"],
     );
     check(
-        &run_parser!(storage_var_type, "{int}"),
+        &run_parser!(storage_var_type, "###svtype### {int}"),
         expect_test::expect!["{int}"],
     );
     check(
-        &run_parser!(storage_var_type, "{}"),
+        &run_parser!(storage_var_type, "###svtype### {}"),
         expect_test::expect![[r#"
             empty tuple types are not allowed
-            @0..2: empty tuple type found
+            @13..15: empty tuple type found
         "#]],
     );
     check(
-        &run_parser!(storage_var_type, "MyType"),
+        &run_parser!(storage_var_type, "###svtype### MyType"),
         expect_test::expect!["::MyType"],
     );
     check(
-        &run_parser!(storage_var_type, "A::B::C::MyType"),
+        &run_parser!(storage_var_type, "###svtype### A::B::C::MyType"),
         expect_test::expect!["::A::B::C::MyType"],
     );
     check(
-        &run_parser!(storage_var_type, "::A::B::C::MyType"),
+        &run_parser!(storage_var_type, "###svtype### ::A::B::C::MyType"),
         expect_test::expect!["::A::B::C::MyType"],
     );
 
     // maps are allowed here
     check(
-        &run_parser!(storage_var_type, "(int => bool)"),
+        &run_parser!(storage_var_type, "###svtype### (int => bool)"),
         expect_test::expect!["( int => bool )"],
     );
 
     check(
-        &run_parser!(storage_var_type, "(int => (int => (b256 => b256)))"),
+        &run_parser!(
+            storage_var_type,
+            "###svtype### (int => (int => (b256 => b256)))"
+        ),
         expect_test::expect!["( int => ( int => ( b256 => b256 ) ) )"],
     );
 }
 
 #[test]
 fn immediates() {
-    let immediate = yp::ImmediateParser::new();
+    let immediate = yp::TestDelegateParser::new();
 
-    check(&run_parser!(immediate, "0x88"), expect_test::expect!["136"]);
-    check(&run_parser!(immediate, "0b111"), expect_test::expect!["7"]);
-    check(&run_parser!(immediate, "1"), expect_test::expect!["1"]);
+    check(
+        &run_parser!(immediate, "###expr### 0x88"),
+        expect_test::expect!["136"],
+    );
+    check(
+        &run_parser!(immediate, "###expr### 0b111"),
+        expect_test::expect!["7"],
+    );
+    check(
+        &run_parser!(immediate, "###expr### 1"),
+        expect_test::expect!["1"],
+    );
 
     // i64 hex literals
     check(
-        &run_parser!(immediate, "0x0000000000000011"),
+        &run_parser!(immediate, "###expr### 0x0000000000000011"),
         expect_test::expect!["17"],
     );
 
     check(
         &run_parser!(
             immediate,
-            "0xFFFFFFFFFFFFFFF" // 15 digits
+            "###expr### 0xFFFFFFFFFFFFFFF" // 15 digits
         ),
         expect_test::expect!["1152921504606846975"],
     );
@@ -290,7 +314,7 @@ fn immediates() {
     check(
         &run_parser!(
             immediate,
-            "0x7FFFFFFFFFFFFFFF" // 16 digits and positive (top bit is 0)
+            "###expr### 0x7FFFFFFFFFFFFFFF" // 16 digits and positive (top bit is 0)
         ),
         expect_test::expect!["9223372036854775807"],
     );
@@ -298,13 +322,13 @@ fn immediates() {
     check(
         &run_parser!(
             immediate,
-            "0x8FFFFFFFFFFFFFFF" // 16 digits and negative (top bit is 1)
+            "###expr### 0x8FFFFFFFFFFFFFFF" // 16 digits and negative (top bit is 1)
         ),
         expect_test::expect!["-8070450532247928833"],
     );
 
     check(
-        &run_parser!(immediate, "0xFFFFFFFFFFFFFFFF"),
+        &run_parser!(immediate, "###expr### 0xFFFFFFFFFFFFFFFF"),
         expect_test::expect!["-1"],
     );
 
@@ -312,7 +336,7 @@ fn immediates() {
     check(
         &run_parser!(
             immediate,
-            "0b0000000000000000000000000000000000000000000000000000000000010001"
+            "###expr### 0b0000000000000000000000000000000000000000000000000000000000010001"
         ),
         expect_test::expect!["17"],
     );
@@ -320,7 +344,7 @@ fn immediates() {
     check(
         &run_parser!(
             immediate,
-            "0b111111111111111111111111111111111111111111111111111111111111111" // 63 digits
+            "###expr### 0b111111111111111111111111111111111111111111111111111111111111111" // 63 digits
         ),
         expect_test::expect!["9223372036854775807"],
     );
@@ -328,7 +352,7 @@ fn immediates() {
     check(
         &run_parser!(
             immediate,
-            "0b0111111111111111111111111111111111111111111111111111111111111111" // 64 digits and positive (top bit is 0)
+            "###expr### 0b0111111111111111111111111111111111111111111111111111111111111111" // 64 digits and positive (top bit is 0)
         ),
         expect_test::expect!["9223372036854775807"],
     );
@@ -336,7 +360,7 @@ fn immediates() {
     check(
         &run_parser!(
             immediate,
-            "0b1111111111111111111111111111111111111111111111111111111111111111" // 64 digits and negative (top bit is 1)
+            "###expr### 0b1111111111111111111111111111111111111111111111111111111111111111" // 64 digits and negative (top bit is 1)
         ),
         expect_test::expect!["-1"],
     );
@@ -345,7 +369,7 @@ fn immediates() {
     check(
         &run_parser!(
             immediate,
-            "0x3333333333333333333333333333333333333333333333333333333333333333"
+            "###expr### 0x3333333333333333333333333333333333333333333333333333333333333333"
         ),
         expect_test::expect!["0x3333333333333333333333333333333333333333333333333333333333333333"],
     );
@@ -353,7 +377,7 @@ fn immediates() {
     check(
         &run_parser!(
             immediate,
-            "0x8000000000000000000000000000000000000000000000000000000000000001"
+            "###expr### 0x8000000000000000000000000000000000000000000000000000000000000001"
         ),
         expect_test::expect!["0x8000000000000000000000000000000000000000000000000000000000000001"],
     );
@@ -361,28 +385,28 @@ fn immediates() {
     check(
         &run_parser!(
             immediate,
-            "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+            "###expr### 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
         ),
         expect_test::expect!["0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"],
     );
 
     // b256 binary literals
     check(
-        &run_parser!(immediate, "0b1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"),
+        &run_parser!(immediate, "###expr### 0b1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"),
         expect_test::expect!["0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"],
     );
 
     check(
-        &run_parser!(immediate, "0b1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011"),
+        &run_parser!(immediate, "###expr### 0b1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011"),
         expect_test::expect!["0x8000000000000000000000000000000000000000000000000000000000000003"],
     );
 
     // Bad lengths
     check(
-        &run_parser!(immediate, "0x4f3f4f3f4f3f4f3f4f3f4f3f4f"),
+        &run_parser!(immediate, "###expr### 0x4f3f4f3f4f3f4f3f4f3f4f3f4f"),
         expect_test::expect![[r#"
             unexpected hexadecimal integer literal length
-            @0..28: 26 is not a valid number of digits in a hexadecimal integer literal
+            @11..39: 26 is not a valid number of digits in a hexadecimal integer literal
             number of digits must be either 64 or between 1 and 16
         "#]],
     );
@@ -390,44 +414,44 @@ fn immediates() {
     check(
         &run_parser!(
             immediate,
-            "0x18000000000000000000000000000000000000000000000000000000000000001"
+            "###expr### 0x18000000000000000000000000000000000000000000000000000000000000001"
         ),
         expect_test::expect![[r#"
             unexpected hexadecimal integer literal length
-            @0..67: 65 is not a valid number of digits in a hexadecimal integer literal
+            @11..78: 65 is not a valid number of digits in a hexadecimal integer literal
             number of digits must be either 64 or between 1 and 16
         "#]],
     );
 
     check(
-            &run_parser!(immediate, "0b1000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+            &run_parser!(immediate, "###expr### 0b1000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
             expect_test::expect![[r#"
                 unexpected binary integer literal length
-                @0..87: 85 is not a valid number of digits in a binary integer literal
+                @11..98: 85 is not a valid number of digits in a binary integer literal
                 number of digits must be either 256 or between 1 and 64
             "#]],
         );
 
     check(
-        &run_parser!(immediate, "0b11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011"),
+        &run_parser!(immediate, "###expr### 0b11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011"),
         expect_test::expect![[r#"
             unexpected binary integer literal length
-            @0..259: 257 is not a valid number of digits in a binary integer literal
+            @11..270: 257 is not a valid number of digits in a binary integer literal
             number of digits must be either 256 or between 1 and 64
         "#]],
     );
 
     check(
-        &run_parser!(immediate, "9223372036854775808"),
+        &run_parser!(immediate, "###expr### 9223372036854775808"),
         expect_test::expect![[r#"
             integer literal is too large
-            @0..19: integer literal is too large
+            @11..30: integer literal is too large
             value exceeds limit of `9,223,372,036,854,775,807`
         "#]],
     );
 
     check(
-        &run_parser!(immediate, "1.3"),
+        &run_parser!(immediate, "###expr### 1.3"),
         expect_test::expect!["1.3e0"],
     );
 }
@@ -548,7 +572,7 @@ fn storage_decl() {
 
     let src = r#"
 storage {
-    integer: int,    
+    integer: int,
     boolean: bool,
 }
 "#;
@@ -609,7 +633,7 @@ fn extern_decl() {
     let src = r#"
 extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
     storage {
-        integer: int,    
+        integer: int,
         boolean: bool,
     }
 }
@@ -760,44 +784,47 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) { 
+            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
                 storage { }
                 storage { }
             }"#
         ),
         expect_test::expect![[r#"
             expected `}`, found `storage`
-            @139..146: expected `}`
+            @138..145: expected `}`
         "#]],
     );
 }
 
 #[test]
 fn storage_access() {
-    let expr = yp::StateInitParser::new();
+    let expr = yp::TestDelegateParser::new();
 
     check(
-        &run_parser!(expr, r#"storage::foo"#),
+        &run_parser!(expr, r#"###state### storage::foo"#),
         expect_test::expect!["storage::foo"],
     );
 
     check(
-        &run_parser!(expr, r#"storage::foo.0.3"#),
+        &run_parser!(expr, r#"###state### storage::foo.0.3"#),
         expect_test::expect!["storage::foo.0.3"],
     );
 
     check(
-        &run_parser!(expr, r#"storage::balances[0x111]"#),
+        &run_parser!(expr, r#"###state### storage::balances[0x111]"#),
         expect_test::expect!["storage::balances[273]"],
     );
 
     check(
-        &run_parser!(expr, r#"storage::balances[0x111][__foo()][t[3].5].2"#),
+        &run_parser!(
+            expr,
+            r#"###state### storage::balances[0x111][__foo()][t[3].5].2"#
+        ),
         expect_test::expect!["storage::balances[273][__foo()][::t[3].5].2"],
     );
 
     check(
-        &run_parser!(expr, r#"__foo()"#),
+        &run_parser!(expr, r#"###state### __foo()"#),
         expect_test::expect!["__foo()"],
     );
 
@@ -830,20 +857,23 @@ fn storage_access() {
 
 #[test]
 fn external_storage_access() {
-    let expr = yp::StateInitParser::new();
+    let expr = yp::TestDelegateParser::new();
 
     check(
-        &run_parser!(expr, r#"Foo::storage::foo"#),
+        &run_parser!(expr, r#"###state### Foo::storage::foo"#),
         expect_test::expect!["::Foo::storage::foo"],
     );
 
     check(
-        &run_parser!(expr, r#"Foo::Bar::storage::balances[0x111]"#),
+        &run_parser!(expr, r#"###state### Foo::Bar::storage::balances[0x111]"#),
         expect_test::expect!["::Foo::Bar::storage::balances[273]"],
     );
 
     check(
-        &run_parser!(expr, r#"::Foo::storage::balances[0x111][__foo()][t[3].5]"#),
+        &run_parser!(
+            expr,
+            r#"###state### ::Foo::storage::balances[0x111][__foo()][t[3].5]"#
+        ),
         expect_test::expect!["::Foo::storage::balances[273][__foo()][::t[3].5]"],
     );
 
@@ -879,7 +909,7 @@ fn let_decls() {
     let mod_path = vec!["foo".to_string()];
 
     check(
-        &run_parser!(yp::LetDeclParser::new(), "let blah", mod_path),
+        &run_parser!(yp::PintParser::new(), "let blah;", mod_path),
         expect_test::expect![[r#"
             type annotation or initializer needed for variable `blah`
             @0..8: type annotation or initializer needed
@@ -887,63 +917,63 @@ fn let_decls() {
         "#]],
     );
     check(
-        &run_parser!(yp::LetDeclParser::new(), "let blah = 1.0", mod_path),
+        &run_parser!(yp::PintParser::new(), "let blah = 1.0;", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah;
             constraint (::foo::blah == 1e0);"#]],
     );
     check(
-        &run_parser!(yp::LetDeclParser::new(), "let blah: real = 1.0", mod_path),
+        &run_parser!(yp::PintParser::new(), "let blah: real = 1.0;", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah: real;
             constraint (::foo::blah == 1e0);"#]],
     );
     check(
-        &run_parser!(yp::LetDeclParser::new(), "let blah: real", mod_path),
+        &run_parser!(yp::PintParser::new(), "let blah: real;", mod_path),
         expect_test::expect!["var ::foo::blah: real;"],
     );
     check(
-        &run_parser!(yp::LetDeclParser::new(), "let blah = 1", mod_path),
+        &run_parser!(yp::PintParser::new(), "let blah = 1;", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah;
             constraint (::foo::blah == 1);"#]],
     );
     check(
-        &run_parser!(yp::LetDeclParser::new(), "let blah: int = 1", mod_path),
+        &run_parser!(yp::PintParser::new(), "let blah: int = 1;", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah: int;
             constraint (::foo::blah == 1);"#]],
     );
     check(
-        &run_parser!(yp::LetDeclParser::new(), "let blah: int", mod_path),
+        &run_parser!(yp::PintParser::new(), "let blah: int;", mod_path),
         expect_test::expect!["var ::foo::blah: int;"],
     );
     check(
-        &run_parser!(yp::LetDeclParser::new(), "let blah = true", mod_path),
+        &run_parser!(yp::PintParser::new(), "let blah = true;", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah;
             constraint (::foo::blah == true);"#]],
     );
     check(
-        &run_parser!(yp::LetDeclParser::new(), "let blah: bool = false", mod_path),
+        &run_parser!(yp::PintParser::new(), "let blah: bool = false;", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah: bool;
             constraint (::foo::blah == false);"#]],
     );
     check(
-        &run_parser!(yp::LetDeclParser::new(), "let blah: bool", mod_path),
+        &run_parser!(yp::PintParser::new(), "let blah: bool;", mod_path),
         expect_test::expect!["var ::foo::blah: bool;"],
     );
     check(
-        &run_parser!(yp::LetDeclParser::new(), r#"let blah = "hello""#, mod_path),
+        &run_parser!(yp::PintParser::new(), r#"let blah = "hello";"#, mod_path),
         expect_test::expect![[r#"
             var ::foo::blah;
             constraint (::foo::blah == "hello");"#]],
     );
     check(
         &run_parser!(
-            yp::LetDeclParser::new(),
-            r#"let blah: string = "hello""#,
+            yp::PintParser::new(),
+            r#"let blah: string = "hello";"#,
             mod_path
         ),
         expect_test::expect![[r#"
@@ -951,21 +981,21 @@ fn let_decls() {
             constraint (::foo::blah == "hello");"#]],
     );
     check(
-        &run_parser!(yp::LetDeclParser::new(), r#"let blah: string"#, mod_path),
+        &run_parser!(yp::PintParser::new(), r#"let blah: string;"#, mod_path),
         expect_test::expect!["var ::foo::blah: string;"],
     );
 }
 
 #[test]
 fn state_decls() {
-    let state = yp::StateDeclParser::new();
+    let state = yp::PintParser::new();
 
     check(
-        &run_parser!(state, "state x: int = __foo()"),
+        &run_parser!(state, "state x: int = __foo();"),
         expect_test::expect!["state ::x: int = __foo();"],
     );
     check(
-        &run_parser!(state, "state y = __bar()"),
+        &run_parser!(state, "state y = __bar();"),
         expect_test::expect!["state ::y = __bar();"],
     );
 }
@@ -973,10 +1003,10 @@ fn state_decls() {
 #[test]
 fn constraint_decls() {
     // Argument just needs to be any expression, as far as the parser is concerned.
-    let constraint_decl = yp::ConstraintDeclParser::new();
+    let constraint_decl = yp::PintParser::new();
 
     check(
-        &run_parser!(constraint_decl, "constraint blah"),
+        &run_parser!(constraint_decl, "constraint blah;"),
         expect_test::expect!["constraint ::blah;"],
     );
 }
@@ -984,7 +1014,7 @@ fn constraint_decls() {
 #[test]
 fn if_decls() {
     // Argument just needs to be any expression, as far as the parser is concerned.
-    let if_decl = yp::IfDeclParser::new();
+    let if_decl = yp::PintParser::new();
 
     check(
         &run_parser!(
@@ -1043,7 +1073,7 @@ fn if_decls() {
         &run_parser!(
             if_decl,
             r#"
-            if true { if false { constraint x; } else { constraint y; } } 
+            if true { if false { constraint x; } else { constraint y; } }
             else { if __foo() { if boo && y { constraint true; constraint false; } } }
         "#
         ),
@@ -1067,28 +1097,28 @@ fn if_decls() {
 
 #[test]
 fn solve_decls() {
-    let solve_decl = yp::SolveDeclParser::new();
+    let solve_decl = yp::PintParser::new();
 
     check(
-        &run_parser!(solve_decl, "solve satisfy"),
+        &run_parser!(solve_decl, "solve satisfy;"),
         expect_test::expect!["solve satisfy;"],
     );
     check(
-        &run_parser!(solve_decl, "solve minimize foo"),
+        &run_parser!(solve_decl, "solve minimize foo;"),
         expect_test::expect!["solve minimize ::foo;"],
     );
     check(
-        &run_parser!(solve_decl, "solve maximize foo"),
+        &run_parser!(solve_decl, "solve maximize foo;"),
         expect_test::expect!["solve maximize ::foo;"],
     );
 
     check(
-        &run_parser!(solve_decl, "solve maximize x + y"),
+        &run_parser!(solve_decl, "solve maximize x + y;"),
         expect_test::expect!["solve maximize (::x + ::y);"],
     );
 
     check(
-        &run_parser!(solve_decl, "solve world hunger"),
+        &run_parser!(solve_decl, "solve world hunger;"),
         expect_test::expect![[r#"
             expected `maximize`, `minimize`, or `satisfy`, found `world`
             @6..11: expected `maximize`, `minimize`, or `satisfy`
@@ -1098,55 +1128,79 @@ fn solve_decls() {
 
 #[test]
 fn basic_exprs() {
-    let expr = yp::ExprParser::new();
-    check(&run_parser!(expr, "123"), expect_test::expect!["123"]);
-    check(&run_parser!(expr, "foo"), expect_test::expect!["::foo"]);
+    let expr = yp::TestDelegateParser::new();
+    check(
+        &run_parser!(expr, "###expr### 123"),
+        expect_test::expect!["123"],
+    );
+    check(
+        &run_parser!(expr, "###expr### foo"),
+        expect_test::expect!["::foo"],
+    );
 }
 
 #[test]
 fn unary_op_exprs() {
-    let expr = yp::ExprParser::new();
+    let expr = yp::TestDelegateParser::new();
 
-    check(&run_parser!(expr, "!a"), expect_test::expect!["!::a"]);
-    check(&run_parser!(expr, "-a"), expect_test::expect!["-::a"]);
-    check(&run_parser!(expr, "-1.0"), expect_test::expect!["-1e0"]);
-    check(&run_parser!(expr, "-1"), expect_test::expect!["-1"]);
-    check(&run_parser!(expr, "-0x133"), expect_test::expect!["-307"]);
-    check(&run_parser!(expr, "-0b1101"), expect_test::expect!["-13"]);
+    check(
+        &run_parser!(expr, "###expr### !a"),
+        expect_test::expect!["!::a"],
+    );
+    check(
+        &run_parser!(expr, "###expr### -a"),
+        expect_test::expect!["-::a"],
+    );
+    check(
+        &run_parser!(expr, "###expr### -1.0"),
+        expect_test::expect!["-1e0"],
+    );
+    check(
+        &run_parser!(expr, "###expr### -1"),
+        expect_test::expect!["-1"],
+    );
+    check(
+        &run_parser!(expr, "###expr### -0x133"),
+        expect_test::expect!["-307"],
+    );
+    check(
+        &run_parser!(expr, "###expr### -0b1101"),
+        expect_test::expect!["-13"],
+    );
     check(
         &run_parser!(
             expr,
-            "-0b1101000000001100101010101010101010101010101010101101010101010101"
+            "###expr### -0b1101000000001100101010101010101010101010101010101101010101010101"
         ),
         expect_test::expect!["--3455199164115528363"],
     );
     check(
-        &run_parser!(expr, "! - - !  --  -1"),
+        &run_parser!(expr, "###expr### ! - - !  --  -1"),
         expect_test::expect!["!--!---1"],
     );
     check(
-        &run_parser!(expr, "! - x '  '  "),
+        &run_parser!(expr, "###expr### ! - x '  '  "),
         expect_test::expect!["!-::x''"],
     );
     check(
-        &run_parser!(expr, "+ + x '  '  "),
+        &run_parser!(expr, "###expr### + + x '  '  "),
         expect_test::expect![[r#"
             leading `+` is not supported
-            @0..1: unexpected `+`
+            @11..12: unexpected `+`
             try removing the `+`
             leading `+` is not supported
-            @2..3: unexpected `+`
+            @13..14: unexpected `+`
             try removing the `+`
         "#]],
     );
     check(
-        &run_parser!(expr, "1 + +  + x"),
+        &run_parser!(expr, "###expr### 1 + +  + x"),
         expect_test::expect![[r#"
             leading `+` is not supported
-            @4..5: unexpected `+`
+            @15..16: unexpected `+`
             try removing the `+`
             leading `+` is not supported
-            @7..8: unexpected `+`
+            @18..19: unexpected `+`
             try removing the `+`
         "#]],
     );
@@ -1154,257 +1208,263 @@ fn unary_op_exprs() {
 
 #[test]
 fn binary_op_exprs() {
-    let expr = yp::ExprParser::new();
+    let expr = yp::TestDelegateParser::new();
 
     check(
-        &run_parser!(expr, "a * 2.0"),
+        &run_parser!(expr, "###expr### a * 2.0"),
         expect_test::expect!["(::a * 2e0)"],
     );
     check(
-        &run_parser!(expr, "a / 2.0"),
+        &run_parser!(expr, "###expr### a / 2.0"),
         expect_test::expect!["(::a / 2e0)"],
     );
     check(
-        &run_parser!(expr, "a % 2.0"),
+        &run_parser!(expr, "###expr### a % 2.0"),
         expect_test::expect!["(::a % 2e0)"],
     );
     check(
-        &run_parser!(expr, "a + 2.0"),
+        &run_parser!(expr, "###expr### a + 2.0"),
         expect_test::expect!["(::a + 2e0)"],
     );
     check(
-        &run_parser!(expr, "a - 2.0"),
+        &run_parser!(expr, "###expr### a - 2.0"),
         expect_test::expect!["(::a - 2e0)"],
     );
     check(
-        &run_parser!(expr, "a+2.0"),
+        &run_parser!(expr, "###expr### a+2.0"),
         expect_test::expect!["(::a + 2e0)"],
     );
     check(
-        &run_parser!(expr, "a-2.0"),
+        &run_parser!(expr, "###expr### a-2.0"),
         expect_test::expect!["(::a - 2e0)"],
     );
     check(
-        &run_parser!(expr, "a < 2.0"),
+        &run_parser!(expr, "###expr### a < 2.0"),
         expect_test::expect!["(::a < 2e0)"],
     );
     check(
-        &run_parser!(expr, "a > 2.0"),
+        &run_parser!(expr, "###expr### a > 2.0"),
         expect_test::expect!["(::a > 2e0)"],
     );
     check(
-        &run_parser!(expr, "a <= 2.0"),
+        &run_parser!(expr, "###expr### a <= 2.0"),
         expect_test::expect!["(::a <= 2e0)"],
     );
     check(
-        &run_parser!(expr, "a >= 2.0"),
+        &run_parser!(expr, "###expr### a >= 2.0"),
         expect_test::expect!["(::a >= 2e0)"],
     );
     check(
-        &run_parser!(expr, "a == 2.0"),
+        &run_parser!(expr, "###expr### a == 2.0"),
         expect_test::expect!["(::a == 2e0)"],
     );
     check(
-        &run_parser!(expr, "a != 2.0"),
+        &run_parser!(expr, "###expr### a != 2.0"),
         expect_test::expect!["(::a != 2e0)"],
     );
     check(
-        &run_parser!(expr, "a && b"),
+        &run_parser!(expr, "###expr### a && b"),
         expect_test::expect!["(::a && ::b)"],
     );
 
     check(
-        &run_parser!(expr, "a || b"),
+        &run_parser!(expr, "###expr### a || b"),
         expect_test::expect!["(::a || ::b)"],
     );
 
     check(
-        &run_parser!(expr, "a || b && c || d && !e"),
+        &run_parser!(expr, "###expr### a || b && c || d && !e"),
         expect_test::expect!["((::a || (::b && ::c)) || (::d && !::e))"],
     );
 }
 
 #[test]
 fn complex_exprs() {
-    let expr = yp::ExprParser::new();
+    let expr = yp::TestDelegateParser::new();
 
     check(
-        &run_parser!(expr, "2 * b * 3"),
+        &run_parser!(expr, "###expr### 2 * b * 3"),
         expect_test::expect!["((2 * ::b) * 3)"],
     );
     check(
-        &run_parser!(expr, "2 < b * 3"),
+        &run_parser!(expr, "###expr### 2 < b * 3"),
         expect_test::expect!["(2 < (::b * 3))"],
     );
     check(
-        &run_parser!(expr, "2.0 > b * 3.0"),
+        &run_parser!(expr, "###expr### 2.0 > b * 3.0"),
         expect_test::expect!["(2e0 > (::b * 3e0))"],
     );
     check(
-        &run_parser!(expr, "2.0 * b < 3.0"),
+        &run_parser!(expr, "###expr### 2.0 * b < 3.0"),
         expect_test::expect!["((2e0 * ::b) < 3e0)"],
     );
     check(
-        &run_parser!(expr, "2 > b < 3"),
+        &run_parser!(expr, "###expr### 2 > b < 3"),
         expect_test::expect!["((2 > ::b) < 3)"],
     );
     check(
-        &run_parser!(expr, "2 != b < 3"),
+        &run_parser!(expr, "###expr### 2 != b < 3"),
         expect_test::expect!["((2 != ::b) < 3)"],
     );
     check(
-        &run_parser!(expr, "2 < b != 3"),
+        &run_parser!(expr, "###expr### 2 < b != 3"),
         expect_test::expect!["((2 < ::b) != 3)"],
     );
     check(
-        &run_parser!(expr, "a > b * c < d"),
+        &run_parser!(expr, "###expr### a > b * c < d"),
         expect_test::expect!["((::a > (::b * ::c)) < ::d)"],
     );
     check(
-        &run_parser!(expr, "2 + 3 * 4"),
+        &run_parser!(expr, "###expr### 2 + 3 * 4"),
         expect_test::expect!["(2 + (3 * 4))"],
     );
     check(
-        &run_parser!(expr, "10 - 8 / 4"),
+        &run_parser!(expr, "###expr### 10 - 8 / 4"),
         expect_test::expect!["(10 - (8 / 4))"],
     );
     check(
-        &run_parser!(expr, "10 + 8 % 4"),
+        &run_parser!(expr, "###expr### 10 + 8 % 4"),
         expect_test::expect!["(10 + (8 % 4))"],
     );
     check(
-        &run_parser!(expr, "2 + 3 * 4 < 5"),
+        &run_parser!(expr, "###expr### 2 + 3 * 4 < 5"),
         expect_test::expect!["((2 + (3 * 4)) < 5)"],
     );
     check(
-        &run_parser!(expr, "2 * 3 / 4 < 5"),
+        &run_parser!(expr, "###expr### 2 * 3 / 4 < 5"),
         expect_test::expect!["(((2 * 3) / 4) < 5)"],
     );
     check(
-        &run_parser!(expr, "10 - 5 + 3 > 7"),
+        &run_parser!(expr, "###expr### 10 - 5 + 3 > 7"),
         expect_test::expect!["(((10 - 5) + 3) > 7)"],
     );
     check(
-        &run_parser!(expr, "10 % 2 * 4 < 3"),
+        &run_parser!(expr, "###expr### 10 % 2 * 4 < 3"),
         expect_test::expect!["(((10 % 2) * 4) < 3)"],
     );
     check(
-        &run_parser!(expr, "2 + 3 * 4 - 5 / 2 > 1"),
+        &run_parser!(expr, "###expr### 2 + 3 * 4 - 5 / 2 > 1"),
         expect_test::expect!["(((2 + (3 * 4)) - (5 / 2)) > 1)"],
     );
 }
 
 #[test]
 fn parens_exprs() {
-    let expr = yp::ExprParser::new();
+    let expr = yp::TestDelegateParser::new();
 
     check(
-        &run_parser!(expr, "(1 + 2) * 3"),
+        &run_parser!(expr, "###expr### (1 + 2) * 3"),
         expect_test::expect!["((1 + 2) * 3)"],
     );
     check(
-        &run_parser!(expr, "1 * (2 + 3)"),
+        &run_parser!(expr, "###expr### 1 * (2 + 3)"),
         expect_test::expect!["(1 * (2 + 3))"],
     );
     check(
-        &run_parser!(expr, "(1 + 2) * (3 + 4)"),
+        &run_parser!(expr, "###expr### (1 + 2) * (3 + 4)"),
         expect_test::expect!["((1 + 2) * (3 + 4))"],
     );
     check(
-        &run_parser!(expr, "(1 + (2 * 3)) * 4"),
+        &run_parser!(expr, "###expr### (1 + (2 * 3)) * 4"),
         expect_test::expect!["((1 + (2 * 3)) * 4)"],
     );
     check(
-        &run_parser!(expr, "(1 * (2 + 3)) * 4"),
+        &run_parser!(expr, "###expr### (1 * (2 + 3)) * 4"),
         expect_test::expect!["((1 * (2 + 3)) * 4)"],
     );
     check(
-        &run_parser!(expr, "((1 + 2) * 3) * 4"),
+        &run_parser!(expr, "###expr### ((1 + 2) * 3) * 4"),
         expect_test::expect!["(((1 + 2) * 3) * 4)"],
     );
     check(
-        &run_parser!(expr, "((1 + 2) * (3 + 4)) * 5"),
+        &run_parser!(expr, "###expr### ((1 + 2) * (3 + 4)) * 5"),
         expect_test::expect!["(((1 + 2) * (3 + 4)) * 5)"],
     );
     check(
-        &run_parser!(expr, "(1 + 2) * 3 / 4"),
+        &run_parser!(expr, "###expr### (1 + 2) * 3 / 4"),
         expect_test::expect!["(((1 + 2) * 3) / 4)"],
     );
     check(
-        &run_parser!(expr, "1 / (2 + 3) * 4"),
+        &run_parser!(expr, "###expr### 1 / (2 + 3) * 4"),
         expect_test::expect!["((1 / (2 + 3)) * 4)"],
     );
     check(
-        &run_parser!(expr, "(1 < 2) && (3 > 4)"),
+        &run_parser!(expr, "###expr### (1 < 2) && (3 > 4)"),
         expect_test::expect!["((1 < 2) && (3 > 4))"],
     );
     check(
-        &run_parser!(expr, "(1 == 2) || (3 != 4)"),
+        &run_parser!(expr, "###expr### (1 == 2) || (3 != 4)"),
         expect_test::expect!["((1 == 2) || (3 != 4))"],
     );
     check(
-        &run_parser!(expr, "1 < (2 && 3) > 4"),
+        &run_parser!(expr, "###expr### 1 < (2 && 3) > 4"),
         expect_test::expect!["((1 < (2 && 3)) > 4)"],
     );
     check(
-        &run_parser!(expr, "1 && (2 || 3)"),
+        &run_parser!(expr, "###expr### 1 && (2 || 3)"),
         expect_test::expect!["(1 && (2 || 3))"],
     );
     check(
-        &run_parser!(expr, "1 == (2 || 3) != 4"),
+        &run_parser!(expr, "###expr### 1 == (2 || 3) != 4"),
         expect_test::expect!["((1 == (2 || 3)) != 4)"],
     );
     check(
-        &run_parser!(expr, "-(1 + 2)"),
+        &run_parser!(expr, "###expr### -(1 + 2)"),
         expect_test::expect!["-(1 + 2)"],
     );
     check(
-        &run_parser!(expr, "!(a < b)"),
+        &run_parser!(expr, "###expr### !(a < b)"),
         expect_test::expect!["!(::a < ::b)"],
     );
-    check(&run_parser!(expr, "(1)"), expect_test::expect!["1"]);
-    check(&run_parser!(expr, "(a)"), expect_test::expect!["::a"]);
     check(
-        &run_parser!(expr, "()"),
+        &run_parser!(expr, "###expr### (1)"),
+        expect_test::expect!["1"],
+    );
+    check(
+        &run_parser!(expr, "###expr### (a)"),
+        expect_test::expect!["::a"],
+    );
+    check(
+        &run_parser!(expr, "###expr### ()"),
         expect_test::expect![[r#"
             expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `)`
-            @1..2: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            @12..13: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
     check(
-        &run_parser!(expr, "(a < b) ? 1 : 2"),
+        &run_parser!(expr, "###expr### (a < b) ? 1 : 2"),
         expect_test::expect!["((::a < ::b) ? 1 : 2)"],
     );
     check(
-        &run_parser!(expr, "(foo(a, b, c))"),
+        &run_parser!(expr, "###expr### (foo(a, b, c))"),
         expect_test::expect!["foo(::a, ::b, ::c)"],
     );
 }
 
 #[test]
 fn enums() {
-    let enum_decl = yp::EnumDeclParser::new();
-    let expr = yp::ExprParser::new();
-    let let_decl = yp::LetDeclParser::new();
+    let enum_decl = yp::PintParser::new();
+    let expr = yp::TestDelegateParser::new();
+    let let_decl = yp::PintParser::new();
 
     check(
-        &run_parser!(enum_decl, "enum MyEnum = Variant1 | Variant2"),
+        &run_parser!(enum_decl, "enum MyEnum = Variant1 | Variant2;"),
         expect_test::expect!["enum ::MyEnum = Variant1 | Variant2;"],
     );
     check(
-        &run_parser!(enum_decl, "enum MyEnum = Variant1"),
+        &run_parser!(enum_decl, "enum MyEnum = Variant1;"),
         expect_test::expect!["enum ::MyEnum = Variant1;"],
     );
     check(
-        &run_parser!(expr, "MyEnum::Variant1"),
+        &run_parser!(expr, "###expr### MyEnum::Variant1"),
         expect_test::expect!["::MyEnum::Variant1"],
     );
     check(
         &run_parser!(
             let_decl,
             r#"
-                let x = MyEnum::Variant3
+                let x = MyEnum::Variant3;
                 "#
         ),
         expect_test::expect![[r#"
@@ -1415,7 +1475,7 @@ fn enums() {
         &run_parser!(
             let_decl,
             r#"
-                let e: ::path::to::MyEnum
+                let e: ::path::to::MyEnum;
                 "#
         ),
         expect_test::expect![[r#"
@@ -1425,77 +1485,79 @@ fn enums() {
 
 #[test]
 fn custom_types() {
-    let type_ = yp::TypeParser::new();
-    let type_decl = yp::NewTypeDeclParser::new();
+    let type_ = yp::TestDelegateParser::new();
+    let type_decl = yp::PintParser::new();
 
     check(
-        &run_parser!(type_, "custom_type"),
+        &run_parser!(type_, "###type### custom_type"),
         expect_test::expect!["::custom_type"],
     );
     check(
-        &run_parser!(type_decl, "type MyInt = int"),
+        &run_parser!(type_decl, "type MyInt = int;"),
         expect_test::expect!["type ::MyInt = int;"],
     );
     check(
-        &run_parser!(type_decl, "type MyReal = real"),
+        &run_parser!(type_decl, "type MyReal = real;"),
         expect_test::expect!["type ::MyReal = real;"],
     );
     check(
-        &run_parser!(type_decl, "type MyBool = bool"),
+        &run_parser!(type_decl, "type MyBool = bool;"),
         expect_test::expect!["type ::MyBool = bool;"],
     );
     check(
-        &run_parser!(type_decl, "type MyString = string"),
+        &run_parser!(type_decl, "type MyString = string;"),
         expect_test::expect!["type ::MyString = string;"],
     );
     check(
-        &run_parser!(type_decl, "type IntArray = int[5]"),
+        &run_parser!(type_decl, "type IntArray = int[5];"),
         expect_test::expect!["type ::IntArray = int[5];"],
     );
     check(
-        &run_parser!(type_decl, "type MyTuple = { int, real, z: string }"),
+        &run_parser!(type_decl, "type MyTuple = { int, real, z: string };"),
         expect_test::expect!["type ::MyTuple = {int, real, z: string};"],
     );
     check(
-        &run_parser!(type_decl, "type MyAliasInt = MyInt"),
+        &run_parser!(type_decl, "type MyAliasInt = MyInt;"),
         expect_test::expect!["type ::MyAliasInt = ::MyInt;"],
     );
 }
 
 #[test]
 fn ranges() {
-    let range = yp::RangeParser::new();
-    let let_decl = yp::LetDeclParser::new();
-    let expr = yp::ExprParser::new();
+    let let_decl = yp::PintParser::new();
+    let expr = yp::TestDelegateParser::new();
 
-    check(&run_parser!(range, "1..2"), expect_test::expect!["1..2"]);
     check(
-        &run_parser!(range, "1.1..2.2e3"),
+        &run_parser!(expr, "###range### 1..2"),
+        expect_test::expect!["1..2"],
+    );
+    check(
+        &run_parser!(expr, "###range### 1.1..2.2e3"),
         expect_test::expect!["1.1e0..2.2e3"],
     );
     check(
-        &run_parser!(range, "A[x]..t.2"),
+        &run_parser!(expr, "###range### A[x]..t.2"),
         expect_test::expect!["::A[::x]..::t.2"],
     );
     check(
-        &run_parser!(range, "1+2..3+4"),
+        &run_parser!(expr, "###range### 1+2..3+4"),
         expect_test::expect!["(1 + 2)..(3 + 4)"],
     );
     check(
-        &run_parser!(range, "-100.. (- ( c ? 10 : 9 ))"),
+        &run_parser!(expr, "###range### -100.. (- ( c ? 10 : 9 ))"),
         expect_test::expect!["-100..-(::c ? 10 : 9)"],
     );
     check(
-        &run_parser!(range, "1...2"),
+        &run_parser!(expr, "###range### 1...2"),
         expect_test::expect![[r#"
             expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `.`
-            @3..4: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
     // Range allow in let decls
     check(
-        &run_parser!(let_decl, "let x = 1..2"),
+        &run_parser!(let_decl, "let x = 1..2;"),
         expect_test::expect![[r#"
             var ::x;
             constraint (::x >= 1);
@@ -1504,118 +1566,127 @@ fn ranges() {
 
     // Ranges allowed after `in`
     check(
-        &run_parser!(expr, "x in 1..2"),
+        &run_parser!(expr, "###expr### x in 1..2"),
         expect_test::expect!["::x in 1..2"],
     );
 
     // Ranges not allowed in binary ops
     check(
-        &run_parser!(expr, "(1..2) + 3"),
+        &run_parser!(expr, "###expr### (1..2) + 3"),
         expect_test::expect![[r#"
             expected `!=`, `&&`, `)`, `+`, `-`, `<`, `<=`, `==`, `>`, `>=`, `?`, `in`, or `||`, found `..`
-            @2..4: expected `!=`, `&&`, `)`, `+`, `-`, `<`, `<=`, `==`, `>`, `>=`, `?`, `in`, or `||`
+            @13..15: expected `!=`, `&&`, `)`, `+`, `-`, `<`, `<=`, `==`, `>`, `>=`, `?`, `in`, or `||`
         "#]],
     );
 }
 
 #[test]
 fn idents() {
-    let ident = yp::IdentParser::new();
+    let ident = yp::TestDelegateParser::new();
 
     check(
-        &run_parser!(ident, "foobar"),
+        &run_parser!(ident, "###ident### foobar"),
         expect_test::expect!["foobar"],
     );
     check(
-        &run_parser!(ident, "foo_bar"),
+        &run_parser!(ident, "###ident### foo_bar"),
         expect_test::expect!["foo_bar"],
     );
     check(
-        &run_parser!(ident, "FOO_bar"),
+        &run_parser!(ident, "###ident### FOO_bar"),
         expect_test::expect!["FOO_bar"],
     );
-    check(&run_parser!(ident, "_FOO"), expect_test::expect!["_FOO"]);
     check(
-        &run_parser!(ident, "_2_FOO1"),
+        &run_parser!(ident, "###ident### _FOO"),
+        expect_test::expect!["_FOO"],
+    );
+    check(
+        &run_parser!(ident, "###ident### _2_FOO1"),
         expect_test::expect!["_2_FOO1"],
     );
-    check(&run_parser!(ident, "_"), expect_test::expect!["_"]);
     check(
-        &run_parser!(ident, "__FOO"),
-        expect_test::expect![[r#"
-        expected identifier, found intrinsic name `__FOO`
-        @0..5: expected identifier, found intrinsic name
-        names that start with `__` are reserved for compiler intrinsics
-    "#]],
+        &run_parser!(ident, "###ident### _"),
+        expect_test::expect!["_"],
     );
     check(
-        &run_parser!(ident, "12_ab"),
+        &run_parser!(ident, "###ident### __FOO"),
+        expect_test::expect![[r#"
+            expected identifier, found intrinsic name `__FOO`
+            @12..17: expected identifier, found intrinsic name
+            names that start with `__` are reserved for compiler intrinsics
+        "#]],
+    );
+    check(
+        &run_parser!(ident, "###ident### 12_ab"),
         expect_test::expect![[r#"
             expected `ident`, found `12`
-            @0..2: expected `ident`
+            @12..14: expected `ident`
         "#]],
     );
     check(
         // Lexer will split this into 3 tokens, ident will parse the first one.
         // This shows that we're not able to parser `ab*cd` as a single identifier
-        &run_parser!(ident, "ab*cd"),
+        &run_parser!(ident, "###ident### ab*cd"),
         expect_test::expect![[r#"
             expected something else, found `*`
-            @2..3: expected something else
+            @14..15: expected something else
         "#]],
     );
 }
 
 #[test]
 fn intrinsic_name() {
-    let intrinsic_name = yp::IntrinsicNameParser::new();
+    let intrinsic_name = yp::TestDelegateParser::new();
 
     check(
-        &run_parser!(intrinsic_name, "__foobar"),
+        &run_parser!(intrinsic_name, "###intrinsic### __foobar"),
         expect_test::expect!["__foobar"],
     );
 
     check(
-        &run_parser!(intrinsic_name, "foo_bar"),
+        &run_parser!(intrinsic_name, "###intrinsic### foo_bar"),
         expect_test::expect!["foo_bar"],
     );
 }
 
 #[test]
 fn paths() {
-    let path = yp::PathParser::new();
+    let path = yp::TestDelegateParser::new();
 
     check(
-        &run_parser!(path, "foo::bar"),
+        &run_parser!(path, "###expr### foo::bar"),
         expect_test::expect!["::foo::bar"],
     );
     check(
-        &run_parser!(path, "_foo_::_bar"),
+        &run_parser!(path, "###expr### _foo_::_bar"),
         expect_test::expect!["::_foo_::_bar"],
     );
-    check(&run_parser!(path, "_::_"), expect_test::expect!["::_::_"]);
     check(
-        &run_parser!(path, "t2::_3t::t4_::t"),
+        &run_parser!(path, "###expr### _::_"),
+        expect_test::expect!["::_::_"],
+    );
+    check(
+        &run_parser!(path, "###expr### t2::_3t::t4_::t"),
         expect_test::expect!["::t2::_3t::t4_::t"],
     );
     check(
-        &run_parser!(path, "::foo::bar"),
+        &run_parser!(path, "###expr### ::foo::bar"),
         expect_test::expect!["::foo::bar"],
     );
 
     // As long as these two produce an error... it should be expecting 'ident'.
     check(
-        &run_parser!(path, "foo::"),
+        &run_parser!(path, "###expr### foo::"),
         expect_test::expect![[r#"
-            expected `ident`, found `end of file`
-            @5..5: expected `ident`
+            expected `ident`, or `macro_name`, found `end of file`
+            @16..16: expected `ident`, or `macro_name`
         "#]],
     );
     check(
-        &run_parser!(path, "::foo::"),
+        &run_parser!(path, "###expr### ::foo::"),
         expect_test::expect![[r#"
-            expected `ident`, found `end of file`
-            @7..7: expected `ident`
+            expected `ident`, or `macro_name`, found `end of file`
+            @18..18: expected `ident`, or `macro_name`
         "#]],
     );
 }
@@ -1630,7 +1701,7 @@ fn macro_decl() {
       "#;
 
     let mut context = context!(Vec::<String>::new(), Vec::new());
-    let result = parse_and_collect_errors!(yp::MacroDeclParser::new(), src, context);
+    let result = parse_and_collect_errors!(yp::PintParser::new(), src, context);
 
     assert!(result.is_ok());
     assert!(context.macros.len() == 1);
@@ -1644,59 +1715,27 @@ fn macro_decl() {
 #[test]
 fn macro_decl_good_params() {
     let mut context = context!(Vec::<String>::new(), Vec::new());
+    let parser = yp::PintParser::new();
 
-    assert!(parse_and_collect_errors!(
-        yp::MacroDeclParser::new(),
-        r#"macro @foo($a) { x }"#,
-        context
-    )
-    .is_ok());
+    assert!(parse_and_collect_errors!(parser, r#"macro @foo($a) { x }"#, context).is_ok());
 
-    assert!(parse_and_collect_errors!(
-        yp::MacroDeclParser::new(),
-        r#"macro @foo($a,) { x }"#,
-        context
-    )
-    .is_ok());
+    assert!(parse_and_collect_errors!(parser, r#"macro @foo($a,) { x }"#, context).is_ok());
 
-    assert!(parse_and_collect_errors!(
-        yp::MacroDeclParser::new(),
-        r#"macro @foo($a,$b) { x }"#,
-        context
-    )
-    .is_ok());
+    assert!(parse_and_collect_errors!(parser, r#"macro @foo($a,$b) { x }"#, context).is_ok());
 
-    assert!(parse_and_collect_errors!(
-        yp::MacroDeclParser::new(),
-        r#"macro @foo($a,$b,) { x }"#,
-        context
-    )
-    .is_ok());
+    assert!(parse_and_collect_errors!(parser, r#"macro @foo($a,$b,) { x }"#, context).is_ok());
 
-    assert!(parse_and_collect_errors!(
-        yp::MacroDeclParser::new(),
-        r#"macro @foo($a,&rest) { x }"#,
-        context
-    )
-    .is_ok());
+    assert!(parse_and_collect_errors!(parser, r#"macro @foo($a,&rest) { x }"#, context).is_ok());
 
-    assert!(parse_and_collect_errors!(
-        yp::MacroDeclParser::new(),
-        r#"macro @foo($a,&rest,) { x }"#,
-        context
-    )
-    .is_ok());
+    assert!(parse_and_collect_errors!(parser, r#"macro @foo($a,&rest,) { x }"#, context).is_ok());
 }
 
 #[test]
 fn macro_decl_bad_params() {
     let mut context = context!(Vec::<String>::new(), Vec::new());
+    let parser = yp::PintParser::new();
 
-    let result = parse_and_collect_errors!(
-        yp::MacroDeclParser::new(),
-        r#"macro @foo(&rest) { x }"#,
-        context
-    );
+    let result = parse_and_collect_errors!(parser, r#"macro @foo(&rest) { x }"#, context);
     assert!(result.is_err());
     check(
         &display_errors(&result.unwrap_err()),
@@ -1706,11 +1745,7 @@ fn macro_decl_bad_params() {
         "#]],
     );
 
-    let result = parse_and_collect_errors!(
-        yp::MacroDeclParser::new(),
-        r#"macro @foo(&rest,) { x }"#,
-        context
-    );
+    let result = parse_and_collect_errors!(parser, r#"macro @foo(&rest,) { x }"#, context);
     assert!(result.is_err());
     check(
         &display_errors(&result.unwrap_err()),
@@ -1720,11 +1755,7 @@ fn macro_decl_bad_params() {
         "#]],
     );
 
-    let result = parse_and_collect_errors!(
-        yp::MacroDeclParser::new(),
-        r#"macro @foo(&rest,$a) { x }"#,
-        context
-    );
+    let result = parse_and_collect_errors!(parser, r#"macro @foo(&rest,$a) { x }"#, context);
     assert!(result.is_err());
     check(
         &display_errors(&result.unwrap_err()),
@@ -1734,11 +1765,7 @@ fn macro_decl_bad_params() {
         "#]],
     );
 
-    let result = parse_and_collect_errors!(
-        yp::MacroDeclParser::new(),
-        r#"macro @foo($a,,$b) { x }"#,
-        context
-    );
+    let result = parse_and_collect_errors!(parser, r#"macro @foo($a,,$b) { x }"#, context);
     assert!(result.is_err());
     check(
         &display_errors(&result.unwrap_err()),
@@ -1751,9 +1778,9 @@ fn macro_decl_bad_params() {
 
 #[test]
 fn macro_call() {
-    let src = r#"@foo(a * 3; int; <= =>)"#;
+    let src = r#"###expr### @foo(a * 3; int; <= =>)"#;
     let mut context = context!(Vec::<String>::new(), Vec::new());
-    let result = parse_and_collect_errors!(yp::ExprParser::new(), src, context);
+    let result = parse_and_collect_errors!(yp::TestDelegateParser::new(), src, context);
 
     assert!(result.is_ok());
     assert!(
@@ -1792,35 +1819,35 @@ fn macro_call() {
 #[test]
 fn fn_call() {
     check(
-        &run_parser!(yp::LetDeclParser::new(), r#"let x = foo(a*3, c)"#),
+        &run_parser!(yp::PintParser::new(), r#"let x = foo(a*3, c);"#),
         expect_test::expect![[r#"
             var ::x;
             constraint (::x == foo((::a * 3), ::c));"#]],
     );
 
     check(
-        &run_parser!(yp::ExprParser::new(), "__foo(-a, b+c)"),
+        &run_parser!(yp::TestDelegateParser::new(), "###expr### __foo(-a, b+c)"),
         expect_test::expect!["__foo(-::a, (::b + ::c))"],
     );
 }
 
 #[test]
 fn select_exprs() {
-    let expr = yp::ExprParser::new();
+    let expr = yp::TestDelegateParser::new();
 
     check(
-        &run_parser!(expr, "c ? 1 : 0"),
+        &run_parser!(expr, "###expr### c ? 1 : 0"),
         expect_test::expect!["(::c ? 1 : 0)"],
     );
     check(
-        &run_parser!(expr, "c ? ( c ? 1 : 0 ) :  2 "),
+        &run_parser!(expr, "###expr### c ? ( c ? 1 : 0 ) :  2 "),
         expect_test::expect!["(::c ? (::c ? 1 : 0) : 2)"],
     );
 
     check(
         &run_parser!(
             expr,
-            "c ? x ? { 1, 1 }.0 : a in b as int : a[5] ? b && 5 : __foo()"
+            "###expr### c ? x ? { 1, 1 }.0 : a in b as int : a[5] ? b && 5 : __foo()"
         ),
         expect_test::expect![
             "(::c ? (::x ? {1, 1}.0 : ::a in ::b as int) : (::a[5] ? (::b && 5) : __foo()))"
@@ -1830,40 +1857,40 @@ fn select_exprs() {
 
 #[test]
 fn array_type() {
-    let type_ = yp::TypeParser::new();
+    let type_ = yp::TestDelegateParser::new();
 
     check(
-        &run_parser!(type_, r#"int[5]"#),
+        &run_parser!(type_, r#"###type### int[5]"#),
         expect_test::expect!["int[5]"],
     );
 
     check(
-        &run_parser!(type_, r#"int[MyEnum]"#),
+        &run_parser!(type_, r#"###type### int[MyEnum]"#),
         expect_test::expect!["int[::MyEnum]"],
     );
 
     check(
-        &run_parser!(type_, r#"int[N]"#),
+        &run_parser!(type_, r#"###type### int[N]"#),
         expect_test::expect!["int[::N]"],
     );
 
     check(
-        &run_parser!(type_, r#"string[__foo()][ 7 ][true ?  1 : 2]"#),
+        &run_parser!(type_, r#"###type### string[__foo()][ 7 ][true ?  1 : 2]"#),
         expect_test::expect!["string[(true ? 1 : 2)][7][__foo()]"],
     );
 
     check(
-        &run_parser!(type_, r#"real[N][9][M][3]"#),
+        &run_parser!(type_, r#"###type### real[N][9][M][3]"#),
         expect_test::expect!["real[3][::M][9][::N]"],
     );
 
     check(
-        &run_parser!(type_, r#"{int, { real, string }}[N][9]"#),
+        &run_parser!(type_, r#"###type### {int, { real, string }}[N][9]"#),
         expect_test::expect!["{int, {real, string}}[9][::N]"],
     );
 
     check(
-        &run_parser!(yp::LetDeclParser::new(), r#"let a: int[]"#),
+        &run_parser!(yp::PintParser::new(), r#"let a: int[];"#),
         expect_test::expect![[r#"
             empty array types are not allowed
             @7..12: empty array type found
@@ -1873,64 +1900,70 @@ fn array_type() {
 
 #[test]
 fn array_expressions() {
-    let expr = yp::ExprParser::new();
-
-    check(&run_parser!(expr, r#"[5]"#), expect_test::expect!["[5]"]);
-
-    check(&run_parser!(expr, r#"[5,]"#), expect_test::expect!["[5]"]);
+    let expr = yp::TestDelegateParser::new();
 
     check(
-        &run_parser!(expr, r#"[5, 4]"#),
+        &run_parser!(expr, r#"###expr### [5]"#),
+        expect_test::expect!["[5]"],
+    );
+
+    check(
+        &run_parser!(expr, r#"###expr### [5,]"#),
+        expect_test::expect!["[5]"],
+    );
+
+    check(
+        &run_parser!(expr, r#"###expr### [5, 4]"#),
         expect_test::expect!["[5, 4]"],
     );
 
     check(
-        &run_parser!(expr, r#"[[ 1 ],]"#),
+        &run_parser!(expr, r#"###expr### [[ 1 ],]"#),
         expect_test::expect!["[[1]]"],
     );
 
     check(
-        &run_parser!(expr, r#"[[1, 2], 3]"#), // This should fail in semantic analysis
+        &run_parser!(expr, r#"###expr### [[1, 2], 3]"#), // This should fail in semantic analysis
         expect_test::expect!["[[1, 2], 3]"],
     );
 
     check(
-        &run_parser!(expr, r#"[[1, 2], [3, 4]]"#),
+        &run_parser!(expr, r#"###expr### [[1, 2], [3, 4]]"#),
         expect_test::expect!["[[1, 2], [3, 4]]"],
     );
 
     check(
-        &run_parser!(expr, r#"[[__foo(), 2], [ true ? 1 : 2, t.0]]"#),
+        &run_parser!(expr, r#"###expr### [[__foo(), 2], [ true ? 1 : 2, t.0]]"#),
         expect_test::expect!["[[__foo(), 2], [(true ? 1 : 2), ::t.0]]"],
     );
 }
 
 #[test]
 fn array_element_accesses() {
-    let expr = yp::ExprParser::new();
+    let expr = yp::TestDelegateParser::new();
 
     check(
-        &run_parser!(expr, r#"a[5]"#),
+        &run_parser!(expr, r#"###expr### a[5]"#),
         expect_test::expect!["::a[5]"],
     );
 
     check(
-        &run_parser!(expr, r#"a[N][5][t.0]"#),
+        &run_parser!(expr, r#"###expr### a[N][5][t.0]"#),
         expect_test::expect!["::a[::N][5][::t.0]"],
     );
 
     check(
-        &run_parser!(expr, r#"{ a, b }[N][__foo()][M][4]"#),
+        &run_parser!(expr, r#"###expr### { a, b }[N][__foo()][M][4]"#),
         expect_test::expect!["{::a, ::b}[::N][__foo()][::M][4]"],
     );
 
     check(
-        &run_parser!(expr, r#"__foo()[ M ][true ? 1 : 3]"#),
+        &run_parser!(expr, r#"###expr### __foo()[ M ][true ? 1 : 3]"#),
         expect_test::expect!["__foo()[::M][(true ? 1 : 3)]"],
     );
 
     check(
-        &run_parser!(yp::LetDeclParser::new(), r#"let x = a[]"#),
+        &run_parser!(yp::PintParser::new(), r#"let x = a[];"#),
         expect_test::expect![[r#"
             missing array or map index
             @8..11: missing array or map element index
@@ -1938,160 +1971,160 @@ fn array_element_accesses() {
     );
 
     check(
-        &run_parser!(expr, r#"a[MyEnum::Variant1]"#),
+        &run_parser!(expr, r#"###expr### a[MyEnum::Variant1]"#),
         expect_test::expect!["::a[::MyEnum::Variant1]"],
     );
 }
 
 #[test]
 fn tuple_expressions() {
-    let expr = yp::ExprParser::new();
+    let expr = yp::TestDelegateParser::new();
 
     // Should probably allow this. Won't worry about it for now.
     check(
-        &run_parser!(expr, r#"{ 0 }"#),
+        &run_parser!(expr, r#"###expr### { 0 }"#),
         expect_test::expect![[r#"
             expected `,`, found `}`
-            @4..5: expected `,`
+            @15..16: expected `,`
         "#]],
     );
 
     check(
-        &run_parser!(expr, r#"{x: 0}"#), // This is a tuple because the field is named so there is no ambiguity
+        &run_parser!(expr, r#"###expr### {x: 0}"#), // This is a tuple because the field is named so there is no ambiguity
         expect_test::expect!["{x: 0}"],
     );
 
     check(
-        &run_parser!(expr, r#"{0,}"#), // This is a tuple
+        &run_parser!(expr, r#"###expr### {0,}"#), // This is a tuple
         expect_test::expect!["{0}"],
     );
 
     check(
-        &run_parser!(expr, r#"{x: 0,}"#), // This is a tuple
+        &run_parser!(expr, r#"###expr### {x: 0,}"#), // This is a tuple
         expect_test::expect!["{x: 0}"],
     );
 
     check(
-        &run_parser!(expr, r#"{0, 1.0, "foo"}"#),
+        &run_parser!(expr, r#"###expr### {0, 1.0, "foo"}"#),
         expect_test::expect![[r#"{0, 1e0, "foo"}"#]],
     );
 
     check(
-        &run_parser!(expr, r#"{x: 0, y: 1.0, z: "foo"}"#),
+        &run_parser!(expr, r#"###expr### {x: 0, y: 1.0, z: "foo"}"#),
         expect_test::expect![[r#"{x: 0, y: 1e0, z: "foo"}"#]],
     );
 
     check(
-        &run_parser!(expr, r#"{0, {1.0, "bar"}, "foo"}"#),
+        &run_parser!(expr, r#"###expr### {0, {1.0, "bar"}, "foo"}"#),
         expect_test::expect![[r#"{0, {1e0, "bar"}, "foo"}"#]],
     );
 
     check(
-        &run_parser!(expr, r#"{x: 0, {y: 1.0, "bar"}, z: "foo"}"#),
+        &run_parser!(expr, r#"###expr### {x: 0, {y: 1.0, "bar"}, z: "foo"}"#),
         expect_test::expect![[r#"{x: 0, {y: 1e0, "bar"}, z: "foo"}"#]],
     );
 
     check(
-        &run_parser!(expr, r#"{ 42, c ?  2 : 3, __foo() }"#),
+        &run_parser!(expr, r#"###expr### { 42, c ?  2 : 3, __foo() }"#),
         expect_test::expect!["{42, (::c ? 2 : 3), __foo()}"],
     );
 
     check(
-        &run_parser!(expr, r#"{ x:  42 , y: c ?  2 : 3, z: __foo() }"#),
+        &run_parser!(expr, r#"###expr### { x:  42 , y: c ?  2 : 3, z: __foo() }"#),
         expect_test::expect!["{x: 42, y: (::c ? 2 : 3), z: __foo()}"],
     );
 }
 
 #[test]
 fn tuple_field_accesses() {
-    let expr = yp::ExprParser::new();
+    let expr = yp::TestDelegateParser::new();
 
     check(
-        &run_parser!(expr, r#"t.0 + t.9999999 + t.x"#),
+        &run_parser!(expr, r#"###expr### t.0 + t.9999999 + t.x"#),
         expect_test::expect!["((::t.0 + ::t.9999999) + ::t.x)"],
     );
 
     check(
-        &run_parser!(expr, r#"t.1.1"#),
+        &run_parser!(expr, r#"###expr### t.1.1"#),
         expect_test::expect!["::t.1.1"],
     );
 
     check(
-        &run_parser!(expr, r#"{0, 1}.0"#),
+        &run_parser!(expr, r#"###expr### {0, 1}.0"#),
         expect_test::expect!["{0, 1}.0"],
     );
 
     check(
-        &run_parser!(expr, r#"{0, 1}.x"#),
+        &run_parser!(expr, r#"###expr### {0, 1}.x"#),
         expect_test::expect!["{0, 1}.x"],
     );
 
     check(
-        &run_parser!(expr, r#"t.0 .0"#),
+        &run_parser!(expr, r#"###expr### t.0 .0"#),
         expect_test::expect!["::t.0.0"],
     );
 
     check(
-        &run_parser!(expr, r#"t.x .y"#),
+        &run_parser!(expr, r#"###expr### t.x .y"#),
         expect_test::expect!["::t.x.y"],
     );
 
     check(
-        &run_parser!(expr, "t \r .1 .2.2. \n 3 . \t 13 . 1.1"),
+        &run_parser!(expr, "###expr### t \r .1 .2.2. \n 3 . \t 13 . 1.1"),
         expect_test::expect!["::t.1.2.2.3.13.1.1"],
     );
 
     check(
-        &run_parser!(expr, "t \r .x .1.2. \n w . \t t. 3.4"),
+        &run_parser!(expr, "###expr### t \r .x .1.2. \n w . \t t. 3.4"),
         expect_test::expect!["::t.x.1.2.w.t.3.4"],
     );
 
     check(
-        &run_parser!(expr, r#"__foo().0.1"#),
+        &run_parser!(expr, r#"###expr### __foo().0.1"#),
         expect_test::expect!["__foo().0.1"],
     );
 
     check(
-        &run_parser!(expr, r#"__foo().a.b.0.1"#),
+        &run_parser!(expr, r#"###expr### __foo().a.b.0.1"#),
         expect_test::expect!["__foo().a.b.0.1"],
     );
 
     check(
-        &run_parser!(expr, r#" {0, 0} .0"#),
+        &run_parser!(expr, r#"###expr###  {0, 0} .0"#),
         expect_test::expect!["{0, 0}.0"],
     );
 
     check(
-        &run_parser!(expr, r#" {0, 0} .a"#),
+        &run_parser!(expr, r#"###expr###  {0, 0} .a"#),
         expect_test::expect!["{0, 0}.a"],
     );
 
     check(
-        &run_parser!(expr, r#"(true ? {0, 0} : {0, 0}).0"#),
+        &run_parser!(expr, r#"###expr### (true ? {0, 0} : {0, 0}).0"#),
         expect_test::expect!["(true ? {0, 0} : {0, 0}).0"],
     );
 
     check(
-        &run_parser!(expr, r#"(true ? {0, 0}  : {0, 0}).x"#),
+        &run_parser!(expr, r#"###expr### (true ? {0, 0}  : {0, 0}).x"#),
         expect_test::expect!["(true ? {0, 0} : {0, 0}).x"],
     );
 
     // This parses because `1 + 2` is an expression, but it should fail in semantic analysis.
     check(
-        &run_parser!(expr, "1 + 2 .3"),
+        &run_parser!(expr, "###expr### 1 + 2 .3"),
         expect_test::expect!["(1 + 2.3)"],
     );
 
     // This parses because `1 + 2` is an expression, but it should fail in semantic analysis.
     check(
-        &run_parser!(expr, "1 + 2 .a"),
+        &run_parser!(expr, "###expr### 1 + 2 .a"),
         expect_test::expect!["(1 + 2.a)"],
     );
 
-    let let_decl = yp::LetDeclParser::new();
+    let let_decl = yp::PintParser::new();
 
     check(
-        &run_parser!(let_decl, "let x = t.0xa"),
+        &run_parser!(let_decl, "let x = t.0xa;"),
         expect_test::expect![[r#"
                 invalid integer `0xa` as tuple index
                 @10..13: invalid integer as tuple index
@@ -2099,7 +2132,7 @@ fn tuple_field_accesses() {
     );
 
     check(
-        &run_parser!(let_decl, "let x = t.111111111111111111111111111"),
+        &run_parser!(let_decl, "let x = t.111111111111111111111111111;"),
         expect_test::expect![[r#"
                 invalid integer `111111111111111111111111111` as tuple index
                 @10..37: invalid integer as tuple index
@@ -2107,7 +2140,7 @@ fn tuple_field_accesses() {
     );
 
     check(
-        &run_parser!(let_decl, "let x = t.111111111111111111111111111.2"),
+        &run_parser!(let_decl, "let x = t.111111111111111111111111111.2;"),
         expect_test::expect![[r#"
                 invalid integer `111111111111111111111111111` as tuple index
                 @10..37: invalid integer as tuple index
@@ -2115,7 +2148,7 @@ fn tuple_field_accesses() {
     );
 
     check(
-        &run_parser!(let_decl, "let x = t.2.111111111111111111111111111"),
+        &run_parser!(let_decl, "let x = t.2.111111111111111111111111111;"),
         expect_test::expect![[r#"
                 invalid integer `111111111111111111111111111` as tuple index
                 @12..39: invalid integer as tuple index
@@ -2125,7 +2158,7 @@ fn tuple_field_accesses() {
     check(
         &run_parser!(
             let_decl,
-            "let x = t.222222222222222222222.111111111111111111111111111"
+            "let x = t.222222222222222222222.111111111111111111111111111;"
         ),
         expect_test::expect![[r#"
                 invalid integer `222222222222222222222` as tuple index
@@ -2136,7 +2169,7 @@ fn tuple_field_accesses() {
     );
 
     check(
-        &run_parser!(let_decl, "let x = t.1e5"),
+        &run_parser!(let_decl, "let x = t.1e5;"),
         expect_test::expect![[r#"
                 invalid value `1e5` as tuple index
                 @10..13: invalid value as tuple index
@@ -2144,7 +2177,7 @@ fn tuple_field_accesses() {
     );
 
     check(
-        &run_parser!(let_decl, "let bad_tuple:{} = {}"),
+        &run_parser!(let_decl, "let bad_tuple:{} = {};"),
         expect_test::expect![[r#"
             empty tuple types are not allowed
             @14..16: empty tuple type found
@@ -2156,67 +2189,70 @@ fn tuple_field_accesses() {
 
 #[test]
 fn cond_exprs() {
-    let expr = yp::ExprParser::new();
+    let expr = yp::TestDelegateParser::new();
 
     check(
-        &run_parser!(expr, r#"cond { else => a, }"#),
+        &run_parser!(expr, r#"###expr### cond { else => a, }"#),
         expect_test::expect!["::a"],
     );
 
     check(
-        &run_parser!(expr, r#"cond { else =>  a  }"#),
+        &run_parser!(expr, r#"###expr### cond { else =>  a  }"#),
         expect_test::expect!["::a"],
     );
 
     check(
-        &run_parser!(expr, r#"cond { a => b, else => c }"#),
+        &run_parser!(expr, r#"###expr### cond { a => b, else => c }"#),
         expect_test::expect!["(::a ? ::b : ::c)"],
     );
 
     check(
-        &run_parser!(expr, r#"cond { a =>  b , else => c, }"#),
+        &run_parser!(expr, r#"###expr### cond { a =>  b , else => c, }"#),
         expect_test::expect!["(::a ? ::b : ::c)"],
     );
 
     check(
-        &run_parser!(expr, r#"cond { a => b,  true  => d, else => f, }"#),
+        &run_parser!(
+            expr,
+            r#"###expr### cond { a => b,  true  => d, else => f, }"#
+        ),
         expect_test::expect!["(::a ? ::b : (true ? ::d : ::f))"],
     );
 
     check(
-        &run_parser!(expr, r#"cond { a => b, }"#),
+        &run_parser!(expr, r#"###expr### cond { a => b, }"#),
         expect_test::expect![[r#"
             expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
-            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            @26..27: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 
     check(
-        &run_parser!(expr, r#"cond { else => a, b => c }"#),
+        &run_parser!(expr, r#"###expr### cond { else => a, b => c }"#),
         expect_test::expect![[r#"
             expected `}`, found `b`
-            @18..19: expected `}`
+            @29..30: expected `}`
         "#]],
     );
 }
 
 #[test]
 fn casting() {
-    let expr = yp::ExprParser::new();
-    let let_decl = yp::LetDeclParser::new();
+    let expr = yp::TestDelegateParser::new();
+    let let_decl = yp::PintParser::new();
 
     check(
-        &run_parser!(expr, r#"(5 as int) as real as int"#),
+        &run_parser!(expr, r#"###expr### (5 as int) as real as int"#),
         expect_test::expect!["5 as int as real as int"],
     );
 
     check(
-        &run_parser!(expr, r#"t.0.1 as real * a[5][3] as int"#),
+        &run_parser!(expr, r#"###expr### t.0.1 as real * a[5][3] as int"#),
         expect_test::expect!["(::t.0.1 as real * ::a[5][3] as int)"],
     );
 
     check(
-        &run_parser!(let_decl, r#"let x = __foo() as real as { int, real }"#),
+        &run_parser!(let_decl, r#"let x = __foo() as real as { int, real };"#),
         expect_test::expect![[r#"
             var ::x;
             constraint (::x == __foo() as real as {int, real});"#]],
@@ -2233,35 +2269,35 @@ fn casting() {
 
 #[test]
 fn in_expr() {
-    let expr = yp::ExprParser::new();
+    let expr = yp::TestDelegateParser::new();
 
     check(
-        &run_parser!(expr, r#"x in a"#),
+        &run_parser!(expr, r#"###expr### x in a"#),
         expect_test::expect!["::x in ::a"],
     );
 
     check(
-        &run_parser!(expr, r#"x in { 1, 2 }"#),
+        &run_parser!(expr, r#"###expr### x in { 1, 2 }"#),
         expect_test::expect!["::x in {1, 2}"],
     );
 
     check(
-        &run_parser!(expr, r#"x in [ 1, 2 ] in { true, false }"#),
+        &run_parser!(expr, r#"###expr### x in [ 1, 2 ] in { true, false }"#),
         expect_test::expect!["::x in [1, 2] in {true, false}"],
     );
 
     check(
-        &run_parser!(expr, r#"x as int in { 1, 2 }"#),
+        &run_parser!(expr, r#"###expr### x as int in { 1, 2 }"#),
         expect_test::expect!["::x as int in {1, 2}"],
     );
 
     check(
-        &run_parser!(expr, r#"[1] in __foo() in [[1]]"#),
+        &run_parser!(expr, r#"###expr### [1] in __foo() in [[1]]"#),
         expect_test::expect!["[1] in __foo() in [[1]]"],
     );
 
     check(
-        &run_parser!(yp::LetDeclParser::new(), r#"let x = 5 in"#),
+        &run_parser!(yp::PintParser::new(), r#"let x = 5 in"#),
         expect_test::expect![[r#"
             expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `end of file`
             @12..12: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
@@ -2271,132 +2307,138 @@ fn in_expr() {
 
 #[test]
 fn forall_expr() {
-    let expr = yp::ExprParser::new();
+    let expr = yp::TestDelegateParser::new();
     check(
-        &run_parser!(expr, r#"forall i in 0..3 { true }"#),
+        &run_parser!(expr, r#"###expr### forall i in 0..3 { true }"#),
         expect_test::expect!["forall i in 0..3, { true }"],
     );
 
     check(
-        &run_parser!(expr, r#"forall i in 0..3, j in i..k { true }"#),
+        &run_parser!(expr, r#"###expr### forall i in 0..3, j in i..k { true }"#),
         expect_test::expect!["forall i in 0..3, j in ::i..::k, { true }"],
     );
 
     check(
-        &run_parser!(expr, r#"forall i in 0..3 where i > 4 { true }"#),
+        &run_parser!(expr, r#"###expr### forall i in 0..3 where i > 4 { true }"#),
         expect_test::expect!["forall i in 0..3, where (::i > 4) { true }"],
     );
 
     check(
         &run_parser!(
             expr,
-            r#"forall i in 0..3, j in 0..3 where i > 2, j < 3, i != j && true { A[i] > A[j] }"#
+            r#"###expr### forall i in 0..3, j in 0..3 where i > 2, j < 3, i != j && true { A[i] > A[j] }"#
         ),
         expect_test::expect!["forall i in 0..3, j in 0..3, where (::i > 2), (::j < 3), ((::i != ::j) && true) { (::A[::i] > ::A[::j]) }"],
     );
 
     check(
-        &run_parser!(expr, r#"forall { true }"#),
+        &run_parser!(expr, r#"###expr### forall { true }"#),
         expect_test::expect![[r#"
             expected `ident`, found `{`
-            @7..8: expected `ident`
+            @18..19: expected `ident`
         "#]],
     );
 
     check(
-        &run_parser!(expr, r#"forall range { true }"#),
+        &run_parser!(expr, r#"###expr### forall range { true }"#),
         expect_test::expect![[r#"
             expected `in`, found `{`
-            @13..14: expected `in`
+            @24..25: expected `in`
         "#]],
     );
 
     check(
-        &run_parser!(expr, r#"forall i in 0..3 { constraint x; true }"#),
+        &run_parser!(
+            expr,
+            r#"###expr### forall i in 0..3 { constraint x; true }"#
+        ),
         expect_test::expect![[r#"
             expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `constraint`
-            @19..29: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            @30..40: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 }
 
 #[test]
 fn exists_expr() {
-    let expr = yp::ExprParser::new();
+    let expr = yp::TestDelegateParser::new();
     check(
-        &run_parser!(expr, r#"exists i in 0..3 { true }"#),
+        &run_parser!(expr, r#"###expr### exists i in 0..3 { true }"#),
         expect_test::expect!["exists i in 0..3, { true }"],
     );
 
     check(
-        &run_parser!(expr, r#"exists i in 0..3, j in i..k { true }"#),
+        &run_parser!(expr, r#"###expr### exists i in 0..3, j in i..k { true }"#),
         expect_test::expect!["exists i in 0..3, j in ::i..::k, { true }"],
     );
 
     check(
-        &run_parser!(expr, r#"exists i in 0..3 where i > 4 { true }"#),
+        &run_parser!(expr, r#"###expr### exists i in 0..3 where i > 4 { true }"#),
         expect_test::expect!["exists i in 0..3, where (::i > 4) { true }"],
     );
 
     check(
         &run_parser!(
             expr,
-            r#"exists i in 0..3, j in 0..3 where i > 2, j < 3, i != j && true { A[i] > A[j] }"#
+            r#"###expr### exists i in 0..3, j in 0..3 where i > 2, j < 3, i != j && true { A[i] > A[j] }"#
         ),
         expect_test::expect!["exists i in 0..3, j in 0..3, where (::i > 2), (::j < 3), ((::i != ::j) && true) { (::A[::i] > ::A[::j]) }"],
     );
 
     check(
-        &run_parser!(expr, r#"exists { true }"#),
+        &run_parser!(expr, r#"###expr### exists { true }"#),
         expect_test::expect![[r#"
             expected `ident`, found `{`
-            @7..8: expected `ident`
+            @18..19: expected `ident`
         "#]],
     );
 
     check(
-        &run_parser!(expr, r#"exists range { true }"#),
+        &run_parser!(expr, r#"###expr### exists range { true }"#),
         expect_test::expect![[r#"
             expected `in`, found `{`
-            @13..14: expected `in`
+            @24..25: expected `in`
         "#]],
     );
 
     check(
-        &run_parser!(expr, r#"exists i in 0..3 { constraint x; true }"#),
+        &run_parser!(
+            expr,
+            r#"###expr### exists i in 0..3 { constraint x; true }"#
+        ),
         expect_test::expect![[r#"
             expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `constraint`
-            @19..29: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            @30..40: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
         "#]],
     );
 }
 
 #[test]
 fn intrinsic_call() {
-    let expr = yp::ExprParser::new();
+    let expr = yp::TestDelegateParser::new();
 
     check(
-        &run_parser!(expr, r#"__foo()"#),
+        &run_parser!(expr, r#"###expr### __foo()"#),
         expect_test::expect!["__foo()"],
     );
 
     check(
-        &run_parser!(expr, r#"foo(x)"#),
+        &run_parser!(expr, r#"###expr### foo(x)"#),
         expect_test::expect!["foo(::x)"],
     );
 
     check(
-        &run_parser!(expr, r#"foo(1,)"#),
+        &run_parser!(expr, r#"###expr### foo(1,)"#),
         expect_test::expect!["foo(1)"],
     );
 
     check(
-        &run_parser!(expr, r#"foo(1, 2,)"#),
+        &run_parser!(expr, r#"###expr### foo(1, 2,)"#),
         expect_test::expect!["foo(1, 2)"],
     );
 
     check(
-        &run_parser!(expr, r#"foo(1, 2, { 3, x }.1, [y, __bar()])"#),
+        &run_parser!(expr, r#"###expr### foo(1, 2, { 3, x }.1, [y, __bar()])"#),
         expect_test::expect!["foo(1, 2, {3, ::x}.1, [::y, __bar()])"],
     );
 }
@@ -2431,7 +2473,7 @@ solve minimize mid;
 fn intents_decls() {
     let src = r#"
 intent Foo { }
-intent Bar { 
+intent Bar {
     let x: int;
     constraint x == 1;
 }
@@ -2501,12 +2543,12 @@ fn keywords_as_identifiers_errors() {
 
 #[test]
 fn big_ints() {
-    let let_decl = yp::LetDeclParser::new();
+    let let_decl = yp::PintParser::new();
 
     check(
         &run_parser!(
             let_decl,
-            "let blah = 1234567890123456789012345678901234567890"
+            "let blah = 1234567890123456789012345678901234567890;"
         ),
         expect_test::expect![[r#"
             integer literal is too large
@@ -2516,7 +2558,7 @@ fn big_ints() {
     );
 
     check(
-        &run_parser!(let_decl, "let blah = 0xfeedbadfd2adeadc"),
+        &run_parser!(let_decl, "let blah = 0xfeedbadfd2adeadc;"),
         // Confirmed by using the Python REPL to convert from hex to dec...
         expect_test::expect![[r#"
             var ::blah;
@@ -2526,7 +2568,7 @@ fn big_ints() {
     check(
         &run_parser!(
             let_decl,
-            "let blah = 0xfeedbadfd2adeadcafed00dbabefacefeedbadf00d2adeadcafed00dbabeface"
+            "let blah = 0xfeedbadfd2adeadcafed00dbabefacefeedbadf00d2adeadcafed00dbabeface;"
         ),
         expect_test::expect![[r#"
             var ::blah;
@@ -2535,8 +2577,9 @@ fn big_ints() {
 
     check(
         &run_parser!(
-            yp::ExprParser::new(),
-            "0b1101001010010101010101010101010100110100110101010101010101010101 + \
+            yp::TestDelegateParser::new(),
+            "###expr### \
+             0b1101001010010101010101010101010100110100110101010101010101010101 + \
              0b0100100101011010101010100101010101001010010010100101001010010010"
         ),
         expect_test::expect!["(-3272615729767819947 + 5285724395968025234)"],
