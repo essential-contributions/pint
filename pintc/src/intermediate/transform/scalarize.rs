@@ -119,9 +119,8 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
             }
         }
 
-        let range_expr = ii
-            .exprs
-            .get(range_expr_key)
+        let range_expr = range_expr_key
+            .try_get(ii)
             .expect("expr key guaranteed to exist");
 
         if let Expr::PathByName(path, _) = range_expr {
@@ -169,29 +168,25 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
     // expression and then determine the size and save it back.
 
     macro_rules! update_types {
-        ($iter: expr, $key_ty: ty, $types_map: expr) => {
+        ($iter: expr, $key_ty: ty) => {
             let candidates: Vec<($key_ty, Type, ExprKey, Span)> = $iter
                 .filter_map(|key| {
-                    $types_map.get(key).and_then(get_array_params).and_then(
-                        |(el_ty, range, size, span)| {
-                            // Only collect if size is None.
-                            (size.is_none()).then(|| (key, el_ty.clone(), *range, span.clone()))
-                        },
-                    )
+                    get_array_params(key.get_ty(ii)).and_then(|(el_ty, range, size, span)| {
+                        // Only collect if size is None.
+                        (size.is_none()).then(|| (key, el_ty.clone(), *range, span.clone()))
+                    })
                 })
                 .collect();
 
             for (key, el_ty, range_expr_key, array_ty_span) in candidates {
                 let fixed_ty = fix_array_size(handler, ii, el_ty, range_expr_key, array_ty_span)?;
-                if let Some(old_ty) = $types_map.get_mut(key) {
-                    *old_ty = fixed_ty;
-                }
+                key.set_ty(fixed_ty, ii);
             }
         };
     }
 
-    update_types!(ii.vars.iter().map(|k| k.0), VarKey, ii.var_types);
-    update_types!(ii.exprs(), ExprKey, ii.expr_types);
+    update_types!(ii.vars().map(|(k, _)| k), VarKey);
+    update_types!(ii.exprs(), ExprKey);
 
     Ok(())
 }
@@ -222,13 +217,12 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
 /// identifiers, but internally, this is fine and helps make the lookup quite easy.
 fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitted> {
     // Find the next array variable to convert.
-    let Some((array_var_key, el_ty, array_size, span)) =
-        ii.var_types.iter().find_map(|(var_key, var_ty)| {
-            get_array_params(var_ty).map(|(el_ty, _range, array_size, span)| {
-                (var_key, el_ty.clone(), *array_size, span.clone())
-            })
+    let Some((array_var_key, el_ty, array_size, span)) = ii.vars().find_map(|(var_key, _)| {
+        let var_ty = var_key.get_ty(ii);
+        get_array_params(var_ty).map(|(el_ty, _range, array_size, span)| {
+            (var_key, el_ty.clone(), *array_size, span.clone())
         })
-    else {
+    }) else {
         // No array vars found.
         return Ok(false);
     };
@@ -242,30 +236,19 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
         })
     })?;
 
-    let array_name = ii
-        .vars
-        .get(array_var_key)
-        .map(|var| var.name.clone())
-        .ok_or_else(|| {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "missing name for array variable in scalarize_array()",
-                    span: span.clone(),
-                },
-            })
-        })?;
+    let array_name = array_var_key.get(ii).name.clone();
 
     // Convert decision variables that are arrays into `n` new decision variables that represent
     // the individual elements of the array, where `n` is the length of the array.
     let new_var_keys = (0..array_size)
         .map(|idx| {
-            let new_var = Var {
-                name: format!("{array_name}[{idx}]"),
-                span: span.clone(),
-            };
-            let new_var_key = ii.vars.insert(new_var);
-            ii.var_types.insert(new_var_key, el_ty.clone());
-            new_var_key
+            ii.vars.insert(
+                Var {
+                    name: format!("{array_name}[{idx}]"),
+                    span: span.clone(),
+                },
+                el_ty.clone(),
+            )
         })
         .collect::<Vec<_>>();
 
@@ -285,16 +268,12 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
     // vars
     let mut array_path_to_replace = vec![];
     for expr_key in ii.exprs() {
-        if let Some(Expr::PathByName(path, _)) = ii.exprs.get(expr_key) {
+        if let Some(Expr::PathByName(path, _)) = expr_key.try_get(ii) {
             if *path == array_name {
                 array_path_to_replace.push(expr_key);
             }
-        } else if let Some(Expr::PathByKey(key, _)) = ii.exprs.get(expr_key) {
-            let path = &ii
-                .vars
-                .get(*key)
-                .expect("missing var in scalarize_array")
-                .name;
+        } else if let Some(Expr::PathByKey(key, _)) = expr_key.try_get(ii) {
+            let path = &key.get(ii).name;
             if *path == array_name {
                 array_path_to_replace.push(expr_key);
             }
@@ -303,12 +282,11 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
 
     for expr_key in array_path_to_replace {
         // Create a new array expression containing all the split vars
-        let range_expr_key = ii.exprs.insert(Expr::Immediate {
-            value: Immediate::Int(new_var_keys.len() as i64),
-            span: empty_span(),
-        });
-        ii.expr_types.insert(
-            range_expr_key,
+        let range_expr_key = ii.exprs.insert(
+            Expr::Immediate {
+                value: Immediate::Int(new_var_keys.len() as i64),
+                span: empty_span(),
+            },
             Type::Primitive {
                 kind: PrimitiveKind::Int,
                 span: span.clone(),
@@ -319,9 +297,8 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
             elements: new_var_keys
                 .iter()
                 .map(|key| {
-                    let el_key = ii.exprs.insert(Expr::PathByKey(*key, empty_span()));
-                    ii.expr_types.insert(el_key, el_ty.clone());
-                    el_key
+                    ii.exprs
+                        .insert(Expr::PathByKey(*key, empty_span()), el_ty.clone())
                 })
                 .collect(),
             range_expr: range_expr_key,
@@ -329,9 +306,8 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
         };
 
         // Insert the new array expression into `ii.exprs`
-        let new_expr_key = ii.exprs.insert(new_expr);
-        ii.expr_types.insert(
-            new_expr_key,
+        let new_expr_key = ii.exprs.insert(
+            new_expr,
             Type::Array {
                 ty: Box::new(el_ty.clone()),
                 range: range_expr_key,
@@ -343,12 +319,10 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
         // Replace and tidy up
         ii.replace_exprs(expr_key, new_expr_key);
         ii.exprs.remove(expr_key);
-        ii.expr_types.remove(expr_key);
     }
 
     // Remove the old array variable.
     ii.vars.remove(array_var_key);
-    ii.var_types.remove(array_var_key);
 
     Ok(true)
 }
@@ -383,14 +357,14 @@ fn scalarize_array_access(
     let accesses: Vec<(ExprKey, ExprKey, Span)> = ii
         .exprs()
         .filter_map(|expr_key| {
-            ii.exprs.get(expr_key).and_then(|expr| {
+            expr_key.try_get(ii).and_then(|expr| {
                 if let Expr::Index {
                     expr: idx_expr,
                     index,
                     span,
                 } = expr
                 {
-                    match ii.exprs.get(*idx_expr) {
+                    match idx_expr.try_get(ii) {
                         Some(Expr::PathByName(path, _)) if path == array_var_name => {
                             Some((expr_key, *index, span.clone()))
                         }
@@ -411,10 +385,7 @@ fn scalarize_array_access(
         .collect();
 
     for (array_access_key, index_key, span) in accesses {
-        let index_expr = ii
-            .exprs
-            .get(index_key)
-            .expect("expr key guaranteed to exist");
+        let index_expr = index_key.get(ii);
         let index_span = index_expr.span().clone();
         let index_value = index_expr
             .evaluate(handler, ii, &HashMap::new())
@@ -435,15 +406,13 @@ fn scalarize_array_access(
                     }));
                 }
 
-                let new_access_key = ii.exprs.insert(Expr::PathByKey(
-                    new_array_var_keys[imm_val as usize],
-                    span.clone(),
-                ));
-                ii.expr_types.insert(new_access_key, el_ty.clone());
+                let new_access_key = ii.exprs.insert(
+                    Expr::PathByKey(new_array_var_keys[imm_val as usize], span.clone()),
+                    el_ty.clone(),
+                );
 
                 ii.replace_exprs(array_access_key, new_access_key);
                 ii.exprs.remove(array_access_key);
-                ii.expr_types.remove(array_access_key);
             }
 
             _ => {
@@ -477,7 +446,7 @@ fn lower_array_compares(
     // Find comparisons between arrays and save the op details.
     let array_compare_ops = ii
         .exprs()
-        .filter_map(|expr_key| match ii.exprs.get(expr_key) {
+        .filter_map(|expr_key| match expr_key.try_get(ii) {
             // Do not lower array compares if one of the two sides is an intrinsic call or a
             // select. Intrinsic calls and selects can be expensive to compute and so, we don't
             // want to make multiple copies of them if we don't need to. We will rely on the
@@ -487,33 +456,29 @@ fn lower_array_compares(
             Some(Expr::BinaryOp { op, lhs, rhs, span })
                 if (*op == BinaryOp::Equal || *op == BinaryOp::NotEqual)
                     && !matches!(
-                        ii.exprs[*lhs],
+                        lhs.get(ii),
                         Expr::IntrinsicCall { .. } | Expr::Select { .. }
                     )
                     && !matches!(
-                        ii.exprs[*rhs],
+                        rhs.get(ii),
                         Expr::IntrinsicCall { .. } | Expr::Select { .. }
                     ) =>
             {
-                ii.expr_types.get(*lhs).and_then(get_array_params).and_then(
-                    |(lhs_el_ty, _, lhs_opt_size, _)| {
-                        ii.expr_types.get(*rhs).and_then(get_array_params).map(
-                            |(_rhs_el_ty, _, rhs_opt_size, _)| {
-                                // Save all the details.
-                                (
-                                    expr_key,
-                                    *op,
-                                    *lhs,
-                                    *lhs_opt_size,
-                                    *rhs,
-                                    *rhs_opt_size,
-                                    lhs_el_ty.clone(),
-                                    span.clone(),
-                                )
-                            },
+                get_array_params(lhs.get_ty(ii)).and_then(|(lhs_el_ty, _, lhs_opt_size, _)| {
+                    get_array_params(rhs.get_ty(ii)).map(|(_rhs_el_ty, _, rhs_opt_size, _)| {
+                        // Save all the details.
+                        (
+                            expr_key,
+                            *op,
+                            *lhs,
+                            *lhs_opt_size,
+                            *rhs,
+                            *rhs_opt_size,
+                            lhs_el_ty.clone(),
+                            span.clone(),
                         )
-                    },
-                )
+                    })
+                })
             }
             _ => None,
         })
@@ -571,82 +536,68 @@ fn lower_array_compares(
         // borrowing problems with `ii.exprs`.
         let and_chain_expr_key = (0..lhs_size)
             .map(|idx| {
-                let imm_idx_key = ii.exprs.insert(Expr::Immediate {
-                    value: Immediate::Int(idx),
-                    span: empty_span(),
-                });
-
-                ii.expr_types.insert(
-                    imm_idx_key,
+                let imm_idx_key = ii.exprs.insert(
+                    Expr::Immediate {
+                        value: Immediate::Int(idx),
+                        span: empty_span(),
+                    },
                     Type::Primitive {
                         kind: PrimitiveKind::Int,
                         span: span.clone(),
                     },
                 );
 
-                let lhs_access_expr_key = ii.exprs.insert(Expr::Index {
-                    expr: lhs_array_key,
-                    index: imm_idx_key,
-                    span: span.clone(),
-                });
+                let lhs_access_expr_key = ii.exprs.insert(
+                    Expr::Index {
+                        expr: lhs_array_key,
+                        index: imm_idx_key,
+                        span: span.clone(),
+                    },
+                    el_ty.clone(),
+                );
 
-                let rhs_access_expr_key = ii.exprs.insert(Expr::Index {
-                    expr: rhs_array_key,
-                    index: imm_idx_key,
-                    span: span.clone(),
-                });
+                let rhs_access_expr_key = ii.exprs.insert(
+                    Expr::Index {
+                        expr: rhs_array_key,
+                        index: imm_idx_key,
+                        span: span.clone(),
+                    },
+                    el_ty.clone(),
+                );
 
-                ii.expr_types.insert(lhs_access_expr_key, el_ty.clone());
-                ii.expr_types.insert(rhs_access_expr_key, el_ty.clone());
-
-                let cmp_expr_key = ii.exprs.insert(Expr::BinaryOp {
-                    op,
-                    lhs: lhs_access_expr_key,
-                    rhs: rhs_access_expr_key,
-                    span: span.clone(),
-                });
-                ii.expr_types.insert(
-                    cmp_expr_key,
+                ii.exprs.insert(
+                    Expr::BinaryOp {
+                        op,
+                        lhs: lhs_access_expr_key,
+                        rhs: rhs_access_expr_key,
+                        span: span.clone(),
+                    },
                     Type::Primitive {
                         kind: PrimitiveKind::Bool,
                         span: span.clone(),
                     },
-                );
-                cmp_expr_key
+                )
             })
             .collect::<Vec<_>>()
             .into_iter()
             .reduce(|acc, cmp_op_key| {
-                let and_op_key = ii.exprs.insert(Expr::BinaryOp {
-                    op: BinaryOp::LogicalAnd,
-                    lhs: acc,
-                    rhs: cmp_op_key,
-                    span: span.clone(),
-                });
-
-                ii.expr_types.insert(
-                    and_op_key,
+                ii.exprs.insert(
+                    Expr::BinaryOp {
+                        op: BinaryOp::LogicalAnd,
+                        lhs: acc,
+                        rhs: cmp_op_key,
+                        span: span.clone(),
+                    },
                     Type::Primitive {
                         kind: PrimitiveKind::Bool,
                         span: span.clone(),
                     },
-                );
-
-                and_op_key
+                )
             })
             .expect("there must be 1 or more array elements");
 
-        ii.expr_types.insert(
-            and_chain_expr_key,
-            Type::Primitive {
-                kind: PrimitiveKind::Bool,
-                span: span.clone(),
-            },
-        );
-
         ii.replace_exprs(op_expr_key, and_chain_expr_key);
         ii.exprs.remove(op_expr_key);
-        ii.expr_types.remove(op_expr_key);
 
         Ok(())
     }
@@ -706,13 +657,12 @@ fn scalarize_tuples(handler: &Handler, ii: &mut IntermediateIntent) -> Result<bo
     let mut old_tuple_vars = Vec::new();
     iterate!(
         handler,
-        split_tuple_vars(handler, ii, &mut old_tuple_vars)?,
+        split_tuple_vars(ii, &mut old_tuple_vars)?,
         "split_tuple_vars()",
         modified
     );
     for var_key in old_tuple_vars {
         ii.vars.remove(var_key);
-        ii.var_types.remove(var_key);
     }
 
     Ok(modified)
@@ -721,17 +671,11 @@ fn scalarize_tuples(handler: &Handler, ii: &mut IntermediateIntent) -> Result<bo
 fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitted> {
     // Gather all the valid binary op exprs.
     let mut tuple_compare_ops = Vec::new();
-    for (expr_key, expr) in &ii.exprs {
-        if let Expr::BinaryOp { op, lhs, rhs, span } = expr {
-            if (*op == BinaryOp::Equal || *op == BinaryOp::NotEqual)
-                && ii
-                    .expr_types
-                    .get(*lhs)
-                    .map(|lhs_ty| lhs_ty.is_tuple())
-                    .unwrap_or(false)
-            {
+    for expr_key in ii.exprs() {
+        if let Expr::BinaryOp { op, lhs, rhs, span } = expr_key.get(ii) {
+            if (*op == BinaryOp::Equal || *op == BinaryOp::NotEqual) && lhs.get_ty(ii).is_tuple() {
                 // Type checking should ensure RHS is also a tuple.
-                assert!(ii.expr_types.get(*rhs).unwrap().is_tuple());
+                assert!(rhs.get_ty(ii).is_tuple());
 
                 // Do not lower tuple compares if one of the two sides is an intrinsic call or a
                 // select.  Intrinsic calls and selects can be expensive to compute and so, we
@@ -740,10 +684,10 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
                 //
                 // In the future, we may decided not to lower tuple compares at all.
                 if !matches!(
-                    ii.exprs[*lhs],
+                    lhs.get(ii),
                     Expr::IntrinsicCall { .. } | Expr::Select { .. }
                 ) && !matches!(
-                    ii.exprs[*rhs],
+                    rhs.get(ii),
                     Expr::IntrinsicCall { .. } | Expr::Select { .. }
                 ) {
                     tuple_compare_ops.push((expr_key, *op, *lhs, *rhs, span.clone()));
@@ -759,19 +703,15 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
         // have different accessors.  We *could* just drop the names and always use indices but
         // this means our lowered identifiers will be less descriptive.
 
-        let Some(lhs_fields) = ii
-            .expr_types
-            .get(lhs_tuple_key)
-            .expect("failed to get tuple type in lower_tuple_compares()")
+        let Some(lhs_fields) = lhs_tuple_key
+            .get_ty(ii)
             .get_tuple_fields()
             .map(|fs| fs.to_vec())
         else {
             unreachable!("failed to get lhs tuple field types in lower_tuple_compares()");
         };
-        let Some(rhs_fields) = ii
-            .expr_types
-            .get(rhs_tuple_key)
-            .expect("failed to get tuple type in lower_tuple_compares()")
+        let Some(rhs_fields) = rhs_tuple_key
+            .get_ty(ii)
             .get_tuple_fields()
             .map(|fs| fs.to_vec())
         else {
@@ -806,92 +746,77 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
                 TupleAccess::Index(field_idx)
             };
 
-            let lhs_access = ii.exprs.insert(Expr::TupleFieldAccess {
-                tuple: lhs_tuple_key,
-                field: lhs_field_access,
-                span: span.clone(),
-            });
+            let lhs_access = ii.exprs.insert(
+                Expr::TupleFieldAccess {
+                    tuple: lhs_tuple_key,
+                    field: lhs_field_access,
+                    span: span.clone(),
+                },
+                field_ty.clone(),
+            );
 
-            let rhs_access = ii.exprs.insert(Expr::TupleFieldAccess {
-                tuple: rhs_tuple_key,
-                field: rhs_field_access,
-                span: span.clone(),
-            });
+            let rhs_access = ii.exprs.insert(
+                Expr::TupleFieldAccess {
+                    tuple: rhs_tuple_key,
+                    field: rhs_field_access,
+                    span: span.clone(),
+                },
+                field_ty.clone(),
+            );
 
-            ii.expr_types.insert(lhs_access, field_ty.clone());
-            ii.expr_types.insert(rhs_access, field_ty.clone());
-
-            let field_compare_op = ii.exprs.insert(Expr::BinaryOp {
-                op,
-                lhs: lhs_access,
-                rhs: rhs_access,
-                span: span.clone(),
-            });
-            ii.expr_types.insert(
-                field_compare_op,
+            new_field_compare_ops.push(ii.exprs.insert(
+                Expr::BinaryOp {
+                    op,
+                    lhs: lhs_access,
+                    rhs: rhs_access,
+                    span: span.clone(),
+                },
                 Type::Primitive {
                     kind: PrimitiveKind::Bool,
                     span: span.clone(),
                 },
-            );
-
-            new_field_compare_ops.push(field_compare_op);
+            ));
         }
 
         let and_chain_expr_key = new_field_compare_ops
             .into_iter()
             .reduce(|acc, compare_op_key| {
-                let and_op_key = ii.exprs.insert(Expr::BinaryOp {
-                    op: BinaryOp::LogicalAnd,
-                    lhs: acc,
-                    rhs: compare_op_key,
-                    span: span.clone(),
-                });
-
-                ii.expr_types.insert(
-                    and_op_key,
+                ii.exprs.insert(
+                    Expr::BinaryOp {
+                        op: BinaryOp::LogicalAnd,
+                        lhs: acc,
+                        rhs: compare_op_key,
+                        span: span.clone(),
+                    },
                     Type::Primitive {
                         kind: PrimitiveKind::Bool,
                         span: span.clone(),
                     },
-                );
-
-                and_op_key
+                )
             })
             .expect("there must be 1 or more tuple fields");
 
         ii.replace_exprs(expr_key, and_chain_expr_key);
         ii.exprs.remove(expr_key);
-        ii.expr_types.remove(expr_key);
     }
 
     Ok(modified)
 }
 
 fn split_tuple_vars(
-    handler: &Handler,
     ii: &mut IntermediateIntent,
     old_tuple_vars: &mut Vec<VarKey>,
 ) -> Result<bool, ErrorEmitted> {
     let mut new_vars = Vec::new();
 
     // Iterate for all the tuple vars and gather their fields into `new_vars`.
-    for (var_key, Var { name, span }) in ii.vars.iter() {
+    for (var_key, Var { name, span }) in ii.vars() {
         if old_tuple_vars.contains(&var_key) {
             // Already split; skip it.
             continue;
         }
 
-        let Some(var_ty) = ii.var_types.get(var_key) else {
-            return Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "missing var type in split_tuple_vars",
-                    span: span.clone(),
-                },
-            }));
-        };
-
-        if let Some(fields) = var_ty.get_tuple_fields() {
+        if let Some(fields) = var_key.get_ty(ii).get_tuple_fields() {
             // We now know we have a tuple var and its field types.
             for (field_idx, (opt_field_name, field_ty)) in fields.iter().enumerate() {
                 // Always save the numeric index name, and optionally the symbolic name.
@@ -923,11 +848,13 @@ fn split_tuple_vars(
     // Add all the new vars to the intermediate intent and memo the new key.
     for (name, (idx_name, opt_sym_name), span, field_ty) in new_vars {
         // Prefer the symbolic name if it's there.
-        let new_var_key = ii.vars.insert(Var {
-            name: opt_sym_name.as_ref().unwrap_or(&idx_name).clone(),
-            span,
-        });
-        ii.var_types.insert(new_var_key, field_ty.clone());
+        let new_var_key = ii.vars.insert(
+            Var {
+                name: opt_sym_name.as_ref().unwrap_or(&idx_name).clone(),
+                span,
+            },
+            field_ty.clone(),
+        );
 
         // Add both names to this map so we cover both potential uses below.
         if let Some(sym_name) = opt_sym_name {
@@ -945,7 +872,7 @@ fn split_tuple_vars(
 
     // Iterate for each tuple access which is into a var and get the new var key.
     for expr_key in ii.exprs() {
-        if let Some(Expr::TupleFieldAccess { tuple, field, span }) = ii.exprs.get(expr_key) {
+        if let Some(Expr::TupleFieldAccess { tuple, field, span }) = expr_key.try_get(ii) {
             let mut push_new_access = |tuple_name: String| {
                 // Work out the access name after the dot.
                 let field_name = match field {
@@ -970,14 +897,8 @@ fn split_tuple_vars(
                 }
             };
 
-            match ii.exprs.get(*tuple) {
-                Some(Expr::PathByKey(var_key, _)) => push_new_access(
-                    ii.vars
-                        .get(*var_key)
-                        .expect("missing var in split_tuple_vars()")
-                        .name
-                        .clone(),
-                ),
+            match tuple.try_get(ii) {
+                Some(Expr::PathByKey(var_key, _)) => push_new_access(var_key.get(ii).name.clone()),
                 Some(Expr::PathByName(path, _)) => push_new_access(path.clone()),
                 _ => {}
             }
@@ -986,27 +907,23 @@ fn split_tuple_vars(
 
     // Replace all the old tuple accesses with new PathByKey exprs.
     for (old_expr_key, new_var_key, new_tuple_var_ty, span) in new_accesses {
-        let new_expr_key = ii.exprs.insert(Expr::PathByKey(new_var_key, span));
-        ii.expr_types.insert(new_expr_key, new_tuple_var_ty.clone());
+        let new_expr_key = ii
+            .exprs
+            .insert(Expr::PathByKey(new_var_key, span), new_tuple_var_ty.clone());
 
         ii.replace_exprs(old_expr_key, new_expr_key);
         ii.exprs.remove(old_expr_key);
-        ii.expr_types.remove(old_expr_key);
     }
 
     // Now, we can search for all the paths that match the name of the original tuple.
     let mut tuple_path_to_replace = vec![];
     for expr_key in ii.exprs() {
-        if let Some(Expr::PathByName(path, _)) = ii.exprs.get(expr_key) {
+        if let Some(Expr::PathByName(path, _)) = expr_key.try_get(ii) {
             if let Some(split_vars) = tuple_name_to_split_tuple_vars.get(path) {
                 tuple_path_to_replace.push((expr_key, split_vars));
             }
-        } else if let Some(Expr::PathByKey(key, _)) = ii.exprs.get(expr_key) {
-            let path = &ii
-                .vars
-                .get(*key)
-                .expect("missing var in split_tuple_vars")
-                .name;
+        } else if let Some(Expr::PathByKey(key, _)) = expr_key.try_get(ii) {
+            let path = &key.get(ii).name;
             if let Some(split_vars) = tuple_name_to_split_tuple_vars.get(path) {
                 tuple_path_to_replace.push((expr_key, split_vars));
             }
@@ -1020,23 +937,21 @@ fn split_tuple_vars(
                 .iter()
                 .map(|var_key| {
                     (None, {
-                        let field_expr_key =
-                            ii.exprs.insert(Expr::PathByKey(*var_key, empty_span()));
-                        ii.expr_types
-                            .insert(field_expr_key, ii.var_types[*var_key].clone());
-                        field_expr_key
+                        ii.exprs.insert(
+                            Expr::PathByKey(*var_key, empty_span()),
+                            var_key.get_ty(ii).clone(),
+                        )
                     })
                 })
                 .collect(),
             span: empty_span(),
         };
-        let new_expr_key = ii.exprs.insert(new_expr);
-        ii.expr_types.insert(
-            new_expr_key,
+        let new_expr_key = ii.exprs.insert(
+            new_expr,
             Type::Tuple {
                 fields: split_vars
                     .iter()
-                    .map(|var_key| (None, ii.var_types[*var_key].clone()))
+                    .map(|var_key| (None, var_key.get_ty(ii).clone()))
                     .collect(),
                 span: empty_span(),
             },
@@ -1044,7 +959,6 @@ fn split_tuple_vars(
 
         ii.replace_exprs(expr_key, new_expr_key);
         ii.exprs.remove(expr_key);
-        ii.expr_types.remove(expr_key);
     }
 
     Ok(true)

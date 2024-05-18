@@ -1,10 +1,10 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, ParseError},
     expr::{Expr, Ident},
-    intermediate::{CallKey, ExprKey, IntermediateIntent, Program},
+    intermediate::{CallKey, ExprKey, Exprs, IntermediateIntent, Program},
     lexer,
     macros::{self, MacroCall, MacroDecl, MacroExpander},
-    span::{self, empty_span, Span},
+    span::{empty_span, Span, Spanned},
     types::*,
 };
 
@@ -20,7 +20,6 @@ use lalrpop_util::lalrpop_mod;
 lalrpop_mod!(#[allow(clippy::ptr_arg, clippy::type_complexity)] pub pint_parser);
 
 mod use_path;
-use slotmap::SlotMap;
 pub(crate) use use_path::{UsePath, UseTree};
 
 mod context;
@@ -191,7 +190,7 @@ impl<'a> ProjectParser<'a> {
                 self.handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "Infinite loop in project parser",
-                        span: span::empty_span(),
+                        span: empty_span(),
                     },
                 });
                 return self;
@@ -234,14 +233,17 @@ impl<'a> ProjectParser<'a> {
                         },
                     })
                 })?;
-                $ii.exprs.insert(nested_expr.clone());
+                $ii.exprs.insert(
+                    nested_expr.clone(),
+                    Type::Unknown(nested_expr.span().clone()),
+                );
                 deep_copy_expr(nested_expr, $root_exprs, $ii, $handler)
             }};
         }
 
         fn deep_copy_expr(
             expr: &Expr,
-            root_exprs: &SlotMap<ExprKey, Expr>,
+            root_exprs: &Exprs,
             ii: &mut IntermediateIntent,
             handler: &Handler,
         ) -> Result<(), ErrorEmitted> {
@@ -361,7 +363,7 @@ impl<'a> ProjectParser<'a> {
 
         fn deep_copy_type(
             new_type: &Type,
-            root_exprs: &SlotMap<ExprKey, Expr>,
+            root_exprs: &Exprs,
             ii: &mut IntermediateIntent,
             handler: &Handler,
         ) -> Result<Type, ErrorEmitted> {
@@ -373,9 +375,10 @@ impl<'a> ProjectParser<'a> {
                     span,
                 } => {
                     let range_expr = root_exprs.get(*range).expect("exists");
-
                     deep_copy_expr(range_expr, root_exprs, ii, handler)?;
-                    let new_expr_key = ii.exprs.insert(range_expr.clone());
+                    let new_expr_key = ii
+                        .exprs
+                        .insert(range_expr.clone(), Type::Unknown(range_expr.span().clone()));
 
                     Ok(Type::Array {
                         ty: Box::new(deep_copy_type(ty, root_exprs, ii, handler)?),
@@ -412,15 +415,16 @@ impl<'a> ProjectParser<'a> {
                     ty_to: Box::new(deep_copy_type(ty_to, root_exprs, ii, handler)?),
                     span: span.clone(),
                 }),
-                Type::Error(_) | Type::Primitive { .. } | Type::Custom { .. } => {
-                    Ok(new_type.clone())
-                }
+                Type::Error(_)
+                | Type::Unknown(_)
+                | Type::Primitive { .. }
+                | Type::Custom { .. } => Ok(new_type.clone()),
             }
         }
 
         fn deep_copy_new_types(
             root_new_types: &Vec<NewTypeDecl>,
-            root_exprs: &SlotMap<ExprKey, Expr>,
+            root_exprs: &Exprs,
             ii: &mut IntermediateIntent,
             handler: &Handler,
         ) -> Result<(), ErrorEmitted> {
@@ -562,7 +566,7 @@ impl<'a> ProjectParser<'a> {
                 error: CompileError::FileIO {
                     error: io_err,
                     file: src_path.to_path_buf(),
-                    span: span::empty_span(),
+                    span: empty_span(),
                 },
             });
             String::new()

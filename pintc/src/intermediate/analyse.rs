@@ -4,12 +4,11 @@ use super::{Expr, ExprKey, Ident, IntermediateIntent, Program, VarKey};
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     expr::{BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
-    intermediate::{BlockStatement, ConstraintDecl, IfDecl, State, StateKey},
+    intermediate::{BlockStatement, ConstraintDecl, IfDecl},
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
-use slotmap::SlotMap;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 enum Inference {
     Ignored,
@@ -23,6 +22,20 @@ impl Program {
         self = handler.scope(|handler| self.check_program_kind(handler))?;
 
         for ii in self.iis.values_mut() {
+            for expr_key in ii.exprs() {
+                if let Some(span) = ii.removed_macro_calls.get(expr_key) {
+                    // This expression was actually a macro call which expanded to just declarations,
+                    // not another expression. We can set a specific error in this case.
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::MacroCallWasNotExpression { span: span.clone() },
+                    });
+                }
+            }
+
+            if handler.has_errors() {
+                return Err(handler.cancel());
+            }
+
             ii.check_undefined_types(handler);
             ii.lower_newtypes();
             ii.type_check_all_exprs(handler);
@@ -71,25 +84,24 @@ impl IntermediateIntent {
                     replace_custom_type(new_types, ty_to);
                 }
 
-                Type::Error(_) | Type::Primitive { .. } | Type::Alias { .. } => {}
+                Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } | Type::Alias { .. } => {
+                }
             }
         }
 
         // Loop for every known var or state type, or any `as` cast expr, and replace any custom
         // types which match with the type alias.
-        for (_, ty) in self.var_types.iter_mut() {
-            replace_custom_type(&self.new_types, ty);
-        }
+        self.vars
+            .update_types(|_, ty| replace_custom_type(&self.new_types, ty));
 
-        for (_, ty) in self.state_types.iter_mut() {
-            replace_custom_type(&self.new_types, ty);
-        }
+        self.states
+            .update_types(|_, ty| replace_custom_type(&self.new_types, ty));
 
-        for (_, expr) in &mut self.exprs {
+        self.exprs.update_exprs(|_, expr| {
             if let Expr::Cast { ty, .. } = expr {
                 replace_custom_type(&self.new_types, ty.borrow_mut());
             }
-        }
+        });
     }
 
     fn check_undefined_types(&mut self, handler: &Handler) {
@@ -100,22 +112,38 @@ impl IntermediateIntent {
                 .chain(self.new_types.iter().map(|ntd| &ntd.name.name)),
         );
 
-        self.var_types
-            .values()
-            .chain(self.state_types.values())
-            .chain(self.expr_types.values())
-            .for_each(|ty| {
-                if let Type::Custom { path, span, .. } = ty {
-                    if !valid_custom_tys.contains(path) {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::UndefinedType { span: span.clone() },
-                        });
-                    }
+        for (state_key, _) in self.states() {
+            if let Type::Custom { path, span, .. } = state_key.get_ty(self) {
+                if !valid_custom_tys.contains(path) {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::UndefinedType { span: span.clone() },
+                    });
                 }
-            });
+            }
+        }
+
+        for (var_key, _) in self.vars() {
+            if let Type::Custom { path, span, .. } = var_key.get_ty(self) {
+                if !valid_custom_tys.contains(path) {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::UndefinedType { span: span.clone() },
+                    });
+                }
+            }
+        }
+
+        for expr in self.exprs() {
+            if let Type::Custom { path, span, .. } = expr.get_ty(self) {
+                if !valid_custom_tys.contains(path) {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::UndefinedType { span: span.clone() },
+                    });
+                }
+            }
+        }
 
         for expr_key in self.exprs() {
-            if let Some(Expr::Cast { ty, .. }) = self.exprs.get(expr_key) {
+            if let Some(Expr::Cast { ty, .. }) = expr_key.try_get(self) {
                 if let Type::Custom { path, span, .. } = ty.as_ref() {
                     if !valid_custom_tys.contains(path) {
                         handler.emit_err(Error::Compile {
@@ -134,7 +162,7 @@ impl IntermediateIntent {
         self.constraints
             .iter()
             .map(|ConstraintDecl { expr: key, .. }| *key)
-            .chain(self.states.iter().map(|(_, state)| state.expr))
+            .chain(self.states().map(|(_, state)| state.expr))
             .chain(
                 self.directives
                     .iter()
@@ -155,11 +183,13 @@ impl IntermediateIntent {
             .for_each(|if_decl| self.type_check_if_decl(if_decl, handler));
 
         // Confirm now that all decision variables are typed.
-        for (var_key, var) in &self.vars {
-            if self.var_types.get(var_key).is_none() {
+        let mut var_key_to_new_type = HashMap::new();
+        for (var_key, var) in self.vars() {
+            if var_key.get_ty(self).is_unknown() {
                 if let Some(init_expr_key) = self.var_inits.get(var_key) {
-                    if let Some(ty) = self.expr_types.get(*init_expr_key) {
-                        self.var_types.insert(var_key, ty.clone());
+                    let ty = init_expr_key.get_ty(self);
+                    if !ty.is_unknown() {
+                        var_key_to_new_type.insert(var_key, ty.clone());
                     } else {
                         handler.emit_err(Error::Compile {
                             error: CompileError::UnknownType {
@@ -178,63 +208,72 @@ impl IntermediateIntent {
             }
         }
 
+        self.vars.update_types(|var_key, ty| {
+            if let Some(new_ty) = var_key_to_new_type.get(&var_key) {
+                *ty = new_ty.clone()
+            }
+        });
+
         // Confirm now that all state variables are typed.
-        for (state_key, state) in &self.states {
-            if let Some(state_ty) = self.state_types.get(state_key) {
-                self.expr_types
-                    .get(state.expr)
-                    .map(|expr_ty| {
-                        if state_ty != expr_ty {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::StateVarInitTypeError {
-                                    large_err: Box::new(LargeTypeError::StateVarInitTypeError {
-                                        expected_ty: self.with_ii(state_ty).to_string(),
-                                        found_ty: self.with_ii(expr_ty).to_string(),
-                                        span: self.expr_key_to_span(state.expr),
-                                        expected_span: Some(state_ty.span().clone()),
-                                    }),
-                                },
-                            });
-                        }
-                        // State variables of type `Map` are not allowed
-                        if state_ty.is_map() {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::StateVarTypeIsMap {
-                                    span: state.span.clone(),
-                                },
-                            });
-                        }
-                    })
-                    .unwrap_or_else(|| {
+        let mut state_key_to_new_type = HashMap::new();
+        for (state_key, state) in self.states() {
+            let state_ty = state_key.get_ty(self);
+            if !state_ty.is_unknown() {
+                let expr_ty = state.expr.get_ty(self);
+                if !expr_ty.is_unknown() {
+                    if state_ty != expr_ty {
                         handler.emit_err(Error::Compile {
-                            error: CompileError::UnknownType {
+                            error: CompileError::StateVarInitTypeError {
+                                large_err: Box::new(LargeTypeError::StateVarInitTypeError {
+                                    expected_ty: self.with_ii(state_ty).to_string(),
+                                    found_ty: self.with_ii(expr_ty).to_string(),
+                                    span: self.expr_key_to_span(state.expr),
+                                    expected_span: Some(state_ty.span().clone()),
+                                }),
+                            },
+                        });
+                    }
+                    // State variables of type `Map` are not allowed
+                    if state_ty.is_map() {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::StateVarTypeIsMap {
                                 span: state.span.clone(),
                             },
                         });
+                    }
+                } else {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::UnknownType {
+                            span: state.span.clone(),
+                        },
                     });
+                }
             } else {
-                self.expr_types
-                    .get(state.expr)
-                    .map(|expr_ty| {
-                        self.state_types.insert(state_key, expr_ty.clone());
-                        // State variables of type `Map` are not allowed
-                        if expr_ty.is_map() {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::StateVarTypeIsMap {
-                                    span: state.span.clone(),
-                                },
-                            });
-                        }
-                    })
-                    .unwrap_or_else(|| {
+                let expr_ty = state.expr.get_ty(self).clone();
+                if !expr_ty.is_unknown() {
+                    state_key_to_new_type.insert(state_key, expr_ty.clone());
+                    // State variables of type `Map` are not allowed
+                    if expr_ty.is_map() {
                         handler.emit_err(Error::Compile {
-                            error: CompileError::UnknownType {
+                            error: CompileError::StateVarTypeIsMap {
                                 span: state.span.clone(),
                             },
                         });
+                    }
+                } else {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::UnknownType {
+                            span: state.span.clone(),
+                        },
                     });
+                }
             }
         }
+        self.states.update_types(|state_key, ty| {
+            if let Some(new_ty) = state_key_to_new_type.get(&state_key) {
+                *ty = new_ty.clone()
+            }
+        });
     }
 
     // Type check an if statement and all of its sub-statements including other ifs. This is a
@@ -250,7 +289,8 @@ impl IntermediateIntent {
         // Make sure the condition is a `bool`
         if let Err(err) = self.type_check_next_expr(*condition) {
             handler.emit_err(err);
-        } else if let Some(cond_ty) = self.expr_types.get(*condition) {
+        } else {
+            let cond_ty = condition.get_ty(self);
             if !cond_ty.is_bool() {
                 handler.emit_err(Error::Compile {
                     error: CompileError::NonBoolConditional {
@@ -312,13 +352,13 @@ impl IntermediateIntent {
         while let Some(next_key) = queue.last().cloned() {
             // We may already know this expr type, in which case we can pop it from the queue,
             // or we can infer it.
-            if self.expr_types.contains_key(next_key) {
+            if !next_key.get_ty(self).is_unknown() {
                 queue.pop();
             } else {
                 match self.infer_expr_key_type(next_key)? {
                     // Successfully inferred its type.  Save it and pop it from the queue.
                     Inference::Type(ty) => {
-                        self.expr_types.insert(next_key, ty);
+                        next_key.set_ty(ty, self);
                         queue.pop();
                     }
 
@@ -343,21 +383,11 @@ impl IntermediateIntent {
     }
 
     fn infer_expr_key_type(&self, expr_key: ExprKey) -> Result<Inference, Error> {
-        let expr: &Expr = self.exprs.get(expr_key).ok_or_else(|| {
-            if let Some(span) = self.removed_macro_calls.get(expr_key) {
-                // This dependant expression was actually a macro call which expanded to just
-                // declarations, not another expression.  We can set a specific error in this case.
-                Error::Compile {
-                    error: CompileError::MacroCallWasNotExpression { span: span.clone() },
-                }
-            } else {
-                Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "orphaned expr key when type checking",
-                        span: empty_span(),
-                    },
-                }
-            }
+        let expr: &Expr = expr_key.try_get(self).ok_or_else(|| Error::Compile {
+            error: CompileError::Internal {
+                msg: "orphaned expr key when type checking",
+                span: empty_span(),
+            },
         })?;
 
         match expr {
@@ -468,10 +498,12 @@ impl IntermediateIntent {
     }
 
     fn infer_path_by_key(&self, var_key: VarKey, span: &Span) -> Result<Inference, Error> {
-        if let Some(ty) = self.var_types.get(var_key) {
+        let ty = var_key.get_ty(self);
+        if !ty.is_unknown() {
             Ok(Inference::Type(ty.clone()))
         } else if let Some(init_expr_key) = self.var_inits.get(var_key) {
-            if let Some(init_expr_ty) = self.expr_types.get(*init_expr_key) {
+            let init_expr_ty = init_expr_key.get_ty(self);
+            if !init_expr_ty.is_unknown() {
                 Ok(Inference::Type(init_expr_ty.clone()))
             } else {
                 // We have a variable with an initialiser but don't know the initialiser type
@@ -490,20 +522,21 @@ impl IntermediateIntent {
 
     fn infer_path_by_name(&self, path: &Path, span: &Span) -> Result<Inference, Error> {
         if let Some(var_key) = self
-            .vars
-            .iter()
+            .vars()
             .find_map(|(var_key, var)| (&var.name == path).then_some(var_key))
         {
             // It's a var.
             self.infer_path_by_key(var_key, span)
         } else if let Some((state_key, state)) =
-            self.states.iter().find(|(_, state)| (&state.name == path))
+            self.states().find(|(_, state)| (&state.name == path))
         {
             // It's state.
-            Ok(if let Some(ty) = self.state_types.get(state_key) {
-                Inference::Type(ty.clone())
-            } else if let Some(init_expr_ty) = self.expr_types.get(state.expr) {
-                Inference::Type(init_expr_ty.clone())
+            let state_expr_ty = state.expr.get_ty(self);
+            let state_type = state_key.get_ty(self);
+            Ok(if !state_type.is_unknown() {
+                Inference::Type(state_type.clone())
+            } else if !state_expr_ty.is_unknown() {
+                Inference::Type(state_expr_ty.clone())
             } else {
                 Inference::Dependant(state.expr)
             })
@@ -666,7 +699,8 @@ impl IntermediateIntent {
 
             UnaryOp::Neg => {
                 // RHS must be an int or real.
-                if let Some(ty) = self.expr_types.get(rhs_expr_key) {
+                let ty = rhs_expr_key.get_ty(self);
+                if !ty.is_unknown() {
                     if ty.is_num() {
                         Ok(Inference::Type(ty.clone()))
                     } else {
@@ -690,7 +724,8 @@ impl IntermediateIntent {
 
             UnaryOp::Not => {
                 // RHS must be a bool.
-                if let Some(ty) = self.expr_types.get(rhs_expr_key) {
+                let ty = rhs_expr_key.get_ty(self);
+                if !ty.is_unknown() {
                     if ty.is_bool() {
                         Ok(Inference::Type(ty.clone()))
                     } else {
@@ -714,33 +749,21 @@ impl IntermediateIntent {
 
             UnaryOp::NextState => {
                 // Next state access must be a path that resolves to a state variable.
-                fn check_path_for_state_variable(
-                    states: &SlotMap<StateKey, State>,
-                    name: &str,
-                    span: &Span,
-                ) -> Result<(), Error> {
-                    if !states.iter().any(|(_, state)| state.name == name) {
-                        Err(Error::Compile {
-                            error: CompileError::InvalidNextStateAccess { span: span.clone() },
-                        })?
-                    }
-
-                    Ok(())
-                }
-
-                match self.exprs.get(rhs_expr_key) {
+                match rhs_expr_key.try_get(self) {
                     Some(Expr::PathByName(name, span)) => {
-                        check_path_for_state_variable(&self.states, name, span)?;
+                        if !self.states().any(|(_, state)| state.name == *name) {
+                            Err(Error::Compile {
+                                error: CompileError::InvalidNextStateAccess { span: span.clone() },
+                            })?
+                        }
                     }
                     Some(Expr::PathByKey(var_key, span)) => {
-                        if let Some(var) = &self.vars.get(*var_key) {
-                            check_path_for_state_variable(&self.states, &var.name, span)?;
-                        } else {
+                        if !self
+                            .states()
+                            .any(|(_, state)| state.name == var_key.get(self).name)
+                        {
                             Err(Error::Compile {
-                                error: CompileError::Internal {
-                                    msg: "`next state` var_key is missing from vars slotmap",
-                                    span: span.clone(),
-                                },
+                                error: CompileError::InvalidNextStateAccess { span: span.clone() },
                             })?
                         }
                     }
@@ -749,7 +772,8 @@ impl IntermediateIntent {
                     })?,
                 }
 
-                if let Some(ty) = self.expr_types.get(rhs_expr_key) {
+                let ty = rhs_expr_key.get_ty(self);
+                if !ty.is_unknown() {
                     Ok(Inference::Type(ty.clone()))
                 } else {
                     Ok(Inference::Dependant(rhs_expr_key))
@@ -811,8 +835,10 @@ impl IntermediateIntent {
             }
         };
 
-        if let Some(lhs_ty) = self.expr_types.get(lhs_expr_key).cloned() {
-            if let Some(rhs_ty) = self.expr_types.get(rhs_expr_key) {
+        let lhs_ty = lhs_expr_key.get_ty(self).clone();
+        let rhs_ty = rhs_expr_key.get_ty(self);
+        if !lhs_ty.is_unknown() {
+            if !rhs_ty.is_unknown() {
                 match op {
                     BinaryOp::Add
                     | BinaryOp::Sub
@@ -910,7 +936,10 @@ impl IntermediateIntent {
         else_expr_key: ExprKey,
         span: &Span,
     ) -> Result<Inference, Error> {
-        if let Some(cond_ty) = self.expr_types.get(cond_expr_key) {
+        let cond_ty = cond_expr_key.get_ty(self);
+        let then_ty = then_expr_key.get_ty(self);
+        let else_ty = else_expr_key.get_ty(self);
+        if !cond_ty.is_unknown() {
             if !cond_ty.is_bool() {
                 Err(Error::Compile {
                     error: CompileError::NonBoolConditional {
@@ -919,8 +948,8 @@ impl IntermediateIntent {
                         span: self.expr_key_to_span(cond_expr_key),
                     },
                 })
-            } else if let Some(then_ty) = self.expr_types.get(then_expr_key) {
-                if let Some(else_ty) = self.expr_types.get(else_expr_key) {
+            } else if !then_ty.is_unknown() {
+                if !else_ty.is_unknown() {
                     if then_ty == else_ty {
                         Ok(Inference::Type(then_ty.clone()))
                     } else {
@@ -953,8 +982,10 @@ impl IntermediateIntent {
         upper_bound_key: ExprKey,
         span: &Span,
     ) -> Result<Inference, Error> {
-        if let Some(lb_ty) = self.expr_types.get(lower_bound_key) {
-            if let Some(ub_ty) = self.expr_types.get(upper_bound_key) {
+        let lb_ty = lower_bound_key.get_ty(self);
+        let ub_ty = upper_bound_key.get_ty(self);
+        if !lb_ty.is_unknown() {
+            if !ub_ty.is_unknown() {
                 if lb_ty != ub_ty {
                     Err(Error::Compile {
                         error: CompileError::RangeTypesMismatch {
@@ -994,7 +1025,8 @@ impl IntermediateIntent {
         // enum  int   Enum cast (performed in lower_enums())
         // bool  int   Boolean to integer cast (performed in lower_bools())
 
-        if let Some(from_ty) = self.expr_types.get(value_key) {
+        let from_ty = value_key.get_ty(self);
+        if !from_ty.is_unknown() {
             if !to_ty.is_int() && !to_ty.is_real() {
                 // We can only cast to ints or reals.
                 Err(Error::Compile {
@@ -1033,8 +1065,10 @@ impl IntermediateIntent {
         // If the collection is a range, then it must be between ints or reals and the value must
         // match.  If it's an array it can be any type but still the value must match the array
         // element type.
-        if let Some(value_ty) = self.expr_types.get(value_key) {
-            if let Some(collection_ty) = self.expr_types.get(collection_key) {
+        let value_ty = value_key.get_ty(self);
+        let collection_ty = collection_key.get_ty(self);
+        if !value_ty.is_unknown() {
+            if !collection_ty.is_unknown() {
                 if collection_ty.is_num() {
                     if value_ty != collection_ty {
                         Err(Error::Compile {
@@ -1100,9 +1134,11 @@ impl IntermediateIntent {
             .expect("already check for elements.is_empty()");
 
         let mut deps = Vec::new();
-        if let Some(el0_ty) = self.expr_types.get(*el0) {
+        let el0_ty = el0.get_ty(self);
+        if !el0_ty.is_unknown() {
             for el_key in elements {
-                if let Some(el_ty) = self.expr_types.get(*el_key) {
+                let el_ty = el_key.get_ty(self);
+                if !el_ty.is_unknown() {
                     if el_ty != el0_ty {
                         return Err(Error::Compile {
                             error: CompileError::NonHomogeneousArrayElement {
@@ -1118,7 +1154,7 @@ impl IntermediateIntent {
             }
 
             // Must also type check the range_expr
-            if self.expr_types.get(range_expr_key).is_none() {
+            if range_expr_key.get_ty(self).is_unknown() {
                 deps.push(range_expr_key);
             }
 
@@ -1143,22 +1179,22 @@ impl IntermediateIntent {
         index_expr_key: ExprKey,
         span: &Span,
     ) -> Result<Inference, Error> {
-        let index_ty = match self.expr_types.get(index_expr_key) {
-            Some(ty) => ty,
-            None => return Ok(Inference::Dependant(index_expr_key)),
-        };
+        let index_ty = index_expr_key.get_ty(self);
+        if index_ty.is_unknown() {
+            return Ok(Inference::Dependant(index_expr_key));
+        }
 
-        let ary_ty = match self.expr_types.get(array_expr_key) {
-            Some(ty) => ty,
-            None => return Ok(Inference::Dependant(array_expr_key)),
-        };
+        let ary_ty = array_expr_key.get_ty(self);
+        if ary_ty.is_unknown() {
+            return Ok(Inference::Dependant(array_expr_key));
+        }
 
         if let Some(range_expr_key) = ary_ty.get_array_range_expr() {
             // Is this an array?
-            let range_ty = match self.expr_types.get(range_expr_key) {
-                Some(ty) => ty,
-                None => return Ok(Inference::Dependant(range_expr_key)),
-            };
+            let range_ty = range_expr_key.get_ty(self);
+            if range_ty.is_unknown() {
+                return Ok(Inference::Dependant(range_expr_key));
+            }
 
             if (!index_ty.is_int() && !index_ty.is_enum()) || index_ty != range_ty {
                 Err(Error::Compile {
@@ -1219,7 +1255,8 @@ impl IntermediateIntent {
 
         let mut deps = Vec::new();
         for (name, field_expr_key) in fields {
-            if let Some(field_ty) = self.expr_types.get(*field_expr_key) {
+            let field_ty = field_expr_key.get_ty(self);
+            if !field_ty.is_unknown() {
                 field_tys.push((name.clone(), field_ty.clone()));
             } else {
                 deps.push(*field_expr_key);
@@ -1242,7 +1279,8 @@ impl IntermediateIntent {
         field: &TupleAccess,
         span: &Span,
     ) -> Result<Inference, Error> {
-        if let Some(tuple_ty) = self.expr_types.get(tuple_expr_key) {
+        let tuple_ty = tuple_expr_key.get_ty(self);
+        if !tuple_ty.is_unknown() {
             if tuple_ty.is_tuple() {
                 match field {
                     TupleAccess::Error => Err(Error::Compile {
@@ -1304,7 +1342,8 @@ impl IntermediateIntent {
         let mut deps = Vec::new();
 
         for (_, range_expr_key) in ranges {
-            if let Some(range_ty) = self.expr_types.get(*range_expr_key) {
+            let range_ty = range_expr_key.get_ty(self);
+            if !range_ty.is_unknown() {
                 if !range_ty.is_int() {
                     return Err(Error::Compile {
                         error: CompileError::NonIntGeneratorRange {
@@ -1320,7 +1359,8 @@ impl IntermediateIntent {
         }
 
         for cond_expr_key in conditions {
-            if let Some(cond_ty) = self.expr_types.get(*cond_expr_key) {
+            let cond_ty = cond_expr_key.get_ty(self);
+            if !cond_ty.is_unknown() {
                 if !cond_ty.is_bool() {
                     return Err(Error::Compile {
                         error: CompileError::NonBoolGeneratorCondition {
@@ -1335,7 +1375,8 @@ impl IntermediateIntent {
             }
         }
 
-        if let Some(body_ty) = self.expr_types.get(body_expr_key) {
+        let body_ty = body_expr_key.get_ty(self);
+        if !body_ty.is_unknown() {
             if !body_ty.is_bool() {
                 return Err(Error::Compile {
                     error: CompileError::NonBoolGeneratorBody {
@@ -1360,8 +1401,8 @@ impl IntermediateIntent {
     }
 
     fn expr_key_to_span(&self, expr_key: ExprKey) -> Span {
-        self.exprs
-            .get(expr_key)
+        expr_key
+            .try_get(self)
             .map(|expr| expr.span().clone())
             .unwrap_or_else(empty_span)
     }
