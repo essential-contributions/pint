@@ -35,8 +35,12 @@ solve satisfy;
 // @36..37: type of this expression is ambiguous
 // unable to determine expression type
 // @49..50: type of this expression is ambiguous
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
+// attempt to index into a non-indexable value
+// @0..13: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @15..29: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @32..43: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @45..60: expression for constraint must evaluate to a boolean
 // >>>

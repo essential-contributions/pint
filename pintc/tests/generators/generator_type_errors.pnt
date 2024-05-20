@@ -44,12 +44,20 @@ solve satisfy;
 // @366..371: invalid type `int`, expecting `bool`
 // body for `exists` must be a `bool` expression
 // @405..410: invalid type `int`, expecting `bool`
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
+// attempt to index into a non-indexable value
+// @17..61: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @63..107: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @109..154: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @156..201: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @226..270: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @272..316: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @336..373: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @375..412: expression for constraint must evaluate to a boolean
 // >>>

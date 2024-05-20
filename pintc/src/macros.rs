@@ -138,11 +138,11 @@ pub(crate) fn splice_args(handler: &Handler, ii: &IntermediateIntent, call: &mut
         let array_path = mod_path_str.clone() + "::" + &array_name[1..];
 
         if let Some(var_key) = ii
-            .vars
-            .iter()
+            .vars()
             .find_map(|(var_key, Var { name, .. })| (name == &array_path).then_some(var_key))
         {
-            if let Some(var_ty) = ii.var_types.get(var_key) {
+            let var_ty = var_key.get_ty(ii);
+            if !var_ty.is_unknown() {
                 if let Some(range_expr_key) = var_ty.get_array_range_expr() {
                     if let Some((size, opt_enum)) = splice_get_array_range_size(ii, range_expr_key)
                     {
@@ -168,7 +168,7 @@ pub(crate) fn splice_args(handler: &Handler, ii: &IntermediateIntent, call: &mut
                     });
                 }
             } else if let Some(var_init_key) = ii.var_inits.get(var_key) {
-                if let Some(Expr::Array { range_expr, .. }) = ii.exprs.get(*var_init_key) {
+                if let Some(Expr::Array { range_expr, .. }) = var_init_key.try_get(ii) {
                     if let Some((size, opt_enum)) = splice_get_array_range_size(ii, *range_expr) {
                         // Store where and what to replace in the new spliced args.
                         replacements.insert(
@@ -273,8 +273,8 @@ fn splice_get_array_range_size(
     ii: &IntermediateIntent,
     range_expr_key: ExprKey,
 ) -> Option<(usize, OptEnumDecl)> {
-    ii.exprs
-        .get(range_expr_key)
+    range_expr_key
+        .try_get(ii)
         .and_then(|range_expr| match range_expr {
             Expr::Immediate {
                 value: Immediate::Int(size),

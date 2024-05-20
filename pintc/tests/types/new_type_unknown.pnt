@@ -16,5 +16,6 @@ solve satisfy;
 // @43..68: not found in this scope
 // unable to determine expression type
 // @39..40: type of this expression is ambiguous
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
+// attempt to index into a non-indexable value
+// @35..68: expression for constraint must evaluate to a boolean
 // >>>

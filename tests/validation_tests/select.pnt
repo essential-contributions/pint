@@ -1,0 +1,6 @@
+let x: int = 2;
+let y: int = 3;
+let z1: int = true ? x + y : x * y;
+let z2: int = false ? x + y : x * y;
+
+solve satisfy;

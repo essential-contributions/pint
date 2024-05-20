@@ -1,0 +1,26 @@
+let a = 11;
+let b: int;
+let c = false;
+
+constraint b < (c ? 22 : 33);
+constraint b > (a ? 44 : 55);
+
+solve satisfy;
+
+// intermediate <<<
+// var ::a;
+// var ::b: int;
+// var ::c;
+// constraint (::a == 11);
+// constraint (::c == false);
+// constraint (::b < (::c ? 22 : 33));
+// constraint (::b > (::a ? 44 : 55));
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// condition for select expression must be a `bool`
+// @86..87: invalid type `int`, expecting `bool`
+// attempt to index into a non-indexable value
+// @70..98: expression for constraint must evaluate to a boolean
+// >>>

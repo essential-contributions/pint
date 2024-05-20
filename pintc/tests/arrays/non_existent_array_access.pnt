@@ -10,5 +10,6 @@ solve satisfy;
 // typecheck_failure <<<
 // cannot find value `::b` in this scope
 // @11..12: not found in this scope
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
+// attempt to index into a non-indexable value
+// @0..20: expression for constraint must evaluate to a boolean
 // >>>

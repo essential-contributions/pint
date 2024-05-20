@@ -105,7 +105,7 @@ fn gather_use_paths() {
         intermediate::{IntermediateIntent, Program, ProgramKind},
     };
     use std::collections::BTreeMap;
-    let parser = pint_parser::UseTreeParser::new();
+    let parser = pint_parser::TestDelegateParser::new();
     let mut current_ii = Program::ROOT_II_NAME.to_string();
     let filepath = std::rc::Rc::from(std::path::Path::new("test"));
 
@@ -143,35 +143,38 @@ fn gather_use_paths() {
     // Each of these tests are parsing only the use tree, so there is an implicit `use <>;`
     // surrounding each.  I.e., testing just "a" is equivalent to testing `use a;`.
 
-    check_use_path(to_use_paths("a"), expect_test::expect!["[UsePath(a)]"]);
+    check_use_path(
+        to_use_paths("###usetree### a"),
+        expect_test::expect!["[UsePath(a)]"],
+    );
 
     check_use_path(
-        to_use_paths("a::b"),
+        to_use_paths("###usetree### a::b"),
         expect_test::expect!["[UsePath(a::b)]"],
     );
 
     check_use_path(
-        to_use_paths("a::{b, c}"),
+        to_use_paths("###usetree### a::{b, c}"),
         expect_test::expect!["[UsePath(a::b), UsePath(a::c)]"],
     );
 
     check_use_path(
-        to_use_paths("a::{b, c, d}"),
+        to_use_paths("###usetree### a::{b, c, d}"),
         expect_test::expect!["[UsePath(a::b), UsePath(a::c), UsePath(a::d)]"],
     );
 
     check_use_path(
-        to_use_paths("a::{b, c::d}"),
+        to_use_paths("###usetree### a::{b, c::d}"),
         expect_test::expect!["[UsePath(a::b), UsePath(a::c::d)]"],
     );
 
     check_use_path(
-        to_use_paths("a as b"),
+        to_use_paths("###usetree### a as b"),
         expect_test::expect!["[UsePath(a as b)]"],
     );
 
     check_use_path(
-        to_use_paths("a::{b as ab, c}"),
+        to_use_paths("###usetree### a::{b as ab, c}"),
         expect_test::expect!["[UsePath(a::b as ab), UsePath(a::c)]"],
     );
 }

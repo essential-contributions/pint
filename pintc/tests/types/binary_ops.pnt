@@ -169,24 +169,44 @@ solve satisfy;
 // @580..581: type of this expression is ambiguous
 // unable to determine expression type
 // @615..616: type of this expression is ambiguous
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
+// attempt to index into a non-indexable value
+// @0..18: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @20..37: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @39..57: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @59..78: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @115..139: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @188..205: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @207..224: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @226..244: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @246..264: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @266..284: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @347..376: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @378..396: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @399..419: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @421..440: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @442..459: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @461..483: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @486..504: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @506..528: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @576..609: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @611..642: expression for constraint must evaluate to a boolean
 // >>>

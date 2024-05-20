@@ -8,6 +8,8 @@ solve satisfy;
 enum Foo = A | B;
 type Boo = Foo;
 
+if true { }
+
 intent Baz {}
 
 // intermediate <<<
@@ -16,6 +18,8 @@ intent Baz {}
 // enum ::Foo = A | B;
 // type ::Boo = ::Foo;
 // constraint (::x == 3);
+// if true {
+// }
 // solve satisfy;
 // 
 // intent ::Baz {
@@ -33,6 +37,9 @@ intent Baz {}
 // only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
 // invalid declaration outside an `intent { .. }` declaration
 // @58..75: invalid constraint declaration outside an `intent { .. }` declaration
+// only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
+// invalid declaration outside an `intent { .. }` declaration
+// @146..157: invalid `if` statement declaration outside an `intent { .. }` declaration
 // only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
 // invalid declaration outside an `intent { .. }` declaration
 // @77..90: invalid solve directive declaration outside an `intent { .. }` declaration

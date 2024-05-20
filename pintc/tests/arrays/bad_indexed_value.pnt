@@ -13,5 +13,6 @@ solve satisfy;
 // typecheck_failure <<<
 // no intrinsic named `__foo` is found
 // @24..31: intrinsic not found
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
+// attempt to index into a non-indexable value
+// @13..39: expression for constraint must evaluate to a boolean
 // >>>

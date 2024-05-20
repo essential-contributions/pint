@@ -1,0 +1,52 @@
+let condition: bool;
+let condition1: bool;
+let condition2: bool;
+let x: int;
+let y: int;
+let z: b256;
+let a = condition ? condition1 ? 1 : 2 : condition2 ? 3 : 4;
+let b = condition ? condition1 ? x : y : condition2 ? x + 1 : x * y;
+let c = !condition ? { 1, 2, 3 } : { 3, 2, 1 };
+let d = !condition ? [ 1, 2, 3 ] : [ 3, 2, 1 ];
+
+solve satisfy;
+
+// intermediate <<<
+// var ::condition: bool;
+// var ::condition1: bool;
+// var ::condition2: bool;
+// var ::x: int;
+// var ::y: int;
+// var ::z: b256;
+// var ::a;
+// var ::b;
+// var ::c;
+// var ::d;
+// constraint (::a == (::condition ? (::condition1 ? 1 : 2) : (::condition2 ? 3 : 4)));
+// constraint (::b == (::condition ? (::condition1 ? ::x : ::y) : (::condition2 ? (::x + 1) : (::x * ::y))));
+// constraint (::c == (!::condition ? {1, 2, 3} : {3, 2, 1}));
+// constraint (::d == (!::condition ? [1, 2, 3] : [3, 2, 1]));
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::condition: int;
+// var ::condition1: int;
+// var ::condition2: int;
+// var ::x: int;
+// var ::y: int;
+// var ::z: b256;
+// var ::a: int;
+// var ::b: int;
+// var ::c.0: int;
+// var ::d[0]: int;
+// var ::d[1]: int;
+// var ::d[2]: int;
+// var ::c.1: int;
+// var ::c.2: int;
+// constraint (::a == (::condition ? (::condition1 ? 1 : 2) : (::condition2 ? 3 : 4)));
+// constraint (::b == (::condition ? (::condition1 ? ::x : ::y) : (::condition2 ? (::x + 1) : (::x * ::y))));
+// constraint ({::c.0, ::c.1, ::c.2} == (!::condition ? {1, 2, 3} : {3, 2, 1}));
+// constraint ([::d[0], ::d[1], ::d[2]] == (!::condition ? [1, 2, 3] : [3, 2, 1]));
+// solve satisfy;
+// >>>

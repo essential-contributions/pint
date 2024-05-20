@@ -2,14 +2,10 @@ type myAliasForCast = int;
 type myNestedCast = int[4 as myAliasForCast];
 type myNestedUnaryOp = int[--3];
 type myNestedBinaryOp = int[1 + 2];
-type myNestedIf = int[if 1 > 0 {
-    5
-} else {
-    6
-}];
+type myNestedSelect = int[ 1 > 0 ? 5 : 6 ];
 type myNestedTuple = int[{2, 1}.0];
 type myNestedArray = int[[2, 1][1]];
-type complexType = { myNestedCast, myNestedIf }[(2 in {1, 2, 3}) as int];
+type complexType = { myNestedCast, myNestedSelect }[(2 in {1, 2, 3}) as int];
 
 intent Foo {}
 
@@ -18,20 +14,20 @@ intent Foo {}
 // type ::myNestedCast = int[4 as ::myAliasForCast];
 // type ::myNestedUnaryOp = int[--3];
 // type ::myNestedBinaryOp = int[(1 + 2)];
-// type ::myNestedIf = int[if (1 > 0) { 5 } else { 6 }];
+// type ::myNestedSelect = int[((1 > 0) ? 5 : 6)];
 // type ::myNestedTuple = int[{2, 1}.0];
 // type ::myNestedArray = int[[2, 1][1]];
-// type ::complexType = {::myNestedCast, ::myNestedIf}[2 in {1, 2, 3} as int];
+// type ::complexType = {::myNestedCast, ::myNestedSelect}[2 in {1, 2, 3} as int];
 // 
 // intent ::Foo {
 //     type ::myAliasForCast = int;
 //     type ::myNestedCast = int[4 as ::myAliasForCast];
 //     type ::myNestedUnaryOp = int[-3];
 //     type ::myNestedBinaryOp = int[(1 + 2)];
-//     type ::myNestedIf = int[if 0 { 5 } else { 6 }];
+//     type ::myNestedSelect = int[(0 ? 5 : 6)];
 //     type ::myNestedTuple = int[1.0];
 //     type ::myNestedArray = int[2[1]];
-//     type ::complexType = {::myNestedCast, ::myNestedIf}[3 as int];
+//     type ::complexType = {::myNestedCast, ::myNestedSelect}[3 as int];
 // }
 // >>>
 
@@ -40,19 +36,19 @@ intent Foo {}
 // type ::myNestedCast = int[4 as int];
 // type ::myNestedUnaryOp = int[--3];
 // type ::myNestedBinaryOp = int[(1 + 2)];
-// type ::myNestedIf = int[if (1 > 0) { 5 } else { 6 }];
+// type ::myNestedSelect = int[((1 > 0) ? 5 : 6)];
 // type ::myNestedTuple = int[{2, 1}.0];
 // type ::myNestedArray = int[[2, 1][1]];
-// type ::complexType = {::myNestedCast, ::myNestedIf}[2 in {1, 2, 3} as int];
+// type ::complexType = {::myNestedCast, ::myNestedSelect}[2 in {1, 2, 3} as int];
 // 
 // intent ::Foo {
 //     type ::myAliasForCast = int;
 //     type ::myNestedCast = int[4 as int];
 //     type ::myNestedUnaryOp = int[-3];
 //     type ::myNestedBinaryOp = int[(1 + 2)];
-//     type ::myNestedIf = int[if 0 { 5 } else { 6 }];
+//     type ::myNestedSelect = int[(0 ? 5 : 6)];
 //     type ::myNestedTuple = int[1.0];
 //     type ::myNestedArray = int[2[1]];
-//     type ::complexType = {::myNestedCast, ::myNestedIf}[3 as int];
+//     type ::complexType = {::myNestedCast, ::myNestedSelect}[3 as int];
 // }
 // >>>

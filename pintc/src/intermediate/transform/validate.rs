@@ -11,6 +11,7 @@ pub(crate) fn validate(handler: &Handler, program: &mut Program) -> Result<(), E
         check_constraints(ii, handler);
         check_vars(ii, handler);
         check_states(ii, handler);
+        check_ifs(ii, handler);
         check_directive(ii, handler);
     });
 
@@ -18,46 +19,44 @@ pub(crate) fn validate(handler: &Handler, program: &mut Program) -> Result<(), E
 }
 
 fn check_vars(ii: &IntermediateIntent, handler: &Handler) {
-    if ii.vars.len() != ii.var_types.len() {
-        handler.emit_err(Error::Compile {
-            error: CompileError::Internal {
-                msg: "mismatched final intent vars and var_types slotmaps",
-                span: empty_span(),
-            },
-        });
-    };
-
-    for (var_key, _) in ii.vars.iter() {
-        if ii.var_types.get(var_key).is_none() {
+    for (var_key, var) in ii.vars() {
+        if var_key.get_ty(ii).is_unknown() {
             handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                 msg:
                     "final intent var_types slotmap is missing corresponding key from vars slotmap",
-                span: ii.vars[var_key].span.clone(),
+                span: var.span.clone(),
             }});
         }
     }
 }
 
 fn check_states(ii: &IntermediateIntent, handler: &Handler) {
-    if ii.states.len() != ii.state_types.len() {
-        handler.emit_err(Error::Compile {
-            error: CompileError::Internal {
-                msg: "mismatched final intent states and state_types slotmaps",
-                span: empty_span(),
-            },
-        });
-    };
-
-    for (state_key, _) in ii.states.iter() {
-        if ii.state_types.get(state_key).is_none() {
+    for (state_key, state) in ii.states() {
+        if state_key.get_ty(ii).is_unknown() {
             handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                 msg:
                     "final intent state_types slotmap is missing corresponding key from states slotmap",
-                span: ii.states[state_key].span.clone(),
+                span: state.span.clone(),
             }});
         }
+    }
+}
+
+fn check_ifs(ii: &IntermediateIntent, handler: &Handler) {
+    if !ii.if_decls.is_empty() {
+        handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "final intent contains if declarations",
+                span: ii
+                    .if_decls
+                    .last()
+                    .expect("guaranteed to exist")
+                    .span
+                    .clone(),
+            },
+        });
     }
 }
 
@@ -108,16 +107,17 @@ fn check_expr(
         };
     }
 
-    let expr_type = ii.expr_types.get(*expr_key).ok_or_else(|| {
+    let expr_type = expr_key.get_ty(ii);
+    if expr_type.is_unknown() {
         handler.emit_err(Error::Compile {
             error: CompileError::Internal {
-                msg: "invalid intermediate intent expr_types slotmap key",
+                msg: "Unknown expr type foundinvalid intermediate intent expr_types slotmap key",
                 span: empty_span(),
             },
-        })
-    })?;
+        });
+    }
 
-    let expr = ii.exprs.get(*expr_key).ok_or_else(|| {
+    let expr = expr_key.try_get(ii).ok_or_else(|| {
         handler.emit_err(Error::Compile {
             error: CompileError::Internal {
                 msg: "invalid intermediate intent exprs slotmap key",
@@ -129,7 +129,10 @@ fn check_expr(
     // validate the expr_type is legal
     match expr_type {
         Type::Error(span) => {
-            emit_illegal_type_error!(handler, span, "error expression", "expr_types");
+            emit_illegal_type_error!(handler, span, "error type", "expr_types");
+        }
+        Type::Unknown(span) => {
+            emit_illegal_type_error!(handler, span, "unknown type", "expr_types");
         }
         Type::Custom { span, .. } => {
             emit_illegal_type_error!(handler, span, "custom type", "expr_types");
@@ -154,15 +157,8 @@ fn check_expr(
             "macro call",
             "exprs"
         )),
-        // <<disabled>> for now until if support is added.
-        // Expr::If { span, .. } => Err(emit_illegal_type_error!(
-        //     handler,
-        //     span,
-        //     "if expression",
-        //     "exprs"
-        // )),
         Expr::Index { expr, span, .. } => {
-            if !ii.expr_types.get(*expr).expect("").is_map() {
+            if !expr.get_ty(ii).is_map() {
                 Err(emit_illegal_type_error!(
                     handler,
                     span,
@@ -215,7 +211,7 @@ fn check_expr(
         | Expr::UnaryOp { .. }
         | Expr::BinaryOp { .. }
         | Expr::IntrinsicCall { .. }
-        | Expr::If { .. }
+        | Expr::Select { .. }
         | Expr::Cast { .. }
         | Expr::ExternalStorageAccess { .. } => Ok(()),
     }
@@ -224,9 +220,8 @@ fn check_expr(
 fn expr_is_for_storage(ii: &IntermediateIntent, expr: &Expr) -> bool {
     match expr {
         // Recurse for the tuple expr or index (possibly into a Map).
-        Expr::TupleFieldAccess { tuple: expr, .. } | Expr::Index { expr, .. } => ii
-            .exprs
-            .get(*expr)
+        Expr::TupleFieldAccess { tuple: expr, .. } | Expr::Index { expr, .. } => expr
+            .try_get(ii)
             .map(|agg_expr| expr_is_for_storage(ii, agg_expr))
             .unwrap_or(false),
 
@@ -242,7 +237,7 @@ fn expr_is_for_storage(ii: &IntermediateIntent, expr: &Expr) -> bool {
         | Expr::BinaryOp { .. }
         | Expr::MacroCall { .. }
         | Expr::IntrinsicCall { .. }
-        | Expr::If { .. }
+        | Expr::Select { .. }
         | Expr::Array { .. }
         | Expr::Tuple { .. }
         | Expr::Cast { .. }
@@ -419,20 +414,23 @@ fn states() {
     let src = "let a = 1;";
     let (mut program, handler) = run_without_transforms(src);
     program.iis.iter_mut().for_each(|(_, ii)| {
-        let dummy_expr_key = ii.exprs.insert(Expr::Error(empty_span()));
+        let dummy_expr_key = ii
+            .exprs
+            .insert(Expr::Error(empty_span()), Type::Unknown(empty_span()));
         let dummy_state = State {
             name: "test".to_owned(),
             expr: dummy_expr_key,
             span: empty_span(),
         };
-        ii.states.insert(dummy_state);
+        ii.states.insert(dummy_state, Type::Unknown(empty_span()));
     });
     let _ = validate(&handler, &mut program);
     check(
         &error::Errors(handler.consume()).to_string(),
         expect_test::expect![[r#"
-            compiler internal error: invalid intermediate intent expr_types slotmap key
-            compiler internal error: mismatched final intent states and state_types slotmaps
+            compiler internal error: Unknown expr type foundinvalid intermediate intent expr_types slotmap key
+            compiler internal error: unknown type present in final intent expr_types slotmap
+            compiler internal error: error expression present in final intent exprs slotmap
             compiler internal error: final intent state_types slotmap is missing corresponding key from states slotmap"#]],
     );
 }
@@ -445,17 +443,31 @@ fn vars() {
     let src = "let a = 1;";
     let (mut program, handler) = run_without_transforms(src);
     program.iis.iter_mut().for_each(|(_, ii)| {
-        ii.vars.insert(Var {
-            name: "test".to_owned(),
-            span: empty_span(),
-        });
+        ii.vars.insert(
+            Var {
+                name: "test".to_owned(),
+                span: empty_span(),
+            },
+            Type::Unknown(empty_span()),
+        );
     });
     let _ = validate(&handler, &mut program);
     check(
         &error::Errors(handler.consume()).to_string(),
-        expect_test::expect![[r#"
-        compiler internal error: mismatched final intent vars and var_types slotmaps
-        compiler internal error: final intent var_types slotmap is missing corresponding key from vars slotmap"#]],
+        expect_test::expect!["compiler internal error: final intent var_types slotmap is missing corresponding key from vars slotmap"],
+    );
+}
+
+#[test]
+fn if_decls() {
+    use crate::error;
+
+    let src = "if true { constraint true; } solve satisfy;";
+    let (mut program, handler) = run_without_transforms(src);
+    let _ = validate(&handler, &mut program);
+    check(
+        &error::Errors(handler.consume()).to_string(),
+        expect_test::expect!["compiler internal error: final intent contains if declarations"],
     );
 }
 
@@ -469,9 +481,8 @@ fn directives() {
         let solve_directive = (SolveFunc::Satisfy, empty_span());
         ii.directives.push(solve_directive);
 
-        let dummy_expr_key = ii.exprs.insert(Expr::Error(empty_span()));
-        ii.expr_types.insert(
-            dummy_expr_key,
+        let dummy_expr_key = ii.exprs.insert(
+            Expr::Error(empty_span()),
             Type::Custom {
                 path: "::b".to_owned(),
                 span: empty_span(),

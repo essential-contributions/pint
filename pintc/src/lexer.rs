@@ -45,6 +45,8 @@ pub enum Token {
     DoublePipe,
     #[token("'")]
     SingleQuote,
+    #[token("?")]
+    QuestionMark,
 
     #[token(";")]
     Semi,
@@ -176,6 +178,24 @@ pub enum Token {
 
     #[regex(r"//[^\n\r]*", logos::skip)]
     Comment,
+
+    // If we want to use '#' elsewhere one day we'll need to put these above it.
+    #[token("###expr###")]
+    TestMarkerExpr,
+    #[token("###range###")]
+    TestMarkerRange,
+    #[token("###type###")]
+    TestMarkerType,
+    #[token("###svtype###")]
+    TestMarkerSVType,
+    #[token("###ident###")]
+    TestMarkerIdent,
+    #[token("###intrinsic###")]
+    TestMarkerIntrinsic,
+    #[token("###usetree###")]
+    TestMarkerUseTree,
+    #[token("###state###")]
+    TestMarkerStateInit,
 }
 
 pub type MacroCallArgs = Vec<Vec<(usize, Token, usize)>>;
@@ -237,6 +257,7 @@ impl fmt::Display for Token {
             Token::DoubleAmpersand => write!(f, "&&"),
             Token::DoublePipe => write!(f, "||"),
             Token::SingleQuote => write!(f, "'"),
+            Token::QuestionMark => write!(f, "?"),
             Token::Semi => write!(f, ";"),
             Token::Comma => write!(f, ","),
             Token::Star => write!(f, "*"),
@@ -318,6 +339,14 @@ impl fmt::Display for Token {
             Token::IntLiteral(ident) => write!(f, "{ident}"),
             Token::StringLiteral(contents) => write!(f, "{contents}"),
             Token::Comment => write!(f, "comment"),
+            Token::TestMarkerExpr => write!(f, "### expr test ###"),
+            Token::TestMarkerRange => write!(f, "### range test ###"),
+            Token::TestMarkerType => write!(f, "### type test ###"),
+            Token::TestMarkerSVType => write!(f, "### storage var type test ###"),
+            Token::TestMarkerIdent => write!(f, "### ident test ###"),
+            Token::TestMarkerIntrinsic => write!(f, "### intrinsic ident test ###"),
+            Token::TestMarkerUseTree => write!(f, "### use tree test ###"),
+            Token::TestMarkerStateInit => write!(f, "### state init test ###"),
         }
     }
 }

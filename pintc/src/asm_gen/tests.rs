@@ -116,6 +116,61 @@ fn unary_not() {
 }
 
 #[test]
+fn select() {
+    check(
+        &format!(
+            "{}",
+            compile(
+                r#"
+            let z = true ? 42 : 69;
+            solve satisfy;
+            "#,
+            )
+        ),
+        expect_test::expect![[r#"
+            --- Constraints ---
+            constraint 0
+              Stack(Push(0))
+              Access(DecisionVar)
+              Stack(Push(69))
+              Stack(Push(42))
+              Stack(Push(1))
+              Stack(Select)
+              Pred(Eq)
+            --- State Reads ---
+        "#]],
+    );
+
+    check(
+        &format!(
+            "{}",
+            compile(
+                r#"
+            let c: bool; let x: int; let y: int;
+            let z = c ? x : y;
+            solve satisfy;
+            "#,
+            )
+        ),
+        expect_test::expect![[r#"
+            --- Constraints ---
+            constraint 0
+              Stack(Push(3))
+              Access(DecisionVar)
+              Stack(Push(2))
+              Access(DecisionVar)
+              Stack(Push(1))
+              Access(DecisionVar)
+              Stack(Push(0))
+              Access(DecisionVar)
+              Stack(Select)
+              Pred(Eq)
+            --- State Reads ---
+        "#]],
+    );
+}
+
+#[test]
 fn binary_ops() {
     check(
         &format!(

@@ -44,10 +44,10 @@ pub enum Expr {
         args: Vec<ExprKey>,
         span: Span,
     },
-    If {
+    Select {
         condition: ExprKey,
-        then_block: ExprKey,
-        else_block: ExprKey,
+        then_expr: ExprKey,
+        else_expr: ExprKey,
         span: Span,
     },
     Array {
@@ -186,7 +186,7 @@ impl Spanned for Expr {
             | Expr::BinaryOp { span, .. }
             | Expr::MacroCall { span, .. }
             | Expr::IntrinsicCall { span, .. }
-            | Expr::If { span, .. }
+            | Expr::Select { span, .. }
             | Expr::Array { span, .. }
             | Expr::Index { span, .. }
             | Expr::Tuple { span, .. }
@@ -208,15 +208,15 @@ impl Expr {
                 replace(rhs);
             }
             Expr::IntrinsicCall { args, .. } => args.iter_mut().for_each(replace),
-            Expr::If {
+            Expr::Select {
                 condition,
-                then_block,
-                else_block,
+                then_expr,
+                else_expr,
                 ..
             } => {
                 replace(condition);
-                replace(then_block);
-                replace(else_block);
+                replace(then_expr);
+                replace(else_expr);
             }
             Expr::Array { elements, .. } => elements.iter_mut().for_each(replace),
             Expr::Index { expr, index, .. } => {

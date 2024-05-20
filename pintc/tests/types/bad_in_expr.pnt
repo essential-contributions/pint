@@ -37,10 +37,15 @@ solve satisfy;
 // @282..283: array element type mismatch; expecting `::SupperGuest` type, found `int` type
 // value type and array element type in range differ
 // @120..243: array element type mismatch; expecting `int` type, found `::SupperGuest` type
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
+// attempt to index into a non-indexable value
+// @13..45: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @47..73: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @89..117: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @265..290: expression for constraint must evaluate to a boolean
+// attempt to index into a non-indexable value
+// @292..350: expression for constraint must evaluate to a boolean
 // >>>
 

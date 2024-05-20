@@ -11,7 +11,7 @@ impl DisplayWithII for super::ExprKey {
         if ii.removed_macro_calls.contains_key(*self) {
             write!(f, "<REMOVED MACRO CALL>")
         } else {
-            write!(f, "{}", ii.with_ii(&ii.exprs[*self]))
+            write!(f, "{}", ii.with_ii(&self.get(ii)))
         }
     }
 }
@@ -23,7 +23,7 @@ impl DisplayWithII for &super::Expr {
             super::Expr::Immediate { value, .. } => write!(f, "{value}"),
 
             super::Expr::PathByName(p, _) => write!(f, "{p}"),
-            super::Expr::PathByKey(k, _) => write!(f, "{}", ii.vars[*k].name),
+            super::Expr::PathByKey(k, _) => write!(f, "{}", k.get(ii).name),
             super::Expr::StorageAccess(p, _) => write!(f, "storage::{p}"),
             super::Expr::ExternalStorageAccess {
                 extern_path, name, ..
@@ -108,17 +108,17 @@ impl DisplayWithII for &super::Expr {
                 write!(f, ")")
             }
 
-            super::Expr::If {
+            super::Expr::Select {
                 condition,
-                then_block,
-                else_block,
+                then_expr,
+                else_expr,
                 ..
             } => write!(
                 f,
-                "if {} {{ {} }} else {{ {} }}",
+                "({} ? {} : {})",
                 ii.with_ii(condition),
-                ii.with_ii(then_block),
-                ii.with_ii(else_block)
+                ii.with_ii(then_expr),
+                ii.with_ii(else_expr)
             ),
 
             super::Expr::Range { lb, ub, .. } => {

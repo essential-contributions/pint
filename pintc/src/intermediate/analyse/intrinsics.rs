@@ -16,7 +16,7 @@ impl IntermediateIntent {
         let mut deps = Vec::new();
 
         args.iter()
-            .filter(|arg_key| self.expr_types.get(**arg_key).is_none())
+            .filter(|arg_key| arg_key.get_ty(self).is_unknown())
             .for_each(|arg_key| deps.push(*arg_key));
 
         if deps.is_empty() {
@@ -121,8 +121,8 @@ fn infer_intrinsic_mut_keys_contains(
     };
 
     // The only argument is the mutable key which must be an array of integers
-    let mut_key_span = ii.exprs[args[0]].span();
-    let mut_key_type = &ii.expr_types[args[0]];
+    let mut_key_span = args[0].get(ii).span();
+    let mut_key_type = &args[0].get_ty(ii);
     if let Some(ty) = mut_key_type.get_array_el_type() {
         if !ty.is_int() {
             return arg_type_error(
@@ -306,8 +306,8 @@ fn infer_intrinsic_verify_ed25519(
     // First argument is the data which can be anything so nothing to check
 
     // Second argument is the signature and must be a `{ b256, b256 }`
-    let sig_span = ii.exprs[args[1]].span();
-    let sig_type = &ii.expr_types[args[1]];
+    let sig_span = args[1].get(ii).span();
+    let sig_type = &args[1].get_ty(ii);
     if let Some(fields) = sig_type.get_tuple_fields() {
         if fields.len() != 2 || !fields[0].1.is_b256() || !fields[1].1.is_b256() {
             return arg_type_error(
@@ -327,8 +327,8 @@ fn infer_intrinsic_verify_ed25519(
     }
 
     // Third argument is the public key and must be a `b256`
-    let pub_key_span = ii.exprs[args[2]].span();
-    let pub_key_type = &ii.expr_types[args[2]];
+    let pub_key_span = args[2].get(ii).span();
+    let pub_key_type = &args[2].get_ty(ii);
     if !pub_key_type.is_b256() {
         return arg_type_error(
             "b256".to_string(),
@@ -386,8 +386,8 @@ fn infer_intrinsic_recover_secp256k1(
     };
 
     // First argument is the hash of the data and must be a `b256`
-    let pub_key_span = ii.exprs[args[0]].span();
-    let pub_key_type = &ii.expr_types[args[0]];
+    let pub_key_span = args[0].get(ii).span();
+    let pub_key_type = &args[0].get_ty(ii);
     if !pub_key_type.is_b256() {
         return arg_type_error(
             "b256".to_string(),
@@ -398,8 +398,8 @@ fn infer_intrinsic_recover_secp256k1(
     }
 
     // Second argument is the signature and must be a `{ b256, b256, int }`
-    let sig_span = ii.exprs[args[1]].span();
-    let sig_type = &ii.expr_types[args[1]];
+    let sig_span = args[1].get(ii).span();
+    let sig_type = &args[1].get_ty(ii);
     if let Some(fields) = sig_type.get_tuple_fields() {
         if fields.len() != 3
             || !fields[0].1.is_b256()

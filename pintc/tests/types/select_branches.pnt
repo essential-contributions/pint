@@ -1,0 +1,17 @@
+let a: int = true ? 11 : 22.2;
+
+solve satisfy;
+
+// intermediate <<<
+// var ::a: int;
+// constraint (::a == (true ? 11 : 2.22e1));
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// branches of a select expression must have the same type
+// @20..22: 'then' branch has the type `int`
+// @25..29: 'else' branch has the type `real`
+// attempt to index into a non-indexable value
+// @0..29: expression for constraint must evaluate to a boolean
+// >>>

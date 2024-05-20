@@ -16,5 +16,6 @@ solve satisfy;
 // attempt to index an array with a mismatched value
 // @42..46: array access must be with an int value
 // found access using type `real`
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
+// attempt to index into a non-indexable value
+// @29..52: expression for constraint must evaluate to a boolean
 // >>>

@@ -50,11 +50,11 @@ impl super::IntermediateIntent {
             writeln!(f, "{indentation}    }}")?;
             writeln!(f, "{indentation}}}")?;
         }
-        for var in &self.vars {
-            writeln!(f, "{indentation}{};", self.with_ii(var.0))?;
+        for (var_key, _) in self.vars() {
+            writeln!(f, "{indentation}{};", self.with_ii(var_key))?;
         }
-        for state in &self.states {
-            writeln!(f, "{indentation}{};", self.with_ii(state.0))?;
+        for (state_key, _) in self.states() {
+            writeln!(f, "{indentation}{};", self.with_ii(state_key))?;
         }
         for r#enum in &self.enums {
             writeln!(f, "{indentation}{};", self.with_ii(r#enum))?;
@@ -63,7 +63,10 @@ impl super::IntermediateIntent {
             writeln!(f, "{indentation}{};", self.with_ii(new_type))?;
         }
         for constraint in &self.constraints {
-            writeln!(f, "{indentation}constraint {};", self.with_ii(constraint.0))?;
+            writeln!(f, "{indentation}{};", self.with_ii(constraint))?;
+        }
+        for if_decl in &self.if_decls {
+            if_decl.fmt_with_indent(f, self, indent)?;
         }
         for directive in &self.directives {
             writeln!(f, "{indentation}{};", self.with_ii(directive.0.clone()))?;

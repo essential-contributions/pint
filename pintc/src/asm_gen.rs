@@ -1,7 +1,9 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp, Expr, Immediate, TupleAccess, UnaryOp},
-    intermediate::{ExprKey, IntermediateIntent, Program, ProgramKind, State as StateVar},
+    intermediate::{
+        ConstraintDecl, ExprKey, IntermediateIntent, Program, ProgramKind, State as StateVar,
+    },
     span::empty_span,
     types::{PrimitiveKind, Type},
 };
@@ -102,7 +104,7 @@ impl AsmBuilder {
         expr: &ExprKey,
         intent: &IntermediateIntent,
     ) -> Result<StorageKey, ErrorEmitted> {
-        match &intent.exprs[*expr] {
+        match &expr.get(intent) {
             Expr::IntrinsicCall { name, args, .. } => {
                 if name.name.ends_with("__storage_get") {
                     // Expecting a single argument that is a `b256`: a key
@@ -230,7 +232,7 @@ impl AsmBuilder {
                 // Sha256 the current key (4 words) with the compiled index to get the actual key.
                 // We also need the length of the data to hash, so we rely on the size of the type
                 // to get that.
-                s_asm.push(Stack::Push(4 + intent.expr_types[*index].size() as i64).into());
+                s_asm.push(Stack::Push(4 + index.get_ty(intent).size() as i64).into());
                 s_asm.push(Crypto::Sha256.into());
 
                 Ok(StorageKey {
@@ -245,7 +247,7 @@ impl AsmBuilder {
                     self.compile_state_key(handler, s_asm, tuple, intent)?;
 
                 // Grab the fields of the tuple
-                let Type::Tuple { ref fields, .. } = intent.expr_types[*tuple] else {
+                let Type::Tuple { ref fields, .. } = tuple.get_ty(intent) else {
                     panic!("type must exist and be a tuple type");
                 };
 
@@ -309,7 +311,7 @@ impl AsmBuilder {
         // constraint being processed.
         //
         // Assume that there exists at least a single entry in `self.c_asm`.
-        match &intent.exprs[*expr] {
+        match &expr.get(intent) {
             Expr::Immediate { value, .. } => match value {
                 Immediate::Int(val) => asm.push(Stack::Push(*val).into()),
                 Immediate::B256(val) => {
@@ -330,7 +332,7 @@ impl AsmBuilder {
                     BinaryOp::Div => asm.push(Alu::Div.into()),
                     BinaryOp::Mod => asm.push(Alu::Mod.into()),
                     BinaryOp::Equal => {
-                        let type_size = intent.expr_types[*lhs].size();
+                        let type_size = lhs.get_ty(intent).size();
                         if type_size == 1 {
                             asm.push(Pred::Eq.into());
                         } else {
@@ -388,7 +390,7 @@ impl AsmBuilder {
             }
             Expr::PathByKey(var_key, _) => {
                 // Search for a decision variable or a state variable.
-                self.compile_path(asm, &intent.vars[*var_key].name, intent);
+                self.compile_path(asm, &var_key.get(intent).name, intent);
             }
             Expr::StorageAccess(_, _) | Expr::ExternalStorageAccess { .. } => {
                 return Err(handler.emit_err(Error::Compile {
@@ -409,7 +411,7 @@ impl AsmBuilder {
                     assert_eq!(args.len(), 1);
 
                     let mut_key = args[0];
-                    let mut_key_type = &intent.expr_types[mut_key];
+                    let mut_key_type = &mut_key.get_ty(intent);
 
                     // Check that the mutable key is an array of integers
                     let el_ty = mut_key_type.get_array_el_type().unwrap();
@@ -442,7 +444,7 @@ impl AsmBuilder {
                     assert_eq!(args.len(), 1);
 
                     let data = args[0];
-                    let data_type = &intent.expr_types[data];
+                    let data_type = &data.get_ty(intent);
 
                     // Compile the data argument, insert its length, and then insert the `Sha256`
                     // opcode
@@ -458,9 +460,9 @@ impl AsmBuilder {
                     let signature = args[1];
                     let public_key = args[2];
 
-                    let data_type = &intent.expr_types[data];
-                    let signature_type = &intent.expr_types[signature];
-                    let public_key_type = &intent.expr_types[public_key];
+                    let data_type = &data.get_ty(intent);
+                    let signature_type = &signature.get_ty(intent);
+                    let public_key_type = &public_key.get_ty(intent);
 
                     // Check argument types:
                     // - `data_type` can be anything, so nothing to check
@@ -486,8 +488,8 @@ impl AsmBuilder {
                     let data_hash = args[0];
                     let signature = args[1];
 
-                    let data_hash_type = &intent.expr_types[data_hash];
-                    let signature_type = &intent.expr_types[signature];
+                    let data_hash_type = &data_hash.get_ty(intent);
+                    let signature_type = &signature.get_ty(intent);
 
                     // Check argument types:
                     // - `data_hash_type` must be a `b256`
@@ -528,8 +530,22 @@ impl AsmBuilder {
                     .iter()
                     .try_for_each(|element| self.compile_expr(handler, asm, element, intent))?;
             }
-            Expr::If { .. } => {
-                unimplemented!("calls and `if` expressions are not yet supported")
+            Expr::Select {
+                condition,
+                then_expr,
+                else_expr,
+                ..
+            } => {
+                let type_size = then_expr.get_ty(intent).size();
+                self.compile_expr(handler, asm, else_expr, intent)?;
+                self.compile_expr(handler, asm, then_expr, intent)?;
+                self.compile_expr(handler, asm, condition, intent)?;
+                if type_size == 1 {
+                    asm.push(Constraint::Stack(Stack::Select));
+                } else {
+                    // `SelectRange` when it's available
+                    todo!()
+                }
             }
             Expr::Error(_)
             | Expr::MacroCall { .. }
@@ -558,10 +574,9 @@ impl AsmBuilder {
         path: &String,
         intent: &IntermediateIntent,
     ) {
-        let var_index = intent.vars.iter().position(|var| &var.1.name == path);
+        let var_index = intent.vars().position(|(_, var)| &var.name == path);
         let state_and_index = intent
-            .states
-            .iter()
+            .states()
             .enumerate()
             .find(|(_, state)| &state.1.name == path);
 
@@ -572,16 +587,16 @@ impl AsmBuilder {
                     asm.push(Access::DecisionVar.into());
                 }
             }
-            (None, Some((state_index, state))) => {
+            (None, Some((state_index, (state_key, _)))) => {
                 let mut slot_index = 0;
-                for (idx, state) in intent.states.iter().enumerate() {
+                for (idx, (state_key, _)) in intent.states().enumerate() {
                     if idx < state_index {
-                        slot_index += intent.state_types[state.0].size();
+                        slot_index += state_key.get_ty(intent).size();
                     } else {
                         break;
                     }
                 }
-                let size = intent.state_types[state.0].size();
+                let size = state_key.get_ty(intent).size();
                 if size == 1 {
                     asm.push(Stack::Push(slot_index as i64).into());
                     asm.push(Stack::Push(0).into()); // 0 means "current state"
@@ -618,7 +633,7 @@ impl AsmBuilder {
         slot_idx: &mut u32,
         intent: &IntermediateIntent,
     ) -> Result<(), ErrorEmitted> {
-        let data_size = intent.expr_types[state.expr].size();
+        let data_size = state.expr.get_ty(intent).size();
         let mut s_asm: Vec<StateRead> = Vec::new();
 
         // First, get the storage key
@@ -663,9 +678,9 @@ pub fn intent_to_asm(
 
     // low level decision variable index
     let mut d_var = 0;
-    for (idx, var) in final_intent.vars.iter().enumerate() {
+    for (idx, (var_key, _)) in final_intent.vars().enumerate() {
         if matches!(
-            final_intent.var_types[var.0],
+            var_key.get_ty(final_intent),
             Type::Primitive {
                 kind: PrimitiveKind::B256,
                 ..
@@ -685,11 +700,14 @@ pub fn intent_to_asm(
     let total_decision_vars = d_var;
 
     let mut slot_idx = 0;
-    for (_, state) in &final_intent.states {
+    for (_, state) in final_intent.states() {
         let _ = builder.compile_state(handler, state, &mut slot_idx, final_intent);
     }
 
-    for (constraint, _) in &final_intent.constraints {
+    for ConstraintDecl {
+        expr: constraint, ..
+    } in &final_intent.constraints
+    {
         let _ = builder.compile_constraint(handler, constraint, final_intent);
     }
 

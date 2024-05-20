@@ -16,5 +16,6 @@ solve satisfy;
 // attempt to index an array with a mismatched value
 // @72..73: array access must be with a `::Num` variant
 // found access using type `int`
-// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
+// attempt to index into a non-indexable value
+// @57..79: expression for constraint must evaluate to a boolean
 // >>>
