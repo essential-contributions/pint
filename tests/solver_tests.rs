@@ -1,6 +1,6 @@
 use std::{fs::read_dir, path::PathBuf};
 use test_util::unwrap_or_continue;
-use yansi::Color::Red;
+use yansi::Paint;
 
 #[test]
 fn solver_e2e() {
@@ -77,7 +77,7 @@ fn solver_e2e() {
         println!("Failed solver E2E tests");
         failed_tests
             .iter()
-            .for_each(|path| println!("{}", Red.paint(path.display().to_string()),));
+            .for_each(|path| println!("{}", path.display().to_string().red()));
         panic!();
     }
 }

@@ -14,7 +14,7 @@ use essential_state_read_vm::{
 use std::{fs::read_dir, path::PathBuf};
 use test_util::{hex_to_bytes, hex_to_four_ints, parse_test_data, unwrap_or_continue};
 use utils::*;
-use yansi::Color::Red;
+use yansi::Paint;
 
 #[tokio::test]
 async fn validation_e2e() -> anyhow::Result<()> {
@@ -188,10 +188,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
         match constraint::check_intent(&intent.constraints, access) {
             Ok(_) => {}
             Err(err) => {
-                println!(
-                    "{}",
-                    Red.paint(format!("    Error submitting solution: {err}"))
-                );
+                println!("{}", format!("    Error submitting solution: {err}").red());
                 failed_tests.push(path)
             }
         }
@@ -199,9 +196,9 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
     if !failed_tests.is_empty() {
         println!("Failed validating validation E2E tests");
-        failed_tests.iter().for_each(|path: &std::path::PathBuf| {
-            println!("{}", Red.paint(path.display().to_string()))
-        });
+        failed_tests
+            .iter()
+            .for_each(|path: &std::path::PathBuf| println!("{}", path.display().to_string().red()));
         panic!();
     }
 
@@ -311,6 +308,5 @@ fn parse_solution(
     Ok(Solution {
         data,
         state_mutations,
-        partial_solutions: vec![],
     })
 }

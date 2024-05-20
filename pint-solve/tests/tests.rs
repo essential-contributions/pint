@@ -1,7 +1,7 @@
 use pint_solve::parse_flatpint;
 use std::{fs, fs::read_dir, path::PathBuf};
 use test_util::unwrap_or_continue;
-use yansi::Color::Red;
+use yansi::Paint;
 
 #[test]
 fn flat_pint_solve() {
@@ -35,10 +35,10 @@ fn flat_pint_solve() {
     }
 
     if !failed_tests.is_empty() {
-        println!("\n{}", Red.paint("Failed pint_solve_e2e tests:"));
+        println!("\n{}", "Failed pint_solve_e2e tests:".red());
         failed_tests
             .iter()
-            .for_each(|path| println!("  {}", Red.paint(path.display().to_string()),));
+            .for_each(|path| println!("  {}", path.display().to_string().red(),));
         panic!();
     }
 }
