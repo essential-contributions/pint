@@ -8,7 +8,7 @@ impl Display for Intents {
         match self.kind {
             ProgramKind::Stateless => fmt_intent_with_indent(self.root_intent(), f, 0)?,
             ProgramKind::Stateful => {
-                for (name, intent) in &self.intents {
+                for (name, intent) in self.names.iter().zip(self.intents.iter()) {
                     if name == Self::ROOT_INTENT_NAME {
                         fmt_intent_with_indent(intent, f, 0)?;
                     } else {

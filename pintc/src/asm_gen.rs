@@ -14,7 +14,7 @@ use essential_types::{
 use state_asm::{
     Access, Alu, Constraint, ControlFlow, Crypto, Memory, Op as StateRead, Pred, Stack,
 };
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 mod display;
 #[cfg(test)]
@@ -23,7 +23,8 @@ mod tests;
 #[derive(Debug, Default, Clone)]
 pub struct Intents {
     pub kind: ProgramKind,
-    pub intents: BTreeMap<String, Intent>,
+    pub names: Vec<String>,
+    pub intents: Vec<Intent>,
 }
 
 impl Intents {
@@ -31,25 +32,32 @@ impl Intents {
 
     /// The root intent is the one named `Intents::ROOT_INTENT_NAME`
     pub fn root_intent(&self) -> &Intent {
-        self.intents.get(Self::ROOT_INTENT_NAME).unwrap()
+        &self.intents[self
+            .names
+            .iter()
+            .position(|name| name == Self::ROOT_INTENT_NAME)
+            .unwrap()]
     }
 }
 
 /// Convert a `Program` into `Intents`
 pub fn program_to_intents(handler: &Handler, program: &Program) -> Result<Intents, ErrorEmitted> {
-    let mut intents: BTreeMap<String, Intent> = BTreeMap::new();
+    let mut names = Vec::new();
+    let mut intents = Vec::new();
     match program.kind {
         ProgramKind::Stateless => {
             let (name, ii) = program.iis.iter().next().unwrap();
             if let Ok(intent) = handler.scope(|handler| intent_to_asm(handler, ii)) {
-                intents.insert(name.to_string(), intent);
+                names.push(name.to_string());
+                intents.push(intent);
             }
         }
         ProgramKind::Stateful => {
             for (name, ii) in program.iis.iter() {
                 if name != Program::ROOT_II_NAME {
                     if let Ok(intent) = handler.scope(|handler| intent_to_asm(handler, ii)) {
-                        intents.insert(name.to_string(), intent);
+                        names.push(name.to_string());
+                        intents.push(intent);
                     }
                 }
             }
@@ -62,6 +70,7 @@ pub fn program_to_intents(handler: &Handler, program: &Program) -> Result<Intent
 
     Ok(Intents {
         kind: program.kind.clone(),
+        names,
         intents,
     })
 }
