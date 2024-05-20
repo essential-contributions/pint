@@ -1,6 +1,7 @@
-use ariadne::{Color, Fmt, Label, Report, ReportKind, Source};
+use ariadne::{Color, Label, Report, ReportKind, Source};
 use chumsky::prelude::*;
 use thiserror::Error;
+use yansi::Paint;
 
 use crate::lexer::Token;
 
@@ -62,7 +63,7 @@ pub(super) fn print_on_failure(filename: &str, source: &str, errs: &Vec<Formatte
         Report::build(ReportKind::Error, filename, span.start())
             .with_label(
                 Label::new((filename, span.start()..span.end()))
-                    .with_message(format!("{}", err.fg(Color::Red)))
+                    .with_message(format!("{err}").red().bold())
                     .with_color(Color::Red),
             )
             .finish()
@@ -77,7 +78,7 @@ pub(super) fn print_on_failure(filename: &str, source: &str, errs: &Vec<Formatte
                 ParseError::InvalidParse { span } => pretty_print_error(span, err),
             },
             FormatterError::FormatError(error) => {
-                println!("{}", yansi::Color::Red.paint(format!("{error}")));
+                println!("{}", format!("{error}").red().bold());
             }
         }
     }

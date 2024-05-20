@@ -8,7 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use test_util::{parse_test_data, TestData};
-use yansi::Color::{Cyan, Red, Yellow};
+use yansi::Paint;
 
 mod cli;
 
@@ -86,10 +86,10 @@ fn parse_test_and_check(
                 failed_tests.push(path.display().to_string());
                 println!(
                     "{} {}. {}\n{}",
-                    Red.paint("FAILED TO PARSE"),
-                    Cyan.paint(path.display().to_string()),
-                    Red.paint("Reported errors:"),
-                    Yellow.paint(errs_str),
+                    "FAILED TO PARSE".red(),
+                    path.display().to_string().cyan(),
+                    "Reported errors:".red(),
+                    errs_str.yellow(),
                 );
             }
             None
@@ -101,15 +101,15 @@ fn parse_test_and_check(
                 failed_tests.push(path.display().to_string());
                 println!(
                     "{} {}.",
-                    Red.paint("UNEXPECTED SUCCESSFUL COMPILE"),
-                    Cyan.paint(path.display().to_string()),
+                    "UNEXPECTED SUCCESSFUL COMPILE".red(),
+                    path.display().to_string().cyan(),
                 );
             } else {
                 failed_tests.push(path.display().to_string());
                 println!(
                     "{} {}.",
-                    Red.paint("MISSING 'intermediate' OR 'parse_failure' DIRECTIVE"),
-                    Cyan.paint(path.display().to_string()),
+                    "MISSING 'intermediate' OR 'parse_failure' DIRECTIVE".red(),
+                    path.display().to_string().cyan(),
                 );
             }
             Some(ii)
@@ -130,8 +130,8 @@ fn type_check(
                 failed_tests.push(path.display().to_string());
                 println!(
                     "{} {}.",
-                    Red.paint("UNEXPECTED SUCCESSFUL TYPE CHECK"),
-                    Cyan.paint(path.display().to_string()),
+                    "UNEXPECTED SUCCESSFUL TYPE CHECK".red(),
+                    path.display().to_string().cyan(),
                 );
             }
             checked
@@ -144,10 +144,10 @@ fn type_check(
                 failed_tests.push(path.display().to_string());
                 println!(
                     "{} {}. {}\n{}",
-                    Red.paint("FAILED TO TYPE CHECK INTERMEDIATE INTENT"),
-                    Cyan.paint(path.display().to_string()),
-                    Red.paint("Reported errors:"),
-                    Yellow.paint(format!("{err}")),
+                    "FAILED TO TYPE CHECK INTERMEDIATE INTENT".red(),
+                    path.display().to_string().cyan(),
+                    "Reported errors:".red(),
+                    format!("{err}").yellow(),
                 );
             }
         })
@@ -172,15 +172,15 @@ fn flatten_and_check(
                 failed_tests.push(path.display().to_string());
                 println!(
                     "{} {}.",
-                    Red.paint("UNEXPECTED SUCCESSFUL COMPILE"),
-                    Cyan.paint(path.display().to_string()),
+                    "UNEXPECTED SUCCESSFUL COMPILE".red(),
+                    path.display().to_string().cyan(),
                 );
             } else {
                 failed_tests.push(path.display().to_string());
                 println!(
                     "{} {}.",
-                    Red.paint("MISSING 'flattened' OR 'flattening_failure' DIRECTIVE"),
-                    Cyan.paint(path.display().to_string()),
+                    "MISSING 'flattened' OR 'flattening_failure' DIRECTIVE".red(),
+                    path.display().to_string().cyan(),
                 );
             }
             flattened
@@ -193,10 +193,10 @@ fn flatten_and_check(
                 failed_tests.push(path.display().to_string());
                 println!(
                     "{} {}. {}\n{}",
-                    Red.paint("FAILED TO FLATTEN INTERMEDIATE INTENT"),
-                    Cyan.paint(path.display().to_string()),
-                    Red.paint("Reported errors:"),
-                    Yellow.paint(format!("{err}")),
+                    "FAILED TO FLATTEN INTERMEDIATE INTENT".red(),
+                    path.display().to_string().cyan(),
+                    "Reported errors:".red(),
+                    format!("{err}").yellow(),
                 );
             }
         })

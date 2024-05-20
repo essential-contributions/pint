@@ -20,12 +20,7 @@ macro_rules! unwrap_or_continue {
                 $failed.push($path.clone());
                 eprintln!(
                     "{}",
-                    Red.paint(format!(
-                        "Failed to {} {}: \n{}",
-                        $step_name,
-                        $path.display(),
-                        errs,
-                    ))
+                    format!("Failed to {} {}: \n{}", $step_name, $path.display(), errs,).red()
                 );
                 continue;
             }
@@ -40,12 +35,7 @@ macro_rules! unwrap_or_continue {
                 $failed.push($path.clone());
                 eprintln!(
                     "{}",
-                    Red.paint(format!(
-                        "Failed to {} {}: \n{}",
-                        $step_name,
-                        $path.display(),
-                        errs,
-                    ))
+                    format!("Failed to {} {}: \n{}", $step_name, $path.display(), errs,).red()
                 );
                 continue;
             }
