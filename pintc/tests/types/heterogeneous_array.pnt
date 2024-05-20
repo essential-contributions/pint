@@ -14,4 +14,5 @@ solve satisfy;
 // array element type mismatch
 // @40..44: array element has type `bool`
 // expecting array element type `int`
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
 // >>>

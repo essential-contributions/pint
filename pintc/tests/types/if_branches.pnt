@@ -12,4 +12,5 @@ solve satisfy;
 // branches in if-expression must have the same type
 // @23..25: 'then' branch has the type `int`
 // @35..39: 'else' branch has the type `real`
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
 // >>>

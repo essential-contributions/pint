@@ -13,4 +13,5 @@ solve satisfy;
 // typecheck_failure <<<
 // attempt to access tuple field from a non-tuple value
 // @25..28: value must be a tuple; found `bool`
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
 // >>>

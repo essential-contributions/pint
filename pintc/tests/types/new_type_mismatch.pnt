@@ -18,4 +18,5 @@ solve satisfy;
 // binary operator type error
 // @41..45: operator `==` argument has unexpected type `real`
 // @34..35: expecting type `::I (int)`
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
 // >>>

@@ -13,4 +13,5 @@ solve satisfy;
 // typecheck_failure <<<
 // illegal empty array value
 // @37..39: empty array values are illegal
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
 // >>>

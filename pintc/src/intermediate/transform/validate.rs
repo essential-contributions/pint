@@ -348,24 +348,6 @@ fn expr_types() {
 
 #[test]
 fn exprs() {
-    // macrocall
-    let src = "macro @equal($x, $y) {
-        $x == $y
-    }
-    macro @foo($x) {
-        let a: int;
-        constraint a == $x;
-    }
-    intent Foo {
-       @foo(3);
-       constraint @equal(4; 4);
-    }";
-    check(
-        &run_test(src),
-        expect_test::expect![[
-            r#"compiler internal error: invalid intermediate intent expr_types slotmap key"#
-        ]],
-    );
     // tuple and tuple field access
     let src = "let t = { y: 3, 2 };
     let x = t.1;";

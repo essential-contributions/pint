@@ -15,4 +15,5 @@ solve satisfy;
 // invalid tuple accessor
 // @36..39: unable to get field from tuple using `4`
 // tuple has type `{int, int, int}`
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
 // >>>

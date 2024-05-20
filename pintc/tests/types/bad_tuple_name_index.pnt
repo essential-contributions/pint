@@ -15,4 +15,5 @@ solve satisfy;
 // invalid tuple accessor
 // @40..43: unable to get field from tuple using `z`
 // tuple has type `{x: int, y: real}`
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
 // >>>

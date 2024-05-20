@@ -26,6 +26,7 @@ impl Program {
             ii.check_undefined_types(handler);
             ii.lower_newtypes();
             ii.type_check_all_exprs(handler);
+            ii.check_constraint_types(handler);
         }
 
         if handler.has_errors() {
@@ -125,6 +126,33 @@ impl IntermediateIntent {
                 }
             }
         }
+    }
+
+    fn check_constraint_types(&mut self, handler: &Handler) {
+        // After all expression types are inferred, then all constraint expressions must be of type bool
+        self.constraints.iter().for_each(|(expr_key, span)| {
+            if let Some(expr_type) = self.expr_types.get(*expr_key) {
+                if !matches!(
+                    expr_type,
+                    Type::Primitive {
+                        kind: PrimitiveKind::Bool,
+                        ..
+                    }
+                ) {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::InvalidConstraintExpression { span: span.clone() },
+                    });
+                }
+            } else {
+                handler.emit_err(Error::Compile { 
+                    error: CompileError::Internal { 
+                        msg: "missing expr key in expr_types slotmap when checking constraint expr types", 
+                        span: empty_span() 
+                    }
+                });
+                return;
+            }
+        })
     }
 
     fn type_check_all_exprs(&mut self, handler: &Handler) {

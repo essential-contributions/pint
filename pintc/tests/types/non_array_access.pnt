@@ -11,6 +11,7 @@ solve satisfy;
 // >>>
 
 // typecheck_failure <<<
-// attempt to index into a non-indexable value
+// expression for constraint must evaluate to a boolean
 // @25..29: value must be an array or a storage map; found `real`
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
 // >>>

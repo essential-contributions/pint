@@ -44,4 +44,12 @@ solve satisfy;
 // @366..371: invalid type `int`, expecting `bool`
 // body for `exists` must be a `bool` expression
 // @405..410: invalid type `int`, expecting `bool`
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
 // >>>

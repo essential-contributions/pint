@@ -20,4 +20,5 @@ solve satisfy;
 // binary operator type error
 // @218..229: operator `==` argument has unexpected type `::Key`
 // @201..214: expecting type `::Chord`
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
 // >>>

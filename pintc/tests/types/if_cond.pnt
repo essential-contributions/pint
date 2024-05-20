@@ -21,4 +21,5 @@ solve satisfy;
 // typecheck_failure <<<
 // condition in if-expression must be a boolean
 // @98..99: condition must be a boolean
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
 // >>>

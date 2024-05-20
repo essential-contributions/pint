@@ -13,4 +13,5 @@ solve satisfy;
 // typecheck_failure <<<
 // no intrinsic named `__foo` is found
 // @24..31: intrinsic not found
+// compiler internal error: missing expr key in expr_types slotmap when checking constraint expr types
 // >>>

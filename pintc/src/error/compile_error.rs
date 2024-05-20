@@ -141,6 +141,8 @@ pub enum CompileError {
     #[error("branches in if-expression must have the same type")]
     IfBranchesTypeMismatch { large_err: Box<LargeTypeError> },
     #[error("attempt to index into a non-indexable value")]
+    InvalidConstraintExpression { span: Span },
+    #[error("expression for constraint must evaluate to a boolean")]
     IndexExprNonIndexable {
         non_indexable_type: String,
         span: Span,
@@ -609,6 +611,14 @@ impl ReportableError for CompileError {
                 }]
             }
 
+            InvalidConstraintExpression { span } => {
+                vec![ErrorLabel {
+                    message: "expression for constraint must evaluate to a boolean".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
             IndexExprNonIndexable {
                 non_indexable_type,
                 span,
@@ -1013,6 +1023,7 @@ impl ReportableError for CompileError {
             | UndefinedType { .. }
             | IfCondTypeNotBool(_)
             | IfBranchesTypeMismatch { .. }
+            | InvalidConstraintExpression { .. }
             | OperatorTypeError { .. }
             | StateVarInitTypeError { .. }
             | StateVarTypeIsMap { .. }
@@ -1127,6 +1138,7 @@ impl Spanned for CompileError {
             | UnknownType { span }
             | UndefinedType { span }
             | IfCondTypeNotBool(span)
+            | InvalidConstraintExpression { span }
             | IndexExprNonIndexable { span, .. }
             | ArrayAccessWithWrongType { span, .. }
             | StorageMapAccessWithWrongType { span, .. }
