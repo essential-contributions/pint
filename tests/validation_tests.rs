@@ -87,12 +87,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
         // Find the individual intent that corresponds to the intent address specified in
         // `intent_to_verify`. Here, we assume that the last byte in the address matches the
         // index of the intent in in the BTreeMap `intents.intents`.
-        let intent = intents
-            .intents
-            .iter()
-            .nth(intent_to_check.intent.0[31] as usize)
-            .unwrap()
-            .1;
+        let intent = &intents.intents[intent_to_check.intent.0[31] as usize];
 
         // Pre-populate the pre-state with all the db content, but first, every solution data
         // intent set has to be inserted.
@@ -251,9 +246,9 @@ fn parse_solution(
                             // later figure out what constraints we have to check.
                             Some(intent) => {
                                 let index = intents
-                                    .intents
+                                    .names
                                     .iter()
-                                    .position(|(k, _)| k == intent.as_str().unwrap())
+                                    .position(|name| name == intent.as_str().unwrap())
                                     .unwrap_or_default();
                                 let mut bytes: [u8; 32] = [0; 32];
                                 bytes[31] = index as u8;
