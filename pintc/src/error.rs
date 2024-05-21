@@ -7,7 +7,7 @@ use crate::span::{Span, Spanned};
 use ariadne::{FnCache, Label, Report, ReportKind, Source};
 use std::fmt::{Display, Formatter, Result, Write};
 use thiserror::Error;
-use yansi::{Color, Style};
+use yansi::{Color, Paint, Style};
 
 pub(super) use compile_error::CompileError;
 pub(super) use compile_error::LargeTypeError;
@@ -88,16 +88,17 @@ where
 
         let error_file: &str = &format!("{}", self.span().context().display());
         let mut report_builder = Report::build(ReportKind::Error, error_file, self.span().start())
-            .with_message(format!("{}", Style::default().bold().paint(self)))
+            .with_message(format!("{}", self.bold()))
             .with_labels(
                 self.labels()
                     .iter()
                     .enumerate()
                     .map(|(index, label)| {
                         let filepath: &str = &filepaths_and_sources[index].0;
-                        let style = Style::new(label.color).bold();
+                        let mut style = Style::new().bold();
+                        style.foreground = Some(label.color);
                         Label::new((filepath, label.span.start()..label.span.end()))
-                            .with_message(style.paint(label.message.clone()))
+                            .with_message(label.message.clone().paint(style))
                             .with_color(label.color)
                     })
                     .collect::<Vec<_>>(),

@@ -3,7 +3,7 @@ resolver = "2"
 members = ["pint-solve", "pintc", "pintfmt", "tests", "test-util", "examples"]
 
 [workspace.dependencies]
-yansi = "0.5"
+yansi = "1.0"
 anyhow = "1.0"
 ariadne = "0.4"
 chumsky = "0.9"

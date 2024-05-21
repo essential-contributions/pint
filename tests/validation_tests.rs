@@ -14,7 +14,7 @@ use essential_state_read_vm::{
 use std::{fs::read_dir, path::PathBuf};
 use test_util::{hex_to_bytes, hex_to_four_ints, parse_test_data, unwrap_or_continue};
 use utils::*;
-use yansi::Color::Red;
+use yansi::Paint;
 
 #[tokio::test]
 async fn validation_e2e() -> anyhow::Result<()> {
@@ -87,12 +87,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
         // Find the individual intent that corresponds to the intent address specified in
         // `intent_to_verify`. Here, we assume that the last byte in the address matches the
         // index of the intent in in the BTreeMap `intents.intents`.
-        let intent = intents
-            .intents
-            .iter()
-            .nth(intent_to_check.intent.0[31] as usize)
-            .unwrap()
-            .1;
+        let intent = &intents.intents[intent_to_check.intent.0[31] as usize];
 
         // Pre-populate the pre-state with all the db content, but first, every solution data
         // intent set has to be inserted.
@@ -188,10 +183,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
         match constraint::check_intent(&intent.constraints, access) {
             Ok(_) => {}
             Err(err) => {
-                println!(
-                    "{}",
-                    Red.paint(format!("    Error submitting solution: {err}"))
-                );
+                println!("{}", format!("    Error submitting solution: {err}").red());
                 failed_tests.push(path)
             }
         }
@@ -199,9 +191,9 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
     if !failed_tests.is_empty() {
         println!("Failed validating validation E2E tests");
-        failed_tests.iter().for_each(|path: &std::path::PathBuf| {
-            println!("{}", Red.paint(path.display().to_string()))
-        });
+        failed_tests
+            .iter()
+            .for_each(|path: &std::path::PathBuf| println!("{}", path.display().to_string().red()));
         panic!();
     }
 
@@ -251,9 +243,9 @@ fn parse_solution(
                             // later figure out what constraints we have to check.
                             Some(intent) => {
                                 let index = intents
-                                    .intents
+                                    .names
                                     .iter()
-                                    .position(|(k, _)| k == intent.as_str().unwrap())
+                                    .position(|name| name == intent.as_str().unwrap())
                                     .unwrap_or_default();
                                 let mut bytes: [u8; 32] = [0; 32];
                                 bytes[31] = index as u8;
@@ -311,6 +303,5 @@ fn parse_solution(
     Ok(Solution {
         data,
         state_mutations,
-        partial_solutions: vec![],
     })
 }

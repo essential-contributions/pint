@@ -4,7 +4,7 @@ use std::{
     path::PathBuf,
 };
 use test_util::unwrap_or_continue;
-use yansi::Color::Red;
+use yansi::Paint;
 
 #[test]
 fn examples_runner() -> anyhow::Result<()> {
@@ -68,7 +68,7 @@ fn examples_runner() -> anyhow::Result<()> {
     if !failed_tests.is_empty() {
         println!("Failed to compile all examples");
         failed_tests.iter().for_each(|path: &std::path::PathBuf| {
-            println!("{}", Red.paint(path.display().to_string()),)
+            println!("{}", path.display().to_string().red(),)
         });
         panic!();
     }
