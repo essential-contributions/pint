@@ -35,4 +35,16 @@ solve satisfy;
 // @36..37: type of this expression is ambiguous
 // unable to determine expression type
 // @49..50: type of this expression is ambiguous
+// constraint expression type error
+// @0..13: constraint expression has unexpected type `Unknown`
+// @0..13: expecting type `bool`
+// constraint expression type error
+// @15..29: constraint expression has unexpected type `Unknown`
+// @15..29: expecting type `bool`
+// constraint expression type error
+// @32..43: constraint expression has unexpected type `Unknown`
+// @32..43: expecting type `bool`
+// constraint expression type error
+// @45..60: constraint expression has unexpected type `Unknown`
+// @45..60: expecting type `bool`
 // >>>

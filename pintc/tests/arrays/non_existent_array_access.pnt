@@ -10,4 +10,7 @@ solve satisfy;
 // typecheck_failure <<<
 // cannot find value `::b` in this scope
 // @11..12: not found in this scope
+// constraint expression type error
+// @0..20: constraint expression has unexpected type `Unknown`
+// @0..20: expecting type `bool`
 // >>>

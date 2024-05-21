@@ -20,4 +20,7 @@ solve satisfy;
 // binary operator type error
 // @218..229: operator `==` argument has unexpected type `::Key`
 // @201..214: expecting type `::Chord`
+// constraint expression type error
+// @190..229: constraint expression has unexpected type `Unknown`
+// @190..229: expecting type `bool`
 // >>>

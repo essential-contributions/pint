@@ -30,4 +30,13 @@ solve satisfy;
 // @19..20: type of this expression is ambiguous
 // unable to determine expression type
 // @34..35: type of this expression is ambiguous
+// constraint expression type error
+// @0..13: constraint expression has unexpected type `Unknown`
+// @0..13: expecting type `bool`
+// constraint expression type error
+// @15..28: constraint expression has unexpected type `Unknown`
+// @15..28: expecting type `bool`
+// constraint expression type error
+// @30..43: constraint expression has unexpected type `Unknown`
+// @30..43: expecting type `bool`
 // >>>

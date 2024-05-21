@@ -37,5 +37,20 @@ solve satisfy;
 // @282..283: array element type mismatch; expecting `::SupperGuest` type, found `int` type
 // value type and array element type in range differ
 // @120..243: array element type mismatch; expecting `int` type, found `::SupperGuest` type
+// constraint expression type error
+// @13..45: constraint expression has unexpected type `Unknown`
+// @13..45: expecting type `bool`
+// constraint expression type error
+// @47..73: constraint expression has unexpected type `Unknown`
+// @47..73: expecting type `bool`
+// constraint expression type error
+// @89..117: constraint expression has unexpected type `Unknown`
+// @89..117: expecting type `bool`
+// constraint expression type error
+// @265..290: constraint expression has unexpected type `Unknown`
+// @265..290: expecting type `bool`
+// constraint expression type error
+// @292..350: constraint expression has unexpected type `Unknown`
+// @292..350: expecting type `bool`
 // >>>
 

@@ -18,4 +18,7 @@ solve satisfy;
 // binary operator type error
 // @41..45: operator `==` argument has unexpected type `real`
 // @34..35: expecting type `::I (int)`
+// constraint expression type error
+// @30..45: constraint expression has unexpected type `Unknown`
+// @30..45: expecting type `bool`
 // >>>

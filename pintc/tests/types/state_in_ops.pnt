@@ -28,4 +28,7 @@ solve satisfy;
 // @103..111: expecting type `bool`
 // unable to determine expression type
 // @93..100: type of this expression is ambiguous
+// constraint expression type error
+// @89..111: constraint expression has unexpected type `Unknown`
+// @89..111: expecting type `bool`
 // >>>

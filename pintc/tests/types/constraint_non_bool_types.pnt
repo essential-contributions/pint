@@ -1,0 +1,39 @@
+let a: b256;
+enum Colour = Red | Green | Blue;
+
+constraint 1 + 2;
+constraint a;
+constraint { 1, 2 };
+constraint [1, 2, 3];
+constraint Colour::Red;
+
+solve satisfy;
+
+// intermediate <<<
+// var ::a: b256;
+// enum ::Colour = Red | Green | Blue;
+// constraint (1 + 2);
+// constraint ::a;
+// constraint {1, 2};
+// constraint [1, 2, 3];
+// constraint ::Colour::Red;
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// constraint expression type error
+// @48..64: constraint expression has unexpected type `int`
+// @48..64: expecting type `bool`
+// constraint expression type error
+// @66..78: constraint expression has unexpected type `b256`
+// @66..78: expecting type `bool`
+// constraint expression type error
+// @80..99: constraint expression has unexpected type `{int, int}`
+// @80..99: expecting type `bool`
+// constraint expression type error
+// @101..121: constraint expression has unexpected type `int[3]`
+// @101..121: expecting type `bool`
+// constraint expression type error
+// @123..145: constraint expression has unexpected type `::Colour`
+// @123..145: expecting type `bool`
+// >>>

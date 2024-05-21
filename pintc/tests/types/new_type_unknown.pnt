@@ -16,4 +16,7 @@ solve satisfy;
 // @43..68: not found in this scope
 // unable to determine expression type
 // @39..40: type of this expression is ambiguous
+// constraint expression type error
+// @35..68: constraint expression has unexpected type `Unknown`
+// @35..68: expecting type `bool`
 // >>>

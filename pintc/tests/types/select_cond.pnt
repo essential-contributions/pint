@@ -21,4 +21,7 @@ solve satisfy;
 // typecheck_failure <<<
 // condition for select expression must be a `bool`
 // @86..87: invalid type `int`, expecting `bool`
+// constraint expression type error
+// @70..98: constraint expression has unexpected type `Unknown`
+// @70..98: expecting type `bool`
 // >>>

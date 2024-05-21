@@ -122,4 +122,55 @@ solve satisfy;
 // @526..534: type of this expression is ambiguous
 // unable to determine expression type
 // @553..561: type of this expression is ambiguous
+// constraint expression type error
+// @175..212: constraint expression has unexpected type `Unknown`
+// @175..212: expecting type `bool`
+// constraint expression type error
+// @215..269: constraint expression has unexpected type `Unknown`
+// @215..269: expecting type `bool`
+// constraint expression type error
+// @271..324: constraint expression has unexpected type `Unknown`
+// @271..324: expecting type `bool`
+// constraint expression type error
+// @326..391: constraint expression has unexpected type `Unknown`
+// @326..391: expecting type `bool`
+// constraint expression type error
+// @394..431: constraint expression has unexpected type `Unknown`
+// @394..431: expecting type `bool`
+// constraint expression type error
+// @434..479: constraint expression has unexpected type `Unknown`
+// @434..479: expecting type `bool`
+// constraint expression type error
+// @482..519: constraint expression has unexpected type `Unknown`
+// @482..519: expecting type `bool`
+// constraint expression type error
+// @522..547: constraint expression has unexpected type `Unknown`
+// @522..547: expecting type `bool`
+// constraint expression type error
+// @549..578: constraint expression has unexpected type `Unknown`
+// @549..578: expecting type `bool`
+// constraint expression type error
+// @581..651: constraint expression has unexpected type `Unknown`
+// @581..651: expecting type `bool`
+// constraint expression type error
+// @653..716: constraint expression has unexpected type `Unknown`
+// @653..716: expecting type `bool`
+// constraint expression type error
+// @718..765: constraint expression has unexpected type `Unknown`
+// @718..765: expecting type `bool`
+// constraint expression type error
+// @767..845: constraint expression has unexpected type `Unknown`
+// @767..845: expecting type `bool`
+// constraint expression type error
+// @848..934: constraint expression has unexpected type `Unknown`
+// @848..934: expecting type `bool`
+// constraint expression type error
+// @936..1021: constraint expression has unexpected type `Unknown`
+// @936..1021: expecting type `bool`
+// constraint expression type error
+// @1023..1090: constraint expression has unexpected type `Unknown`
+// @1023..1090: expecting type `bool`
+// constraint expression type error
+// @1092..1186: constraint expression has unexpected type `Unknown`
+// @1092..1186: expecting type `bool`
 // >>>

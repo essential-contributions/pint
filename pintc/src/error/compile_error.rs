@@ -144,7 +144,9 @@ pub enum CompileError {
     },
     #[error("branches of a select expression must have the same type")]
     SelectBranchesTypeMismatch { large_err: Box<LargeTypeError> },
-    #[error("attempt to index into a non-indexable value")]
+    #[error("constraint expression type error")]
+    ConstraintExpressionTypeError { large_err: Box<LargeTypeError> },
+    #[error("expression for constraint must evaluate to a boolean")]
     IndexExprNonIndexable {
         non_indexable_type: String,
         span: Span,
@@ -277,6 +279,12 @@ pub enum LargeTypeError {
         expected_span: Option<Span>,
     },
     StateVarInitTypeError {
+        expected_ty: String,
+        found_ty: String,
+        span: Span,
+        expected_span: Option<Span>,
+    },
+    ConstraintExpressionTypeError {
         expected_ty: String,
         found_ty: String,
         span: Span,
@@ -704,7 +712,8 @@ impl ReportableError for CompileError {
 
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }
-            | StateVarInitTypeError { large_err, .. } => match &**large_err {
+            | StateVarInitTypeError { large_err, .. }
+            | ConstraintExpressionTypeError { large_err, .. } => match &**large_err {
                 LargeTypeError::SelectBranchesTypeMismatch {
                     then_type,
                     then_span,
@@ -762,6 +771,30 @@ impl ReportableError for CompileError {
                         message: format!(
                             "initializing expression has unexpected type `{found_ty}`"
                         ),
+                        span: span.clone(),
+                        color: Color::Red,
+                    }];
+
+                    if let Some(span) = expected_span {
+                        labels.push(ErrorLabel {
+                            message: format!("expecting type `{expected_ty}`"),
+                            span: span.clone(),
+                            color: Color::Blue,
+                        });
+                    }
+
+                    labels
+                }
+
+                LargeTypeError::ConstraintExpressionTypeError {
+                    found_ty,
+                    expected_ty,
+                    span,
+                    expected_span,
+                    ..
+                } => {
+                    let mut labels = vec![ErrorLabel {
+                        message: format!("constraint expression has unexpected type `{found_ty}`"),
                         span: span.clone(),
                         color: Color::Red,
                     }];
@@ -1011,6 +1044,7 @@ impl ReportableError for CompileError {
             | UndefinedType { .. }
             | NonBoolConditional { .. }
             | SelectBranchesTypeMismatch { .. }
+            | ConstraintExpressionTypeError { .. }
             | OperatorTypeError { .. }
             | StateVarInitTypeError { .. }
             | StateVarTypeIsMap { .. }
@@ -1152,10 +1186,12 @@ impl Spanned for CompileError {
 
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }
-            | StateVarInitTypeError { large_err, .. } => match &**large_err {
+            | StateVarInitTypeError { large_err, .. }
+            | ConstraintExpressionTypeError { large_err, .. } => match &**large_err {
                 LargeTypeError::SelectBranchesTypeMismatch { span, .. }
                 | LargeTypeError::OperatorTypeError { span, .. }
-                | LargeTypeError::StateVarInitTypeError { span, .. } => span,
+                | LargeTypeError::StateVarInitTypeError { span, .. }
+                | LargeTypeError::ConstraintExpressionTypeError { span, .. } => span,
             },
         }
     }

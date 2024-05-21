@@ -39,6 +39,7 @@ impl Program {
             ii.check_undefined_types(handler);
             ii.lower_newtypes();
             ii.type_check_all_exprs(handler);
+            ii.check_constraint_types(handler);
         }
 
         if handler.has_errors() {
@@ -153,6 +154,30 @@ impl IntermediateIntent {
                 }
             }
         }
+    }
+
+    fn check_constraint_types(&mut self, handler: &Handler) {
+        // After all expression types are inferred, then all constraint expressions must be of type bool
+        self.constraints.iter().for_each(|constraint_decl| {
+            let expr_type = constraint_decl.expr.get_ty(self);
+            if !expr_type.is_bool() {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::ConstraintExpressionTypeError {
+                        large_err: Box::new(LargeTypeError::ConstraintExpressionTypeError {
+                            expected_ty: self
+                                .with_ii(Type::Primitive {
+                                    kind: PrimitiveKind::Bool,
+                                    span: empty_span(),
+                                })
+                                .to_string(),
+                            found_ty: self.with_ii(expr_type).to_string(),
+                            span: constraint_decl.span.clone(),
+                            expected_span: Some(constraint_decl.span.clone()),
+                        }),
+                    },
+                });
+            }
+        })
     }
 
     fn type_check_all_exprs(&mut self, handler: &Handler) {

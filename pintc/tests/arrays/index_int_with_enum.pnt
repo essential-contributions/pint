@@ -16,4 +16,7 @@ solve satisfy;
 // attempt to index an array with a mismatched value
 // @70..78: array access must be with an int value
 // found access using type `::Num`
+// constraint expression type error
+// @55..84: constraint expression has unexpected type `Unknown`
+// @55..84: expecting type `bool`
 // >>>
