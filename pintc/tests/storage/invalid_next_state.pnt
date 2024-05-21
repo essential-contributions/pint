@@ -12,6 +12,7 @@ solve satisfy;
 // typecheck_failure <<<
 // `next state` access must be bound to a state variable
 // @23..24: `next state` access must be bound to a state variable
-// attempt to index into a non-indexable value
-// @12..30: expression for constraint must evaluate to a boolean
+// constraint expression type error
+// @12..30: constraint expression has unexpected type `Unknown`
+// @12..30: expecting type `bool`
 // >>>

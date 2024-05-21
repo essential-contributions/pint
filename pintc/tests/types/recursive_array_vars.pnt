@@ -30,10 +30,13 @@ solve satisfy;
 // @23..24: type of this expression is ambiguous
 // unable to determine expression type
 // @37..38: type of this expression is ambiguous
-// attempt to index into a non-indexable value
-// @0..17: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @19..31: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @33..55: expression for constraint must evaluate to a boolean
+// constraint expression type error
+// @0..17: constraint expression has unexpected type `Unknown`
+// @0..17: expecting type `bool`
+// constraint expression type error
+// @19..31: constraint expression has unexpected type `Unknown`
+// @19..31: expecting type `bool`
+// constraint expression type error
+// @33..55: constraint expression has unexpected type `Unknown`
+// @33..55: expecting type `bool`
 // >>>

@@ -13,6 +13,7 @@ solve satisfy;
 // typecheck_failure <<<
 // illegal empty array value
 // @37..39: empty array values are illegal
-// attempt to index into a non-indexable value
-// @19..39: expression for constraint must evaluate to a boolean
+// constraint expression type error
+// @19..39: constraint expression has unexpected type `Unknown`
+// @19..39: expecting type `bool`
 // >>>

@@ -168,8 +168,18 @@ impl IntermediateIntent {
                 }
             ) {
                 handler.emit_err(Error::Compile {
-                    error: CompileError::InvalidConstraintExpression {
-                        span: constraint_decl.span.clone(),
+                    error: CompileError::ConstraintExpressionTypeError {
+                        large_err: Box::new(LargeTypeError::ConstraintExpressionTypeError {
+                            expected_ty: self
+                                .with_ii(Type::Primitive {
+                                    kind: PrimitiveKind::Bool,
+                                    span: empty_span(),
+                                })
+                                .to_string(),
+                            found_ty: self.with_ii(expr_type).to_string(),
+                            span: constraint_decl.span.clone(),
+                            expected_span: Some(constraint_decl.span.clone()),
+                        }),
                     },
                 });
             }

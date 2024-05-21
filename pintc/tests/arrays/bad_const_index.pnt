@@ -16,6 +16,7 @@ solve satisfy;
 // attempt to index an array with a mismatched value
 // @42..46: array access must be with an int value
 // found access using type `real`
-// attempt to index into a non-indexable value
-// @29..52: expression for constraint must evaluate to a boolean
+// constraint expression type error
+// @29..52: constraint expression has unexpected type `Unknown`
+// @29..52: expecting type `bool`
 // >>>

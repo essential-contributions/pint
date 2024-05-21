@@ -10,6 +10,7 @@ solve satisfy;
 // typecheck_failure <<<
 // cannot find value `::b` in this scope
 // @11..12: not found in this scope
-// attempt to index into a non-indexable value
-// @0..20: expression for constraint must evaluate to a boolean
+// constraint expression type error
+// @0..20: constraint expression has unexpected type `Unknown`
+// @0..20: expecting type `bool`
 // >>>

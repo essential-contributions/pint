@@ -15,6 +15,7 @@ solve satisfy;
 // invalid tuple accessor
 // @40..43: unable to get field from tuple using `z`
 // tuple has type `{x: int, y: real}`
-// attempt to index into a non-indexable value
-// @29..48: expression for constraint must evaluate to a boolean
+// constraint expression type error
+// @29..48: constraint expression has unexpected type `Unknown`
+// @29..48: expecting type `bool`
 // >>>

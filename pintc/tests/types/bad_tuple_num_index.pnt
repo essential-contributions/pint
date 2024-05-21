@@ -15,6 +15,7 @@ solve satisfy;
 // invalid tuple accessor
 // @36..39: unable to get field from tuple using `4`
 // tuple has type `{int, int, int}`
-// attempt to index into a non-indexable value
-// @25..45: expression for constraint must evaluate to a boolean
+// constraint expression type error
+// @25..45: constraint expression has unexpected type `Unknown`
+// @25..45: expecting type `bool`
 // >>>

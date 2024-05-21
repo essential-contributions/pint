@@ -14,6 +14,7 @@ solve satisfy;
 // array element type mismatch
 // @40..44: array element has type `bool`
 // expecting array element type `int`
-// attempt to index into a non-indexable value
-// @18..58: expression for constraint must evaluate to a boolean
+// constraint expression type error
+// @18..58: constraint expression has unexpected type `Unknown`
+// @18..58: expecting type `bool`
 // >>>

@@ -169,44 +169,64 @@ solve satisfy;
 // @580..581: type of this expression is ambiguous
 // unable to determine expression type
 // @615..616: type of this expression is ambiguous
-// attempt to index into a non-indexable value
-// @0..18: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @20..37: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @39..57: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @59..78: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @115..139: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @188..205: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @207..224: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @226..244: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @246..264: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @266..284: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @347..376: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @378..396: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @399..419: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @421..440: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @442..459: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @461..483: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @486..504: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @506..528: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @576..609: expression for constraint must evaluate to a boolean
-// attempt to index into a non-indexable value
-// @611..642: expression for constraint must evaluate to a boolean
+// constraint expression type error
+// @0..18: constraint expression has unexpected type `Unknown`
+// @0..18: expecting type `bool`
+// constraint expression type error
+// @20..37: constraint expression has unexpected type `Unknown`
+// @20..37: expecting type `bool`
+// constraint expression type error
+// @39..57: constraint expression has unexpected type `Unknown`
+// @39..57: expecting type `bool`
+// constraint expression type error
+// @59..78: constraint expression has unexpected type `Unknown`
+// @59..78: expecting type `bool`
+// constraint expression type error
+// @115..139: constraint expression has unexpected type `Unknown`
+// @115..139: expecting type `bool`
+// constraint expression type error
+// @188..205: constraint expression has unexpected type `Unknown`
+// @188..205: expecting type `bool`
+// constraint expression type error
+// @207..224: constraint expression has unexpected type `Unknown`
+// @207..224: expecting type `bool`
+// constraint expression type error
+// @226..244: constraint expression has unexpected type `Unknown`
+// @226..244: expecting type `bool`
+// constraint expression type error
+// @246..264: constraint expression has unexpected type `Unknown`
+// @246..264: expecting type `bool`
+// constraint expression type error
+// @266..284: constraint expression has unexpected type `Unknown`
+// @266..284: expecting type `bool`
+// constraint expression type error
+// @347..376: constraint expression has unexpected type `Unknown`
+// @347..376: expecting type `bool`
+// constraint expression type error
+// @378..396: constraint expression has unexpected type `Unknown`
+// @378..396: expecting type `bool`
+// constraint expression type error
+// @399..419: constraint expression has unexpected type `Unknown`
+// @399..419: expecting type `bool`
+// constraint expression type error
+// @421..440: constraint expression has unexpected type `Unknown`
+// @421..440: expecting type `bool`
+// constraint expression type error
+// @442..459: constraint expression has unexpected type `Unknown`
+// @442..459: expecting type `bool`
+// constraint expression type error
+// @461..483: constraint expression has unexpected type `Unknown`
+// @461..483: expecting type `bool`
+// constraint expression type error
+// @486..504: constraint expression has unexpected type `Unknown`
+// @486..504: expecting type `bool`
+// constraint expression type error
+// @506..528: constraint expression has unexpected type `Unknown`
+// @506..528: expecting type `bool`
+// constraint expression type error
+// @576..609: constraint expression has unexpected type `Unknown`
+// @576..609: expecting type `bool`
+// constraint expression type error
+// @611..642: constraint expression has unexpected type `Unknown`
+// @611..642: expecting type `bool`
 // >>>
