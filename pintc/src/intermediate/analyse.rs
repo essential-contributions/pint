@@ -160,13 +160,7 @@ impl IntermediateIntent {
         // After all expression types are inferred, then all constraint expressions must be of type bool
         self.constraints.iter().for_each(|constraint_decl| {
             let expr_type = constraint_decl.expr.get_ty(self);
-            if !matches!(
-                expr_type,
-                Type::Primitive {
-                    kind: PrimitiveKind::Bool,
-                    ..
-                }
-            ) {
+            if !constraint_decl.expr.get_ty(self).is_bool() {
                 handler.emit_err(Error::Compile {
                     error: CompileError::ConstraintExpressionTypeError {
                         large_err: Box::new(LargeTypeError::ConstraintExpressionTypeError {
