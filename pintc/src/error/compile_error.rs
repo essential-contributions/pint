@@ -1047,7 +1047,6 @@ impl ReportableError for CompileError {
             | ConstraintExpressionTypeError { .. }
             | OperatorTypeError { .. }
             | StateVarInitTypeError { .. }
-            | ConstraintExpressionTypeError { .. }
             | StateVarTypeIsMap { .. }
             | IndexExprNonIndexable { .. }
             | TupleAccessNonTuple { .. }
