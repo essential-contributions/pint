@@ -3,7 +3,6 @@ use crate::{
     error::Handler,
     parser::parse_project,
 };
-use essential_types::slots::*;
 use std::io::Write;
 
 mod intrinsics;
@@ -80,9 +79,6 @@ fn int_literals() {
 
     // Single top-level intent named `Intents::ROOT_INTENT_NAME`
     assert_eq!(intents.intents.len(), 1);
-    let intent = intents.root_intent();
-    assert_eq!(intent.slots.decision_variables, 2);
-    assert!(intent.slots.state.is_empty());
 }
 
 #[test]
@@ -343,9 +339,11 @@ fn state_read() {
               Constraint(Stack(Push(0)))
               Constraint(Stack(Push(1)))
               Constraint(Stack(Push(1)))
-              Memory(Alloc)
+              StateSlots(AllocSlots)
+              Constraint(Stack(Push(4)))
               Constraint(Stack(Push(1)))
-              WordRange
+              Constraint(Stack(Push(0)))
+              KeyRange
               ControlFlow(Halt)
             state read 1
               Constraint(Stack(Push(2)))
@@ -353,32 +351,17 @@ fn state_read() {
               Constraint(Stack(Push(2)))
               Constraint(Stack(Push(2)))
               Constraint(Stack(Push(1)))
-              Memory(Alloc)
+              StateSlots(AllocSlots)
+              Constraint(Stack(Push(4)))
               Constraint(Stack(Push(1)))
-              WordRange
+              Constraint(Stack(Push(0)))
+              KeyRange
               ControlFlow(Halt)
         "#]],
     );
 
     // Single top-level intent named `Intents::ROOT_INTENT_NAME`
     assert_eq!(intents.intents.len(), 1);
-    let intent = intents.root_intent();
-    assert_eq!(intent.slots.decision_variables, 0);
-    assert_eq!(
-        intent.slots.state,
-        vec![
-            StateSlot {
-                index: 0u32,
-                amount: 1,
-                program_index: 0u16,
-            },
-            StateSlot {
-                index: 1u32,
-                amount: 1,
-                program_index: 1u16,
-            }
-        ]
-    );
 }
 
 #[test]
@@ -430,9 +413,11 @@ fn state_read_extern() {
               Constraint(Stack(Push(51)))
               Constraint(Stack(Push(68)))
               Constraint(Stack(Push(1)))
-              Memory(Alloc)
+              StateSlots(AllocSlots)
+              Constraint(Stack(Push(4)))
               Constraint(Stack(Push(1)))
-              WordRangeExtern
+              Constraint(Stack(Push(0)))
+              KeyRangeExtern
               ControlFlow(Halt)
             state read 1
               Constraint(Stack(Push(5)))
@@ -444,32 +429,17 @@ fn state_read_extern() {
               Constraint(Stack(Push(119)))
               Constraint(Stack(Push(136)))
               Constraint(Stack(Push(1)))
-              Memory(Alloc)
+              StateSlots(AllocSlots)
+              Constraint(Stack(Push(4)))
               Constraint(Stack(Push(1)))
-              WordRangeExtern
+              Constraint(Stack(Push(0)))
+              KeyRangeExtern
               ControlFlow(Halt)
         "#]],
     );
 
     // Single top-level intent named `Intents::ROOT_INTENT_NAME`
     assert_eq!(intents.intents.len(), 1);
-    let intent = intents.root_intent();
-    assert_eq!(intent.slots.decision_variables, 0);
-    assert_eq!(
-        intent.slots.state,
-        vec![
-            StateSlot {
-                index: 0u32,
-                amount: 1,
-                program_index: 0u16,
-            },
-            StateSlot {
-                index: 1u32,
-                amount: 1,
-                program_index: 1u16,
-            }
-        ]
-    );
 }
 
 #[test]
@@ -509,25 +479,17 @@ fn next_state() {
               Constraint(Stack(Push(0)))
               Constraint(Stack(Push(3)))
               Constraint(Stack(Push(1)))
-              Memory(Alloc)
+              StateSlots(AllocSlots)
+              Constraint(Stack(Push(4)))
               Constraint(Stack(Push(1)))
-              WordRange
+              Constraint(Stack(Push(0)))
+              KeyRange
               ControlFlow(Halt)
         "#]],
     );
 
     // Single top-level intent named `Intents::ROOT_INTENT_NAME`
     assert_eq!(intents.intents.len(), 1);
-    let intent = intents.root_intent();
-    assert_eq!(intent.slots.decision_variables, 1);
-    assert_eq!(
-        intent.slots.state,
-        vec![StateSlot {
-            index: 0u32,
-            amount: 1,
-            program_index: 0u16,
-        },]
-    );
 }
 
 #[test]
@@ -631,9 +593,11 @@ intent Simple {
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRange
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 1
                   Constraint(Stack(Push(0)))
@@ -644,9 +608,11 @@ intent Simple {
                   Constraint(Stack(Push(5)))
                   Constraint(Crypto(Sha256))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRange
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 2
                   Constraint(Stack(Push(0)))
@@ -660,9 +626,11 @@ intent Simple {
                   Constraint(Stack(Push(8)))
                   Constraint(Crypto(Sha256))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRange
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
             }
 
@@ -751,9 +719,11 @@ intent Simple {
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(4)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
                   Constraint(Stack(Push(4)))
-                  WordRange
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 1
                   Constraint(Stack(Push(0)))
@@ -761,9 +731,11 @@ intent Simple {
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(4)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
                   Constraint(Stack(Push(4)))
-                  WordRange
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 2
                   Constraint(Stack(Push(0)))
@@ -774,9 +746,11 @@ intent Simple {
                   Constraint(Stack(Push(5)))
                   Constraint(Crypto(Sha256))
                   Constraint(Stack(Push(4)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
                   Constraint(Stack(Push(4)))
-                  WordRange
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 3
                   Constraint(Stack(Push(0)))
@@ -790,9 +764,11 @@ intent Simple {
                   Constraint(Stack(Push(8)))
                   Constraint(Crypto(Sha256))
                   Constraint(Stack(Push(4)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
                   Constraint(Stack(Push(4)))
-                  WordRange
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
             }
 
@@ -840,9 +816,11 @@ intent Foo {
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(5)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(5)))
-                  WordRange
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 1
                   Constraint(Stack(Push(0)))
@@ -852,9 +830,11 @@ intent Foo {
                   Constraint(Stack(Pop))
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(4)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
                   Constraint(Stack(Push(4)))
-                  WordRange
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 2
                   Constraint(Stack(Push(0)))
@@ -864,9 +844,11 @@ intent Foo {
                   Constraint(Stack(Pop))
                   Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRange
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 3
                   Constraint(Stack(Push(0)))
@@ -874,9 +856,11 @@ intent Foo {
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(5)))
                   Constraint(Stack(Push(6)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(6)))
-                  WordRange
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 4
                   Constraint(Stack(Push(0)))
@@ -886,9 +870,11 @@ intent Foo {
                   Constraint(Stack(Pop))
                   Constraint(Stack(Push(5)))
                   Constraint(Stack(Push(4)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
                   Constraint(Stack(Push(4)))
-                  WordRange
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 5
                   Constraint(Stack(Push(0)))
@@ -900,9 +886,11 @@ intent Foo {
                   Constraint(Stack(Pop))
                   Constraint(Stack(Push(9)))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRange
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 6
                   Constraint(Stack(Push(0)))
@@ -914,9 +902,11 @@ intent Foo {
                   Constraint(Stack(Pop))
                   Constraint(Stack(Push(10)))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRange
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 7
                   Constraint(Stack(Push(0)))
@@ -924,9 +914,11 @@ intent Foo {
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(11)))
                   Constraint(Stack(Push(6)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(6)))
-                  WordRange
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 8
                   Constraint(Stack(Push(0)))
@@ -936,9 +928,11 @@ intent Foo {
                   Constraint(Stack(Pop))
                   Constraint(Stack(Push(11)))
                   Constraint(Stack(Push(4)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
                   Constraint(Stack(Push(4)))
-                  WordRange
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 9
                   Constraint(Stack(Push(0)))
@@ -950,9 +944,11 @@ intent Foo {
                   Constraint(Stack(Pop))
                   Constraint(Stack(Push(15)))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRange
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 10
                   Constraint(Stack(Push(0)))
@@ -964,9 +960,11 @@ intent Foo {
                   Constraint(Stack(Pop))
                   Constraint(Stack(Push(16)))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRange
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
             }
 
@@ -1007,9 +1005,11 @@ intent Foo {
                   Constraint(Stack(Push(5)))
                   Constraint(Crypto(Sha256))
                   Constraint(Stack(Push(6)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(6)))
-                  WordRange
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 1
                   Constraint(Stack(Push(0)))
@@ -1022,9 +1022,11 @@ intent Foo {
                   Constraint(Stack(Push(0)))
                   Constraint(Alu(Add))
                   Constraint(Stack(Push(4)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
                   Constraint(Stack(Push(4)))
-                  WordRange
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 2
                   Constraint(Stack(Push(0)))
@@ -1039,9 +1041,11 @@ intent Foo {
                   Constraint(Stack(Push(0)))
                   Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRange
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 3
                   Constraint(Stack(Push(0)))
@@ -1056,9 +1060,11 @@ intent Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRange
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
             }
 
@@ -1112,9 +1118,11 @@ intent Bar {
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(5)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(5)))
-                  WordRangeExtern
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
                   ControlFlow(Halt)
                 state read 1
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1128,9 +1136,11 @@ intent Bar {
                   Constraint(Stack(Pop))
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(4)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
                   Constraint(Stack(Push(4)))
-                  WordRangeExtern
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
                   ControlFlow(Halt)
                 state read 2
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1144,9 +1154,11 @@ intent Bar {
                   Constraint(Stack(Pop))
                   Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRangeExtern
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
                   ControlFlow(Halt)
                 state read 3
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1158,9 +1170,11 @@ intent Bar {
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(5)))
                   Constraint(Stack(Push(6)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(6)))
-                  WordRangeExtern
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
                   ControlFlow(Halt)
                 state read 4
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1174,9 +1188,11 @@ intent Bar {
                   Constraint(Stack(Pop))
                   Constraint(Stack(Push(5)))
                   Constraint(Stack(Push(4)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
                   Constraint(Stack(Push(4)))
-                  WordRangeExtern
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
                   ControlFlow(Halt)
                 state read 5
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1192,9 +1208,11 @@ intent Bar {
                   Constraint(Stack(Pop))
                   Constraint(Stack(Push(9)))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRangeExtern
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
                   ControlFlow(Halt)
                 state read 6
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1210,9 +1228,11 @@ intent Bar {
                   Constraint(Stack(Pop))
                   Constraint(Stack(Push(10)))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRangeExtern
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
                   ControlFlow(Halt)
                 state read 7
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1224,9 +1244,11 @@ intent Bar {
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(11)))
                   Constraint(Stack(Push(6)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(6)))
-                  WordRangeExtern
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
                   ControlFlow(Halt)
                 state read 8
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1240,9 +1262,11 @@ intent Bar {
                   Constraint(Stack(Pop))
                   Constraint(Stack(Push(11)))
                   Constraint(Stack(Push(4)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
                   Constraint(Stack(Push(4)))
-                  WordRangeExtern
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
                   ControlFlow(Halt)
                 state read 9
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1258,9 +1282,11 @@ intent Bar {
                   Constraint(Stack(Pop))
                   Constraint(Stack(Push(15)))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRangeExtern
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
                   ControlFlow(Halt)
                 state read 10
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1276,9 +1302,11 @@ intent Bar {
                   Constraint(Stack(Pop))
                   Constraint(Stack(Push(16)))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRangeExtern
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
                   ControlFlow(Halt)
             }
 
@@ -1343,9 +1371,11 @@ intent Simple {
                   Constraint(Stack(Push(8)))
                   Constraint(Crypto(Sha256))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRange
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
                 state read 1
                   Constraint(Stack(Push(0)))
@@ -1365,9 +1395,11 @@ intent Simple {
                   Constraint(Stack(Push(5)))
                   Constraint(Crypto(Sha256))
                   Constraint(Stack(Push(4)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
                   Constraint(Stack(Push(4)))
-                  WordRange
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   ControlFlow(Halt)
             }
 
@@ -1460,9 +1492,11 @@ intent Foo {
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRangeExtern
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
                   ControlFlow(Halt)
                 state read 1
                   Constraint(Stack(Push(1311506517218527985)))
@@ -1480,9 +1514,11 @@ intent Foo {
                   Constraint(Stack(Push(5)))
                   Constraint(Crypto(Sha256))
                   Constraint(Stack(Push(4)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
                   Constraint(Stack(Push(4)))
-                  WordRangeExtern
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
                   ControlFlow(Halt)
                 state read 2
                   Constraint(Stack(Push(870781680972594289)))
@@ -1494,9 +1530,11 @@ intent Foo {
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRangeExtern
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
                   ControlFlow(Halt)
                 state read 3
                   Constraint(Stack(Push(870781680972594289)))
@@ -1517,9 +1555,11 @@ intent Foo {
                   Constraint(Stack(Push(5)))
                   Constraint(Crypto(Sha256))
                   Constraint(Stack(Push(1)))
-                  Memory(Alloc)
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
                   Constraint(Stack(Push(1)))
-                  WordRangeExtern
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
                   ControlFlow(Halt)
             }
 
