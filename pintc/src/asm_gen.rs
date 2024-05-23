@@ -5,14 +5,11 @@ use crate::{
         ConstraintDecl, ExprKey, IntermediateIntent, Program, ProgramKind, State as StateVar,
     },
     span::empty_span,
-    types::{PrimitiveKind, Type},
+    types::Type,
 };
-use essential_types::{
-    intent::{Directive, Intent},
-    slots::{Slots, StateSlot},
-};
+use essential_types::intent::{Directive, Intent};
 use state_asm::{
-    Access, Alu, Constraint, ControlFlow, Crypto, Memory, Op as StateRead, Pred, Stack,
+    Access, Alu, Constraint, ControlFlow, Crypto, Op as StateRead, Pred, Stack, StateSlots,
 };
 use std::collections::HashMap;
 
@@ -77,12 +74,10 @@ pub fn program_to_intents(handler: &Handler, program: &Program) -> Result<Intent
 
 #[derive(Default)]
 pub struct AsmBuilder {
-    // Opcodes to read state
+    // Opcodes to read state.
     s_asm: Vec<Vec<StateRead>>,
     // Opcodes to specify constraints
     c_asm: Vec<Vec<Constraint>>,
-    // Collection of state slots
-    s_slots: Vec<StateSlot>,
     // Maps indices of `let` variables (which may be wider than a word) to a list of low level
     // word-wide decision variables
     var_to_d_vars: HashMap<usize, Vec<usize>>,
@@ -105,7 +100,7 @@ impl AsmBuilder {
     /// Returns a `StorageKey`. The `StorageKey` contains two values:
     /// - The kind of the storage key: static where the keys are known at compile-time or dynamic.
     /// - Whether the key is internal or external. External keys should be accessed using
-    /// `StateReadWordRangeExtern`.
+    /// `StateReadKeyRangeExtern`.
     fn compile_state_key(
         &mut self,
         handler: &Handler,
@@ -651,27 +646,22 @@ impl AsmBuilder {
             .is_extern;
 
         // Now, using the data size of the accessed type, produce an `Alloc` followed by a
-        // `StateReadWordRange` instruction or a `StateReadWordRangeExtern` instruction
+        // `StateReadKeyRange` instruction or a `StateReadKeyRangeExtern` instruction
         s_asm.extend([
             Stack::Push(data_size as i64).into(),
-            Memory::Alloc.into(),
-            Stack::Push(data_size as i64).into(),
+            StateSlots::AllocSlots.into(),
+            Stack::Push(4).into(),                // key_len
+            Stack::Push(data_size as i64).into(), // num_keys_to_read
+            Stack::Push(0).into(),                // slot_index
             if is_extern {
-                StateRead::WordRangeExtern
+                StateRead::KeyRangeExtern
             } else {
-                StateRead::WordRange
+                StateRead::KeyRange
             },
             StateRead::ControlFlow(ControlFlow::Halt),
         ]);
         self.s_asm.push(s_asm);
 
-        // Now add the actual `StateSlot`
-        let program_idx = self.s_asm.len() - 1;
-        self.s_slots.push(StateSlot {
-            index: *slot_idx,
-            amount: data_size as u32,
-            program_index: program_idx as u16,
-        });
         *slot_idx += data_size as u32;
         Ok(())
     }
@@ -685,16 +675,13 @@ pub fn intent_to_asm(
 ) -> Result<Intent, ErrorEmitted> {
     let mut builder = AsmBuilder::default();
 
-    // low level decision variable index
+    // Low level decision variable index
+    //
+    // This assumes that all decision variables are either `b256` or have size 1 word, as a result
+    // of flattening.
     let mut d_var = 0;
     for (idx, (var_key, _)) in final_intent.vars().enumerate() {
-        if matches!(
-            var_key.get_ty(final_intent),
-            Type::Primitive {
-                kind: PrimitiveKind::B256,
-                ..
-            }
-        ) {
+        if var_key.get_ty(final_intent).is_b256() {
             // `B256` variables map to 4 separate low level decision variables, 1 word wide each.
             builder
                 .var_to_d_vars
@@ -706,7 +693,6 @@ pub fn intent_to_asm(
             d_var += 1;
         }
     }
-    let total_decision_vars = d_var;
 
     let mut slot_idx = 0;
     for (_, state) in final_intent.states() {
@@ -725,10 +711,6 @@ pub fn intent_to_asm(
     }
 
     Ok(Intent {
-        slots: Slots {
-            state: builder.s_slots,
-            decision_variables: total_decision_vars as u32,
-        },
         state_read: builder
             .s_asm
             .iter()

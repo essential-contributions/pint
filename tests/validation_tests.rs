@@ -11,7 +11,11 @@ use essential_state_read_vm::{
     },
     Access, BytecodeMapped, GasLimit, SolutionAccess, StateSlots, Vm,
 };
-use std::{fs::read_dir, path::PathBuf};
+use std::{
+    fs::{read_dir, File},
+    io::{BufRead, BufReader},
+    path::PathBuf,
+};
 use test_util::{hex_to_bytes, hex_to_four_ints, parse_test_data, unwrap_or_continue};
 use utils::*;
 use yansi::Paint;
@@ -33,6 +37,15 @@ async fn validation_e2e() -> anyhow::Result<()> {
         // Only go over pint file
         if path.extension().unwrap() != "pnt" {
             continue;
+        }
+
+        // `<disabled>` disables tests from running completely
+        let handle = File::open(path.clone())?;
+        if let Some(Ok(first_line)) = BufReader::new(handle).lines().next() {
+            // Skip disabled tests.
+            if first_line.contains("<disabled>") {
+                continue;
+            }
         }
 
         println!("Testing {}.", entry.path().display());
@@ -108,15 +121,15 @@ async fn validation_e2e() -> anyhow::Result<()> {
                     // Internal address
                     pre_state.set(
                         intent_to_check.set.clone(),
-                        &hex_to_four_ints(split[0]),
-                        Some(split[1].parse::<i64>().expect("value must be a i64")),
+                        &hex_to_four_ints(split[0]).to_vec(),
+                        vec![split[1].parse::<i64>().expect("value must be a i64")],
                     );
                 } else if split.len() == 3 {
                     // External address
                     pre_state.set(
                         ContentAddress(hex_to_bytes(split[0])),
-                        &hex_to_four_ints(split[1]),
-                        Some(split[2].parse::<i64>().expect("value must be a i64")),
+                        &hex_to_four_ints(split[1]).to_vec(),
+                        vec![split[2].parse::<i64>().expect("value must be a i64")],
                     );
                 } else {
                     panic!("Error parsing db section");
@@ -153,7 +166,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
             let solution_data = &solution.data[usize::from(mutation.pathway)];
             let set_addr = &solution_data.intent_to_solve.set;
             for Mutation { key, value } in mutation.mutations.iter() {
-                post_state.set(set_addr.clone(), key, *value);
+                post_state.set(set_addr.clone(), key, value.clone());
             }
         }
 
@@ -289,8 +302,12 @@ fn parse_solution(
                                     .get("key")
                                     .and_then(|key| key.as_str())
                                     .ok_or_else(|| anyhow!("Invalid mutation key"))?,
-                            ),
-                            value: mutation.get("value").and_then(|val| val.as_integer()),
+                            )
+                            .to_vec(),
+                            value: vec![mutation
+                                .get("value")
+                                .and_then(|val| val.as_integer())
+                                .unwrap()],
                         })
                     })
                     .collect::<anyhow::Result<Vec<_>>>()?;
