@@ -7,7 +7,7 @@ storage {
 intent Simple {
     state supply = storage::supply;
     state x = storage::map1[69];
-    state y = storage::map2[0x2222222222222222222222222222222222222222222222222222222222222222];
+    state y = storage::map2[0x0000000000000001000000000000000200000000000000030000000000000004];
 
     constraint supply' == 42;
     constraint x' == 98;

@@ -1,15 +1,15 @@
 [[data]]
 decision_variables = [
-  { inline = 141 },  # ::w     
-  { inline = 129 },  # ::u     
-  { inline = 1936 }, # ::v     
-  { inline = 69 },   # ::e_old 
-  { inline = 70 },   # ::e_new 
-  { inline = 0 },    # ::a[0]  
-  { inline = 1 },    # ::a[1]  
-  { inline = 4 },    # ::a[2]  
-  { inline = 9 },    # ::a[3]  
-  { inline = 16 },   # ::a[4]  
+  141,  # ::w
+  129,  # ::u
+  1936, # ::v
+  69,   # ::e_old
+  70,   # ::e_new
+  0,    # ::a[0]
+  1,    # ::a[1]
+  4,    # ::a[2]
+  9,    # ::a[3]
+  16,   # ::a[4]
 ]
 intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "::Simple" }
 
@@ -20,13 +20,23 @@ intent_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 [[state_mutations]]
 pathway = 0
 mutations = [
-  { key = "0x0000000000000000000000000000000000000000000000000000000000000000", value = 43 },
-  { key = "0x0000000000000000000000000000000000000000000000000000000000000001", value = 47 },
-  { key = "0x0000000000000000000000000000000000000000000000000000000000000002", value = 44 },
+  { key = [
+    0,
+  ], value = [
+    43,
+  ] },
+  { key = [
+    1,
+  ], value = [
+    47,
+  ] },
+  { key = [
+    2,
+  ], value = [
+    44,
+  ] },
 ]
 
 [[state_mutations]]
 pathway = 1
-mutations = [
-  { key = "0x0000000000000000000000000000000000000000000000000000000000000001", value = 70 },
-]
+mutations = [{ key = [1], value = [70] }]

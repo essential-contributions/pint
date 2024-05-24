@@ -5,7 +5,24 @@ intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 [[state_mutations]]
 pathway = 0
 mutations = [
-  { key = "0x0000000000000000000000000000000000000000000000000000000000000000", value = 42 },
-  { key = "0xD240A862C6D265433436678607C31204FCBB80F4067B5E618B1E0D803D9D6D7C", value = 98 },
-  { key = "0x303BECF45CAF38227905E17C50A86AF2DB7B7831500D70ECBA4A3C1EA5882166", value = 44 },
+  { key = [
+    0,
+  ], value = [
+    42,
+  ] },
+  { key = [
+    1,
+    69,
+  ], value = [
+    98,
+  ] },
+  { key = [
+    2,
+    1,
+    2,
+    3,
+    4,
+  ], value = [
+    44,
+  ] },
 ]

@@ -1,8 +1,8 @@
 [[data]]
 decision_variables = [
-  { inline = 2 }, # x
-  { inline = 3 }, # y
-  { inline = 5 }, # z1 = x + y
-  { inline = 6 }, # z2 = x * y
+  2, # x
+  3, # y
+  5, # z1 = x + y
+  6, # z2 = x * y
 ]
 intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "" }

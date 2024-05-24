@@ -1,79 +1,91 @@
 [[data]]
 decision_variables = [
   # ::mut_keys_len
-  { inline = 3 },
+  3,
 
   # ::mut_keys_contains_0
-  { inline = 1 },
+  1,
 
   # ::mut_keys_contains_1
-  { inline = 1 },
+  1,
 
   # ::mut_keys_contains_2
-  { inline = 1 },
+  1,
 
   # ::mut_keys_contains_3
-  { inline = 0 },
+  0,
 
   # ::mut_keys_contains_4
-  { inline = 0 },
+  0,
 
   # ::this_address
-  { inline = 0 },
-  { inline = 0 },
-  { inline = 0 },
-  { inline = 2 },
+  0,
+  0,
+  0,
+  2,
 
   # ::set_address
-  { inline = -1 },
-  { inline = -1 },
-  { inline = -1 },
-  { inline = -1 },
-  { inline = 0 },
+  -1,
+  -1,
+  -1,
+  -1,
+  0,
 
   # ::sha256_0
-  { inline = -5812615543772869766 },
-  { inline = -608919109605104113 },
-  { inline = 1005743363740736845 },
-  { inline = -1895396908224463364 },
+  -5812615543772869766,
+  -608919109605104113,
+  1005743363740736845,
+  -1895396908224463364,
 
   # ::sha256_1
-  { inline = 1788775345077565609 },
-  { inline = 40126323448088272 },
-  { inline = 2047986576366761858 },
-  { inline = -5939563327174570301 },
+  1788775345077565609,
+  40126323448088272,
+  2047986576366761858,
+  -5939563327174570301,
 
   # ::verify_ed22519
-  { inline = 1 },
+  1,
 
   # ::tuple.0
-  { inline = 1 },
+  1,
 
   # ::tuple.1
-  { inline = 2 },
+  2,
 
   # ::recover_secp256k1
-  { inline = 218688920692835460 },
-  { inline = -8027063250197144796 },
-  { inline = -7602923525155704883 },
-  { inline = 8095055044117488249 },
-  { inline = 13 },
+  218688920692835460,
+  -8027063250197144796,
+  -7602923525155704883,
+  8095055044117488249,
+  13,
 
   # ::tuple.2
-  { inline = 1 },
-  { inline = 2 },
-  { inline = 3 },
-  { inline = 4 },
+  1,
+  2,
+  3,
+  4,
 
   # ::tuple.1.1
-  { inline = 1 },
+  1,
 ]
 intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "::Foo" }
 
 [[state_mutations]]
 pathway = 0
 mutations = [
-  { key = "0x0000000000000000000000000000000000000000000000000000000000000000", value = 42 },
-  { key = "0x0000000000000000000000000000000000000000000000000000000000000001", value = 98 },
-  { key = "0x0000000000000000000000000000000000000000000000000000000000000002", value = 44 },
+  { key = [
+    0,
+  ], value = [
+    42,
+  ] },
+  { key = [
+    1,
+  ], value = [
+    98,
+  ] },
+  { key = [
+    2,
+  ], value = [
+    44,
+  ] },
 ]
