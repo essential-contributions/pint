@@ -27,7 +27,7 @@ lint:
         - name: CARGO_NET_GIT_FETCH_WITH_CLI
           value: true
   enabled:
-    - checkov@3.2.98
+    - checkov@3.2.106
     - osv-scanner@1.7.3
     - oxipng@9.1.1
     - trivy@0.51.2
