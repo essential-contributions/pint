@@ -163,6 +163,16 @@ impl Type {
         })
     }
 
+    pub fn get_array_size(&self) -> Option<i64> {
+        check_alias!(self, get_array_size, {
+            if let Type::Array { size, .. } = self {
+                *size
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn get_map_ty_from(&self) -> Option<&Type> {
         check_alias!(self, get_map_ty_from, {
             if let Type::Map { ty_from, .. } = self {
@@ -236,6 +246,32 @@ impl Type {
             Self::Array { ty, size, .. } => {
                 if let Some(size) = size {
                     ty.size() * *size as usize
+                } else {
+                    unimplemented!("unable to find type size for array at the moment")
+                }
+            }
+
+            // The point here is that a `Map` takes up a storage slot, even though it doesn't
+            // actually store anything in it. The `Map` type is not really allowed anywhere else,
+            // so we can't have a decision variable of type `Map` for example.
+            Self::Map { .. } => 1,
+            _ => unimplemented!("Size of type is not yet specified"),
+        }
+    }
+
+    /// Calculate the number of storage slots required for this type. All primitive types fit in a
+    /// single slot even if their size is > 1.
+    pub fn storage_slots(&self) -> usize {
+        match self {
+            Self::Primitive { .. } => 1,
+
+            Self::Tuple { fields, .. } => fields
+                .iter()
+                .fold(0, |acc, (_, field_ty)| acc + field_ty.storage_slots()),
+
+            Self::Array { ty, size, .. } => {
+                if let Some(size) = size {
+                    ty.storage_slots() * *size as usize
                 } else {
                     unimplemented!("unable to find type size for array at the moment")
                 }

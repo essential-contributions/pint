@@ -1,12 +1,3 @@
 [[data]]
-decision_variables = [
-  { inline = 4 },
-  { inline = 6 },
-  { inline = 1 },
-  { inline = 5 },
-  { inline = 2 },
-  { inline = 0 },
-  { inline = 3 },
-  { inline = 7 },
-]
+decision_variables = [4, 6, 1, 5, 2, 0, 3, 7]
 intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "" }

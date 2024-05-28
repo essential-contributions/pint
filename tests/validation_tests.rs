@@ -6,17 +6,18 @@ use essential_state_read_vm::{
     asm::{self, Op},
     constraint,
     types::{
-        solution::{DecisionVariable, Mutation, Solution, SolutionData, StateMutation},
+        solution::{Mutation, Mutations, Solution, SolutionData},
         ContentAddress, IntentAddress,
     },
     Access, BytecodeMapped, GasLimit, SolutionAccess, StateSlots, Vm,
 };
 use std::{
+    collections::HashMap,
     fs::{read_dir, File},
     io::{BufRead, BufReader},
     path::PathBuf,
 };
-use test_util::{hex_to_bytes, hex_to_four_ints, parse_test_data, unwrap_or_continue};
+use test_util::{hex_to_bytes, parse_test_data, unwrap_or_continue};
 use utils::*;
 use yansi::Paint;
 
@@ -92,8 +93,14 @@ async fn validation_e2e() -> anyhow::Result<()> {
         // This is the access that contains an access to some solution data and will contain the
         // pre and post states.
         let mutable_keys = mut_keys_set(&solution, intent_to_check_index as u16);
+        let transient_data = HashMap::new();
         let mut access = Access {
-            solution: SolutionAccess::new(&solution, intent_to_check_index as u16, &mutable_keys),
+            solution: SolutionAccess::new(
+                &solution,
+                intent_to_check_index as u16,
+                &mutable_keys,
+                &transient_data,
+            ),
             state_slots: StateSlots::EMPTY,
         };
 
@@ -116,24 +123,25 @@ async fn validation_e2e() -> anyhow::Result<()> {
         if let Some(db) = &parse_test_data(&path)?.db {
             for line in db.lines() {
                 // Collect key and value. Assume the key is a hex and the value is a u64
-                let split = line.split_ascii_whitespace().collect::<Vec<_>>();
-                if split.len() == 2 {
-                    // Internal address
-                    pre_state.set(
-                        intent_to_check.set.clone(),
-                        &hex_to_four_ints(split[0]).to_vec(),
-                        vec![split[1].parse::<i64>().expect("value must be a i64")],
-                    );
-                } else if split.len() == 3 {
-                    // External address
-                    pre_state.set(
-                        ContentAddress(hex_to_bytes(split[0])),
-                        &hex_to_four_ints(split[1]).to_vec(),
-                        vec![split[2].parse::<i64>().expect("value must be a i64")],
-                    );
+                let split = line.split(',').collect::<Vec<_>>();
+                let (set_address, key, value) = if split.len() == 3 {
+                    (ContentAddress(hex_to_bytes(split[0])), split[1], split[2])
+                } else if split.len() == 2 {
+                    (intent_to_check.set.clone(), split[0], split[1])
                 } else {
                     panic!("Error parsing db section");
-                }
+                };
+
+                pre_state.set(
+                    set_address,
+                    &key.split_ascii_whitespace()
+                        .map(|k| k.parse::<i64>().expect("value must be a i64"))
+                        .collect::<Vec<_>>(),
+                    value
+                        .split_ascii_whitespace()
+                        .map(|k| k.parse::<i64>().expect("value must be a i64"))
+                        .collect::<Vec<_>>(),
+                );
             }
         }
 
@@ -155,7 +163,10 @@ async fn validation_e2e() -> anyhow::Result<()> {
                 GasLimit::UNLIMITED,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|_| {
+                failed_tests.push(path.clone());
+                0
+            });
 
             pre_state_slots.extend(vm.into_state_slots());
         }
@@ -182,7 +193,10 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
             vm.exec_ops(&ops, access, &post_state, &|_: &Op| 1, GasLimit::UNLIMITED)
                 .await
-                .unwrap();
+                .unwrap_or_else(|_| {
+                    failed_tests.push(path.clone());
+                    0
+                });
 
             post_state_slots.extend(vm.into_state_slots());
         }
@@ -233,14 +247,12 @@ fn parse_solution(
                     .and_then(|dv| dv.as_array())
                     .unwrap_or(&Vec::new())
                     .iter()
-                    .map(|d| match d.get("inline") {
-                        Some(d) => d
-                            .as_integer()
-                            .map(DecisionVariable::Inline)
-                            .ok_or_else(|| anyhow!("Invalid integer value in decision_variables")),
-                        None => Err(anyhow!("'inline' field is missing")),
+                    .map(|d| {
+                        d.as_integer().ok_or_else(|| {
+                            anyhow!("Invalid integer value in list of decision variables")
+                        })
                     })
-                    .collect::<anyhow::Result<Vec<_>>>()?;
+                    .collect::<anyhow::Result<Vec<_>, _>>()?;
 
                 // The intent to solve is either `Transient` or `Persistent`
                 let intent_to_solve = match e.get("intent_to_solve") {
@@ -297,21 +309,32 @@ fn parse_solution(
                     .iter()
                     .map(|mutation| {
                         Ok(Mutation {
-                            key: hex_to_four_ints(
-                                mutation
-                                    .get("key")
-                                    .and_then(|key| key.as_str())
-                                    .ok_or_else(|| anyhow!("Invalid mutation key"))?,
-                            )
-                            .to_vec(),
-                            value: vec![mutation
+                            key: mutation
+                                .get("key")
+                                .and_then(|word| word.as_array())
+                                .unwrap_or(&Vec::new())
+                                .iter()
+                                .map(|d| {
+                                    d.as_integer().ok_or_else(|| {
+                                        anyhow!("Invalid integer value in state mutation key")
+                                    })
+                                })
+                                .collect::<anyhow::Result<Vec<_>, _>>()?,
+                            value: mutation
                                 .get("value")
-                                .and_then(|val| val.as_integer())
-                                .unwrap()],
+                                .and_then(|word| word.as_array())
+                                .unwrap_or(&Vec::new())
+                                .iter()
+                                .map(|d| {
+                                    d.as_integer().ok_or_else(|| {
+                                        anyhow!("Invalid integer value in state mutation word")
+                                    })
+                                })
+                                .collect::<anyhow::Result<Vec<_>, _>>()?,
                         })
                     })
                     .collect::<anyhow::Result<Vec<_>>>()?;
-                Ok(StateMutation { pathway, mutations })
+                Ok(Mutations { pathway, mutations })
             })
             .collect::<anyhow::Result<Vec<_>>>()?,
         None => Vec::new(),
@@ -320,5 +343,6 @@ fn parse_solution(
     Ok(Solution {
         data,
         state_mutations,
+        transient_data: vec![],
     })
 }

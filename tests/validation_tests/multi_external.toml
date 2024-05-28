@@ -12,14 +12,8 @@ intent_to_solve = { set = "0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 
 [[state_mutations]]
 pathway = 1
-mutations = [
-  { key = "0x0000000000000000000000000000000000000000000000000000000000000000", value = 43 },
-  { key = "0x0000000000000000000000000000000000000000000000000000000000000001", value = 71 },
-]
+mutations = [{ key = [0], value = [43] }, { key = [1], value = [71] }]
 
 [[state_mutations]]
 pathway = 2
-mutations = [
-  { key = "0x0000000000000000000000000000000000000000000000000000000000000000", value = 102 },
-  { key = "0x0000000000000000000000000000000000000000000000000000000000000001", value = 170 },
-]
+mutations = [{ key = [0], value = [102] }, { key = [1], value = [170] }]

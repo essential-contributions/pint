@@ -10,16 +10,16 @@ intent Foo {
     constraint mut_keys_len == 3;
 
     // Solution contains these 
-    let mut_keys_contains_0: bool = __mut_keys_contains([0, 0, 0, 0]);
-    let mut_keys_contains_1: bool = __mut_keys_contains([0, 0, 0, 1]);
-    let mut_keys_contains_2: bool = __mut_keys_contains([0, 0, 0, 2]);
+    let mut_keys_contains_0: bool = __mut_keys_contains([0]);
+    let mut_keys_contains_1: bool = __mut_keys_contains([1]);
+    let mut_keys_contains_2: bool = __mut_keys_contains([2]);
     constraint mut_keys_contains_0 == true;
     constraint mut_keys_contains_1 == true;
     constraint mut_keys_contains_2 == true;
 
     // Solution does not contain these
-    let mut_keys_contains_3: bool = __mut_keys_contains([0, 0, 0, 3]);
-    let mut_keys_contains_4: bool = __mut_keys_contains([0, 0, 0, 4]);
+    let mut_keys_contains_3: bool = __mut_keys_contains([3]);
+    let mut_keys_contains_4: bool = __mut_keys_contains([4]);
     constraint mut_keys_contains_3 == false;
     constraint mut_keys_contains_4 == false;
 

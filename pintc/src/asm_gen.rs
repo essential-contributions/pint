@@ -85,14 +85,23 @@ pub struct AsmBuilder {
 
 #[derive(Debug)]
 enum StorageKeyKind {
-    Static([i64; 4]),
-    Dynamic,
+    Static(Vec<i64>),
+    Dynamic(usize),
 }
 
 #[derive(Debug)]
 struct StorageKey {
     kind: StorageKeyKind,
     is_extern: bool,
+}
+
+impl StorageKey {
+    fn len(&self) -> usize {
+        match &self.kind {
+            StorageKeyKind::Static(key) => key.len(),
+            StorageKeyKind::Dynamic(len) => *len,
+        }
+    }
 }
 
 impl AsmBuilder {
@@ -108,22 +117,41 @@ impl AsmBuilder {
         expr: &ExprKey,
         intent: &IntermediateIntent,
     ) -> Result<StorageKey, ErrorEmitted> {
+        let expr_ty = expr.get_ty(intent);
         match &expr.get(intent) {
             Expr::IntrinsicCall { name, args, .. } => {
                 if name.name.ends_with("__storage_get") {
-                    // Expecting a single argument that is a `b256`: a key
+                    // Expecting a single argument that is an array of integers representing a key
                     assert_eq!(args.len(), 1);
+                    let Some(key_size) = args[0].get_ty(intent).get_array_size() else {
+                        return Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "unable to get key size",
+                                span: empty_span(),
+                            },
+                        }));
+                    };
 
                     let mut asm = Vec::new();
                     self.compile_expr(handler, &mut asm, &args[0], intent)?;
                     s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
                     Ok(StorageKey {
-                        kind: StorageKeyKind::Dynamic,
+                        kind: StorageKeyKind::Dynamic(key_size as usize),
                         is_extern: false,
                     })
                 } else if name.name.ends_with("__storage_get_extern") {
-                    // Expecting two arguments that are both `b256`: an address and a key
+                    // Expecting two arguments:
+                    // 1. An address that is a `b256`
+                    // 2. A key: an array of integers
                     assert_eq!(args.len(), 2);
+                    let Some(key_size) = args[1].get_ty(intent).get_array_size() else {
+                        return Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "unable to get key size",
+                                span: empty_span(),
+                            },
+                        }));
+                    };
 
                     // First, get the set-of-intents address and the storage key
                     let mut asm = Vec::new();
@@ -131,7 +159,7 @@ impl AsmBuilder {
                     self.compile_expr(handler, &mut asm, &args[1], intent)?;
                     s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
                     Ok(StorageKey {
-                        kind: StorageKeyKind::Dynamic,
+                        kind: StorageKeyKind::Dynamic(key_size as usize),
                         is_extern: true,
                     })
                 } else {
@@ -151,24 +179,21 @@ impl AsmBuilder {
                     .position(|var| var.name == *name)
                     .expect("storage access should have been checked before");
 
-                // Get the storage key as the sum of the sizes of all the types in the storage
-                // block that preceed the storage variable accessed.
-                //
-                // The actual storage key is a `b256` that is sum computed, left padded with 0s.
-                let key: usize = storage
-                    .iter()
-                    .take(storage_index)
-                    .map(|storage_var| storage_var.ty.size())
-                    .sum();
+                // This is the key. It's either the `storage_index` if the storage type primitive
+                // or a map, or it's `[storage_index, 0]`. The `0` here is a placeholder for
+                // offsets.
+                let storage_var = &storage[storage_index];
+                let key = if storage_var.ty.is_any_primitive() || storage_var.ty.is_map() {
+                    s_asm.push(Stack::Push(storage_index as i64).into());
+                    vec![storage_index as i64]
+                } else {
+                    s_asm.push(Stack::Push(storage_index as i64).into());
+                    s_asm.push(Stack::Push(0).into());
+                    vec![storage_index as i64, 0]
+                };
 
-                s_asm.extend([
-                    StateRead::from(Stack::Push(0)),
-                    Stack::Push(0).into(),
-                    Stack::Push(0).into(),
-                    Stack::Push(key as i64).into(),
-                ]);
                 Ok(StorageKey {
-                    kind: StorageKeyKind::Static([0, 0, 0, key as i64]),
+                    kind: StorageKeyKind::Static(key),
                     is_extern: false,
                 })
             }
@@ -182,26 +207,13 @@ impl AsmBuilder {
                     .find(|e| e.name.to_string() == *extern_path)
                     .expect("an extern block named `extern_path` must have been declared");
 
-                // Get the index of the storage variable in the storage block declaration
-                let storage_index = r#extern
-                    .storage_vars
-                    .iter()
-                    .position(|var| var.name == *name)
-                    .expect("storage access should have been checked before");
-
-                // Get the storage key as the sum of the sizes of all the types in the storage
-                // block that preceed the storage variable accessed.
-                //
-                // The actual storage key is a `b256` that is sum computed, left padded with 0s.
-                let key: usize = r#extern
-                    .storage_vars
-                    .iter()
-                    .take(storage_index)
-                    .map(|storage_var| storage_var.ty.size())
-                    .sum();
-
                 let Immediate::B256(val) = r#extern.address else {
-                    panic!("the address of the external set-of-intents must be a `b256` immediate")
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "the address of the external set-of-intents must be a `b256` immediate",
+                            span: empty_span(),
+                        },
+                    }));
                 };
 
                 // Push the external set-of-intents address followed by the base key
@@ -210,39 +222,50 @@ impl AsmBuilder {
                     Stack::Push(val[1] as i64).into(),
                     Stack::Push(val[2] as i64).into(),
                     Stack::Push(val[3] as i64).into(),
-                    Stack::Push(0).into(),
-                    Stack::Push(0).into(),
-                    Stack::Push(0).into(),
-                    Stack::Push(key as i64).into(),
                 ]);
+
+                // Get the index of the storage variable in the storage block declaration
+                let storage_index = r#extern
+                    .storage_vars
+                    .iter()
+                    .position(|var| var.name == *name)
+                    .expect("storage access should have been checked before");
+
+                // This is the key. It's either the `storage_index` if the storage type primitive
+                // or a map, or it's `[storage_index, 0]`. The `0` here is a placeholder for
+                // offsets.
+                let storage_var = &r#extern.storage_vars[storage_index];
+                let key = if storage_var.ty.is_any_primitive() || storage_var.ty.is_map() {
+                    s_asm.push(Stack::Push(storage_index as i64).into());
+                    vec![storage_index as i64]
+                } else {
+                    s_asm.push(Stack::Push(storage_index as i64).into());
+                    s_asm.push(Stack::Push(0).into());
+                    vec![storage_index as i64, 0]
+                };
 
                 // This is external!
                 Ok(StorageKey {
-                    kind: StorageKeyKind::Static([0, 0, 0, key as i64]),
+                    kind: StorageKeyKind::Static(key),
                     is_extern: true,
                 })
             }
             Expr::Index { expr, index, .. } => {
                 // Compile the key corresponding to `expr`
-                let is_extern = self
-                    .compile_state_key(handler, s_asm, expr, intent)?
-                    .is_extern;
+                let storage_key = self.compile_state_key(handler, s_asm, expr, intent)?;
 
                 // Compile the index
                 let mut asm = vec![];
                 self.compile_expr(handler, &mut asm, index, intent)?;
                 s_asm.extend(asm.iter().copied().map(StateRead::from));
-
-                // Sha256 the current key (4 words) with the compiled index to get the actual key.
-                // We also need the length of the data to hash, so we rely on the size of the type
-                // to get that.
-                s_asm.push(Stack::Push(4 + index.get_ty(intent).size() as i64).into());
-                s_asm.push(Crypto::Sha256.into());
-
+                let mut key_length = storage_key.len() + index.get_ty(intent).size();
+                if !(expr_ty.is_any_primitive() || expr_ty.is_map()) {
+                    s_asm.push(StateRead::from(Stack::Push(0)));
+                    key_length += 1;
+                }
                 Ok(StorageKey {
-                    // This key is dynamic due to `Sha256`
-                    kind: StorageKeyKind::Dynamic,
-                    is_extern,
+                    kind: StorageKeyKind::Dynamic(key_length),
+                    is_extern: storage_key.is_extern,
                 })
             }
             Expr::TupleFieldAccess { tuple, field, .. } => {
@@ -252,7 +275,12 @@ impl AsmBuilder {
 
                 // Grab the fields of the tuple
                 let Type::Tuple { ref fields, .. } = tuple.get_ty(intent) else {
-                    panic!("type must exist and be a tuple type");
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "type must exist and be a tuple type",
+                            span: empty_span(),
+                        },
+                    }));
                 };
 
                 // The field index is based on the type definition
@@ -266,12 +294,22 @@ impl AsmBuilder {
                                 .map_or(false, |name| name.name == ident.name)
                         })
                         .expect("field name must exist, this was checked in type checking"),
-                    TupleAccess::Error => panic!("unexpected TupleAccess::Error"),
+                    TupleAccess::Error => {
+                        return Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "unexpected TupleAccess::Error",
+                                span: empty_span(),
+                            },
+                        }));
+                    }
                 };
 
                 // This is the offset from the base key where the full tuple is stored.
-                let key_offset: usize =
-                    fields.iter().take(field_idx).map(|(_, ty)| ty.size()).sum();
+                let key_offset: usize = fields
+                    .iter()
+                    .take(field_idx)
+                    .map(|(_, ty)| ty.storage_slots())
+                    .sum();
 
                 // Increment the last word on the satck by `key_offset`. This works fine for the
                 // static case because all static keys start at zero (at least for now). For
@@ -281,18 +319,18 @@ impl AsmBuilder {
                 // storage design that uses b-trees.)
                 Ok(StorageKey {
                     kind: match kind {
-                        StorageKeyKind::Dynamic => {
+                        StorageKeyKind::Dynamic(size) => {
                             // Increment the last word on the stack by `key_offset`
                             s_asm.push(Stack::Push(key_offset as i64).into());
                             s_asm.push(Alu::Add.into());
-                            StorageKeyKind::Dynamic
+                            StorageKeyKind::Dynamic(size)
                         }
                         StorageKeyKind::Static(mut key) => {
                             // Remove the last word on the stack and increment it by `key_offset`.
-                            // The last word should itself be `key[3]`.
                             s_asm.push(Stack::Pop.into());
-                            key[3] += key_offset as i64;
-                            s_asm.push(Stack::Push(key[3]).into());
+                            let len = key.len();
+                            key[len - 1] += key_offset as i64;
+                            s_asm.push(Stack::Push(key[len - 1]).into());
                             StorageKeyKind::Static(key)
                         }
                     },
@@ -592,22 +630,20 @@ impl AsmBuilder {
                 }
             }
             (None, Some((state_index, (state_key, _)))) => {
-                let mut slot_index = 0;
-                for (idx, (state_key, _)) in intent.states().enumerate() {
-                    if idx < state_index {
-                        slot_index += state_key.get_ty(intent).size();
-                    } else {
-                        break;
-                    }
-                }
-                let size = state_key.get_ty(intent).size();
-                if size == 1 {
+                let slot_index: usize = intent
+                    .states()
+                    .take(state_index)
+                    .map(|(state_key, _)| state_key.get_ty(intent).storage_slots())
+                    .sum();
+
+                let slots = state_key.get_ty(intent).storage_slots();
+                if slots == 1 {
                     asm.push(Stack::Push(slot_index as i64).into());
                     asm.push(Stack::Push(0).into()); // 0 means "current state"
                     asm.push(Access::State.into());
                 } else {
                     asm.push(Stack::Push(slot_index as i64).into());
-                    asm.push(Stack::Push(size as i64).into()); // 0 means "current state"
+                    asm.push(Stack::Push(slots as i64).into()); // 0 means "current state"
                     asm.push(Stack::Push(0).into()); // 0 means "current state"
                     asm.push(Access::StateRange.into());
                 }
@@ -637,23 +673,23 @@ impl AsmBuilder {
         slot_idx: &mut u32,
         intent: &IntermediateIntent,
     ) -> Result<(), ErrorEmitted> {
-        let data_size = state.expr.get_ty(intent).size();
         let mut s_asm: Vec<StateRead> = Vec::new();
 
         // First, get the storage key
-        let is_extern = self
-            .compile_state_key(handler, &mut s_asm, &state.expr, intent)?
-            .is_extern;
+        let storage_key = self.compile_state_key(handler, &mut s_asm, &state.expr, intent)?;
+        let key_len = match storage_key.kind {
+            StorageKeyKind::Static(key) => key.len(),
+            StorageKeyKind::Dynamic(size) => size,
+        };
 
-        // Now, using the data size of the accessed type, produce an `Alloc` followed by a
-        // `StateReadKeyRange` instruction or a `StateReadKeyRangeExtern` instruction
+        let storage_slots = state.expr.get_ty(intent).storage_slots();
         s_asm.extend([
-            Stack::Push(data_size as i64).into(),
+            Stack::Push(storage_slots as i64).into(),
             StateSlots::AllocSlots.into(),
-            Stack::Push(4).into(),                // key_len
-            Stack::Push(data_size as i64).into(), // num_keys_to_read
-            Stack::Push(0).into(),                // slot_index
-            if is_extern {
+            Stack::Push(key_len as i64).into(),       // key_len
+            Stack::Push(storage_slots as i64).into(), // num_keys_to_read
+            Stack::Push(0).into(),                    // slot_index
+            if storage_key.is_extern {
                 StateRead::KeyRangeExtern
             } else {
                 StateRead::KeyRange
@@ -662,7 +698,7 @@ impl AsmBuilder {
         ]);
         self.s_asm.push(s_asm);
 
-        *slot_idx += data_size as u32;
+        *slot_idx += storage_slots as u32;
         Ok(())
     }
 }
