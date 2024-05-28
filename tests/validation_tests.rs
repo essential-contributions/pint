@@ -126,8 +126,10 @@ async fn validation_e2e() -> anyhow::Result<()> {
                 let split = line.split(',').collect::<Vec<_>>();
                 let (set_address, key, value) = if split.len() == 3 {
                     (ContentAddress(hex_to_bytes(split[0])), split[1], split[2])
-                } else {
+                } else if split.len() == 2 {
                     (intent_to_check.set.clone(), split[0], split[1])
+                } else {
+                    panic!("Error parsing db section");
                 };
 
                 pre_state.set(

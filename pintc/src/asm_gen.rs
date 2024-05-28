@@ -124,7 +124,12 @@ impl AsmBuilder {
                     // Expecting a single argument that is an array of integers representing a key
                     assert_eq!(args.len(), 1);
                     let Some(key_size) = args[0].get_ty(intent).get_array_size() else {
-                        panic!("unable to get key size")
+                        return Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "unable to get key size",
+                                span: empty_span(),
+                            },
+                        }));
                     };
 
                     let mut asm = Vec::new();
@@ -140,7 +145,12 @@ impl AsmBuilder {
                     // 2. A key: an array of integers
                     assert_eq!(args.len(), 2);
                     let Some(key_size) = args[1].get_ty(intent).get_array_size() else {
-                        panic!("unable to get key size")
+                        return Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "unable to get key size",
+                                span: empty_span(),
+                            },
+                        }));
                     };
 
                     // First, get the set-of-intents address and the storage key
@@ -198,7 +208,12 @@ impl AsmBuilder {
                     .expect("an extern block named `extern_path` must have been declared");
 
                 let Immediate::B256(val) = r#extern.address else {
-                    panic!("the address of the external set-of-intents must be a `b256` immediate")
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "the address of the external set-of-intents must be a `b256` immediate",
+                            span: empty_span(),
+                        },
+                    }));
                 };
 
                 // Push the external set-of-intents address followed by the base key
@@ -260,7 +275,12 @@ impl AsmBuilder {
 
                 // Grab the fields of the tuple
                 let Type::Tuple { ref fields, .. } = tuple.get_ty(intent) else {
-                    panic!("type must exist and be a tuple type");
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "type must exist and be a tuple type",
+                            span: empty_span(),
+                        },
+                    }));
                 };
 
                 // The field index is based on the type definition
@@ -274,7 +294,14 @@ impl AsmBuilder {
                                 .map_or(false, |name| name.name == ident.name)
                         })
                         .expect("field name must exist, this was checked in type checking"),
-                    TupleAccess::Error => panic!("unexpected TupleAccess::Error"),
+                    TupleAccess::Error => {
+                        return Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "unexpected TupleAccess::Error",
+                                span: empty_span(),
+                            },
+                        }));
+                    }
                 };
 
                 // This is the offset from the base key where the full tuple is stored.
