@@ -5,10 +5,7 @@ intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 [[data]]
 decision_variables = []
 intent_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", intent = "" }
-
-[[state_mutations]]
-pathway = 1
-mutations = [
+state_mutations = [
   { key = [
     0,
   ], value = [

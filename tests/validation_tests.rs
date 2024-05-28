@@ -6,7 +6,7 @@ use essential_state_read_vm::{
     asm::{self, Op},
     constraint,
     types::{
-        solution::{Mutation, Mutations, Solution, SolutionData},
+        solution::{Mutation, Solution, SolutionData},
         ContentAddress, IntentAddress,
     },
     Access, BytecodeMapped, GasLimit, SolutionAccess, StateSlots, Vm,
@@ -173,10 +173,9 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
         // Apply the state mutations to the state to produce the post state.
         let mut post_state = pre_state.clone();
-        for mutation in &solution.state_mutations {
-            let solution_data = &solution.data[usize::from(mutation.pathway)];
-            let set_addr = &solution_data.intent_to_solve.set;
-            for Mutation { key, value } in mutation.mutations.iter() {
+        for data in &solution.data {
+            let set_addr = &data.intent_to_solve.set;
+            for Mutation { key, value } in &data.state_mutations {
                 post_state.set(set_addr.clone(), key, value.clone());
             }
         }
@@ -282,30 +281,10 @@ fn parse_solution(
                     None => return Err(anyhow!("'intent_to_solve' field is missing")),
                 };
 
-                Ok(SolutionData {
-                    intent_to_solve,
-                    decision_variables,
-                })
-            })
-            .collect::<anyhow::Result<Vec<_>>>()?,
-        None => Vec::new(),
-    };
-
-    let state_mutations = match toml_content.get("state_mutations") {
-        Some(mutations) => mutations
-            .as_array()
-            .unwrap_or(&Vec::new())
-            .iter()
-            .map(|e| {
-                let pathway = e
-                    .get("pathway")
-                    .and_then(|addr| addr.as_integer())
-                    .ok_or_else(|| anyhow!("'pathway' field is missing or not an integer"))?
-                    as u16;
-                let mutations = e
-                    .get("mutations")
+                let state_mutations = e
+                    .get("state_mutations")
                     .and_then(|muta| muta.as_array())
-                    .ok_or_else(|| anyhow!("'mutations' field is missing or not an array"))?
+                    .unwrap_or(&Vec::new())
                     .iter()
                     .map(|mutation| {
                         Ok(Mutation {
@@ -334,15 +313,17 @@ fn parse_solution(
                         })
                     })
                     .collect::<anyhow::Result<Vec<_>>>()?;
-                Ok(Mutations { pathway, mutations })
+
+                Ok(SolutionData {
+                    intent_to_solve,
+                    decision_variables,
+                    state_mutations,
+                    transient_data: vec![],
+                })
             })
             .collect::<anyhow::Result<Vec<_>>>()?,
         None => Vec::new(),
     };
 
-    Ok(Solution {
-        data,
-        state_mutations,
-        transient_data: vec![],
-    })
+    Ok(Solution { data })
 }
