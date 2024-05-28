@@ -71,6 +71,34 @@ fn reals() {
         lex_one_success("0.000_034"),
         Token::RealLiteral("0.000_034".to_owned())
     );
+    assert_eq!(
+        lex_one_success("1.23e_4"),
+        Token::RealLiteral("1.23e_4".to_owned())
+    );
+    assert_eq!(
+        lex_one_success("1.23_e4"),
+        Token::RealLiteral("1.23_e4".to_owned())
+    );
+    assert_eq!(
+        lex_one_success("1.23e4_"),
+        Token::RealLiteral("1.23e4_".to_owned())
+    );
+    assert_eq!(
+        lex_one_success("1_000.34"),
+        Token::RealLiteral("1_000.34".to_owned())
+    );
+    assert_eq!(
+        lex_one_success("1.23e1_000"),
+        Token::RealLiteral("1.23e1_000".to_owned())
+    );
+    assert_eq!(
+        lex_one_success("1.23E_5"),
+        Token::RealLiteral("1.23E_5".to_owned())
+    );
+    assert_eq!(
+        lex_one_success("1.23e-_5"),
+        Token::RealLiteral("1.23e-_5".to_owned())
+    );
     check(
         &format!("{:?}", lex(".34", Rc::from(Path::new("test")))),
         expect_test::expect![[r#"([(Dot, "test":0..1), (IntLiteral("34"), "test":1..3)], [])"#]],
@@ -116,6 +144,22 @@ fn ints() {
     assert_eq!(
         lex_one_success("1_000"),
         Token::IntLiteral("1_000".to_owned())
+    );
+    assert_eq!(
+        lex_one_success("1_000_000"),
+        Token::IntLiteral("1_000_000".to_owned())
+    );
+    assert_eq!(
+        lex_one_success("1_2_3_4_5"),
+        Token::IntLiteral("1_2_3_4_5".to_owned())
+    );
+    assert_eq!(
+        lex_one_success("0x1_2_3_4_5"),
+        Token::IntLiteral("0x1_2_3_4_5".to_owned())
+    );
+    assert_eq!(
+        lex_one_success("0b1_0_1_0"),
+        Token::IntLiteral("0b1_0_1_0".to_owned())
     );
 }
 
