@@ -92,7 +92,6 @@ fn ints() {
         lex_one_success("0b1010"),
         Token::IntLiteral("0b1010".to_owned())
     );
-
     assert_eq!(
         lex_one_success("1111111111222222222233333333334444444444"),
         Token::IntLiteral("1111111111222222222233333333334444444444".to_owned())
@@ -109,6 +108,10 @@ fn ints() {
             "0b11111111110000000000111111111100000000001111111111000000000011111111110000000000"
                 .to_owned()
         )
+    );
+    assert_eq!(
+        lex_one_success("1_000"),
+        Token::IntLiteral("1_000".to_owned())
     );
 }
 

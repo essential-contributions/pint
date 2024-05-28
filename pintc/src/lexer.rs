@@ -163,7 +163,7 @@ pub enum Token {
     Ident((String, bool)),
     #[regex(r"[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+", |lex| lex.slice().to_string())]
     RealLiteral(String),
-    #[regex(r"0x[0-9A-Fa-f]+|0b[0-1]+|[0-9]+", |lex| lex.slice().to_string())]
+    #[regex(r"0x([0-9A-Fa-f]_?)+|0b([0-1]_?)+|([0-9]_?)+", |lex| lex.slice().to_string())]
     IntLiteral(String),
     #[regex(
         r#""([^"\\]|\\(x[0-9a-fA-F]{2}|[nt"]|\\|\n))*""#,

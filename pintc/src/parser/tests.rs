@@ -1552,8 +1552,8 @@ fn idents() {
     check(
         &run_parser!(ident, "12_ab"),
         expect_test::expect![[r#"
-            expected `ident`, found `12`
-            @12..14: expected `ident`
+            expected `ident`, found `12_`
+            @12..15: expected `ident`
         "#]],
     );
     check(
