@@ -67,6 +67,10 @@ fn reals() {
         lex_one_success("0.34"),
         Token::RealLiteral("0.34".to_owned())
     );
+    assert_eq!(
+        lex_one_success("0.000_034"),
+        Token::RealLiteral("0.000_034".to_owned())
+    );
     check(
         &format!("{:?}", lex(".34", Rc::from(Path::new("test")))),
         expect_test::expect![[r#"([(Dot, "test":0..1), (IntLiteral("34"), "test":1..3)], [])"#]],
