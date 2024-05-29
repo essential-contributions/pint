@@ -2110,6 +2110,16 @@ fn tuple_field_accesses() {
         expect_test::expect!["(1 + 2.a)"],
     );
 
+    check(
+        &run_parser!(expr, "{1_1, 2_000}.x"),
+        expect_test::expect!["{11, 2000}.x"],
+    );
+
+    check(
+        &run_parser!(expr, "{1_100.4e3, 2_0e3}.x"),
+        expect_test::expect!["{1.1004e6, 2e4}.x"],
+    );
+
     let pint = (yp::PintParser::new(), "");
 
     check(
