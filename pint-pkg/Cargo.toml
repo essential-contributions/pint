@@ -1,0 +1,16 @@
+[package]
+name = "pint-pkg"
+description = "The library implementation for Pint package management."
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+petgraph = { workspace = true }
+pint-manifest = { workspace = true }
+pintc = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }

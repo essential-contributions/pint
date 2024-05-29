@@ -1037,6 +1037,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "pint-pkg"
+version = "0.1.0"
+dependencies = [
+ "petgraph",
+ "pint-manifest",
+ "pintc",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "pint_solve"
 version = "0.1.0"
 dependencies = [

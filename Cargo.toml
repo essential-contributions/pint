@@ -3,6 +3,7 @@ resolver = "2"
 members = [
   "examples",
   "pint-manifest",
+  "pint-pkg",
   "pint-solve",
   "pintc",
   "pintfmt",
@@ -22,7 +23,9 @@ expect-test = "1.4"
 fxhash = "0.2"
 itertools = "0.12"
 logos = "0.14"
+petgraph = "0.6"
 pint-manifest = { path = "pint-manifest" }
+pint-pkg = { path = "pint-pkg" }
 pintc = { path = "pintc" }
 serde = { version = "1", features = ["derive"] }
 serde_ignored = "0.1"
