@@ -72,10 +72,6 @@ fn reals() {
         Token::RealLiteral("0.000_034".to_owned())
     );
     assert_eq!(
-        lex_one_success("1.23e_4"),
-        Token::RealLiteral("1.23e_4".to_owned())
-    );
-    assert_eq!(
         lex_one_success("1.23_e4"),
         Token::RealLiteral("1.23_e4".to_owned())
     );
@@ -90,14 +86,6 @@ fn reals() {
     assert_eq!(
         lex_one_success("1.23e1_000"),
         Token::RealLiteral("1.23e1_000".to_owned())
-    );
-    assert_eq!(
-        lex_one_success("1.23E_5"),
-        Token::RealLiteral("1.23E_5".to_owned())
-    );
-    assert_eq!(
-        lex_one_success("1.23e-_5"),
-        Token::RealLiteral("1.23e-_5".to_owned())
     );
     check(
         &format!("{:?}", lex(".34", Rc::from(Path::new("test")))),

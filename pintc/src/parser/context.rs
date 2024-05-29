@@ -88,6 +88,7 @@ impl<'a> ParserContext<'a> {
     ) -> ExprKey {
         let span = (self.span_from)(l, r);
         let index_span = (self.span_from)(m, r);
+        let int_str = int_str.replace("_", "");
 
         self.current_ii().exprs.insert(
             Expr::TupleFieldAccess {
@@ -127,6 +128,7 @@ impl<'a> ParserContext<'a> {
         real_str: String,
         (l, m, r): (usize, usize, usize),
     ) -> ExprKey {
+        let real_str = real_str.replace("_", "");
         match real_str.chars().position(|c| c == '.') {
             Some(dot_index) => {
                 let first_index = real_str[0..dot_index]
