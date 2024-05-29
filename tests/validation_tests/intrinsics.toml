@@ -69,10 +69,7 @@ decision_variables = [
   1,
 ]
 intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "::Foo" }
-
-[[state_mutations]]
-pathway = 0
-mutations = [
+state_mutations = [
   { key = [
     0,
   ], value = [

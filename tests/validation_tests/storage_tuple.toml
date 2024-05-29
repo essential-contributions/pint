@@ -1,14 +1,7 @@
 [[data]]
 decision_variables = []
 intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "::Foo" }
-
-[[data]]
-decision_variables = []
-intent_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", intent = "" }
-
-[[state_mutations]]
-pathway = 0
-mutations = [
+state_mutations = [
   { key = [
     2,
     0,
@@ -56,9 +49,10 @@ mutations = [
   ] },
 ]
 
-[[state_mutations]]
-pathway = 1
-mutations = [
+[[data]]
+decision_variables = []
+intent_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", intent = "" }
+state_mutations = [
   { key = [
     2,
     0,
