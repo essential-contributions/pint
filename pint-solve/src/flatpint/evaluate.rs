@@ -1,10 +1,10 @@
 use crate::flatpint::{BinaryOp, Expr, Immediate, UnaryOp};
-use std::collections::HashMap;
+use fxhash::FxHashMap;
 
 /// Given an `Expr` and a solution, plug in the solution into the `Expr` and evaluate it to an
 /// `Immediate`.
 #[allow(unused)]
-pub(crate) fn evaluate_expr(expr: &Expr, solution: &HashMap<String, Immediate>) -> Immediate {
+pub(crate) fn evaluate_expr(expr: &Expr, solution: &FxHashMap<String, Immediate>) -> Immediate {
     /// Compares two floats using a threshold
     fn approx_equal(a: f64, b: f64) -> bool {
         (a - b).abs() < 1e-6 // This threshold is arbitrarily selected for now

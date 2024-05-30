@@ -9,8 +9,8 @@ use crate::{
     error::SolveError,
     flatpint::{evaluate::evaluate_expr, Decl, FlatPint, Immediate, Solve},
 };
+use fxhash::FxHashMap;
 use russcip::{prelude::*, ProblemCreated, Solved};
-use std::collections::HashMap;
 
 pub struct Solver<'a, State> {
     model: Model<State>,
@@ -78,11 +78,11 @@ impl<'a> Solver<'a, ProblemCreated> {
 }
 
 impl<'a> super::Solver<'a, Solved> {
-    /// Returns a `HashMap` that contains a solution. It maps decision variable names, as
-    /// `String`s, to `flatpint::Immediate` values. Returns an empty `HashMap` in case a solution
+    /// Returns a `FxHashMap` that contains a solution. It maps decision variable names, as
+    /// `String`s, to `flatpint::Immediate` values. Returns an empty `FxHashMap` in case a solution
     /// cannot be found
     #[allow(unused)]
-    pub fn solution(&self) -> HashMap<String, Immediate> {
+    pub fn solution(&self) -> FxHashMap<String, Immediate> {
         match self.model.status() {
             Status::Optimal => {
                 let sol = self.model.best_sol().unwrap();
@@ -113,9 +113,9 @@ impl<'a> super::Solver<'a, Solved> {
                             },
                         )
                     })
-                    .collect::<HashMap<_, _>>()
+                    .collect::<FxHashMap<_, _>>()
             }
-            _ => HashMap::new(),
+            _ => FxHashMap::default(),
         }
     }
 
