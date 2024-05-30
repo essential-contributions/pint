@@ -278,6 +278,19 @@ fn immediates() {
     check(&run_parser!(immediate, "0b111"), expect_test::expect!["7"]);
     check(&run_parser!(immediate, "1"), expect_test::expect!["1"]);
 
+    check(
+        &run_parser!(immediate, "0x000_88"),
+        expect_test::expect!["136"],
+    );
+    check(
+        &run_parser!(immediate, "0b000_111"),
+        expect_test::expect!["7"],
+    );
+    check(
+        &run_parser!(immediate, "1_000"),
+        expect_test::expect!["1000"],
+    );
+
     // i64 hex literals
     check(
         &run_parser!(immediate, "0x0000000000000011"),
@@ -311,6 +324,11 @@ fn immediates() {
     check(
         &run_parser!(immediate, "0xFFFFFFFFFFFFFFFF"),
         expect_test::expect!["-1"],
+    );
+
+    check(
+        &run_parser!(immediate, "0x0_000_000_011"),
+        expect_test::expect!["17"],
     );
 
     // i64 binary literals
@@ -371,6 +389,14 @@ fn immediates() {
         expect_test::expect!["0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"],
     );
 
+    check(
+        &run_parser!(
+            immediate,
+            "0xF_FFF_FFF_FFF_FFF_FFF_FFF_FFF_FFF_FFF_FFF_FFF_FFF_FFF_FFF_FFF_FFF_FFF_FFF_FFF_FFF_FFF"
+        ),
+        expect_test::expect!["0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"],
+    );
+
     // b256 binary literals
     check(
         &run_parser!(immediate, "0b1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"),
@@ -379,6 +405,11 @@ fn immediates() {
 
     check(
         &run_parser!(immediate, "0b1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011"),
+        expect_test::expect!["0x8000000000000000000000000000000000000000000000000000000000000003"],
+    );
+
+    check(
+        &run_parser!(immediate, "0b1_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_00000_0000_0000_0000_0000_00000_0000_0000_00000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0011"),
         expect_test::expect!["0x8000000000000000000000000000000000000000000000000000000000000003"],
     );
 
@@ -432,8 +463,57 @@ fn immediates() {
     );
 
     check(
-        &run_parser!(immediate, "1.3"),
-        expect_test::expect!["1.3e0"],
+        &run_parser!(immediate, "2.34e2_000"),
+        expect_test::expect!["inf"],
+    );
+
+    // real literals
+
+    check(
+        &run_parser!(immediate, "2.05"),
+        expect_test::expect!["2.05e0"],
+    );
+
+    check(&run_parser!(immediate, "3.0"), expect_test::expect!["3e0"]);
+
+    check(
+        &run_parser!(immediate, "3.5e-3"),
+        expect_test::expect!["3.5e-3"],
+    );
+
+    check(
+        &run_parser!(immediate, "2.3E6"),
+        expect_test::expect!["2.3e6"],
+    );
+
+    check(
+        &run_parser!(immediate, "0.45"),
+        expect_test::expect!["4.5e-1"],
+    );
+
+    check(
+        &run_parser!(immediate, "0.000_045"),
+        expect_test::expect!["4.5e-5"],
+    );
+
+    check(
+        &run_parser!(immediate, "2.34_e5"),
+        expect_test::expect!["2.34e5"],
+    );
+
+    check(
+        &run_parser!(immediate, "2.34e5_"),
+        expect_test::expect!["2.34e5"],
+    );
+
+    check(
+        &run_parser!(immediate, "2_000.45"),
+        expect_test::expect!["2.00045e3"],
+    );
+
+    check(
+        &run_parser!(immediate, "2_000.450_00e0_000"),
+        expect_test::expect!["2.00045e3"],
     );
 }
 
@@ -2028,6 +2108,16 @@ fn tuple_field_accesses() {
     check(
         &run_parser!(expr, "1 + 2 .a"),
         expect_test::expect!["(1 + 2.a)"],
+    );
+
+    check(
+        &run_parser!(expr, "{1_1, 2_000}.x"),
+        expect_test::expect!["{11, 2000}.x"],
+    );
+
+    check(
+        &run_parser!(expr, "{1_100.4e3, 2_0e3}.x"),
+        expect_test::expect!["{1.1004e6, 2e4}.x"],
     );
 
     let pint = (yp::PintParser::new(), "");
