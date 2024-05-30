@@ -1,0 +1,47 @@
+let a = 1_100_000;
+let b = 1000;
+let c = 1_2_3_4_5;
+let x = 1_100e3;
+let y = 1_100.500_123e0_000_00;
+let z = 1.2E5;
+
+constraint a / b > c;
+constraint x / y > z;
+
+solve satisfy;
+
+// intermediate <<<
+// var ::a;
+// var ::b;
+// var ::c;
+// var ::x;
+// var ::y;
+// var ::z;
+// constraint (::a == 1100000);
+// constraint (::b == 1000);
+// constraint (::c == 12345);
+// constraint (::x == 1.1e6);
+// constraint (::y == 1.100500123e3);
+// constraint (::z == 1.2e5);
+// constraint ((::a / ::b) > ::c);
+// constraint ((::x / ::y) > ::z);
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::a: int;
+// var ::b: int;
+// var ::c: int;
+// var ::x: real;
+// var ::y: real;
+// var ::z: real;
+// constraint (::a == 1100000);
+// constraint (::b == 1000);
+// constraint (::c == 12345);
+// constraint (::x == 1.1e6);
+// constraint (::y == 1.100500123e3);
+// constraint (::z == 1.2e5);
+// constraint ((::a / ::b) > ::c);
+// constraint ((::x / ::y) > ::z);
+// solve satisfy;
+// >>>

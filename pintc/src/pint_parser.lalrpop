@@ -1048,7 +1048,7 @@ PathWithLast<Last>: Path = {
 
 Immediate: Immediate = {
     ImmediateInt,
-    <s:"real_lit"> => Immediate::Real(s.parse().unwrap()),
+    <s:"real_lit"> => Immediate::Real(s.replace("_", "").parse().unwrap()),
     "true" => Immediate::Bool(true),
     "false" => Immediate::Bool(false),
     <s:"str_lit"> => Immediate::String(s),
@@ -1057,6 +1057,7 @@ Immediate: Immediate = {
 ImmediateInt: Immediate = {
     <l:@L> <s:"int_lit"> <r:@R>=> {
         let span = (context.span_from)(l, r);
+        let s = s.replace("_", "");
         match s.chars().nth(1) {
             Some('b') => {
                 let digits = s.len() - 2;
