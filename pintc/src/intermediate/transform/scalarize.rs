@@ -389,7 +389,7 @@ fn scalarize_array_access(
         let index_expr = index_key.get(ii);
         let index_span = index_expr.span().clone();
         let index_value = index_expr
-            .evaluate(handler, ii, &HashMap::default())
+            .evaluate(handler, ii, &FxHashMap::default())
             .map_err(|_| {
                 handler.emit_err(Error::Compile {
                     error: CompileError::NonConstArrayIndex {
