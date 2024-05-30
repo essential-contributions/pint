@@ -137,6 +137,8 @@ pub enum Token {
     #[token("satisfy")]
     Satisfy,
 
+    #[token("pub")]
+    Pub,
     #[token("use")]
     Use,
     #[token("self")]
@@ -226,6 +228,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Minimize,
     Token::Solve,
     Token::Satisfy,
+    Token::Pub,
     Token::Use,
     Token::SelfTok,
     Token::As,
@@ -327,6 +330,7 @@ impl fmt::Display for Token {
             Token::Solve => write!(f, "solve"),
             Token::Satisfy => write!(f, "satisfy"),
             Token::Use => write!(f, "use"),
+            Token::Pub => write!(f, "pub"),
             Token::SelfTok => write!(f, "self"),
             Token::As => write!(f, "as"),
             Token::Intent => write!(f, "intent"),

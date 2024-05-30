@@ -1,0 +1,45 @@
+interface Extern {
+    storage {
+        s1: int,
+        s2: int,
+    }
+
+    intent Foo {
+        pub let a: int;
+        pub let b: int;
+    }
+
+    intent Bar;
+}
+
+intent Simple {
+    pub let x: int;
+    pub let y: int;
+
+    let z: int;
+    let w: int;
+
+    // Local decision variables
+    constraint z == 1;
+    constraint w == 2;
+
+    // Public decision variables (i.e. transient data) 
+    constraint x == 3;
+    constraint y == 4;
+
+    interface I = Extern(0x1111111111111111111111111111111111111111111111111111111111111111);
+    set Foo1 = I::Foo(0x2222222222222222222222222222222222222222222222222222222222222222);
+    set Foo2 = I::Foo(0x2222222222222222222222222222222222222222222222222222222222222222);
+
+    // External storage
+    state s1 = I::storage::s1;
+
+    constraint s1' = 50;
+
+    constraint s1' == 99;
+    constraint s22 == 77;
+
+    // External decision variables (i.e. external transient data) 
+    constraint Extern::Foo1::a == 19;
+    constraint Extern::Foo2::a == 20;
+}

@@ -43,11 +43,39 @@ impl super::IntermediateIntent {
                 "{indentation}extern {}({}) {{",
                 r#extern.name, r#extern.address
             )?;
-            writeln!(f, "{indentation}    storage {{")?;
-            for storage_var in &r#extern.storage_vars {
-                writeln!(f, "{indentation}        {}", self.with_ii(storage_var))?;
+
+            // Print storage
+            if !r#extern.storage_vars.is_empty() {
+                writeln!(f, "{indentation}    storage {{")?;
+                for storage_var in &r#extern.storage_vars {
+                    writeln!(f, "{indentation}        {}", self.with_ii(storage_var))?;
+                }
+                writeln!(f, "{indentation}    }}")?;
             }
-            writeln!(f, "{indentation}    }}")?;
+
+            // Print each intent interface
+            for intent_interface in &r#extern.intent_interfaces {
+                write!(
+                    f,
+                    "{indentation}    intent {}({})",
+                    intent_interface.name, intent_interface.address
+                )?;
+
+                if intent_interface.vars.is_empty() {
+                    writeln!(f, ";")?;
+                } else {
+                    writeln!(f, " {{")?;
+                    for var in &intent_interface.vars {
+                        writeln!(
+                            f,
+                            "{indentation}        var {}: {};",
+                            var.name,
+                            self.with_ii(var.ty.clone())
+                        )?;
+                    }
+                    writeln!(f, "{indentation}    }}")?;
+                }
+            }
             writeln!(f, "{indentation}}}")?;
         }
         for (var_key, _) in self.vars() {

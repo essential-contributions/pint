@@ -1,0 +1,8 @@
+intent Foo {
+    pub let x: int;
+    pub let z: int;
+
+    let y: int;
+
+    constraint x == z;
+}

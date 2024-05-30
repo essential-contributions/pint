@@ -581,7 +581,10 @@ impl IntermediateIntent {
             Ok(Inference::Type(ty.clone()))
         } else {
             // None of the above.  That leaves enums.
-            self.infer_enum_variant_by_name(path, span)
+            match self.infer_enum_variant_by_name(dbg!(path), span) {
+                Ok(i) => Ok(i),
+                Err(_) => self.infer_extern_intent_var(path, span),
+            }
         }
     }
 
@@ -640,6 +643,61 @@ impl IntermediateIntent {
         };
 
         Ok(Inference::Type(s_var.ty.clone()))
+    }
+
+    fn infer_extern_intent_var(&self, path: &Path, span: &Span) -> Result<Inference, Error> {
+        let split = path[2..].split("::").collect::<Vec<_>>();
+        let len = split.len();
+
+        // Find the extern decl
+        let e = self
+            .externs
+            .iter()
+            .find(|e| e.name.to_string() == "::".to_owned() + split[len - 3]);
+
+        if e.is_none() {
+            return Err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "extern decl not found",
+                    span: span.clone(),
+                },
+            });
+        }
+
+        // Now find the external intent
+        let e = e.unwrap();
+        let external_intent = e
+            .intent_interfaces
+            .iter()
+            .find(|iface| iface.name.to_string() == split[len - 2]);
+
+        if external_intent.is_none() {
+            return Err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "external intent decl not found",
+                    span: span.clone(),
+                },
+            });
+        }
+
+        let external_intent = external_intent.unwrap();
+
+        let var = external_intent
+            .vars
+            .iter()
+            .find(|var| var.name == split[len - 1]);
+
+        if var.is_none() {
+            return Err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "external intent var decl not found",
+                    span: span.clone(),
+                },
+            });
+        }
+        let var = var.unwrap();
+
+        Ok(Inference::Type(var.ty.clone()))
     }
 
     fn infer_enum_variant_by_name(&self, path: &Path, span: &Span) -> Result<Inference, Error> {

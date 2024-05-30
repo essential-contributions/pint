@@ -2,7 +2,7 @@ use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp, Expr, Immediate, TupleAccess, UnaryOp},
     intermediate::{
-        ConstraintDecl, ExprKey, IntermediateIntent, Program, ProgramKind, State as StateVar,
+        ConstraintDecl, ExprKey, IntermediateIntent, Program, ProgramKind, State as StateVar, Var,
     },
     span::empty_span,
     types::Type,
@@ -81,6 +81,9 @@ pub struct AsmBuilder {
     // Maps indices of `let` variables (which may be wider than a word) to a list of low level
     // word-wide decision variables
     var_to_d_vars: HashMap<usize, Vec<usize>>,
+    // Maps pub vars to transient data index, skipping over non-pub vars. The transient index is
+    // used to calculate keys
+    pub_var_to_transient_index: HashMap<usize, usize>,
 }
 
 #[derive(Debug)]
@@ -428,11 +431,11 @@ impl AsmBuilder {
             }
             Expr::PathByName(path, _) => {
                 // Search for a decision variable or a state variable.
-                self.compile_path(asm, &path.to_string(), intent);
+                self.compile_path(handler, asm, &path.to_string(), intent)?;
             }
             Expr::PathByKey(var_key, _) => {
                 // Search for a decision variable or a state variable.
-                self.compile_path(asm, &var_key.get(intent).name, intent);
+                self.compile_path(handler, asm, &var_key.get(intent).name, intent)?;
             }
             Expr::StorageAccess(_, _) | Expr::ExternalStorageAccess { .. } => {
                 return Err(handler.emit_err(Error::Compile {
@@ -612,10 +615,11 @@ impl AsmBuilder {
     /// variable or a state variable.
     fn compile_path(
         &mut self,
+        handler: &Handler,
         asm: &mut Vec<Constraint>,
         path: &String,
         intent: &IntermediateIntent,
-    ) {
+    ) -> Result<(), ErrorEmitted> {
         let var_index = intent.vars().position(|(_, var)| &var.name == path);
         let state_and_index = intent
             .states()
@@ -624,10 +628,25 @@ impl AsmBuilder {
 
         match (var_index, state_and_index) {
             (Some(var_index), None) => {
-                for d_var in &self.var_to_d_vars[&var_index] {
-                    asm.push(Stack::Push(*d_var as i64).into());
-                    asm.push(Access::DecisionVar.into());
+                let var_key = intent.vars().find(|(_, var)| &var.name == path).unwrap().0;
+                if let Some(d_vars) = self.var_to_d_vars.get(&var_index) {
+                    for d_var in d_vars {
+                        asm.push(Stack::Push(*d_var as i64).into());
+                        asm.push(Access::DecisionVar.into());
+                    }
+                } else if let Some(transient_index) =
+                    self.pub_var_to_transient_index.get(&var_index)
+                {
+                    if var_key.get_ty(intent).is_any_primitive() {
+                        asm.push(Stack::Push(*transient_index as i64).into());
+                        asm.push(Stack::Push(1).into());
+                        asm.push(Constraint::Access(Access::ThisPathway));
+                        asm.push(Constraint::Access(Access::Transient));
+                    } else {
+                        todo!()
+                    }
                 }
+                Ok(())
             }
             (None, Some((state_index, (state_key, _)))) => {
                 let slot_index: usize = intent
@@ -647,8 +666,75 @@ impl AsmBuilder {
                     asm.push(Stack::Push(0).into()); // 0 means "current state"
                     asm.push(Access::StateRange.into());
                 }
+                Ok(())
             }
-            _ => unreachable!("guaranteed by semantic analysis"),
+            _ => {
+                // try extern
+                let split = path[2..].split("::").collect::<Vec<_>>();
+                let len = split.len();
+
+                // Find the extern decl
+                let e = intent
+                    .externs
+                    .iter()
+                    .find(|e| e.name.to_string() == "::".to_owned() + split[len - 3]);
+
+                if e.is_none() {
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "extern decl not found",
+                            span: empty_span(),
+                        },
+                    }));
+                }
+
+                // Now find the external intent
+                let e = e.unwrap();
+                let external_intent = e
+                    .intent_interfaces
+                    .iter()
+                    .find(|iface| iface.name.to_string() == split[len - 2]);
+
+                if external_intent.is_none() {
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "external intent decl not found",
+                            span: empty_span(),
+                        },
+                    }));
+                }
+
+                let external_intent = external_intent.unwrap();
+
+                let var = external_intent
+                    .vars
+                    .iter()
+                    .find(|var| var.name == split[len - 1]);
+
+                let transient_index = external_intent
+                    .vars
+                    .iter()
+                    .position(|var| var.name == split[len - 1])
+                    .unwrap();
+
+                if var.is_none() {
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "external intent var decl not found",
+                            span: empty_span(),
+                        },
+                    }));
+                }
+                let var = var.unwrap();
+                dbg!(&var);
+
+                asm.push(Stack::Push(transient_index as i64).into());
+                asm.push(Stack::Push(1).into());
+                asm.push(Stack::Push(1).into()); // Second pathway
+                asm.push(Constraint::Access(Access::Transient));
+
+                Ok(())
+            }
         }
     }
 
@@ -716,8 +802,14 @@ pub fn intent_to_asm(
     // This assumes that all decision variables are either `b256` or have size 1 word, as a result
     // of flattening.
     let mut d_var = 0;
-    for (idx, (var_key, _)) in final_intent.vars().enumerate() {
-        if var_key.get_ty(final_intent).is_b256() {
+    let mut transient_index = 0;
+    for (idx, (var_key, Var { is_pub, .. })) in final_intent.vars().enumerate() {
+        if *is_pub {
+            builder
+                .pub_var_to_transient_index
+                .insert(idx, transient_index);
+            transient_index += 1;
+        } else if var_key.get_ty(final_intent).is_b256() {
             // `B256` variables map to 4 separate low level decision variables, 1 word wide each.
             builder
                 .var_to_d_vars

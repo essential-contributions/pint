@@ -456,6 +456,29 @@ impl<'a> ProjectParser<'a> {
                 ii.storage = storage.clone();
                 ii.externs = externs.clone();
 
+                let extern_names = ii
+                    .externs
+                    .iter()
+                    .map(|e| e.name.clone())
+                    .collect::<Vec<_>>();
+
+                for name in &extern_names {
+                    ii.insert_var(
+                        self.handler,
+                        "",
+                        None,
+                        false,
+                        &Ident {
+                            name: "__".to_owned() + &name.name + "_" + "pathway",
+                            ..name.clone()
+                        },
+                        Some(Type::Primitive {
+                            kind: PrimitiveKind::Int,
+                            span: empty_span(),
+                        }),
+                    );
+                }
+
                 for (symbol, span) in &root_symbols {
                     // We could call `ii.add_top_level_symbol_with_name` directly here, but then
                     // the spans would be reversed so I decided to do this manually. We want the
@@ -646,7 +669,7 @@ impl<'a> ProjectParser<'a> {
                     continue;
                 }
 
-                let path_mod = mod_path_strs.join("::");
+                /*let path_mod = mod_path_strs.join("::");
                 let path_enum = enum_path_strs.join("::");
                 let path_full = format!("{path_mod}::{suffix}");
 
@@ -657,7 +680,7 @@ impl<'a> ProjectParser<'a> {
                         path_enum,
                         span: span.clone(),
                     },
-                });
+                });*/
             }
         }
     }

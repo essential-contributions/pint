@@ -108,6 +108,7 @@ impl IntermediateIntent {
         handler: &Handler,
         mod_prefix: &str,
         local_scope: Option<&str>,
+        is_pub: bool,
         name: &Ident,
         ty: Option<Type>,
     ) -> std::result::Result<VarKey, ErrorEmitted> {
@@ -116,6 +117,7 @@ impl IntermediateIntent {
         let var_key = self.vars.insert(
             Var {
                 name: full_name,
+                is_pub,
                 span: name.span.clone(),
             },
             if let Some(ty) = ty {
@@ -505,12 +507,24 @@ impl DisplayWithII for StateKey {
 #[derive(Clone, Debug)]
 pub struct Var {
     pub name: Path,
-    span: Span,
+    pub is_pub: bool,
+    pub span: Span,
+}
+
+/// A decision variable with an optional type.
+#[derive(Clone, Debug)]
+pub struct InterfaceVar {
+    pub name: Path,
+    pub ty: Type,
+    pub span: Span,
 }
 
 impl DisplayWithII for VarKey {
     fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
         let var = &self.get(ii);
+        if var.is_pub {
+            write!(f, "pub ")?;
+        }
         write!(f, "var {}", var.name)?;
         let ty = self.get_ty(ii);
         if !ty.is_unknown() {
@@ -637,7 +651,15 @@ pub struct Extern {
     pub name: Ident,
     pub address: Immediate,
     pub storage_vars: Vec<StorageVar>,
+    pub intent_interfaces: Vec<IntentInterface>,
     pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct IntentInterface {
+    pub name: Ident,
+    pub address: Immediate,
+    pub vars: Vec<InterfaceVar>,
 }
 
 #[derive(Clone, Copy)]

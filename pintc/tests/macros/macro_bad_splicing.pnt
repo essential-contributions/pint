@@ -19,7 +19,7 @@ solve satisfy;
 // a macro named `::@add` is defined but not with the required signature to fulfill this call
 // spliced variable `::b` must be an array
 // @123..125: unable to splice non-array variable `::b`
-// expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `enum`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `let`, `macro_name`, `real_lit`, `solve`, `state`, `str_lit`, `true`, `type`, `use`, `{`, or `}`, found `~b`
-// @123..125: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `enum`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `let`, `macro_name`, `real_lit`, `solve`, `state`, `str_lit`, `true`, `type`, `use`, `{`, or `}`
+// expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `enum`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `let`, `macro_name`, `pub`, `real_lit`, `solve`, `state`, `str_lit`, `true`, `type`, `use`, `{`, or `}`, found `~b`
+// @123..125: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `constraint`, `enum`, `exists`, `false`, `forall`, `ident`, `if`, `int_lit`, `let`, `macro_name`, `pub`, `real_lit`, `solve`, `state`, `str_lit`, `true`, `type`, `use`, `{`, or `}`
 // @118..130: when making macro call to '::@add'
 // >>>

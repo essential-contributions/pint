@@ -1,0 +1,21 @@
+extern Extern1(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE) {
+    intent Foo(0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF) {
+        pub let a: int;
+        pub let b: int;
+    }
+
+    intent Bar(0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB);
+}
+
+intent Simple {
+    pub let x: int;
+    pub let y: int;
+
+    let z: int;
+    let w: int;
+
+    constraint x + z == y + w;
+
+    constraint Extern1::Foo::a == 19;
+    constraint Extern1::Foo::b == 91;
+}

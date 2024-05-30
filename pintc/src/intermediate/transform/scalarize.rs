@@ -217,12 +217,18 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
 /// identifiers, but internally, this is fine and helps make the lookup quite easy.
 fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitted> {
     // Find the next array variable to convert.
-    let Some((array_var_key, el_ty, array_size, span)) = ii.vars().find_map(|(var_key, _)| {
-        let var_ty = var_key.get_ty(ii);
-        get_array_params(var_ty).map(|(el_ty, _range, array_size, span)| {
-            (var_key, el_ty.clone(), *array_size, span.clone())
+    let Some((array_var_key, el_ty, array_size, span)) =
+        ii.vars().find_map(|(var_key, Var { is_pub, .. })| {
+            if *is_pub {
+                None
+            } else {
+                let var_ty = var_key.get_ty(ii);
+                get_array_params(var_ty).map(|(el_ty, _range, array_size, span)| {
+                    (var_key, el_ty.clone(), *array_size, span.clone())
+                })
+            }
         })
-    }) else {
+    else {
         // No array vars found.
         return Ok(false);
     };
@@ -245,6 +251,7 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
             ii.vars.insert(
                 Var {
                     name: format!("{array_name}[{idx}]"),
+                    is_pub: false,
                     span: span.clone(),
                 },
                 el_ty.clone(),
@@ -810,7 +817,10 @@ fn split_tuple_vars(
     let mut new_vars = Vec::new();
 
     // Iterate for all the tuple vars and gather their fields into `new_vars`.
-    for (var_key, Var { name, span }) in ii.vars() {
+    for (var_key, Var { name, span, is_pub }) in ii.vars() {
+        if *is_pub {
+            continue;
+        }
         if old_tuple_vars.contains(&var_key) {
             // Already split; skip it.
             continue;
@@ -851,6 +861,7 @@ fn split_tuple_vars(
         let new_var_key = ii.vars.insert(
             Var {
                 name: opt_sym_name.as_ref().unwrap_or(&idx_name).clone(),
+                is_pub: false,
                 span,
             },
             field_ty.clone(),
