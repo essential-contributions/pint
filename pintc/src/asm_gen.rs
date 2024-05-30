@@ -8,10 +8,10 @@ use crate::{
     types::Type,
 };
 use essential_types::intent::{Directive, Intent};
+use fxhash::FxHashMap;
 use state_asm::{
     Access, Alu, Constraint, ControlFlow, Crypto, Op as StateRead, Pred, Stack, StateSlots,
 };
-use std::collections::HashMap;
 
 mod display;
 #[cfg(test)]
@@ -80,7 +80,7 @@ pub struct AsmBuilder {
     c_asm: Vec<Vec<Constraint>>,
     // Maps indices of `let` variables (which may be wider than a word) to a list of low level
     // word-wide decision variables
-    var_to_d_vars: HashMap<usize, Vec<usize>>,
+    var_to_d_vars: FxHashMap<usize, Vec<usize>>,
 }
 
 #[derive(Debug)]

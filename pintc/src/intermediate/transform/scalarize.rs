@@ -5,6 +5,7 @@ use crate::{
     span::{empty_span, Span, Spanned},
     types::{PrimitiveKind, Type},
 };
+use fxhash::FxHashMap;
 use std::collections::{BTreeMap, HashMap};
 
 pub(crate) fn scalarize(
@@ -142,7 +143,7 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
                 }))
             }
         } else {
-            match range_expr.evaluate(handler, ii, &HashMap::new()) {
+            match range_expr.evaluate(handler, ii, &FxHashMap::default()) {
                 Ok(Immediate::Int(val)) if val > 0 => Ok(Type::Array {
                     ty: Box::new(el_ty),
                     range: range_expr_key,
@@ -388,7 +389,7 @@ fn scalarize_array_access(
         let index_expr = index_key.get(ii);
         let index_span = index_expr.span().clone();
         let index_value = index_expr
-            .evaluate(handler, ii, &HashMap::new())
+            .evaluate(handler, ii, &HashMap::default())
             .map_err(|_| {
                 handler.emit_err(Error::Compile {
                     error: CompileError::NonConstArrayIndex {

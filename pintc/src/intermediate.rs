@@ -6,9 +6,10 @@ use crate::{
 };
 use exprs::ExprsIter;
 pub use exprs::{ExprKey, Exprs};
+use fxhash::FxHashMap;
 pub use states::{StateKey, States};
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::BTreeMap,
     fmt::{self, Formatter},
 };
 pub use vars::{VarKey, Vars};
@@ -306,7 +307,7 @@ impl IntermediateIntent {
         });
     }
 
-    pub fn replace_exprs_by_map(&mut self, expr_map: &HashMap<ExprKey, ExprKey>) {
+    pub fn replace_exprs_by_map(&mut self, expr_map: &FxHashMap<ExprKey, ExprKey>) {
         self.exprs
             .update_exprs(|_, expr| expr.replace_ref_by_map(expr_map));
 

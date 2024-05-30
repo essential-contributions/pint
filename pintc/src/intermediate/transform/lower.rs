@@ -6,7 +6,7 @@ use crate::{
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
 };
 
-use std::collections::HashMap;
+use fxhash::FxHashMap;
 
 pub(crate) fn lower_enums(
     handler: &Handler,
@@ -14,8 +14,8 @@ pub(crate) fn lower_enums(
 ) -> Result<(), ErrorEmitted> {
     // Each enum has its variants indexed from 0.  Gather all the enum declarations and create a
     // map from path to integer index.
-    let mut variant_map = HashMap::new();
-    let mut variant_count_map = HashMap::new();
+    let mut variant_map = FxHashMap::default();
+    let mut variant_count_map = FxHashMap::default();
     let mut add_variants = |e: &EnumDecl, name: &String| {
         for (i, v) in e.variants.iter().enumerate() {
             let full_path = name.clone() + "::" + v.name.as_str();
@@ -323,7 +323,7 @@ pub(crate) fn lower_imm_accesses(
                     }));
                 };
 
-                match idx_expr.evaluate(handler, ii, &HashMap::new()) {
+                match idx_expr.evaluate(handler, ii, &FxHashMap::default()) {
                     Ok(Immediate::Int(idx_val)) if idx_val >= 0 => {
                         let Some(Expr::Array { elements, .. }) = array_key.try_get(ii) else {
                             return Err(handler.emit_err(Error::Compile {

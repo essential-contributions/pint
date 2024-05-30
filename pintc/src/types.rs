@@ -317,8 +317,8 @@ impl PartialEq for Type {
                     if lhs_fields.iter().all(|(name, _)| name.is_some())
                         && rhs_fields.iter().all(|(name, _)| name.is_some())
                     {
-                        let lhs_types: std::collections::HashMap<String, &Type> =
-                            std::collections::HashMap::from_iter(lhs_fields.iter().map(
+                        let lhs_types: fxhash::FxHashMap<String, &Type> =
+                            fxhash::FxHashMap::from_iter(lhs_fields.iter().map(
                                 |(opt_name_id, ty)| {
                                     (
                                         opt_name_id
