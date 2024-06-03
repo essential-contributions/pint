@@ -688,11 +688,11 @@ storage {
 }
 
 #[test]
-fn extern_decl() {
+fn interface() {
     let pint = (yp::PintParser::new(), "");
 
     let src = r#"
-extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+interface Foo {
     storage {
         integer: int,
         boolean: bool,
@@ -703,7 +703,7 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
     check(
         &run_parser!(pint, src),
         expect_test::expect![[r#"
-            extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface ::Foo {
                 storage {
                     integer: int,
                     boolean: bool,
@@ -716,12 +716,12 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface Foo {
                  storage { x: int, y: bool }
             }"#
         ),
         expect_test::expect![[r#"
-            extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface ::Foo {
                 storage {
                     x: int,
                     y: bool,
@@ -733,22 +733,22 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface Foo {
                  storage { x: int, y: bool }
             }
-            extern Bar(0x2222222222222222222222222222222222222222222222222222222222222222) {
+            interface Bar {
                  storage { x: int, y: bool }
             }
             "#
         ),
         expect_test::expect![[r#"
-            extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface ::Foo {
                 storage {
                     x: int,
                     y: bool,
                 }
             }
-            extern ::Bar(0x2222222222222222222222222222222222222222222222222222222222222222) {
+            interface ::Bar {
                 storage {
                     x: int,
                     y: bool,
@@ -760,12 +760,12 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface Foo {
                 storage { x: int, y: bool, z: b256, w: (int => (bool => b256)) }
             }"#
         ),
         expect_test::expect![[r#"
-            extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface ::Foo {
                 storage {
                     x: int,
                     y: bool,
@@ -779,10 +779,10 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) { storage { } }"#
+            interface Foo { storage { } }"#
         ),
         expect_test::expect![[r#"
-            extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface ::Foo {
                 storage {
                 }
             }"#]],
@@ -791,14 +791,14 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) { storage { } }
-            extern Foo(0x2222222222222222222222222222222222222222222222222222222222222222) { storage { } }
+            interface Foo { storage { } }
+            interface Foo { storage { } }
             "#
         ),
         expect_test::expect![[r#"
             symbol `Foo` has already been declared
-            @20..23: previous declaration of the symbol `Foo` here
-            @127..130: `Foo` redeclared here
+            @23..26: previous declaration of the symbol `Foo` here
+            @65..68: `Foo` redeclared here
             `Foo` must be declared or imported only once in this scope
         "#]],
     );
@@ -807,13 +807,13 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface Foo {
                 storage { x, y }
             }"#
         ),
         expect_test::expect![[r#"
             expected `:`, found `,`
-            @121..122: expected `:`
+            @56..57: expected `:`
         "#]],
     );
 
@@ -821,23 +821,11 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo { storage { x: int, y: int } }"#
-        ),
-        expect_test::expect![[r#"
-            expected `(`, found `{`
-            @24..25: expected `(`
-        "#]],
-    );
-
-    check(
-        &run_parser!(
-            pint,
-            r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) { }"#
+            interface Foo { }"#
         ),
         expect_test::expect![[r#"
             expected `storage`, found `}`
-            @94..95: expected `storage`
+            @29..30: expected `storage`
         "#]],
     );
 
@@ -845,15 +833,43 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface Foo {
                 storage { }
                 storage { }
             }"#
         ),
         expect_test::expect![[r#"
             expected `}`, found `storage`
-            @138..145: expected `}`
+            @73..80: expected `}`
         "#]],
+    );
+}
+
+#[test]
+fn interface_instance() {
+    let pint = (yp::PintParser::new(), "");
+
+    let src = r#"
+interface FooInstance = 
+    FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111);
+"#;
+
+    check(
+        &run_parser!(pint, src),
+        expect_test::expect!["interface ::FooInstance = ::FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111)"],
+    );
+
+    let src = r#"
+    let addr: b256;
+interface FooInstance = 
+    ::path::to::FooInstance(addr);
+"#;
+
+    check(
+        &run_parser!(pint, src),
+        expect_test::expect![[r#"
+            interface ::FooInstance = ::path::to::FooInstance(::addr)
+            var ::addr: b256;"#]],
     );
 }
 

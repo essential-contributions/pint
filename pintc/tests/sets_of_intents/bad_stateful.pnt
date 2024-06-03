@@ -10,9 +10,17 @@ type Boo = Foo;
 
 if true { }
 
+interface Bam { storage { } }
+interface BamInstance = Bam(0x0000000000000000000000000000000000000000000000000000000000000000);
+
 intent Baz {}
 
 // intermediate <<<
+// interface ::Bam {
+//     storage {
+//     }
+// }
+// interface ::BamInstance = ::Bam(0x0000000000000000000000000000000000000000000000000000000000000000)
 // var ::x: int;
 // state ::y: int = __foo();
 // enum ::Foo = A | B;
@@ -23,6 +31,10 @@ intent Baz {}
 // solve satisfy;
 // 
 // intent ::Baz {
+//     interface ::Bam {
+//         storage {
+//         }
+//     }
 //     enum ::Foo = A | B;
 //     type ::Boo = ::Foo;
 // }
@@ -43,5 +55,8 @@ intent Baz {}
 // only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
 // invalid declaration outside an `intent { .. }` declaration
 // @77..90: invalid solve directive declaration outside an `intent { .. }` declaration
+// only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
+// invalid declaration outside an `intent { .. }` declaration
+// @189..284: invalid interface instance declaration outside an `intent { .. }` declaration
 // only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
 // >>>

@@ -11,7 +11,7 @@ storage {
     z: int,
 }
 
-extern Extern(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE) {
+interface Foo {
     storage {
         x: int,
         y: int,
@@ -22,7 +22,9 @@ intent Simple {
     state x: int = storage::x;
     state y: int = storage::y;
     state z: int = storage::z;
-    state external_1 = Extern::storage::y; // 69
+
+    interface FooInstance = Foo(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE);
+    state external_1 = FooInstance::storage::y; // 69
 
     state external_2 = __storage_get_extern(
         0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE,

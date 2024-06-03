@@ -7,7 +7,7 @@ storage {
     map: (int => (int => b256)),
 }
 
-extern ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000) {
+interface ERC20_0 {
     storage {
         x: int,
         y: bool,
@@ -16,39 +16,53 @@ extern ERC20_0(0x000000000000000000000000000000000000000000000000000000000000000
 }
 
 intent Foo {
+    interface ERC20_0_instance = 
+        ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000);
+    interface ERC20_1_instance = 
+        ERC20_1(0x1111111111111111111111111111111111111111111111111111111111111111);
+    interface ERC20_2_instance =
+        lib::ERC20_2(0x2222222222222222222222222222222222222222222222222222222222222222);
+
     state internal_x = storage::x;
     state internal_y = storage::y;
     state internal_map = storage::map[3][4];
 
-    state external_x_0 = ::ERC20_0::storage::x;
-    state external_y_0 = ERC20_0::storage::y;
-    state external_map_0 = ERC20_0::storage::map[3][4];
+    state external_x_0 = ::ERC20_0_instance::storage::x;
+    state external_y_0 = ERC20_0_instance::storage::y;
+    state external_map_0 = ERC20_0_instance::storage::map[3][4];
 
-    state external_x_1 = ::lib::ERC20_1::storage::x;
-    state external_y_1 = lib::ERC20_1::storage::y;
-    state external_map_1 = ERC20_1::storage::map[3][4];
+    state external_x_1 = ERC20_1_instance::storage::x;
+    state external_y_1 = ERC20_1_instance::storage::y;
+    state external_map_1 = ERC20_1_instance::storage::map[3][4];
 
-    state external_x_2 = ::lib::ERC20_2::storage::x;
-    state external_y_2 = ERC20_2::storage::y;
-    state external_map_2 = lib::ERC20_2::storage::map[3][4];
+    state external_x_2 = ERC20_2_instance::storage::x;
+    state external_y_2 = ERC20_2_instance::storage::y;
+    state external_map_2 = ERC20_2_instance::storage::map[3][4];
 }
 
 intent Bar {
+    interface ERC20_0_instance = 
+        ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000);
+    interface ERC20_1_instance = 
+        ::lib::ERC20_1(0x1111111111111111111111111111111111111111111111111111111111111111);
+    interface ERC20_2_instance = 
+        ERC20_0(0x2222222222222222222222222222222222222222222222222222222222222222);
+
     state internal_x = storage::x;
     state internal_y = storage::y;
     state internal_map = storage::map[3][4];
 
-    state external_x_0 = ::ERC20_0::storage::x;
-    state external_y_0 = ERC20_0::storage::y;
-    state external_map_0 = ERC20_0::storage::map[3][4];
+    state external_x_0 = ::ERC20_0_instance::storage::x;
+    state external_y_0 = ERC20_0_instance::storage::y;
+    state external_map_0 = ERC20_0_instance::storage::map[3][4];
 
-    state external_x_1 = ::lib::ERC20_1::storage::x;
-    state external_y_1 = lib::ERC20_1::storage::y;
-    state external_map_1 = ERC20_1::storage::map[3][4];
+    state external_x_1 = ERC20_1_instance::storage::x;
+    state external_y_1 = ERC20_1_instance::storage::y;
+    state external_map_1 = ERC20_1_instance::storage::map[3][4];
 
-    state external_x_2 = ::lib::ERC20_2::storage::x;
-    state external_y_2 = ERC20_2::storage::y;
-    state external_map_2 = lib::ERC20_2::storage::map[3][4];
+    state external_x_2 = ERC20_2_instance::storage::x;
+    state external_y_2 = ERC20_2_instance::storage::y;
+    state external_map_2 = ERC20_2_instance::storage::map[3][4];
 }
 
 // intermediate <<<
@@ -57,21 +71,21 @@ intent Bar {
 //     y: bool,
 //     map: ( int => ( int => b256 ) ),
 // }
-// extern ::ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000) {
+// interface ::ERC20_0 {
 //     storage {
 //         x: int,
 //         y: bool,
 //         map: ( int => ( int => b256 ) ),
 //     }
 // }
-// extern ::lib::ERC20_1(0x1111111111111111111111111111111111111111111111111111111111111111) {
+// interface ::lib::ERC20_1 {
 //     storage {
 //         x: int,
 //         y: bool,
 //         map: ( int => ( int => b256 ) ),
 //     }
 // }
-// extern ::lib::ERC20_2(0x2222222222222222222222222222222222222222222222222222222222222222) {
+// interface ::lib::ERC20_2 {
 //     storage {
 //         x: int,
 //         y: bool,
@@ -85,39 +99,42 @@ intent Bar {
 //         y: bool,
 //         map: ( int => ( int => b256 ) ),
 //     }
-//     extern ::ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000) {
+//     interface ::ERC20_0 {
 //         storage {
 //             x: int,
 //             y: bool,
 //             map: ( int => ( int => b256 ) ),
 //         }
 //     }
-//     extern ::lib::ERC20_1(0x1111111111111111111111111111111111111111111111111111111111111111) {
+//     interface ::lib::ERC20_1 {
 //         storage {
 //             x: int,
 //             y: bool,
 //             map: ( int => ( int => b256 ) ),
 //         }
 //     }
-//     extern ::lib::ERC20_2(0x2222222222222222222222222222222222222222222222222222222222222222) {
+//     interface ::lib::ERC20_2 {
 //         storage {
 //             x: int,
 //             y: bool,
 //             map: ( int => ( int => b256 ) ),
 //         }
 //     }
+//     interface ::ERC20_0_instance = ::ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000)
+//     interface ::ERC20_1_instance = ::lib::ERC20_1(0x1111111111111111111111111111111111111111111111111111111111111111)
+//     interface ::ERC20_2_instance = ::ERC20_0(0x2222222222222222222222222222222222222222222222222222222222222222)
 //     state ::internal_x = storage::x;
 //     state ::internal_y = storage::y;
 //     state ::internal_map = storage::map[3][4];
-//     state ::external_x_0 = ::ERC20_0::storage::x;
-//     state ::external_y_0 = ::ERC20_0::storage::y;
-//     state ::external_map_0 = ::ERC20_0::storage::map[3][4];
-//     state ::external_x_1 = ::lib::ERC20_1::storage::x;
-//     state ::external_y_1 = ::lib::ERC20_1::storage::y;
-//     state ::external_map_1 = ::lib::ERC20_1::storage::map[3][4];
-//     state ::external_x_2 = ::lib::ERC20_2::storage::x;
-//     state ::external_y_2 = ::lib::ERC20_2::storage::y;
-//     state ::external_map_2 = ::lib::ERC20_2::storage::map[3][4];
+//     state ::external_x_0 = ::ERC20_0_instance::storage::x;
+//     state ::external_y_0 = ::ERC20_0_instance::storage::y;
+//     state ::external_map_0 = ::ERC20_0_instance::storage::map[3][4];
+//     state ::external_x_1 = ::ERC20_1_instance::storage::x;
+//     state ::external_y_1 = ::ERC20_1_instance::storage::y;
+//     state ::external_map_1 = ::ERC20_1_instance::storage::map[3][4];
+//     state ::external_x_2 = ::ERC20_2_instance::storage::x;
+//     state ::external_y_2 = ::ERC20_2_instance::storage::y;
+//     state ::external_map_2 = ::ERC20_2_instance::storage::map[3][4];
 // }
 // 
 // intent ::Foo {
@@ -126,39 +143,42 @@ intent Bar {
 //         y: bool,
 //         map: ( int => ( int => b256 ) ),
 //     }
-//     extern ::ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000) {
+//     interface ::ERC20_0 {
 //         storage {
 //             x: int,
 //             y: bool,
 //             map: ( int => ( int => b256 ) ),
 //         }
 //     }
-//     extern ::lib::ERC20_1(0x1111111111111111111111111111111111111111111111111111111111111111) {
+//     interface ::lib::ERC20_1 {
 //         storage {
 //             x: int,
 //             y: bool,
 //             map: ( int => ( int => b256 ) ),
 //         }
 //     }
-//     extern ::lib::ERC20_2(0x2222222222222222222222222222222222222222222222222222222222222222) {
+//     interface ::lib::ERC20_2 {
 //         storage {
 //             x: int,
 //             y: bool,
 //             map: ( int => ( int => b256 ) ),
 //         }
 //     }
+//     interface ::ERC20_0_instance = ::ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000)
+//     interface ::ERC20_1_instance = ::lib::ERC20_1(0x1111111111111111111111111111111111111111111111111111111111111111)
+//     interface ::ERC20_2_instance = ::lib::ERC20_2(0x2222222222222222222222222222222222222222222222222222222222222222)
 //     state ::internal_x = storage::x;
 //     state ::internal_y = storage::y;
 //     state ::internal_map = storage::map[3][4];
-//     state ::external_x_0 = ::ERC20_0::storage::x;
-//     state ::external_y_0 = ::ERC20_0::storage::y;
-//     state ::external_map_0 = ::ERC20_0::storage::map[3][4];
-//     state ::external_x_1 = ::lib::ERC20_1::storage::x;
-//     state ::external_y_1 = ::lib::ERC20_1::storage::y;
-//     state ::external_map_1 = ::lib::ERC20_1::storage::map[3][4];
-//     state ::external_x_2 = ::lib::ERC20_2::storage::x;
-//     state ::external_y_2 = ::lib::ERC20_2::storage::y;
-//     state ::external_map_2 = ::lib::ERC20_2::storage::map[3][4];
+//     state ::external_x_0 = ::ERC20_0_instance::storage::x;
+//     state ::external_y_0 = ::ERC20_0_instance::storage::y;
+//     state ::external_map_0 = ::ERC20_0_instance::storage::map[3][4];
+//     state ::external_x_1 = ::ERC20_1_instance::storage::x;
+//     state ::external_y_1 = ::ERC20_1_instance::storage::y;
+//     state ::external_map_1 = ::ERC20_1_instance::storage::map[3][4];
+//     state ::external_x_2 = ::ERC20_2_instance::storage::x;
+//     state ::external_y_2 = ::ERC20_2_instance::storage::y;
+//     state ::external_map_2 = ::ERC20_2_instance::storage::map[3][4];
 // }
 // >>>
 
@@ -168,21 +188,21 @@ intent Bar {
 //     y: bool,
 //     map: ( int => ( int => b256 ) ),
 // }
-// extern ::ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000) {
+// interface ::ERC20_0 {
 //     storage {
 //         x: int,
 //         y: bool,
 //         map: ( int => ( int => b256 ) ),
 //     }
 // }
-// extern ::lib::ERC20_1(0x1111111111111111111111111111111111111111111111111111111111111111) {
+// interface ::lib::ERC20_1 {
 //     storage {
 //         x: int,
 //         y: bool,
 //         map: ( int => ( int => b256 ) ),
 //     }
 // }
-// extern ::lib::ERC20_2(0x2222222222222222222222222222222222222222222222222222222222222222) {
+// interface ::lib::ERC20_2 {
 //     storage {
 //         x: int,
 //         y: bool,
@@ -196,39 +216,42 @@ intent Bar {
 //         y: bool,
 //         map: ( int => ( int => b256 ) ),
 //     }
-//     extern ::ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000) {
+//     interface ::ERC20_0 {
 //         storage {
 //             x: int,
 //             y: bool,
 //             map: ( int => ( int => b256 ) ),
 //         }
 //     }
-//     extern ::lib::ERC20_1(0x1111111111111111111111111111111111111111111111111111111111111111) {
+//     interface ::lib::ERC20_1 {
 //         storage {
 //             x: int,
 //             y: bool,
 //             map: ( int => ( int => b256 ) ),
 //         }
 //     }
-//     extern ::lib::ERC20_2(0x2222222222222222222222222222222222222222222222222222222222222222) {
+//     interface ::lib::ERC20_2 {
 //         storage {
 //             x: int,
 //             y: bool,
 //             map: ( int => ( int => b256 ) ),
 //         }
 //     }
+//     interface ::ERC20_0_instance = ::ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000)
+//     interface ::ERC20_1_instance = ::lib::ERC20_1(0x1111111111111111111111111111111111111111111111111111111111111111)
+//     interface ::ERC20_2_instance = ::ERC20_0(0x2222222222222222222222222222222222222222222222222222222222222222)
 //     state ::internal_x: int = storage::x;
 //     state ::internal_y: int = storage::y;
 //     state ::internal_map: b256 = storage::map[3][4];
-//     state ::external_x_0: int = ::ERC20_0::storage::x;
-//     state ::external_y_0: int = ::ERC20_0::storage::y;
-//     state ::external_map_0: b256 = ::ERC20_0::storage::map[3][4];
-//     state ::external_x_1: int = ::lib::ERC20_1::storage::x;
-//     state ::external_y_1: int = ::lib::ERC20_1::storage::y;
-//     state ::external_map_1: b256 = ::lib::ERC20_1::storage::map[3][4];
-//     state ::external_x_2: int = ::lib::ERC20_2::storage::x;
-//     state ::external_y_2: int = ::lib::ERC20_2::storage::y;
-//     state ::external_map_2: b256 = ::lib::ERC20_2::storage::map[3][4];
+//     state ::external_x_0: int = ::ERC20_0_instance::storage::x;
+//     state ::external_y_0: int = ::ERC20_0_instance::storage::y;
+//     state ::external_map_0: b256 = ::ERC20_0_instance::storage::map[3][4];
+//     state ::external_x_1: int = ::ERC20_1_instance::storage::x;
+//     state ::external_y_1: int = ::ERC20_1_instance::storage::y;
+//     state ::external_map_1: b256 = ::ERC20_1_instance::storage::map[3][4];
+//     state ::external_x_2: int = ::ERC20_2_instance::storage::x;
+//     state ::external_y_2: int = ::ERC20_2_instance::storage::y;
+//     state ::external_map_2: b256 = ::ERC20_2_instance::storage::map[3][4];
 // }
 // 
 // intent ::Foo {
@@ -237,38 +260,41 @@ intent Bar {
 //         y: bool,
 //         map: ( int => ( int => b256 ) ),
 //     }
-//     extern ::ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000) {
+//     interface ::ERC20_0 {
 //         storage {
 //             x: int,
 //             y: bool,
 //             map: ( int => ( int => b256 ) ),
 //         }
 //     }
-//     extern ::lib::ERC20_1(0x1111111111111111111111111111111111111111111111111111111111111111) {
+//     interface ::lib::ERC20_1 {
 //         storage {
 //             x: int,
 //             y: bool,
 //             map: ( int => ( int => b256 ) ),
 //         }
 //     }
-//     extern ::lib::ERC20_2(0x2222222222222222222222222222222222222222222222222222222222222222) {
+//     interface ::lib::ERC20_2 {
 //         storage {
 //             x: int,
 //             y: bool,
 //             map: ( int => ( int => b256 ) ),
 //         }
 //     }
+//     interface ::ERC20_0_instance = ::ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000)
+//     interface ::ERC20_1_instance = ::lib::ERC20_1(0x1111111111111111111111111111111111111111111111111111111111111111)
+//     interface ::ERC20_2_instance = ::lib::ERC20_2(0x2222222222222222222222222222222222222222222222222222222222222222)
 //     state ::internal_x: int = storage::x;
 //     state ::internal_y: int = storage::y;
 //     state ::internal_map: b256 = storage::map[3][4];
-//     state ::external_x_0: int = ::ERC20_0::storage::x;
-//     state ::external_y_0: int = ::ERC20_0::storage::y;
-//     state ::external_map_0: b256 = ::ERC20_0::storage::map[3][4];
-//     state ::external_x_1: int = ::lib::ERC20_1::storage::x;
-//     state ::external_y_1: int = ::lib::ERC20_1::storage::y;
-//     state ::external_map_1: b256 = ::lib::ERC20_1::storage::map[3][4];
-//     state ::external_x_2: int = ::lib::ERC20_2::storage::x;
-//     state ::external_y_2: int = ::lib::ERC20_2::storage::y;
-//     state ::external_map_2: b256 = ::lib::ERC20_2::storage::map[3][4];
+//     state ::external_x_0: int = ::ERC20_0_instance::storage::x;
+//     state ::external_y_0: int = ::ERC20_0_instance::storage::y;
+//     state ::external_map_0: b256 = ::ERC20_0_instance::storage::map[3][4];
+//     state ::external_x_1: int = ::ERC20_1_instance::storage::x;
+//     state ::external_y_1: int = ::ERC20_1_instance::storage::y;
+//     state ::external_map_1: b256 = ::ERC20_1_instance::storage::map[3][4];
+//     state ::external_x_2: int = ::ERC20_2_instance::storage::x;
+//     state ::external_y_2: int = ::ERC20_2_instance::storage::y;
+//     state ::external_map_2: b256 = ::ERC20_2_instance::storage::map[3][4];
 // }
 // >>>
