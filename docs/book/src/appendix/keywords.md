@@ -13,13 +13,13 @@ modules, or types.
 - `enum` - define an enumeration
 - `exists` - existential quantification: checks whether a statements is `true` for at least one
   element in a domain.
-- `extern` - link an external contract
 - `forall` - universal quantification: checks whether a statement is `true` for all elements in a
   domain
 - `if` - branch based on the result of a conditional expression
 - `in` - checks if an element belongs to a range or to an array
-- `intent` - define an intent
 - `int` - basic integer type
+- `intent` - define an intent
+- `interface` - declare an external interface
 - `let` - bind a decision variable
 - `macro` - define a macro
 - `maximize` - part of a `solve` statement: maximizes an objective function

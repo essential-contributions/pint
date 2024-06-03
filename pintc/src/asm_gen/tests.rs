@@ -1005,7 +1005,7 @@ intent Foo {
 fn storage_access_tuples_extern() {
     let intents = &compile(
         r#"
-extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+interface Foo {
     storage {
         u: { b256, int },
         t: { b256, { int, int } },
@@ -1014,19 +1014,21 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
 }
 
 intent Bar {
-    state foo_u = Foo::storage::u;
-    state foo_u0 = Foo::storage::u.0;
-    state foo_u1 = Foo::storage::u.1;
+    interface FooInstance = Foo(0x1111111111111111111111111111111111111111111111111111111111111111);
 
-    state foo_t = Foo::storage::t;
-    state foo_t0 = Foo::storage::t .0;
-    state foo_t10 = Foo::storage::t.1.0;
-    state foo_t11 = Foo::storage::t.1.1;
+    state foo_u = FooInstance::storage::u;
+    state foo_u0 = FooInstance::storage::u.0;
+    state foo_u1 = FooInstance::storage::u.1;
 
-    state foo_w = Foo::storage::w;
-    state foo_w0 = Foo::storage::w .addr;
-    state foo_w10 = Foo::storage::w.inner.x;
-    state foo_w11 = Foo::storage::w.inner.1;
+    state foo_t = FooInstance::storage::t;
+    state foo_t0 = FooInstance::storage::t .0;
+    state foo_t10 = FooInstance::storage::t.1.0;
+    state foo_t11 = FooInstance::storage::t.1.1;
+
+    state foo_w = FooInstance::storage::w;
+    state foo_w0 = FooInstance::storage::w .addr;
+    state foo_w10 = FooInstance::storage::w.inner.x;
+    state foo_w11 = FooInstance::storage::w.inner.1;
 }
         "#,
     );
@@ -1301,14 +1303,14 @@ intent Simple {
 fn storage_external_access() {
     let intents = &compile(
         r#"
-extern Extern1(0x1233683A8F6B8AF1707FF76F40FC5EE714872F88FAEBB8F22851E93F56770128) {
+interface Extern1 {
     storage {
         x: int,
         map: (int => (bool => b256)),
     }
 }
 
-extern Extern2(0x0C15A3534349FC710174299BA8F0347284955B35A28C01CF45A910495FA1EF2D) {
+interface Extern2 {
     storage {
         w: int,
         map: (b256 => (int => bool)),
@@ -1316,10 +1318,13 @@ extern Extern2(0x0C15A3534349FC710174299BA8F0347284955B35A28C01CF45A910495FA1EF2
 }
 
 intent Foo {
-    state x = Extern1::storage::x;
-    state y = Extern1::storage::map[3][true];
-    state w = Extern2::storage::w;
-    state z = Extern2::storage::map[0x1111111111111111111111111111111111111111111111111111111111111111][69];
+    interface Extern1Instance = Extern1(0x1233683A8F6B8AF1707FF76F40FC5EE714872F88FAEBB8F22851E93F56770128);
+    interface Extern2Instance = Extern2(0x0C15A3534349FC710174299BA8F0347284955B35A28C01CF45A910495FA1EF2D);
+
+    state x = Extern1Instance::storage::x;
+    state y = Extern1Instance::storage::map[3][true];
+    state w = Extern2Instance::storage::w;
+    state z = Extern2Instance::storage::map[0x1111111111111111111111111111111111111111111111111111111111111111][69];
 
     constraint x' - x == 1;
     constraint y == 0x2222222222222222222222222222222222222222222222222222222222222222;

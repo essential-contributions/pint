@@ -45,6 +45,8 @@ state E = __foo();
 // @4..5: previous declaration of the symbol `F` here
 // @65..66: `F` redeclared here
 // `F` must be declared or imported only once in this scope
-// expected `::`, found `F`
-// @89..90: expected `::`
+// symbol `F` has already been declared
+// @4..5: previous declaration of the symbol `F` here
+// @89..90: `F` redeclared here
+// `F` must be declared or imported only once in this scope
 // >>>

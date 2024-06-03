@@ -25,7 +25,7 @@ impl<'a> super::Solver<'a, ProblemCreated> {
                 // Later, path expressions that start with `!` will be handled by creating a new binary
                 // decision variable and constraining it to be the inverse of the variable with the
                 // same name but without the `!` prefix.
-                Ok(Expr::Path("!".to_owned() + &path))
+                Ok(Expr::Path("!".to_owned() + path))
             }
 
             Expr::UnaryOp { op, expr } => match op {

@@ -8,8 +8,4 @@ let F = 4;
 
 state F = __foo();
 
-interface F {}
-
-contract F(0) {}
-
-extern { fn F() -> bool; }
+interface F { storage { } }

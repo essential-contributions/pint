@@ -6,7 +6,7 @@
 // >>>
 
 // from external1.pnt
-extern Extern1(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE) {
+interface Bar {
     storage {
         x: int,
         y: int
@@ -14,7 +14,7 @@ extern Extern1(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 }
 
 // from external0.pnt
-extern Extern2(0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD) {
+interface Baz {
     storage {
         w: int,
         z: int
@@ -22,10 +22,13 @@ extern Extern2(0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 }
 
 intent Foo {
-    state x = Extern1::storage::x;
-    state y = Extern1::storage::y;
-    state w = Extern2::storage::w;
-    state z = Extern2::storage::z;
+    interface BarInstance = Bar(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE);
+    interface BazInstance = Baz(0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD);
+
+    state x = BarInstance::storage::x;
+    state y = BarInstance::storage::y;
+    state w = BazInstance::storage::w;
+    state z = BazInstance::storage::z;
 
     constraint x' - x == 1;
     constraint y' - y == 2;
