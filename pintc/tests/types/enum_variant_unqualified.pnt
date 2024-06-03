@@ -1,7 +1,7 @@
 enum Foo = Bar | Baz;
 enum Bar = Baz | Xyzzy;
 
-let a = Baz;
+var a = Baz;
 
 solve satisfy;
 

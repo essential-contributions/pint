@@ -5,8 +5,8 @@ storage {
 
 // Sends an amount of newly created coins to an address
 intent Mint {
-    let receiver: b256;
-    let amount: int;
+    var receiver: b256;
+    var amount: int;
 
     state receiver_balance = storage::balances[receiver];
     state total_supply = storage::total_supply;
@@ -17,9 +17,9 @@ intent Mint {
 
 // Sends an amount of existing coins from address `from` to address `receiver`
 intent Send {
-    let from: b256;
-    let receiver: b256;
-    let amount: int;
+    var from: b256;
+    var receiver: b256;
+    var amount: int;
 
     state from_balance = storage::balances[from];
     state receiver_balance = storage::balances[receiver];

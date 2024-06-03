@@ -1,6 +1,6 @@
 // Basic sudoku
 
-let grid: int[9][9];
+var grid: int[9][9];
 
 constraint forall i in 0..8 {
     forall j in 0..8 {

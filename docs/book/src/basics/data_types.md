@@ -52,7 +52,7 @@ Here's an example that shows some decision variables initialized to real literal
 
 Pint supports the basic mathematical operations you’d expect for integers and reals: addition,
 subtraction, multiplication, division, and remainder. Integer division truncates toward zero to the
-nearest integer. The following code shows how you’d use each numeric operation in a `let` statement:
+nearest integer. The following code shows how you’d use each numeric operation in a `var` statement:
 
 ```pint
 {{#include ../../../../examples/ch_3_2.pnt:math_ops}}
@@ -129,7 +129,7 @@ index of the tuple field or its name. For example:
 Tuples without any values are not allowed in `Pint`. That is, the following:
 
 ```pint
-let empty: { } = { };
+var empty: { } = { };
 ```
 
 is disallowed and errors out as follows:
@@ -138,14 +138,14 @@ is disallowed and errors out as follows:
 Error: empty tuple types are not allowed
     ╭─[ch_3_2.pnt:43:12]
     │
- 43 │ let empty: {} = {};
+ 43 │ var empty: {} = {};
     │            ─┬
     │             ╰── empty tuple type found
 ────╯
 Error: empty tuple expressions are not allowed
     ╭─[ch_3_2.pnt:43:17]
     │
- 43 │ let empty: {} = {};
+ 43 │ var empty: {} = {};
     │                 ─┬
     │                  ╰── empty tuple expression found
 ────╯

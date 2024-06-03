@@ -1,5 +1,5 @@
 macro @m($a, $b) {
-    let z = $a + $b;
+    var z = $a + $b;
 }
 
 @m(1);

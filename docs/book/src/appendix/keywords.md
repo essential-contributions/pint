@@ -20,7 +20,6 @@ modules, or types.
 - `int` - basic integer type
 - `intent` - define an intent
 - `interface` - declare an external interface
-- `let` - bind a decision variable
 - `macro` - define a macro
 - `maximize` - part of a `solve` statement: maximizes an objective function
 - `minimize` - part of a `solve` statement: minimizes an objective function
@@ -33,4 +32,5 @@ modules, or types.
 - `string` - basic string type
 - `type` - define a new type
 - `use` - bring symbols into scope
+- `var` - bind a decision variable
 - `where` - denote clauses that constraint generator indices

@@ -1,5 +1,5 @@
-let a: int[4];
-let b: int[4];
+var a: int[4];
+var b: int[4];
 
 // The inner `i` is shadowing the outer `i` which is probably not what we want to allow, considering
 // we disallow shadowing everywhere else in Pint.

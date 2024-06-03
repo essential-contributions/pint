@@ -53,8 +53,8 @@ fn bool_literals() {
 fn int_literals() {
     let intents = &compile(
         r#"
-        let x: int = 4;
-        let y: int = 0x333;
+        var x: int = 4;
+        var y: int = 0x333;
         solve satisfy;
         "#,
     );
@@ -88,7 +88,7 @@ fn unary_not() {
             "{}",
             compile(
                 r#"
-            let t: bool = !true;
+            var t: bool = !true;
             constraint !t;
             solve satisfy;
             "#,
@@ -118,7 +118,7 @@ fn select() {
             "{}",
             compile(
                 r#"
-            let z = true ? 42 : 69;
+            var z = true ? 42 : 69;
             solve satisfy;
             "#,
             )
@@ -142,8 +142,8 @@ fn select() {
             "{}",
             compile(
                 r#"
-            let c: bool; let x: int; let y: int;
-            let z = c ? x : y;
+            var c: bool; var x: int; var y: int;
+            var z = c ? x : y;
             solve satisfy;
             "#,
             )
@@ -173,8 +173,8 @@ fn binary_ops() {
             "{}",
             compile(
                 r#"
-            let x: int; let y: int; let z: int;
-            let b0: bool; let b1: bool;
+            var x: int; var y: int; var z: int;
+            var b0: bool; var b1: bool;
             constraint x + y == z;
             constraint x - y == z;
             constraint x * y == z;
@@ -446,7 +446,7 @@ fn state_read_extern() {
 fn next_state() {
     let intents = &compile(
         r#"
-        let diff: int = 5;
+        var diff: int = 5;
         state x: int = __storage_get([0, 0, 0, 3]);
         constraint x' - x == 5;
         solve satisfy;
@@ -496,8 +496,8 @@ fn next_state() {
 fn b256() {
     let intents = &compile(
         r#"
-        let b0 = 0x0000000000000005000000000000000600000000000000070000000000000008;
-        let b1 = 0xF000000000000000500000000000000060000000000000007000000000000000;
+        var b0 = 0x0000000000000005000000000000000600000000000000070000000000000008;
+        var b1 = 0xF000000000000000500000000000000060000000000000007000000000000000;
         solve satisfy;
         "#,
     );

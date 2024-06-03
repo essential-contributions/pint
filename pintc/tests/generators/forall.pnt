@@ -1,8 +1,8 @@
-let k: int;
-let l: int;
-let r: real;
-let A: int[4];
-let B: int[4];
+var k: int;
+var l: int;
+var r: real;
+var A: int[4];
+var B: int[4];
 
 constraint forall i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { k > i + j || j > k };
 constraint forall i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { !(i - j < k) };

@@ -10,7 +10,7 @@ macro @c($z) {
     $z == 0
 }
 
-let v: int;
+var v: int;
 
 constraint @a(v);
 constraint @b(v);

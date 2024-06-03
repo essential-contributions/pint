@@ -2,14 +2,14 @@ use baz::MyEnum;
 use ::baz::MyType;
 
 intent Bar {
-    let y: int;
+    var y: int;
     constraint y == 4;
 
-    let e1 = MyEnum::A;
-    let f1 = MyType::B;
+    var e1 = MyEnum::A;
+    var f1 = MyType::B;
 
-    let e2 = ::baz::MyEnum::B;
-    let f2 = baz::MyType::A;
+    var e2 = ::baz::MyEnum::B;
+    var f2 = baz::MyType::A;
 }
 
 // intermediate <<<

@@ -4,8 +4,8 @@ type Balance = int;
 // ANCHOR_END: alias 
 
 // ANCHOR: alias_same
-let x: int = 5;
-let y: Balance = 5;
+var x: int = 5;
+var y: Balance = 5;
 constraint x == y;
 // ANCHOR_END: alias_same
 
@@ -18,7 +18,7 @@ type User = {
 // ANCHOR_END: simple_struct
 
 // ANCHOR: simple_struct_instance
-let user1: User = {
+var user1: User = {
     status: true,
     address: 0x1111111111111111111111111111111111111111111111111111111111111111,
     balance: 42,
@@ -30,14 +30,14 @@ enum Token = DAI | USDC | USDT;
 // ANCHOR_END: simple_enum
 
 // ANCHOR: simple_enum_instances
-let dai: Token = Token::DAI;
-let usdc: Token = Token::USDC;
-let usdt: Token = Token::USDT;
+var dai: Token = Token::DAI;
+var usdc: Token = Token::USDC;
+var usdt: Token = Token::USDT;
 // ANCHOR_END: simple_enum_instances
 
 // ANCHOR: enum_selection
-let amount: int;
-let token_type: Token = cond {
+var amount: int;
+var token_type: Token = cond {
     amount in 0..1000 => Token::DAI,
     amount in 1001..2000  => Token::USDC,
     else  => Token::USDT,
@@ -50,17 +50,17 @@ type Bal = {
     bal: int, 
 };
 
-let user1_bal = {
+var user1_bal = {
     token: Token::DAI,
     bal: 42, 
 };
 
-let user2_bal = {
+var user2_bal = {
     token: Token::USDC,
     bal: 96, 
 };
 
-let user3_bal = {
+var user3_bal = {
     token: Token::USDT,
     bal: 100, 
 };

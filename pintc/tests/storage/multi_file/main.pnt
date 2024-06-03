@@ -1,6 +1,6 @@
 use lib::MyEnum;
 
-let e: MyEnum = MyEnum::A;
+var e: MyEnum = MyEnum::A;
 
 solve satisfy;
 

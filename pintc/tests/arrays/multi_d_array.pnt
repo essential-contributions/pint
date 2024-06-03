@@ -1,5 +1,5 @@
-let a: int[1][2][3];
-let b: int[2][3];
+var a: int[1][2][3];
+var b: int[2][3];
 
 constraint a[0][0][0] == 0;
 constraint a[0][0][1] == 1;
@@ -10,7 +10,7 @@ constraint forall i in 0..1, j in 0..2 {
     b[i][j] - a[0][i][j] == 0
 };
 
-let c = b;
+var c = b;
 
 solve satisfy;
 

@@ -2,15 +2,15 @@
 // all the listed constraints are satisfied and not conflicting. This helps ensure correctness of
 // logical operators in various forms.
 
-let x: int = 10;
-let y: int = 20;
-let z: int = 30;
+var x: int = 10;
+var y: int = 20;
+var z: int = 30;
 
-let u: real = 40.0;
-let w: real = 50.0;
+var u: real = 40.0;
+var w: real = 50.0;
 
-let t: bool = true;
-let f: bool = false;
+var t: bool = true;
+var f: bool = false;
 
 constraint true;
 constraint !false;

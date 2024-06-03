@@ -5,7 +5,7 @@ macro @panicked_response($bird) {
     $bird != ::AttackingBird::Goose ? Duck : Kick
 }
 
-let unfortunate_action = @panicked_response(AttackingBird::Goose);
+var unfortunate_action = @panicked_response(AttackingBird::Goose);
 
 solve satisfy;
 

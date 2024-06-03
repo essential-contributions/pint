@@ -1,13 +1,13 @@
-let x: int;
+var x: int;
 
 constraint x in 11..22 in 13..20;
 constraint x in 15.5..18.3;
 
-let y: bool;
+var y: bool;
 constraint y in "foo"..false;
 
 enum SupperGuest = Bartholomew | JamesL | Andrew | Judas | Peter | John | Thomas | JamesG | Philip | Matthew | Jude | Simon;
-let z: SupperGuest;
+var z: SupperGuest;
 constraint z in [1, 4, 7];
 constraint x in [SupperGuest::Andrew, SupperGuest::Philip];
 

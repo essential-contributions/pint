@@ -1,12 +1,12 @@
 // ANCHOR: basic_select
-let number: int;
+var number: int;
 
-let y = number < 5 ? 1 : 2;
+var y = number < 5 ? 1 : 2;
 // ANCHOR_END: basic_select
 
 // ANCHOR: basic_cond
-let x: int;
-let z = cond {
+var x: int;
+var z = cond {
     x == 0 => 0,
     x > 0 && x <= 10 => 1,
     x > 10 && x <= 100 => 2,

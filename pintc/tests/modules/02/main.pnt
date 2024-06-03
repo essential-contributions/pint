@@ -9,7 +9,7 @@ extern {
   fn hello_world() -> bool;
 }
 
-let c: int;
+var c: int;
 state d: bool = hello_world();
 
 constraint b > c;

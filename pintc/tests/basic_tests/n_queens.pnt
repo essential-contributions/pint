@@ -1,7 +1,7 @@
 // n-Queens problem:: Place n queens on an nxn chessboard so that none can attack another.
 
 // Queen in column i is in row q[i]
-let q: int[16];
+var q: int[16];
 
 // Rows must be in 1..n
 constraint forall i in 0..15 {

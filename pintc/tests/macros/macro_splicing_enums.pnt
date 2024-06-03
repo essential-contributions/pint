@@ -27,20 +27,20 @@ macro @find_max_feeling($feeling, $max_feeling, $counts_name, $last_idx) {
     $feeling == $last_idx && $counts_name[$last_idx] == $max_feeling
 }
 
-let counts: int[Feeling];
+var counts: int[Feeling];
 constraint counts[Feeling::Uneasy] == 33;
 constraint counts[Feeling::Queasy] == 22;
 constraint counts[Feeling::Awkward] == 44;
 constraint counts[Feeling::Anxious] == 11;
 
 // Constrain max_feeling to the max value (44).
-let max_feeling: int;
+var max_feeling: int;
 @gte(max_feeling; ~counts);
 constraint @matches_one(max_feeling; ~counts);
 
 // Solve feeling to be the max (Feeling::Awkward).  This should be easier, with no need to put each
 // enum variant into a new array.
-let feeling: Feeling;
+var feeling: Feeling;
 constraint @find_max_feeling(feeling; max_feeling; counts;
                              Feeling::Uneasy; Feeling::Queasy; Feeling::Awkward; Feeling::Anxious);
 

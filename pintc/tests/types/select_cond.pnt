@@ -1,6 +1,6 @@
-let a = 11;
-let b: int;
-let c = false;
+var a = 11;
+var b: int;
+var c = false;
 
 constraint b < (c ? 22 : 33);
 constraint b > (a ? 44 : 55);

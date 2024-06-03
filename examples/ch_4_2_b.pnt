@@ -11,7 +11,7 @@ storage {
 // ANCHOR: storage_access
 state complex_read: b256 = storage::complex_map[{42, 69}].1;
 
-let addr: b256;
+var addr: b256;
 state nested_read: bool = storage::nested_map[addr1][100];
 // ANCHOR_END: storage_access
 

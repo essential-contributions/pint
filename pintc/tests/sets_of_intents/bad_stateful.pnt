@@ -1,5 +1,5 @@
 // These are not okay
-let x: int;
+var x: int;
 state y: int = __foo();
 constraint x == 3;
 solve satisfy;
