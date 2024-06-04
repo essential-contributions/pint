@@ -160,7 +160,7 @@ $ cd hello_world
 </code></pre>
 <h3 id="writing-a-pint-program"><a class="header" href="#writing-a-pint-program">Writing a Pint Program</a></h3>
 <p>Next, make a new source file and call it <code>main.pnt</code>. Pint files always end with the <code>pnt</code> extension. Now open the <code>main.pnt</code> file you just created and enter the code below:</p>
-<pre><code class="language-pint">let greeting: string;
+<pre><code class="language-pint">var greeting: string;
 
 constraint greeting == &quot;Hello, world!&quot;;
 
@@ -181,7 +181,7 @@ print greeting;
 <h3 id="anatomy-of-a-pint-program"><a class="header" href="#anatomy-of-a-pint-program">Anatomy of a Pint program</a></h3>
 <p>Let's review this &quot;Hello, world!&quot; program in detail.</p>
 <p>The first line in this program is:</p>
-<pre><code class="language-pint">let greeting: string;
+<pre><code class="language-pint">var greeting: string;
 </code></pre>
 <p>which declares a new <strong>decision variable</strong> called <code>greeting</code> and specifies its type to be a <code>string</code>, which is a <strong>primitive type</strong> in <code>Pint.</code></p>
 <p>The second line is:</p>

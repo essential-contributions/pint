@@ -163,15 +163,15 @@ $ cd golf
 </ol>
 <h3 id="decision-variables"><a class="header" href="#decision-variables">Decision Variables</a></h3>
 <p>Recall that our goal is to assign a par value for each of the 18 golf holes. One way of representing these values is using 18 <strong>integer</strong> decision variables as follows:</p>
-<pre><code class="language-pint">let h0: int;
-let h1: int;
+<pre><code class="language-pint">var h0: int;
+var h1: int;
 .
 .
-let h17: int;
+var h17: int;
 </code></pre>
 <p>Notice the <code>int</code> (integer) primitive type that annotates each variable. Par values have to be integers!</p>
 <p>A better way and more concise way of rewriting the above is using an array of 18 <code>int</code> values as follows:</p>
-<pre><code class="language-pint">let h: int[18];
+<pre><code class="language-pint">var h: int[18];
 </code></pre>
 <p>The type <code>int[18]</code> describes an array of 18 integers.</p>
 <h3 id="constraints"><a class="header" href="#constraints">Constraints</a></h3>
@@ -205,7 +205,7 @@ constraint h[17] in 3..5;
 <p><strong>Note:</strong> some modeling problems require optimizing (i.e. maximizing or minimizing) some objective function. Modeling these problems in Pint require using the directives <code>solve maximize &lt;expr&gt;;</code> or <code>solve minimize &lt;expr&gt;;</code> where <code>&lt;expr&gt;</code> is any valid Pint expression. The goal of an optimization problem is to find the <em>best</em> solution satisfying the constraints instead of <em>any</em> solution.</p>
 </blockquote>
 <p>Our final program now looks like this:</p>
-<pre><code class="language-pint">let h: int[18];
+<pre><code class="language-pint">var h: int[18];
 
 constraint h[0] in 3..5;
 constraint h[1] in 3..5;

@@ -154,10 +154,10 @@ Decision variables are quite different from &quot;regular&quot; variables that y
 imperative programming languages. Decision variables do not get &quot;computed&quot; or &quot;assigned to&quot; in a
 Pint program since a Pint program is <strong>not actually executed but solved</strong> (and later validated
 against a solution).</p>
-<p>Decision variables can be declared using the <code>let</code> keyword and may be annotated with a type. We will
+<p>Decision variables can be declared using the <code>var</code> keyword and may be annotated with a type. We will
 go over the available data types in Pint, in detail, in a later chapter.</p>
 <p>Here's an example that shows how to declared a decision variable named <code>foo</code> of type <code>int</code>:</p>
-<pre><code class="language-pint">let foo: int;
+<pre><code class="language-pint">var foo: int;
 </code></pre>
 <p>You can actually think of the type annotation as a &quot;constraint&quot; on the decision variable: this
 decision variable can only take values in the set of signed integers (64-bit signed integers when
@@ -167,10 +167,10 @@ constraint.</p>
 concept because decision variables are declared to be solved for. However, an initialized decision
 variable is simply a decision variable with an extra implicit constraint. Here's how an initialized
 decision variable can be declared:</p>
-<pre><code class="language-pint">let bar: int = 42;
+<pre><code class="language-pint">var bar: int = 42;
 </code></pre>
 <p>The above is equivalent to:</p>
-<pre><code class="language-pint">let bar: int;
+<pre><code class="language-pint">var bar: int;
 constraint bar == 42;
 </code></pre>
 <p>We will go over <code>constraint</code> statements in more details later but it should hopefully be intuitive
@@ -178,12 +178,12 @@ that this statement enforces <code>bar</code> to be equal to <code>42</code>. Th
 set <code>bar</code> to <code>42</code>. Otherwise, this particular constraint will fail and the whole solution will be
 deemed invalid.</p>
 <p>Skipping the type annotation is only allowed if the decision variable is &quot;initialized&quot;:</p>
-<pre><code class="language-pint">let baz = 43;
+<pre><code class="language-pint">var baz = 43;
 </code></pre>
 <p>In this case, the compiler is able to <em>infer</em> the type of <code>baz</code> by realizing that the initializer
 <code>42</code> is of type <code>int</code>.</p>
 <p>Again, the above is equivalent to:</p>
-<pre><code class="language-pint">let baz: int;
+<pre><code class="language-pint">var baz: int;
 constraint baz == 43;
 </code></pre>
 

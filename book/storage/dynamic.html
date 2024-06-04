@@ -184,8 +184,8 @@ type as each other, and all of the values must have the same type as well.</p>
 <h4 id="accessing-values-in-a-hashmap"><a class="header" href="#accessing-values-in-a-hashmap">Accessing Values in a HashMap</a></h4>
 <p>We can get a value out of the storage map by providing its key in between square brackets, similar
 to how arrays are accessed:</p>
-<pre><code class="language-pint">let from_address: b256;
-let receiver_address: b256;
+<pre><code class="language-pint">var from_address: b256;
+var receiver_address: b256;
 state from_balance = storage::balances[from_address];
 state receiver_balance = storage::balances[receiver_address];
 </code></pre>
@@ -198,7 +198,7 @@ expression in any other context results in a compile error.</p>
 operation because Pint has no sequential execution. However, as in the case with statically-sized
 storage types, we can <em>require</em> that the next value of a specific entry in a storage map satisfy
 some constraint(s):</p>
-<pre><code class="language-pint">let my_address: b256;
+<pre><code class="language-pint">var my_address: b256;
 state my_bal = storage::balances[my_address];
 constraint my_bal' == my_bal + 1000000;
 </code></pre>
@@ -227,7 +227,7 @@ maps a <code>b256</code> to another map! The way to access entries in these maps
 is exactly what you'd expect:</p>
 <pre><code class="language-pint">state complex_read: b256 = storage::complex_map[{42, 69}].1;
 
-let addr: b256;
+var addr: b256;
 state nested_read: bool = storage::nested_map[addr1][100];
 </code></pre>
 <p>The first storage access reads a tuple value using a key that itself is a tuple, and then accesses
@@ -241,7 +241,7 @@ operator accesses the second key (<code>int</code> in this case).</p>
     nested_map: (b256 =&gt; (int =&gt; bool)),
     // ...
 }
-let addr: b256;
+var addr: b256;
 
 state nested_map = storage::nested_map; // Expecting to return the &quot;whole&quot; map
 state nested_map_inner = storage::nested_map[addr]; // Expecting to return the &quot;whole&quot; inner map

@@ -186,7 +186,7 @@ $ cd hello_world
 </code></pre>
 <h3 id="writing-a-pint-program"><a class="header" href="#writing-a-pint-program">Writing a Pint Program</a></h3>
 <p>Next, make a new source file and call it <code>main.pnt</code>. Pint files always end with the <code>pnt</code> extension. Now open the <code>main.pnt</code> file you just created and enter the code below:</p>
-<pre><code class="language-pint">let greeting: string;
+<pre><code class="language-pint">var greeting: string;
 
 constraint greeting == &quot;Hello, world!&quot;;
 
@@ -207,7 +207,7 @@ print greeting;
 <h3 id="anatomy-of-a-pint-program"><a class="header" href="#anatomy-of-a-pint-program">Anatomy of a Pint program</a></h3>
 <p>Let's review this &quot;Hello, world!&quot; program in detail.</p>
 <p>The first line in this program is:</p>
-<pre><code class="language-pint">let greeting: string;
+<pre><code class="language-pint">var greeting: string;
 </code></pre>
 <p>which declares a new <strong>decision variable</strong> called <code>greeting</code> and specifies its type to be a <code>string</code>, which is a <strong>primitive type</strong> in <code>Pint.</code></p>
 <p>The second line is:</p>
@@ -241,15 +241,15 @@ $ cd golf
 </ol>
 <h3 id="decision-variables"><a class="header" href="#decision-variables">Decision Variables</a></h3>
 <p>Recall that our goal is to assign a par value for each of the 18 golf holes. One way of representing these values is using 18 <strong>integer</strong> decision variables as follows:</p>
-<pre><code class="language-pint">let h0: int;
-let h1: int;
+<pre><code class="language-pint">var h0: int;
+var h1: int;
 .
 .
-let h17: int;
+var h17: int;
 </code></pre>
 <p>Notice the <code>int</code> (integer) primitive type that annotates each variable. Par values have to be integers!</p>
 <p>A better way and more concise way of rewriting the above is using an array of 18 <code>int</code> values as follows:</p>
-<pre><code class="language-pint">let h: int[18];
+<pre><code class="language-pint">var h: int[18];
 </code></pre>
 <p>The type <code>int[18]</code> describes an array of 18 integers.</p>
 <h3 id="constraints"><a class="header" href="#constraints">Constraints</a></h3>
@@ -283,7 +283,7 @@ constraint h[17] in 3..5;
 <p><strong>Note:</strong> some modeling problems require optimizing (i.e. maximizing or minimizing) some objective function. Modeling these problems in Pint require using the directives <code>solve maximize &lt;expr&gt;;</code> or <code>solve minimize &lt;expr&gt;;</code> where <code>&lt;expr&gt;</code> is any valid Pint expression. The goal of an optimization problem is to find the <em>best</em> solution satisfying the constraints instead of <em>any</em> solution.</p>
 </blockquote>
 <p>Our final program now looks like this:</p>
-<pre><code class="language-pint">let h: int[18];
+<pre><code class="language-pint">var h: int[18];
 
 constraint h[0] in 3..5;
 constraint h[1] in 3..5;
@@ -376,13 +376,13 @@ contract can have multiple <code>intent</code>s and how it can declare and use <
 }
 
 intent Initialize {
-    let value: int;
+    var value: int;
     state counter: int = storage::counter;
     constraint counter' == value;
 }
 
 intent Increment {
-    let amount: int;
+    var amount: int;
     state counter: int = storage::counter;
     constraint counter' == counter + amount;
 }
@@ -450,8 +450,8 @@ creation of new coins (i.e. minting) as well as sending coins from one address t
 
 // Sends an amount of newly created coins to an address
 intent Mint {
-    let receiver: b256;
-    let amount: int;
+    var receiver: b256;
+    var amount: int;
 
     state receiver_balance = storage::balances[receiver];
     state total_supply = storage::total_supply;
@@ -462,9 +462,9 @@ intent Mint {
 
 // Sends an amount of existing coins from address `from` to address `receiver`
 intent Send {
-    let from: b256;
-    let receiver: b256;
-    let amount: int;
+    var from: b256;
+    var receiver: b256;
+    var amount: int;
 
     state from_balance = storage::balances[from];
     state receiver_balance = storage::balances[receiver];
@@ -547,10 +547,10 @@ Decision variables are quite different from &quot;regular&quot; variables that y
 imperative programming languages. Decision variables do not get &quot;computed&quot; or &quot;assigned to&quot; in a
 Pint program since a Pint program is <strong>not actually executed but solved</strong> (and later validated
 against a solution).</p>
-<p>Decision variables can be declared using the <code>let</code> keyword and may be annotated with a type. We will
+<p>Decision variables can be declared using the <code>var</code> keyword and may be annotated with a type. We will
 go over the available data types in Pint, in detail, in a later chapter.</p>
 <p>Here's an example that shows how to declared a decision variable named <code>foo</code> of type <code>int</code>:</p>
-<pre><code class="language-pint">let foo: int;
+<pre><code class="language-pint">var foo: int;
 </code></pre>
 <p>You can actually think of the type annotation as a &quot;constraint&quot; on the decision variable: this
 decision variable can only take values in the set of signed integers (64-bit signed integers when
@@ -560,10 +560,10 @@ constraint.</p>
 concept because decision variables are declared to be solved for. However, an initialized decision
 variable is simply a decision variable with an extra implicit constraint. Here's how an initialized
 decision variable can be declared:</p>
-<pre><code class="language-pint">let bar: int = 42;
+<pre><code class="language-pint">var bar: int = 42;
 </code></pre>
 <p>The above is equivalent to:</p>
-<pre><code class="language-pint">let bar: int;
+<pre><code class="language-pint">var bar: int;
 constraint bar == 42;
 </code></pre>
 <p>We will go over <code>constraint</code> statements in more details later but it should hopefully be intuitive
@@ -571,12 +571,12 @@ that this statement enforces <code>bar</code> to be equal to <code>42</code>. Th
 set <code>bar</code> to <code>42</code>. Otherwise, this particular constraint will fail and the whole solution will be
 deemed invalid.</p>
 <p>Skipping the type annotation is only allowed if the decision variable is &quot;initialized&quot;:</p>
-<pre><code class="language-pint">let baz = 43;
+<pre><code class="language-pint">var baz = 43;
 </code></pre>
 <p>In this case, the compiler is able to <em>infer</em> the type of <code>baz</code> by realizing that the initializer
 <code>42</code> is of type <code>int</code>.</p>
 <p>Again, the above is equivalent to:</p>
-<pre><code class="language-pint">let baz: int;
+<pre><code class="language-pint">var baz: int;
 constraint baz == 43;
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
@@ -616,31 +616,31 @@ to the backend. What matters here is that a decision variable of type <code>real
 be an integer. This has implications on constraint solvers where, typically, solving for a
 continuous variable (i.e. a real) is much easier than solving for an integer.</p>
 <p>Here's an example that shows some decision variables initialized to real literals:</p>
-<pre><code class="language-pint">let x = 1.05;
-let y = 42e8;
-let z = 2.5e-4;
-let w: real = 1.3E5;
-let u: real = 0.34;
+<pre><code class="language-pint">var x = 1.05;
+var y = 42e8;
+var z = 2.5e-4;
+var w: real = 1.3E5;
+var u: real = 0.34;
 </code></pre>
 <h4 id="numeric-operations"><a class="header" href="#numeric-operations">Numeric Operations</a></h4>
 <p>Pint supports the basic mathematical operations you’d expect for integers and reals: addition,
 subtraction, multiplication, division, and remainder. Integer division truncates toward zero to the
-nearest integer. The following code shows how you’d use each numeric operation in a <code>let</code> statement:</p>
+nearest integer. The following code shows how you’d use each numeric operation in a <code>var</code> statement:</p>
 <pre><code class="language-pint">// addition
-let sum = 1 + 2 + 3;
+var sum = 1 + 2 + 3;
 
 // subtraction
-let difference = 15.3 - 1e-1;
+var difference = 15.3 - 1e-1;
 
 // multiplication
-let product = 42 * 42;
+var product = 42 * 42;
 
 // division
-let quotient = 3.3/2.0;
-let truncated = -5 / 3; // Results is -1
+var quotient = 3.3/2.0;
+var truncated = -5 / 3; // Results is -1
 
 // remainder
-let remainder = 34 % 3;
+var remainder = 34 % 3;
 </code></pre>
 <p>Note that binary operators in Pint are strict with regards to what types they allow, that is, only
 identical types can be used in a binary operator. For example, adding an integer and a real is not a
@@ -648,16 +648,16 @@ valid operation and will result in a compile error.</p>
 <h4 id="the-boolean-type"><a class="header" href="#the-boolean-type">The Boolean Type</a></h4>
 <p>As in most other programming languages, a Boolean type in Pint has two possible values: <code>true</code> and
 <code>false</code>. The Boolean type in Pint is specified using <code>bool</code>. For example:</p>
-<pre><code class="language-pint">let t = true;
-let f: bool = false;
+<pre><code class="language-pint">var t = true;
+var f: bool = false;
 </code></pre>
 <h4 id="the-b256-type"><a class="header" href="#the-b256-type">The <code>b256</code> Type</a></h4>
 <p>The <code>b256</code> is a special type that represents a 256-bit hash. It is often used to represent addresses
 or storage keys and cannot be used as a numerical integers. That is, two <code>b256</code> values cannot added
 for example.</p>
 <p>A <code>b256</code> literals can be represented using a Hexadecimal or a Binary literal as follows:</p>
-<pre><code class="language-pint">let addr1 = 0x3333333333333333333333333333333333333333333333333333333333333333;
-let addr2: b256 = 0b1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111;
+<pre><code class="language-pint">var addr1 = 0x3333333333333333333333333333333333333333333333333333333333333333;
+var addr2: b256 = 0b1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111;
 </code></pre>
 <h3 id="compound-types"><a class="header" href="#compound-types">Compound Types</a></h3>
 <p>Compound types can group multiple values into one type. Pint has two primitive compound types:
@@ -668,46 +668,46 @@ compound type. Tuples have a fixed length: once declared, they cannot grow or sh
 <p>We create a tuple by writing a comma-separated list of values inside curly brackets <code>{ .. }</code>. Each
 position in the tuple has a type, and the types of the different values in the tuple don’t have to
 be the same. We’ve added optional type annotations in this example:</p>
-<pre><code class="language-pint">let tup_1: { int, real, bool } = { 42, 4.2, true };
+<pre><code class="language-pint">var tup_1: { int, real, bool } = { 42, 4.2, true };
 </code></pre>
 <p>The variable <code>tup</code> binds to the entire tuple because a tuple is considered to be a single compound
 element. To get the individual values out of a tuple, we can use the period (<code>.</code>) operator followed
 by the index of the value we want to access. For example:</p>
-<pre><code class="language-pint">let tup_2: { int, real, bool } = { 42, 4.2, true };
-let tup_2_first = tup_2.0;
-let tup_2_second = tup_2.1;
-let tup_2_third = tup_2.2;
+<pre><code class="language-pint">var tup_2: { int, real, bool } = { 42, 4.2, true };
+var tup_2_first = tup_2.0;
+var tup_2_second = tup_2.1;
+var tup_2_third = tup_2.2;
 </code></pre>
 <p>This program creates the tuple <code>tup_2</code> and then accesses each element of the tuple using its
 respective index. As with most programming languages, the first index in a tuple is 0.</p>
 <p>It is also possible to name some or all the fields of a tuple type as follows:</p>
-<pre><code class="language-pint">let tup_3: { x: int, real, y: bool } = { 42, 4.2, true };
+<pre><code class="language-pint">var tup_3: { x: int, real, y: bool } = { 42, 4.2, true };
 </code></pre>
 <p>Note that, in this example, only two out of the 3 fields are named. In order to access the
 individual elements of a tuple with named fields, the period (<code>.</code>) can again be used with either the
 index of the tuple field or its name. For example:</p>
-<pre><code class="language-pint">let tup_4: { x: int, real, y: bool } = { 42, 4.2, true };
-let tup_4_first = tup_4.0;
-let tup_4_first_named = tup_4.x; // same as `tup_4.0`
-let tup_4_second = tup_4.1;
-let tup_4_third = tup_4.2;
-let tup_4_third_named = tup_4.y; // same as `tup_4.y`
+<pre><code class="language-pint">var tup_4: { x: int, real, y: bool } = { 42, 4.2, true };
+var tup_4_first = tup_4.0;
+var tup_4_first_named = tup_4.x; // same as `tup_4.0`
+var tup_4_second = tup_4.1;
+var tup_4_third = tup_4.2;
+var tup_4_third_named = tup_4.y; // same as `tup_4.y`
 </code></pre>
 <p>Tuples without any values are not allowed in <code>Pint</code>. That is, the following:</p>
-<pre><code class="language-pint">let empty: { } = { };
+<pre><code class="language-pint">var empty: { } = { };
 </code></pre>
 <p>is disallowed and errors out as follows:</p>
 <pre><code class="language-console">Error: empty tuple types are not allowed
     ╭─[ch_3_2.pnt:43:12]
     │
- 43 │ let empty: {} = {};
+ 43 │ var empty: {} = {};
     │            ─┬
     │             ╰── empty tuple type found
 ────╯
 Error: empty tuple expressions are not allowed
     ╭─[ch_3_2.pnt:43:17]
     │
- 43 │ let empty: {} = {};
+ 43 │ var empty: {} = {};
     │                 ─┬
     │                  ╰── empty tuple expression found
 ────╯
@@ -717,18 +717,18 @@ Error: empty tuple expressions are not allowed
 of an array must have the same type. Unlike arrays in some other languages, arrays in Pint have a
 fixed length.</p>
 <p>We write the values in an array as a comma-separated list inside square brackets:</p>
-<pre><code class="language-pint">let a = [1, 2, 3, 4, 5];
+<pre><code class="language-pint">var a = [1, 2, 3, 4, 5];
 </code></pre>
 <p>You write an array's type using the element type followed by its size between square brackets, like
 so:</p>
-<pre><code class="language-pint">let b: int[5] = [1, 2, 3, 4, 5];
+<pre><code class="language-pint">var b: int[5] = [1, 2, 3, 4, 5];
 </code></pre>
 <p>Here, <code>int</code> is the type of each element. The number <code>5</code> indicates that the array contains five
 elements.</p>
 <p>You can access elements of an array using by <em>indexing</em> into it, like this:</p>
-<pre><code class="language-pint">let c: int[5] = [1, 2, 3, 4, 5];
-let c_first = c[0];
-let c_second = c[1];
+<pre><code class="language-pint">var c: int[5] = [1, 2, 3, 4, 5];
+var c_first = c[0];
+var c_second = c[1];
 </code></pre>
 <p>In this example, the variable named <code>c_first</code> will get the value <code>1</code> because that is the value at
 index <code>0</code> in the array. The variable named <code>c_second</code> will get the value <code>2</code> from index <code>1</code> in the
@@ -750,12 +750,12 @@ include <code>//</code> on each line, like this:</p>
 //    we're not gambling all the money away.
 </code></pre>
 <p>Comments can also be placed at the end of lines containing code:</p>
-<pre><code class="language-pint">let big_answer = 42; // answer to life, the universe, and everything
+<pre><code class="language-pint">var big_answer = 42; // answer to life, the universe, and everything
 </code></pre>
 <p>But you’ll more often see them used in this format, with the comment on a separate line above the
 code it’s annotating:</p>
 <pre><code class="language-pint">// answer to life, the universe, and everything
-let big_answer_too = 42; 
+var big_answer_too = 42;
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="conditionals"><a class="header" href="#conditionals">Conditionals</a></h2>
@@ -768,9 +768,9 @@ or some constraints based on some condition(s)&quot;.</p>
 <p>A select expression allows you to select between two alternatives based on a condition. The two
 alternatives must have the same type and that type determines the type of the whole select
 expression. For example:</p>
-<pre><code class="language-pint">let number: int;
+<pre><code class="language-pint">var number: int;
 
-let y = number &lt; 5 ? 1 : 2;
+var y = number &lt; 5 ? 1 : 2;
 </code></pre>
 <p>All select expressions start with a condition followed by the <code>?</code> symbol. In this case, the
 condition checks whether or not the decision variable <code>number</code> has a value less than 5. We place the
@@ -780,15 +780,15 @@ symbol <code>:</code> is then added followed by the expression that should be ch
 also be <code>int</code>.</p>
 <p>If, for example, the types of the two expressions we're selecting from do not match, the compiler
 will emit a compile error. For example, if we try to compile the following code:</p>
-<pre><code class="language-pint">let number: int;
+<pre><code class="language-pint">var number: int;
 
-let y = number &lt; 5 ? 1 : 2.0;
+var y = number &lt; 5 ? 1 : 2.0;
 </code></pre>
 <p>we will get the following error:</p>
 <pre><code class="language-console">Error: branches of a select expression must have the same type
    ╭─[test.pnt:3:9]
    │
- 3 │ let y = number &lt; 5 ? 1 : 2.0;
+ 3 │ var y = number &lt; 5 ? 1 : 2.0;
    │                      ┬   ─┬─
    │                      ╰──────── 'then' branch has the type `int`
    │                           │
@@ -797,15 +797,15 @@ let y = number &lt; 5 ? 1 : 2.0;
 </code></pre>
 <p>The condition of a select expression must be a <code>bool</code>. Otherwise, we will get a compile error. For
 example, if we try to compile the following code:</p>
-<pre><code class="language-pint">let number: int;
+<pre><code class="language-pint">var number: int;
 
-let y = number ? 1 : 2;
+var y = number ? 1 : 2;
 </code></pre>
 <p>we will get the following error:</p>
 <pre><code class="language-console">Error: condition for select expression must be a `bool`
    ╭─[test.pnt:3:9]
    │
- 3 │ let y = number ? 1 : 2;
+ 3 │ var y = number ? 1 : 2;
    │         ───┬──
    │            ╰──── invalid type `int`, expecting `bool`
 ───╯
@@ -816,8 +816,8 @@ explicit and always provide a select expression with a <code>Boolean</code> as i
 <p>Pint provides <code>cond</code> expressions. <code>cond</code> expressions are generalized select expressions that are not
 limited to only two branches. They provide selection from multiple alternatives, each based on some
 condition. For example:</p>
-<pre><code class="language-pint">let x: int;
-let z = cond {
+<pre><code class="language-pint">var x: int;
+var z = cond {
     x == 0 =&gt; 0,
     x &gt; 0 &amp;&amp; x &lt;= 10 =&gt; 1,
     x &gt; 10 &amp;&amp; x &lt;= 100 =&gt; 2,
@@ -835,8 +835,8 @@ equal to <code>2</code> if <code>x</code> is between <code>10</code> and <code>1
 <p>every <code>cond</code> expression can be rewritten using one or more select expressions. however, <code>cond</code> tends
 to be more compact and more readable than nested select expressions. for example, the <code>cond</code>
 expression in the example above is equivalent to:</p>
-<pre><code class="language-pint">let x: int;
-let z = x == 0 ? 0 :
+<pre><code class="language-pint">var x: int;
+var z = x == 0 ? 0 :
                x &gt; 0 &amp;&amp; x &lt;= 10 ? 1
                  : x &gt; 10 &amp;&amp; x &lt;= 100 ? 2 : 3;
 </code></pre>
@@ -895,8 +895,8 @@ use the <code>type</code> keyword. For example, we can create the alias <code>Ba
 </code></pre>
 <p>Now, the alias <code>Balance</code> is a synonym for <code>int</code>. Values that have the type <code>Balance</code> will be treated
 the same as values of type <code>int</code>:</p>
-<pre><code class="language-pint">let x: int = 5;
-let y: Balance = 5;
+<pre><code class="language-pint">var x: int = 5;
+var y: Balance = 5;
 constraint x == y;
 </code></pre>
 <p>Because <code>Balance</code> and <code>int</code> are the same type, we can compare values of both types.</p>
@@ -922,7 +922,7 @@ are the data we want to store in those fields. We don’t have to specify the fi
 in which we declared them in the struct. In other words, the struct definition is like a general
 template for the type, and instances fill in that template with particular data to create values of
 the type. For example, we can declare a particular <code>User</code> as shown below:</p>
-<pre><code class="language-pint">let user1: User = {
+<pre><code class="language-pint">var user1: User = {
     status: true,
     address: 0x1111111111111111111111111111111111111111111111111111111111111111,
     balance: 42,
@@ -944,17 +944,17 @@ to work with, we can enumerate all possible variants, which is where enumeration
 <p>Note how the possible variants of <code>Token</code> are separated by a <code>|</code>. <code>Token</code> is now a custom data type
 that we can use elsewhere in our code. Also, we can now create an instance of each of the three
 variants of <code>Token</code> like this:</p>
-<pre><code class="language-pint">let dai: Token = Token::DAI;
-let usdc: Token = Token::USDC;
-let usdt: Token = Token::USDT;
+<pre><code class="language-pint">var dai: Token = Token::DAI;
+var usdc: Token = Token::USDC;
+var usdt: Token = Token::USDT;
 </code></pre>
 <p>Note that the variants of the enum are namespaced under its identifier, and we use a double colon to
 separate the two. This is useful because now all three values <code>Token::DAI</code>, <code>Token::USDC</code>, and
 <code>Token::USDT</code> are of the same type: <code>Token</code>. We can then, for instance, declare a variable called
 <code>token_type</code> to be of type <code>Token</code> and assign it to either variants depending on how large some
 value <code>amount</code> is.</p>
-<pre><code class="language-pint">let amount: int;
-let token_type: Token = cond {
+<pre><code class="language-pint">var amount: int;
+var token_type: Token = cond {
     amount in 0..1000 =&gt; Token::DAI,
     amount in 1001..2000  =&gt; Token::USDC,
     else  =&gt; Token::USDT,
@@ -966,17 +966,17 @@ let token_type: Token = cond {
     bal: int, 
 };
 
-let user1_bal = {
+var user1_bal = {
     token: Token::DAI,
     bal: 42, 
 };
 
-let user2_bal = {
+var user2_bal = {
     token: Token::USDC,
     bal: 96, 
 };
 
-let user3_bal = {
+var user3_bal = {
     token: Token::USDT,
     bal: 100, 
 };
@@ -1131,8 +1131,8 @@ type as each other, and all of the values must have the same type as well.</p>
 <h4 id="accessing-values-in-a-hashmap"><a class="header" href="#accessing-values-in-a-hashmap">Accessing Values in a HashMap</a></h4>
 <p>We can get a value out of the storage map by providing its key in between square brackets, similar
 to how arrays are accessed:</p>
-<pre><code class="language-pint">let from_address: b256;
-let receiver_address: b256;
+<pre><code class="language-pint">var from_address: b256;
+var receiver_address: b256;
 state from_balance = storage::balances[from_address];
 state receiver_balance = storage::balances[receiver_address];
 </code></pre>
@@ -1145,7 +1145,7 @@ expression in any other context results in a compile error.</p>
 operation because Pint has no sequential execution. However, as in the case with statically-sized
 storage types, we can <em>require</em> that the next value of a specific entry in a storage map satisfy
 some constraint(s):</p>
-<pre><code class="language-pint">let my_address: b256;
+<pre><code class="language-pint">var my_address: b256;
 state my_bal = storage::balances[my_address];
 constraint my_bal' == my_bal + 1000000;
 </code></pre>
@@ -1174,7 +1174,7 @@ maps a <code>b256</code> to another map! The way to access entries in these maps
 is exactly what you'd expect:</p>
 <pre><code class="language-pint">state complex_read: b256 = storage::complex_map[{42, 69}].1;
 
-let addr: b256;
+var addr: b256;
 state nested_read: bool = storage::nested_map[addr1][100];
 </code></pre>
 <p>The first storage access reads a tuple value using a key that itself is a tuple, and then accesses
@@ -1188,7 +1188,7 @@ operator accesses the second key (<code>int</code> in this case).</p>
     nested_map: (b256 =&gt; (int =&gt; bool)),
     // ...
 }
-let addr: b256;
+var addr: b256;
 
 state nested_map = storage::nested_map; // Expecting to return the &quot;whole&quot; map
 state nested_map_inner = storage::nested_map[addr]; // Expecting to return the &quot;whole&quot; inner map
@@ -1241,7 +1241,6 @@ domain</li>
 <li><code>int</code> - basic integer type</li>
 <li><code>intent</code> - define an intent</li>
 <li><code>interface</code> - declare an external interface</li>
-<li><code>let</code> - bind a decision variable</li>
 <li><code>macro</code> - define a macro</li>
 <li><code>maximize</code> - part of a <code>solve</code> statement: maximizes an objective function</li>
 <li><code>minimize</code> - part of a <code>solve</code> statement: minimizes an objective function</li>
@@ -1254,6 +1253,7 @@ domain</li>
 <li><code>string</code> - basic string type</li>
 <li><code>type</code> - define a new type</li>
 <li><code>use</code> - bring symbols into scope</li>
+<li><code>var</code> - bind a decision variable</li>
 <li><code>where</code> - denote clauses that constraint generator indices</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">

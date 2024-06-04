@@ -158,9 +158,9 @@ or some constraints based on some condition(s)&quot;.</p>
 <p>A select expression allows you to select between two alternatives based on a condition. The two
 alternatives must have the same type and that type determines the type of the whole select
 expression. For example:</p>
-<pre><code class="language-pint">let number: int;
+<pre><code class="language-pint">var number: int;
 
-let y = number &lt; 5 ? 1 : 2;
+var y = number &lt; 5 ? 1 : 2;
 </code></pre>
 <p>All select expressions start with a condition followed by the <code>?</code> symbol. In this case, the
 condition checks whether or not the decision variable <code>number</code> has a value less than 5. We place the
@@ -170,15 +170,15 @@ symbol <code>:</code> is then added followed by the expression that should be ch
 also be <code>int</code>.</p>
 <p>If, for example, the types of the two expressions we're selecting from do not match, the compiler
 will emit a compile error. For example, if we try to compile the following code:</p>
-<pre><code class="language-pint">let number: int;
+<pre><code class="language-pint">var number: int;
 
-let y = number &lt; 5 ? 1 : 2.0;
+var y = number &lt; 5 ? 1 : 2.0;
 </code></pre>
 <p>we will get the following error:</p>
 <pre><code class="language-console">Error: branches of a select expression must have the same type
    ╭─[test.pnt:3:9]
    │
- 3 │ let y = number &lt; 5 ? 1 : 2.0;
+ 3 │ var y = number &lt; 5 ? 1 : 2.0;
    │                      ┬   ─┬─
    │                      ╰──────── 'then' branch has the type `int`
    │                           │
@@ -187,15 +187,15 @@ let y = number &lt; 5 ? 1 : 2.0;
 </code></pre>
 <p>The condition of a select expression must be a <code>bool</code>. Otherwise, we will get a compile error. For
 example, if we try to compile the following code:</p>
-<pre><code class="language-pint">let number: int;
+<pre><code class="language-pint">var number: int;
 
-let y = number ? 1 : 2;
+var y = number ? 1 : 2;
 </code></pre>
 <p>we will get the following error:</p>
 <pre><code class="language-console">Error: condition for select expression must be a `bool`
    ╭─[test.pnt:3:9]
    │
- 3 │ let y = number ? 1 : 2;
+ 3 │ var y = number ? 1 : 2;
    │         ───┬──
    │            ╰──── invalid type `int`, expecting `bool`
 ───╯
@@ -206,8 +206,8 @@ explicit and always provide a select expression with a <code>Boolean</code> as i
 <p>Pint provides <code>cond</code> expressions. <code>cond</code> expressions are generalized select expressions that are not
 limited to only two branches. They provide selection from multiple alternatives, each based on some
 condition. For example:</p>
-<pre><code class="language-pint">let x: int;
-let z = cond {
+<pre><code class="language-pint">var x: int;
+var z = cond {
     x == 0 =&gt; 0,
     x &gt; 0 &amp;&amp; x &lt;= 10 =&gt; 1,
     x &gt; 10 &amp;&amp; x &lt;= 100 =&gt; 2,
@@ -225,8 +225,8 @@ equal to <code>2</code> if <code>x</code> is between <code>10</code> and <code>1
 <p>every <code>cond</code> expression can be rewritten using one or more select expressions. however, <code>cond</code> tends
 to be more compact and more readable than nested select expressions. for example, the <code>cond</code>
 expression in the example above is equivalent to:</p>
-<pre><code class="language-pint">let x: int;
-let z = x == 0 ? 0 :
+<pre><code class="language-pint">var x: int;
+var z = x == 0 ? 0 :
                x &gt; 0 &amp;&amp; x &lt;= 10 ? 1
                  : x &gt; 10 &amp;&amp; x &lt;= 100 ? 2 : 3;
 </code></pre>
