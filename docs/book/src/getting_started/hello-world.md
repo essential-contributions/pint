@@ -20,7 +20,7 @@ $ cd hello_world
 Next, make a new source file and call it `main.pnt`. Pint files always end with the `pnt` extension. Now open the `main.pnt` file you just created and enter the code below:
 
 ```pint
-let greeting: string;
+var greeting: string;
 
 constraint greeting == "Hello, world!";
 
@@ -52,7 +52,7 @@ Let's review this "Hello, world!" program in detail.
 The first line in this program is:
 
 ```pint
-let greeting: string;
+var greeting: string;
 ```
 
 which declares a new **decision variable** called `greeting` and specifies its type to be a `string`, which is a **primitive type** in `Pint.`

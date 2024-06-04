@@ -1,7 +1,7 @@
 enum Key = CMajor | DMinor;
 enum Chord = FFlatDiminished | EMinorOverG;
 
-let saddest_sound: Chord;
+var saddest_sound: Chord;
 
 // Saddest key is D-minor.  Should produce type error since `saddest_sound` is a `Chord`.
 constraint saddest_sound == Key::DMinor;

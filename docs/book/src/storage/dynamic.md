@@ -106,7 +106,7 @@ storage {
     nested_map: (b256 => (int => bool)),
     // ...
 }
-let addr: b256;
+var addr: b256;
 
 state nested_map = storage::nested_map; // Expecting to return the "whole" map
 state nested_map_inner = storage::nested_map[addr]; // Expecting to return the "whole" inner map

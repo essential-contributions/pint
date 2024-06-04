@@ -1,6 +1,6 @@
 type Ambiguous = NonExistentEnum;
 
-let a = Ambiguous::MissingVariant;
+var a = Ambiguous::MissingVariant;
 
 solve satisfy;
 

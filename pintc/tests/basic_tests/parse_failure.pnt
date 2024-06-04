@@ -1,13 +1,13 @@
-let untyped;
-let clash = 5;
-let clash = 5;
-let clash = 5;
-let empty_tuple: {} = {};
-let empty_array: int[] = [];
-let empty_index = a[];
-let bad_integer_index = t.0x5;
-let bad_real_index = t.1e5;
-let parse_error
+var untyped;
+var clash = 5;
+var clash = 5;
+var clash = 5;
+var empty_tuple: {} = {};
+var empty_array: int[] = [];
+var empty_index = a[];
+var bad_integer_index = t.0x5;
+var bad_real_index = t.1e5;
+var parse_error
 
 // parse_failure <<<
 // type annotation or initializer needed for variable `untyped`

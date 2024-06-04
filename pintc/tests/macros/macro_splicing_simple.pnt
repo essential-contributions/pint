@@ -1,5 +1,5 @@
-let a_ary: int[5];
-let b_ary = [11, 22, 33, 44];
+var a_ary: int[5];
+var b_ary = [11, 22, 33, 44];
 
 macro @sum($x, &rest) {
     @sum($x + &rest)
@@ -10,11 +10,11 @@ macro @sum($x) {
 }
 
 // Sum both arrays.
-let s_a = @sum(~a_ary);
-let s_b = @sum(~b_ary);
+var s_a = @sum(~a_ary);
+var s_b = @sum(~b_ary);
 
 // Sum both arrays together with some immediates.
-let s_ab = @sum(~a_ary + 55; 66 + ~b_ary);
+var s_ab = @sum(~a_ary + 55; 66 + ~b_ary);
 
 macro @less_than($min, $next, &others) {
     constraint $min < $next;
@@ -26,7 +26,7 @@ macro @less_than($min, $other) {
 }
 
 // Call less_than() with an explicit min or by using the first element as the min.
-let lt_a: int;
+var lt_a: int;
 @less_than(lt_a; ~a_ary);
 @less_than(~b_ary);
 

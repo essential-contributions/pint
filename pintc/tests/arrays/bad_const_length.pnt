@@ -1,5 +1,5 @@
-let n: int;
-let a: int[0];
+var n: int;
+var a: int[0];
 
 solve satisfy;
 

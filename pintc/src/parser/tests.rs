@@ -688,11 +688,11 @@ storage {
 }
 
 #[test]
-fn extern_decl() {
+fn interface() {
     let pint = (yp::PintParser::new(), "");
 
     let src = r#"
-extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+interface Foo {
     storage {
         integer: int,
         boolean: bool,
@@ -703,7 +703,7 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
     check(
         &run_parser!(pint, src),
         expect_test::expect![[r#"
-            extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface ::Foo {
                 storage {
                     integer: int,
                     boolean: bool,
@@ -716,12 +716,12 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface Foo {
                  storage { x: int, y: bool }
             }"#
         ),
         expect_test::expect![[r#"
-            extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface ::Foo {
                 storage {
                     x: int,
                     y: bool,
@@ -733,22 +733,22 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface Foo {
                  storage { x: int, y: bool }
             }
-            extern Bar(0x2222222222222222222222222222222222222222222222222222222222222222) {
+            interface Bar {
                  storage { x: int, y: bool }
             }
             "#
         ),
         expect_test::expect![[r#"
-            extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface ::Foo {
                 storage {
                     x: int,
                     y: bool,
                 }
             }
-            extern ::Bar(0x2222222222222222222222222222222222222222222222222222222222222222) {
+            interface ::Bar {
                 storage {
                     x: int,
                     y: bool,
@@ -760,12 +760,12 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface Foo {
                 storage { x: int, y: bool, z: b256, w: (int => (bool => b256)) }
             }"#
         ),
         expect_test::expect![[r#"
-            extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface ::Foo {
                 storage {
                     x: int,
                     y: bool,
@@ -779,10 +779,10 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) { storage { } }"#
+            interface Foo { storage { } }"#
         ),
         expect_test::expect![[r#"
-            extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface ::Foo {
                 storage {
                 }
             }"#]],
@@ -791,14 +791,14 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) { storage { } }
-            extern Foo(0x2222222222222222222222222222222222222222222222222222222222222222) { storage { } }
+            interface Foo { storage { } }
+            interface Foo { storage { } }
             "#
         ),
         expect_test::expect![[r#"
             symbol `Foo` has already been declared
-            @20..23: previous declaration of the symbol `Foo` here
-            @127..130: `Foo` redeclared here
+            @23..26: previous declaration of the symbol `Foo` here
+            @65..68: `Foo` redeclared here
             `Foo` must be declared or imported only once in this scope
         "#]],
     );
@@ -807,13 +807,13 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface Foo {
                 storage { x, y }
             }"#
         ),
         expect_test::expect![[r#"
             expected `:`, found `,`
-            @121..122: expected `:`
+            @56..57: expected `:`
         "#]],
     );
 
@@ -821,23 +821,11 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo { storage { x: int, y: int } }"#
-        ),
-        expect_test::expect![[r#"
-            expected `(`, found `{`
-            @24..25: expected `(`
-        "#]],
-    );
-
-    check(
-        &run_parser!(
-            pint,
-            r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) { }"#
+            interface Foo { }"#
         ),
         expect_test::expect![[r#"
             expected `storage`, found `}`
-            @94..95: expected `storage`
+            @29..30: expected `storage`
         "#]],
     );
 
@@ -845,15 +833,43 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
         &run_parser!(
             pint,
             r#"
-            extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+            interface Foo {
                 storage { }
                 storage { }
             }"#
         ),
         expect_test::expect![[r#"
             expected `}`, found `storage`
-            @138..145: expected `}`
+            @73..80: expected `}`
         "#]],
+    );
+}
+
+#[test]
+fn interface_instance() {
+    let pint = (yp::PintParser::new(), "");
+
+    let src = r#"
+interface FooInstance = 
+    FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111);
+"#;
+
+    check(
+        &run_parser!(pint, src),
+        expect_test::expect!["interface ::FooInstance = ::FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111)"],
+    );
+
+    let src = r#"
+    var addr: b256;
+interface FooInstance = 
+    ::path::to::FooInstance(addr);
+"#;
+
+    check(
+        &run_parser!(pint, src),
+        expect_test::expect![[r#"
+            interface ::FooInstance = ::path::to::FooInstance(::addr)
+            var ::addr: b256;"#]],
     );
 }
 
@@ -889,7 +905,7 @@ fn storage_access() {
     let pint = (yp::PintParser::new(), "");
 
     check(
-        &run_parser!(pint, r#"let x = storage::foo;"#),
+        &run_parser!(pint, r#"var x = storage::foo;"#),
         expect_test::expect![[r#"
             expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `storage`
             @8..15: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
@@ -897,7 +913,7 @@ fn storage_access() {
     );
 
     check(
-        &run_parser!(pint, r#"let x = storage::map[4][3];"#),
+        &run_parser!(pint, r#"var x = storage::map[4][3];"#),
         expect_test::expect![[r#"
             expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `storage`
             @8..15: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
@@ -935,7 +951,7 @@ fn external_storage_access() {
     let pint = (yp::PintParser::new(), "");
 
     check(
-        &run_parser!(pint, r#"let x = ::Foo::storage::foo;"#),
+        &run_parser!(pint, r#"var x = ::Foo::storage::foo;"#),
         expect_test::expect![[r#"
             expected `ident`, or `macro_name`, found `storage`
             @15..22: expected `ident`, or `macro_name`
@@ -943,7 +959,7 @@ fn external_storage_access() {
     );
 
     check(
-        &run_parser!(pint, r#"let x = Bar::storage::map[4][3];"#),
+        &run_parser!(pint, r#"var x = Bar::storage::map[4][3];"#),
         expect_test::expect![[r#"
             expected `ident`, or `macro_name`, found `storage`
             @13..20: expected `ident`, or `macro_name`
@@ -965,7 +981,7 @@ fn let_decls() {
     let pint = (yp::PintParser::new(), "");
 
     check(
-        &run_parser!(pint, "let blah;", mod_path),
+        &run_parser!(pint, "var blah;", mod_path),
         expect_test::expect![[r#"
             type annotation or initializer needed for variable `blah`
             @0..8: type annotation or initializer needed
@@ -973,67 +989,67 @@ fn let_decls() {
         "#]],
     );
     check(
-        &run_parser!(pint, "let blah = 1.0;", mod_path),
+        &run_parser!(pint, "var blah = 1.0;", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah;
             constraint (::foo::blah == 1e0);"#]],
     );
     check(
-        &run_parser!(pint, "let blah: real = 1.0;", mod_path),
+        &run_parser!(pint, "var blah: real = 1.0;", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah: real;
             constraint (::foo::blah == 1e0);"#]],
     );
     check(
-        &run_parser!(pint, "let blah: real;", mod_path),
+        &run_parser!(pint, "var blah: real;", mod_path),
         expect_test::expect!["var ::foo::blah: real;"],
     );
     check(
-        &run_parser!(pint, "let blah = 1;", mod_path),
+        &run_parser!(pint, "var blah = 1;", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah;
             constraint (::foo::blah == 1);"#]],
     );
     check(
-        &run_parser!(pint, "let blah: int = 1;", mod_path),
+        &run_parser!(pint, "var blah: int = 1;", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah: int;
             constraint (::foo::blah == 1);"#]],
     );
     check(
-        &run_parser!(pint, "let blah: int;", mod_path),
+        &run_parser!(pint, "var blah: int;", mod_path),
         expect_test::expect!["var ::foo::blah: int;"],
     );
     check(
-        &run_parser!(pint, "let blah = true;", mod_path),
+        &run_parser!(pint, "var blah = true;", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah;
             constraint (::foo::blah == true);"#]],
     );
     check(
-        &run_parser!(pint, "let blah: bool = false;", mod_path),
+        &run_parser!(pint, "var blah: bool = false;", mod_path),
         expect_test::expect![[r#"
             var ::foo::blah: bool;
             constraint (::foo::blah == false);"#]],
     );
     check(
-        &run_parser!(pint, "let blah: bool;", mod_path),
+        &run_parser!(pint, "var blah: bool;", mod_path),
         expect_test::expect!["var ::foo::blah: bool;"],
     );
     check(
-        &run_parser!(pint, r#"let blah = "hello";"#, mod_path),
+        &run_parser!(pint, r#"var blah = "hello";"#, mod_path),
         expect_test::expect![[r#"
             var ::foo::blah;
             constraint (::foo::blah == "hello");"#]],
     );
     check(
-        &run_parser!(pint, r#"let blah: string = "hello";"#, mod_path),
+        &run_parser!(pint, r#"var blah: string = "hello";"#, mod_path),
         expect_test::expect![[r#"
             var ::foo::blah: string;
             constraint (::foo::blah == "hello");"#]],
     );
     check(
-        &run_parser!(pint, r#"let blah: string;"#, mod_path),
+        &run_parser!(pint, r#"var blah: string;"#, mod_path),
         expect_test::expect!["var ::foo::blah: string;"],
     );
 }
@@ -1485,7 +1501,7 @@ fn enums() {
         &run_parser!(
             pint,
             r#"
-                let x = MyEnum::Variant3;
+                var x = MyEnum::Variant3;
                 "#
         ),
         expect_test::expect![[r#"
@@ -1496,7 +1512,7 @@ fn enums() {
         &run_parser!(
             pint,
             r#"
-                let e: ::path::to::MyEnum;
+                var e: ::path::to::MyEnum;
                 "#
         ),
         expect_test::expect![[r#"
@@ -1576,7 +1592,7 @@ fn ranges() {
 
     // Range allow in let decls
     check(
-        &run_parser!(pint, "let x = 1..2;"),
+        &run_parser!(pint, "var x = 1..2;"),
         expect_test::expect![[r#"
             var ::x;
             constraint (::x >= 1);
@@ -1705,7 +1721,7 @@ fn paths() {
 fn macro_decl() {
     let src = r#"
           macro @foo($x, $y, &z) {
-              let a = 5.0 + $x * $y;
+              var a = 5.0 + $x * $y;
               a
           }
       "#;
@@ -1718,7 +1734,7 @@ fn macro_decl() {
 
     check(
         &context.macros[0].to_string(),
-        expect_test::expect!["macro ::@foo($x, $y, &z) { let a = 5.0 + $x * $y ; a }"],
+        expect_test::expect!["macro ::@foo($x, $y, &z) { var a = 5.0 + $x * $y ; a }"],
     );
 }
 
@@ -1885,7 +1901,7 @@ fn array_type() {
     );
 
     check(
-        &run_parser!((yp::PintParser::new(), ""), r#"let a: int[];"#),
+        &run_parser!((yp::PintParser::new(), ""), r#"var a: int[];"#),
         expect_test::expect![[r#"
             empty array types are not allowed
             @7..12: empty array type found
@@ -1952,7 +1968,7 @@ fn array_element_accesses() {
     );
 
     check(
-        &run_parser!((yp::PintParser::new(), ""), r#"let x = a[];"#),
+        &run_parser!((yp::PintParser::new(), ""), r#"var x = a[];"#),
         expect_test::expect![[r#"
             missing array or map index
             @8..11: missing array or map element index
@@ -2123,7 +2139,7 @@ fn tuple_field_accesses() {
     let pint = (yp::PintParser::new(), "");
 
     check(
-        &run_parser!(pint, "let x = t.0xa;"),
+        &run_parser!(pint, "var x = t.0xa;"),
         expect_test::expect![[r#"
                 invalid integer `0xa` as tuple index
                 @10..13: invalid integer as tuple index
@@ -2131,7 +2147,7 @@ fn tuple_field_accesses() {
     );
 
     check(
-        &run_parser!(pint, "let x = t.111111111111111111111111111;"),
+        &run_parser!(pint, "var x = t.111111111111111111111111111;"),
         expect_test::expect![[r#"
                 invalid integer `111111111111111111111111111` as tuple index
                 @10..37: invalid integer as tuple index
@@ -2139,7 +2155,7 @@ fn tuple_field_accesses() {
     );
 
     check(
-        &run_parser!(pint, "let x = t.111111111111111111111111111.2;"),
+        &run_parser!(pint, "var x = t.111111111111111111111111111.2;"),
         expect_test::expect![[r#"
                 invalid integer `111111111111111111111111111` as tuple index
                 @10..37: invalid integer as tuple index
@@ -2147,7 +2163,7 @@ fn tuple_field_accesses() {
     );
 
     check(
-        &run_parser!(pint, "let x = t.2.111111111111111111111111111;"),
+        &run_parser!(pint, "var x = t.2.111111111111111111111111111;"),
         expect_test::expect![[r#"
                 invalid integer `111111111111111111111111111` as tuple index
                 @12..39: invalid integer as tuple index
@@ -2157,7 +2173,7 @@ fn tuple_field_accesses() {
     check(
         &run_parser!(
             pint,
-            "let x = t.222222222222222222222.111111111111111111111111111;"
+            "var x = t.222222222222222222222.111111111111111111111111111;"
         ),
         expect_test::expect![[r#"
                 invalid integer `222222222222222222222` as tuple index
@@ -2168,7 +2184,7 @@ fn tuple_field_accesses() {
     );
 
     check(
-        &run_parser!(pint, "let x = t.1e5;"),
+        &run_parser!(pint, "var x = t.1e5;"),
         expect_test::expect![[r#"
                 invalid value `1e5` as tuple index
                 @10..13: invalid value as tuple index
@@ -2176,7 +2192,7 @@ fn tuple_field_accesses() {
     );
 
     check(
-        &run_parser!(pint, "let bad_tuple:{} = {};"),
+        &run_parser!(pint, "var bad_tuple:{} = {};"),
         expect_test::expect![[r#"
             empty tuple types are not allowed
             @14..16: empty tuple type found
@@ -2248,14 +2264,14 @@ fn casting() {
     );
 
     check(
-        &run_parser!(pint, r#"let x = __foo() as real as { int, real };"#),
+        &run_parser!(pint, r#"var x = __foo() as real as { int, real };"#),
         expect_test::expect![[r#"
             var ::x;
             constraint (::x == __foo() as real as {int, real});"#]],
     );
 
     check(
-        &run_parser!(pint, r#"let x = 5 as"#),
+        &run_parser!(pint, r#"var x = 5 as"#),
         expect_test::expect![[r#"
             expected `::`, `b256_ty`, `bool_ty`, `ident`, `int_ty`, `real_ty`, `string_ty`, or `{`, found `end of file`
             @12..12: expected `::`, `b256_ty`, `bool_ty`, `ident`, `int_ty`, `real_ty`, `string_ty`, or `{`
@@ -2293,7 +2309,7 @@ fn in_expr() {
     );
 
     check(
-        &run_parser!((yp::PintParser::new(), ""), r#"let x = 5 in"#),
+        &run_parser!((yp::PintParser::new(), ""), r#"var x = 5 in"#),
         expect_test::expect![[r#"
             expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `end of file`
             @12..12: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
@@ -2433,7 +2449,7 @@ fn intrinsic_call() {
     );
 
     check(
-        &run_parser!((yp::PintParser::new(), ""), r#"let x = foo(a*3, c);"#),
+        &run_parser!((yp::PintParser::new(), ""), r#"var x = foo(a*3, c);"#),
         expect_test::expect![[r#"
             var ::x;
             constraint (::x == foo((::a * 3), ::c));"#]],
@@ -2448,8 +2464,8 @@ fn intrinsic_call() {
 #[test]
 fn basic_program() {
     let src = r#"
-let low_val: real = 1.23;
-let high_val = 4.56;        // Implicit type.
+var low_val: real = 1.23;
+var high_val = 4.56;        // Implicit type.
 
 // Here's the constraints.
 constraint mid > low_val * 2.0;
@@ -2476,7 +2492,7 @@ fn intents_decls() {
     let src = r#"
 intent Foo { }
 intent Bar {
-    let x: int;
+    var x: int;
     constraint x == 1;
 }
 intent Baz {
@@ -2509,8 +2525,8 @@ fn out_of_order_decls() {
     let src = r#"
 solve maximize low;
 constraint low < high;
-let high = 2.0;
-let low = 1.0;
+var high = 2.0;
+var low = 1.0;
 "#;
 
     check(
@@ -2530,7 +2546,7 @@ fn keywords_as_identifiers_errors() {
     // TODO: Ideally, we emit a special error here. Instead, we currently get a generic "expected..
     // found" error.
     for keyword in KEYWORDS {
-        let src = format!("let {keyword} = 5;").to_string();
+        let src = format!("var {keyword} = 5;").to_string();
         assert_eq!(
             &run_parser!((yp::PintParser::new(), ""), &src),
             &format!(
@@ -2548,7 +2564,7 @@ fn big_ints() {
     let pint = (yp::PintParser::new(), "");
 
     check(
-        &run_parser!(pint, "let blah = 1234567890123456789012345678901234567890;"),
+        &run_parser!(pint, "var blah = 1234567890123456789012345678901234567890;"),
         expect_test::expect![[r#"
             integer literal is too large
             @11..51: integer literal is too large
@@ -2557,7 +2573,7 @@ fn big_ints() {
     );
 
     check(
-        &run_parser!(pint, "let blah = 0xfeedbadfd2adeadc;"),
+        &run_parser!(pint, "var blah = 0xfeedbadfd2adeadc;"),
         // Confirmed by using the Python REPL to convert from hex to dec...
         expect_test::expect![[r#"
             var ::blah;
@@ -2567,7 +2583,7 @@ fn big_ints() {
     check(
         &run_parser!(
             pint,
-            "let blah = 0xfeedbadfd2adeadcafed00dbabefacefeedbadf00d2adeadcafed00dbabeface;"
+            "var blah = 0xfeedbadfd2adeadcafed00dbabefacefeedbadf00d2adeadcafed00dbabeface;"
         ),
         expect_test::expect![[r#"
             var ::blah;
@@ -2587,16 +2603,16 @@ fn big_ints() {
 #[test]
 fn error_recovery() {
     let src = r#"
-let untyped;
-let clash = 5;
-let clash = 5;
-let clash = 5;
-let empty_tuple: {} = {};
-let empty_array: int[] = [];
-let empty_index = a[];
-let bad_integer_index = t.0x5;
-let bad_real_index = t.1e5;
-let parse_error
+var untyped;
+var clash = 5;
+var clash = 5;
+var clash = 5;
+var empty_tuple: {} = {};
+var empty_array: int[] = [];
+var empty_index = a[];
+var bad_integer_index = t.0x5;
+var bad_real_index = t.1e5;
+var parse_error
 "#;
 
     check(

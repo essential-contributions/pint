@@ -1,11 +1,11 @@
-let hash0: b256;
-let hash1: b256;
-let hash2: b256;
-let sig_1: { b256, b256, int } = { hash1, hash2, 69 };
+var hash0: b256;
+var hash1: b256;
+var hash2: b256;
+var sig_1: { b256, b256, int } = { hash1, hash2, 69 };
 
-let recover_secp256k1_0: { b256, int } = __recover_secp256k1(hash0, { hash1, hash2, 69 });
+var recover_secp256k1_0: { b256, int } = __recover_secp256k1(hash0, { hash1, hash2, 69 });
 
-let recover_secp256k1_1: { b256, int } = __recover_secp256k1(hash0, sig_1);
+var recover_secp256k1_1: { b256, int } = __recover_secp256k1(hash0, sig_1);
 
 solve satisfy;
 

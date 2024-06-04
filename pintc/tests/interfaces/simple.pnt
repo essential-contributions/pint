@@ -1,0 +1,99 @@
+interface Foo {
+    storage {
+        x: int,
+        y: int,
+    }
+}
+
+interface Bar {
+    storage {
+        x: int,
+        z: b256,
+    }
+}
+
+intent Simple {
+    var addr1: b256;
+    var addr2: b256;
+
+    interface FooInstance = Foo(addr1);
+    interface BarInstance = Bar(addr2);
+
+    state x = FooInstance::storage::x;
+    state y = FooInstance::storage::y;
+    state z = BarInstance::storage::z;
+}
+
+// intermediate <<<
+// interface ::Foo {
+//     storage {
+//         x: int,
+//         y: int,
+//     }
+// }
+// interface ::Bar {
+//     storage {
+//         x: int,
+//         z: b256,
+//     }
+// }
+// 
+// intent ::Simple {
+//     interface ::Foo {
+//         storage {
+//             x: int,
+//             y: int,
+//         }
+//     }
+//     interface ::Bar {
+//         storage {
+//             x: int,
+//             z: b256,
+//         }
+//     }
+//     interface ::FooInstance = ::Foo(::addr1)
+//     interface ::BarInstance = ::Bar(::addr2)
+//     var ::addr1: b256;
+//     var ::addr2: b256;
+//     state ::x = ::FooInstance::storage::x;
+//     state ::y = ::FooInstance::storage::y;
+//     state ::z = ::BarInstance::storage::z;
+// }
+// >>>
+
+// flattened <<<
+// interface ::Foo {
+//     storage {
+//         x: int,
+//         y: int,
+//     }
+// }
+// interface ::Bar {
+//     storage {
+//         x: int,
+//         z: b256,
+//     }
+// }
+// 
+// intent ::Simple {
+//     interface ::Foo {
+//         storage {
+//             x: int,
+//             y: int,
+//         }
+//     }
+//     interface ::Bar {
+//         storage {
+//             x: int,
+//             z: b256,
+//         }
+//     }
+//     interface ::FooInstance = ::Foo(::addr1)
+//     interface ::BarInstance = ::Bar(::addr2)
+//     var ::addr1: b256;
+//     var ::addr2: b256;
+//     state ::x: int = ::FooInstance::storage::x;
+//     state ::y: int = ::FooInstance::storage::y;
+//     state ::z: b256 = ::BarInstance::storage::z;
+// }
+// >>>

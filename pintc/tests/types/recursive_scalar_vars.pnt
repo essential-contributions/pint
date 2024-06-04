@@ -1,6 +1,6 @@
-let a = b + c;
-let b = c + a;
-let c = a - b;
+var a = b + c;
+var b = c + a;
+var c = a - b;
 
 solve satisfy;
 

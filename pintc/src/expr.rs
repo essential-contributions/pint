@@ -20,7 +20,7 @@ pub enum Expr {
     PathByName(Path, Span),
     StorageAccess(String, Span),
     ExternalStorageAccess {
-        extern_path: Path,
+        interface_instance: Path,
         name: String,
         span: Span,
     },

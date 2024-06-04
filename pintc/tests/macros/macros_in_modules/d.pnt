@@ -1,2 +1,2 @@
-let d: int;
+var d: int;
 constraint ::@main_macro(d);

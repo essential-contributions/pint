@@ -1,5 +1,5 @@
 macro @m($a, $b, &rest) {
-    let a = $a + $b;
+    var a = $a + $b;
     @m(&rest);
 }
 

@@ -2,10 +2,10 @@
 
 enum Skill = Nunchuck | BowHunting | ComputerHacking;
 
-let pedro_skill: Skill;
+var pedro_skill: Skill;
 constraint pedro_skill == Skill::Nunchuck || pedro_skill == Skill::BowHunting;
 
-let kip_skill: kip::Skill;
+var kip_skill: kip::Skill;
 
 constraint debbie::debbie_skill == debbie::Skill::Handicrafts && kip_skill == kip::Skill::CageFighting;
 

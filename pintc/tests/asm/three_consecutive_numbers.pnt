@@ -16,7 +16,7 @@
 
 // Find three consecutive integers such that their product is equal to their sum.
 
-let x: int[3];
+var x: int[3];
 
 constraint forall i in 1..2 {
     x[i] == x[i - 1] + 1

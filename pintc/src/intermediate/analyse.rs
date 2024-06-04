@@ -4,7 +4,7 @@ use super::{Expr, ExprKey, Ident, IntermediateIntent, Program, VarKey};
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     expr::{BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
-    intermediate::{BlockStatement, ConstraintDecl, IfDecl},
+    intermediate::{BlockStatement, ConstraintDecl, IfDecl, InterfaceInstance},
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
@@ -182,6 +182,57 @@ impl IntermediateIntent {
     }
 
     fn type_check_all_exprs(&mut self, handler: &Handler) {
+        // Type check all interface instance declarations
+        self.interface_instances.clone().into_iter().for_each(
+            |InterfaceInstance {
+                 interface,
+                 address,
+                 span,
+                 ..
+             }| {
+                if !self
+                    .interfaces
+                    .iter()
+                    .any(|e| e.name.to_string() == *interface)
+                {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::MissingInterface {
+                            name: interface.clone(),
+                            span: span.clone(),
+                        },
+                    });
+                }
+
+                match self.type_check_next_expr(address) {
+                    Ok(()) => {
+                        let ty = address.get_ty(self);
+                        if !ty.is_b256() {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::AddressExpressionTypeError {
+                                    large_err: Box::new(
+                                        LargeTypeError::AddressExpressionTypeError {
+                                            expected_ty: self
+                                                .with_ii(Type::Primitive {
+                                                    kind: PrimitiveKind::B256,
+                                                    span: empty_span(),
+                                                })
+                                                .to_string(),
+                                            found_ty: self.with_ii(ty).to_string(),
+                                            span: self.expr_key_to_span(address),
+                                            expected_span: Some(self.expr_key_to_span(address)),
+                                        },
+                                    ),
+                                },
+                            });
+                        }
+                    }
+                    Err(err) => {
+                        handler.emit_err(err);
+                    }
+                }
+            },
+        );
+
         // Check all the 'root' exprs (constraints, state initi exprs, and directives) one at a
         // time, gathering errors as we go. Copying the keys out first to avoid borrowing
         // conflict.
@@ -436,11 +487,11 @@ impl IntermediateIntent {
             Expr::StorageAccess(name, span) => self.infer_storage_access(name, span),
 
             Expr::ExternalStorageAccess {
-                extern_path,
+                interface_instance,
                 name,
                 span,
                 ..
-            } => self.infer_external_storage_access(extern_path, name, span),
+            } => self.infer_external_storage_access(interface_instance, name, span),
 
             Expr::UnaryOp {
                 op,
@@ -608,26 +659,38 @@ impl IntermediateIntent {
 
     fn infer_external_storage_access(
         &self,
-        extern_path: &Path,
+        interface_instance: &Path,
         name: &String,
         span: &Span,
     ) -> Result<Inference, Error> {
-        // First, get the `extern` declaration that this access refers to
-        let Some(r#extern) = self
-            .externs
+        // Find the interface instance or emit an error
+        let Some(interface_instance) = self
+            .interface_instances
             .iter()
-            .find(|e| e.name.to_string() == *extern_path)
+            .find(|e| e.name.to_string() == *interface_instance)
         else {
             return Err(Error::Compile {
-                error: CompileError::MissingExtern {
-                    name: extern_path.clone(),
+                error: CompileError::MissingInterfaceInstance {
+                    name: interface_instance.clone(),
                     span: span.clone(),
                 },
             });
         };
 
+        // Find the interface declaration corresponding to the interface instance
+        let Some(interface) = self
+            .interfaces
+            .iter()
+            .find(|e| e.name.to_string() == *interface_instance.interface)
+        else {
+            // No need to emit an error here because a `MissingInterface` error should have already
+            // been emitted earlier when all interface instances were type checked. Instead, we
+            // just return an `Unknown` type knowing that the compilation will fail anyways.
+            return Ok(Inference::Type(Type::Unknown(empty_span())));
+        };
+
         // Then, look for the storage variable that this access refers to
-        let Some(s_var) = r#extern
+        let Some(s_var) = interface
             .storage_vars
             .iter()
             .find(|s_var| s_var.name == *name)

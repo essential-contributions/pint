@@ -1,5 +1,5 @@
-let x: int = 1..5;
-let y: real = 1.1..5.5;
+var x: int = 1..5;
+var y: real = 1.1..5.5;
 
 constraint x > 2;
 constraint y <= 1.9;

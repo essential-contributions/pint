@@ -27,15 +27,15 @@ lint:
         - name: CARGO_NET_GIT_FETCH_WITH_CLI
           value: true
   enabled:
-    - checkov@3.2.106
-    - osv-scanner@1.7.3
+    - checkov@3.2.120
+    - osv-scanner@1.7.4
     - oxipng@9.1.1
-    - trivy@0.51.2
-    - trufflehog@3.76.3
-    - actionlint@1.7.0
+    - trivy@0.51.4
+    - trufflehog@3.77.0
+    - actionlint@1.7.1
     - clippy@1.77.2
     - git-diff-check
-    - markdownlint@0.40.0
+    - markdownlint@0.41.0
     - prettier@3.2.5
     - rustfmt@1.77.2
     - taplo@0.8.1

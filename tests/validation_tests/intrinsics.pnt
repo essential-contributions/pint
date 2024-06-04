@@ -6,43 +6,43 @@ intent Bar { }
 
 // Intent with address `0x0000000000000000000000000000000000000000000000000000000000000002`
 intent Foo {
-    let mut_keys_len: int = __mut_keys_len();
+    var mut_keys_len: int = __mut_keys_len();
     constraint mut_keys_len == 3;
 
     // Solution contains these 
-    let mut_keys_contains_0: bool = __mut_keys_contains([0]);
-    let mut_keys_contains_1: bool = __mut_keys_contains([1]);
-    let mut_keys_contains_2: bool = __mut_keys_contains([2]);
+    var mut_keys_contains_0: bool = __mut_keys_contains([0]);
+    var mut_keys_contains_1: bool = __mut_keys_contains([1]);
+    var mut_keys_contains_2: bool = __mut_keys_contains([2]);
     constraint mut_keys_contains_0 == true;
     constraint mut_keys_contains_1 == true;
     constraint mut_keys_contains_2 == true;
 
     // Solution does not contain these
-    let mut_keys_contains_3: bool = __mut_keys_contains([3]);
-    let mut_keys_contains_4: bool = __mut_keys_contains([4]);
+    var mut_keys_contains_3: bool = __mut_keys_contains([3]);
+    var mut_keys_contains_4: bool = __mut_keys_contains([4]);
     constraint mut_keys_contains_3 == false;
     constraint mut_keys_contains_4 == false;
 
-    let this_address: b256 = __this_address();
+    var this_address: b256 = __this_address();
     constraint this_address == 0x0000000000000000000000000000000000000000000000000000000000000002;
 
-    let this_set_address: b256 = __this_set_address();
+    var this_set_address: b256 = __this_set_address();
     constraint this_set_address == 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
-    let this_pathway: int = __this_pathway();
+    var this_pathway: int = __this_pathway();
     constraint this_pathway == 0;
 
-    let sha256_0: b256 = __sha256(0);
+    var sha256_0: b256 = __sha256(0);
     constraint sha256_0 == 0xAF5570F5A1810B7AF78CAF4BC70A660F0DF51E42BAF91D4DE5B2328DE0E83DFC;
 
-    let tuple = { 1, 2, { 0x0000000000000001000000000000000200000000000000030000000000000004, true } };
-    let sha256_1: b256 = __sha256(tuple);
+    var tuple = { 1, 2, { 0x0000000000000001000000000000000200000000000000030000000000000004, true } };
+    var sha256_1: b256 = __sha256(tuple);
     constraint sha256_1 == 0x18D301B2F25338A9008E8EADB74406D01C6BE8F0C51BF782AD926E9F82D28EC3;
 
     // sign the data usign private key corresponding to the public key below. Plug in the data, the
     // signature, and the public key and make sure that `verify_ed25519` is `true`.
     // These values are tested in Rust in the `essential-base` repo
-    let verify_ed25519 = __verify_ed25519
+    var verify_ed25519 = __verify_ed25519
         (
             // data
             [7, 3, 5, 7], 
@@ -58,7 +58,7 @@ intent Foo {
 
     // Provide a zero hash and a signature. Must recover back a public key
     // These values are tested in Rust in the `essential-base` repo
-    let recover_secp256k1 = __recover_secp256k1
+    var recover_secp256k1 = __recover_secp256k1
         (
             0x0000000000000000000000000000000000000000000000000000000000000000,
             // Signature

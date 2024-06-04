@@ -1,11 +1,11 @@
 intent Foo {
-    let condition: bool;
-    let condition2: bool;
-    let x: int;
-    let y: int;
-    let xx: int;
-    let yy: int;
-    let z: bool;
+    var condition: bool;
+    var condition2: bool;
+    var x: int;
+    var y: int;
+    var xx: int;
+    var yy: int;
+    var z: bool;
 
     if condition {
         constraint x == 0;
@@ -30,13 +30,13 @@ intent Foo {
 }
 
 intent Bar {
-    let condition: bool;
-    let condition2: bool;
-    let condition3: bool;
-    let x: int;
-    let xx: int;
-    let yy: int;
-    let z: bool;
+    var condition: bool;
+    var condition2: bool;
+    var condition3: bool;
+    var x: int;
+    var xx: int;
+    var yy: int;
+    var z: bool;
 
     if condition2 && condition {
         if false {

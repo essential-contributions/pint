@@ -59,7 +59,7 @@ fn main() -> anyhow::Result<()> {
 
         #[cfg(feature = "solver-scip")]
         if args.solve {
-            let flattened = &flattened.iis.get(&"".to_string()).unwrap();
+            let flattened = &flattened.iis.get("").unwrap();
             let flatpint = match pint_solve::parse_flatpint(&format!("{flattened}")[..]) {
                 Ok(flatpint) => flatpint,
                 Err(err) => {

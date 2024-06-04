@@ -1,6 +1,6 @@
-let b = 3;
-let c = 2;
-let b1: int;
+var b = 3;
+var c = 2;
+var b1: int;
 constraint b1 == b + c;
 solve satisfy;
 

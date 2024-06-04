@@ -3,14 +3,14 @@ enum MyEnum = A | B;
 type MyType = MyEnum;
 
 intent Foo {
-    let x: int;
-    let y: MyEnum = MyEnum::A;
+    var x: int;
+    var y: MyEnum = MyEnum::A;
     constraint x == 3;
 }
 
 intent Bar {
-    let x: int;
-    let y: MyType = MyType::A;
+    var x: int;
+    var y: MyType = MyType::A;
     constraint x < 2;
 }
 
