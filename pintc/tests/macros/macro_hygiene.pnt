@@ -1,12 +1,12 @@
 macro @foo($x) {
-    let a: int;
+    var a: int;
     constraint a == $x;
 }
 
 @foo(11);
 @foo(22);
 
-let a: int;
+var a: int;
 @foo(a);
 
 solve satisfy;

@@ -1,5 +1,5 @@
-let n: int;
-let a: int[10];
+var n: int;
+var a: int[10];
 
 constraint a[-1.2] == 3;
 

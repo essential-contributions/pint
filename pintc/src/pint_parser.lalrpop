@@ -38,7 +38,7 @@ Decl: () = {
 
 DeclBarringMacro: () = {
     UseStatement ";",
-    LetDecl ";",
+    VarDecl ";",
     StateDecl ";",
     ConstraintDecl ";",
     IfDecl,
@@ -315,8 +315,8 @@ UseTree: UseTree = {
     <name:UsePathIdent> "as" <alias:Ident> => UseTree::Alias { name, alias },
 };
 
-LetDecl: () = {
-    <l:@L> "let" <let_name:LetName> ":" <ty:Type> <init:LetInit?> <r:@R> => {
+VarDecl: () = {
+    <l:@L> "var" <let_name:VarName> ":" <ty:Type> <init:VarInit?> <r:@R> => {
         let mod_prefix = context.mod_prefix;
         let _ = context
             .current_ii()
@@ -331,7 +331,7 @@ LetDecl: () = {
                 }
             });
     },
-    <l:@L> "let" <let_name:LetName> <init:LetInit> <r:@R> => {
+    <l:@L> "var" <let_name:VarName> <init:VarInit> <r:@R> => {
         let mod_prefix = context.mod_prefix;
         let _ = context
             .current_ii()
@@ -344,7 +344,7 @@ LetDecl: () = {
                     .insert_eq_or_ineq_constraint(var_key, init, span);
             });
     },
-    <l:@L> "let" <name:Ident> <r:@R> => {
+    <l:@L> "var" <name:Ident> <r:@R> => {
         handler.emit_err(Error::Parse {
             error: ParseError::UntypedVariable {
                 name: name.name,
@@ -354,7 +354,7 @@ LetDecl: () = {
     }
 };
 
-LetName: (Ident, Option<&'a str>) = {
+VarName: (Ident, Option<&'a str>) = {
     <l:@L> <id:"ident"> <r:@R> => {
         let name = id.0.to_string();
         let span = (context.span_from)(l, r);
@@ -402,7 +402,7 @@ LetName: (Ident, Option<&'a str>) = {
     }
 };
 
-LetInit: ExprKey = {
+VarInit: ExprKey = {
     "=" <Range>,
     "=" <Expr>,
 };
@@ -1461,7 +1461,7 @@ extern {
 
         "use" => lexer::Token::Use,
         "self" => lexer::Token::SelfTok,
-        "let" => lexer::Token::Let,
+        "var" => lexer::Token::Var,
         "state" => lexer::Token::State,
         "storage" => lexer::Token::Storage,
         "interface" => lexer::Token::Interface,

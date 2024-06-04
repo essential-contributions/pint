@@ -1,8 +1,8 @@
 // Find three consecutive integers such that their product is equal to their sum.
 
-let x0: int;
-let x1: int;
-let x2: int;
+var x0: int;
+var x1: int;
+var x2: int;
 
 // Make sure the numbers are consecutive
 constraint x1 == x0 + 1 && x2 == x1 + 1;

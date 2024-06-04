@@ -1,7 +1,7 @@
 type I = int;
 
-let i: I = 11;
-let j: I = 22.2;
+var i: I = 11;
+var j: I = 22.2;
 
 solve satisfy;
 

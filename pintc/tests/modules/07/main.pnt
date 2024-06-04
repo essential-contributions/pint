@@ -2,11 +2,11 @@ use ::b::c::d;
 use b::c::d::e;
 use b::c;
 
-let v1 = e;
-let v2 = d::e;
-let v3 = ::b::c;
-let v4 = c;
-let v5 = b::c::d;
+var v1 = e;
+var v2 = d::e;
+var v3 = ::b::c;
+var v4 = c;
+var v5 = b::c::d;
 
 // parse_failure <<<
 // no file found for path

@@ -1,33 +1,33 @@
-let a = 11 + false;
-let b = 22 - true;
-let c = [1,2] * 33;
-let d = "four" / 44;
+var a = 11 + false;
+var b = 22 - true;
+var c = [1,2] * 33;
+var d = "four" / 44;
 
 enum T = FortyTwo | FleventyFive;
-let e = 55 % T::FortyTwo;
+var e = 55 % T::FortyTwo;
 
 // Numerics are allowed, but they must match.
-let f = 66 + 77.7;
-let g = 88 - 99.9;
-let h = 10.10 * 11;
-let i = 12 / 13.13;
-let j = 14.14 % 15;
+var f = 66 + 77.7;
+var g = 88 - 99.9;
+var h = 10.10 * 11;
+var i = 12 / 13.13;
+var j = 14.14 % 15;
 
 // `==` and `!=` take any type but they must be equivalent.
-let k = 16 == T::FleventyFive;
-let l = 17 != true;
+var k = 16 == T::FleventyFive;
+var l = 17 != true;
 
-let m = true > false;
-let n = 18 >= 19.19;
-let o = 20 < "21";
-let p = 22 <= [23, 23];
+var m = true > false;
+var n = 18 >= 19.19;
+var o = 20 < "21";
+var p = 22 <= [23, 23];
 
-let q = true && 24;
-let r = 25.25 || false;
+var q = true && 24;
+var r = 25.25 || false;
 
 // Tuples can compare with `==` or `!=` too.
-let s = {true, 26} == {27, false};
-let t = {28.28, 29} != {30, 31};
+var s = {true, 26} == {27, false};
+var t = {28.28, 29} != {30, 31};
 
 solve satisfy;
 

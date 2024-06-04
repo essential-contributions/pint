@@ -1,5 +1,5 @@
 enum Num = Zero | One | Two | Three;
-let ary: int[4];
+var ary: int[4];
 
 constraint ary[Num::One] == 1;
 

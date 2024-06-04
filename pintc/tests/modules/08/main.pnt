@@ -2,13 +2,13 @@ use ::b::c;
 use ::d::MyEnum;
 use b;
 
-let c1 = ::b::c;
-let c2 = b::c;
-let c3 = c;
-let c4 = b::c;
+var c1 = ::b::c;
+var c2 = b::c;
+var c3 = c;
+var c4 = b::c;
 
-let a_variant = MyEnum::A;
-let b_variant = d::MyEnum::B;
+var a_variant = MyEnum::A;
+var b_variant = d::MyEnum::B;
 
 solve satisfy;
 

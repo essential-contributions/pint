@@ -1,4 +1,4 @@
-let a = { x: 11, y: 22.2 };
+var a = { x: 11, y: 22.2 };
 
 constraint a.z > 33;
 

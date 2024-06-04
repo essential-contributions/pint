@@ -31,13 +31,13 @@ intent Simple {
         [1],
     ); // 69
 
-    let w: int = x + 99; // 141
-    let u: int = y * 3;  // 129
-    let v: int = z * z;  // 1936
-    let e_old = external_1;
-    let e_new = external_2';
+    var w: int = x + 99; // 141
+    var u: int = y * 3;  // 129
+    var v: int = z * z;  // 1936
+    var e_old = external_1;
+    var e_new = external_2';
 
-    let a: int[5];
+    var a: int[5];
 
     constraint forall i in 0..4 {
         a[i] == i*i

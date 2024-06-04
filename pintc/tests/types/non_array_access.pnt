@@ -1,4 +1,4 @@
-let a: real;
+var a: real;
 
 constraint a[0] == a[1];
 

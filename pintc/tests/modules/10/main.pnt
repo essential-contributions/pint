@@ -2,13 +2,13 @@ use a::E;
 
 use a::F;
 
-let b = F;
+var b = F;
 
 enum E = A | B;
 
 type E = string;
 
-let E = 4;
+var E = 4;
 
 state E = __foo();
 

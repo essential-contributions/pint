@@ -7,7 +7,7 @@ fn mut_keys_len() {
             "{}",
             compile(
                 r#"
-            let mut_keys_len = __mut_keys_len();
+            var mut_keys_len = __mut_keys_len();
             solve satisfy;
             "#,
             )
@@ -31,8 +31,8 @@ fn mut_keys_contains() {
             "{}",
             compile(
                 r#"
-            let key: int[5];
-            let mut_keys_contains = __mut_keys_contains(key);
+            var key: int[5];
+            var mut_keys_contains = __mut_keys_contains(key);
             solve satisfy;
             "#,
             )
@@ -64,7 +64,7 @@ fn mut_keys_contains() {
             "{}",
             compile(
                 r#"
-            let mut_keys_contains = __mut_keys_contains([69, 70, 71]);
+            var mut_keys_contains = __mut_keys_contains([69, 70, 71]);
             solve satisfy;
             "#,
             )
@@ -92,7 +92,7 @@ fn this_address() {
             "{}",
             compile(
                 r#"
-            let this_address = __this_address();
+            var this_address = __this_address();
             solve satisfy;
             "#,
             )
@@ -123,7 +123,7 @@ fn this_set_address() {
             "{}",
             compile(
                 r#"
-            let this_set_address = __this_set_address();
+            var this_set_address = __this_set_address();
             solve satisfy;
             "#,
             )
@@ -154,7 +154,7 @@ fn this_pathway() {
             "{}",
             compile(
                 r#"
-            let this_pathway = __this_pathway();
+            var this_pathway = __this_pathway();
             solve satisfy;
             "#,
             )
@@ -178,7 +178,7 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            let sha256 = __sha256(69);
+            var sha256 = __sha256(69);
             solve satisfy;
             "#,
             )
@@ -208,8 +208,8 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            let x: int;
-            let sha256 = __sha256(x);
+            var x: int;
+            var sha256 = __sha256(x);
             solve satisfy;
             "#,
             )
@@ -240,9 +240,9 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            let x: b256;
-            let y: b256;
-            let sha256 = __sha256({ 1, 3, x, { y, true } });
+            var x: b256;
+            var y: b256;
+            var sha256 = __sha256({ 1, 3, x, { y, true } });
             solve satisfy;
             "#,
             )
@@ -290,8 +290,8 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            let t: { int, int, b256, { b256, bool } };
-            let sha256 = __sha256(t);
+            var t: { int, int, b256, { b256, bool } };
+            var sha256 = __sha256(t);
             solve satisfy;
             "#,
             )
@@ -342,10 +342,10 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            let x: int;
-            let y: int;
-            let z: int;
-            let sha256 = __sha256([[1, 2, 3], [x, y, z]]);
+            var x: int;
+            var y: int;
+            var z: int;
+            var sha256 = __sha256([[1, 2, 3], [x, y, z]]);
             solve satisfy;
             "#,
             )
@@ -383,8 +383,8 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            let z: int[3][2];
-            let sha256 = __sha256(z);
+            var z: int[3][2];
+            var sha256 = __sha256(z);
             solve satisfy;
             "#,
             )
@@ -425,8 +425,8 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            let z: int[3][2];
-            let sha256 = __sha256(z[1]);
+            var z: int[3][2];
+            var sha256 = __sha256(z[1]);
             solve satisfy;
             "#,
             )
@@ -462,11 +462,11 @@ fn verify_ed25519() {
             "{}",
             compile(
                 r#"
-            let hash0: b256;
-            let hash1: b256;
-            let hash2: b256;
-            let sig = { hash0, hash1 };
-            let verify = __verify_ed25519(69, sig, hash2);
+            var hash0: b256;
+            var hash1: b256;
+            var hash2: b256;
+            var sig = { hash0, hash1 };
+            var verify = __verify_ed25519(69, sig, hash2);
             solve satisfy;
             "#,
             )
@@ -551,12 +551,12 @@ fn verify_ed25519() {
             "{}",
             compile(
                 r#"
-            let tuple = { 1, 2, [ 1, 3 ] };
-            let hash0: b256;
-            let hash1: b256;
-            let hash2: b256;
-            let sig = { hash0, hash1 };
-            let verify = __verify_ed25519(tuple, sig, hash2);
+            var tuple = { 1, 2, [ 1, 3 ] };
+            var hash0: b256;
+            var hash1: b256;
+            var hash2: b256;
+            var sig = { hash0, hash1 };
+            var verify = __verify_ed25519(tuple, sig, hash2);
             solve satisfy;
             "#,
             )
@@ -671,11 +671,11 @@ fn recover_secp256k1() {
             "{}",
             compile(
                 r#"
-            let hash0: b256;
-            let hash1: b256;
-            let hash2: b256;
-            let sig = { hash1, hash2, 69 };
-            let recovered = __recover_secp256k1(hash0, sig);
+            var hash0: b256;
+            var hash1: b256;
+            var hash2: b256;
+            var sig = { hash1, hash2, 69 };
+            var recovered = __recover_secp256k1(hash0, sig);
             solve satisfy;
             "#,
             )

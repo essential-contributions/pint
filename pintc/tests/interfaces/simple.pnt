@@ -13,8 +13,8 @@ interface Bar {
 }
 
 intent Simple {
-    let addr1: b256;
-    let addr2: b256;
+    var addr1: b256;
+    var addr2: b256;
 
     interface FooInstance = Foo(addr1);
     interface BarInstance = Bar(addr2);

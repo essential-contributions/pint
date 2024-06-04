@@ -3,7 +3,7 @@ macro @equal($x, $y) {
 }
 
 macro @foo($x) {
-    let a: int;
+    var a: int;
     constraint a == $x;
 }
 

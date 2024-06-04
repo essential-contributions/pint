@@ -10,7 +10,7 @@ type T = { __x: int, y: bool };
 
 enum ___E = A | B;
 type __MyType = int;
-let __x = 5;
+var __x = 5;
 
 constraint __x == 0;
 

@@ -1,5 +1,5 @@
 macro @m($a) {
-    let x = @m(22);
+    var x = @m(22);
 }
 
 @m(11);

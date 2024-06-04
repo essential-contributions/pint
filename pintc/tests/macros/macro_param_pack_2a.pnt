@@ -2,7 +2,7 @@ macro @a($x) {
     @a($x + &rest)
 }
 
-let b: int = @a(11);
+var b: int = @a(11);
 
 solve satisfy;
 

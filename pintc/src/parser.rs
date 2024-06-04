@@ -453,8 +453,8 @@ impl<'a> ProjectParser<'a> {
             .for_each(|(_, ii)| {
                 let _ = deep_copy_new_types(&new_types, &exprs, ii, self.handler);
                 ii.enums.extend_from_slice(&enums);
-                ii.storage = storage.clone();
-                ii.interfaces = interfaces.clone();
+                ii.storage.clone_from(&storage);
+                ii.interfaces.clone_from(&interfaces);
 
                 for (symbol, span) in &root_symbols {
                     // We could call `ii.add_top_level_symbol_with_name` directly here, but then

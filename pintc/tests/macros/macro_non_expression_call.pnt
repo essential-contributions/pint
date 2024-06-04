@@ -3,7 +3,7 @@ macro @decls_only($a) {
 }
 
 // @decls_only() doesn't return an expression and can't be used here.
-let x = @decls_only(11);
+var x = @decls_only(11);
 
 // This is OK.
 @decls_only(22);

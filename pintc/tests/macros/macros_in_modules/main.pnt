@@ -4,7 +4,7 @@ use c;
 use d::d;
 use e::@e_macro;
 
-let a: int;
+var a: int;
 constraint ::b::@b_macro(a; 11 + 22);
 constraint c::@c_macro(a; 33);
 

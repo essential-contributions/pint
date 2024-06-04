@@ -1,9 +1,9 @@
 macro @m($a, $b) {
-    let z = $a + $b;
+    var z = $a + $b;
 }
 
 macro @m($x, $y) {
-    let a = $x + $y;
+    var a = $x + $y;
 }
 
 @m(1; 2);
