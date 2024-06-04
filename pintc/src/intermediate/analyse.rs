@@ -8,7 +8,8 @@ use crate::{
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
-use std::collections::{HashMap, HashSet};
+use fxhash::FxHashMap;
+use std::collections::HashSet;
 
 enum Inference {
     Ignored,
@@ -259,7 +260,7 @@ impl IntermediateIntent {
             .for_each(|if_decl| self.type_check_if_decl(if_decl, handler));
 
         // Confirm now that all decision variables are typed.
-        let mut var_key_to_new_type = HashMap::new();
+        let mut var_key_to_new_type = FxHashMap::default();
         for (var_key, var) in self.vars() {
             if var_key.get_ty(self).is_unknown() {
                 if let Some(init_expr_key) = self.var_inits.get(var_key) {
@@ -291,7 +292,7 @@ impl IntermediateIntent {
         });
 
         // Confirm now that all state variables are typed.
-        let mut state_key_to_new_type = HashMap::new();
+        let mut state_key_to_new_type = FxHashMap::default();
         for (state_key, state) in self.states() {
             let state_ty = state_key.get_ty(self);
             if !state_ty.is_unknown() {

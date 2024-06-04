@@ -5,8 +5,9 @@ use crate::{
     span::{empty_span, Spanned},
     types::{PrimitiveKind, Type},
 };
+use fxhash::FxHashMap;
 use itertools::Itertools;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 /// Given an `IntermediateIntent`, and a generator expression containing a list of indices with
 /// their ranges `gen_ranges`, an optional list of `conditions`, and a body, return a new
@@ -158,7 +159,7 @@ fn unroll_generator(
             .iter()
             .zip(values.iter())
             .map(|(index, int_index)| ("::".to_owned() + &index.name, Immediate::Int(*int_index)))
-            .collect::<HashMap<_, _>>();
+            .collect::<FxHashMap<_, _>>();
 
         // Check each condition, if available, against the values map above
         let mut satisfied = true;

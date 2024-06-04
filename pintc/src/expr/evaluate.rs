@@ -5,7 +5,7 @@ use crate::{
     span::empty_span,
     types::Path,
 };
-use std::collections::HashMap;
+use fxhash::FxHashMap;
 
 impl Expr {
     /// Given an expression `self`, an `IntermediateIntent`, and a map between symbols and their
@@ -17,7 +17,7 @@ impl Expr {
         &self,
         handler: &Handler,
         ii: &IntermediateIntent,
-        values_map: &HashMap<Path, Immediate>,
+        values_map: &FxHashMap<Path, Immediate>,
     ) -> Result<Immediate, ErrorEmitted> {
         use BinaryOp::*;
         use Immediate::{Bool, Int, Real};
@@ -164,7 +164,7 @@ impl ExprKey {
     pub(crate) fn plug_in(
         self,
         ii: &mut IntermediateIntent,
-        values_map: &HashMap<Path, Immediate>,
+        values_map: &FxHashMap<Path, Immediate>,
     ) -> ExprKey {
         let expr = self.get(ii).clone();
 

@@ -25,6 +25,7 @@ clap = { workspace = true }
 constraint-asm = { workspace = true }
 essential-types = { git = "ssh://git@github.com/essential-contributions/essential-base.git" }
 expect-test = { workspace = true }
+fxhash = { workspace = true }
 itertools = { workspace = true }
 lalrpop-util = "0.20"
 logos = { workspace = true }
