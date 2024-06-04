@@ -1,6 +1,6 @@
-let a = [c[1], b];
-let b = c[1];
-let c = [[b][0], a[1]];
+var a = [c[1], b];
+var b = c[1];
+var c = [[b][0], a[1]];
 
 solve satisfy;
 

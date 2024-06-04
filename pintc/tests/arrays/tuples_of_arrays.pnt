@@ -1,5 +1,5 @@
-let a = {11, [22, 33, 44], 55};
-let b = {true, {false, [true, true], false}, [false, false]};
+var a = {11, [22, 33, 44], 55};
+var b = {true, {false, [true, true], false}, [false, false]};
 
 solve satisfy;
 

@@ -1,9 +1,9 @@
-let condition: bool;
-let condition2: bool;
-let condition3: bool;
+var condition: bool;
+var condition2: bool;
+var condition3: bool;
 
-let x: int;
-let y: int;
+var x: int;
+var y: int;
 
 if condition {
     constraint x == 0;
@@ -12,9 +12,9 @@ if condition {
 
 if condition { }
 
-let xx: int;
-let yy: int;
-let z: bool;
+var xx: int;
+var yy: int;
+var z: bool;
 
 if condition2 {
     constraint xx == 1;

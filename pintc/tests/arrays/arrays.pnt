@@ -1,14 +1,14 @@
-let a: real[5];
-let a1 = a[1];
+var a: real[5];
+var a1 = a[1];
 
 enum Colour = Red | Green | Blue;
-let b: real[Colour][3];
-let b_r_2 = b[Colour::Red][2];
+var b: real[Colour][3];
+var b_r_2 = b[Colour::Red][2];
 
-let c: int[4] = [0, 1, 2, 3];
-let c1 = [0, 1, 2, 4];
+var c: int[4] = [0, 1, 2, 3];
+var c1 = [0, 1, 2, 4];
 
-let cb: bool = c != c1;
+var cb: bool = c != c1;
 
 solve satisfy;
 

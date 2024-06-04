@@ -11,7 +11,7 @@ storage {
     z: int,
 }
 
-extern Extern(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE) {
+interface Foo {
     storage {
         x: int,
         y: int,
@@ -22,20 +22,22 @@ intent Simple {
     state x: int = storage::x;
     state y: int = storage::y;
     state z: int = storage::z;
-    state external_1 = Extern::storage::y; // 69
+
+    interface FooInstance = Foo(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE);
+    state external_1 = FooInstance::storage::y; // 69
 
     state external_2 = __storage_get_extern(
         0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE,
         [1],
     ); // 69
 
-    let w: int = x + 99; // 141
-    let u: int = y * 3;  // 129
-    let v: int = z * z;  // 1936
-    let e_old = external_1;
-    let e_new = external_2';
+    var w: int = x + 99; // 141
+    var u: int = y * 3;  // 129
+    var v: int = z * z;  // 1936
+    var e_old = external_1;
+    var e_new = external_2';
 
-    let a: int[5];
+    var a: int[5];
 
     constraint forall i in 0..4 {
         a[i] == i*i

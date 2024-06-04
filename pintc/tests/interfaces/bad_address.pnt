@@ -1,0 +1,39 @@
+interface Foo {
+    storage {
+        x: int,
+        y: int,
+    }
+}
+
+intent Simple {
+    interface FooInstance1 = Foo(0 + true);
+    interface FooInstance2 = Foo("bla");
+}
+
+// intermediate <<<
+// interface ::Foo {
+//     storage {
+//         x: int,
+//         y: int,
+//     }
+// }
+// 
+// intent ::Simple {
+//     interface ::Foo {
+//         storage {
+//             x: int,
+//             y: int,
+//         }
+//     }
+//     interface ::FooInstance1 = ::Foo((0 + true))
+//     interface ::FooInstance2 = ::Foo("bla")
+// }
+// >>>
+
+// typecheck_failure <<<
+// binary operator type error
+// @124..128: operator `+` argument has unexpected type `bool`
+// address expression type error
+// @164..169: address expression has unexpected type `string`
+// @164..169: expecting type `b256`
+// >>>

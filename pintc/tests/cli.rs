@@ -70,7 +70,7 @@ fn err() {
 #[test]
 fn compile_errors() {
     let mut input_file = tempfile::NamedTempFile::new().unwrap();
-    let code = r#"let t: {} = {}; let a = a[]; solve satisfy;"#;
+    let code = r#"var t: {} = {}; var a = a[]; solve satisfy;"#;
     write!(input_file.as_file_mut(), "{code}").unwrap();
 
     let output = pintc_command(input_file.path().to_str().unwrap());
@@ -87,21 +87,21 @@ fn compile_errors() {
             Error: empty tuple types are not allowed
                ╭─[filepath:1:8]
                │
-             1 │ let t: {} = {}; let a = a[]; solve satisfy;
+             1 │ var t: {} = {}; var a = a[]; solve satisfy;
                │        ─┬  
                │         ╰── empty tuple type found
             ───╯
             Error: empty tuple expressions are not allowed
                ╭─[filepath:1:13]
                │
-             1 │ let t: {} = {}; let a = a[]; solve satisfy;
+             1 │ var t: {} = {}; var a = a[]; solve satisfy;
                │             ─┬  
                │              ╰── empty tuple expression found
             ───╯
             Error: missing array or map index
                ╭─[filepath:1:25]
                │
-             1 │ let t: {} = {}; let a = a[]; solve satisfy;
+             1 │ var t: {} = {}; var a = a[]; solve satisfy;
                │                         ─┬─  
                │                          ╰─── missing array or map element index
             ───╯
@@ -151,7 +151,7 @@ fn explicit_output() {
 #[test]
 fn solve() {
     let mut input_file = tempfile::NamedTempFile::new().unwrap();
-    write!(input_file.as_file_mut(), "let x: int = 5; solve satisfy;").unwrap();
+    write!(input_file.as_file_mut(), "var x: int = 5; solve satisfy;").unwrap();
 
     let output = pintc_command(&format!("{} --solve", input_file.path().to_str().unwrap(),));
 

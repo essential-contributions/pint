@@ -1,4 +1,4 @@
-let ary: int[2];
+var ary: int[2];
 
 constraint ary[false] == ary[11.1];
 

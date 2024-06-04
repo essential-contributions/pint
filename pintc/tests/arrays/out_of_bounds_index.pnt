@@ -1,4 +1,4 @@
-let b: int[4];
+var b: int[4];
 
 constraint b[4] == 2;
 

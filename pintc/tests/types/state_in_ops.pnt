@@ -6,7 +6,7 @@ storage {
 state i1 = storage::i;
 state b1 = storage::b;
 
-let bad_and = b1 && i1;
+var bad_and = b1 && i1;
 
 solve satisfy;
 

@@ -1,10 +1,10 @@
 use a_mod::a1 as a1_alias;
 use a_mod::a2 as a1_alias; // Clash because of the alias
 
-let a1_alias = 5; // Clash because of the alias
-let a1 = 5; // No Clash
+var a1_alias = 5; // Clash because of the alias
+var a1 = 5; // No Clash
 
-let c_copy = b_mod::c;
+var c_copy = b_mod::c;
 
 // parse_failure <<<
 // symbol `a1_alias` has already been declared

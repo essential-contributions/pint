@@ -37,18 +37,30 @@ impl super::IntermediateIntent {
             }
             writeln!(f, "{indentation}}}")?;
         }
-        for r#extern in &self.externs {
-            writeln!(
-                f,
-                "{indentation}extern {}({}) {{",
-                r#extern.name, r#extern.address
-            )?;
+        for super::Interface {
+            name, storage_vars, ..
+        } in &self.interfaces
+        {
+            writeln!(f, "{indentation}interface {name} {{",)?;
             writeln!(f, "{indentation}    storage {{")?;
-            for storage_var in &r#extern.storage_vars {
+            for storage_var in storage_vars {
                 writeln!(f, "{indentation}        {}", self.with_ii(storage_var))?;
             }
             writeln!(f, "{indentation}    }}")?;
             writeln!(f, "{indentation}}}")?;
+        }
+        for super::InterfaceInstance {
+            name,
+            interface,
+            address,
+            ..
+        } in &self.interface_instances
+        {
+            writeln!(
+                f,
+                "{indentation}interface {name} = {interface}({})",
+                self.with_ii(address)
+            )?;
         }
         for (var_key, _) in self.vars() {
             writeln!(f, "{indentation}{};", self.with_ii(var_key))?;

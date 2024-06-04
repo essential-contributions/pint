@@ -6,7 +6,7 @@ macro @a($x) {
     $x
 }
 
-let b: int = @a(11; 22; 33; 44; 55);
+var b: int = @a(11; 22; 33; 44; 55);
 
 solve satisfy;
 

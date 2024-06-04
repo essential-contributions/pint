@@ -1,13 +1,13 @@
 macro @a($x) {
-    let z = @b($x);
+    var z = @b($x);
 }
 
 macro @b($x) {
-    let z = @c($x);
+    var z = @c($x);
 }
 
 macro @c($x) {
-    let z = @a($x);
+    var z = @a($x);
 }
 
 @a(11);

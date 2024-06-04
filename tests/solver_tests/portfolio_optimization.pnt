@@ -7,21 +7,21 @@
 // more capital than you have.
 
 // Total capitable available
-let B: real = 10000.0;
+var B: real = 10000.0;
 
 // Minimum growth we hope to obtain
-let G: real = 1000.0;
+var G: real = 1000.0;
 
 // Expected values of R, the random vector of asset return over some period (use an array literal
 // here when available)
-let r: real[4];
+var r: real[4];
 constraint r[0] ==  0.05 &&
            r[1] == -0.20 &&
            r[2] ==  0.15 &&
            r[3] ==  0.30;
 
 // Covariance matrix of R (use an array literal here when available)
-let coeff: real[4][4];
+var coeff: real[4][4];
 constraint coeff[0][0] ==  0.08  &&
            coeff[0][1] ==  -0.05 &&
            coeff[0][2] ==  -0.05 &&
@@ -40,7 +40,7 @@ constraint coeff[0][0] ==  0.08  &&
            coeff[3][3] ==  0.35;
 
 // Amount invested in each asset
-let x: real[4];
+var x: real[4];
 constraint forall i in 0..3 {
     x[i] >= 0.0 && x[i] <= 10000.0 * 10000.0
 };
@@ -52,7 +52,7 @@ constraint x[0] + x[1] + x[2] + x[3] <= B;
 constraint r[0] * x[0] + r[1] * x[1] + r[2] * x[2] + r[3] * x[3] >= G;
 
 // Objective function = x^T * C * x  (Use a `fold` or `sum` here when available)
-let f: real;
+var f: real;
 constraint f >= 0.0;
 constraint coeff[0][0] * x[0] * x[0] +
            coeff[0][1] * x[0] * x[1] +

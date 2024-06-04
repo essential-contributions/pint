@@ -1,5 +1,5 @@
-let x = 1..10;
-let z = 1..10;
+var x = 1..10;
+var z = 1..10;
 constraint z * x == 10;
 solve maximize z + x;
 

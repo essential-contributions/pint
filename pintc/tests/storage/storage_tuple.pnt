@@ -5,7 +5,7 @@ storage {
     map_to_tuples: ( int => { b256, { int, int } } ),
 }
 
-extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+interface Foo {
     storage {
         u: { b256, int },
         t: { b256, { int, int } },
@@ -15,6 +15,8 @@ extern Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
 }
 
 intent Bar {
+    interface FooInstance = Foo(0x1111111111111111111111111111111111111111111111111111111111111111);
+
     state u = storage::u;
     state u0 = storage::u.0;
     state u1 = storage::u.1;
@@ -34,24 +36,24 @@ intent Bar {
     state map_to_tuples_69_1_0 = storage::map_to_tuples[69].1.0;
     state map_to_tuples_69_1_1 = storage::map_to_tuples[69].1.1;
 
-    state foo_u = Foo::storage::u;
-    state foo_u0 = Foo::storage::u.0;
-    state foo_u1 = Foo::storage::u.1;
+    state foo_u = FooInstance::storage::u;
+    state foo_u0 = FooInstance::storage::u.0;
+    state foo_u1 = FooInstance::storage::u.1;
 
-    state foo_t = Foo::storage::t;
-    state foo_t0 = Foo::storage::t .0;
-    state foo_t10 = Foo::storage::t.1.0;
-    state foo_t11 = Foo::storage::t.1.1;
+    state foo_t = FooInstance::storage::t;
+    state foo_t0 = FooInstance::storage::t .0;
+    state foo_t10 = FooInstance::storage::t.1.0;
+    state foo_t11 = FooInstance::storage::t.1.1;
 
-    state foo_w = Foo::storage::w;
-    state foo_w0 = Foo::storage::w .addr;
-    state foo_w10 = Foo::storage::w.inner.x;
-    state foo_w11 = Foo::storage::w.inner.1;
+    state foo_w = FooInstance::storage::w;
+    state foo_w0 = FooInstance::storage::w .addr;
+    state foo_w10 = FooInstance::storage::w.inner.x;
+    state foo_w11 = FooInstance::storage::w.inner.1;
 
-    state foo_map_to_tuples_69 = Foo::storage::map_to_tuples[69];
-    state foo_map_to_tuples_69_0 = Foo::storage::map_to_tuples[69].0;
-    state foo_map_to_tuples_69_1_0 = Foo::storage::map_to_tuples[69].1.0;
-    state foo_map_to_tuples_69_1_1 = Foo::storage::map_to_tuples[69].1.1;
+    state foo_map_to_tuples_69 = FooInstance::storage::map_to_tuples[69];
+    state foo_map_to_tuples_69_0 = FooInstance::storage::map_to_tuples[69].0;
+    state foo_map_to_tuples_69_1_0 = FooInstance::storage::map_to_tuples[69].1.0;
+    state foo_map_to_tuples_69_1_1 = FooInstance::storage::map_to_tuples[69].1.1;
 }
 
 // intermediate <<<
@@ -61,7 +63,7 @@ intent Bar {
 //     w: {addr: b256, inner: {x: int, int}},
 //     map_to_tuples: ( int => {b256, {int, int}} ),
 // }
-// extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+// interface ::Foo {
 //     storage {
 //         u: {b256, int},
 //         t: {b256, {int, int}},
@@ -69,7 +71,7 @@ intent Bar {
 //         map_to_tuples: ( int => {b256, {int, int}} ),
 //     }
 // }
-//
+// 
 // intent ::Bar {
 //     storage {
 //         u: {b256, int},
@@ -77,7 +79,7 @@ intent Bar {
 //         w: {addr: b256, inner: {x: int, int}},
 //         map_to_tuples: ( int => {b256, {int, int}} ),
 //     }
-//     extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+//     interface ::Foo {
 //         storage {
 //             u: {b256, int},
 //             t: {b256, {int, int}},
@@ -85,6 +87,7 @@ intent Bar {
 //             map_to_tuples: ( int => {b256, {int, int}} ),
 //         }
 //     }
+//     interface ::FooInstance = ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111)
 //     state ::u = storage::u;
 //     state ::u0 = storage::u.0;
 //     state ::u1 = storage::u.1;
@@ -100,21 +103,21 @@ intent Bar {
 //     state ::map_to_tuples_69_0 = storage::map_to_tuples[69].0;
 //     state ::map_to_tuples_69_1_0 = storage::map_to_tuples[69].1.0;
 //     state ::map_to_tuples_69_1_1 = storage::map_to_tuples[69].1.1;
-//     state ::foo_u = ::Foo::storage::u;
-//     state ::foo_u0 = ::Foo::storage::u.0;
-//     state ::foo_u1 = ::Foo::storage::u.1;
-//     state ::foo_t = ::Foo::storage::t;
-//     state ::foo_t0 = ::Foo::storage::t.0;
-//     state ::foo_t10 = ::Foo::storage::t.1.0;
-//     state ::foo_t11 = ::Foo::storage::t.1.1;
-//     state ::foo_w = ::Foo::storage::w;
-//     state ::foo_w0 = ::Foo::storage::w.addr;
-//     state ::foo_w10 = ::Foo::storage::w.inner.x;
-//     state ::foo_w11 = ::Foo::storage::w.inner.1;
-//     state ::foo_map_to_tuples_69 = ::Foo::storage::map_to_tuples[69];
-//     state ::foo_map_to_tuples_69_0 = ::Foo::storage::map_to_tuples[69].0;
-//     state ::foo_map_to_tuples_69_1_0 = ::Foo::storage::map_to_tuples[69].1.0;
-//     state ::foo_map_to_tuples_69_1_1 = ::Foo::storage::map_to_tuples[69].1.1;
+//     state ::foo_u = ::FooInstance::storage::u;
+//     state ::foo_u0 = ::FooInstance::storage::u.0;
+//     state ::foo_u1 = ::FooInstance::storage::u.1;
+//     state ::foo_t = ::FooInstance::storage::t;
+//     state ::foo_t0 = ::FooInstance::storage::t.0;
+//     state ::foo_t10 = ::FooInstance::storage::t.1.0;
+//     state ::foo_t11 = ::FooInstance::storage::t.1.1;
+//     state ::foo_w = ::FooInstance::storage::w;
+//     state ::foo_w0 = ::FooInstance::storage::w.addr;
+//     state ::foo_w10 = ::FooInstance::storage::w.inner.x;
+//     state ::foo_w11 = ::FooInstance::storage::w.inner.1;
+//     state ::foo_map_to_tuples_69 = ::FooInstance::storage::map_to_tuples[69];
+//     state ::foo_map_to_tuples_69_0 = ::FooInstance::storage::map_to_tuples[69].0;
+//     state ::foo_map_to_tuples_69_1_0 = ::FooInstance::storage::map_to_tuples[69].1.0;
+//     state ::foo_map_to_tuples_69_1_1 = ::FooInstance::storage::map_to_tuples[69].1.1;
 // }
 // >>>
 
@@ -125,7 +128,7 @@ intent Bar {
 //     w: {addr: b256, inner: {x: int, int}},
 //     map_to_tuples: ( int => {b256, {int, int}} ),
 // }
-// extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+// interface ::Foo {
 //     storage {
 //         u: {b256, int},
 //         t: {b256, {int, int}},
@@ -133,7 +136,7 @@ intent Bar {
 //         map_to_tuples: ( int => {b256, {int, int}} ),
 //     }
 // }
-//
+// 
 // intent ::Bar {
 //     storage {
 //         u: {b256, int},
@@ -141,7 +144,7 @@ intent Bar {
 //         w: {addr: b256, inner: {x: int, int}},
 //         map_to_tuples: ( int => {b256, {int, int}} ),
 //     }
-//     extern ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111) {
+//     interface ::Foo {
 //         storage {
 //             u: {b256, int},
 //             t: {b256, {int, int}},
@@ -149,6 +152,7 @@ intent Bar {
 //             map_to_tuples: ( int => {b256, {int, int}} ),
 //         }
 //     }
+//     interface ::FooInstance = ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111)
 //     state ::u: {b256, int} = storage::u;
 //     state ::u0: b256 = storage::u.0;
 //     state ::u1: int = storage::u.1;
@@ -164,20 +168,20 @@ intent Bar {
 //     state ::map_to_tuples_69_0: b256 = storage::map_to_tuples[69].0;
 //     state ::map_to_tuples_69_1_0: int = storage::map_to_tuples[69].1.0;
 //     state ::map_to_tuples_69_1_1: int = storage::map_to_tuples[69].1.1;
-//     state ::foo_u: {b256, int} = ::Foo::storage::u;
-//     state ::foo_u0: b256 = ::Foo::storage::u.0;
-//     state ::foo_u1: int = ::Foo::storage::u.1;
-//     state ::foo_t: {b256, {int, int}} = ::Foo::storage::t;
-//     state ::foo_t0: b256 = ::Foo::storage::t.0;
-//     state ::foo_t10: int = ::Foo::storage::t.1.0;
-//     state ::foo_t11: int = ::Foo::storage::t.1.1;
-//     state ::foo_w: {addr: b256, inner: {x: int, int}} = ::Foo::storage::w;
-//     state ::foo_w0: b256 = ::Foo::storage::w.addr;
-//     state ::foo_w10: int = ::Foo::storage::w.inner.x;
-//     state ::foo_w11: int = ::Foo::storage::w.inner.1;
-//     state ::foo_map_to_tuples_69: {b256, {int, int}} = ::Foo::storage::map_to_tuples[69];
-//     state ::foo_map_to_tuples_69_0: b256 = ::Foo::storage::map_to_tuples[69].0;
-//     state ::foo_map_to_tuples_69_1_0: int = ::Foo::storage::map_to_tuples[69].1.0;
-//     state ::foo_map_to_tuples_69_1_1: int = ::Foo::storage::map_to_tuples[69].1.1;
+//     state ::foo_u: {b256, int} = ::FooInstance::storage::u;
+//     state ::foo_u0: b256 = ::FooInstance::storage::u.0;
+//     state ::foo_u1: int = ::FooInstance::storage::u.1;
+//     state ::foo_t: {b256, {int, int}} = ::FooInstance::storage::t;
+//     state ::foo_t0: b256 = ::FooInstance::storage::t.0;
+//     state ::foo_t10: int = ::FooInstance::storage::t.1.0;
+//     state ::foo_t11: int = ::FooInstance::storage::t.1.1;
+//     state ::foo_w: {addr: b256, inner: {x: int, int}} = ::FooInstance::storage::w;
+//     state ::foo_w0: b256 = ::FooInstance::storage::w.addr;
+//     state ::foo_w10: int = ::FooInstance::storage::w.inner.x;
+//     state ::foo_w11: int = ::FooInstance::storage::w.inner.1;
+//     state ::foo_map_to_tuples_69: {b256, {int, int}} = ::FooInstance::storage::map_to_tuples[69];
+//     state ::foo_map_to_tuples_69_0: b256 = ::FooInstance::storage::map_to_tuples[69].0;
+//     state ::foo_map_to_tuples_69_1_0: int = ::FooInstance::storage::map_to_tuples[69].1.0;
+//     state ::foo_map_to_tuples_69_1_1: int = ::FooInstance::storage::map_to_tuples[69].1.1;
 // }
 // >>>

@@ -1,33 +1,33 @@
-let hash0: b256;
+var hash0: b256;
 
 // All these intrinsic call have something wrong with them:
 // * Either an argument has the wrong type
 // * Or an incorrect number of arguments is supplied
 
-let mut_keys_len = __mut_keys_len(42);
+var mut_keys_len = __mut_keys_len(42);
 
-let mut_keys_contains_0: bool = __mut_keys_contains(5);
-let mut_keys_contains_1: bool = __mut_keys_contains();
-let mut_keys_contains_2: bool = __mut_keys_contains(hash0, hash0);
+var mut_keys_contains_0: bool = __mut_keys_contains(5);
+var mut_keys_contains_1: bool = __mut_keys_contains();
+var mut_keys_contains_2: bool = __mut_keys_contains(hash0, hash0);
 
-let this_address = __this_address(42);
+var this_address = __this_address(42);
 
-let this_set_address = __this_set_address(42);
+var this_set_address = __this_set_address(42);
 
-let this_pathway = __this_pathway(42);
+var this_pathway = __this_pathway(42);
 
-let sha256_0 = __sha256();
-let sha256_1 = __sha256(1, 1);
+var sha256_0 = __sha256();
+var sha256_1 = __sha256(1, 1);
 
-let verify_ed25519_0: bool = __verify_ed25519(69, { hash0, hash0 }, 5);
-let verify_ed25519_1: bool = __verify_ed25519(69, hash0, hash0);
-let verify_ed25519_3: bool = __verify_ed25519();
-let verify_ed25519_2: bool = __verify_ed25519(69, { hash0, hash0 }, hash0, 69);
+var verify_ed25519_0: bool = __verify_ed25519(69, { hash0, hash0 }, 5);
+var verify_ed25519_1: bool = __verify_ed25519(69, hash0, hash0);
+var verify_ed25519_3: bool = __verify_ed25519();
+var verify_ed25519_2: bool = __verify_ed25519(69, { hash0, hash0 }, hash0, 69);
 
-let recover_secp256k1_0: { b256, int } = __recover_secp256k1(42, { hash0, hash0, 69 });
-let recover_secp256k1_1: { b256, int } = __recover_secp256k1(hash0, { hash0, hash0 });
-let recover_secp256k1_2: { b256, int } = __recover_secp256k1(hash0);
-let recover_secp256k1_3: { b256, int } = __recover_secp256k1(hash0, {hash0, hash0, 69}, hash0);
+var recover_secp256k1_0: { b256, int } = __recover_secp256k1(42, { hash0, hash0, 69 });
+var recover_secp256k1_1: { b256, int } = __recover_secp256k1(hash0, { hash0, hash0 });
+var recover_secp256k1_2: { b256, int } = __recover_secp256k1(hash0);
+var recover_secp256k1_3: { b256, int } = __recover_secp256k1(hash0, {hash0, hash0, 69}, hash0);
 
 solve satisfy;
 

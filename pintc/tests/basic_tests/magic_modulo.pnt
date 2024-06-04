@@ -12,7 +12,7 @@
 // When I divide it by  9, the remainder is 8.
 // When I divide it by 10, the remainder is 9.
 
-let x: int;
+var x: int;
 
 constraint forall i in 2..10 {
     x % i == i - 1

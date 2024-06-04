@@ -1,6 +1,6 @@
 // Temporarily disabling solving while the CI is solving some values to -0 instead of 0.
 //
-// Find distinct digits for the letters D, E, M, N, O, R, S, Y such that S and M are different from
+// Find distinct digits for the varters D, E, M, N, O, R, S, Y such that S and M are different from
 // zero (no leading zeros) and the equation
 //
 //    SEND
@@ -13,14 +13,14 @@
 // The unique solution of the problem is 9567 + 1085 = 10652.
 //
 
-let s: int = 1..9;
-let e: int = 0..9;
-let n: int = 0..9;
-let d: int = 0..9;
-let m: int = 1..9;
-let o: int = 0..9;
-let r: int = 0..9;
-let y: int = 0..9;
+var s: int = 1..9;
+var e: int = 0..9;
+var n: int = 0..9;
+var d: int = 0..9;
+var m: int = 1..9;
+var o: int = 0..9;
+var r: int = 0..9;
+var y: int = 0..9;
 
 // All variables must be different. We will eventually have a `forall` directive that would allow
 // expressing the "all different" constraint more concisely.

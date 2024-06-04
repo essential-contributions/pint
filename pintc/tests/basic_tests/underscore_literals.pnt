@@ -1,9 +1,9 @@
-let a = 1_100_000;
-let b = 1000;
-let c = 1_2_3_4_5;
-let x = 1_100e3;
-let y = 1_100.500_123e0_000_00;
-let z = 1.2E5;
+var a = 1_100_000;
+var b = 1000;
+var c = 1_2_3_4_5;
+var x = 1_100e3;
+var y = 1_100.500_123e0_000_00;
+var z = 1.2E5;
 
 constraint a / b > c;
 constraint x / y > z;

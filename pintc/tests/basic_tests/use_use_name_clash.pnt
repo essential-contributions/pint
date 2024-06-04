@@ -1,7 +1,7 @@
 use a::b;
 use c::b;
 
-let d: int;
+var d: int;
 
 // parse_failure <<<
 // symbol `b` has already been declared

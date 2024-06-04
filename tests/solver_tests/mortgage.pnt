@@ -1,14 +1,14 @@
 // Interest
-let I: real = 0.1;
+var I: real = 0.1;
 
 // Withdrawal amount for each interest period
-let R: real = 150.0; 
+var R: real = 150.0;
 
 // Balance at time 0
-let P: real;
+var P: real;
 
 // Remaining balances
-let mortgage: real[25];
+var mortgage: real[25];
 
 constraint forall i in 0..24 {
    mortgage[i] >= 0.0

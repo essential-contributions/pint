@@ -1,6 +1,6 @@
 use crate::{
     error::{Error, ErrorEmitted, Handler, ParseError},
-    expr::{self, Expr, Ident, Immediate},
+    expr::{self, Expr, Ident},
     span::Span,
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type},
 };
@@ -92,8 +92,11 @@ pub struct IntermediateIntent {
     // A list of all storage variables in the order in which they were declared
     pub storage: Option<(Vec<StorageVar>, Span)>,
 
-    // A list of all storage variables in the order in which they were declared
-    pub externs: Vec<Extern>,
+    // A list of all availabe interfaces
+    pub interfaces: Vec<Interface>,
+
+    // A list of all availabe interface instances
+    pub interface_instances: Vec<InterfaceInstance>,
 
     pub top_level_symbols: BTreeMap<String, Span>,
 }
@@ -634,10 +637,17 @@ impl DisplayWithII for StorageVar {
 }
 
 #[derive(Clone, Debug)]
-pub struct Extern {
+pub struct Interface {
     pub name: Ident,
-    pub address: Immediate,
     pub storage_vars: Vec<StorageVar>,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct InterfaceInstance {
+    pub name: Ident,
+    pub interface: Path,
+    pub address: ExprKey,
     pub span: Span,
 }
 

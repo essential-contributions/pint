@@ -1,4 +1,4 @@
-let y: int;
+var y: int;
 constraint y' == 5;
 solve satisfy;
 

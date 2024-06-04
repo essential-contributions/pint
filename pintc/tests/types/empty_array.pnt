@@ -1,4 +1,4 @@
-let ary: int[10];
+var ary: int[10];
 
 constraint ary != [];
 
