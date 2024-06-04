@@ -12,7 +12,6 @@ use essential_state_read_vm::{
     Access, BytecodeMapped, GasLimit, SolutionAccess, StateSlots, Vm,
 };
 use std::{
-    collections::HashMap,
     fs::{read_dir, File},
     io::{BufRead, BufReader},
     path::PathBuf,
@@ -89,11 +88,11 @@ async fn validation_e2e() -> anyhow::Result<()> {
         // correspond to external intents that we're not going to verify here at this point.
         let intent_to_check_index = 0; // Only the first one!
         let intent_to_check = &solution.data[intent_to_check_index].intent_to_solve;
+        let transient_data = essential_constraint_vm::transient_data(&solution);
 
         // This is the access that contains an access to some solution data and will contain the
         // pre and post states.
         let mutable_keys = mut_keys_set(&solution, intent_to_check_index as u16);
-        let transient_data = HashMap::new();
         let mut access = Access {
             solution: SolutionAccess::new(
                 &solution,
@@ -314,11 +313,44 @@ fn parse_solution(
                     })
                     .collect::<anyhow::Result<Vec<_>>>()?;
 
+                let transient_data = e
+                    .get("transient_data")
+                    .and_then(|muta| muta.as_array())
+                    .unwrap_or(&Vec::new())
+                    .iter()
+                    .map(|mutation| {
+                        Ok(Mutation {
+                            key: mutation
+                                .get("key")
+                                .and_then(|word| word.as_array())
+                                .unwrap_or(&Vec::new())
+                                .iter()
+                                .map(|d| {
+                                    d.as_integer().ok_or_else(|| {
+                                        anyhow!("Invalid integer value in state mutation key")
+                                    })
+                                })
+                                .collect::<anyhow::Result<Vec<_>, _>>()?,
+                            value: mutation
+                                .get("value")
+                                .and_then(|word| word.as_array())
+                                .unwrap_or(&Vec::new())
+                                .iter()
+                                .map(|d| {
+                                    d.as_integer().ok_or_else(|| {
+                                        anyhow!("Invalid integer value in state mutation word")
+                                    })
+                                })
+                                .collect::<anyhow::Result<Vec<_>, _>>()?,
+                        })
+                    })
+                    .collect::<anyhow::Result<Vec<_>>>()?;
+
                 Ok(SolutionData {
                     intent_to_solve,
                     decision_variables,
                     state_mutations,
-                    transient_data: vec![],
+                    transient_data,
                 })
             })
             .collect::<anyhow::Result<Vec<_>>>()?,

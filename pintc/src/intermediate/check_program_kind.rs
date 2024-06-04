@@ -2,7 +2,7 @@ use super::{Program, ProgramKind};
 
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    intermediate::{ConstraintDecl, IfDecl, InterfaceInstance},
+    intermediate::{ConstraintDecl, IfDecl, IntentInstance, InterfaceInstance},
     span::empty_span,
 };
 
@@ -86,6 +86,14 @@ impl Program {
                         handler.emit_err(Error::Compile {
                             error: CompileError::InvalidDeclOutsideIntentDecl {
                                 kind: "interface instance".to_string(),
+                                span: span.clone(),
+                            },
+                        });
+                    }
+                    for IntentInstance { span, .. } in &root_ii.intent_instances {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::InvalidDeclOutsideIntentDecl {
+                                kind: "intent instance".to_string(),
                                 span: span.clone(),
                             },
                         });

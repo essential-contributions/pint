@@ -3,11 +3,21 @@ interface Foo {
         x: int,
         y: int,
     }
+
+    intent I1 {
+        pub var x: int;
+        pub var y: b256;
+    }
 }
 
 intent Simple {
     interface FooInstance1 = Foo(0 + true);
     interface FooInstance2 = Foo("bla");
+
+    var addr: b256;
+    interface FooInstance = Foo(addr);
+    intent I1Instance1 = FooInstance::I1(0 + true);
+    intent I1Instance2 = FooInstance::I1(false);
 }
 
 // intermediate <<<
@@ -15,6 +25,10 @@ intent Simple {
 //     storage {
 //         x: int,
 //         y: int,
+//     }
+//     intent I1 {
+//         pub var x: int;
+//         pub var y: b256;
 //     }
 // }
 // 
@@ -24,16 +38,31 @@ intent Simple {
 //             x: int,
 //             y: int,
 //         }
+//         intent I1 {
+//             pub var x: int;
+//             pub var y: b256;
+//         }
 //     }
 //     interface ::FooInstance1 = ::Foo((0 + true))
 //     interface ::FooInstance2 = ::Foo("bla")
+//     interface ::FooInstance = ::Foo(::addr)
+//     intent ::I1Instance1 = ::FooInstance::I1((0 + true))
+//     intent ::I1Instance2 = ::FooInstance::I1(false)
+//     var ::addr: b256;
+//     var __::I1Instance1_pathway: int;
+//     var __::I1Instance2_pathway: int;
 // }
 // >>>
 
 // typecheck_failure <<<
 // binary operator type error
-// @124..128: operator `+` argument has unexpected type `bool`
+// @196..200: operator `+` argument has unexpected type `bool`
 // address expression type error
-// @164..169: address expression has unexpected type `string`
-// @164..169: expecting type `b256`
+// @236..241: address expression has unexpected type `string`
+// @236..241: expecting type `b256`
+// binary operator type error
+// @349..353: operator `+` argument has unexpected type `bool`
+// address expression type error
+// @397..402: address expression has unexpected type `bool`
+// @397..402: expecting type `b256`
 // >>>

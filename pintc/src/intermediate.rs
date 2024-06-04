@@ -98,6 +98,9 @@ pub struct IntermediateIntent {
     // A list of all availabe interface instances
     pub interface_instances: Vec<InterfaceInstance>,
 
+    // A list of all availabe intent instances
+    pub intent_instances: Vec<IntentInstance>,
+
     pub top_level_symbols: BTreeMap<String, Span>,
 }
 
@@ -112,6 +115,7 @@ impl IntermediateIntent {
         handler: &Handler,
         mod_prefix: &str,
         local_scope: Option<&str>,
+        is_pub: bool,
         name: &Ident,
         ty: Option<Type>,
     ) -> std::result::Result<VarKey, ErrorEmitted> {
@@ -120,6 +124,7 @@ impl IntermediateIntent {
         let var_key = self.vars.insert(
             Var {
                 name: full_name,
+                is_pub,
                 span: name.span.clone(),
             },
             if let Some(ty) = ty {
@@ -509,7 +514,8 @@ impl DisplayWithII for StateKey {
 #[derive(Clone, Debug)]
 pub struct Var {
     pub name: Path,
-    span: Span,
+    pub is_pub: bool,
+    pub span: Span,
 }
 
 impl DisplayWithII for VarKey {
@@ -636,17 +642,55 @@ impl DisplayWithII for StorageVar {
     }
 }
 
+/// A an intent interface that belong in an `Interface`.
 #[derive(Clone, Debug)]
-pub struct Interface {
+pub struct IntentInterface {
     pub name: Ident,
-    pub storage_vars: Vec<StorageVar>,
+    pub vars: Vec<InterfaceVar>,
     pub span: Span,
 }
 
+/// A declaration inside an `Interface`. This could either be a `storage` declaration or an intent
+/// interface declaration
+#[derive(Clone, Debug)]
+pub enum InterfaceDecl {
+    StorageDecl((Vec<StorageVar>, Span)),
+    IntentInterface(IntentInterface),
+}
+
+/// full interface to an external contract
+#[derive(Clone, Debug)]
+pub struct Interface {
+    pub name: Ident,
+    pub storage: Option<(Vec<StorageVar>, Span)>,
+    pub intent_interfaces: Vec<IntentInterface>,
+    pub span: Span,
+}
+
+/// A decision variable that lives inside an intent interface. Unlike `Var`, the type here is not
+/// optional
+#[derive(Clone, Debug)]
+pub struct InterfaceVar {
+    pub name: Path,
+    pub ty: Type,
+    pub span: Span,
+}
+
+/// An interface instance that specifies an address
 #[derive(Clone, Debug)]
 pub struct InterfaceInstance {
     pub name: Ident,
     pub interface: Path,
+    pub address: ExprKey,
+    pub span: Span,
+}
+
+/// An intent instance that specifies an address
+#[derive(Clone, Debug)]
+pub struct IntentInstance {
+    pub name: Ident,
+    pub interface_instance: Path,
+    pub intent: Ident,
     pub address: ExprKey,
     pub span: Span,
 }

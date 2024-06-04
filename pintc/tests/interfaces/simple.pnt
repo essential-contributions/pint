@@ -3,6 +3,20 @@ interface Foo {
         x: int,
         y: int,
     }
+
+    intent I1 {
+        pub var x1: int;
+        pub var x2: b256;
+        pub var x3: bool;
+    }
+
+    intent I2 {
+        pub var x1: int;
+        pub var x2: b256;
+        pub var x3: bool;
+    }
+
+    intent I3;
 }
 
 interface Bar {
@@ -10,11 +24,27 @@ interface Bar {
         x: int,
         z: b256,
     }
+
+    intent I1 {
+        pub var x1: int;
+        pub var x2: b256;
+        pub var x3: bool;
+    }
+
+    intent I2 {
+        pub var x1: int;
+        pub var x2: b256;
+        pub var x3: bool;
+    }
+
+    intent I3;
 }
 
 intent Simple {
     var addr1: b256;
     var addr2: b256;
+    var addr3: b256;
+    var addr4: b256;
 
     interface FooInstance = Foo(addr1);
     interface BarInstance = Bar(addr2);
@@ -22,6 +52,17 @@ intent Simple {
     state x = FooInstance::storage::x;
     state y = FooInstance::storage::y;
     state z = BarInstance::storage::z;
+
+    intent FooI1Instance1 = FooInstance::I1(addr3);
+    intent FooI1Instance2 = FooInstance::I1(addr3);
+
+    intent BarI2Instance1 = BarInstance::I2(addr4);
+    intent BarI2Instance2 = BarInstance::I2(addr4);
+    intent BarI2Instance3 = BarInstance::I2(addr4);
+
+    var x1 = FooI1Instance1::x1;
+    var x2 = BarI2Instance2::x2;
+    var x3 = BarI2Instance3::x3;
 }
 
 // intermediate <<<
@@ -30,12 +71,34 @@ intent Simple {
 //         x: int,
 //         y: int,
 //     }
+//     intent I1 {
+//         pub var x1: int;
+//         pub var x2: b256;
+//         pub var x3: bool;
+//     }
+//     intent I2 {
+//         pub var x1: int;
+//         pub var x2: b256;
+//         pub var x3: bool;
+//     }
+//     intent I3;
 // }
 // interface ::Bar {
 //     storage {
 //         x: int,
 //         z: b256,
 //     }
+//     intent I1 {
+//         pub var x1: int;
+//         pub var x2: b256;
+//         pub var x3: bool;
+//     }
+//     intent I2 {
+//         pub var x1: int;
+//         pub var x2: b256;
+//         pub var x3: bool;
+//     }
+//     intent I3;
 // }
 // 
 // intent ::Simple {
@@ -44,20 +107,60 @@ intent Simple {
 //             x: int,
 //             y: int,
 //         }
+//         intent I1 {
+//             pub var x1: int;
+//             pub var x2: b256;
+//             pub var x3: bool;
+//         }
+//         intent I2 {
+//             pub var x1: int;
+//             pub var x2: b256;
+//             pub var x3: bool;
+//         }
+//         intent I3;
 //     }
 //     interface ::Bar {
 //         storage {
 //             x: int,
 //             z: b256,
 //         }
+//         intent I1 {
+//             pub var x1: int;
+//             pub var x2: b256;
+//             pub var x3: bool;
+//         }
+//         intent I2 {
+//             pub var x1: int;
+//             pub var x2: b256;
+//             pub var x3: bool;
+//         }
+//         intent I3;
 //     }
 //     interface ::FooInstance = ::Foo(::addr1)
 //     interface ::BarInstance = ::Bar(::addr2)
+//     intent ::FooI1Instance1 = ::FooInstance::I1(::addr3)
+//     intent ::FooI1Instance2 = ::FooInstance::I1(::addr3)
+//     intent ::BarI2Instance1 = ::BarInstance::I2(::addr4)
+//     intent ::BarI2Instance2 = ::BarInstance::I2(::addr4)
+//     intent ::BarI2Instance3 = ::BarInstance::I2(::addr4)
 //     var ::addr1: b256;
 //     var ::addr2: b256;
+//     var ::addr3: b256;
+//     var ::addr4: b256;
+//     var __::FooI1Instance1_pathway: int;
+//     var __::FooI1Instance2_pathway: int;
+//     var __::BarI2Instance1_pathway: int;
+//     var __::BarI2Instance2_pathway: int;
+//     var __::BarI2Instance3_pathway: int;
+//     var ::x1;
+//     var ::x2;
+//     var ::x3;
 //     state ::x = ::FooInstance::storage::x;
 //     state ::y = ::FooInstance::storage::y;
 //     state ::z = ::BarInstance::storage::z;
+//     constraint (::x1 == ::FooI1Instance1::x1);
+//     constraint (::x2 == ::BarI2Instance2::x2);
+//     constraint (::x3 == ::BarI2Instance3::x3);
 // }
 // >>>
 
@@ -67,12 +170,34 @@ intent Simple {
 //         x: int,
 //         y: int,
 //     }
+//     intent I1 {
+//         pub var x1: int;
+//         pub var x2: b256;
+//         pub var x3: bool;
+//     }
+//     intent I2 {
+//         pub var x1: int;
+//         pub var x2: b256;
+//         pub var x3: bool;
+//     }
+//     intent I3;
 // }
 // interface ::Bar {
 //     storage {
 //         x: int,
 //         z: b256,
 //     }
+//     intent I1 {
+//         pub var x1: int;
+//         pub var x2: b256;
+//         pub var x3: bool;
+//     }
+//     intent I2 {
+//         pub var x1: int;
+//         pub var x2: b256;
+//         pub var x3: bool;
+//     }
+//     intent I3;
 // }
 // 
 // intent ::Simple {
@@ -81,19 +206,59 @@ intent Simple {
 //             x: int,
 //             y: int,
 //         }
+//         intent I1 {
+//             pub var x1: int;
+//             pub var x2: b256;
+//             pub var x3: bool;
+//         }
+//         intent I2 {
+//             pub var x1: int;
+//             pub var x2: b256;
+//             pub var x3: bool;
+//         }
+//         intent I3;
 //     }
 //     interface ::Bar {
 //         storage {
 //             x: int,
 //             z: b256,
 //         }
+//         intent I1 {
+//             pub var x1: int;
+//             pub var x2: b256;
+//             pub var x3: bool;
+//         }
+//         intent I2 {
+//             pub var x1: int;
+//             pub var x2: b256;
+//             pub var x3: bool;
+//         }
+//         intent I3;
 //     }
 //     interface ::FooInstance = ::Foo(::addr1)
 //     interface ::BarInstance = ::Bar(::addr2)
+//     intent ::FooI1Instance1 = ::FooInstance::I1(::addr3)
+//     intent ::FooI1Instance2 = ::FooInstance::I1(::addr3)
+//     intent ::BarI2Instance1 = ::BarInstance::I2(::addr4)
+//     intent ::BarI2Instance2 = ::BarInstance::I2(::addr4)
+//     intent ::BarI2Instance3 = ::BarInstance::I2(::addr4)
 //     var ::addr1: b256;
 //     var ::addr2: b256;
+//     var ::addr3: b256;
+//     var ::addr4: b256;
+//     var __::FooI1Instance1_pathway: int;
+//     var __::FooI1Instance2_pathway: int;
+//     var __::BarI2Instance1_pathway: int;
+//     var __::BarI2Instance2_pathway: int;
+//     var __::BarI2Instance3_pathway: int;
+//     var ::x1: int;
+//     var ::x2: b256;
+//     var ::x3: int;
 //     state ::x: int = ::FooInstance::storage::x;
 //     state ::y: int = ::FooInstance::storage::y;
 //     state ::z: b256 = ::BarInstance::storage::z;
+//     constraint (::x1 == ::FooI1Instance1::x1);
+//     constraint (::x2 == ::BarI2Instance2::x2);
+//     constraint (::x3 == ::BarI2Instance3::x3);
 // }
 // >>>

@@ -249,6 +249,11 @@ fn r#use() {
 }
 
 #[test]
+fn r#pub() {
+    assert_eq!(lex_one_success("pub"), Token::Pub);
+}
+
+#[test]
 fn self_tok() {
     assert_eq!(lex_one_success("self"), Token::SelfTok);
 }

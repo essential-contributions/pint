@@ -1,0 +1,50 @@
+[[data]]
+intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "::Simple" }
+decision_variables = [
+  0,
+  0,
+  0,
+  0,
+  1,    #__::FooInstance1_pathway
+  58,   # ::x
+  31,   # ::y
+  1798, # ::z
+  2,    #__::FooInstance2_pathway
+]
+transient_data = []
+
+[[data]]
+intent_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", intent = "::Foo" }
+decision_variables = []
+transient_data = [
+  { key = [0], value = [
+    58, # ::x
+  ] },
+  { key = [1], value = [
+    31, # ::y
+  ] },
+  { key = [2], value = [
+    1,
+    1,
+    1,
+    1, # ::q
+  ] },
+]
+
+[[data]]
+intent_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", intent = "::Foo" }
+decision_variables = []
+transient_data = [
+  { key = [0], value = [
+    42, # ::x
+  ] },
+  { key = [1], value = [
+    69, # ::y
+  ] },
+  { key = [2], value = [
+    3,
+    3,
+    3,
+    3, # ::q
+  ] },
+]
