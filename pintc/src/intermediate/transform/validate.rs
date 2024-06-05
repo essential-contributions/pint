@@ -316,14 +316,14 @@ fn run_parser(src: &str, handler: &Handler) -> Program {
 #[test]
 fn expr_types() {
     // array
-    let src = "let a = [1, 2, 3];";
+    let src = "var a = [1, 2, 3];";
     check(&run_test(src), expect_test::expect![""]);
     // tuple
-    let src = "let t = { x: 5, 3 };";
+    let src = "var t = { x: 5, 3 };";
     check(&run_test(src), expect_test::expect![""]);
     // custom / enum
     let src = "enum MyEnum = Variant1 | Variant2;
-    let x = MyEnum;";
+    var x = MyEnum;";
     check(
         &run_test(src),
         expect_test::expect![[r#"
@@ -332,7 +332,7 @@ fn expr_types() {
     );
     // type alias
     let src = "type MyAliasInt = int;
-    let x: MyAliasInt = 3;";
+    var x: MyAliasInt = 3;";
     check(
         &run_test(src),
         expect_test::expect![[
@@ -344,8 +344,8 @@ fn expr_types() {
 #[test]
 fn exprs() {
     // tuple and tuple field access
-    let src = "let t = { y: 3, 2 };
-    let x = t.1;";
+    let src = "var t = { y: 3, 2 };
+    var x = t.1;";
     check(
         &run_test(src),
         expect_test::expect![
@@ -353,27 +353,15 @@ fn exprs() {
         ],
     );
     // array and array field access
-    let src = "let a = [1, 2, 3];
-    let b = a[1];";
+    let src = "var a = [1, 2, 3];
+    var b = a[1];";
     check(
         &run_test(src),
         expect_test::expect![
             "compiler internal error: array element access present in final intent exprs slotmap"
         ],
     );
-    // <<disabled>> until if check is supported
-    // if
-    // let src = "let b: int;
-    // let c = false;
-    // constraint b < if c { 22 } else { 33 };";
-    // check(
-    //     &run_test(src),
-    //     expect_test::expect![[
-    //         r#"compiler internal error: if expression present in final intent exprs slotmap"#
-    //     ]],
-    // );
-    // in
-    let src = "let x: bool = 5 in [3, 4, 5];";
+    let src = "var x: bool = 5 in [3, 4, 5];";
     check(
         &run_test(src),
         expect_test::expect![
@@ -381,7 +369,7 @@ fn exprs() {
         ],
     );
     // forall
-    let src = "let k: int;
+    let src = "var k: int;
     constraint forall i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { !(i - j < k) };";
     check(
         &run_test(src),
@@ -391,7 +379,7 @@ fn exprs() {
             compiler internal error: range present in final intent exprs slotmap"#]],
     );
     // exists
-    let src = "let a: int[2][2];
+    let src = "var a: int[2][2];
     constraint exists i in 0..1, j in 0..1 {
         a[i][j] == 70
     };";
@@ -411,7 +399,7 @@ fn states() {
     use crate::error;
     use crate::intermediate::State;
 
-    let src = "let a = 1;";
+    let src = "var a = 1;";
     let (mut program, handler) = run_without_transforms(src);
     program.iis.iter_mut().for_each(|(_, ii)| {
         let dummy_expr_key = ii
@@ -440,7 +428,7 @@ fn vars() {
     use crate::error;
     use crate::intermediate::Var;
 
-    let src = "let a = 1;";
+    let src = "var a = 1;";
     let (mut program, handler) = run_without_transforms(src);
     program.iis.iter_mut().for_each(|(_, ii)| {
         ii.vars.insert(
@@ -475,7 +463,7 @@ fn if_decls() {
 fn directives() {
     use crate::error;
 
-    let src = "let a = 1;";
+    let src = "var a = 1;";
     let (mut program, handler) = run_without_transforms(src);
     program.iis.iter_mut().for_each(|(_, ii)| {
         let solve_directive = (SolveFunc::Satisfy, empty_span());

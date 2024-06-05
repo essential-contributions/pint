@@ -1,4 +1,4 @@
-let a: bool;
+var a: bool;
 
 constraint a.0 == a.bar;
 

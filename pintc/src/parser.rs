@@ -443,7 +443,7 @@ impl<'a> ProjectParser<'a> {
         let new_types = self.program.root_ii().new_types.clone();
         let root_symbols = self.program.root_ii().top_level_symbols.clone();
         let storage = self.program.root_ii().storage.clone();
-        let externs = self.program.root_ii().externs.clone();
+        let interfaces = self.program.root_ii().interfaces.clone();
         let exprs = self.program.root_ii().exprs.clone();
 
         self.program
@@ -453,8 +453,8 @@ impl<'a> ProjectParser<'a> {
             .for_each(|(_, ii)| {
                 let _ = deep_copy_new_types(&new_types, &exprs, ii, self.handler);
                 ii.enums.extend_from_slice(&enums);
-                ii.storage = storage.clone();
-                ii.externs = externs.clone();
+                ii.storage.clone_from(&storage);
+                ii.interfaces.clone_from(&interfaces);
 
                 for (symbol, span) in &root_symbols {
                     // We could call `ii.add_top_level_symbol_with_name` directly here, but then

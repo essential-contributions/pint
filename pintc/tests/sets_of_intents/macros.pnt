@@ -3,7 +3,7 @@ macro @equal($x, $y) {
 }
 
 macro @foo($x) {
-    let a: int;
+    var a: int;
     constraint a == $x;
 }
 
@@ -30,7 +30,7 @@ macro @c($z) {
 }
 
 intent Baz {
-    let v: int;
+    var v: int;
     constraint @a(v);
     constraint @b(v);
     constraint @a(v);
@@ -46,8 +46,8 @@ macro @sum($x) {
 }
 
 intent Sum {
-    let a: int = 4;
-    let b: int = @sum(1; 2; 3; a);
+    var a: int = 4;
+    var b: int = @sum(1; 2; 3; a);
 }
 
 // intermediate <<<

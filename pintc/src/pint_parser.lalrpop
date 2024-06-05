@@ -2,7 +2,7 @@ use crate::{
     error::{CompileError, Error, Handler, ParseError},
     expr::*,
     intermediate::{
-        ConstraintDecl, ExprKey, Extern, IfDecl, IntermediateIntent, Program, ProgramKind,
+        ConstraintDecl, ExprKey, Interface, InterfaceInstance, IfDecl, IntermediateIntent, Program, ProgramKind,
         SolveFunc, StorageVar, BlockStatement,
     },
     lexer,
@@ -33,12 +33,12 @@ Decl: () = {
     IntentDecl,
     MacroDecl,
     StorageDecl,
-    ExternDecl,
+    Interface,
 };
 
 DeclBarringMacro: () = {
     UseStatement ";",
-    LetDecl ";",
+    VarDecl ";",
     StateDecl ";",
     ConstraintDecl ";",
     IfDecl,
@@ -46,6 +46,7 @@ DeclBarringMacro: () = {
     EnumDecl ";",
     NewTypeDecl ";",
     MacroCallDecl ";",
+    InterfaceInstance ";",
 };
 
 IntentDecl: () = {
@@ -173,17 +174,31 @@ StorageDecl: () = {
     },
 }
 
-ExternDecl: () = {
-    <l:@L> "extern" <name:Ident> "(" <imm:Immediate> ")" "{"
+Interface: () = {
+    <l:@L> "interface" <name:Ident> "{"
         "storage" "{" <storage_vars:SepList<StorageVar, ",">> "}"
     "}" <r:@R> => {
-        let extern_decl = Extern {
+        let interface_decl = Interface {
             name: context.add_top_level_symbol(handler, name, context.mod_prefix),
-            address: imm,
             storage_vars,
             span: (context.span_from)(l, r),
         };
-        context.current_ii().externs.push(extern_decl);
+        context.current_ii().interfaces.push(interface_decl);
+    }
+}
+
+InterfaceInstance: () = {
+    <l:@L> "interface" <name:Ident> "=" <interface:Path> "(" <address:Expr> ")" <r:@R> => {
+        let interface_instance = InterfaceInstance {
+            name: context.add_top_level_symbol(handler, name, context.mod_prefix),
+            interface,
+            address,
+            span: (context.span_from)(l, r),
+        };
+        context
+            .current_ii()
+            .interface_instances
+            .push(interface_instance);
     }
 }
 
@@ -300,8 +315,8 @@ UseTree: UseTree = {
     <name:UsePathIdent> "as" <alias:Ident> => UseTree::Alias { name, alias },
 };
 
-LetDecl: () = {
-    <l:@L> "let" <let_name:LetName> ":" <ty:Type> <init:LetInit?> <r:@R> => {
+VarDecl: () = {
+    <l:@L> "var" <let_name:VarName> ":" <ty:Type> <init:VarInit?> <r:@R> => {
         let mod_prefix = context.mod_prefix;
         let _ = context
             .current_ii()
@@ -316,7 +331,7 @@ LetDecl: () = {
                 }
             });
     },
-    <l:@L> "let" <let_name:LetName> <init:LetInit> <r:@R> => {
+    <l:@L> "var" <let_name:VarName> <init:VarInit> <r:@R> => {
         let mod_prefix = context.mod_prefix;
         let _ = context
             .current_ii()
@@ -329,7 +344,7 @@ LetDecl: () = {
                     .insert_eq_or_ineq_constraint(var_key, init, span);
             });
     },
-    <l:@L> "let" <name:Ident> <r:@R> => {
+    <l:@L> "var" <name:Ident> <r:@R> => {
         handler.emit_err(Error::Parse {
             error: ParseError::UntypedVariable {
                 name: name.name,
@@ -339,7 +354,7 @@ LetDecl: () = {
     }
 };
 
-LetName: (Ident, Option<&'a str>) = {
+VarName: (Ident, Option<&'a str>) = {
     <l:@L> <id:"ident"> <r:@R> => {
         let name = id.0.to_string();
         let span = (context.span_from)(l, r);
@@ -387,7 +402,7 @@ LetName: (Ident, Option<&'a str>) = {
     }
 };
 
-LetInit: ExprKey = {
+VarInit: ExprKey = {
     "=" <Range>,
     "=" <Expr>,
 };
@@ -649,12 +664,15 @@ Expr: ExprKey = {
 SelectExpr: ExprKey = {
     <l:@L> <condition:LogicalOrOp> "?" <then_expr:SelectExpr> ":" <else_expr:SelectExpr> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(Expr::Select {
-            condition,
-            then_expr,
-            else_expr,
-            span: span.clone(),
-        }, Type::Unknown(span))
+        context.current_ii().exprs.insert(
+            Expr::Select {
+                condition,
+                then_expr,
+                else_expr,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
     },
     <LogicalOrOp>
 }
@@ -662,12 +680,15 @@ SelectExpr: ExprKey = {
 LogicalOrOp: ExprKey = {
     <l:@L> <lhs:LogicalOrOp> "||" <rhs:LogicalAndOp> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(Expr::BinaryOp {
-            op: BinaryOp::LogicalOr,
-            lhs,
-            rhs,
-            span: span.clone(),
-        }, Type::Unknown(span))
+        context.current_ii().exprs.insert(
+            Expr::BinaryOp {
+                op: BinaryOp::LogicalOr,
+                lhs,
+                rhs,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
     },
     <LogicalAndOp>,
 };
@@ -675,12 +696,15 @@ LogicalOrOp: ExprKey = {
 LogicalAndOp: ExprKey = {
     <l:@L> <lhs:LogicalAndOp> "&&" <rhs:Comparison> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(Expr::BinaryOp {
-            op: BinaryOp::LogicalAnd,
-            lhs,
-            rhs,
-            span: span.clone(),
-        }, Type::Unknown(span))
+        context.current_ii().exprs.insert(
+            Expr::BinaryOp {
+                op: BinaryOp::LogicalAnd,
+                lhs,
+                rhs,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
     },
     <Comparison>,
 };
@@ -688,10 +712,15 @@ LogicalAndOp: ExprKey = {
 Comparison: ExprKey = {
     <l:@L> <lhs:Comparison> <op:RelOpOp> <rhs:InOp> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context
-            .current_ii()
-            .exprs
-            .insert(Expr::BinaryOp { op, lhs, rhs, span: span.clone() }, Type::Unknown(span))
+        context.current_ii().exprs.insert(
+            Expr::BinaryOp {
+                op,
+                lhs,
+                rhs,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
     },
     <InOp>,
 };
@@ -708,19 +737,25 @@ RelOpOp: BinaryOp = {
 InOp: ExprKey = {
      <l:@L> <value:InOp> "in" <collection:Additive> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(Expr::In {
-            value,
-            collection,
-            span: span.clone(),
-        }, Type::Unknown(span))
+        context.current_ii().exprs.insert(
+            Expr::In {
+                value,
+                collection,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
      },
      <l:@L> <value:InOp> "in" <collection:Range> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(Expr::In {
-            value,
-            collection,
-            span: span.clone(),
-        }, Type::Unknown(span))
+        context.current_ii().exprs.insert(
+            Expr::In {
+                value,
+                collection,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
      },
     <Additive>,
 };
@@ -728,10 +763,15 @@ InOp: ExprKey = {
 Additive: ExprKey = {
     <l:@L> <lhs:Additive> <op:AddOpOp> <rhs:Multiplicative> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context
-            .current_ii()
-            .exprs
-            .insert(Expr::BinaryOp { op, lhs, rhs, span: span.clone() }, Type::Unknown(span))
+        context.current_ii().exprs.insert(
+            Expr::BinaryOp {
+                op,
+                lhs,
+                rhs,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
     },
     <Multiplicative>,
 };
@@ -744,10 +784,15 @@ AddOpOp: BinaryOp = {
 Multiplicative: ExprKey = {
     <l:@L> <lhs:Multiplicative> <op:MultOpOp> <rhs:AsOp> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context
-            .current_ii()
-            .exprs
-            .insert(Expr::BinaryOp { op, lhs, rhs, span: span.clone() }, Type::Unknown(span))
+        context.current_ii().exprs.insert(
+            Expr::BinaryOp {
+                op,
+                lhs,
+                rhs,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
     },
     <AsOp>,
 };
@@ -761,11 +806,14 @@ MultOpOp: BinaryOp = {
 AsOp: ExprKey = {
      <l:@L> <value:AsOp> "as" <ty:Type> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(Expr::Cast {
-            value,
-            ty: Box::new(ty),
-            span: span.clone(),
-        }, Type::Unknown(span))
+        context.current_ii().exprs.insert(
+            Expr::Cast {
+                value,
+                ty: Box::new(ty),
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
      },
     <TupleFieldOp>,
 };
@@ -786,10 +834,14 @@ TupleFieldOp: ExprKey = {
 IndexOp: ExprKey = {
     <l:@L> <expr:IndexOp> "[" <index:Expr> "]" <r:@R> => {
         let span = (context.span_from)(l, r);
-        context
-            .current_ii()
-            .exprs
-            .insert(Expr::Index { expr, index, span: span.clone() }, Type::Unknown(span))
+        context.current_ii().exprs.insert(
+            Expr::Index {
+                expr,
+                index,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
     },
     <l:@L> <expr:IndexOp> "[" "]" <r:@R> => {
         let span = (context.span_from)(l, r);
@@ -809,11 +861,14 @@ IndexOp: ExprKey = {
 PrimeOp: ExprKey = {
     <l:@L> <expr:PrimeOp> "'" <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(Expr::UnaryOp {
-            op: UnaryOp::NextState,
-            expr,
-            span: span.clone(),
-        }, Type::Unknown(span))
+        context.current_ii().exprs.insert(
+            Expr::UnaryOp {
+                op: UnaryOp::NextState,
+                expr,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
     },
     <UnaryOp>,
 }
@@ -821,10 +876,14 @@ PrimeOp: ExprKey = {
 UnaryOp: ExprKey = {
     <l:@L> <op:UnaryOpOp> <expr:UnaryOp> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context
-            .current_ii()
-            .exprs
-            .insert(Expr::UnaryOp { op, expr, span: span.clone() }, Type::Unknown(span))
+        context.current_ii().exprs.insert(
+            Expr::UnaryOp {
+                op,
+                expr,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
     },
     <Term>,
 };
@@ -927,12 +986,15 @@ CondExpr: ExprKey = {
             .rev()
             .fold(else_branch, |acc, (condition, result)| {
                 let span = (context.span_from)(l, r);
-                context.current_ii().exprs.insert(Expr::Select {
-                    condition: *condition,
-                    then_expr: *result,
-                    else_expr: acc,
-                    span: span.clone(),
-                }, Type::Unknown(span))
+                context.current_ii().exprs.insert(
+                    Expr::Select {
+                        condition: *condition,
+                        then_expr: *result,
+                        else_expr: acc,
+                        span: span.clone(),
+                    },
+                    Type::Unknown(span),
+                )
             })
     }
 };
@@ -948,10 +1010,13 @@ MacroCallExpr: ExprKey = {
             span: span.clone(),
             parent_tag: tag.flatten(),
         };
-        let call_expr_key = context.current_ii().exprs.insert(Expr::MacroCall {
-            call: call_key,
-            span: span.clone(),
-        }, Type::Unknown(span));
+        let call_expr_key = context.current_ii().exprs.insert(
+            Expr::MacroCall {
+                call: call_key,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        );
         context
             .macro_calls
             .get_mut(context.current_ii)
@@ -974,10 +1039,13 @@ IntrinsicCallExpr: Expr = {
 ArrayExpr: Expr = {
     <l:@L> "[" <il:@L> <elements:SepList<Expr, ",">> <ir:@R> "]" <r:@R> => {
         let span = (context.span_from)(il, ir);
-        let range_expr = context.current_ii().exprs.insert(Expr::Immediate {
-            value: Immediate::Int(elements.len() as i64),
-            span: span.clone(),
-        }, Type::Unknown(span));
+        let range_expr = context.current_ii().exprs.insert(
+            Expr::Immediate {
+                value: Immediate::Int(elements.len() as i64),
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        );
         Expr::Array {
             elements,
             range_expr,
@@ -1020,10 +1088,14 @@ TupleExprField: (Option<Ident>, ExprKey) = {
 Range: ExprKey = {
     <l:@L> <lb:Additive> ".." <ub:Additive> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context
-            .current_ii()
-            .exprs
-            .insert(Expr::Range { lb, ub, span: span.clone() }, Type::Unknown(span))
+        context.current_ii().exprs.insert(
+            Expr::Range {
+                lb,
+                ub,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
     }
 }
 
@@ -1048,7 +1120,7 @@ PathWithLast<Last>: Path = {
 
 Immediate: Immediate = {
     ImmediateInt,
-    <s:"real_lit"> => Immediate::Real(s.replace("_", "").parse().unwrap()),
+    <s:"real_lit"> => Immediate::Real(s.replace('_', "").parse().unwrap()),
     "true" => Immediate::Bool(true),
     "false" => Immediate::Bool(false),
     <s:"str_lit"> => Immediate::String(s),
@@ -1057,7 +1129,7 @@ Immediate: Immediate = {
 ImmediateInt: Immediate = {
     <l:@L> <s:"int_lit"> <r:@R>=> {
         let span = (context.span_from)(l, r);
-        let s = s.replace("_", "");
+        let s = s.replace('_', "");
         match s.chars().nth(1) {
             Some('b') => {
                 let digits = s.len() - 2;
@@ -1188,8 +1260,7 @@ StateInit: ExprKey = {
     <StorageTupleFieldOp>,
     <call:IntrinsicCallExpr> => {
         let span = call.span().clone();
-        context.current_ii().exprs.insert(call,
-    Type::Unknown(span))
+        context.current_ii().exprs.insert(call, Type::Unknown(span))
     },
 }
 
@@ -1211,10 +1282,14 @@ StorageIndexOp: ExprKey = {
     // into a map of maps.
     <l:@L> <expr:StorageIndexOp> "[" <index:Expr> "]" <r:@R> => {
         let span = (context.span_from)(l, r);
-        context
-            .current_ii()
-            .exprs
-            .insert(Expr::Index { expr, index, span: span.clone() }, Type::Unknown(span))
+        context.current_ii().exprs.insert(
+            Expr::Index {
+                expr,
+                index,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
     },
     <l:@L> <expr:StorageIndexOp> "[" "]" <r:@R> => {
         let span = (context.span_from)(l, r);
@@ -1247,31 +1322,31 @@ StorageAccess: ExprKey = {
     },
     <l:@L> "::" <els:(<Ident> "::")*> <last:Ident> <r1:@R> "::" "storage" "::" <name:Ident> <r2:@R> => {
         let path_span = (context.span_from)(l, r1);
-        let extern_path = context.handle_absolute_path(els, last, false, path_span);
+        let interface_instance = context.handle_absolute_path(els, last, false, path_span);
 
         let span = (context.span_from)(l, r2);
-        context
-            .current_ii()
-            .exprs
-            .insert(Expr::ExternalStorageAccess {
-                extern_path,
+        context.current_ii().exprs.insert(
+            Expr::ExternalStorageAccess {
+                interface_instance,
                 name: name.to_string(),
                 span: span.clone(),
-            }, Type::Unknown(span))
+            },
+            Type::Unknown(span),
+        )
     },
     <l:@L> <els:(<Ident> "::")*> <last:Ident> <r1:@R> "::" "storage" "::" <name:Ident> <r2:@R> => {
         let path_span = (context.span_from)(l, r1);
-        let extern_path = context.handle_relative_path(els, last, false, path_span);
+        let interface_instance = context.handle_relative_path(els, last, false, path_span);
 
         let span = (context.span_from)(l, r2);
-        context
-            .current_ii()
-            .exprs
-            .insert(Expr::ExternalStorageAccess {
-                extern_path,
+        context.current_ii().exprs.insert(
+            Expr::ExternalStorageAccess {
+                interface_instance,
                 name: name.to_string(),
                 span: span.clone(),
-            }, Type::Unknown(span))
+            },
+            Type::Unknown(span),
+        )
     }
 }
 
@@ -1386,10 +1461,10 @@ extern {
 
         "use" => lexer::Token::Use,
         "self" => lexer::Token::SelfTok,
-        "let" => lexer::Token::Let,
+        "var" => lexer::Token::Var,
         "state" => lexer::Token::State,
         "storage" => lexer::Token::Storage,
-        "extern" => lexer::Token::Extern,
+        "interface" => lexer::Token::Interface,
         "enum" => lexer::Token::Enum,
         "type" => lexer::Token::Type,
         "constraint" => lexer::Token::Constraint,

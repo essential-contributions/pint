@@ -1,12 +1,12 @@
 enum Baz = X | Y;
 type Xyzzy = int;
 
-let a: int;
-let b: Foo;
-let c = a as Bar;
+var a: int;
+var b: Foo;
+var c = a as Bar;
 
-let d: Baz;
-let e = a as Xyzzy;
+var d: Baz;
+var e = a as Xyzzy;
 
 solve satisfy;
 

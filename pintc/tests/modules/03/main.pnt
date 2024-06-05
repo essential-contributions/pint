@@ -2,8 +2,8 @@ use a::a;
 
 // All these statements have a name clash with the `a::a` above.
 use a::a;
-let a = 12;
-let a = 13;
+var a = 12;
+var a = 13;
 
 solve minimize a;
 

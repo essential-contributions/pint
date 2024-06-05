@@ -1,4 +1,4 @@
-let a: b256;
+var a: b256;
 enum Colour = Red | Green | Blue;
 
 constraint 1 + 2;

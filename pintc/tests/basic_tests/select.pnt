@@ -1,13 +1,13 @@
-let condition: bool;
-let condition1: bool;
-let condition2: bool;
-let x: int;
-let y: int;
-let z: b256;
-let a = condition ? condition1 ? 1 : 2 : condition2 ? 3 : 4;
-let b = condition ? condition1 ? x : y : condition2 ? x + 1 : x * y;
-let c = !condition ? { 1, 2, 3 } : { 3, 2, 1 };
-let d = !condition ? [ 1, 2, 3 ] : [ 3, 2, 1 ];
+var condition: bool;
+var condition1: bool;
+var condition2: bool;
+var x: int;
+var y: int;
+var z: b256;
+var a = condition ? condition1 ? 1 : 2 : condition2 ? 3 : 4;
+var b = condition ? condition1 ? x : y : condition2 ? x + 1 : x * y;
+var c = !condition ? { 1, 2, 3 } : { 3, 2, 1 };
+var d = !condition ? [ 1, 2, 3 ] : [ 3, 2, 1 ];
 
 solve satisfy;
 

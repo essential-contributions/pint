@@ -7,13 +7,13 @@ storage {
 }
 
 intent Initialize {
-    let value: int;
+    var value: int;
     state counter: int = storage::counter;
     constraint counter' == value;
 }
 
 intent Increment {
-    let amount: int;
+    var amount: int;
     state counter: int = storage::counter;
     constraint counter' == counter + amount;
 }

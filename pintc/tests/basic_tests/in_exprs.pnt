@@ -1,12 +1,12 @@
 enum Cake = Crab | Mud | Uranium | Urinal;
 
-let a: int;
-let b: real;
-let c: bool;
-let d: string;
-let e: Cake;
-let f: {bool, int};
-let g: int[2];
+var a: int;
+var b: real;
+var c: bool;
+var d: string;
+var e: Cake;
+var f: {bool, int};
+var g: int[2];
 
 constraint a in 11..22;
 constraint a in [11, 13, 17, 19];

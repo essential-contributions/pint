@@ -6,7 +6,7 @@ imperative programming languages. Decision variables do not get "computed" or "a
 Pint program since a Pint program is **not actually executed but solved** (and later validated
 against a solution).
 
-Decision variables can be declared using the `let` keyword and may be annotated with a type. We will
+Decision variables can be declared using the `var` keyword and may be annotated with a type. We will
 go over the available data types in Pint, in detail, in a later chapter.
 
 Here's an example that shows how to declared a decision variable named `foo` of type `int`:

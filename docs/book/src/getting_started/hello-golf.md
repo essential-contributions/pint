@@ -22,11 +22,11 @@ Next, make a new source file and call it `main.pnt`. In order to model the probl
 Recall that our goal is to assign a par value for each of the 18 golf holes. One way of representing these values is using 18 **integer** decision variables as follows:
 
 ```pint
-let h0: int;
-let h1: int;
+var h0: int;
+var h1: int;
 .
 .
-let h17: int;
+var h17: int;
 ```
 
 Notice the `int` (integer) primitive type that annotates each variable. Par values have to be integers!
@@ -34,7 +34,7 @@ Notice the `int` (integer) primitive type that annotates each variable. Par valu
 A better way and more concise way of rewriting the above is using an array of 18 `int` values as follows:
 
 ```pint
-let h: int[18];
+var h: int[18];
 ```
 
 The type `int[18]` describes an array of 18 integers.
@@ -88,7 +88,7 @@ To finish our program, we need a `solve` directive and an (optional) `print` dir
 Our final program now looks like this:
 
 ```pint
-let h: int[18];
+var h: int[18];
 
 constraint h[0] in 3..5;
 constraint h[1] in 3..5;

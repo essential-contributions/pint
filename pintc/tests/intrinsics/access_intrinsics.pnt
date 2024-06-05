@@ -1,17 +1,17 @@
-let mut_keys_len: int = __mut_keys_len();
+var mut_keys_len: int = __mut_keys_len();
 
-let key: int[5];
-let mut_keys_contains_1: bool = __mut_keys_contains(key);
+var key: int[5];
+var mut_keys_contains_1: bool = __mut_keys_contains(key);
 
-let z: int;
-let t: { int, int };
-let mut_keys_contains_2: bool = __mut_keys_contains([69, 70, 71, z, t.0]);
+var z: int;
+var t: { int, int };
+var mut_keys_contains_2: bool = __mut_keys_contains([69, 70, 71, z, t.0]);
 
-let this_address: b256 = __this_address();
+var this_address: b256 = __this_address();
 
-let this_set_address: b256 = __this_set_address();
+var this_set_address: b256 = __this_set_address();
 
-let this_pathway: int = __this_pathway();
+var this_pathway: int = __this_pathway();
 
 solve satisfy;
 

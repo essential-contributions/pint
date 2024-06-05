@@ -1,4 +1,4 @@
-let a: int;
+var a: int;
 
 constraint b::@b_macro(a);
 

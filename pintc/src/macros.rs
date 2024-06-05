@@ -7,11 +7,8 @@ use crate::{
     types::{EnumDecl, Path},
 };
 
-use std::{
-    collections::{hash_map::Entry, HashMap},
-    fmt,
-    rc::Rc,
-};
+use fxhash::FxHashMap;
+use std::{collections::hash_map::Entry, fmt, rc::Rc};
 
 pub(crate) struct MacroDecl {
     pub(crate) name: Ident,
@@ -80,7 +77,7 @@ pub(crate) fn verify_unique_set(
     handler: &Handler,
     macro_decls: &[MacroDecl],
 ) -> Result<(), ErrorEmitted> {
-    let mut sigs_set = HashMap::<_, Span>::new();
+    let mut sigs_set = FxHashMap::<_, Span>::default();
 
     for MacroDecl {
         name,
@@ -131,7 +128,7 @@ pub(crate) fn splice_args(handler: &Handler, ii: &IntermediateIntent, call: &mut
         .collect::<Vec<_>>()
         .concat();
 
-    let mut replacements = HashMap::new();
+    let mut replacements = FxHashMap::default();
     for (arg_idx, tok_idx, array_name, range) in spliced_args {
         // The identifier will have to be in the same module as the macro call (hence the use of
         // `mod_path_str` above, taken from the call) and we trim the `~` from the name here.
@@ -294,7 +291,7 @@ fn splice_get_array_range_size(
 #[derive(Default)]
 pub(crate) struct MacroExpander {
     call_history: Vec<(Path, usize)>, // Path to macro and number of args.
-    call_parents: HashMap<usize, usize>, // Indices into self.call_history.
+    call_parents: FxHashMap<usize, usize>, // Indices into self.call_history.
 }
 
 impl MacroExpander {
@@ -342,7 +339,7 @@ impl MacroExpander {
             }
         }
 
-        let param_idcs = HashMap::<&String, usize>::from_iter(
+        let param_idcs = FxHashMap::<&String, usize>::from_iter(
             macro_decl
                 .params
                 .iter()

@@ -7,8 +7,8 @@ macro @sum($x) {
 }
 
 
-let a: int = 4;
-let b: int = @sum(1; 2; 3; a);
+var a: int = 4;
+var b: int = @sum(1; 2; 3; a);
 
 solve satisfy;
 

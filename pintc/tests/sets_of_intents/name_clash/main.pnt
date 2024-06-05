@@ -3,14 +3,14 @@ use lib::Baz;
 enum Foo = A | B;
 
 intent Foo {
-    let x: int;
+    var x: int;
     constraint x == 3;
 }
 
 type Bar = Foo;
 
 intent Bar {
-    let y: int;
+    var y: int;
     constraint y == 4;
 }
 
@@ -21,7 +21,7 @@ intent Boo {
 intent Boo {
     enum Baz = P | Q;
 
-    let Bar = 5;
+    var Bar = 5;
 }
 
 // parse_failure <<<

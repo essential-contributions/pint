@@ -1,14 +1,15 @@
 use crate::{
     error::{Error, ErrorEmitted, Handler, ParseError},
-    expr::{self, Expr, Ident, Immediate},
+    expr::{self, Expr, Ident},
     span::Span,
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type},
 };
 use exprs::ExprsIter;
 pub use exprs::{ExprKey, Exprs};
+use fxhash::FxHashMap;
 pub use states::{StateKey, States};
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::BTreeMap,
     fmt::{self, Formatter},
 };
 pub use vars::{VarKey, Vars};
@@ -91,8 +92,11 @@ pub struct IntermediateIntent {
     // A list of all storage variables in the order in which they were declared
     pub storage: Option<(Vec<StorageVar>, Span)>,
 
-    // A list of all storage variables in the order in which they were declared
-    pub externs: Vec<Extern>,
+    // A list of all availabe interfaces
+    pub interfaces: Vec<Interface>,
+
+    // A list of all availabe interface instances
+    pub interface_instances: Vec<InterfaceInstance>,
 
     pub top_level_symbols: BTreeMap<String, Span>,
 }
@@ -306,7 +310,7 @@ impl IntermediateIntent {
         });
     }
 
-    pub fn replace_exprs_by_map(&mut self, expr_map: &HashMap<ExprKey, ExprKey>) {
+    pub fn replace_exprs_by_map(&mut self, expr_map: &FxHashMap<ExprKey, ExprKey>) {
         self.exprs
             .update_exprs(|_, expr| expr.replace_ref_by_map(expr_map));
 
@@ -633,10 +637,17 @@ impl DisplayWithII for StorageVar {
 }
 
 #[derive(Clone, Debug)]
-pub struct Extern {
+pub struct Interface {
     pub name: Ident,
-    pub address: Immediate,
     pub storage_vars: Vec<StorageVar>,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct InterfaceInstance {
+    pub name: Ident,
+    pub interface: Path,
+    pub address: ExprKey,
     pub span: Span,
 }
 

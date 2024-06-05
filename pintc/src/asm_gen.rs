@@ -8,10 +8,10 @@ use crate::{
     types::Type,
 };
 use essential_types::intent::{Directive, Intent};
+use fxhash::FxHashMap;
 use state_asm::{
     Access, Alu, Constraint, ControlFlow, Crypto, Op as StateRead, Pred, Stack, StateSlots,
 };
-use std::collections::HashMap;
 
 mod display;
 #[cfg(test)]
@@ -80,7 +80,7 @@ pub struct AsmBuilder {
     c_asm: Vec<Vec<Constraint>>,
     // Maps indices of `let` variables (which may be wider than a word) to a list of low level
     // word-wide decision variables
-    var_to_d_vars: HashMap<usize, Vec<usize>>,
+    var_to_d_vars: FxHashMap<usize, Vec<usize>>,
 }
 
 #[derive(Debug)]
@@ -198,34 +198,31 @@ impl AsmBuilder {
                 })
             }
             Expr::ExternalStorageAccess {
-                extern_path, name, ..
+                interface_instance,
+                name,
+                ..
             } => {
-                // Get the `extern` declaration that the storage access refers to
-                let r#extern = &intent
-                    .externs
+                // Get the `interface_instance` declaration that the storage access refers to
+                let interface_instance = &intent
+                    .interface_instances
                     .iter()
-                    .find(|e| e.name.to_string() == *extern_path)
-                    .expect("an extern block named `extern_path` must have been declared");
+                    .find(|e| e.name.to_string() == *interface_instance)
+                    .expect("missing interface instance");
 
-                let Immediate::B256(val) = r#extern.address else {
-                    return Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "the address of the external set-of-intents must be a `b256` immediate",
-                            span: empty_span(),
-                        },
-                    }));
-                };
+                // Compile the interface instance address
+                let mut asm = Vec::new();
+                self.compile_expr(handler, &mut asm, &interface_instance.address, intent)?;
+                s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
 
-                // Push the external set-of-intents address followed by the base key
-                s_asm.extend([
-                    StateRead::from(Stack::Push(val[0] as i64)),
-                    Stack::Push(val[1] as i64).into(),
-                    Stack::Push(val[2] as i64).into(),
-                    Stack::Push(val[3] as i64).into(),
-                ]);
+                // Get the `interface` declaration that the storage access refers to
+                let interface = &intent
+                    .interfaces
+                    .iter()
+                    .find(|e| e.name.to_string() == *interface_instance.interface)
+                    .expect("missing interface");
 
                 // Get the index of the storage variable in the storage block declaration
-                let storage_index = r#extern
+                let storage_index = interface
                     .storage_vars
                     .iter()
                     .position(|var| var.name == *name)
@@ -234,7 +231,7 @@ impl AsmBuilder {
                 // This is the key. It's either the `storage_index` if the storage type primitive
                 // or a map, or it's `[storage_index, 0]`. The `0` here is a placeholder for
                 // offsets.
-                let storage_var = &r#extern.storage_vars[storage_index];
+                let storage_var = &interface.storage_vars[storage_index];
                 let key = if storage_var.ty.is_any_primitive() || storage_var.ty.is_map() {
                     s_asm.push(Stack::Push(storage_index as i64).into());
                     vec![storage_index as i64]

@@ -1,16 +1,48 @@
+interface ERC20 {
+    storage {
+        x: int,
+    }
+}
+
 intent Foo {
-    state x = ERC20::storage::x;
+    interface ERC20Instance =
+        ERC20Missing(0x1111111111111111111111111111111111111111111111111111111111111111);
+
+    interface ERC20Instance2 =
+        ERC20(0x2222222222222222222222222222222222222222222222222222222222222222);
+
+    state x = ERC20Instance::storage::x;
+
+    state y = ERC20InstanceMissing::storage::x;
 }
 
 // intermediate <<<
+// interface ::ERC20 {
+//     storage {
+//         x: int,
+//     }
+// }
+//
 // intent ::Foo {
-//     state ::x = ::ERC20::storage::x;
+//     interface ::ERC20 {
+//         storage {
+//             x: int,
+//         }
+//     }
+//     interface ::ERC20Instance = ::ERC20Missing(0x1111111111111111111111111111111111111111111111111111111111111111)
+//     interface ::ERC20Instance2 = ::ERC20(0x2222222222222222222222222222222222222222222222222222222222222222)
+//     state ::x = ::ERC20Instance::storage::x;
+//     state ::y = ::ERC20InstanceMissing::storage::x;
 // }
 // >>>
 
 // typecheck_failure <<<
-// cannot find `extern` declaration `::ERC20`
-// @27..44: cannot find `extern` declaration `::ERC20`
+// cannot find interface declaration `::ERC20Missing`
+// @74..188: cannot find interface declaration `::ERC20Missing`
+// cannot find interface instance `::ERC20InstanceMissing`
+// @362..394: cannot find interface instance `::ERC20InstanceMissing`
 // unable to determine expression type
-// @17..44: type of this expression is ambiguous
+// @310..345: type of this expression is ambiguous
+// unable to determine expression type
+// @352..394: type of this expression is ambiguous
 // >>>

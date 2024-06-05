@@ -1,4 +1,4 @@
-let a: int = 1;
+var a: int = 1;
 solve satisfy;
 
 // intermediate <<<

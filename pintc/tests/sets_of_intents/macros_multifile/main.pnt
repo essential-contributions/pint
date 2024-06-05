@@ -14,7 +14,7 @@ intent Bar {
 
 // This does not work yet. See ##504
 //intent Baz {
-//    let v: int;
+//    var v: int;
 //    constraint @a(v);
 //    constraint @b(v);
 //    constraint @a(v);
@@ -23,8 +23,8 @@ intent Bar {
 
 // This does not work yet. See ##504
 //intent Sum {
-//    let a: int = 4;
-//    let b: int = @sum(1; 2; 3; a);
+//    var a: int = 4;
+//    var b: int = @sum(1; 2; 3; a);
 //}
 
 // intermediate <<<

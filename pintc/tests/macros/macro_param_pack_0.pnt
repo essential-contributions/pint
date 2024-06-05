@@ -2,7 +2,7 @@ macro @a($x, &pack, $y) {
     $x + $y
 }
 
-let b = @a(11; 22);
+var b = @a(11; 22);
 
 solve satisfy;
 

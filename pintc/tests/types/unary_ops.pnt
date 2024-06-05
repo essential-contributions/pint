@@ -1,8 +1,8 @@
-let a = -true;
-let b = -{1,2};
+var a = -true;
+var b = -{1,2};
 
-let c = !11;
-let d = !"sure";
+var c = !11;
+var d = !"sure";
 
 solve satisfy;
 

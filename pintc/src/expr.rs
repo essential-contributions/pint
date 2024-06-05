@@ -4,7 +4,7 @@ use crate::{
     types::{Path, Type},
 };
 
-use std::collections::HashMap;
+use fxhash::FxHashMap;
 
 mod display;
 mod evaluate;
@@ -20,7 +20,7 @@ pub enum Expr {
     PathByName(Path, Span),
     StorageAccess(String, Span),
     ExternalStorageAccess {
-        extern_path: Path,
+        interface_instance: Path,
         name: String,
         span: Span,
     },
@@ -265,7 +265,7 @@ impl Expr {
         });
     }
 
-    pub fn replace_ref_by_map(&mut self, keys: &HashMap<ExprKey, ExprKey>) {
+    pub fn replace_ref_by_map(&mut self, keys: &FxHashMap<ExprKey, ExprKey>) {
         self.replace_ref(|old_key: &mut ExprKey| {
             if let Some(new_key) = keys.get(old_key) {
                 *old_key = *new_key;

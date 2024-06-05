@@ -118,8 +118,12 @@ pub enum CompileError {
     MissingStorageBlock { name: String, span: Span },
     #[error("`next state` access must be bound to a state variable")]
     InvalidNextStateAccess { span: Span },
-    #[error("cannot find `extern` declaration `{name}`")]
-    MissingExtern { name: String, span: Span },
+    #[error("cannot find interface declaration `{name}`")]
+    MissingInterface { name: String, span: Span },
+    #[error("cannot find interface instance `{name}`")]
+    MissingInterfaceInstance { name: String, span: Span },
+    #[error("address expression type error")]
+    AddressExpressionTypeError { large_err: Box<LargeTypeError> },
     #[error("attempt to use a non-constant value as an array length")]
     NonConstArrayLength { span: Span },
     #[error("attempt to use an invalid constant as an array length")]
@@ -285,6 +289,12 @@ pub enum LargeTypeError {
         expected_span: Option<Span>,
     },
     ConstraintExpressionTypeError {
+        expected_ty: String,
+        found_ty: String,
+        span: Span,
+        expected_span: Option<Span>,
+    },
+    AddressExpressionTypeError {
         expected_ty: String,
         found_ty: String,
         span: Span,
@@ -534,7 +544,7 @@ impl ReportableError for CompileError {
 
             MissingStorageBlock { span, .. } => {
                 vec![ErrorLabel {
-                    message: "no `extern` declaration ".to_string(),
+                    message: "no storage declaration found".to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -548,9 +558,17 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            MissingExtern { name, span } => {
+            MissingInterface { name, span } => {
                 vec![ErrorLabel {
-                    message: format!("cannot find `extern` declaration `{name}`"),
+                    message: format!("cannot find interface declaration `{name}`"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            MissingInterfaceInstance { name, span } => {
+                vec![ErrorLabel {
+                    message: format!("cannot find interface instance `{name}`"),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -713,7 +731,8 @@ impl ReportableError for CompileError {
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }
             | StateVarInitTypeError { large_err, .. }
-            | ConstraintExpressionTypeError { large_err, .. } => match &**large_err {
+            | ConstraintExpressionTypeError { large_err, .. }
+            | AddressExpressionTypeError { large_err, .. } => match &**large_err {
                 LargeTypeError::SelectBranchesTypeMismatch {
                     then_type,
                     then_span,
@@ -795,6 +814,30 @@ impl ReportableError for CompileError {
                 } => {
                     let mut labels = vec![ErrorLabel {
                         message: format!("constraint expression has unexpected type `{found_ty}`"),
+                        span: span.clone(),
+                        color: Color::Red,
+                    }];
+
+                    if let Some(span) = expected_span {
+                        labels.push(ErrorLabel {
+                            message: format!("expecting type `{expected_ty}`"),
+                            span: span.clone(),
+                            color: Color::Blue,
+                        });
+                    }
+
+                    labels
+                }
+
+                LargeTypeError::AddressExpressionTypeError {
+                    found_ty,
+                    expected_ty,
+                    span,
+                    expected_span,
+                    ..
+                } => {
+                    let mut labels = vec![ErrorLabel {
+                        message: format!("address expression has unexpected type `{found_ty}`"),
                         span: span.clone(),
                         color: Color::Red,
                     }];
@@ -1028,7 +1071,9 @@ impl ReportableError for CompileError {
             | StorageSymbolNotFound { .. }
             | MissingStorageBlock { .. }
             | InvalidNextStateAccess { .. }
-            | MissingExtern { .. }
+            | MissingInterface { .. }
+            | MissingInterfaceInstance { .. }
+            | AddressExpressionTypeError { .. }
             | NonConstArrayLength { .. }
             | InvalidConstArrayLength { .. }
             | NonConstArrayIndex { .. }
@@ -1149,7 +1194,8 @@ impl Spanned for CompileError {
             | StorageSymbolNotFound { span, .. }
             | InvalidNextStateAccess { span, .. }
             | MissingStorageBlock { span, .. }
-            | MissingExtern { span, .. }
+            | MissingInterface { span, .. }
+            | MissingInterfaceInstance { span, .. }
             | NonConstArrayIndex { span }
             | InvalidConstArrayLength { span }
             | NonConstArrayLength { span }
@@ -1187,11 +1233,13 @@ impl Spanned for CompileError {
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }
             | StateVarInitTypeError { large_err, .. }
-            | ConstraintExpressionTypeError { large_err, .. } => match &**large_err {
+            | ConstraintExpressionTypeError { large_err, .. }
+            | AddressExpressionTypeError { large_err, .. } => match &**large_err {
                 LargeTypeError::SelectBranchesTypeMismatch { span, .. }
                 | LargeTypeError::OperatorTypeError { span, .. }
                 | LargeTypeError::StateVarInitTypeError { span, .. }
-                | LargeTypeError::ConstraintExpressionTypeError { span, .. } => span,
+                | LargeTypeError::ConstraintExpressionTypeError { span, .. }
+                | LargeTypeError::AddressExpressionTypeError { span, .. } => span,
             },
         }
     }

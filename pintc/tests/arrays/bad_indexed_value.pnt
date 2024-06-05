@@ -1,4 +1,4 @@
-let n: int;
+var n: int;
 
 constraint __foo()[0] == 3;
 

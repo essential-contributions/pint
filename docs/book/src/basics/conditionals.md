@@ -27,9 +27,9 @@ If, for example, the types of the two expressions we're selecting from do not ma
 will emit a compile error. For example, if we try to compile the following code:
 
 ```pint
-let number: int;
+var number: int;
 
-let y = number < 5 ? 1 : 2.0;
+var y = number < 5 ? 1 : 2.0;
 ```
 
 we will get the following error:
@@ -38,7 +38,7 @@ we will get the following error:
 Error: branches of a select expression must have the same type
    ╭─[test.pnt:3:9]
    │
- 3 │ let y = number < 5 ? 1 : 2.0;
+ 3 │ var y = number < 5 ? 1 : 2.0;
    │                      ┬   ─┬─
    │                      ╰──────── 'then' branch has the type `int`
    │                           │
@@ -50,9 +50,9 @@ The condition of a select expression must be a `bool`. Otherwise, we will get a 
 example, if we try to compile the following code:
 
 ```pint
-let number: int;
+var number: int;
 
-let y = number ? 1 : 2;
+var y = number ? 1 : 2;
 ```
 
 we will get the following error:
@@ -61,7 +61,7 @@ we will get the following error:
 Error: condition for select expression must be a `bool`
    ╭─[test.pnt:3:9]
    │
- 3 │ let y = number ? 1 : 2;
+ 3 │ var y = number ? 1 : 2;
    │         ───┬──
    │            ╰──── invalid type `int`, expecting `bool`
 ───╯
