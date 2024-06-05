@@ -355,13 +355,12 @@ fn format_expected_tokens_message(expected: &mut [Option<String>]) -> String {
                 format_optional_token(&lexer::get_token_error_category(&expected))
             }
             _ => {
-                let mut categorized_expected: Vec<Option<String>> = Vec::new();
-                for expected_token in expected {
-                    categorized_expected.push(lexer::get_token_error_category(&expected_token));
-                }
-
-                let non_duped_expected = FxHashSet::from_iter(categorized_expected);
-                let mut expected: Vec<_> = non_duped_expected.into_iter().collect();
+                let mut expected: Vec<Option<String>> = expected
+                    .iter()
+                    .map(|token| lexer::get_token_error_category(token))
+                    .collect::<FxHashSet<_>>() // Remove duplicates
+                    .into_iter()
+                    .collect();
 
                 // Make sure that the list of expected tokens is printed in a deterministic order
                 expected.sort();
