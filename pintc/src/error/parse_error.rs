@@ -351,12 +351,12 @@ fn format_expected_tokens_message(expected: &mut [Option<String>]) -> String {
                 "something else".to_string()
             }
             [expected] => {
-                format_optional_token(&lexer::get_token_error_category(&expected))
+                format_optional_token(&lexer::get_token_error_category(expected))
             }
             _ => {
                 let mut expected: Vec<Option<String>> = expected
                     .iter()
-                    .map(|token| lexer::get_token_error_category(token))
+                    .map(lexer::get_token_error_category)
                     .collect::<FxHashSet<_>>() // Remove duplicates
                     .into_iter()
                     .collect();
