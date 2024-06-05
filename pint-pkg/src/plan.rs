@@ -90,6 +90,7 @@ pub type InvalidDeps = BTreeMap<EdgeIx, InvalidDepCause>;
 type FetchedPkgs = HashMap<Pkg, NodeIx>;
 
 /// A compilation plan generated for one or more member package manifests.
+#[derive(Debug)]
 pub struct Plan {
     /// The dependency graph of all packages.
     graph: Graph,
@@ -286,10 +287,10 @@ impl str::FromStr for PinnedId {
     }
 }
 
-/// Construct a compilation plan from the given package manifests that we wish to build.
+/// Construct a compilation plan from the given member manifests that we wish to build.
 ///
 /// Fetches and pins all packages as a part of constructing the full compilation plan.
-pub fn from_manifests(members: &MemberManifests) -> Result<Plan, PlanError> {
+pub fn from_members(members: &MemberManifests) -> Result<Plan, PlanError> {
     // Fetch the graph and populate the pinned manifests.
     let mut graph = Graph::default();
     let mut pinned_manifests = PinnedManifests::default();
@@ -298,7 +299,7 @@ pub fn from_manifests(members: &MemberManifests) -> Result<Plan, PlanError> {
     // TODO: Remove this block, just a sanity check.
     {
         let (pinned_manifests2, invalid_deps) = check_graph(&graph, members);
-        dbg!(&invalid_deps);
+        assert!(invalid_deps.is_empty(), "{invalid_deps:?}");
         assert_eq!(pinned_manifests, pinned_manifests2);
     }
 
@@ -613,7 +614,8 @@ fn check_dep(
 }
 
 /// Given a manifest and a node associated with one of its dependencies, returns
-/// the canonical local path to the dependency's source.
+/// the canonical local path to the directory containing the dependency's
+/// manifest.
 fn dep_path(
     graph: &Graph,
     members: &MemberManifests,
@@ -627,7 +629,7 @@ fn dep_path(
         source::DependencyPath::Member => members
             .values()
             .find(|m| m.pkg.name == *dep_name)
-            .map(|m| m.path().to_path_buf())
+            .map(|m| m.dir().to_path_buf())
             .ok_or_else(|| DepPathError::MemberNotFound(dep_name.to_string())),
         source::DependencyPath::Root(path_root) => {
             check_path_root(graph, dep_node, path_root)?;

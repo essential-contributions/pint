@@ -14,3 +14,6 @@ pint-manifest = { workspace = true }
 pintc = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
+
+[dev-dependencies]
+toml = { workspace = true }

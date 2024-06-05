@@ -1045,6 +1045,7 @@ dependencies = [
  "pintc",
  "serde",
  "thiserror",
+ "toml",
 ]
 
 [[package]]
