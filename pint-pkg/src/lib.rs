@@ -3,5 +3,5 @@
 #[doc(inline)]
 pub use pint_manifest as manifest;
 
-pub mod pkg;
+pub mod plan;
 pub mod source;

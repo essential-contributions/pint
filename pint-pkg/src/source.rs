@@ -2,7 +2,7 @@
 
 use crate::{
     manifest::{self, ManifestFile},
-    pkg::{PinnedId, PinnedManifests},
+    plan::{PinnedId, PinnedManifests},
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -58,7 +58,8 @@ pub enum Pinned {
 #[derive(Clone)]
 pub(crate) struct PinCtx<'a> {
     /// A unique ID associated with the current fetch.
-    pub(crate) fetch_id: FetchId,
+    // TODO: Use this for remote deps.
+    pub(crate) _fetch_id: FetchId,
     /// The current package graph path root.
     pub(crate) path_root: PinnedId,
     /// The name of the package being pinned.
@@ -69,6 +70,8 @@ pub(crate) enum DependencyPath {
     /// The dependency is another member of the workspace.
     Member,
     /// The dependency is located at this specific path.
+    // TODO: Rm this `allow` when introducing remote deps.
+    #[allow(dead_code)]
     ManifestPath(PathBuf),
     /// Path is pinned via manifest, relative to the given root node.
     Root(PinnedId),

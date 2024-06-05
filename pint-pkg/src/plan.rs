@@ -1,4 +1,4 @@
-//! Package graph implementation and dependency resolution.
+//! Items related to construction of the compilation [`Plan`].
 
 use crate::{
     manifest::{self, Dependency, ManifestFile},
@@ -89,7 +89,7 @@ pub type InvalidDeps = BTreeMap<EdgeIx, InvalidDepCause>;
 /// A mapping from fetched packages to their location within the graph.
 type FetchedPkgs = HashMap<Pkg, NodeIx>;
 
-/// A compilation plan generated for one or more package manifests.
+/// A compilation plan generated for one or more member package manifests.
 pub struct Plan {
     /// The dependency graph of all packages.
     graph: Graph,
@@ -99,10 +99,15 @@ pub struct Plan {
     compilation_order: Vec<NodeIx>,
 }
 
+/// Failed to construct a compilation plan.
 #[derive(Debug, Error)]
 pub enum PlanError {
+    /// Failed to fetch the package graph.
     #[error("failed to fetch the package graph: {0}")]
     FetchGraph(#[from] FetchGraphError),
+    /// A cycle was detected in the package graph.
+    #[error("{0}")]
+    DependencyCycle(#[from] DependencyCycle),
 }
 
 #[derive(Debug, Error)]
@@ -211,6 +216,11 @@ pub enum DepPathError {
     PathDoesNotExist(String, PathBuf),
 }
 
+/// A cycle was detected while attempting to determine compilation order.
+#[derive(Debug, Error)]
+#[error("cycle detected between the following packages: {0:?}")]
+pub struct DependencyCycle(pub Vec<String>);
+
 impl Dep {
     fn new(name: String, kind: DepKind) -> Self {
         Self { name, kind }
@@ -244,6 +254,24 @@ impl PinnedId {
     }
 }
 
+impl Plan {
+    /// The full package dependency graph.
+    pub fn graph(&self) -> &Graph {
+        &self.graph
+    }
+
+    /// The manifest (both in-memory and local file) for every package in the graph.
+    pub fn manifests(&self) -> &PinnedManifests {
+        &self.manifests
+    }
+
+    /// An order in which packages may be compiled so that all dependencies are
+    /// built before all dependents.
+    pub fn compilation_order(&self) -> &[NodeIx] {
+        &self.compilation_order
+    }
+}
+
 impl fmt::Display for PinnedId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:016x}", self.0)
@@ -259,7 +287,9 @@ impl str::FromStr for PinnedId {
 }
 
 /// Construct a compilation plan from the given package manifests that we wish to build.
-pub fn plan_from_manifests(members: &MemberManifests) -> Result<Plan, PlanError> {
+///
+/// Fetches and pins all packages as a part of constructing the full compilation plan.
+pub fn from_manifests(members: &MemberManifests) -> Result<Plan, PlanError> {
     // Fetch the graph and populate the pinned manifests.
     let mut graph = Graph::default();
     let mut pinned_manifests = PinnedManifests::default();
@@ -272,8 +302,15 @@ pub fn plan_from_manifests(members: &MemberManifests) -> Result<Plan, PlanError>
         assert_eq!(pinned_manifests, pinned_manifests2);
     }
 
-    // let compilation_order = compilation_order(&graph)?;
-    todo!()
+    // Determine the order in which packages should be compiled.
+    // TODO: Remove this when enabling concurrent builds.
+    let compilation_order = compilation_order(&graph)?;
+
+    Ok(Plan {
+        graph,
+        manifests: pinned_manifests,
+        compilation_order,
+    })
 }
 
 /// Complete the given package graph (and associated `PinnedManifests` map) for the `root_manifest`.
@@ -410,7 +447,7 @@ fn fetch_deps(
             hash_map::Entry::Vacant(entry) => {
                 let pkg = entry.key();
                 let ctx = source::PinCtx {
-                    fetch_id,
+                    _fetch_id: fetch_id,
                     path_root,
                     pkg_name: &pkg.name,
                 };
@@ -672,4 +709,22 @@ fn find_path_root(graph: &Graph, mut node: NodeIx) -> Result<NodeIx, FindPathRoo
             }
         }
     }
+}
+
+/// Perform a toposort on the reversed weights to determine compilation order.
+///
+/// This ensures all dependencies are compiled prior to their dependents.
+fn compilation_order(graph: &Graph) -> Result<Vec<NodeIx>, DependencyCycle> {
+    let rev_graph = petgraph::visit::Reversed(&graph);
+    petgraph::algo::toposort(rev_graph, None).map_err(|_cycle| {
+        let sccs = petgraph::algo::kosaraju_scc(graph);
+        let cycle = sccs
+            .into_iter()
+            .find(|path| path.len() > 1)
+            .expect("one cycle must exist")
+            .into_iter()
+            .map(|n| graph[n].name.to_string())
+            .collect();
+        DependencyCycle(cycle)
+    })
 }

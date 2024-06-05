@@ -2,7 +2,7 @@
 
 use crate::{
     manifest::{ManifestFile, ManifestFileError},
-    pkg::PinnedId,
+    plan::PinnedId,
     source,
 };
 use serde::{Deserialize, Serialize};
