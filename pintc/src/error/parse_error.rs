@@ -1,8 +1,9 @@
 use crate::{
     error::{ErrorLabel, ReportableError},
-    lexer::Token,
+    lexer::{self, Token},
     span::{Span, Spanned},
 };
+use fxhash::FxHashSet;
 use std::{path::Path, rc::Rc};
 use thiserror::Error;
 use yansi::Color;
@@ -342,21 +343,47 @@ fn format_optional_token(token: &Option<String>) -> String {
         None => "\"end of input\"".into(),
     }
 }
-
 fn format_expected_tokens_message(expected: &mut [Option<String>]) -> String {
+    println!("format_expected_tokens_message called with {:?}", expected);
     format!(
         "expected {}",
         match expected {
-            [] => "something else".to_string(),
-            [expected] => format_optional_token(expected),
+            [] => {
+                println!("Matched empty list");
+                "something else".to_string()
+            }
+            [expected] => {
+                println!("Matched single element list");
+                format_optional_token(expected)
+            }
             _ => {
+                println!("Matched list with multiple elements");
+                // remove duplicates from the same category
+                let mut categorized_expected: Vec<Option<String>> = Vec::new();
+                for expected_token in expected {
+                    categorized_expected.push(lexer::get_token_error(&expected_token));
+                }
+
+                println!("Categorized Expected: {:?}", categorized_expected);
+
+                let non_duped_expected = FxHashSet::from_iter(categorized_expected);
+                let mut expected: Vec<_> = non_duped_expected.into_iter().collect();
+
+                println!("Non-duplicated Expected: {:?}", expected);
+
                 // Make sure that the list of expected tokens is printed in a deterministic order
                 expected.sort();
 
+                println!("Sorted Expected: {:?}", expected);
+
                 let mut token_list = String::new();
+
                 for expected in &expected[..expected.len() - 1] {
                     token_list = format!("{token_list}{}, ", format_optional_token(expected));
                 }
+
+                println!("Token List (without last element): {}", token_list);
+
                 format!(
                     "{token_list}or {}",
                     format_optional_token(expected.last().unwrap())
