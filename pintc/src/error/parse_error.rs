@@ -349,40 +349,28 @@ fn format_expected_tokens_message(expected: &mut [Option<String>]) -> String {
         "expected {}",
         match expected {
             [] => {
-                println!("Matched empty list");
                 "something else".to_string()
             }
             [expected] => {
-                println!("Matched single element list");
-                format_optional_token(expected)
+                format_optional_token(&lexer::get_token_error_category(&expected))
             }
             _ => {
-                println!("Matched list with multiple elements");
-                // remove duplicates from the same category
                 let mut categorized_expected: Vec<Option<String>> = Vec::new();
                 for expected_token in expected {
-                    categorized_expected.push(lexer::get_token_error(&expected_token));
+                    categorized_expected.push(lexer::get_token_error_category(&expected_token));
                 }
-
-                println!("Categorized Expected: {:?}", categorized_expected);
 
                 let non_duped_expected = FxHashSet::from_iter(categorized_expected);
                 let mut expected: Vec<_> = non_duped_expected.into_iter().collect();
 
-                println!("Non-duplicated Expected: {:?}", expected);
-
                 // Make sure that the list of expected tokens is printed in a deterministic order
                 expected.sort();
-
-                println!("Sorted Expected: {:?}", expected);
 
                 let mut token_list = String::new();
 
                 for expected in &expected[..expected.len() - 1] {
                     token_list = format!("{token_list}{}, ", format_optional_token(expected));
                 }
-
-                println!("Token List (without last element): {}", token_list);
 
                 format!(
                     "{token_list}or {}",

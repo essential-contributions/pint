@@ -756,14 +756,8 @@ impl From<StringLiteralChar> for char {
     }
 }
 
-// TODO:
-/* Giant match statement that maps the lalrpop tokens to the logos token categories
-Then in the parse_error use the function to look up the printout
-inside the parse_error printout we can use a set to avoid repeats
--- types and literals will cover a lot of cases */
-
-// Convert from lalrpop token to lexer token
-pub fn get_token_error(lalrpop_token: &Option<String>) -> Option<String> {
+// Convert from lalrpop token to error category
+pub fn get_token_error_category(lalrpop_token: &Option<String>) -> Option<String> {
     if let Some(token) = lalrpop_token {
         match token.as_str() {
             "int_ty" => Some("a type".to_owned()),
@@ -771,25 +765,12 @@ pub fn get_token_error(lalrpop_token: &Option<String>) -> Option<String> {
             "b256_ty" => Some("a type".to_owned()),
             "real_ty" => Some("a type".to_owned()),
             "string_ty" => Some("a type".to_owned()),
-            _ => Some("unhandled".to_owned()),
+            "int_lit" => Some("a literal".to_owned()),
+            "real_lit" => Some("a literal".to_owned()),
+            "str_lit" => Some("a literal".to_owned()),
+            _ => Some(token.to_string()),
         }
     } else {
         None
     }
 }
-
-// use crate::lexer::Token;
-// use lalrpop_util::lexer;
-
-// impl From<lexer::Token> for String {
-//     fn from(value: lexer::Token) -> Self {
-//         match value {
-//             Token::Int => "a type".to_string(),
-//             Token::Real => "a type".to_string(),
-//             Token::Bool => "a type".to_string(),
-//             Token::String => "a type".to_string(),
-//             Token::B256 => "a type".to_string(),
-//             _ => "yeet".to_string(),
-//         }
-//     }
-// }
