@@ -9,6 +9,7 @@ use std::{
 use thiserror::Error;
 
 /// Options for the `new_pkg` function.
+#[derive(Debug, Default)]
 pub struct Options {
     /// A name for the package.
     ///
@@ -74,7 +75,7 @@ pub fn new_pkg(path: &Path, opts: Options) -> Result<(), NewPkgError> {
         .map_err(|e| NewPkgError::InvalidPkgName(name.to_string(), e))?;
 
     // Create the `src` dir.
-    fs::create_dir_all(src_path)?;
+    fs::create_dir_all(&src_path)?;
 
     // Create the manifest file.
     let manifest_string = new_manifest_string(&name, &kind);
@@ -82,7 +83,7 @@ pub fn new_pkg(path: &Path, opts: Options) -> Result<(), NewPkgError> {
 
     // Create the default pint file.
     let pnt_filename = format!("{kind}.pnt");
-    let pnt_path = path.join(pnt_filename);
+    let pnt_path = src_path.join(pnt_filename);
     if !pnt_path.exists() {
         let pnt_string = default_pnt_str(&kind);
         fs::write(pnt_path, pnt_string)?;
@@ -109,46 +110,41 @@ fn default_pnt_str(kind: &manifest::PackageKind) -> &'static str {
 
 fn new_manifest_string(name: &str, kind: &manifest::PackageKind) -> String {
     format!(
-        r#"
-        [package]
-        name = {name}
-        kind = {kind}
+        r#"[package]
+name = "{name}"
+kind = "{kind}"
 
-        [dependencies]
-        # Library dependencies go here.
+[dependencies]
+# Library dependencies go here.
 
-        [contract-dependencies]
-        # Contract dependencies go here.
-    "#
+[contract-dependencies]
+# Contract dependencies go here.
+"#
     )
 }
 
-const DEFAULT_CONTRACT_PNT: &str = r#"
-    storage {
-        counter: int,
-    }
-    
-    intent Init {
-        var value: int;
-        state counter: int = storage::counter;
-        constraint counter' == value;
-    }
-    
-    intent Increment {
-        state counter: int = storage::counter;
-        constraint counter' == counter + 1;
-    }
+const DEFAULT_CONTRACT_PNT: &str = r#"storage {
+    counter: int,
+}
+
+intent Init {
+    var value: int;
+    state counter: int = storage::counter;
+    constraint counter' == value;
+}
+
+intent Increment {
+    state counter: int = storage::counter;
+    constraint counter' == counter + 1;
+}
 "#;
 
-const DEFAULT_LIBRARY_PNT: &str = r#"
-    pub enum Animal = Cat | Dog;
+const DEFAULT_LIBRARY_PNT: &str = r#"pub enum Animal = Cat | Dog;
 
-    pub type Person = {
-        address: b256,
-        pet: Animal,
-    };
+pub type Person = {
+    address: b256,
+    pet: Animal,
+};
 "#;
 
-const GITIGNORE: &str = r#"
-    out
-"#;
+const GITIGNORE: &str = r#"out"#;
