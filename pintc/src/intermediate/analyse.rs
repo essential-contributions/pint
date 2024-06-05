@@ -351,6 +351,40 @@ impl IntermediateIntent {
                 *ty = new_ty.clone()
             }
         });
+
+        // Last thing we have to do is to type check all the range expressions in array types and
+        // make sure they are integers or enums
+        let mut checked_range_exprs = HashSet::new();
+        for range_expr in self
+            .vars()
+            .filter_map(|(var_key, _)| var_key.get_ty(self).get_array_range_expr())
+            .chain(
+                self.states()
+                    .filter_map(|(state_key, _)| state_key.get_ty(self).get_array_range_expr()),
+            )
+            .chain(
+                self.exprs()
+                    .filter_map(|expr_key| expr_key.get_ty(self).get_array_range_expr()),
+            )
+            .collect::<Vec<_>>()
+            .iter()
+        {
+            if let Err(err) = self.type_check_next_expr(*range_expr) {
+                handler.emit_err(err);
+            } else if !(range_expr.get_ty(self).is_int()
+                || range_expr.get_ty(self).is_enum()
+                || checked_range_exprs.contains(range_expr))
+            {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::InvalidArrayRangeType {
+                        found_ty: self.with_ii(range_expr.get_ty(self)).to_string(),
+                        span: self.expr_key_to_span(*range_expr),
+                    },
+                });
+                // Make sure to not collect too many duplicate errors
+                checked_range_exprs.insert(range_expr);
+            }
+        }
     }
 
     // Type check an if statement and all of its sub-statements including other ifs. This is a
