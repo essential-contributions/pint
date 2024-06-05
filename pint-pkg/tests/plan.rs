@@ -137,3 +137,28 @@ fn diamond_pkgs() {
         let _plan = pint_pkg::plan::from_members(&members).unwrap();
     });
 }
+
+#[test]
+#[should_panic]
+fn cycle() {
+    with_temp_dir(|dir| {
+        // Create two packages.
+        let mut foo = new_lib_pkg(&dir.join("foo"));
+        let mut bar = new_lib_pkg(&dir.join("bar"));
+
+        // Create dependencies foo -> bar, bar -> foo.
+        edit_manifest(&mut foo, |m| insert_dep(m, &bar));
+        edit_manifest(&mut bar, |m| insert_dep(m, &foo));
+
+        // Create the member map.
+        let members = [
+            (foo.pkg.name.to_string(), foo.clone()),
+            (bar.pkg.name.to_string(), bar),
+        ]
+        .into_iter()
+        .collect();
+
+        // Create the plan, fails on detected cycle.
+        let _plan = pint_pkg::plan::from_members(&members).unwrap();
+    });
+}

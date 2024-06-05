@@ -94,8 +94,7 @@ pub fn new_pkg(path: &Path, opts: Options) -> Result<(), NewPkgError> {
     let mut gitignore_file = fs::OpenOptions::new()
         .append(true)
         .create(true)
-        .write(true)
-        .open(&gitignore_path)?;
+        .open(gitignore_path)?;
     gitignore_file.write_all(GITIGNORE.as_bytes())?;
 
     Ok(())

@@ -89,6 +89,13 @@ pub type InvalidDeps = BTreeMap<EdgeIx, InvalidDepCause>;
 /// A mapping from fetched packages to their location within the graph.
 type FetchedPkgs = HashMap<Pkg, NodeIx>;
 
+/// The context provided to the `fetch_deps` traversal.
+struct FetchCtx<'a> {
+    id: source::FetchId,
+    fetched: &'a mut FetchedPkgs,
+    visited: &'a mut HashSet<NodeIx>,
+}
+
 /// A compilation plan generated for one or more member package manifests.
 #[derive(Debug)]
 pub struct Plan {
@@ -119,7 +126,7 @@ pub enum FetchGraphError {
     #[error("failed to source dependency package {0:?}: {1}")]
     Source(String, source::SourceError),
     #[error("failed to pin/fetch dependency package {0:?}: {1}")]
-    PinAndFetch(String, source::PinAndFetchError),
+    PinAndFetch(String, Box<source::PinAndFetchError>),
     #[error("package {0:?}'s dependency named {1:?} failed the depenency manifest check: {2}")]
     DepManifest(String, String, DepManifestError),
 }
@@ -360,15 +367,19 @@ fn fetch_graph_from_member(
     let mut fetched = fetched_pkgs(graph, pinned_manifests);
     let mut visited: HashSet<NodeIx> = HashSet::default();
 
+    let mut ctx = FetchCtx {
+        id: fetch_id,
+        fetched: &mut fetched,
+        visited: &mut visited,
+    };
+
     fetch_deps(
         member_manifests,
-        fetch_id,
         member_node,
         path_root,
         graph,
         pinned_manifests,
-        &mut fetched,
-        &mut visited,
+        &mut ctx,
     )
 }
 
@@ -420,13 +431,11 @@ fn manifest_deps(
 /// Traverse, fetch and pin unfetched, unpinned dependencies as required to complete the graph.
 fn fetch_deps(
     member_manifests: &MemberManifests,
-    fetch_id: u64,
     node: NodeIx,
     path_root: PinnedId,
     graph: &mut Graph,
     pinned_manifests: &mut PinnedManifests,
-    fetched: &mut FetchedPkgs,
-    visited: &mut HashSet<NodeIx>,
+    ctx: &mut FetchCtx,
 ) -> Result<HashSet<NodeIx>, FetchGraphError> {
     let mut added = HashSet::default();
     let parent_id = graph[node].id();
@@ -443,19 +452,19 @@ fn fetch_deps(
             name: pkg_name.to_string(),
             source,
         };
-        let dep_node = match fetched.entry(dep_pkg) {
+        let dep_node = match ctx.fetched.entry(dep_pkg) {
             hash_map::Entry::Occupied(entry) => *entry.get(),
             hash_map::Entry::Vacant(entry) => {
                 let pkg = entry.key();
                 let ctx = source::PinCtx {
-                    _fetch_id: fetch_id,
+                    _fetch_id: ctx.id,
                     path_root,
                     pkg_name: &pkg.name,
                 };
                 let source = pkg
                     .source
                     .pin_and_fetch(ctx, pinned_manifests)
-                    .map_err(|e| FetchGraphError::PinAndFetch(pkg.name.clone(), e))?;
+                    .map_err(|e| FetchGraphError::PinAndFetch(pkg.name.clone(), Box::new(e)))?;
                 let name = pkg.name.clone();
                 let dep_pinned = Pinned { name, source };
                 let dep_node = graph.add_node(dep_pinned);
@@ -469,7 +478,7 @@ fn fetch_deps(
         graph.update_edge(node, dep_node, dep_edge.clone());
 
         // If we've visited this node during this traversal already, no need to traverse it again.
-        if !visited.insert(dep_node) {
+        if !ctx.visited.insert(dep_node) {
             continue;
         }
 
@@ -487,13 +496,11 @@ fn fetch_deps(
         // Recursively fetch this dependency's dependencies.
         added.extend(fetch_deps(
             member_manifests,
-            fetch_id,
             dep_node,
             path_root,
             graph,
             pinned_manifests,
-            fetched,
-            visited,
+            ctx,
         )?);
     }
     Ok(added)
