@@ -343,6 +343,7 @@ fn format_optional_token(token: &Option<String>) -> String {
         None => "\"end of input\"".into(),
     }
 }
+
 fn format_expected_tokens_message(expected: &mut [Option<String>]) -> String {
     format!(
         "expected {}",
