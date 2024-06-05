@@ -6,7 +6,10 @@ use crate::{
     source,
 };
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use std::{
+    fmt,
+    path::{Path, PathBuf},
+};
 
 /// A path to a `pint` package directory.
 pub type Source = PathBuf;
@@ -40,6 +43,19 @@ impl source::Fetch for Pinned {
         let manifest_path = local.join(ManifestFile::FILE_NAME);
         let manifest = ManifestFile::from_path(&manifest_path)?;
         Ok(manifest)
+    }
+}
+
+impl source::DepPath for Pinned {
+    type Error = core::convert::Infallible;
+    fn dep_path(&self, _name: &str) -> Result<source::DependencyPath, Self::Error> {
+        Ok(source::DependencyPath::Root(self.path_root))
+    }
+}
+
+impl fmt::Display for Pinned {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "path+root={}", self.path_root)
     }
 }
 

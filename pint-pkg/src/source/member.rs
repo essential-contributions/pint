@@ -35,6 +35,13 @@ impl source::Fetch for Pinned {
     }
 }
 
+impl source::DepPath for Pinned {
+    type Error = core::convert::Infallible;
+    fn dep_path(&self, _name: &str) -> Result<source::DependencyPath, Self::Error> {
+        Ok(source::DependencyPath::Member)
+    }
+}
+
 impl fmt::Display for Pinned {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "member")

@@ -29,6 +29,12 @@ trait Fetch {
     fn fetch(&self, ctx: PinCtx, local: &Path) -> Result<ManifestFile, Self::Error>;
 }
 
+/// The canonical, local path for this source as a dependency.
+trait DepPath {
+    type Error: fmt::Debug + fmt::Display;
+    fn dep_path(&self, name: &str) -> Result<DependencyPath, Self::Error>;
+}
+
 /// Represents the source for a package.
 ///
 /// The `Source` type does not specify a speccific, pinned version, but does
@@ -59,6 +65,15 @@ pub(crate) struct PinCtx<'a> {
     pub(crate) pkg_name: &'a str,
 }
 
+pub(crate) enum DependencyPath {
+    /// The dependency is another member of the workspace.
+    Member,
+    /// The dependency is located at this specific path.
+    ManifestPath(PathBuf),
+    /// Path is pinned via manifest, relative to the given root node.
+    Root(PinnedId),
+}
+
 /// Error indicating failure to construct `Source` from manifest dependency.
 #[derive(Debug, Error)]
 pub enum SourceError {
@@ -86,6 +101,11 @@ pub enum PinAndFetchErrorKind<T: Pin> {
     #[error("failed to fetch dependency source: {0}")]
     Fetch(<T::Pinned as Fetch>::Error),
 }
+
+/// Failed to resolve the dependency's path.
+#[derive(Debug, Error)]
+#[error("failed to resolve the path to the dependency's local source")]
+pub enum DepPathError {}
 
 pub type FetchId = u64;
 
@@ -152,6 +172,14 @@ impl Pinned {
         match self {
             Self::Member(_) => Source::Member(member::Source(path.to_owned())),
             Self::Path(_) => Source::Path(path.to_owned()),
+        }
+    }
+
+    /// Return how the pinned source for a dependency can be found on the local file system.
+    pub(crate) fn dep_path(&self, name: &str) -> Result<DependencyPath, DepPathError> {
+        match self {
+            Self::Member(pinned) => Ok(pinned.dep_path(name).expect("infallible")),
+            Self::Path(pinned) => Ok(pinned.dep_path(name).expect("infallible")),
         }
     }
 }

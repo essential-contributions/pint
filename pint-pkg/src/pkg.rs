@@ -4,12 +4,15 @@ use crate::{
     manifest::{self, Dependency, ManifestFile},
     source::{self, Source},
 };
-use petgraph::Directed;
+use manifest::ManifestFileError;
+use petgraph::{visit::EdgeRef, Directed, Direction};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{hash_map, BTreeMap, HashMap, HashSet},
+    fmt,
     hash::{Hash, Hasher},
-    path::Path,
+    path::{Path, PathBuf},
+    str,
 };
 use thiserror::Error;
 
@@ -21,6 +24,8 @@ pub type Graph = petgraph::stable_graph::StableGraph<Pinned, Dep, Directed, Grap
 pub type EdgeIx = petgraph::graph::EdgeIndex<GraphIx>;
 /// The package graph's node index type.
 pub type NodeIx = petgraph::graph::NodeIndex<GraphIx>;
+/// Shorthand for the graph's edge reference type.
+type EdgeReference<'a> = petgraph::stable_graph::EdgeReference<'a, Dep, GraphIx>;
 
 /// A dependency edge.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -78,11 +83,14 @@ pub type PinnedManifests = HashMap<PinnedId, ManifestFile>;
 /// compilation times for cases where packages may share multiple dependencies.
 pub type MemberManifests = BTreeMap<String, ManifestFile>;
 
+/// The set of invalid deps discovered during a `check_graph` traversal.
+pub type InvalidDeps = BTreeMap<EdgeIx, InvalidDepCause>;
+
 /// A mapping from fetched packages to their location within the graph.
 type FetchedPkgs = HashMap<Pkg, NodeIx>;
 
 /// A compilation plan generated for one or more package manifests.
-struct Plan {
+pub struct Plan {
     /// The dependency graph of all packages.
     graph: Graph,
     /// A mapping from each package's pinned ID to its associated manifest.
@@ -129,6 +137,80 @@ pub enum DepManifestError {
     UnexpectedName(String, String),
 }
 
+/// Failed to parse a pinned ID from its hex string representation.
+#[derive(Debug, Error)]
+#[error("failed to parse `PinnedId`: expected 16-char hex string, found {0:?}")]
+pub struct PinnedIdFromStrError(String);
+
+/// The reason the dependency was invalidated.
+#[derive(Debug, Error)]
+pub enum InvalidDepCause {
+    /// No members found in the graph for the given set.
+    #[error("graph contains none of the given members")]
+    NoMembersFound,
+    #[error("{0}")]
+    Check(#[from] CheckDepError),
+}
+
+/// Represents an invalid dependency.
+#[derive(Debug, Error)]
+pub enum CheckDepError {
+    /// Failed to resolve the dependency's path.
+    #[error("{0}")]
+    PathError(#[from] DepPathError),
+    /// Failed to load a dependency manifest.
+    #[error("{0}")]
+    DepManifestFileError(#[from] ManifestFileError),
+    /// The dependency has no entry in the parent manifest.
+    #[error("no entry in parent manifest")]
+    NoEntryInManifest,
+    /// Failed to construct the source.
+    #[error("{0}")]
+    Source(#[from] source::SourceError),
+    /// A source mismatch
+    #[error("the graph source {0:?} does not match the manifest entry {1:?}")]
+    SourceMismatch(Source, Source),
+    /// The dependency's manifest failed the dependency manifest check.
+    #[error("{0}")]
+    DepManifestError(#[from] DepManifestError),
+}
+
+/// Failed to find a path root for a given path node.
+///
+/// All path nodes must have some root in order to resolve their potentially relative path.
+#[derive(Debug, Error)]
+#[error("failed to find path root: `path` dependency {0:?} has no parent")]
+pub struct FindPathRootError(String);
+
+/// An error produced by a failed path root check.
+#[derive(Debug, Error)]
+pub enum CheckPathRootError {
+    #[error("{0}")]
+    NotFound(#[from] FindPathRootError),
+    #[error("invalid path root for dependency {0:?}: expected {1}, found {2}")]
+    Invalid(String, PinnedId, PinnedId),
+}
+
+/// Failed to resolve a dependency's path.
+#[derive(Debug, Error)]
+pub enum DepPathError {
+    /// Some source-specific error occurred.
+    #[error("{0}")]
+    Source(#[from] source::DepPathError),
+    /// The path root was not found or was invalid.
+    #[error("{0}")]
+    CheckPathRoot(#[from] CheckPathRootError),
+    /// The dependency has no entry in the parent manifest.
+    #[error("dependency named {0:?} does not appear in manifest of {1:?}")]
+    NoEntryInManifest(String, String),
+    /// A dependency declared as a member was not found in the member manifests.
+    #[error("supposed member dependency {0:?} not found in member manifests")]
+    MemberNotFound(String),
+    /// The dependency was specified as a path that does not exist.
+    #[error("dependency named {0:?} specified a path {0:?} that does not exist")]
+    PathDoesNotExist(String, PathBuf),
+}
+
 impl Dep {
     fn new(name: String, kind: DepKind) -> Self {
         Self { name, kind }
@@ -162,15 +244,34 @@ impl PinnedId {
     }
 }
 
+impl fmt::Display for PinnedId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:016x}", self.0)
+    }
+}
+
+impl str::FromStr for PinnedId {
+    type Err = PinnedIdFromStrError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let res = u64::from_str_radix(s, 16);
+        Ok(Self(res.map_err(|_| PinnedIdFromStrError(s.to_string()))?))
+    }
+}
+
 /// Construct a compilation plan from the given package manifests that we wish to build.
-pub fn plan_from_manifests(member_manifests: &MemberManifests) -> Result<Plan, PlanError> {
+pub fn plan_from_manifests(members: &MemberManifests) -> Result<Plan, PlanError> {
     // Fetch the graph and populate the pinned manifests.
     let mut graph = Graph::default();
     let mut pinned_manifests = PinnedManifests::default();
-    fetch_graph(member_manifests, &mut graph, &mut pinned_manifests)?;
+    fetch_graph(members, &mut graph, &mut pinned_manifests)?;
 
-    // Validate
-    // validate_graph(&graph, manifests)?;
+    // TODO: Remove this block, just a sanity check.
+    {
+        let (pinned_manifests2, invalid_deps) = check_graph(&graph, members);
+        dbg!(&invalid_deps);
+        assert_eq!(pinned_manifests, pinned_manifests2);
+    }
+
     // let compilation_order = compilation_order(&graph)?;
     todo!()
 }
@@ -186,7 +287,6 @@ fn fetch_graph(
         let added = fetch_graph_from_member(member_manifests, name, graph, pinned_manifests)?;
         added_nodes.extend(added);
     }
-    // validate_contract_deps(graph)?;
     Ok(added_nodes)
 }
 
@@ -387,6 +487,128 @@ fn member_nodes_with_name<'a>(
     member_nodes(g).filter(move |&n| g[n].name == pkg_name)
 }
 
+/// Validate the graph against the given member manifests.
+///
+/// Returns a map of `PinnedManifests` for all valid nodes within the graph,
+/// alongside of all invalid dependencies as a set of edges.
+fn check_graph(graph: &Graph, members: &MemberManifests) -> (PinnedManifests, InvalidDeps) {
+    // Add all existing member manifests to the pinned manifests map.
+    let mut pinned_manifests = PinnedManifests::default();
+    let mut invalid_deps = InvalidDeps::default();
+    for n in member_nodes(graph) {
+        let pinned = &graph[n];
+        let name = &pinned.name;
+        let Some(manifest) = members.get(name) else {
+            continue;
+        };
+        pinned_manifests.insert(pinned.id(), manifest.clone());
+        invalid_deps.extend(check_deps(graph, members, n, &mut pinned_manifests));
+    }
+
+    // If no member nodes, we need to reconstruct the whole graph.
+    if pinned_manifests.is_empty() {
+        invalid_deps.extend(
+            graph
+                .edge_indices()
+                .map(|e| (e, InvalidDepCause::NoMembersFound)),
+        );
+    }
+
+    (pinned_manifests, invalid_deps)
+}
+
+/// Recursively validate all dependencies starting from the given node.
+///
+/// `pinned_manifests` must at least already contain the manifest of the given
+/// `node` whose dependencies are being checked.
+fn check_deps(
+    graph: &Graph,
+    members: &MemberManifests,
+    node: NodeIx,
+    pinned_manifests: &mut PinnedManifests,
+) -> InvalidDeps {
+    let mut remove = InvalidDeps::default();
+    for edge in graph.edges_directed(node, Direction::Outgoing) {
+        let dep_manifest = match check_dep(graph, members, edge, pinned_manifests) {
+            Ok(manifest) => manifest,
+            Err(err) => {
+                remove.insert(edge.id(), InvalidDepCause::Check(err));
+                continue;
+            }
+        };
+        let dep_node = edge.target();
+        let dep_id = graph[dep_node].id();
+        if pinned_manifests.insert(dep_id, dep_manifest).is_none() {
+            let rm = check_deps(graph, members, dep_node, pinned_manifests);
+            remove.extend(rm);
+        }
+    }
+    remove
+}
+
+/// Validate a dependency within the given graph.
+///
+/// Assumes that `PinnedManifests` contains the manifest for the `edge.source()`
+/// node and panics otherwise.
+fn check_dep(
+    graph: &Graph,
+    members: &MemberManifests,
+    edge: EdgeReference,
+    pinned_manifests: &PinnedManifests,
+) -> Result<ManifestFile, CheckDepError> {
+    let node = edge.source();
+    let dep_node = edge.target();
+    let dep = edge.weight();
+    let node_manifest = &pinned_manifests[&graph[node].id()];
+    let dep_path = dep_path(graph, members, node_manifest, dep_node)?;
+    let dep_manifest_path = dep_path.join(ManifestFile::FILE_NAME);
+    let dep_manifest = ManifestFile::from_path(&dep_manifest_path)?;
+    let dep_entry = node_manifest
+        .dep(&dep.name)
+        .ok_or(CheckDepError::NoEntryInManifest)?;
+    let dep_source = Source::from_manifest_dep(node_manifest.dir(), dep_entry, members.values())?;
+    let dep_pkg = graph[dep_node].unpinned(&dep_path);
+    if dep_pkg.source != dep_source {
+        return Err(CheckDepError::SourceMismatch(dep_pkg.source, dep_source));
+    }
+    check_dep_manifest(&graph[dep_node], &dep_manifest, dep)?;
+    Ok(dep_manifest)
+}
+
+/// Given a manifest and a node associated with one of its dependencies, returns
+/// the canonical local path to the dependency's source.
+fn dep_path(
+    graph: &Graph,
+    members: &MemberManifests,
+    node_manifest: &ManifestFile,
+    dep_node: NodeIx,
+) -> Result<PathBuf, DepPathError> {
+    let dep = &graph[dep_node];
+    let dep_name = &dep.name;
+    match dep.source.dep_path(&dep.name)? {
+        source::DependencyPath::ManifestPath(path) => Ok(path),
+        source::DependencyPath::Member => members
+            .values()
+            .find(|m| m.pkg.name == *dep_name)
+            .map(|m| m.path().to_path_buf())
+            .ok_or_else(|| DepPathError::MemberNotFound(dep_name.to_string())),
+        source::DependencyPath::Root(path_root) => {
+            check_path_root(graph, dep_node, path_root)?;
+            // Check if the path is directly from the dependency.
+            match node_manifest.dep_path(dep_name) {
+                None => Err(DepPathError::NoEntryInManifest(
+                    dep_name.to_string(),
+                    node_manifest.pkg.name.to_string(),
+                )),
+                Some(path) if !path.exists() => {
+                    Err(DepPathError::PathDoesNotExist(dep_name.to_string(), path))
+                }
+                Some(path) => Ok(path),
+            }
+        }
+    }
+}
+
 /// Validate the manifest of a depenency.
 fn check_dep_manifest(
     dep: &Pinned,
@@ -413,4 +635,41 @@ fn check_dep_manifest(
     }
 
     Ok(())
+}
+
+/// Check that the given `path_root` is actually the path root of the given `path_dep`.
+fn check_path_root(
+    graph: &Graph,
+    path_dep: NodeIx,
+    path_root: PinnedId,
+) -> Result<(), CheckPathRootError> {
+    let path_root_node = find_path_root(graph, path_dep)?;
+    if graph[path_root_node].id() != path_root {
+        return Err(CheckPathRootError::Invalid(
+            graph[path_dep].name.to_string(),
+            path_root,
+            graph[path_root_node].id(),
+        ));
+    }
+    Ok(())
+}
+
+/// Find the node that is the path root for the given node.
+///
+/// Returns an `Err` in the case that the path root could not be resolved.
+fn find_path_root(graph: &Graph, mut node: NodeIx) -> Result<NodeIx, FindPathRootError> {
+    loop {
+        let pkg = &graph[node];
+        match pkg.source {
+            source::Pinned::Member(_) => return Ok(node),
+            source::Pinned::Path(ref src) => {
+                let parent = graph
+                    .edges_directed(node, Direction::Incoming)
+                    .next()
+                    .map(|edge| edge.source())
+                    .ok_or_else(|| FindPathRootError(format!("{src}")))?;
+                node = parent;
+            }
+        }
+    }
 }
