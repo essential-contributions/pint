@@ -347,12 +347,8 @@ fn format_expected_tokens_message(expected: &mut [Option<String>]) -> String {
     format!(
         "expected {}",
         match expected {
-            [] => {
-                "something else".to_string()
-            }
-            [expected] => {
-                format_optional_token(&lexer::get_token_error_category(expected))
-            }
+            [] => "something else".to_string(),
+            [expected] => format_optional_token(&lexer::get_token_error_category(expected)),
             _ => {
                 let mut expected: Vec<Option<String>> = expected
                     .iter()
