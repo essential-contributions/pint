@@ -344,7 +344,6 @@ fn format_optional_token(token: &Option<String>) -> String {
     }
 }
 fn format_expected_tokens_message(expected: &mut [Option<String>]) -> String {
-    println!("format_expected_tokens_message called with {:?}", expected);
     format!(
         "expected {}",
         match expected {

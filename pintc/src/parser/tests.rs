@@ -193,8 +193,8 @@ fn types() {
     check(
         &run_parser!(type_, "(int => bool)"),
         expect_test::expect![[r#"
-            expected `::`, `b256_ty`, `bool_ty`, `ident`, `int_ty`, `real_ty`, `string_ty`, or `{`, found `(`
-            @11..12: expected `::`, `b256_ty`, `bool_ty`, `ident`, `int_ty`, `real_ty`, `string_ty`, or `{`
+            expected `::`, `a type`, `ident`, or `{`, found `(`
+            @11..12: expected `::`, `a type`, `ident`, or `{`
         "#]],
     );
 }
@@ -907,24 +907,24 @@ fn storage_access() {
     check(
         &run_parser!(pint, r#"var x = storage::foo;"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `storage`
-            @8..15: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`, found `storage`
+            @8..15: expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(pint, r#"var x = storage::map[4][3];"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `storage`
-            @8..15: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`, found `storage`
+            @8..15: expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(pint, r#"constraint storage::map[69] == 0;"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `storage`
-            @11..18: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`, found `storage`
+            @11..18: expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`
         "#]],
     );
 }
@@ -1465,8 +1465,8 @@ fn parens_exprs() {
     check(
         &run_parser!(expr, "()"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `)`
-            @12..13: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`, found `)`
+            @12..13: expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`
         "#]],
     );
 
@@ -1585,8 +1585,8 @@ fn ranges() {
     check(
         &run_parser!(range, "1...2"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `.`
-            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`, found `.`
+            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`
         "#]],
     );
 
@@ -2234,8 +2234,8 @@ fn cond_exprs() {
     check(
         &run_parser!(expr, r#"cond { a => b, }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `}`
-            @26..27: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `else`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `else`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`, found `}`
+            @26..27: expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `else`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`
         "#]],
     );
 
@@ -2273,10 +2273,10 @@ fn casting() {
     check(
         &run_parser!(pint, r#"var x = 5 as"#),
         expect_test::expect![[r#"
-            expected `::`, `b256_ty`, `bool_ty`, `ident`, `int_ty`, `real_ty`, `string_ty`, or `{`, found `end of file`
-            @12..12: expected `::`, `b256_ty`, `bool_ty`, `ident`, `int_ty`, `real_ty`, `string_ty`, or `{`
+            expected `::`, `a type`, `ident`, or `{`, found `end of file`
+            @12..12: expected `::`, `a type`, `ident`, or `{`
         "#]],
-    );
+    )
 }
 
 #[test]
@@ -2311,8 +2311,8 @@ fn in_expr() {
     check(
         &run_parser!((yp::PintParser::new(), ""), r#"var x = 5 in"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `end of file`
-            @12..12: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`, found `end of file`
+            @12..12: expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`
         "#]],
     );
 }
@@ -2362,8 +2362,8 @@ fn forall_expr() {
     check(
         &run_parser!(expr, r#"forall i in 0..3 { constraint x; true }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `constraint`
-            @30..40: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`, found `constraint`
+            @30..40: expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`
         "#]],
     );
 }
@@ -2413,8 +2413,8 @@ fn exists_expr() {
     check(
         &run_parser!(expr, r#"exists i in 0..3 { constraint x; true }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`, found `constraint`
-            @30..40: expected `!`, `(`, `+`, `-`, `::`, `[`, `cond`, `exists`, `false`, `forall`, `ident`, `int_lit`, `macro_name`, `real_lit`, `str_lit`, `true`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`, found `constraint`
+            @30..40: expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `exists`, `false`, `forall`, `ident`, `macro_name`, `true`, or `{`
         "#]],
     );
 }
