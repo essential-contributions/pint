@@ -361,11 +361,9 @@ fn format_expected_tokens_message(expected: &mut [Option<String>]) -> String {
                 expected.sort();
 
                 let mut token_list = String::new();
-
                 for expected in &expected[..expected.len() - 1] {
                     token_list = format!("{token_list}{}, ", format_optional_token(expected));
                 }
-
                 format!(
                     "{token_list}or {}",
                     format_optional_token(expected.last().unwrap())
