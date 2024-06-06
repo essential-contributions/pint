@@ -760,14 +760,13 @@ impl From<StringLiteralChar> for char {
 pub fn get_token_error_category(lalrpop_token: &Option<String>) -> Option<String> {
     if let Some(token) = lalrpop_token {
         match token.as_str() {
-            "int_ty" => Some("a type".to_owned()),
-            "bool_ty" => Some("a type".to_owned()),
-            "b256_ty" => Some("a type".to_owned()),
-            "real_ty" => Some("a type".to_owned()),
-            "string_ty" => Some("a type".to_owned()),
-            "int_lit" => Some("a literal".to_owned()),
-            "real_lit" => Some("a literal".to_owned()),
-            "str_lit" => Some("a literal".to_owned()),
+            "int_ty" | "real_ty" | "bool_ty" | "string_ty" | "b256_ty" => Some("a type".to_owned()),
+            "int_lit" | "real_lit" | "str_lit" => Some("a literal".to_owned()),
+            "true" | "false" => Some("a boolean".to_owned()),
+            "ident" => Some("an identifier".to_owned()),
+            "satisfy" => Some("a directive".to_owned()),
+            "minimize" => Some("a directive".to_owned()),
+            "maximize" => Some("a directive".to_owned()),
             _ => Some(token.to_string()),
         }
     } else {
