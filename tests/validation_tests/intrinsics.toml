@@ -70,19 +70,7 @@ decision_variables = [
 ]
 intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "::Foo" }
 state_mutations = [
-  { key = [
-    0,
-  ], value = [
-    42,
-  ] },
-  { key = [
-    1,
-  ], value = [
-    98,
-  ] },
-  { key = [
-    2,
-  ], value = [
-    44,
-  ] },
+  { key = [0], value = [42] }, 
+  { key = [1], value = [98] },
+  { key = [2], value = [44] },
 ]

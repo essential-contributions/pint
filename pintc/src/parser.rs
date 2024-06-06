@@ -452,8 +452,19 @@ impl<'a> ProjectParser<'a> {
             .filter(|(name, _)| *name != &Program::ROOT_II_NAME.to_string())
             .for_each(|(_, ii)| {
                 let _ = deep_copy_new_types(&new_types, &exprs, ii, self.handler);
+                ii.storage = None;
+                if let Some(storage) = &storage {
+                    let mut storage_vars = vec![];
+                    for storage_var in &storage.0 {
+                        let mut new_storage_var = storage_var.clone();
+                        new_storage_var.ty =
+                            deep_copy_type(&storage_var.ty, &exprs, ii, self.handler).unwrap();
+                        storage_vars.push(new_storage_var);
+                    }
+                    ii.storage = Some((storage_vars, storage.1.clone()));
+                }
                 ii.enums.extend_from_slice(&enums);
-                ii.storage.clone_from(&storage);
+                //                ii.storage.clone_from(&storage);
                 ii.interfaces.clone_from(&interfaces);
 
                 for (symbol, span) in &root_symbols {

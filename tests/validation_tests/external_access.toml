@@ -6,53 +6,9 @@ intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 decision_variables = []
 intent_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", intent = "" }
 state_mutations = [
-  { key = [
-    0,
-  ], value = [
-    17,
-    17,
-    17,
-    17,
-  ] },
-  { key = [
-    1,
-  ], value = [
-    34,
-    51,
-    68,
-    85,
-  ] },
-  { key = [
-    2,
-    69,
-  ], value = [
-    153,
-    153,
-    153,
-    153,
-  ] },
-  { key = [
-    3,
-    9,
-    1,
-    2,
-    3,
-    4,
-  ], value = [
-    43,
-  ] },
-  { key = [
-    4,
-    88,
-    8,
-    7,
-    6,
-    5,
-    999,
-  ], value = [
-    255,
-    255,
-    255,
-    255,
-  ] },
+  { key = [0], value = [17, 17, 17, 17] },
+  { key = [1], value = [34, 51, 68, 85] },
+  { key = [2, 69], value = [153, 153, 153, 153] },
+  { key = [3, 9, 1, 2, 3, 4], value = [43] },
+  { key = [4, 88, 8, 7, 6, 5, 999], value = [255, 255, 255, 255] },
 ]

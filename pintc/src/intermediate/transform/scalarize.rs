@@ -85,7 +85,7 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
         range_expr_key: ExprKey,
         array_ty_span: Span,
     ) -> Result<Type, ErrorEmitted> {
-        if !(el_ty.is_array() || el_ty.is_int() || el_ty.is_real() || el_ty.is_bool()) {
+        /*if !(el_ty.is_array() || el_ty.is_int() || el_ty.is_real() || el_ty.is_bool()) {
             // Eventually, this will go away. Hence why it's an internal error for the time being.
             return Err(handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
@@ -93,7 +93,7 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
                     span: empty_span(),
                 },
             }));
-        }
+        }*/
 
         // We have a nested array.  We need to fix its size first (if necessary) so that we can use
         // the new element type in the parent array.

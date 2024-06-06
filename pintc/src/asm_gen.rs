@@ -257,22 +257,43 @@ impl AsmBuilder {
                 })
             }
             Expr::Index { expr, index, .. } => {
-                // Compile the key corresponding to `expr`
-                let storage_key = self.compile_state_key(handler, s_asm, expr, intent)?;
+                if expr.get_ty(intent).is_map() {
+                    // Compile the key corresponding to `expr`
+                    let storage_key = self.compile_state_key(handler, s_asm, expr, intent)?;
 
-                // Compile the index
-                let mut asm = vec![];
-                self.compile_expr(handler, &mut asm, index, intent)?;
-                s_asm.extend(asm.iter().copied().map(StateRead::from));
-                let mut key_length = storage_key.len() + index.get_ty(intent).size();
-                if !(expr_ty.is_any_primitive() || expr_ty.is_map()) {
-                    s_asm.push(StateRead::from(Stack::Push(0)));
-                    key_length += 1;
+                    // Compile the index
+                    let mut asm = vec![];
+                    self.compile_expr(handler, &mut asm, index, intent)?;
+                    s_asm.extend(asm.iter().copied().map(StateRead::from));
+                    let mut key_length = storage_key.len() + index.get_ty(intent).size();
+                    if !(expr_ty.is_any_primitive() || expr_ty.is_map()) {
+                        s_asm.push(StateRead::from(Stack::Push(0)));
+                        key_length += 1;
+                    }
+                    Ok(StorageKey {
+                        kind: StorageKeyKind::Dynamic(key_length),
+                        is_extern: storage_key.is_extern,
+                    })
+                } else {
+                    // It's an array
+                    // Compile the key corresponding to `expr`
+                    let storage_key = self.compile_state_key(handler, s_asm, expr, intent)?;
+
+                    // Compile the index
+                    let mut asm = vec![];
+                    self.compile_expr(handler, &mut asm, index, intent)?;
+                    s_asm.extend(asm.iter().copied().map(StateRead::from));
+                    s_asm.push(Alu::Add.into());
+                    let mut key_length = storage_key.len();
+                    if !(expr_ty.is_any_primitive() || expr_ty.is_map()) {
+                        s_asm.push(StateRead::from(Stack::Push(0)));
+                        key_length += 1;
+                    }
+                    Ok(StorageKey {
+                        kind: StorageKeyKind::Dynamic(key_length),
+                        is_extern: storage_key.is_extern,
+                    })
                 }
-                Ok(StorageKey {
-                    kind: StorageKeyKind::Dynamic(key_length),
-                    is_extern: storage_key.is_extern,
-                })
             }
             Expr::TupleFieldAccess { tuple, field, .. } => {
                 // Compile the key corresponding to `tuple`
@@ -314,7 +335,7 @@ impl AsmBuilder {
                 let key_offset: usize = fields
                     .iter()
                     .take(field_idx)
-                    .map(|(_, ty)| ty.storage_slots())
+                    .map(|(_, ty)| ty.storage_slots(handler, intent))
                     .sum();
 
                 // Increment the last word on the satck by `key_offset`. This works fine for the
@@ -655,10 +676,10 @@ impl AsmBuilder {
                 let slot_index: usize = intent
                     .states()
                     .take(state_index)
-                    .map(|(state_key, _)| state_key.get_ty(intent).storage_slots())
+                    .map(|(state_key, _)| state_key.get_ty(intent).storage_slots(handler, intent))
                     .sum();
 
-                let slots = state_key.get_ty(intent).storage_slots();
+                let slots = state_key.get_ty(intent).storage_slots(handler, intent);
                 if slots == 1 {
                     asm.push(Stack::Push(slot_index as i64).into());
                     asm.push(Stack::Push(0).into()); // 0 means "current state"
@@ -780,7 +801,7 @@ impl AsmBuilder {
             StorageKeyKind::Dynamic(size) => size,
         };
 
-        let storage_slots = state.expr.get_ty(intent).storage_slots();
+        let storage_slots = state.expr.get_ty(intent).storage_slots(handler, intent);
         s_asm.extend([
             Stack::Push(storage_slots as i64).into(),
             StateSlots::AllocSlots.into(),

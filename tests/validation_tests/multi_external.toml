@@ -5,9 +5,15 @@ intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 [[data]]
 decision_variables = []
 intent_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", intent = "" }
-state_mutations = [{ key = [0], value = [43] }, { key = [1], value = [71] }]
+state_mutations = [
+  { key = [0], value = [43] }, 
+  { key = [1], value = [71] }
+]
 
 [[data]]
 decision_variables = []
 intent_to_solve = { set = "0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD", intent = "" }
-state_mutations = [{ key = [0], value = [102] }, { key = [1], value = [170] }]
+state_mutations = [
+  { key = [0], value = [102] }, 
+  { key = [1], value = [170] }
+]

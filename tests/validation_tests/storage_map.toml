@@ -2,24 +2,8 @@
 decision_variables = []
 intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "::Simple" }
 state_mutations = [
-  { key = [
-    0,
-  ], value = [
-    42,
-  ] },
-  { key = [
-    1,
-    69,
-  ], value = [
-    98,
-  ] },
-  { key = [
-    2,
-    1,
-    2,
-    3,
-    4,
-  ], value = [
-    44,
-  ] },
+  { key = [0], value = [42] },
+  { key = [1], value = [69] },
+  { key = [1, 69], value = [98] },
+  { key = [2, 1, 2, 3, 4], value = [44] },
 ]

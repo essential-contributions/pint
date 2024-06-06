@@ -1,6 +1,7 @@
 use crate::{
+    error::Handler,
     expr::Ident,
-    intermediate::ExprKey,
+    intermediate::{ExprKey, IntermediateIntent},
     span::{Span, Spanned},
 };
 
@@ -261,17 +262,25 @@ impl Type {
 
     /// Calculate the number of storage slots required for this type. All primitive types fit in a
     /// single slot even if their size is > 1.
-    pub fn storage_slots(&self) -> usize {
+    pub fn storage_slots(&self, handler: &Handler, ii: &IntermediateIntent) -> usize {
         match self {
             Self::Primitive { .. } => 1,
 
-            Self::Tuple { fields, .. } => fields
-                .iter()
-                .fold(0, |acc, (_, field_ty)| acc + field_ty.storage_slots()),
+            Self::Tuple { fields, .. } => fields.iter().fold(0, |acc, (_, field_ty)| {
+                acc + field_ty.storage_slots(handler, ii)
+            }),
 
-            Self::Array { ty, size, .. } => {
+            Self::Array {
+                ty, size, range, ..
+            } => {
                 if let Some(size) = size {
-                    ty.storage_slots() * *size as usize
+                    ty.storage_slots(handler, ii) * *size as usize
+                } else if let Ok(crate::expr::Immediate::Int(size)) =
+                    range
+                        .get(ii)
+                        .evaluate(handler, ii, &fxhash::FxHashMap::default())
+                {
+                    ty.storage_slots(handler, ii) * size as usize
                 } else {
                     unimplemented!("unable to find type size for array at the moment")
                 }

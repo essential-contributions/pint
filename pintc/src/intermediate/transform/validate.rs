@@ -157,8 +157,8 @@ fn check_expr(
             "macro call",
             "exprs"
         )),
-        Expr::Index { expr, span, .. } => {
-            if !expr.get_ty(ii).is_map() {
+        Expr::Index { span, .. } => {
+            if !expr_is_for_storage(ii, expr) {
                 Err(emit_illegal_type_error!(
                     handler,
                     span,

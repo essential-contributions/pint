@@ -98,7 +98,7 @@ IntentClose: () = {
 StorageVar: StorageVar = {
     <l:@L> <name:Ident> ":" <ty:StorageVarType> <r:@R> => {
         let span = (context.span_from)(l, r);
-        if ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() {
+        if ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() || ty.is_array() {
             StorageVar {
                 name: name.to_string(),
                 ty,
@@ -115,7 +115,8 @@ StorageVar: StorageVar = {
                     || ty_to.is_int()
                     || ty_to.is_b256()
                     || ty_to.is_map()
-                    || ty_to.is_tuple())
+                    || ty_to.is_tuple()
+                    || ty_to.is_array())
             {
                 StorageVar {
                     name: name.to_string(),
