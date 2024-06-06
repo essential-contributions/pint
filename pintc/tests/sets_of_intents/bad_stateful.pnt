@@ -12,6 +12,8 @@ if true { }
 
 interface Bam { storage { } }
 interface BamInstance = Bam(0x0000000000000000000000000000000000000000000000000000000000000000);
+intent BamIntentInstance =
+    BamInstance::BamIntent(0x0000000000000000000000000000000000000000000000000000000000000000);
 
 intent Baz {}
 
@@ -21,7 +23,9 @@ intent Baz {}
 //     }
 // }
 // interface ::BamInstance = ::Bam(0x0000000000000000000000000000000000000000000000000000000000000000)
+// intent ::BamIntentInstance = ::BamInstance::BamIntent(0x0000000000000000000000000000000000000000000000000000000000000000)
 // var ::x: int;
+// var __::BamIntentInstance_pathway: int;
 // state ::y: int = __foo();
 // enum ::Foo = A | B;
 // type ::Boo = ::Foo;
@@ -45,6 +49,9 @@ intent Baz {}
 // @26..27: invalid variable declaration outside an `intent { .. }` declaration
 // only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
 // invalid declaration outside an `intent { .. }` declaration
+// @286..407: invalid variable declaration outside an `intent { .. }` declaration
+// only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
+// invalid declaration outside an `intent { .. }` declaration
 // @34..56: invalid state declaration outside an `intent { .. }` declaration
 // only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
 // invalid declaration outside an `intent { .. }` declaration
@@ -58,5 +65,8 @@ intent Baz {}
 // only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
 // invalid declaration outside an `intent { .. }` declaration
 // @189..284: invalid interface instance declaration outside an `intent { .. }` declaration
+// only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
+// invalid declaration outside an `intent { .. }` declaration
+// @286..407: invalid intent instance declaration outside an `intent { .. }` declaration
 // only `enum` and `type` declarations are allowed outside an `intent { .. }` declaration
 // >>>

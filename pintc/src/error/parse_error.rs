@@ -80,6 +80,8 @@ pub enum ParseError {
     StorageDirectiveMustBeTopLevel { span: Span },
     #[error("`storage` access expressions can only appear in the top level module")]
     StorageAccessMustBeTopLevel { span: Span },
+    #[error("path `{path}` to an intent interface is too short")]
+    PathTooShort { path: String, span: Span },
 }
 
 impl ReportableError for ParseError {
@@ -296,6 +298,15 @@ impl ReportableError for ParseError {
                     color: Color::Red,
                 }]
             }
+            PathTooShort { path, span } => {
+                vec![ErrorLabel {
+                    message: format!(
+                        "path `{path}` is too short and cannot refer to an intent interface"
+                    ),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
         }
     }
 
@@ -317,6 +328,11 @@ impl ReportableError for ParseError {
             LeadingUnderscoresInIdent { .. } => {
                 Some("names that start with `__` are reserved for compiler intrinsics".to_string())
             }
+            PathTooShort { .. } => Some(
+                "a path to an intent interface must contain a path to an `interface` instance \
+                    followed by the name of the `intent`, separated by a `::`"
+                    .to_string(),
+            ),
             _ => None,
         }
     }
@@ -410,6 +426,7 @@ impl Spanned for ParseError {
             | TooManyStorageBlocks { span, .. }
             | StorageDirectiveMustBeTopLevel { span, .. }
             | StorageAccessMustBeTopLevel { span, .. }
+            | PathTooShort { span, .. }
             | Lex { span } => span,
 
             InvalidToken => unreachable!("The `InvalidToken` error is always wrapped in `Lex`."),

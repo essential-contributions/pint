@@ -4,7 +4,7 @@ use super::{Expr, ExprKey, Ident, IntermediateIntent, Program, VarKey};
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     expr::{BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
-    intermediate::{BlockStatement, ConstraintDecl, IfDecl, InterfaceInstance},
+    intermediate::{BlockStatement, ConstraintDecl, IfDecl, IntentInstance, InterfaceInstance},
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
@@ -233,6 +233,81 @@ impl IntermediateIntent {
             },
         );
 
+        // Type check all interface instance declarations
+        self.intent_instances.clone().into_iter().for_each(
+            |IntentInstance {
+                 interface_instance,
+                 intent,
+                 address,
+                 span,
+                 ..
+             }| {
+                // Make sure that an appropriate interface instance exists and an appropriate
+                // intent interface exists
+                if let Some(interface_instance) = self
+                    .interface_instances
+                    .iter()
+                    .find(|e| e.name.to_string() == *interface_instance)
+                {
+                    if let Some(interface) = self
+                        .interfaces
+                        .iter()
+                        .find(|e| e.name.to_string() == *interface_instance.interface)
+                    {
+                        if !interface
+                            .intent_interfaces
+                            .iter()
+                            .any(|e| e.name.to_string() == *intent.to_string())
+                        {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::MissingIntentInterface {
+                                    intent_name: intent.name.to_string(),
+                                    interface_name: interface.name.to_string(),
+                                    span: span.clone(),
+                                },
+                            });
+                        }
+                    }
+                } else {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::MissingInterfaceInstance {
+                            name: interface_instance.clone(),
+                            span: span.clone(),
+                        },
+                    });
+                };
+
+                // Type check the address field
+                match self.type_check_next_expr(address) {
+                    Ok(()) => {
+                        let ty = address.get_ty(self);
+                        if !ty.is_b256() {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::AddressExpressionTypeError {
+                                    large_err: Box::new(
+                                        LargeTypeError::AddressExpressionTypeError {
+                                            expected_ty: self
+                                                .with_ii(Type::Primitive {
+                                                    kind: PrimitiveKind::B256,
+                                                    span: empty_span(),
+                                                })
+                                                .to_string(),
+                                            found_ty: self.with_ii(ty).to_string(),
+                                            span: self.expr_key_to_span(address),
+                                            expected_span: Some(self.expr_key_to_span(address)),
+                                        },
+                                    ),
+                                },
+                            });
+                        }
+                    }
+                    Err(err) => {
+                        handler.emit_err(err);
+                    }
+                }
+            },
+        );
+
         // Check all the 'root' exprs (constraints, state initi exprs, and directives) one at a
         // time, gathering errors as we go. Copying the keys out first to avoid borrowing
         // conflict.
@@ -262,11 +337,21 @@ impl IntermediateIntent {
         // Confirm now that all decision variables are typed.
         let mut var_key_to_new_type = FxHashMap::default();
         for (var_key, var) in self.vars() {
-            if var_key.get_ty(self).is_unknown() {
+            let ty = var_key.get_ty(self);
+            if ty.is_unknown() {
                 if let Some(init_expr_key) = self.var_inits.get(var_key) {
                     let ty = init_expr_key.get_ty(self);
                     if !ty.is_unknown() {
-                        var_key_to_new_type.insert(var_key, ty.clone());
+                        if var.is_pub && !(ty.is_bool() || ty.is_b256() || ty.is_int()) {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::Internal {
+                                    msg: "only `bool`, b256`, and `int` pub vars are currently supported",
+                                    span: var.span.clone(),
+                                },
+                            });
+                        } else {
+                            var_key_to_new_type.insert(var_key, ty.clone());
+                        }
                     } else {
                         handler.emit_err(Error::Compile {
                             error: CompileError::UnknownType {
@@ -282,6 +367,13 @@ impl IntermediateIntent {
                         },
                     });
                 }
+            } else if var.is_pub && !(ty.is_bool() || ty.is_b256() || ty.is_int()) {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "only `bool`, b256`, and `int` pub vars are currently supported",
+                        span: var.span.clone(),
+                    },
+                });
             }
         }
 
@@ -351,6 +443,40 @@ impl IntermediateIntent {
                 *ty = new_ty.clone()
             }
         });
+
+        // Last thing we have to do is to type check all the range expressions in array types and
+        // make sure they are integers or enums
+        let mut checked_range_exprs = HashSet::new();
+        for range_expr in self
+            .vars()
+            .filter_map(|(var_key, _)| var_key.get_ty(self).get_array_range_expr())
+            .chain(
+                self.states()
+                    .filter_map(|(state_key, _)| state_key.get_ty(self).get_array_range_expr()),
+            )
+            .chain(
+                self.exprs()
+                    .filter_map(|expr_key| expr_key.get_ty(self).get_array_range_expr()),
+            )
+            .collect::<Vec<_>>()
+            .iter()
+        {
+            if let Err(err) = self.type_check_next_expr(*range_expr) {
+                handler.emit_err(err);
+            } else if !(range_expr.get_ty(self).is_int()
+                || range_expr.get_ty(self).is_enum()
+                || checked_range_exprs.contains(range_expr))
+            {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::InvalidArrayRangeType {
+                        found_ty: self.with_ii(range_expr.get_ty(self)).to_string(),
+                        span: self.expr_key_to_span(*range_expr),
+                    },
+                });
+                // Make sure to not collect too many duplicate errors
+                checked_range_exprs.insert(range_expr);
+            }
+        }
     }
 
     // Type check an if statement and all of its sub-statements including other ifs. This is a
@@ -631,8 +757,11 @@ impl IntermediateIntent {
         {
             // It's a fully matched newtype.
             Ok(Inference::Type(ty.clone()))
+        } else if let Some(ty) = self.infer_extern_var(path) {
+            // It's an external var
+            Ok(ty)
         } else {
-            // None of the above.  That leaves enums.
+            // None of the above. That leaves enums.
             self.infer_enum_variant_by_name(path, span)
         }
     }
@@ -690,20 +819,62 @@ impl IntermediateIntent {
         };
 
         // Then, look for the storage variable that this access refers to
-        let Some(s_var) = interface
-            .storage_vars
-            .iter()
-            .find(|s_var| s_var.name == *name)
-        else {
-            return Err(Error::Compile {
-                error: CompileError::StorageSymbolNotFound {
+        match interface.storage.as_ref() {
+            Some(storage) => match storage.0.iter().find(|s_var| s_var.name == *name) {
+                Some(s_var) => Ok(Inference::Type(s_var.ty.clone())),
+                None => Err(Error::Compile {
+                    error: CompileError::StorageSymbolNotFound {
+                        name: name.clone(),
+                        span: span.clone(),
+                    },
+                }),
+            },
+            None => Err(Error::Compile {
+                error: CompileError::MissingStorageBlock {
                     name: name.clone(),
                     span: span.clone(),
                 },
-            });
-        };
+            }),
+        }
+    }
 
-        Ok(Inference::Type(s_var.ty.clone()))
+    fn infer_extern_var(&self, path: &Path) -> Option<Inference> {
+        // Look through all available intent instances and their corresponding interfaces for a var
+        // with the same path as `path`
+        for IntentInstance {
+            name,
+            interface_instance,
+            intent,
+            ..
+        } in &self.intent_instances
+        {
+            if let Some(interface_instance) = self
+                .interface_instances
+                .iter()
+                .find(|e| e.name.to_string() == *interface_instance)
+            {
+                if let Some(interface) = self
+                    .interfaces
+                    .iter()
+                    .find(|e| e.name.to_string() == *interface_instance.interface)
+                {
+                    if let Some(intent) = interface
+                        .intent_interfaces
+                        .iter()
+                        .find(|e| e.name.to_string() == *intent.to_string())
+                    {
+                        for var in &intent.vars {
+                            if name.to_string() + "::" + &var.name == *path {
+                                return Some(Inference::Type(var.ty.clone()));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // No extern var that matches `path`.
+        None
     }
 
     fn infer_enum_variant_by_name(&self, path: &Path, span: &Span) -> Result<Inference, Error> {

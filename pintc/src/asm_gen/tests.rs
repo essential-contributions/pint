@@ -6,6 +6,7 @@ use crate::{
 use std::io::Write;
 
 mod intrinsics;
+mod transient;
 
 #[cfg(test)]
 pub(super) fn check(actual: &str, expect: expect_test::Expect) {
@@ -161,6 +162,120 @@ fn select() {
               Access(DecisionVar)
               Stack(Select)
               Pred(Eq)
+            --- State Reads ---
+        "#]],
+    );
+}
+
+#[test]
+fn select_range() {
+    check(
+        &format!(
+            "{}",
+            compile(
+                r#"
+            var z = true ? 0x0000000000000001000000000000000200000000000000030000000000000004
+                         : 0x0000000000000005000000000000000600000000000000070000000000000008;
+            solve satisfy;
+            "#,
+            )
+        ),
+        expect_test::expect![[r#"
+            --- Constraints ---
+            constraint 0
+              Stack(Push(0))
+              Access(DecisionVar)
+              Stack(Push(1))
+              Access(DecisionVar)
+              Stack(Push(2))
+              Access(DecisionVar)
+              Stack(Push(3))
+              Access(DecisionVar)
+              Stack(Push(5))
+              Stack(Push(6))
+              Stack(Push(7))
+              Stack(Push(8))
+              Stack(Push(1))
+              Stack(Push(2))
+              Stack(Push(3))
+              Stack(Push(4))
+              Stack(Push(4))
+              Stack(Push(1))
+              Stack(SelectRange)
+              Stack(Push(4))
+              Pred(EqRange)
+            --- State Reads ---
+        "#]],
+    );
+
+    check(
+        &format!(
+            "{}",
+            compile(
+                r#"
+            var z = true ? { 0, 1 } : { 2, 3 };
+            solve satisfy;
+            "#,
+            )
+        ),
+        expect_test::expect![[r#"
+            --- Constraints ---
+            constraint 0
+              Stack(Push(0))
+              Access(DecisionVar)
+              Stack(Push(1))
+              Access(DecisionVar)
+              Stack(Push(2))
+              Stack(Push(3))
+              Stack(Push(0))
+              Stack(Push(1))
+              Stack(Push(2))
+              Stack(Push(1))
+              Stack(SelectRange)
+              Stack(Push(2))
+              Pred(EqRange)
+            --- State Reads ---
+        "#]],
+    );
+
+    check(
+        &format!(
+            "{}",
+            compile(
+                r#"
+            var c: bool; var x: int[3]; var y: int[3];
+            var z = c ? x : y;
+            solve satisfy;
+            "#,
+            )
+        ),
+        expect_test::expect![[r#"
+            --- Constraints ---
+            constraint 0
+              Stack(Push(2))
+              Access(DecisionVar)
+              Stack(Push(8))
+              Access(DecisionVar)
+              Stack(Push(9))
+              Access(DecisionVar)
+              Stack(Push(1))
+              Access(DecisionVar)
+              Stack(Push(6))
+              Access(DecisionVar)
+              Stack(Push(7))
+              Access(DecisionVar)
+              Stack(Push(3))
+              Access(DecisionVar)
+              Stack(Push(4))
+              Access(DecisionVar)
+              Stack(Push(5))
+              Access(DecisionVar)
+              Stack(Push(3))
+              Stack(Push(0))
+              Access(DecisionVar)
+              Stack(SelectRange)
+              Stack(Push(3))
+              Pred(EqRange)
             --- State Reads ---
         "#]],
     );

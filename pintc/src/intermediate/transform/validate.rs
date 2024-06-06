@@ -434,6 +434,7 @@ fn vars() {
         ii.vars.insert(
             Var {
                 name: "test".to_owned(),
+                is_pub: false,
                 span: empty_span(),
             },
             Type::Unknown(empty_span()),

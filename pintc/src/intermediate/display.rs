@@ -38,15 +38,43 @@ impl super::IntermediateIntent {
             writeln!(f, "{indentation}}}")?;
         }
         for super::Interface {
-            name, storage_vars, ..
+            name,
+            storage,
+            intent_interfaces,
+            ..
         } in &self.interfaces
         {
             writeln!(f, "{indentation}interface {name} {{",)?;
-            writeln!(f, "{indentation}    storage {{")?;
-            for storage_var in storage_vars {
-                writeln!(f, "{indentation}        {}", self.with_ii(storage_var))?;
+
+            // Print storage
+            if let Some(storage) = &storage {
+                writeln!(f, "{indentation}    storage {{")?;
+                for storage_var in &storage.0 {
+                    writeln!(f, "{indentation}        {}", self.with_ii(storage_var))?;
+                }
+                writeln!(f, "{indentation}    }}")?;
             }
-            writeln!(f, "{indentation}    }}")?;
+
+            // Print each intent interface
+            for intent_interface in intent_interfaces {
+                write!(f, "{indentation}    intent {}", intent_interface.name)?;
+
+                if intent_interface.vars.is_empty() {
+                    writeln!(f, ";")?;
+                } else {
+                    writeln!(f, " {{")?;
+                    for var in &intent_interface.vars {
+                        writeln!(
+                            f,
+                            "{indentation}        pub var {}: {};",
+                            var.name,
+                            self.with_ii(var.ty.clone())
+                        )?;
+                    }
+                    writeln!(f, "{indentation}    }}")?;
+                }
+            }
+
             writeln!(f, "{indentation}}}")?;
         }
         for super::InterfaceInstance {
@@ -59,6 +87,20 @@ impl super::IntermediateIntent {
             writeln!(
                 f,
                 "{indentation}interface {name} = {interface}({})",
+                self.with_ii(address)
+            )?;
+        }
+        for super::IntentInstance {
+            name,
+            interface_instance,
+            intent,
+            address,
+            ..
+        } in &self.intent_instances
+        {
+            writeln!(
+                f,
+                "{indentation}intent {name} = {interface_instance}::{intent}({})",
                 self.with_ii(address)
             )?;
         }

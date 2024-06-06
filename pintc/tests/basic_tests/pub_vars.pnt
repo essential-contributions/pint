@@ -1,0 +1,113 @@
+intent Foo {
+    enum MyEnum = A | B;
+    type MyType = MyEnum;
+
+    pub var x1: bool;
+    pub var x2: int;
+    pub var x3: b256;
+    pub var x4: string;
+    pub var x5: { bool, int };
+    pub var x6: int[5];
+    pub var x7: MyEnum;
+    pub var x8: MyType;
+
+    pub var y1: bool = true;
+    pub var y2: int = 5;
+    pub var y3: b256 = 0x0000111100001111000011110000111100001111000011110000111100001111;
+    pub var y4: string = "foo";
+    pub var y5: { bool, int } = { true, 2 };
+    pub var y6: int[5] = [ 1, 2, 3, 4, 5];
+    pub var y7: MyEnum = MyEnum::A;
+    pub var y8: MyType = MyEnum::B;
+
+    pub var z1 = true;
+    pub var z2 = 5;
+    pub var z3 = 0x0000111100001111000011110000111100001111000011110000111100001111;
+    pub var z4 = "foo";
+    pub var z5 = { true, 2 };
+    pub var z6 = [ 1, 2, 3, 4, 5];
+    pub var z7 = MyEnum::A;
+    pub var z8 = MyEnum::B;
+}
+
+// intermediate <<<
+// intent ::Foo {
+//     var ::x1: bool;
+//     var ::x2: int;
+//     var ::x3: b256;
+//     var ::x4: string;
+//     var ::x5: {bool, int};
+//     var ::x6: int[5];
+//     var ::x7: ::MyEnum;
+//     var ::x8: ::MyType;
+//     var ::y1: bool;
+//     var ::y2: int;
+//     var ::y3: b256;
+//     var ::y4: string;
+//     var ::y5: {bool, int};
+//     var ::y6: int[5];
+//     var ::y7: ::MyEnum;
+//     var ::y8: ::MyType;
+//     var ::z1;
+//     var ::z2;
+//     var ::z3;
+//     var ::z4;
+//     var ::z5;
+//     var ::z6;
+//     var ::z7;
+//     var ::z8;
+//     enum ::MyEnum = A | B;
+//     type ::MyType = ::MyEnum;
+//     constraint (::y1 == true);
+//     constraint (::y2 == 5);
+//     constraint (::y3 == 0x0000111100001111000011110000111100001111000011110000111100001111);
+//     constraint (::y4 == "foo");
+//     constraint (::y5 == {true, 2});
+//     constraint (::y6 == [1, 2, 3, 4, 5]);
+//     constraint (::y7 == ::MyEnum::A);
+//     constraint (::y8 == ::MyEnum::B);
+//     constraint (::z1 == true);
+//     constraint (::z2 == 5);
+//     constraint (::z3 == 0x0000111100001111000011110000111100001111000011110000111100001111);
+//     constraint (::z4 == "foo");
+//     constraint (::z5 == {true, 2});
+//     constraint (::z6 == [1, 2, 3, 4, 5]);
+//     constraint (::z7 == ::MyEnum::A);
+//     constraint (::z8 == ::MyEnum::B);
+// }
+// >>>
+
+// These type check failures are temporary until we support other types for `pub var`
+//
+// typecheck_failure <<<
+// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
+// @142..144: only `bool`, b256`, and `int` pub vars are currently supported
+// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
+// @166..168: only `bool`, b256`, and `int` pub vars are currently supported
+// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
+// @197..199: only `bool`, b256`, and `int` pub vars are currently supported
+// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
+// @221..223: only `bool`, b256`, and `int` pub vars are currently supported
+// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
+// @245..247: only `bool`, b256`, and `int` pub vars are currently supported
+// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
+// @415..417: only `bool`, b256`, and `int` pub vars are currently supported
+// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
+// @447..449: only `bool`, b256`, and `int` pub vars are currently supported
+// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
+// @492..494: only `bool`, b256`, and `int` pub vars are currently supported
+// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
+// @535..537: only `bool`, b256`, and `int` pub vars are currently supported
+// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
+// @571..573: only `bool`, b256`, and `int` pub vars are currently supported
+// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
+// @736..738: only `bool`, b256`, and `int` pub vars are currently supported
+// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
+// @760..762: only `bool`, b256`, and `int` pub vars are currently supported
+// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
+// @790..792: only `bool`, b256`, and `int` pub vars are currently supported
+// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
+// @825..827: only `bool`, b256`, and `int` pub vars are currently supported
+// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
+// @853..855: only `bool`, b256`, and `int` pub vars are currently supported
+// >>>

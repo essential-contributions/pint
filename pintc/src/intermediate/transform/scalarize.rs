@@ -246,6 +246,7 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
             ii.vars.insert(
                 Var {
                     name: format!("{array_name}[{idx}]"),
+                    is_pub: false,
                     span: span.clone(),
                 },
                 el_ty.clone(),
@@ -811,7 +812,7 @@ fn split_tuple_vars(
     let mut new_vars = Vec::new();
 
     // Iterate for all the tuple vars and gather their fields into `new_vars`.
-    for (var_key, Var { name, span }) in ii.vars() {
+    for (var_key, Var { name, span, .. }) in ii.vars() {
         if old_tuple_vars.contains(&var_key) {
             // Already split; skip it.
             continue;
@@ -852,6 +853,7 @@ fn split_tuple_vars(
         let new_var_key = ii.vars.insert(
             Var {
                 name: opt_sym_name.as_ref().unwrap_or(&idx_name).clone(),
+                is_pub: false,
                 span,
             },
             field_ty.clone(),
