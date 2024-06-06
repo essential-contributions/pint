@@ -20,7 +20,7 @@ impl DisplayWithII for &super::Expr {
     fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> Result {
         match self {
             super::Expr::Error(..) => write!(f, "Error"),
-            super::Expr::Immediate { value, .. } => write!(f, "{value}"),
+            super::Expr::Immediate { value, .. } => value.fmt(f, ii),
 
             super::Expr::PathByName(p, _) => write!(f, "{p}"),
             super::Expr::PathByKey(k, _) => write!(f, "{}", k.get(ii).name),
@@ -41,7 +41,7 @@ impl DisplayWithII for &super::Expr {
                         expr::UnaryOp::Not => write!(f, "!"),
                         expr::UnaryOp::NextState => unreachable!(),
                     }?;
-                    write!(f, "{}", ii.with_ii(expr))
+                    expr.fmt(f, ii)
                 }
             }
 
@@ -54,9 +54,7 @@ impl DisplayWithII for &super::Expr {
             } => write!(f, "{} in {}", ii.with_ii(value), ii.with_ii(collection)),
 
             super::Expr::Cast { value, ty, .. } => {
-                write!(f, "{}", ii.with_ii(value))?;
-                write!(f, " as ")?;
-                write!(f, "{}", ii.with_ii(*ty.clone()))
+                write!(f, "{} as {}", ii.with_ii(value), ii.with_ii(ty.as_ref()))
             }
 
             super::Expr::TupleFieldAccess { tuple, field, .. } => {
@@ -70,28 +68,6 @@ impl DisplayWithII for &super::Expr {
 
             super::Expr::Index { expr, index, .. } => {
                 write!(f, "{}[{}]", ii.with_ii(expr), ii.with_ii(index))
-            }
-
-            super::Expr::Tuple { fields, .. } => {
-                write!(f, "{{")?;
-                let mut i = fields.iter().map(|(name, val)| {
-                    // This is the only place where we're building strings.  Could be alleviated
-                    // if the named tuple field was a struct which could be Display.
-                    format!(
-                        "{}{}",
-                        name.as_ref()
-                            .map_or(String::new(), |name| format!("{}: ", name.name)),
-                        ii.with_ii(val)
-                    )
-                });
-                write_many_iter!(f, i, ", ");
-                write!(f, "}}")
-            }
-
-            super::Expr::Array { elements, .. } => {
-                write!(f, "[")?;
-                write_many_with_ii!(f, elements, ", ", ii);
-                write!(f, "]")
             }
 
             super::Expr::MacroCall { call, .. } => {
@@ -149,25 +125,7 @@ impl DisplayWithII for &super::Expr {
 }
 
 impl DisplayWithII for super::Immediate {
-    fn fmt(&self, f: &mut Formatter, _: &IntermediateIntent) -> Result {
-        write!(f, "{self}")
-    }
-}
-
-impl DisplayWithII for super::Ident {
-    fn fmt(&self, f: &mut Formatter, _: &IntermediateIntent) -> Result {
-        write!(f, "{self}")
-    }
-}
-
-impl Display for super::Ident {
-    fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "{}", self.name)
-    }
-}
-
-impl Display for super::Immediate {
-    fn fmt(&self, f: &mut Formatter) -> Result {
+    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> Result {
         match self {
             super::Immediate::Error => write!(f, "Error"),
             super::Immediate::Real(n) => write!(f, "{n:e}"),
@@ -181,7 +139,39 @@ impl Display for super::Immediate {
                     val[0], val[1], val[2], val[3]
                 )
             }
+            super::Immediate::Array { elements, .. } => {
+                write!(f, "[")?;
+                write_many_with_ii!(f, elements, ", ", ii);
+                write!(f, "]")
+            }
+            super::Immediate::Tuple(fields) => {
+                write!(f, "{{")?;
+                let mut i = fields.iter().map(|(name, val)| {
+                    // This is the only place where we're building strings.  Could be alleviated
+                    // if the named tuple field was a struct which could be Display.
+                    format!(
+                        "{}{}",
+                        name.as_ref()
+                            .map_or(String::new(), |name| format!("{}: ", name.name)),
+                        ii.with_ii(val)
+                    )
+                });
+                write_many_iter!(f, i, ", ");
+                write!(f, "}}")
+            }
         }
+    }
+}
+
+impl DisplayWithII for super::Ident {
+    fn fmt(&self, f: &mut Formatter, _: &IntermediateIntent) -> Result {
+        write!(f, "{self}")
+    }
+}
+
+impl Display for super::Ident {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "{}", self.name)
     }
 }
 

@@ -165,7 +165,11 @@ pub(crate) fn splice_args(handler: &Handler, ii: &IntermediateIntent, call: &mut
                     });
                 }
             } else if let Some(var_init_key) = ii.var_inits.get(var_key) {
-                if let Some(Expr::Array { range_expr, .. }) = var_init_key.try_get(ii) {
+                if let Some(Expr::Immediate {
+                    value: Immediate::Array { range_expr, .. },
+                    ..
+                }) = var_init_key.try_get(ii)
+                {
                     if let Some((size, opt_enum)) = splice_get_array_range_size(ii, *range_expr) {
                         // Store where and what to replace in the new spliced args.
                         replacements.insert(

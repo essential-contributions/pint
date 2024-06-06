@@ -295,15 +295,17 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
             },
         );
 
-        let new_expr = Expr::Array {
-            elements: new_var_keys
-                .iter()
-                .map(|key| {
-                    ii.exprs
-                        .insert(Expr::PathByKey(*key, empty_span()), el_ty.clone())
-                })
-                .collect(),
-            range_expr: range_expr_key,
+        let new_expr = Expr::Immediate {
+            value: Immediate::Array {
+                elements: new_var_keys
+                    .iter()
+                    .map(|key| {
+                        ii.exprs
+                            .insert(Expr::PathByKey(*key, empty_span()), el_ty.clone())
+                    })
+                    .collect(),
+                range_expr: range_expr_key,
+            },
             span: empty_span(),
         };
 
@@ -935,18 +937,20 @@ fn split_tuple_vars(
 
     // Finally, replace those paths that refer to tuples with tuple expressions.
     for (expr_key, split_vars) in tuple_path_to_replace {
-        let new_expr = Expr::Tuple {
-            fields: split_vars
-                .iter()
-                .map(|var_key| {
-                    (None, {
-                        ii.exprs.insert(
-                            Expr::PathByKey(*var_key, empty_span()),
-                            var_key.get_ty(ii).clone(),
-                        )
+        let new_expr = Expr::Immediate {
+            value: Immediate::Tuple(
+                split_vars
+                    .iter()
+                    .map(|var_key| {
+                        (None, {
+                            ii.exprs.insert(
+                                Expr::PathByKey(*var_key, empty_span()),
+                                var_key.get_ty(ii).clone(),
+                            )
+                        })
                     })
-                })
-                .collect(),
+                    .collect(),
+            ),
             span: empty_span(),
         };
         let new_expr_key = ii.exprs.insert(

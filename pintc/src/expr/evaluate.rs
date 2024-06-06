@@ -169,8 +169,46 @@ impl ExprKey {
         let expr = self.get(ii).clone();
 
         let plugged = match expr {
-            Expr::Immediate { .. }
-            | Expr::StorageAccess(..)
+            Expr::Immediate { ref value, ref span } => match value {
+                Immediate::Array {
+                    elements,
+                    range_expr,
+                } => {
+                    let elements = elements
+                        .iter()
+                        .map(|element| element.plug_in(ii, values_map))
+                        .collect::<Vec<_>>();
+                    let range_expr = range_expr.plug_in(ii, values_map);
+
+                    Expr::Immediate {
+                        value: Immediate::Array {
+                            elements,
+                            range_expr,
+                        },
+                        span: span.clone(),
+                    }
+                }
+
+                Immediate::Tuple(fields) => {
+                    let fields = fields
+                        .iter()
+                        .map(|(name, value)| (name.clone(), value.plug_in(ii, values_map)))
+                        .collect::<Vec<_>>();
+
+                    Expr::Immediate {
+                        value: Immediate::Tuple(fields),
+                        span: span.clone(),
+                    }
+                }
+
+                Immediate::Error
+                | Immediate::Real(_)
+                | Immediate::Int(_)
+                | Immediate::Bool(_)
+                | Immediate::String(_)
+                | Immediate::B256(_) => expr,
+            },
+            Expr::StorageAccess(..)
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
             | Expr::Error(_) => expr,
@@ -226,36 +264,11 @@ impl ExprKey {
                     span,
                 }
             }
-            Expr::Array {
-                elements,
-                range_expr,
-                span,
-            } => {
-                let elements = elements
-                    .iter()
-                    .map(|element| element.plug_in(ii, values_map))
-                    .collect::<Vec<_>>();
-                let range_expr = range_expr.plug_in(ii, values_map);
-
-                Expr::Array {
-                    elements,
-                    range_expr,
-                    span,
-                }
-            }
             Expr::Index { expr, index, span } => {
                 let expr = expr.plug_in(ii, values_map);
                 let index = index.plug_in(ii, values_map);
 
                 Expr::Index { expr, index, span }
-            }
-            Expr::Tuple { fields, span } => {
-                let fields = fields
-                    .iter()
-                    .map(|(name, value)| (name.clone(), value.plug_in(ii, values_map)))
-                    .collect::<Vec<_>>();
-
-                Expr::Tuple { fields, span }
             }
             Expr::TupleFieldAccess { tuple, field, span } => {
                 let tuple = tuple.plug_in(ii, values_map);

@@ -1,6 +1,6 @@
 use crate::{
     error::{Error, ErrorEmitted, Handler, ParseError},
-    expr::{self, Expr, Ident},
+    expr::{self, Expr, Ident, Immediate},
     span::Span,
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type},
 };
@@ -376,12 +376,36 @@ impl IntermediateIntent {
 
         match expr {
             Expr::Error(_)
-            | Expr::Immediate { .. }
             | Expr::PathByKey(_, _)
             | Expr::PathByName(_, _)
             | Expr::StorageAccess(_, _)
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. } => {}
+
+            Expr::Immediate { value, .. } => match value {
+                Immediate::Array {
+                    elements,
+                    range_expr,
+                } => {
+                    for element in elements {
+                        self.visitor_from_key(kind, *element, f);
+                    }
+                    self.visitor_from_key(kind, *range_expr, f);
+                }
+
+                Immediate::Tuple(fields) => {
+                    for (_, field) in fields {
+                        self.visitor_from_key(kind, *field, f);
+                    }
+                }
+
+                Immediate::Error
+                | Immediate::Real(_)
+                | Immediate::Int(_)
+                | Immediate::Bool(_)
+                | Immediate::String(_)
+                | Immediate::B256(_) => {}
+            },
 
             Expr::UnaryOp { expr, .. } => self.visitor_from_key(kind, *expr, f),
 
@@ -407,26 +431,9 @@ impl IntermediateIntent {
                 self.visitor_from_key(kind, *else_expr, f);
             }
 
-            Expr::Array {
-                elements,
-                range_expr,
-                ..
-            } => {
-                for element in elements {
-                    self.visitor_from_key(kind, *element, f);
-                }
-                self.visitor_from_key(kind, *range_expr, f);
-            }
-
             Expr::Index { expr, index, .. } => {
                 self.visitor_from_key(kind, *expr, f);
                 self.visitor_from_key(kind, *index, f);
-            }
-
-            Expr::Tuple { fields, .. } => {
-                for (_, field) in fields {
-                    self.visitor_from_key(kind, *field, f);
-                }
             }
 
             Expr::TupleFieldAccess { tuple, .. } => {

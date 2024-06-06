@@ -1,5 +1,8 @@
 use super::IntermediateIntent;
-use crate::{expr::Expr, types::Type};
+use crate::{
+    expr::{Expr, Immediate},
+    types::Type,
+};
 use std::collections::HashSet;
 
 slotmap::new_key_type! { pub struct ExprKey; }
@@ -129,6 +132,31 @@ impl<'a> Iterator for ExprsIter<'a> {
 
         // Push its children to the queue.
         match next_key.get(self.ii) {
+            Expr::Immediate { value, .. } => match value {
+                Immediate::Array {
+                    elements,
+                    range_expr,
+                } => {
+                    for el in elements {
+                        queue_if_new!(self, el);
+                    }
+                    queue_if_new!(self, range_expr);
+                }
+
+                Immediate::Tuple(fields) => {
+                    for (_, field) in fields {
+                        queue_if_new!(self, field);
+                    }
+                }
+
+                Immediate::Error
+                | Immediate::Real(_)
+                | Immediate::Int(_)
+                | Immediate::Bool(_)
+                | Immediate::String(_)
+                | Immediate::B256(_) => {}
+            },
+
             Expr::UnaryOp { expr, .. } => queue_if_new!(self, expr),
 
             Expr::BinaryOp { lhs, rhs, .. } => {
@@ -153,26 +181,9 @@ impl<'a> Iterator for ExprsIter<'a> {
                 queue_if_new!(self, else_expr);
             }
 
-            Expr::Array {
-                elements,
-                range_expr,
-                ..
-            } => {
-                for el in elements {
-                    queue_if_new!(self, el);
-                }
-                queue_if_new!(self, range_expr);
-            }
-
             Expr::Index { expr, index, .. } => {
                 queue_if_new!(self, expr);
                 queue_if_new!(self, index);
-            }
-
-            Expr::Tuple { fields, .. } => {
-                for (_, field) in fields {
-                    queue_if_new!(self, field);
-                }
             }
 
             Expr::TupleFieldAccess { tuple, .. } => queue_if_new!(self, tuple),
@@ -209,7 +220,6 @@ impl<'a> Iterator for ExprsIter<'a> {
             }
 
             Expr::Error(_)
-            | Expr::Immediate { .. }
             | Expr::StorageAccess(..)
             | Expr::ExternalStorageAccess { .. }
             | Expr::PathByKey(_, _)
