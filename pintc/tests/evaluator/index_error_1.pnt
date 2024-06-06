@@ -1,0 +1,23 @@
+// TODO: redo this test with `const` decl when they're in.
+
+var a: int;
+var b = [11, 22, 33];
+
+var d: int[b[a]];
+
+solve satisfy;
+
+// intermediate <<<
+// var ::a: int;
+// var ::b;
+// var ::d: int[::b[::a]];
+// constraint (::b == [11, 22, 33]);
+// solve satisfy;
+// >>>
+
+// flattening_failure <<<
+// cannot find value `::b` in this scope
+// @106..107: not found in this scope
+// attempt to use a non-constant value as an array length
+// @106..110: this must be a constant
+// >>>

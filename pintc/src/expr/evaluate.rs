@@ -1,45 +1,92 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{BinaryOp, Expr, Immediate, UnaryOp},
+    expr::{BinaryOp as BinOp, Expr, Immediate as Imm, TupleAccess, UnaryOp},
     intermediate::{ExprKey, IntermediateIntent},
-    span::empty_span,
-    types::Path,
+    span::{empty_span, Spanned},
+    types::{EnumDecl, Path},
 };
 use fxhash::FxHashMap;
 
-impl Expr {
-    /// Given an expression `self`, an `IntermediateIntent`, and a map between symbols and their
-    /// values as `Immediate`s, evaluate `self` into an `Immediate`
-    ///
-    /// This is pretty basic for now and will fail for anything other than `Immediate`,
-    /// `PathByName`, `UnaryOp`, `BinaryOp`.
-    pub(crate) fn evaluate(
+pub(crate) struct Evaluator {
+    enum_values: FxHashMap<Path, Imm>,
+    scope_values: FxHashMap<Path, Imm>,
+}
+
+impl Evaluator {
+    pub(crate) fn new(ii: &IntermediateIntent) -> Evaluator {
+        Evaluator {
+            enum_values: Self::create_enum_map(ii),
+            scope_values: FxHashMap::default(),
+        }
+    }
+
+    pub(crate) fn from_values(
+        ii: &IntermediateIntent,
+        scope_values: FxHashMap<Path, Imm>,
+    ) -> Evaluator {
+        Evaluator {
+            enum_values: Self::create_enum_map(ii),
+            scope_values,
+        }
+    }
+
+    fn create_enum_map(ii: &IntermediateIntent) -> FxHashMap<Path, Imm> {
+        FxHashMap::from_iter(ii.enums.iter().flat_map(
+            |EnumDecl {
+                 name: enum_name,
+                 variants,
+                 ..
+             }| {
+                variants.iter().enumerate().map(|(idx, variant)| {
+                    (
+                        enum_name.name.clone() + "::" + &variant.name,
+                        Imm::Int(idx as i64),
+                    )
+                })
+            },
+        ))
+    }
+
+    pub(crate) fn evaluate_key(
         &self,
+        expr_key: &ExprKey,
         handler: &Handler,
         ii: &IntermediateIntent,
-        values_map: &FxHashMap<Path, Immediate>,
-    ) -> Result<Immediate, ErrorEmitted> {
-        use BinaryOp::*;
-        use Immediate::{Bool, Int, Real};
-        use UnaryOp::{Neg, Not};
-        match self {
-            Expr::Immediate { value: imm, .. } => Ok(imm.clone()),
-            Expr::PathByName(path, span) => values_map.get(path).cloned().ok_or_else(|| {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::SymbolNotFound {
-                        name: path.to_string(),
-                        span: span.clone(),
-                        enum_names: Vec::new(),
-                    },
-                })
-            }),
+    ) -> Result<Imm, ErrorEmitted> {
+        self.evaluate(expr_key.get(ii), handler, ii)
+    }
+
+    pub(crate) fn evaluate(
+        &self,
+        expr: &Expr,
+        handler: &Handler,
+        ii: &IntermediateIntent,
+    ) -> Result<Imm, ErrorEmitted> {
+        match expr {
+            Expr::Immediate { value, .. } => Ok(value.clone()),
+
+            Expr::PathByName(path, span) => self
+                .scope_values
+                .get(path)
+                .or_else(|| self.enum_values.get(path))
+                .cloned()
+                .ok_or_else(|| {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::SymbolNotFound {
+                            name: path.to_string(),
+                            span: span.clone(),
+                            enum_names: Vec::new(),
+                        },
+                    })
+                }),
+
             Expr::UnaryOp { op, expr, .. } => {
-                let expr = expr.get(ii).evaluate(handler, ii, values_map)?;
+                let expr = self.evaluate_key(expr, handler, ii)?;
 
                 match (expr, op) {
-                    (Real(expr), Neg) => Ok(Real(-expr)),
-                    (Int(expr), Neg) => Ok(Int(-expr)),
-                    (Bool(expr), Not) => Ok(Bool(!expr)),
+                    (Imm::Real(expr), UnaryOp::Neg) => Ok(Imm::Real(-expr)),
+                    (Imm::Int(expr), UnaryOp::Neg) => Ok(Imm::Int(-expr)),
+                    (Imm::Bool(expr), UnaryOp::Not) => Ok(Imm::Bool(!expr)),
                     _ => Err(handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
                             msg: "type error: invalid unary op for expression",
@@ -48,26 +95,26 @@ impl Expr {
                     })),
                 }
             }
-            Expr::BinaryOp { op, lhs, rhs, .. } => {
-                let lhs = lhs.get(ii).evaluate(handler, ii, values_map)?;
 
-                let rhs = rhs.get(ii).evaluate(handler, ii, values_map)?;
+            Expr::BinaryOp { op, lhs, rhs, .. } => {
+                let lhs = self.evaluate_key(lhs, handler, ii)?;
+                let rhs = self.evaluate_key(rhs, handler, ii)?;
 
                 match (lhs, rhs) {
-                    (Real(lhs), Real(rhs)) => match op {
+                    (Imm::Real(lhs), Imm::Real(rhs)) => match op {
                         // Arithmetic
-                        Add => Ok(Real(lhs + rhs)),
-                        Sub => Ok(Real(lhs - rhs)),
-                        Mul => Ok(Real(lhs * rhs)),
-                        Div => Ok(Real(lhs / rhs)),
+                        BinOp::Add => Ok(Imm::Real(lhs + rhs)),
+                        BinOp::Sub => Ok(Imm::Real(lhs - rhs)),
+                        BinOp::Mul => Ok(Imm::Real(lhs * rhs)),
+                        BinOp::Div => Ok(Imm::Real(lhs / rhs)),
 
                         // Comparison
-                        Equal => Ok(Bool(lhs == rhs)),
-                        NotEqual => Ok(Bool(lhs != rhs)),
-                        LessThan => Ok(Bool(lhs < rhs)),
-                        LessThanOrEqual => Ok(Bool(lhs <= rhs)),
-                        GreaterThan => Ok(Bool(lhs > rhs)),
-                        GreaterThanOrEqual => Ok(Bool(lhs >= rhs)),
+                        BinOp::Equal => Ok(Imm::Bool(lhs == rhs)),
+                        BinOp::NotEqual => Ok(Imm::Bool(lhs != rhs)),
+                        BinOp::LessThan => Ok(Imm::Bool(lhs < rhs)),
+                        BinOp::LessThanOrEqual => Ok(Imm::Bool(lhs <= rhs)),
+                        BinOp::GreaterThan => Ok(Imm::Bool(lhs > rhs)),
+                        BinOp::GreaterThanOrEqual => Ok(Imm::Bool(lhs >= rhs)),
 
                         _ => Err(handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
@@ -76,21 +123,22 @@ impl Expr {
                             },
                         })),
                     },
-                    (Int(lhs), Int(rhs)) => match op {
+
+                    (Imm::Int(lhs), Imm::Int(rhs)) => match op {
                         // Arithmetic
-                        Add => Ok(Int(lhs + rhs)),
-                        Sub => Ok(Int(lhs - rhs)),
-                        Mul => Ok(Int(lhs * rhs)),
-                        Div => Ok(Int(lhs / rhs)),
-                        Mod => Ok(Int(lhs % rhs)),
+                        BinOp::Add => Ok(Imm::Int(lhs + rhs)),
+                        BinOp::Sub => Ok(Imm::Int(lhs - rhs)),
+                        BinOp::Mul => Ok(Imm::Int(lhs * rhs)),
+                        BinOp::Div => Ok(Imm::Int(lhs / rhs)),
+                        BinOp::Mod => Ok(Imm::Int(lhs % rhs)),
 
                         // Comparison
-                        Equal => Ok(Bool(lhs == rhs)),
-                        NotEqual => Ok(Bool(lhs != rhs)),
-                        LessThan => Ok(Bool(lhs < rhs)),
-                        LessThanOrEqual => Ok(Bool(lhs <= rhs)),
-                        GreaterThan => Ok(Bool(lhs > rhs)),
-                        GreaterThanOrEqual => Ok(Bool(lhs >= rhs)),
+                        BinOp::Equal => Ok(Imm::Bool(lhs == rhs)),
+                        BinOp::NotEqual => Ok(Imm::Bool(lhs != rhs)),
+                        BinOp::LessThan => Ok(Imm::Bool(lhs < rhs)),
+                        BinOp::LessThanOrEqual => Ok(Imm::Bool(lhs <= rhs)),
+                        BinOp::GreaterThan => Ok(Imm::Bool(lhs > rhs)),
+                        BinOp::GreaterThanOrEqual => Ok(Imm::Bool(lhs >= rhs)),
 
                         _ => Err(handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
@@ -99,18 +147,19 @@ impl Expr {
                             },
                         })),
                     },
-                    (Bool(lhs), Bool(rhs)) => match op {
+
+                    (Imm::Bool(lhs), Imm::Bool(rhs)) => match op {
                         // Comparison
-                        Equal => Ok(Bool(lhs == rhs)),
-                        NotEqual => Ok(Bool(lhs != rhs)),
-                        LessThan => Ok(Bool(!lhs && rhs)),
-                        LessThanOrEqual => Ok(Bool(lhs <= rhs)),
-                        GreaterThan => Ok(Bool(lhs && !rhs)),
-                        GreaterThanOrEqual => Ok(Bool(lhs >= rhs)),
+                        BinOp::Equal => Ok(Imm::Bool(lhs == rhs)),
+                        BinOp::NotEqual => Ok(Imm::Bool(lhs != rhs)),
+                        BinOp::LessThan => Ok(Imm::Bool(!lhs && rhs)),
+                        BinOp::LessThanOrEqual => Ok(Imm::Bool(lhs <= rhs)),
+                        BinOp::GreaterThan => Ok(Imm::Bool(lhs && !rhs)),
+                        BinOp::GreaterThanOrEqual => Ok(Imm::Bool(lhs >= rhs)),
 
                         // Logical
-                        LogicalAnd => Ok(Bool(lhs && rhs)),
-                        LogicalOr => Ok(Bool(lhs || rhs)),
+                        BinOp::LogicalAnd => Ok(Imm::Bool(lhs && rhs)),
+                        BinOp::LogicalOr => Ok(Imm::Bool(lhs || rhs)),
 
                         _ => Err(handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
@@ -119,16 +168,182 @@ impl Expr {
                             },
                         })),
                     },
-                    _ => Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "compile-time evaluation for \"big ints\" and \"strings\" \
+
+                    (Imm::B256(lhs), Imm::B256(rhs)) => match op {
+                        // Equivalence.
+                        BinOp::Equal => Ok(Imm::Bool(lhs == rhs)),
+                        BinOp::NotEqual => Ok(Imm::Bool(lhs != rhs)),
+
+                        _ => Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "type error: invalid binary op for B256",
+                                span: empty_span(),
+                            },
+                        })),
+                    },
+
+                    (l, r) => {
+                        println!("op {op:?} for {l:?} and {r:?}");
+
+                        Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "compile-time evaluation for \"big ints\" and \"strings\" \
                               not currently supported",
-                            span: empty_span(),
-                        },
-                    })),
+                                span: empty_span(),
+                            },
+                        }))
+                    }
                 }
             }
-            _ => Err(handler.emit_err(Error::Compile {
+
+            Expr::Index { expr, index, span } => {
+                // If the expr is an array...
+                let ary = self.evaluate_key(expr, handler, ii)?;
+                if let Imm::Array { elements, .. } = ary {
+                    // And the index is an int...
+                    let idx = self.evaluate_key(index, handler, ii)?;
+                    if let Imm::Int(n) = idx {
+                        // And it's not out of bounds...
+                        let n = n as usize;
+                        if n < elements.len() {
+                            // Evaluate the element expression.
+                            self.evaluate_key(&elements[n], handler, ii)
+                        } else {
+                            Err(handler.emit_err(Error::Compile {
+                                error: CompileError::ArrayIndexOutOfBounds { span: span.clone() },
+                            }))
+                        }
+                    } else {
+                        Err(handler.emit_err(Error::Compile {
+                            error: CompileError::InvalidConstArrayIndex { span: span.clone() },
+                        }))
+                    }
+                } else {
+                    Err(handler.emit_err(Error::Compile {
+                        error: CompileError::CannotIndexIntoValue {
+                            span: expr.get(ii).span().clone(),
+                            index_span: span.clone(),
+                        },
+                    }))
+                }
+            }
+
+            Expr::TupleFieldAccess { tuple, field, span } => {
+                // If the expr is a tuple...
+                let tup = self.evaluate_key(tuple, handler, ii)?;
+                if let Imm::Tuple(fields) = tup {
+                    // And the field can be found...
+                    if let Some(field_expr) = match field {
+                        TupleAccess::Index(n) => fields.get(*n).map(|pair| &pair.1),
+
+                        TupleAccess::Name(id) => fields.iter().find_map(|(fld, e)| {
+                            fld.as_ref()
+                                .and_then(|fld| (fld.name == id.name).then_some(e))
+                        }),
+
+                        TupleAccess::Error => None,
+                    } {
+                        // Evaluate the field expressions.
+                        self.evaluate_key(field_expr, handler, ii)
+                    } else {
+                        Err(handler.emit_err(Error::Compile {
+                            error: CompileError::InvalidTupleAccessor {
+                                accessor: field.to_string(),
+                                tuple_type: ii.with_ii(tuple.get_ty(ii)).to_string(),
+                                span: span.clone(),
+                            },
+                        }))
+                    }
+                } else {
+                    Err(handler.emit_err(Error::Compile {
+                        error: CompileError::TupleAccessNonTuple {
+                            non_tuple_type: ii.with_ii(tuple.get_ty(ii)).to_string(),
+                            span: span.clone(),
+                        },
+                    }))
+                }
+            }
+
+            Expr::Select {
+                condition,
+                then_expr,
+                else_expr,
+                span,
+            } => {
+                let cond = self.evaluate_key(condition, handler, ii)?;
+                if let Imm::Bool(b) = cond {
+                    self.evaluate_key(if b { then_expr } else { else_expr }, handler, ii)
+                } else {
+                    Err(handler.emit_err(Error::Compile {
+                        error: CompileError::NonBoolConditional {
+                            ty: ii.with_ii(condition.get_ty(ii)).to_string(),
+                            conditional: "select expression".to_owned(),
+                            span: span.clone(),
+                        },
+                    }))
+                }
+            }
+
+            Expr::Cast { value, ty, span } => {
+                let cast_error = || -> Result<Imm, ErrorEmitted> {
+                    Err(handler.emit_err(Error::Compile {
+                        error: CompileError::BadCastFrom {
+                            ty: ii.with_ii(value.get_ty(ii)).to_string(),
+                            span: span.clone(),
+                        },
+                    }))
+                };
+
+                // All casts are either redundant (e.g., bool as bool) or are to ints, except int
+                // as real.  They'll be rejected by the type checker if not.
+                let imm = self.evaluate_key(value, handler, ii)?;
+                match imm {
+                    Imm::Real(_) => {
+                        if ty.is_real() {
+                            Ok(imm)
+                        } else {
+                            cast_error()
+                        }
+                    }
+
+                    Imm::Int(i) => {
+                        if ty.is_int() {
+                            Ok(imm)
+                        } else if ty.is_real() {
+                            Ok(Imm::Real(i as f64))
+                        } else {
+                            cast_error()
+                        }
+                    }
+
+                    Imm::Bool(b) => {
+                        if ty.is_bool() {
+                            Ok(imm)
+                        } else if ty.is_int() {
+                            Ok(Imm::Int(if b { 1 } else { 0 }))
+                        } else {
+                            cast_error()
+                        }
+                    }
+
+                    // Invalid to cast from these values.
+                    Imm::String(_)
+                    | Imm::B256(_)
+                    | Imm::Array { .. }
+                    | Imm::Tuple(_)
+                    | Imm::Error => cast_error(),
+                }
+            }
+
+            Expr::Error(_)
+            | Expr::PathByKey(_, _)
+            | Expr::StorageAccess(_, _)
+            | Expr::ExternalStorageAccess { .. }
+            | Expr::MacroCall { .. }
+            | Expr::IntrinsicCall { .. }
+            | Expr::In { .. }
+            | Expr::Range { .. }
+            | Expr::Generator { .. } => Err(handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "unexpected expression during compile-time evaluation",
                     span: empty_span(),
@@ -164,13 +379,16 @@ impl ExprKey {
     pub(crate) fn plug_in(
         self,
         ii: &mut IntermediateIntent,
-        values_map: &FxHashMap<Path, Immediate>,
+        values_map: &FxHashMap<Path, Imm>,
     ) -> ExprKey {
         let expr = self.get(ii).clone();
 
         let plugged = match expr {
-            Expr::Immediate { ref value, ref span } => match value {
-                Immediate::Array {
+            Expr::Immediate {
+                ref value,
+                ref span,
+            } => match value {
+                Imm::Array {
                     elements,
                     range_expr,
                 } => {
@@ -181,7 +399,7 @@ impl ExprKey {
                     let range_expr = range_expr.plug_in(ii, values_map);
 
                     Expr::Immediate {
-                        value: Immediate::Array {
+                        value: Imm::Array {
                             elements,
                             range_expr,
                         },
@@ -189,24 +407,24 @@ impl ExprKey {
                     }
                 }
 
-                Immediate::Tuple(fields) => {
+                Imm::Tuple(fields) => {
                     let fields = fields
                         .iter()
                         .map(|(name, value)| (name.clone(), value.plug_in(ii, values_map)))
                         .collect::<Vec<_>>();
 
                     Expr::Immediate {
-                        value: Immediate::Tuple(fields),
+                        value: Imm::Tuple(fields),
                         span: span.clone(),
                     }
                 }
 
-                Immediate::Error
-                | Immediate::Real(_)
-                | Immediate::Int(_)
-                | Immediate::Bool(_)
-                | Immediate::String(_)
-                | Immediate::B256(_) => expr,
+                Imm::Error
+                | Imm::Real(_)
+                | Imm::Int(_)
+                | Imm::Bool(_)
+                | Imm::String(_)
+                | Imm::B256(_) => expr,
             },
             Expr::StorageAccess(..)
             | Expr::ExternalStorageAccess { .. }

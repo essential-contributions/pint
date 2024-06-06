@@ -1,6 +1,6 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{BinaryOp, Expr, Immediate, TupleAccess, UnaryOp},
+    expr::{evaluate::Evaluator, BinaryOp, Expr, Immediate, TupleAccess, UnaryOp},
     intermediate::{BlockStatement, ConstraintDecl, ExprKey, IfDecl, IntermediateIntent},
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
@@ -317,6 +317,7 @@ pub(crate) fn lower_imm_accesses(
             })
             .collect::<Vec<_>>();
 
+        let evaluator = Evaluator::new(ii);
         let mut replacements = Vec::new();
         for (old_expr_key, array_idx, field_idx) in candidates {
             assert!(
@@ -335,7 +336,7 @@ pub(crate) fn lower_imm_accesses(
                     }));
                 };
 
-                match idx_expr.evaluate(handler, ii, &FxHashMap::default()) {
+                match evaluator.evaluate(idx_expr, handler, ii) {
                     Ok(Immediate::Int(idx_val)) if idx_val >= 0 => {
                         let Some(Expr::Immediate {
                             value: Immediate::Array { elements, .. },

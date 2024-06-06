@@ -1,11 +1,10 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{BinaryOp, Immediate, TupleAccess},
+    expr::{evaluate::Evaluator, BinaryOp, Immediate, TupleAccess},
     intermediate::{Expr, ExprKey, IntermediateIntent, Var, VarKey},
     span::{empty_span, Span, Spanned},
     types::{PrimitiveKind, Type},
 };
-use fxhash::FxHashMap;
 use std::collections::BTreeMap;
 
 pub(crate) fn scalarize(
@@ -143,7 +142,7 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
                 }))
             }
         } else {
-            match range_expr.evaluate(handler, ii, &FxHashMap::default()) {
+            match Evaluator::new(ii).evaluate(range_expr, handler, ii) {
                 Ok(Immediate::Int(val)) if val > 0 => Ok(Type::Array {
                     ty: Box::new(el_ty),
                     range: range_expr_key,
@@ -388,18 +387,17 @@ fn scalarize_array_access(
         })
         .collect();
 
+    let evaluator = Evaluator::new(ii);
     for (array_access_key, index_key, span) in accesses {
         let index_expr = index_key.get(ii);
         let index_span = index_expr.span().clone();
-        let index_value = index_expr
-            .evaluate(handler, ii, &FxHashMap::default())
-            .map_err(|_| {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::NonConstArrayIndex {
-                        span: index_span.clone(),
-                    },
-                })
-            })?;
+        let index_value = evaluator.evaluate(index_expr, handler, ii).map_err(|_| {
+            handler.emit_err(Error::Compile {
+                error: CompileError::NonConstArrayIndex {
+                    span: index_span.clone(),
+                },
+            })
+        })?;
 
         // Index must be an integer in range.
         match index_value {

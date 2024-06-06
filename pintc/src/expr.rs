@@ -7,7 +7,7 @@ use crate::{
 use fxhash::FxHashMap;
 
 mod display;
-mod evaluate;
+pub(crate) mod evaluate;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {

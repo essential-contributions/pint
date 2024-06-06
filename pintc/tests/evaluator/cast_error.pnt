@@ -1,0 +1,17 @@
+// TODO: redo this test with `const` decl when they're in.  And add some other examples.  The type
+// checker is blocking this for now.
+
+var a: int[{11} as int];
+
+solve satisfy;
+
+// intermediate <<<
+// var ::a: int[{11} as int];
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// invalid cast
+// @148..159: illegal cast from a `{int}`
+// casts may only be made from an int to a real, from a bool to an int or from an enum to an int
+// >>>

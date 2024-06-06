@@ -1,0 +1,16 @@
+// TODO: redo this test with `const` decl when they're in.
+
+var a: int[{ 11, 22 }.2];
+
+solve satisfy;
+
+// intermediate <<<
+// var ::a: int[{11, 22}.2];
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// invalid tuple accessor
+// @71..83: unable to get field from tuple using `2`
+// tuple has type `{int, int}`
+// >>>

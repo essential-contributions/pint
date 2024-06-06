@@ -11,7 +11,7 @@ solve satisfy;
 // >>>
 
 // typecheck_failure <<<
-// expression for constraint must evaluate to a boolean
+// indexed expression invalid
 // @25..29: value must be an array or a storage map; found `real`
 // constraint expression type error
 // @14..37: constraint expression has unexpected type `Unknown`

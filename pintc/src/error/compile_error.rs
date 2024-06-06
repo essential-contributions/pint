@@ -158,7 +158,7 @@ pub enum CompileError {
     SelectBranchesTypeMismatch { large_err: Box<LargeTypeError> },
     #[error("constraint expression type error")]
     ConstraintExpressionTypeError { large_err: Box<LargeTypeError> },
-    #[error("expression for constraint must evaluate to a boolean")]
+    #[error("indexed expression invalid")]
     IndexExprNonIndexable {
         non_indexable_type: String,
         span: Span,

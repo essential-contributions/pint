@@ -58,12 +58,7 @@ impl DisplayWithII for &super::Expr {
             }
 
             super::Expr::TupleFieldAccess { tuple, field, .. } => {
-                write!(f, "{}.", ii.with_ii(tuple))?;
-                match field {
-                    expr::TupleAccess::Error => write!(f, "Error"),
-                    expr::TupleAccess::Index(n) => write!(f, "{n}"),
-                    expr::TupleAccess::Name(i) => write!(f, "{}", i.name),
-                }
+                write!(f, "{}.{field}", ii.with_ii(tuple))
             }
 
             super::Expr::Index { expr, index, .. } => {
@@ -200,6 +195,16 @@ impl Display for super::GeneratorKind {
         match self {
             Self::ForAll => write!(f, "forall"),
             Self::Exists => write!(f, "exists"),
+        }
+    }
+}
+
+impl Display for super::TupleAccess {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        match self {
+            super::TupleAccess::Error => write!(f, "Error"),
+            super::TupleAccess::Index(n) => write!(f, "{n}"),
+            super::TupleAccess::Name(i) => write!(f, "{}", i.name),
         }
     }
 }
