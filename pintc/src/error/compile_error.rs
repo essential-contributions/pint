@@ -120,8 +120,16 @@ pub enum CompileError {
     InvalidNextStateAccess { span: Span },
     #[error("cannot find interface declaration `{name}`")]
     MissingInterface { name: String, span: Span },
+    #[error("cannot find intent `{intent_name}` in interface `{interface_name}`")]
+    MissingIntentInterface {
+        intent_name: String,
+        interface_name: String,
+        span: Span,
+    },
     #[error("cannot find interface instance `{name}`")]
     MissingInterfaceInstance { name: String, span: Span },
+    #[error("cannot find intent instance `{name}`")]
+    MissingIntentInstance { name: String, span: Span },
     #[error("address expression type error")]
     AddressExpressionTypeError { large_err: Box<LargeTypeError> },
     #[error("attempt to use a non-constant value as an array length")]
@@ -568,9 +576,31 @@ impl ReportableError for CompileError {
                 }]
             }
 
+            MissingIntentInterface {
+                intent_name,
+                interface_name,
+                span,
+            } => {
+                vec![ErrorLabel {
+                    message: format!(
+                        "cannot find intent `{intent_name}` in interface `{interface_name}`"
+                    ),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
             MissingInterfaceInstance { name, span } => {
                 vec![ErrorLabel {
                     message: format!("cannot find interface instance `{name}`"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            MissingIntentInstance { name, span } => {
+                vec![ErrorLabel {
+                    message: format!("cannot find intent instance `{name}`"),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -1086,7 +1116,9 @@ impl ReportableError for CompileError {
             | MissingStorageBlock { .. }
             | InvalidNextStateAccess { .. }
             | MissingInterface { .. }
+            | MissingIntentInterface { .. }
             | MissingInterfaceInstance { .. }
+            | MissingIntentInstance { .. }
             | AddressExpressionTypeError { .. }
             | NonConstArrayLength { .. }
             | InvalidConstArrayLength { .. }
@@ -1209,7 +1241,9 @@ impl Spanned for CompileError {
             | InvalidNextStateAccess { span, .. }
             | MissingStorageBlock { span, .. }
             | MissingInterface { span, .. }
+            | MissingIntentInterface { span, .. }
             | MissingInterfaceInstance { span, .. }
+            | MissingIntentInstance { span, .. }
             | NonConstArrayIndex { span }
             | InvalidConstArrayLength { span }
             | NonConstArrayLength { span }

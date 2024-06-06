@@ -6,6 +6,7 @@ use crate::{
 use std::io::Write;
 
 mod intrinsics;
+mod transient;
 
 #[cfg(test)]
 pub(super) fn check(actual: &str, expect: expect_test::Expect) {

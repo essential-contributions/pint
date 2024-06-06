@@ -697,6 +697,9 @@ interface Foo {
         integer: int,
         boolean: bool,
     }
+
+    intent Bar;
+    intent Baz { pub var x: int; }
 }
 "#;
 
@@ -707,6 +710,10 @@ interface Foo {
                 storage {
                     integer: int,
                     boolean: bool,
+                }
+                intent Bar;
+                intent Baz {
+                    pub var x: int;
                 }
             }"#]],
     );
@@ -779,12 +786,13 @@ interface Foo {
         &run_parser!(
             pint,
             r#"
-            interface Foo { storage { } }"#
+            interface Foo { storage { } intent Baz { } }"#
         ),
         expect_test::expect![[r#"
             interface ::Foo {
                 storage {
                 }
+                intent Baz;
             }"#]],
     );
     check(
@@ -821,12 +829,56 @@ interface Foo {
         &run_parser!(
             pint,
             r#"
+            interface Foo {
+                intent Baz { var x: int }
+            }"#
+        ),
+        expect_test::expect![[r#"
+            expected `pub`, or `}`, found `var`
+            @58..61: expected `pub`, or `}`
+        "#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"
+            interface Foo {
+                intent Baz { pub var x; }
+            }"#
+        ),
+        expect_test::expect![[r#"
+            expected `:`, found `;`
+            @67..68: expected `:`
+        "#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"
+            interface Foo {
+                intent Baz { pub var x: int; pub var y: b256; }
+            }"#
+        ),
+        expect_test::expect![[r#"
+            interface ::Foo {
+                intent Baz {
+                    pub var x: int;
+                    pub var y: b256;
+                }
+            }"#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"
             interface Foo { }"#
         ),
         expect_test::expect![[r#"
-            expected `storage`, found `}`
-            @29..30: expected `storage`
-        "#]],
+            interface ::Foo {
+            }"#]],
     );
 
     check(
@@ -839,8 +891,9 @@ interface Foo {
             }"#
         ),
         expect_test::expect![[r#"
-            expected `}`, found `storage`
-            @73..80: expected `}`
+            `storage` block has already been declared
+            @45..56: previous declaration of a `storage` block here
+            @73..84: another `storage` block is declared here
         "#]],
     );
 }
@@ -870,6 +923,89 @@ interface FooInstance =
         expect_test::expect![[r#"
             interface ::FooInstance = ::path::to::FooInstance(::addr)
             var ::addr: b256;"#]],
+    );
+}
+
+#[test]
+fn intent_instance() {
+    let pint = (yp::PintParser::new(), "");
+
+    let src = r#"
+intent FooInstance =
+    InterfaceInstance::FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111);
+"#;
+
+    check(
+        &run_parser!(pint, src),
+        expect_test::expect![[r#"
+            intent ::FooInstance = ::InterfaceInstance::FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111)
+            var __::FooInstance_pathway: int;"#]],
+    );
+
+    let src = r#"
+intent FooInstance = 
+    ::InterfaceInstance::FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111);
+"#;
+
+    check(
+        &run_parser!(pint, src),
+        expect_test::expect![[r#"
+            intent ::FooInstance = ::InterfaceInstance::FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111)
+            var __::FooInstance_pathway: int;"#]],
+    );
+
+    let src = r#"
+var addr: b256;
+intent FooInstance = path::to::FooInstance(addr);
+"#;
+
+    check(
+        &run_parser!(pint, src),
+        expect_test::expect![[r#"
+            intent ::FooInstance = ::path::to::FooInstance(::addr)
+            var ::addr: b256;
+            var __::FooInstance_pathway: int;"#]],
+    );
+
+    let src = r#"
+var addr: b256;
+intent FooInstance = ::path::to::FooInstance(addr);
+"#;
+
+    check(
+        &run_parser!(pint, src),
+        expect_test::expect![[r#"
+            intent ::FooInstance = ::path::to::FooInstance(::addr)
+            var ::addr: b256;
+            var __::FooInstance_pathway: int;"#]],
+    );
+
+    let src = r#"
+var addr: b256;
+intent FooInstance = FooInstance(addr);
+"#;
+
+    check(
+        &run_parser!(pint, src),
+        expect_test::expect![[r#"
+            path `FooInstance` to an intent interface is too short
+            @17..55: path `FooInstance` is too short and cannot refer to an intent interface
+            a path to an intent interface must contain a path to an `interface` instance followed by the name of the `intent`, separated by a `::`
+        "#]],
+    );
+
+    let src = r#"
+var addr: b256;
+intent FooInstance = ::FooInstance(addr);
+"#;
+
+    check(
+        &run_parser!(pint, src),
+        expect_test::expect![[r#"
+            path `::FooInstance` to an intent interface is too short
+            @17..57: path `::FooInstance` is too short and cannot refer to an intent interface
+            a path to an intent interface must contain a path to an `interface` instance followed by the name of the `intent`, separated by a `::`
+        "#]],
     );
 }
 
@@ -976,7 +1112,7 @@ fn external_storage_access() {
 }
 
 #[test]
-fn let_decls() {
+fn var_decls() {
     let mod_path = vec!["foo".to_string()];
     let pint = (yp::PintParser::new(), "");
 
@@ -1050,6 +1186,85 @@ fn let_decls() {
     );
     check(
         &run_parser!(pint, r#"var blah: string;"#, mod_path),
+        expect_test::expect!["var ::foo::blah: string;"],
+    );
+}
+
+#[test]
+fn pub_var_decls() {
+    let mod_path = vec!["foo".to_string()];
+    let pint = (yp::PintParser::new(), "");
+
+    check(
+        &run_parser!(pint, "pub var blah;", mod_path),
+        expect_test::expect![[r#"
+            type annotation or initializer needed for variable `blah`
+            @0..12: type annotation or initializer needed
+            consider giving `blah` an explicit type or an initializer
+        "#]],
+    );
+    check(
+        &run_parser!(pint, "pub var blah = 1.0;", mod_path),
+        expect_test::expect![[r#"
+            var ::foo::blah;
+            constraint (::foo::blah == 1e0);"#]],
+    );
+    check(
+        &run_parser!(pint, "pub var blah: real = 1.0;", mod_path),
+        expect_test::expect![[r#"
+            var ::foo::blah: real;
+            constraint (::foo::blah == 1e0);"#]],
+    );
+    check(
+        &run_parser!(pint, "pub var blah: real;", mod_path),
+        expect_test::expect!["var ::foo::blah: real;"],
+    );
+    check(
+        &run_parser!(pint, "pub var blah = 1;", mod_path),
+        expect_test::expect![[r#"
+            var ::foo::blah;
+            constraint (::foo::blah == 1);"#]],
+    );
+    check(
+        &run_parser!(pint, "pub var blah: int = 1;", mod_path),
+        expect_test::expect![[r#"
+            var ::foo::blah: int;
+            constraint (::foo::blah == 1);"#]],
+    );
+    check(
+        &run_parser!(pint, "pub var blah: int;", mod_path),
+        expect_test::expect!["var ::foo::blah: int;"],
+    );
+    check(
+        &run_parser!(pint, "pub var blah = true;", mod_path),
+        expect_test::expect![[r#"
+            var ::foo::blah;
+            constraint (::foo::blah == true);"#]],
+    );
+    check(
+        &run_parser!(pint, "pub var blah: bool = false;", mod_path),
+        expect_test::expect![[r#"
+            var ::foo::blah: bool;
+            constraint (::foo::blah == false);"#]],
+    );
+    check(
+        &run_parser!(pint, "pub var blah: bool;", mod_path),
+        expect_test::expect!["var ::foo::blah: bool;"],
+    );
+    check(
+        &run_parser!(pint, r#"pub var blah = "hello";"#, mod_path),
+        expect_test::expect![[r#"
+            var ::foo::blah;
+            constraint (::foo::blah == "hello");"#]],
+    );
+    check(
+        &run_parser!(pint, r#"pub var blah: string = "hello";"#, mod_path),
+        expect_test::expect![[r#"
+            var ::foo::blah: string;
+            constraint (::foo::blah == "hello");"#]],
+    );
+    check(
+        &run_parser!(pint, r#"pub var blah: string;"#, mod_path),
         expect_test::expect!["var ::foo::blah: string;"],
     );
 }

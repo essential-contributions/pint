@@ -1,0 +1,23 @@
+[[data]]
+intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "::Simple" }
+decision_variables = [
+  42, # ::z
+  69, # ::q
+]
+transient_data = [
+  { key = [0], value = [
+    58, # ::x
+  ] },
+  { key = [1], value = [
+    31, # ::y
+  ] },
+  { key = [2], value = [
+    9,
+    9,
+    9,
+    9, # ::w
+  ] },
+  { key = [3], value = [
+    1, # ::b
+  ] },
+]

@@ -2,8 +2,9 @@ use crate::{
     error::{CompileError, Error, Handler, ParseError},
     expr::*,
     intermediate::{
-        ConstraintDecl, ExprKey, Interface, InterfaceInstance, IfDecl, IntermediateIntent, Program, ProgramKind,
-        SolveFunc, StorageVar, BlockStatement,
+        BlockStatement, ConstraintDecl, ExprKey, IfDecl, IntentInstance, IntentInterface,
+        Interface, InterfaceDecl, InterfaceInstance, InterfaceVar, IntermediateIntent, Program,
+        ProgramKind, SolveFunc, StorageVar, Var
     },
     lexer,
     macros::{MacroCall, MacroDecl},
@@ -47,6 +48,7 @@ DeclBarringMacro: () = {
     NewTypeDecl ";",
     MacroCallDecl ";",
     InterfaceInstance ";",
+    IntentInstance ";",
 };
 
 IntentDecl: () = {
@@ -152,8 +154,12 @@ StorageVar: StorageVar = {
     }
 }
 
+StorageBlock: Vec<StorageVar> = {
+    "storage" "{" <storage_vars:SepList<StorageVar, ",">> "}" => storage_vars,
+}
+
 StorageDecl: () = {
-    <l:@L> "storage" "{" <storage_vars:SepList<StorageVar, ",">>  "}" <r:@R> => {
+    <l:@L> <storage_vars:StorageBlock> <r:@R> => {
         let span = (context.span_from)(l, r);
         if let Some((_, prev_span)) = &context.current_ii().storage {
             // Multiple `storage` blocks are not allowed
@@ -174,16 +180,84 @@ StorageDecl: () = {
     },
 }
 
+InterfaceVar: InterfaceVar = {
+    <l:@L> "pub" "var" <let_name:VarName> ":" <ty:Type> ";" <r:@R> => {
+        // This is temporary until we support other types
+        if !(ty.is_bool() || ty.is_int() || ty.is_b256()) {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "only `bool`, `int` and `b256` are currently support in interface vars",
+                    span: span::empty_span(),
+                },
+            });
+        }
+        InterfaceVar {
+            name: let_name.0.to_string(),
+            ty,
+            span: (context.span_from)(l, r),
+        }
+    }
+}
+
+IntentInterface: IntentInterface = {
+    <l:@L> "intent" <name:Ident> "{" <vars:InterfaceVar*> "}" <r:@R> => {
+        IntentInterface {
+            name,
+            vars,
+            span: (context.span_from)(l, r),
+        }
+    },
+    <l:@L> "intent" <name:Ident> ";" <r:@R> => {
+        IntentInterface {
+            name,
+            vars: vec![],
+            span: (context.span_from)(l, r),
+        }
+    }
+}
+
+InterfaceDecl: InterfaceDecl = {
+    <l:@L> <storage_vars:StorageBlock> <r:@R> => {
+        InterfaceDecl::StorageDecl((storage_vars, (context.span_from)(l, r)))
+    },
+    <intent_interface:IntentInterface> => {
+        InterfaceDecl::IntentInterface(intent_interface)
+    },
+}
+
 Interface: () = {
     <l:@L> "interface" <name:Ident> "{"
-        "storage" "{" <storage_vars:SepList<StorageVar, ",">> "}"
+        <interface_decls:InterfaceDecl*>
     "}" <r:@R> => {
-        let interface_decl = Interface {
+        let mut interface = Interface {
             name: context.add_top_level_symbol(handler, name, context.mod_prefix),
-            storage_vars,
+            storage: None,
+            intent_interfaces: vec![],
             span: (context.span_from)(l, r),
         };
-        context.current_ii().interfaces.push(interface_decl);
+
+        for decl in interface_decls {
+            match decl {
+                InterfaceDecl::StorageDecl(d) => {
+                    if let Some((_, prev_span)) = &interface.storage {
+                        // Multiple `storage` blocks are not allowed
+                        handler.emit_err(Error::Parse {
+                            error: ParseError::TooManyStorageBlocks {
+                                span: d.1,
+                                prev_span: prev_span.clone(),
+                            },
+                        });
+                    } else {
+                        interface.storage = Some(d)
+                    }
+                }
+                InterfaceDecl::IntentInterface(intent_interface) => {
+                    interface.intent_interfaces.push(intent_interface)
+                }
+            }
+        }
+
+        context.current_ii().interfaces.push(interface);
     }
 }
 
@@ -199,6 +273,103 @@ InterfaceInstance: () = {
             .current_ii()
             .interface_instances
             .push(interface_instance);
+    }
+}
+
+IntentInstance: () = {
+    <l:@L> "intent" <name:Ident> "=" <l1:@L> "::" <els:(<Ident> "::")*> <r1:@R> <intent:Ident>
+            "(" <address:Expr> ")" <r:@R> => {
+        let interface_instance = if els.is_empty() {
+            handler.emit_err(Error::Parse {
+                error: ParseError::PathTooShort {
+                    path: "::".to_owned() + &intent.name,
+                    span: (context.span_from)(l, r),
+                },
+            });
+            "".to_string()
+        } else {
+            let els_len = els.len();
+            let path_span = (context.span_from)(l1, r1);
+            context.handle_absolute_path(
+                els[..els_len - 1].to_vec(),
+                els[els_len - 1].clone(),
+                false,
+                path_span,
+            )
+        };
+
+        let span = (context.span_from)(l, r);
+        let full_intent_instance_name =
+            context.add_top_level_symbol(handler, name.clone(), context.mod_prefix);
+        let intent_instance = IntentInstance {
+            name: full_intent_instance_name.clone(),
+            interface_instance,
+            intent,
+            address,
+            span: span.clone(),
+        };
+        context.current_ii().intent_instances.push(intent_instance);
+    
+        // Also insert a local integer decision variable that represents the pathway corresponding
+        // to this particular intent instance
+        context.current_ii().vars.insert(
+            Var {
+                name: "__".to_string() + &full_intent_instance_name.to_string() + "_pathway",
+                is_pub: false,
+                span,
+            },
+            Type::Primitive {
+                kind: PrimitiveKind::Int,
+                span: span::empty_span(),
+            },
+        );
+    },
+    <l:@L> "intent" <name:Ident> "=" <l1:@L> <els:(<Ident> "::")*> <r1:@R> <intent:Ident>
+            "(" <address:Expr> ")" <r:@R> => {
+        let interface_instance = if els.is_empty() {
+            handler.emit_err(Error::Parse {
+                error: ParseError::PathTooShort {
+                    path: intent.name.clone(),
+                    span: (context.span_from)(l, r),
+                },
+            });
+            "".to_string()
+        } else {
+            let els_len = els.len();
+            let path_span = (context.span_from)(l1, r1);
+            context.handle_relative_path(
+                els[..els_len - 1].to_vec(),
+                els[els_len - 1].clone(),
+                false,
+                path_span,
+            )
+        };
+
+        let span = (context.span_from)(l, r);
+        let full_intent_instance_name =
+            context.add_top_level_symbol(handler, name.clone(), context.mod_prefix);
+        let intent_instance = IntentInstance {
+            name: full_intent_instance_name.clone(),
+            interface_instance,
+            intent,
+            address,
+            span: span.clone(),
+        };
+        context.current_ii().intent_instances.push(intent_instance);
+
+        // Also insert a local integer decision variable that represents the pathway corresponding
+        // to this particular intent instance
+        context.current_ii().vars.insert(
+            Var {
+                name: "__".to_string() + &full_intent_instance_name.to_string() + "_pathway",
+                is_pub: false,
+                span,
+            },
+            Type::Primitive {
+                kind: PrimitiveKind::Int,
+                span: span::empty_span(),
+            },
+        );
     }
 }
 
@@ -316,11 +487,18 @@ UseTree: UseTree = {
 };
 
 VarDecl: () = {
-    <l:@L> "var" <let_name:VarName> ":" <ty:Type> <init:VarInit?> <r:@R> => {
+    <l:@L> <is_pub:"pub"?> "var" <let_name:VarName> ":" <ty:Type> <init:VarInit?> <r:@R> => {
         let mod_prefix = context.mod_prefix;
         let _ = context
             .current_ii()
-            .insert_var(handler, mod_prefix, let_name.1, &let_name.0, Some(ty))
+            .insert_var(
+                handler,
+                mod_prefix,
+                let_name.1,
+                is_pub.is_some(),
+                &let_name.0,
+                Some(ty),
+            )
             .map(|var_key| {
                 if let Some(expr_key) = init {
                     context.current_ii().var_inits.insert(var_key, expr_key);
@@ -331,11 +509,18 @@ VarDecl: () = {
                 }
             });
     },
-    <l:@L> "var" <let_name:VarName> <init:VarInit> <r:@R> => {
+    <l:@L> <is_pub:"pub"?> "var" <let_name:VarName> <init:VarInit> <r:@R> => {
         let mod_prefix = context.mod_prefix;
         let _ = context
             .current_ii()
-            .insert_var(handler, mod_prefix, let_name.1, &let_name.0, None)
+            .insert_var(
+                handler,
+                mod_prefix,
+                let_name.1,
+                is_pub.is_some(),
+                &let_name.0,
+                None,
+            )
             .map(|var_key| {
                 context.current_ii().var_inits.insert(var_key, init);
                 let span = (context.span_from)(l, r);
@@ -344,7 +529,7 @@ VarDecl: () = {
                     .insert_eq_or_ineq_constraint(var_key, init, span);
             });
     },
-    <l:@L> "var" <name:Ident> <r:@R> => {
+    <l:@L> <is_pub:"pub"?> "var" <name:Ident> <r:@R> => {
         handler.emit_err(Error::Parse {
             error: ParseError::UntypedVariable {
                 name: name.name,
@@ -1459,6 +1644,7 @@ extern {
         "else" => lexer::Token::Else,
         "cond" => lexer::Token::Cond,
 
+        "pub" => lexer::Token::Pub,
         "use" => lexer::Token::Use,
         "self" => lexer::Token::SelfTok,
         "var" => lexer::Token::Var,

@@ -80,6 +80,7 @@ pub(crate) fn canonicalize_solve_directive(
     let objective_var_key = ii.vars.insert(
         Var {
             name: objective_var_name,
+            is_pub: false,
             span: directive_span.clone(),
         },
         directive_expr_type.clone(),
