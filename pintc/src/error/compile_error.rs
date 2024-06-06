@@ -169,6 +169,8 @@ pub enum CompileError {
         expected_ty: String,
         span: Span,
     },
+    #[error("invalid array range type {found_ty}")]
+    InvalidArrayRangeType { found_ty: String, span: Span },
     #[error("attempt to index a storage map with a mismatched value")]
     StorageMapAccessWithWrongType {
         found_ty: String,
@@ -690,6 +692,14 @@ impl ReportableError for CompileError {
                 }]
             }
 
+            InvalidArrayRangeType { span, .. } => {
+                vec![ErrorLabel {
+                    message: "array access must be of type `int` or `enum`".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
             StorageMapAccessWithWrongType {
                 expected_ty, span, ..
             } => {
@@ -1077,6 +1087,10 @@ impl ReportableError for CompileError {
                 Some(format!("found access using type `{found_ty}`"))
             }
 
+            InvalidArrayRangeType { found_ty, .. } => {
+                Some(format!("found range type `{found_ty}`"))
+            }
+
             StorageMapAccessWithWrongType { found_ty, .. } => {
                 Some(format!("found access using type `{found_ty}`"))
             }
@@ -1241,6 +1255,7 @@ impl Spanned for CompileError {
             | NonBoolConditional { span, .. }
             | IndexExprNonIndexable { span, .. }
             | ArrayAccessWithWrongType { span, .. }
+            | InvalidArrayRangeType { span, .. }
             | StorageMapAccessWithWrongType { span, .. }
             | MismatchedArrayComparisonSizes { span, .. }
             | TupleAccessNonTuple { span, .. }

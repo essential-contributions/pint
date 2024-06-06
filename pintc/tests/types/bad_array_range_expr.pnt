@@ -1,0 +1,53 @@
+// Bad
+var a: int[true];
+var b: int[false];
+var d: int[0x0000000000000000000000000000000000000000000000000000000000000000];
+var e: int[{1, 2}];
+var f: int[[1, 2]];
+var g: int["str"];
+var h: int[10.0];
+
+// Ok
+enum MyEnum = A | B;
+var i: int[10];
+var j: int[MyEnum];
+
+solve satisfy;
+
+// intermediate <<<
+//+var ::a: int[true];
+//+var ::b: int[false];
+//+var ::d: int[0x0000000000000000000000000000000000000000000000000000000000000000];
+//+var ::e: int[{1, 2}];
+//+var ::f: int[[1, 2]];
+//+var ::g: int["str"];
+//+var ::h: int[1e1];
+//+var ::i: int[10];
+//+var ::j: int[::MyEnum];
+//+enum ::MyEnum = A | B;
+//+solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// invalid array range type bool
+// @18..22: array access must be of type `int` or `enum`
+// found range type `bool`
+// invalid array range type bool
+// @36..41: array access must be of type `int` or `enum`
+// found range type `bool`
+// invalid array range type b256
+// @55..121: array access must be of type `int` or `enum`
+// found range type `b256`
+// invalid array range type {int, int}
+// @135..141: array access must be of type `int` or `enum`
+// found range type `{int, int}`
+// invalid array range type int[2]
+// @155..161: array access must be of type `int` or `enum`
+// found range type `int[2]`
+// invalid array range type string
+// @175..180: array access must be of type `int` or `enum`
+// found range type `string`
+// invalid array range type real
+// @194..198: array access must be of type `int` or `enum`
+// found range type `real`
+// >>>

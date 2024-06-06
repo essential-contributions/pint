@@ -587,12 +587,13 @@ impl AsmBuilder {
                 let type_size = then_expr.get_ty(intent).size();
                 self.compile_expr(handler, asm, else_expr, intent)?;
                 self.compile_expr(handler, asm, then_expr, intent)?;
-                self.compile_expr(handler, asm, condition, intent)?;
                 if type_size == 1 {
+                    self.compile_expr(handler, asm, condition, intent)?;
                     asm.push(Constraint::Stack(Stack::Select));
                 } else {
-                    // `SelectRange` when it's available
-                    todo!()
+                    asm.push(Constraint::Stack(Stack::Push(type_size as i64)));
+                    self.compile_expr(handler, asm, condition, intent)?;
+                    asm.push(Constraint::Stack(Stack::SelectRange));
                 }
             }
             Expr::Error(_)

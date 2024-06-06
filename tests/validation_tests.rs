@@ -246,7 +246,7 @@ fn parse_solution(
                     .unwrap_or(&Vec::new())
                     .iter()
                     .map(|d| {
-                        d.as_integer().ok_or_else(|| {
+                        d.as_integer().map(|d| vec![d]).ok_or_else(|| {
                             anyhow!("Invalid integer value in list of decision variables")
                         })
                     })
