@@ -1,7 +1,9 @@
 //! Tests for creation of compilation `Plan`s.
 
-use pint_pkg::{manifest::ManifestFile, new::new_pkg};
-use util::{edit_manifest, insert_dep, new_lib_pkg, with_temp_dir};
+#![allow(clippy::disallowed_names)]
+
+use pint_pkg::manifest::PackageKind;
+use util::{edit_manifest, insert_dep, new_pkg, with_temp_dir};
 
 mod util;
 
@@ -10,12 +12,9 @@ fn one_pkg() {
     with_temp_dir(|dir| {
         // Create a package.
         let name = "foo";
-        let path = dir.join(name);
-        new_pkg(&path, Default::default()).unwrap();
+        let manifest = new_pkg(&dir.join(name), PackageKind::Contract);
 
         // Collect the member manifests (only one).
-        let manifest_path = path.join(ManifestFile::FILE_NAME);
-        let manifest = ManifestFile::from_path(&manifest_path).unwrap();
         let members = [(name.to_string(), manifest)].into_iter().collect();
 
         // Create the plan.
@@ -30,8 +29,8 @@ fn one_pkg() {
 fn two_pkgs() {
     with_temp_dir(|dir| {
         // Create two packages.
-        let mut foo = new_lib_pkg(&dir.join("foo"));
-        let bar = new_lib_pkg(&dir.join("bar"));
+        let mut foo = new_pkg(&dir.join("foo"), PackageKind::Library);
+        let bar = new_pkg(&dir.join("bar"), PackageKind::Library);
 
         // Create dependency foo -> bar.
         edit_manifest(&mut foo, |m| insert_dep(m, &bar));
@@ -62,9 +61,9 @@ fn two_pkgs() {
 #[test]
 fn three_pkgs() {
     with_temp_dir(|dir| {
-        let mut foo = new_lib_pkg(&dir.join("foo"));
-        let mut bar = new_lib_pkg(&dir.join("bar"));
-        let baz = new_lib_pkg(&dir.join("baz"));
+        let mut foo = new_pkg(&dir.join("foo"), PackageKind::Library);
+        let mut bar = new_pkg(&dir.join("bar"), PackageKind::Library);
+        let baz = new_pkg(&dir.join("baz"), PackageKind::Library);
 
         // Create dependencies foo -> bar -> baz.
         edit_manifest(&mut bar, |m| insert_dep(m, &baz));
@@ -98,10 +97,10 @@ fn three_pkgs() {
 #[test]
 fn diamond_pkgs() {
     with_temp_dir(|dir| {
-        let mut foo = new_lib_pkg(&dir.join("foo"));
-        let mut bar = new_lib_pkg(&dir.join("bar"));
-        let mut baz = new_lib_pkg(&dir.join("baz"));
-        let qux = new_lib_pkg(&dir.join("qux"));
+        let mut foo = new_pkg(&dir.join("foo"), PackageKind::Library);
+        let mut bar = new_pkg(&dir.join("bar"), PackageKind::Library);
+        let mut baz = new_pkg(&dir.join("baz"), PackageKind::Library);
+        let qux = new_pkg(&dir.join("qux"), PackageKind::Library);
 
         // Create dependencies foo -> bar, foo -> baz, bar -> qux, baz -> qux.
         edit_manifest(&mut bar, |m| insert_dep(m, &qux));
@@ -143,8 +142,8 @@ fn diamond_pkgs() {
 fn cycle() {
     with_temp_dir(|dir| {
         // Create two packages.
-        let mut foo = new_lib_pkg(&dir.join("foo"));
-        let mut bar = new_lib_pkg(&dir.join("bar"));
+        let mut foo = new_pkg(&dir.join("foo"), PackageKind::Library);
+        let mut bar = new_pkg(&dir.join("bar"), PackageKind::Library);
 
         // Create dependencies foo -> bar, bar -> foo.
         edit_manifest(&mut foo, |m| insert_dep(m, &bar));

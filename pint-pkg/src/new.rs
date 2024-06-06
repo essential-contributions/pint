@@ -1,6 +1,6 @@
 //! Items related to the creation of new packages.
 
-use crate::manifest::{self, ManifestFile};
+use crate::manifest::{self, Manifest, ManifestFile};
 use std::{
     fs,
     io::{self, Write},
@@ -79,11 +79,11 @@ pub fn new_pkg(path: &Path, opts: Options) -> Result<(), NewPkgError> {
 
     // Create the manifest file.
     let manifest_string = new_manifest_string(&name, &kind);
-    fs::write(manifest_path, manifest_string)?;
+    fs::write(manifest_path, &manifest_string)?;
 
     // Create the default pint file.
-    let pnt_filename = format!("{kind}.pnt");
-    let pnt_path = src_path.join(pnt_filename);
+    let manifest: Manifest = manifest_string.parse().expect("checked in unit testing");
+    let pnt_path = src_path.join(manifest.entry_point_str());
     if !pnt_path.exists() {
         let pnt_string = default_pnt_str(&kind);
         fs::write(pnt_path, pnt_string)?;
@@ -127,7 +127,7 @@ const DEFAULT_CONTRACT_PNT: &str = r#"storage {
 }
 
 intent Init {
-    var value: int;
+    let value: int;
     state counter: int = storage::counter;
     constraint counter' == value;
 }
@@ -138,9 +138,9 @@ intent Increment {
 }
 "#;
 
-const DEFAULT_LIBRARY_PNT: &str = r#"pub enum Animal = Cat | Dog;
+const DEFAULT_LIBRARY_PNT: &str = r#"enum Animal = Cat | Dog;
 
-pub type Person = {
+type Person = {
     address: b256,
     pet: Animal,
 };

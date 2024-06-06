@@ -2,10 +2,7 @@
 
 #![allow(dead_code)]
 
-use pint_pkg::{
-    manifest::{self, Manifest, ManifestFile},
-    new::new_pkg,
-};
+use pint_pkg::manifest::{self, Manifest, ManifestFile};
 use std::{fs, panic::UnwindSafe, path::Path};
 
 /// Create a temporary directory with a random hash based on current timestamp
@@ -30,13 +27,13 @@ where
     res.unwrap();
 }
 
-/// Create a new library package with default options.
-pub(crate) fn new_lib_pkg(path: &Path) -> ManifestFile {
+/// Shorthand to create a new package of the given kind and return the manifest file.
+pub(crate) fn new_pkg(path: &Path, kind: manifest::PackageKind) -> ManifestFile {
     let opts = pint_pkg::new::Options {
-        kind: Some("library".parse().unwrap()),
+        kind: Some(kind),
         ..Default::default()
     };
-    new_pkg(path, opts).unwrap();
+    pint_pkg::new::new_pkg(path, opts).unwrap();
     let manifest_path = path.join(ManifestFile::FILE_NAME);
     ManifestFile::from_path(&manifest_path).unwrap()
 }
