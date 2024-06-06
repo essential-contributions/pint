@@ -16,7 +16,7 @@ solve satisfy;
 // unable to determine spliced array size
 // @111..115: unable to determine spliced array size for `::ary` while parsing
 // macro array splicing is currently limited to immediate integer sizes or enums
-// expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `constraint`, `enum`, `exists`, `false`, `forall`, `ident`, `if`, `interface`, `macro_name`, `solve`, `state`, `true`, `type`, `use`, `var`, `{`, or `}`, found `~ary`
-// @111..115: expected `!`, `(`, `+`, `-`, `::`, `[`, `a literal`, `cond`, `constraint`, `enum`, `exists`, `false`, `forall`, `ident`, `if`, `interface`, `macro_name`, `solve`, `state`, `true`, `type`, `use`, `var`, `{`, or `}`
+// expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `constraint`, `enum`, `exists`, `forall`, `if`, `interface`, `macro_name`, `solve`, `state`, `type`, `use`, `var`, `{`, or `}`, found `~ary`
+// @111..115: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `constraint`, `enum`, `exists`, `forall`, `if`, `interface`, `macro_name`, `solve`, `state`, `type`, `use`, `var`, `{`, or `}`
 // @106..116: when making macro call to '::@sum'
 // >>>
