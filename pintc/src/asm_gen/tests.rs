@@ -19,7 +19,8 @@ pub(super) fn compile(code: &str) -> Intents {
     let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
     write!(tmpfile.as_file_mut(), "{}", code).unwrap();
     let handler = Handler::default();
-    let program = parse_project(&handler, tmpfile.path())
+    let deps = Default::default();
+    let program = parse_project(&handler, &deps, tmpfile.path())
         .unwrap()
         .compile(&handler)
         .unwrap();

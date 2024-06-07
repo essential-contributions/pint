@@ -53,9 +53,12 @@ async fn validation_e2e() -> anyhow::Result<()> {
         // Error handler
         let handler = pintc::error::Handler::default();
 
+        // These tests have no dependencies.
+        let deps = Default::default();
+
         // Produce the initial parsed program
         let parsed = unwrap_or_continue!(
-            pintc::parser::parse_project(&handler, &path),
+            pintc::parser::parse_project(&handler, &deps, &path),
             "parse pint",
             failed_tests,
             path,
