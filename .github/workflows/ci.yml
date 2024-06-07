@@ -40,6 +40,13 @@ jobs:
   clippy_check:
     runs-on: ubuntu-latest
     steps:
+      - name: Provide Access to Private Repos
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.SSH_PRIVATE_KEY }}
+            ${{ secrets.SSH_PRIVATE_KEY_BASE }}
+
       - uses: actions/checkout@v4
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features
