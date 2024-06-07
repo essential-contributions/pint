@@ -7,25 +7,6 @@ plugins:
       ref: v1.5.0
       uri: https://github.com/trunk-io/plugins
 lint:
-  definitions:
-    - name: clippy
-      environment:
-        # Forward `env.SSH_AUTH_SOCK` in order to give `Clippy` access to some private repos. This,
-        # apparently, is not done by default. Must use `ssh-agent` to export `SSH_AUTH_SOCK` before
-        # the `trunk check` job in CI. Also need to re-set all other default environment variables
-        # here because this process is not additive.
-        - name: PATH
-          list: ["${linter}/bin", "${env.PATH}"]
-        - name: CARGO_HOME
-          value: ${cachedir}/cargo_home
-        - name: CARGO_TARGET_DIR
-          value: ${cachedir}/cargo_target_dir
-        - name: SSH_AUTH_SOCK
-          value: ${env.SSH_AUTH_SOCK}
-          optional: true
-        # Ensure cargo uses git via CLI for ssh-agent interop while essential-base is private.
-        - name: CARGO_NET_GIT_FETCH_WITH_CLI
-          value: true
   enabled:
     - checkov@3.2.125
     - osv-scanner@1.7.4
@@ -33,7 +14,6 @@ lint:
     - trivy@0.52.0
     - trufflehog@3.78.0
     - actionlint@1.7.1
-    - clippy@1.77.2
     - git-diff-check
     - markdownlint@0.41.0
     - prettier@3.3.0
