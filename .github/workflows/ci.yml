@@ -11,6 +11,8 @@ env:
   NIGHTLY_RUST_VERSION: nightly-2024-02-10
   SCIP_VERSION: 8.0.3
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+  # Make sure CI fails on all warnings, including Clippy lints
+  RUSTFLAGS: "-Dwarnings"
 
 permissions: read-all
 
@@ -34,6 +36,13 @@ jobs:
 
       - name: Trunk Check
         uses: trunk-io/trunk-action@v1
+
+  clippy_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features
 
   build:
     name: Cargo Build and Test Workspace
