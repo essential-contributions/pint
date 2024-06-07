@@ -12,7 +12,7 @@ env:
   SCIP_VERSION: 8.0.3
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
   # Make sure CI fails on all warnings, including Clippy lints
-  RUSTFLAGS: "-Dwarnings"
+  RUSTFLAGS: -Dwarnings
 
 permissions: read-all
 
