@@ -1,0 +1,15 @@
+storage {
+    nonce: (b256 => int),
+}
+
+intent Init {
+    var sig: { b256, b256, int };
+    var key: b256;
+    var public_key: { b256, int };
+
+    state nonce = storage::nonce[key];
+
+    constraint nonce' == 0;
+    constraint __recover_secp256k1(__sha256(key), sig) == public_key;
+    constraint __sha256(public_key) == key;
+}
