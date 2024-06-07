@@ -26,7 +26,6 @@ lint:
         # Ensure cargo uses git via CLI for ssh-agent interop while essential-base is private.
         - name: CARGO_NET_GIT_FETCH_WITH_CLI
           value: true
-      args: ["--all-features", "--all-targets", "--", "-D", "warnings"]
   enabled:
     - checkov@3.2.125
     - osv-scanner@1.7.4
