@@ -1254,7 +1254,6 @@ TupleExpr: Expr = {
 
         Expr::Error(span)
     },
-
 };
 
 TupleExprFields: Vec<(Option<Ident>, ExprKey)> = {
@@ -1262,6 +1261,11 @@ TupleExprFields: Vec<(Option<Ident>, ExprKey)> = {
         // Special case for a single field with a field label which does not require the trailing
         // comma to distinguish it from a block expression.
         vec![(Some(id), expr)]
+    },
+    <expr:Expr> => {
+        // Special case for a single field which does not require the trailing
+        // comma to distinguish it from a block expression.
+        vec![(None, expr)]
     },
     <Sep1List<TupleExprField, ",">>,
 };
