@@ -973,20 +973,20 @@ constraint x == y + 1;
 <p>Tuple expressions are written as:</p>
 <pre><code class="language-bnf">&lt;tuple-expr&gt; ::= &quot;{&quot; ( [ &lt;ident&gt; &quot;:&quot; ] &lt;expr&gt; &quot;,&quot; ... ) &quot;}&quot;
 </code></pre>
-<p>For example: <code>let t = { x: 5, 3, &quot;foo&quot; };</code>. The type of this tuple can be inferred by the compiler to be <code>{ x: int, int, string }</code>.</p>
+<p>For example: <code>var t = { x: 5, 3, &quot;foo&quot; };</code>. The type of this tuple can be inferred by the compiler to be <code>{ x: int, int, string }</code>.</p>
 <p>The following is another example:</p>
-<pre><code class="language-pint">let t: { x: int, real } = { 6, 5.0 }
+<pre><code class="language-pint">var t: { x: int, real } = { 6, 5.0 }
 </code></pre>
 <p>where the type of the tuple is indicated by the type annotation and has a named field <code>x</code>, but that named field is not actually used in the tuple expression. This is allowed because <code>{ x: int, real }</code> and <code>{ int, real }</code> coerce into each other.</p>
 <p>Tuple fields can be initialized out of order only if and only if all the fields have names and their names are used in the tuple expression. For example, the following is allowed:</p>
-<pre><code class="language-pint">let t: { x: int, y: real } = { y: 5.0, x: 6 };
+<pre><code class="language-pint">var t: { x: int, y: real } = { y: 5.0, x: 6 };
 </code></pre>
 <p>while the following are not:</p>
-<pre><code class="language-pint">let t: { x: int, real } = { 5.0, x: 6 };
-let t: { x: int, y: real } = { 5.0, x: 6 };
-let t: { x: int, y: real } = { 5.0, 6 }; // This is a type mismatch!
+<pre><code class="language-pint">var t: { x: int, real } = { 5.0, x: 6 };
+var t: { x: int, y: real } = { 5.0, x: 6 };
+var t: { x: int, y: real } = { 5.0, 6 }; // This is a type mismatch!
 </code></pre>
-<p>Tuple expressions that contain a single <em>unnamed</em> field require the trailing <code>,</code> as in <code>let t = { 4.0, };</code>. Otherwise, the expression becomes a code block that simply evaluates to its contained expression. Tuple expressions that contain a single <em>named</em> field do not require the trailing <code>,</code>.</p>
+<p>Tuple expressions that contain a single field do not require the trailing <code>,</code> as in <code>var t = { 4.0 };</code> or <code>var t = { x: 5 }</code>.</p>
 <p>Note that the grammar disallows empty tuple expressions <code>{ }</code>.</p>
 <p>Tuple field access expressions are written as:</p>
 <pre><code class="language-bnf">&lt;tuple-field-access-expr&gt; ::= &lt;expr&gt; &quot;.&quot; ( [0-9]+ | &lt;ident&gt; )
