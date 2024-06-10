@@ -2200,13 +2200,9 @@ fn array_element_accesses() {
 fn tuple_expressions() {
     let expr = (yp::TestDelegateParser::new(), "expr");
 
-    // Should probably allow this. Won't worry about it for now.
     check(
         &run_parser!(expr, r#"{ 0 }"#),
-        expect_test::expect![[r#"
-            expected `,`, found `}`
-            @15..16: expected `,`
-        "#]],
+        expect_test::expect![[r#"{0}"#]],
     );
 
     check(
