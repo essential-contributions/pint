@@ -11,8 +11,6 @@ env:
   NIGHTLY_RUST_VERSION: nightly-2024-02-10
   SCIP_VERSION: 8.0.3
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
-  # Make sure CI fails on all warnings, including Clippy lints
-  RUSTFLAGS: -Dwarnings
 
 permissions: read-all
 
@@ -51,7 +49,7 @@ jobs:
 
       - uses: actions/checkout@v4
       - name: Run Clippy
-        run: cargo clippy --all-targets --all-features
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
   build:
     name: Cargo Build and Test Workspace
