@@ -22,6 +22,16 @@ jobs:
       contents: read
       checks: write
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Trunk Check
+        uses: trunk-io/trunk-action@v1
+
+  clippy_check:
+    name: Clippy Check
+    runs-on: ubuntu-latest
+    steps:
       - name: Provide Access to Private Repos
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -29,11 +39,17 @@ jobs:
             ${{ secrets.SSH_PRIVATE_KEY }}
             ${{ secrets.SSH_PRIVATE_KEY_BASE }}
 
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: clippy
 
-      - name: Trunk Check
-        uses: trunk-io/trunk-action@v1
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/checkout@v4
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
   build:
     name: Cargo Build and Test Workspace
