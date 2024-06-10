@@ -1,8 +1,9 @@
 use crate::{
     error::{ErrorLabel, ReportableError},
-    lexer::Token,
+    lexer::{self, Token},
     span::{Span, Spanned},
 };
+use fxhash::FxHashSet;
 use std::{path::Path, rc::Rc};
 use thiserror::Error;
 use yansi::Color;
@@ -364,8 +365,15 @@ fn format_expected_tokens_message(expected: &mut [Option<String>]) -> String {
         "expected {}",
         match expected {
             [] => "something else".to_string(),
-            [expected] => format_optional_token(expected),
+            [expected] => format_optional_token(&lexer::get_token_error_category(expected)),
             _ => {
+                let mut expected: Vec<Option<String>> = expected
+                    .iter()
+                    .map(lexer::get_token_error_category)
+                    .collect::<FxHashSet<_>>() // Remove duplicates
+                    .into_iter()
+                    .collect();
+
                 // Make sure that the list of expected tokens is printed in a deterministic order
                 expected.sort();
 

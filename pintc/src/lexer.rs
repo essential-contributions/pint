@@ -759,3 +759,21 @@ impl From<StringLiteralChar> for char {
         }
     }
 }
+
+// Convert from lalrpop token to error category
+pub fn get_token_error_category(lalrpop_token: &Option<String>) -> Option<String> {
+    if let Some(token) = lalrpop_token {
+        match token.as_str() {
+            "int_ty" | "real_ty" | "bool_ty" | "string_ty" | "b256_ty" => Some("a type".to_owned()),
+            "int_lit" | "real_lit" | "str_lit" => Some("a literal".to_owned()),
+            "true" | "false" => Some("a boolean".to_owned()),
+            "ident" => Some("an identifier".to_owned()),
+            "satisfy" => Some("a directive".to_owned()),
+            "minimize" => Some("a directive".to_owned()),
+            "maximize" => Some("a directive".to_owned()),
+            _ => Some(token.to_string()),
+        }
+    } else {
+        None
+    }
+}
