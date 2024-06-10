@@ -2,14 +2,14 @@ use crate::{
     error::{CompileError, Error, Handler, ParseError},
     expr::*,
     intermediate::{
-        BlockStatement, ConstraintDecl, ExprKey, IfDecl, IntentInstance, IntentInterface,
-        Interface, InterfaceDecl, InterfaceInstance, InterfaceVar, IntermediateIntent, Program,
-        ProgramKind, SolveFunc, StorageVar, Var
+        BlockStatement, ConstraintDecl, ExprKey, IfDecl, IntentInterface, InterfaceDecl,
+        InterfaceInstance, InterfaceVar, IntermediateIntent, Program, ProgramKind, SolveFunc,
+        StorageVar,
     },
     lexer,
     macros::{MacroCall, MacroDecl},
     parser::{
-        ParserContext, UsePath,
+        ParserContext,
         UseTree::{self, Path as UseTreePath},
     },
     span::{self, Spanned},
@@ -97,60 +97,7 @@ IntentClose: () = {
 
 StorageVar: StorageVar = {
     <l:@L> <name:Ident> ":" <ty:StorageVarType> <r:@R> => {
-        let span = (context.span_from)(l, r);
-        if ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() {
-            StorageVar {
-                name: name.to_string(),
-                ty,
-                span,
-            }
-        } else if let Type::Map {
-            ref ty_from,
-            ref ty_to,
-            ..
-        } = ty
-        {
-            if (ty_from.is_bool() || ty_from.is_int() || ty_from.is_b256())
-                && (ty_to.is_bool()
-                    || ty_to.is_int()
-                    || ty_to.is_b256()
-                    || ty_to.is_map()
-                    || ty_to.is_tuple())
-            {
-                StorageVar {
-                    name: name.to_string(),
-                    ty,
-                    span,
-                }
-            } else {
-                // TODO: allow arbitrary types in storage maps
-                handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "currently in storage maps, keys must be int, bool, or b256 /
-                              and values must be int and bool",
-                        span: span::empty_span(),
-                    },
-                });
-                StorageVar {
-                    name: name.to_string(),
-                    ty: Type::Error(ty.span().clone()),
-                    span,
-                }
-            }
-        } else {
-            // TODO: allow arbitrary types in storage blocks
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "only ints, bools, and maps are currently allowed in a storage block",
-                    span: span::empty_span(),
-                },
-            });
-            StorageVar {
-                name: name.to_string(),
-                ty: Type::Error(ty.span().clone()),
-                span,
-            }
-        }
+        context.parse_storage_var(handler, name, ty, (l, r))
     }
 }
 
@@ -160,28 +107,12 @@ StorageBlock: Vec<StorageVar> = {
 
 StorageDecl: () = {
     <l:@L> <storage_vars:StorageBlock> <r:@R> => {
-        let span = (context.span_from)(l, r);
-        if let Some((_, prev_span)) = &context.current_ii().storage {
-            // Multiple `storage` blocks are not allowed
-            handler.emit_err(Error::Parse {
-                error: ParseError::TooManyStorageBlocks {
-                    span,
-                    prev_span: prev_span.clone(),
-                },
-            });
-        } else if !context.mod_path.is_empty() {
-            // `storage` blocks in sub-modules are not allowed
-            handler.emit_err(Error::Parse {
-                error: ParseError::StorageDirectiveMustBeTopLevel { span },
-            });
-        } else {
-            context.current_ii().storage = Some((storage_vars, span));
-        }
+        context.parse_storage_decl(handler, storage_vars, (l, r))
     },
 }
 
 InterfaceVar: InterfaceVar = {
-    <l:@L> "pub" "var" <let_name:VarName> ":" <ty:Type> ";" <r:@R> => {
+    <l:@L> "pub" "var" <name:VarName> ":" <ty:Type> ";" <r:@R> => {
         // This is temporary until we support other types
         if !(ty.is_bool() || ty.is_int() || ty.is_b256()) {
             handler.emit_err(Error::Compile {
@@ -192,7 +123,7 @@ InterfaceVar: InterfaceVar = {
             });
         }
         InterfaceVar {
-            name: let_name.0.to_string(),
+            name: name.0.to_string(),
             ty,
             span: (context.span_from)(l, r),
         }
@@ -226,38 +157,8 @@ InterfaceDecl: InterfaceDecl = {
 }
 
 Interface: () = {
-    <l:@L> "interface" <name:Ident> "{"
-        <interface_decls:InterfaceDecl*>
-    "}" <r:@R> => {
-        let mut interface = Interface {
-            name: context.add_top_level_symbol(handler, name, context.mod_prefix),
-            storage: None,
-            intent_interfaces: vec![],
-            span: (context.span_from)(l, r),
-        };
-
-        for decl in interface_decls {
-            match decl {
-                InterfaceDecl::StorageDecl(d) => {
-                    if let Some((_, prev_span)) = &interface.storage {
-                        // Multiple `storage` blocks are not allowed
-                        handler.emit_err(Error::Parse {
-                            error: ParseError::TooManyStorageBlocks {
-                                span: d.1,
-                                prev_span: prev_span.clone(),
-                            },
-                        });
-                    } else {
-                        interface.storage = Some(d)
-                    }
-                }
-                InterfaceDecl::IntentInterface(intent_interface) => {
-                    interface.intent_interfaces.push(intent_interface)
-                }
-            }
-        }
-
-        context.current_ii().interfaces.push(interface);
+    <l:@L> "interface" <name:Ident> "{" <interface_decls:InterfaceDecl*> "}" <r:@R> => {
+        context.parse_interface(handler, name, interface_decls, (l, r));
     }
 }
 
@@ -277,199 +178,23 @@ InterfaceInstance: () = {
 }
 
 IntentInstance: () = {
-    <l:@L> "intent" <name:Ident> "=" <l1:@L> "::" <els:(<Ident> "::")*> <r1:@R> <intent:Ident>
+    <l:@L> "intent" <name:Ident> "=" <l1:@L> <abs:"::"?> <els:(<Ident> "::")*> <r1:@R> <intent:Ident>
             "(" <address:Expr> ")" <r:@R> => {
-        let interface_instance = if els.is_empty() {
-            handler.emit_err(Error::Parse {
-                error: ParseError::PathTooShort {
-                    path: "::".to_owned() + &intent.name,
-                    span: (context.span_from)(l, r),
-                },
-            });
-            "".to_string()
-        } else {
-            let els_len = els.len();
-            let path_span = (context.span_from)(l1, r1);
-            context.handle_absolute_path(
-                els[..els_len - 1].to_vec(),
-                els[els_len - 1].clone(),
-                false,
-                path_span,
-            )
-        };
-
-        let span = (context.span_from)(l, r);
-        let full_intent_instance_name =
-            context.add_top_level_symbol(handler, name.clone(), context.mod_prefix);
-        let intent_instance = IntentInstance {
-            name: full_intent_instance_name.clone(),
-            interface_instance,
+        context.parse_intent_instance(
+            handler,
+            name,
+            abs.is_some(),
+            els,
             intent,
             address,
-            span: span.clone(),
-        };
-        context.current_ii().intent_instances.push(intent_instance);
-    
-        // Also insert a local integer decision variable that represents the pathway corresponding
-        // to this particular intent instance
-        context.current_ii().vars.insert(
-            Var {
-                name: "__".to_string() + &full_intent_instance_name.to_string() + "_pathway",
-                is_pub: false,
-                span,
-            },
-            Type::Primitive {
-                kind: PrimitiveKind::Int,
-                span: span::empty_span(),
-            },
-        );
-    },
-    <l:@L> "intent" <name:Ident> "=" <l1:@L> <els:(<Ident> "::")*> <r1:@R> <intent:Ident>
-            "(" <address:Expr> ")" <r:@R> => {
-        let interface_instance = if els.is_empty() {
-            handler.emit_err(Error::Parse {
-                error: ParseError::PathTooShort {
-                    path: intent.name.clone(),
-                    span: (context.span_from)(l, r),
-                },
-            });
-            "".to_string()
-        } else {
-            let els_len = els.len();
-            let path_span = (context.span_from)(l1, r1);
-            context.handle_relative_path(
-                els[..els_len - 1].to_vec(),
-                els[els_len - 1].clone(),
-                false,
-                path_span,
-            )
-        };
-
-        let span = (context.span_from)(l, r);
-        let full_intent_instance_name =
-            context.add_top_level_symbol(handler, name.clone(), context.mod_prefix);
-        let intent_instance = IntentInstance {
-            name: full_intent_instance_name.clone(),
-            interface_instance,
-            intent,
-            address,
-            span: span.clone(),
-        };
-        context.current_ii().intent_instances.push(intent_instance);
-
-        // Also insert a local integer decision variable that represents the pathway corresponding
-        // to this particular intent instance
-        context.current_ii().vars.insert(
-            Var {
-                name: "__".to_string() + &full_intent_instance_name.to_string() + "_pathway",
-                is_pub: false,
-                span,
-            },
-            Type::Primitive {
-                kind: PrimitiveKind::Int,
-                span: span::empty_span(),
-            },
+            (l, l1, r1, r),
         );
     }
 }
 
 UseStatement: () = {
     "use" <l:@L> <abs:"::"?> <ut:UseTree> <r:@R> => {
-        // Convert the use tree into use paths, prepend the current mod path prefix to each iff the
-        // use tree is not absolute, and append to the current list of use paths in our context.
-        let mod_prefix = context.mod_prefix;
-        let mod_path = context.mod_path;
-        let local_handler = Handler::default();
-        let mut new_use_paths = ut
-            .gather_paths()
-            .into_iter()
-            .filter_map(|mut use_path| {
-                if abs.is_none() {
-                    use_path.add_prefix(mod_path.to_vec());
-                }
-
-                // If any of the idents in the path, other than the last one, is a `self`,
-                // immediately error out
-                if use_path
-                    .path
-                    .iter()
-                    .take(use_path.path.len() - 1)
-                    .any(|elem| elem == "self")
-                {
-                    local_handler.emit_err(Error::Parse {
-                        error: ParseError::SelfNotAtTheEnd {
-                            // We can use a better span here but that's okay for now. Ideally, we
-                            // would use the span of the `self` ident itself, but we don't have that
-                            // right now.
-                            span: (context.span_from)(l, r),
-                        },
-                    });
-                    return None;
-                }
-
-                // Paths that end in `self` get a special handling
-                if use_path.path[use_path.path.len() - 1] == "self" {
-                    // First, remove `self` because a path that ends in `self` is the same as its
-                    // prefix For example: `a::b::self` is the same as `a::b`
-                    use_path.path.pop();
-
-                    // Paths with only `self` (i.e. nothing before it) are not valid
-                    //
-                    // Check that the prefix `use_path.path` matches the current `mod_path` because
-                    // we may in a module other than the root module
-                    if use_path.path == mod_path {
-                        local_handler.emit_err(Error::Parse {
-                            error: ParseError::SelfWithEmptyPrefix {
-                                span: use_path.span.clone(),
-                            },
-                        });
-                        return None;
-                    }
-                }
-
-                Some(use_path.clone())
-            })
-            .map(|use_path| {
-                // This is a bit strange.  We're taking the alias or the last element of the use
-                // path, prefixing it with the current mod path and inserting that as a top-level
-                // symbol.  This is to avoid local decls clashing with the `use` path, though those
-                // symbols are all absolute.
-                //
-                // e.g.,
-                // use some::other::mod::a;       // Inserted as ::local::mod::a
-                // let a: int;                    // Inserted as ::local::mod::a
-                //
-                // use some::other::mod::b as c;  // Inserted as ::local::mod::c
-                // let c: int;                    // Inserted as ::local::mod::c
-                //
-                // There is one special case with `self` where the previous ident in the path is
-                // considered instead. This is automatically handled by the `filter_map` above. For
-                // example:
-                //
-                // use a::b::mod::my_mod::self;    // Inserted as ::local::mod::my_mod
-                context
-                    .current_ii()
-                    .add_top_level_symbol(
-                        &local_handler,
-                        mod_prefix,
-                        None,
-                        &Ident {
-                            name: use_path
-                                .alias
-                                .clone()
-                                .unwrap_or(use_path.path[use_path.path.len() - 1].clone()),
-                            hygienic: false,
-                            span: use_path.span.clone(),
-                        },
-                        use_path.span.clone(),
-                    )
-                    .map(|_| use_path.clone())
-                    .unwrap_or_else(|error| use_path)
-            })
-            .collect::<Vec<_>>();
-
-        handler.append(local_handler);
-        context.use_paths.append(&mut new_use_paths);
+        context.parse_use_statement(handler, abs.is_some(), ut, (l, r))
     }
 };
 
@@ -487,104 +212,19 @@ UseTree: UseTree = {
 };
 
 VarDecl: () = {
-    <l:@L> <is_pub:"pub"?> "var" <let_name:VarName> ":" <ty:Type> <init:VarInit?> <r:@R> => {
-        let mod_prefix = context.mod_prefix;
-        let _ = context
-            .current_ii()
-            .insert_var(
-                handler,
-                mod_prefix,
-                let_name.1,
-                is_pub.is_some(),
-                &let_name.0,
-                Some(ty),
-            )
-            .map(|var_key| {
-                if let Some(expr_key) = init {
-                    context.current_ii().var_inits.insert(var_key, expr_key);
-                    let span = (context.span_from)(l, r);
-                    context
-                        .current_ii()
-                        .insert_eq_or_ineq_constraint(var_key, expr_key, span);
-                }
-            });
+    <l:@L> <r#pub:"pub"?> "var" <name:VarName> ":" <ty:Type> <init:VarInit?> <r:@R> => {
+        context.parse_var_decl(handler, r#pub.is_some(), name, Some(ty), init, (l, r));
     },
-    <l:@L> <is_pub:"pub"?> "var" <let_name:VarName> <init:VarInit> <r:@R> => {
-        let mod_prefix = context.mod_prefix;
-        let _ = context
-            .current_ii()
-            .insert_var(
-                handler,
-                mod_prefix,
-                let_name.1,
-                is_pub.is_some(),
-                &let_name.0,
-                None,
-            )
-            .map(|var_key| {
-                context.current_ii().var_inits.insert(var_key, init);
-                let span = (context.span_from)(l, r);
-                context
-                    .current_ii()
-                    .insert_eq_or_ineq_constraint(var_key, init, span);
-            });
+    <l:@L> <r#pub:"pub"?> "var" <name:VarName> <init:VarInit> <r:@R> => {
+        context.parse_var_decl(handler, r#pub.is_some(), name, None, Some(init), (l, r));
     },
-    <l:@L> <is_pub:"pub"?> "var" <name:Ident> <r:@R> => {
-        handler.emit_err(Error::Parse {
-            error: ParseError::UntypedVariable {
-                name: name.name,
-                span: (context.span_from)(l, r),
-            },
-        });
+    <l:@L> <r#pub:"pub"?> "var" <name:VarName> <r:@R> => {
+        context.parse_var_decl(handler, r#pub.is_some(), name, None, None, (l, r));
     }
 };
 
 VarName: (Ident, Option<&'a str>) = {
-    <l:@L> <id:"ident"> <r:@R> => {
-        let name = id.0.to_string();
-        let span = (context.span_from)(l, r);
-        if name.starts_with("__") {
-            handler.emit_err(Error::Parse {
-                error: ParseError::LeadingUnderscoresInIdent {
-                    span: span.clone(),
-                    name: name.clone(),
-                },
-            });
-        }
-
-        // We special case the let name here, as we're interested in the associated flag (and this
-        // is the only place where we care).  The flag indicates that this identifier was
-        // substituted as a part of a macro argument during macro expansion.
-        //
-        // This is to implement macro body hygiene.
-        //
-        // If we have an identifier which is NOT from a macro arg AND a local prefix set in the
-        // parser context indicating we're currently parsing a macro body, then we need to add a Use
-        // path to make sure this name is referred to using that local prefix.  We're adding hygiene
-        // using the prefix.
-
-        let local_scope = (!id.1).then_some(()).and(context.local_scope);
-
-        if let Some(prefix) = local_scope {
-            let mut path = context.mod_path.to_vec();
-            path.push(prefix.to_owned());
-            path.push(id.0.to_owned());
-            context.use_paths.push(UsePath {
-                path,
-                alias: None,
-                is_absolute: true,
-                span: span::empty_span(),
-            });
-        }
-
-        let name = Ident {
-            name: name.clone(),
-            hygienic: id.1,
-            span,
-        };
-
-        (name, local_scope)
-    }
+    <l:@L> <id:"ident"> <r:@R> => context.parse_var_name(handler, id, (l, r)),
 };
 
 VarInit: ExprKey = {
@@ -1005,13 +645,13 @@ AsOp: ExprKey = {
 
 TupleFieldOp: ExprKey = {
     <l:@L> <tuple:TupleFieldOp> "." <name:Ident> <r:@R> => {
-        context.handle_tuple_field_op_with_ident(tuple, name, (l, r))
+        context.parse_tuple_field_op_with_ident(tuple, name, (l, r))
     },
     <l:@L> <tuple:TupleFieldOp> "." <m:@L> <num_str:"int_lit"> <r:@R> => {
-        context.handle_tuple_field_op_with_int(handler, tuple, num_str, (l, m, r))
+        context.parse_tuple_field_op_with_int(handler, tuple, num_str, (l, m, r))
     },
     <l:@L> <tuple:TupleFieldOp> "." <m:@L> <num_str:"real_lit"> <r:@R> => {
-        context.handle_tuple_field_op_with_real(handler, tuple, num_str, (l, m, r))
+        context.parse_tuple_field_op_with_real(handler, tuple, num_str, (l, m, r))
     },
     <IndexOp>,
 };
@@ -1112,7 +752,8 @@ TermInner: Expr = {
 
 GeneratorRange: (Ident, ExprKey) = {
     <index:Ident> "in" <range:Range> => {
-        // Generators for `forall`/`exists` are always `int`s and need to be saved in the ephemeral list.
+        // Generators for `forall`/`exists` are always `int`s and need to be saved in the ephemeral
+        // list.
         let mod_prefix = context.mod_prefix;
         let _ = context.current_ii().insert_ephemeral(
             handler,
@@ -1254,7 +895,6 @@ TupleExpr: Expr = {
 
         Expr::Error(span)
     },
-
 };
 
 TupleExprFields: Vec<(Option<Ident>, ExprKey)> = {
@@ -1262,6 +902,11 @@ TupleExprFields: Vec<(Option<Ident>, ExprKey)> = {
         // Special case for a single field with a field label which does not require the trailing
         // comma to distinguish it from a block expression.
         vec![(Some(id), expr)]
+    },
+    <expr:Expr> => {
+        // Special case for a single field which does not require the trailing
+        // comma to distinguish it from a block expression.
+        vec![(None, expr)]
     },
     <Sep1List<TupleExprField, ",">>,
 };
@@ -1295,110 +940,20 @@ MacroPath: Path = {
 PathWithLast<Last>: Path = {
     <l:@L> "::" <els:(<Ident> "::")*> <last:Last> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.handle_absolute_path(els, last, true, span)
+        context.parse_absolute_path(els, last, true, span)
     },
     <l:@L> <els:(<Ident> "::")*> <last:Last> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.handle_relative_path(els, last, true, span)
+        context.parse_relative_path(els, last, true, span)
     }
 };
 
 Immediate: Immediate = {
-    ImmediateInt,
+    <l:@L> <s:"int_lit"> <r:@R>=> context.parse_int_immediate(handler, s, (l, r)),
     <s:"real_lit"> => Immediate::Real(s.replace('_', "").parse().unwrap()),
     "true" => Immediate::Bool(true),
     "false" => Immediate::Bool(false),
     <s:"str_lit"> => Immediate::String(s),
-};
-
-ImmediateInt: Immediate = {
-    <l:@L> <s:"int_lit"> <r:@R>=> {
-        let span = (context.span_from)(l, r);
-        let s = s.replace('_', "");
-        match s.chars().nth(1) {
-            Some('b') => {
-                let digits = s.len() - 2;
-                match digits {
-                    1..=63 => Immediate::Int(i64::from_str_radix(&s[2..], 2).unwrap()),
-                    64 => {
-                        // Full 64 bits are specified: check the MSB which represents the sign bit,
-                        // and parse accordingly.
-                        if &s[2..3] == "1" {
-                            // Negative integer. Parse as `u64` then convert to `i64`.
-                            Immediate::Int(u64::from_str_radix(&s[2..], 2).unwrap() as i64)
-                        } else {
-                            // Positive integer. Parse as `i64` directly.
-                            Immediate::Int(i64::from_str_radix(&s[2..], 2).unwrap())
-                        }
-                    }
-                    256 => {
-                        let offset = 2;
-                        Immediate::B256([
-                            u64::from_str_radix(&s[offset..offset + 64], 2).unwrap(),
-                            u64::from_str_radix(&s[offset + 64..offset + 128], 2).unwrap(),
-                            u64::from_str_radix(&s[offset + 128..offset + 192], 2).unwrap(),
-                            u64::from_str_radix(&s[offset + 192..offset + 256], 2).unwrap(),
-                        ])
-                    }
-                    _ => {
-                        handler.emit_err(Error::Parse {
-                            error: ParseError::BinaryLiteralLength {
-                                digits,
-                                span: span.clone(),
-                            },
-                        });
-                        Immediate::Error
-                    }
-                }
-            }
-            Some('x') => {
-                let digits = s.len() - 2;
-                match digits {
-                    1..=15 => Immediate::Int(i64::from_str_radix(&s[2..], 16).unwrap()),
-                    16 => {
-                        // Full 16 hex digits are specified: check the MSB which represents the sign
-                        // bit, and parse accordingly.
-                        match &s[2..3] {
-                            // Negative integer. Parse as `u64` then convert to `i64`.
-                            "8" | "9" | "a" | "A" | "b" | "B" | "c" | "C" | "d" | "D" | "e"
-                            | "E" | "f" | "F" => {
-                                Immediate::Int(u64::from_str_radix(&s[2..], 16).unwrap() as i64)
-                            }
-                            // Positive integer. Parse as `i64` directly.
-                            _ => Immediate::Int(i64::from_str_radix(&s[2..], 16).unwrap()),
-                        }
-                    }
-                    64 => {
-                        let offset = 2;
-                        Immediate::B256([
-                            u64::from_str_radix(&s[offset..offset + 16], 16).unwrap(),
-                            u64::from_str_radix(&s[offset + 16..offset + 32], 16).unwrap(),
-                            u64::from_str_radix(&s[offset + 32..offset + 48], 16).unwrap(),
-                            u64::from_str_radix(&s[offset + 48..offset + 64], 16).unwrap(),
-                        ])
-                    }
-                    _ => {
-                        handler.emit_err(Error::Parse {
-                            error: ParseError::HexLiteralLength {
-                                digits,
-                                span: span.clone(),
-                            },
-                        });
-                        Immediate::Error
-                    }
-                }
-            }
-            _ => match s.parse::<i64>() {
-                Ok(val) => Immediate::Int(val),
-                Err(_) => {
-                    handler.emit_err(Error::Parse {
-                        error: ParseError::IntLiteralTooLarge { span: span.clone() },
-                    });
-                    Immediate::Error
-                }
-            },
-        }
-    }
 };
 
 Ident: Ident = {
@@ -1451,13 +1006,13 @@ StateInit: ExprKey = {
 
 StorageTupleFieldOp: ExprKey = {
     <l:@L> <tuple:StorageTupleFieldOp> "." <name:Ident> <r:@R> => {
-        context.handle_tuple_field_op_with_ident(tuple, name, (l, r))
+        context.parse_tuple_field_op_with_ident(tuple, name, (l, r))
     },
     <l:@L> <tuple:StorageTupleFieldOp> "." <m:@L> <num_str:"int_lit"> <r:@R> => {
-        context.handle_tuple_field_op_with_int(handler, tuple, num_str, (l, m, r))
+        context.parse_tuple_field_op_with_int(handler, tuple, num_str, (l, m, r))
     },
     <l:@L> <tuple:StorageTupleFieldOp> "." <m:@L> <num_str:"real_lit"> <r:@R> => {
-        context.handle_tuple_field_op_with_real(handler, tuple, num_str, (l, m, r))
+        context.parse_tuple_field_op_with_real(handler, tuple, num_str, (l, m, r))
     },
     <StorageIndexOp>
 }
@@ -1493,46 +1048,12 @@ StorageIndexOp: ExprKey = {
 
 StorageAccess: ExprKey = {
     <l:@L> "storage" "::" <name:Ident> <r:@R> => {
-        let span = (context.span_from)(l, r);
-        let expr = if !context.mod_path.is_empty() {
-            // `storage` blocks in sub-modules are not allowed
-            handler.emit_err(Error::Parse {
-                error: ParseError::StorageAccessMustBeTopLevel { span: span.clone() },
-            });
-            Expr::Error(span.clone())
-        } else {
-            Expr::StorageAccess(name.to_string(), span.clone())
-        };
-        context.current_ii().exprs.insert(expr, Type::Unknown(span))
+        context.parse_storage_access(handler, false, None, name, (l, l, r))
     },
-    <l:@L> "::" <els:(<Ident> "::")*> <last:Ident> <r1:@R> "::" "storage" "::" <name:Ident> <r2:@R> => {
-        let path_span = (context.span_from)(l, r1);
-        let interface_instance = context.handle_absolute_path(els, last, false, path_span);
-
-        let span = (context.span_from)(l, r2);
-        context.current_ii().exprs.insert(
-            Expr::ExternalStorageAccess {
-                interface_instance,
-                name: name.to_string(),
-                span: span.clone(),
-            },
-            Type::Unknown(span),
-        )
+    <l:@L> <abs:"::"?> <els:(<Ident> "::")*> <last:Ident> <m:@R> "::"
+           "storage" "::" <name:Ident> <r:@R> => {
+        context.parse_storage_access(handler, abs.is_some(), Some((els, last)), name, (l, m, r))
     },
-    <l:@L> <els:(<Ident> "::")*> <last:Ident> <r1:@R> "::" "storage" "::" <name:Ident> <r2:@R> => {
-        let path_span = (context.span_from)(l, r1);
-        let interface_instance = context.handle_relative_path(els, last, false, path_span);
-
-        let span = (context.span_from)(l, r2);
-        context.current_ii().exprs.insert(
-            Expr::ExternalStorageAccess {
-                interface_instance,
-                name: name.to_string(),
-                span: span.clone(),
-            },
-            Type::Unknown(span),
-        )
-    }
 }
 
 /////////////
