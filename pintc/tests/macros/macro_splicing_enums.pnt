@@ -65,12 +65,12 @@ solve satisfy;
 // >>>
 
 // flattened <<<
-// var ::max_feeling: int;
-// var ::feeling: int;
 // var ::counts[0]: int;
 // var ::counts[1]: int;
 // var ::counts[2]: int;
 // var ::counts[3]: int;
+// var ::max_feeling: int;
+// var ::feeling: int;
 // enum ::Feeling = Uneasy | Queasy | Awkward | Anxious;
 // constraint (::counts[0] == 33);
 // constraint (::counts[1] == 22);

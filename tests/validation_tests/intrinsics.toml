@@ -29,6 +29,8 @@ decision_variables = [
   -1,
   -1,
   -1,
+
+  # ::this_pathway
   0,
 
   # ::sha256_0
@@ -36,6 +38,21 @@ decision_variables = [
   -608919109605104113,
   1005743363740736845,
   -1895396908224463364,
+
+  # ::tuple.0
+  1,
+
+  # ::tuple.1
+  2,
+
+  # ::tuple.1.0
+  1,
+  2,
+  3,
+  4,
+
+  # ::tuple.1.1
+  1,
 
   # ::sha256_1
   1788775345077565609,
@@ -46,27 +63,12 @@ decision_variables = [
   # ::verify_ed22519
   1,
 
-  # ::tuple.0
-  1,
-
-  # ::tuple.1
-  2,
-
   # ::recover_secp256k1
   218688920692835460,
   -8027063250197144796,
   -7602923525155704883,
   8095055044117488249,
   13,
-
-  # ::tuple.2
-  1,
-  2,
-  3,
-  4,
-
-  # ::tuple.1.1
-  1,
 ]
 intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "::Foo" }
 state_mutations = [

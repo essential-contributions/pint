@@ -7,18 +7,33 @@ slotmap::new_key_type! { pub struct VarKey; }
 pub struct Vars {
     vars: slotmap::SlotMap<VarKey, Var>,
     var_types: slotmap::SecondaryMap<VarKey, Type>,
+    order: Vec<VarKey>,
 }
 
 impl Vars {
     /// Returns a read-only iterator to the `vars` map
-    pub fn vars(&self) -> slotmap::basic::Iter<VarKey, Var> {
-        self.vars.iter()
+    pub fn vars(&self) -> impl Iterator<Item = (VarKey, &Var)> {
+        self.order.iter().map(|&key| (key, &self.vars[key]))
+    }
+
+    /// Returns the order of the provided `VarKey` as tracked in the `order` vector
+    pub fn position(&self, key: VarKey) -> Option<usize> {
+        self.order.iter().position(|k| *k == key)
     }
 
     /// Inserts a variable with its type
     pub fn insert(&mut self, var: Var, ty: Type) -> VarKey {
         let key = self.vars.insert(var);
         self.var_types.insert(key, ty);
+        self.order.push(key);
+        key
+    }
+
+    /// Inserts a variable with its type at a particular position
+    pub fn insert_at(&mut self, index: usize, var: Var, ty: Type) -> VarKey {
+        let key = self.vars.insert(var);
+        self.var_types.insert(key, ty);
+        self.order.insert(index, key);
         key
     }
 
@@ -26,6 +41,7 @@ impl Vars {
     pub fn remove(&mut self, key: VarKey) {
         self.vars.remove(key);
         self.var_types.remove(key);
+        self.order.retain(|&k| k != key);
     }
 
     /// Apply function `f` on every var

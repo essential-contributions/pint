@@ -7,18 +7,33 @@ slotmap::new_key_type! { pub struct StateKey; }
 pub struct States {
     states: slotmap::SlotMap<StateKey, State>,
     state_types: slotmap::SecondaryMap<StateKey, Type>,
+    order: Vec<StateKey>,
 }
 
 impl States {
     /// Returns a read-only iterator to the `states` map
-    pub fn states(&self) -> slotmap::basic::Iter<StateKey, State> {
-        self.states.iter()
+    pub fn states(&self) -> impl Iterator<Item = (StateKey, &State)> {
+        self.order.iter().map(|&key| (key, &self.states[key]))
+    }
+
+    /// Returns the order of the provided `StateKey` as tracked in the `order` vector
+    pub fn position(&self, key: StateKey) -> Option<usize> {
+        self.order.iter().position(|k| *k == key)
     }
 
     /// Inserts a state variable with its type
     pub fn insert(&mut self, state: State, ty: Type) -> StateKey {
         let key = self.states.insert(state);
         self.state_types.insert(key, ty);
+        self.order.push(key);
+        key
+    }
+
+    /// Inserts a state variable with its type at a particular position
+    pub fn insert_at(&mut self, index: usize, state: State, ty: Type) -> StateKey {
+        let key = self.states.insert(state);
+        self.state_types.insert(key, ty);
+        self.order.insert(index, key);
         key
     }
 
