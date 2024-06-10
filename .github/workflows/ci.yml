@@ -31,6 +31,7 @@ jobs:
         uses: trunk-io/trunk-action@v1
 
   clippy_check:
+    name: Clippy Check
     runs-on: ubuntu-latest
     steps:
       - name: Provide Access to Private Repos
@@ -39,6 +40,14 @@ jobs:
           ssh-private-key: |
             ${{ secrets.SSH_PRIVATE_KEY }}
             ${{ secrets.SSH_PRIVATE_KEY_BASE }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
 
       - uses: actions/checkout@v4
       - name: Run Clippy
