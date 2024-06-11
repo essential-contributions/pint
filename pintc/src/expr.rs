@@ -7,7 +7,7 @@ use crate::{
 use fxhash::FxHashMap;
 
 mod display;
-mod evaluate;
+pub(crate) mod evaluate;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
@@ -50,18 +50,9 @@ pub enum Expr {
         else_expr: ExprKey,
         span: Span,
     },
-    Array {
-        elements: Vec<ExprKey>,
-        range_expr: ExprKey,
-        span: Span,
-    },
     Index {
         expr: ExprKey,
         index: ExprKey,
-        span: Span,
-    },
-    Tuple {
-        fields: Vec<(Option<Ident>, ExprKey)>,
         span: Span,
     },
     TupleFieldAccess {
@@ -115,6 +106,11 @@ pub enum Immediate {
     Bool(bool),
     String(String),
     B256([u64; 4]),
+    Array {
+        elements: Vec<ExprKey>,
+        range_expr: ExprKey,
+    },
+    Tuple(Vec<(Option<Ident>, ExprKey)>),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -187,9 +183,7 @@ impl Spanned for Expr {
             | Expr::MacroCall { span, .. }
             | Expr::IntrinsicCall { span, .. }
             | Expr::Select { span, .. }
-            | Expr::Array { span, .. }
             | Expr::Index { span, .. }
-            | Expr::Tuple { span, .. }
             | Expr::TupleFieldAccess { span, .. }
             | Expr::Cast { span, .. }
             | Expr::In { span, .. }
@@ -202,6 +196,17 @@ impl Spanned for Expr {
 impl Expr {
     pub fn replace_ref<F: FnMut(&mut ExprKey)>(&mut self, mut replace: F) {
         match self {
+            Expr::Immediate { value, .. } => match value {
+                Immediate::Array { elements, .. } => elements.iter_mut().for_each(replace),
+                Immediate::Tuple(fields) => fields.iter_mut().for_each(|(_, expr)| replace(expr)),
+
+                Immediate::Error
+                | Immediate::Real(_)
+                | Immediate::Int(_)
+                | Immediate::Bool(_)
+                | Immediate::String(_)
+                | Immediate::B256(_) => {}
+            },
             Expr::UnaryOp { expr, .. } => replace(expr),
             Expr::BinaryOp { lhs, rhs, .. } => {
                 replace(lhs);
@@ -218,12 +223,10 @@ impl Expr {
                 replace(then_expr);
                 replace(else_expr);
             }
-            Expr::Array { elements, .. } => elements.iter_mut().for_each(replace),
             Expr::Index { expr, index, .. } => {
                 replace(expr);
                 replace(index);
             }
-            Expr::Tuple { fields, .. } => fields.iter_mut().for_each(|(_, expr)| replace(expr)),
             Expr::TupleFieldAccess { tuple, .. } => replace(tuple),
             Expr::Cast { value, .. } => replace(value),
             Expr::In {
@@ -252,7 +255,6 @@ impl Expr {
             | Expr::StorageAccess(_, _)
             | Expr::ExternalStorageAccess { .. }
             | Expr::PathByKey(_, _)
-            | Expr::Immediate { .. }
             | Expr::Error(_) => {}
         }
     }

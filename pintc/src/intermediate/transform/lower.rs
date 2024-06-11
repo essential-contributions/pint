@@ -1,6 +1,6 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{BinaryOp, Expr, Immediate, TupleAccess, UnaryOp},
+    expr::{evaluate::Evaluator, BinaryOp, Expr, Immediate, TupleAccess, UnaryOp},
     intermediate::{BlockStatement, ConstraintDecl, ExprKey, IfDecl, IntermediateIntent},
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
@@ -290,14 +290,26 @@ pub(crate) fn lower_imm_accesses(
             .exprs()
             .filter_map(|expr_key| match expr_key.get(ii) {
                 Expr::Index { expr, index, .. } => expr.try_get(ii).and_then(|array_expr| {
-                    matches!(array_expr, Expr::Array { .. })
-                        .then(|| (expr_key, Some((*expr, *index)), None))
+                    matches!(
+                        array_expr,
+                        Expr::Immediate {
+                            value: Immediate::Array { .. },
+                            ..
+                        }
+                    )
+                    .then(|| (expr_key, Some((*expr, *index)), None))
                 }),
 
                 Expr::TupleFieldAccess { tuple, field, .. } => {
                     tuple.try_get(ii).and_then(|tuple_expr| {
-                        matches!(tuple_expr, Expr::Tuple { .. })
-                            .then(|| (expr_key, None, Some((*tuple, field.clone()))))
+                        matches!(
+                            tuple_expr,
+                            Expr::Immediate {
+                                value: Immediate::Tuple(_),
+                                ..
+                            }
+                        )
+                        .then(|| (expr_key, None, Some((*tuple, field.clone()))))
                     })
                 }
 
@@ -305,6 +317,7 @@ pub(crate) fn lower_imm_accesses(
             })
             .collect::<Vec<_>>();
 
+        let evaluator = Evaluator::new(ii);
         let mut replacements = Vec::new();
         for (old_expr_key, array_idx, field_idx) in candidates {
             assert!(
@@ -323,9 +336,13 @@ pub(crate) fn lower_imm_accesses(
                     }));
                 };
 
-                match idx_expr.evaluate(handler, ii, &FxHashMap::default()) {
+                match evaluator.evaluate(idx_expr, handler, ii) {
                     Ok(Immediate::Int(idx_val)) if idx_val >= 0 => {
-                        let Some(Expr::Array { elements, .. }) = array_key.try_get(ii) else {
+                        let Some(Expr::Immediate {
+                            value: Immediate::Array { elements, .. },
+                            ..
+                        }) = array_key.try_get(ii)
+                        else {
                             return Err(handler.emit_err(Error::Compile {
                                 error: CompileError::Internal {
                                     msg: "missing array expression in lower_imm_accesses()",
@@ -358,7 +375,11 @@ pub(crate) fn lower_imm_accesses(
 
             if let Some((tuple_key, tuple_field_key)) = field_idx {
                 // We have a tuple access into an immediate.
-                let Some(Expr::Tuple { fields, .. }) = tuple_key.try_get(ii) else {
+                let Some(Expr::Immediate {
+                    value: Immediate::Tuple(fields),
+                    ..
+                }) = tuple_key.try_get(ii)
+                else {
                     return Err(handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
                             msg: "missing tuple expression in lower_imm_accesses()",
@@ -447,7 +468,10 @@ pub(crate) fn lower_ins(
                         in_range_collections.push((expr_key, *value, *lb, *ub, span.clone()));
                     }
 
-                    Expr::Array { elements, span, .. } => {
+                    Expr::Immediate {
+                        value: Immediate::Array { elements, .. },
+                        span,
+                    } => {
                         array_collections.push((expr_key, *value, elements.clone(), span.clone()));
                     }
 

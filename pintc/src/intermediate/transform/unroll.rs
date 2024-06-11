@@ -1,6 +1,6 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{BinaryOp, GeneratorKind, Immediate},
+    expr::{evaluate::Evaluator, BinaryOp, GeneratorKind, Immediate},
     intermediate::{Expr, ExprKey, IntermediateIntent, VisitorKind},
     span::{empty_span, Spanned},
     types::{PrimitiveKind, Type},
@@ -161,10 +161,12 @@ fn unroll_generator(
             .map(|(index, int_index)| ("::".to_owned() + &index.name, Immediate::Int(*int_index)))
             .collect::<FxHashMap<_, _>>();
 
+        let evaluator = Evaluator::from_values(ii, values_map.clone());
+
         // Check each condition, if available, against the values map above
         let mut satisfied = true;
         for condition in &conditions {
-            match condition.get(ii).evaluate(handler, ii, &values_map)? {
+            match evaluator.evaluate_key(condition, handler, ii)? {
                 Immediate::Bool(false) => {
                     satisfied = false;
                     break;

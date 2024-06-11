@@ -1,6 +1,6 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, ParseError},
-    expr::{Expr, Ident},
+    expr::{Expr, Ident, Immediate},
     intermediate::{CallKey, ExprKey, Exprs, IntermediateIntent, Program},
     lexer,
     macros::{self, MacroCall, MacroDecl, MacroExpander},
@@ -249,12 +249,46 @@ impl<'a> ProjectParser<'a> {
         ) -> Result<(), ErrorEmitted> {
             match expr {
                 Expr::Error(_)
-                | Expr::Immediate { .. }
                 | Expr::PathByKey(_, _)
                 | Expr::PathByName(_, _)
                 | Expr::StorageAccess(_, _)
                 | Expr::ExternalStorageAccess { .. }
                 | Expr::MacroCall { .. } => {}
+                Expr::Immediate { value, .. } => match value {
+                    Immediate::Array {
+                        elements,
+                        range_expr,
+                        ..
+                    } => {
+                        for element_expr_key in elements {
+                            process_nested_expr!(
+                                element_expr_key,
+                                "array `element`",
+                                root_exprs,
+                                ii,
+                                handler
+                            )?;
+                        }
+                        process_nested_expr!(range_expr, "array `range`", root_exprs, ii, handler)?;
+                    }
+                    Immediate::Tuple(fields) => {
+                        for (_, field_expr_key) in fields {
+                            process_nested_expr!(
+                                field_expr_key,
+                                "tuple `field`",
+                                root_exprs,
+                                ii,
+                                handler
+                            )?;
+                        }
+                    }
+                    Immediate::Error
+                    | Immediate::Real(_)
+                    | Immediate::Int(_)
+                    | Immediate::Bool(_)
+                    | Immediate::String(_)
+                    | Immediate::B256(_) => {}
+                },
                 Expr::UnaryOp { expr, .. } => {
                     process_nested_expr!(expr, "unary op", root_exprs, ii, handler)?;
                 }
@@ -283,36 +317,9 @@ impl<'a> ProjectParser<'a> {
                     process_nested_expr!(then_expr, "if `then expr`", root_exprs, ii, handler)?;
                     process_nested_expr!(else_expr, "if `else expr`", root_exprs, ii, handler)?;
                 }
-                Expr::Array {
-                    elements,
-                    range_expr,
-                    ..
-                } => {
-                    for element_expr_key in elements {
-                        process_nested_expr!(
-                            element_expr_key,
-                            "array `element`",
-                            root_exprs,
-                            ii,
-                            handler
-                        )?;
-                    }
-                    process_nested_expr!(range_expr, "array `range`", root_exprs, ii, handler)?;
-                }
                 Expr::Index { expr, index, .. } => {
                     process_nested_expr!(expr, "index `expr`", root_exprs, ii, handler)?;
                     process_nested_expr!(index, "index `index`", root_exprs, ii, handler)?;
-                }
-                Expr::Tuple { fields, .. } => {
-                    for (_, field_expr_key) in fields {
-                        process_nested_expr!(
-                            field_expr_key,
-                            "tuple `field`",
-                            root_exprs,
-                            ii,
-                            handler
-                        )?;
-                    }
                 }
                 Expr::TupleFieldAccess { tuple, .. } => {
                     process_nested_expr!(tuple, "tuple field access", root_exprs, ii, handler)?;

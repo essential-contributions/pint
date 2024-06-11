@@ -601,10 +601,31 @@ impl IntermediateIntent {
                 },
             }),
 
-            Expr::Immediate { value, span } => Ok(Inference::Type(Self::get_immediate_type(
-                value,
-                span.clone(),
-            ))),
+            Expr::Immediate { value, span } => match value {
+                Immediate::Array {
+                    elements,
+                    range_expr,
+                } => self.infer_array_expr(*range_expr, elements, span),
+
+                Immediate::Tuple(fields) => self.infer_tuple_expr(fields, span),
+
+                Immediate::Error => Ok(Inference::Type(Type::Error(span.clone()))),
+
+                _ => Ok(Inference::Type(Type::Primitive {
+                    kind: match value {
+                        Immediate::Real(_) => PrimitiveKind::Real,
+                        Immediate::Int(_) => PrimitiveKind::Int,
+                        Immediate::Bool(_) => PrimitiveKind::Bool,
+                        Immediate::String(_) => PrimitiveKind::String,
+                        Immediate::B256(_) => PrimitiveKind::B256,
+
+                        Immediate::Error | Immediate::Array { .. } | Immediate::Tuple(_) => {
+                            unreachable!()
+                        }
+                    },
+                    span: span.clone(),
+                })),
+            },
 
             Expr::PathByKey(var_key, span) => self.infer_path_by_key(*var_key, span),
 
@@ -640,15 +661,7 @@ impl IntermediateIntent {
                 span,
             } => self.infer_select_expr(*condition, *then_expr, *else_expr, span),
 
-            Expr::Array {
-                elements,
-                range_expr,
-                span,
-            } => self.infer_array_expr(*range_expr, elements, span),
-
             Expr::Index { expr, index, span } => self.infer_index_expr(*expr, *index, span),
-
-            Expr::Tuple { fields, span } => self.infer_tuple_expr(fields, span),
 
             Expr::TupleFieldAccess { tuple, field, span } => {
                 self.infer_tuple_access_expr(*tuple, field, span)
@@ -671,32 +684,6 @@ impl IntermediateIntent {
                 body,
                 span,
             } => self.infer_generator_expr(kind, gen_ranges, conditions, *body, span),
-        }
-    }
-
-    fn get_immediate_type(imm: &Immediate, span: Span) -> Type {
-        match imm {
-            Immediate::Real(_) => Type::Primitive {
-                kind: PrimitiveKind::Real,
-                span: span.clone(),
-            },
-            Immediate::Int(_) => Type::Primitive {
-                kind: PrimitiveKind::Int,
-                span: span.clone(),
-            },
-            Immediate::Bool(_) => Type::Primitive {
-                kind: PrimitiveKind::Bool,
-                span: span.clone(),
-            },
-            Immediate::String(_) => Type::Primitive {
-                kind: PrimitiveKind::String,
-                span: span.clone(),
-            },
-            Immediate::B256(_) => Type::Primitive {
-                kind: PrimitiveKind::B256,
-                span: span.clone(),
-            },
-            Immediate::Error => Type::Error(span.clone()),
         }
     }
 

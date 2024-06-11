@@ -872,9 +872,11 @@ ArrayExpr: Expr = {
             },
             Type::Unknown(span),
         );
-        Expr::Array {
-            elements,
-            range_expr,
+        Expr::Immediate {
+            value: Immediate::Array {
+                elements,
+                range_expr,
+            },
             span: (context.span_from)(l, r),
         }
     },
@@ -882,8 +884,8 @@ ArrayExpr: Expr = {
 
 TupleExpr: Expr = {
     <l:@L> "{" <fields:TupleExprFields> "}" <r:@R> => {
-        Expr::Tuple {
-            fields,
+        Expr::Immediate {
+            value: Immediate::Tuple(fields),
             span: (context.span_from)(l, r),
         }
     },

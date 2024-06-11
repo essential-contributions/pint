@@ -232,4 +232,5 @@ mod e2e {
     e2e_test!(intrinsics);
     e2e_test!(root_types);
     e2e_test!(interfaces);
+    e2e_test!(evaluator);
 }

@@ -202,9 +202,7 @@ fn check_expr(
                 "exprs"
             )),
         },
-        Expr::Array { .. }
-        | Expr::Tuple { .. }
-        | Expr::Immediate { .. }
+        Expr::Immediate { .. }
         | Expr::PathByKey(..)
         | Expr::PathByName(..)
         | Expr::StorageAccess(..)
@@ -238,8 +236,6 @@ fn expr_is_for_storage(ii: &IntermediateIntent, expr: &Expr) -> bool {
         | Expr::MacroCall { .. }
         | Expr::IntrinsicCall { .. }
         | Expr::Select { .. }
-        | Expr::Array { .. }
-        | Expr::Tuple { .. }
         | Expr::Cast { .. }
         | Expr::In { .. }
         | Expr::Range { .. }

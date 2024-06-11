@@ -368,6 +368,16 @@ impl AsmBuilder {
                     asm.push(Stack::Push(val[2] as i64).into());
                     asm.push(Stack::Push(val[3] as i64).into());
                 }
+                Immediate::Array { elements, .. } => {
+                    elements
+                        .iter()
+                        .try_for_each(|element| self.compile_expr(handler, asm, element, intent))?;
+                }
+                Immediate::Tuple(fields) => {
+                    fields.iter().try_for_each(|(_, field)| {
+                        self.compile_expr(handler, asm, field, intent)
+                    })?;
+                }
                 _ => unimplemented!("other literal types are not yet supported"),
             },
             Expr::BinaryOp { op, lhs, rhs, .. } => {
@@ -568,16 +578,6 @@ impl AsmBuilder {
                     }));
                 }
             },
-            Expr::Tuple { fields, .. } => {
-                fields
-                    .iter()
-                    .try_for_each(|(_, field)| self.compile_expr(handler, asm, field, intent))?;
-            }
-            Expr::Array { elements, .. } => {
-                elements
-                    .iter()
-                    .try_for_each(|element| self.compile_expr(handler, asm, element, intent))?;
-            }
             Expr::Select {
                 condition,
                 then_expr,

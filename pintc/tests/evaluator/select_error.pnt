@@ -1,0 +1,15 @@
+// TODO: redo this test with `const` decl when they're in.
+
+var a: int[11 ? 2 : 3];
+
+solve satisfy;
+
+// intermediate <<<
+// var ::a: int[(11 ? 2 : 3)];
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// condition for select expression must be a `bool`
+// @71..73: invalid type `int`, expecting `bool`
+// >>>
