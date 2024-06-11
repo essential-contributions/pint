@@ -31,23 +31,22 @@ solve satisfy;
 // >>>
 
 // flattened <<<
-// var ::b: real;
 // var ::a.0: int;
-// var ::a.2: int;
-// var ::a.3: real;
-// var ::d.0: int;
-// var ::d.1: int;
 // var ::a.1.0: int;
 // var ::a.1.1: int;
+// var ::a.1.2.0: int;
+// var ::a.1.2.1: int;
+// var ::a.1.2.2: real;
 // var ::a.1.3: real;
+// var ::a.2: int;
+// var ::a.3: real;
+// var ::b: real;
 // var ::c.0.width: int;
 // var ::c.0.height: int;
 // var ::c.1.x: int;
 // var ::c.1.y: int;
-// var ::a.1.2.0: int;
-// var ::a.1.2.1: int;
-// var ::a.1.2.2: real;
-
+// var ::d.0: int;
+// var ::d.1: int;
 // constraint ((((::a.0 == 11) && ((((::a.1.0 == 22) && (::a.1.1 == 0)) && (((::a.1.2.0 == 33) && (::a.1.2.1 == 1)) && (::a.1.2.2 == 4.44e1))) && (::a.1.3 == 5.55e1))) && (::a.2 == 0)) && (::a.3 == 6.66e1));
 // constraint (::b < ::a.1.2.2);
 // constraint ((::c.1.x < ::c.0.width) && (::c.1.y < ::c.0.height));

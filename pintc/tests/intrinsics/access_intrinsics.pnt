@@ -36,19 +36,19 @@ solve satisfy;
 
 // flattened <<<,
 // var ::mut_keys_len: int;
-// var ::t.0: int;
-// var ::mut_keys_contains_1: int;
-// var ::z: int;
-// var ::mut_keys_contains_2: int;
-// var ::this_address: b256;
-// var ::this_set_address: b256;
-// var ::this_pathway: int;
 // var ::key[0]: int;
 // var ::key[1]: int;
 // var ::key[2]: int;
 // var ::key[3]: int;
 // var ::key[4]: int;
+// var ::mut_keys_contains_1: int;
+// var ::z: int;
+// var ::t.0: int;
 // var ::t.1: int;
+// var ::mut_keys_contains_2: int;
+// var ::this_address: b256;
+// var ::this_set_address: b256;
+// var ::this_pathway: int;
 // constraint (::mut_keys_len == __mut_keys_len());
 // constraint (::mut_keys_contains_1 == __mut_keys_contains([::key[0], ::key[1], ::key[2], ::key[3], ::key[4]]));
 // constraint (::mut_keys_contains_2 == __mut_keys_contains([69, 70, 71, ::z, ::t.0]));

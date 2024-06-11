@@ -237,12 +237,21 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
     })?;
 
     let array_name = array_var_key.get(ii).name.clone();
+    let array_var_key_position = ii.vars.position(array_var_key).ok_or_else(|| {
+        handler.emit_err(Error::Compile {
+            error: CompileError::Internal {
+                msg: "array_var_key must exist",
+                span: span.clone(),
+            },
+        })
+    })?;
 
     // Convert decision variables that are arrays into `n` new decision variables that represent
     // the individual elements of the array, where `n` is the length of the array.
     let new_var_keys = (0..array_size)
         .map(|idx| {
-            ii.vars.insert(
+            ii.vars.insert_at(
+                array_var_key_position + idx as usize,
                 Var {
                     name: format!("{array_name}[{idx}]"),
                     is_pub: false,
@@ -659,7 +668,7 @@ fn scalarize_tuples(handler: &Handler, ii: &mut IntermediateIntent) -> Result<bo
     let mut old_tuple_vars = Vec::new();
     iterate!(
         handler,
-        split_tuple_vars(ii, &mut old_tuple_vars)?,
+        split_tuple_vars(handler, ii, &mut old_tuple_vars)?,
         "split_tuple_vars()",
         modified
     );
@@ -806,6 +815,7 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
 }
 
 fn split_tuple_vars(
+    handler: &Handler,
     ii: &mut IntermediateIntent,
     old_tuple_vars: &mut Vec<VarKey>,
 ) -> Result<bool, ErrorEmitted> {
@@ -827,6 +837,8 @@ fn split_tuple_vars(
                     .as_ref()
                     .map(|field_name| format!("{name}.{field_name}"));
                 new_vars.push((
+                    var_key,
+                    field_idx,
                     name.clone(),
                     (new_idx_name, new_sym_name),
                     span.clone(),
@@ -848,9 +860,18 @@ fn split_tuple_vars(
     let mut tuple_name_to_split_tuple_vars: BTreeMap<String, Vec<VarKey>> = BTreeMap::new();
 
     // Add all the new vars to the intermediate intent and memo the new key.
-    for (name, (idx_name, opt_sym_name), span, field_ty) in new_vars {
+    for (old_tuple_var_key, field_idx, name, (idx_name, opt_sym_name), span, field_ty) in new_vars {
+        let old_tuple_var_key_position = ii.vars.position(old_tuple_var_key).ok_or_else(|| {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "var_key must exist",
+                    span: span.clone(),
+                },
+            })
+        })?;
         // Prefer the symbolic name if it's there.
-        let new_var_key = ii.vars.insert(
+        let new_var_key = ii.vars.insert_at(
+            old_tuple_var_key_position + field_idx,
             Var {
                 name: opt_sym_name.as_ref().unwrap_or(&idx_name).clone(),
                 is_pub: false,

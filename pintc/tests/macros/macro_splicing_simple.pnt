@@ -55,19 +55,19 @@ solve satisfy;
 // >>>
 
 // flattened <<<
-// var ::b_ary[0]: int;
-// var ::s_a: int;
-// var ::s_b: int;
-// var ::s_ab: int;
-// var ::lt_a: int;
 // var ::a_ary[0]: int;
 // var ::a_ary[1]: int;
 // var ::a_ary[2]: int;
 // var ::a_ary[3]: int;
 // var ::a_ary[4]: int;
+// var ::b_ary[0]: int;
 // var ::b_ary[1]: int;
 // var ::b_ary[2]: int;
 // var ::b_ary[3]: int;
+// var ::s_a: int;
+// var ::s_b: int;
+// var ::s_ab: int;
+// var ::lt_a: int;
 // constraint ((((::b_ary[0] == 11) && (::b_ary[1] == 22)) && (::b_ary[2] == 33)) && (::b_ary[3] == 44));
 // constraint (::s_a == ((((::a_ary[0] + ::a_ary[1]) + ::a_ary[2]) + ::a_ary[3]) + ::a_ary[4]));
 // constraint (::s_b == (((::b_ary[0] + ::b_ary[1]) + ::b_ary[2]) + ::b_ary[3]));

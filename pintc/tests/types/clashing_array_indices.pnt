@@ -21,11 +21,11 @@ solve satisfy;
 // >>>
 
 // flattened <<<
-// var ::b[0]: int;
 // var ::a[0]: int;
 // var ::a[1]: int;
 // var ::a[2]: int;
 // var ::a[3]: int;
+// var ::b[0]: int;
 // var ::b[1]: int;
 // var ::b[2]: int;
 // var ::b[3]: int;

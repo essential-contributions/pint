@@ -342,11 +342,11 @@ impl IntermediateIntent {
         });
     }
 
-    pub(crate) fn vars(&self) -> slotmap::basic::Iter<VarKey, Var> {
+    pub(crate) fn vars(&self) -> impl Iterator<Item = (VarKey, &Var)> {
         self.vars.vars()
     }
 
-    pub(crate) fn states(&self) -> slotmap::basic::Iter<StateKey, State> {
+    pub(crate) fn states(&self) -> impl Iterator<Item = (StateKey, &State)> {
         self.states.states()
     }
 
