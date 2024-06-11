@@ -283,6 +283,7 @@ impl<'a> ProjectParser<'a> {
                         }
                     }
                     Immediate::Error
+                    | Immediate::Nil
                     | Immediate::Real(_)
                     | Immediate::Int(_)
                     | Immediate::Bool(_)

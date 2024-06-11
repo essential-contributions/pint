@@ -569,6 +569,42 @@ impl AsmBuilder {
                     asm.push(Constraint::Crypto(Crypto::RecoverSecp256k1));
                 }
 
+                "__state_len" => {
+                    assert_eq!(args.len(), 1);
+
+                    // Check argument:
+                    // - `state_var` must be a path to a state var or a "next state" expression
+                    assert!(match args[0].try_get(intent) {
+                        Some(Expr::PathByName(name, _))
+                            if intent.states().any(|(_, state)| state.name == *name) =>
+                            true,
+                        Some(Expr::PathByKey(var_key, _))
+                            if intent
+                                .states()
+                                .any(|(_, state)| state.name == var_key.get(intent).name) =>
+                            true,
+                        Some(Expr::UnaryOp {
+                            op: UnaryOp::NextState,
+                            ..
+                        }) => true,
+                        _ => false,
+                    });
+
+                    self.compile_expr(handler, asm, &args[0], intent)?;
+
+                    // After compiling a path to a state var or a "next state" expression, we
+                    // expect that the last opcode is a `State` or a `StateRange`. Pop that and
+                    // replace it with `StateLen` since we're after the state length here and not
+                    // the actual state.
+                    assert!(matches!(
+                        asm.last(),
+                        Some(&Constraint::Access(Access::State | Access::StateRange))
+                    ));
+                    asm.pop();
+
+                    asm.push(Constraint::Access(Access::StateLen));
+                }
+
                 _ => {
                     return Err(handler.emit_err(Error::Compile {
                         error: CompileError::Internal {

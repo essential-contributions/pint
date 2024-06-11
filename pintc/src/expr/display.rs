@@ -123,6 +123,7 @@ impl DisplayWithII for super::Immediate {
     fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> Result {
         match self {
             super::Immediate::Error => write!(f, "Error"),
+            super::Immediate::Nil => write!(f, "nil"),
             super::Immediate::Real(n) => write!(f, "{n:e}"),
             super::Immediate::Int(n) => write!(f, "{n}"),
             super::Immediate::Bool(b) => write!(f, "{b}"),

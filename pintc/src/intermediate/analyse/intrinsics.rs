@@ -2,6 +2,7 @@ use super::Inference;
 use super::{ExprKey, Ident, IntermediateIntent};
 use crate::{
     error::{CompileError, Error},
+    expr::{Expr, UnaryOp},
     span::{empty_span, Span, Spanned},
     types::{PrimitiveKind, Type},
 };
@@ -32,6 +33,8 @@ impl IntermediateIntent {
                 "__sha256" => infer_intrinsic_sha256(args, span),
                 "__verify_ed25519" => infer_intrinsic_verify_ed25519(self, name, args, span),
                 "__recover_secp256k1" => infer_intrinsic_recover_secp256k1(self, name, args, span),
+
+                "__state_len" => infer_intrinsic_state_len(self, args, span),
 
                 // State reads - these will likely change in the future as they don't directly
                 // match the underlying opcodes
@@ -441,5 +444,60 @@ fn infer_intrinsic_recover_secp256k1(
             ),
         ],
         span: empty_span(),
+    }))
+}
+
+//
+// Intrinsic `__state_len`
+//
+// - Arguments:
+//     * State variable: any type
+//
+// - Returns: `int`
+//
+// Description: this operation returns the "length" of a state variable. The length of a state
+// variable is the sum of the lengths of the slots that form the state variable.
+//
+fn infer_intrinsic_state_len(
+    ii: &IntermediateIntent,
+    args: &[ExprKey],
+    span: &Span,
+) -> Result<Inference, Error> {
+    // This intrinsic expects exactly 1 argument
+    if args.len() != 1 {
+        return Err(Error::Compile {
+            error: CompileError::UnexpectedIntrinsicArgCount {
+                expected: 1,
+                found: args.len(),
+                span: span.clone(),
+            },
+        });
+    }
+
+    // First argument must be a path to a state variable
+    match args[0].try_get(ii) {
+        Some(Expr::PathByName(name, _)) if ii.states().any(|(_, state)| state.name == *name) => {
+            Ok(())
+        }
+        Some(Expr::PathByKey(var_key, _))
+            if ii
+                .states()
+                .any(|(_, state)| state.name == var_key.get(ii).name) =>
+        {
+            Ok(())
+        }
+        Some(Expr::UnaryOp {
+            op: UnaryOp::NextState,
+            ..
+        }) => Ok(()),
+        _ => Err(Error::Compile {
+            error: CompileError::IntrinsicArgMustBeStateVar { span: span.clone() },
+        }),
+    }?;
+
+    // This intrinsic returns a `int`
+    Ok(Inference::Type(Type::Primitive {
+        kind: PrimitiveKind::Int,
+        span: span.clone(),
     }))
 }

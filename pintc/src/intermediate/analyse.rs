@@ -613,6 +613,7 @@ impl IntermediateIntent {
 
                 _ => Ok(Inference::Type(Type::Primitive {
                     kind: match value {
+                        Immediate::Nil => PrimitiveKind::Nil,
                         Immediate::Real(_) => PrimitiveKind::Real,
                         Immediate::Int(_) => PrimitiveKind::Int,
                         Immediate::Bool(_) => PrimitiveKind::Bool,
@@ -1082,6 +1083,33 @@ impl IntermediateIntent {
             }
         };
 
+        // Checks if a given `ExprKey` is a path to a state var or a "next state" expression. If
+        // not, emit an error.
+        let check_state_var_arg = |arg: ExprKey| match arg.try_get(self) {
+            Some(Expr::PathByName(name, _))
+                if self.states().any(|(_, state)| state.name == *name) =>
+            {
+                Ok(())
+            }
+            Some(Expr::PathByKey(var_key, _))
+                if self
+                    .states()
+                    .any(|(_, state)| state.name == var_key.get(self).name) =>
+            {
+                Ok(())
+            }
+            Some(Expr::UnaryOp {
+                op: UnaryOp::NextState,
+                ..
+            }) => Ok(()),
+            _ => Err(Error::Compile {
+                error: CompileError::CompareToNilError {
+                    op: op.as_str(),
+                    span: self.expr_key_to_span(arg),
+                },
+            }),
+        };
+
         let lhs_ty = lhs_expr_key.get_ty(self).clone();
         let rhs_ty = rhs_expr_key.get_ty(self);
         if !lhs_ty.is_unknown() {
@@ -1099,9 +1127,17 @@ impl IntermediateIntent {
                     }
 
                     BinaryOp::Equal | BinaryOp::NotEqual => {
+                        // If either operands is `nil`, then ensure that the other is a state var
+                        // or a "next state" expression
+                        if lhs_ty.is_nil() && !rhs_ty.is_nil() {
+                            check_state_var_arg(rhs_expr_key)?;
+                        } else if !lhs_ty.is_nil() && rhs_ty.is_nil() {
+                            check_state_var_arg(lhs_expr_key)?;
+                        }
+
                         // Both args must be equatable, which at this stage is any type; binary op
                         // type is bool.
-                        if &lhs_ty != rhs_ty {
+                        if &lhs_ty != rhs_ty && !lhs_ty.is_nil() && !rhs_ty.is_nil() {
                             Err(Error::Compile {
                                 error: CompileError::OperatorTypeError {
                                     arity: "binary",

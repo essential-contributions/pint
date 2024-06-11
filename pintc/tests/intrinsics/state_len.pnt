@@ -1,0 +1,66 @@
+enum MyEnum = A | B;
+
+storage {
+    a: int,
+    b: bool,
+    c: b256,
+    d: { int, bool },
+}
+
+state a = storage::a;
+state b = storage::b;
+state c = storage::c;
+state d = storage::d;
+
+var a_len = __state_len(a);
+var b_len = __state_len(b);
+var c_len = __state_len(c);
+var d_len = __state_len(d);
+
+solve satisfy;
+
+// intermediate <<<,
+// storage {
+//     a: int,
+//     b: bool,
+//     c: b256,
+//     d: {int, bool},
+// }
+// var ::a_len;
+// var ::b_len;
+// var ::c_len;
+// var ::d_len;
+// state ::a = storage::a;
+// state ::b = storage::b;
+// state ::c = storage::c;
+// state ::d = storage::d;
+// enum ::MyEnum = A | B;
+// constraint (::a_len == __state_len(::a));
+// constraint (::b_len == __state_len(::b));
+// constraint (::c_len == __state_len(::c));
+// constraint (::d_len == __state_len(::d));
+// solve satisfy;
+// >>>
+
+// flattened <<<,
+// storage {
+//     a: int,
+//     b: bool,
+//     c: b256,
+//     d: {int, bool},
+// }
+// var ::a_len: int;
+// var ::b_len: int;
+// var ::c_len: int;
+// var ::d_len: int;
+// state ::a: int = storage::a;
+// state ::b: int = storage::b;
+// state ::c: b256 = storage::c;
+// state ::d: {int, bool} = storage::d;
+// enum ::MyEnum = A | B;
+// constraint (::a_len == __state_len(::a));
+// constraint (::b_len == __state_len(::b));
+// constraint (::c_len == __state_len(::c));
+// constraint (::d_len == __state_len(::d));
+// solve satisfy;
+// >>>

@@ -1,7 +1,7 @@
 [[data]]
 decision_variables = [
   # ::mut_keys_len
-  3,
+  4,
 
   # ::mut_keys_contains_0
   1,
@@ -13,9 +13,12 @@ decision_variables = [
   1,
 
   # ::mut_keys_contains_3
-  0,
+  1,
 
   # ::mut_keys_contains_4
+  0,
+
+  # ::mut_keys_contains_5
   0,
 
   # ::this_address
@@ -86,5 +89,9 @@ state_mutations = [
     2,
   ], value = [
     44,
+  ] },
+  { key = [
+    3,
+  ], value = [
   ] },
 ]

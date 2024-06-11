@@ -1,0 +1,36 @@
+// db <<<
+// 0, 42
+// 1, 43
+// 3, 1 1 1 1
+// >>>
+
+storage {
+    x: int,
+    y: int,
+    z: int,
+    w: b256,
+}
+
+// Intent with address `0x0000000000000000000000000000000000000000000000000000000000000000`
+intent Foo {
+    state x = storage::x;
+    state y = storage::y;
+    state z = storage::z;
+    state w = storage::w;
+
+    // `x` is set in the pre state db and in the solution
+    constraint x != nil;
+    constraint nil != x';
+
+    // `y` is set in the pre state db and in the solution
+    constraint nil != y;
+    constraint y' != nil;
+
+    // `z` is not set in the pre state db but is set in the solution
+    constraint z == nil;
+    constraint z' != 1;
+
+    // `w` is set in the pre state db but unset in the solution
+    constraint w != nil;
+    constraint nil == w';
+}

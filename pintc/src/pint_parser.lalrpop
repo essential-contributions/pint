@@ -955,6 +955,7 @@ Immediate: Immediate = {
     <s:"real_lit"> => Immediate::Real(s.replace('_', "").parse().unwrap()),
     "true" => Immediate::Bool(true),
     "false" => Immediate::Bool(false),
+    "nil" => Immediate::Nil,
     <s:"str_lit"> => Immediate::String(s),
 };
 
@@ -1161,6 +1162,7 @@ extern {
 
         "true" => lexer::Token::True,
         "false" => lexer::Token::False,
+        "nil" => lexer::Token::Nil,
 
         "fn" => lexer::Token::Fn,
         "if" => lexer::Token::If,

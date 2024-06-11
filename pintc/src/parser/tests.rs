@@ -274,6 +274,17 @@ fn storage_types() {
 fn immediates() {
     let immediate = (yp::TestDelegateParser::new(), "expr");
 
+    check(&run_parser!(immediate, "nil"), expect_test::expect!["nil"]);
+
+    check(
+        &run_parser!(immediate, "true"),
+        expect_test::expect!["true"],
+    );
+    check(
+        &run_parser!(immediate, "false"),
+        expect_test::expect!["false"],
+    );
+
     check(&run_parser!(immediate, "0x88"), expect_test::expect!["136"]);
     check(&run_parser!(immediate, "0b111"), expect_test::expect!["7"]);
     check(&run_parser!(immediate, "1"), expect_test::expect!["1"]);
