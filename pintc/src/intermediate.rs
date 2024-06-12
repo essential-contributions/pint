@@ -528,6 +528,9 @@ pub struct Var {
 impl DisplayWithII for VarKey {
     fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
         let var = &self.get(ii);
+        if var.is_pub {
+            write!(f, "pub ")?;
+        }
         write!(f, "var {}", var.name)?;
         let ty = self.get_ty(ii);
         if !ty.is_unknown() {

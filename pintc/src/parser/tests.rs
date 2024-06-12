@@ -1206,66 +1206,66 @@ fn pub_var_decls() {
     check(
         &run_parser!(pint, "pub var blah = 1.0;", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah;
+            pub var ::foo::blah;
             constraint (::foo::blah == 1e0);"#]],
     );
     check(
         &run_parser!(pint, "pub var blah: real = 1.0;", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah: real;
+            pub var ::foo::blah: real;
             constraint (::foo::blah == 1e0);"#]],
     );
     check(
         &run_parser!(pint, "pub var blah: real;", mod_path),
-        expect_test::expect!["var ::foo::blah: real;"],
+        expect_test::expect!["pub var ::foo::blah: real;"],
     );
     check(
         &run_parser!(pint, "pub var blah = 1;", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah;
+            pub var ::foo::blah;
             constraint (::foo::blah == 1);"#]],
     );
     check(
         &run_parser!(pint, "pub var blah: int = 1;", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah: int;
+            pub var ::foo::blah: int;
             constraint (::foo::blah == 1);"#]],
     );
     check(
         &run_parser!(pint, "pub var blah: int;", mod_path),
-        expect_test::expect!["var ::foo::blah: int;"],
+        expect_test::expect!["pub var ::foo::blah: int;"],
     );
     check(
         &run_parser!(pint, "pub var blah = true;", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah;
+            pub var ::foo::blah;
             constraint (::foo::blah == true);"#]],
     );
     check(
         &run_parser!(pint, "pub var blah: bool = false;", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah: bool;
+            pub var ::foo::blah: bool;
             constraint (::foo::blah == false);"#]],
     );
     check(
         &run_parser!(pint, "pub var blah: bool;", mod_path),
-        expect_test::expect!["var ::foo::blah: bool;"],
+        expect_test::expect!["pub var ::foo::blah: bool;"],
     );
     check(
         &run_parser!(pint, r#"pub var blah = "hello";"#, mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah;
+            pub var ::foo::blah;
             constraint (::foo::blah == "hello");"#]],
     );
     check(
         &run_parser!(pint, r#"pub var blah: string = "hello";"#, mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah: string;
+            pub var ::foo::blah: string;
             constraint (::foo::blah == "hello");"#]],
     );
     check(
         &run_parser!(pint, r#"pub var blah: string;"#, mod_path),
-        expect_test::expect!["var ::foo::blah: string;"],
+        expect_test::expect!["pub var ::foo::blah: string;"],
     );
 }
 
