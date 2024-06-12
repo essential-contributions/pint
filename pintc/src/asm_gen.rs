@@ -12,6 +12,7 @@ use essential_types::intent::{Directive, Intent};
 use fxhash::FxHashMap;
 use state_asm::{
     Access, Alu, Constraint, ControlFlow, Crypto, Op as StateRead, Pred, Stack, StateSlots,
+    TotalControlFlow,
 };
 
 mod display;
@@ -347,14 +348,15 @@ impl AsmBuilder {
         }
     }
 
-    /// Generates assembly for an `ExprKey`.
+    /// Generates assembly for an `ExprKey`. Returns the number of opcodes used to express `expr`
     fn compile_expr(
         &mut self,
         handler: &Handler,
         asm: &mut Vec<Constraint>,
         expr: &ExprKey,
         intent: &IntermediateIntent,
-    ) -> Result<(), ErrorEmitted> {
+    ) -> Result<usize, ErrorEmitted> {
+        let old_asm_len = asm.len();
         // Always push to the vector of ops corresponding to the last constraint, i.e. the current
         // constraint being processed.
         //
@@ -369,20 +371,20 @@ impl AsmBuilder {
                     asm.push(Stack::Push(val[3] as i64).into());
                 }
                 Immediate::Array { elements, .. } => {
-                    elements
-                        .iter()
-                        .try_for_each(|element| self.compile_expr(handler, asm, element, intent))?;
+                    for element in elements {
+                        self.compile_expr(handler, asm, element, intent)?;
+                    }
                 }
                 Immediate::Tuple(fields) => {
-                    fields.iter().try_for_each(|(_, field)| {
-                        self.compile_expr(handler, asm, field, intent)
-                    })?;
+                    for (_, field) in fields {
+                        self.compile_expr(handler, asm, field, intent)?;
+                    }
                 }
                 _ => unimplemented!("other literal types are not yet supported"),
             },
             Expr::BinaryOp { op, lhs, rhs, .. } => {
-                self.compile_expr(handler, asm, lhs, intent)?;
-                self.compile_expr(handler, asm, rhs, intent)?;
+                let lhs_len = self.compile_expr(handler, asm, lhs, intent)?;
+                let rhs_len = self.compile_expr(handler, asm, rhs, intent)?;
                 match op {
                     BinaryOp::Add => asm.push(Alu::Add.into()),
                     BinaryOp::Sub => asm.push(Alu::Sub.into()),
@@ -408,8 +410,71 @@ impl AsmBuilder {
                         asm.push(Pred::Gte.into());
                     }
                     BinaryOp::GreaterThan => asm.push(Pred::Gt.into()),
-                    BinaryOp::LogicalAnd => asm.push(Pred::And.into()),
-                    BinaryOp::LogicalOr => asm.push(Pred::Or.into()),
+                    BinaryOp::LogicalAnd => {
+                        // Short-circuit AND. Using `JumpForwardIf`, converts `x && y` to:
+                        // if !x { false } else { y }
+
+                        // Location right before the `lhs` opcodes
+                        let lhs_position = asm.len() - rhs_len - lhs_len;
+
+                        // Location right before the `rhs` opcodes
+                        let rhs_position = asm.len() - rhs_len;
+
+                        // Push `false` before `lhs` opcodes. This is the result of the `AND`
+                        // operation if `lhs` is false.
+                        asm.insert(lhs_position, Stack::Push(0).into());
+
+                        // Then push the number of instructions to skip over if the `lhs` is true.
+                        // That's `rhs_len + 2` because we're goint to add to add `Pop` later and
+                        // we want to skip over that AND all the `rhs` opcodes
+                        asm.insert(lhs_position + 1, Stack::Push(rhs_len as i64 + 2).into());
+
+                        // Now, invert `lhs` to get the jump condition which is `!lhs`
+                        asm.insert(rhs_position + 2, Pred::Not.into());
+
+                        // Then, add the `JumpForwardIf` instruction after the `rhs` opcodes and
+                        // the two newly added opcodes. The `lhs` is the condition.
+                        asm.insert(
+                            rhs_position + 3,
+                            Constraint::TotalControlFlow(TotalControlFlow::JumpForwardIf),
+                        );
+
+                        // Finally, insert a ` Pop`. The point here is that if the jump condition
+                        // (i.e. `!lhs`) is false, then we want to remove the `true` we push on the
+                        // stack above.
+                        asm.insert(rhs_position + 4, Stack::Pop.into());
+                    }
+                    BinaryOp::LogicalOr => {
+                        // Short-circuit OR. Using `JumpForwardIf`, converts `x || y` to:
+                        // if x { true } else { y }
+
+                        // Location right before the `lhs` opcodes
+                        let lhs_position = asm.len() - rhs_len - lhs_len;
+
+                        // Location right before the `rhs` opcodes
+                        let rhs_position = asm.len() - rhs_len;
+
+                        // Push `true` before `lhs` opcodes. This is the result of the `OR`
+                        // operation if `lhs` is true.
+                        asm.insert(lhs_position, Stack::Push(1).into());
+
+                        // Then push the number of instructions to skip over if the `lhs` is true.
+                        // That's `rhs_len + 2` because we're goint to add to add `Pop` later and
+                        // we want to skip over that AND all the `rhs` opcodes
+                        asm.insert(lhs_position + 1, Stack::Push(rhs_len as i64 + 2).into());
+
+                        // Now add the `JumpForwardIf` instruction after the `rhs` opcodes and the
+                        // two newly added opcodes. The `lhs` is the condition.
+                        asm.insert(
+                            rhs_position + 2,
+                            Constraint::TotalControlFlow(TotalControlFlow::JumpForwardIf),
+                        );
+
+                        // Then, insert a ` Pop`. The point here is that if the jump condition
+                        // (i.e. `lhs`) is false, then we want to remove the `true` we push on the
+                        // stack above.
+                        asm.insert(rhs_position + 3, Stack::Pop.into());
+                    }
                 }
             }
             Expr::UnaryOp { op, expr, .. } => {
@@ -612,7 +677,7 @@ impl AsmBuilder {
                 }));
             }
         }
-        Ok(())
+        Ok(asm.len() - old_asm_len)
     }
 
     /// Compile a path expression. Assumes that each path expressions corresponds to a decision
