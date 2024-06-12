@@ -39,18 +39,18 @@ solve satisfy;
 // d is expanded, e is not.
 //
 // flattened <<<
-// var ::b0[0]: int;
-// var ::b1[0]: int;
-// var ::c[0]: int;
-// var ::f[0]: int;
-// var ::h[0]: int;
-// var ::i[0]: int;
 // var ::a[0]: int;
 // var ::a[1]: int;
+// var ::b0[0]: int;
 // var ::b0[1]: int;
+// var ::b1[0]: int;
 // var ::b1[1]: int;
+// var ::c[0]: int;
 // var ::c[1]: int;
+// var ::f[0]: int;
+// var ::h[0]: int;
 // var ::h[1]: int;
+// var ::i[0]: int;
 // var ::i[1]: int;
 // var ::i[2]: int;
 // enum ::Egg = Ovum | Oeuf | Uovo | HuaManu;
