@@ -302,8 +302,6 @@ fn binary_ops() {
             constraint x >= y;
             constraint x > y;
             constraint x > y;
-            constraint b0 && b1;
-            constraint b0 || b1;
             solve satisfy;
             "#,
             ),
@@ -398,18 +396,67 @@ fn binary_ops() {
               Stack(Push(1))
               Access(DecisionVar)
               Pred(Gt)
-            constraint 12
-              Stack(Push(3))
-              Access(DecisionVar)
+            --- State Reads ---
+        "#]],
+    );
+}
+
+#[test]
+fn short_circuit_and() {
+    check(
+        &format!(
+            "{}",
+            compile(
+                r#"
+            var a: bool;
+            var b: bool;
+            constraint a && b;
+            solve satisfy;
+            "#,
+            ),
+        ),
+        expect_test::expect![[r#"
+            --- Constraints ---
+            constraint 0
+              Stack(Push(0))
               Stack(Push(4))
+              Stack(Push(0))
               Access(DecisionVar)
-              Pred(And)
-            constraint 13
-              Stack(Push(3))
+              Pred(Not)
+              TotalControlFlow(JumpForwardIf)
+              Stack(Pop)
+              Stack(Push(1))
               Access(DecisionVar)
+            --- State Reads ---
+        "#]],
+    );
+}
+
+#[test]
+fn short_circuit_or() {
+    check(
+        &format!(
+            "{}",
+            compile(
+                r#"
+            var a: bool;
+            var b: bool;
+            constraint a || b;
+            solve satisfy;
+            "#,
+            ),
+        ),
+        expect_test::expect![[r#"
+            --- Constraints ---
+            constraint 0
+              Stack(Push(1))
               Stack(Push(4))
+              Stack(Push(0))
               Access(DecisionVar)
-              Pred(Or)
+              TotalControlFlow(JumpForwardIf)
+              Stack(Pop)
+              Stack(Push(1))
+              Access(DecisionVar)
             --- State Reads ---
         "#]],
     );
