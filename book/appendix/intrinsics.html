@@ -180,6 +180,11 @@ solution data currently being used to check the intent.</p>
 </code></pre>
 <p><strong>Description:</strong> Returns a SHA 256 hash from the specified data.</p>
 <hr />
+<pre><code class="language-pint">__state_len(data: &lt;state&gt;) -&gt; int
+</code></pre>
+<p><strong>Description:</strong> Returns the length of a state variable. the argument <code>data</code> must be a state
+variable or a &quot;next state&quot; expression but can have any type.</p>
+<hr />
 <pre><code class="language-pint">__verify_ed25519(data: &lt;any&gt;, sig: { b256, b256 }, pub_key: b256) -&gt; bool
 </code></pre>
 <p><strong>Description:</strong> Validate an Ed25519 signature against a public key.</p>
