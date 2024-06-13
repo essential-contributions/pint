@@ -29,9 +29,20 @@ var recover_secp256k1_1: { b256, int } = __recover_secp256k1(hash0, { hash0, has
 var recover_secp256k1_2: { b256, int } = __recover_secp256k1(hash0);
 var recover_secp256k1_3: { b256, int } = __recover_secp256k1(hash0, {hash0, hash0, 69}, hash0);
 
+storage {
+    x: int,
+}
+state x = storage::x;
+
+var bad_state_len_1 = __state_len(x, 0);
+var bad_state_len_2 = __state_len();
+
 solve satisfy;
 
 // intermediate <<<
+// storage {
+//     x: int,
+// }
 // var ::hash0: b256;
 // var ::mut_keys_len;
 // var ::mut_keys_contains_0: bool;
@@ -50,6 +61,9 @@ solve satisfy;
 // var ::recover_secp256k1_1: {b256, int};
 // var ::recover_secp256k1_2: {b256, int};
 // var ::recover_secp256k1_3: {b256, int};
+// var ::bad_state_len_1;
+// var ::bad_state_len_2;
+// state ::x = storage::x;
 // constraint (::mut_keys_len == __mut_keys_len(42));
 // constraint (::mut_keys_contains_0 == __mut_keys_contains(5));
 // constraint (::mut_keys_contains_1 == __mut_keys_contains());
@@ -67,6 +81,8 @@ solve satisfy;
 // constraint (::recover_secp256k1_1 == __recover_secp256k1(::hash0, {::hash0, ::hash0}));
 // constraint (::recover_secp256k1_2 == __recover_secp256k1(::hash0));
 // constraint (::recover_secp256k1_3 == __recover_secp256k1(::hash0, {::hash0, ::hash0, 69}, ::hash0));
+// constraint (::bad_state_len_1 == __state_len(::x, 0));
+// constraint (::bad_state_len_2 == __state_len());
 // solve satisfy;
 // >>>
 
@@ -110,6 +126,10 @@ solve satisfy;
 // @1064..1090: unexpected number of arguments here
 // this intrinsic takes 2 arguments but 3 arguments were supplied
 // @1133..1186: unexpected number of arguments here
+// this intrinsic takes 1 argument but 2 arguments were supplied
+// @1258..1275: unexpected number of arguments here
+// this intrinsic takes 1 argument but 0 arguments were supplied
+// @1299..1312: unexpected number of arguments here
 // unable to determine expression type
 // @179..191: type of this expression is ambiguous
 // unable to determine expression type
@@ -122,6 +142,10 @@ solve satisfy;
 // @526..534: type of this expression is ambiguous
 // unable to determine expression type
 // @553..561: type of this expression is ambiguous
+// unable to determine expression type
+// @1240..1255: type of this expression is ambiguous
+// unable to determine expression type
+// @1281..1296: type of this expression is ambiguous
 // constraint expression type error
 // @175..212: constraint expression has unexpected type `Unknown`
 // @175..212: expecting type `bool`
@@ -173,4 +197,10 @@ solve satisfy;
 // constraint expression type error
 // @1092..1186: constraint expression has unexpected type `Unknown`
 // @1092..1186: expecting type `bool`
+// constraint expression type error
+// @1236..1275: constraint expression has unexpected type `Unknown`
+// @1236..1275: expecting type `bool`
+// constraint expression type error
+// @1277..1312: constraint expression has unexpected type `Unknown`
+// @1277..1312: expecting type `bool`
 // >>>

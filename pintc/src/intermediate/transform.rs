@@ -36,7 +36,8 @@ mod validate;
 use crate::error::{ErrorEmitted, Handler};
 use canonicalize_solve_directive::canonicalize_solve_directive;
 use lower::{
-    lower_aliases, lower_bools, lower_casts, lower_enums, lower_ifs, lower_imm_accesses, lower_ins,
+    lower_aliases, lower_bools, lower_casts, lower_compares_to_nil, lower_enums, lower_ifs,
+    lower_imm_accesses, lower_ins,
 };
 use scalarize::scalarize;
 use unroll::unroll_generators;
@@ -50,6 +51,8 @@ impl super::Program {
             // other passes are safe to assume that `if` declarations and their content have
             // already been converted to raw constraints.
             lower_ifs(ii);
+
+            let _ = lower_compares_to_nil(handler, ii);
 
             // Unroll each generator into one large conjuction
             let _ = handler.scope(|handler| unroll_generators(handler, ii));

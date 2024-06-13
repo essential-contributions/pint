@@ -327,7 +327,8 @@ impl Evaluator {
                     }
 
                     // Invalid to cast from these values.
-                    Imm::String(_)
+                    Imm::Nil
+                    | Imm::String(_)
                     | Imm::B256(_)
                     | Imm::Array { .. }
                     | Imm::Tuple(_)
@@ -420,6 +421,7 @@ impl ExprKey {
                 }
 
                 Imm::Error
+                | Imm::Nil
                 | Imm::Real(_)
                 | Imm::Int(_)
                 | Imm::Bool(_)

@@ -10,6 +10,7 @@ pub type Path = String;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PrimitiveKind {
+    Nil,
     Bool,
     Int,
     Real,
@@ -83,6 +84,10 @@ impl Type {
         } else {
             None
         }
+    }
+
+    pub fn is_nil(&self) -> bool {
+        check_alias!(self, is_nil, is_primitive!(self, PrimitiveKind::Nil))
     }
 
     pub fn is_bool(&self) -> bool {

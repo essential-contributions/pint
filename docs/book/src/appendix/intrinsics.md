@@ -58,6 +58,15 @@ __sha256(data: <any>) -> b256
 ---
 
 ```pint
+__state_len(data: <state>) -> int
+```
+
+**Description:** Returns the length of a state variable. the argument `data` must be a state
+variable or a "next state" expression but can have any type.
+
+---
+
+```pint
 __verify_ed25519(data: <any>, sig: { b256, b256 }, pub_key: b256) -> bool
 ```
 

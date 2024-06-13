@@ -85,6 +85,8 @@ pub enum Token {
     True,
     #[token("false")]
     False,
+    #[token("nil")]
+    Nil,
     #[token("string")]
     String,
     #[token("b256")]
@@ -210,6 +212,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Bool,
     Token::True,
     Token::False,
+    Token::Nil,
     Token::String,
     Token::B256,
     Token::ForAll,
@@ -279,6 +282,7 @@ impl fmt::Display for Token {
             Token::Bool => write!(f, "bool"),
             Token::True => write!(f, "true"),
             Token::False => write!(f, "false"),
+            Token::Nil => write!(f, "nil"),
             Token::String => write!(f, "string"),
             Token::B256 => write!(f, "b256"),
             Token::Fn => write!(f, "fn"),
@@ -765,7 +769,7 @@ pub fn get_token_error_category(lalrpop_token: &Option<String>) -> Option<String
     if let Some(token) = lalrpop_token {
         match token.as_str() {
             "int_ty" | "real_ty" | "bool_ty" | "string_ty" | "b256_ty" => Some("a type".to_owned()),
-            "int_lit" | "real_lit" | "str_lit" => Some("a literal".to_owned()),
+            "int_lit" | "real_lit" | "str_lit" | "nil" => Some("a literal".to_owned()),
             "true" | "false" => Some("a boolean".to_owned()),
             "ident" => Some("an identifier".to_owned()),
             "satisfy" => Some("a directive".to_owned()),

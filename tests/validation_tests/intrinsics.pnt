@@ -1,3 +1,16 @@
+// db <<<
+// 0, 42
+// 1, 43
+// 3, 1 1 1 1
+// >>>
+
+storage {
+    x: int,
+    y: int,
+    z: int,
+    w: b256,
+}
+
 // Intent with address `0x0000000000000000000000000000000000000000000000000000000000000000`
 intent First { }
 
@@ -7,21 +20,23 @@ intent Bar { }
 // Intent with address `0x0000000000000000000000000000000000000000000000000000000000000002`
 intent Foo {
     var mut_keys_len: int = __mut_keys_len();
-    constraint mut_keys_len == 3;
+    constraint mut_keys_len == 4;
 
     // Solution contains these 
     var mut_keys_contains_0: bool = __mut_keys_contains([0]);
     var mut_keys_contains_1: bool = __mut_keys_contains([1]);
     var mut_keys_contains_2: bool = __mut_keys_contains([2]);
+    var mut_keys_contains_3: bool = __mut_keys_contains([3]);
     constraint mut_keys_contains_0 == true;
     constraint mut_keys_contains_1 == true;
     constraint mut_keys_contains_2 == true;
+    constraint mut_keys_contains_3 == true;
 
     // Solution does not contain these
-    var mut_keys_contains_3: bool = __mut_keys_contains([3]);
     var mut_keys_contains_4: bool = __mut_keys_contains([4]);
-    constraint mut_keys_contains_3 == false;
+    var mut_keys_contains_5: bool = __mut_keys_contains([5]);
     constraint mut_keys_contains_4 == false;
+    constraint mut_keys_contains_5 == false;
 
     var this_address: b256 = __this_address();
     constraint this_address == 0x0000000000000000000000000000000000000000000000000000000000000002;
@@ -70,6 +85,27 @@ intent Foo {
         );
 
     constraint recover_secp256k1 == { 0x0308f06a2a35c484909a2480ce681b24967cfd55fca22fcd705769ac55db6279, 13 };
+
+    state x = storage::x;
+    state y = storage::y;
+    state z = storage::z;
+    state w = storage::w;
+
+    // `x` is set in the pre state db and in the solution
+    constraint __state_len(x) == 1;
+    constraint __state_len(x) == 1;
+
+    // `y` is set in the pre state db and in the solution
+    constraint __state_len(y) == 1;
+    constraint __state_len(y') == 1;
+
+    // `z` is not set in the pre state db but is set in the solution
+    constraint __state_len(z) == 0;
+    constraint __state_len(z') == 1;
+
+    // `w` is set in the pre state db but unset in the solution
+    constraint __state_len(w) == 4;
+    constraint __state_len(w') == 0;
 }
 
 

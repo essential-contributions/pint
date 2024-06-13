@@ -1,0 +1,40 @@
+var x: int = nil;
+var y: int = 1 + nil;
+var z: int;
+constraint z < nil;
+constraint nil;
+
+// intermediate <<<
+// var ::x: int;
+// var ::y: int;
+// var ::z: int;
+// constraint (::x == nil);
+// constraint (::y == (1 + nil));
+// constraint (::z < nil);
+// constraint nil;
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// binary operator type error
+// @4..5: unexpected argument for operator `==`
+// only state variables and next state expressions can be compared to `nil`
+// binary operator type error
+// @35..38: operator `+` argument has unexpected type `nil`
+// binary operator type error
+// @67..70: operator `<` argument has unexpected type `nil`
+// constraint expression type error
+// @0..16: constraint expression has unexpected type `Unknown`
+// @0..16: expecting type `bool`
+// constraint expression type error
+// @18..38: constraint expression has unexpected type `Unknown`
+// @18..38: expecting type `bool`
+// constraint expression type error
+// @52..70: constraint expression has unexpected type `Unknown`
+// @52..70: expecting type `bool`
+// constraint expression type error
+// @72..86: constraint expression has unexpected type `nil`
+// @72..86: expecting type `bool`
+// >>>
+
+solve satisfy;

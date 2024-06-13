@@ -268,6 +268,10 @@ pub enum CompileError {
         intrinsic_span: Span,
         arg_span: Span,
     },
+    #[error("intrinsic argument must be a state variable")]
+    IntrinsicArgMustBeStateVar { span: Span },
+    #[error("binary operator type error")]
+    CompareToNilError { op: &'static str, span: Span },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -986,6 +990,20 @@ impl ReportableError for CompileError {
                 },
             ],
 
+            IntrinsicArgMustBeStateVar { span } => vec![ErrorLabel {
+                message: "intrinsic argument must be a state variable".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            CompareToNilError { op, span } => {
+                vec![ErrorLabel {
+                    message: format!("unexpected argument for operator `{op}`"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
             Internal { msg, span } => {
                 if span == &empty_span() {
                     Vec::new()
@@ -1154,7 +1172,9 @@ impl ReportableError for CompileError {
             | NonBoolGeneratorBody { .. }
             | MissingIntrinsic { .. }
             | UnexpectedIntrinsicArgCount { .. }
-            | MismatchedIntrinsicArgType { .. } => None,
+            | IntrinsicArgMustBeStateVar { .. }
+            | MismatchedIntrinsicArgType { .. }
+            | CompareToNilError { .. } => None,
         }
     }
 
@@ -1198,6 +1218,10 @@ impl ReportableError for CompileError {
             BadCastFrom { .. } => Some(
                 "casts may only be made from an int to a real, from a bool to an int or \
                 from an enum to an int"
+                    .to_string(),
+            ),
+            CompareToNilError { .. } => Some(
+                "only state variables and next state expressions can be compared to `nil`"
                     .to_string(),
             ),
 
@@ -1277,8 +1301,9 @@ impl Spanned for CompileError {
             | InExprTypesArrayMismatch { span, .. }
             | MissingIntrinsic { span, .. }
             | UnexpectedIntrinsicArgCount { span, .. }
-            | MismatchedIntrinsicArgType { arg_span: span, .. } => span,
-
+            | MismatchedIntrinsicArgType { arg_span: span, .. }
+            | IntrinsicArgMustBeStateVar { span, .. }
+            | CompareToNilError { span, .. } => span,
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }
             | StateVarInitTypeError { large_err, .. }

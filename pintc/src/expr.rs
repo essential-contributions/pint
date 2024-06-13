@@ -101,6 +101,7 @@ pub enum TupleAccess {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Immediate {
     Error,
+    Nil,
     Real(f64),
     Int(i64),
     Bool(bool),
@@ -194,6 +195,16 @@ impl Spanned for Expr {
 }
 
 impl Expr {
+    pub fn is_nil(&self) -> bool {
+        matches!(
+            self,
+            Expr::Immediate {
+                value: Immediate::Nil,
+                ..
+            }
+        )
+    }
+
     pub fn replace_ref<F: FnMut(&mut ExprKey)>(&mut self, mut replace: F) {
         match self {
             Expr::Immediate { value, .. } => match value {
@@ -201,6 +212,7 @@ impl Expr {
                 Immediate::Tuple(fields) => fields.iter_mut().for_each(|(_, expr)| replace(expr)),
 
                 Immediate::Error
+                | Immediate::Nil
                 | Immediate::Real(_)
                 | Immediate::Int(_)
                 | Immediate::Bool(_)

@@ -1,6 +1,6 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{evaluate::Evaluator, BinaryOp, Expr, Immediate, TupleAccess, UnaryOp},
+    expr::{evaluate::Evaluator, BinaryOp, Expr, Ident, Immediate, TupleAccess, UnaryOp},
     intermediate::{BlockStatement, ConstraintDecl, ExprKey, IfDecl, IntermediateIntent},
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
@@ -573,6 +573,106 @@ pub(crate) fn lower_ins(
     } else {
         Ok(())
     }
+}
+
+/// Convert all comparisons to `nil` to comparisons between the intrinsic `__state_len` and 0.
+/// For example:
+///
+/// state x = storage::x;
+/// state y = storage::x;
+/// constraint x == nil;
+/// constraint y != nil;
+///
+/// becomes:
+///
+/// state x = storage::x;
+/// state y = storage::x;
+/// constraint __state_len(x) == 0;
+/// constraint __state_len(y) != 0;
+///
+pub(crate) fn lower_compares_to_nil(
+    _handler: &Handler,
+    ii: &mut IntermediateIntent,
+) -> Result<(), ErrorEmitted> {
+    let compares_to_nil = ii
+        .exprs()
+        .filter_map(|expr_key| match expr_key.try_get(ii) {
+            Some(Expr::BinaryOp { op, lhs, rhs, span })
+                if (*op == BinaryOp::Equal || *op == BinaryOp::NotEqual)
+                    && (lhs.get(ii).is_nil() || rhs.get(ii).is_nil()) =>
+            {
+                Some((expr_key, *op, *lhs, *rhs, span.clone()))
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+
+    let convert_to_state_len_compare =
+        |ii: &mut IntermediateIntent, op: &BinaryOp, expr: &ExprKey, span: &crate::span::Span| {
+            let state_len = ii.exprs.insert(
+                Expr::IntrinsicCall {
+                    name: Ident {
+                        name: "__state_len".to_string(),
+                        hygienic: false,
+                        span: span.clone(),
+                    },
+                    args: vec![*expr],
+                    span: span.clone(),
+                },
+                Type::Primitive {
+                    kind: PrimitiveKind::Int,
+                    span: empty_span(),
+                },
+            );
+
+            let zero = ii.exprs.insert(
+                Expr::Immediate {
+                    value: Immediate::Int(0),
+                    span: empty_span(),
+                },
+                Type::Primitive {
+                    kind: PrimitiveKind::Bool,
+                    span: empty_span(),
+                },
+            );
+
+            // New binary op: `__state_len(expr) == 0`
+            ii.exprs.insert(
+                Expr::BinaryOp {
+                    op: *op,
+                    lhs: state_len,
+                    rhs: zero,
+                    span: span.clone(),
+                },
+                Type::Primitive {
+                    kind: PrimitiveKind::Bool,
+                    span: empty_span(),
+                },
+            )
+        };
+
+    for (old_bin_op, op, lhs, rhs, span) in compares_to_nil.iter() {
+        let new_bin_op = match (lhs.get(ii).is_nil(), rhs.get(ii).is_nil()) {
+            (false, true) => convert_to_state_len_compare(ii, op, lhs, span),
+            (true, false) => convert_to_state_len_compare(ii, op, rhs, span),
+            (true, true) => ii.exprs.insert(
+                // Comparing two `nil`s should always return `false` regardless of whether this is
+                // an `Equal` or a `NotEqual`.
+                Expr::Immediate {
+                    value: Immediate::Bool(false),
+                    span: empty_span(),
+                },
+                Type::Primitive {
+                    kind: PrimitiveKind::Bool,
+                    span: empty_span(),
+                },
+            ),
+            _ => unreachable!("both operands cannot be non-nil simultaneously at this stage"),
+        };
+        ii.replace_exprs(*old_bin_op, new_bin_op);
+    }
+
+    Ok(())
 }
 
 /// Convert all `if` declarations into individual constraints that are pushed to `ii.constraints`.
