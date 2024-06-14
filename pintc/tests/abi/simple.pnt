@@ -1,0 +1,89 @@
+storage {
+    s0: bool,
+    s1: int,
+    s2: b256,
+    s2: { int, int },
+    s3: { int, int, { int, int } },
+    my_map: (int => { int, { b256, int } }),
+    my_nested_map: (int => (b256 => { int, { b256, int } })),
+}
+
+intent Foo {
+    var v0: bool;
+    var v1: int;
+    var v2: b256;
+    var v3: { int, int };
+    var v4: { int, int, { int, int } };
+
+    pub var t0: bool;
+    pub var t1: int;
+    pub var t2: b256;
+}
+
+// intermediate <<<
+// storage {
+//     s0: bool,
+//     s1: int,
+//     s2: b256,
+//     s2: {int, int},
+//     s3: {int, int, {int, int}},
+//     my_map: ( int => {int, {b256, int}} ),
+//     my_nested_map: ( int => ( b256 => {int, {b256, int}} ) ),
+// }
+// 
+// intent ::Foo {
+//     storage {
+//         s0: bool,
+//         s1: int,
+//         s2: b256,
+//         s2: {int, int},
+//         s3: {int, int, {int, int}},
+//         my_map: ( int => {int, {b256, int}} ),
+//         my_nested_map: ( int => ( b256 => {int, {b256, int}} ) ),
+//     }
+//     var ::v0: bool;
+//     var ::v1: int;
+//     var ::v2: b256;
+//     var ::v3: {int, int};
+//     var ::v4: {int, int, {int, int}};
+//     pub var ::t0: bool;
+//     pub var ::t1: int;
+//     pub var ::t2: b256;
+// }
+// >>>
+
+// flattened <<<
+// storage {
+//     s0: bool,
+//     s1: int,
+//     s2: b256,
+//     s2: {int, int},
+//     s3: {int, int, {int, int}},
+//     my_map: ( int => {int, {b256, int}} ),
+//     my_nested_map: ( int => ( b256 => {int, {b256, int}} ) ),
+// }
+// 
+// intent ::Foo {
+//     storage {
+//         s0: bool,
+//         s1: int,
+//         s2: b256,
+//         s2: {int, int},
+//         s3: {int, int, {int, int}},
+//         my_map: ( int => {int, {b256, int}} ),
+//         my_nested_map: ( int => ( b256 => {int, {b256, int}} ) ),
+//     }
+//     var ::v0: int;
+//     var ::v1: int;
+//     var ::v2: b256;
+//     var ::v3.0: int;
+//     var ::v3.1: int;
+//     var ::v4.0: int;
+//     var ::v4.1: int;
+//     var ::v4.2.0: int;
+//     var ::v4.2.1: int;
+//     pub var ::t0: int;
+//     pub var ::t1: int;
+//     pub var ::t2: b256;
+// }
+// >>>

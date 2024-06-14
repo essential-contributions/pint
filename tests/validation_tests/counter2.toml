@@ -1,4 +1,4 @@
 [[data]]
-decision_variables = [222]
+decision_variables = [[222]]
 intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "::Initialize" }
 state_mutations = [{ key = [14, 14, 14, 14], value = [222] }]

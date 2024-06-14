@@ -51,8 +51,10 @@ solve satisfy;
 // var ::b[1][1][1]: int;
 // var ::x: int;
 // var ::z: string;
-// var ::e.0: ::MyEnum;
+// var ::e.0: int;
 // var ::e.1: int;
 // enum ::MyEnum = A | B;
+// constraint (::e.0 >= 0);
+// constraint (::e.0 <= 1);
 // solve satisfy;
 // >>>

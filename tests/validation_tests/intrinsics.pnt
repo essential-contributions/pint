@@ -107,5 +107,3 @@ intent Foo {
     constraint __state_len(w) == 4;
     constraint __state_len(w') == 0;
 }
-
-

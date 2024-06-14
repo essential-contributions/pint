@@ -72,7 +72,7 @@ IntentOpen: () = {
         context
             .program
             .iis
-            .insert(name.to_string(), IntermediateIntent::default());
+            .insert(name.to_string(), IntermediateIntent::new(name.to_string()));
 
         // Keep track of the macro call in this new intent
         context

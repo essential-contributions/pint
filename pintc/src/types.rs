@@ -3,6 +3,7 @@ use crate::{
     intermediate::ExprKey,
     span::{Span, Spanned},
 };
+use abi_types::{Key, KeyedTupleField, KeyedTypeABI, TupleField, TypeABI};
 
 mod display;
 
@@ -287,6 +288,78 @@ impl Type {
             // so we can't have a decision variable of type `Map` for example.
             Self::Map { .. } => 1,
             _ => unimplemented!("Size of type is not yet specified"),
+        }
+    }
+
+    /// Produce a `TypeABI` given a `Type`.
+    pub fn abi(&self) -> TypeABI {
+        match self {
+            Type::Primitive { kind, .. } => match kind {
+                PrimitiveKind::Bool => TypeABI::Bool,
+                PrimitiveKind::Int => TypeABI::Int,
+                PrimitiveKind::Real => TypeABI::Real,
+                PrimitiveKind::String => TypeABI::String,
+                PrimitiveKind::B256 => TypeABI::B256,
+                _ => unimplemented!(),
+            },
+            Type::Tuple { fields, .. } => TypeABI::Tuple(
+                fields
+                    .iter()
+                    .map(|(name, field_ty)| TupleField {
+                        name: name.as_ref().map(|name| name.name.clone()),
+                        ty: field_ty.abi(),
+                    })
+                    .collect::<Vec<_>>(),
+            ),
+            _ => unimplemented!("other types are not yet supported"),
+        }
+    }
+
+    /// Produce a `KeyedTypeABI` given a `Type` and a base key. The layout of the keys follows how
+    /// asm_gen produces storage and transient data keys.
+    pub fn abi_with_key(&self, key: Key) -> KeyedTypeABI {
+        match self {
+            Type::Primitive { kind, .. } => match kind {
+                PrimitiveKind::Bool => KeyedTypeABI::Bool(key),
+                PrimitiveKind::Int => KeyedTypeABI::Int(key),
+                PrimitiveKind::Real => KeyedTypeABI::Real(key),
+                PrimitiveKind::String => KeyedTypeABI::String(key),
+                PrimitiveKind::B256 => KeyedTypeABI::B256(key),
+                _ => unimplemented!(),
+            },
+            Type::Tuple { fields, .. } => KeyedTypeABI::Tuple {
+                fields: fields
+                    .iter()
+                    .enumerate()
+                    .map(|(index, (name, field_ty))| {
+                        let mut field_key = key.clone();
+
+                        field_key.push(Some(
+                            fields
+                                .iter()
+                                .take(index)
+                                .map(|(_, ty)| ty.storage_slots())
+                                .sum(),
+                        ));
+
+                        KeyedTupleField {
+                            name: name.as_ref().map(|name| name.name.clone()),
+                            ty: field_ty.abi_with_key(field_key.clone()),
+                        }
+                    })
+                    .collect::<Vec<_>>(),
+                key,
+            },
+            Type::Map { ty_from, ty_to, .. } => {
+                let mut value_key = key.clone();
+                value_key.extend(vec![None; ty_from.size()]);
+                KeyedTypeABI::Map {
+                    ty_from: (*ty_from).abi(),
+                    ty_to: Box::new((*ty_to).abi_with_key(value_key.clone())),
+                    key,
+                }
+            }
+            _ => unimplemented!("other types are not yet supported"),
         }
     }
 }
