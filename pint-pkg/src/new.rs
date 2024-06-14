@@ -126,7 +126,7 @@ const DEFAULT_CONTRACT_PNT: &str = r#"storage {
 }
 
 intent Init {
-    let value: int;
+    var value: int;
     state counter: int = storage::counter;
     constraint counter' == value;
 }

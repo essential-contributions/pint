@@ -36,7 +36,7 @@ fn build_contract_one_dep() {
     const BAR_SRC: &str = r#"type Age = int;"#;
     const FOO_SRC: &str = r#"use bar::Age;
 
-let bob_age: Age = 42;
+var bob_age: Age = 42;
 
 constraint bob_age == 6 * 7;
 solve satisfy;"#;
@@ -104,7 +104,7 @@ type Person = {
     const FOO_SRC: &str = r#"
 use bar::Person;
 
-let bob = {
+var bob = {
     age: 42,
 };
 
