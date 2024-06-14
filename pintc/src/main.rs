@@ -11,7 +11,8 @@ fn main() -> anyhow::Result<()> {
 
     // Lex + Parse
     let handler = error::Handler::default();
-    let parsed = match parser::parse_project(&handler, filepath) {
+    let deps = Default::default(); // Allow for passing lib deps by CLI?
+    let parsed = match parser::parse_project(&handler, &deps, filepath) {
         Ok(parsed) => {
             if args.print_parsed {
                 println!("{parsed}");

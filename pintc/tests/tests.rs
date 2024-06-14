@@ -70,7 +70,8 @@ fn parse_test_and_check(
     failed_tests: &mut Vec<String>,
 ) -> Option<Program> {
     let handler = Handler::default();
-    match pintc::parser::parse_project(&handler, path) {
+    let deps = Default::default();
+    match pintc::parser::parse_project(&handler, &deps, path) {
         Err(_) => {
             let errs_str = handler
                 .consume()
