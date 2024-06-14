@@ -75,7 +75,7 @@ solve satisfy;"#;
 
         // Check that the last was foo and that it's a contract.
         let foo_n = order[1];
-        let &BuiltPkg::Contract(ref contract) = &built.pkgs[&foo_n] else {
+        let BuiltPkg::Contract(contract) = &built.pkgs[&foo_n] else {
             panic!("expected last built package `foo` to be a contract");
         };
 
@@ -156,7 +156,7 @@ solve satisfy;"#;
 
         // Check that the last was foo and that it's a contract.
         let foo_n = order[2];
-        let &BuiltPkg::Contract(ref contract) = &built.pkgs[&foo_n] else {
+        let BuiltPkg::Contract(contract) = &built.pkgs[&foo_n] else {
             panic!("expected last built package `foo` to be a contract");
         };
 

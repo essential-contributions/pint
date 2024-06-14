@@ -11,7 +11,7 @@ repository.workspace = true
 [dependencies]
 petgraph = { workspace = true }
 pint-manifest = { workspace = true }
-pintc = { workspace = true }
+pintc = { path = "../pintc", default-features = false }
 serde = { workspace = true }
 thiserror = { workspace = true }
 
