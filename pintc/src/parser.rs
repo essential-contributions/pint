@@ -9,7 +9,7 @@ use crate::{
 };
 
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
     rc::Rc,
@@ -53,7 +53,7 @@ struct ProjectParser<'a> {
 /// External dependency names to their associated entry point.
 ///
 /// Each dependency name is treated as a submodule.
-type Dependencies<'a> = HashMap<&'a str, &'a Path>;
+type Dependencies<'a> = fxhash::FxHashMap<&'a str, &'a Path>;
 
 #[derive(Clone, Debug)]
 pub(crate) struct NextModPath {
