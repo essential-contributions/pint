@@ -24,8 +24,14 @@ impl DisplayWithII for super::Type {
             },
 
             super::Type::Array { ty, range, .. } => {
-                write!(f, "{}[", ii.with_ii(&**ty))?;
-                write!(f, "{}]", ii.with_ii(range))
+                write!(
+                    f,
+                    "{}[{}]",
+                    ii.with_ii(ty.as_ref()),
+                    range
+                        .map(|range| ii.with_ii(range).to_string())
+                        .unwrap_or("???".to_owned())
+                )
             }
 
             super::Type::Tuple { fields, .. } => {

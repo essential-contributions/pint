@@ -290,26 +290,31 @@ pub(crate) fn lower_imm_accesses(
             .exprs()
             .filter_map(|expr_key| match expr_key.get(ii) {
                 Expr::Index { expr, index, .. } => expr.try_get(ii).and_then(|array_expr| {
-                    matches!(
+                    let is_array_expr = matches!(array_expr, Expr::Array { .. });
+                    let is_array_imm = matches!(
                         array_expr,
                         Expr::Immediate {
-                            value: Immediate::Array { .. },
+                            value: Immediate::Array(_),
                             ..
                         }
-                    )
-                    .then(|| (expr_key, Some((*expr, *index)), None))
+                    );
+
+                    (is_array_expr || is_array_imm).then(|| (expr_key, Some((*expr, *index)), None))
                 }),
 
                 Expr::TupleFieldAccess { tuple, field, .. } => {
                     tuple.try_get(ii).and_then(|tuple_expr| {
-                        matches!(
+                        let is_tuple_expr = matches!(tuple_expr, Expr::Tuple { .. });
+                        let is_tuple_imm = matches!(
                             tuple_expr,
                             Expr::Immediate {
                                 value: Immediate::Tuple(_),
                                 ..
                             }
-                        )
-                        .then(|| (expr_key, None, Some((*tuple, field.clone()))))
+                        );
+
+                        (is_tuple_expr || is_tuple_imm)
+                            .then(|| (expr_key, None, Some((*tuple, field.clone()))))
                     })
                 }
 
@@ -338,21 +343,12 @@ pub(crate) fn lower_imm_accesses(
 
                 match evaluator.evaluate(idx_expr, handler, ii) {
                     Ok(Immediate::Int(idx_val)) if idx_val >= 0 => {
-                        let Some(Expr::Immediate {
-                            value: Immediate::Array { elements, .. },
-                            ..
-                        }) = array_key.try_get(ii)
-                        else {
-                            return Err(handler.emit_err(Error::Compile {
-                                error: CompileError::Internal {
-                                    msg: "missing array expression in lower_imm_accesses()",
-                                    span: empty_span(),
-                                },
-                            }));
-                        };
-
-                        // Save the original access expression key and the element it referred to.
-                        replacements.push((old_expr_key, elements[idx_val as usize]));
+                        // The expression could be an array expression, or an array immediate which
+                        // we'll ignore here.
+                        if let Some(Expr::Array { elements, .. }) = array_key.try_get(ii) {
+                            // Save the original access expression key and the element it referred to.
+                            replacements.push((old_expr_key, elements[idx_val as usize]));
+                        }
                     }
 
                     Ok(_) => {
@@ -375,35 +371,24 @@ pub(crate) fn lower_imm_accesses(
 
             if let Some((tuple_key, tuple_field_key)) = field_idx {
                 // We have a tuple access into an immediate.
-                let Some(Expr::Immediate {
-                    value: Immediate::Tuple(fields),
-                    ..
-                }) = tuple_key.try_get(ii)
-                else {
-                    return Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "missing tuple expression in lower_imm_accesses()",
-                            span: empty_span(),
-                        },
-                    }));
-                };
-
-                let new_expr_key = match tuple_field_key {
-                    TupleAccess::Index(idx_val) => fields[idx_val].1,
-                    TupleAccess::Name(access_name) => fields
-                        .iter()
-                        .find_map(|(opt_name, field_key)| {
-                            opt_name.as_ref().and_then(|field_name| {
-                                (field_name.name == access_name.name).then_some(*field_key)
+                if let Some(Expr::Tuple { fields, .. }) = tuple_key.try_get(ii) {
+                    let new_expr_key = match tuple_field_key {
+                        TupleAccess::Index(idx_val) => fields[idx_val].1,
+                        TupleAccess::Name(access_name) => fields
+                            .iter()
+                            .find_map(|(opt_name, field_key)| {
+                                opt_name.as_ref().and_then(|field_name| {
+                                    (field_name.name == access_name.name).then_some(*field_key)
+                                })
                             })
-                        })
-                        .expect("missing tuple field"),
+                            .expect("missing tuple field"),
 
-                    TupleAccess::Error => unreachable!(),
-                };
+                        TupleAccess::Error => unreachable!(),
+                    };
 
-                // Save the original access expression key and the field it referred to.
-                replacements.push((old_expr_key, new_expr_key));
+                    // Save the original access expression key and the field it referred to.
+                    replacements.push((old_expr_key, new_expr_key));
+                }
             }
         }
 
@@ -455,24 +440,50 @@ pub(crate) fn lower_ins(
     let mut array_collections = Vec::new();
 
     // Collect all the `in` expressions which need to be replaced.  (Copy them out of the II.)
-    for expr_key in ii.exprs() {
+    for in_expr_key in ii.exprs() {
         if let Some(Expr::In {
             value,
             collection,
             span,
-        }) = expr_key.try_get(ii)
+        }) = in_expr_key.try_get(ii)
         {
             if let Some(collection_expr) = collection.try_get(ii) {
                 match collection_expr {
                     Expr::Range { lb, ub, span } => {
-                        in_range_collections.push((expr_key, *value, *lb, *ub, span.clone()));
+                        in_range_collections.push((in_expr_key, *value, *lb, *ub, span.clone()));
                     }
 
                     Expr::Immediate {
-                        value: Immediate::Array { elements, .. },
+                        value: Immediate::Array(elements),
                         span,
                     } => {
-                        array_collections.push((expr_key, *value, elements.clone(), span.clone()));
+                        array_collections.push((
+                            in_expr_key,
+                            *value,
+                            *collection,
+                            elements.len(),
+                            collection
+                                .get_ty(ii)
+                                .get_array_el_type()
+                                .cloned()
+                                .expect("array must have array type"),
+                            span.clone(),
+                        ));
+                    }
+
+                    Expr::Array { elements, span, .. } => {
+                        array_collections.push((
+                            in_expr_key,
+                            *value,
+                            *collection,
+                            elements.len(),
+                            collection
+                                .get_ty(ii)
+                                .get_array_el_type()
+                                .cloned()
+                                .expect("array must have array type"),
+                            span.clone(),
+                        ));
                     }
 
                     _ => {
@@ -535,16 +546,38 @@ pub(crate) fn lower_ins(
         ii.replace_exprs(in_expr_key, and_key);
     }
 
-    // Replace the array expressions.  `x in [a, b, c]` becomes `(x == a) || (x == b) || (x == c)`.
-    for (in_expr_key, value_key, elements, span) in array_collections {
-        let or_key = elements
-            .into_iter()
-            .map(|el_expr_key| {
+    let int_ty = Type::Primitive {
+        kind: PrimitiveKind::Int,
+        span: empty_span(),
+    };
+
+    // Replace the array expressions.
+    // `x in ary` becomes `(x == ary[0]) || (x == ary[1]) || (x == ary[2]) || ...`.
+    for (in_expr_key, value_key, array_key, element_count, element_ty, span) in array_collections {
+        let or_key = (0..(element_count as i64))
+            .map(|el_idx| {
+                let el_idx_val_key = ii.exprs.insert(
+                    Expr::Immediate {
+                        value: Immediate::Int(el_idx),
+                        span: empty_span(),
+                    },
+                    int_ty.clone(),
+                );
+
+                let el_idx_expr_key = ii.exprs.insert(
+                    Expr::Index {
+                        expr: array_key,
+                        index: el_idx_val_key,
+                        span: empty_span(),
+                    },
+                    element_ty.clone(),
+                );
+
                 ii.exprs.insert(
                     Expr::BinaryOp {
                         op: BinaryOp::Equal,
                         lhs: value_key,
-                        rhs: el_expr_key,
+                        rhs: el_idx_expr_key,
                         span: span.clone(),
                     },
                     bool_ty.clone(),

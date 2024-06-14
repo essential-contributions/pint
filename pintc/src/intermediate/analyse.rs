@@ -601,32 +601,15 @@ impl IntermediateIntent {
                 },
             }),
 
-            Expr::Immediate { value, span } => match value {
-                Immediate::Array {
-                    elements,
-                    range_expr,
-                } => self.infer_array_expr(*range_expr, elements, span),
+            Expr::Immediate { value, span } => self.infer_immediate(value, span),
 
-                Immediate::Tuple(fields) => self.infer_tuple_expr(fields, span),
+            Expr::Array {
+                elements,
+                range_expr,
+                span,
+            } => self.infer_array_expr(*range_expr, elements, span),
 
-                Immediate::Error => Ok(Inference::Type(Type::Error(span.clone()))),
-
-                _ => Ok(Inference::Type(Type::Primitive {
-                    kind: match value {
-                        Immediate::Nil => PrimitiveKind::Nil,
-                        Immediate::Real(_) => PrimitiveKind::Real,
-                        Immediate::Int(_) => PrimitiveKind::Int,
-                        Immediate::Bool(_) => PrimitiveKind::Bool,
-                        Immediate::String(_) => PrimitiveKind::String,
-                        Immediate::B256(_) => PrimitiveKind::B256,
-
-                        Immediate::Error | Immediate::Array { .. } | Immediate::Tuple(_) => {
-                            unreachable!()
-                        }
-                    },
-                    span: span.clone(),
-                })),
-            },
+            Expr::Tuple { fields, span } => self.infer_tuple_expr(fields, span),
 
             Expr::PathByKey(var_key, span) => self.infer_path_by_key(*var_key, span),
 
@@ -685,6 +668,51 @@ impl IntermediateIntent {
                 body,
                 span,
             } => self.infer_generator_expr(kind, gen_ranges, conditions, *body, span),
+        }
+    }
+
+    fn infer_immediate(&self, imm: &Immediate, span: &Span) -> Result<Inference, Error> {
+        if let Immediate::Array(el_imms) = imm {
+            // Immediate::get_ty() assumes the array is well formed.  We need to
+            // confirm here.
+            if el_imms.is_empty() {
+                return Err(Error::Compile {
+                    error: CompileError::EmptyArrayExpression { span: span.clone() },
+                });
+            }
+
+            // Get the assumed type.
+            let ary_ty = imm.get_ty(Some(span));
+            let Type::Array { ty: el0_ty, .. } = &ary_ty else {
+                return Err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "array immediate does NOT have an array type?",
+                        span: span.clone(),
+                    },
+                });
+            };
+
+            let _ = el_imms
+                .iter()
+                .map(|el_imm| {
+                    let el_ty = el_imm.get_ty(None);
+                    if &el_ty != el0_ty.as_ref() {
+                        Err(Error::Compile {
+                            error: CompileError::NonHomogeneousArrayElement {
+                                expected_ty: self.with_ii(el0_ty.as_ref()).to_string(),
+                                ty: self.with_ii(el_ty).to_string(),
+                                span: span.clone(),
+                            },
+                        })
+                    } else {
+                        Ok(())
+                    }
+                })
+                .collect::<Result<_, _>>()?;
+
+            Ok(Inference::Type(ary_ty))
+        } else {
+            Ok(Inference::Type(imm.get_ty(Some(span))))
         }
     }
 
@@ -1444,7 +1472,7 @@ impl IntermediateIntent {
             Ok(if deps.is_empty() {
                 Inference::Type(Type::Array {
                     ty: Box::new(el0_ty.clone()),
-                    range: range_expr_key,
+                    range: Some(range_expr_key),
                     size: Some(element_exprs.len() as i64),
                     span: span.clone(),
                 })

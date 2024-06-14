@@ -1,8 +1,5 @@
 use super::IntermediateIntent;
-use crate::{
-    expr::{Expr, Immediate},
-    types::Type,
-};
+use crate::{expr::Expr, types::Type};
 use std::collections::HashSet;
 
 slotmap::new_key_type! { pub struct ExprKey; }
@@ -132,31 +129,24 @@ impl<'a> Iterator for ExprsIter<'a> {
 
         // Push its children to the queue.
         match next_key.get(self.ii) {
-            Expr::Immediate { value, .. } => match value {
-                Immediate::Array {
-                    elements,
-                    range_expr,
-                } => {
-                    for el in elements {
-                        queue_if_new!(self, el);
-                    }
-                    queue_if_new!(self, range_expr);
-                }
+            Expr::Immediate { .. } => {}
 
-                Immediate::Tuple(fields) => {
-                    for (_, field) in fields {
-                        queue_if_new!(self, field);
-                    }
+            Expr::Array {
+                elements,
+                range_expr,
+                ..
+            } => {
+                for el in elements {
+                    queue_if_new!(self, el);
                 }
+                queue_if_new!(self, range_expr);
+            }
 
-                Immediate::Error
-                | Immediate::Nil
-                | Immediate::Real(_)
-                | Immediate::Int(_)
-                | Immediate::Bool(_)
-                | Immediate::String(_)
-                | Immediate::B256(_) => {}
-            },
+            Expr::Tuple { fields, .. } => {
+                for (_, field) in fields {
+                    queue_if_new!(self, field);
+                }
+            }
 
             Expr::UnaryOp { expr, .. } => queue_if_new!(self, expr),
 

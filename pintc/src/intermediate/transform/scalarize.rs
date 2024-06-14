@@ -81,7 +81,7 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
         handler: &Handler,
         ii: &mut IntermediateIntent,
         mut el_ty: Type,
-        range_expr_key: ExprKey,
+        range_expr_key: Option<ExprKey>,
         array_ty_span: Span,
     ) -> Result<Type, ErrorEmitted> {
         if !(el_ty.is_array() || el_ty.is_int() || el_ty.is_real() || el_ty.is_bool()) {
@@ -120,7 +120,8 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
         }
 
         let range_expr = range_expr_key
-            .try_get(ii)
+            .as_ref()
+            .and_then(|e| e.try_get(ii))
             .expect("expr key guaranteed to exist");
 
         if let Expr::PathByName(path, _) = range_expr {
@@ -169,7 +170,7 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
 
     macro_rules! update_types {
         ($iter: expr, $key_ty: ty) => {
-            let candidates: Vec<($key_ty, Type, ExprKey, Span)> = $iter
+            let candidates: Vec<($key_ty, Type, Option<ExprKey>, Span)> = $iter
                 .filter_map(|key| {
                     get_array_params(key.get_ty(ii)).and_then(|(el_ty, range, size, span)| {
                         // Only collect if size is None.
@@ -303,17 +304,15 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
             },
         );
 
-        let new_expr = Expr::Immediate {
-            value: Immediate::Array {
-                elements: new_var_keys
-                    .iter()
-                    .map(|key| {
-                        ii.exprs
-                            .insert(Expr::PathByKey(*key, empty_span()), el_ty.clone())
-                    })
-                    .collect(),
-                range_expr: range_expr_key,
-            },
+        let new_expr = Expr::Array {
+            elements: new_var_keys
+                .iter()
+                .map(|key| {
+                    ii.exprs
+                        .insert(Expr::PathByKey(*key, empty_span()), el_ty.clone())
+                })
+                .collect(),
+            range_expr: range_expr_key,
             span: empty_span(),
         };
 
@@ -322,7 +321,7 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
             new_expr,
             Type::Array {
                 ty: Box::new(el_ty.clone()),
-                range: range_expr_key,
+                range: Some(range_expr_key),
                 size: Some(array_size),
                 span: empty_span(),
             },
@@ -437,7 +436,7 @@ fn scalarize_array_access(
     Ok(())
 }
 
-fn get_array_params(ary_ty: &Type) -> Option<(&Type, &ExprKey, &Option<i64>, &Span)> {
+fn get_array_params(ary_ty: &Type) -> Option<(&Type, &Option<ExprKey>, &Option<i64>, &Span)> {
     match ary_ty {
         Type::Alias { ty, .. } => get_array_params(ty),
         Type::Array {
@@ -956,20 +955,19 @@ fn split_tuple_vars(
 
     // Finally, replace those paths that refer to tuples with tuple expressions.
     for (expr_key, split_vars) in tuple_path_to_replace {
-        let new_expr = Expr::Immediate {
-            value: Immediate::Tuple(
-                split_vars
-                    .iter()
-                    .map(|var_key| {
-                        (None, {
-                            ii.exprs.insert(
-                                Expr::PathByKey(*var_key, empty_span()),
-                                var_key.get_ty(ii).clone(),
-                            )
-                        })
+        let new_expr = Expr::Tuple {
+            fields: split_vars
+                .iter()
+                .map(|var_key| {
+                    (None, {
+                        ii.exprs.insert(
+                            Expr::PathByKey(*var_key, empty_span()),
+                            var_key.get_ty(ii).clone(),
+                        )
                     })
-                    .collect(),
-            ),
+                })
+                .collect(),
+
             span: empty_span(),
         };
         let new_expr_key = ii.exprs.insert(

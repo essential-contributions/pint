@@ -203,6 +203,8 @@ fn check_expr(
             )),
         },
         Expr::Immediate { .. }
+        | Expr::Array { .. }
+        | Expr::Tuple { .. }
         | Expr::PathByKey(..)
         | Expr::PathByName(..)
         | Expr::StorageAccess(..)
@@ -229,6 +231,8 @@ fn expr_is_for_storage(ii: &IntermediateIntent, expr: &Expr) -> bool {
         // handled.
         Expr::Error(_)
         | Expr::Immediate { .. }
+        | Expr::Array { .. }
+        | Expr::Tuple { .. }
         | Expr::PathByKey(_, _)
         | Expr::PathByName(_, _)
         | Expr::UnaryOp { .. }
