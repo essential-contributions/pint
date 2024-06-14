@@ -1027,6 +1027,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bda66fc9667c18cb2758a2ac84d1167245054bcf85d5d1aaa6923f45801bdd02"
 
 [[package]]
+name = "pint-manifest"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_ignored",
+ "thiserror",
+ "toml",
+]
+
+[[package]]
 name = "pint_solve"
 version = "0.1.0"
 dependencies = [
@@ -1338,6 +1348,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.66",
+]
+
+[[package]]
+name = "serde_ignored"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8e319a36d1b52126a0d608f24e93b2d81297091818cd70625fcf50a15d84ddf"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

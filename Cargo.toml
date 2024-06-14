@@ -1,6 +1,14 @@
 [workspace]
 resolver = "2"
-members = ["pint-solve", "pintc", "pintfmt", "tests", "test-util", "examples"]
+members = [
+  "examples",
+  "pint-manifest",
+  "pint-solve",
+  "pintc",
+  "pintfmt",
+  "test-util",
+  "tests",
+]
 
 [workspace.dependencies]
 yansi = "1.0"
@@ -14,8 +22,13 @@ expect-test = "1.4"
 fxhash = "0.2"
 itertools = "0.12"
 logos = "0.14"
+pint-manifest = { path = "pint-manifest" }
+pintc = { path = "pintc" }
+serde = { version = "1", features = ["derive"] }
+serde_ignored = "0.1"
 state-asm = { git = "ssh://git@github.com/essential-contributions/essential-base.git", package = "essential-state-asm" }
 thiserror = "1.0"
+toml = "0.8"
 
 [workspace.package]
 edition = "2021"
