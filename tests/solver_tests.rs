@@ -19,10 +19,11 @@ fn solver_e2e() {
 
         // Error handler
         let handler = pintc::error::Handler::default();
+        let deps = Default::default();
 
         // Produce the initial `IntermediateIntent`
         let parsed = unwrap_or_continue!(
-            pintc::parser::parse_project(&handler, &path),
+            pintc::parser::parse_project(&handler, &deps, &path),
             "parse pint",
             failed_tests,
             path,

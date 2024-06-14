@@ -28,8 +28,12 @@ pub(crate) use context::ParserContext;
 #[cfg(test)]
 mod tests;
 
-pub fn parse_project(handler: &Handler, root_src_path: &Path) -> Result<Program, ErrorEmitted> {
-    ProjectParser::new(handler, PathBuf::from(root_src_path))
+pub fn parse_project(
+    handler: &Handler,
+    deps: &Dependencies,
+    root_src_path: &Path,
+) -> Result<Program, ErrorEmitted> {
+    ProjectParser::new(handler, deps, PathBuf::from(root_src_path))
         .parse_project()
         .finalize()
 }
@@ -42,10 +46,16 @@ struct ProjectParser<'a> {
     root_src_path: PathBuf,
     visited_paths: Vec<PathBuf>,
     handler: &'a Handler,
+    deps: &'a Dependencies<'a>,
     unique_idx: u64,
 }
 
-#[derive(Clone)]
+/// External dependency names to their associated entry point.
+///
+/// Each dependency name is treated as a submodule.
+type Dependencies<'a> = fxhash::FxHashMap<&'a str, &'a Path>;
+
+#[derive(Clone, Debug)]
 pub(crate) struct NextModPath {
     // Determines whether the path of the current module needs to be used as a prefix for next path
     pub(crate) is_abs: bool,
@@ -63,8 +73,16 @@ pub(crate) struct NextModPath {
     pub(crate) span: Span,
 }
 
+/// Part of the result of `find_next_path`.
+enum FoundPath {
+    /// The file path is some dependency.
+    Dep,
+    /// The file path is local to this project.
+    Local,
+}
+
 impl<'a> ProjectParser<'a> {
-    fn new(handler: &'a Handler, root_src_path: PathBuf) -> Self {
+    fn new(handler: &'a Handler, deps: &'a Dependencies<'a>, root_src_path: PathBuf) -> Self {
         let proj_root_path = root_src_path
             .parent()
             .map_or_else(|| PathBuf::from("/"), PathBuf::from);
@@ -80,6 +98,7 @@ impl<'a> ProjectParser<'a> {
             root_src_path,
             visited_paths: vec![],
             handler,
+            deps,
             unique_idx: 0,
         };
 
@@ -624,7 +643,7 @@ impl<'a> ProjectParser<'a> {
     }
 
     fn analyse_and_add_paths(
-        &mut self,
+        &self,
         mod_path: &[String],
         next_paths: &[NextModPath],
         pending_paths: &mut Vec<(PathBuf, Vec<String>)>,
@@ -640,14 +659,20 @@ impl<'a> ProjectParser<'a> {
             // The idea here is to try to handle the next path assuming the suffix refers to a
             // declaration. If that fails, then try to handle the next path assuming it's a path to
             // an enum variant. If both options fail, then we emit an error.
-
-            if let Some(next_path) = self.find_next_path(*is_abs, mod_path_strs, mod_path, span) {
+            //
+            // TODO: In the future if we want to support binary linking and
+            // avoid re-parsing and re-type-checking dependencies, we probably
+            // want to use `found` and only push to `pending_paths` in the case
+            // that `FoundPath` is `FoundPath::Local`.
+            if let Some((_found, next_path)) =
+                self.find_next_path(*is_abs, mod_path_strs, mod_path, span)
+            {
                 pending_paths.push(next_path);
                 continue;
             }
 
             if let Some(enum_path_strs) = enum_path_strs {
-                if let Some(next_path) =
+                if let Some((_found, next_path)) =
                     self.find_next_path(*is_abs, enum_path_strs, mod_path, span)
                 {
                     pending_paths.push(next_path);
@@ -673,12 +698,12 @@ impl<'a> ProjectParser<'a> {
     /// Given a next module path and a path to the current module, decide on a file in the project
     /// to actually parse.
     fn find_next_path(
-        &mut self,
+        &self,
         is_abs: bool,
         path_strs: &[String],
         mod_path: &[String],
         span: &Span,
-    ) -> Option<(PathBuf, Vec<String>)> {
+    ) -> Option<(FoundPath, (PathBuf, Vec<String>))> {
         // Collect the module path as a vector of `String`s. Also, collect the next file path
         // starting from the project root path.
         let mut next_path = self.proj_root_path.clone();
@@ -701,25 +726,59 @@ impl<'a> ProjectParser<'a> {
 
         next_path.set_extension("pnt");
 
-        // Determine which of the two file paths above to actually parse. If both files exist,
+        // Check if the paths actually exist.
+        let next_path = next_path.exists().then_some(next_path);
+        let alternative_next_path = alternative_next_path
+            .exists()
+            .then_some(alternative_next_path);
+
+        // The path might refer to an external dependency.
+        let dep_next_path = self.find_dep_path(path_strs);
+
+        // Determine which of the file paths above to actually parse. If two files exist,
         // that's an error. If only 1 exists, return that one. If no paths exist, simply return
         // None.
-        match (next_path.exists(), alternative_next_path.exists()) {
-            (false, false) => None,
-            (true, false) => Some((next_path, next_mod_path)),
-            (false, true) => Some((alternative_next_path, next_mod_path)),
-            (true, true) => {
+        let next_path_opt = match (next_path, alternative_next_path, dep_next_path) {
+            (None, None, None) => None,
+            // One of the local paths exist.
+            (Some(p), None, None) | (None, Some(p), None) => Some((FoundPath::Local, p)),
+            // The dependency path exists.
+            (None, None, Some(p)) => Some((FoundPath::Dep, p)),
+            // Two or more potential paths exist, meaning we have an ambiguity.
+            (Some(a), Some(b), _) | (Some(a), _, Some(b)) | (_, Some(a), Some(b)) => {
                 self.handler.emit_err(Error::Compile {
                     error: CompileError::DualModulity {
                         mod_path: next_mod_path.join("::"),
-                        file_path_a: next_path,
-                        file_path_b: alternative_next_path,
+                        file_path_a: a,
+                        file_path_b: b,
                         span: span.clone(),
                     },
                 });
                 None
             }
+        };
+
+        next_path_opt.map(|(found, path)| (found, (path, next_mod_path)))
+    }
+
+    /// Attempt to find a path to a dependency module associated with the given `path_strs`.
+    ///
+    /// Returns `None` in the case there is no matching dependency, or the expected `Path`
+    /// does not exist.
+    fn find_dep_path(&self, path_strs: &[String]) -> Option<PathBuf> {
+        let entry_point = path_strs
+            .first()
+            .and_then(|name| self.deps.get(name.as_str()))?;
+        // By default, the path is the dep's entrypoint (e.g. `dep/src/lib.pnt`).
+        let mut path = entry_point.to_path_buf();
+        // If the path accesses some submodule of the dep, construct the
+        // path via the dep's entry point parent directory.
+        if path_strs.len() > 1 {
+            assert!(path.pop(), "dep entrypoint has no parent dir");
+            path.extend(&path_strs[1..]);
+            path = path.with_extension("pnt");
         }
+        path.exists().then_some(path)
     }
 }
 
