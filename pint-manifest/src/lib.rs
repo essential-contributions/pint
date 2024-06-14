@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, HashSet},
     fmt, fs, io, ops,
     path::{Path, PathBuf},
     str,
@@ -86,7 +86,7 @@ pub struct Dependency {
 
 /// The manifest specifies an invalid package name.
 #[derive(Debug, Error)]
-pub enum InvalidPkgName {
+pub enum InvalidName {
     /// Must only contain ASCII non-uppercase alphanumeric chars, dashes or underscores.
     #[error("must only contain ASCII non-uppercase alphanumeric chars, dashes or underscores")]
     InvalidChar,
@@ -114,7 +114,13 @@ pub struct InvalidPkgKind;
 pub enum InvalidManifest {
     /// Manifest specifies an invalid package name.
     #[error("manifest specifies an invalid package name {0:?}: {1}")]
-    PkgName(String, InvalidPkgName),
+    PkgName(String, InvalidName),
+    /// Manifest specifies an invalid dependency name.
+    #[error("manifest specifies an invalid dependency name {0:?}: {1}")]
+    DepName(String, InvalidName),
+    /// Dependency name appears more than once.
+    #[error("dependency name {0:?} appears more than once")]
+    DupDepName(String),
 }
 
 /// Failure to parse and construct a manifest from a string.
@@ -259,40 +265,49 @@ impl ops::Deref for ManifestFile {
 /// Validate the given manifest.
 pub fn check(manifest: &Manifest) -> Result<(), InvalidManifest> {
     // Check the package name.
-    check_pkg_name(&manifest.pkg.name)
+    check_name(&manifest.pkg.name)
         .map_err(|e| InvalidManifest::PkgName(manifest.pkg.name.to_string(), e))?;
 
-    // TODO:
-    // Check dependencies names (can differ from package name).
-    // Check duplicate names between `[dependencies]` and `[contract-dependencies]`.
+    // Check the dependency names.
+    let mut names = HashSet::new();
+    for name in manifest.deps.keys().chain(manifest.contract_deps.keys()) {
+        // Check name validity.
+        check_name(name).map_err(|e| InvalidManifest::DepName(manifest.pkg.name.to_string(), e))?;
+
+        // Check for duplicates.
+        if !names.insert(name) {
+            return Err(InvalidManifest::DupDepName(name.to_string()));
+        }
+    }
+
     Ok(())
 }
 
 /// Package names must only contain ASCII non-uppercase alphanumeric chars, dashes or underscores.
-pub fn check_pkg_name_char(ch: char) -> bool {
+pub fn check_name_char(ch: char) -> bool {
     (ch.is_ascii_alphanumeric() && !ch.is_uppercase()) || ch == '-' || ch == '_'
 }
 
 /// Check the validity of the given package name.
-pub fn check_pkg_name(name: &str) -> Result<(), InvalidPkgName> {
-    if !name.chars().all(check_pkg_name_char) {
-        return Err(InvalidPkgName::InvalidChar);
+pub fn check_name(name: &str) -> Result<(), InvalidName> {
+    if !name.chars().all(check_name_char) {
+        return Err(InvalidName::InvalidChar);
     }
 
     if matches!(name.chars().next(), Some(ch) if !ch.is_ascii_alphabetic()) {
-        return Err(InvalidPkgName::NonAlphabeticStart);
+        return Err(InvalidName::NonAlphabeticStart);
     }
 
     if matches!(name.chars().last(), Some(ch) if !ch.is_ascii_alphanumeric()) {
-        return Err(InvalidPkgName::NonAlphanumericEnd);
+        return Err(InvalidName::NonAlphanumericEnd);
     }
 
     if PINT_KEYWORDS.contains(&name) {
-        return Err(InvalidPkgName::PintKeyword);
+        return Err(InvalidName::PintKeyword);
     }
 
     if RESERVED.contains(&name) {
-        return Err(InvalidPkgName::Reserved);
+        return Err(InvalidName::Reserved);
     }
 
     Ok(())
