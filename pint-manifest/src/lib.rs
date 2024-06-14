@@ -96,6 +96,12 @@ pub enum InvalidPkgName {
     /// Must end with an alphanumeric character.
     #[error("must end with an alphanumeric character")]
     NonAlphanumericEnd,
+    /// Must not be a pint language keyword.
+    #[error("must not be a pint language keyword")]
+    PintKeyword,
+    /// The given name is a word reserved by pint.
+    #[error("the given name is a word reserved by pint")]
+    Reserved,
 }
 
 /// The parsed package kind was invalid.
@@ -281,10 +287,58 @@ pub fn check_pkg_name(name: &str) -> Result<(), InvalidPkgName> {
         return Err(InvalidPkgName::NonAlphanumericEnd);
     }
 
-    // TODO: Check for keywords and other reserved names?
+    if PINT_KEYWORDS.contains(&name) {
+        return Err(InvalidPkgName::PintKeyword);
+    }
+
+    if RESERVED.contains(&name) {
+        return Err(InvalidPkgName::Reserved);
+    }
 
     Ok(())
 }
+
+const PINT_KEYWORDS: &[&str] = &[
+    "as",
+    "bool",
+    "b256",
+    "cond",
+    "constraint",
+    "else",
+    "enum",
+    "exists",
+    "forall",
+    "if",
+    "in",
+    "int",
+    "intent",
+    "interface",
+    "macro",
+    "maximize",
+    "minimize",
+    "real",
+    "satisfy",
+    "self",
+    "solve",
+    "state",
+    "storage",
+    "string",
+    "type",
+    "use",
+    "var",
+    "where",
+];
+
+const RESERVED: &[&str] = &[
+    "contract",
+    "dep",
+    "dependency",
+    "lib",
+    "library",
+    "mod",
+    "module",
+    "root",
+];
 
 /// Different dependency types supported by the manifest.
 pub mod dependency {
