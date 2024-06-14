@@ -37,7 +37,7 @@ pub enum NewPkgError {
     NameFromPath(PathBuf),
     /// The package name is invalid.
     #[error("package name {0:?} is invalid: {1}")]
-    InvalidPkgName(String, manifest::InvalidPkgName),
+    InvalidPkgName(String, manifest::InvalidName),
 }
 
 /// Create a new package at the given path.
@@ -71,8 +71,7 @@ pub fn new_pkg(path: &Path, opts: Options) -> Result<(), NewPkgError> {
     };
 
     // Validate the pkg name.
-    manifest::check_pkg_name(&name)
-        .map_err(|e| NewPkgError::InvalidPkgName(name.to_string(), e))?;
+    manifest::check_name(&name).map_err(|e| NewPkgError::InvalidPkgName(name.to_string(), e))?;
 
     // Create the `src` dir.
     fs::create_dir_all(&src_path)?;
