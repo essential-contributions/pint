@@ -108,7 +108,7 @@ pub enum PintcError {
 
 impl<'p> PlanBuilder<'p> {
     /// Produce the next package that is to be built.
-    pub fn next(&mut self) -> Option<PrebuiltPkg> {
+    pub fn next_pkg(&mut self) -> Option<PrebuiltPkg> {
         let &n = self.order.next()?;
         Some(PrebuiltPkg {
             plan: self.plan,
@@ -124,7 +124,7 @@ impl<'p> PlanBuilder<'p> {
 
     /// Finish building the remaining packages.
     pub fn finish(mut self) -> Result<BuiltPkgs, BuildError> {
-        while let Some(prebuilt) = self.next() {
+        while let Some(prebuilt) = self.next_pkg() {
             if let Err(pkg_err) = prebuilt.build() {
                 let built_pkgs = self.built_pkgs;
                 return Err(BuildError {

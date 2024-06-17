@@ -55,7 +55,7 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
 
     // Build the given compilation plan.
     let mut builder = pint_pkg::build::build_plan(&plan);
-    while let Some(prebuilt) = builder.next() {
+    while let Some(prebuilt) = builder.next_pkg() {
         let pinned = prebuilt.pinned();
         let manifest = &plan.manifests()[&pinned.id()];
 
