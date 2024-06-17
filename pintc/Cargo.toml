@@ -31,7 +31,7 @@ lalrpop-util = "0.20"
 logos = { workspace = true }
 pint_solve = { path = "../pint-solve", default-features = false }
 regex = "1.10"
-serde_json = "1.0"
+serde_json = { workspace = true }
 similar-asserts = { version = "1.5", default-features = false }
 slotmap = "1.0"
 state-asm = { workspace = true }
