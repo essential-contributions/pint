@@ -28,7 +28,7 @@ pub enum Type {
     },
     Array {
         ty: Box<Self>,
-        range: ExprKey,
+        range: Option<ExprKey>,
         size: Option<i64>,
         span: Span,
     },
@@ -161,7 +161,7 @@ impl Type {
     pub fn get_array_range_expr(&self) -> Option<ExprKey> {
         check_alias!(self, get_array_range_expr, {
             if let Type::Array { range, .. } = self {
-                Some(*range)
+                *range
             } else {
                 None
             }

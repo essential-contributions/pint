@@ -22,6 +22,28 @@ impl DisplayWithII for &super::Expr {
             super::Expr::Error(..) => write!(f, "Error"),
             super::Expr::Immediate { value, .. } => value.fmt(f, ii),
 
+            super::Expr::Array { elements, .. } => {
+                write!(f, "[")?;
+                write_many_with_ii!(f, elements, ", ", ii);
+                write!(f, "]")
+            }
+
+            super::Expr::Tuple { fields, .. } => {
+                write!(f, "{{")?;
+                let mut i = fields.iter().map(|(name, val)| {
+                    // This is the only place where we're building strings.  Could be alleviated
+                    // if the named tuple field was a struct which could be Display.
+                    format!(
+                        "{}{}",
+                        name.as_ref()
+                            .map_or(String::new(), |name| format!("{}: ", name.name)),
+                        ii.with_ii(val)
+                    )
+                });
+                write_many_iter!(f, i, ", ");
+                write!(f, "}}")
+            }
+
             super::Expr::PathByName(p, _) => write!(f, "{p}"),
             super::Expr::PathByKey(k, _) => write!(f, "{}", k.get(ii).name),
             super::Expr::StorageAccess(p, _) => write!(f, "storage::{p}"),
@@ -135,7 +157,7 @@ impl DisplayWithII for super::Immediate {
                     val[0], val[1], val[2], val[3]
                 )
             }
-            super::Immediate::Array { elements, .. } => {
+            super::Immediate::Array(elements) => {
                 write!(f, "[")?;
                 write_many_with_ii!(f, elements, ", ", ii);
                 write!(f, "]")
@@ -143,8 +165,6 @@ impl DisplayWithII for super::Immediate {
             super::Immediate::Tuple(fields) => {
                 write!(f, "{{")?;
                 let mut i = fields.iter().map(|(name, val)| {
-                    // This is the only place where we're building strings.  Could be alleviated
-                    // if the named tuple field was a struct which could be Display.
                     format!(
                         "{}{}",
                         name.as_ref()

@@ -1,6 +1,6 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, ParseError},
-    expr::{Expr, Ident, Immediate},
+    expr::{Expr, Ident},
     intermediate::{CallKey, ExprKey, Exprs, IntermediateIntent, Program},
     lexer,
     macros::{self, MacroCall, MacroDecl, MacroExpander},
@@ -268,47 +268,39 @@ impl<'a> ProjectParser<'a> {
         ) -> Result<(), ErrorEmitted> {
             match expr {
                 Expr::Error(_)
+                | Expr::Immediate { .. }
                 | Expr::PathByKey(_, _)
                 | Expr::PathByName(_, _)
                 | Expr::StorageAccess(_, _)
                 | Expr::ExternalStorageAccess { .. }
                 | Expr::MacroCall { .. } => {}
-                Expr::Immediate { value, .. } => match value {
-                    Immediate::Array {
-                        elements,
-                        range_expr,
-                        ..
-                    } => {
-                        for element_expr_key in elements {
-                            process_nested_expr!(
-                                element_expr_key,
-                                "array `element`",
-                                root_exprs,
-                                ii,
-                                handler
-                            )?;
-                        }
-                        process_nested_expr!(range_expr, "array `range`", root_exprs, ii, handler)?;
+                Expr::Array {
+                    elements,
+                    range_expr,
+                    ..
+                } => {
+                    for element_expr_key in elements {
+                        process_nested_expr!(
+                            element_expr_key,
+                            "array `element`",
+                            root_exprs,
+                            ii,
+                            handler
+                        )?;
                     }
-                    Immediate::Tuple(fields) => {
-                        for (_, field_expr_key) in fields {
-                            process_nested_expr!(
-                                field_expr_key,
-                                "tuple `field`",
-                                root_exprs,
-                                ii,
-                                handler
-                            )?;
-                        }
+                    process_nested_expr!(range_expr, "array `range`", root_exprs, ii, handler)?;
+                }
+                Expr::Tuple { fields, .. } => {
+                    for (_, field_expr_key) in fields {
+                        process_nested_expr!(
+                            field_expr_key,
+                            "tuple `field`",
+                            root_exprs,
+                            ii,
+                            handler
+                        )?;
                     }
-                    Immediate::Error
-                    | Immediate::Nil
-                    | Immediate::Real(_)
-                    | Immediate::Int(_)
-                    | Immediate::Bool(_)
-                    | Immediate::String(_)
-                    | Immediate::B256(_) => {}
-                },
+                }
                 Expr::UnaryOp { expr, .. } => {
                     process_nested_expr!(expr, "unary op", root_exprs, ii, handler)?;
                 }
@@ -401,7 +393,9 @@ impl<'a> ProjectParser<'a> {
                     size,
                     span,
                 } => {
-                    let range_expr = root_exprs.get(*range).expect("exists");
+                    let range_expr = range
+                        .and_then(|range| root_exprs.get(range))
+                        .expect("exists");
                     deep_copy_expr(range_expr, root_exprs, ii, handler)?;
                     let new_expr_key = ii
                         .exprs
@@ -409,7 +403,7 @@ impl<'a> ProjectParser<'a> {
 
                     Ok(Type::Array {
                         ty: Box::new(deep_copy_type(ty, root_exprs, ii, handler)?),
-                        range: new_expr_key,
+                        range: Some(new_expr_key),
                         size: *size,
                         span: span.clone(),
                     })

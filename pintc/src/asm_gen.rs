@@ -356,32 +356,56 @@ impl AsmBuilder {
         expr: &ExprKey,
         intent: &IntermediateIntent,
     ) -> Result<usize, ErrorEmitted> {
-        let old_asm_len = asm.len();
-        // Always push to the vector of ops corresponding to the last constraint, i.e. the current
-        // constraint being processed.
-        //
-        // Assume that there exists at least a single entry in `self.c_asm`.
-        match &expr.get(intent) {
-            Expr::Immediate { value, .. } => match value {
+        fn compile_immediate(asm: &mut Vec<Constraint>, imm: &Immediate) {
+            match imm {
                 Immediate::Int(val) => asm.push(Stack::Push(*val).into()),
+
                 Immediate::B256(val) => {
                     asm.push(Stack::Push(val[0] as i64).into());
                     asm.push(Stack::Push(val[1] as i64).into());
                     asm.push(Stack::Push(val[2] as i64).into());
                     asm.push(Stack::Push(val[3] as i64).into());
                 }
-                Immediate::Array { elements, .. } => {
+
+                Immediate::Array(elements) => {
                     for element in elements {
-                        self.compile_expr(handler, asm, element, intent)?;
+                        compile_immediate(asm, element);
                     }
                 }
+
                 Immediate::Tuple(fields) => {
                     for (_, field) in fields {
-                        self.compile_expr(handler, asm, field, intent)?;
+                        compile_immediate(asm, field);
                     }
                 }
-                _ => unimplemented!("other literal types are not yet supported"),
-            },
+
+                Immediate::Error
+                | Immediate::Nil
+                | Immediate::Real(_)
+                | Immediate::Bool(_)
+                | Immediate::String(_) => {
+                    unimplemented!("other literal types are not yet supported")
+                }
+            }
+        }
+
+        let old_asm_len = asm.len();
+        // Always push to the vector of ops corresponding to the last constraint, i.e. the current
+        // constraint being processed.
+        //
+        // Assume that there exists at least a single entry in `self.c_asm`.
+        match &expr.get(intent) {
+            Expr::Immediate { value, .. } => compile_immediate(asm, value),
+            Expr::Array { elements, .. } => {
+                for element in elements {
+                    self.compile_expr(handler, asm, element, intent)?;
+                }
+            }
+            Expr::Tuple { fields, .. } => {
+                for (_, field) in fields {
+                    self.compile_expr(handler, asm, field, intent)?;
+                }
+            }
             Expr::BinaryOp { op, lhs, rhs, .. } => {
                 let lhs_len = self.compile_expr(handler, asm, lhs, intent)?;
                 let rhs_len = self.compile_expr(handler, asm, rhs, intent)?;

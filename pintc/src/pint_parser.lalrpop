@@ -427,7 +427,7 @@ ArrayType: Type = {
         // contains arrays of size 5 of `int`s.
         ranges.iter().rev().fold(ty, |acc, range| Type::Array {
             ty: Box::new(acc),
-            range: *range,
+            range: Some(*range),
             size: None,
             span: (context.span_from)(l, r),
         })
@@ -872,11 +872,9 @@ ArrayExpr: Expr = {
             },
             Type::Unknown(span),
         );
-        Expr::Immediate {
-            value: Immediate::Array {
-                elements,
-                range_expr,
-            },
+        Expr::Array {
+            elements,
+            range_expr,
             span: (context.span_from)(l, r),
         }
     },
@@ -884,8 +882,8 @@ ArrayExpr: Expr = {
 
 TupleExpr: Expr = {
     <l:@L> "{" <fields:TupleExprFields> "}" <r:@R> => {
-        Expr::Immediate {
-            value: Immediate::Tuple(fields),
+        Expr::Tuple {
+            fields,
             span: (context.span_from)(l, r),
         }
     },

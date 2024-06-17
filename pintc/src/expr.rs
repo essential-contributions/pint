@@ -1,7 +1,7 @@
 use crate::{
     intermediate::{CallKey, ExprKey, VarKey},
-    span::{Span, Spanned},
-    types::{Path, Type},
+    span::{empty_span, Span, Spanned},
+    types::{Path, PrimitiveKind, Type},
 };
 
 use fxhash::FxHashMap;
@@ -14,6 +14,15 @@ pub enum Expr {
     Error(Span),
     Immediate {
         value: Immediate,
+        span: Span,
+    },
+    Array {
+        elements: Vec<ExprKey>,
+        range_expr: ExprKey,
+        span: Span,
+    },
+    Tuple {
+        fields: Vec<(Option<Ident>, ExprKey)>,
         span: Span,
     },
     PathByKey(VarKey, Span),
@@ -107,11 +116,57 @@ pub enum Immediate {
     Bool(bool),
     String(String),
     B256([u64; 4]),
-    Array {
-        elements: Vec<ExprKey>,
-        range_expr: ExprKey,
-    },
-    Tuple(Vec<(Option<Ident>, ExprKey)>),
+    Array(Vec<Immediate>),
+    Tuple(Vec<(Option<Ident>, Immediate)>),
+}
+
+impl Immediate {
+    pub fn get_ty(&self, opt_span: Option<&Span>) -> Type {
+        let span = opt_span.cloned().unwrap_or_else(empty_span);
+
+        match self {
+            Immediate::Error => Type::Error(span),
+
+            Immediate::Array(elements) => {
+                // Assume all elements have the same type.
+                Type::Array {
+                    ty: Box::new(
+                        elements
+                            .first()
+                            .map(|el0| el0.get_ty(opt_span))
+                            .unwrap_or_else(|| Type::Error(span.clone())),
+                    ),
+                    range: None,
+                    size: Some(elements.len() as i64),
+                    span,
+                }
+            }
+
+            Immediate::Tuple(fields) => Type::Tuple {
+                fields: fields
+                    .iter()
+                    .map(|(name, fld_imm)| (name.clone(), fld_imm.get_ty(opt_span)))
+                    .collect(),
+                span,
+            },
+
+            _ => Type::Primitive {
+                kind: match self {
+                    Immediate::Nil => PrimitiveKind::Nil,
+                    Immediate::Real(_) => PrimitiveKind::Real,
+                    Immediate::Int(_) => PrimitiveKind::Int,
+                    Immediate::Bool(_) => PrimitiveKind::Bool,
+                    Immediate::String(_) => PrimitiveKind::String,
+                    Immediate::B256(_) => PrimitiveKind::B256,
+
+                    Immediate::Error | Immediate::Array { .. } | Immediate::Tuple(_) => {
+                        unreachable!()
+                    }
+                },
+                span,
+            },
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -175,6 +230,8 @@ impl Spanned for Expr {
         match self {
             Expr::Error(span)
             | Expr::Immediate { span, .. }
+            | Expr::Array { span, .. }
+            | Expr::Tuple { span, .. }
             | Expr::PathByKey(_, span)
             | Expr::PathByName(_, span)
             | Expr::StorageAccess(_, span)
@@ -207,18 +264,9 @@ impl Expr {
 
     pub fn replace_ref<F: FnMut(&mut ExprKey)>(&mut self, mut replace: F) {
         match self {
-            Expr::Immediate { value, .. } => match value {
-                Immediate::Array { elements, .. } => elements.iter_mut().for_each(replace),
-                Immediate::Tuple(fields) => fields.iter_mut().for_each(|(_, expr)| replace(expr)),
-
-                Immediate::Error
-                | Immediate::Nil
-                | Immediate::Real(_)
-                | Immediate::Int(_)
-                | Immediate::Bool(_)
-                | Immediate::String(_)
-                | Immediate::B256(_) => {}
-            },
+            Expr::Immediate { .. } => {}
+            Expr::Array { elements, .. } => elements.iter_mut().for_each(replace),
+            Expr::Tuple { fields, .. } => fields.iter_mut().for_each(|(_, expr)| replace(expr)),
             Expr::UnaryOp { expr, .. } => replace(expr),
             Expr::BinaryOp { lhs, rhs, .. } => {
                 replace(lhs);

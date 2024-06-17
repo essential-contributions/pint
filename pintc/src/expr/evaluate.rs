@@ -65,6 +65,27 @@ impl Evaluator {
         match expr {
             Expr::Immediate { value, .. } => Ok(value.clone()),
 
+            Expr::Array { elements, .. } => {
+                let imm_elements = elements
+                    .iter()
+                    .map(|el_key| self.evaluate_key(el_key, handler, ii))
+                    .collect::<Result<_, _>>()?;
+
+                Ok(Imm::Array(imm_elements))
+            }
+
+            Expr::Tuple { fields, .. } => {
+                let imm_fields = fields
+                    .iter()
+                    .map(|(name, fld_key)| {
+                        self.evaluate_key(fld_key, handler, ii)
+                            .map(|fld_imm| (name.clone(), fld_imm))
+                    })
+                    .collect::<Result<_, _>>()?;
+
+                Ok(Imm::Tuple(imm_fields))
+            }
+
             Expr::PathByName(path, span) => self
                 .scope_values
                 .get(path)
@@ -199,20 +220,16 @@ impl Evaluator {
             Expr::Index { expr, index, span } => {
                 // If the expr is an array...
                 let ary = self.evaluate_key(expr, handler, ii)?;
-                if let Imm::Array { elements, .. } = ary {
+                if let Imm::Array(elements) = ary {
                     // And the index is an int...
                     let idx = self.evaluate_key(index, handler, ii)?;
                     if let Imm::Int(n) = idx {
                         // And it's not out of bounds...
-                        let n = n as usize;
-                        if n < elements.len() {
-                            // Evaluate the element expression.
-                            self.evaluate_key(&elements[n], handler, ii)
-                        } else {
-                            Err(handler.emit_err(Error::Compile {
+                        elements.get(n as usize).cloned().ok_or_else(|| {
+                            handler.emit_err(Error::Compile {
                                 error: CompileError::ArrayIndexOutOfBounds { span: span.clone() },
-                            }))
-                        }
+                            })
+                        })
                     } else {
                         Err(handler.emit_err(Error::Compile {
                             error: CompileError::InvalidConstArrayIndex { span: span.clone() },
@@ -233,7 +250,7 @@ impl Evaluator {
                 let tup = self.evaluate_key(tuple, handler, ii)?;
                 if let Imm::Tuple(fields) = tup {
                     // And the field can be found...
-                    if let Some(field_expr) = match field {
+                    match field {
                         TupleAccess::Index(n) => fields.get(*n).map(|pair| &pair.1),
 
                         TupleAccess::Name(id) => fields.iter().find_map(|(fld, e)| {
@@ -242,18 +259,17 @@ impl Evaluator {
                         }),
 
                         TupleAccess::Error => None,
-                    } {
-                        // Evaluate the field expressions.
-                        self.evaluate_key(field_expr, handler, ii)
-                    } else {
-                        Err(handler.emit_err(Error::Compile {
+                    }
+                    .cloned()
+                    .ok_or_else(|| {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::InvalidTupleAccessor {
                                 accessor: field.to_string(),
                                 tuple_type: ii.with_ii(tuple.get_ty(ii)).to_string(),
                                 span: span.clone(),
                             },
-                        }))
-                    }
+                        })
+                    })
                 } else {
                     Err(handler.emit_err(Error::Compile {
                         error: CompileError::TupleAccessNonTuple {
@@ -385,49 +401,38 @@ impl ExprKey {
         let expr = self.get(ii).clone();
 
         let plugged = match expr {
-            Expr::Immediate {
-                ref value,
-                ref span,
-            } => match value {
-                Imm::Array {
+            Expr::Immediate { .. } => expr,
+
+            Expr::Array {
+                elements,
+                range_expr,
+                span,
+            } => {
+                let elements = elements
+                    .iter()
+                    .map(|element| element.plug_in(ii, values_map))
+                    .collect::<Vec<_>>();
+                let range_expr = range_expr.plug_in(ii, values_map);
+
+                Expr::Array {
                     elements,
                     range_expr,
-                } => {
-                    let elements = elements
-                        .iter()
-                        .map(|element| element.plug_in(ii, values_map))
-                        .collect::<Vec<_>>();
-                    let range_expr = range_expr.plug_in(ii, values_map);
-
-                    Expr::Immediate {
-                        value: Imm::Array {
-                            elements,
-                            range_expr,
-                        },
-                        span: span.clone(),
-                    }
+                    span: span.clone(),
                 }
+            }
 
-                Imm::Tuple(fields) => {
-                    let fields = fields
-                        .iter()
-                        .map(|(name, value)| (name.clone(), value.plug_in(ii, values_map)))
-                        .collect::<Vec<_>>();
+            Expr::Tuple { fields, span } => {
+                let fields = fields
+                    .iter()
+                    .map(|(name, value)| (name.clone(), value.plug_in(ii, values_map)))
+                    .collect::<Vec<_>>();
 
-                    Expr::Immediate {
-                        value: Imm::Tuple(fields),
-                        span: span.clone(),
-                    }
+                Expr::Tuple {
+                    fields,
+                    span: span.clone(),
                 }
+            }
 
-                Imm::Error
-                | Imm::Nil
-                | Imm::Real(_)
-                | Imm::Int(_)
-                | Imm::Bool(_)
-                | Imm::String(_)
-                | Imm::B256(_) => expr,
-            },
             Expr::StorageAccess(..)
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
