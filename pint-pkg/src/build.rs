@@ -2,18 +2,27 @@
 
 use crate::{
     manifest,
-    plan::{Graph, NodeIx, PinnedManifests, Plan},
+    plan::{Graph, NodeIx, Pinned, PinnedManifests, Plan},
 };
 use essential_types::{intent::Intent, ContentAddress};
 use pintc::{asm_gen::program_to_intents, intermediate::ProgramKind};
 use std::{collections::HashMap, path::PathBuf};
 use thiserror::Error;
 
-/// The result of building a compilation plan.
-#[derive(Debug)]
-pub struct BuiltPlan {
-    /// All built packages.
-    pub pkgs: BuiltPkgs,
+/// A context that allows for iteratively compiling packages within a given compilation `Plan`.
+pub struct PlanBuilder<'p> {
+    /// The plan that is being executed by this builder.
+    pub plan: &'p Plan,
+    built_pkgs: BuiltPkgs,
+    order: std::slice::Iter<'p, NodeIx>,
+}
+
+/// A package that is ready to be built, as all
+pub struct PrebuiltPkg<'p, 'b> {
+    pub plan: &'p Plan,
+    built_pkgs: &'b mut BuiltPkgs,
+    /// The node of the package to be built.
+    n: NodeIx,
 }
 
 /// A mapping from the node index to the associated built package.
@@ -57,18 +66,26 @@ pub struct BuiltLibrary {
     pub program: pintc::intermediate::Program,
 }
 
+/// An error occurred while building according to a compilation plan.
 #[derive(Debug)]
 pub struct BuildError {
     /// Packages that were successfully built.
     pub built_pkgs: BuiltPkgs,
+    /// The package error that occurred.
+    pub pkg_err: BuildPkgError,
+}
+
+/// An error was produced while building a package.
+#[derive(Debug)]
+pub struct BuildPkgError {
     /// The pintc error handler.
     pub handler: pintc::error::Handler,
     /// The kind of build error that occurred.
-    pub kind: BuildErrorKind,
+    pub kind: BuildPkgErrorKind,
 }
 
 #[derive(Debug, Error)]
-pub enum BuildErrorKind {
+pub enum BuildPkgErrorKind {
     #[error("`pintc` encountered an error: {0}")]
     Pintc(#[from] PintcError),
     #[error("expected library to be stateless, but type-checking shows the library is stateful")]
@@ -89,19 +106,65 @@ pub enum PintcError {
     IntentGen,
 }
 
-impl BuildError {
-    fn new(built_pkgs: BuiltPkgs, handler: pintc::error::Handler, kind: BuildErrorKind) -> Self {
-        Self {
-            built_pkgs,
-            handler,
-            kind,
-        }
+impl<'p> PlanBuilder<'p> {
+    /// Produce the next package that is to be built.
+    pub fn next(&mut self) -> Option<PrebuiltPkg> {
+        let &n = self.order.next()?;
+        Some(PrebuiltPkg {
+            plan: self.plan,
+            built_pkgs: &mut self.built_pkgs,
+            n,
+        })
     }
 
+    /// Access the set of packages that have been built so far.
+    pub fn built_pkgs(&self) -> &BuiltPkgs {
+        &self.built_pkgs
+    }
+
+    /// Finish building the remaining packages.
+    pub fn finish(mut self) -> Result<BuiltPkgs, BuildError> {
+        while let Some(prebuilt) = self.next() {
+            if let Err(pkg_err) = prebuilt.build() {
+                let built_pkgs = self.built_pkgs;
+                return Err(BuildError {
+                    built_pkgs,
+                    pkg_err,
+                });
+            }
+        }
+        Ok(self.built_pkgs)
+    }
+}
+
+impl<'p, 'b> PrebuiltPkg<'p, 'b> {
+    /// The index of the package within the plan's package graph.
+    pub fn node_ix(&self) -> NodeIx {
+        self.n
+    }
+
+    /// This package's pinned representation from within the compilation graph.
+    pub fn pinned(&self) -> &'p Pinned {
+        &self.plan.graph()[self.n]
+    }
+
+    /// Build this package.
+    pub fn build(self) -> Result<&'b BuiltPkg, BuildPkgError> {
+        let Self {
+            plan,
+            built_pkgs,
+            n,
+        } = self;
+        let built = build_pkg(plan, built_pkgs, n)?;
+        built_pkgs.insert(n, built);
+        Ok(&built_pkgs[&n])
+    }
+}
+
+impl BuildPkgError {
     /// Consume `self` and print the errors.
-    pub fn print(self) {
+    pub fn eprint(self) {
         let errors = self.handler.consume();
-        eprintln!("{}", self.kind);
         pintc::error::print_errors(&pintc::error::Errors(errors));
     }
 }
@@ -166,92 +229,99 @@ fn contract_dep_lib(ca: &ContentAddress, intents: &[BuiltIntent]) -> std::io::Re
     Ok(lib_path)
 }
 
-/// Given a compilation [`Plan`][crate::plan::Plan], build all packages in the graph.
-pub fn build_plan(plan: &Plan) -> Result<BuiltPlan, BuildError> {
+/// Build the package at the given index, assuming all dependencies are already built.
+fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg, BuildPkgError> {
     let graph = plan.graph();
-    let mut built_pkgs = BuiltPkgs::default();
-    for &n in plan.compilation_order() {
-        let pinned = &graph[n];
-        let manifest = &plan.manifests()[&pinned.id()];
-        let entry_point = manifest.entry_point();
-        let handler = pintc::error::Handler::default();
-        let deps = dependencies(n, graph, plan.manifests(), &built_pkgs);
+    let pinned = &graph[n];
+    let manifest = &plan.manifests()[&pinned.id()];
+    let entry_point = manifest.entry_point();
+    let handler = pintc::error::Handler::default();
+    let deps = dependencies(n, graph, plan.manifests(), built_pkgs);
 
-        // Parse the package from the entry point.
-        let deps = deps
-            .iter()
-            .map(|(name, path)| (name.as_str(), path.as_path()))
-            .collect();
-        let Ok(parsed) = pintc::parser::parse_project(&handler, &deps, &entry_point) else {
-            let kind = BuildErrorKind::from(PintcError::Parse);
-            return Err(BuildError::new(built_pkgs, handler, kind));
-        };
+    // Parse the package from the entry point.
+    let deps = deps
+        .iter()
+        .map(|(name, path)| (name.as_str(), path.as_path()))
+        .collect();
+    let Ok(parsed) = pintc::parser::parse_project(&handler, &deps, &entry_point) else {
+        let kind = BuildPkgErrorKind::from(PintcError::Parse);
+        return Err(BuildPkgError { handler, kind });
+    };
 
-        // Type check the package.
-        let Ok(program) = handler.scope(|handler| parsed.type_check(handler)) else {
-            let kind = BuildErrorKind::from(PintcError::TypeCheck);
-            return Err(BuildError::new(built_pkgs, handler, kind));
-        };
+    // Type check the package.
+    let Ok(program) = handler.scope(|handler| parsed.type_check(handler)) else {
+        let kind = BuildPkgErrorKind::from(PintcError::TypeCheck);
+        return Err(BuildPkgError { handler, kind });
+    };
 
-        let built_pkg = match manifest.pkg.kind {
-            manifest::PackageKind::Library => {
-                // Check that the Library is not stateful.
-                if let pintc::intermediate::ProgramKind::Stateful = program.kind {
-                    let kind = BuildErrorKind::StatefulLibrary(program);
-                    return Err(BuildError::new(built_pkgs, handler, kind));
+    let built_pkg = match manifest.pkg.kind {
+        manifest::PackageKind::Library => {
+            // Check that the Library is not stateful.
+            if let pintc::intermediate::ProgramKind::Stateful = program.kind {
+                let kind = BuildPkgErrorKind::StatefulLibrary(program);
+                return Err(BuildPkgError { handler, kind });
+            }
+            let lib = BuiltLibrary { program };
+            BuiltPkg::Library(lib)
+        }
+        manifest::PackageKind::Contract => {
+            // Flatten the program to flat pint (the IR).
+            let Ok(flattened) = handler.scope(|handler| program.flatten(handler)) else {
+                let kind = BuildPkgErrorKind::from(PintcError::Flatten);
+                return Err(BuildPkgError { handler, kind });
+            };
+
+            // Generate the assembly and the intents.
+            let Ok(contract) = handler.scope(|h| program_to_intents(h, &flattened)) else {
+                let kind = BuildPkgErrorKind::from(PintcError::IntentGen);
+                return Err(BuildPkgError { handler, kind });
+            };
+
+            // Collect the intents alongside their content addresses.
+            let intents: Vec<_> = contract
+                .intents
+                .into_iter()
+                .zip(contract.names)
+                .map(|(intent, name)| {
+                    let ca = essential_hash::content_addr(&intent);
+                    BuiltIntent { ca, name, intent }
+                })
+                .collect();
+
+            // The CA of the contract.
+            let ca = essential_hash::intent_set_addr::from_intent_addrs(
+                intents.iter().map(|intent| intent.ca.clone()),
+            );
+
+            // Generate a temp lib for providing the contract and intent CAs to dependents.
+            let lib_entry_point = match contract_dep_lib(&ca, &intents) {
+                Ok(path) => path,
+                Err(e) => {
+                    let kind = BuildPkgErrorKind::ContractLibrary(pinned.name.clone(), e);
+                    return Err(BuildPkgError { handler, kind });
                 }
-                let lib = BuiltLibrary { program };
-                BuiltPkg::Library(lib)
-            }
-            manifest::PackageKind::Contract => {
-                // Flatten the program to flat pint (the IR).
-                let Ok(flattened) = handler.scope(|handler| program.flatten(handler)) else {
-                    let kind = BuildErrorKind::from(PintcError::Flatten);
-                    return Err(BuildError::new(built_pkgs, handler, kind));
-                };
+            };
 
-                // Generate the assembly and the intents.
-                let Ok(contract) = handler.scope(|h| program_to_intents(h, &flattened)) else {
-                    let kind = BuildErrorKind::from(PintcError::IntentGen);
-                    return Err(BuildError::new(built_pkgs, handler, kind));
-                };
+            let kind = contract.kind;
+            let contract = BuiltContract {
+                kind,
+                ca,
+                intents,
+                lib_entry_point,
+            };
+            BuiltPkg::Contract(contract)
+        }
+    };
 
-                // Collect the intents alongside their content addresses.
-                let intents: Vec<_> = contract
-                    .intents
-                    .into_iter()
-                    .zip(contract.names)
-                    .map(|(intent, name)| {
-                        let ca = essential_hash::content_addr(&intent);
-                        BuiltIntent { ca, name, intent }
-                    })
-                    .collect();
+    Ok(built_pkg)
+}
 
-                // The CA of the contract.
-                let ca = essential_hash::intent_set_addr::from_intent_addrs(
-                    intents.iter().map(|intent| intent.ca.clone()),
-                );
-
-                // Generate a temp lib for providing the contract and intent CAs to dependents.
-                let lib_entry_point = match contract_dep_lib(&ca, &intents) {
-                    Ok(path) => path,
-                    Err(e) => {
-                        let kind = BuildErrorKind::ContractLibrary(pinned.name.clone(), e);
-                        return Err(BuildError::new(built_pkgs, handler, kind));
-                    }
-                };
-
-                let kind = contract.kind;
-                let contract = BuiltContract {
-                    kind,
-                    ca,
-                    intents,
-                    lib_entry_point,
-                };
-                BuiltPkg::Contract(contract)
-            }
-        };
-        built_pkgs.insert(n, built_pkg);
+/// Given a compilation [`Plan`][crate::plan::Plan], return a [`PlanBuilder`]
+/// that may be used to compile all packages within the graph.
+pub fn build_plan(plan: &Plan) -> PlanBuilder {
+    PlanBuilder {
+        built_pkgs: BuiltPkgs::default(),
+        plan,
+        order: plan.compilation_order().iter(),
     }
-    Ok(BuiltPlan { pkgs: built_pkgs })
 }

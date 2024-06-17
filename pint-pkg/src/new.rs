@@ -43,7 +43,9 @@ pub enum NewPkgError {
 /// Create a new package at the given path.
 ///
 /// If the directory does not yet exist, it will be created.
-pub fn new_pkg(path: &Path, opts: Options) -> Result<(), NewPkgError> {
+///
+/// On success, returns the path to the package's manifest.
+pub fn new_pkg(path: &Path, opts: Options) -> Result<PathBuf, NewPkgError> {
     let manifest_path = path.join(ManifestFile::FILE_NAME);
     let src_path = path.join("src");
 
@@ -58,6 +60,9 @@ pub fn new_pkg(path: &Path, opts: Options) -> Result<(), NewPkgError> {
     } else {
         fs::create_dir_all(path)?;
     }
+
+    // Now that we know the dir exists, we can canonicalise the path.
+    let path = path.canonicalize()?;
 
     // Determine the kind and pkg name.
     let kind = opts.kind.unwrap_or_default();
@@ -78,7 +83,7 @@ pub fn new_pkg(path: &Path, opts: Options) -> Result<(), NewPkgError> {
 
     // Create the manifest file.
     let manifest_string = new_manifest_string(&name, &kind);
-    fs::write(manifest_path, &manifest_string)?;
+    fs::write(&manifest_path, &manifest_string)?;
 
     // Create the default pint file.
     let manifest: Manifest = manifest_string.parse().expect("checked in unit testing");
@@ -96,7 +101,7 @@ pub fn new_pkg(path: &Path, opts: Options) -> Result<(), NewPkgError> {
         .open(gitignore_path)?;
     gitignore_file.write_all(GITIGNORE.as_bytes())?;
 
-    Ok(())
+    Ok(manifest_path)
 }
 
 fn default_pnt_str(kind: &manifest::PackageKind) -> &'static str {

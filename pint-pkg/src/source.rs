@@ -187,6 +187,15 @@ impl Pinned {
     }
 }
 
+impl fmt::Display for Pinned {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Member(p) => p.fmt(f),
+            Self::Path(p) => p.fmt(f),
+        }
+    }
+}
+
 fn pin_and_fetch<T>(
     source: &T,
     ctx: PinCtx,

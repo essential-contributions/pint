@@ -2,6 +2,7 @@
 
 #[doc(inline)]
 pub use pint_manifest as manifest;
+pub use pintc;
 
 pub mod build;
 pub mod new;
