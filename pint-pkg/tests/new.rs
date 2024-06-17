@@ -75,7 +75,7 @@ fn current_dir() {
         // Now that we're in `foo/`, if we specify the path as the current
         // directory, the package should get the name foo.
         let opts = pint_pkg::new::Options::default();
-        let manifest_path = new_pkg(&Path::new("."), opts).unwrap();
+        let manifest_path = new_pkg(Path::new("."), opts).unwrap();
         let manifest = pint_pkg::manifest::ManifestFile::from_path(&manifest_path).unwrap();
         assert_eq!(manifest.pkg.name, "foo");
     });

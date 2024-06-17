@@ -115,7 +115,7 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
                 let intents_string = serde_json::to_string_pretty(&intents)
                     .context("failed to serialize intents to JSON")?;
                 let intents_path = profile_dir.join(&pinned.name).with_extension("json");
-                std::fs::write(&intents_path, &intents_string)
+                std::fs::write(&intents_path, intents_string)
                     .with_context(|| format!("failed to write {intents_path:?}"))?;
             }
         }
