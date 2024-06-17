@@ -194,6 +194,11 @@ impl ManifestFile {
         self.dir().join("src")
     }
 
+    /// The full path to the package's `out` directory for build artifacts.
+    pub fn out_dir(&self) -> PathBuf {
+        self.dir().join("out")
+    }
+
     /// The path to the compilation entry point src file.
     pub fn entry_point(&self) -> PathBuf {
         self.src_dir().join(self.entry_point_str())
