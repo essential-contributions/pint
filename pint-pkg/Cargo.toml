@@ -9,6 +9,8 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+essential-hash = { workspace = true }
+essential-types = { workspace = true }
 petgraph = { workspace = true }
 pint-manifest = { workspace = true }
 pintc = { path = "../pintc", default-features = false }
