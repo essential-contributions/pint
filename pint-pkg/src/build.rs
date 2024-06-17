@@ -115,7 +115,7 @@ fn dependencies<'a>(
 ) -> HashMap<String, PathBuf> {
     use petgraph::{visit::EdgeRef, Direction};
     g.edges_directed(n, Direction::Outgoing)
-        .filter_map(|e| {
+        .map(|e| {
             let name = e.weight().name.to_string();
             let dep_n = e.target();
             let pinned = &g[dep_n];
@@ -124,7 +124,7 @@ fn dependencies<'a>(
                 BuiltPkg::Library(_lib) => manifest.entry_point(),
                 BuiltPkg::Contract(contract) => contract.lib_entry_point.clone(),
             };
-            Some((name, entry_point))
+            (name, entry_point)
         })
         .collect()
 }
@@ -136,7 +136,7 @@ fn dependencies<'a>(
 /// Returns the entry point to the library.
 fn contract_dep_lib(ca: &ContentAddress, intents: &[BuiltIntent]) -> std::io::Result<PathBuf> {
     // Temporary directory for the contract project.
-    let temp_dir = std::env::temp_dir().join(&format!("{:x}", ca));
+    let temp_dir = std::env::temp_dir().join(format!("{:x}", ca));
     std::fs::create_dir_all(&temp_dir)?;
 
     // Write the contract's CA to the library root.

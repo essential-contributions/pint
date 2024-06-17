@@ -248,8 +248,8 @@ solve satisfy;"#;
 
         // Retrieve the CA hex strings.
         let bar_ca = &bar_contract.ca;
-        let bar_init_ca = intent_ca(&bar_contract, "Init");
-        let bar_increment_ca = intent_ca(&bar_contract, "Increment");
+        let bar_init_ca = intent_ca(bar_contract, "Init");
+        let bar_increment_ca = intent_ca(bar_contract, "Increment");
 
         // Check that the last was foo and that it's a contract.
         let foo_n = order[1];
@@ -280,8 +280,8 @@ solve satisfy;"#;
             }
             true
         }
-        assert!(constraints_contain_ca(&foo_contract, &bar_ca));
-        assert!(constraints_contain_ca(&foo_contract, &bar_init_ca));
-        assert!(constraints_contain_ca(&foo_contract, &bar_increment_ca));
+        assert!(constraints_contain_ca(foo_contract, bar_ca));
+        assert!(constraints_contain_ca(foo_contract, bar_init_ca));
+        assert!(constraints_contain_ca(foo_contract, bar_increment_ca));
     });
 }
