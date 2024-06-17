@@ -299,7 +299,11 @@ pub(crate) fn lower_imm_accesses(
                         }
                     );
 
-                    (is_array_expr || is_array_imm).then_some((expr_key, Some((*expr, *index)), None))
+                    (is_array_expr || is_array_imm).then_some((
+                        expr_key,
+                        Some((*expr, *index)),
+                        None,
+                    ))
                 }),
 
                 Expr::TupleFieldAccess { tuple, field, .. } => {
