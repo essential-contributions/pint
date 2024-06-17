@@ -120,6 +120,8 @@ pub enum Token {
     Var,
     #[token("state")]
     State,
+    #[token("const")]
+    Const,
     #[token("storage")]
     Storage,
     #[token("interface")]
@@ -223,6 +225,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Cond,
     Token::Var,
     Token::State,
+    Token::Const,
     Token::Storage,
     Token::Interface,
     Token::Constraint,
@@ -324,6 +327,7 @@ impl fmt::Display for Token {
             Token::Cond => write!(f, "cond"),
             Token::Var => write!(f, "var"),
             Token::State => write!(f, "state"),
+            Token::Const => write!(f, "const"),
             Token::Storage => write!(f, "storage"),
             Token::Interface => write!(f, "interface"),
             Token::Enum => write!(f, "enum"),

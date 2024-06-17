@@ -14,6 +14,6 @@ solve satisfy;
 // no intrinsic named `__foo` is found
 // @24..31: intrinsic not found
 // constraint expression type error
-// @13..39: constraint expression has unexpected type `Unknown`
+// @13..39: constraint expression has unknown type
 // @13..39: expecting type `bool`
 // >>>

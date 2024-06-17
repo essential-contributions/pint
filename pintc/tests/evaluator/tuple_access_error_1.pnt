@@ -1,16 +1,17 @@
-// TODO: redo this test with `const` decl when they're in.
-
-var a: int[{ a: 11, b: 22 }.c];
+const a = { a: 11, b: 22 }.c;
 
 solve satisfy;
 
 // intermediate <<<
-// var ::a: int[{a: 11, b: 22}.c];
+// const ::a = {a: 11, b: 22}.c;
 // solve satisfy;
 // >>>
 
 // typecheck_failure <<<
 // invalid tuple accessor
-// @71..89: unable to get field from tuple using `c`
+// @10..28: unable to get field from tuple using `c`
+// tuple has type `{a: int, b: int}`
+// invalid tuple accessor
+// @10..28: unable to get field from tuple using `c`
 // tuple has type `{a: int, b: int}`
 // >>>

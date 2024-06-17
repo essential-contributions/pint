@@ -1,0 +1,20 @@
+const a = b::x * 11;
+var b = a + b::x;
+
+solve satisfy;
+
+// intermediate <<<
+// const ::a = (::b::x * 11);
+// const ::b::x: int = 22;
+// var ::b;
+// constraint (::b == (::a + ::b::x));
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// const ::a: int = 242;
+// const ::b::x: int = 22;
+// var ::b: int;
+// constraint (::b == (242 + 22));
+// solve satisfy;
+// >>>

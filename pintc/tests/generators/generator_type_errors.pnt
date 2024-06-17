@@ -45,27 +45,27 @@ solve satisfy;
 // body for `exists` must be a `bool` expression
 // @405..410: invalid type `int`, expecting `bool`
 // constraint expression type error
-// @17..61: constraint expression has unexpected type `Unknown`
+// @17..61: constraint expression has unknown type
 // @17..61: expecting type `bool`
 // constraint expression type error
-// @63..107: constraint expression has unexpected type `Unknown`
+// @63..107: constraint expression has unknown type
 // @63..107: expecting type `bool`
 // constraint expression type error
-// @109..154: constraint expression has unexpected type `Unknown`
+// @109..154: constraint expression has unknown type
 // @109..154: expecting type `bool`
 // constraint expression type error
-// @156..201: constraint expression has unexpected type `Unknown`
+// @156..201: constraint expression has unknown type
 // @156..201: expecting type `bool`
 // constraint expression type error
-// @226..270: constraint expression has unexpected type `Unknown`
+// @226..270: constraint expression has unknown type
 // @226..270: expecting type `bool`
 // constraint expression type error
-// @272..316: constraint expression has unexpected type `Unknown`
+// @272..316: constraint expression has unknown type
 // @272..316: expecting type `bool`
 // constraint expression type error
-// @336..373: constraint expression has unexpected type `Unknown`
+// @336..373: constraint expression has unknown type
 // @336..373: expecting type `bool`
 // constraint expression type error
-// @375..412: constraint expression has unexpected type `Unknown`
+// @375..412: constraint expression has unknown type
 // @375..412: expecting type `bool`
 // >>>

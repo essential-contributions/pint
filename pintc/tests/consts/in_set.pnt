@@ -1,0 +1,47 @@
+const a = 11;
+
+intent A {
+    var b = a;
+    var c: int;
+    constraint c > a * 2;
+}
+
+intent B {
+    var b = a < 22;
+}
+
+// intermediate <<<
+// const ::a = 11;
+//
+// intent ::A {
+//     const ::a = 11;
+//     var ::b;
+//     var ::c: int;
+//     constraint (::b == ::a);
+//     constraint (::c > (::a * 2));
+// }
+//
+// intent ::B {
+//     const ::a = 11;
+//     var ::b;
+//     constraint (::b == (::a < 22));
+// }
+// >>>
+
+// flattened <<<
+// const ::a: int = 11;
+//
+// intent ::A {
+//     const ::a: int = 11;
+//     var ::b: int;
+//     var ::c: int;
+//     constraint (::b == 11);
+//     constraint (::c > (11 * 2));
+// }
+//
+// intent ::B {
+//     const ::a: int = 11;
+//     var ::b: int;
+//     constraint (::b == (11 < 22));
+// }
+// >>>

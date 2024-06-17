@@ -31,9 +31,12 @@ solve satisfy;
 // invalid cast
 // @69..77: illegal cast to a `::Bar`
 // casts may only be made to an int or a real
+// invalid cast
+// @69..77: illegal cast to a `::Bar`
+// casts may only be made to an int or a real
 // unable to determine expression type
 // @65..66: type of this expression is ambiguous
 // constraint expression type error
-// @61..77: constraint expression has unexpected type `Unknown`
+// @61..77: constraint expression has unknown type
 // @61..77: expecting type `bool`
 // >>>

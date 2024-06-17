@@ -1,0 +1,20 @@
+const a = 11;
+
+var a = 22;
+
+var b = 33;
+
+const b: int = 44;
+
+solve satisfy;
+
+// parse_failure <<<
+// symbol `a` has already been declared
+// @6..7: previous declaration of the symbol `a` here
+// @19..20: `a` redeclared here
+// `a` must be declared or imported only once in this scope
+// symbol `b` has already been declared
+// @32..33: previous declaration of the symbol `b` here
+// @47..48: `b` redeclared here
+// `b` must be declared or imported only once in this scope
+// >>>

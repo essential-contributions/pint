@@ -30,6 +30,7 @@ impl Display for super::IntermediateIntent {
 impl super::IntermediateIntent {
     fn fmt_with_indent(&self, f: &mut Formatter, indent: usize) -> Result {
         let indentation = " ".repeat(4 * indent);
+
         if let Some(storage) = &self.storage {
             writeln!(f, "{indentation}storage {{")?;
             for storage_var in &storage.0 {
@@ -37,6 +38,7 @@ impl super::IntermediateIntent {
             }
             writeln!(f, "{indentation}}}")?;
         }
+
         for super::Interface {
             name,
             storage,
@@ -77,6 +79,7 @@ impl super::IntermediateIntent {
 
             writeln!(f, "{indentation}}}")?;
         }
+
         for super::InterfaceInstance {
             name,
             interface,
@@ -90,6 +93,7 @@ impl super::IntermediateIntent {
                 self.with_ii(address)
             )?;
         }
+
         for super::IntentInstance {
             name,
             interface_instance,
@@ -104,27 +108,39 @@ impl super::IntermediateIntent {
                 self.with_ii(address)
             )?;
         }
+
+        for (path, cnst) in &self.consts {
+            writeln!(f, "{indentation}const {path}{};", self.with_ii(cnst))?;
+        }
+
         for (var_key, _) in self.vars() {
             writeln!(f, "{indentation}{};", self.with_ii(var_key))?;
         }
+
         for (state_key, _) in self.states() {
             writeln!(f, "{indentation}{};", self.with_ii(state_key))?;
         }
+
         for r#enum in &self.enums {
             writeln!(f, "{indentation}{};", self.with_ii(r#enum))?;
         }
+
         for new_type in &self.new_types {
             writeln!(f, "{indentation}{};", self.with_ii(new_type))?;
         }
+
         for constraint in &self.constraints {
             writeln!(f, "{indentation}{};", self.with_ii(constraint))?;
         }
+
         for if_decl in &self.if_decls {
             if_decl.fmt_with_indent(f, self, indent)?;
         }
+
         for directive in &self.directives {
             writeln!(f, "{indentation}{};", self.with_ii(directive.0.clone()))?;
         }
+
         Ok(())
     }
 }

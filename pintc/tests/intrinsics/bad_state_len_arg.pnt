@@ -18,14 +18,18 @@ solve satisfy;
 // @20..34: intrinsic argument must be a state variable
 // intrinsic argument must be a state variable
 // @44..58: intrinsic argument must be a state variable
+// intrinsic argument must be a state variable
+// @20..34: intrinsic argument must be a state variable
+// intrinsic argument must be a state variable
+// @44..58: intrinsic argument must be a state variable
 // unable to determine expression type
 // @16..17: type of this expression is ambiguous
 // unable to determine expression type
 // @40..41: type of this expression is ambiguous
 // constraint expression type error
-// @12..34: constraint expression has unexpected type `Unknown`
+// @12..34: constraint expression has unknown type
 // @12..34: expecting type `bool`
 // constraint expression type error
-// @36..58: constraint expression has unexpected type `Unknown`
+// @36..58: constraint expression has unknown type
 // @36..58: expecting type `bool`
 // >>>

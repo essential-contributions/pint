@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, Expr, Ident, Immediate, TupleAccess, UnaryOp},
-    intermediate::{BlockStatement, ConstraintDecl, ExprKey, IfDecl, IntermediateIntent},
+    intermediate::{BlockStatement, Const, ConstraintDecl, ExprKey, IfDecl, IntermediateIntent},
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
 };
@@ -347,11 +347,40 @@ pub(crate) fn lower_imm_accesses(
 
                 match evaluator.evaluate(idx_expr, handler, ii) {
                     Ok(Immediate::Int(idx_val)) if idx_val >= 0 => {
-                        // The expression could be an array expression, or an array immediate which
-                        // we'll ignore here.
-                        if let Some(Expr::Array { elements, .. }) = array_key.try_get(ii) {
-                            // Save the original access expression key and the element it referred to.
-                            replacements.push((old_expr_key, elements[idx_val as usize]));
+                        match array_key.try_get(ii) {
+                            Some(Expr::Array { elements, .. }) => {
+                                // Simply replace the index with the element expr.
+                                replacements.push((old_expr_key, elements[idx_val as usize]));
+                            }
+
+                            Some(Expr::Immediate {
+                                value: Immediate::Array(elements),
+                                ..
+                            }) => {
+                                if idx_val as usize >= elements.len() {
+                                    return Err(handler.emit_err(Error::Compile {
+                                        error: CompileError::ArrayIndexOutOfBounds {
+                                            span: idx_expr.span().clone(),
+                                        },
+                                    }));
+                                }
+
+                                // Create a new immediate expr and replace the index with it.
+                                let el_imm = elements[idx_val as usize].clone();
+                                let el_ty = el_imm.get_ty(None);
+
+                                let el_expr = ii.exprs.insert(
+                                    Expr::Immediate {
+                                        value: el_imm,
+                                        span: empty_span(),
+                                    },
+                                    el_ty,
+                                );
+
+                                replacements.push((old_expr_key, el_expr));
+                            }
+
+                            _ => unreachable!("candidate must be an array"),
                         }
                     }
 
@@ -375,23 +404,62 @@ pub(crate) fn lower_imm_accesses(
 
             if let Some((tuple_key, tuple_field_key)) = field_idx {
                 // We have a tuple access into an immediate.
-                if let Some(Expr::Tuple { fields, .. }) = tuple_key.try_get(ii) {
-                    let new_expr_key = match tuple_field_key {
-                        TupleAccess::Index(idx_val) => fields[idx_val].1,
-                        TupleAccess::Name(access_name) => fields
-                            .iter()
-                            .find_map(|(opt_name, field_key)| {
-                                opt_name.as_ref().and_then(|field_name| {
-                                    (field_name.name == access_name.name).then_some(*field_key)
+                match tuple_key.try_get(ii) {
+                    Some(Expr::Tuple { fields, .. }) => {
+                        let new_expr_key = match tuple_field_key {
+                            TupleAccess::Index(idx_val) => fields[idx_val].1,
+
+                            TupleAccess::Name(access_name) => fields
+                                .iter()
+                                .find_map(|(opt_name, field_key)| {
+                                    opt_name.as_ref().and_then(|field_name| {
+                                        (field_name.name == access_name.name).then_some(*field_key)
+                                    })
                                 })
-                            })
-                            .expect("missing tuple field"),
+                                .expect("missing tuple field"),
 
-                        TupleAccess::Error => unreachable!(),
-                    };
+                            TupleAccess::Error => unreachable!(),
+                        };
 
-                    // Save the original access expression key and the field it referred to.
-                    replacements.push((old_expr_key, new_expr_key));
+                        // Save the original access expression key and the field it referred to.
+                        replacements.push((old_expr_key, new_expr_key));
+                    }
+
+                    Some(Expr::Immediate {
+                        value: Immediate::Tuple(fields),
+                        ..
+                    }) => {
+                        let fld_imm = match tuple_field_key {
+                            TupleAccess::Index(idx_val) => fields[idx_val].1.clone(),
+
+                            TupleAccess::Name(access_name) => fields
+                                .iter()
+                                .find_map(|(opt_name, field_imm)| {
+                                    opt_name.as_ref().and_then(|field_name| {
+                                        (field_name.name == access_name.name)
+                                            .then_some(field_imm.clone())
+                                    })
+                                })
+                                .expect("missing tuple field"),
+
+                            TupleAccess::Error => unreachable!(),
+                        };
+
+                        // Create a new immediate expr and replace the index with it.
+                        let fld_ty = fld_imm.get_ty(None);
+
+                        let fld_expr = ii.exprs.insert(
+                            Expr::Immediate {
+                                value: fld_imm,
+                                span: empty_span(),
+                            },
+                            fld_ty,
+                        );
+
+                        replacements.push((old_expr_key, fld_expr));
+                    }
+
+                    _ => unreachable!("candidate must be a tuple"),
                 }
             }
         }
@@ -840,4 +908,26 @@ fn convert_if_block_statement(
     }
 
     converted_exprs
+}
+
+pub(super) fn replace_const_refs(ii: &mut IntermediateIntent) {
+    // Find all the paths which refer to a const and link them.
+    let const_refs = ii
+        .exprs()
+        .filter_map(|path_expr_key| {
+            if let Expr::PathByName(path, _span) = path_expr_key.get(ii) {
+                ii.consts.get(path).map(
+                    |Const {
+                         expr: const_expr_key,
+                         ..
+                     }| (path_expr_key, *const_expr_key),
+                )
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+
+    // Replace all paths to consts with the consts themselves.
+    ii.replace_exprs_by_map(&FxHashMap::from_iter(const_refs));
 }

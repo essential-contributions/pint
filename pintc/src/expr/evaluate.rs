@@ -30,6 +30,18 @@ impl Evaluator {
         }
     }
 
+    pub(crate) fn contains_path(&mut self, path: &Path) -> bool {
+        self.scope_values.contains_key(path)
+    }
+
+    pub(crate) fn insert_value(&mut self, path: Path, imm: Imm) -> Option<Imm> {
+        self.scope_values.insert(path, imm)
+    }
+
+    pub(crate) fn into_values(self) -> FxHashMap<Path, Imm> {
+        self.scope_values
+    }
+
     fn create_enum_map(ii: &IntermediateIntent) -> FxHashMap<Path, Imm> {
         FxHashMap::from_iter(ii.enums.iter().flat_map(
             |EnumDecl {

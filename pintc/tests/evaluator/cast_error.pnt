@@ -1,17 +1,33 @@
-// TODO: redo this test with `const` decl when they're in.  And add some other examples.  The type
-// checker is blocking this for now.
-
-var a: int[{11} as int];
+const a = {11} as int;
+const b = [22, 33] as int;
+const c = 44 as bool;
 
 solve satisfy;
 
 // intermediate <<<
-// var ::a: int[{11} as int];
+// const ::b = [22, 33] as int;
+// const ::a = {11} as int;
+// const ::c = 44 as bool;
 // solve satisfy;
 // >>>
 
 // typecheck_failure <<<
 // invalid cast
-// @148..159: illegal cast from a `{int}`
+// @33..48: illegal cast from a `int[2]`
+// casts may only be made from an int to a real, from a bool to an int or from an enum to an int
+// invalid cast
+// @10..21: illegal cast from a `{int}`
+// casts may only be made from an int to a real, from a bool to an int or from an enum to an int
+// invalid cast
+// @60..70: illegal cast to a `bool`
+// casts may only be made to an int or a real
+// invalid cast
+// @33..48: illegal cast from a `int[2]`
+// casts may only be made from an int to a real, from a bool to an int or from an enum to an int
+// invalid cast
+// @10..21: illegal cast from a `{int}`
+// casts may only be made from an int to a real, from a bool to an int or from an enum to an int
+// invalid cast
+// @60..70: illegal cast from a `int`
 // casts may only be made from an int to a real, from a bool to an int or from an enum to an int
 // >>>

@@ -21,9 +21,12 @@ solve satisfy;
 // cannot find value `::Duck` in this scope
 // @179..183: not found in this scope
 // this symbol is a variant of enums `::AttackingBird` and `::AppropriateDefence` and may need a fully qualified path
+// cannot find value `::Duck` in this scope
+// @179..183: not found in this scope
+// this symbol is a variant of enums `::AttackingBird` and `::AppropriateDefence` and may need a fully qualified path
 // unable to determine expression type
 // @198..216: type of this expression is ambiguous
 // constraint expression type error
-// @194..259: constraint expression has unexpected type `Unknown`
+// @194..259: constraint expression has unknown type
 // @194..259: expecting type `bool`
 // >>>

@@ -1,0 +1,14 @@
+const a = [11, false];
+
+solve satisfy;
+
+// intermediate <<<
+// const ::a = [11, false];
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// array element type mismatch
+// @15..20: array element has type `bool`
+// expecting array element type `int`
+// >>>
