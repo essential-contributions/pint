@@ -132,7 +132,7 @@ impl Immediate {
                 Type::Array {
                     ty: Box::new(
                         elements
-                            .get(0)
+                            .first()
                             .map(|el0| el0.get_ty(opt_span))
                             .unwrap_or_else(|| Type::Error(span.clone())),
                     ),

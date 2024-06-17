@@ -692,23 +692,20 @@ impl IntermediateIntent {
                 });
             };
 
-            let _ = el_imms
-                .iter()
-                .map(|el_imm| {
-                    let el_ty = el_imm.get_ty(None);
-                    if &el_ty != el0_ty.as_ref() {
-                        Err(Error::Compile {
-                            error: CompileError::NonHomogeneousArrayElement {
-                                expected_ty: self.with_ii(el0_ty.as_ref()).to_string(),
-                                ty: self.with_ii(el_ty).to_string(),
-                                span: span.clone(),
-                            },
-                        })
-                    } else {
-                        Ok(())
-                    }
-                })
-                .collect::<Result<_, _>>()?;
+            el_imms.iter().try_for_each(|el_imm| {
+                let el_ty = el_imm.get_ty(None);
+                if &el_ty != el0_ty.as_ref() {
+                    Err(Error::Compile {
+                        error: CompileError::NonHomogeneousArrayElement {
+                            expected_ty: self.with_ii(el0_ty.as_ref()).to_string(),
+                            ty: self.with_ii(el_ty).to_string(),
+                            span: span.clone(),
+                        },
+                    })
+                } else {
+                    Ok(())
+                }
+            })?;
 
             Ok(Inference::Type(ary_ty))
         } else {
