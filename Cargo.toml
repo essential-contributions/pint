@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
   "examples",
+  "pint",
   "pint-manifest",
   "pint-pkg",
   "pint-solve",
@@ -30,6 +31,7 @@ pint-pkg = { path = "pint-pkg" }
 pintc = { path = "pintc" }
 serde = { version = "1", features = ["derive"] }
 serde_ignored = "0.1"
+serde_json = "1"
 state-asm = { git = "ssh://git@github.com/essential-contributions/essential-base.git", package = "essential-state-asm" }
 thiserror = "1.0"
 toml = "0.8"

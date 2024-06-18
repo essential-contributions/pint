@@ -17,7 +17,7 @@ fn build_default_contract() {
         let foo = new_pkg(&dir.join("foo"), PackageKind::Contract);
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let _built = build_plan(&plan).unwrap();
+        let _built = build_plan(&plan).finish().unwrap();
     });
 }
 
@@ -27,7 +27,7 @@ fn build_default_library() {
         let foo = new_pkg(&dir.join("foo"), PackageKind::Library);
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let _built = build_plan(&plan).unwrap();
+        let _built = build_plan(&plan).finish().unwrap();
     });
 }
 
@@ -55,10 +55,10 @@ solve satisfy;"#;
 
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let built = match build_plan(&plan) {
+        let built_pkgs = match build_plan(&plan).finish() {
             Ok(built) => built,
             Err(err) => {
-                err.print();
+                err.pkg_err.eprint();
                 panic!()
             }
         };
@@ -68,7 +68,7 @@ solve satisfy;"#;
 
         // Check the first was bar and that it's a library.
         let bar_n = order[0];
-        let built_bar = &built.pkgs[&bar_n];
+        let built_bar = &built_pkgs[&bar_n];
         assert!(
             matches!(built_bar, &pint_pkg::build::BuiltPkg::Library(_)),
             "expected first built package `bar` to be a library"
@@ -76,7 +76,7 @@ solve satisfy;"#;
 
         // Check that the last was foo and that it's a contract.
         let foo_n = order[1];
-        let BuiltPkg::Contract(contract) = &built.pkgs[&foo_n] else {
+        let BuiltPkg::Contract(contract) = &built_pkgs[&foo_n] else {
             panic!("expected last built package `foo` to be a contract");
         };
 
@@ -128,10 +128,10 @@ solve satisfy;"#;
 
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let built = match build_plan(&plan) {
+        let built_pkgs = match build_plan(&plan).finish() {
             Ok(built) => built,
             Err(err) => {
-                err.print();
+                err.pkg_err.eprint();
                 panic!()
             }
         };
@@ -141,7 +141,7 @@ solve satisfy;"#;
 
         // Check the first was baz and that it's a library.
         let baz_n = order[0];
-        let built_baz = &built.pkgs[&baz_n];
+        let built_baz = &built_pkgs[&baz_n];
         assert!(
             matches!(built_baz, &pint_pkg::build::BuiltPkg::Library(_)),
             "expected first built package `baz` to be a library"
@@ -149,7 +149,7 @@ solve satisfy;"#;
 
         // Check the second was bar and that it's a library.
         let bar_n = order[1];
-        let built_bar = &built.pkgs[&bar_n];
+        let built_bar = &built_pkgs[&bar_n];
         assert!(
             matches!(built_bar, &pint_pkg::build::BuiltPkg::Library(_)),
             "expected second built package `bar` to be a library"
@@ -157,7 +157,7 @@ solve satisfy;"#;
 
         // Check that the last was foo and that it's a contract.
         let foo_n = order[2];
-        let BuiltPkg::Contract(contract) = &built.pkgs[&foo_n] else {
+        let BuiltPkg::Contract(contract) = &built_pkgs[&foo_n] else {
             panic!("expected last built package `foo` to be a contract");
         };
 
@@ -216,10 +216,10 @@ solve satisfy;"#;
 
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let built = match build_plan(&plan) {
+        let built_pkgs = match build_plan(&plan).finish() {
             Ok(built) => built,
             Err(err) => {
-                err.print();
+                err.pkg_err.eprint();
                 panic!()
             }
         };
@@ -229,7 +229,7 @@ solve satisfy;"#;
 
         // Check the first was bar and that it's a contract.
         let bar_n = order[0];
-        let built_bar = &built.pkgs[&bar_n];
+        let built_bar = &built_pkgs[&bar_n];
         let BuiltPkg::Contract(bar_contract) = &built_bar else {
             panic!("expected first built package `bar` to be a library");
         };
@@ -253,7 +253,7 @@ solve satisfy;"#;
 
         // Check that the last was foo and that it's a contract.
         let foo_n = order[1];
-        let built_foo = &built.pkgs[&foo_n];
+        let built_foo = &built_pkgs[&foo_n];
         let BuiltPkg::Contract(foo_contract) = built_foo else {
             panic!("expected last built package `foo` to be a contract");
         };
