@@ -16,6 +16,7 @@ struct Pint {
 
 #[derive(Debug, Subcommand)]
 enum Cmd {
+    #[command(alias = "b")]
     Build(build::Args),
     New(new::Args),
 }

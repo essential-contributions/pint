@@ -22,7 +22,8 @@ pub(crate) struct Args {
     lib: bool,
     /// Optionally provide a name.
     ///
-    /// By default, the package name is the last directory in the given path.
+    /// By default, the package name is the last directory in the canonicalized
+    /// representation of the given path.
     #[arg(long)]
     name: Option<String>,
     /// The directory path in which the package should be created.

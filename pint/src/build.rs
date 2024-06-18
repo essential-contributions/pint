@@ -5,9 +5,10 @@ use clap::{builder::styling::Style, Parser};
 use pint_pkg::{build::BuiltPkg, manifest::ManifestFile};
 use std::path::PathBuf;
 
+/// Build a package, writing the generated artifacts to `out/`.
 #[derive(Parser, Debug)]
 pub(crate) struct Args {
-    /// The path to the manifest of the package to build.
+    /// The path to the package manifest.
     ///
     /// If not provided, the current directory is checked and then each parent
     /// recursively until a manifest is found.
