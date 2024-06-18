@@ -17,7 +17,7 @@ fn build_default_contract() {
         let foo = new_pkg(&dir.join("foo"), PackageKind::Contract);
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let _built = build_plan(&plan).finish().unwrap();
+        let _built = build_plan(&plan).build_all().unwrap();
     });
 }
 
@@ -27,7 +27,7 @@ fn build_default_library() {
         let foo = new_pkg(&dir.join("foo"), PackageKind::Library);
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let _built = build_plan(&plan).finish().unwrap();
+        let _built = build_plan(&plan).build_all().unwrap();
     });
 }
 
@@ -55,7 +55,7 @@ solve satisfy;"#;
 
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let built_pkgs = match build_plan(&plan).finish() {
+        let built_pkgs = match build_plan(&plan).build_all() {
             Ok(built) => built,
             Err(err) => {
                 err.pkg_err.eprint();
@@ -128,7 +128,7 @@ solve satisfy;"#;
 
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let built_pkgs = match build_plan(&plan).finish() {
+        let built_pkgs = match build_plan(&plan).build_all() {
             Ok(built) => built,
             Err(err) => {
                 err.pkg_err.eprint();
@@ -216,7 +216,7 @@ solve satisfy;"#;
 
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let built_pkgs = match build_plan(&plan).finish() {
+        let built_pkgs = match build_plan(&plan).build_all() {
             Ok(built) => built,
             Err(err) => {
                 err.pkg_err.eprint();
