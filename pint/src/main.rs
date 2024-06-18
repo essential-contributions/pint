@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{builder::styling::Style, Parser, Subcommand};
 
 mod build;
 mod new;
@@ -28,6 +28,7 @@ fn main() {
         Cmd::Build(arg) => build::cmd(arg),
     };
     if let Err(err) = res {
-        eprintln!("Error: {err}");
+        let bold = Style::new().bold();
+        eprintln!("{}Error:{} {err}", bold.render(), bold.render_reset());
     }
 }
