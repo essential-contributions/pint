@@ -57,9 +57,6 @@ impl super::Program {
             // Unroll each generator into one large conjuction
             let _ = handler.scope(|handler| unroll_generators(handler, ii));
 
-            // Transform each enum variant into its integer discriminant
-            let _ = lower_enums(handler, ii);
-
             // Lower `in` expressions into more explicit comparisons.
             let _ = lower_ins(handler, ii);
 
@@ -67,6 +64,10 @@ impl super::Program {
             // then lower array and tuple accesses into immediates.  After here there will no
             // longer be aggregate types.
             let _ = scalarize(handler, ii);
+
+            // Transform each enum variant into its integer discriminant
+            let _ = lower_enums(handler, ii);
+
             let _ = lower_imm_accesses(handler, ii);
 
             // Lower bools after scalarization since it creates new comparison expressions

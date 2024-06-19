@@ -3,13 +3,12 @@ use crate::{
     expr::{BinaryOp, Expr, Immediate, TupleAccess, UnaryOp},
     intermediate::{
         ConstraintDecl, ExprKey, IntentInstance, IntermediateIntent, Program, ProgramKind,
-        State as StateVar, Var,
+        State as StateVar,
     },
     span::empty_span,
     types::Type,
 };
 use essential_types::intent::{Directive, Intent};
-use fxhash::FxHashMap;
 use state_asm::{
     Access, Alu, Constraint, ControlFlow, Crypto, Op as StateRead, Pred, Stack, StateSlots,
     TotalControlFlow,
@@ -80,12 +79,6 @@ pub struct AsmBuilder {
     s_asm: Vec<Vec<StateRead>>,
     // Opcodes to specify constraints
     c_asm: Vec<Vec<Constraint>>,
-    // Maps indices of `let` variables (which may be wider than a word) to a list of low level
-    // word-wide decision variables
-    var_to_d_vars: FxHashMap<usize, Vec<usize>>,
-    // Maps pub vars to transient data index, skipping over non-pub vars. The transient index is
-    // used to calculate keys
-    pub_var_to_transient_index: FxHashMap<usize, usize>,
 }
 
 #[derive(Debug)]
@@ -116,7 +109,6 @@ impl AsmBuilder {
     /// - Whether the key is internal or external. External keys should be accessed using
     /// `StateReadKeyRangeExtern`.
     fn compile_state_key(
-        &mut self,
         handler: &Handler,
         s_asm: &mut Vec<StateRead>,
         expr: &ExprKey,
@@ -138,7 +130,7 @@ impl AsmBuilder {
                     };
 
                     let mut asm = Vec::new();
-                    self.compile_expr(handler, &mut asm, &args[0], intent)?;
+                    Self::compile_expr(handler, &mut asm, &args[0], intent)?;
                     s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
                     Ok(StorageKey {
                         kind: StorageKeyKind::Dynamic(key_size as usize),
@@ -160,8 +152,8 @@ impl AsmBuilder {
 
                     // First, get the set-of-intents address and the storage key
                     let mut asm = Vec::new();
-                    self.compile_expr(handler, &mut asm, &args[0], intent)?;
-                    self.compile_expr(handler, &mut asm, &args[1], intent)?;
+                    Self::compile_expr(handler, &mut asm, &args[0], intent)?;
+                    Self::compile_expr(handler, &mut asm, &args[1], intent)?;
                     s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
                     Ok(StorageKey {
                         kind: StorageKeyKind::Dynamic(key_size as usize),
@@ -216,7 +208,7 @@ impl AsmBuilder {
 
                 // Compile the interface instance address
                 let mut asm = Vec::new();
-                self.compile_expr(handler, &mut asm, &interface_instance.address, intent)?;
+                Self::compile_expr(handler, &mut asm, &interface_instance.address, intent)?;
                 s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
 
                 // Get the `interface` declaration that the storage access refers to
@@ -259,11 +251,11 @@ impl AsmBuilder {
             }
             Expr::Index { expr, index, .. } => {
                 // Compile the key corresponding to `expr`
-                let storage_key = self.compile_state_key(handler, s_asm, expr, intent)?;
+                let storage_key = Self::compile_state_key(handler, s_asm, expr, intent)?;
 
                 // Compile the index
                 let mut asm = vec![];
-                self.compile_expr(handler, &mut asm, index, intent)?;
+                Self::compile_expr(handler, &mut asm, index, intent)?;
                 s_asm.extend(asm.iter().copied().map(StateRead::from));
                 let mut key_length = storage_key.len() + index.get_ty(intent).size();
                 if !(expr_ty.is_any_primitive() || expr_ty.is_map()) {
@@ -278,7 +270,7 @@ impl AsmBuilder {
             Expr::TupleFieldAccess { tuple, field, .. } => {
                 // Compile the key corresponding to `tuple`
                 let StorageKey { kind, is_extern } =
-                    self.compile_state_key(handler, s_asm, tuple, intent)?;
+                    Self::compile_state_key(handler, s_asm, tuple, intent)?;
 
                 // Grab the fields of the tuple
                 let Type::Tuple { ref fields, .. } = tuple.get_ty(intent) else {
@@ -350,7 +342,6 @@ impl AsmBuilder {
 
     /// Generates assembly for an `ExprKey`. Returns the number of opcodes used to express `expr`
     fn compile_expr(
-        &mut self,
         handler: &Handler,
         asm: &mut Vec<Constraint>,
         expr: &ExprKey,
@@ -398,17 +389,17 @@ impl AsmBuilder {
             Expr::Immediate { value, .. } => compile_immediate(asm, value),
             Expr::Array { elements, .. } => {
                 for element in elements {
-                    self.compile_expr(handler, asm, element, intent)?;
+                    Self::compile_expr(handler, asm, element, intent)?;
                 }
             }
             Expr::Tuple { fields, .. } => {
                 for (_, field) in fields {
-                    self.compile_expr(handler, asm, field, intent)?;
+                    Self::compile_expr(handler, asm, field, intent)?;
                 }
             }
             Expr::BinaryOp { op, lhs, rhs, .. } => {
-                let lhs_len = self.compile_expr(handler, asm, lhs, intent)?;
-                let rhs_len = self.compile_expr(handler, asm, rhs, intent)?;
+                let lhs_len = Self::compile_expr(handler, asm, lhs, intent)?;
+                let rhs_len = Self::compile_expr(handler, asm, rhs, intent)?;
                 match op {
                     BinaryOp::Add => asm.push(Alu::Add.into()),
                     BinaryOp::Sub => asm.push(Alu::Sub.into()),
@@ -502,7 +493,7 @@ impl AsmBuilder {
                 }
             }
             Expr::UnaryOp { op, expr, .. } => {
-                self.compile_expr(handler, asm, expr, intent)?;
+                Self::compile_expr(handler, asm, expr, intent)?;
                 match op {
                     UnaryOp::Not => {
                         asm.push(Pred::Not.into());
@@ -533,11 +524,11 @@ impl AsmBuilder {
             }
             Expr::PathByName(path, _) => {
                 // Search for a decision variable or a state variable.
-                self.compile_path(handler, asm, &path.to_string(), intent)?;
+                Self::compile_path(handler, asm, &path.to_string(), intent)?;
             }
             Expr::PathByKey(var_key, _) => {
                 // Search for a decision variable or a state variable.
-                self.compile_path(handler, asm, &var_key.get(intent).name, intent)?;
+                Self::compile_path(handler, asm, &var_key.get(intent).name, intent)?;
             }
             Expr::StorageAccess(_, _) | Expr::ExternalStorageAccess { .. } => {
                 return Err(handler.emit_err(Error::Compile {
@@ -566,7 +557,7 @@ impl AsmBuilder {
 
                     // Compile the mut key argument, insert its length, and then insert the
                     // `Sha256` opcode
-                    self.compile_expr(handler, asm, &mut_key, intent)?;
+                    Self::compile_expr(handler, asm, &mut_key, intent)?;
                     asm.push(Constraint::Stack(Stack::Push(mut_key_type.size() as i64)));
                     asm.push(Constraint::Access(Access::MutKeysContains));
                 }
@@ -595,7 +586,7 @@ impl AsmBuilder {
 
                     // Compile the data argument, insert its length, and then insert the `Sha256`
                     // opcode
-                    self.compile_expr(handler, asm, &data, intent)?;
+                    Self::compile_expr(handler, asm, &data, intent)?;
                     asm.push(Constraint::Stack(Stack::Push(data_type.size() as i64)));
                     asm.push(Constraint::Crypto(Crypto::Sha256));
                 }
@@ -622,10 +613,10 @@ impl AsmBuilder {
                     assert!(public_key_type.is_b256());
 
                     // Compile all arguments separately and then insert the `VerifyEd25519` opcode
-                    self.compile_expr(handler, asm, &data, intent)?;
+                    Self::compile_expr(handler, asm, &data, intent)?;
                     asm.push(Constraint::Stack(Stack::Push(data_type.size() as i64)));
-                    self.compile_expr(handler, asm, &signature, intent)?;
-                    self.compile_expr(handler, asm, &public_key, intent)?;
+                    Self::compile_expr(handler, asm, &signature, intent)?;
+                    Self::compile_expr(handler, asm, &public_key, intent)?;
                     asm.push(Constraint::Crypto(Crypto::VerifyEd25519));
                 }
 
@@ -653,8 +644,8 @@ impl AsmBuilder {
                     );
 
                     // Compile all arguments separately and then insert the `VerifyEd25519` opcode
-                    self.compile_expr(handler, asm, &data_hash, intent)?;
-                    self.compile_expr(handler, asm, &signature, intent)?;
+                    Self::compile_expr(handler, asm, &data_hash, intent)?;
+                    Self::compile_expr(handler, asm, &signature, intent)?;
                     asm.push(Constraint::Crypto(Crypto::RecoverSecp256k1));
                 }
 
@@ -679,7 +670,7 @@ impl AsmBuilder {
                         _ => false,
                     });
 
-                    self.compile_expr(handler, asm, &args[0], intent)?;
+                    Self::compile_expr(handler, asm, &args[0], intent)?;
 
                     // After compiling a path to a state var or a "next state" expression, we
                     // expect that the last opcode is a `State` or a `StateRange`. Pop that and
@@ -710,14 +701,14 @@ impl AsmBuilder {
                 ..
             } => {
                 let type_size = then_expr.get_ty(intent).size();
-                self.compile_expr(handler, asm, else_expr, intent)?;
-                self.compile_expr(handler, asm, then_expr, intent)?;
+                Self::compile_expr(handler, asm, else_expr, intent)?;
+                Self::compile_expr(handler, asm, then_expr, intent)?;
                 if type_size == 1 {
-                    self.compile_expr(handler, asm, condition, intent)?;
+                    Self::compile_expr(handler, asm, condition, intent)?;
                     asm.push(Constraint::Stack(Stack::Select));
                 } else {
                     asm.push(Constraint::Stack(Stack::Push(type_size as i64)));
-                    self.compile_expr(handler, asm, condition, intent)?;
+                    Self::compile_expr(handler, asm, condition, intent)?;
                     asm.push(Constraint::Stack(Stack::SelectRange));
                 }
             }
@@ -743,40 +734,49 @@ impl AsmBuilder {
     /// Compile a path expression. Assumes that each path expressions corresponds to a decision
     /// variable or a state variable.
     fn compile_path(
-        &mut self,
         handler: &Handler,
         asm: &mut Vec<Constraint>,
         path: &String,
         intent: &IntermediateIntent,
     ) -> Result<(), ErrorEmitted> {
-        let var_index = intent.vars().position(|(_, var)| &var.name == path);
+        let var_index = intent
+            .vars()
+            .filter(|(_, var)| !var.is_pub)
+            .position(|(_, var)| &var.name == path);
+        let pub_var_index = intent
+            .vars()
+            .filter(|(_, var)| var.is_pub)
+            .position(|(_, var)| &var.name == path);
         let state_and_index = intent
             .states()
             .enumerate()
             .find(|(_, state)| &state.1.name == path);
 
-        match (var_index, state_and_index) {
-            (Some(var_index), None) => {
+        match (var_index, pub_var_index, state_and_index) {
+            (Some(var_index), None, None) => {
                 let var_key = intent.vars().find(|(_, var)| &var.name == path).unwrap().0;
-                if let Some(d_vars) = self.var_to_d_vars.get(&var_index) {
-                    for d_var in d_vars {
-                        asm.push(Stack::Push(*d_var as i64).into());
-                        asm.push(Access::DecisionVar.into());
-                    }
-                } else if let Some(transient_index) =
-                    self.pub_var_to_transient_index.get(&var_index)
-                {
-                    if var_key.get_ty(intent).is_any_primitive() {
-                        asm.push(Stack::Push(*transient_index as i64).into());
-                        asm.push(Stack::Push(1).into()); // key length
-                        asm.push(Constraint::Access(Access::ThisPathway));
-                        asm.push(Constraint::Access(Access::Transient));
-                    } else {
-                        todo!("non-primitive transient data not yet implemented")
-                    }
+                let var_ty_size = var_key.get_ty(intent).size();
+                asm.push(Stack::Push(var_index as i64).into()); // slot
+                if var_ty_size == 1 {
+                    asm.push(Access::DecisionVar.into());
+                } else {
+                    asm.push(Stack::Push(0).into()); // index
+                    asm.push(Stack::Push(var_ty_size as i64).into()); // len
+                    asm.push(Access::DecisionVarRange.into());
                 }
             }
-            (None, Some((state_index, (state_key, _)))) => {
+            (None, Some(pub_var_index), None) => {
+                let var_key = intent.vars().find(|(_, var)| &var.name == path).unwrap().0;
+                if var_key.get_ty(intent).is_any_primitive() {
+                    asm.push(Stack::Push(pub_var_index as i64).into());
+                    asm.push(Stack::Push(1).into()); // key length
+                    asm.push(Constraint::Access(Access::ThisPathway));
+                    asm.push(Constraint::Access(Access::Transient));
+                } else {
+                    todo!("non-primitive transient data not yet implemented")
+                }
+            }
+            (None, None, Some((state_index, (state_key, _)))) => {
                 let slot_index: usize = intent
                     .states()
                     .take(state_index)
@@ -849,7 +849,7 @@ impl AsmBuilder {
                     if var.ty.is_any_primitive() {
                         asm.push(Stack::Push(transient_index as i64).into());
                         asm.push(Stack::Push(1).into()); // key length
-                        self.compile_path(
+                        Self::compile_path(
                             handler,
                             asm,
                             &("__".to_owned() + &name.to_string() + "_pathway"),
@@ -883,7 +883,7 @@ impl AsmBuilder {
         intent: &IntermediateIntent,
     ) -> Result<(), ErrorEmitted> {
         let mut asm = Vec::new();
-        self.compile_expr(handler, &mut asm, expr, intent)?;
+        Self::compile_expr(handler, &mut asm, expr, intent)?;
         self.c_asm.push(asm);
         Ok(())
     }
@@ -899,7 +899,7 @@ impl AsmBuilder {
         let mut s_asm: Vec<StateRead> = Vec::new();
 
         // First, get the storage key
-        let storage_key = self.compile_state_key(handler, &mut s_asm, &state.expr, intent)?;
+        let storage_key = Self::compile_state_key(handler, &mut s_asm, &state.expr, intent)?;
         let key_len = match storage_key.kind {
             StorageKeyKind::Static(key) => key.len(),
             StorageKeyKind::Dynamic(size) => size,
@@ -933,31 +933,6 @@ pub fn intent_to_asm(
     final_intent: &IntermediateIntent,
 ) -> Result<Intent, ErrorEmitted> {
     let mut builder = AsmBuilder::default();
-
-    // Low level decision variable index
-    //
-    // This assumes that all decision variables are either `b256` or have size 1 word, as a result
-    // of flattening.
-    let mut d_var = 0;
-    let mut transient_index = 0;
-    for (idx, (var_key, Var { is_pub, .. })) in final_intent.vars().enumerate() {
-        if *is_pub {
-            builder
-                .pub_var_to_transient_index
-                .insert(idx, transient_index);
-            transient_index += 1;
-        } else if var_key.get_ty(final_intent).is_b256() {
-            // `B256` variables map to 4 separate low level decision variables, 1 word wide each.
-            builder
-                .var_to_d_vars
-                .insert(idx, vec![d_var, d_var + 1, d_var + 2, d_var + 3]);
-            d_var += 4;
-        } else {
-            // All other primitive types (ignoring strings) are 1 word wide.
-            builder.var_to_d_vars.insert(idx, vec![d_var]);
-            d_var += 1;
-        }
-    }
 
     let mut slot_idx = 0;
     for (_, state) in final_intent.states() {

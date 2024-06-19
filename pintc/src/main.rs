@@ -47,6 +47,17 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
+    // Produce `json` ABI
+    let mut filepath_stem = filepath
+        .file_stem()
+        .expect("Failed to get file stem")
+        .to_os_string();
+    filepath_stem.push("-abi");
+    let mut json_abi_path = PathBuf::from(filepath);
+    json_abi_path.set_file_name(filepath_stem);
+    json_abi_path.set_extension("json");
+    serde_json::to_writer_pretty(File::create(json_abi_path)?, &flattened.abi())?;
+
     // The default backend is "codegen" which generates assembly.
     //
     // If `--solve` is passed to `pintc`, skip assembly generation. I think, eventually, we want to

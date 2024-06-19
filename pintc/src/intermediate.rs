@@ -4,15 +4,16 @@ use crate::{
     span::Span,
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type},
 };
+use abi_types::{IntentABI, KeyedVarABI, ProgramABI};
 use exprs::ExprsIter;
 pub use exprs::{ExprKey, Exprs};
 use fxhash::FxHashMap;
-pub use states::{StateKey, States};
+pub use states::{State, StateKey, States};
 use std::{
     collections::BTreeMap,
     fmt::{self, Formatter},
 };
-pub use vars::{VarKey, Vars};
+pub use vars::{Var, VarKey, Vars};
 
 mod analyse;
 mod check_program_kind;
@@ -62,12 +63,36 @@ impl Program {
     pub fn root_ii_mut(&mut self) -> &mut IntermediateIntent {
         self.iis.get_mut(Self::ROOT_II_NAME).unwrap()
     }
+
+    /// Generates a `ProgramABI` given a `Program`
+    pub fn abi(&self) -> ProgramABI {
+        let root_ii = self.root_ii();
+        ProgramABI {
+            intents: self.iis.values().map(|ii| ii.abi()).collect(),
+            storage: root_ii
+                .storage
+                .as_ref()
+                .map(|(storage, _)| {
+                    storage
+                        .iter()
+                        .enumerate()
+                        .map(|(index, StorageVar { name, ty, .. })| KeyedVarABI {
+                            name: name.to_string(),
+                            ty: ty.abi_with_key(vec![Some(index)]),
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default(),
+        }
+    }
 }
 
 /// An in-progress intent, possibly malformed or containing redundant information.  Designed to be
 /// iterated upon and to be reduced to an [Intent].
 #[derive(Debug, Default)]
 pub struct IntermediateIntent {
+    pub name: String,
+
     pub vars: Vars,
     pub states: States,
     pub exprs: Exprs,
@@ -105,36 +130,37 @@ pub struct IntermediateIntent {
 }
 
 impl IntermediateIntent {
+    pub fn new(name: String) -> Self {
+        Self {
+            name,
+            ..Default::default()
+        }
+    }
+
+    /// Generate a `IntentABI` given an `IntermediateIntent`
+    pub fn abi(&self) -> IntentABI {
+        IntentABI {
+            name: self.name.clone(),
+            vars: self
+                .vars()
+                .filter(|(_, var)| !var.is_pub)
+                .map(|(var_key, _)| var_key.abi(self))
+                .collect(),
+            pub_vars: self
+                .vars()
+                .filter(|(_, var)| var.is_pub)
+                .enumerate()
+                .map(|(index, (var_key, Var { name, .. }))| KeyedVarABI {
+                    name: name.to_string(),
+                    ty: var_key.get_ty(self).abi_with_key(vec![Some(index)]),
+                })
+                .collect::<Vec<_>>(),
+        }
+    }
+
     /// Helps out some `thing: T` by adding `self` as context.
     pub fn with_ii<T>(&self, thing: T) -> WithII<T> {
         WithII { thing, ii: self }
-    }
-
-    pub fn insert_var(
-        &mut self,
-        handler: &Handler,
-        mod_prefix: &str,
-        local_scope: Option<&str>,
-        is_pub: bool,
-        name: &Ident,
-        ty: Option<Type>,
-    ) -> std::result::Result<VarKey, ErrorEmitted> {
-        let full_name =
-            self.add_top_level_symbol(handler, mod_prefix, local_scope, name, name.span.clone())?;
-        let var_key = self.vars.insert(
-            Var {
-                name: full_name,
-                is_pub,
-                span: name.span.clone(),
-            },
-            if let Some(ty) = ty {
-                ty
-            } else {
-                Type::Unknown(name.span.clone())
-            },
-        );
-
-        Ok(var_key)
     }
 
     pub fn insert_ephemeral(
@@ -215,32 +241,6 @@ impl IntermediateIntent {
                 span,
             });
         }
-    }
-
-    pub fn insert_state(
-        &mut self,
-        handler: &Handler,
-        mod_prefix: &str,
-        name: &Ident,
-        ty: Option<Type>,
-        expr: ExprKey,
-        span: Span,
-    ) -> std::result::Result<StateKey, ErrorEmitted> {
-        let name = self.add_top_level_symbol(handler, mod_prefix, None, name, span.clone())?;
-        let state_key = self.states.insert(
-            State {
-                name,
-                expr,
-                span: span.clone(),
-            },
-            if let Some(ty) = ty {
-                ty
-            } else {
-                Type::Unknown(span.clone())
-            },
-        );
-
-        Ok(state_key)
     }
 
     fn make_full_symbol(mod_prefix: &str, local_scope: Option<&str>, name: &Ident) -> String {
@@ -340,14 +340,6 @@ impl IntermediateIntent {
                 *expr = *new_expr;
             }
         });
-    }
-
-    pub(crate) fn vars(&self) -> impl Iterator<Item = (VarKey, &Var)> {
-        self.vars.vars()
-    }
-
-    pub(crate) fn states(&self) -> impl Iterator<Item = (StateKey, &State)> {
-        self.states.states()
     }
 
     pub(crate) fn exprs(&self) -> ExprsIter {
@@ -488,49 +480,6 @@ impl IntermediateIntent {
 pub(crate) enum VisitorKind {
     DepthFirstChildrenBeforeParents,
     DepthFirstParentsBeforeChildren,
-}
-
-/// A state specification with an optional type.
-#[derive(Clone, Debug)]
-pub struct State {
-    pub name: Path,
-    pub expr: ExprKey,
-    pub span: Span,
-}
-
-impl DisplayWithII for StateKey {
-    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
-        let state = &self.get(ii);
-        write!(f, "state {}", state.name)?;
-        let ty = self.get_ty(ii);
-        if !ty.is_unknown() {
-            write!(f, ": {}", ii.with_ii(ty))?;
-        }
-        write!(f, " = {}", ii.with_ii(&state.expr))
-    }
-}
-
-/// A decision variable with an optional type.
-#[derive(Clone, Debug)]
-pub struct Var {
-    pub name: Path,
-    pub is_pub: bool,
-    pub span: Span,
-}
-
-impl DisplayWithII for VarKey {
-    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
-        let var = &self.get(ii);
-        if var.is_pub {
-            write!(f, "pub ")?;
-        }
-        write!(f, "var {}", var.name)?;
-        let ty = self.get_ty(ii);
-        if !ty.is_unknown() {
-            write!(f, ": {}", ii.with_ii(ty))?;
-        }
-        Ok(())
-    }
 }
 
 #[derive(Clone, Debug)]

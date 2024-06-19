@@ -1,0 +1,250 @@
+{
+  "intents": [
+    {
+      "name": "",
+      "vars": [],
+      "pub_vars": []
+    },
+    {
+      "name": "::Foo",
+      "vars": [
+        {
+          "name": "::v0",
+          "ty": "Int"
+        },
+        {
+          "name": "::v1",
+          "ty": "Int"
+        },
+        {
+          "name": "::v2",
+          "ty": "B256"
+        },
+        {
+          "name": "::v3.0",
+          "ty": "Int"
+        },
+        {
+          "name": "::v3.1",
+          "ty": "Int"
+        },
+        {
+          "name": "::v4.0",
+          "ty": "Int"
+        },
+        {
+          "name": "::v4.1",
+          "ty": "Int"
+        },
+        {
+          "name": "::v4.2.0",
+          "ty": "Int"
+        },
+        {
+          "name": "::v4.2.1",
+          "ty": "Int"
+        }
+      ],
+      "pub_vars": [
+        {
+          "name": "::t0",
+          "ty": {
+            "Int": [0]
+          }
+        },
+        {
+          "name": "::t1",
+          "ty": {
+            "Int": [1]
+          }
+        },
+        {
+          "name": "::t2",
+          "ty": {
+            "B256": [2]
+          }
+        }
+      ]
+    }
+  ],
+  "storage": [
+    {
+      "name": "s0",
+      "ty": {
+        "Bool": [0]
+      }
+    },
+    {
+      "name": "s1",
+      "ty": {
+        "Int": [1]
+      }
+    },
+    {
+      "name": "s2",
+      "ty": {
+        "B256": [2]
+      }
+    },
+    {
+      "name": "s2",
+      "ty": {
+        "Tuple": {
+          "fields": [
+            {
+              "name": null,
+              "ty": {
+                "Int": [3, 0]
+              }
+            },
+            {
+              "name": null,
+              "ty": {
+                "Int": [3, 1]
+              }
+            }
+          ],
+          "key": [3]
+        }
+      }
+    },
+    {
+      "name": "s3",
+      "ty": {
+        "Tuple": {
+          "fields": [
+            {
+              "name": null,
+              "ty": {
+                "Int": [4, 0]
+              }
+            },
+            {
+              "name": null,
+              "ty": {
+                "Int": [4, 1]
+              }
+            },
+            {
+              "name": null,
+              "ty": {
+                "Tuple": {
+                  "fields": [
+                    {
+                      "name": null,
+                      "ty": {
+                        "Int": [4, 2, 0]
+                      }
+                    },
+                    {
+                      "name": null,
+                      "ty": {
+                        "Int": [4, 2, 1]
+                      }
+                    }
+                  ],
+                  "key": [4, 2]
+                }
+              }
+            }
+          ],
+          "key": [4]
+        }
+      }
+    },
+    {
+      "name": "my_map",
+      "ty": {
+        "Map": {
+          "ty_from": "Int",
+          "ty_to": {
+            "Tuple": {
+              "fields": [
+                {
+                  "name": null,
+                  "ty": {
+                    "Int": [5, null, 0]
+                  }
+                },
+                {
+                  "name": null,
+                  "ty": {
+                    "Tuple": {
+                      "fields": [
+                        {
+                          "name": null,
+                          "ty": {
+                            "B256": [5, null, 1, 0]
+                          }
+                        },
+                        {
+                          "name": null,
+                          "ty": {
+                            "Int": [5, null, 1, 1]
+                          }
+                        }
+                      ],
+                      "key": [5, null, 1]
+                    }
+                  }
+                }
+              ],
+              "key": [5, null]
+            }
+          },
+          "key": [5]
+        }
+      }
+    },
+    {
+      "name": "my_nested_map",
+      "ty": {
+        "Map": {
+          "ty_from": "Int",
+          "ty_to": {
+            "Map": {
+              "ty_from": "B256",
+              "ty_to": {
+                "Tuple": {
+                  "fields": [
+                    {
+                      "name": null,
+                      "ty": {
+                        "Int": [6, null, null, null, null, null, 0]
+                      }
+                    },
+                    {
+                      "name": null,
+                      "ty": {
+                        "Tuple": {
+                          "fields": [
+                            {
+                              "name": null,
+                              "ty": {
+                                "B256": [6, null, null, null, null, null, 1, 0]
+                              }
+                            },
+                            {
+                              "name": null,
+                              "ty": {
+                                "Int": [6, null, null, null, null, null, 1, 1]
+                              }
+                            }
+                          ],
+                          "key": [6, null, null, null, null, null, 1]
+                        }
+                      }
+                    }
+                  ],
+                  "key": [6, null, null, null, null, null]
+                }
+              },
+              "key": [6, null]
+            }
+          },
+          "key": [6]
+        }
+      }
+    }
+  ]
+}

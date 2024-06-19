@@ -4,7 +4,7 @@ use pintc::{
 };
 use std::{
     fs::{read_dir, File},
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Read},
     path::{Path, PathBuf},
 };
 use test_util::{parse_test_data, TestData};
@@ -48,13 +48,45 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
         let test_data = parse_test_data(&path)?;
 
         // Parse the project and check its output.
-        parse_test_and_check(&path, &test_data, &mut failed_tests)
+        let program = parse_test_and_check(&path, &test_data, &mut failed_tests)
             .and_then(|ii|
                 // Type check the intermediate intent.
                 type_check(ii, &test_data, &mut failed_tests, &path))
             .and_then(|ii|
                 // Flatten the intermediate intent check the result.
                 flatten_and_check(ii, &test_data, &mut failed_tests, &path));
+
+        // Check the `json` ABI if a reference file exists.
+        if let Some(program) = program {
+            let mut path_stem = path
+                .file_stem()
+                .expect("Failed to get file stem")
+                .to_os_string();
+            path_stem.push("-abi");
+            path.set_file_name(path_stem);
+            path.set_extension("json");
+
+            if let Ok(mut file) = File::open(&path) {
+                // The JSON ABI of the produce program
+                let json_abi = serde_json::to_string_pretty(&program.abi())?;
+
+                // The JSON ABI from the reference file
+                let mut json_abi_reference = String::new();
+                file.read_to_string(&mut json_abi_reference)?;
+
+                // Compare the two without any whitespaces
+                similar_asserts::assert_eq!(
+                    json_abi
+                        .chars()
+                        .filter(|c| !c.is_whitespace())
+                        .collect::<Vec<_>>(),
+                    json_abi_reference
+                        .chars()
+                        .filter(|c| !c.is_whitespace())
+                        .collect::<Vec<_>>()
+                );
+            }
+        }
     }
 
     if !failed_tests.is_empty() {
@@ -234,4 +266,5 @@ mod e2e {
     e2e_test!(root_types);
     e2e_test!(interfaces);
     e2e_test!(evaluator);
+    e2e_test!(abi);
 }

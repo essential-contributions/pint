@@ -1,5 +1,18 @@
-use super::{IntermediateIntent, State};
-use crate::types::Type;
+use super::{DisplayWithII, ExprKey, Ident, IntermediateIntent};
+use crate::{
+    error::{ErrorEmitted, Handler},
+    span::Span,
+    types::{Path, Type},
+};
+use std::fmt::{self, Formatter};
+
+/// A state specification with an optional type.
+#[derive(Clone, Debug)]
+pub struct State {
+    pub name: Path,
+    pub expr: ExprKey,
+    pub span: Span,
+}
 
 slotmap::new_key_type! { pub struct StateKey; }
 
@@ -82,5 +95,49 @@ impl StateKey {
     /// the `state_types` map.
     pub fn set_ty<'a>(&'a self, ty: Type, ii: &'a mut IntermediateIntent) {
         ii.states.state_types.insert(*self, ty);
+    }
+}
+
+impl DisplayWithII for StateKey {
+    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
+        let state = &self.get(ii);
+        write!(f, "state {}", state.name)?;
+        let ty = self.get_ty(ii);
+        if !ty.is_unknown() {
+            write!(f, ": {}", ii.with_ii(ty))?;
+        }
+        write!(f, " = {}", ii.with_ii(&state.expr))
+    }
+}
+
+impl IntermediateIntent {
+    pub fn insert_state(
+        &mut self,
+        handler: &Handler,
+        mod_prefix: &str,
+        name: &Ident,
+        ty: Option<Type>,
+        expr: ExprKey,
+        span: Span,
+    ) -> std::result::Result<StateKey, ErrorEmitted> {
+        let name = self.add_top_level_symbol(handler, mod_prefix, None, name, span.clone())?;
+        let state_key = self.states.insert(
+            State {
+                name,
+                expr,
+                span: span.clone(),
+            },
+            if let Some(ty) = ty {
+                ty
+            } else {
+                Type::Unknown(span.clone())
+            },
+        );
+
+        Ok(state_key)
+    }
+
+    pub(crate) fn states(&self) -> impl Iterator<Item = (StateKey, &State)> {
+        self.states.states()
     }
 }

@@ -1,5 +1,19 @@
-use super::{IntermediateIntent, Var};
-use crate::types::Type;
+use super::{DisplayWithII, Ident, IntermediateIntent};
+use crate::{
+    error::{ErrorEmitted, Handler},
+    span::Span,
+    types::{Path, Type},
+};
+use abi_types::VarABI;
+use std::fmt::{self, Formatter};
+
+/// A decision variable with an optional type.
+#[derive(Clone, Debug)]
+pub struct Var {
+    pub name: Path,
+    pub is_pub: bool,
+    pub span: Span,
+}
 
 slotmap::new_key_type! { pub struct VarKey; }
 
@@ -83,5 +97,61 @@ impl VarKey {
     /// the `var_types` map.
     pub fn set_ty<'a>(&'a self, ty: Type, ii: &'a mut IntermediateIntent) {
         ii.vars.var_types.insert(*self, ty);
+    }
+
+    /// Generate a `VarABI` given a `VarKey` and an `IntermediateIntent`
+    pub fn abi(&self, ii: &IntermediateIntent) -> VarABI {
+        VarABI {
+            name: self.get(ii).name.clone(),
+            ty: self.get_ty(ii).abi(),
+        }
+    }
+}
+
+impl DisplayWithII for VarKey {
+    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
+        let var = &self.get(ii);
+        if var.is_pub {
+            write!(f, "pub ")?;
+        }
+        write!(f, "var {}", var.name)?;
+        let ty = self.get_ty(ii);
+        if !ty.is_unknown() {
+            write!(f, ": {}", ii.with_ii(ty))?;
+        }
+        Ok(())
+    }
+}
+
+impl IntermediateIntent {
+    pub fn insert_var(
+        &mut self,
+        handler: &Handler,
+        mod_prefix: &str,
+        local_scope: Option<&str>,
+        is_pub: bool,
+        name: &Ident,
+        ty: Option<Type>,
+    ) -> std::result::Result<VarKey, ErrorEmitted> {
+        let full_name =
+            self.add_top_level_symbol(handler, mod_prefix, local_scope, name, name.span.clone())?;
+        let var_key = self.vars.insert(
+            Var {
+                name: full_name,
+                is_pub,
+                span: name.span.clone(),
+            },
+            if let Some(ty) = ty {
+                ty
+            } else {
+                Type::Unknown(name.span.clone())
+            },
+        );
+
+        Ok(var_key)
+    }
+
+    pub(crate) fn vars(&self) -> impl Iterator<Item = (VarKey, &Var)> {
+        self.vars.vars()
     }
 }

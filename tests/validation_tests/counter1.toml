@@ -1,4 +1,4 @@
 [[data]]
-decision_variables = [69]
+decision_variables = [[69]]
 intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "::Increment" }
 state_mutations = [{ key = [0], value = [111] }]
