@@ -123,7 +123,7 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
                 let abi_string = serde_json::to_string_pretty(&contract.abi)
                     .context("failed to serialize ABI to JSON")?;
                 let file_stem = format!("{}-abi", pinned.name);
-                let abi_path = profile_dir.join(&file_stem).with_extension("json");
+                let abi_path = profile_dir.join(file_stem).with_extension("json");
                 std::fs::write(&abi_path, abi_string)
                     .with_context(|| format!("failed to write {abi_path:?}"))?;
             }

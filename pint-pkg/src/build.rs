@@ -1,10 +1,10 @@
 //! Given a compilation [`Plan`][crate::plan::Plan], build all packages in the graph.
 
-use abi_types::ProgramABI;
 use crate::{
     manifest,
     plan::{Graph, NodeIx, Pinned, PinnedManifests, Plan},
 };
+use abi_types::ProgramABI;
 use essential_types::{intent::Intent, ContentAddress};
 use pintc::{asm_gen::program_to_intents, intermediate::ProgramKind};
 use std::{collections::HashMap, path::PathBuf};
