@@ -1,5 +1,6 @@
 //! Given a compilation [`Plan`][crate::plan::Plan], build all packages in the graph.
 
+use abi_types::ProgramABI;
 use crate::{
     manifest,
     plan::{Graph, NodeIx, Pinned, PinnedManifests, Plan},
@@ -47,6 +48,8 @@ pub struct BuiltContract {
     pub ca: ContentAddress,
     /// The entry-point into the temp library submodules used to provide the CAs.
     pub lib_entry_point: PathBuf,
+    /// The ABI for the contract.
+    pub abi: ProgramABI,
 }
 
 /// An intent built as a part of a contract.
@@ -271,6 +274,9 @@ fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg,
                 return Err(BuildPkgError { handler, kind });
             };
 
+            // Produce the ABI for the flattened program.
+            let abi = flattened.abi();
+
             // Generate the assembly and the intents.
             let Ok(contract) = handler.scope(|h| program_to_intents(h, &flattened)) else {
                 let kind = BuildPkgErrorKind::from(PintcError::IntentGen);
@@ -308,6 +314,7 @@ fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg,
                 ca,
                 intents,
                 lib_entry_point,
+                abi,
             };
             BuiltPkg::Contract(contract)
         }

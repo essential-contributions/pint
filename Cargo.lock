@@ -1119,6 +1119,7 @@ dependencies = [
 name = "pint-pkg"
 version = "0.1.0"
 dependencies = [
+ "abi-types",
  "essential-hash",
  "essential-types",
  "petgraph",

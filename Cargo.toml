@@ -15,6 +15,7 @@ members = [
 
 [workspace.dependencies]
 yansi = "1.0"
+abi-types = { path = "abi-types" }
 anyhow = "1.0"
 ariadne = "0.4"
 chumsky = "0.9"
