@@ -203,14 +203,12 @@ fn contract_dep_lib(ca: &ContentAddress, intents: &[BuiltIntent]) -> std::io::Re
     std::fs::create_dir_all(&temp_dir)?;
 
     // Write the contract's CA to the library root.
-    // TODO: Change this to use `const` once supported.
     let lib_str = format!("const ADDRESS: b256 = 0x{:x};", ca);
     let lib_path = temp_dir.join("lib.pnt");
     std::fs::write(&lib_path, lib_str.as_bytes())?;
 
     // Write the intent CAs to submodules.
     for intent in intents {
-        // TODO: Change this to use `const` once supported.
         let submod_str = format!("const ADDRESS: b256 = 0x{:x};", intent.ca);
 
         // Create the path to the submodule from the intent name.
