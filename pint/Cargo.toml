@@ -13,3 +13,4 @@ anyhow = { workspace = true }
 clap = { workspace = true }
 pint-pkg = { workspace = true }
 serde_json = { workspace = true }
+walkdir = { workspace = true }

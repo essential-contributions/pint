@@ -17,7 +17,7 @@ pub struct PlanBuilder<'p> {
     order: std::slice::Iter<'p, NodeIx>,
 }
 
-/// A package that is ready to be built, as all
+/// A package that is ready to be built.
 pub struct PrebuiltPkg<'p, 'b> {
     pub plan: &'p Plan,
     built_pkgs: &'b mut BuiltPkgs,
@@ -122,8 +122,8 @@ impl<'p> PlanBuilder<'p> {
         &self.built_pkgs
     }
 
-    /// Finish building the remaining packages.
-    pub fn finish(mut self) -> Result<BuiltPkgs, BuildError> {
+    /// Build all remaining packages.
+    pub fn build_all(mut self) -> Result<BuiltPkgs, BuildError> {
         while let Some(prebuilt) = self.next_pkg() {
             if let Err(pkg_err) = prebuilt.build() {
                 let built_pkgs = self.built_pkgs;

@@ -1095,6 +1095,7 @@ dependencies = [
  "clap",
  "pint-pkg",
  "serde_json",
+ "walkdir",
 ]
 
 [[package]]
