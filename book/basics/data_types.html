@@ -301,6 +301,24 @@ var c_second = c[1];
 <p>In this example, the variable named <code>c_first</code> will get the value <code>1</code> because that is the value at
 index <code>0</code> in the array. The variable named <code>c_second</code> will get the value <code>2</code> from index <code>1</code> in the
 array.</p>
+<h4 id="compound-types-and-const-declarations"><a class="header" href="#compound-types-and-const-declarations">Compound Types and <code>const</code> Declarations</a></h4>
+<p><code>const</code> declarations may refer to values with compound types as long as every element within is a
+constant value. Constant value initializers may also dereference other array or tuple <code>const</code>
+declarations or even array or tuple immediates.</p>
+<pre><code class="language-pint">const counts = [20, 30, 40];
+
+const default_idx = 1;
+const next_count = counts[default_idx + 1];
+
+const min_size = { valid: true, size: 10 };
+
+var my_size: int;
+constraint !(min_size.valid) || my_size &gt;= min_size.size;
+</code></pre>
+<p>In the above example <code>next_count</code> is evaluated at compile time to be fixed as 40.</p>
+<p>The <code>min_size</code> tuple is adding a flag to a value to mark whether it should be used or not in a
+constraint. This may be convenient during development for turning the <code>min_size.size</code> constraint
+on or off.</p>
 
                     </main>
 
