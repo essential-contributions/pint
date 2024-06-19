@@ -14,6 +14,6 @@ solve satisfy;
 // indexed expression invalid
 // @25..29: value must be an array or a storage map; found `real`
 // constraint expression type error
-// @14..37: constraint expression has unexpected type `Unknown`
+// @14..37: constraint expression has unknown type
 // @14..37: expecting type `bool`
 // >>>

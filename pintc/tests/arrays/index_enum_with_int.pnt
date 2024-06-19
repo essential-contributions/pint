@@ -17,6 +17,6 @@ solve satisfy;
 // @72..73: array access must be with a `::Num` variant
 // found access using type `int`
 // constraint expression type error
-// @57..79: constraint expression has unexpected type `Unknown`
+// @57..79: constraint expression has unknown type
 // @57..79: expecting type `bool`
 // >>>

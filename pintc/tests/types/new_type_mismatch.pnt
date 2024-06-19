@@ -15,10 +15,7 @@ solve satisfy;
 // >>>
 
 // typecheck_failure <<<
-// binary operator type error
-// @41..45: operator `==` argument has unexpected type `real`
-// @34..35: expecting type `::I (int)`
-// constraint expression type error
-// @30..45: constraint expression has unexpected type `Unknown`
-// @30..45: expecting type `bool`
+// variable initialization type error
+// @41..45: variable initializer has unexpected type `real`
+// @0..12: expecting type `::I (int)`
 // >>>

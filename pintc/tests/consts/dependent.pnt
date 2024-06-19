@@ -1,0 +1,36 @@
+const a = b * 2;
+const b = c + d;
+const c = 11;
+const d = c + c;
+
+const e = { c, 22 };
+const f = [a, b, c];
+
+var x: int;
+constraint x < b && x > c;
+
+solve satisfy;
+
+// intermediate <<<
+// const ::f = [::a, ::b, ::c];
+// const ::b = (::c + ::d);
+// const ::e = {::c, 22};
+// const ::d = (::c + ::c);
+// const ::a = (::b * 2);
+// const ::c = 11;
+// var ::x: int;
+// constraint ((::x < ::b) && (::x > ::c));
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// const ::f: int[???] = [66, 33, 11];
+// const ::b: int = 33;
+// const ::e: {int, int} = {11, 22};
+// const ::d: int = 22;
+// const ::a: int = 66;
+// const ::c: int = 11;
+// var ::x: int;
+// constraint ((::x < 33) && (::x > 11));
+// solve satisfy;
+// >>>

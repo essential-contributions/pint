@@ -16,6 +16,6 @@ solve satisfy;
 // @40..43: unable to get field from tuple using `z`
 // tuple has type `{x: int, y: real}`
 // constraint expression type error
-// @29..48: constraint expression has unexpected type `Unknown`
+// @29..48: constraint expression has unknown type
 // @29..48: expecting type `bool`
 // >>>

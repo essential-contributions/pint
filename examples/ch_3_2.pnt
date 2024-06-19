@@ -73,4 +73,16 @@ var c_first = c[0];
 var c_second = c[1];
 // ANCHOR_END: array_access
 
+// ANCHOR: const_compound_types
+const counts = [20, 30, 40];
+
+const default_idx = 1;
+const next_count = counts[default_idx + 1];
+
+const min_size = { valid: true, size: 10 };
+
+var my_size: int;
+constraint !(min_size.valid) || my_size >= min_size.size;
+// ANCHOR_END: const_compound_types
+
 solve satisfy;

@@ -129,6 +129,58 @@ solve satisfy;
 // binary operator type error
 // @634..642: operator `!=` argument has unexpected type `{int, int}`
 // @619..630: expecting type `{real, int}`
+// binary operator type error
+// @13..18: operator `+` argument has unexpected type `bool`
+// binary operator type error
+// @33..37: operator `-` argument has unexpected type `bool`
+// binary operator type error
+// @47..52: operator `*` argument has unexpected type `int[2]`
+// binary operator type error
+// @67..73: operator `/` argument has unexpected type `string`
+// binary operator type error
+// @128..139: operator `%` argument has unexpected type `::T`
+// binary operator type error
+// @201..205: operator `+` argument has unexpected type `real`
+// @196..198: expecting type `int`
+// binary operator type error
+// @220..224: operator `-` argument has unexpected type `real`
+// @215..217: expecting type `int`
+// binary operator type error
+// @242..244: operator `*` argument has unexpected type `int`
+// @234..239: expecting type `real`
+// binary operator type error
+// @259..264: operator `/` argument has unexpected type `real`
+// @254..256: expecting type `int`
+// binary operator type error
+// @282..284: operator `%` argument has unexpected type `int`
+// @274..279: expecting type `real`
+// binary operator type error
+// @361..376: operator `==` argument has unexpected type `::T`
+// @355..357: expecting type `int`
+// binary operator type error
+// @392..396: operator `!=` argument has unexpected type `bool`
+// @386..388: expecting type `int`
+// binary operator type error
+// @407..411: operator `>` argument has unexpected type `bool`
+// binary operator type error
+// @435..440: operator `>=` argument has unexpected type `real`
+// @429..431: expecting type `int`
+// binary operator type error
+// @455..459: operator `<` argument has unexpected type `string`
+// binary operator type error
+// @475..483: operator `<=` argument has unexpected type `int[2]`
+// binary operator type error
+// @502..504: operator `&&` argument has unexpected type `int`
+// @494..504: expecting type `bool`
+// binary operator type error
+// @514..519: operator `||` argument has unexpected type `real`
+// @514..528: expecting type `bool`
+// binary operator type error
+// @598..609: operator `==` argument has unexpected type `{int, bool}`
+// @584..594: expecting type `{bool, int}`
+// binary operator type error
+// @634..642: operator `!=` argument has unexpected type `{int, int}`
+// @619..630: expecting type `{real, int}`
 // unable to determine expression type
 // @4..5: type of this expression is ambiguous
 // unable to determine expression type
@@ -170,63 +222,63 @@ solve satisfy;
 // unable to determine expression type
 // @615..616: type of this expression is ambiguous
 // constraint expression type error
-// @0..18: constraint expression has unexpected type `Unknown`
+// @0..18: constraint expression has unknown type
 // @0..18: expecting type `bool`
 // constraint expression type error
-// @20..37: constraint expression has unexpected type `Unknown`
+// @20..37: constraint expression has unknown type
 // @20..37: expecting type `bool`
 // constraint expression type error
-// @39..57: constraint expression has unexpected type `Unknown`
+// @39..57: constraint expression has unknown type
 // @39..57: expecting type `bool`
 // constraint expression type error
-// @59..78: constraint expression has unexpected type `Unknown`
+// @59..78: constraint expression has unknown type
 // @59..78: expecting type `bool`
 // constraint expression type error
-// @115..139: constraint expression has unexpected type `Unknown`
+// @115..139: constraint expression has unknown type
 // @115..139: expecting type `bool`
 // constraint expression type error
-// @188..205: constraint expression has unexpected type `Unknown`
+// @188..205: constraint expression has unknown type
 // @188..205: expecting type `bool`
 // constraint expression type error
-// @207..224: constraint expression has unexpected type `Unknown`
+// @207..224: constraint expression has unknown type
 // @207..224: expecting type `bool`
 // constraint expression type error
-// @226..244: constraint expression has unexpected type `Unknown`
+// @226..244: constraint expression has unknown type
 // @226..244: expecting type `bool`
 // constraint expression type error
-// @246..264: constraint expression has unexpected type `Unknown`
+// @246..264: constraint expression has unknown type
 // @246..264: expecting type `bool`
 // constraint expression type error
-// @266..284: constraint expression has unexpected type `Unknown`
+// @266..284: constraint expression has unknown type
 // @266..284: expecting type `bool`
 // constraint expression type error
-// @347..376: constraint expression has unexpected type `Unknown`
+// @347..376: constraint expression has unknown type
 // @347..376: expecting type `bool`
 // constraint expression type error
-// @378..396: constraint expression has unexpected type `Unknown`
+// @378..396: constraint expression has unknown type
 // @378..396: expecting type `bool`
 // constraint expression type error
-// @399..419: constraint expression has unexpected type `Unknown`
+// @399..419: constraint expression has unknown type
 // @399..419: expecting type `bool`
 // constraint expression type error
-// @421..440: constraint expression has unexpected type `Unknown`
+// @421..440: constraint expression has unknown type
 // @421..440: expecting type `bool`
 // constraint expression type error
-// @442..459: constraint expression has unexpected type `Unknown`
+// @442..459: constraint expression has unknown type
 // @442..459: expecting type `bool`
 // constraint expression type error
-// @461..483: constraint expression has unexpected type `Unknown`
+// @461..483: constraint expression has unknown type
 // @461..483: expecting type `bool`
 // constraint expression type error
-// @486..504: constraint expression has unexpected type `Unknown`
+// @486..504: constraint expression has unknown type
 // @486..504: expecting type `bool`
 // constraint expression type error
-// @506..528: constraint expression has unexpected type `Unknown`
+// @506..528: constraint expression has unknown type
 // @506..528: expecting type `bool`
 // constraint expression type error
-// @576..609: constraint expression has unexpected type `Unknown`
+// @576..609: constraint expression has unknown type
 // @576..609: expecting type `bool`
 // constraint expression type error
-// @611..642: constraint expression has unexpected type `Unknown`
+// @611..642: constraint expression has unknown type
 // @611..642: expecting type `bool`
 // >>>

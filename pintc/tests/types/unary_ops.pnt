@@ -27,6 +27,14 @@ solve satisfy;
 // @40..43: operator `!` argument has unexpected type `int`
 // unary operator type error
 // @53..60: operator `!` argument has unexpected type `string`
+// unary operator type error
+// @8..13: operator `-` argument has unexpected type `bool`
+// unary operator type error
+// @23..29: operator `-` argument has unexpected type `{int, int}`
+// unary operator type error
+// @40..43: operator `!` argument has unexpected type `int`
+// unary operator type error
+// @53..60: operator `!` argument has unexpected type `string`
 // unable to determine expression type
 // @4..5: type of this expression is ambiguous
 // unable to determine expression type
@@ -36,15 +44,15 @@ solve satisfy;
 // unable to determine expression type
 // @49..50: type of this expression is ambiguous
 // constraint expression type error
-// @0..13: constraint expression has unexpected type `Unknown`
+// @0..13: constraint expression has unknown type
 // @0..13: expecting type `bool`
 // constraint expression type error
-// @15..29: constraint expression has unexpected type `Unknown`
+// @15..29: constraint expression has unknown type
 // @15..29: expecting type `bool`
 // constraint expression type error
-// @32..43: constraint expression has unexpected type `Unknown`
+// @32..43: constraint expression has unknown type
 // @32..43: expecting type `bool`
 // constraint expression type error
-// @45..60: constraint expression has unexpected type `Unknown`
+// @45..60: constraint expression has unknown type
 // @45..60: expecting type `bool`
 // >>>

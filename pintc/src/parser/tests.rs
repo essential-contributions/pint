@@ -914,7 +914,7 @@ fn interface_instance() {
     let pint = (yp::PintParser::new(), "");
 
     let src = r#"
-interface FooInstance = 
+interface FooInstance =
     FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111);
 "#;
 
@@ -925,7 +925,7 @@ interface FooInstance =
 
     let src = r#"
     var addr: b256;
-interface FooInstance = 
+interface FooInstance =
     ::path::to::FooInstance(addr);
 "#;
 
@@ -954,7 +954,7 @@ intent FooInstance =
     );
 
     let src = r#"
-intent FooInstance = 
+intent FooInstance =
     ::InterfaceInstance::FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111);
 "#;
 
@@ -1291,6 +1291,27 @@ fn state_decls() {
     check(
         &run_parser!(pint, "state y = __bar();"),
         expect_test::expect!["state ::y = __bar();"],
+    );
+}
+
+#[test]
+fn const_decls() {
+    let pint = (yp::PintParser::new(), "");
+
+    check(
+        &run_parser!(pint, "const x: int = 11;"),
+        expect_test::expect!["const ::x: int = 11;"],
+    );
+    check(
+        &run_parser!(pint, "const y = 22;"),
+        expect_test::expect!["const ::y = 22;"],
+    );
+    check(
+        &run_parser!(pint, "const z: int;"),
+        expect_test::expect![[r#"
+            expected `=`, found `;`
+            @12..13: expected `=`
+        "#]],
     );
 }
 

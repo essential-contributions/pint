@@ -1,0 +1,16 @@
+const a: int[3] = [11, 22, 33];
+
+constraint a[9] != 0;
+
+solve satisfy;
+
+// intermediate <<<
+// const ::a: int[3] = [11, 22, 33];
+// constraint (::a[9] != 0);
+// solve satisfy;
+// >>>
+
+// flattening_failure <<<
+// attempt to access array with out of bounds index
+// @46..47: array index is out of bounds
+// >>>

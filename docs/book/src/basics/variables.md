@@ -54,3 +54,20 @@ Again, the above is equivalent to:
 ```pint
 {{#include ../../../../examples/ch_3_1_b.pnt:initialized_unannotated}}
 ```
+
+## Constant Values
+
+Sometimes it may be desirable to use a common constant value for re-use throughout a program
+which is not a decision variable to be solved. These may be declared in Pint using the `const`
+keyword.
+
+`const` declarations resemble `var` declarations in that they name an optionally typed value with an
+initializer.
+
+```pint
+{{#include ../../../../examples/ch_3_1_a.pnt:consts}}
+```
+
+Like `var` declarations the type may be ommitted and will be inferred by the Pint compiler, but the
+`const` initializer is required. It must a constant expression which does not refer to decision
+variables nor other non-constant values such as state.

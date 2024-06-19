@@ -267,4 +267,5 @@ mod e2e {
     e2e_test!(interfaces);
     e2e_test!(evaluator);
     e2e_test!(abi);
+    e2e_test!(consts);
 }

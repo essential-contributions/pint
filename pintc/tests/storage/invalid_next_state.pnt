@@ -13,6 +13,6 @@ solve satisfy;
 // `next state` access must be bound to a state variable
 // @23..24: `next state` access must be bound to a state variable
 // constraint expression type error
-// @12..30: constraint expression has unexpected type `Unknown`
+// @12..30: constraint expression has unknown type
 // @12..30: expecting type `bool`
 // >>>

@@ -10,4 +10,12 @@ var bar: int = 42;
 var baz = 43;
 // ANCHOR_END: initialized_unannotated
 
+// ANCHOR: consts
+const minimum: int = 10;
+const maximum: int = 20;
+
+var size: int;
+constraint size >= minimum && foo <= maximum;
+// ANCHOR_END: consts
+
 solve satisfy;

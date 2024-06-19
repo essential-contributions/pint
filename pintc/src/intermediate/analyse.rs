@@ -1,9 +1,9 @@
 mod intrinsics;
 
-use super::{Expr, ExprKey, Ident, IntermediateIntent, Program, VarKey};
+use super::{Const, Expr, ExprKey, Ident, IntermediateIntent, Program, VarKey};
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
-    expr::{BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
+    expr::{evaluate::Evaluator, BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
     intermediate::{BlockStatement, ConstraintDecl, IfDecl, IntentInstance, InterfaceInstance},
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
@@ -40,6 +40,7 @@ impl Program {
             ii.check_undefined_types(handler);
             ii.lower_newtypes();
             ii.type_check_all_exprs(handler);
+            ii.check_inits(handler);
             ii.check_constraint_types(handler);
         }
 
@@ -308,13 +309,15 @@ impl IntermediateIntent {
             },
         );
 
-        // Check all the 'root' exprs (constraints, state initi exprs, and directives) one at a
-        // time, gathering errors as we go. Copying the keys out first to avoid borrowing
-        // conflict.
+        // Check all the 'root' exprs (constraints, state init exprs, const and var init exprs, and
+        // directives) one at a time, gathering errors as we go. Copying the keys out first to
+        // avoid borrowing conflict.
         self.constraints
             .iter()
             .map(|ConstraintDecl { expr: key, .. }| *key)
             .chain(self.states().map(|(_, state)| state.expr))
+            .chain(self.var_inits.iter().map(|(_, expr)| *expr))
+            .chain(self.consts.iter().map(|(_, Const { expr, .. })| *expr))
             .chain(
                 self.directives
                     .iter()
@@ -756,6 +759,17 @@ impl IntermediateIntent {
             } else {
                 Inference::Dependant(state.expr)
             })
+        } else if let Some(Const { expr, decl_ty, .. }) = self.consts.get(path) {
+            Ok(if !decl_ty.is_unknown() {
+                Inference::Type(decl_ty.clone())
+            } else {
+                let const_expr_ty = expr.get_ty(self);
+                if const_expr_ty.is_unknown() {
+                    Inference::Dependant(*expr)
+                } else {
+                    Inference::Type(const_expr_ty.clone())
+                }
+            })
         } else if let Some(EphemeralDecl { ty, .. }) = self
             .ephemerals
             .iter()
@@ -1160,9 +1174,28 @@ impl IntermediateIntent {
                             check_state_var_arg(lhs_expr_key)?;
                         }
 
+                        // We can special case implicit constraints which are injected by variable
+                        // initialiser handling.  Each `var a = b` gets a magic `constraint a == b`
+                        // which we check for type mismatches elsewhere, and emit a much better
+                        // error then.
+                        let mut is_init_constraint = false;
+                        if &lhs_ty != rhs_ty
+                            && op == BinaryOp::Equal
+                            && self
+                                .var_inits
+                                .values()
+                                .any(|init_key| *init_key == rhs_expr_key)
+                        {
+                            is_init_constraint = true;
+                        }
+
                         // Both args must be equatable, which at this stage is any type; binary op
                         // type is bool.
-                        if &lhs_ty != rhs_ty && !lhs_ty.is_nil() && !rhs_ty.is_nil() {
+                        if &lhs_ty != rhs_ty
+                            && !lhs_ty.is_nil()
+                            && !rhs_ty.is_nil()
+                            && !is_init_constraint
+                        {
                             Err(Error::Compile {
                                 error: CompileError::OperatorTypeError {
                                     arity: "binary",
@@ -1706,6 +1739,176 @@ impl IntermediateIntent {
         } else {
             Inference::Dependencies(deps)
         })
+    }
+
+    // Confirm that all var init exprs and const init exprs match their declared type, if they have
+    // one.
+    fn check_inits(&mut self, handler: &Handler) {
+        // Confirm types for all the variable initialisers first.
+        for (var_key, init_expr_key) in &self.var_inits {
+            let var_decl_ty = var_key.get_ty(self);
+
+            // Reporting an error that we're expecting 'Unknown' is not useful.
+            if !var_decl_ty.is_unknown() {
+                let init_ty = init_expr_key.get_ty(self);
+
+                if var_decl_ty != init_ty {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::InitTypeError {
+                            init_kind: "variable",
+                            large_err: Box::new(LargeTypeError::InitTypeError {
+                                init_kind: "variable",
+                                expected_ty: self.with_ii(var_decl_ty).to_string(),
+                                found_ty: self.with_ii(init_ty).to_string(),
+                                expected_ty_span: var_decl_ty.span().clone(),
+                                init_span: self.expr_key_to_span(*init_expr_key),
+                            }),
+                        },
+                    });
+                }
+            }
+        }
+
+        // Evaluate all the constant decls to ensure they're all immediates.  If there are any
+        // errors then abort.  Each Const expr is updated and has its type set.
+        if handler
+            .scope(|handler| self.evaluate_all_consts(handler))
+            .is_err()
+        {
+            return;
+        }
+
+        // Now confirm that every initialiser type matches the const decl type.
+        for Const {
+            expr: init_expr_key,
+            decl_ty,
+            ..
+        } in self.consts.values()
+        {
+            let init_ty = init_expr_key.get_ty(self);
+            if init_ty != decl_ty {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::InitTypeError {
+                        init_kind: "const",
+                        large_err: Box::new(LargeTypeError::InitTypeError {
+                            init_kind: "const",
+                            expected_ty: self.with_ii(decl_ty).to_string(),
+                            found_ty: self.with_ii(init_ty).to_string(),
+                            expected_ty_span: decl_ty.span().clone(),
+                            init_span: self.expr_key_to_span(*init_expr_key),
+                        }),
+                    },
+                });
+            }
+        }
+    }
+
+    fn evaluate_all_consts(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
+        // Evaluate every const initialiser which isn't already an immediate.
+        //
+        // Some consts may depend on others and so there may be a non-trivial evaluation order to
+        // shake out all the final immediate values.  But determining this order is also hard.
+        //
+        // Worst case is every constant depends on another, except for one.  (If all consts depend
+        // on another then there must be some sort of recursive loop which must fail.)  So
+        // performing N-1 evaluation passes for N consts should resolve all dependencies and in
+        // most cases will be done in only 1 or 2 passes.
+
+        let mut evaluator = Evaluator::new(self);
+        let mut new_immediates = Vec::default();
+
+        // Use a temporary error handler to manage in-progress errors.
+        let tmp_handler = Handler::default();
+
+        let const_count = self.consts.len();
+        for loop_idx in 0..const_count {
+            for (path, cnst) in &self.consts {
+                let expr = cnst.expr.get(self);
+
+                // There's no need to re-evaluate known immediates.
+                if !evaluator.contains_path(path) {
+                    if let Expr::Immediate { value, .. } = expr {
+                        evaluator.insert_value(path.clone(), value.clone());
+                    } else if let Ok(imm) = evaluator.evaluate_key(&cnst.expr, &tmp_handler, self) {
+                        evaluator.insert_value(path.clone(), imm);
+
+                        // Take note of this const as we need to update the const declaration
+                        // with the new evaluated immediate value.
+                        new_immediates.push(path.clone());
+                    }
+                }
+            }
+
+            if !tmp_handler.has_errors() {
+                // We evaluated all the consts without error.  Stop now.
+                break;
+            }
+
+            if loop_idx != (const_count - 1) {
+                // This isn't the last iteration.  Clear the temporary errors.
+                tmp_handler.clear();
+            }
+        }
+
+        // There's little point in continuing if we weren't able to lower all consts.
+        handler.append(tmp_handler);
+        if handler.has_errors() {
+            return Err(handler.cancel());
+        }
+
+        let emit_internal = |msg| {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg,
+                    span: empty_span(),
+                },
+            })
+        };
+
+        // For each of the newly evaluated intialisers we need to update the expressions in the
+        // consts map.
+        let all_const_immediates = evaluator.into_values();
+        for new_path in new_immediates {
+            let init_span = self
+                .consts
+                .get(&new_path)
+                .map(|cnst| self.expr_key_to_span(cnst.expr))
+                .unwrap_or_else(empty_span);
+
+            if let Some(imm_value) = all_const_immediates.get(&new_path) {
+                let new_expr = Expr::Immediate {
+                    value: imm_value.clone(),
+                    span: init_span,
+                };
+
+                let new_expr_key = self.exprs.insert(new_expr, imm_value.get_ty(None));
+
+                if let Some(cnst) = self.consts.get_mut(&new_path) {
+                    cnst.expr = new_expr_key;
+                } else {
+                    emit_internal("missing const decl for immediate update");
+                }
+            } else {
+                emit_internal("missing immediate value for const expr update");
+            }
+        }
+
+        // And for all const decls with an unknown decl type we need to update that too.
+        for (path, Const { decl_ty, .. }) in &mut self.consts {
+            if decl_ty.is_unknown() {
+                if let Some(imm_value) = all_const_immediates.get(path) {
+                    *decl_ty = imm_value.get_ty(None);
+                } else {
+                    emit_internal("missing immediate value for const decl_ty update");
+                }
+            }
+        }
+
+        if handler.has_errors() {
+            Err(handler.cancel())
+        } else {
+            Ok(())
+        }
     }
 
     fn expr_key_to_span(&self, expr_key: ExprKey) -> Span {

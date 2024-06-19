@@ -12,7 +12,13 @@ solve satisfy;
 // branches of a select expression must have the same type
 // @20..22: 'then' branch has the type `int`
 // @25..29: 'else' branch has the type `real`
+// branches of a select expression must have the same type
+// @20..22: 'then' branch has the type `int`
+// @25..29: 'else' branch has the type `real`
+// variable initialization type error
+// @13..29: variable initializer has unknown type
+// @7..10: expecting type `int`
 // constraint expression type error
-// @0..29: constraint expression has unexpected type `Unknown`
+// @0..29: constraint expression has unknown type
 // @0..29: expecting type `bool`
 // >>>

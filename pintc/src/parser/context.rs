@@ -2,8 +2,8 @@ use crate::{
     error::{CompileError, Error, Handler, ParseError},
     expr::{Expr, Immediate, TupleAccess},
     intermediate::{
-        CallKey, ExprKey, IntentInstance, Interface, InterfaceDecl, IntermediateIntent, Program,
-        StorageVar, Var,
+        CallKey, Const, ExprKey, IntentInstance, Interface, InterfaceDecl, IntermediateIntent,
+        Program, StorageVar, Var,
     },
     macros::{MacroCall, MacroDecl},
     parser::{Ident, NextModPath, UsePath, UseTree},
@@ -49,6 +49,18 @@ impl<'a> ParserContext<'a> {
     /// found, indicating a bug.
     pub fn current_ii(&mut self) -> &mut IntermediateIntent {
         self.program.iis.get_mut(self.current_ii).unwrap()
+    }
+
+    // Deconstruct the root II consts to be passed into a new II to initialise its consts.
+    pub fn consts(&self) -> Vec<(Path, Expr, Type)> {
+        let root_ii = self.program.root_ii();
+        root_ii
+            .consts
+            .iter()
+            .map(|(path, Const { expr, decl_ty })| {
+                (path.clone(), expr.get(root_ii).clone(), decl_ty.clone())
+            })
+            .collect()
     }
 
     /// Given an identifier and an type, produce a `StorageVar`. `l` and `r` are the code locations

@@ -205,6 +205,11 @@ pub enum CompileError {
         arity: &'static str,
         large_err: Box<LargeTypeError>,
     },
+    #[error("{init_kind} initialization type error")]
+    InitTypeError {
+        init_kind: &'static str,
+        large_err: Box<LargeTypeError>,
+    },
     #[error("state variable initialization type error")]
     StateVarInitTypeError { large_err: Box<LargeTypeError> },
     #[error("state variables cannot have storage map type")]
@@ -313,6 +318,13 @@ pub enum LargeTypeError {
         found_ty: String,
         span: Span,
         expected_span: Option<Span>,
+    },
+    InitTypeError {
+        init_kind: &'static str,
+        expected_ty: String,
+        found_ty: String,
+        expected_ty_span: Span,
+        init_span: Span,
     },
 }
 
@@ -776,7 +788,8 @@ impl ReportableError for CompileError {
             | OperatorTypeError { large_err, .. }
             | StateVarInitTypeError { large_err, .. }
             | ConstraintExpressionTypeError { large_err, .. }
-            | AddressExpressionTypeError { large_err, .. } => match &**large_err {
+            | AddressExpressionTypeError { large_err, .. }
+            | InitTypeError { large_err, .. } => match large_err.as_ref() {
                 LargeTypeError::SelectBranchesTypeMismatch {
                     then_type,
                     then_span,
@@ -804,23 +817,9 @@ impl ReportableError for CompileError {
                     expected_span,
                     ..
                 } => {
-                    let mut labels = vec![ErrorLabel {
-                        message: format!(
-                            "operator `{op}` argument has unexpected type `{found_ty}`"
-                        ),
-                        span: span.clone(),
-                        color: Color::Red,
-                    }];
+                    let what = format!("operator `{op}` argument");
 
-                    if let Some(span) = expected_span {
-                        labels.push(ErrorLabel {
-                            message: format!("expecting type `{expected_ty}`"),
-                            span: span.clone(),
-                            color: Color::Blue,
-                        });
-                    }
-
-                    labels
+                    generate_type_error_labels(&what, found_ty, expected_ty, span, expected_span)
                 }
 
                 LargeTypeError::StateVarInitTypeError {
@@ -829,25 +828,13 @@ impl ReportableError for CompileError {
                     span,
                     expected_span,
                     ..
-                } => {
-                    let mut labels = vec![ErrorLabel {
-                        message: format!(
-                            "initializing expression has unexpected type `{found_ty}`"
-                        ),
-                        span: span.clone(),
-                        color: Color::Red,
-                    }];
-
-                    if let Some(span) = expected_span {
-                        labels.push(ErrorLabel {
-                            message: format!("expecting type `{expected_ty}`"),
-                            span: span.clone(),
-                            color: Color::Blue,
-                        });
-                    }
-
-                    labels
-                }
+                } => generate_type_error_labels(
+                    "initializing expression",
+                    found_ty,
+                    expected_ty,
+                    span,
+                    expected_span,
+                ),
 
                 LargeTypeError::ConstraintExpressionTypeError {
                     found_ty,
@@ -855,23 +842,13 @@ impl ReportableError for CompileError {
                     span,
                     expected_span,
                     ..
-                } => {
-                    let mut labels = vec![ErrorLabel {
-                        message: format!("constraint expression has unexpected type `{found_ty}`"),
-                        span: span.clone(),
-                        color: Color::Red,
-                    }];
-
-                    if let Some(span) = expected_span {
-                        labels.push(ErrorLabel {
-                            message: format!("expecting type `{expected_ty}`"),
-                            span: span.clone(),
-                            color: Color::Blue,
-                        });
-                    }
-
-                    labels
-                }
+                } => generate_type_error_labels(
+                    "constraint expression",
+                    found_ty,
+                    expected_ty,
+                    span,
+                    expected_span,
+                ),
 
                 LargeTypeError::AddressExpressionTypeError {
                     found_ty,
@@ -879,22 +856,30 @@ impl ReportableError for CompileError {
                     span,
                     expected_span,
                     ..
+                } => generate_type_error_labels(
+                    "address expression",
+                    found_ty,
+                    expected_ty,
+                    span,
+                    expected_span,
+                ),
+
+                LargeTypeError::InitTypeError {
+                    init_kind,
+                    expected_ty,
+                    found_ty,
+                    expected_ty_span,
+                    init_span,
                 } => {
-                    let mut labels = vec![ErrorLabel {
-                        message: format!("address expression has unexpected type `{found_ty}`"),
-                        span: span.clone(),
-                        color: Color::Red,
-                    }];
+                    let what = format!("{init_kind} initializer");
 
-                    if let Some(span) = expected_span {
-                        labels.push(ErrorLabel {
-                            message: format!("expecting type `{expected_ty}`"),
-                            span: span.clone(),
-                            color: Color::Blue,
-                        });
-                    }
-
-                    labels
+                    generate_type_error_labels(
+                        &what,
+                        found_ty,
+                        expected_ty,
+                        init_span,
+                        &Some(expected_ty_span.clone()),
+                    )
                 }
             },
 
@@ -1155,6 +1140,7 @@ impl ReportableError for CompileError {
             | SelectBranchesTypeMismatch { .. }
             | ConstraintExpressionTypeError { .. }
             | OperatorTypeError { .. }
+            | InitTypeError { .. }
             | StateVarInitTypeError { .. }
             | StateVarTypeIsMap { .. }
             | IndexExprNonIndexable { .. }
@@ -1228,6 +1214,36 @@ impl ReportableError for CompileError {
             _ => None,
         }
     }
+}
+
+fn generate_type_error_labels(
+    what: &str,
+    found_ty: &str,
+    expected_ty: &str,
+    found_span: &Span,
+    expected_span: &Option<Span>,
+) -> Vec<ErrorLabel> {
+    let message = if found_ty == "Unknown" {
+        format!("{what} has unknown type")
+    } else {
+        format!("{what} has unexpected type `{found_ty}`")
+    };
+
+    let mut labels = vec![ErrorLabel {
+        message,
+        span: found_span.clone(),
+        color: Color::Red,
+    }];
+
+    if let Some(span) = expected_span {
+        labels.push(ErrorLabel {
+            message: format!("expecting type `{expected_ty}`"),
+            span: span.clone(),
+            color: Color::Blue,
+        });
+    }
+
+    labels
 }
 
 impl Spanned for CompileError {
@@ -1304,16 +1320,21 @@ impl Spanned for CompileError {
             | MismatchedIntrinsicArgType { arg_span: span, .. }
             | IntrinsicArgMustBeStateVar { span, .. }
             | CompareToNilError { span, .. } => span,
+
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }
             | StateVarInitTypeError { large_err, .. }
             | ConstraintExpressionTypeError { large_err, .. }
-            | AddressExpressionTypeError { large_err, .. } => match &**large_err {
+            | AddressExpressionTypeError { large_err, .. }
+            | InitTypeError { large_err, .. } => match large_err.as_ref() {
                 LargeTypeError::SelectBranchesTypeMismatch { span, .. }
                 | LargeTypeError::OperatorTypeError { span, .. }
                 | LargeTypeError::StateVarInitTypeError { span, .. }
                 | LargeTypeError::ConstraintExpressionTypeError { span, .. }
-                | LargeTypeError::AddressExpressionTypeError { span, .. } => span,
+                | LargeTypeError::AddressExpressionTypeError { span, .. }
+                | LargeTypeError::InitTypeError {
+                    init_span: span, ..
+                } => span,
             },
         }
     }

@@ -17,6 +17,6 @@ solve satisfy;
 // @42..46: array access must be with an int value
 // found access using type `real`
 // constraint expression type error
-// @29..52: constraint expression has unexpected type `Unknown`
+// @29..52: constraint expression has unknown type
 // @29..52: expecting type `bool`
 // >>>

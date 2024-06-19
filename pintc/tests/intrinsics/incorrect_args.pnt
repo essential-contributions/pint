@@ -130,6 +130,49 @@ solve satisfy;
 // @1258..1275: unexpected number of arguments here
 // this intrinsic takes 1 argument but 0 arguments were supplied
 // @1299..1312: unexpected number of arguments here
+// this intrinsic takes 0 arguments but 1 argument was supplied
+// @194..212: unexpected number of arguments here
+// mismatched types
+// @267..268: expected `int[..]`, found `int`
+// @247..266: arguments to this intrinsic are incorrect`
+// this intrinsic takes 1 argument but 0 arguments were supplied
+// @303..324: unexpected number of arguments here
+// this intrinsic takes 1 argument but 2 arguments were supplied
+// @358..391: unexpected number of arguments here
+// this intrinsic takes 0 arguments but 1 argument was supplied
+// @413..431: unexpected number of arguments here
+// this intrinsic takes 0 arguments but 1 argument was supplied
+// @457..479: unexpected number of arguments here
+// this intrinsic takes 0 arguments but 1 argument was supplied
+// @501..519: unexpected number of arguments here
+// this intrinsic takes 1 argument but 0 arguments were supplied
+// @537..547: unexpected number of arguments here
+// this intrinsic takes 1 argument but 2 arguments were supplied
+// @564..578: unexpected number of arguments here
+// mismatched types
+// @649..650: expected `b256`, found `int`
+// @610..626: arguments to this intrinsic are incorrect`
+// mismatched types
+// @703..708: expected `{ b256, b256 }`, found `b256`
+// @682..698: arguments to this intrinsic are incorrect`
+// this intrinsic takes 3 arguments but 0 arguments were supplied
+// @747..765: unexpected number of arguments here
+// this intrinsic takes 3 arguments but 4 arguments were supplied
+// @796..845: unexpected number of arguments here
+// mismatched types
+// @909..911: expected `b256`, found `int`
+// @889..908: arguments to this intrinsic are incorrect`
+// mismatched types
+// @1004..1020: expected `{ b256, b256, int }`, found `{b256, b256}`
+// @977..996: arguments to this intrinsic are incorrect`
+// this intrinsic takes 2 arguments but 1 argument was supplied
+// @1064..1090: unexpected number of arguments here
+// this intrinsic takes 2 arguments but 3 arguments were supplied
+// @1133..1186: unexpected number of arguments here
+// this intrinsic takes 1 argument but 2 arguments were supplied
+// @1258..1275: unexpected number of arguments here
+// this intrinsic takes 1 argument but 0 arguments were supplied
+// @1299..1312: unexpected number of arguments here
 // unable to determine expression type
 // @179..191: type of this expression is ambiguous
 // unable to determine expression type
@@ -146,61 +189,94 @@ solve satisfy;
 // @1240..1255: type of this expression is ambiguous
 // unable to determine expression type
 // @1281..1296: type of this expression is ambiguous
+// variable initialization type error
+// @247..269: variable initializer has unknown type
+// @240..244: expecting type `bool`
+// variable initialization type error
+// @303..324: variable initializer has unknown type
+// @296..300: expecting type `bool`
+// variable initialization type error
+// @358..391: variable initializer has unknown type
+// @351..355: expecting type `bool`
+// variable initialization type error
+// @610..651: variable initializer has unknown type
+// @603..607: expecting type `bool`
+// variable initialization type error
+// @682..716: variable initializer has unknown type
+// @675..679: expecting type `bool`
+// variable initialization type error
+// @747..765: variable initializer has unknown type
+// @740..744: expecting type `bool`
+// variable initialization type error
+// @796..845: variable initializer has unknown type
+// @789..793: expecting type `bool`
+// variable initialization type error
+// @889..934: variable initializer has unknown type
+// @873..886: expecting type `{b256, int}`
+// variable initialization type error
+// @977..1021: variable initializer has unknown type
+// @961..974: expecting type `{b256, int}`
+// variable initialization type error
+// @1064..1090: variable initializer has unknown type
+// @1048..1061: expecting type `{b256, int}`
+// variable initialization type error
+// @1133..1186: variable initializer has unknown type
+// @1117..1130: expecting type `{b256, int}`
 // constraint expression type error
-// @175..212: constraint expression has unexpected type `Unknown`
+// @175..212: constraint expression has unknown type
 // @175..212: expecting type `bool`
 // constraint expression type error
-// @215..269: constraint expression has unexpected type `Unknown`
+// @215..269: constraint expression has unknown type
 // @215..269: expecting type `bool`
 // constraint expression type error
-// @271..324: constraint expression has unexpected type `Unknown`
+// @271..324: constraint expression has unknown type
 // @271..324: expecting type `bool`
 // constraint expression type error
-// @326..391: constraint expression has unexpected type `Unknown`
+// @326..391: constraint expression has unknown type
 // @326..391: expecting type `bool`
 // constraint expression type error
-// @394..431: constraint expression has unexpected type `Unknown`
+// @394..431: constraint expression has unknown type
 // @394..431: expecting type `bool`
 // constraint expression type error
-// @434..479: constraint expression has unexpected type `Unknown`
+// @434..479: constraint expression has unknown type
 // @434..479: expecting type `bool`
 // constraint expression type error
-// @482..519: constraint expression has unexpected type `Unknown`
+// @482..519: constraint expression has unknown type
 // @482..519: expecting type `bool`
 // constraint expression type error
-// @522..547: constraint expression has unexpected type `Unknown`
+// @522..547: constraint expression has unknown type
 // @522..547: expecting type `bool`
 // constraint expression type error
-// @549..578: constraint expression has unexpected type `Unknown`
+// @549..578: constraint expression has unknown type
 // @549..578: expecting type `bool`
 // constraint expression type error
-// @581..651: constraint expression has unexpected type `Unknown`
+// @581..651: constraint expression has unknown type
 // @581..651: expecting type `bool`
 // constraint expression type error
-// @653..716: constraint expression has unexpected type `Unknown`
+// @653..716: constraint expression has unknown type
 // @653..716: expecting type `bool`
 // constraint expression type error
-// @718..765: constraint expression has unexpected type `Unknown`
+// @718..765: constraint expression has unknown type
 // @718..765: expecting type `bool`
 // constraint expression type error
-// @767..845: constraint expression has unexpected type `Unknown`
+// @767..845: constraint expression has unknown type
 // @767..845: expecting type `bool`
 // constraint expression type error
-// @848..934: constraint expression has unexpected type `Unknown`
+// @848..934: constraint expression has unknown type
 // @848..934: expecting type `bool`
 // constraint expression type error
-// @936..1021: constraint expression has unexpected type `Unknown`
+// @936..1021: constraint expression has unknown type
 // @936..1021: expecting type `bool`
 // constraint expression type error
-// @1023..1090: constraint expression has unexpected type `Unknown`
+// @1023..1090: constraint expression has unknown type
 // @1023..1090: expecting type `bool`
 // constraint expression type error
-// @1092..1186: constraint expression has unexpected type `Unknown`
+// @1092..1186: constraint expression has unknown type
 // @1092..1186: expecting type `bool`
 // constraint expression type error
-// @1236..1275: constraint expression has unexpected type `Unknown`
+// @1236..1275: constraint expression has unknown type
 // @1236..1275: expecting type `bool`
 // constraint expression type error
-// @1277..1312: constraint expression has unexpected type `Unknown`
+// @1277..1312: constraint expression has unknown type
 // @1277..1312: expecting type `bool`
 // >>>
