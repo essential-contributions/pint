@@ -109,15 +109,23 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
         match built {
             // Nothing to write for `lib`
             BuiltPkg::Library(_lib) => {}
-            // Write the contract intents to JSON.
-            // TODO: Also write the ABI.
+            // Write the contract intents to JSON, and write the ABI.
             BuiltPkg::Contract(contract) => {
+                // Write the intents.
                 let intents: Vec<_> = contract.intents.iter().map(|i| &i.intent).collect();
                 let intents_string = serde_json::to_string_pretty(&intents)
                     .context("failed to serialize intents to JSON")?;
                 let intents_path = profile_dir.join(&pinned.name).with_extension("json");
                 std::fs::write(&intents_path, intents_string)
                     .with_context(|| format!("failed to write {intents_path:?}"))?;
+
+                // Write the ABI.
+                let abi_string = serde_json::to_string_pretty(&contract.abi)
+                    .context("failed to serialize ABI to JSON")?;
+                let file_stem = format!("{}-abi", pinned.name);
+                let abi_path = profile_dir.join(file_stem).with_extension("json");
+                std::fs::write(&abi_path, abi_string)
+                    .with_context(|| format!("failed to write {abi_path:?}"))?;
             }
         }
 
