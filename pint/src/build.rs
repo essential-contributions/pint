@@ -142,7 +142,8 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
         if let BuiltPkg::Contract(contract) = built {
             let mut iter = contract.predicate_metadata.iter().peekable();
             while let Some(predicate) = iter.next() {
-                let name = format!("{}{}", pinned.name, predicate.name);
+                let pred_name = summary_predicate_name(&predicate.name);
+                let name = format!("{}{}", pinned.name, pred_name);
                 let pipe = iter.peek().map(|_| "├──").unwrap_or("└──");
                 if !args.silent {
                     println!("         {pipe} {:<name_col_w$} {}", name, predicate.ca);
@@ -184,13 +185,21 @@ fn source_string(pinned: &pint_pkg::plan::Pinned, manifest_dir: &Path) -> String
     }
 }
 
+// In the summary, the root intent name is empty
+fn summary_predicate_name(pred_name: &str) -> &str {
+    match pred_name {
+        "" => " (predicate)",
+        _ => pred_name,
+    }
+}
+
 /// Determine the width of the column required to fit the name and all
 /// name+predicate combos.
 fn name_col_w(name: &str, built: &BuiltPkg) -> usize {
     let mut name_w = 0;
     if let BuiltPkg::Contract(contract) = built {
         for predicate in &contract.predicate_metadata {
-            let w = predicate.name.chars().count();
+            let w = summary_predicate_name(&predicate.name).chars().count();
             name_w = std::cmp::max(name_w, w);
         }
     }

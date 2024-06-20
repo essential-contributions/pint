@@ -5,6 +5,8 @@ members = [
   "examples",
   "pint",
   "pint-abi",
+  "pint-abi-gen",
+  "pint-abi-gen-tests",
   "pint-manifest",
   "pint-pkg",
   "pint-solve",
@@ -30,13 +32,17 @@ itertools = "0.12"
 logos = "0.14"
 petgraph = "0.6"
 pint-abi = { path = "pint-abi" }
+pint-abi-gen = { path = "pint-abi-gen" }
 pint-manifest = { path = "pint-manifest" }
 pint-pkg = { path = "pint-pkg" }
 pintc = { path = "pintc" }
+proc-macro2 = "1"
+quote = "1"
 serde = { version = "1", features = ["derive"] }
 serde_ignored = "0.1"
 serde_json = "1"
 state-asm = { git = "ssh://git@github.com/essential-contributions/essential-base.git", package = "essential-state-asm" }
+syn = { version = "2", features = ["extra-traits", "full", "printing"] }
 thiserror = "1.0"
 toml = "0.8"
 walkdir = "2.5"

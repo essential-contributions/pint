@@ -1105,6 +1105,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "pint-abi-gen"
+version = "0.1.0"
+dependencies = [
+ "abi-types",
+ "essential-types",
+ "proc-macro2",
+ "quote",
+ "serde_json",
+ "syn 2.0.68",
+]
+
+[[package]]
+name = "pint-abi-gen-tests"
+version = "0.1.0"
+dependencies = [
+ "essential-types",
+ "pint-abi-gen",
+ "pint-pkg",
+ "walkdir",
+]
+
+[[package]]
 name = "pint-manifest"
 version = "0.1.0"
 dependencies = [
