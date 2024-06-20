@@ -504,10 +504,23 @@ impl<'sc> Lexer<'sc> {
         // way to do this, especially with TokenSource::VecToken, but it works.
         let mut args_token_stream = self.token_stream.clone();
         let mut parsed_tok_count = 0;
+        let mut nested_paren_count = 0;
+
+        // We're building a vector of vectors of arg tokens.
+        let mut all_args: Vec<Vec<(usize, Token, usize)>> = vec![Vec::default()];
+
+        macro_rules! push_tok {
+            ($tok: ident) => {{
+                let tok_span = args_token_stream.span();
+                all_args
+                    .last_mut()
+                    .expect("Args vec is always valid.")
+                    .push((tok_span.start, $tok, tok_span.end))
+            }};
+        }
 
         // We've already parsed the `(`.  Next we need any tokens up to delimiting `;` or
         // terminating `)`.
-        let mut all_args: Vec<Vec<(usize, Token, usize)>> = vec![Vec::new()];
         loop {
             parsed_tok_count += 1;
             match args_token_stream.next() {
@@ -519,6 +532,18 @@ impl<'sc> Lexer<'sc> {
                 Some(Ok(Token::Semi)) => {
                     // The end of some arg tokens.
                     all_args.push(Vec::new());
+                }
+
+                Some(Ok(tok @ Token::ParenOpen)) => {
+                    // A nested open paren which needs to be counted.
+                    nested_paren_count += 1;
+                    push_tok!(tok);
+                }
+
+                Some(Ok(tok @ Token::ParenClose)) if nested_paren_count > 0 => {
+                    // A nested close paren.
+                    nested_paren_count -= 1;
+                    push_tok!(tok);
                 }
 
                 Some(Ok(Token::ParenClose)) => {
@@ -548,11 +573,7 @@ impl<'sc> Lexer<'sc> {
 
                 // A regular parameter token.
                 Some(Ok(tok)) => {
-                    let tok_span = args_token_stream.span();
-                    all_args
-                        .last_mut()
-                        .expect("Args vec is always valid.")
-                        .push((tok_span.start, tok, tok_span.end))
+                    push_tok!(tok)
                 }
 
                 Some(Err(_)) => {
