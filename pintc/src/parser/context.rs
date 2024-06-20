@@ -74,11 +74,7 @@ impl<'a> ParserContext<'a> {
     ) -> StorageVar {
         let span = (self.span_from)(l, r);
         if ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() {
-            StorageVar {
-                name: name.to_string(),
-                ty,
-                span,
-            }
+            StorageVar { name, ty, span }
         } else if let Type::Map {
             ref ty_from,
             ref ty_to,
@@ -92,11 +88,7 @@ impl<'a> ParserContext<'a> {
                     || ty_to.is_map()
                     || ty_to.is_tuple())
             {
-                StorageVar {
-                    name: name.to_string(),
-                    ty,
-                    span,
-                }
+                StorageVar { name, ty, span }
             } else {
                 // TODO: allow arbitrary types in storage maps
                 handler.emit_err(Error::Compile {
@@ -107,7 +99,7 @@ impl<'a> ParserContext<'a> {
                     },
                 });
                 StorageVar {
-                    name: name.to_string(),
+                    name,
                     ty: Type::Error(ty.span().clone()),
                     span,
                 }
@@ -121,11 +113,36 @@ impl<'a> ParserContext<'a> {
                 },
             });
             StorageVar {
-                name: name.to_string(),
+                name,
                 ty: Type::Error(ty.span().clone()),
                 span,
             }
         }
+    }
+
+    /// Given a list of storage variables, check that there are no duplicate names and return the
+    /// same list
+    pub fn parse_storage_block(
+        &mut self,
+        handler: &Handler,
+        storage_vars: Vec<StorageVar>,
+    ) -> Vec<StorageVar> {
+        let mut storage_symbols: BTreeMap<String, Span> = BTreeMap::new();
+        for var in &storage_vars {
+            if let Some(prev_span) = storage_symbols.get(&var.name.name) {
+                handler.emit_err(Error::Parse {
+                    error: ParseError::NameClash {
+                        sym: var.name.name.clone(),
+                        span: var.name.span.clone(),
+                        prev_span: prev_span.clone(),
+                    },
+                });
+            } else {
+                storage_symbols.insert(var.name.name.clone(), var.name.span.clone());
+            }
+        }
+
+        storage_vars
     }
 
     /// Given a list of storage variables insert it into the current II after some error checking.
@@ -172,6 +189,7 @@ impl<'a> ParserContext<'a> {
             span: (self.span_from)(l, r),
         };
 
+        let mut intent_names: BTreeMap<String, Span> = BTreeMap::new();
         for decl in interface_decls {
             match decl {
                 InterfaceDecl::StorageDecl(d) => {
@@ -188,6 +206,38 @@ impl<'a> ParserContext<'a> {
                     }
                 }
                 InterfaceDecl::IntentInterface(intent_interface) => {
+                    // Ensure there are no duplciate intent names
+                    if let Some(prev_span) = intent_names.get(&intent_interface.name.name) {
+                        handler.emit_err(Error::Parse {
+                            error: ParseError::NameClash {
+                                sym: intent_interface.name.name.clone(),
+                                span: intent_interface.name.span.clone(),
+                                prev_span: prev_span.clone(),
+                            },
+                        });
+                    } else {
+                        intent_names.insert(
+                            intent_interface.name.name.clone(),
+                            intent_interface.name.span.clone(),
+                        );
+                    }
+
+                    // Ensure there are no duplciate vars
+                    let mut var_symbols: BTreeMap<String, Span> = BTreeMap::new();
+                    for var in &intent_interface.vars {
+                        if let Some(prev_span) = var_symbols.get(&var.name.name) {
+                            handler.emit_err(Error::Parse {
+                                error: ParseError::NameClash {
+                                    sym: var.name.name.clone(),
+                                    span: var.name.span.clone(),
+                                    prev_span: prev_span.clone(),
+                                },
+                            });
+                        } else {
+                            var_symbols.insert(var.name.name.clone(), var.name.span.clone());
+                        }
+                    }
+
                     interface.intent_interfaces.push(intent_interface)
                 }
             }

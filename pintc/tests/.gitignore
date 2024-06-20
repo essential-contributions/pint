@@ -1,5 +1,2 @@
 # Ignore all .json files
 *.json
-
-# Except for files ending with -abi.json
-!*-abi.json

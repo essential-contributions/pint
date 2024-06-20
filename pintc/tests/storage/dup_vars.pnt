@@ -1,0 +1,53 @@
+storage {
+    s0: bool,
+    s0: int,
+    s1: b256,
+    s1: { int, int },
+    s1: { int, int, int },
+}
+
+interface Foo {
+    storage {
+        s0: bool,
+        s1: int,
+    }
+}
+
+interface Bar {
+    storage {
+        t0: bool,
+        t0: int,
+        t1: b256,
+        t1: { int, int },
+        t1: { int, int, int },
+    }
+}
+
+intent Baz {}
+
+// parse_failure <<<
+// symbol `s0` has already been declared
+// @14..16: previous declaration of the symbol `s0` here
+// @28..30: `s0` redeclared here
+// `s0` must be declared or imported only once in this scope
+// symbol `s1` has already been declared
+// @41..43: previous declaration of the symbol `s1` here
+// @55..57: `s1` redeclared here
+// `s1` must be declared or imported only once in this scope
+// symbol `s1` has already been declared
+// @41..43: previous declaration of the symbol `s1` here
+// @77..79: `s1` redeclared here
+// `s1` must be declared or imported only once in this scope
+// symbol `t0` has already been declared
+// @215..217: previous declaration of the symbol `t0` here
+// @233..235: `t0` redeclared here
+// `t0` must be declared or imported only once in this scope
+// symbol `t1` has already been declared
+// @250..252: previous declaration of the symbol `t1` here
+// @268..270: `t1` redeclared here
+// `t1` must be declared or imported only once in this scope
+// symbol `t1` has already been declared
+// @250..252: previous declaration of the symbol `t1` here
+// @294..296: `t1` redeclared here
+// `t1` must be declared or imported only once in this scope
+// >>>

@@ -103,7 +103,9 @@ StorageVar: StorageVar = {
 }
 
 StorageBlock: Vec<StorageVar> = {
-    "storage" "{" <storage_vars:SepList<StorageVar, ",">> "}" => storage_vars,
+    "storage" "{" <storage_vars:SepList<StorageVar, ",">> "}" => {
+        context.parse_storage_block(handler, storage_vars)
+    }
 }
 
 StorageDecl: () = {
@@ -124,7 +126,7 @@ InterfaceVar: InterfaceVar = {
             });
         }
         InterfaceVar {
-            name: name.0.to_string(),
+            name: name.0,
             ty,
             span: (context.span_from)(l, r),
         }

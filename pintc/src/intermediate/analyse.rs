@@ -795,7 +795,7 @@ impl IntermediateIntent {
 
     fn infer_storage_access(&self, name: &String, span: &Span) -> Result<Inference, Error> {
         match self.storage.as_ref() {
-            Some(storage) => match storage.0.iter().find(|s_var| s_var.name == *name) {
+            Some(storage) => match storage.0.iter().find(|s_var| s_var.name.name == *name) {
                 Some(s_var) => Ok(Inference::Type(s_var.ty.clone())),
                 None => Err(Error::Compile {
                     error: CompileError::StorageSymbolNotFound {
@@ -847,7 +847,7 @@ impl IntermediateIntent {
 
         // Then, look for the storage variable that this access refers to
         match interface.storage.as_ref() {
-            Some(storage) => match storage.0.iter().find(|s_var| s_var.name == *name) {
+            Some(storage) => match storage.0.iter().find(|s_var| s_var.name.name == *name) {
                 Some(s_var) => Ok(Inference::Type(s_var.ty.clone())),
                 None => Err(Error::Compile {
                     error: CompileError::StorageSymbolNotFound {
@@ -891,7 +891,7 @@ impl IntermediateIntent {
                         .find(|e| e.name.to_string() == *intent.to_string())
                     {
                         for var in &intent.vars {
-                            if name.to_string() + "::" + &var.name == *path {
+                            if name.to_string() + "::" + &var.name.name == *path {
                                 return Some(Inference::Type(var.ty.clone()));
                             }
                         }
