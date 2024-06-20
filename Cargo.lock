@@ -416,16 +416,15 @@ dependencies = [
 
 [[package]]
 name = "curve25519-dalek"
-version = "4.1.2"
+version = "4.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a677b8922c94e01bdbb12126b0bc852f00447528dee1782229af9c720c3f348"
+checksum = "97fb8b7c4503de7d6ae7b42ab72a5a59857b4c937ec27a3d4539dba95b5ab2be"
 dependencies = [
  "cfg-if",
  "cpufeatures",
  "curve25519-dalek-derive",
  "digest",
  "fiat-crypto",
- "platforms",
  "rustc_version",
  "subtle",
  "zeroize",
@@ -559,7 +558,7 @@ dependencies = [
 [[package]]
 name = "essential-asm-gen"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#6df0326d2f101327a7567434fed28972eb091cb0"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#d058acf6a1d77cbe58dcb4428d7164b698356bbc"
 dependencies = [
  "essential-asm-spec",
  "essential-types",
@@ -571,7 +570,7 @@ dependencies = [
 [[package]]
 name = "essential-asm-spec"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#6df0326d2f101327a7567434fed28972eb091cb0"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#d058acf6a1d77cbe58dcb4428d7164b698356bbc"
 dependencies = [
  "serde",
  "serde_yaml",
@@ -580,7 +579,7 @@ dependencies = [
 [[package]]
 name = "essential-constraint-asm"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#6df0326d2f101327a7567434fed28972eb091cb0"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#d058acf6a1d77cbe58dcb4428d7164b698356bbc"
 dependencies = [
  "essential-asm-gen",
  "essential-types",
@@ -590,7 +589,7 @@ dependencies = [
 [[package]]
 name = "essential-constraint-vm"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#6df0326d2f101327a7567434fed28972eb091cb0"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#d058acf6a1d77cbe58dcb4428d7164b698356bbc"
 dependencies = [
  "ed25519-dalek",
  "essential-constraint-asm",
@@ -604,7 +603,7 @@ dependencies = [
 [[package]]
 name = "essential-hash"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#6df0326d2f101327a7567434fed28972eb091cb0"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#d058acf6a1d77cbe58dcb4428d7164b698356bbc"
 dependencies = [
  "essential-types",
  "postcard",
@@ -615,7 +614,7 @@ dependencies = [
 [[package]]
 name = "essential-state-asm"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#6df0326d2f101327a7567434fed28972eb091cb0"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#d058acf6a1d77cbe58dcb4428d7164b698356bbc"
 dependencies = [
  "essential-asm-gen",
  "essential-constraint-asm",
@@ -625,7 +624,7 @@ dependencies = [
 [[package]]
 name = "essential-state-read-vm"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#6df0326d2f101327a7567434fed28972eb091cb0"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#d058acf6a1d77cbe58dcb4428d7164b698356bbc"
 dependencies = [
  "essential-constraint-vm",
  "essential-state-asm",
@@ -636,7 +635,7 @@ dependencies = [
 [[package]]
 name = "essential-types"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#6df0326d2f101327a7567434fed28972eb091cb0"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#d058acf6a1d77cbe58dcb4428d7164b698356bbc"
 dependencies = [
  "base64",
  "hex",
@@ -1204,12 +1203,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "platforms"
-version = "3.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db23d408679286588f4d4644f965003d056e3dd5abcaaa938116871d7ce2fee7"
-
-[[package]]
 name = "postcard"
 version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1622,9 +1615,9 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "subtle"
-version = "2.5.0"
+version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81cdd64d312baedb58e21336b31bc043b77e01cc99033ce76ef539f78e965ebc"
+checksum = "0d0208408ba0c3df17ed26eb06992cb1a1268d41b2c0e12e65203fbe3972cee5"
 
 [[package]]
 name = "syn"
