@@ -104,7 +104,7 @@
               }
             }
           ],
-          "key": [3]
+          "key": [3, 0]
         }
       }
     },
@@ -133,13 +133,13 @@
                     {
                       "name": null,
                       "ty": {
-                        "Int": [4, 2, 0]
+                        "Int": [4, 2]
                       }
                     },
                     {
                       "name": null,
                       "ty": {
-                        "Int": [4, 2, 1]
+                        "Int": [4, 3]
                       }
                     }
                   ],
@@ -148,7 +148,7 @@
               }
             }
           ],
-          "key": [4]
+          "key": [4, 0]
         }
       }
     },
@@ -174,13 +174,13 @@
                         {
                           "name": null,
                           "ty": {
-                            "B256": [5, null, 1, 0]
+                            "B256": [5, null, 1]
                           }
                         },
                         {
                           "name": null,
                           "ty": {
-                            "Int": [5, null, 1, 1]
+                            "Int": [5, null, 2]
                           }
                         }
                       ],
@@ -189,7 +189,7 @@
                   }
                 }
               ],
-              "key": [5, null]
+              "key": [5, null, 0]
             }
           },
           "key": [5]
@@ -221,13 +221,13 @@
                             {
                               "name": null,
                               "ty": {
-                                "B256": [6, null, null, null, null, null, 1, 0]
+                                "B256": [6, null, null, null, null, null, 1]
                               }
                             },
                             {
                               "name": null,
                               "ty": {
-                                "Int": [6, null, null, null, null, null, 1, 1]
+                                "Int": [6, null, null, null, null, null, 2]
                               }
                             }
                           ],
@@ -236,7 +236,7 @@
                       }
                     }
                   ],
-                  "key": [6, null, null, null, null, null]
+                  "key": [6, null, null, null, null, null, 0]
                 }
               },
               "key": [6, null]

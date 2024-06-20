@@ -105,6 +105,8 @@ pub enum PintcError {
     TypeCheck,
     #[error("flattening error")]
     Flatten,
+    #[error("abi gen")]
+    ABIGen,
     #[error("intent-gen error")]
     IntentGen,
 }
@@ -273,7 +275,10 @@ fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg,
             };
 
             // Produce the ABI for the flattened program.
-            let abi = flattened.abi();
+            let Ok(abi) = flattened.abi() else {
+                let kind = BuildPkgErrorKind::from(PintcError::ABIGen);
+                return Err(BuildPkgError { handler, kind });
+            };
 
             // Generate the assembly and the intents.
             let Ok(contract) = handler.scope(|h| program_to_intents(h, &flattened)) else {

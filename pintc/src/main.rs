@@ -56,7 +56,19 @@ fn main() -> anyhow::Result<()> {
     let mut json_abi_path = PathBuf::from(filepath);
     json_abi_path.set_file_name(filepath_stem);
     json_abi_path.set_extension("json");
-    serde_json::to_writer_pretty(File::create(json_abi_path)?, &flattened.abi())?;
+
+    // Compute the JSON ABI
+    let abi = match flattened.abi() {
+        Ok(abi) => abi,
+        Err(error) => {
+            if !cfg!(test) {
+                error::print_errors(&error::Errors(vec![error::Error::Compile { error }]));
+            }
+            pintc::pintc_bail!(1, filepath)
+        }
+    };
+
+    serde_json::to_writer_pretty(File::create(json_abi_path)?, &abi)?;
 
     // The default backend is "codegen" which generates assembly.
     //

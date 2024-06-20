@@ -1,7 +1,8 @@
 use crate::{
+    error::CompileError,
     expr::Ident,
     intermediate::ExprKey,
-    span::{Span, Spanned},
+    span::{empty_span, Span, Spanned},
 };
 use abi_types::{Key, KeyedTupleField, KeyedTypeABI, TupleField, TypeABI};
 
@@ -292,72 +293,87 @@ impl Type {
     }
 
     /// Produce a `TypeABI` given a `Type`.
-    pub fn abi(&self) -> TypeABI {
+    pub fn abi(&self) -> Result<TypeABI, CompileError> {
         match self {
-            Type::Primitive { kind, .. } => match kind {
+            Type::Primitive { kind, .. } => Ok(match kind {
                 PrimitiveKind::Bool => TypeABI::Bool,
                 PrimitiveKind::Int => TypeABI::Int,
                 PrimitiveKind::Real => TypeABI::Real,
                 PrimitiveKind::String => TypeABI::String,
                 PrimitiveKind::B256 => TypeABI::B256,
                 _ => unimplemented!(),
-            },
-            Type::Tuple { fields, .. } => TypeABI::Tuple(
+            }),
+            Type::Tuple { fields, .. } => Ok(TypeABI::Tuple(
                 fields
                     .iter()
-                    .map(|(name, field_ty)| TupleField {
-                        name: name.as_ref().map(|name| name.name.clone()),
-                        ty: field_ty.abi(),
+                    .map(|(name, field_ty)| {
+                        Ok(TupleField {
+                            name: name.as_ref().map(|name| name.name.clone()),
+                            ty: field_ty.abi()?,
+                        })
                     })
-                    .collect::<Vec<_>>(),
-            ),
+                    .collect::<Result<Vec<_>, _>>()?,
+            )),
             _ => unimplemented!("other types are not yet supported"),
         }
     }
 
     /// Produce a `KeyedTypeABI` given a `Type` and a base key. The layout of the keys follows how
     /// asm_gen produces storage and transient data keys.
-    pub fn abi_with_key(&self, key: Key) -> KeyedTypeABI {
+    pub fn abi_with_key(&self, key: Key) -> Result<KeyedTypeABI, CompileError> {
         match self {
-            Type::Primitive { kind, .. } => match kind {
+            Type::Primitive { kind, .. } => Ok(match kind {
                 PrimitiveKind::Bool => KeyedTypeABI::Bool(key),
                 PrimitiveKind::Int => KeyedTypeABI::Int(key),
                 PrimitiveKind::Real => KeyedTypeABI::Real(key),
                 PrimitiveKind::String => KeyedTypeABI::String(key),
                 PrimitiveKind::B256 => KeyedTypeABI::B256(key),
                 _ => unimplemented!(),
-            },
-            Type::Tuple { fields, .. } => KeyedTypeABI::Tuple {
+            }),
+            Type::Tuple { fields, .. } => Ok(KeyedTypeABI::Tuple {
                 fields: fields
                     .iter()
                     .enumerate()
                     .map(|(index, (name, field_ty))| {
                         let mut field_key = key.clone();
-
-                        field_key.push(Some(
-                            fields
+                        if let Some(Some(ref mut last_word)) = field_key.last_mut() {
+                            // Offset the last word in the key given the field index
+                            *last_word += fields
                                 .iter()
                                 .take(index)
                                 .map(|(_, ty)| ty.storage_slots())
-                                .sum(),
-                        ));
+                                .sum::<usize>();
 
-                        KeyedTupleField {
-                            name: name.as_ref().map(|name| name.name.clone()),
-                            ty: field_ty.abi_with_key(field_key.clone()),
+                            Ok(KeyedTupleField {
+                                name: name.as_ref().map(|name| name.name.clone()),
+                                ty: field_ty.abi_with_key(field_key.clone())?,
+                            })
+                        } else {
+                            Err(CompileError::Internal {
+                                msg: "the last word in the key must exist and be non-null",
+                                span: empty_span(),
+                            })
                         }
                     })
-                    .collect::<Vec<_>>(),
+                    .collect::<Result<Vec<_>, _>>()?,
                 key,
-            },
+            }),
             Type::Map { ty_from, ty_to, .. } => {
                 let mut value_key = key.clone();
                 value_key.extend(vec![None; ty_from.size()]);
-                KeyedTypeABI::Map {
-                    ty_from: (*ty_from).abi(),
-                    ty_to: Box::new((*ty_to).abi_with_key(value_key.clone())),
+                //  The key of `ty_to` is either the `value_key` if the type is primitive or a map,
+                //  or it's `[value_key, 0]`. The `0` here is a placeholder for offsets. `ty_from`
+                //  has no key because it's not stored in storage.
+                Ok(KeyedTypeABI::Map {
+                    ty_from: (*ty_from).abi()?,
+                    ty_to: Box::new(if ty_to.is_any_primitive() || ty_to.is_map() {
+                        (*ty_to).abi_with_key(value_key.clone())?
+                    } else {
+                        value_key.push(Some(0));
+                        (*ty_to).abi_with_key(value_key.clone())?
+                    }),
                     key,
-                }
+                })
             }
             _ => unimplemented!("other types are not yet supported"),
         }
