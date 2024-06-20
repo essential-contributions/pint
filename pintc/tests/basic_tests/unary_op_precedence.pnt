@@ -1,0 +1,25 @@
+var a: {int, bool};
+constraint !a.1;
+
+var b: bool[5][3];
+constraint !!b[0][1];
+
+var c: {int, bool}[5];
+constraint !!c[0].1;
+
+solve satisfy;
+
+// intermediate <<<
+// var ::a: {int, bool};
+// var ::b: bool[3][5];
+// var ::c: {int, bool}[5];
+// constraint !::a.1;
+// constraint !!::b[0][1];
+// constraint !!::c[0].1;
+// solve satisfy;
+// >>>
+
+// Should pass type checking
+// flattening_failure <<<
+// compiler internal error: only arrays of ints, reals, and bools are currently supported
+// >>>

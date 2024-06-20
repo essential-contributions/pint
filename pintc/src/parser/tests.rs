@@ -1470,6 +1470,14 @@ fn unary_op_exprs() {
         expect_test::expect!["!--!---1"],
     );
     check(
+        &run_parser!(expr, "! - - !  --  -t.0.1.2"),
+        expect_test::expect!["!--!---::t.0.1.2"],
+    );
+    check(
+        &run_parser!(expr, "! - - !  --  -a[5][3].1"),
+        expect_test::expect!["!--!---::a[5][3].1"],
+    );
+    check(
         &run_parser!(expr, "! - x '  '  "),
         expect_test::expect!["!-::x''"],
     );
@@ -2377,6 +2385,16 @@ fn tuple_field_accesses() {
     check(
         &run_parser!(expr, "{1_100.4e3, 2_0e3}.x"),
         expect_test::expect!["{1.1004e6, 2e4}.x"],
+    );
+
+    check(
+        &run_parser!(expr, "a[5][3].foo.2[4].1"),
+        expect_test::expect!["::a[5][3].foo.2[4].1"],
+    );
+
+    check(
+        &run_parser!(expr, "a.foo[5][3].1"),
+        expect_test::expect!["::a.foo[5][3].1"],
     );
 
     let pint = (yp::PintParser::new(), "");
