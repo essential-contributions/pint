@@ -169,7 +169,8 @@ fn check_expr(
                 Ok(())
             }
         }
-        Expr::TupleFieldAccess { span, .. } => {
+        Expr::TupleFieldAccess { span, .. } => Ok(()),
+        /*{
             if !expr_is_for_storage(ii, expr) {
                 Err(emit_illegal_type_error!(
                     handler,
@@ -180,7 +181,7 @@ fn check_expr(
             } else {
                 Ok(())
             }
-        }
+        }*/
         Expr::In { span, .. } => Err(emit_illegal_type_error!(
             handler,
             span,

@@ -385,6 +385,7 @@ impl AsmBuilder {
         // constraint being processed.
         //
         // Assume that there exists at least a single entry in `self.c_asm`.
+        let expr_ty = expr.get_ty(intent);
         match &expr.get(intent) {
             Expr::Immediate { value, .. } => compile_immediate(asm, value),
             Expr::Array { elements, .. } => {
@@ -710,6 +711,44 @@ impl AsmBuilder {
                     asm.push(Constraint::Stack(Stack::Push(type_size as i64)));
                     Self::compile_expr(handler, asm, condition, intent)?;
                     asm.push(Constraint::Stack(Stack::SelectRange));
+                }
+            }
+            Expr::TupleFieldAccess { tuple, field, .. } => {
+                let tuple_expr_len = Self::compile_expr(handler, asm, tuple, intent)?;
+                if let Some(Constraint::Access(Access::StateRange)) = asm.last() {
+                    // Grab the fields of the tuple
+                    let Type::Tuple { ref fields, .. } = tuple.get_ty(intent) else {
+                        return Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "type must exist and be a tuple type",
+                                span: empty_span(),
+                            },
+                        }));
+                    };
+                    let field_idx = match field {
+                        TupleAccess::Index(idx) => *idx,
+                        TupleAccess::Name(ident) => fields
+                            .iter()
+                            .position(|(field_name, _)| {
+                                field_name
+                                    .as_ref()
+                                    .map_or(false, |name| name.name == ident.name)
+                            })
+                            .expect("field name must exist, this was checked in type checking"),
+                        TupleAccess::Error => {
+                            return Err(handler.emit_err(Error::Compile {
+                                error: CompileError::Internal {
+                                    msg: "unexpected TupleAccess::Error",
+                                    span: empty_span(),
+                                },
+                            }));
+                        }
+                    };
+                    let asm_len = asm.len();
+                    if let Constraint::Stack(Stack::Push(slot)) = asm[asm_len - 4] {
+                        asm[asm_len - 4] = Stack::Push(slot + field_idx as i64).into();
+                        asm[asm_len - 3] = Stack::Push(expr_ty.storage_slots() as i64).into();
+                    }
                 }
             }
             Expr::Error(_)
