@@ -1,7 +1,9 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, Expr, Ident, Immediate, TupleAccess, UnaryOp},
-    intermediate::{BlockStatement, Const, ConstraintDecl, ExprKey, IfDecl, IntermediateIntent},
+    intermediate::{
+        BlockStatement, Const, ConstraintDecl, ExprKey, IfDecl, IntermediateIntent, Var,
+    },
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
 };
@@ -778,6 +780,87 @@ pub(crate) fn lower_compares_to_nil(
     }
 
     Ok(())
+}
+
+pub(crate) fn lower_selects(ii: &mut IntermediateIntent) {
+    let selects = ii
+        .exprs()
+        .filter_map(|expr| {
+            if let Expr::Select {
+                condition,
+                then_expr,
+                else_expr,
+                ..
+            } = expr.get(ii)
+            {
+                Some((expr, *condition, *then_expr, *else_expr))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let mut replacements = Vec::new();
+    for (index, (old_expr_key, condition, then_expr, else_expr)) in selects.iter().enumerate() {
+        let select_ty = then_expr.get_ty(ii).clone();
+        let select_var_key = ii.vars.insert(
+            Var {
+                name: format!("__select_{index}"),
+                is_pub: false,
+                span: empty_span(),
+            },
+            select_ty.clone(),
+        );
+
+        let select_var_path_expr = ii.exprs.insert(
+            Expr::PathByKey(select_var_key, empty_span()),
+            select_ty.clone(),
+        );
+
+        let bool_ty = Type::Primitive {
+            kind: PrimitiveKind::Bool,
+            span: empty_span(),
+        };
+
+        let then_constraint = ConstraintDecl {
+            expr: ii.exprs.insert(
+                Expr::BinaryOp {
+                    op: BinaryOp::Equal,
+                    lhs: select_var_path_expr,
+                    rhs: *then_expr,
+                    span: empty_span(),
+                },
+                bool_ty.clone(),
+            ),
+            span: empty_span(),
+        };
+
+        let else_constraint = ConstraintDecl {
+            expr: ii.exprs.insert(
+                Expr::BinaryOp {
+                    op: BinaryOp::Equal,
+                    lhs: select_var_path_expr,
+                    rhs: *else_expr,
+                    span: empty_span(),
+                },
+                bool_ty.clone(),
+            ),
+            span: empty_span(),
+        };
+
+        ii.if_decls.push(IfDecl {
+            condition: *condition,
+            then_block: vec![BlockStatement::Constraint(then_constraint)],
+            else_block: Some(vec![BlockStatement::Constraint(else_constraint)]),
+            span: empty_span(),
+        });
+
+        replacements.push((old_expr_key, select_var_path_expr));
+    }
+
+    for (old_expr_key, new_expr_key) in replacements {
+        ii.replace_exprs(*old_expr_key, new_expr_key);
+    }
 }
 
 /// Convert all `if` declarations into individual constraints that are pushed to `ii.constraints`.

@@ -8,13 +8,21 @@ decision_variables = [
   [4, 3, 2, 1], # q
   [1, 2, 3, 4], # w1
   [4, 3, 2, 1], # w2
-  [5],
-  [6],          #a
-  [8],
-  [9],          #b
-  [5],
-  [6],          #c1
-  [8],
-  [9],          #c2
+  [5],          #a.0
+  [6],          #a.1
+  [8],          #b.0
+  [9],          #b.1
+  [5],          #c1.0
+  [6],          #c1.1
+  [8],          #c2.0
+  [9],          #c2.1
+  [8],          # __select_3.0
+  [9],          # __select_3.1
+  [5],          # __select_3.0
+  [6],          # __select_3.1
+  [4, 3, 2, 1], # __select_3
+  [1, 2, 3, 4], # __select_2
+  [6],          # __select_1 
+  [5],          # __select_0 
 ]
 intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "" }

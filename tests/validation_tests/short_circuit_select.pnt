@@ -1,0 +1,12 @@
+// <disabled> 
+storage {
+    x: int,
+    y: int,
+}
+
+intent Foo {
+    state x = storage::x;
+    state y = storage::x;
+
+    constraint (x == nil ? (y == nil ? 0 : y') : x') > 10;
+}

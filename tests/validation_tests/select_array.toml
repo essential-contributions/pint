@@ -8,5 +8,9 @@ decision_variables = [
   [6], #f1[1]
   [8], #f2[0]
   [9], #f2[1]
+  [8], #__select_1[0]
+  [9], #__select_1[1]
+  [5], #__select_0[0]
+  [6], #__select_0[1]
 ]
 intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "" }

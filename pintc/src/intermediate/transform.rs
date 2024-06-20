@@ -37,7 +37,7 @@ use crate::error::{ErrorEmitted, Handler};
 use canonicalize_solve_directive::canonicalize_solve_directive;
 use lower::{
     lower_aliases, lower_bools, lower_casts, lower_compares_to_nil, lower_enums, lower_ifs,
-    lower_imm_accesses, lower_ins, replace_const_refs,
+    lower_imm_accesses, lower_ins, lower_selects, replace_const_refs,
 };
 use scalarize::scalarize;
 use unroll::unroll_generators;
@@ -48,6 +48,8 @@ impl super::Program {
         for ii in self.iis.values_mut() {
             // Plug const decls in everywhere so they maybe lowered below.
             replace_const_refs(ii);
+
+            lower_selects(ii);
 
             // Transform each if declaration into a collection of constraints We do this early so
             // that we don't have to worry about `if` declarations in any of the later passes. All
