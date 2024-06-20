@@ -1,0 +1,31 @@
+macro @a($n) {
+    $n + 1
+}
+
+macro @b($n) {
+    $n * 2
+}
+
+macro @c($n, $m) {
+    $n + $m
+}
+
+var x: int;
+constraint x > @a(@b(11));
+constraint x < @c(@b(@a(22)); @a(@b(33)));
+
+solve satisfy;
+
+// intermediate <<<
+// var ::x: int;
+// constraint (::x > ((11 * 2) + 1));
+// constraint (::x < (((22 + 1) * 2) + ((33 * 2) + 1)));
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::x: int;
+// constraint (::x > ((11 * 2) + 1));
+// constraint (::x < (((22 + 1) * 2) + ((33 * 2) + 1)));
+// solve satisfy;
+// >>>
