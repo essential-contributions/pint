@@ -9,7 +9,10 @@ use essential_types::{
     contract::Contract, predicate::Predicate as CompiledPredicate, ContentAddress,
 };
 use pintc::{asm_gen::compile_program, predicate::ProgramKind};
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 use thiserror::Error;
 
 /// A context that allows for iteratively compiling packages within a given compilation `Plan`.
@@ -124,6 +127,17 @@ pub enum PintcError {
     AsmGen,
 }
 
+/// An error occurred while writing a built package's output artifacts.
+#[derive(Debug, Error)]
+pub enum WriteError {
+    /// Failed to serialize intents or ABI.
+    #[error("failed to serialize intents or ABI: {0}")]
+    SerdeJson(#[from] serde_json::Error),
+    /// An I/O error occurred.
+    #[error("an I/O error occurred: {0}")]
+    Io(#[from] std::io::Error),
+}
+
 impl<'p> PlanBuilder<'p> {
     /// Produce the next package that is to be built.
     pub fn next_pkg(&mut self) -> Option<PrebuiltPkg> {
@@ -184,6 +198,28 @@ impl BuildPkgError {
     pub fn eprint(self) {
         let errors = self.handler.consume();
         pintc::error::print_errors(&pintc::error::Errors(errors));
+    }
+}
+
+impl BuiltPkg {
+    /// Write the built artifacts for this package to the given directory.
+    pub fn write_to_dir(&self, name: &str, path: &Path) -> Result<(), WriteError> {
+        match self {
+            Self::Library(_) => (),
+            Self::Contract(built) => {
+                // Write the intents.
+                let contract_string = serde_json::to_string_pretty(&built.contract)?;
+                let contract_path = path.join(name).with_extension("json");
+                std::fs::write(contract_path, contract_string)?;
+
+                // Write the ABI.
+                let abi_string = serde_json::to_string_pretty(&built.abi)?;
+                let file_stem = format!("{}-abi", name);
+                let abi_path = path.join(file_stem).with_extension("json");
+                std::fs::write(abi_path, abi_string)?;
+            }
+        }
+        Ok(())
     }
 }
 
