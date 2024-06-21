@@ -173,7 +173,7 @@ impl AsmBuilder {
                 // Get the index of the storage variable in the storage block declaration
                 let storage_index = storage
                     .iter()
-                    .position(|var| var.name == *name)
+                    .position(|var| var.name.name == *name)
                     .expect("storage access should have been checked before");
 
                 // This is the key. It's either the `storage_index` if the storage type primitive
@@ -227,7 +227,7 @@ impl AsmBuilder {
 
                 let storage_index = storage
                     .iter()
-                    .position(|var| var.name == *name)
+                    .position(|var| var.name.name == *name)
                     .expect("storage access should have been checked before");
 
                 // This is the key. It's either the `storage_index` if the storage type primitive
@@ -833,7 +833,7 @@ impl AsmBuilder {
                     let Some(transient_index) = intent_interface
                         .vars
                         .iter()
-                        .position(|var| name.to_string() + "::" + &var.name == *path)
+                        .position(|var| name.to_string() + "::" + &var.name.name == *path)
                     else {
                         continue;
                     };
@@ -841,7 +841,7 @@ impl AsmBuilder {
                     let Some(var) = intent_interface
                         .vars
                         .iter()
-                        .find(|var| name.to_string() + "::" + &var.name == *path)
+                        .find(|var| name.to_string() + "::" + &var.name.name == *path)
                     else {
                         continue;
                     };

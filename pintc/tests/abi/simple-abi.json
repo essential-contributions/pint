@@ -87,7 +87,7 @@
       }
     },
     {
-      "name": "s2",
+      "name": "s3",
       "ty": {
         "Tuple": {
           "fields": [
@@ -109,7 +109,7 @@
       }
     },
     {
-      "name": "s3",
+      "name": "s4",
       "ty": {
         "Tuple": {
           "fields": [

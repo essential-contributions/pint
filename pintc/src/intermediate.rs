@@ -635,14 +635,14 @@ impl DisplayWithII for SolveFunc {
 
 #[derive(Clone, Debug)]
 pub struct StorageVar {
-    pub name: Path,
+    pub name: Ident,
     pub ty: Type,
     pub span: Span,
 }
 
 impl DisplayWithII for StorageVar {
     fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
-        write!(f, "{}: {},", self.name, ii.with_ii(&self.ty))
+        write!(f, "{}: {},", self.name.name, ii.with_ii(&self.ty))
     }
 }
 
@@ -675,7 +675,7 @@ pub struct Interface {
 /// optional
 #[derive(Clone, Debug)]
 pub struct InterfaceVar {
-    pub name: Path,
+    pub name: Ident,
     pub ty: Type,
     pub span: Span,
 }

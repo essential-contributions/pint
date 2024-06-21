@@ -29,7 +29,7 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
         }
 
         // Only go over pint file
-        if path.extension().unwrap() != "pnt" {
+        if path.extension().is_none() || path.extension().unwrap() != "pnt" {
             continue;
         }
 
