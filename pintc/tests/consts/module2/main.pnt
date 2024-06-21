@@ -1,0 +1,3 @@
+intent Foo {
+	constraint b::x * 2 == 42;
+}
