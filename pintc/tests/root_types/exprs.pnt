@@ -18,7 +18,7 @@ intent Foo {}
 // type ::myNestedTuple = int[{2, 1}.0];
 // type ::myNestedArray = int[[2, 1][1]];
 // type ::complexType = {::myNestedCast, ::myNestedSelect}[2 in {1, 2, 3} as int];
-// 
+//
 // intent ::Foo {
 //     type ::myAliasForCast = int;
 //     type ::myNestedCast = int[4 as ::myAliasForCast];
@@ -39,8 +39,8 @@ intent Foo {}
 // type ::myNestedSelect = int[((1 > 0) ? 5 : 6)];
 // type ::myNestedTuple = int[{2, 1}.0];
 // type ::myNestedArray = int[[2, 1][1]];
-// type ::complexType = {::myNestedCast, ::myNestedSelect}[2 in {1, 2, 3} as int];
-// 
+// type ::complexType = {::myNestedCast (int[4 as int]), ::myNestedSelect (int[((1 > 0) ? 5 : 6)])}[2 in {1, 2, 3} as int];
+//
 // intent ::Foo {
 //     type ::myAliasForCast = int;
 //     type ::myNestedCast = int[4 as int];
@@ -49,6 +49,6 @@ intent Foo {}
 //     type ::myNestedSelect = int[(0 ? 5 : 6)];
 //     type ::myNestedTuple = int[1.0];
 //     type ::myNestedArray = int[2[1]];
-//     type ::complexType = {::myNestedCast, ::myNestedSelect}[3 as int];
+//     type ::complexType = {::myNestedCast (int[4 as int]), ::myNestedSelect (int[(0 ? 5 : 6)])}[3 as int];
 // }
 // >>>

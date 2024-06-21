@@ -1,7 +1,7 @@
 use crate::{
     error::CompileError,
     expr::Ident,
-    intermediate::ExprKey,
+    intermediate::{ExprKey, IntermediateIntent},
     span::{empty_span, Span, Spanned},
 };
 use abi_types::{Key, KeyedTupleField, KeyedTypeABI, TupleField, TypeABI};
@@ -128,14 +128,30 @@ impl Type {
         )
     }
 
-    pub fn is_enum(&self) -> bool {
-        check_alias!(self, is_enum, matches!(self, Type::Custom { .. }))
+    pub fn is_custom(&self) -> bool {
+        check_alias!(self, is_custom, matches!(self, Type::Custom { .. }))
     }
 
-    pub fn get_enum_name(&self) -> Option<&Path> {
-        check_alias!(self, get_enum_name, {
+    pub fn get_custom_name(&self) -> Option<&Path> {
+        check_alias!(self, get_custom_name, {
             if let Type::Custom { path, .. } = self {
                 Some(path)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn is_enum(&self, ii: &IntermediateIntent) -> bool {
+        self.get_enum_name(ii).is_some()
+    }
+
+    pub fn get_enum_name(&self, ii: &IntermediateIntent) -> Option<&Path> {
+        check_alias!(self, get_enum_name, ii, {
+            if let Type::Custom { path, .. } = self {
+                ii.enums
+                    .iter()
+                    .find_map(|EnumDecl { name, .. }| (&name.name == path).then_some(path))
             } else {
                 None
             }
@@ -378,22 +394,22 @@ impl Type {
             _ => unimplemented!("other types are not yet supported"),
         }
     }
-}
 
-impl PartialEq for Type {
-    fn eq(&self, other: &Self) -> bool {
+    pub fn eq(&self, ii: &IntermediateIntent, other: &Self) -> bool {
         match (self, other) {
             (Self::Error(_), Self::Error(_)) => true,
             (Self::Unknown(_), Self::Unknown(_)) => true,
 
-            (Self::Alias { ty: lhs_ty, .. }, rhs) => &**lhs_ty == rhs,
-            (lhs, Self::Alias { ty: rhs_ty, .. }) => lhs == &**rhs_ty,
+            (Self::Alias { ty: lhs_ty, .. }, rhs) => lhs_ty.eq(ii, rhs),
+            (lhs, Self::Alias { ty: rhs_ty, .. }) => lhs.eq(ii, rhs_ty.as_ref()),
 
             (Self::Primitive { kind: lhs, .. }, Self::Primitive { kind: rhs, .. }) => lhs == rhs,
 
             // This is sub-optimal; we're saying two arrays of the same element type are
             // equivalent, regardless of their size.
-            (Self::Array { ty: lhs_ty, .. }, Self::Array { ty: rhs_ty, .. }) => lhs_ty == rhs_ty,
+            (Self::Array { ty: lhs_ty, .. }, Self::Array { ty: rhs_ty, .. }) => {
+                lhs_ty.eq(ii, rhs_ty)
+            }
 
             (
                 Self::Tuple {
@@ -432,7 +448,7 @@ impl PartialEq for Type {
                                         .expect("have already checked is Some")
                                         .name,
                                 )
-                                .map(|lhs_ty| lhs_ty == &rhs_ty)
+                                .map(|lhs_ty| lhs_ty.eq(ii, rhs_ty))
                                 .unwrap_or(false)
                         })
                     } else {
@@ -440,13 +456,9 @@ impl PartialEq for Type {
                         lhs_fields
                             .iter()
                             .zip(rhs_fields.iter())
-                            .all(|((_, lhs_ty), (_, rhs_ty))| lhs_ty == rhs_ty)
+                            .all(|((_, lhs_ty), (_, rhs_ty))| lhs_ty.eq(ii, rhs_ty))
                     }
                 }
-            }
-
-            (Self::Custom { path: lhs_path, .. }, Self::Custom { path: rhs_path, .. }) => {
-                lhs_path == rhs_path
             }
 
             (
@@ -460,9 +472,55 @@ impl PartialEq for Type {
                     ty_to: rhs_ty_to,
                     ..
                 },
-            ) => lhs_ty_from == rhs_ty_from && lhs_ty_to == rhs_ty_to,
+            ) => lhs_ty_from.eq(ii, rhs_ty_from) && lhs_ty_to.eq(ii, rhs_ty_to),
 
-            _ => false,
+            (lhs_ty, rhs_ty) => {
+                // Custom types are tricky as they may be either aliases or enums.  Or, at this
+                // stage, we might just have two different types.
+                let mut lhs_alias_ty = None;
+                let mut lhs_enum_path = None;
+
+                if let Self::Custom { path: lhs_path, .. } = lhs_ty {
+                    lhs_alias_ty =
+                        ii.new_types
+                            .iter()
+                            .find_map(|NewTypeDecl { name, ty, .. }| {
+                                (lhs_path == &name.name).then_some(ty)
+                            });
+                    lhs_enum_path = Some(lhs_path);
+                }
+
+                if let Some(lhs_alias_ty) = lhs_alias_ty {
+                    // The LHS is an alias; recurse.
+                    return lhs_alias_ty.eq(ii, rhs_ty);
+                }
+
+                let mut rhs_alias_ty = None;
+                let mut rhs_enum_path = None;
+
+                if let Self::Custom { path: rhs_path, .. } = rhs_ty {
+                    rhs_alias_ty =
+                        ii.new_types
+                            .iter()
+                            .find_map(|NewTypeDecl { name, ty, .. }| {
+                                (rhs_path == &name.name).then_some(ty)
+                            });
+                    rhs_enum_path = Some(rhs_path);
+                }
+
+                if let Some(rhs_alias_ty) = rhs_alias_ty {
+                    // The RHS is an alias; recurse.
+                    return rhs_alias_ty.eq(ii, lhs_ty);
+                }
+
+                if let (Some(lhs_enum_path), Some(rhs_enum_path)) = (lhs_enum_path, rhs_enum_path) {
+                    // Neither are aliases but both are custom types; assume they're both enums.
+                    lhs_enum_path == rhs_enum_path
+                } else {
+                    // OK, they must just be different types.
+                    false
+                }
+            }
         }
     }
 }
@@ -496,7 +554,7 @@ impl Spanned for EnumDecl {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct NewTypeDecl {
     pub(super) name: Ident,
     pub(super) ty: Type,
@@ -509,7 +567,7 @@ impl Spanned for NewTypeDecl {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct EphemeralDecl {
     pub(super) name: String,
     pub(super) ty: Type,

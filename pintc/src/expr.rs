@@ -9,7 +9,7 @@ use fxhash::FxHashMap;
 mod display;
 pub(crate) mod evaluate;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum Expr {
     Error(Span),
     Immediate {

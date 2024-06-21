@@ -277,6 +277,12 @@ pub enum CompileError {
     IntrinsicArgMustBeStateVar { span: Span },
     #[error("binary operator type error")]
     CompareToNilError { op: &'static str, span: Span },
+    #[error("type alias refers to itself")]
+    RecursiveNewType {
+        name: String,
+        decl_span: Span,
+        use_span: Span,
+    },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -989,6 +995,23 @@ impl ReportableError for CompileError {
                 }]
             }
 
+            RecursiveNewType {
+                name,
+                decl_span,
+                use_span,
+            } => vec![
+                ErrorLabel {
+                    message: format!("type alias `{name}` is used recursively in declaration"),
+                    span: use_span.clone(),
+                    color: Color::Red,
+                },
+                ErrorLabel {
+                    message: format!("`{name}` is declared here"),
+                    span: decl_span.clone(),
+                    color: Color::Blue,
+                },
+            ],
+
             Internal { msg, span } => {
                 if span == &empty_span() {
                     Vec::new()
@@ -1160,7 +1183,8 @@ impl ReportableError for CompileError {
             | UnexpectedIntrinsicArgCount { .. }
             | IntrinsicArgMustBeStateVar { .. }
             | MismatchedIntrinsicArgType { .. }
-            | CompareToNilError { .. } => None,
+            | CompareToNilError { .. }
+            | RecursiveNewType { .. } => None,
         }
     }
 
@@ -1319,7 +1343,8 @@ impl Spanned for CompileError {
             | UnexpectedIntrinsicArgCount { span, .. }
             | MismatchedIntrinsicArgType { arg_span: span, .. }
             | IntrinsicArgMustBeStateVar { span, .. }
-            | CompareToNilError { span, .. } => span,
+            | CompareToNilError { span, .. }
+            | RecursiveNewType { use_span: span, .. } => span,
 
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }

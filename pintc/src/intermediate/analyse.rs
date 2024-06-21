@@ -8,8 +8,7 @@ use crate::{
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
-use fxhash::FxHashMap;
-use std::collections::HashSet;
+use fxhash::{FxHashMap, FxHashSet};
 
 enum Inference {
     Ignored,
@@ -38,7 +37,7 @@ impl Program {
             }
 
             ii.check_undefined_types(handler);
-            ii.lower_newtypes();
+            ii.lower_newtypes(handler)?;
             ii.type_check_all_exprs(handler);
             ii.check_inits(handler);
             ii.check_constraint_types(handler);
@@ -53,7 +52,157 @@ impl Program {
 }
 
 impl IntermediateIntent {
-    fn lower_newtypes(&mut self) {
+    fn lower_newtypes(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
+        self.check_recursive_newtypes(handler)?;
+        self.lower_newtypes_in_newtypes(handler)?;
+        self.lower_newtypes_in_program();
+
+        Ok(())
+    }
+
+    fn check_recursive_newtypes(&self, handler: &Handler) -> Result<(), ErrorEmitted> {
+        fn inspect_type_names<'a>(
+            handler: &Handler,
+            new_types: &'a [NewTypeDecl],
+            seen_names: &mut FxHashMap<&'a str, &'a Span>,
+            ty: &'a Type,
+        ) -> Result<(), ErrorEmitted> {
+            match ty {
+                Type::Custom {
+                    path,
+                    span: custom_ty_span,
+                } => {
+                    // Look-up the name to confirm it's a new-type.
+                    if let Some((new_ty, new_ty_span)) =
+                        new_types.iter().find_map(|NewTypeDecl { name, ty, span }| {
+                            (path == &name.name).then_some((ty, span))
+                        })
+                    {
+                        // This is a new-type; have we seen it before?
+                        if let Some(seen_span) = seen_names.get(path.as_str()) {
+                            // We have!  Bad news.
+                            Err(handler.emit_err(Error::Compile {
+                                error: CompileError::RecursiveNewType {
+                                    name: path.to_string(),
+                                    decl_span: (*seen_span).clone(),
+                                    use_span: custom_ty_span.clone(),
+                                },
+                            }))
+                        } else {
+                            // We need to add then remove the new path to the 'seen' list; if we
+                            // don't remove it we'll get false positives.
+                            seen_names.insert(path.as_str(), new_ty_span);
+                            let res = inspect_type_names(handler, new_types, seen_names, new_ty);
+                            seen_names.remove(path.as_str());
+                            res
+                        }
+                    } else {
+                        // Will be a path to an enum or variant.
+                        Ok(())
+                    }
+                }
+
+                Type::Array { ty, .. } => inspect_type_names(handler, new_types, seen_names, ty),
+
+                Type::Tuple { fields, .. } => fields
+                    .iter()
+                    .try_for_each(|(_, ty)| inspect_type_names(handler, new_types, seen_names, ty)),
+
+                Type::Alias { ty, .. } => inspect_type_names(handler, new_types, seen_names, ty),
+
+                Type::Map { ty_from, ty_to, .. } => {
+                    inspect_type_names(handler, new_types, seen_names, ty_from)?;
+                    inspect_type_names(handler, new_types, seen_names, ty_to)
+                }
+
+                Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } => Ok(()),
+            }
+        }
+
+        for NewTypeDecl { name, ty, span } in &self.new_types {
+            let mut seen_names = FxHashMap::from_iter(std::iter::once((name.name.as_str(), span)));
+
+            let _ = inspect_type_names(handler, &self.new_types, &mut seen_names, ty);
+        }
+
+        if handler.has_errors() {
+            Err(handler.cancel())
+        } else {
+            Ok(())
+        }
+    }
+
+    fn lower_newtypes_in_newtypes(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
+        // Search for a custom type with a specific name and return a mut ref to it.
+        fn get_custom_type_mut_ref<'a>(
+            custom_path: &str,
+            ty: &'a mut Type,
+        ) -> Option<&'a mut Type> {
+            match ty {
+                Type::Custom { path, .. } => (path == custom_path).then_some(ty),
+
+                Type::Array { ty, .. } => get_custom_type_mut_ref(custom_path, ty),
+
+                Type::Tuple { fields, .. } => fields
+                    .iter_mut()
+                    .find_map(|(_, fld_ty)| get_custom_type_mut_ref(custom_path, fld_ty)),
+
+                Type::Alias { ty, .. } => get_custom_type_mut_ref(custom_path, ty),
+
+                Type::Map { ty_from, ty_to, .. } => get_custom_type_mut_ref(custom_path, ty_from)
+                    .or_else(|| get_custom_type_mut_ref(custom_path, ty_to)),
+
+                Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } => None,
+            }
+        }
+
+        // Any custom types referred to *within new types* need to be converted to type aliases.
+        // E.g.,
+        //   type A = int;
+        //   type B = { A, A };
+        //   // B will have `Type::Custom("A")` which need to be `Type::Alias("A", int)`
+
+        for new_type_idx in 0..self.new_types.len() {
+            // We're replacing only a single new type at a time, if found in other new-types.
+            let new_type = self.new_types[new_type_idx].clone();
+
+            // Replace the next found custom type which needs to be replaced with a an alias.
+            // There may be multiple replacements required per iteration, so we'll visit every
+            // current new-type decl per iteration until none are updated.
+            for loop_check in 0.. {
+                let mut modified = false;
+
+                for NewTypeDecl { ref mut ty, .. } in &mut self.new_types {
+                    if let Some(custom_ty) = get_custom_type_mut_ref(&new_type.name.name, ty) {
+                        *custom_ty = Type::Alias {
+                            path: new_type.name.name.clone(),
+                            ty: Box::new(new_type.ty.clone()),
+                            span: new_type.span.clone(),
+                        };
+
+                        modified = true;
+                    }
+                }
+
+                if !modified {
+                    break;
+                }
+
+                if loop_check > 10_000 {
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "infinite loop in lower_newtypes_in_newtypes()",
+                            span: empty_span(),
+                        },
+                    }));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn lower_newtypes_in_program(&mut self) {
         use std::borrow::BorrowMut;
 
         fn replace_custom_type(new_types: &[NewTypeDecl], ty: &mut Type) {
@@ -72,6 +221,8 @@ impl IntermediateIntent {
                     }
                 }
 
+                Type::Alias { ty, .. } => replace_custom_type(new_types, ty),
+
                 Type::Array { ty, .. } => {
                     replace_custom_type(new_types, ty.borrow_mut());
                 }
@@ -87,13 +238,12 @@ impl IntermediateIntent {
                     replace_custom_type(new_types, ty_to);
                 }
 
-                Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } | Type::Alias { .. } => {
-                }
+                Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } => {}
             }
         }
 
-        // Loop for every known var or state type, or any `as` cast expr, and replace any custom
-        // types which match with the type alias.
+        // Then, loop for every known var or state type, or any `as` cast expr, and replace any
+        // custom types which match with the type alias.
         self.vars
             .update_types(|_, ty| replace_custom_type(&self.new_types, ty));
 
@@ -108,7 +258,7 @@ impl IntermediateIntent {
     }
 
     fn check_undefined_types(&mut self, handler: &Handler) {
-        let valid_custom_tys: HashSet<&String> = HashSet::from_iter(
+        let valid_custom_tys: FxHashSet<&String> = FxHashSet::from_iter(
             self.enums
                 .iter()
                 .map(|ed| &ed.name.name)
@@ -393,7 +543,7 @@ impl IntermediateIntent {
             if !state_ty.is_unknown() {
                 let expr_ty = state.expr.get_ty(self);
                 if !expr_ty.is_unknown() {
-                    if state_ty != expr_ty {
+                    if !state_ty.eq(self, expr_ty) {
                         handler.emit_err(Error::Compile {
                             error: CompileError::StateVarInitTypeError {
                                 large_err: Box::new(LargeTypeError::StateVarInitTypeError {
@@ -449,7 +599,7 @@ impl IntermediateIntent {
 
         // Last thing we have to do is to type check all the range expressions in array types and
         // make sure they are integers or enums
-        let mut checked_range_exprs = HashSet::new();
+        let mut checked_range_exprs = FxHashSet::default();
         for range_expr in self
             .vars()
             .filter_map(|(var_key, _)| var_key.get_ty(self).get_array_range_expr())
@@ -467,7 +617,7 @@ impl IntermediateIntent {
             if let Err(err) = self.type_check_next_expr(*range_expr) {
                 handler.emit_err(err);
             } else if !(range_expr.get_ty(self).is_int()
-                || range_expr.get_ty(self).is_enum()
+                || range_expr.get_ty(self).is_enum(self)
                 || checked_range_exprs.contains(range_expr))
             {
                 handler.emit_err(Error::Compile {
@@ -697,7 +847,7 @@ impl IntermediateIntent {
 
             el_imms.iter().try_for_each(|el_imm| {
                 let el_ty = el_imm.get_ty(None);
-                if &el_ty != el0_ty.as_ref() {
+                if !el_ty.eq(self, el0_ty.as_ref()) {
                     Err(Error::Compile {
                         error: CompileError::NonHomogeneousArrayElement {
                             expected_ty: self.with_ii(el0_ty.as_ref()).to_string(),
@@ -1103,7 +1253,7 @@ impl IntermediateIntent {
                         }),
                     },
                 })
-            } else if lhs_ty != rhs_ty {
+            } else if !lhs_ty.eq(self, rhs_ty) {
                 // Here we assume the LHS is the 'correct' type.
                 Err(Error::Compile {
                     error: CompileError::OperatorTypeError {
@@ -1179,7 +1329,7 @@ impl IntermediateIntent {
                         // which we check for type mismatches elsewhere, and emit a much better
                         // error then.
                         let mut is_init_constraint = false;
-                        if &lhs_ty != rhs_ty
+                        if !lhs_ty.eq(self, rhs_ty)
                             && op == BinaryOp::Equal
                             && self
                                 .var_inits
@@ -1191,7 +1341,7 @@ impl IntermediateIntent {
 
                         // Both args must be equatable, which at this stage is any type; binary op
                         // type is bool.
-                        if &lhs_ty != rhs_ty
+                        if !lhs_ty.eq(self, rhs_ty)
                             && !lhs_ty.is_nil()
                             && !rhs_ty.is_nil()
                             && !is_init_constraint
@@ -1291,7 +1441,7 @@ impl IntermediateIntent {
                 })
             } else if !then_ty.is_unknown() {
                 if !else_ty.is_unknown() {
-                    if then_ty == else_ty {
+                    if then_ty.eq(self, else_ty) {
                         Ok(Inference::Type(then_ty.clone()))
                     } else {
                         Err(Error::Compile {
@@ -1327,7 +1477,7 @@ impl IntermediateIntent {
         let ub_ty = upper_bound_key.get_ty(self);
         if !lb_ty.is_unknown() {
             if !ub_ty.is_unknown() {
-                if lb_ty != ub_ty {
+                if !lb_ty.eq(self, ub_ty) {
                     Err(Error::Compile {
                         error: CompileError::RangeTypesMismatch {
                             lb_ty: self.with_ii(lb_ty).to_string(),
@@ -1378,7 +1528,7 @@ impl IntermediateIntent {
                 })
             } else if (to_ty.is_int()
                 && !from_ty.is_int()
-                && !from_ty.is_enum()
+                && !from_ty.is_enum(self)
                 && !from_ty.is_bool())
                 || (to_ty.is_real() && !from_ty.is_int() && !from_ty.is_real())
             {
@@ -1411,7 +1561,7 @@ impl IntermediateIntent {
         if !value_ty.is_unknown() {
             if !collection_ty.is_unknown() {
                 if collection_ty.is_num() {
-                    if value_ty != collection_ty {
+                    if !value_ty.eq(self, collection_ty) {
                         Err(Error::Compile {
                             error: CompileError::InExprTypesMismatch {
                                 val_ty: self.with_ii(value_ty).to_string(),
@@ -1426,7 +1576,7 @@ impl IntermediateIntent {
                         }))
                     }
                 } else if let Some(el_ty) = collection_ty.get_array_el_type() {
-                    if value_ty != el_ty {
+                    if !value_ty.eq(self, el_ty) {
                         Err(Error::Compile {
                             error: CompileError::InExprTypesArrayMismatch {
                                 val_ty: self.with_ii(value_ty).to_string(),
@@ -1480,7 +1630,7 @@ impl IntermediateIntent {
             for el_key in elements {
                 let el_ty = el_key.get_ty(self);
                 if !el_ty.is_unknown() {
-                    if el_ty != el0_ty {
+                    if !el_ty.eq(self, el0_ty) {
                         return Err(Error::Compile {
                             error: CompileError::NonHomogeneousArrayElement {
                                 expected_ty: self.with_ii(&el0_ty).to_string(),
@@ -1537,7 +1687,7 @@ impl IntermediateIntent {
                 return Ok(Inference::Dependant(range_expr_key));
             }
 
-            if (!index_ty.is_int() && !index_ty.is_enum()) || index_ty != range_ty {
+            if (!index_ty.is_int() && !index_ty.is_enum(self)) || !index_ty.eq(self, range_ty) {
                 Err(Error::Compile {
                     error: CompileError::ArrayAccessWithWrongType {
                         found_ty: self.with_ii(index_ty).to_string(),
@@ -1558,7 +1708,7 @@ impl IntermediateIntent {
             }
         } else if let Some(from_ty) = ary_ty.get_map_ty_from() {
             // Is this a storage map?
-            if from_ty != index_ty {
+            if !from_ty.eq(self, index_ty) {
                 Err(Error::Compile {
                     error: CompileError::StorageMapAccessWithWrongType {
                         found_ty: self.with_ii(index_ty).to_string(),
@@ -1752,7 +1902,7 @@ impl IntermediateIntent {
             if !var_decl_ty.is_unknown() {
                 let init_ty = init_expr_key.get_ty(self);
 
-                if var_decl_ty != init_ty {
+                if !var_decl_ty.eq(self, init_ty) {
                     handler.emit_err(Error::Compile {
                         error: CompileError::InitTypeError {
                             init_kind: "variable",
@@ -1786,7 +1936,7 @@ impl IntermediateIntent {
         } in self.consts.values()
         {
             let init_ty = init_expr_key.get_ty(self);
-            if init_ty != decl_ty {
+            if !init_ty.eq(self, decl_ty) {
                 handler.emit_err(Error::Compile {
                     error: CompileError::InitTypeError {
                         init_kind: "const",

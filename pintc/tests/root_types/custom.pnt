@@ -5,18 +5,18 @@ intent Foo {}
 
 // flattened <<<
 // type ::myAlias = int;
-// type ::myCustom = ::myAlias;
-// 
+// type ::myCustom = ::myAlias (int);
+//
 // intent ::Foo {
 //     type ::myAlias = int;
-//     type ::myCustom = ::myAlias;
+//     type ::myCustom = ::myAlias (int);
 // }
 // >>>
 
 // intermediate <<<
 // type ::myAlias = int;
 // type ::myCustom = ::myAlias;
-// 
+//
 // intent ::Foo {
 //     type ::myAlias = int;
 //     type ::myCustom = ::myAlias;
