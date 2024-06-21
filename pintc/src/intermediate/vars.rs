@@ -1,6 +1,6 @@
 use super::{DisplayWithII, Ident, IntermediateIntent};
 use crate::{
-    error::{ErrorEmitted, Handler},
+    error::{CompileError, ErrorEmitted, Handler},
     span::Span,
     types::{Path, Type},
 };
@@ -100,11 +100,11 @@ impl VarKey {
     }
 
     /// Generate a `VarABI` given a `VarKey` and an `IntermediateIntent`
-    pub fn abi(&self, ii: &IntermediateIntent) -> VarABI {
-        VarABI {
+    pub fn abi(&self, ii: &IntermediateIntent) -> Result<VarABI, CompileError> {
+        Ok(VarABI {
             name: self.get(ii).name.clone(),
-            ty: self.get_ty(ii).abi(),
-        }
+            ty: self.get_ty(ii).abi()?,
+        })
     }
 }
 

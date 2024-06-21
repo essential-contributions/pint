@@ -1,5 +1,5 @@
 use crate::{
-    error::{Error, ErrorEmitted, Handler, ParseError},
+    error::{CompileError, Error, ErrorEmitted, Handler, ParseError},
     expr::{self, Expr, Ident},
     span::Span,
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type},
@@ -65,25 +65,38 @@ impl Program {
     }
 
     /// Generates a `ProgramABI` given a `Program`
-    pub fn abi(&self) -> ProgramABI {
-        let root_ii = self.root_ii();
-        ProgramABI {
-            intents: self.iis.values().map(|ii| ii.abi()).collect(),
-            storage: root_ii
+    pub fn abi(&self) -> Result<ProgramABI, CompileError> {
+        Ok(ProgramABI {
+            intents: self
+                .iis
+                .values()
+                .map(|ii| ii.abi())
+                .collect::<Result<_, _>>()?,
+            storage: self
+                .root_ii()
                 .storage
                 .as_ref()
                 .map(|(storage, _)| {
                     storage
                         .iter()
                         .enumerate()
-                        .map(|(index, StorageVar { name, ty, .. })| KeyedVarABI {
-                            name: name.to_string(),
-                            ty: ty.abi_with_key(vec![Some(index)]),
+                        .map(|(index, StorageVar { name, ty, .. })| {
+                            // The key of `ty` is either the `index` if the storage type is
+                            // primitive or a map, or it's `[index, 0]`. The `0` here is a
+                            // placeholder for offsets.
+                            Ok(KeyedVarABI {
+                                name: name.to_string(),
+                                ty: if ty.is_any_primitive() || ty.is_map() {
+                                    ty.abi_with_key(vec![Some(index)])?
+                                } else {
+                                    ty.abi_with_key(vec![Some(index), Some(0)])?
+                                },
+                            })
                         })
-                        .collect::<Vec<_>>()
+                        .collect::<Result<_, _>>()
                 })
-                .unwrap_or_default(),
-        }
+                .unwrap_or(Ok(vec![]))?,
+        })
     }
 }
 
@@ -151,24 +164,26 @@ impl IntermediateIntent {
     }
 
     /// Generate a `IntentABI` given an `IntermediateIntent`
-    pub fn abi(&self) -> IntentABI {
-        IntentABI {
+    pub fn abi(&self) -> Result<IntentABI, CompileError> {
+        Ok(IntentABI {
             name: self.name.clone(),
             vars: self
                 .vars()
                 .filter(|(_, var)| !var.is_pub)
                 .map(|(var_key, _)| var_key.abi(self))
-                .collect(),
+                .collect::<Result<_, _>>()?,
             pub_vars: self
                 .vars()
                 .filter(|(_, var)| var.is_pub)
                 .enumerate()
-                .map(|(index, (var_key, Var { name, .. }))| KeyedVarABI {
-                    name: name.to_string(),
-                    ty: var_key.get_ty(self).abi_with_key(vec![Some(index)]),
+                .map(|(index, (var_key, Var { name, .. }))| {
+                    Ok(KeyedVarABI {
+                        name: name.to_string(),
+                        ty: var_key.get_ty(self).abi_with_key(vec![Some(index)])?,
+                    })
                 })
-                .collect::<Vec<_>>(),
-        }
+                .collect::<Result<Vec<_>, _>>()?,
+        })
     }
 
     /// Helps out some `thing: T` by adding `self` as context.

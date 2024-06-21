@@ -68,7 +68,7 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
 
             if let Ok(mut file) = File::open(&path) {
                 // The JSON ABI of the produce program
-                let json_abi = serde_json::to_string_pretty(&program.abi())?;
+                let json_abi = serde_json::to_string_pretty(&program.abi().unwrap())?;
 
                 // The JSON ABI from the reference file
                 let mut json_abi_reference = String::new();
