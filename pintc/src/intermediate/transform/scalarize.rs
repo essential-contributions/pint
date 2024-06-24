@@ -3,7 +3,7 @@ use crate::{
     expr::{evaluate::Evaluator, BinaryOp, Immediate, TupleAccess},
     intermediate::{Expr, ExprKey, IntermediateIntent, Var, VarKey},
     span::{empty_span, Span, Spanned},
-    types::{PrimitiveKind, Type},
+    types::{NewTypeDecl, PrimitiveKind, Type},
 };
 use std::collections::BTreeMap;
 
@@ -98,7 +98,7 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
         // the new element type in the parent array.
         if el_ty.is_array() {
             let Some((inner_el_ty, inner_range_key, inner_size, inner_span)) =
-                get_array_params(&el_ty)
+                get_array_params(ii, &el_ty)
             else {
                 return Err(handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
@@ -112,7 +112,7 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
                 el_ty = fix_array_size(
                     handler,
                     ii,
-                    inner_el_ty.clone(),
+                    inner_el_ty,
                     *inner_range_key,
                     inner_span.clone(),
                 )?;
@@ -172,9 +172,9 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
         ($iter: expr, $key_ty: ty) => {
             let candidates: Vec<($key_ty, Type, Option<ExprKey>, Span)> = $iter
                 .filter_map(|key| {
-                    get_array_params(key.get_ty(ii)).and_then(|(el_ty, range, size, span)| {
+                    get_array_params(ii, key.get_ty(ii)).and_then(|(el_ty, range, size, span)| {
                         // Only collect if size is None.
-                        (size.is_none()).then(|| (key, el_ty.clone(), *range, span.clone()))
+                        (size.is_none()).then(|| (key, el_ty, *range, span.clone()))
                     })
                 })
                 .collect();
@@ -220,9 +220,8 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
     // Find the next array variable to convert.
     let Some((array_var_key, el_ty, array_size, span)) = ii.vars().find_map(|(var_key, _)| {
         let var_ty = var_key.get_ty(ii);
-        get_array_params(var_ty).map(|(el_ty, _range, array_size, span)| {
-            (var_key, el_ty.clone(), *array_size, span.clone())
-        })
+        get_array_params(ii, var_ty)
+            .map(|(el_ty, _range, array_size, span)| (var_key, el_ty, *array_size, span.clone()))
     }) else {
         // No array vars found.
         return Ok(false);
@@ -436,15 +435,53 @@ fn scalarize_array_access(
     Ok(())
 }
 
-fn get_array_params(ary_ty: &Type) -> Option<(&Type, &Option<ExprKey>, &Option<i64>, &Span)> {
+fn get_array_params<'a>(
+    ii: &IntermediateIntent,
+    ary_ty: &'a Type,
+) -> Option<(Type, &'a Option<ExprKey>, &'a Option<i64>, &'a Span)> {
     match ary_ty {
-        Type::Alias { ty, .. } => get_array_params(ty),
+        Type::Alias { ty, .. } => get_array_params(ii, ty),
+
         Type::Array {
             ty,
             range,
             size,
             span,
-        } => Some((ty, range, size, span)),
+        } => {
+            // OK, this is a bit ridiculous, but I'm adding this here because this scalarising pass
+            // is due to be removed anyway.  If the element type of the arrays is an alias or a
+            // custom type referring to an alias then we need to return the actual type.  There
+            // shouldn't be any custom types after type-checking though...
+            let mut el_ty = *ty.clone();
+            loop {
+                match el_ty {
+                    Type::Alias { ty, .. } => el_ty = *ty,
+
+                    Type::Custom { ref path, .. } => {
+                        if let Some(ty) =
+                            ii.new_types
+                                .iter()
+                                .find_map(|NewTypeDecl { name, ty, .. }| {
+                                    (path == &name.name).then_some(ty)
+                                })
+                        {
+                            el_ty = ty.clone();
+                        } else {
+                            break;
+                        }
+                    }
+
+                    Type::Error(_)
+                    | Type::Unknown(_)
+                    | Type::Primitive { .. }
+                    | Type::Array { .. }
+                    | Type::Tuple { .. }
+                    | Type::Map { .. } => break,
+                }
+            }
+            Some((el_ty, range, size, span))
+        }
+
         _ => None,
     }
 }
@@ -474,8 +511,8 @@ fn lower_array_compares(
                         Expr::IntrinsicCall { .. } | Expr::Select { .. }
                     ) =>
             {
-                get_array_params(lhs.get_ty(ii)).and_then(|(lhs_el_ty, _, lhs_opt_size, _)| {
-                    get_array_params(rhs.get_ty(ii)).map(|(_rhs_el_ty, _, rhs_opt_size, _)| {
+                get_array_params(ii, lhs.get_ty(ii)).and_then(|(lhs_el_ty, _, lhs_opt_size, _)| {
+                    get_array_params(ii, rhs.get_ty(ii)).map(|(_rhs_el_ty, _, rhs_opt_size, _)| {
                         // Save all the details.
                         (
                             expr_key,
@@ -484,7 +521,7 @@ fn lower_array_compares(
                             *lhs_opt_size,
                             *rhs,
                             *rhs_opt_size,
-                            lhs_el_ty.clone(),
+                            lhs_el_ty,
                             span.clone(),
                         )
                     })

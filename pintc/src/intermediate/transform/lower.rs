@@ -32,7 +32,7 @@ pub(crate) fn lower_enums(
             ii.new_types
                 .iter()
                 .find_map(|NewTypeDecl { name, ty, .. }| {
-                    (ty.get_enum_name() == Some(&e.name.name)).then_some(&name.name)
+                    (ty.get_enum_name(ii) == Some(&e.name.name)).then_some(&name.name)
                 })
         {
             add_variants(e, alias_name);
@@ -76,12 +76,12 @@ pub(crate) fn lower_enums(
     for var_key in ii
         .vars()
         .map(|(var_key, _)| var_key)
-        .filter(|var_key| var_key.get_ty(ii).is_enum())
+        .filter(|var_key| var_key.get_ty(ii).is_enum(ii))
         .collect::<Vec<_>>()
     {
         // Add the constraint.  Get the variant max for this enum first.
-        let ty = var_key.get_ty(ii).clone();
-        let variant_max = match variant_count_map.get(ty.get_enum_name().unwrap()) {
+        let enum_ty = var_key.get_ty(ii).clone();
+        let variant_max = match variant_count_map.get(enum_ty.get_enum_name(ii).unwrap()) {
             Some(c) => *c as i64 - 1,
             None => {
                 return Err(handler.emit_err(Error::Compile {
@@ -143,23 +143,27 @@ pub(crate) fn lower_enums(
         });
 
         // Replace the type.
-        ii.exprs.update_types(|_, expr_type| {
-            if ty == *expr_type {
-                *expr_type = int_ty.clone();
-            }
-        });
+        let exprs_with_enum_ty = ii
+            .exprs()
+            .filter(|expr_key| expr_key.get_ty(ii).eq(ii, &enum_ty))
+            .collect::<Vec<_>>();
+        for enum_expr_key in exprs_with_enum_ty {
+            enum_expr_key.set_ty(int_ty.clone(), ii);
+        }
     }
 
     // Now do the actual type update from enum to int
-    ii.vars.update_types(|_, ty| {
-        if ty.is_enum() {
-            *ty = int_ty.clone()
-        }
-    });
+    let vars_with_enum_ty = ii
+        .vars()
+        .filter_map(|(var_key, _)| (var_key.get_ty(ii).is_enum(ii)).then_some(var_key))
+        .collect::<Vec<_>>();
+    for enum_var_key in vars_with_enum_ty {
+        enum_var_key.set_ty(int_ty.clone(), ii);
+    }
 
     // Not sure at this stage if we'll ever allow state to be an enum.
     for (state_key, _) in ii.states() {
-        if state_key.get_ty(ii).is_enum() {
+        if state_key.get_ty(ii).is_enum(ii) {
             return Err(handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "found state with an enum type",
@@ -252,31 +256,48 @@ pub(crate) fn lower_casts(
 pub(crate) fn lower_aliases(ii: &mut IntermediateIntent) {
     use std::borrow::BorrowMut;
 
-    fn replace_alias(old_ty: &mut Type) {
+    let new_types = FxHashMap::from_iter(
+        ii.new_types
+            .iter()
+            .map(|NewTypeDecl { name, ty, .. }| (name.name.clone(), ty.clone())),
+    );
+
+    fn replace_alias(new_types_map: &FxHashMap<String, Type>, old_ty: &mut Type) {
         match old_ty {
             Type::Alias { ty, .. } => {
                 *old_ty = *ty.clone();
             }
 
-            Type::Array { ty, .. } => replace_alias(ty),
-            Type::Tuple { fields, .. } => fields.iter_mut().for_each(|(_, ty)| replace_alias(ty)),
-            Type::Map { ty_from, ty_to, .. } => {
-                replace_alias(ty_from);
-                replace_alias(ty_to);
+            Type::Custom { path, .. } => {
+                if let Some(ty) = new_types_map.get(path) {
+                    *old_ty = ty.clone();
+                }
             }
 
-            Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } | Type::Custom { .. } => {}
+            Type::Array { ty, .. } => replace_alias(new_types_map, ty),
+            Type::Tuple { fields, .. } => fields
+                .iter_mut()
+                .for_each(|(_, ty)| replace_alias(new_types_map, ty)),
+            Type::Map { ty_from, ty_to, .. } => {
+                replace_alias(new_types_map, ty_from);
+                replace_alias(new_types_map, ty_to);
+            }
+
+            Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } => {}
         }
     }
 
     // Replace aliases with the actual type.
-    ii.vars.update_types(|_, var| replace_alias(var));
-    ii.states.update_types(|_, state| replace_alias(state));
-    ii.exprs.update_types(|_, expr| replace_alias(expr));
+    ii.vars
+        .update_types(|_, var| replace_alias(&new_types, var));
+    ii.states
+        .update_types(|_, state| replace_alias(&new_types, state));
+    ii.exprs
+        .update_types(|_, expr| replace_alias(&new_types, expr));
 
     ii.exprs.update_exprs(|_, expr| {
         if let Expr::Cast { ty, .. } = expr {
-            replace_alias(ty.borrow_mut());
+            replace_alias(&new_types, ty.borrow_mut());
         }
     });
 }

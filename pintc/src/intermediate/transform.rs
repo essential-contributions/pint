@@ -66,6 +66,8 @@ impl super::Program {
             // Scalarize after lowering enums so we only have to deal with integer indices and
             // then lower array and tuple accesses into immediates.  After here there will no
             // longer be aggregate types.
+            //
+            // EXCEPT WE'RE NOW LOWERING ENUMS NEXT.  SCALARISING WILL BE REMOVED SOON.
             let _ = scalarize(handler, ii);
 
             // Transform each enum variant into its integer discriminant

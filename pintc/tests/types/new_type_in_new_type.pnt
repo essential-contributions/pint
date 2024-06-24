@@ -1,0 +1,39 @@
+type A = int;
+type B = A[2];
+type C = { A, A };
+type D = { C, C };
+
+var x: B;
+var y: D;
+constraint x[1] == 11;
+constraint y.1.0 == 22;
+
+solve satisfy;
+
+// intermediate <<<
+// var ::x: ::B;
+// var ::y: ::D;
+// type ::A = int;
+// type ::B = ::A[2];
+// type ::C = {::A, ::A};
+// type ::D = {::C, ::C};
+// constraint (::x[1] == 11);
+// constraint (::y.1.0 == 22);
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// var ::x[0]: int;
+// var ::x[1]: int;
+// var ::y.0.0: int;
+// var ::y.0.1: int;
+// var ::y.1.0: int;
+// var ::y.1.1: int;
+// type ::A = int;
+// type ::B = ::A (int)[2];
+// type ::C = {::A (int), ::A (int)};
+// type ::D = {::C ({::A (int), ::A (int)}), ::C ({::A (int), ::A (int)})};
+// constraint (::x[1] == 11);
+// constraint (::y.1.0 == 22);
+// solve satisfy;
+// >>>
