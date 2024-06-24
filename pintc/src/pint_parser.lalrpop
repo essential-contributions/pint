@@ -652,46 +652,6 @@ AsOp: ExprKey = {
             Type::Unknown(span),
         )
      },
-    <TupleFieldOp>,
-};
-
-TupleFieldOp: ExprKey = {
-    <l:@L> <tuple:TupleFieldOp> "." <name:Ident> <r:@R> => {
-        context.parse_tuple_field_op_with_ident(tuple, name, (l, r))
-    },
-    <l:@L> <tuple:TupleFieldOp> "." <m:@L> <num_str:"int_lit"> <r:@R> => {
-        context.parse_tuple_field_op_with_int(handler, tuple, num_str, (l, m, r))
-    },
-    <l:@L> <tuple:TupleFieldOp> "." <m:@L> <num_str:"real_lit"> <r:@R> => {
-        context.parse_tuple_field_op_with_real(handler, tuple, num_str, (l, m, r))
-    },
-    <IndexOp>,
-};
-
-IndexOp: ExprKey = {
-    <l:@L> <expr:IndexOp> "[" <index:Expr> "]" <r:@R> => {
-        let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(
-            Expr::Index {
-                expr,
-                index,
-                span: span.clone(),
-            },
-            Type::Unknown(span),
-        )
-    },
-    <l:@L> <expr:IndexOp> "[" "]" <r:@R> => {
-        let span = (context.span_from)(l, r);
-        handler.emit_err(Error::Parse {
-            error: ParseError::EmptyIndexAccess { span: span.clone() },
-        });
-
-        // Recover with a malformed expression
-        context
-            .current_ii()
-            .exprs
-            .insert(Expr::Error(span.clone()), Type::Unknown(span))
-    },
     <PrimeOp>,
 };
 
@@ -710,6 +670,19 @@ PrimeOp: ExprKey = {
     <UnaryOp>,
 }
 
+UnaryOpOp: UnaryOp = {
+    <l:@L> "+" <r:@R> => {
+        handler.emit_err(Error::Parse {
+            error: ParseError::UnsupportedLeadingPlus {
+                span: (context.span_from)(l, r),
+            },
+        });
+        UnaryOp::Error
+    },
+    "-" => UnaryOp::Neg,
+    "!" => UnaryOp::Not,
+};
+
 UnaryOp: ExprKey = {
     <l:@L> <op:UnaryOpOp> <expr:UnaryOp> <r:@R> => {
         let span = (context.span_from)(l, r);
@@ -722,20 +695,43 @@ UnaryOp: ExprKey = {
             Type::Unknown(span),
         )
     },
-    <Term>,
+    <TupleFieldOpOrIndexOp>,
 };
 
-UnaryOpOp: UnaryOp = {
-    <l:@L> "+" <r:@R> => {
-        handler.emit_err(Error::Parse {
-            error: ParseError::UnsupportedLeadingPlus {
-                span: (context.span_from)(l, r),
+TupleFieldOpOrIndexOp: ExprKey = {
+    <l:@L> <expr:TupleFieldOpOrIndexOp> "[" <index:Expr> "]" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context.current_ii().exprs.insert(
+            Expr::Index {
+                expr,
+                index,
+                span: span.clone(),
             },
-        });
-        UnaryOp::Error
+            Type::Unknown(span),
+        )
     },
-    "-" => UnaryOp::Neg,
-    "!" => UnaryOp::Not,
+    <l:@L> <expr:TupleFieldOpOrIndexOp> "[" "]" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        handler.emit_err(Error::Parse {
+            error: ParseError::EmptyIndexAccess { span: span.clone() },
+        });
+
+        // Recover with a malformed expression
+        context
+            .current_ii()
+            .exprs
+            .insert(Expr::Error(span.clone()), Type::Unknown(span))
+    },
+    <l:@L> <tuple:TupleFieldOpOrIndexOp> "." <name:Ident> <r:@R> => {
+        context.parse_tuple_field_op_with_ident(tuple, name, (l, r))
+    },
+    <l:@L> <tuple:TupleFieldOpOrIndexOp> "." <m:@L> <num_str:"int_lit"> <r:@R> => {
+        context.parse_tuple_field_op_with_int(handler, tuple, num_str, (l, m, r))
+    },
+    <l:@L> <tuple:TupleFieldOpOrIndexOp> "." <m:@L> <num_str:"real_lit"> <r:@R> => {
+        context.parse_tuple_field_op_with_real(handler, tuple, num_str, (l, m, r))
+    },
+    <Term>,
 };
 
 Term: ExprKey = {

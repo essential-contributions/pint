@@ -82,7 +82,7 @@ const next_count = counts[default_idx + 1];
 const min_size = { valid: true, size: 10 };
 
 var my_size: int;
-constraint !(min_size.valid) || my_size >= min_size.size;
+constraint !min_size.valid || my_size >= min_size.size;
 // ANCHOR_END: const_compound_types
 
 solve satisfy;
