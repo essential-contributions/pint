@@ -313,7 +313,7 @@ const next_count = counts[default_idx + 1];
 const min_size = { valid: true, size: 10 };
 
 var my_size: int;
-constraint !(min_size.valid) || my_size &gt;= min_size.size;
+constraint !min_size.valid || my_size &gt;= min_size.size;
 </code></pre>
 <p>In the above example <code>next_count</code> is evaluated at compile time to be fixed as 40.</p>
 <p>The <code>min_size</code> tuple is adding a flag to a value to mark whether it should be used or not in a
