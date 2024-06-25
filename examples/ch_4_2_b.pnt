@@ -4,11 +4,11 @@ interface ExternalContract {
         // storage variables
     }
 
-    intent Foo {
+    predicate Foo {
         // all **public** decision variables     
     }
 
-    intent Bar {
+    predicate Bar {
         // all **public** decision variables     
     }
 

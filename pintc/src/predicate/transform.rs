@@ -35,7 +35,7 @@ mod validate;
 
 use crate::{
     error::{ErrorEmitted, Handler},
-    intermediate::Const,
+    predicate::Const,
 };
 use canonicalize_solve_directive::canonicalize_solve_directive;
 use lower::{
@@ -48,7 +48,7 @@ use validate::validate;
 
 impl super::Program {
     pub fn flatten(mut self, handler: &Handler) -> Result<Self, ErrorEmitted> {
-        // Copy the const expressions themselves out of the root II.  This is to avoid the need to
+        // Copy the const expressions themselves out of the root Pred.  This is to avoid the need to
         // borrow them below for replace_const_refs().
         let const_exprs = self
             .consts
@@ -57,61 +57,61 @@ impl super::Program {
                 (
                     path.clone(),
                     *expr,
-                    expr.get(self.root_ii()).clone(),
+                    expr.get(self.root_pred()).clone(),
                     decl_ty.clone(),
                 )
             })
             .collect::<Vec<_>>();
 
-        for ii in self.iis.values_mut() {
+        for pred in self.preds.values_mut() {
             // Plug const decls in everywhere so they maybe lowered below.
-            replace_const_refs(ii, &const_exprs);
+            replace_const_refs(pred, &const_exprs);
 
             // Transform each if declaration into a collection of constraints We do this early so
             // that we don't have to worry about `if` declarations in any of the later passes. All
             // other passes are safe to assume that `if` declarations and their content have
             // already been converted to raw constraints.
-            lower_ifs(ii);
+            lower_ifs(pred);
 
-            let _ = lower_compares_to_nil(handler, ii);
+            let _ = lower_compares_to_nil(handler, pred);
 
             // Unroll each generator into one large conjuction
-            let _ = handler.scope(|handler| unroll_generators(handler, ii));
+            let _ = handler.scope(|handler| unroll_generators(handler, pred));
 
             // Lower `in` expressions into more explicit comparisons.
-            let _ = lower_ins(handler, ii);
+            let _ = lower_ins(handler, pred);
 
             // Scalarize after lowering enums so we only have to deal with integer indices and
             // then lower array and tuple accesses into immediates.  After here there will no
             // longer be aggregate types.
             //
             // EXCEPT WE'RE NOW LOWERING ENUMS NEXT.  SCALARISING WILL BE REMOVED SOON.
-            let _ = scalarize(handler, ii);
+            let _ = scalarize(handler, pred);
 
             // Transform each enum variant into its integer discriminant
-            let _ = lower_enums(handler, ii);
+            let _ = lower_enums(handler, pred);
 
-            let _ = lower_imm_accesses(handler, ii);
+            let _ = lower_imm_accesses(handler, pred);
 
             // Lower bools after scalarization since it creates new comparison expressions
             // which will return bools.
-            lower_bools(ii);
+            lower_bools(pred);
 
             // This could be done straight after type checking but any error which prints the
             // type until now will have the more informative aliased description.  e.g.,
             // `Height (int)` rather than just `int`.
-            lower_aliases(ii);
+            lower_aliases(pred);
 
             // Lower casts after aliases since we're leaving `int -> real` behind, but it's
             // much easier if the `real` isn't still an alias.
-            let _ = lower_casts(handler, ii);
+            let _ = lower_casts(handler, pred);
         }
 
         // Transform the objective function, if present, into a path to a new variable that is
         // equal to the objective function expression.
         let _ = canonicalize_solve_directive(handler, &mut self);
 
-        // Ensure that the final intermediate intents is indeed final
+        // Ensure that the final program is indeed final
         if !handler.has_errors() {
             let _ = validate(handler, &mut self);
         }

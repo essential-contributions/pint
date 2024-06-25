@@ -16,7 +16,7 @@ interface Bar {
     }
 }
 
-intent Foo {
+predicate Foo {
     interface BarInstance = Bar(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE);
 
     state address = BarInstance::storage::address;

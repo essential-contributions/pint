@@ -1,4 +1,4 @@
-intent Simple {
+predicate Simple {
     pub var x: int;
     pub var y: int;
     pub var w: b256;

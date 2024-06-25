@@ -5,7 +5,7 @@ constraint b[a] == 22;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // const ::b = [11, 22, 33];
 // var ::a: int;
 // constraint (::b[::a] == 22);

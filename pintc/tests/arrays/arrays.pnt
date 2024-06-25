@@ -12,7 +12,7 @@ var cb: bool = c != c1;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a: real[5];
 // var ::a1;
 // var ::b: real[3][::Colour];

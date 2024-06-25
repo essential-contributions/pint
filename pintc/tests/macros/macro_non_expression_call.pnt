@@ -10,7 +10,7 @@ var x = @decls_only(11);
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::x;
 // constraint (::x == <REMOVED MACRO CALL>);
 // constraint (11 > 0);
@@ -21,5 +21,5 @@ solve satisfy;
 // typecheck_failure <<<
 // macro call is not an expression
 // @128..143: macro call does not expand to an expression
-// macros which contain only declarations may only be used at the top level of an intent and not as an expression
+// macros which contain only declarations may only be used at the top level of a predicate and not as an expression
 // >>>

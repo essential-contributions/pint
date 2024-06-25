@@ -4,24 +4,24 @@ interface Baz {
         y: int,
     }
 
-    intent Foo {
+    predicate Foo {
         pub var x: int;
         pub var y: int;
         pub var q: b256;
         pub var c: { int, { int, b256 }, bool };
     }
 
-    intent Bar {
+    predicate Bar {
         pub var w: int;
         pub var p: int;
     }
 }
 
-intent Simple {
+predicate Simple {
     var foo_addr = 0x0000000000000000000000000000000000000000000000000000000000000000;
 
     interface BazInstance = Baz(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE);
-    intent FooInstance1 = BazInstance::Foo(foo_addr);
+    predicate FooInstance1 = BazInstance::Foo(foo_addr);
 
     var x = FooInstance1::x;
     var y = FooInstance1::y;
@@ -36,7 +36,7 @@ intent Simple {
     constraint FooInstance1::c.1.1 == 0x0000000000000008000000000000000800000000000000080000000000000008;
     constraint FooInstance1::c.2 == true;
 
-    intent FooInstance2 = BazInstance::Foo(foo_addr);
+    predicate FooInstance2 = BazInstance::Foo(foo_addr);
     constraint FooInstance2::x * FooInstance2::y == 2898;
     constraint FooInstance2::q == 0x0000000000000003000000000000000300000000000000030000000000000003;
 

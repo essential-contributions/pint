@@ -3,7 +3,7 @@ var a: int[0];
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::n: int;
 // var ::a: int[0];
 // solve satisfy;

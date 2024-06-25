@@ -6,7 +6,7 @@ constraint y <= 1.9;
 
 solve maximize y;
 
-// intermediate <<<<
+// parsed <<<<
 // var ::x: int;
 // var ::y: real;
 // constraint (::x >= 1);

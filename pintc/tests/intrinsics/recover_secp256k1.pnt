@@ -9,7 +9,7 @@ var recover_secp256k1_1: { b256, int } = __recover_secp256k1(hash0, sig_1);
 
 solve satisfy;
 
-// intermediate <<<,
+// parsed <<<,
 // var ::hash0: b256;
 // var ::hash1: b256;
 // var ::hash2: b256;

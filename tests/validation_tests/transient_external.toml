@@ -1,5 +1,5 @@
 [[data]]
-intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "::Simple" }
+predicate_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", predicate = "::Simple" }
 decision_variables = [
   [0, 0, 0, 0],
   [1],          #__::FooInstance1_pathway
@@ -11,7 +11,7 @@ decision_variables = [
 transient_data = []
 
 [[data]]
-intent_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", intent = "::Foo" }
+predicate_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", predicate = "::Foo" }
 decision_variables = []
 transient_data = [
   { key = [0], value = [
@@ -33,7 +33,7 @@ transient_data = [
 ]
 
 [[data]]
-intent_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", intent = "::Foo" }
+predicate_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", predicate = "::Foo" }
 decision_variables = []
 transient_data = [
   { key = [0], value = [

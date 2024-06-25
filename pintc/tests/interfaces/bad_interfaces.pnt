@@ -4,13 +4,13 @@ interface Foo {
         y: int,
     }
 
-    intent I1 {
+    predicate I1 {
         pub var x: int;
         pub var y: b256;
     }
 }
 
-intent Simple {
+predicate Simple {
     var addr1: b256;
     var addr2: b256;
     var addr3: b256;
@@ -20,49 +20,49 @@ intent Simple {
 
     // Missing interface instance
     interface FooInstance = Foo(addr2);
-    intent Bad1 = MissingInterfaceInstance::Foo(addr2);
+    predicate Bad1 = MissingInterfaceInstance::Foo(addr2);
 
     // Missing intent
-    intent MissingIntent = FooInstance::MissingIntent(addr3);
+    predicate Missing = FooInstance::MissingPredicate(addr3);
 
     // Missing pub var
-    intent I1 = FooInstance::I1(addr3);
+    predicate I1 = FooInstance::I1(addr3);
     var missing_var = I1::missing_var;
 }
 
-// intermediate <<<
+// parsed <<<
 // interface ::Foo {
 //     storage {
 //         x: int,
 //         y: int,
 //     }
-//     intent I1 {
+//     predicate I1 {
 //         pub var x: int;
 //         pub var y: b256;
 //     }
 // }
 // 
-// intent ::Simple {
+// predicate ::Simple {
 //     interface ::Foo {
 //         storage {
 //             x: int,
 //             y: int,
 //         }
-//         intent I1 {
+//         predicate I1 {
 //             pub var x: int;
 //             pub var y: b256;
 //         }
 //     }
 //     interface ::Instance1 = ::MissingInterface(::addr1)
 //     interface ::FooInstance = ::Foo(::addr2)
-//     intent ::Bad1 = ::MissingInterfaceInstance::Foo(::addr2)
-//     intent ::MissingIntent = ::FooInstance::MissingIntent(::addr3)
-//     intent ::I1 = ::FooInstance::I1(::addr3)
+//     predicate ::Bad1 = ::MissingInterfaceInstance::Foo(::addr2)
+//     predicate ::Missing = ::FooInstance::MissingPredicate(::addr3)
+//     predicate ::I1 = ::FooInstance::I1(::addr3)
 //     var ::addr1: b256;
 //     var ::addr2: b256;
 //     var ::addr3: b256;
 //     var __::Bad1_pathway: int;
-//     var __::MissingIntent_pathway: int;
+//     var __::Missing_pathway: int;
 //     var __::I1_pathway: int;
 //     var ::missing_var;
 //     constraint (::missing_var == ::I1::missing_var);
@@ -71,18 +71,18 @@ intent Simple {
 
 // typecheck_failure <<<
 // cannot find interface declaration `::MissingInterface`
-// @252..297: cannot find interface declaration `::MissingInterface`
+// @258..303: cannot find interface declaration `::MissingInterface`
 // cannot find interface instance `::MissingInterfaceInstance`
-// @378..428: cannot find interface instance `::MissingInterfaceInstance`
-// cannot find intent `MissingIntent` in interface `::Foo`
-// @457..513: cannot find intent `MissingIntent` in interface `::Foo`
+// @384..437: cannot find interface instance `::MissingInterfaceInstance`
+// cannot find predicate `MissingPredicate` in interface `::Foo`
+// @466..522: cannot find predicate `MissingPredicate` in interface `::Foo`
 // cannot find value `::I1::missing_var` in this scope
-// @601..616: not found in this scope
+// @613..628: not found in this scope
 // cannot find value `::I1::missing_var` in this scope
-// @601..616: not found in this scope
+// @613..628: not found in this scope
 // unable to determine expression type
-// @587..598: type of this expression is ambiguous
+// @599..610: type of this expression is ambiguous
 // constraint expression type error
-// @583..616: constraint expression has unknown type
-// @583..616: expecting type `bool`
+// @595..628: constraint expression has unknown type
+// @595..628: expecting type `bool`
 // >>>

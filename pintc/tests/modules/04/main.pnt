@@ -11,7 +11,7 @@ constraint debbie::debbie_skill == debbie::Skill::Handicrafts && kip_skill == ki
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::pedro_skill: ::Skill;
 // var ::kip_skill: ::kip::Skill;
 // var ::kip::kip_skill;

@@ -5,8 +5,8 @@
 
 // ANCHOR: multi_line_comment
 // This is some complicated code that requires multiple lines to explain:
-// 1. The first `intent`, called `GetRich` ensures that we're getting rich.
-// 2. The second `intent`, called `BeResponsible` ensures that 
+// 1. The first predicate, called `GetRich` ensures that we're getting rich.
+// 2. The second predicate, called `BeResponsible` ensures that 
 //    we're not gambling all the money away.
 // ANCHOR_END: multi_line_comment 
 

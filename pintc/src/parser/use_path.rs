@@ -102,11 +102,11 @@ lalrpop_mod!(#[allow(unused)] pub pint_parser);
 fn gather_use_paths() {
     use crate::{
         error::Handler,
-        intermediate::{IntermediateIntent, Program, ProgramKind},
+        predicate::{Predicate, Program, ProgramKind},
     };
     use std::collections::BTreeMap;
     let parser = pint_parser::TestDelegateParser::new();
-    let mut current_ii = Program::ROOT_II_NAME.to_string();
+    let mut current_pred = Program::ROOT_PRED_NAME.to_string();
     let filepath = std::rc::Rc::from(std::path::Path::new("test"));
 
     let mut to_use_paths = |src: &str| -> Vec<UsePath> {
@@ -118,16 +118,16 @@ fn gather_use_paths() {
                     local_scope: None,
                     program: &mut Program {
                         kind: ProgramKind::Stateless,
-                        iis: BTreeMap::from([(
-                            Program::ROOT_II_NAME.to_string(),
-                            IntermediateIntent::default(),
+                        preds: BTreeMap::from([(
+                            Program::ROOT_PRED_NAME.to_string(),
+                            Predicate::default(),
                         )]),
                         consts: fxhash::FxHashMap::default(),
                     },
-                    current_ii: &mut current_ii,
+                    current_pred: &mut current_pred,
                     macros: &mut Vec::new(),
                     macro_calls: &mut BTreeMap::from([(
-                        Program::ROOT_II_NAME.to_string(),
+                        Program::ROOT_PRED_NAME.to_string(),
                         slotmap::SecondaryMap::new(),
                     )]),
                     span_from: &|_, _| span::empty_span(),

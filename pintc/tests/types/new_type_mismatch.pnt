@@ -5,7 +5,7 @@ var j: I = 22.2;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::i: ::I;
 // var ::j: ::I;
 // type ::I = int;

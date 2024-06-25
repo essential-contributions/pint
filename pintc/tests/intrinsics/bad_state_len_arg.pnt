@@ -4,7 +4,7 @@ var z = __state_len(5);
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::x: int;
 // var ::y;
 // var ::z;

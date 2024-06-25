@@ -2,18 +2,18 @@ use lib::@foo;
 use ::lib::@equal;
 use lib::{@a, @b, @sum};
 
-intent Foo {
+predicate Foo {
    ::lib::@foo(3);
    constraint @equal(4; 4);
 }
 
-intent Bar {
+predicate Bar {
    @foo(4);
    constraint lib::@equal([ 1.0, 2.0 ]; [ 1.0, 2.0 ]);
 }
 
 // This does not work yet. See ##504
-//intent Baz {
+//Baz {
 //    var v: int;
 //    constraint @a(v);
 //    constraint @b(v);
@@ -22,19 +22,19 @@ intent Bar {
 //}
 
 // This does not work yet. See ##504
-//intent Sum {
+//Sum {
 //    var a: int = 4;
 //    var b: int = @sum(1; 2; 3; a);
 //}
 
-// intermediate <<<
-// intent ::Bar {
+// parsed <<<
+// predicate ::Bar {
 //     var ::anon@0::a: int;
 //     constraint ([1e0, 2e0] == [1e0, 2e0]);
 //     constraint (::anon@0::a == 4);
 // }
 // 
-// intent ::Foo {
+// predicate ::Foo {
 //     var ::anon@1::a: int;
 //     constraint (4 == 4);
 //     constraint (::anon@1::a == 3);
@@ -42,13 +42,13 @@ intent Bar {
 // >>>
 
 // flattened <<<
-// intent ::Bar {
+// predicate ::Bar {
 //     var ::anon@0::a: int;
 //     constraint ((1e0 == 1e0) && (2e0 == 2e0));
 //     constraint (::anon@0::a == 4);
 // }
 // 
-// intent ::Foo {
+// predicate ::Foo {
 //     var ::anon@1::a: int;
 //     constraint (4 == 4);
 //     constraint (::anon@1::a == 3);

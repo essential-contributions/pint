@@ -58,9 +58,9 @@ fn examples_runner() -> anyhow::Result<()> {
 
         // TODO: enable this when we can generate assembly for everything including reals, `if`
         // expressions, etc.
-        // Flattened program -> Assembly (aka collection of Intents)
+        // Flattened program -> Assembly (aka collection of compiled predicates)
         // unwrap_or_continue!(
-        //    pintc::asm_gen::program_to_intents(&handler, &flattened),
+        //    pintc::asm_gen::compile_program(&handler, &flattened),
         //    "asm gen",
         //    failed_tests,
         //    path,

@@ -9,7 +9,7 @@ var z: C;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::x: ::A;
 // var ::y: ::B;
 // var ::z: ::C;

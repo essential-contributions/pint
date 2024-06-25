@@ -11,7 +11,7 @@ constraint x < b && x > c;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // const ::f = [::a, ::b, ::c];
 // const ::b = (::c + ::d);
 // const ::e = {::c, 22};

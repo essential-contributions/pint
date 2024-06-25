@@ -4,7 +4,7 @@ constraint a.0 == a.bar;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a: bool;
 // constraint (::a.0 == ::a.bar);
 // solve satisfy;

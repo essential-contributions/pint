@@ -1,14 +1,14 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp, Expr, Immediate, TupleAccess, UnaryOp},
-    intermediate::{
-        ConstraintDecl, ExprKey, IntentInstance, IntermediateIntent, Program, ProgramKind,
+    predicate::{
+        ConstraintDecl, ExprKey, Predicate, PredicateInstance, Program, ProgramKind,
         State as StateVar,
     },
     span::empty_span,
     types::Type,
 };
-use essential_types::intent::{Directive, Intent};
+use essential_types::intent::{Directive, Intent as CompiledPredicate};
 use state_asm::{
     Access, Alu, Constraint, ControlFlow, Crypto, Op as StateRead, Pred, Stack, StateSlots,
     TotalControlFlow,
@@ -19,43 +19,47 @@ mod display;
 mod tests;
 
 #[derive(Debug, Default, Clone)]
-pub struct Intents {
+pub struct CompiledProgram {
     pub kind: ProgramKind,
     pub names: Vec<String>,
-    pub intents: Vec<Intent>,
+    pub predicates: Vec<CompiledPredicate>,
 }
 
-impl Intents {
-    pub const ROOT_INTENT_NAME: &'static str = "";
+impl CompiledProgram {
+    pub const ROOT_PRED_NAME: &'static str = "";
 
-    /// The root intent is the one named `Intents::ROOT_INTENT_NAME`
-    pub fn root_intent(&self) -> &Intent {
-        &self.intents[self
+    /// The root predicate is the one named `CompiledProgram::ROOT_PRED_NAME`
+    pub fn root_predicate(&self) -> &CompiledPredicate {
+        &self.predicates[self
             .names
             .iter()
-            .position(|name| name == Self::ROOT_INTENT_NAME)
+            .position(|name| name == Self::ROOT_PRED_NAME)
             .unwrap()]
     }
 }
 
-/// Convert a `Program` into `Intents`
-pub fn program_to_intents(handler: &Handler, program: &Program) -> Result<Intents, ErrorEmitted> {
+/// Convert a `Program` into `CompiledProgram`
+pub fn compile_program(
+    handler: &Handler,
+    program: &Program,
+) -> Result<CompiledProgram, ErrorEmitted> {
     let mut names = Vec::new();
-    let mut intents = Vec::new();
+    let mut predicates = Vec::new();
     match program.kind {
         ProgramKind::Stateless => {
-            let (name, ii) = program.iis.iter().next().unwrap();
-            if let Ok(intent) = handler.scope(|handler| intent_to_asm(handler, ii)) {
+            let (name, pred) = program.preds.iter().next().unwrap();
+            if let Ok(predicate) = handler.scope(|handler| predicate_to_asm(handler, pred)) {
                 names.push(name.to_string());
-                intents.push(intent);
+                predicates.push(predicate);
             }
         }
         ProgramKind::Stateful => {
-            for (name, ii) in program.iis.iter() {
-                if name != Program::ROOT_II_NAME {
-                    if let Ok(intent) = handler.scope(|handler| intent_to_asm(handler, ii)) {
+            for (name, pred) in program.preds.iter() {
+                if name != Program::ROOT_PRED_NAME {
+                    if let Ok(predicate) = handler.scope(|handler| predicate_to_asm(handler, pred))
+                    {
                         names.push(name.to_string());
-                        intents.push(intent);
+                        predicates.push(predicate);
                     }
                 }
             }
@@ -66,10 +70,10 @@ pub fn program_to_intents(handler: &Handler, program: &Program) -> Result<Intent
         return Err(handler.cancel());
     }
 
-    Ok(Intents {
+    Ok(CompiledProgram {
         kind: program.kind.clone(),
         names,
-        intents,
+        predicates,
     })
 }
 
@@ -127,9 +131,9 @@ impl AsmBuilder {
         handler: &Handler,
         asm: &mut Vec<Constraint>,
         expr: &ExprKey,
-        intent: &IntermediateIntent,
+        pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        match &expr.get(intent) {
+        match &expr.get(pred) {
             // All of these are just values
             Expr::Error(_)
             | Expr::Immediate { .. }
@@ -150,23 +154,23 @@ impl AsmBuilder {
                 UnaryOp::NextState => {
                     // Next state expressions produce state expressions (i.e. ones that require
                     // `State` or `StateRange`
-                    Self::compile_expr_pointer(handler, asm, expr, intent)?;
+                    Self::compile_expr_pointer(handler, asm, expr, pred)?;
                     Ok(Location::State(true))
                 }
                 _ => Ok(Location::Value),
             },
-            Expr::PathByName(path, _) => Self::compile_path(handler, asm, path, intent),
+            Expr::PathByName(path, _) => Self::compile_path(handler, asm, path, pred),
             Expr::PathByKey(var_key, _) => {
-                let path = &var_key.get(intent).name;
-                Self::compile_path(handler, asm, path, intent)
+                let path = &var_key.get(pred).name;
+                Self::compile_path(handler, asm, path, pred)
             }
             Expr::TupleFieldAccess { tuple, field, .. } => {
-                let location = Self::compile_expr_pointer(handler, asm, tuple, intent)?;
+                let location = Self::compile_expr_pointer(handler, asm, tuple, pred)?;
                 match location {
                     Location::State(_) | Location::Transient(..) => {
                         // Offset calculation for state and transient data is the same
                         // Grab the fields of the tuple
-                        let Type::Tuple { ref fields, .. } = tuple.get_ty(intent) else {
+                        let Type::Tuple { ref fields, .. } = tuple.get_ty(pred) else {
                             return Err(handler.emit_err(Error::Compile {
                                 error: CompileError::Internal {
                                     msg: "type must exist and be a tuple type",
@@ -228,15 +232,15 @@ impl AsmBuilder {
         handler: &Handler,
         s_asm: &mut Vec<StateRead>,
         expr: &ExprKey,
-        intent: &IntermediateIntent,
+        pred: &Predicate,
     ) -> Result<StorageKey, ErrorEmitted> {
-        let expr_ty = expr.get_ty(intent);
-        match &expr.get(intent) {
+        let expr_ty = expr.get_ty(pred);
+        match &expr.get(pred) {
             Expr::IntrinsicCall { name, args, .. } => {
                 if name.name.ends_with("__storage_get") {
                     // Expecting a single argument that is an array of integers representing a key
                     assert_eq!(args.len(), 1);
-                    let Some(key_size) = args[0].get_ty(intent).get_array_size() else {
+                    let Some(key_size) = args[0].get_ty(pred).get_array_size() else {
                         return Err(handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
                                 msg: "unable to get key size",
@@ -246,7 +250,7 @@ impl AsmBuilder {
                     };
 
                     let mut asm = Vec::new();
-                    Self::compile_expr(handler, &mut asm, &args[0], intent)?;
+                    Self::compile_expr(handler, &mut asm, &args[0], pred)?;
                     s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
                     Ok(StorageKey {
                         kind: StorageKeyKind::Dynamic(key_size as usize),
@@ -257,7 +261,7 @@ impl AsmBuilder {
                     // 1. An address that is a `b256`
                     // 2. A key: an array of integers
                     assert_eq!(args.len(), 2);
-                    let Some(key_size) = args[1].get_ty(intent).get_array_size() else {
+                    let Some(key_size) = args[1].get_ty(pred).get_array_size() else {
                         return Err(handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
                                 msg: "unable to get key size",
@@ -266,10 +270,10 @@ impl AsmBuilder {
                         }));
                     };
 
-                    // First, get the set-of-intents address and the storage key
+                    // First, get the contract address and the storage key
                     let mut asm = Vec::new();
-                    Self::compile_expr(handler, &mut asm, &args[0], intent)?;
-                    Self::compile_expr(handler, &mut asm, &args[1], intent)?;
+                    Self::compile_expr(handler, &mut asm, &args[0], pred)?;
+                    Self::compile_expr(handler, &mut asm, &args[1], pred)?;
                     s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
                     Ok(StorageKey {
                         kind: StorageKeyKind::Dynamic(key_size as usize),
@@ -280,7 +284,7 @@ impl AsmBuilder {
                 }
             }
             Expr::StorageAccess(name, _) => {
-                let storage = &intent
+                let storage = &pred
                     .storage
                     .as_ref()
                     .expect("a storage block must have been declared")
@@ -316,7 +320,7 @@ impl AsmBuilder {
                 ..
             } => {
                 // Get the `interface_instance` declaration that the storage access refers to
-                let interface_instance = &intent
+                let interface_instance = &pred
                     .interface_instances
                     .iter()
                     .find(|e| e.name.to_string() == *interface_instance)
@@ -324,11 +328,11 @@ impl AsmBuilder {
 
                 // Compile the interface instance address
                 let mut asm = Vec::new();
-                Self::compile_expr(handler, &mut asm, &interface_instance.address, intent)?;
+                Self::compile_expr(handler, &mut asm, &interface_instance.address, pred)?;
                 s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
 
                 // Get the `interface` declaration that the storage access refers to
-                let interface = &intent
+                let interface = &pred
                     .interfaces
                     .iter()
                     .find(|e| e.name.to_string() == *interface_instance.interface)
@@ -367,13 +371,13 @@ impl AsmBuilder {
             }
             Expr::Index { expr, index, .. } => {
                 // Compile the key corresponding to `expr`
-                let storage_key = Self::compile_state_key(handler, s_asm, expr, intent)?;
+                let storage_key = Self::compile_state_key(handler, s_asm, expr, pred)?;
 
                 // Compile the index
                 let mut asm = vec![];
-                Self::compile_expr(handler, &mut asm, index, intent)?;
+                Self::compile_expr(handler, &mut asm, index, pred)?;
                 s_asm.extend(asm.iter().copied().map(StateRead::from));
-                let mut key_length = storage_key.len() + index.get_ty(intent).size();
+                let mut key_length = storage_key.len() + index.get_ty(pred).size();
                 if !(expr_ty.is_any_primitive() || expr_ty.is_map()) {
                     s_asm.push(StateRead::from(Stack::Push(0)));
                     key_length += 1;
@@ -386,10 +390,10 @@ impl AsmBuilder {
             Expr::TupleFieldAccess { tuple, field, .. } => {
                 // Compile the key corresponding to `tuple`
                 let StorageKey { kind, is_extern } =
-                    Self::compile_state_key(handler, s_asm, tuple, intent)?;
+                    Self::compile_state_key(handler, s_asm, tuple, pred)?;
 
                 // Grab the fields of the tuple
-                let Type::Tuple { ref fields, .. } = tuple.get_ty(intent) else {
+                let Type::Tuple { ref fields, .. } = tuple.get_ty(pred) else {
                     return Err(handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
                             msg: "type must exist and be a tuple type",
@@ -461,13 +465,13 @@ impl AsmBuilder {
         handler: &Handler,
         asm: &mut Vec<Constraint>,
         expr: &ExprKey,
-        intent: &IntermediateIntent,
+        pred: &Predicate,
     ) -> Result<usize, ErrorEmitted> {
         let old_asm_len = asm.len();
-        let expr_ty = expr.get_ty(intent);
-        match Self::compile_expr_pointer(handler, asm, expr, intent)? {
+        let expr_ty = expr.get_ty(pred);
+        match Self::compile_expr_pointer(handler, asm, expr, pred)? {
             Location::Value => {
-                Self::compile_value_expr(handler, asm, expr, intent)?;
+                Self::compile_value_expr(handler, asm, expr, pred)?;
             }
             Location::DecisionVar(len) => {
                 if len == 1 {
@@ -480,7 +484,7 @@ impl AsmBuilder {
             }
             Location::Transient(pathway, len) => {
                 if let Some(pathway_var_name) = pathway {
-                    let var_index = intent
+                    let var_index = pred
                         .vars()
                         .filter(|(_, var)| !var.is_pub)
                         .position(|(_, var)| var.name == pathway_var_name);
@@ -515,7 +519,7 @@ impl AsmBuilder {
         handler: &Handler,
         asm: &mut Vec<Constraint>,
         expr: &ExprKey,
-        intent: &IntermediateIntent,
+        pred: &Predicate,
     ) -> Result<usize, ErrorEmitted> {
         fn compile_immediate(asm: &mut Vec<Constraint>, imm: &Immediate) {
             match imm {
@@ -552,21 +556,21 @@ impl AsmBuilder {
 
         let old_asm_len = asm.len();
 
-        match &expr.get(intent) {
+        match &expr.get(pred) {
             Expr::Immediate { value, .. } => compile_immediate(asm, value),
             Expr::Array { elements, .. } => {
                 for element in elements {
-                    Self::compile_expr(handler, asm, element, intent)?;
+                    Self::compile_expr(handler, asm, element, pred)?;
                 }
             }
             Expr::Tuple { fields, .. } => {
                 for (_, field) in fields {
-                    Self::compile_expr(handler, asm, field, intent)?;
+                    Self::compile_expr(handler, asm, field, pred)?;
                 }
             }
             Expr::BinaryOp { op, lhs, rhs, .. } => {
-                let lhs_len = Self::compile_expr(handler, asm, lhs, intent)?;
-                let rhs_len = Self::compile_expr(handler, asm, rhs, intent)?;
+                let lhs_len = Self::compile_expr(handler, asm, lhs, pred)?;
+                let rhs_len = Self::compile_expr(handler, asm, rhs, pred)?;
                 match op {
                     BinaryOp::Add => asm.push(Alu::Add.into()),
                     BinaryOp::Sub => asm.push(Alu::Sub.into()),
@@ -574,7 +578,7 @@ impl AsmBuilder {
                     BinaryOp::Div => asm.push(Alu::Div.into()),
                     BinaryOp::Mod => asm.push(Alu::Mod.into()),
                     BinaryOp::Equal => {
-                        let type_size = lhs.get_ty(intent).size();
+                        let type_size = lhs.get_ty(pred).size();
                         if type_size == 1 {
                             asm.push(Pred::Eq.into());
                         } else {
@@ -660,7 +664,7 @@ impl AsmBuilder {
                 }
             }
             Expr::UnaryOp { op, expr, .. } => {
-                Self::compile_expr(handler, asm, expr, intent)?;
+                Self::compile_expr(handler, asm, expr, pred)?;
                 match op {
                     UnaryOp::Not => {
                         asm.push(Pred::Not.into());
@@ -696,7 +700,7 @@ impl AsmBuilder {
                     assert_eq!(args.len(), 1);
 
                     let mut_key = args[0];
-                    let mut_key_type = &mut_key.get_ty(intent);
+                    let mut_key_type = &mut_key.get_ty(pred);
 
                     // Check that the mutable key is an array of integers
                     let el_ty = mut_key_type.get_array_el_type().unwrap();
@@ -704,7 +708,7 @@ impl AsmBuilder {
 
                     // Compile the mut key argument, insert its length, and then insert the
                     // `Sha256` opcode
-                    Self::compile_expr(handler, asm, &mut_key, intent)?;
+                    Self::compile_expr(handler, asm, &mut_key, pred)?;
                     asm.push(Constraint::Stack(Stack::Push(mut_key_type.size() as i64)));
                     asm.push(Constraint::Access(Access::MutKeysContains));
                 }
@@ -729,11 +733,11 @@ impl AsmBuilder {
                     assert_eq!(args.len(), 1);
 
                     let data = args[0];
-                    let data_type = &data.get_ty(intent);
+                    let data_type = &data.get_ty(pred);
 
                     // Compile the data argument, insert its length, and then insert the `Sha256`
                     // opcode
-                    Self::compile_expr(handler, asm, &data, intent)?;
+                    Self::compile_expr(handler, asm, &data, pred)?;
                     asm.push(Constraint::Stack(Stack::Push(data_type.size() as i64)));
                     asm.push(Constraint::Crypto(Crypto::Sha256));
                 }
@@ -745,9 +749,9 @@ impl AsmBuilder {
                     let signature = args[1];
                     let public_key = args[2];
 
-                    let data_type = &data.get_ty(intent);
-                    let signature_type = &signature.get_ty(intent);
-                    let public_key_type = &public_key.get_ty(intent);
+                    let data_type = &data.get_ty(pred);
+                    let signature_type = &signature.get_ty(pred);
+                    let public_key_type = &public_key.get_ty(pred);
 
                     // Check argument types:
                     // - `data_type` can be anything, so nothing to check
@@ -760,10 +764,10 @@ impl AsmBuilder {
                     assert!(public_key_type.is_b256());
 
                     // Compile all arguments separately and then insert the `VerifyEd25519` opcode
-                    Self::compile_expr(handler, asm, &data, intent)?;
+                    Self::compile_expr(handler, asm, &data, pred)?;
                     asm.push(Constraint::Stack(Stack::Push(data_type.size() as i64)));
-                    Self::compile_expr(handler, asm, &signature, intent)?;
-                    Self::compile_expr(handler, asm, &public_key, intent)?;
+                    Self::compile_expr(handler, asm, &signature, pred)?;
+                    Self::compile_expr(handler, asm, &public_key, pred)?;
                     asm.push(Constraint::Crypto(Crypto::VerifyEd25519));
                 }
 
@@ -773,8 +777,8 @@ impl AsmBuilder {
                     let data_hash = args[0];
                     let signature = args[1];
 
-                    let data_hash_type = &data_hash.get_ty(intent);
-                    let signature_type = &signature.get_ty(intent);
+                    let data_hash_type = &data_hash.get_ty(pred);
+                    let signature_type = &signature.get_ty(pred);
 
                     // Check argument types:
                     // - `data_hash_type` must be a `b256`
@@ -791,8 +795,8 @@ impl AsmBuilder {
                     );
 
                     // Compile all arguments separately and then insert the `VerifyEd25519` opcode
-                    Self::compile_expr(handler, asm, &data_hash, intent)?;
-                    Self::compile_expr(handler, asm, &signature, intent)?;
+                    Self::compile_expr(handler, asm, &data_hash, pred)?;
+                    Self::compile_expr(handler, asm, &signature, pred)?;
                     asm.push(Constraint::Crypto(Crypto::RecoverSecp256k1));
                 }
 
@@ -801,14 +805,14 @@ impl AsmBuilder {
 
                     // Check argument:
                     // - `state_var` must be a path to a state var or a "next state" expression
-                    assert!(match args[0].try_get(intent) {
+                    assert!(match args[0].try_get(pred) {
                         Some(Expr::PathByName(name, _))
-                            if intent.states().any(|(_, state)| state.name == *name) =>
+                            if pred.states().any(|(_, state)| state.name == *name) =>
                             true,
                         Some(Expr::PathByKey(var_key, _))
-                            if intent
+                            if pred
                                 .states()
-                                .any(|(_, state)| state.name == var_key.get(intent).name) =>
+                                .any(|(_, state)| state.name == var_key.get(pred).name) =>
                             true,
                         Some(Expr::UnaryOp {
                             op: UnaryOp::NextState,
@@ -817,7 +821,7 @@ impl AsmBuilder {
                         _ => false,
                     });
 
-                    Self::compile_expr(handler, asm, &args[0], intent)?;
+                    Self::compile_expr(handler, asm, &args[0], pred)?;
 
                     // After compiling a path to a state var or a "next state" expression, we
                     // expect that the last opcode is a `State` or a `StateRange`. Pop that and
@@ -847,15 +851,15 @@ impl AsmBuilder {
                 else_expr,
                 ..
             } => {
-                let type_size = then_expr.get_ty(intent).size();
-                Self::compile_expr(handler, asm, else_expr, intent)?;
-                Self::compile_expr(handler, asm, then_expr, intent)?;
+                let type_size = then_expr.get_ty(pred).size();
+                Self::compile_expr(handler, asm, else_expr, pred)?;
+                Self::compile_expr(handler, asm, then_expr, pred)?;
                 if type_size == 1 {
-                    Self::compile_expr(handler, asm, condition, intent)?;
+                    Self::compile_expr(handler, asm, condition, pred)?;
                     asm.push(Constraint::Stack(Stack::Select));
                 } else {
                     asm.push(Constraint::Stack(Stack::Push(type_size as i64)));
-                    Self::compile_expr(handler, asm, condition, intent)?;
+                    Self::compile_expr(handler, asm, condition, pred)?;
                     asm.push(Constraint::Stack(Stack::SelectRange));
                 }
             }
@@ -886,55 +890,55 @@ impl AsmBuilder {
         handler: &Handler,
         asm: &mut Vec<Constraint>,
         path: &String,
-        intent: &IntermediateIntent,
+        pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        let var_index = intent
+        let var_index = pred
             .vars()
             .filter(|(_, var)| !var.is_pub)
             .position(|(_, var)| &var.name == path);
 
-        let pub_var_index = intent
+        let pub_var_index = pred
             .vars()
             .filter(|(_, var)| var.is_pub)
             .position(|(_, var)| &var.name == path);
 
-        let storage_index = intent.states().position(|(_, state)| &state.name == path);
+        let storage_index = pred.states().position(|(_, state)| &state.name == path);
 
         if let Some(var_index) = var_index {
-            let var_key = intent.vars().find(|(_, var)| &var.name == path).unwrap().0;
-            let var_ty_size = var_key.get_ty(intent).size();
+            let var_key = pred.vars().find(|(_, var)| &var.name == path).unwrap().0;
+            let var_ty_size = var_key.get_ty(pred).size();
             asm.push(Stack::Push(var_index as i64).into()); // slot
             Ok(Location::DecisionVar(var_ty_size))
         } else if let Some(pub_var_index) = pub_var_index {
-            let var_key = intent.vars().find(|(_, var)| &var.name == path).unwrap().0;
+            let var_key = pred.vars().find(|(_, var)| &var.name == path).unwrap().0;
             asm.push(Stack::Push(pub_var_index as i64).into());
-            if var_key.get_ty(intent).is_any_primitive() {
+            if var_key.get_ty(pred).is_any_primitive() {
                 Ok(Location::Transient(None, 1))
             } else {
                 asm.push(Stack::Push(0).into()); // placeholder for offsets
                 Ok(Location::Transient(None, 2))
             }
         } else if let Some(storage_index) = storage_index {
-            let slot_index: usize = intent
+            let slot_index: usize = pred
                 .states()
                 .take(storage_index)
-                .map(|(state_key, _)| state_key.get_ty(intent).storage_slots())
+                .map(|(state_key, _)| state_key.get_ty(pred).storage_slots())
                 .sum();
 
             asm.push(Stack::Push(slot_index as i64).into());
 
             Ok(Location::State(false))
         } else {
-            // try external vars by looking through all available intent instances and their
+            // try external vars by looking through all available predicate instances and their
             // corresponding interfaces
-            for IntentInstance {
+            for PredicateInstance {
                 name,
                 interface_instance,
-                intent: intent_name,
+                predicate: predicate_name,
                 ..
-            } in &intent.intent_instances
+            } in &pred.predicate_instances
             {
-                let Some(interface_instance) = intent
+                let Some(interface_instance) = pred
                     .interface_instances
                     .iter()
                     .find(|e| e.name.to_string() == *interface_instance)
@@ -942,7 +946,7 @@ impl AsmBuilder {
                     continue;
                 };
 
-                let Some(interface) = intent
+                let Some(interface) = pred
                     .interfaces
                     .iter()
                     .find(|e| e.name.to_string() == *interface_instance.interface)
@@ -950,15 +954,15 @@ impl AsmBuilder {
                     continue;
                 };
 
-                let Some(intent_interface) = interface
-                    .intent_interfaces
+                let Some(predicate_interface) = interface
+                    .predicate_interfaces
                     .iter()
-                    .find(|e| e.name.to_string() == *intent_name.to_string())
+                    .find(|e| e.name.to_string() == *predicate_name.to_string())
                 else {
                     continue;
                 };
 
-                let Some(transient_index) = intent_interface
+                let Some(transient_index) = predicate_interface
                     .vars
                     .iter()
                     .position(|var| name.to_string() + "::" + &var.name.name == *path)
@@ -966,7 +970,7 @@ impl AsmBuilder {
                     continue;
                 };
 
-                let Some(var) = intent_interface
+                let Some(var) = predicate_interface
                     .vars
                     .iter()
                     .find(|var| name.to_string() + "::" + &var.name.name == *path)
@@ -1003,10 +1007,10 @@ impl AsmBuilder {
         &mut self,
         handler: &Handler,
         expr: &ExprKey,
-        intent: &IntermediateIntent,
+        pred: &Predicate,
     ) -> Result<(), ErrorEmitted> {
         let mut asm = Vec::new();
-        Self::compile_expr(handler, &mut asm, expr, intent)?;
+        Self::compile_expr(handler, &mut asm, expr, pred)?;
         self.c_asm.push(asm);
         Ok(())
     }
@@ -1017,18 +1021,18 @@ impl AsmBuilder {
         handler: &Handler,
         state: &StateVar,
         slot_idx: &mut u32,
-        intent: &IntermediateIntent,
+        pred: &Predicate,
     ) -> Result<(), ErrorEmitted> {
         let mut s_asm: Vec<StateRead> = Vec::new();
 
         // First, get the storage key
-        let storage_key = Self::compile_state_key(handler, &mut s_asm, &state.expr, intent)?;
+        let storage_key = Self::compile_state_key(handler, &mut s_asm, &state.expr, pred)?;
         let key_len = match storage_key.kind {
             StorageKeyKind::Static(key) => key.len(),
             StorageKeyKind::Dynamic(size) => size,
         };
 
-        let storage_slots = state.expr.get_ty(intent).storage_slots();
+        let storage_slots = state.expr.get_ty(pred).storage_slots();
         s_asm.extend([
             Stack::Push(storage_slots as i64).into(),
             StateSlots::AllocSlots.into(),
@@ -1049,31 +1053,31 @@ impl AsmBuilder {
     }
 }
 
-/// Converts a `crate::IntermediateIntent` into a `Intent` which
+/// Converts a `crate::Predicate` into a `CompiledPredicate` which
 /// includes generating assembly for the constraints and for state reads.
-pub fn intent_to_asm(
+pub fn predicate_to_asm(
     handler: &Handler,
-    final_intent: &IntermediateIntent,
-) -> Result<Intent, ErrorEmitted> {
+    pred: &Predicate,
+) -> Result<CompiledPredicate, ErrorEmitted> {
     let mut builder = AsmBuilder::default();
 
     let mut slot_idx = 0;
-    for (_, state) in final_intent.states() {
-        let _ = builder.compile_state(handler, state, &mut slot_idx, final_intent);
+    for (_, state) in pred.states() {
+        let _ = builder.compile_state(handler, state, &mut slot_idx, pred);
     }
 
     for ConstraintDecl {
         expr: constraint, ..
-    } in &final_intent.constraints
+    } in &pred.constraints
     {
-        let _ = builder.compile_constraint(handler, constraint, final_intent);
+        let _ = builder.compile_constraint(handler, constraint, pred);
     }
 
     if handler.has_errors() {
         return Err(handler.cancel());
     }
 
-    Ok(Intent {
+    Ok(CompiledPredicate {
         state_read: builder
             .s_asm
             .iter()

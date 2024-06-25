@@ -331,7 +331,7 @@ const PINT_KEYWORDS: &[&str] = &[
     "if",
     "in",
     "int",
-    "intent",
+    "predicate",
     "interface",
     "macro",
     "maximize",

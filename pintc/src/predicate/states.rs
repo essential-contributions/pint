@@ -1,4 +1,4 @@
-use super::{DisplayWithII, ExprKey, Ident, IntermediateIntent};
+use super::{DisplayWithPred, ExprKey, Ident, Predicate};
 use crate::{
     error::{ErrorEmitted, Handler},
     span::Span,
@@ -75,42 +75,42 @@ impl States {
 impl StateKey {
     /// Returns an `Option` containing the `State` corresponding to key `self`. Returns `None` if
     /// the key can't be found in the `states` map.
-    pub fn try_get<'a>(&'a self, ii: &'a IntermediateIntent) -> Option<&State> {
-        ii.states.states.get(*self)
+    pub fn try_get<'a>(&'a self, pred: &'a Predicate) -> Option<&State> {
+        pred.states.states.get(*self)
     }
 
     /// Returns the `State` corresponding to key `self`. Panics if the key can't be found in the
     /// `states` map.
-    pub fn get<'a>(&'a self, ii: &'a IntermediateIntent) -> &State {
-        ii.states.states.get(*self).unwrap()
+    pub fn get<'a>(&'a self, pred: &'a Predicate) -> &State {
+        pred.states.states.get(*self).unwrap()
     }
 
-    /// Returns the type of key `self` given an `IntermediateIntent`. Panics if the type can't be
+    /// Returns the type of key `self` given an `Predicate`. Panics if the type can't be
     /// found in the `state_types` map.
-    pub fn get_ty<'a>(&'a self, ii: &'a IntermediateIntent) -> &Type {
-        ii.states.state_types.get(*self).unwrap()
+    pub fn get_ty<'a>(&'a self, pred: &'a Predicate) -> &Type {
+        pred.states.state_types.get(*self).unwrap()
     }
 
-    /// Set the type of key `self` in an `IntermediateIntent`. Panics if the type can't be found in
+    /// Set the type of key `self` in an `Predicate`. Panics if the type can't be found in
     /// the `state_types` map.
-    pub fn set_ty<'a>(&'a self, ty: Type, ii: &'a mut IntermediateIntent) {
-        ii.states.state_types.insert(*self, ty);
+    pub fn set_ty<'a>(&'a self, ty: Type, pred: &'a mut Predicate) {
+        pred.states.state_types.insert(*self, ty);
     }
 }
 
-impl DisplayWithII for StateKey {
-    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
-        let state = &self.get(ii);
+impl DisplayWithPred for StateKey {
+    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> fmt::Result {
+        let state = &self.get(pred);
         write!(f, "state {}", state.name)?;
-        let ty = self.get_ty(ii);
+        let ty = self.get_ty(pred);
         if !ty.is_unknown() {
-            write!(f, ": {}", ii.with_ii(ty))?;
+            write!(f, ": {}", pred.with_pred(ty))?;
         }
-        write!(f, " = {}", ii.with_ii(&state.expr))
+        write!(f, " = {}", pred.with_pred(&state.expr))
     }
 }
 
-impl IntermediateIntent {
+impl Predicate {
     pub fn insert_state(
         &mut self,
         handler: &Handler,

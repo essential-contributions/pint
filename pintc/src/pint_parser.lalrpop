@@ -1,9 +1,9 @@
 use crate::{
     error::{CompileError, Error, Handler, ParseError},
     expr::*,
-    intermediate::{
-        BlockStatement, Const, ConstraintDecl, ExprKey, IfDecl, IntentInterface, InterfaceDecl,
-        InterfaceInstance, InterfaceVar, IntermediateIntent, Program, ProgramKind, SolveFunc,
+    predicate::{
+        BlockStatement, Const, ConstraintDecl, ExprKey, IfDecl, PredicateInterface, InterfaceDecl,
+        InterfaceInstance, InterfaceVar, Predicate, Program, ProgramKind, SolveFunc,
         StorageVar,
     },
     lexer,
@@ -31,7 +31,7 @@ pub Pint: () = {
 
 Decl: () = {
     DeclBarringMacro,
-    IntentDecl,
+    PredicateDecl,
     MacroDecl,
     StorageDecl,
     Interface,
@@ -49,15 +49,15 @@ DeclBarringMacro: () = {
     NewTypeDecl ";",
     MacroCallDecl ";",
     InterfaceInstance ";",
-    IntentInstance ";",
+    PredicateInstance ";",
 };
 
-IntentDecl: () = {
-    IntentOpen DeclBarringMacro* IntentClose,
+PredicateDecl: () = {
+    PredicateOpen DeclBarringMacro* PredicateClose,
 }
 
-IntentOpen: () = {
-    <l:@L> "intent" <name:Ident> <r:@R> "{" => {
+PredicateOpen: () = {
+    <l:@L> "predicate" <name:Ident> <r:@R> "{" => {
         // To detect name clashes
         let name = context.add_top_level_symbol(
             handler,
@@ -69,13 +69,13 @@ IntentOpen: () = {
             context.mod_prefix,
         );
 
-        // Brand new II in the program
+        // Brand new Pred in the program
         context
             .program
-            .iis
-            .insert(name.to_string(), IntermediateIntent::new(name.to_string()));
+            .preds
+            .insert(name.to_string(), Predicate::new(name.to_string()));
 
-        // Keep track of the macro call in this new intent
+        // Keep track of the macro call in this new predicate
         context
             .macro_calls
             .insert(name.to_string(), slotmap::SecondaryMap::default());
@@ -83,16 +83,16 @@ IntentOpen: () = {
         // The program is now considered stateful
         context.program.kind = ProgramKind::Stateful;
 
-        // Switch the current_ii so that the parser inserts items in the right II until the intent
-        // closes
-        *context.current_ii = name.to_string();
+        // Switch the current_pred so that the parser inserts items in the right Pred until the
+        // predicate closes
+        *context.current_pred = name.to_string();
     }
 }
 
-IntentClose: () = {
+PredicateClose: () = {
     "}" => {
-        // At the end of the intent declaration, return back to the root II
-        *context.current_ii = Program::ROOT_II_NAME.to_string();
+        // At the end of the predicate declaration, return back to the root Pred
+        *context.current_pred = Program::ROOT_PRED_NAME.to_string();
     }
 }
 
@@ -134,16 +134,16 @@ InterfaceVar: InterfaceVar = {
     }
 }
 
-IntentInterface: IntentInterface = {
-    <l:@L> "intent" <name:Ident> "{" <vars:InterfaceVar*> "}" <r:@R> => {
-        IntentInterface {
+PredicateInterface: PredicateInterface = {
+    <l:@L> "predicate" <name:Ident> "{" <vars:InterfaceVar*> "}" <r:@R> => {
+        PredicateInterface {
             name,
             vars,
             span: (context.span_from)(l, r),
         }
     },
-    <l:@L> "intent" <name:Ident> ";" <r:@R> => {
-        IntentInterface {
+    <l:@L> "predicate" <name:Ident> ";" <r:@R> => {
+        PredicateInterface {
             name,
             vars: vec![],
             span: (context.span_from)(l, r),
@@ -155,8 +155,8 @@ InterfaceDecl: InterfaceDecl = {
     <l:@L> <storage_vars:StorageBlock> <r:@R> => {
         InterfaceDecl::StorageDecl((storage_vars, (context.span_from)(l, r)))
     },
-    <intent_interface:IntentInterface> => {
-        InterfaceDecl::IntentInterface(intent_interface)
+    <predicate_interface:PredicateInterface> => {
+        InterfaceDecl::PredicateInterface(predicate_interface)
     },
 }
 
@@ -175,21 +175,21 @@ InterfaceInstance: () = {
             span: (context.span_from)(l, r),
         };
         context
-            .current_ii()
+            .current_pred()
             .interface_instances
             .push(interface_instance);
     }
 }
 
-IntentInstance: () = {
-    <l:@L> "intent" <name:Ident> "=" <l1:@L> <abs:"::"?> <els:(<Ident> "::")*> <r1:@R> <intent:Ident>
+PredicateInstance: () = {
+    <l:@L> "predicate" <name:Ident> "=" <l1:@L> <abs:"::"?> <els:(<Ident> "::")*> <r1:@R> <predicate:Ident>
             "(" <address:Expr> ")" <r:@R> => {
-        context.parse_intent_instance(
+        context.parse_predicate_instance(
             handler,
             name,
             abs.is_some(),
             els,
-            intent,
+            predicate,
             address,
             (l, l1, r1, r),
         );
@@ -238,11 +238,11 @@ VarInit: ExprKey = {
 
 StateDecl: () = {
     <l:@L> "state" <name:Ident> <ty:(":" <Type>)?> "=" <init:StateInit> <r:@R> => {
-        // Return the index to the new state in the IntermediateIntent::states Vec.
+        // Return the index to the new state in the Predicate::states Vec.
         let span = (context.span_from)(l, r);
         let mod_prefix = context.mod_prefix;
         let _ = context
-            .current_ii()
+            .current_pred()
             .insert_state(handler, mod_prefix, &name, ty, init, span)
             .map(|_| ());
     },
@@ -250,8 +250,8 @@ StateDecl: () = {
 
 ConstDecl: () = {
     <l:@L> "const" <name:Ident> <ty:(":" <Type>)?> "=" <init:Expr> <r:@R> => {
-        // consts are all added to the root II.
-        if let Ok(full_name) = context.program.root_ii_mut().add_top_level_symbol(
+        // consts are all added to the root Pred.
+        if let Ok(full_name) = context.program.root_pred_mut().add_top_level_symbol(
             handler,
             context.mod_prefix,
             None,
@@ -272,7 +272,7 @@ ConstDecl: () = {
 };
 
 ConstraintDecl: () = {
-    <constraint: Constraint> => context.current_ii().constraints.push(constraint),
+    <constraint: Constraint> => context.current_pred().constraints.push(constraint),
 };
 
 Constraint: ConstraintDecl = {
@@ -309,13 +309,13 @@ If: IfDecl = {
 };
 
 IfDecl: () = {
-    <if_decl: If> => context.current_ii().if_decls.push(if_decl)
+    <if_decl: If> => context.current_pred().if_decls.push(if_decl)
 };
 
 SolveDecl: () = {
     <l:@L> <sd:SolveDeclInner> <r:@R> => {
         let span = (context.span_from)(l, r);
-        if let Some((_, prev_span)) = context.current_ii().directives.first() {
+        if let Some((_, prev_span)) = context.current_pred().directives.first() {
             // Multiple `solve` directives are not allowed
             handler.emit_err(Error::Parse {
                 error: ParseError::TooManySolveDirectives {
@@ -328,13 +328,13 @@ SolveDecl: () = {
             handler.emit_err(Error::Parse {
                 error: ParseError::SolveDirectiveMustBeTopLevel { span },
             });
-        } else if context.current_ii != Program::ROOT_II_NAME {
-            // `solve` directives inside an `intent` declaration are not allowed
+        } else if context.current_pred != Program::ROOT_PRED_NAME {
+            // `solve` directives inside an `predicate` declaration are not allowed
             handler.emit_err(Error::Parse {
-                error: ParseError::SolveDirectiveMustBeOutsideIntent { span },
+                error: ParseError::SolveDirectiveMustBeOutsidePredicate { span },
             });
         } else {
-            context.current_ii().directives.push((sd.clone(), span));
+            context.current_pred().directives.push((sd.clone(), span));
         }
     }
 }
@@ -352,7 +352,7 @@ EnumDecl: () = {
             variants,
             span: (context.span_from)(l, r),
         };
-        context.current_ii().enums.push(enum_decl);
+        context.current_pred().enums.push(enum_decl);
     }
 }
 
@@ -363,7 +363,7 @@ NewTypeDecl: () = {
             ty,
             span: (context.span_from)(l, r),
         };
-        context.current_ii().new_types.push(new_type_decl);
+        context.current_pred().new_types.push(new_type_decl);
     }
 }
 
@@ -516,7 +516,7 @@ Expr: ExprKey = {
 SelectExpr: ExprKey = {
     <l:@L> <condition:LogicalOrOp> "?" <then_expr:SelectExpr> ":" <else_expr:SelectExpr> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(
+        context.current_pred().exprs.insert(
             Expr::Select {
                 condition,
                 then_expr,
@@ -532,7 +532,7 @@ SelectExpr: ExprKey = {
 LogicalOrOp: ExprKey = {
     <l:@L> <lhs:LogicalOrOp> "||" <rhs:LogicalAndOp> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(
+        context.current_pred().exprs.insert(
             Expr::BinaryOp {
                 op: BinaryOp::LogicalOr,
                 lhs,
@@ -548,7 +548,7 @@ LogicalOrOp: ExprKey = {
 LogicalAndOp: ExprKey = {
     <l:@L> <lhs:LogicalAndOp> "&&" <rhs:Comparison> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(
+        context.current_pred().exprs.insert(
             Expr::BinaryOp {
                 op: BinaryOp::LogicalAnd,
                 lhs,
@@ -564,7 +564,7 @@ LogicalAndOp: ExprKey = {
 Comparison: ExprKey = {
     <l:@L> <lhs:Comparison> <op:RelOpOp> <rhs:InOp> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(
+        context.current_pred().exprs.insert(
             Expr::BinaryOp {
                 op,
                 lhs,
@@ -589,7 +589,7 @@ RelOpOp: BinaryOp = {
 InOp: ExprKey = {
      <l:@L> <value:InOp> "in" <collection:Additive> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(
+        context.current_pred().exprs.insert(
             Expr::In {
                 value,
                 collection,
@@ -600,7 +600,7 @@ InOp: ExprKey = {
      },
      <l:@L> <value:InOp> "in" <collection:Range> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(
+        context.current_pred().exprs.insert(
             Expr::In {
                 value,
                 collection,
@@ -615,7 +615,7 @@ InOp: ExprKey = {
 Additive: ExprKey = {
     <l:@L> <lhs:Additive> <op:AddOpOp> <rhs:Multiplicative> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(
+        context.current_pred().exprs.insert(
             Expr::BinaryOp {
                 op,
                 lhs,
@@ -636,7 +636,7 @@ AddOpOp: BinaryOp = {
 Multiplicative: ExprKey = {
     <l:@L> <lhs:Multiplicative> <op:MultOpOp> <rhs:AsOp> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(
+        context.current_pred().exprs.insert(
             Expr::BinaryOp {
                 op,
                 lhs,
@@ -658,7 +658,7 @@ MultOpOp: BinaryOp = {
 AsOp: ExprKey = {
      <l:@L> <value:AsOp> "as" <ty:Type> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(
+        context.current_pred().exprs.insert(
             Expr::Cast {
                 value,
                 ty: Box::new(ty),
@@ -673,7 +673,7 @@ AsOp: ExprKey = {
 PrimeOp: ExprKey = {
     <l:@L> <expr:PrimeOp> "'" <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(
+        context.current_pred().exprs.insert(
             Expr::UnaryOp {
                 op: UnaryOp::NextState,
                 expr,
@@ -701,7 +701,7 @@ UnaryOpOp: UnaryOp = {
 UnaryOp: ExprKey = {
     <l:@L> <op:UnaryOpOp> <expr:UnaryOp> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(
+        context.current_pred().exprs.insert(
             Expr::UnaryOp {
                 op,
                 expr,
@@ -716,7 +716,7 @@ UnaryOp: ExprKey = {
 TupleFieldOpOrIndexOp: ExprKey = {
     <l:@L> <expr:TupleFieldOpOrIndexOp> "[" <index:Expr> "]" <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(
+        context.current_pred().exprs.insert(
             Expr::Index {
                 expr,
                 index,
@@ -733,7 +733,7 @@ TupleFieldOpOrIndexOp: ExprKey = {
 
         // Recover with a malformed expression
         context
-            .current_ii()
+            .current_pred()
             .exprs
             .insert(Expr::Error(span.clone()), Type::Unknown(span))
     },
@@ -752,7 +752,7 @@ TupleFieldOpOrIndexOp: ExprKey = {
 Term: ExprKey = {
     <e:TermInner> => {
         let span = e.span().clone();
-        context.current_ii().exprs.insert(e, Type::Unknown(span))
+        context.current_pred().exprs.insert(e, Type::Unknown(span))
     },
     <MacroCallExpr>,
     <CondExpr>,
@@ -778,7 +778,7 @@ GeneratorRange: (Ident, ExprKey) = {
         // Generators for `forall`/`exists` are always `int`s and need to be saved in the ephemeral
         // list.
         let mod_prefix = context.mod_prefix;
-        let _ = context.current_ii().insert_ephemeral(
+        let _ = context.current_pred().insert_ephemeral(
             handler,
             mod_prefix,
             &index,
@@ -835,7 +835,7 @@ CondExpr: ExprKey = {
             .rev()
             .fold(else_branch, |acc, (condition, result)| {
                 let span = (context.span_from)(l, r);
-                context.current_ii().exprs.insert(
+                context.current_pred().exprs.insert(
                     Expr::Select {
                         condition: *condition,
                         then_expr: *result,
@@ -850,7 +850,7 @@ CondExpr: ExprKey = {
 
 MacroCallExpr: ExprKey = {
     <l:@L> <name:MacroPath> <tag:"macro_tag"?> <args:"macro_call_args"> <r:@L> => {
-        let call_key = context.current_ii().calls.insert(name.clone());
+        let call_key = context.current_pred().calls.insert(name.clone());
         let span = (context.span_from)(l, r);
         let call_data = MacroCall {
             name,
@@ -859,7 +859,7 @@ MacroCallExpr: ExprKey = {
             span: span.clone(),
             parent_tag: tag.flatten(),
         };
-        let call_expr_key = context.current_ii().exprs.insert(
+        let call_expr_key = context.current_pred().exprs.insert(
             Expr::MacroCall {
                 call: call_key,
                 span: span.clone(),
@@ -868,7 +868,7 @@ MacroCallExpr: ExprKey = {
         );
         context
             .macro_calls
-            .get_mut(context.current_ii)
+            .get_mut(context.current_pred)
             .unwrap()
             .insert(call_key, (call_expr_key, call_data));
         call_expr_key
@@ -888,7 +888,7 @@ IntrinsicCallExpr: Expr = {
 ArrayExpr: Expr = {
     <l:@L> "[" <il:@L> <elements:SepList<Expr, ",">> <ir:@R> "]" <r:@R> => {
         let span = (context.span_from)(il, ir);
-        let range_expr = context.current_ii().exprs.insert(
+        let range_expr = context.current_pred().exprs.insert(
             Expr::Immediate {
                 value: Immediate::Int(elements.len() as i64),
                 span: span.clone(),
@@ -941,7 +941,7 @@ TupleExprField: (Option<Ident>, ExprKey) = {
 Range: ExprKey = {
     <l:@L> <lb:Additive> ".." <ub:Additive> <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(
+        context.current_pred().exprs.insert(
             Expr::Range {
                 lb,
                 ub,
@@ -1024,7 +1024,7 @@ StateInit: ExprKey = {
     <StorageTupleFieldOp>,
     <call:IntrinsicCallExpr> => {
         let span = call.span().clone();
-        context.current_ii().exprs.insert(call, Type::Unknown(span))
+        context.current_pred().exprs.insert(call, Type::Unknown(span))
     },
 }
 
@@ -1046,7 +1046,7 @@ StorageIndexOp: ExprKey = {
     // into a map of maps.
     <l:@L> <expr:StorageIndexOp> "[" <index:Expr> "]" <r:@R> => {
         let span = (context.span_from)(l, r);
-        context.current_ii().exprs.insert(
+        context.current_pred().exprs.insert(
             Expr::Index {
                 expr,
                 index,
@@ -1063,7 +1063,7 @@ StorageIndexOp: ExprKey = {
 
         // Recover with a malformed expression
         context
-            .current_ii()
+            .current_pred()
             .exprs
             .insert(Expr::Error(span.clone()), Type::Unknown(span))
     },
@@ -1202,7 +1202,7 @@ extern {
         "type" => lexer::Token::Type,
         "constraint" => lexer::Token::Constraint,
         "as" => lexer::Token::As,
-        "intent" => lexer::Token::Intent,
+        "predicate" => lexer::Token::Predicate,
 
         "solve" => lexer::Token::Solve,
         "satisfy" => lexer::Token::Satisfy,

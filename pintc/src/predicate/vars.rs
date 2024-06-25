@@ -1,4 +1,4 @@
-use super::{DisplayWithII, Ident, IntermediateIntent};
+use super::{DisplayWithPred, Ident, Predicate};
 use crate::{
     error::{CompileError, ErrorEmitted, Handler},
     span::Span,
@@ -77,53 +77,53 @@ impl Vars {
 impl VarKey {
     /// Returns an `Option` containing the `Var` corresponding to key `self`. Returns `None` if
     /// the key can't be found in the `vars` map.
-    pub fn try_get<'a>(&'a self, ii: &'a IntermediateIntent) -> Option<&Var> {
-        ii.vars.vars.get(*self)
+    pub fn try_get<'a>(&'a self, pred: &'a Predicate) -> Option<&Var> {
+        pred.vars.vars.get(*self)
     }
 
     /// Returns the `Var` corresponding to key `self`. Panics if the key can't be found in the
     /// `vars` map.
-    pub fn get<'a>(&'a self, ii: &'a IntermediateIntent) -> &Var {
-        ii.vars.vars.get(*self).unwrap()
+    pub fn get<'a>(&'a self, pred: &'a Predicate) -> &Var {
+        pred.vars.vars.get(*self).unwrap()
     }
 
-    /// Returns the type of key `self` given an `IntermediateIntent`. Panics if the type can't be
+    /// Returns the type of key `self` given an `Predicate`. Panics if the type can't be
     /// found in the `var_types` map.
-    pub fn get_ty<'a>(&'a self, ii: &'a IntermediateIntent) -> &Type {
-        ii.vars.var_types.get(*self).unwrap()
+    pub fn get_ty<'a>(&'a self, pred: &'a Predicate) -> &Type {
+        pred.vars.var_types.get(*self).unwrap()
     }
 
-    /// Set the type of key `self` in an `IntermediateIntent`. Panics if the type can't be found in
+    /// Set the type of key `self` in an `Predicate`. Panics if the type can't be found in
     /// the `var_types` map.
-    pub fn set_ty<'a>(&'a self, ty: Type, ii: &'a mut IntermediateIntent) {
-        ii.vars.var_types.insert(*self, ty);
+    pub fn set_ty<'a>(&'a self, ty: Type, pred: &'a mut Predicate) {
+        pred.vars.var_types.insert(*self, ty);
     }
 
-    /// Generate a `VarABI` given a `VarKey` and an `IntermediateIntent`
-    pub fn abi(&self, ii: &IntermediateIntent) -> Result<VarABI, CompileError> {
+    /// Generate a `VarABI` given a `VarKey` and an `Predicate`
+    pub fn abi(&self, pred: &Predicate) -> Result<VarABI, CompileError> {
         Ok(VarABI {
-            name: self.get(ii).name.clone(),
-            ty: self.get_ty(ii).abi()?,
+            name: self.get(pred).name.clone(),
+            ty: self.get_ty(pred).abi()?,
         })
     }
 }
 
-impl DisplayWithII for VarKey {
-    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
-        let var = &self.get(ii);
+impl DisplayWithPred for VarKey {
+    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> fmt::Result {
+        let var = &self.get(pred);
         if var.is_pub {
             write!(f, "pub ")?;
         }
         write!(f, "var {}", var.name)?;
-        let ty = self.get_ty(ii);
+        let ty = self.get_ty(pred);
         if !ty.is_unknown() {
-            write!(f, ": {}", ii.with_ii(ty))?;
+            write!(f, ": {}", pred.with_pred(ty))?;
         }
         Ok(())
     }
 }
 
-impl IntermediateIntent {
+impl Predicate {
     pub fn insert_var(
         &mut self,
         handler: &Handler,

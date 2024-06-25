@@ -1,5 +1,5 @@
 use super::Inference;
-use super::{ExprKey, Ident, IntermediateIntent};
+use super::{ExprKey, Ident, Predicate};
 use crate::{
     error::{CompileError, Error},
     expr::{Expr, UnaryOp},
@@ -7,7 +7,7 @@ use crate::{
     types::{PrimitiveKind, Type},
 };
 
-impl IntermediateIntent {
+impl Predicate {
     pub(super) fn infer_intrinsic_call_expr(
         &self,
         name: &Ident,
@@ -95,7 +95,7 @@ fn infer_intrinsic_mut_keys_len(args: &[ExprKey], span: &Span) -> Result<Inferen
 // Description: Check if the mutable keys being proposed contain the given key
 //
 fn infer_intrinsic_mut_keys_contains(
-    ii: &IntermediateIntent,
+    pred: &Predicate,
     name: &Ident,
     args: &[ExprKey],
     span: &Span,
@@ -124,13 +124,13 @@ fn infer_intrinsic_mut_keys_contains(
     };
 
     // The only argument is the mutable key which must be an array of integers
-    let mut_key_span = args[0].get(ii).span();
-    let mut_key_type = &args[0].get_ty(ii);
+    let mut_key_span = args[0].get(pred).span();
+    let mut_key_type = &args[0].get_ty(pred);
     if let Some(ty) = mut_key_type.get_array_el_type() {
         if !ty.is_int() {
             return arg_type_error(
                 "int[..]".to_string(),
-                ii.with_ii(mut_key_type).to_string(),
+                pred.with_pred(mut_key_type).to_string(),
                 name.span.clone(),
                 mut_key_span.clone(),
             );
@@ -138,7 +138,7 @@ fn infer_intrinsic_mut_keys_contains(
     } else {
         return arg_type_error(
             "int[..]".to_string(),
-            ii.with_ii(mut_key_type).to_string(),
+            pred.with_pred(mut_key_type).to_string(),
             name.span.clone(),
             mut_key_span.clone(),
         );
@@ -158,7 +158,7 @@ fn infer_intrinsic_mut_keys_contains(
 //
 // - Returns: `b256`
 //
-// Description: Get the content hash of the set of intents that this intent belongs to.
+// Description: Get the content hash of the contract that this predicate belongs to.
 //
 fn infer_intrinsic_this_set_address(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
     // This intrinsic expects no arguments
@@ -186,7 +186,7 @@ fn infer_intrinsic_this_set_address(args: &[ExprKey], span: &Span) -> Result<Inf
 //
 // - Returns: `b256`
 //
-// Description: Get the content hash of this intent.
+// Description: Get the content hash of this predicate.
 //
 fn infer_intrinsic_this_address(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
     // This intrinsic expects no arguments
@@ -215,7 +215,7 @@ fn infer_intrinsic_this_address(args: &[ExprKey], span: &Span) -> Result<Inferen
 // - Returns: `int`
 //
 // Description: This operation returns the index of the solution data currently being used to check
-// this intent.
+// this predicate.
 //
 fn infer_intrinsic_this_pathway(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
     // This intrinsic expects no arguments
@@ -278,7 +278,7 @@ fn infer_intrinsic_sha256(args: &[ExprKey], span: &Span) -> Result<Inference, Er
 // Description: Validate an Ed25519 signature against a public key.
 //
 fn infer_intrinsic_verify_ed25519(
-    ii: &IntermediateIntent,
+    pred: &Predicate,
     name: &Ident,
     args: &[ExprKey],
     span: &Span,
@@ -309,13 +309,13 @@ fn infer_intrinsic_verify_ed25519(
     // First argument is the data which can be anything so nothing to check
 
     // Second argument is the signature and must be a `{ b256, b256 }`
-    let sig_span = args[1].get(ii).span();
-    let sig_type = &args[1].get_ty(ii);
+    let sig_span = args[1].get(pred).span();
+    let sig_type = &args[1].get_ty(pred);
     if let Some(fields) = sig_type.get_tuple_fields() {
         if fields.len() != 2 || !fields[0].1.is_b256() || !fields[1].1.is_b256() {
             return arg_type_error(
                 "{ b256, b256 }".to_string(),
-                ii.with_ii(sig_type).to_string(),
+                pred.with_pred(sig_type).to_string(),
                 name.span.clone(),
                 sig_span.clone(),
             );
@@ -323,19 +323,19 @@ fn infer_intrinsic_verify_ed25519(
     } else {
         return arg_type_error(
             "{ b256, b256 }".to_string(),
-            ii.with_ii(sig_type).to_string(),
+            pred.with_pred(sig_type).to_string(),
             name.span.clone(),
             sig_span.clone(),
         );
     }
 
     // Third argument is the public key and must be a `b256`
-    let pub_key_span = args[2].get(ii).span();
-    let pub_key_type = &args[2].get_ty(ii);
+    let pub_key_span = args[2].get(pred).span();
+    let pub_key_type = &args[2].get_ty(pred);
     if !pub_key_type.is_b256() {
         return arg_type_error(
             "b256".to_string(),
-            ii.with_ii(pub_key_type).to_string(),
+            pred.with_pred(pub_key_type).to_string(),
             name.span.clone(),
             pub_key_span.clone(),
         );
@@ -360,7 +360,7 @@ fn infer_intrinsic_verify_ed25519(
 // Description: Recover the public key from a secp256k1 signature.
 //
 fn infer_intrinsic_recover_secp256k1(
-    ii: &IntermediateIntent,
+    pred: &Predicate,
     name: &Ident,
     args: &[ExprKey],
     span: &Span,
@@ -389,20 +389,20 @@ fn infer_intrinsic_recover_secp256k1(
     };
 
     // First argument is the hash of the data and must be a `b256`
-    let pub_key_span = args[0].get(ii).span();
-    let pub_key_type = &args[0].get_ty(ii);
+    let pub_key_span = args[0].get(pred).span();
+    let pub_key_type = &args[0].get_ty(pred);
     if !pub_key_type.is_b256() {
         return arg_type_error(
             "b256".to_string(),
-            ii.with_ii(pub_key_type).to_string(),
+            pred.with_pred(pub_key_type).to_string(),
             name.span.clone(),
             pub_key_span.clone(),
         );
     }
 
     // Second argument is the signature and must be a `{ b256, b256, int }`
-    let sig_span = args[1].get(ii).span();
-    let sig_type = &args[1].get_ty(ii);
+    let sig_span = args[1].get(pred).span();
+    let sig_type = &args[1].get_ty(pred);
     if let Some(fields) = sig_type.get_tuple_fields() {
         if fields.len() != 3
             || !fields[0].1.is_b256()
@@ -411,7 +411,7 @@ fn infer_intrinsic_recover_secp256k1(
         {
             return arg_type_error(
                 "{ b256, b256, int }".to_string(),
-                ii.with_ii(sig_type).to_string(),
+                pred.with_pred(sig_type).to_string(),
                 name.span.clone(),
                 sig_span.clone(),
             );
@@ -419,7 +419,7 @@ fn infer_intrinsic_recover_secp256k1(
     } else {
         return arg_type_error(
             "{ b256, b256, int }".to_string(),
-            ii.with_ii(sig_type).to_string(),
+            pred.with_pred(sig_type).to_string(),
             name.span.clone(),
             sig_span.clone(),
         );
@@ -459,7 +459,7 @@ fn infer_intrinsic_recover_secp256k1(
 // variable is the sum of the lengths of the slots that form the state variable.
 //
 fn infer_intrinsic_state_len(
-    ii: &IntermediateIntent,
+    pred: &Predicate,
     args: &[ExprKey],
     span: &Span,
 ) -> Result<Inference, Error> {
@@ -475,14 +475,14 @@ fn infer_intrinsic_state_len(
     }
 
     // First argument must be a path to a state variable
-    match args[0].try_get(ii) {
-        Some(Expr::PathByName(name, _)) if ii.states().any(|(_, state)| state.name == *name) => {
+    match args[0].try_get(pred) {
+        Some(Expr::PathByName(name, _)) if pred.states().any(|(_, state)| state.name == *name) => {
             Ok(())
         }
         Some(Expr::PathByKey(var_key, _))
-            if ii
+            if pred
                 .states()
-                .any(|(_, state)| state.name == var_key.get(ii).name) =>
+                .any(|(_, state)| state.name == var_key.get(pred).name) =>
         {
             Ok(())
         }

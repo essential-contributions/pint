@@ -16,7 +16,7 @@ constraint x < @c(@b(@a(22)); @a(@b(33)));
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::x: int;
 // constraint (::x > ((11 * 2) + 1));
 // constraint (::x < (((22 + 1) * 2) + ((33 * 2) + 1)));

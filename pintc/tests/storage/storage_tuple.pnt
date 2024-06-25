@@ -14,7 +14,7 @@ interface Foo {
     }
 }
 
-intent Bar {
+predicate Bar {
     interface FooInstance = Foo(0x1111111111111111111111111111111111111111111111111111111111111111);
 
     state u = storage::u;
@@ -56,7 +56,7 @@ intent Bar {
     state foo_map_to_tuples_69_1_1 = FooInstance::storage::map_to_tuples[69].1.1;
 }
 
-// intermediate <<<
+// parsed <<<
 // storage {
 //     u: {b256, int},
 //     t: {b256, {int, int}},
@@ -72,7 +72,7 @@ intent Bar {
 //     }
 // }
 // 
-// intent ::Bar {
+// predicate ::Bar {
 //     storage {
 //         u: {b256, int},
 //         t: {b256, {int, int}},
@@ -137,7 +137,7 @@ intent Bar {
 //     }
 // }
 // 
-// intent ::Bar {
+// predicate ::Bar {
 //     storage {
 //         u: {b256, int},
 //         t: {b256, {int, int}},

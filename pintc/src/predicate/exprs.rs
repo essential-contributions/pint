@@ -1,4 +1,4 @@
-use super::IntermediateIntent;
+use super::Predicate;
 use crate::{expr::Expr, types::Type};
 use std::collections::HashSet;
 
@@ -49,52 +49,52 @@ impl Exprs {
 impl ExprKey {
     /// Returns an `Option` containing the `Expr` corresponding to key `self`. Returns `None` if
     /// the key can't be found in the `exprs` map.
-    pub fn try_get<'a>(&'a self, ii: &'a IntermediateIntent) -> Option<&Expr> {
-        ii.exprs.exprs.get(*self)
+    pub fn try_get<'a>(&'a self, pred: &'a Predicate) -> Option<&Expr> {
+        pred.exprs.exprs.get(*self)
     }
 
     /// Returns the `Expr` corresponding to key `self`. Panics if the key can't be found in the
     /// `exprs` map.
-    pub fn get<'a>(&'a self, ii: &'a IntermediateIntent) -> &Expr {
-        ii.exprs.exprs.get(*self).unwrap()
+    pub fn get<'a>(&'a self, pred: &'a Predicate) -> &Expr {
+        pred.exprs.exprs.get(*self).unwrap()
     }
 
-    /// Returns the type of key `self` given an `IntermediateIntent`. Panics if the type can't be
+    /// Returns the type of key `self` given an `Predicate`. Panics if the type can't be
     /// found in the `expr_types` map.
-    pub fn get_ty<'a>(&'a self, ii: &'a IntermediateIntent) -> &Type {
-        ii.exprs.expr_types.get(*self).unwrap()
+    pub fn get_ty<'a>(&'a self, pred: &'a Predicate) -> &Type {
+        pred.exprs.expr_types.get(*self).unwrap()
     }
 
-    /// Set the type of key `self` in an `IntermediateIntent`. Panics if the type can't be found in
+    /// Set the type of key `self` in an `Predicate`. Panics if the type can't be found in
     /// the `expr_types` map.
-    pub fn set_ty<'a>(&'a self, ty: Type, ii: &'a mut IntermediateIntent) {
-        ii.exprs.expr_types.insert(*self, ty);
+    pub fn set_ty<'a>(&'a self, ty: Type, pred: &'a mut Predicate) {
+        pred.exprs.expr_types.insert(*self, ty);
     }
 }
 
-/// [`ExprsIter`] is an iterator for all the _reachable_ expressions in the IntermediateIntent.
+/// [`ExprsIter`] is an iterator for all the _reachable_ expressions in the Predicate.
 ///
 /// Items are popped off the queue and are returned next.  If they're a branch then their children
 /// are queued.  The visited set is updated and used to avoid following a branch multiple
 /// times.
 ///
-/// An alternative is to use `[IntermediateIntent::visitor]` which will also iterate
+/// An alternative is to use `[Predicate::visitor]` which will also iterate
 /// for each reachable expression but does not implement `Interator` and instead takes a closure.
 
 #[derive(Debug)]
 pub(crate) struct ExprsIter<'a> {
-    ii: &'a IntermediateIntent,
+    pred: &'a Predicate,
     queue: Vec<ExprKey>,
     visited: HashSet<ExprKey>,
 }
 
 impl<'a> ExprsIter<'a> {
-    pub(super) fn new(ii: &'a IntermediateIntent) -> ExprsIter {
+    pub(super) fn new(pred: &'a Predicate) -> ExprsIter {
         // We start with all the constraint, directive and state exprs.
-        let queue = ii.root_set().collect();
+        let queue = pred.root_set().collect();
 
         ExprsIter {
-            ii,
+            pred,
             queue,
             visited: HashSet::default(),
         }
@@ -123,12 +123,12 @@ impl<'a> Iterator for ExprsIter<'a> {
 
         // Keep macro calls that do not return as expressions but used as expressions. We should
         // error out early when we find these anyways, but we'll do it in type checking.
-        if self.ii.removed_macro_calls.get(next_key).is_some() {
+        if self.pred.removed_macro_calls.get(next_key).is_some() {
             return Some(next_key);
         }
 
         // Push its children to the queue.
-        match next_key.get(self.ii) {
+        match next_key.get(self.pred) {
             Expr::Immediate { .. } => {}
 
             Expr::Array {
@@ -220,7 +220,7 @@ impl<'a> Iterator for ExprsIter<'a> {
 
         // If it has an array type then it also has an associated expr in the range.
         next_key
-            .get_ty(self.ii)
+            .get_ty(self.pred)
             .get_array_range_expr()
             .iter()
             .for_each(|range| queue_if_new!(self, range));

@@ -4,7 +4,7 @@ constraint ary[false] == ary[11.1];
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::ary: int[2];
 // constraint (::ary[false] == ::ary[1.11e1]);
 // solve satisfy;

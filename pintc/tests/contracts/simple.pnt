@@ -2,23 +2,23 @@ enum MyEnum = A | B;
 
 type MyType = MyEnum;
 
-intent Foo {
+predicate Foo {
     var x: int;
     var y: MyEnum = MyEnum::A;
     constraint x == 3;
 }
 
-intent Bar {
+predicate Bar {
     var x: int;
     var y: MyType = MyType::A;
     constraint x < 2;
 }
 
-// intermediate <<<
+// parsed <<<
 // enum ::MyEnum = A | B;
 // type ::MyType = ::MyEnum;
 //
-// intent ::Bar {
+// predicate ::Bar {
 //     var ::x: int;
 //     var ::y: ::MyType;
 //     enum ::MyEnum = A | B;
@@ -27,7 +27,7 @@ intent Bar {
 //     constraint (::x < 2);
 // }
 //
-// intent ::Foo {
+// predicate ::Foo {
 //     var ::x: int;
 //     var ::y: ::MyEnum;
 //     enum ::MyEnum = A | B;
@@ -42,7 +42,7 @@ intent Bar {
 // enum ::MyEnum = A | B;
 // type ::MyType = ::MyEnum;
 // 
-// intent ::Bar {
+// predicate ::Bar {
 //     var ::x: int;
 //     var ::y: int;
 //     enum ::MyEnum = A | B;
@@ -53,7 +53,7 @@ intent Bar {
 //     constraint (::y <= 1);
 // }
 // 
-// intent ::Foo {
+// predicate ::Foo {
 //     var ::x: int;
 //     var ::y: int;
 //     enum ::MyEnum = A | B;

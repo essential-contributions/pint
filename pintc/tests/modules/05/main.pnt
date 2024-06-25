@@ -4,7 +4,7 @@ constraint a > b_mod::c_mod::c;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::b_mod::c_mod::c;
 // var ::b_mod::e_mod::f_mod::f;
 // var ::a_mod::a;

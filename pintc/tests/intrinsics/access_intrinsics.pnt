@@ -15,7 +15,7 @@ var this_pathway: int = __this_pathway();
 
 solve satisfy;
 
-// intermediate <<<,
+// parsed <<<,
 // var ::mut_keys_len: int;
 // var ::key: int[5];
 // var ::mut_keys_contains_1: bool;

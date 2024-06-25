@@ -1,12 +1,12 @@
 interface Foo {
-    intent A {
+    predicate A {
         pub var x: int;
         pub var x: int;
         pub var x: int;
         pub var y: int;
     }
 
-    intent B {
+    predicate B {
         pub var z: int;
         pub var z: int;
         pub var z: int;
@@ -14,23 +14,25 @@ interface Foo {
     }
 }
 
-intent Simple {}
+Simple {}
 
 // parse_failure <<<
 // symbol `x` has already been declared
-// @47..48: previous declaration of the symbol `x` here
-// @71..72: `x` redeclared here
+// @50..51: previous declaration of the symbol `x` here
+// @74..75: `x` redeclared here
 // `x` must be declared or imported only once in this scope
 // symbol `x` has already been declared
-// @47..48: previous declaration of the symbol `x` here
-// @95..96: `x` redeclared here
+// @50..51: previous declaration of the symbol `x` here
+// @98..99: `x` redeclared here
 // `x` must be declared or imported only once in this scope
 // symbol `z` has already been declared
-// @165..166: previous declaration of the symbol `z` here
-// @189..190: `z` redeclared here
+// @171..172: previous declaration of the symbol `z` here
+// @195..196: `z` redeclared here
 // `z` must be declared or imported only once in this scope
 // symbol `z` has already been declared
-// @165..166: previous declaration of the symbol `z` here
-// @213..214: `z` redeclared here
+// @171..172: previous declaration of the symbol `z` here
+// @219..220: `z` redeclared here
 // `z` must be declared or imported only once in this scope
+// expected `::`, found `{`
+// @267..268: expected `::`
 // >>>

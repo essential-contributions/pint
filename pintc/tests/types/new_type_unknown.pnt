@@ -4,7 +4,7 @@ var a = Ambiguous::MissingVariant;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a;
 // type ::Ambiguous = ::NonExistentEnum;
 // constraint (::a == ::Ambiguous::MissingVariant);

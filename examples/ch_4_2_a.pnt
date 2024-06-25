@@ -2,11 +2,11 @@ storage {
     // storage variables
 }
 
-intent Foo {
+predicate Foo {
     // variables, constraints, etc.     
 }
 
-intent Bar {
+predicate Bar {
     // variables, constraints, etc.     
 }
 

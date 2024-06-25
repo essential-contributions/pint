@@ -4,7 +4,7 @@ const c = 44 as bool;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // const ::b = [22, 33] as int;
 // const ::a = {11} as int;
 // const ::c = 44 as bool;

@@ -1,8 +1,8 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{self, Expr},
-    intermediate::{
-        ConstraintDecl, IntermediateIntent, Program, ProgramKind,
+    predicate::{
+        ConstraintDecl, Predicate, Program, ProgramKind,
         SolveFunc::{self, *},
         Var,
     },
@@ -43,11 +43,11 @@ pub(crate) fn canonicalize_solve_directive(
         return Ok(());
     }
 
-    // Only look at the root II. No other IIs are expected here because we now know that this is a
+    // Only look at the root Pred. No other Preds are expected here because we now know that this is a
     // stateless program.
-    let ii: &mut IntermediateIntent = program.root_ii_mut();
+    let pred: &mut Predicate = program.root_pred_mut();
 
-    let (solve_func, directive_span) = ii
+    let (solve_func, directive_span) = pred
         .directives
         .first()
         .ok_or_else(|| {
@@ -64,20 +64,20 @@ pub(crate) fn canonicalize_solve_directive(
 
     // we only need to transform if the objective isn't already a var
     if matches!(
-        directive_expr_key.try_get(ii),
+        directive_expr_key.try_get(pred),
         Some(Expr::PathByName(_, _)) | Some(Expr::PathByKey(_, _))
     ) {
         return Ok(());
     }
 
-    let directive_expr_type = directive_expr_key.get_ty(ii).clone();
+    let directive_expr_type = directive_expr_key.get_ty(pred).clone();
 
     // create the new objective variable
     // let ~objective: <type_of_expr>;
     let objective_var_name = "~objective".to_string();
-    ii.top_level_symbols
+    pred.top_level_symbols
         .insert(objective_var_name.clone(), directive_span.clone());
-    let objective_var_key = ii.vars.insert(
+    let objective_var_key = pred.vars.insert(
         Var {
             name: objective_var_name,
             is_pub: false,
@@ -88,12 +88,12 @@ pub(crate) fn canonicalize_solve_directive(
 
     // update the directive expression to be the newly created objective variable
     // solve maximize ~objective;
-    let objective_expr_key = ii.exprs.insert(
+    let objective_expr_key = pred.exprs.insert(
         Expr::PathByKey(objective_var_key, directive_span.clone()),
         directive_expr_type.clone(),
     );
 
-    let eq_expr_key = ii.exprs.insert(
+    let eq_expr_key = pred.exprs.insert(
         Expr::BinaryOp {
             op: expr::BinaryOp::Equal,
             lhs: objective_expr_key,
@@ -106,7 +106,7 @@ pub(crate) fn canonicalize_solve_directive(
         },
     );
 
-    ii.constraints.push(ConstraintDecl {
+    pred.constraints.push(ConstraintDecl {
         expr: eq_expr_key,
         span: directive_span.clone(),
     });
@@ -116,7 +116,7 @@ pub(crate) fn canonicalize_solve_directive(
         Minimize(_) => SolveFunc::Minimize(objective_expr_key),
         Maximize(_) => SolveFunc::Maximize(objective_expr_key),
     };
-    ii.directives[0] = (canonicalized_solve_func, directive_span.clone());
+    pred.directives[0] = (canonicalized_solve_func, directive_span.clone());
 
     Ok(())
 }

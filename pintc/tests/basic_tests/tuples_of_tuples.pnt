@@ -16,7 +16,7 @@ constraint c.1 != d;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a: {int, {int, bool, {int, bool, real}, real}, bool, real};
 // var ::b: real;
 // var ::c: {{width: int, height: int}, {x: int, y: int}};

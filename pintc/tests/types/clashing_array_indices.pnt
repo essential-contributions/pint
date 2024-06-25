@@ -13,7 +13,7 @@ constraint forall i in 0..3 {
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a: int[4];
 // var ::b: int[4];
 // constraint forall i in 0..3, { ((::b[::i] == ::i) && forall i in 0..3, { (::a[::i] > ::b[::i]) }) };

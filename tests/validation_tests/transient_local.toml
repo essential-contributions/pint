@@ -1,5 +1,5 @@
 [[data]]
-intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "::Simple" }
+predicate_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", predicate = "::Simple" }
 decision_variables = [
   [42], # ::z
   [69], # ::q
