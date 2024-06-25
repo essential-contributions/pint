@@ -9,7 +9,5 @@ solve satisfy;
 
 // typecheck_failure <<<
 // condition for select expression must be a `bool`
-// @10..12: invalid type `int`, expecting `bool`
-// condition for select expression must be a `bool`
 // @10..20: invalid type `int`, expecting `bool`
 // >>>

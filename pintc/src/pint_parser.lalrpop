@@ -2,7 +2,7 @@ use crate::{
     error::{CompileError, Error, Handler, ParseError},
     expr::*,
     intermediate::{
-        BlockStatement, ConstraintDecl, ExprKey, IfDecl, IntentInterface, InterfaceDecl,
+        BlockStatement, Const, ConstraintDecl, ExprKey, IfDecl, IntentInterface, InterfaceDecl,
         InterfaceInstance, InterfaceVar, IntermediateIntent, Program, ProgramKind, SolveFunc,
         StorageVar,
     },
@@ -70,10 +70,10 @@ IntentOpen: () = {
         );
 
         // Brand new II in the program
-        context.program.iis.insert(
-            name.to_string(),
-            IntermediateIntent::from_consts(name.to_string(), context.consts()),
-        );
+        context
+            .program
+            .iis
+            .insert(name.to_string(), IntermediateIntent::new(name.to_string()));
 
         // Keep track of the macro call in this new intent
         context
@@ -249,10 +249,24 @@ StateDecl: () = {
 
 ConstDecl: () = {
     <l:@L> "const" <name:Ident> <ty:(":" <Type>)?> "=" <init:Expr> <r:@R> => {
-        let mod_prefix = context.mod_prefix;
-        let _ = context
-            .current_ii()
-            .insert_const(handler, mod_prefix, &name, ty, init);
+        // consts are all added to the root II.
+        if let Ok(full_name) = context.program.root_ii_mut().add_top_level_symbol(
+            handler,
+            context.mod_prefix,
+            None,
+            &name,
+            name.span.clone(),
+        ) {
+            let decl_ty = ty.unwrap_or_else(|| Type::Unknown(name.span.clone()));
+
+            context.program.consts.insert(
+                full_name,
+                Const {
+                    expr: init,
+                    decl_ty,
+                },
+            );
+        }
     }
 };
 

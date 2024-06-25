@@ -21,6 +21,10 @@ impl Program {
     pub fn type_check(mut self, handler: &Handler) -> Result<Self, ErrorEmitted> {
         self = handler.scope(|handler| self.check_program_kind(handler))?;
 
+        // Evaluate all the constant decls to ensure they're all immediates. Each Const expr is
+        // updated and has its type set.
+        let _ = handler.scope(|handler| self.evaluate_all_consts(handler));
+
         for ii in self.iis.values_mut() {
             for expr_key in ii.exprs() {
                 if let Some(span) = ii.removed_macro_calls.get(expr_key) {
@@ -38,8 +42,8 @@ impl Program {
 
             ii.check_undefined_types(handler);
             ii.lower_newtypes(handler)?;
-            ii.type_check_all_exprs(handler);
-            ii.check_inits(handler);
+            ii.type_check_all_exprs(handler, &self.consts);
+            ii.check_inits(handler, &self.consts);
             ii.check_constraint_types(handler);
         }
 
@@ -47,6 +51,142 @@ impl Program {
             Err(handler.cancel())
         } else {
             Ok(self)
+        }
+    }
+
+    fn evaluate_all_consts(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
+        // Evaluate every const initialiser which isn't already an immediate.
+        //
+        // Some consts may depend on others and so there may be a non-trivial evaluation order to
+        // shake out all the final immediate values.  But determining this order is also hard.
+        //
+        // Worst case is every constant depends on another, except for one.  (If all consts depend
+        // on another then there must be some sort of recursive loop which must fail.)  So
+        // performing N-1 evaluation passes for N consts should resolve all dependencies and in
+        // most cases will be done in only 1 or 2 passes.
+
+        let mut evaluator = Evaluator::new(self.root_ii());
+        let mut new_immediates = Vec::default();
+
+        // Use a temporary error handler to manage in-progress errors.
+        let tmp_handler = Handler::default();
+
+        let const_count = self.consts.len();
+        for loop_idx in 0..const_count {
+            for (path, cnst) in &self.consts {
+                let expr = cnst.expr.get(self.root_ii());
+
+                // There's no need to re-evaluate known immediates.
+                if !evaluator.contains_path(path) {
+                    if let Expr::Immediate { value, .. } = expr {
+                        evaluator.insert_value(path.clone(), value.clone());
+                    } else if let Ok(imm) =
+                        evaluator.evaluate_key(&cnst.expr, &tmp_handler, self.root_ii())
+                    {
+                        evaluator.insert_value(path.clone(), imm);
+
+                        // Take note of this const as we need to update the const declaration
+                        // with the new evaluated immediate value.
+                        new_immediates.push(path.clone());
+                    }
+                }
+            }
+
+            if !tmp_handler.has_errors() {
+                // We evaluated all the consts without error.  Stop now.
+                break;
+            }
+
+            if loop_idx != (const_count - 1) {
+                // This isn't the last iteration.  Clear the temporary errors.
+                tmp_handler.clear();
+            }
+        }
+
+        // There's little point in continuing if we weren't able to lower all consts.
+        handler.append(tmp_handler);
+        if handler.has_errors() {
+            return Err(handler.cancel());
+        }
+
+        let emit_internal = |msg| {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg,
+                    span: empty_span(),
+                },
+            })
+        };
+
+        // For each of the newly evaluated intialisers we need to update the expressions in the
+        // consts map.
+        let all_const_immediates = evaluator.into_values();
+        for new_path in new_immediates {
+            let init_span: Span = self
+                .consts
+                .get(&new_path)
+                .map(|cnst| self.root_ii().expr_key_to_span(cnst.expr))
+                .unwrap_or_else(empty_span);
+
+            if let Some(imm_value) = all_const_immediates.get(&new_path) {
+                let new_expr = Expr::Immediate {
+                    value: imm_value.clone(),
+                    span: init_span,
+                };
+
+                let new_expr_key = self
+                    .root_ii_mut()
+                    .exprs
+                    .insert(new_expr, imm_value.get_ty(None));
+
+                if let Some(cnst) = self.consts.get_mut(&new_path) {
+                    cnst.expr = new_expr_key;
+                } else {
+                    emit_internal("missing const decl for immediate update");
+                }
+            } else {
+                emit_internal("missing immediate value for const expr update");
+            }
+        }
+
+        // And for all const decls with an unknown decl type we need to update that too.
+        let mut type_replacements: Vec<(String, Type)> = Vec::default();
+        for (path, Const { expr, decl_ty, .. }) in &self.consts {
+            if decl_ty.is_unknown() {
+                if let Some(imm_value) = all_const_immediates.get(path) {
+                    // Check the type is valid.
+                    let span = self.root_ii().expr_key_to_span(*expr);
+                    match self.root_ii().infer_immediate(imm_value, &span) {
+                        Ok(inferred) => match inferred {
+                            Inference::Type(new_ty) => {
+                                type_replacements.push((path.clone(), new_ty))
+                            }
+
+                            Inference::Ignored
+                            | Inference::Dependant(_)
+                            | Inference::Dependencies(_) => {
+                                emit_internal("const inferred a dependant type");
+                            }
+                        },
+
+                        Err(err) => {
+                            handler.emit_err(err);
+                        }
+                    }
+                } else {
+                    emit_internal("missing immediate value for const decl_ty update");
+                }
+            }
+        }
+
+        for (path, new_ty) in type_replacements {
+            self.consts.get_mut(&path).unwrap().decl_ty = new_ty;
+        }
+
+        if handler.has_errors() {
+            Err(handler.cancel())
+        } else {
+            Ok(())
         }
     }
 }
@@ -332,7 +472,7 @@ impl IntermediateIntent {
         })
     }
 
-    fn type_check_all_exprs(&mut self, handler: &Handler) {
+    fn type_check_all_exprs(&mut self, handler: &Handler, consts: &FxHashMap<String, Const>) {
         // Type check all interface instance declarations
         self.interface_instances.clone().into_iter().for_each(
             |InterfaceInstance {
@@ -354,7 +494,7 @@ impl IntermediateIntent {
                     });
                 }
 
-                match self.type_check_next_expr(address) {
+                match self.type_check_next_expr(consts, address) {
                     Ok(()) => {
                         let ty = address.get_ty(self);
                         if !ty.is_b256() {
@@ -429,7 +569,7 @@ impl IntermediateIntent {
                 };
 
                 // Type check the address field
-                match self.type_check_next_expr(address) {
+                match self.type_check_next_expr(consts, address) {
                     Ok(()) => {
                         let ty = address.get_ty(self);
                         if !ty.is_b256() {
@@ -467,7 +607,7 @@ impl IntermediateIntent {
             .map(|ConstraintDecl { expr: key, .. }| *key)
             .chain(self.states().map(|(_, state)| state.expr))
             .chain(self.var_inits.iter().map(|(_, expr)| *expr))
-            .chain(self.consts.iter().map(|(_, Const { expr, .. })| *expr))
+            .chain(consts.iter().map(|(_, Const { expr, .. })| *expr))
             .chain(
                 self.directives
                     .iter()
@@ -476,7 +616,7 @@ impl IntermediateIntent {
             .collect::<Vec<_>>()
             .into_iter()
             .for_each(|expr_key| {
-                if let Err(err) = self.type_check_next_expr(expr_key) {
+                if let Err(err) = self.type_check_next_expr(consts, expr_key) {
                     handler.emit_err(err);
                 }
             });
@@ -485,7 +625,7 @@ impl IntermediateIntent {
         self.if_decls
             .clone()
             .iter()
-            .for_each(|if_decl| self.type_check_if_decl(if_decl, handler));
+            .for_each(|if_decl| self.type_check_if_decl(consts, if_decl, handler));
 
         // Confirm now that all decision variables are typed.
         let mut var_key_to_new_type = FxHashMap::default();
@@ -614,7 +754,7 @@ impl IntermediateIntent {
             .collect::<Vec<_>>()
             .iter()
         {
-            if let Err(err) = self.type_check_next_expr(*range_expr) {
+            if let Err(err) = self.type_check_next_expr(consts, *range_expr) {
                 handler.emit_err(err);
             } else if !(range_expr.get_ty(self).is_int()
                 || range_expr.get_ty(self).is_enum(self)
@@ -634,7 +774,12 @@ impl IntermediateIntent {
 
     // Type check an if statement and all of its sub-statements including other ifs. This is a
     // recursive function.
-    fn type_check_if_decl(&mut self, if_decl: &IfDecl, handler: &Handler) {
+    fn type_check_if_decl(
+        &mut self,
+        consts: &FxHashMap<String, Const>,
+        if_decl: &IfDecl,
+        handler: &Handler,
+    ) {
         let IfDecl {
             condition,
             then_block,
@@ -643,7 +788,7 @@ impl IntermediateIntent {
         } = if_decl;
 
         // Make sure the condition is a `bool`
-        if let Err(err) = self.type_check_next_expr(*condition) {
+        if let Err(err) = self.type_check_next_expr(consts, *condition) {
             handler.emit_err(err);
         } else {
             let cond_ty = condition.get_ty(self);
@@ -660,27 +805,36 @@ impl IntermediateIntent {
 
         // Type check each block statement in the "then" block
         then_block.iter().for_each(|block_statement| {
-            self.type_check_block_statement(block_statement, handler);
+            self.type_check_block_statement(consts, block_statement, handler);
         });
 
         // Type check each block statement in the "else" block, if available
         else_block.iter().flatten().for_each(|block_statement| {
-            self.type_check_block_statement(block_statement, handler);
+            self.type_check_block_statement(consts, block_statement, handler);
         });
     }
 
-    fn type_check_block_statement(&mut self, block_statement: &BlockStatement, handler: &Handler) {
+    fn type_check_block_statement(
+        &mut self,
+        consts: &FxHashMap<String, Const>,
+        block_statement: &BlockStatement,
+        handler: &Handler,
+    ) {
         match block_statement {
             BlockStatement::Constraint(ConstraintDecl { expr, .. }) => {
-                if let Err(err) = self.type_check_next_expr(*expr) {
+                if let Err(err) = self.type_check_next_expr(consts, *expr) {
                     handler.emit_err(err);
                 }
             }
-            BlockStatement::If(if_decl) => self.type_check_if_decl(if_decl, handler),
+            BlockStatement::If(if_decl) => self.type_check_if_decl(consts, if_decl, handler),
         }
     }
 
-    fn type_check_next_expr(&mut self, expr_key: ExprKey) -> Result<(), Error> {
+    fn type_check_next_expr(
+        &mut self,
+        consts: &FxHashMap<String, Const>,
+        expr_key: ExprKey,
+    ) -> Result<(), Error> {
         // Attempt to infer all the types of each expr.
         let mut queue = Vec::new();
 
@@ -711,7 +865,7 @@ impl IntermediateIntent {
             if !next_key.get_ty(self).is_unknown() {
                 queue.pop();
             } else {
-                match self.infer_expr_key_type(next_key)? {
+                match self.infer_expr_key_type(consts, next_key)? {
                     // Successfully inferred its type.  Save it and pop it from the queue.
                     Inference::Type(ty) => {
                         next_key.set_ty(ty, self);
@@ -738,7 +892,11 @@ impl IntermediateIntent {
         Ok(())
     }
 
-    fn infer_expr_key_type(&self, expr_key: ExprKey) -> Result<Inference, Error> {
+    fn infer_expr_key_type(
+        &self,
+        consts: &FxHashMap<String, Const>,
+        expr_key: ExprKey,
+    ) -> Result<Inference, Error> {
         let expr: &Expr = expr_key.try_get(self).ok_or_else(|| Error::Compile {
             error: CompileError::Internal {
                 msg: "orphaned expr key when type checking",
@@ -766,7 +924,7 @@ impl IntermediateIntent {
 
             Expr::PathByKey(var_key, span) => self.infer_path_by_key(*var_key, span),
 
-            Expr::PathByName(path, span) => self.infer_path_by_name(path, span),
+            Expr::PathByName(path, span) => self.infer_path_by_name(consts, path, span),
 
             Expr::StorageAccess(name, span) => self.infer_storage_access(name, span),
 
@@ -889,7 +1047,12 @@ impl IntermediateIntent {
         }
     }
 
-    fn infer_path_by_name(&self, path: &Path, span: &Span) -> Result<Inference, Error> {
+    fn infer_path_by_name(
+        &self,
+        consts: &FxHashMap<String, Const>,
+        path: &Path,
+        span: &Span,
+    ) -> Result<Inference, Error> {
         if let Some(var_key) = self
             .vars()
             .find_map(|(var_key, var)| (&var.name == path).then_some(var_key))
@@ -909,17 +1072,17 @@ impl IntermediateIntent {
             } else {
                 Inference::Dependant(state.expr)
             })
-        } else if let Some(Const { expr, decl_ty, .. }) = self.consts.get(path) {
-            Ok(if !decl_ty.is_unknown() {
-                Inference::Type(decl_ty.clone())
+        } else if let Some(Const { decl_ty, .. }) = consts.get(path) {
+            if !decl_ty.is_unknown() {
+                Ok(Inference::Type(decl_ty.clone()))
             } else {
-                let const_expr_ty = expr.get_ty(self);
-                if const_expr_ty.is_unknown() {
-                    Inference::Dependant(*expr)
-                } else {
-                    Inference::Type(const_expr_ty.clone())
-                }
-            })
+                Err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "const decl has unknown type *after* evaluation",
+                        span: span.clone(),
+                    },
+                })
+            }
         } else if let Some(EphemeralDecl { ty, .. }) = self
             .ephemerals
             .iter()
@@ -1706,6 +1869,9 @@ impl IntermediateIntent {
                     },
                 })
             }
+        } else if let Some(ty) = ary_ty.get_array_el_type() {
+            // Is it an array with an unknown range (probably a const immediate)?
+            Ok(Inference::Type(ty.clone()))
         } else if let Some(from_ty) = ary_ty.get_map_ty_from() {
             // Is this a storage map?
             if !from_ty.eq(self, index_ty) {
@@ -1893,7 +2059,7 @@ impl IntermediateIntent {
 
     // Confirm that all var init exprs and const init exprs match their declared type, if they have
     // one.
-    fn check_inits(&mut self, handler: &Handler) {
+    fn check_inits(&mut self, handler: &Handler, consts: &FxHashMap<String, Const>) {
         // Confirm types for all the variable initialisers first.
         for (var_key, init_expr_key) in &self.var_inits {
             let var_decl_ty = var_key.get_ty(self);
@@ -1919,21 +2085,12 @@ impl IntermediateIntent {
             }
         }
 
-        // Evaluate all the constant decls to ensure they're all immediates.  If there are any
-        // errors then abort.  Each Const expr is updated and has its type set.
-        if handler
-            .scope(|handler| self.evaluate_all_consts(handler))
-            .is_err()
-        {
-            return;
-        }
-
-        // Now confirm that every initialiser type matches the const decl type.
+        // Now confirm that every const initialiser type matches the const decl type.
         for Const {
             expr: init_expr_key,
             decl_ty,
             ..
-        } in self.consts.values()
+        } in consts.values()
         {
             let init_ty = init_expr_key.get_ty(self);
             if !init_ty.eq(self, decl_ty) {
@@ -1950,114 +2107,6 @@ impl IntermediateIntent {
                     },
                 });
             }
-        }
-    }
-
-    fn evaluate_all_consts(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
-        // Evaluate every const initialiser which isn't already an immediate.
-        //
-        // Some consts may depend on others and so there may be a non-trivial evaluation order to
-        // shake out all the final immediate values.  But determining this order is also hard.
-        //
-        // Worst case is every constant depends on another, except for one.  (If all consts depend
-        // on another then there must be some sort of recursive loop which must fail.)  So
-        // performing N-1 evaluation passes for N consts should resolve all dependencies and in
-        // most cases will be done in only 1 or 2 passes.
-
-        let mut evaluator = Evaluator::new(self);
-        let mut new_immediates = Vec::default();
-
-        // Use a temporary error handler to manage in-progress errors.
-        let tmp_handler = Handler::default();
-
-        let const_count = self.consts.len();
-        for loop_idx in 0..const_count {
-            for (path, cnst) in &self.consts {
-                let expr = cnst.expr.get(self);
-
-                // There's no need to re-evaluate known immediates.
-                if !evaluator.contains_path(path) {
-                    if let Expr::Immediate { value, .. } = expr {
-                        evaluator.insert_value(path.clone(), value.clone());
-                    } else if let Ok(imm) = evaluator.evaluate_key(&cnst.expr, &tmp_handler, self) {
-                        evaluator.insert_value(path.clone(), imm);
-
-                        // Take note of this const as we need to update the const declaration
-                        // with the new evaluated immediate value.
-                        new_immediates.push(path.clone());
-                    }
-                }
-            }
-
-            if !tmp_handler.has_errors() {
-                // We evaluated all the consts without error.  Stop now.
-                break;
-            }
-
-            if loop_idx != (const_count - 1) {
-                // This isn't the last iteration.  Clear the temporary errors.
-                tmp_handler.clear();
-            }
-        }
-
-        // There's little point in continuing if we weren't able to lower all consts.
-        handler.append(tmp_handler);
-        if handler.has_errors() {
-            return Err(handler.cancel());
-        }
-
-        let emit_internal = |msg| {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg,
-                    span: empty_span(),
-                },
-            })
-        };
-
-        // For each of the newly evaluated intialisers we need to update the expressions in the
-        // consts map.
-        let all_const_immediates = evaluator.into_values();
-        for new_path in new_immediates {
-            let init_span = self
-                .consts
-                .get(&new_path)
-                .map(|cnst| self.expr_key_to_span(cnst.expr))
-                .unwrap_or_else(empty_span);
-
-            if let Some(imm_value) = all_const_immediates.get(&new_path) {
-                let new_expr = Expr::Immediate {
-                    value: imm_value.clone(),
-                    span: init_span,
-                };
-
-                let new_expr_key = self.exprs.insert(new_expr, imm_value.get_ty(None));
-
-                if let Some(cnst) = self.consts.get_mut(&new_path) {
-                    cnst.expr = new_expr_key;
-                } else {
-                    emit_internal("missing const decl for immediate update");
-                }
-            } else {
-                emit_internal("missing immediate value for const expr update");
-            }
-        }
-
-        // And for all const decls with an unknown decl type we need to update that too.
-        for (path, Const { decl_ty, .. }) in &mut self.consts {
-            if decl_ty.is_unknown() {
-                if let Some(imm_value) = all_const_immediates.get(path) {
-                    *decl_ty = imm_value.get_ty(None);
-                } else {
-                    emit_internal("missing immediate value for const decl_ty update");
-                }
-            }
-        }
-
-        if handler.has_errors() {
-            Err(handler.cancel())
-        } else {
-            Ok(())
         }
     }
 

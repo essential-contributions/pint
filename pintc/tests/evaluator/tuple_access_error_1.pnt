@@ -11,7 +11,4 @@ solve satisfy;
 // invalid tuple accessor
 // @10..28: unable to get field from tuple using `c`
 // tuple has type `{a: int, b: int}`
-// invalid tuple accessor
-// @10..28: unable to get field from tuple using `c`
-// tuple has type `{a: int, b: int}`
 // >>>

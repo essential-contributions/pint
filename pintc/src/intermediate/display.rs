@@ -2,6 +2,10 @@ use std::fmt::{Display, Formatter, Result};
 
 impl Display for super::Program {
     fn fmt(&self, f: &mut Formatter) -> Result {
+        for (path, cnst) in &self.consts {
+            writeln!(f, "const {path}{};", self.root_ii().with_ii(cnst))?;
+        }
+
         match self.kind {
             super::ProgramKind::Stateless => self.root_ii().fmt_with_indent(f, 0)?,
             super::ProgramKind::Stateful => {
@@ -107,10 +111,6 @@ impl super::IntermediateIntent {
                 "{indentation}intent {name} = {interface_instance}::{intent}({})",
                 self.with_ii(address)
             )?;
-        }
-
-        for (path, cnst) in &self.consts {
-            writeln!(f, "{indentation}const {path}{};", self.with_ii(cnst))?;
         }
 
         for (var_key, _) in self.vars() {

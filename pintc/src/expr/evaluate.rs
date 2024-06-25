@@ -274,10 +274,14 @@ impl Evaluator {
                     }
                     .cloned()
                     .ok_or_else(|| {
+                        let mut tuple_ty = tuple.get_ty(ii).clone();
+                        if tuple_ty.is_unknown() {
+                            tuple_ty = Imm::Tuple(fields).get_ty(Some(span));
+                        }
                         handler.emit_err(Error::Compile {
                             error: CompileError::InvalidTupleAccessor {
                                 accessor: field.to_string(),
-                                tuple_type: ii.with_ii(tuple.get_ty(ii)).to_string(),
+                                tuple_type: ii.with_ii(tuple_ty).to_string(),
                                 span: span.clone(),
                             },
                         })
@@ -302,9 +306,16 @@ impl Evaluator {
                 if let Imm::Bool(b) = cond {
                     self.evaluate_key(if b { then_expr } else { else_expr }, handler, ii)
                 } else {
+                    let mut cond_ty = condition.get_ty(ii).clone();
+                    if cond_ty.is_unknown() {
+                        if let Expr::Immediate { value, .. } = condition.get(ii) {
+                            cond_ty = value.get_ty(Some(span));
+                        }
+                    }
+
                     Err(handler.emit_err(Error::Compile {
                         error: CompileError::NonBoolConditional {
-                            ty: ii.with_ii(condition.get_ty(ii)).to_string(),
+                            ty: ii.with_ii(cond_ty).to_string(),
                             conditional: "select expression".to_owned(),
                             span: span.clone(),
                         },
@@ -313,10 +324,15 @@ impl Evaluator {
             }
 
             Expr::Cast { value, ty, span } => {
-                let cast_error = || -> Result<Imm, ErrorEmitted> {
+                let cast_error = |imm: Imm| -> Result<Imm, ErrorEmitted> {
+                    let mut value_ty = value.get_ty(ii).clone();
+                    if value_ty.is_unknown() {
+                        value_ty = imm.get_ty(Some(span));
+                    }
+
                     Err(handler.emit_err(Error::Compile {
                         error: CompileError::BadCastFrom {
-                            ty: ii.with_ii(value.get_ty(ii)).to_string(),
+                            ty: ii.with_ii(value_ty).to_string(),
                             span: span.clone(),
                         },
                     }))
@@ -330,7 +346,7 @@ impl Evaluator {
                         if ty.is_real() {
                             Ok(imm)
                         } else {
-                            cast_error()
+                            cast_error(imm)
                         }
                     }
 
@@ -340,7 +356,7 @@ impl Evaluator {
                         } else if ty.is_real() {
                             Ok(Imm::Real(i as f64))
                         } else {
-                            cast_error()
+                            cast_error(imm)
                         }
                     }
 
@@ -350,7 +366,7 @@ impl Evaluator {
                         } else if ty.is_int() {
                             Ok(Imm::Int(if b { 1 } else { 0 }))
                         } else {
-                            cast_error()
+                            cast_error(imm)
                         }
                     }
 
@@ -360,7 +376,7 @@ impl Evaluator {
                     | Imm::B256(_)
                     | Imm::Array { .. }
                     | Imm::Tuple(_)
-                    | Imm::Error => cast_error(),
+                    | Imm::Error => cast_error(imm),
                 }
             }
 

@@ -30,7 +30,7 @@ impl DisplayWithII for super::Type {
                     ii.with_ii(ty.as_ref()),
                     range
                         .map(|range| ii.with_ii(range).to_string())
-                        .unwrap_or("???".to_owned())
+                        .unwrap_or("_".to_owned())
                 )
             }
 

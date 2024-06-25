@@ -9,6 +9,6 @@ solve satisfy;
 
 // typecheck_failure <<<
 // array element type mismatch
-// @15..20: array element has type `bool`
+// @10..21: array element has type `bool`
 // expecting array element type `int`
 // >>>

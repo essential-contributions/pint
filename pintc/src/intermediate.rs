@@ -44,6 +44,8 @@ pub enum ProgramKind {
 pub struct Program {
     pub kind: ProgramKind,
     pub iis: BTreeMap<String, IntermediateIntent>,
+
+    pub consts: FxHashMap<String, Const>,
 }
 
 impl Program {
@@ -107,7 +109,6 @@ pub struct IntermediateIntent {
     pub name: String,
 
     pub vars: Vars,
-    pub consts: FxHashMap<Path, Const>,
     pub states: States,
     pub exprs: Exprs,
 
@@ -151,18 +152,6 @@ impl IntermediateIntent {
         }
     }
 
-    pub fn from_consts(name: String, consts: Vec<(Path, Expr, Type)>) -> Self {
-        let mut ii = Self::new(name);
-
-        let consts = FxHashMap::from_iter(consts.into_iter().map(|(name, expr, decl_ty)| {
-            let expr = ii.exprs.insert(expr, decl_ty.clone());
-            (name, Const { expr, decl_ty })
-        }));
-
-        ii.consts = consts;
-        ii
-    }
-
     /// Generate a `IntentABI` given an `IntermediateIntent`
     pub fn abi(&self) -> Result<IntentABI, CompileError> {
         Ok(IntentABI {
@@ -189,29 +178,6 @@ impl IntermediateIntent {
     /// Helps out some `thing: T` by adding `self` as context.
     pub fn with_ii<T>(&self, thing: T) -> WithII<T> {
         WithII { thing, ii: self }
-    }
-
-    pub fn insert_const(
-        &mut self,
-        handler: &Handler,
-        mod_prefix: &str,
-        name: &Ident,
-        ty: Option<Type>,
-        init: ExprKey,
-    ) -> std::result::Result<(), ErrorEmitted> {
-        let full_name =
-            self.add_top_level_symbol(handler, mod_prefix, None, name, name.span.clone())?;
-        let decl_ty = ty.unwrap_or_else(|| Type::Unknown(name.span.clone()));
-
-        self.consts.insert(
-            full_name,
-            Const {
-                expr: init,
-                decl_ty,
-            },
-        );
-
-        Ok(())
     }
 
     pub fn insert_ephemeral(

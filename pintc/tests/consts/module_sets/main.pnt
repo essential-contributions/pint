@@ -1,0 +1,23 @@
+const a = true;
+
+intent A {
+    constraint a && !b::b;
+}
+
+// intermediate <<<
+// const ::b::b = false;
+// const ::a = true;
+//
+// intent ::A {
+//     constraint (::a && !::b::b);
+// }
+// >>>
+
+// flattened <<<
+// const ::b::b: bool = 0;
+// const ::a: bool = 1;
+//
+// intent ::A {
+//     constraint (1 && !0);
+// }
+// >>>

@@ -63,6 +63,7 @@ macro_rules! context {
                     Program::ROOT_II_NAME.to_string(),
                     IntermediateIntent::default(),
                 )]),
+                consts: fxhash::FxHashMap::default(),
             },
             current_ii: &mut Program::ROOT_II_NAME.to_string(),
             macros: &mut vec![],
