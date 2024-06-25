@@ -272,9 +272,7 @@ fn run_without_transforms(src: &str) -> (Program, Handler) {
 
 #[cfg(test)]
 fn run_parser(src: &str, handler: &Handler) -> Program {
-    use crate::intermediate::ProgramKind;
-    use crate::parser::pint_parser;
-    use crate::span;
+    use crate::{intermediate::ProgramKind, parser::pint_parser, span};
     use std::collections::BTreeMap;
 
     let parser = pint_parser::PintParser::new();
@@ -286,6 +284,7 @@ fn run_parser(src: &str, handler: &Handler) -> Program {
             Program::ROOT_II_NAME.to_string(),
             IntermediateIntent::default(),
         )]),
+        consts: fxhash::FxHashMap::default(),
     };
 
     parser

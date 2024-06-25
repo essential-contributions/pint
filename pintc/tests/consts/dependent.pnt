@@ -24,7 +24,7 @@ solve satisfy;
 // >>>
 
 // flattened <<<
-// const ::f: int[???] = [66, 33, 11];
+// const ::f: int[_] = [66, 33, 11];
 // const ::b: int = 33;
 // const ::e: {int, int} = {11, 22};
 // const ::d: int = 22;

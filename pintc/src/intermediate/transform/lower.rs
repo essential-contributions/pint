@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, Expr, Ident, Immediate, TupleAccess, UnaryOp},
-    intermediate::{BlockStatement, Const, ConstraintDecl, ExprKey, IfDecl, IntermediateIntent},
+    intermediate::{BlockStatement, ConstraintDecl, ExprKey, IfDecl, IntermediateIntent, Program},
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
 };
@@ -931,18 +931,25 @@ fn convert_if_block_statement(
     converted_exprs
 }
 
-pub(super) fn replace_const_refs(ii: &mut IntermediateIntent) {
+pub(super) fn replace_const_refs(
+    ii: &mut IntermediateIntent,
+    consts: &[(String, ExprKey, Expr, Type)],
+) {
     // Find all the paths which refer to a const and link them.
     let const_refs = ii
         .exprs()
         .filter_map(|path_expr_key| {
             if let Expr::PathByName(path, _span) = path_expr_key.get(ii) {
-                ii.consts.get(path).map(
-                    |Const {
-                         expr: const_expr_key,
-                         ..
-                     }| (path_expr_key, *const_expr_key),
-                )
+                consts
+                    .iter()
+                    .find_map(|(const_path, const_expr_key, const_expr, const_ty)| {
+                        (path == const_path).then_some((
+                            path_expr_key,
+                            *const_expr_key,
+                            const_expr,
+                            const_ty,
+                        ))
+                    })
             } else {
                 None
             }
@@ -950,5 +957,17 @@ pub(super) fn replace_const_refs(ii: &mut IntermediateIntent) {
         .collect::<Vec<_>>();
 
     // Replace all paths to consts with the consts themselves.
-    ii.replace_exprs_by_map(&FxHashMap::from_iter(const_refs));
+    if ii.name == Program::ROOT_II_NAME {
+        // This is the root II, meaning we already have the ExprKeys for the consts available.
+        ii.replace_exprs_by_map(&FxHashMap::from_iter(
+            const_refs.into_iter().map(|refs| (refs.0, refs.1)),
+        ));
+    } else {
+        // This is NOT the root II, so we need to inject these const expressions into the II before
+        // we can replace the paths.
+        for (path_expr_key, _, const_expr, const_ty) in const_refs {
+            let const_expr_key = ii.exprs.insert(const_expr.clone(), const_ty.clone());
+            ii.replace_exprs(path_expr_key, const_expr_key);
+        }
+    }
 }

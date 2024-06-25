@@ -52,7 +52,7 @@ solve satisfy;
 // const ::e: bool = 1;
 // const ::d: b256 = 0x4444444444444444444444444444444444444444444444444444444444444444;
 // const ::a: int = 11;
-// const ::g: int[???] = [88, 99];
+// const ::g: int[_] = [88, 99];
 // const ::f: {int, int} = {66, 77};
 // const ::c: int = 33;
 // var ::q: int;

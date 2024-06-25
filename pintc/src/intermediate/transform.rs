@@ -33,7 +33,10 @@ mod scalarize;
 mod unroll;
 mod validate;
 
-use crate::error::{ErrorEmitted, Handler};
+use crate::{
+    error::{ErrorEmitted, Handler},
+    intermediate::Const,
+};
 use canonicalize_solve_directive::canonicalize_solve_directive;
 use lower::{
     lower_aliases, lower_bools, lower_casts, lower_compares_to_nil, lower_enums, lower_ifs,
@@ -45,9 +48,24 @@ use validate::validate;
 
 impl super::Program {
     pub fn flatten(mut self, handler: &Handler) -> Result<Self, ErrorEmitted> {
+        // Copy the const expressions themselves out of the root II.  This is to avoid the need to
+        // borrow them below for replace_const_refs().
+        let const_exprs = self
+            .consts
+            .iter()
+            .map(|(path, Const { expr, decl_ty })| {
+                (
+                    path.clone(),
+                    *expr,
+                    expr.get(self.root_ii()).clone(),
+                    decl_ty.clone(),
+                )
+            })
+            .collect::<Vec<_>>();
+
         for ii in self.iis.values_mut() {
             // Plug const decls in everywhere so they maybe lowered below.
-            replace_const_refs(ii);
+            replace_const_refs(ii, &const_exprs);
 
             // Transform each if declaration into a collection of constraints We do this early so
             // that we don't have to worry about `if` declarations in any of the later passes. All
