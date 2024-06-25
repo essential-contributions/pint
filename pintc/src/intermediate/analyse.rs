@@ -635,10 +635,13 @@ impl IntermediateIntent {
                 if let Some(init_expr_key) = self.var_inits.get(var_key) {
                     let ty = init_expr_key.get_ty(self);
                     if !ty.is_unknown() {
-                        if var.is_pub && !(ty.is_bool() || ty.is_b256() || ty.is_int()) {
+                        if var.is_pub
+                            && !(ty.is_bool() || ty.is_b256() || ty.is_int() || ty.is_tuple())
+                        {
                             handler.emit_err(Error::Compile {
                                 error: CompileError::Internal {
-                                    msg: "only `bool`, b256`, and `int` pub vars are currently supported",
+                                    msg: "only `bool`, b256`, `int`, and tuple pub vars \
+                                          are currently supported",
                                     span: var.span.clone(),
                                 },
                             });
@@ -660,10 +663,12 @@ impl IntermediateIntent {
                         },
                     });
                 }
-            } else if var.is_pub && !(ty.is_bool() || ty.is_b256() || ty.is_int()) {
+            } else if var.is_pub && !(ty.is_bool() || ty.is_b256() || ty.is_int() || ty.is_tuple())
+            {
                 handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
-                        msg: "only `bool`, b256`, and `int` pub vars are currently supported",
+                        msg: "only `bool`, b256`, `int`, and tuple pub vars \
+                            are currently supported",
                         span: var.span.clone(),
                     },
                 });

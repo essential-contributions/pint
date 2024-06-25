@@ -858,9 +858,16 @@ fn split_tuple_vars(
     let mut new_vars = Vec::new();
 
     // Iterate for all the tuple vars and gather their fields into `new_vars`.
-    for (var_key, Var { name, span, .. }) in ii.vars() {
-        if old_tuple_vars.contains(&var_key) {
-            // Already split; skip it.
+    for (
+        var_key,
+        Var {
+            name, span, is_pub, ..
+        },
+    ) in ii.vars()
+    {
+        if *is_pub || old_tuple_vars.contains(&var_key) {
+            // pub vars should not be scalarized because they're implemented using transient data.
+            // Also, if the var is already split; skip it.
             continue;
         }
 
