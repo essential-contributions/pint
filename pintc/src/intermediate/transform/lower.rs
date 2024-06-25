@@ -943,8 +943,12 @@ pub(super) fn replace_const_refs(
                 consts
                     .iter()
                     .find_map(|(const_path, const_expr_key, const_expr, const_ty)| {
-                        (path == const_path)
-                            .then(|| (path_expr_key, *const_expr_key, const_expr, const_ty))
+                        (path == const_path).then_some((
+                            path_expr_key,
+                            *const_expr_key,
+                            const_expr,
+                            const_ty,
+                        ))
                     })
             } else {
                 None
