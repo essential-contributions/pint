@@ -1,0 +1,33 @@
+// ANCHOR: interface 
+interface Counter {
+    storage {
+        counter: int,
+    }
+
+    intent Initialize {
+        pub var value: int;
+    }
+
+    intent Increment {
+        pub var amount: int;
+    }
+}
+// ANCHOR_END: interface 
+
+// ANCHOR: contract 
+storage {
+    counter: int,
+}
+
+intent Initialize {
+    pub var value: int;
+    state counter: int = storage::counter;
+    constraint counter' == value;
+}
+
+intent Increment {
+    pub var amount: int;
+    state counter: int = storage::counter;
+    constraint counter' == counter + amount;
+}
+// ANCHOR_END: contract 

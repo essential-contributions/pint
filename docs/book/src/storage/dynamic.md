@@ -28,7 +28,7 @@ Because storage maps are a storage type, they must always be declared inside a `
 The storage map type is a built-in type with a specific syntax:
 
 ```pint
-{{#include ../../../../examples/ch_4_2_a.pnt:storage_block}}
+{{#include ../../../../examples/ch_5_2_a.pnt:storage_block}}
 ```
 
 Here, a new storage map, called `balances`, is declared that maps `b256` keys to `int` values. The
@@ -42,7 +42,7 @@ We can get a value out of the storage map by providing its key in between square
 to how arrays are accessed:
 
 ```pint
-{{#include ../../../../examples/ch_4_2_a.pnt:storage_access_1}}
+{{#include ../../../../examples/ch_5_2_a.pnt:storage_access_1}}
 ```
 
 Here, `from_balance` will have the value that's associated with `from_address` and
@@ -58,12 +58,12 @@ storage types, we can _require_ that the next value of a specific entry in a sto
 some constraint(s):
 
 ```pint
-{{#include ../../../../examples/ch_4_2_a.pnt:next_state}}
+{{#include ../../../../examples/ch_5_2_a.pnt:next_state}}
 ```
 
 Here, we're requiring that our balance go up by 1 million, by applying the "prime" operator on the
 state variable that holds our current balance. Of course, requiring a change in state does not mean
-it will actually happen! Otherwise, we can all become instantly rich by submitting intents like
+it will actually happen! Otherwise, we can all become instantly rich by submitting predicates like
 this. Unless a solution that does not violate any of the deployed rules (i.e. constraints) is
 submitted by a solver, the desired state change will never be satisfied.
 
@@ -80,7 +80,7 @@ the past, then `my_bal` would be equal to `0` and the constraint would simply be
 Storage maps can be declared to be arbitrarily complex. They can also be nested!
 
 ```pint
-{{#include ../../../../examples/ch_4_2_b.pnt:storage_block}}
+{{#include ../../../../examples/ch_5_2_b.pnt:storage_block}}
 ```
 
 In the example above, the fist storage map maps a tuple to another tuple. The second storage map
@@ -88,7 +88,7 @@ maps a `b256` to another map! The way to access entries in these maps should is 
 is exactly what you'd expect:
 
 ```pint
-{{#include ../../../../examples/ch_4_2_b.pnt:storage_access}}
+{{#include ../../../../examples/ch_5_2_b.pnt:storage_access}}
 ```
 
 The first storage access reads a tuple value using a key that itself is a tuple, and then accesses

@@ -24,7 +24,7 @@ modules, or types.
 - `maximize` - part of a `solve` statement: maximizes an objective function
 - `minimize` - part of a `solve` statement: minimizes an objective function
 - `real` - basic real type
-- `satisfy` - part of a `solve` statement: satisfy the constraints in the intent
+- `satisfy` - part of a `solve` statement: satisfy the constraints in the predicate
 - `self` - used in `use` statements
 - `solve` - define what solve directive to use
 - `state` - bind a state variable
