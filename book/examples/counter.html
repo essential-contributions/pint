@@ -155,13 +155,13 @@ contract can have multiple predicates and how it can declare and use <em>storage
     counter: int,
 }
 
-intent Initialize {
+predicate Initialize {
     var value: int;
     state counter: int = storage::counter;
     constraint counter' == value;
 }
 
-intent Increment {
+predicate Increment {
     var amount: int;
     state counter: int = storage::counter;
     constraint counter' == counter + amount;

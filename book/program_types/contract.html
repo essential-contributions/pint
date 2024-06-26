@@ -165,11 +165,11 @@ follows:</p>
     // storage variables
 }
 
-intent Foo {
+predicate Foo {
     // variables, constraints, etc.     
 }
 
-intent Bar {
+predicate Bar {
     // variables, constraints, etc.     
 }
 
@@ -196,11 +196,11 @@ that is owned by another contract. Will will go over how to do that in <a href="
         // storage variables
     }
 
-    intent Foo {
+    predicate Foo {
         // all **public** decision variables     
     }
 
-    intent Bar {
+    predicate Bar {
         // all **public** decision variables     
     }
 
@@ -221,13 +221,13 @@ have made all decision variables <code>pub</code>, which marks them as public:</
     counter: int,
 }
 
-intent Initialize {
+predicate Initialize {
     pub var value: int;
     state counter: int = storage::counter;
     constraint counter' == value;
 }
 
-intent Increment {
+predicate Increment {
     pub var amount: int;
     state counter: int = storage::counter;
     constraint counter' == counter + amount;
@@ -239,11 +239,11 @@ intent Increment {
         counter: int,
     }
 
-    intent Initialize {
+    predicate Initialize {
         pub var value: int;
     }
 
-    intent Increment {
+    predicate Increment {
         pub var amount: int;
     }
 }
@@ -251,7 +251,7 @@ intent Increment {
 <p>Hopefully nothing here is surprising! The key point is that an <code>interface</code> must expose <em>everything</em>
 that is public in a contract, and that includes the storage block and all public decision variables
 in each predicate.</p>
-<p>Note that, if a predicate <code>Foo</code> has no public decision variables, both <code>intent Foo { }</code> and <code>intent Foo;</code> can be used when adding it to the interface.</p>
+<p>Note that, if a predicate <code>Foo</code> has no public decision variables, both <code>predicate Foo { }</code> and <code> predicate Foo;</code> can be used when adding it to the interface.</p>
 <blockquote>
 <p><strong>Note</strong> in the future, Pint will have a tool that will auto-generate interfaces.</p>
 </blockquote>

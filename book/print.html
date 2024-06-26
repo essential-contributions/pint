@@ -194,13 +194,13 @@ contract can have multiple predicates and how it can declare and use <em>storage
     counter: int,
 }
 
-intent Initialize {
+predicate Initialize {
     var value: int;
     state counter: int = storage::counter;
     constraint counter' == value;
 }
 
-intent Increment {
+predicate Increment {
     var amount: int;
     state counter: int = storage::counter;
     constraint counter' == counter + amount;
@@ -267,7 +267,7 @@ creation of new coins (i.e. minting) as well as sending coins from one address t
 }
 
 // Sends an amount of newly created coins to an address
-intent Mint {
+predicate Mint {
     var receiver: b256;
     var amount: int;
 
@@ -279,7 +279,7 @@ intent Mint {
 }
 
 // Sends an amount of existing coins from address `from` to address `receiver`
-intent Send {
+predicate Send {
     var from: b256;
     var receiver: b256;
     var amount: int;
@@ -563,8 +563,8 @@ ignore but people reading the source code may find useful.</p>
 continues until the end of the line. For comments that extend beyond a single line, you’ll need to
 include <code>//</code> on each line, like this:</p>
 <pre><code class="language-pint">// This is some complicated code that requires multiple lines to explain:
-// 1. The first `intent`, called `GetRich` ensures that we're getting rich.
-// 2. The second `intent`, called `BeResponsible` ensures that 
+// 1. The first predicate, called `GetRich` ensures that we're getting rich.
+// 2. The second predicate, called `BeResponsible` ensures that 
 //    we're not gambling all the money away.
 </code></pre>
 <p>Comments can also be placed at the end of lines containing code:</p>
@@ -854,11 +854,11 @@ follows:</p>
     // storage variables
 }
 
-intent Foo {
+predicate Foo {
     // variables, constraints, etc.     
 }
 
-intent Bar {
+predicate Bar {
     // variables, constraints, etc.     
 }
 
@@ -885,11 +885,11 @@ that is owned by another contract. Will will go over how to do that in <a href="
         // storage variables
     }
 
-    intent Foo {
+    predicate Foo {
         // all **public** decision variables     
     }
 
-    intent Bar {
+    predicate Bar {
         // all **public** decision variables     
     }
 
@@ -910,13 +910,13 @@ have made all decision variables <code>pub</code>, which marks them as public:</
     counter: int,
 }
 
-intent Initialize {
+predicate Initialize {
     pub var value: int;
     state counter: int = storage::counter;
     constraint counter' == value;
 }
 
-intent Increment {
+predicate Increment {
     pub var amount: int;
     state counter: int = storage::counter;
     constraint counter' == counter + amount;
@@ -928,11 +928,11 @@ intent Increment {
         counter: int,
     }
 
-    intent Initialize {
+    predicate Initialize {
         pub var value: int;
     }
 
-    intent Increment {
+    predicate Increment {
         pub var amount: int;
     }
 }
@@ -940,7 +940,7 @@ intent Increment {
 <p>Hopefully nothing here is surprising! The key point is that an <code>interface</code> must expose <em>everything</em>
 that is public in a contract, and that includes the storage block and all public decision variables
 in each predicate.</p>
-<p>Note that, if a predicate <code>Foo</code> has no public decision variables, both <code>intent Foo { }</code> and <code>intent Foo;</code> can be used when adding it to the interface.</p>
+<p>Note that, if a predicate <code>Foo</code> has no public decision variables, both <code>predicate Foo { }</code> and <code> predicate Foo;</code> can be used when adding it to the interface.</p>
 <blockquote>
 <p><strong>Note</strong> in the future, Pint will have a tool that will auto-generate interfaces.</p>
 </blockquote>
@@ -1204,11 +1204,11 @@ domain</li>
 <li><code>if</code> - branch based on the result of a conditional expression</li>
 <li><code>in</code> - checks if an element belongs to a range or to an array</li>
 <li><code>int</code> - basic integer type</li>
-<li><code>intent</code> - define an intent</li>
 <li><code>interface</code> - declare an external interface</li>
 <li><code>macro</code> - define a macro</li>
 <li><code>maximize</code> - part of a <code>solve</code> statement: maximizes an objective function</li>
 <li><code>minimize</code> - part of a <code>solve</code> statement: minimizes an objective function</li>
+<li><code>predicate</code> - define a predicate</li>
 <li><code>real</code> - basic real type</li>
 <li><code>satisfy</code> - part of a <code>solve</code> statement: satisfy the constraints in the predicate</li>
 <li><code>self</code> - used in <code>use</code> statements</li>
