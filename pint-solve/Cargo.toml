@@ -29,3 +29,6 @@ test-util = { path = "../test-util" }
 [features]
 default = []
 solver-scip = ["russcip"]
+
+[package.metadata.cargo-udeps.ignore]
+unused-dependencies = ["thiserror"]

@@ -48,3 +48,6 @@ test_bin = "0.4"
 [features]
 default = []
 solver-scip = ["pint_solve/solver-scip"]
+
+[package.metadata.cargo-udeps.ignore]
+unused-dependencies = ["pint_solve"]
