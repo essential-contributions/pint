@@ -851,16 +851,47 @@ impl AsmBuilder {
                 else_expr,
                 ..
             } => {
-                let type_size = then_expr.get_ty(pred).size();
-                Self::compile_expr(handler, asm, else_expr, pred)?;
-                Self::compile_expr(handler, asm, then_expr, pred)?;
-                if type_size == 1 {
+                if then_expr.can_panic(pred) || else_expr.can_panic(pred) {
+                    // We need to short circuit these with control flow to avoid potential panics.
+                    // The 'else' is put before the 'then' since it's easier to jump-if-true.
+                    //
+                    // This jump to 'then' will get updated with the proper distance below.
+                    let to_then_jump_idx = asm.len();
+                    asm.push(Constraint::Stack(Stack::Push(-1)));
                     Self::compile_expr(handler, asm, condition, pred)?;
-                    asm.push(Constraint::Stack(Stack::Select));
+                    asm.push(Constraint::TotalControlFlow(
+                        TotalControlFlow::JumpForwardIf,
+                    ));
+
+                    // Compile the 'else' selection, update the prior jump.  We need to jump over
+                    // the size of 'else` plus 3 instructions it uses to jump the 'then'.
+                    let else_size = Self::compile_expr(handler, asm, else_expr, pred)?;
+                    asm[to_then_jump_idx] = Constraint::Stack(Stack::Push(else_size as i64 + 4));
+
+                    // This (unconditional) jump over 'then' will also get updated.
+                    let to_end_jump_idx = asm.len();
+                    asm.push(Constraint::Stack(Stack::Push(-1)));
+                    asm.push(Constraint::Stack(Stack::Push(1)));
+                    asm.push(Constraint::TotalControlFlow(
+                        TotalControlFlow::JumpForwardIf,
+                    ));
+
+                    // Compile the 'then' selection, update the prior jump.
+                    let then_size = Self::compile_expr(handler, asm, then_expr, pred)?;
+                    asm[to_end_jump_idx] = Constraint::Stack(Stack::Push(then_size as i64 + 1));
                 } else {
-                    asm.push(Constraint::Stack(Stack::Push(type_size as i64)));
-                    Self::compile_expr(handler, asm, condition, pred)?;
-                    asm.push(Constraint::Stack(Stack::SelectRange));
+                    // Alternatively, evaluate both options and use ASM `select` to choose one.
+                    let type_size = then_expr.get_ty(pred).size();
+                    Self::compile_expr(handler, asm, else_expr, pred)?;
+                    Self::compile_expr(handler, asm, then_expr, pred)?;
+                    if type_size == 1 {
+                        Self::compile_expr(handler, asm, condition, pred)?;
+                        asm.push(Constraint::Stack(Stack::Select));
+                    } else {
+                        asm.push(Constraint::Stack(Stack::Push(type_size as i64)));
+                        Self::compile_expr(handler, asm, condition, pred)?;
+                        asm.push(Constraint::Stack(Stack::SelectRange));
+                    }
                 }
             }
             Expr::PathByName(..)

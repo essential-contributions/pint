@@ -234,7 +234,7 @@ impl<'a> ParserContext<'a> {
         self.current_pred().interfaces.push(interface);
     }
 
-    /// Given an predicate instance name as an `Predicate`, a list `els` of `Ident`s forming a path, an
+    /// Given a predicate instance name as an `Predicate`, a list `els` of `Ident`s forming a path, an
     /// predicate name as an `Predicate` and an address as an `ExprKey`, produce an `PredicateInstance`
     /// object and insert it into the current Pred. `l` and `r` are the code locations before and
     /// after the interface declaration. `l1` and `r1` are the code locations before and after the

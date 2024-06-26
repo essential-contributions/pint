@@ -102,8 +102,8 @@ impl Program {
     }
 }
 
-/// An in-progress predicate, possibly malformed or containing redundant information.  Designed to be
-/// iterated upon and to be reduced to an [Predicate].
+/// An in-progress predicate, possibly malformed or containing redundant information.  Designed to
+/// be iterated upon and to be reduced to a [Predicate].
 #[derive(Debug, Default)]
 pub struct Predicate {
     pub name: String,
@@ -621,7 +621,7 @@ impl DisplayWithPred for StorageVar {
     }
 }
 
-/// A an predicate interface that belong in an `Interface`.
+/// A a predicate interface that belong in an `Interface`.
 #[derive(Clone, Debug)]
 pub struct PredicateInterface {
     pub name: Ident,
@@ -629,8 +629,8 @@ pub struct PredicateInterface {
     pub span: Span,
 }
 
-/// A declaration inside an `Interface`. This could either be a `storage` declaration or an predicate
-/// interface declaration
+/// A declaration inside an `Interface`. This could either be a `storage` declaration or a
+/// predicate interface declaration
 #[derive(Clone, Debug)]
 pub enum InterfaceDecl {
     StorageDecl((Vec<StorageVar>, Span)),
@@ -646,7 +646,7 @@ pub struct Interface {
     pub span: Span,
 }
 
-/// A decision variable that lives inside an predicate interface. Unlike `Var`, the type here is not
+/// A decision variable that lives inside a predicate interface. Unlike `Var`, the type here is not
 /// optional
 #[derive(Clone, Debug)]
 pub struct InterfaceVar {
@@ -664,7 +664,7 @@ pub struct InterfaceInstance {
     pub span: Span,
 }
 
-/// An predicate instance that specifies an address
+/// A predicate instance that specifies an address
 #[derive(Clone, Debug)]
 pub struct PredicateInstance {
     pub name: Ident,
