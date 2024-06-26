@@ -18,6 +18,9 @@ path = "src/main.rs"
 [build-dependencies]
 lalrpop = "0.20"
 
+[package.metadata.cargo-udeps.ignore]
+normal = ["pint_solve"]
+
 [dependencies]
 abi-types = { path = "../abi-types" }
 anyhow = { workspace = true }
@@ -46,5 +49,4 @@ test-util = { path = "../test-util" }
 test_bin = "0.4"
 
 [features]
-default = ["solver-scip"]
 solver-scip = ["pint_solve/solver-scip"]
