@@ -117,10 +117,11 @@ StorageDecl: () = {
 InterfaceVar: InterfaceVar = {
     <l:@L> "pub" "var" <name:VarName> ":" <ty:Type> ";" <r:@R> => {
         // This is temporary until we support other types
-        if !(ty.is_bool() || ty.is_int() || ty.is_b256()) {
+        if !(ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple()) {
             handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
-                    msg: "only `bool`, `int` and `b256` are currently support in interface vars",
+                    msg: "only `bool`, `int`, `b256`, and tuples are currently \
+                         support in interface vars",
                     span: span::empty_span(),
                 },
             });

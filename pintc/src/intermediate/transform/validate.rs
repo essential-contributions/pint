@@ -169,18 +169,6 @@ fn check_expr(
                 Ok(())
             }
         }
-        Expr::TupleFieldAccess { span, .. } => {
-            if !expr_is_for_storage(ii, expr) {
-                Err(emit_illegal_type_error!(
-                    handler,
-                    span,
-                    "tuple field access",
-                    "exprs"
-                ))
-            } else {
-                Ok(())
-            }
-        }
         Expr::In { span, .. } => Err(emit_illegal_type_error!(
             handler,
             span,
@@ -213,37 +201,8 @@ fn check_expr(
         | Expr::IntrinsicCall { .. }
         | Expr::Select { .. }
         | Expr::Cast { .. }
+        | Expr::TupleFieldAccess { .. }
         | Expr::ExternalStorageAccess { .. } => Ok(()),
-    }
-}
-
-fn expr_is_for_storage(ii: &IntermediateIntent, expr: &Expr) -> bool {
-    match expr {
-        // Recurse for the tuple expr or index (possibly into a Map).
-        Expr::TupleFieldAccess { tuple: expr, .. } | Expr::Index { expr, .. } => expr
-            .try_get(ii)
-            .map(|agg_expr| expr_is_for_storage(ii, agg_expr))
-            .unwrap_or(false),
-
-        Expr::StorageAccess(_, _) | Expr::ExternalStorageAccess { .. } => true,
-
-        // In the future we'll add other 'illegal' aggregate expressions which will also need to be
-        // handled.
-        Expr::Error(_)
-        | Expr::Immediate { .. }
-        | Expr::Array { .. }
-        | Expr::Tuple { .. }
-        | Expr::PathByKey(_, _)
-        | Expr::PathByName(_, _)
-        | Expr::UnaryOp { .. }
-        | Expr::BinaryOp { .. }
-        | Expr::MacroCall { .. }
-        | Expr::IntrinsicCall { .. }
-        | Expr::Select { .. }
-        | Expr::Cast { .. }
-        | Expr::In { .. }
-        | Expr::Range { .. }
-        | Expr::Generator { .. } => false,
     }
 }
 
@@ -342,15 +301,6 @@ fn expr_types() {
 
 #[test]
 fn exprs() {
-    // tuple and tuple field access
-    let src = "var t = { y: 3, 2 };
-    var x = t.1;";
-    check(
-        &run_test(src),
-        expect_test::expect![
-            "compiler internal error: tuple field access present in final intent exprs slotmap"
-        ],
-    );
     // array and array field access
     let src = "var a = [1, 2, 3];
     var b = a[1];";

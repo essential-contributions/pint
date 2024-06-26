@@ -20,4 +20,8 @@ transient_data = [
   { key = [3], value = [
     1, # ::b
   ] },
+  { key = [4, 0], value = [42] }, # ::c.0
+  { key = [4, 1], value = [43] }, # ::c.1.0
+  { key = [4, 2], value = [8, 8, 8, 8] }, # ::c.1.1
+  { key = [4, 3], value = [1] }, # ::c.2
 ]

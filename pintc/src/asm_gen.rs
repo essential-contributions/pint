@@ -102,7 +102,123 @@ impl StorageKey {
     }
 }
 
+/// Location of an expression:
+/// 1. `Value` expressions are just raw values such as immediates or the outputs of binary ops.
+/// 2. `DecisionVar` expressions refer to expressions that require the `DecisionVar` or
+///    `DecisionVarRange` opcodes. The `usize` here is the index of the decision variable. We will
+///    need to update this
+///    variant to also include an offset once we stop scalarizing.
+/// 3. `Transient` expressions refer to expressions that require the `Transient` opcode. The
+///    `Option<String>` is the optional name of the pathway variable. If `None`, just use
+///    `ThisPathway`. The `usize` is the transient key length.
+/// 4. `State` expressions refer to expressions that require the `State` or `StateRange` opcodes.
+///    The `bool` is the "delta": are we refering to the current or the next state?
+enum Location {
+    Value,
+    DecisionVar(usize),
+    Transient(Option<String>, usize),
+    State(bool),
+}
+
 impl AsmBuilder {
+    /// Given an `expr`, compile and calculate its `Location`. Only a "pointer" is produced or
+    /// nothing if the expression is a raw value.
+    fn compile_expr_pointer(
+        handler: &Handler,
+        asm: &mut Vec<Constraint>,
+        expr: &ExprKey,
+        intent: &IntermediateIntent,
+    ) -> Result<Location, ErrorEmitted> {
+        match &expr.get(intent) {
+            // All of these are just values
+            Expr::Error(_)
+            | Expr::Immediate { .. }
+            | Expr::Array { .. }
+            | Expr::Tuple { .. }
+            | Expr::BinaryOp { .. }
+            | Expr::MacroCall { .. }
+            | Expr::IntrinsicCall { .. }
+            | Expr::Select { .. }
+            | Expr::Cast { .. }
+            | Expr::In { .. }
+            | Expr::Range { .. }
+            | Expr::Generator { .. }
+            | Expr::StorageAccess { .. }
+            | Expr::ExternalStorageAccess { .. }
+            | Expr::Index { .. } => Ok(Location::Value),
+            Expr::UnaryOp { op, expr, .. } => match op {
+                UnaryOp::NextState => {
+                    // Next state expressions produce state expressions (i.e. ones that require
+                    // `State` or `StateRange`
+                    Self::compile_expr_pointer(handler, asm, expr, intent)?;
+                    Ok(Location::State(true))
+                }
+                _ => Ok(Location::Value),
+            },
+            Expr::PathByName(path, _) => Self::compile_path(handler, asm, path, intent),
+            Expr::PathByKey(var_key, _) => {
+                let path = &var_key.get(intent).name;
+                Self::compile_path(handler, asm, path, intent)
+            }
+            Expr::TupleFieldAccess { tuple, field, .. } => {
+                let location = Self::compile_expr_pointer(handler, asm, tuple, intent)?;
+                match location {
+                    Location::State(_) | Location::Transient(..) => {
+                        // Offset calculation for state and transient data is the same
+                        // Grab the fields of the tuple
+                        let Type::Tuple { ref fields, .. } = tuple.get_ty(intent) else {
+                            return Err(handler.emit_err(Error::Compile {
+                                error: CompileError::Internal {
+                                    msg: "type must exist and be a tuple type",
+                                    span: empty_span(),
+                                },
+                            }));
+                        };
+
+                        // The field index is based on the type definition
+                        let field_idx = match field {
+                            TupleAccess::Index(idx) => *idx,
+                            TupleAccess::Name(ident) => fields
+                                .iter()
+                                .position(|(field_name, _)| {
+                                    field_name
+                                        .as_ref()
+                                        .map_or(false, |name| name.name == ident.name)
+                                })
+                                .expect("field name must exist, this was checked in type checking"),
+                            TupleAccess::Error => {
+                                return Err(handler.emit_err(Error::Compile {
+                                    error: CompileError::Internal {
+                                        msg: "unexpected TupleAccess::Error",
+                                        span: empty_span(),
+                                    },
+                                }));
+                            }
+                        };
+
+                        // This is the offset from the base key where the full tuple is stored.
+                        let key_offset: usize = fields
+                            .iter()
+                            .take(field_idx)
+                            .map(|(_, ty)| ty.storage_slots())
+                            .sum();
+
+                        // Now offset using `Add`
+                        asm.push(Stack::Push(key_offset as i64).into());
+                        asm.push(Alu::Add.into());
+                        Ok(location)
+                    }
+                    Location::DecisionVar(_) => {
+                        unimplemented!("we'll handle this when we stop scalarizing")
+                    }
+                    Location::Value => {
+                        unimplemented!("we'll handle this eventually as a fallback option")
+                    }
+                }
+            }
+        }
+    }
+
     /// Generates assembly for producing a storage key  where `expr` is stored.
     /// Returns a `StorageKey`. The `StorageKey` contains two values:
     /// - The kind of the storage key: static where the keys are known at compile-time or dynamic.
@@ -347,6 +463,60 @@ impl AsmBuilder {
         expr: &ExprKey,
         intent: &IntermediateIntent,
     ) -> Result<usize, ErrorEmitted> {
+        let old_asm_len = asm.len();
+        let expr_ty = expr.get_ty(intent);
+        match Self::compile_expr_pointer(handler, asm, expr, intent)? {
+            Location::Value => {
+                Self::compile_value_expr(handler, asm, expr, intent)?;
+            }
+            Location::DecisionVar(len) => {
+                if len == 1 {
+                    asm.push(Access::DecisionVar.into());
+                } else {
+                    asm.push(Stack::Push(0).into()); // index
+                    asm.push(Stack::Push(len as i64).into()); // len
+                    asm.push(Access::DecisionVarRange.into());
+                }
+            }
+            Location::Transient(pathway, len) => {
+                if let Some(pathway_var_name) = pathway {
+                    let var_index = intent
+                        .vars()
+                        .filter(|(_, var)| !var.is_pub)
+                        .position(|(_, var)| var.name == pathway_var_name);
+                    asm.push(Stack::Push(len as i64).into()); // key length
+                    asm.push(Stack::Push(var_index.unwrap() as i64).into()); // slot
+                    asm.push(Access::DecisionVar.into());
+                    asm.push(Constraint::Access(Access::Transient));
+                } else {
+                    asm.push(Stack::Push(len as i64).into()); // key length
+                    asm.push(Constraint::Access(Access::ThisPathway));
+                    asm.push(Constraint::Access(Access::Transient));
+                }
+            }
+            Location::State(next_state) => {
+                let slots = expr_ty.storage_slots();
+                if slots == 1 {
+                    asm.push(Stack::Push(next_state as i64).into());
+                    asm.push(Access::State.into());
+                } else {
+                    asm.push(Stack::Push(slots as i64).into());
+                    asm.push(Stack::Push(next_state as i64).into());
+                    asm.push(Access::StateRange.into());
+                }
+            }
+        }
+        Ok(asm.len() - old_asm_len)
+    }
+
+    /// Generates assembly for an `ExprKey` that is a `Location::Value`. Returns the number of
+    /// opcodes used to express `expr`
+    fn compile_value_expr(
+        handler: &Handler,
+        asm: &mut Vec<Constraint>,
+        expr: &ExprKey,
+        intent: &IntermediateIntent,
+    ) -> Result<usize, ErrorEmitted> {
         fn compile_immediate(asm: &mut Vec<Constraint>, imm: &Immediate) {
             match imm {
                 Immediate::Int(val) => asm.push(Stack::Push(*val).into()),
@@ -381,10 +551,7 @@ impl AsmBuilder {
         }
 
         let old_asm_len = asm.len();
-        // Always push to the vector of ops corresponding to the last constraint, i.e. the current
-        // constraint being processed.
-        //
-        // Assume that there exists at least a single entry in `self.c_asm`.
+
         match &expr.get(intent) {
             Expr::Immediate { value, .. } => compile_immediate(asm, value),
             Expr::Array { elements, .. } => {
@@ -499,36 +666,16 @@ impl AsmBuilder {
                         asm.push(Pred::Not.into());
                     }
                     UnaryOp::NextState => {
-                        // This assumes that the next state operator is applied on a state var path
-                        // directly which should currently be guaranteed by the middleend.
-                        //
-                        // So, we simply change the second the last instruction to `Push(1)`
-                        // instead of `Push(0)`. This changes the `delta` for the state read
-                        // instruction from 0 to 1. We're basically switching from reading the
-                        // current state to reading the next state.
-                        assert!(matches!(
-                            asm.last(),
-                            Some(&Constraint::Access(Access::State | Access::StateRange))
-                        ));
-                        let len = asm.len();
-                        assert!(len >= 2);
-                        assert!(matches!(
-                            asm.get(asm.len() - 2),
-                            Some(&Constraint::Stack(Stack::Push(0)))
-                        ));
-                        asm[len - 2] = Stack::Push(1).into();
+                        return Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "unexpected next state expression",
+                                span: empty_span(),
+                            },
+                        }));
                     }
                     UnaryOp::Neg => unimplemented!("Unary::Neg is not yet supported"),
                     UnaryOp::Error => unreachable!("unexpected Unary::Error"),
                 }
-            }
-            Expr::PathByName(path, _) => {
-                // Search for a decision variable or a state variable.
-                Self::compile_path(handler, asm, &path.to_string(), intent)?;
-            }
-            Expr::PathByKey(var_key, _) => {
-                // Search for a decision variable or a state variable.
-                Self::compile_path(handler, asm, &var_key.get(intent).name, intent)?;
             }
             Expr::StorageAccess(_, _) | Expr::ExternalStorageAccess { .. } => {
                 return Err(handler.emit_err(Error::Compile {
@@ -712,7 +859,9 @@ impl AsmBuilder {
                     asm.push(Constraint::Stack(Stack::SelectRange));
                 }
             }
-            Expr::Error(_)
+            Expr::PathByName(..)
+            | Expr::PathByKey(..)
+            | Expr::Error(_)
             | Expr::MacroCall { .. }
             | Expr::Index { .. }
             | Expr::TupleFieldAccess { .. }
@@ -738,141 +887,115 @@ impl AsmBuilder {
         asm: &mut Vec<Constraint>,
         path: &String,
         intent: &IntermediateIntent,
-    ) -> Result<(), ErrorEmitted> {
+    ) -> Result<Location, ErrorEmitted> {
         let var_index = intent
             .vars()
             .filter(|(_, var)| !var.is_pub)
             .position(|(_, var)| &var.name == path);
+
         let pub_var_index = intent
             .vars()
             .filter(|(_, var)| var.is_pub)
             .position(|(_, var)| &var.name == path);
-        let state_and_index = intent
-            .states()
-            .enumerate()
-            .find(|(_, state)| &state.1.name == path);
 
-        match (var_index, pub_var_index, state_and_index) {
-            (Some(var_index), None, None) => {
-                let var_key = intent.vars().find(|(_, var)| &var.name == path).unwrap().0;
-                let var_ty_size = var_key.get_ty(intent).size();
-                asm.push(Stack::Push(var_index as i64).into()); // slot
-                if var_ty_size == 1 {
-                    asm.push(Access::DecisionVar.into());
+        let storage_index = intent.states().position(|(_, state)| &state.name == path);
+
+        if let Some(var_index) = var_index {
+            let var_key = intent.vars().find(|(_, var)| &var.name == path).unwrap().0;
+            let var_ty_size = var_key.get_ty(intent).size();
+            asm.push(Stack::Push(var_index as i64).into()); // slot
+            Ok(Location::DecisionVar(var_ty_size))
+        } else if let Some(pub_var_index) = pub_var_index {
+            let var_key = intent.vars().find(|(_, var)| &var.name == path).unwrap().0;
+            asm.push(Stack::Push(pub_var_index as i64).into());
+            if var_key.get_ty(intent).is_any_primitive() {
+                Ok(Location::Transient(None, 1))
+            } else {
+                asm.push(Stack::Push(0).into()); // placeholder for offsets
+                Ok(Location::Transient(None, 2))
+            }
+        } else if let Some(storage_index) = storage_index {
+            let slot_index: usize = intent
+                .states()
+                .take(storage_index)
+                .map(|(state_key, _)| state_key.get_ty(intent).storage_slots())
+                .sum();
+
+            asm.push(Stack::Push(slot_index as i64).into());
+
+            Ok(Location::State(false))
+        } else {
+            // try external vars by looking through all available intent instances and their
+            // corresponding interfaces
+            for IntentInstance {
+                name,
+                interface_instance,
+                intent: intent_name,
+                ..
+            } in &intent.intent_instances
+            {
+                let Some(interface_instance) = intent
+                    .interface_instances
+                    .iter()
+                    .find(|e| e.name.to_string() == *interface_instance)
+                else {
+                    continue;
+                };
+
+                let Some(interface) = intent
+                    .interfaces
+                    .iter()
+                    .find(|e| e.name.to_string() == *interface_instance.interface)
+                else {
+                    continue;
+                };
+
+                let Some(intent_interface) = interface
+                    .intent_interfaces
+                    .iter()
+                    .find(|e| e.name.to_string() == *intent_name.to_string())
+                else {
+                    continue;
+                };
+
+                let Some(transient_index) = intent_interface
+                    .vars
+                    .iter()
+                    .position(|var| name.to_string() + "::" + &var.name.name == *path)
+                else {
+                    continue;
+                };
+
+                let Some(var) = intent_interface
+                    .vars
+                    .iter()
+                    .find(|var| name.to_string() + "::" + &var.name.name == *path)
+                else {
+                    continue;
+                };
+
+                asm.push(Stack::Push(transient_index as i64).into());
+
+                if !var.ty.is_any_primitive() {
+                    asm.push(Stack::Push(0).into()); // placeholder for offsets
+                    return Ok(Location::Transient(
+                        Some("__".to_owned() + &name.to_string() + "_pathway"),
+                        2,
+                    ));
                 } else {
-                    asm.push(Stack::Push(0).into()); // index
-                    asm.push(Stack::Push(var_ty_size as i64).into()); // len
-                    asm.push(Access::DecisionVarRange.into());
+                    return Ok(Location::Transient(
+                        Some("__".to_owned() + &name.to_string() + "_pathway"),
+                        1,
+                    ));
                 }
             }
-            (None, Some(pub_var_index), None) => {
-                let var_key = intent.vars().find(|(_, var)| &var.name == path).unwrap().0;
-                if var_key.get_ty(intent).is_any_primitive() {
-                    asm.push(Stack::Push(pub_var_index as i64).into());
-                    asm.push(Stack::Push(1).into()); // key length
-                    asm.push(Constraint::Access(Access::ThisPathway));
-                    asm.push(Constraint::Access(Access::Transient));
-                } else {
-                    todo!("non-primitive transient data not yet implemented")
-                }
-            }
-            (None, None, Some((state_index, (state_key, _)))) => {
-                let slot_index: usize = intent
-                    .states()
-                    .take(state_index)
-                    .map(|(state_key, _)| state_key.get_ty(intent).storage_slots())
-                    .sum();
-
-                let slots = state_key.get_ty(intent).storage_slots();
-                if slots == 1 {
-                    asm.push(Stack::Push(slot_index as i64).into());
-                    asm.push(Stack::Push(0).into()); // 0 means "current state"
-                    asm.push(Access::State.into());
-                } else {
-                    asm.push(Stack::Push(slot_index as i64).into());
-                    asm.push(Stack::Push(slots as i64).into()); // 0 means "current state"
-                    asm.push(Stack::Push(0).into()); // 0 means "current state"
-                    asm.push(Access::StateRange.into());
-                }
-            }
-            _ => {
-                // try external vars by looking through all available intent instances and their
-                // corresponding interfaces
-                let mut pub_var_found = false;
-                for IntentInstance {
-                    name,
-                    interface_instance,
-                    intent: intent_name,
-                    ..
-                } in &intent.intent_instances
-                {
-                    let Some(interface_instance) = intent
-                        .interface_instances
-                        .iter()
-                        .find(|e| e.name.to_string() == *interface_instance)
-                    else {
-                        continue;
-                    };
-
-                    let Some(interface) = intent
-                        .interfaces
-                        .iter()
-                        .find(|e| e.name.to_string() == *interface_instance.interface)
-                    else {
-                        continue;
-                    };
-
-                    let Some(intent_interface) = interface
-                        .intent_interfaces
-                        .iter()
-                        .find(|e| e.name.to_string() == *intent_name.to_string())
-                    else {
-                        continue;
-                    };
-
-                    let Some(transient_index) = intent_interface
-                        .vars
-                        .iter()
-                        .position(|var| name.to_string() + "::" + &var.name.name == *path)
-                    else {
-                        continue;
-                    };
-
-                    let Some(var) = intent_interface
-                        .vars
-                        .iter()
-                        .find(|var| name.to_string() + "::" + &var.name.name == *path)
-                    else {
-                        continue;
-                    };
-
-                    if var.ty.is_any_primitive() {
-                        asm.push(Stack::Push(transient_index as i64).into());
-                        asm.push(Stack::Push(1).into()); // key length
-                        Self::compile_path(
-                            handler,
-                            asm,
-                            &("__".to_owned() + &name.to_string() + "_pathway"),
-                            intent,
-                        )?;
-                        asm.push(Constraint::Access(Access::Transient));
-                    } else {
-                        unimplemented!("non-primitive transient data not yet implemented")
-                    }
-                    pub_var_found = true;
-                    break;
-                }
-                if !pub_var_found {
-                    return Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "unable to find external pub var",
-                            span: empty_span(),
-                        },
-                    }));
-                }
-            }
+            return Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "unable to find external pub var",
+                    span: empty_span(),
+                },
+            }));
         }
-        Ok(())
     }
 
     /// Generates assembly for a given constraint

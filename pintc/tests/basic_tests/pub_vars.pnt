@@ -80,34 +80,28 @@ intent Foo {
 // These type check failures are temporary until we support other types for `pub var`
 //
 // typecheck_failure <<<
-// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
-// @142..144: only `bool`, b256`, and `int` pub vars are currently supported
-// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
-// @166..168: only `bool`, b256`, and `int` pub vars are currently supported
-// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
-// @197..199: only `bool`, b256`, and `int` pub vars are currently supported
-// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
-// @221..223: only `bool`, b256`, and `int` pub vars are currently supported
-// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
-// @245..247: only `bool`, b256`, and `int` pub vars are currently supported
-// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
-// @415..417: only `bool`, b256`, and `int` pub vars are currently supported
-// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
-// @447..449: only `bool`, b256`, and `int` pub vars are currently supported
-// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
-// @492..494: only `bool`, b256`, and `int` pub vars are currently supported
-// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
-// @535..537: only `bool`, b256`, and `int` pub vars are currently supported
-// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
-// @571..573: only `bool`, b256`, and `int` pub vars are currently supported
-// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
-// @736..738: only `bool`, b256`, and `int` pub vars are currently supported
-// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
-// @760..762: only `bool`, b256`, and `int` pub vars are currently supported
-// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
-// @790..792: only `bool`, b256`, and `int` pub vars are currently supported
-// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
-// @825..827: only `bool`, b256`, and `int` pub vars are currently supported
-// compiler internal error: only `bool`, b256`, and `int` pub vars are currently supported
-// @853..855: only `bool`, b256`, and `int` pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// @142..144: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// @197..199: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// @221..223: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// @245..247: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// @415..417: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// @492..494: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// @535..537: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// @571..573: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// @736..738: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// @790..792: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// @825..827: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// @853..855: only `bool`, b256`, `int`, and tuple pub vars are currently supported
 // >>>
