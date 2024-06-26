@@ -166,6 +166,51 @@ fn select() {
             --- State Reads ---
         "#]],
     );
+
+    check(
+        &format!(
+            "{}",
+            compile(
+                r#"
+            storage { x: int }
+            state x = storage::x;
+            var y = x == nil ? 11 : x;
+            solve satisfy;
+            "#,
+            )
+        ),
+        expect_test::expect![[r#"
+            --- Constraints ---
+            constraint 0
+              Stack(Push(0))
+              Access(DecisionVar)
+              Stack(Push(7))
+              Stack(Push(0))
+              Stack(Push(0))
+              Access(StateLen)
+              Stack(Push(0))
+              Pred(Eq)
+              TotalControlFlow(JumpForwardIf)
+              Stack(Push(0))
+              Stack(Push(0))
+              Access(State)
+              Stack(Push(2))
+              Stack(Push(1))
+              TotalControlFlow(JumpForwardIf)
+              Stack(Push(11))
+              Pred(Eq)
+            --- State Reads ---
+            state read 0
+              Constraint(Stack(Push(0)))
+              Constraint(Stack(Push(1)))
+              StateSlots(AllocSlots)
+              Constraint(Stack(Push(1)))
+              Constraint(Stack(Push(1)))
+              Constraint(Stack(Push(0)))
+              KeyRange
+              ControlFlow(Halt)
+        "#]],
+    );
 }
 
 #[test]

@@ -70,6 +70,71 @@ impl ExprKey {
     pub fn set_ty<'a>(&'a self, ty: Type, pred: &'a mut Predicate) {
         pred.exprs.expr_types.insert(*self, ty);
     }
+
+    /// Return whether this expression can panic (typically related to storage).
+    pub fn can_panic(&self, pred: &Predicate) -> bool {
+        pred.exprs
+            .exprs
+            .get(*self)
+            .map_or(false, |expr| match expr {
+                Expr::StorageAccess(_, _) | Expr::ExternalStorageAccess { .. } => true,
+
+                Expr::PathByName(path, _) => pred.states().any(|(_, state)| &state.name == path),
+
+                Expr::Error(_)
+                | Expr::Immediate { .. }
+                | Expr::PathByKey(_, _)
+                | Expr::MacroCall { .. } => false,
+
+                Expr::Array {
+                    elements,
+                    range_expr,
+                    ..
+                } => elements.iter().any(|el| el.can_panic(pred)) || range_expr.can_panic(pred),
+
+                Expr::Tuple { fields, .. } => fields.iter().any(|fld| fld.1.can_panic(pred)),
+
+                Expr::UnaryOp { expr, .. } => expr.can_panic(pred),
+
+                Expr::BinaryOp { lhs, rhs, .. } => lhs.can_panic(pred) || rhs.can_panic(pred),
+
+                Expr::IntrinsicCall { args, .. } => args.iter().any(|arg| arg.can_panic(pred)),
+
+                Expr::Select {
+                    condition,
+                    then_expr,
+                    else_expr,
+                    ..
+                } => {
+                    condition.can_panic(pred)
+                        || then_expr.can_panic(pred)
+                        || else_expr.can_panic(pred)
+                }
+
+                Expr::Index { expr, index, .. } => expr.can_panic(pred) || index.can_panic(pred),
+
+                Expr::TupleFieldAccess { tuple, .. } => tuple.can_panic(pred),
+
+                Expr::Cast { value, .. } => value.can_panic(pred),
+
+                Expr::In {
+                    value, collection, ..
+                } => value.can_panic(pred) || collection.can_panic(pred),
+
+                Expr::Range { lb, ub, .. } => lb.can_panic(pred) || ub.can_panic(pred),
+
+                Expr::Generator {
+                    gen_ranges,
+                    conditions,
+                    body,
+                    ..
+                } => {
+                    gen_ranges.iter().any(|rng| rng.1.can_panic(pred))
+                        || conditions.iter().any(|cond| cond.can_panic(pred))
+                        || body.can_panic(pred)
+                }
+            })
+    }
 }
 
 /// [`ExprsIter`] is an iterator for all the _reachable_ expressions in the Predicate.
