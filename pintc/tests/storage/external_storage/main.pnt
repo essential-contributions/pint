@@ -15,7 +15,7 @@ interface ERC20_0 {
     } 
 }
 
-intent Foo {
+predicate Foo {
     interface ERC20_0_instance = 
         ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000);
     interface ERC20_1_instance = 
@@ -40,7 +40,7 @@ intent Foo {
     state external_map_2 = ERC20_2_instance::storage::map[3][4];
 }
 
-intent Bar {
+predicate Bar {
     interface ERC20_0_instance = 
         ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000);
     interface ERC20_1_instance = 
@@ -65,7 +65,7 @@ intent Bar {
     state external_map_2 = ERC20_2_instance::storage::map[3][4];
 }
 
-// intermediate <<<
+// parsed <<<
 // storage {
 //     x: int,
 //     y: bool,
@@ -93,7 +93,7 @@ intent Bar {
 //     }
 // }
 // 
-// intent ::Bar {
+// predicate ::Bar {
 //     storage {
 //         x: int,
 //         y: bool,
@@ -137,7 +137,7 @@ intent Bar {
 //     state ::external_map_2 = ::ERC20_2_instance::storage::map[3][4];
 // }
 // 
-// intent ::Foo {
+// predicate ::Foo {
 //     storage {
 //         x: int,
 //         y: bool,
@@ -210,7 +210,7 @@ intent Bar {
 //     }
 // }
 // 
-// intent ::Bar {
+// predicate ::Bar {
 //     storage {
 //         x: int,
 //         y: bool,
@@ -254,7 +254,7 @@ intent Bar {
 //     state ::external_map_2: b256 = ::ERC20_2_instance::storage::map[3][4];
 // }
 // 
-// intent ::Foo {
+// predicate ::Foo {
 //     storage {
 //         x: int,
 //         y: bool,

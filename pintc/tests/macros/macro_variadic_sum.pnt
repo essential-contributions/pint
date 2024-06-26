@@ -12,7 +12,7 @@ var b: int = @sum(1; 2; 3; a);
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a: int;
 // var ::b: int;
 // constraint (::a == 4);

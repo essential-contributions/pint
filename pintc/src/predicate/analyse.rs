@@ -1,10 +1,10 @@
 mod intrinsics;
 
-use super::{Const, Expr, ExprKey, Ident, IntermediateIntent, Program, VarKey};
+use super::{Const, Expr, ExprKey, Ident, Predicate, Program, VarKey};
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     expr::{evaluate::Evaluator, BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
-    intermediate::{BlockStatement, ConstraintDecl, IfDecl, IntentInstance, InterfaceInstance},
+    predicate::{BlockStatement, ConstraintDecl, IfDecl, InterfaceInstance, PredicateInstance},
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
@@ -25,9 +25,9 @@ impl Program {
         // updated and has its type set.
         let _ = handler.scope(|handler| self.evaluate_all_consts(handler));
 
-        for ii in self.iis.values_mut() {
-            for expr_key in ii.exprs() {
-                if let Some(span) = ii.removed_macro_calls.get(expr_key) {
+        for pred in self.preds.values_mut() {
+            for expr_key in pred.exprs() {
+                if let Some(span) = pred.removed_macro_calls.get(expr_key) {
                     // This expression was actually a macro call which expanded to just declarations,
                     // not another expression. We can set a specific error in this case.
                     handler.emit_err(Error::Compile {
@@ -40,11 +40,11 @@ impl Program {
                 return Err(handler.cancel());
             }
 
-            ii.check_undefined_types(handler);
-            ii.lower_newtypes(handler)?;
-            ii.type_check_all_exprs(handler, &self.consts);
-            ii.check_inits(handler, &self.consts);
-            ii.check_constraint_types(handler);
+            pred.check_undefined_types(handler);
+            pred.lower_newtypes(handler)?;
+            pred.type_check_all_exprs(handler, &self.consts);
+            pred.check_inits(handler, &self.consts);
+            pred.check_constraint_types(handler);
         }
 
         if handler.has_errors() {
@@ -65,7 +65,7 @@ impl Program {
         // performing N-1 evaluation passes for N consts should resolve all dependencies and in
         // most cases will be done in only 1 or 2 passes.
 
-        let mut evaluator = Evaluator::new(self.root_ii());
+        let mut evaluator = Evaluator::new(self.root_pred());
         let mut new_immediates = Vec::default();
 
         // Use a temporary error handler to manage in-progress errors.
@@ -74,14 +74,14 @@ impl Program {
         let const_count = self.consts.len();
         for loop_idx in 0..const_count {
             for (path, cnst) in &self.consts {
-                let expr = cnst.expr.get(self.root_ii());
+                let expr = cnst.expr.get(self.root_pred());
 
                 // There's no need to re-evaluate known immediates.
                 if !evaluator.contains_path(path) {
                     if let Expr::Immediate { value, .. } = expr {
                         evaluator.insert_value(path.clone(), value.clone());
                     } else if let Ok(imm) =
-                        evaluator.evaluate_key(&cnst.expr, &tmp_handler, self.root_ii())
+                        evaluator.evaluate_key(&cnst.expr, &tmp_handler, self.root_pred())
                     {
                         evaluator.insert_value(path.clone(), imm);
 
@@ -125,7 +125,7 @@ impl Program {
             let init_span: Span = self
                 .consts
                 .get(&new_path)
-                .map(|cnst| self.root_ii().expr_key_to_span(cnst.expr))
+                .map(|cnst| self.root_pred().expr_key_to_span(cnst.expr))
                 .unwrap_or_else(empty_span);
 
             if let Some(imm_value) = all_const_immediates.get(&new_path) {
@@ -135,7 +135,7 @@ impl Program {
                 };
 
                 let new_expr_key = self
-                    .root_ii_mut()
+                    .root_pred_mut()
                     .exprs
                     .insert(new_expr, imm_value.get_ty(None));
 
@@ -155,8 +155,8 @@ impl Program {
             if decl_ty.is_unknown() {
                 if let Some(imm_value) = all_const_immediates.get(path) {
                     // Check the type is valid.
-                    let span = self.root_ii().expr_key_to_span(*expr);
-                    match self.root_ii().infer_immediate(imm_value, &span) {
+                    let span = self.root_pred().expr_key_to_span(*expr);
+                    match self.root_pred().infer_immediate(imm_value, &span) {
                         Ok(inferred) => match inferred {
                             Inference::Type(new_ty) => {
                                 type_replacements.push((path.clone(), new_ty))
@@ -191,7 +191,7 @@ impl Program {
     }
 }
 
-impl IntermediateIntent {
+impl Predicate {
     fn lower_newtypes(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
         self.check_recursive_newtypes(handler)?;
         self.lower_newtypes_in_newtypes(handler)?;
@@ -457,12 +457,12 @@ impl IntermediateIntent {
                     error: CompileError::ConstraintExpressionTypeError {
                         large_err: Box::new(LargeTypeError::ConstraintExpressionTypeError {
                             expected_ty: self
-                                .with_ii(Type::Primitive {
+                                .with_pred(Type::Primitive {
                                     kind: PrimitiveKind::Bool,
                                     span: empty_span(),
                                 })
                                 .to_string(),
-                            found_ty: self.with_ii(expr_type).to_string(),
+                            found_ty: self.with_pred(expr_type).to_string(),
                             span: constraint_decl.span.clone(),
                             expected_span: Some(constraint_decl.span.clone()),
                         }),
@@ -503,12 +503,12 @@ impl IntermediateIntent {
                                     large_err: Box::new(
                                         LargeTypeError::AddressExpressionTypeError {
                                             expected_ty: self
-                                                .with_ii(Type::Primitive {
+                                                .with_pred(Type::Primitive {
                                                     kind: PrimitiveKind::B256,
                                                     span: empty_span(),
                                                 })
                                                 .to_string(),
-                                            found_ty: self.with_ii(ty).to_string(),
+                                            found_ty: self.with_pred(ty).to_string(),
                                             span: self.expr_key_to_span(address),
                                             expected_span: Some(self.expr_key_to_span(address)),
                                         },
@@ -525,16 +525,16 @@ impl IntermediateIntent {
         );
 
         // Type check all interface instance declarations
-        self.intent_instances.clone().into_iter().for_each(
-            |IntentInstance {
+        self.predicate_instances.clone().into_iter().for_each(
+            |PredicateInstance {
                  interface_instance,
-                 intent,
+                 predicate,
                  address,
                  span,
                  ..
              }| {
                 // Make sure that an appropriate interface instance exists and an appropriate
-                // intent interface exists
+                // predicate interface exists
                 if let Some(interface_instance) = self
                     .interface_instances
                     .iter()
@@ -546,13 +546,13 @@ impl IntermediateIntent {
                         .find(|e| e.name.to_string() == *interface_instance.interface)
                     {
                         if !interface
-                            .intent_interfaces
+                            .predicate_interfaces
                             .iter()
-                            .any(|e| e.name.to_string() == *intent.to_string())
+                            .any(|e| e.name.to_string() == *predicate.to_string())
                         {
                             handler.emit_err(Error::Compile {
-                                error: CompileError::MissingIntentInterface {
-                                    intent_name: intent.name.to_string(),
+                                error: CompileError::MissingPredicateInterface {
+                                    pred_name: predicate.name.to_string(),
                                     interface_name: interface.name.to_string(),
                                     span: span.clone(),
                                 },
@@ -578,12 +578,12 @@ impl IntermediateIntent {
                                     large_err: Box::new(
                                         LargeTypeError::AddressExpressionTypeError {
                                             expected_ty: self
-                                                .with_ii(Type::Primitive {
+                                                .with_pred(Type::Primitive {
                                                     kind: PrimitiveKind::B256,
                                                     span: empty_span(),
                                                 })
                                                 .to_string(),
-                                            found_ty: self.with_ii(ty).to_string(),
+                                            found_ty: self.with_pred(ty).to_string(),
                                             span: self.expr_key_to_span(address),
                                             expected_span: Some(self.expr_key_to_span(address)),
                                         },
@@ -692,8 +692,8 @@ impl IntermediateIntent {
                         handler.emit_err(Error::Compile {
                             error: CompileError::StateVarInitTypeError {
                                 large_err: Box::new(LargeTypeError::StateVarInitTypeError {
-                                    expected_ty: self.with_ii(state_ty).to_string(),
-                                    found_ty: self.with_ii(expr_ty).to_string(),
+                                    expected_ty: self.with_pred(state_ty).to_string(),
+                                    found_ty: self.with_pred(expr_ty).to_string(),
                                     span: self.expr_key_to_span(state.expr),
                                     expected_span: Some(state_ty.span().clone()),
                                 }),
@@ -767,7 +767,7 @@ impl IntermediateIntent {
             {
                 handler.emit_err(Error::Compile {
                     error: CompileError::InvalidArrayRangeType {
-                        found_ty: self.with_ii(range_expr.get_ty(self)).to_string(),
+                        found_ty: self.with_pred(range_expr.get_ty(self)).to_string(),
                         span: self.expr_key_to_span(*range_expr),
                     },
                 });
@@ -800,7 +800,7 @@ impl IntermediateIntent {
             if !cond_ty.is_bool() {
                 handler.emit_err(Error::Compile {
                     error: CompileError::NonBoolConditional {
-                        ty: self.with_ii(cond_ty).to_string(),
+                        ty: self.with_pred(cond_ty).to_string(),
                         conditional: "`if` statement".to_string(),
                         span: self.expr_key_to_span(*condition),
                     },
@@ -1013,8 +1013,8 @@ impl IntermediateIntent {
                 if !el_ty.eq(self, el0_ty.as_ref()) {
                     Err(Error::Compile {
                         error: CompileError::NonHomogeneousArrayElement {
-                            expected_ty: self.with_ii(el0_ty.as_ref()).to_string(),
-                            ty: self.with_ii(el_ty).to_string(),
+                            expected_ty: self.with_pred(el0_ty.as_ref()).to_string(),
+                            ty: self.with_pred(el_ty).to_string(),
                             span: span.clone(),
                         },
                     })
@@ -1184,14 +1184,14 @@ impl IntermediateIntent {
     }
 
     fn infer_extern_var(&self, path: &Path) -> Option<Inference> {
-        // Look through all available intent instances and their corresponding interfaces for a var
+        // Look through all available predicate instances and their corresponding interfaces for a var
         // with the same path as `path`
-        for IntentInstance {
+        for PredicateInstance {
             name,
             interface_instance,
-            intent,
+            predicate,
             ..
-        } in &self.intent_instances
+        } in &self.predicate_instances
         {
             if let Some(interface_instance) = self
                 .interface_instances
@@ -1203,12 +1203,12 @@ impl IntermediateIntent {
                     .iter()
                     .find(|e| e.name.to_string() == *interface_instance.interface)
                 {
-                    if let Some(intent) = interface
-                        .intent_interfaces
+                    if let Some(predicate) = interface
+                        .predicate_interfaces
                         .iter()
-                        .find(|e| e.name.to_string() == *intent.to_string())
+                        .find(|e| e.name.to_string() == *predicate.to_string())
                     {
-                        for var in &intent.vars {
+                        for var in &predicate.vars {
                             if name.to_string() + "::" + &var.name.name == *path {
                                 return Some(Inference::Type(var.ty.clone()));
                             }
@@ -1315,7 +1315,7 @@ impl IntermediateIntent {
                                 large_err: Box::new(LargeTypeError::OperatorTypeError {
                                     op: "-",
                                     expected_ty: "numeric".to_string(),
-                                    found_ty: self.with_ii(ty).to_string(),
+                                    found_ty: self.with_pred(ty).to_string(),
                                     span: span.clone(),
                                     expected_span: None,
                                 }),
@@ -1340,7 +1340,7 @@ impl IntermediateIntent {
                                 large_err: Box::new(LargeTypeError::OperatorTypeError {
                                     op: "!",
                                     expected_ty: "bool".to_string(),
-                                    found_ty: self.with_ii(ty).to_string(),
+                                    found_ty: self.with_pred(ty).to_string(),
                                     span: span.clone(),
                                     expected_span: None,
                                 }),
@@ -1402,7 +1402,7 @@ impl IntermediateIntent {
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
                             op: op.as_str(),
                             expected_ty: ty_str.to_string(),
-                            found_ty: self.with_ii(lhs_ty).to_string(),
+                            found_ty: self.with_pred(lhs_ty).to_string(),
                             span: self.expr_key_to_span(lhs_expr_key),
                             expected_span: None,
                         }),
@@ -1415,7 +1415,7 @@ impl IntermediateIntent {
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
                             op: op.as_str(),
                             expected_ty: ty_str.to_string(),
-                            found_ty: self.with_ii(rhs_ty).to_string(),
+                            found_ty: self.with_pred(rhs_ty).to_string(),
                             span: self.expr_key_to_span(rhs_expr_key),
                             expected_span: None,
                         }),
@@ -1428,8 +1428,8 @@ impl IntermediateIntent {
                         arity: "binary",
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
                             op: op.as_str(),
-                            expected_ty: self.with_ii(lhs_ty).to_string(),
-                            found_ty: self.with_ii(rhs_ty).to_string(),
+                            expected_ty: self.with_pred(lhs_ty).to_string(),
+                            found_ty: self.with_pred(rhs_ty).to_string(),
                             span: self.expr_key_to_span(rhs_expr_key),
                             expected_span: Some(self.expr_key_to_span(lhs_expr_key)),
                         }),
@@ -1519,8 +1519,8 @@ impl IntermediateIntent {
                                     arity: "binary",
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
                                         op: op.as_str(),
-                                        expected_ty: self.with_ii(lhs_ty).to_string(),
-                                        found_ty: self.with_ii(rhs_ty).to_string(),
+                                        expected_ty: self.with_pred(lhs_ty).to_string(),
+                                        found_ty: self.with_pred(rhs_ty).to_string(),
                                         span: self.expr_key_to_span(rhs_expr_key),
                                         expected_span: Some(self.expr_key_to_span(lhs_expr_key)),
                                     }),
@@ -1556,7 +1556,7 @@ impl IntermediateIntent {
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
                                         op: op.as_str(),
                                         expected_ty: "bool".to_string(),
-                                        found_ty: self.with_ii(lhs_ty).to_string(),
+                                        found_ty: self.with_pred(lhs_ty).to_string(),
                                         span: self.expr_key_to_span(lhs_expr_key),
                                         expected_span: Some(span.clone()),
                                     }),
@@ -1569,7 +1569,7 @@ impl IntermediateIntent {
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
                                         op: op.as_str(),
                                         expected_ty: "bool".to_string(),
-                                        found_ty: self.with_ii(rhs_ty).to_string(),
+                                        found_ty: self.with_pred(rhs_ty).to_string(),
                                         span: self.expr_key_to_span(rhs_expr_key),
                                         expected_span: Some(span.clone()),
                                     }),
@@ -1602,7 +1602,7 @@ impl IntermediateIntent {
             if !cond_ty.is_bool() {
                 Err(Error::Compile {
                     error: CompileError::NonBoolConditional {
-                        ty: self.with_ii(cond_ty).to_string(),
+                        ty: self.with_pred(cond_ty).to_string(),
                         conditional: "select expression".to_string(),
                         span: self.expr_key_to_span(cond_expr_key),
                     },
@@ -1615,9 +1615,9 @@ impl IntermediateIntent {
                         Err(Error::Compile {
                             error: CompileError::SelectBranchesTypeMismatch {
                                 large_err: Box::new(LargeTypeError::SelectBranchesTypeMismatch {
-                                    then_type: self.with_ii(then_ty).to_string(),
+                                    then_type: self.with_pred(then_ty).to_string(),
                                     then_span: self.expr_key_to_span(then_expr_key),
-                                    else_type: self.with_ii(else_ty).to_string(),
+                                    else_type: self.with_pred(else_ty).to_string(),
                                     else_span: self.expr_key_to_span(else_expr_key),
                                     span: span.clone(),
                                 }),
@@ -1648,15 +1648,15 @@ impl IntermediateIntent {
                 if !lb_ty.eq(self, ub_ty) {
                     Err(Error::Compile {
                         error: CompileError::RangeTypesMismatch {
-                            lb_ty: self.with_ii(lb_ty).to_string(),
-                            ub_ty: self.with_ii(ub_ty).to_string(),
+                            lb_ty: self.with_pred(lb_ty).to_string(),
+                            ub_ty: self.with_pred(ub_ty).to_string(),
                             span: ub_ty.span().clone(),
                         },
                     })
                 } else if !lb_ty.is_num() {
                     Err(Error::Compile {
                         error: CompileError::RangeTypesNonNumeric {
-                            ty: self.with_ii(lb_ty).to_string(),
+                            ty: self.with_pred(lb_ty).to_string(),
                             span: span.clone(),
                         },
                     })
@@ -1690,7 +1690,7 @@ impl IntermediateIntent {
                 // We can only cast to ints or reals.
                 Err(Error::Compile {
                     error: CompileError::BadCastTo {
-                        ty: self.with_ii(to_ty).to_string(),
+                        ty: self.with_pred(to_ty).to_string(),
                         span: span.clone(),
                     },
                 })
@@ -1703,7 +1703,7 @@ impl IntermediateIntent {
                 // We can only cast to ints from ints, enums or bools and to reals from ints or reals.
                 Err(Error::Compile {
                     error: CompileError::BadCastFrom {
-                        ty: self.with_ii(from_ty).to_string(),
+                        ty: self.with_pred(from_ty).to_string(),
                         span: span.clone(),
                     },
                 })
@@ -1732,8 +1732,8 @@ impl IntermediateIntent {
                     if !value_ty.eq(self, collection_ty) {
                         Err(Error::Compile {
                             error: CompileError::InExprTypesMismatch {
-                                val_ty: self.with_ii(value_ty).to_string(),
-                                range_ty: self.with_ii(collection_ty).to_string(),
+                                val_ty: self.with_pred(value_ty).to_string(),
+                                range_ty: self.with_pred(collection_ty).to_string(),
                                 span: collection_ty.span().clone(),
                             },
                         })
@@ -1747,8 +1747,8 @@ impl IntermediateIntent {
                     if !value_ty.eq(self, el_ty) {
                         Err(Error::Compile {
                             error: CompileError::InExprTypesArrayMismatch {
-                                val_ty: self.with_ii(value_ty).to_string(),
-                                el_ty: self.with_ii(el_ty).to_string(),
+                                val_ty: self.with_pred(value_ty).to_string(),
+                                el_ty: self.with_pred(el_ty).to_string(),
                                 span: el_ty.span().clone(),
                             },
                         })
@@ -1801,8 +1801,8 @@ impl IntermediateIntent {
                     if !el_ty.eq(self, el0_ty) {
                         return Err(Error::Compile {
                             error: CompileError::NonHomogeneousArrayElement {
-                                expected_ty: self.with_ii(&el0_ty).to_string(),
-                                ty: self.with_ii(el_ty).to_string(),
+                                expected_ty: self.with_pred(&el0_ty).to_string(),
+                                ty: self.with_pred(el_ty).to_string(),
                                 span: self.expr_key_to_span(*el_key),
                             },
                         });
@@ -1858,8 +1858,8 @@ impl IntermediateIntent {
             if (!index_ty.is_int() && !index_ty.is_enum(self)) || !index_ty.eq(self, range_ty) {
                 Err(Error::Compile {
                     error: CompileError::ArrayAccessWithWrongType {
-                        found_ty: self.with_ii(index_ty).to_string(),
-                        expected_ty: self.with_ii(range_ty).to_string(),
+                        found_ty: self.with_pred(index_ty).to_string(),
+                        expected_ty: self.with_pred(range_ty).to_string(),
                         span: self.expr_key_to_span(index_expr_key),
                     },
                 })
@@ -1882,8 +1882,8 @@ impl IntermediateIntent {
             if !from_ty.eq(self, index_ty) {
                 Err(Error::Compile {
                     error: CompileError::StorageMapAccessWithWrongType {
-                        found_ty: self.with_ii(index_ty).to_string(),
-                        expected_ty: self.with_ii(from_ty).to_string(),
+                        found_ty: self.with_pred(index_ty).to_string(),
+                        expected_ty: self.with_pred(from_ty).to_string(),
                         span: self.expr_key_to_span(index_expr_key),
                     },
                 })
@@ -1901,7 +1901,7 @@ impl IntermediateIntent {
         } else {
             Err(Error::Compile {
                 error: CompileError::IndexExprNonIndexable {
-                    non_indexable_type: self.with_ii(ary_ty).to_string(),
+                    non_indexable_type: self.with_pred(ary_ty).to_string(),
                     span: span.clone(),
                 },
             })
@@ -1959,7 +1959,7 @@ impl IntermediateIntent {
                             Err(Error::Compile {
                                 error: CompileError::InvalidTupleAccessor {
                                     accessor: idx.to_string(),
-                                    tuple_type: self.with_ii(tuple_ty).to_string(),
+                                    tuple_type: self.with_pred(tuple_ty).to_string(),
                                     span: span.clone(),
                                 },
                             })
@@ -1973,7 +1973,7 @@ impl IntermediateIntent {
                             Err(Error::Compile {
                                 error: CompileError::InvalidTupleAccessor {
                                     accessor: name.name.clone(),
-                                    tuple_type: self.with_ii(&tuple_ty).to_string(),
+                                    tuple_type: self.with_pred(&tuple_ty).to_string(),
                                     span: span.clone(),
                                 },
                             })
@@ -1983,7 +1983,7 @@ impl IntermediateIntent {
             } else {
                 Err(Error::Compile {
                     error: CompileError::TupleAccessNonTuple {
-                        non_tuple_type: self.with_ii(tuple_ty).to_string(),
+                        non_tuple_type: self.with_pred(tuple_ty).to_string(),
                         span: span.clone(),
                     },
                 })
@@ -2009,7 +2009,7 @@ impl IntermediateIntent {
                 if !range_ty.is_int() {
                     return Err(Error::Compile {
                         error: CompileError::NonIntGeneratorRange {
-                            ty: self.with_ii(range_ty).to_string(),
+                            ty: self.with_pred(range_ty).to_string(),
                             gen_kind: kind.to_string(),
                             span: self.expr_key_to_span(*range_expr_key),
                         },
@@ -2026,7 +2026,7 @@ impl IntermediateIntent {
                 if !cond_ty.is_bool() {
                     return Err(Error::Compile {
                         error: CompileError::NonBoolGeneratorCondition {
-                            ty: self.with_ii(cond_ty).to_string(),
+                            ty: self.with_pred(cond_ty).to_string(),
                             gen_kind: kind.to_string(),
                             span: self.expr_key_to_span(*cond_expr_key),
                         },
@@ -2042,7 +2042,7 @@ impl IntermediateIntent {
             if !body_ty.is_bool() {
                 return Err(Error::Compile {
                     error: CompileError::NonBoolGeneratorBody {
-                        ty: self.with_ii(body_ty).to_string(),
+                        ty: self.with_pred(body_ty).to_string(),
                         gen_kind: kind.to_string(),
                         span: self.expr_key_to_span(body_expr_key),
                     },
@@ -2079,8 +2079,8 @@ impl IntermediateIntent {
                             init_kind: "variable",
                             large_err: Box::new(LargeTypeError::InitTypeError {
                                 init_kind: "variable",
-                                expected_ty: self.with_ii(var_decl_ty).to_string(),
-                                found_ty: self.with_ii(init_ty).to_string(),
+                                expected_ty: self.with_pred(var_decl_ty).to_string(),
+                                found_ty: self.with_pred(init_ty).to_string(),
                                 expected_ty_span: var_decl_ty.span().clone(),
                                 init_span: self.expr_key_to_span(*init_expr_key),
                             }),
@@ -2104,8 +2104,8 @@ impl IntermediateIntent {
                         init_kind: "const",
                         large_err: Box::new(LargeTypeError::InitTypeError {
                             init_kind: "const",
-                            expected_ty: self.with_ii(decl_ty).to_string(),
-                            found_ty: self.with_ii(init_ty).to_string(),
+                            expected_ty: self.with_pred(decl_ty).to_string(),
+                            found_ty: self.with_pred(init_ty).to_string(),
                             expected_ty_span: decl_ty.span().clone(),
                             init_span: self.expr_key_to_span(*init_expr_key),
                         }),

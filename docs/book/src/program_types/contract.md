@@ -71,7 +71,7 @@ Hopefully nothing here is surprising! The key point is that an `interface` must 
 that is public in a contract, and that includes the storage block and all public decision variables
 in each predicate.
 
-Note that, if a predicate `Foo` has no public decision variables, both `intent Foo { }` and `intent
-Foo;` can be used when adding it to the interface.
+Note that, if a predicate `Foo` has no public decision variables, both `predicate Foo { }` and `
+predicate Foo;` can be used when adding it to the interface.
 
 > **Note** in the future, Pint will have a tool that will auto-generate interfaces.

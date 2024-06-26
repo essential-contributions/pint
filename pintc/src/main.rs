@@ -1,5 +1,5 @@
 use clap::Parser;
-use pintc::{asm_gen::program_to_intents, cli::Args, error, parser};
+use pintc::{asm_gen::compile_program, cli::Args, error, parser};
 use std::{
     fs::{create_dir_all, File},
     path::{Path, PathBuf},
@@ -74,7 +74,7 @@ fn main() -> anyhow::Result<()> {
     //
     // If `--solve` is passed to `pintc`, skip assembly generation. I think, eventually, we want to
     // always be generating assembly, but codegen is currently quite lacking (no reals, no negative
-    // numbers, etc.) and so, we can solve more intents than we can generate assembly for. When
+    // numbers, etc.) and so, we can solve more predicate than we can generate assembly for. When
     // this changes, we will always generate assembly and only solve when requested via `--solve`.
     if args.solve {
         if args.solve && !cfg!(feature = "solver-scip") {
@@ -83,7 +83,7 @@ fn main() -> anyhow::Result<()> {
 
         #[cfg(feature = "solver-scip")]
         if args.solve {
-            let flattened = &flattened.iis.get("").unwrap();
+            let flattened = &flattened.preds.get("").unwrap();
             let flatpint = match pint_solve::parse_flatpint(&format!("{flattened}")[..]) {
                 Ok(flatpint) => flatpint,
                 Err(err) => {
@@ -108,10 +108,10 @@ fn main() -> anyhow::Result<()> {
     } else {
         // This is WIP. So far, simply print the serialized JSON to `<filename>.json` or to
         // `<output>`. That'll likely change in the future when we decide on a serialized scheme.
-        match handler.scope(|handler| program_to_intents(handler, &flattened)) {
-            Ok(intents) => {
+        match handler.scope(|handler| compile_program(handler, &flattened)) {
+            Ok(compiled_program) => {
                 if args.print_asm {
-                    println!("{intents}");
+                    println!("{compiled_program}");
                 }
                 serde_json::to_writer(
                     if let Some(output) = args.output {
@@ -124,7 +124,7 @@ fn main() -> anyhow::Result<()> {
                     } else {
                         File::create(filepath.with_extension("json"))?
                     },
-                    &intents.intents,
+                    &compiled_program.predicates,
                 )?;
             }
             Err(_) => {

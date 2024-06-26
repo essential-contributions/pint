@@ -1,26 +1,26 @@
 const a = 11;
 
-intent A {
+predicate A {
     var b = a;
     var c: int;
     constraint c > a * 2;
 }
 
-intent B {
+predicate B {
     var b = a < 22;
 }
 
-// intermediate <<<
+// parsed <<<
 // const ::a = 11;
 //
-// intent ::A {
+// predicate ::A {
 //     var ::b;
 //     var ::c: int;
 //     constraint (::b == ::a);
 //     constraint (::c > (::a * 2));
 // }
 //
-// intent ::B {
+// predicate ::B {
 //     var ::b;
 //     constraint (::b == (::a < 22));
 // }
@@ -29,14 +29,14 @@ intent B {
 // flattened <<<
 // const ::a: int = 11;
 //
-// intent ::A {
+// predicate ::A {
 //     var ::b: int;
 //     var ::c: int;
 //     constraint (::b == 11);
 //     constraint (::c > (11 * 2));
 // }
 //
-// intent ::B {
+// predicate ::B {
 //     var ::b: int;
 //     constraint (::b == (11 < 22));
 // }

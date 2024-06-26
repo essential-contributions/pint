@@ -3,7 +3,7 @@ var c = b[4];
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // const ::b = [11, 22, 33];
 // var ::c;
 // constraint (::c == ::b[4]);

@@ -273,7 +273,7 @@ fn r#in() {
 #[test]
 fn blockchain_items() {
     assert_eq!(lex_one_success("state"), Token::State);
-    assert_eq!(lex_one_success("intent"), Token::Intent);
+    assert_eq!(lex_one_success("predicate"), Token::Predicate);
     assert_eq!(lex_one_success("storage"), Token::Storage);
     assert_eq!(lex_one_success("interface"), Token::Interface);
 }

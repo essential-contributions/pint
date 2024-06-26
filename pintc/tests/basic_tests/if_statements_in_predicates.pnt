@@ -1,4 +1,4 @@
-intent Foo {
+predicate Foo {
     var condition: bool;
     var condition2: bool;
     var x: int;
@@ -29,7 +29,7 @@ intent Foo {
     }
 }
 
-intent Bar {
+predicate Bar {
     var condition: bool;
     var condition2: bool;
     var condition3: bool;
@@ -63,8 +63,8 @@ intent Bar {
     }
 }
 
-// intermediate <<<
-// intent ::Bar {
+// parsed <<<
+// predicate ::Bar {
 //     var ::condition: bool;
 //     var ::condition2: bool;
 //     var ::condition3: bool;
@@ -95,7 +95,7 @@ intent Bar {
 //     }
 // }
 // 
-// intent ::Foo {
+// predicate ::Foo {
 //     var ::condition: bool;
 //     var ::condition2: bool;
 //     var ::x: int;
@@ -125,7 +125,7 @@ intent Bar {
 // >>> 
 
 // flattened <<<
-// intent ::Bar {
+// predicate ::Bar {
 //     var ::condition: int;
 //     var ::condition2: int;
 //     var ::condition3: int;
@@ -142,7 +142,7 @@ intent Bar {
 //     constraint ((::condition2 && ::condition) || (::condition3 || (!::z || (::z && 1))));
 // }
 // 
-// intent ::Foo {
+// predicate ::Foo {
 //     var ::condition: int;
 //     var ::condition2: int;
 //     var ::x: int;

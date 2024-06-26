@@ -4,7 +4,7 @@ constraint a.4 == 44;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a;
 // constraint (::a == {11, 22, 33});
 // constraint (::a.4 == 44);

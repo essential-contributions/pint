@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, GeneratorKind, Immediate},
-    intermediate::{Expr, ExprKey, IntermediateIntent, VisitorKind},
+    predicate::{Expr, ExprKey, Predicate, VisitorKind},
     span::{empty_span, Spanned},
     types::{PrimitiveKind, Type},
 };
@@ -9,7 +9,7 @@ use fxhash::FxHashMap;
 use itertools::Itertools;
 use std::collections::HashSet;
 
-/// Given an `IntermediateIntent`, and a generator expression containing a list of indices with
+/// Given an `Predicate`, and a generator expression containing a list of indices with
 /// their ranges `gen_ranges`, an optional list of `conditions`, and a body, return a new
 /// expression that is the conjunction or disjunction of all the possible valid generator bodies.
 ///
@@ -31,7 +31,7 @@ use std::collections::HashSet;
 /// ```
 fn unroll_generator(
     handler: &Handler,
-    ii: &mut IntermediateIntent,
+    pred: &mut Predicate,
     generator: Expr,
 ) -> Result<ExprKey, ErrorEmitted> {
     let Expr::Generator {
@@ -72,10 +72,10 @@ fn unroll_generator(
     let product_of_ranges = gen_ranges
         .iter()
         .map(|range| {
-            match range.1.get(ii) {
+            match range.1.get(pred) {
                 Expr::Range { lb, ub, .. } => {
-                    let lb = lb.get(ii);
-                    let ub = ub.get(ii);
+                    let lb = lb.get(pred);
+                    let ub = ub.get(pred);
                     match (lb, ub) {
                         // Only support integer literals as bounds, for now
                         (
@@ -142,7 +142,7 @@ fn unroll_generator(
     };
 
     // Base value = `true` for foralls and `false` for exists
-    let mut unrolled = ii.exprs.insert(
+    let mut unrolled = pred.exprs.insert(
         Expr::Immediate {
             value: Immediate::Bool(match kind {
                 GeneratorKind::ForAll => true,
@@ -161,12 +161,12 @@ fn unroll_generator(
             .map(|(index, int_index)| ("::".to_owned() + &index.name, Immediate::Int(*int_index)))
             .collect::<FxHashMap<_, _>>();
 
-        let evaluator = Evaluator::from_values(ii, values_map.clone());
+        let evaluator = Evaluator::from_values(pred, values_map.clone());
 
         // Check each condition, if available, against the values map above
         let mut satisfied = true;
         for condition in &conditions {
-            match evaluator.evaluate_key(condition, handler, ii)? {
+            match evaluator.evaluate_key(condition, handler, pred)? {
                 Immediate::Bool(false) => {
                     satisfied = false;
                     break;
@@ -186,8 +186,8 @@ fn unroll_generator(
         // If all conditions are satisifed (or if none are present), then update the resulting
         // expression by joining it with the newly unrolled generator body.
         if satisfied {
-            let rhs = body.plug_in(ii, &values_map);
-            unrolled = ii.exprs.insert(
+            let rhs = body.plug_in(pred, &values_map);
+            unrolled = pred.exprs.insert(
                 Expr::BinaryOp {
                     op: match kind {
                         GeneratorKind::ForAll => BinaryOp::LogicalAnd,
@@ -205,11 +205,11 @@ fn unroll_generator(
     Ok(unrolled)
 }
 
-/// Given an `IntermediateIntent`, unroll all generator expressions and replace them in the
+/// Given an `Predicate`, unroll all generator expressions and replace them in the
 /// expressions map with their unrolled version
 pub(crate) fn unroll_generators(
     handler: &Handler,
-    ii: &mut IntermediateIntent,
+    pred: &mut Predicate,
 ) -> Result<(), ErrorEmitted> {
     // Perform a depth first iteration of all expressions searching for generators, ensuring that
     // dependencies are detected.
@@ -224,7 +224,7 @@ pub(crate) fn unroll_generators(
     // generator (`j in ys`) before the outer (`i in xs`).
 
     let mut generators = Vec::new();
-    ii.visitor(
+    pred.visitor(
         VisitorKind::DepthFirstChildrenBeforeParents,
         |expr_key: ExprKey, expr: &Expr| {
             // Only collect generators and only by key since unrolling nested generators will
@@ -237,9 +237,9 @@ pub(crate) fn unroll_generators(
 
     for old_generator_key in generators {
         // On success, update the key of the generator to map to the new unrolled expression.
-        let generator = old_generator_key.get(ii).clone();
-        if let Ok(unrolled_generator_key) = unroll_generator(handler, ii, generator) {
-            ii.replace_exprs(old_generator_key, unrolled_generator_key);
+        let generator = old_generator_key.get(pred).clone();
+        if let Ok(unrolled_generator_key) = unroll_generator(handler, pred, generator) {
+            pred.replace_exprs(old_generator_key, unrolled_generator_key);
         }
     }
 

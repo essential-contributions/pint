@@ -58,11 +58,11 @@ fn extern_transient() {
             "{}",
             compile(
                 r#"
-interface Foo { intent Bar { pub var x: int; pub var y: b256;} }
-intent Bar {
+interface Foo { predicate Bar { pub var x: int; pub var y: b256;} }
+predicate Bar {
     interface FooInstance = Foo(0x0000000000000000000000000000000000000000000000000000000000000000);
-    intent BarInstance1 = FooInstance::Bar(0x1111111111111111111111111111111111111111111111111111111111111111);
-    intent BarInstance2 = FooInstance::Bar(0x1111111111111111111111111111111111111111111111111111111111111111);
+    predicate BarInstance1 = FooInstance::Bar(0x1111111111111111111111111111111111111111111111111111111111111111);
+    predicate BarInstance2 = FooInstance::Bar(0x1111111111111111111111111111111111111111111111111111111111111111);
     var x = BarInstance1::x;
     var y = BarInstance2::y;
 }
@@ -70,7 +70,7 @@ intent Bar {
             )
         ),
         expect_test::expect![[r#"
-            intent ::Bar {
+            predicate ::Bar {
                 --- Constraints ---
                 constraint 0
                   Stack(Push(2))

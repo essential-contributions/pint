@@ -17,7 +17,7 @@ constraint forall i in 0..15, j in 0..15 where i < j {
     q[i] - i != q[j] - j
 };
 
-// intermediate <<<
+// parsed <<<
 // var ::q: int[16];
 // constraint forall i in 0..15, { ((::q[::i] >= 0) && (::q[::i] <= 15)) };
 // constraint forall i in 0..15, j in 0..15, where (::i < ::j) { (((::q[::i] != ::q[::j]) && ((::q[::i] + ::i) != (::q[::j] + ::j))) && ((::q[::i] - ::i) != (::q[::j] - ::j))) };

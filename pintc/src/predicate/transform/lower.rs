@@ -1,17 +1,14 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, Expr, Ident, Immediate, TupleAccess, UnaryOp},
-    intermediate::{BlockStatement, ConstraintDecl, ExprKey, IfDecl, IntermediateIntent, Program},
+    predicate::{BlockStatement, ConstraintDecl, ExprKey, IfDecl, Predicate, Program},
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
 };
 
 use fxhash::FxHashMap;
 
-pub(crate) fn lower_enums(
-    handler: &Handler,
-    ii: &mut IntermediateIntent,
-) -> Result<(), ErrorEmitted> {
+pub(crate) fn lower_enums(handler: &Handler, pred: &mut Predicate) -> Result<(), ErrorEmitted> {
     // Each enum has its variants indexed from 0.  Gather all the enum declarations and create a
     // map from path to integer index.
     let mut variant_map = FxHashMap::default();
@@ -23,16 +20,16 @@ pub(crate) fn lower_enums(
         }
         variant_count_map.insert(e.name.name.clone(), e.variants.len());
     };
-    for e in &ii.enums {
+    for e in &pred.enums {
         // Add all variants for the enum.
         add_variants(e, &e.name.name);
 
         // We need to do exactly the same for any newtypes which are aliasing this enum.
         if let Some(alias_name) =
-            ii.new_types
+            pred.new_types
                 .iter()
                 .find_map(|NewTypeDecl { name, ty, .. }| {
-                    (ty.get_enum_name(ii) == Some(&e.name.name)).then_some(&name.name)
+                    (ty.get_enum_name(pred) == Some(&e.name.name)).then_some(&name.name)
                 })
         {
             add_variants(e, alias_name);
@@ -41,8 +38,8 @@ pub(crate) fn lower_enums(
 
     // Find all the expressions referring to the variants and save them in a list.
     let mut replacements = Vec::new();
-    for old_expr_key in ii.exprs() {
-        if let Some(Expr::PathByName(path, _span)) = old_expr_key.try_get(ii) {
+    for old_expr_key in pred.exprs() {
+        if let Some(Expr::PathByName(path, _span)) = old_expr_key.try_get(pred) {
             if let Some(idx) = variant_map.get(path) {
                 replacements.push((old_expr_key, idx));
             }
@@ -61,27 +58,27 @@ pub(crate) fn lower_enums(
 
     // Replace the variant expressions with literal int equivalents.
     for (old_expr_key, idx) in replacements {
-        let new_expr_key = ii.exprs.insert(
+        let new_expr_key = pred.exprs.insert(
             Expr::Immediate {
                 value: Immediate::Int(*idx as i64),
                 span: empty_span(),
             },
             int_ty.clone(),
         );
-        ii.replace_exprs(old_expr_key, new_expr_key);
+        pred.replace_exprs(old_expr_key, new_expr_key);
     }
 
     // Replace any var or state enum type with int.  Also add constraints to disallow vars or state
     // to have values outside of the enum.
-    for var_key in ii
+    for var_key in pred
         .vars()
         .map(|(var_key, _)| var_key)
-        .filter(|var_key| var_key.get_ty(ii).is_enum(ii))
+        .filter(|var_key| var_key.get_ty(pred).is_enum(pred))
         .collect::<Vec<_>>()
     {
         // Add the constraint.  Get the variant max for this enum first.
-        let enum_ty = var_key.get_ty(ii).clone();
-        let variant_max = match variant_count_map.get(enum_ty.get_enum_name(ii).unwrap()) {
+        let enum_ty = var_key.get_ty(pred).clone();
+        let variant_max = match variant_count_map.get(enum_ty.get_enum_name(pred).unwrap()) {
             Some(c) => *c as i64 - 1,
             None => {
                 return Err(handler.emit_err(Error::Compile {
@@ -93,11 +90,11 @@ pub(crate) fn lower_enums(
             }
         };
 
-        let var_expr_key = ii
+        let var_expr_key = pred
             .exprs
             .insert(Expr::PathByKey(var_key, empty_span()), int_ty.clone());
 
-        let lower_bound_key = ii.exprs.insert(
+        let lower_bound_key = pred.exprs.insert(
             Expr::Immediate {
                 value: Immediate::Int(0),
                 span: empty_span(),
@@ -105,7 +102,7 @@ pub(crate) fn lower_enums(
             int_ty.clone(),
         );
 
-        let upper_bound_key = ii.exprs.insert(
+        let upper_bound_key = pred.exprs.insert(
             Expr::Immediate {
                 value: Immediate::Int(variant_max),
                 span: empty_span(),
@@ -113,7 +110,7 @@ pub(crate) fn lower_enums(
             int_ty.clone(),
         );
 
-        let lower_bound_cmp_key = ii.exprs.insert(
+        let lower_bound_cmp_key = pred.exprs.insert(
             Expr::BinaryOp {
                 op: BinaryOp::GreaterThanOrEqual,
                 lhs: var_expr_key,
@@ -123,7 +120,7 @@ pub(crate) fn lower_enums(
             bool_ty.clone(),
         );
 
-        let upper_bound_cmp_key = ii.exprs.insert(
+        let upper_bound_cmp_key = pred.exprs.insert(
             Expr::BinaryOp {
                 op: BinaryOp::LessThanOrEqual,
                 lhs: var_expr_key,
@@ -133,37 +130,37 @@ pub(crate) fn lower_enums(
             bool_ty.clone(),
         );
 
-        ii.constraints.push(ConstraintDecl {
+        pred.constraints.push(ConstraintDecl {
             expr: lower_bound_cmp_key,
             span: empty_span(),
         });
-        ii.constraints.push(ConstraintDecl {
+        pred.constraints.push(ConstraintDecl {
             expr: upper_bound_cmp_key,
             span: empty_span(),
         });
 
         // Replace the type.
-        let exprs_with_enum_ty = ii
+        let exprs_with_enum_ty = pred
             .exprs()
-            .filter(|expr_key| expr_key.get_ty(ii).eq(ii, &enum_ty))
+            .filter(|expr_key| expr_key.get_ty(pred).eq(pred, &enum_ty))
             .collect::<Vec<_>>();
         for enum_expr_key in exprs_with_enum_ty {
-            enum_expr_key.set_ty(int_ty.clone(), ii);
+            enum_expr_key.set_ty(int_ty.clone(), pred);
         }
     }
 
     // Now do the actual type update from enum to int
-    let vars_with_enum_ty = ii
+    let vars_with_enum_ty = pred
         .vars()
-        .filter_map(|(var_key, _)| (var_key.get_ty(ii).is_enum(ii)).then_some(var_key))
+        .filter_map(|(var_key, _)| (var_key.get_ty(pred).is_enum(pred)).then_some(var_key))
         .collect::<Vec<_>>();
     for enum_var_key in vars_with_enum_ty {
-        enum_var_key.set_ty(int_ty.clone(), ii);
+        enum_var_key.set_ty(int_ty.clone(), pred);
     }
 
     // Not sure at this stage if we'll ever allow state to be an enum.
-    for (state_key, _) in ii.states() {
-        if state_key.get_ty(ii).is_enum(ii) {
+    for (state_key, _) in pred.states() {
+        if state_key.get_ty(pred).is_enum(pred) {
             return Err(handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "found state with an enum type",
@@ -176,33 +173,33 @@ pub(crate) fn lower_enums(
     Ok(())
 }
 
-pub(crate) fn lower_bools(ii: &mut IntermediateIntent) {
+pub(crate) fn lower_bools(pred: &mut Predicate) {
     // Just do a blanket replacement of all bool types with int types.
     let int_ty = Type::Primitive {
         kind: PrimitiveKind::Int,
         span: empty_span(),
     };
 
-    ii.vars.update_types(|_, ty| {
+    pred.vars.update_types(|_, ty| {
         if ty.is_bool() {
             *ty = int_ty.clone();
         }
     });
 
-    ii.exprs.update_types(|_, expr_type| {
+    pred.exprs.update_types(|_, expr_type| {
         if expr_type.is_bool() {
             *expr_type = int_ty.clone();
         }
     });
 
-    ii.states.update_types(|_, ty| {
+    pred.states.update_types(|_, ty| {
         if ty.is_bool() {
             *ty = int_ty.clone();
         }
     });
 
     // Replace any literal true or false falures with int equivalents.
-    ii.exprs.update_exprs(|_, expr| {
+    pred.exprs.update_exprs(|_, expr| {
         if let Expr::Immediate {
             value: Immediate::Bool(bool_val),
             span,
@@ -216,20 +213,17 @@ pub(crate) fn lower_bools(ii: &mut IntermediateIntent) {
     });
 }
 
-pub(crate) fn lower_casts(
-    handler: &Handler,
-    ii: &mut IntermediateIntent,
-) -> Result<(), ErrorEmitted> {
+pub(crate) fn lower_casts(handler: &Handler, pred: &mut Predicate) -> Result<(), ErrorEmitted> {
     let mut replacements = Vec::new();
 
-    for old_expr_key in ii.exprs() {
+    for old_expr_key in pred.exprs() {
         if let Some(Expr::Cast {
             value,
             ty: to_ty,
             span,
-        }) = old_expr_key.try_get(ii)
+        }) = old_expr_key.try_get(pred)
         {
-            let from_ty = value.get_ty(ii);
+            let from_ty = value.get_ty(pred);
             if from_ty.is_unknown() {
                 handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
@@ -247,17 +241,17 @@ pub(crate) fn lower_casts(
     }
 
     for (old_expr_key, new_expr_key) in replacements {
-        ii.replace_exprs(old_expr_key, new_expr_key);
+        pred.replace_exprs(old_expr_key, new_expr_key);
     }
 
     Ok(())
 }
 
-pub(crate) fn lower_aliases(ii: &mut IntermediateIntent) {
+pub(crate) fn lower_aliases(pred: &mut Predicate) {
     use std::borrow::BorrowMut;
 
     let new_types = FxHashMap::from_iter(
-        ii.new_types
+        pred.new_types
             .iter()
             .map(|NewTypeDecl { name, ty, .. }| (name.name.clone(), ty.clone())),
     );
@@ -288,14 +282,14 @@ pub(crate) fn lower_aliases(ii: &mut IntermediateIntent) {
     }
 
     // Replace aliases with the actual type.
-    ii.vars
+    pred.vars
         .update_types(|_, var| replace_alias(&new_types, var));
-    ii.states
+    pred.states
         .update_types(|_, state| replace_alias(&new_types, state));
-    ii.exprs
+    pred.exprs
         .update_types(|_, expr| replace_alias(&new_types, expr));
 
-    ii.exprs.update_exprs(|_, expr| {
+    pred.exprs.update_exprs(|_, expr| {
         if let Expr::Cast { ty, .. } = expr {
             replace_alias(&new_types, ty.borrow_mut());
         }
@@ -304,13 +298,13 @@ pub(crate) fn lower_aliases(ii: &mut IntermediateIntent) {
 
 pub(crate) fn lower_imm_accesses(
     handler: &Handler,
-    ii: &mut IntermediateIntent,
+    pred: &mut Predicate,
 ) -> Result<(), ErrorEmitted> {
     let mut replace_direct_accesses = || {
-        let candidates = ii
+        let candidates = pred
             .exprs()
-            .filter_map(|expr_key| match expr_key.get(ii) {
-                Expr::Index { expr, index, .. } => expr.try_get(ii).and_then(|array_expr| {
+            .filter_map(|expr_key| match expr_key.get(pred) {
+                Expr::Index { expr, index, .. } => expr.try_get(pred).and_then(|array_expr| {
                     let is_array_expr = matches!(array_expr, Expr::Array { .. });
                     let is_array_imm = matches!(
                         array_expr,
@@ -328,7 +322,7 @@ pub(crate) fn lower_imm_accesses(
                 }),
 
                 Expr::TupleFieldAccess { tuple, field, .. } => {
-                    tuple.try_get(ii).and_then(|tuple_expr| {
+                    tuple.try_get(pred).and_then(|tuple_expr| {
                         let is_tuple_expr = matches!(tuple_expr, Expr::Tuple { .. });
                         let is_tuple_imm = matches!(
                             tuple_expr,
@@ -347,7 +341,7 @@ pub(crate) fn lower_imm_accesses(
             })
             .collect::<Vec<_>>();
 
-        let evaluator = Evaluator::new(ii);
+        let evaluator = Evaluator::new(pred);
         let mut replacements = Vec::new();
         for (old_expr_key, array_idx, field_idx) in candidates {
             assert!(
@@ -357,7 +351,7 @@ pub(crate) fn lower_imm_accesses(
 
             if let Some((array_key, array_idx_key)) = array_idx {
                 // We have an array access into an immediate.  Evaluate the index.
-                let Some(idx_expr) = array_idx_key.try_get(ii) else {
+                let Some(idx_expr) = array_idx_key.try_get(pred) else {
                     return Err(handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
                             msg: "missing array index expression in lower_imm_accesses()",
@@ -366,9 +360,9 @@ pub(crate) fn lower_imm_accesses(
                     }));
                 };
 
-                match evaluator.evaluate(idx_expr, handler, ii) {
+                match evaluator.evaluate(idx_expr, handler, pred) {
                     Ok(Immediate::Int(idx_val)) if idx_val >= 0 => {
-                        match array_key.try_get(ii) {
+                        match array_key.try_get(pred) {
                             Some(Expr::Array { elements, .. }) => {
                                 // Simply replace the index with the element expr.
                                 replacements.push((old_expr_key, elements[idx_val as usize]));
@@ -390,7 +384,7 @@ pub(crate) fn lower_imm_accesses(
                                 let el_imm = elements[idx_val as usize].clone();
                                 let el_ty = el_imm.get_ty(None);
 
-                                let el_expr = ii.exprs.insert(
+                                let el_expr = pred.exprs.insert(
                                     Expr::Immediate {
                                         value: el_imm,
                                         span: empty_span(),
@@ -425,7 +419,7 @@ pub(crate) fn lower_imm_accesses(
 
             if let Some((tuple_key, tuple_field_key)) = field_idx {
                 // We have a tuple access into an immediate.
-                match tuple_key.try_get(ii) {
+                match tuple_key.try_get(pred) {
                     Some(Expr::Tuple { fields, .. }) => {
                         let new_expr_key = match tuple_field_key {
                             TupleAccess::Index(idx_val) => fields[idx_val].1,
@@ -469,7 +463,7 @@ pub(crate) fn lower_imm_accesses(
                         // Create a new immediate expr and replace the index with it.
                         let fld_ty = fld_imm.get_ty(None);
 
-                        let fld_expr = ii.exprs.insert(
+                        let fld_expr = pred.exprs.insert(
                             Expr::Immediate {
                                 value: fld_imm,
                                 span: empty_span(),
@@ -489,9 +483,9 @@ pub(crate) fn lower_imm_accesses(
 
         // Iterate for each replacement without borrowing.
         while let Some((old_expr_key, new_expr_key)) = replacements.pop() {
-            // Replace the old with the new throughout the II.
-            ii.replace_exprs(old_expr_key, new_expr_key);
-            ii.exprs.remove(old_expr_key);
+            // Replace the old with the new throughout the Pred.
+            pred.replace_exprs(old_expr_key, new_expr_key);
+            pred.exprs.remove(old_expr_key);
 
             // But _also_ replace the old within `replacements` in case any of our new keys is now
             // stale.
@@ -525,22 +519,19 @@ pub(crate) fn lower_imm_accesses(
     Ok(())
 }
 
-pub(crate) fn lower_ins(
-    handler: &Handler,
-    ii: &mut IntermediateIntent,
-) -> Result<(), ErrorEmitted> {
+pub(crate) fn lower_ins(handler: &Handler, pred: &mut Predicate) -> Result<(), ErrorEmitted> {
     let mut in_range_collections = Vec::new();
     let mut array_collections = Vec::new();
 
-    // Collect all the `in` expressions which need to be replaced.  (Copy them out of the II.)
-    for in_expr_key in ii.exprs() {
+    // Collect all the `in` expressions which need to be replaced.  (Copy them out of the Pred.)
+    for in_expr_key in pred.exprs() {
         if let Some(Expr::In {
             value,
             collection,
             span,
-        }) = in_expr_key.try_get(ii)
+        }) = in_expr_key.try_get(pred)
         {
-            if let Some(collection_expr) = collection.try_get(ii) {
+            if let Some(collection_expr) = collection.try_get(pred) {
                 match collection_expr {
                     Expr::Range { lb, ub, span } => {
                         in_range_collections.push((in_expr_key, *value, *lb, *ub, span.clone()));
@@ -556,7 +547,7 @@ pub(crate) fn lower_ins(
                             *collection,
                             elements.len(),
                             collection
-                                .get_ty(ii)
+                                .get_ty(pred)
                                 .get_array_el_type()
                                 .cloned()
                                 .expect("array must have array type"),
@@ -571,7 +562,7 @@ pub(crate) fn lower_ins(
                             *collection,
                             elements.len(),
                             collection
-                                .get_ty(ii)
+                                .get_ty(pred)
                                 .get_array_el_type()
                                 .cloned()
                                 .expect("array must have array type"),
@@ -606,7 +597,7 @@ pub(crate) fn lower_ins(
 
     // Replace the range expressions first. `x in l..u` becomes `(x >= l) && (x <= u)`.
     for (in_expr_key, value_key, lower_bounds_key, upper_bounds_key, span) in in_range_collections {
-        let lb_cmp_key = ii.exprs.insert(
+        let lb_cmp_key = pred.exprs.insert(
             Expr::BinaryOp {
                 op: BinaryOp::GreaterThanOrEqual,
                 lhs: value_key,
@@ -616,7 +607,7 @@ pub(crate) fn lower_ins(
             bool_ty.clone(),
         );
 
-        let ub_cmp_key = ii.exprs.insert(
+        let ub_cmp_key = pred.exprs.insert(
             Expr::BinaryOp {
                 op: BinaryOp::LessThanOrEqual,
                 lhs: value_key,
@@ -626,7 +617,7 @@ pub(crate) fn lower_ins(
             bool_ty.clone(),
         );
 
-        let and_key = ii.exprs.insert(
+        let and_key = pred.exprs.insert(
             Expr::BinaryOp {
                 op: BinaryOp::LogicalAnd,
                 lhs: lb_cmp_key,
@@ -636,7 +627,7 @@ pub(crate) fn lower_ins(
             bool_ty.clone(),
         );
 
-        ii.replace_exprs(in_expr_key, and_key);
+        pred.replace_exprs(in_expr_key, and_key);
     }
 
     let int_ty = Type::Primitive {
@@ -649,7 +640,7 @@ pub(crate) fn lower_ins(
     for (in_expr_key, value_key, array_key, element_count, element_ty, span) in array_collections {
         let or_key = (0..(element_count as i64))
             .map(|el_idx| {
-                let el_idx_val_key = ii.exprs.insert(
+                let el_idx_val_key = pred.exprs.insert(
                     Expr::Immediate {
                         value: Immediate::Int(el_idx),
                         span: empty_span(),
@@ -657,7 +648,7 @@ pub(crate) fn lower_ins(
                     int_ty.clone(),
                 );
 
-                let el_idx_expr_key = ii.exprs.insert(
+                let el_idx_expr_key = pred.exprs.insert(
                     Expr::Index {
                         expr: array_key,
                         index: el_idx_val_key,
@@ -666,7 +657,7 @@ pub(crate) fn lower_ins(
                     element_ty.clone(),
                 );
 
-                ii.exprs.insert(
+                pred.exprs.insert(
                     Expr::BinaryOp {
                         op: BinaryOp::Equal,
                         lhs: value_key,
@@ -676,10 +667,10 @@ pub(crate) fn lower_ins(
                     bool_ty.clone(),
                 )
             })
-            .collect::<Vec<_>>() // Collect into Vec to avoid borrowing ii.exprs conflict.
+            .collect::<Vec<_>>() // Collect into Vec to avoid borrowing pred.exprs conflict.
             .into_iter()
             .reduce(|lhs, rhs| {
-                ii.exprs.insert(
+                pred.exprs.insert(
                     Expr::BinaryOp {
                         op: BinaryOp::LogicalOr,
                         lhs,
@@ -691,7 +682,7 @@ pub(crate) fn lower_ins(
             })
             .expect("can't have empty array expressions");
 
-        ii.replace_exprs(in_expr_key, or_key);
+        pred.replace_exprs(in_expr_key, or_key);
     }
 
     if handler.has_errors() {
@@ -718,14 +709,14 @@ pub(crate) fn lower_ins(
 ///
 pub(crate) fn lower_compares_to_nil(
     _handler: &Handler,
-    ii: &mut IntermediateIntent,
+    pred: &mut Predicate,
 ) -> Result<(), ErrorEmitted> {
-    let compares_to_nil = ii
+    let compares_to_nil = pred
         .exprs()
-        .filter_map(|expr_key| match expr_key.try_get(ii) {
+        .filter_map(|expr_key| match expr_key.try_get(pred) {
             Some(Expr::BinaryOp { op, lhs, rhs, span })
                 if (*op == BinaryOp::Equal || *op == BinaryOp::NotEqual)
-                    && (lhs.get(ii).is_nil() || rhs.get(ii).is_nil()) =>
+                    && (lhs.get(pred).is_nil() || rhs.get(pred).is_nil()) =>
             {
                 Some((expr_key, *op, *lhs, *rhs, span.clone()))
             }
@@ -734,8 +725,8 @@ pub(crate) fn lower_compares_to_nil(
         .collect::<Vec<_>>();
 
     let convert_to_state_len_compare =
-        |ii: &mut IntermediateIntent, op: &BinaryOp, expr: &ExprKey, span: &crate::span::Span| {
-            let state_len = ii.exprs.insert(
+        |pred: &mut Predicate, op: &BinaryOp, expr: &ExprKey, span: &crate::span::Span| {
+            let state_len = pred.exprs.insert(
                 Expr::IntrinsicCall {
                     name: Ident {
                         name: "__state_len".to_string(),
@@ -751,7 +742,7 @@ pub(crate) fn lower_compares_to_nil(
                 },
             );
 
-            let zero = ii.exprs.insert(
+            let zero = pred.exprs.insert(
                 Expr::Immediate {
                     value: Immediate::Int(0),
                     span: empty_span(),
@@ -763,7 +754,7 @@ pub(crate) fn lower_compares_to_nil(
             );
 
             // New binary op: `__state_len(expr) == 0`
-            ii.exprs.insert(
+            pred.exprs.insert(
                 Expr::BinaryOp {
                     op: *op,
                     lhs: state_len,
@@ -778,10 +769,10 @@ pub(crate) fn lower_compares_to_nil(
         };
 
     for (old_bin_op, op, lhs, rhs, span) in compares_to_nil.iter() {
-        let new_bin_op = match (lhs.get(ii).is_nil(), rhs.get(ii).is_nil()) {
-            (false, true) => convert_to_state_len_compare(ii, op, lhs, span),
-            (true, false) => convert_to_state_len_compare(ii, op, rhs, span),
-            (true, true) => ii.exprs.insert(
+        let new_bin_op = match (lhs.get(pred).is_nil(), rhs.get(pred).is_nil()) {
+            (false, true) => convert_to_state_len_compare(pred, op, lhs, span),
+            (true, false) => convert_to_state_len_compare(pred, op, rhs, span),
+            (true, true) => pred.exprs.insert(
                 // Comparing two `nil`s should always return `false` regardless of whether this is
                 // an `Equal` or a `NotEqual`.
                 Expr::Immediate {
@@ -795,13 +786,13 @@ pub(crate) fn lower_compares_to_nil(
             ),
             _ => unreachable!("both operands cannot be non-nil simultaneously at this stage"),
         };
-        ii.replace_exprs(*old_bin_op, new_bin_op);
+        pred.replace_exprs(*old_bin_op, new_bin_op);
     }
 
     Ok(())
 }
 
-/// Convert all `if` declarations into individual constraints that are pushed to `ii.constraints`.
+/// Convert all `if` declarations into individual constraints that are pushed to `pred.constraints`.
 /// For example:
 ///
 /// if c {
@@ -823,11 +814,11 @@ pub(crate) fn lower_compares_to_nil(
 /// The transformation is recursive and uses the Boolean principle:
 /// `a ==> b` is equivalent to `!a || b`.
 ///
-pub(crate) fn lower_ifs(ii: &mut IntermediateIntent) {
-    for if_decl in &ii.if_decls.clone() {
-        let all_exprs = convert_if(ii, if_decl);
+pub(crate) fn lower_ifs(pred: &mut Predicate) {
+    for if_decl in &pred.if_decls.clone() {
+        let all_exprs = convert_if(pred, if_decl);
         for expr in all_exprs {
-            ii.constraints.push(ConstraintDecl {
+            pred.constraints.push(ConstraintDecl {
                 expr,
                 span: empty_span(),
             });
@@ -835,13 +826,13 @@ pub(crate) fn lower_ifs(ii: &mut IntermediateIntent) {
     }
 
     // Remove all `if_decls`. We don't need them anymore.
-    ii.if_decls.clear();
+    pred.if_decls.clear();
 }
 
 // Given an `IfDecl`, convert all of its statements to Boolean expressions and return all of
 // them in a `Vec<ExprKey>`. This follows the principle that `a ==> b` is equivalent to `!a || b`.
 fn convert_if(
-    ii: &mut IntermediateIntent,
+    pred: &mut Predicate,
     IfDecl {
         condition,
         then_block,
@@ -849,7 +840,7 @@ fn convert_if(
         ..
     }: &IfDecl,
 ) -> Vec<ExprKey> {
-    let condition_inverse = ii.exprs.insert(
+    let condition_inverse = pred.exprs.insert(
         Expr::UnaryOp {
             op: UnaryOp::Not,
             expr: *condition,
@@ -865,14 +856,18 @@ fn convert_if(
 
     for statement in then_block {
         // `condition => statement` i.e. `!condition || statement`
-        all_exprs.extend(convert_if_block_statement(ii, statement, condition_inverse));
+        all_exprs.extend(convert_if_block_statement(
+            pred,
+            statement,
+            condition_inverse,
+        ));
     }
 
     if let Some(else_block) = else_block {
         // `!condition => statement` i.e. `!!condition || statement`
         for statement in else_block {
             all_exprs.extend(convert_if_block_statement(
-                ii, statement,
+                pred, statement,
                 *condition, // use condition is here since it's the inverse of the inverse,
             ));
         }
@@ -891,7 +886,7 @@ fn convert_if(
 // If `statement` is an `IfDecl`, then recurse by calling `convert_if`.
 //
 fn convert_if_block_statement(
-    ii: &mut IntermediateIntent,
+    pred: &mut Predicate,
     statement: &BlockStatement,
     condition_inverse: ExprKey,
 ) -> Vec<ExprKey> {
@@ -903,7 +898,7 @@ fn convert_if_block_statement(
     let mut converted_exprs = vec![];
     match statement {
         BlockStatement::Constraint(constraint_decl) => {
-            converted_exprs.push(ii.exprs.insert(
+            converted_exprs.push(pred.exprs.insert(
                 Expr::BinaryOp {
                     op: BinaryOp::LogicalOr,
                     lhs: condition_inverse,
@@ -914,8 +909,8 @@ fn convert_if_block_statement(
             ));
         }
         BlockStatement::If(if_decl) => {
-            for inner_expr in convert_if(ii, if_decl) {
-                converted_exprs.push(ii.exprs.insert(
+            for inner_expr in convert_if(pred, if_decl) {
+                converted_exprs.push(pred.exprs.insert(
                     Expr::BinaryOp {
                         op: BinaryOp::LogicalOr,
                         lhs: condition_inverse,
@@ -931,15 +926,12 @@ fn convert_if_block_statement(
     converted_exprs
 }
 
-pub(super) fn replace_const_refs(
-    ii: &mut IntermediateIntent,
-    consts: &[(String, ExprKey, Expr, Type)],
-) {
+pub(super) fn replace_const_refs(pred: &mut Predicate, consts: &[(String, ExprKey, Expr, Type)]) {
     // Find all the paths which refer to a const and link them.
-    let const_refs = ii
+    let const_refs = pred
         .exprs()
         .filter_map(|path_expr_key| {
-            if let Expr::PathByName(path, _span) = path_expr_key.get(ii) {
+            if let Expr::PathByName(path, _span) = path_expr_key.get(pred) {
                 consts
                     .iter()
                     .find_map(|(const_path, const_expr_key, const_expr, const_ty)| {
@@ -957,17 +949,17 @@ pub(super) fn replace_const_refs(
         .collect::<Vec<_>>();
 
     // Replace all paths to consts with the consts themselves.
-    if ii.name == Program::ROOT_II_NAME {
-        // This is the root II, meaning we already have the ExprKeys for the consts available.
-        ii.replace_exprs_by_map(&FxHashMap::from_iter(
+    if pred.name == Program::ROOT_PRED_NAME {
+        // This is the root Pred, meaning we already have the ExprKeys for the consts available.
+        pred.replace_exprs_by_map(&FxHashMap::from_iter(
             const_refs.into_iter().map(|refs| (refs.0, refs.1)),
         ));
     } else {
-        // This is NOT the root II, so we need to inject these const expressions into the II before
+        // This is NOT the root Pred, so we need to inject these const expressions into the Pred before
         // we can replace the paths.
         for (path_expr_key, _, const_expr, const_ty) in const_refs {
-            let const_expr_key = ii.exprs.insert(const_expr.clone(), const_ty.clone());
-            ii.replace_exprs(path_expr_key, const_expr_key);
+            let const_expr_key = pred.exprs.insert(const_expr.clone(), const_ty.clone());
+            pred.replace_exprs(path_expr_key, const_expr_key);
         }
     }
 }

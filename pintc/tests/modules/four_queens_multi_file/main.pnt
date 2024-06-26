@@ -27,7 +27,7 @@ constraint q3 + 1 != q4;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::variables::q1: int;
 // var ::variables::q2: int;
 // var ::variables::q3: int;

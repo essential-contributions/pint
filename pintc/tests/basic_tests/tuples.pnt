@@ -26,7 +26,7 @@ var t14_z_w = t14.z.w;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::t0;
 // var ::t0_0;
 // var ::t1;

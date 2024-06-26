@@ -4,7 +4,7 @@ use crate::{
     span::Span,
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type},
 };
-use abi_types::{IntentABI, KeyedVarABI, ProgramABI};
+use abi_types::{KeyedVarABI, PredicateABI, ProgramABI};
 use exprs::ExprsIter;
 pub use exprs::{ExprKey, Exprs};
 use fxhash::FxHashMap;
@@ -32,50 +32,50 @@ pub enum ProgramKind {
     Stateful,
 }
 
-/// A Program is a collection of intents. There are two types of programs:
+/// A Program is a collection of predicates. There are two types of programs:
 ///
-/// * Stateless: these must have a single II in the `BTreeMap` with an the name
-/// `Program::ROOT_II_NAME` and cannot own state.
-/// * Stateful: these must have at least one intent other than the root intent. The root intent,
-/// which has the name `Program::ROOT_II_NAME`, contains everything that lives outside `intent { ..
+/// * Stateless: these must have a single Pred in the `BTreeMap` with an the name
+/// `Program::ROOT_PRED_NAME` and cannot own state.
+/// * Stateful: these must have at least one predicate other than the root predicate. The root predicate,
+/// which has the name `Program::ROOT_PRED_NAME`, contains everything that lives outside `predicate { ..
 /// }` declarations. Stateful programs are allowed to own state and the state is shared by all
-/// intents.
+/// predicates.
 #[derive(Debug, Default)]
 pub struct Program {
     pub kind: ProgramKind,
-    pub iis: BTreeMap<String, IntermediateIntent>,
+    pub preds: BTreeMap<String, Predicate>,
 
     pub consts: FxHashMap<String, Const>,
 }
 
 impl Program {
-    pub const ROOT_II_NAME: &'static str = "";
+    pub const ROOT_PRED_NAME: &'static str = "";
 
     pub fn compile(self, handler: &Handler) -> Result<Self, ErrorEmitted> {
         let type_checked = handler.scope(|handler| self.type_check(handler))?;
         handler.scope(|handler| type_checked.flatten(handler))
     }
 
-    /// The root intent is the one named `Intents::ROOT_II_NAME`
-    pub fn root_ii(&self) -> &IntermediateIntent {
-        self.iis.get(Self::ROOT_II_NAME).unwrap()
+    /// The root predicate is the one named `Predicates::ROOT_PRED_NAME`
+    pub fn root_pred(&self) -> &Predicate {
+        self.preds.get(Self::ROOT_PRED_NAME).unwrap()
     }
 
-    /// The root intent is the one named `Intents::ROOT_II_NAME`
-    pub fn root_ii_mut(&mut self) -> &mut IntermediateIntent {
-        self.iis.get_mut(Self::ROOT_II_NAME).unwrap()
+    /// The root predicate is the one named `Predicates::ROOT_PRED_NAME`
+    pub fn root_pred_mut(&mut self) -> &mut Predicate {
+        self.preds.get_mut(Self::ROOT_PRED_NAME).unwrap()
     }
 
     /// Generates a `ProgramABI` given a `Program`
     pub fn abi(&self) -> Result<ProgramABI, CompileError> {
         Ok(ProgramABI {
-            intents: self
-                .iis
+            predicates: self
+                .preds
                 .values()
-                .map(|ii| ii.abi())
+                .map(|pred| pred.abi())
                 .collect::<Result<_, _>>()?,
             storage: self
-                .root_ii()
+                .root_pred()
                 .storage
                 .as_ref()
                 .map(|(storage, _)| {
@@ -102,10 +102,10 @@ impl Program {
     }
 }
 
-/// An in-progress intent, possibly malformed or containing redundant information.  Designed to be
-/// iterated upon and to be reduced to an [Intent].
+/// An in-progress predicate, possibly malformed or containing redundant information.  Designed to be
+/// iterated upon and to be reduced to an [Predicate].
 #[derive(Debug, Default)]
-pub struct IntermediateIntent {
+pub struct Predicate {
     pub name: String,
 
     pub vars: Vars,
@@ -138,13 +138,13 @@ pub struct IntermediateIntent {
     // A list of all availabe interface instances
     pub interface_instances: Vec<InterfaceInstance>,
 
-    // A list of all availabe intent instances
-    pub intent_instances: Vec<IntentInstance>,
+    // A list of all availabe predicate instances
+    pub predicate_instances: Vec<PredicateInstance>,
 
     pub top_level_symbols: BTreeMap<String, Span>,
 }
 
-impl IntermediateIntent {
+impl Predicate {
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -152,9 +152,9 @@ impl IntermediateIntent {
         }
     }
 
-    /// Generate a `IntentABI` given an `IntermediateIntent`
-    pub fn abi(&self) -> Result<IntentABI, CompileError> {
-        Ok(IntentABI {
+    /// Generate a `PredicateABI` given an `Predicate`
+    pub fn abi(&self) -> Result<PredicateABI, CompileError> {
+        Ok(PredicateABI {
             name: self.name.clone(),
             vars: self
                 .vars()
@@ -176,8 +176,8 @@ impl IntermediateIntent {
     }
 
     /// Helps out some `thing: T` by adding `self` as context.
-    pub fn with_ii<T>(&self, thing: T) -> WithII<T> {
-        WithII { thing, ii: self }
+    pub fn with_pred<T>(&self, thing: T) -> WithPred<T> {
+        WithPred { thing, pred: self }
     }
 
     pub fn insert_ephemeral(
@@ -505,13 +505,13 @@ pub struct Const {
     pub(crate) decl_ty: Type,
 }
 
-impl DisplayWithII for Const {
-    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
+impl DisplayWithPred for Const {
+    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> fmt::Result {
         if !self.decl_ty.is_unknown() {
-            write!(f, ": {}", ii.with_ii(&self.decl_ty))?;
+            write!(f, ": {}", pred.with_pred(&self.decl_ty))?;
         }
 
-        write!(f, " = {}", ii.with_ii(self.expr))
+        write!(f, " = {}", pred.with_pred(self.expr))
     }
 }
 
@@ -521,9 +521,9 @@ pub struct ConstraintDecl {
     pub span: Span,
 }
 
-impl DisplayWithII for ConstraintDecl {
-    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
-        write!(f, "constraint {}", ii.with_ii(self.expr))
+impl DisplayWithPred for ConstraintDecl {
+    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> fmt::Result {
+        write!(f, "constraint {}", pred.with_pred(self.expr))
     }
 }
 
@@ -534,18 +534,17 @@ pub enum BlockStatement {
 }
 
 impl BlockStatement {
-    fn fmt_with_indent(
-        &self,
-        f: &mut Formatter,
-        ii: &IntermediateIntent,
-        indent: usize,
-    ) -> fmt::Result {
+    fn fmt_with_indent(&self, f: &mut Formatter, pred: &Predicate, indent: usize) -> fmt::Result {
         let indentation = " ".repeat(4 * indent);
         match self {
             Self::Constraint(constraint) => {
-                writeln!(f, "{indentation}constraint {}", ii.with_ii(constraint.expr))
+                writeln!(
+                    f,
+                    "{indentation}constraint {}",
+                    pred.with_pred(constraint.expr)
+                )
             }
-            Self::If(if_decl) => if_decl.fmt_with_indent(f, ii, indent),
+            Self::If(if_decl) => if_decl.fmt_with_indent(f, pred, indent),
         }
     }
 }
@@ -559,21 +558,16 @@ pub struct IfDecl {
 }
 
 impl IfDecl {
-    fn fmt_with_indent(
-        &self,
-        f: &mut Formatter,
-        ii: &IntermediateIntent,
-        indent: usize,
-    ) -> fmt::Result {
+    fn fmt_with_indent(&self, f: &mut Formatter, pred: &Predicate, indent: usize) -> fmt::Result {
         let indentation = " ".repeat(4 * indent);
-        writeln!(f, "{indentation}if {} {{", ii.with_ii(self.condition))?;
+        writeln!(f, "{indentation}if {} {{", pred.with_pred(self.condition))?;
         for block_statament in &self.then_block {
-            block_statament.fmt_with_indent(f, ii, indent + 1)?;
+            block_statament.fmt_with_indent(f, pred, indent + 1)?;
         }
         if let Some(else_block) = &self.else_block {
             writeln!(f, "{indentation}}} else {{")?;
             for block_statament in else_block {
-                block_statament.fmt_with_indent(f, ii, indent + 1)?;
+                block_statament.fmt_with_indent(f, pred, indent + 1)?;
             }
         }
         writeln!(f, "{indentation}}}")
@@ -603,13 +597,13 @@ impl SolveFunc {
     }
 }
 
-impl DisplayWithII for SolveFunc {
-    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> std::fmt::Result {
+impl DisplayWithPred for SolveFunc {
+    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> std::fmt::Result {
         write!(f, "solve ")?;
         match self {
             SolveFunc::Satisfy => write!(f, "satisfy"),
-            SolveFunc::Minimize(key) => write!(f, "minimize {}", ii.with_ii(key)),
-            SolveFunc::Maximize(key) => write!(f, "maximize {}", ii.with_ii(key)),
+            SolveFunc::Minimize(key) => write!(f, "minimize {}", pred.with_pred(key)),
+            SolveFunc::Maximize(key) => write!(f, "maximize {}", pred.with_pred(key)),
         }
     }
 }
@@ -621,26 +615,26 @@ pub struct StorageVar {
     pub span: Span,
 }
 
-impl DisplayWithII for StorageVar {
-    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> fmt::Result {
-        write!(f, "{}: {},", self.name.name, ii.with_ii(&self.ty))
+impl DisplayWithPred for StorageVar {
+    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> fmt::Result {
+        write!(f, "{}: {},", self.name.name, pred.with_pred(&self.ty))
     }
 }
 
-/// A an intent interface that belong in an `Interface`.
+/// A an predicate interface that belong in an `Interface`.
 #[derive(Clone, Debug)]
-pub struct IntentInterface {
+pub struct PredicateInterface {
     pub name: Ident,
     pub vars: Vec<InterfaceVar>,
     pub span: Span,
 }
 
-/// A declaration inside an `Interface`. This could either be a `storage` declaration or an intent
+/// A declaration inside an `Interface`. This could either be a `storage` declaration or an predicate
 /// interface declaration
 #[derive(Clone, Debug)]
 pub enum InterfaceDecl {
     StorageDecl((Vec<StorageVar>, Span)),
-    IntentInterface(IntentInterface),
+    PredicateInterface(PredicateInterface),
 }
 
 /// full interface to an external contract
@@ -648,11 +642,11 @@ pub enum InterfaceDecl {
 pub struct Interface {
     pub name: Ident,
     pub storage: Option<(Vec<StorageVar>, Span)>,
-    pub intent_interfaces: Vec<IntentInterface>,
+    pub predicate_interfaces: Vec<PredicateInterface>,
     pub span: Span,
 }
 
-/// A decision variable that lives inside an intent interface. Unlike `Var`, the type here is not
+/// A decision variable that lives inside an predicate interface. Unlike `Var`, the type here is not
 /// optional
 #[derive(Clone, Debug)]
 pub struct InterfaceVar {
@@ -670,40 +664,40 @@ pub struct InterfaceInstance {
     pub span: Span,
 }
 
-/// An intent instance that specifies an address
+/// An predicate instance that specifies an address
 #[derive(Clone, Debug)]
-pub struct IntentInstance {
+pub struct PredicateInstance {
     pub name: Ident,
     pub interface_instance: Path,
-    pub intent: Ident,
+    pub predicate: Ident,
     pub address: ExprKey,
     pub span: Span,
 }
 
 #[derive(Clone, Copy)]
-pub struct WithII<'a, T> {
+pub struct WithPred<'a, T> {
     pub thing: T,
-    pub ii: &'a IntermediateIntent,
+    pub pred: &'a Predicate,
 }
 
-impl<'a, T> WithII<'a, T> {
-    pub fn new(thing: T, ii: &'a IntermediateIntent) -> Self {
-        WithII { thing, ii }
+impl<'a, T> WithPred<'a, T> {
+    pub fn new(thing: T, pred: &'a Predicate) -> Self {
+        WithPred { thing, pred }
     }
 }
 
-pub(crate) trait DisplayWithII {
-    fn fmt(&self, f: &mut fmt::Formatter, ii: &IntermediateIntent) -> fmt::Result;
+pub(crate) trait DisplayWithPred {
+    fn fmt(&self, f: &mut fmt::Formatter, pred: &Predicate) -> fmt::Result;
 }
 
-impl<T: DisplayWithII> fmt::Display for WithII<'_, T> {
+impl<T: DisplayWithPred> fmt::Display for WithPred<'_, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.thing.fmt(f, self.ii)
+        self.thing.fmt(f, self.pred)
     }
 }
 
-impl<T: DisplayWithII> DisplayWithII for &T {
-    fn fmt(&self, f: &mut fmt::Formatter, ii: &IntermediateIntent) -> fmt::Result {
-        (*self).fmt(f, ii)
+impl<T: DisplayWithPred> DisplayWithPred for &T {
+    fn fmt(&self, f: &mut fmt::Formatter, pred: &Predicate) -> fmt::Result {
+        (*self).fmt(f, pred)
     }
 }

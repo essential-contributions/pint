@@ -1,25 +1,22 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, Immediate, TupleAccess},
-    intermediate::{Expr, ExprKey, IntermediateIntent, Var, VarKey},
+    predicate::{Expr, ExprKey, Predicate, Var, VarKey},
     span::{empty_span, Span, Spanned},
     types::{NewTypeDecl, PrimitiveKind, Type},
 };
 use std::collections::BTreeMap;
 
-pub(crate) fn scalarize(
-    handler: &Handler,
-    ii: &mut IntermediateIntent,
-) -> Result<(), ErrorEmitted> {
+pub(crate) fn scalarize(handler: &Handler, pred: &mut Predicate) -> Result<(), ErrorEmitted> {
     // Before we start, make sure all the array types have their sizes determined.
-    fix_array_sizes(handler, ii)?;
+    fix_array_sizes(handler, pred)?;
 
     iterate!(
         handler,
         {
             let mut modified = false;
-            modified |= scalarize_arrays(handler, ii)?;
-            modified |= scalarize_tuples(handler, ii)?;
+            modified |= scalarize_arrays(handler, pred)?;
+            modified |= scalarize_tuples(handler, pred)?;
             modified
         },
         "scalarize()"
@@ -52,13 +49,13 @@ pub(crate) fn scalarize(
 ///
 /// The above is not valid Pint, of course, because the square brackets are not allowed in
 /// identifiers, but internally, this is fine and helps make the lookup quite easy.
-fn scalarize_arrays(handler: &Handler, ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitted> {
+fn scalarize_arrays(handler: &Handler, pred: &mut Predicate) -> Result<bool, ErrorEmitted> {
     let mut modified = false;
 
     // Convert all comparisons (via `==` or `!=`) of arrays to element-by-element comparisons.
     iterate!(
         handler,
-        lower_array_compares(handler, ii)?,
+        lower_array_compares(handler, pred)?,
         "lower_array_compares()",
         modified
     );
@@ -66,7 +63,7 @@ fn scalarize_arrays(handler: &Handler, ii: &mut IntermediateIntent) -> Result<bo
     // Scalarize arrays one at a time.
     iterate!(
         handler,
-        scalarize_array(handler, ii)?,
+        scalarize_array(handler, pred)?,
         "scalarize_array()",
         modified
     );
@@ -74,12 +71,12 @@ fn scalarize_arrays(handler: &Handler, ii: &mut IntermediateIntent) -> Result<bo
     Ok(modified)
 }
 
-fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(), ErrorEmitted> {
+fn fix_array_sizes(handler: &Handler, pred: &mut Predicate) -> Result<(), ErrorEmitted> {
     // Given a variable with an array type of unknown size and a range expression, determine the
     // array size and return a new array type.
     fn fix_array_size(
         handler: &Handler,
-        ii: &mut IntermediateIntent,
+        pred: &mut Predicate,
         mut el_ty: Type,
         range_expr_key: Option<ExprKey>,
         array_ty_span: Span,
@@ -98,7 +95,7 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
         // the new element type in the parent array.
         if el_ty.is_array() {
             let Some((inner_el_ty, inner_range_key, inner_size, inner_span)) =
-                get_array_params(ii, &el_ty)
+                get_array_params(pred, &el_ty)
             else {
                 return Err(handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
@@ -111,7 +108,7 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
             if inner_size.is_none() {
                 el_ty = fix_array_size(
                     handler,
-                    ii,
+                    pred,
                     inner_el_ty,
                     *inner_range_key,
                     inner_span.clone(),
@@ -121,12 +118,12 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
 
         let range_expr = range_expr_key
             .as_ref()
-            .and_then(|e| e.try_get(ii))
+            .and_then(|e| e.try_get(pred))
             .expect("expr key guaranteed to exist");
 
         if let Expr::PathByName(path, _) = range_expr {
             // It's hopefully an enum for the range expression.
-            if let Some(val) = ii.enums.iter().find_map(|enum_decl| {
+            if let Some(val) = pred.enums.iter().find_map(|enum_decl| {
                 (&enum_decl.name.name == path).then_some(enum_decl.variants.len() as i64)
             }) {
                 Ok(Type::Array {
@@ -143,7 +140,7 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
                 }))
             }
         } else {
-            match Evaluator::new(ii).evaluate(range_expr, handler, ii) {
+            match Evaluator::new(pred).evaluate(range_expr, handler, pred) {
                 Ok(Immediate::Int(val)) if val > 0 => Ok(Type::Array {
                     ty: Box::new(el_ty),
                     range: range_expr_key,
@@ -172,22 +169,24 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
         ($iter: expr, $key_ty: ty) => {
             let candidates: Vec<($key_ty, Type, Option<ExprKey>, Span)> = $iter
                 .filter_map(|key| {
-                    get_array_params(ii, key.get_ty(ii)).and_then(|(el_ty, range, size, span)| {
-                        // Only collect if size is None.
-                        (size.is_none()).then(|| (key, el_ty, *range, span.clone()))
-                    })
+                    get_array_params(pred, key.get_ty(pred)).and_then(
+                        |(el_ty, range, size, span)| {
+                            // Only collect if size is None.
+                            (size.is_none()).then(|| (key, el_ty, *range, span.clone()))
+                        },
+                    )
                 })
                 .collect();
 
             for (key, el_ty, range_expr_key, array_ty_span) in candidates {
-                let fixed_ty = fix_array_size(handler, ii, el_ty, range_expr_key, array_ty_span)?;
-                key.set_ty(fixed_ty, ii);
+                let fixed_ty = fix_array_size(handler, pred, el_ty, range_expr_key, array_ty_span)?;
+                key.set_ty(fixed_ty, pred);
             }
         };
     }
 
-    update_types!(ii.vars().map(|(k, _)| k), VarKey);
-    update_types!(ii.exprs(), ExprKey);
+    update_types!(pred.vars().map(|(k, _)| k), VarKey);
+    update_types!(pred.exprs(), ExprKey);
 
     Ok(())
 }
@@ -216,11 +215,11 @@ fn fix_array_sizes(handler: &Handler, ii: &mut IntermediateIntent) -> Result<(),
 ///
 /// The above is not valid Pint, of course, because the square brackets are not allowed in
 /// identifiers, but internally, this is fine and helps make the lookup quite easy.
-fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitted> {
+fn scalarize_array(handler: &Handler, pred: &mut Predicate) -> Result<bool, ErrorEmitted> {
     // Find the next array variable to convert.
-    let Some((array_var_key, el_ty, array_size, span)) = ii.vars().find_map(|(var_key, _)| {
-        let var_ty = var_key.get_ty(ii);
-        get_array_params(ii, var_ty)
+    let Some((array_var_key, el_ty, array_size, span)) = pred.vars().find_map(|(var_key, _)| {
+        let var_ty = var_key.get_ty(pred);
+        get_array_params(pred, var_ty)
             .map(|(el_ty, _range, array_size, span)| (var_key, el_ty, *array_size, span.clone()))
     }) else {
         // No array vars found.
@@ -236,8 +235,8 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
         })
     })?;
 
-    let array_name = array_var_key.get(ii).name.clone();
-    let array_var_key_position = ii.vars.position(array_var_key).ok_or_else(|| {
+    let array_name = array_var_key.get(pred).name.clone();
+    let array_var_key_position = pred.vars.position(array_var_key).ok_or_else(|| {
         handler.emit_err(Error::Compile {
             error: CompileError::Internal {
                 msg: "array_var_key must exist",
@@ -250,7 +249,7 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
     // the individual elements of the array, where `n` is the length of the array.
     let new_var_keys = (0..array_size)
         .map(|idx| {
-            ii.vars.insert_at(
+            pred.vars.insert_at(
                 array_var_key_position + idx as usize,
                 Var {
                     name: format!("{array_name}[{idx}]"),
@@ -265,7 +264,7 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
     // Change each array element access into its scalarized variable.
     scalarize_array_access(
         handler,
-        ii,
+        pred,
         &array_name,
         array_var_key,
         array_size,
@@ -277,13 +276,13 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
     // of the array and replace those with array expressions that contain paths to the new split
     // vars
     let mut array_path_to_replace = vec![];
-    for expr_key in ii.exprs() {
-        if let Some(Expr::PathByName(path, _)) = expr_key.try_get(ii) {
+    for expr_key in pred.exprs() {
+        if let Some(Expr::PathByName(path, _)) = expr_key.try_get(pred) {
             if *path == array_name {
                 array_path_to_replace.push(expr_key);
             }
-        } else if let Some(Expr::PathByKey(key, _)) = expr_key.try_get(ii) {
-            let path = &key.get(ii).name;
+        } else if let Some(Expr::PathByKey(key, _)) = expr_key.try_get(pred) {
+            let path = &key.get(pred).name;
             if *path == array_name {
                 array_path_to_replace.push(expr_key);
             }
@@ -292,7 +291,7 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
 
     for expr_key in array_path_to_replace {
         // Create a new array expression containing all the split vars
-        let range_expr_key = ii.exprs.insert(
+        let range_expr_key = pred.exprs.insert(
             Expr::Immediate {
                 value: Immediate::Int(new_var_keys.len() as i64),
                 span: empty_span(),
@@ -307,7 +306,7 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
             elements: new_var_keys
                 .iter()
                 .map(|key| {
-                    ii.exprs
+                    pred.exprs
                         .insert(Expr::PathByKey(*key, empty_span()), el_ty.clone())
                 })
                 .collect(),
@@ -315,8 +314,8 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
             span: empty_span(),
         };
 
-        // Insert the new array expression into `ii.exprs`
-        let new_expr_key = ii.exprs.insert(
+        // Insert the new array expression into `pred.exprs`
+        let new_expr_key = pred.exprs.insert(
             new_expr,
             Type::Array {
                 ty: Box::new(el_ty.clone()),
@@ -327,12 +326,12 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
         );
 
         // Replace and tidy up
-        ii.replace_exprs(expr_key, new_expr_key);
-        ii.exprs.remove(expr_key);
+        pred.replace_exprs(expr_key, new_expr_key);
+        pred.exprs.remove(expr_key);
     }
 
     // Remove the old array variable.
-    ii.vars.remove(array_var_key);
+    pred.vars.remove(array_var_key);
 
     Ok(true)
 }
@@ -356,7 +355,7 @@ fn scalarize_array(handler: &Handler, ii: &mut IntermediateIntent) -> Result<boo
 /// scalarize_array(..)`
 fn scalarize_array_access(
     handler: &Handler,
-    ii: &mut IntermediateIntent,
+    pred: &mut Predicate,
     array_var_name: &String,
     array_var_key: VarKey,
     array_size: i64,
@@ -364,17 +363,17 @@ fn scalarize_array_access(
     new_array_var_keys: &[VarKey],
 ) -> Result<(), ErrorEmitted> {
     // Gather all accesses into this specific array.
-    let accesses: Vec<(ExprKey, ExprKey, Span)> = ii
+    let accesses: Vec<(ExprKey, ExprKey, Span)> = pred
         .exprs()
         .filter_map(|expr_key| {
-            expr_key.try_get(ii).and_then(|expr| {
+            expr_key.try_get(pred).and_then(|expr| {
                 if let Expr::Index {
                     expr: idx_expr,
                     index,
                     span,
                 } = expr
                 {
-                    match idx_expr.try_get(ii) {
+                    match idx_expr.try_get(pred) {
                         Some(Expr::PathByName(path, _)) if path == array_var_name => {
                             Some((expr_key, *index, span.clone()))
                         }
@@ -394,11 +393,11 @@ fn scalarize_array_access(
         })
         .collect();
 
-    let evaluator = Evaluator::new(ii);
+    let evaluator = Evaluator::new(pred);
     for (array_access_key, index_key, span) in accesses {
-        let index_expr = index_key.get(ii);
+        let index_expr = index_key.get(pred);
         let index_span = index_expr.span().clone();
-        let index_value = evaluator.evaluate(index_expr, handler, ii).map_err(|_| {
+        let index_value = evaluator.evaluate(index_expr, handler, pred).map_err(|_| {
             handler.emit_err(Error::Compile {
                 error: CompileError::NonConstArrayIndex {
                     span: index_span.clone(),
@@ -415,13 +414,13 @@ fn scalarize_array_access(
                     }));
                 }
 
-                let new_access_key = ii.exprs.insert(
+                let new_access_key = pred.exprs.insert(
                     Expr::PathByKey(new_array_var_keys[imm_val as usize], span.clone()),
                     el_ty.clone(),
                 );
 
-                ii.replace_exprs(array_access_key, new_access_key);
-                ii.exprs.remove(array_access_key);
+                pred.replace_exprs(array_access_key, new_access_key);
+                pred.exprs.remove(array_access_key);
             }
 
             _ => {
@@ -436,11 +435,11 @@ fn scalarize_array_access(
 }
 
 fn get_array_params<'a>(
-    ii: &IntermediateIntent,
+    pred: &Predicate,
     ary_ty: &'a Type,
 ) -> Option<(Type, &'a Option<ExprKey>, &'a Option<i64>, &'a Span)> {
     match ary_ty {
-        Type::Alias { ty, .. } => get_array_params(ii, ty),
+        Type::Alias { ty, .. } => get_array_params(pred, ty),
 
         Type::Array {
             ty,
@@ -459,7 +458,7 @@ fn get_array_params<'a>(
 
                     Type::Custom { ref path, .. } => {
                         if let Some(ty) =
-                            ii.new_types
+                            pred.new_types
                                 .iter()
                                 .find_map(|NewTypeDecl { name, ty, .. }| {
                                     (path == &name.name).then_some(ty)
@@ -486,14 +485,11 @@ fn get_array_params<'a>(
     }
 }
 
-fn lower_array_compares(
-    handler: &Handler,
-    ii: &mut IntermediateIntent,
-) -> Result<bool, ErrorEmitted> {
+fn lower_array_compares(handler: &Handler, pred: &mut Predicate) -> Result<bool, ErrorEmitted> {
     // Find comparisons between arrays and save the op details.
-    let array_compare_ops = ii
+    let array_compare_ops = pred
         .exprs()
-        .filter_map(|expr_key| match expr_key.try_get(ii) {
+        .filter_map(|expr_key| match expr_key.try_get(pred) {
             // Do not lower array compares if one of the two sides is an intrinsic call or a
             // select. Intrinsic calls and selects can be expensive to compute and so, we don't
             // want to make multiple copies of them if we don't need to. We will rely on the
@@ -503,29 +499,33 @@ fn lower_array_compares(
             Some(Expr::BinaryOp { op, lhs, rhs, span })
                 if (*op == BinaryOp::Equal || *op == BinaryOp::NotEqual)
                     && !matches!(
-                        lhs.get(ii),
+                        lhs.get(pred),
                         Expr::IntrinsicCall { .. } | Expr::Select { .. }
                     )
                     && !matches!(
-                        rhs.get(ii),
+                        rhs.get(pred),
                         Expr::IntrinsicCall { .. } | Expr::Select { .. }
                     ) =>
             {
-                get_array_params(ii, lhs.get_ty(ii)).and_then(|(lhs_el_ty, _, lhs_opt_size, _)| {
-                    get_array_params(ii, rhs.get_ty(ii)).map(|(_rhs_el_ty, _, rhs_opt_size, _)| {
-                        // Save all the details.
-                        (
-                            expr_key,
-                            *op,
-                            *lhs,
-                            *lhs_opt_size,
-                            *rhs,
-                            *rhs_opt_size,
-                            lhs_el_ty,
-                            span.clone(),
+                get_array_params(pred, lhs.get_ty(pred)).and_then(
+                    |(lhs_el_ty, _, lhs_opt_size, _)| {
+                        get_array_params(pred, rhs.get_ty(pred)).map(
+                            |(_rhs_el_ty, _, rhs_opt_size, _)| {
+                                // Save all the details.
+                                (
+                                    expr_key,
+                                    *op,
+                                    *lhs,
+                                    *lhs_opt_size,
+                                    *rhs,
+                                    *rhs_opt_size,
+                                    lhs_el_ty,
+                                    span.clone(),
+                                )
+                            },
                         )
-                    })
-                })
+                    },
+                )
             }
             _ => None,
         })
@@ -540,7 +540,7 @@ fn lower_array_compares(
     #[allow(clippy::too_many_arguments)]
     fn build_logical_and_chain(
         handler: &Handler,
-        ii: &mut IntermediateIntent,
+        pred: &mut Predicate,
         op_expr_key: ExprKey,
         op: BinaryOp,
         lhs_array_key: ExprKey,
@@ -580,10 +580,10 @@ fn lower_array_compares(
 
         // Pair up each element with an individual `op` operation and then chain them together
         // with a series of `&&` operations.  Twice we collect into a temporary Vec to avoid
-        // borrowing problems with `ii.exprs`.
+        // borrowing problems with `pred.exprs`.
         let and_chain_expr_key = (0..lhs_size)
             .map(|idx| {
-                let imm_idx_key = ii.exprs.insert(
+                let imm_idx_key = pred.exprs.insert(
                     Expr::Immediate {
                         value: Immediate::Int(idx),
                         span: empty_span(),
@@ -594,7 +594,7 @@ fn lower_array_compares(
                     },
                 );
 
-                let lhs_access_expr_key = ii.exprs.insert(
+                let lhs_access_expr_key = pred.exprs.insert(
                     Expr::Index {
                         expr: lhs_array_key,
                         index: imm_idx_key,
@@ -603,7 +603,7 @@ fn lower_array_compares(
                     el_ty.clone(),
                 );
 
-                let rhs_access_expr_key = ii.exprs.insert(
+                let rhs_access_expr_key = pred.exprs.insert(
                     Expr::Index {
                         expr: rhs_array_key,
                         index: imm_idx_key,
@@ -612,7 +612,7 @@ fn lower_array_compares(
                     el_ty.clone(),
                 );
 
-                ii.exprs.insert(
+                pred.exprs.insert(
                     Expr::BinaryOp {
                         op,
                         lhs: lhs_access_expr_key,
@@ -628,7 +628,7 @@ fn lower_array_compares(
             .collect::<Vec<_>>()
             .into_iter()
             .reduce(|acc, cmp_op_key| {
-                ii.exprs.insert(
+                pred.exprs.insert(
                     Expr::BinaryOp {
                         op: BinaryOp::LogicalAnd,
                         lhs: acc,
@@ -643,16 +643,17 @@ fn lower_array_compares(
             })
             .expect("there must be 1 or more array elements");
 
-        ii.replace_exprs(op_expr_key, and_chain_expr_key);
-        ii.exprs.remove(op_expr_key);
+        pred.replace_exprs(op_expr_key, and_chain_expr_key);
+        pred.exprs.remove(op_expr_key);
 
         Ok(())
     }
 
     // Loop for all the candidates, gathering any and all errors as we go.
     for op in array_compare_ops {
-        let _ =
-            build_logical_and_chain(handler, ii, op.0, op.1, op.2, op.3, op.4, op.5, op.6, op.7);
+        let _ = build_logical_and_chain(
+            handler, pred, op.0, op.1, op.2, op.3, op.4, op.5, op.6, op.7,
+        );
     }
 
     if handler.has_errors() {
@@ -683,7 +684,7 @@ fn lower_array_compares(
 /// constraint a.x < 11;    // `a.x` is now a path expr, an illegal identifier usually.
 ///
 /// ```
-fn scalarize_tuples(handler: &Handler, ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitted> {
+fn scalarize_tuples(handler: &Handler, pred: &mut Predicate) -> Result<bool, ErrorEmitted> {
     // First we need to lower any aggregate comparisons.  It is valid to use `==` or `!=` to
     // compare whole tuples, but we must split these comparisons into field-by-field ops before we
     // scalarise.
@@ -694,7 +695,7 @@ fn scalarize_tuples(handler: &Handler, ii: &mut IntermediateIntent) -> Result<bo
     // comparison between inner tuples and so they need to be lowered too.
     iterate!(
         handler,
-        lower_tuple_compares(ii)?,
+        lower_tuple_compares(pred)?,
         "lower_tuple_compares()",
         modified
     );
@@ -704,25 +705,26 @@ fn scalarize_tuples(handler: &Handler, ii: &mut IntermediateIntent) -> Result<bo
     let mut old_tuple_vars = Vec::new();
     iterate!(
         handler,
-        split_tuple_vars(handler, ii, &mut old_tuple_vars)?,
+        split_tuple_vars(handler, pred, &mut old_tuple_vars)?,
         "split_tuple_vars()",
         modified
     );
     for var_key in old_tuple_vars {
-        ii.vars.remove(var_key);
+        pred.vars.remove(var_key);
     }
 
     Ok(modified)
 }
 
-fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitted> {
+fn lower_tuple_compares(pred: &mut Predicate) -> Result<bool, ErrorEmitted> {
     // Gather all the valid binary op exprs.
     let mut tuple_compare_ops = Vec::new();
-    for expr_key in ii.exprs() {
-        if let Expr::BinaryOp { op, lhs, rhs, span } = expr_key.get(ii) {
-            if (*op == BinaryOp::Equal || *op == BinaryOp::NotEqual) && lhs.get_ty(ii).is_tuple() {
+    for expr_key in pred.exprs() {
+        if let Expr::BinaryOp { op, lhs, rhs, span } = expr_key.get(pred) {
+            if (*op == BinaryOp::Equal || *op == BinaryOp::NotEqual) && lhs.get_ty(pred).is_tuple()
+            {
                 // Type checking should ensure RHS is also a tuple.
-                assert!(rhs.get_ty(ii).is_tuple());
+                assert!(rhs.get_ty(pred).is_tuple());
 
                 // Do not lower tuple compares if one of the two sides is an intrinsic call or a
                 // select.  Intrinsic calls and selects can be expensive to compute and so, we
@@ -731,10 +733,10 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
                 //
                 // In the future, we may decided not to lower tuple compares at all.
                 if !matches!(
-                    lhs.get(ii),
+                    lhs.get(pred),
                     Expr::IntrinsicCall { .. } | Expr::Select { .. }
                 ) && !matches!(
-                    rhs.get(ii),
+                    rhs.get(pred),
                     Expr::IntrinsicCall { .. } | Expr::Select { .. }
                 ) {
                     tuple_compare_ops.push((expr_key, *op, *lhs, *rhs, span.clone()));
@@ -751,14 +753,14 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
         // this means our lowered identifiers will be less descriptive.
 
         let Some(lhs_fields) = lhs_tuple_key
-            .get_ty(ii)
+            .get_ty(pred)
             .get_tuple_fields()
             .map(|fs| fs.to_vec())
         else {
             unreachable!("failed to get lhs tuple field types in lower_tuple_compares()");
         };
         let Some(rhs_fields) = rhs_tuple_key
-            .get_ty(ii)
+            .get_ty(pred)
             .get_tuple_fields()
             .map(|fs| fs.to_vec())
         else {
@@ -793,7 +795,7 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
                 TupleAccess::Index(field_idx)
             };
 
-            let lhs_access = ii.exprs.insert(
+            let lhs_access = pred.exprs.insert(
                 Expr::TupleFieldAccess {
                     tuple: lhs_tuple_key,
                     field: lhs_field_access,
@@ -802,7 +804,7 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
                 field_ty.clone(),
             );
 
-            let rhs_access = ii.exprs.insert(
+            let rhs_access = pred.exprs.insert(
                 Expr::TupleFieldAccess {
                     tuple: rhs_tuple_key,
                     field: rhs_field_access,
@@ -811,7 +813,7 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
                 field_ty.clone(),
             );
 
-            new_field_compare_ops.push(ii.exprs.insert(
+            new_field_compare_ops.push(pred.exprs.insert(
                 Expr::BinaryOp {
                     op,
                     lhs: lhs_access,
@@ -828,7 +830,7 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
         let and_chain_expr_key = new_field_compare_ops
             .into_iter()
             .reduce(|acc, compare_op_key| {
-                ii.exprs.insert(
+                pred.exprs.insert(
                     Expr::BinaryOp {
                         op: BinaryOp::LogicalAnd,
                         lhs: acc,
@@ -843,8 +845,8 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
             })
             .expect("there must be 1 or more tuple fields");
 
-        ii.replace_exprs(expr_key, and_chain_expr_key);
-        ii.exprs.remove(expr_key);
+        pred.replace_exprs(expr_key, and_chain_expr_key);
+        pred.exprs.remove(expr_key);
     }
 
     Ok(modified)
@@ -852,7 +854,7 @@ fn lower_tuple_compares(ii: &mut IntermediateIntent) -> Result<bool, ErrorEmitte
 
 fn split_tuple_vars(
     handler: &Handler,
-    ii: &mut IntermediateIntent,
+    pred: &mut Predicate,
     old_tuple_vars: &mut Vec<VarKey>,
 ) -> Result<bool, ErrorEmitted> {
     let mut new_vars = Vec::new();
@@ -863,7 +865,7 @@ fn split_tuple_vars(
         Var {
             name, span, is_pub, ..
         },
-    ) in ii.vars()
+    ) in pred.vars()
     {
         if *is_pub || old_tuple_vars.contains(&var_key) {
             // pub vars should not be scalarized because they're implemented using transient data.
@@ -871,7 +873,7 @@ fn split_tuple_vars(
             continue;
         }
 
-        if let Some(fields) = var_key.get_ty(ii).get_tuple_fields() {
+        if let Some(fields) = var_key.get_ty(pred).get_tuple_fields() {
             // We now know we have a tuple var and its field types.
             for (field_idx, (opt_field_name, field_ty)) in fields.iter().enumerate() {
                 // Always save the numeric index name, and optionally the symbolic name.
@@ -902,18 +904,19 @@ fn split_tuple_vars(
     // This `BTreeMap` maps tuple var names to the new vars that are introduced to replace them.
     let mut tuple_name_to_split_tuple_vars: BTreeMap<String, Vec<VarKey>> = BTreeMap::new();
 
-    // Add all the new vars to the intermediate intent and memo the new key.
+    // Add all the new vars to the predicate and memo the new key.
     for (old_tuple_var_key, field_idx, name, (idx_name, opt_sym_name), span, field_ty) in new_vars {
-        let old_tuple_var_key_position = ii.vars.position(old_tuple_var_key).ok_or_else(|| {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "var_key must exist",
-                    span: span.clone(),
-                },
-            })
-        })?;
+        let old_tuple_var_key_position =
+            pred.vars.position(old_tuple_var_key).ok_or_else(|| {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "var_key must exist",
+                        span: span.clone(),
+                    },
+                })
+            })?;
         // Prefer the symbolic name if it's there.
-        let new_var_key = ii.vars.insert_at(
+        let new_var_key = pred.vars.insert_at(
             old_tuple_var_key_position + field_idx,
             Var {
                 name: opt_sym_name.as_ref().unwrap_or(&idx_name).clone(),
@@ -938,8 +941,8 @@ fn split_tuple_vars(
     let mut new_accesses = Vec::new();
 
     // Iterate for each tuple access which is into a var and get the new var key.
-    for expr_key in ii.exprs() {
-        if let Some(Expr::TupleFieldAccess { tuple, field, span }) = expr_key.try_get(ii) {
+    for expr_key in pred.exprs() {
+        if let Some(Expr::TupleFieldAccess { tuple, field, span }) = expr_key.try_get(pred) {
             let mut push_new_access = |tuple_name: String| {
                 // Work out the access name after the dot.
                 let field_name = match field {
@@ -964,8 +967,10 @@ fn split_tuple_vars(
                 }
             };
 
-            match tuple.try_get(ii) {
-                Some(Expr::PathByKey(var_key, _)) => push_new_access(var_key.get(ii).name.clone()),
+            match tuple.try_get(pred) {
+                Some(Expr::PathByKey(var_key, _)) => {
+                    push_new_access(var_key.get(pred).name.clone())
+                }
                 Some(Expr::PathByName(path, _)) => push_new_access(path.clone()),
                 _ => {}
             }
@@ -974,23 +979,23 @@ fn split_tuple_vars(
 
     // Replace all the old tuple accesses with new PathByKey exprs.
     for (old_expr_key, new_var_key, new_tuple_var_ty, span) in new_accesses {
-        let new_expr_key = ii
+        let new_expr_key = pred
             .exprs
             .insert(Expr::PathByKey(new_var_key, span), new_tuple_var_ty.clone());
 
-        ii.replace_exprs(old_expr_key, new_expr_key);
-        ii.exprs.remove(old_expr_key);
+        pred.replace_exprs(old_expr_key, new_expr_key);
+        pred.exprs.remove(old_expr_key);
     }
 
     // Now, we can search for all the paths that match the name of the original tuple.
     let mut tuple_path_to_replace = vec![];
-    for expr_key in ii.exprs() {
-        if let Some(Expr::PathByName(path, _)) = expr_key.try_get(ii) {
+    for expr_key in pred.exprs() {
+        if let Some(Expr::PathByName(path, _)) = expr_key.try_get(pred) {
             if let Some(split_vars) = tuple_name_to_split_tuple_vars.get(path) {
                 tuple_path_to_replace.push((expr_key, split_vars));
             }
-        } else if let Some(Expr::PathByKey(key, _)) = expr_key.try_get(ii) {
-            let path = &key.get(ii).name;
+        } else if let Some(Expr::PathByKey(key, _)) = expr_key.try_get(pred) {
+            let path = &key.get(pred).name;
             if let Some(split_vars) = tuple_name_to_split_tuple_vars.get(path) {
                 tuple_path_to_replace.push((expr_key, split_vars));
             }
@@ -1004,9 +1009,9 @@ fn split_tuple_vars(
                 .iter()
                 .map(|var_key| {
                     (None, {
-                        ii.exprs.insert(
+                        pred.exprs.insert(
                             Expr::PathByKey(*var_key, empty_span()),
-                            var_key.get_ty(ii).clone(),
+                            var_key.get_ty(pred).clone(),
                         )
                     })
                 })
@@ -1014,19 +1019,19 @@ fn split_tuple_vars(
 
             span: empty_span(),
         };
-        let new_expr_key = ii.exprs.insert(
+        let new_expr_key = pred.exprs.insert(
             new_expr,
             Type::Tuple {
                 fields: split_vars
                     .iter()
-                    .map(|var_key| (None, var_key.get_ty(ii).clone()))
+                    .map(|var_key| (None, var_key.get_ty(pred).clone()))
                     .collect(),
                 span: empty_span(),
             },
         );
 
-        ii.replace_exprs(expr_key, new_expr_key);
-        ii.exprs.remove(expr_key);
+        pred.replace_exprs(expr_key, new_expr_key);
+        pred.exprs.remove(expr_key);
     }
 
     Ok(true)

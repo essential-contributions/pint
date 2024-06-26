@@ -1,7 +1,7 @@
 use baz::MyEnum;
 use ::baz::MyType;
 
-intent Bar {
+predicate Bar {
     var y: int;
     constraint y == 4;
 
@@ -12,11 +12,11 @@ intent Bar {
     var f2 = baz::MyType::A;
 }
 
-// intermediate <<<
+// parsed <<<
 // enum ::baz::MyEnum = A | B;
 // type ::baz::MyType = ::baz::MyEnum;
 //
-// intent ::Bar {
+// predicate ::Bar {
 //     var ::y: int;
 //     var ::e1;
 //     var ::f1;
@@ -37,7 +37,7 @@ intent Bar {
 // enum ::baz::MyEnum = A | B;
 // type ::baz::MyType = ::baz::MyEnum;
 //
-// intent ::Bar {
+// predicate ::Bar {
 //     var ::y: int;
 //     var ::e1: int;
 //     var ::f1: int;

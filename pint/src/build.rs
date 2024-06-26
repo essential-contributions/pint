@@ -109,15 +109,15 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
         match built {
             // Nothing to write for `lib`
             BuiltPkg::Library(_lib) => {}
-            // Write the contract intents to JSON, and write the ABI.
+            // Write the contract predicates to JSON, and write the ABI.
             BuiltPkg::Contract(contract) => {
-                // Write the intents.
-                let intents: Vec<_> = contract.intents.iter().map(|i| &i.intent).collect();
-                let intents_string = serde_json::to_string_pretty(&intents)
-                    .context("failed to serialize intents to JSON")?;
-                let intents_path = profile_dir.join(&pinned.name).with_extension("json");
-                std::fs::write(&intents_path, intents_string)
-                    .with_context(|| format!("failed to write {intents_path:?}"))?;
+                // Write the predicates.
+                let predicates: Vec<_> = contract.predicates.iter().map(|i| &i.predicate).collect();
+                let predicates_string = serde_json::to_string_pretty(&predicates)
+                    .context("failed to serialize predicates to JSON")?;
+                let predicates_path = profile_dir.join(&pinned.name).with_extension("json");
+                std::fs::write(&predicates_path, predicates_string)
+                    .with_context(|| format!("failed to write {predicates_path:?}"))?;
 
                 // Write the ABI.
                 let abi_string = serde_json::to_string_pretty(&contract.abi)
@@ -155,13 +155,13 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
             ca,
         );
 
-        // For contracts, print their intents too.
+        // For contracts, print their predicates too.
         if let BuiltPkg::Contract(contract) = built {
-            let mut iter = contract.intents.iter().peekable();
-            while let Some(intent) = iter.next() {
-                let name = format!("{}{}", pinned.name, intent.name);
+            let mut iter = contract.predicates.iter().peekable();
+            while let Some(predicate) = iter.next() {
+                let name = format!("{}{}", pinned.name, predicate.name);
                 let pipe = iter.peek().map(|_| "├──").unwrap_or("└──");
-                println!("         {pipe} {:<name_col_w$} {}", name, intent.ca);
+                println!("         {pipe} {:<name_col_w$} {}", name, predicate.ca);
             }
         }
     }
@@ -170,12 +170,12 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
 }
 
 /// Determine the width of the column required to fit the name and all
-/// name+intent combos.
+/// name+predicate combos.
 fn name_col_w(name: &str, built: &BuiltPkg) -> usize {
     let mut name_w = 0;
     if let BuiltPkg::Contract(contract) = built {
-        for intent in &contract.intents {
-            let w = intent.name.chars().count();
+        for predicate in &contract.predicates {
+            let w = predicate.name.chars().count();
             name_w = std::cmp::max(name_w, w);
         }
     }

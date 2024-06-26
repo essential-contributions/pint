@@ -1,12 +1,12 @@
 use crate::{
     error::{CompileError, Error, Handler, ParseError},
     expr::{Expr, Immediate, TupleAccess},
-    intermediate::{
-        CallKey, ExprKey, IntentInstance, Interface, InterfaceDecl, IntermediateIntent, Program,
-        StorageVar, Var,
-    },
     macros::{MacroCall, MacroDecl},
     parser::{Ident, NextModPath, UsePath, UseTree},
+    predicate::{
+        CallKey, ExprKey, Interface, InterfaceDecl, Predicate, PredicateInstance, Program,
+        StorageVar, Var,
+    },
     span::{self, Span, Spanned},
     types::{Path, PrimitiveKind, Type},
 };
@@ -17,7 +17,7 @@ pub struct ParserContext<'a> {
     pub(crate) mod_prefix: &'a str,
     pub(crate) local_scope: Option<&'a str>,
     pub(crate) program: &'a mut Program,
-    pub(crate) current_ii: &'a mut String,
+    pub(crate) current_pred: &'a mut String,
     pub(crate) macros: &'a mut Vec<MacroDecl>,
     pub(crate) macro_calls:
         &'a mut BTreeMap<String, slotmap::SecondaryMap<CallKey, (ExprKey, MacroCall)>>,
@@ -33,7 +33,7 @@ impl<'a> ParserContext<'a> {
         mut ident: Ident,
         prefix: &str,
     ) -> Ident {
-        if let Ok(name) = self.current_ii().add_top_level_symbol(
+        if let Ok(name) = self.current_pred().add_top_level_symbol(
             handler,
             prefix,
             None,
@@ -45,10 +45,10 @@ impl<'a> ParserContext<'a> {
         ident
     }
 
-    /// Returns a mutable reference to the II named `self.current_ii`. Panics if the II cannot be
+    /// Returns a mutable reference to the Pred named `self.current_pred`. Panics if the Pred cannot be
     /// found, indicating a bug.
-    pub fn current_ii(&mut self) -> &mut IntermediateIntent {
-        self.program.iis.get_mut(self.current_ii).unwrap()
+    pub fn current_pred(&mut self) -> &mut Predicate {
+        self.program.preds.get_mut(self.current_pred).unwrap()
     }
 
     /// Given an identifier and an type, produce a `StorageVar`. `l` and `r` are the code locations
@@ -133,7 +133,7 @@ impl<'a> ParserContext<'a> {
         storage_vars
     }
 
-    /// Given a list of storage variables insert it into the current II after some error checking.
+    /// Given a list of storage variables insert it into the current Pred after some error checking.
     /// `l` and `r` are the code locations before and after the storage block declaration
     pub fn parse_storage_decl(
         &mut self,
@@ -142,7 +142,7 @@ impl<'a> ParserContext<'a> {
         (l, r): (usize, usize),
     ) {
         let span = (self.span_from)(l, r);
-        if let Some((_, prev_span)) = &self.current_ii().storage {
+        if let Some((_, prev_span)) = &self.current_pred().storage {
             // Multiple `storage` blocks are not allowed
             handler.emit_err(Error::Parse {
                 error: ParseError::TooManyStorageBlocks {
@@ -156,13 +156,13 @@ impl<'a> ParserContext<'a> {
                 error: ParseError::StorageDirectiveMustBeTopLevel { span },
             });
         } else {
-            self.current_ii().storage = Some((storage_vars, span));
+            self.current_pred().storage = Some((storage_vars, span));
         }
     }
 
     /// Given an interface name as an `Ident` and a list of `InterfaceDecl`s (which can be storage
-    /// blocks or intent interfaces), produce an `Interface` object and insert it into the current
-    /// II. `l` and `r` are the code locations before and after the interface declaration
+    /// blocks or predicate interfaces), produce an `Interface` object and insert it into the current
+    /// Pred. `l` and `r` are the code locations before and after the interface declaration
     pub fn parse_interface(
         &mut self,
         handler: &Handler,
@@ -173,11 +173,11 @@ impl<'a> ParserContext<'a> {
         let mut interface = Interface {
             name: self.add_top_level_symbol(handler, name, self.mod_prefix),
             storage: None,
-            intent_interfaces: vec![],
+            predicate_interfaces: vec![],
             span: (self.span_from)(l, r),
         };
 
-        let mut intent_names: BTreeMap<String, Span> = BTreeMap::new();
+        let mut predicate_names: BTreeMap<String, Span> = BTreeMap::new();
         for decl in interface_decls {
             match decl {
                 InterfaceDecl::StorageDecl(d) => {
@@ -193,26 +193,26 @@ impl<'a> ParserContext<'a> {
                         interface.storage = Some(d)
                     }
                 }
-                InterfaceDecl::IntentInterface(intent_interface) => {
-                    // Ensure there are no duplciate intent names
-                    if let Some(prev_span) = intent_names.get(&intent_interface.name.name) {
+                InterfaceDecl::PredicateInterface(predicate_interface) => {
+                    // Ensure there are no duplciate predicate names
+                    if let Some(prev_span) = predicate_names.get(&predicate_interface.name.name) {
                         handler.emit_err(Error::Parse {
                             error: ParseError::NameClash {
-                                sym: intent_interface.name.name.clone(),
-                                span: intent_interface.name.span.clone(),
+                                sym: predicate_interface.name.name.clone(),
+                                span: predicate_interface.name.span.clone(),
                                 prev_span: prev_span.clone(),
                             },
                         });
                     } else {
-                        intent_names.insert(
-                            intent_interface.name.name.clone(),
-                            intent_interface.name.span.clone(),
+                        predicate_names.insert(
+                            predicate_interface.name.name.clone(),
+                            predicate_interface.name.span.clone(),
                         );
                     }
 
                     // Ensure there are no duplciate vars
                     let mut var_symbols: BTreeMap<String, Span> = BTreeMap::new();
-                    for var in &intent_interface.vars {
+                    for var in &predicate_interface.vars {
                         if let Some(prev_span) = var_symbols.get(&var.name.name) {
                             handler.emit_err(Error::Parse {
                                 error: ParseError::NameClash {
@@ -226,27 +226,27 @@ impl<'a> ParserContext<'a> {
                         }
                     }
 
-                    interface.intent_interfaces.push(intent_interface)
+                    interface.predicate_interfaces.push(predicate_interface)
                 }
             }
         }
 
-        self.current_ii().interfaces.push(interface);
+        self.current_pred().interfaces.push(interface);
     }
 
-    /// Given an intent instance name as an `Intent`, a list `els` of `Ident`s forming a path, an
-    /// intent name as an `Intent` and an address as an `ExprKey`, produce an `IntentInstance`
-    /// object and insert it into the current II. `l` and `r` are the code locations before and
+    /// Given an predicate instance name as an `Predicate`, a list `els` of `Ident`s forming a path, an
+    /// predicate name as an `Predicate` and an address as an `ExprKey`, produce an `PredicateInstance`
+    /// object and insert it into the current Pred. `l` and `r` are the code locations before and
     /// after the interface declaration. `l1` and `r1` are the code locations before and after the
     /// path represented by `els`. Uses `is_abs` to decide how to handle the path `els`.
     #[allow(clippy::too_many_arguments)]
-    pub fn parse_intent_instance(
+    pub fn parse_predicate_instance(
         &mut self,
         handler: &Handler,
         name: Ident,
         is_abs: bool,
         els: Vec<Ident>,
-        intent: Ident,
+        predicate: Ident,
         address: ExprKey,
         (l, l1, r1, r): (usize, usize, usize, usize),
     ) {
@@ -254,9 +254,9 @@ impl<'a> ParserContext<'a> {
             handler.emit_err(Error::Parse {
                 error: ParseError::PathTooShort {
                     path: if is_abs {
-                        "::".to_owned() + &intent.name
+                        "::".to_owned() + &predicate.name
                     } else {
-                        intent.name.clone()
+                        predicate.name.clone()
                     },
                     span: (self.span_from)(l, r),
                 },
@@ -283,22 +283,24 @@ impl<'a> ParserContext<'a> {
         };
 
         let span = (self.span_from)(l, r);
-        let full_intent_instance_name =
+        let full_predicate_instance_name =
             self.add_top_level_symbol(handler, name.clone(), self.mod_prefix);
-        let intent_instance = IntentInstance {
-            name: full_intent_instance_name.clone(),
+        let predicate_instance = PredicateInstance {
+            name: full_predicate_instance_name.clone(),
             interface_instance,
-            intent,
+            predicate,
             address,
             span: span.clone(),
         };
-        self.current_ii().intent_instances.push(intent_instance);
+        self.current_pred()
+            .predicate_instances
+            .push(predicate_instance);
 
         // Also insert a local integer decision variable that represents the pathway corresponding
-        // to this particular intent instance
-        self.current_ii().vars.insert(
+        // to this particular predicate instance
+        self.current_pred().vars.insert(
             Var {
-                name: "__".to_string() + &full_intent_instance_name.to_string() + "_pathway",
+                name: "__".to_string() + &full_predicate_instance_name.to_string() + "_pathway",
                 is_pub: false,
                 span,
             },
@@ -310,7 +312,7 @@ impl<'a> ParserContext<'a> {
     }
 
     /// Given an identifier an optional type, and an optional initializer `ExprKey`, produce a
-    /// `Var` and insert it into the current II. `l` and `r` are the code locations before and
+    /// `Var` and insert it into the current Pred. `l` and `r` are the code locations before and
     /// after the var declaration. `is_pub` determines the visibility of the `Var`.
     pub fn parse_var_decl(
         &mut self,
@@ -331,13 +333,13 @@ impl<'a> ParserContext<'a> {
         } else {
             let mod_prefix = self.mod_prefix;
             let _ = self
-                .current_ii()
+                .current_pred()
                 .insert_var(handler, mod_prefix, name.1, is_pub, &name.0, ty)
                 .map(|var_key| {
                     if let Some(expr_key) = init {
-                        self.current_ii().var_inits.insert(var_key, expr_key);
+                        self.current_pred().var_inits.insert(var_key, expr_key);
                         let span = (self.span_from)(l, r);
-                        self.current_ii()
+                        self.current_pred()
                             .insert_eq_or_ineq_constraint(var_key, expr_key, span);
                     }
                 });
@@ -620,7 +622,7 @@ impl<'a> ParserContext<'a> {
                 // example:
                 //
                 // use a::b::mod::my_mod::self;    // Inserted as ::local::mod::my_mod
-                self.current_ii()
+                self.current_pred()
                     .add_top_level_symbol(
                         &local_handler,
                         mod_prefix,
@@ -647,7 +649,7 @@ impl<'a> ParserContext<'a> {
     /// Parses a tuple access expression with an identifier.
     ///
     /// Given an `ExprKey` and an `Ident`, insert a new `TupleFieldAccess` expression into
-    /// `current_ii().exprs`. This function also takes two integers `l` and `r`:
+    /// `current_pred().exprs`. This function also takes two integers `l` and `r`:
     /// - `l` is the source code location before the tuple access
     /// - `r` is the source code location after the tuple access
     pub fn parse_tuple_field_op_with_ident(
@@ -657,7 +659,7 @@ impl<'a> ParserContext<'a> {
         (l, r): (usize, usize),
     ) -> ExprKey {
         let span = (self.span_from)(l, r);
-        self.current_ii().exprs.insert(
+        self.current_pred().exprs.insert(
             Expr::TupleFieldAccess {
                 tuple,
                 field: TupleAccess::Name(name),
@@ -670,7 +672,7 @@ impl<'a> ParserContext<'a> {
     /// Parses a tuple access expression with an integer.
     ///
     /// Given an `ExprKey` and a string that represents an integer, insert a new `TupleFieldAccess`
-    /// expression into `current_ii().exprs`. This function also takes three integers `l`, `m`, and
+    /// expression into `current_pred().exprs`. This function also takes three integers `l`, `m`, and
     /// `r`:
     /// - `l` is the source code location before the tuple access
     /// - `m` is the source code location before the integer used to access the tuple
@@ -686,7 +688,7 @@ impl<'a> ParserContext<'a> {
         let index_span = (self.span_from)(m, r);
         let int_str = int_str.replace('_', "");
 
-        self.current_ii().exprs.insert(
+        self.current_pred().exprs.insert(
             Expr::TupleFieldAccess {
                 tuple,
                 field: int_str
@@ -712,7 +714,7 @@ impl<'a> ParserContext<'a> {
     /// real).
     ///
     /// Given an `ExprKey` and a string that represents a real, insert a new (nested)
-    /// `TupleFieldAccess` expression into `current_ii().exprs`. This function also takes three
+    /// `TupleFieldAccess` expression into `current_pred().exprs`. This function also takes three
     /// integers `l`, `m`, and `r`:
     /// - `l` is the source code location before the tuple access
     /// - `m` is the source code location before the real used to access the tuple
@@ -758,7 +760,7 @@ impl<'a> ParserContext<'a> {
                     });
 
                 let span = (self.span_from)(l, m + dot_index);
-                let lhs_access_key = self.current_ii().exprs.insert(
+                let lhs_access_key = self.current_pred().exprs.insert(
                     Expr::TupleFieldAccess {
                         tuple,
                         field: first_index,
@@ -768,7 +770,7 @@ impl<'a> ParserContext<'a> {
                 );
 
                 let span = (self.span_from)(l, r);
-                self.current_ii().exprs.insert(
+                self.current_pred().exprs.insert(
                     Expr::TupleFieldAccess {
                         tuple: lhs_access_key,
                         field: second_index,
@@ -787,7 +789,7 @@ impl<'a> ParserContext<'a> {
 
                 // Recover with a malformed tuple access
                 let span = (self.span_from)(l, r);
-                self.current_ii().exprs.insert(
+                self.current_pred().exprs.insert(
                     Expr::TupleFieldAccess {
                         tuple,
                         field: TupleAccess::Error,
@@ -916,7 +918,7 @@ impl<'a> ParserContext<'a> {
             };
 
             let span = (self.span_from)(l, r);
-            self.current_ii().exprs.insert(
+            self.current_pred().exprs.insert(
                 Expr::ExternalStorageAccess {
                     interface_instance,
                     name: name.to_string(),
@@ -935,7 +937,7 @@ impl<'a> ParserContext<'a> {
             } else {
                 Expr::StorageAccess(name.to_string(), span.clone())
             };
-            self.current_ii().exprs.insert(expr, Type::Unknown(span))
+            self.current_pred().exprs.insert(expr, Type::Unknown(span))
         }
     }
 }

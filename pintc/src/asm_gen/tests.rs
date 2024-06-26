@@ -1,5 +1,5 @@
 use crate::{
-    asm_gen::{program_to_intents, Intents},
+    asm_gen::{compile_program, CompiledProgram},
     error::Handler,
     parser::parse_project,
 };
@@ -13,9 +13,9 @@ pub(super) fn check(actual: &str, expect: expect_test::Expect) {
     expect.assert_eq(actual);
 }
 
-/// Compile some code into `Intents`. Panics if anything fails.
+/// Compile some code into `CompiledProgram`. Panics if anything fails.
 #[cfg(test)]
-pub(super) fn compile(code: &str) -> Intents {
+pub(super) fn compile(code: &str) -> CompiledProgram {
     let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
     write!(tmpfile.as_file_mut(), "{}", code).unwrap();
     let handler = Handler::default();
@@ -24,7 +24,7 @@ pub(super) fn compile(code: &str) -> Intents {
         .unwrap()
         .compile(&handler)
         .unwrap();
-    program_to_intents(&handler, &program).unwrap()
+    compile_program(&handler, &program).unwrap()
 }
 
 #[test]
@@ -53,7 +53,7 @@ fn bool_literals() {
 
 #[test]
 fn int_literals() {
-    let intents = &compile(
+    let compiled_program = &compile(
         r#"
         var x: int = 4;
         var y: int = 0x333;
@@ -62,7 +62,7 @@ fn int_literals() {
     );
 
     check(
-        &format!("{intents}"),
+        &format!("{compiled_program}"),
         expect_test::expect![[r#"
             --- Constraints ---
             constraint 0
@@ -79,8 +79,8 @@ fn int_literals() {
         "#]],
     );
 
-    // Single top-level intent named `Intents::ROOT_INTENT_NAME`
-    assert_eq!(intents.intents.len(), 1);
+    // Single top-level predicate named `CompiledProgram::ROOT_PRED_NAME`
+    assert_eq!(compiled_program.predicates.len(), 1);
 }
 
 #[test]
@@ -461,7 +461,7 @@ fn short_circuit_or() {
 
 #[test]
 fn state_read() {
-    let intents = compile(
+    let compiled_program = compile(
         r#"
         state x: int = __storage_get([0, 0, 0, 1]);
         state y: int = __storage_get([2, 2, 2, 2]);
@@ -472,7 +472,7 @@ fn state_read() {
     );
 
     check(
-        &format!("{intents}"),
+        &format!("{compiled_program}"),
         expect_test::expect![[r#"
             --- Constraints ---
             constraint 0
@@ -519,13 +519,13 @@ fn state_read() {
         "#]],
     );
 
-    // Single top-level intent named `Intents::ROOT_INTENT_NAME`
-    assert_eq!(intents.intents.len(), 1);
+    // Single top-level predicate named `CompiledProgram::ROOT_PRED_NAME`
+    assert_eq!(compiled_program.predicates.len(), 1);
 }
 
 #[test]
 fn state_read_extern() {
-    let intents = &compile(
+    let compiled_program = &compile(
         r#"
         state x: int = __storage_get_extern(
             0x0000000000000001000000000000000200000000000000030000000000000004,
@@ -542,7 +542,7 @@ fn state_read_extern() {
     );
 
     check(
-        &format!("{intents}"),
+        &format!("{compiled_program}"),
         expect_test::expect![[r#"
             --- Constraints ---
             constraint 0
@@ -597,13 +597,13 @@ fn state_read_extern() {
         "#]],
     );
 
-    // Single top-level intent named `Intents::ROOT_INTENT_NAME`
-    assert_eq!(intents.intents.len(), 1);
+    // Single top-level predicate named `CompiledProgram::ROOT_PRED_NAME`
+    assert_eq!(compiled_program.predicates.len(), 1);
 }
 
 #[test]
 fn next_state() {
-    let intents = &compile(
+    let compiled_program = &compile(
         r#"
         var diff: int = 5;
         state x: int = __storage_get([0, 0, 0, 3]);
@@ -613,7 +613,7 @@ fn next_state() {
     );
 
     check(
-        &format!("{intents}"),
+        &format!("{compiled_program}"),
         expect_test::expect![[r#"
             --- Constraints ---
             constraint 0
@@ -647,13 +647,13 @@ fn next_state() {
         "#]],
     );
 
-    // Single top-level intent named `Intents::ROOT_INTENT_NAME`
-    assert_eq!(intents.intents.len(), 1);
+    // Single top-level predicate named `CompiledProgram::ROOT_PRED_NAME`
+    assert_eq!(compiled_program.predicates.len(), 1);
 }
 
 #[test]
 fn b256() {
-    let intents = &compile(
+    let compiled_program = &compile(
         r#"
         var b0 = 0x0000000000000005000000000000000600000000000000070000000000000008;
         var b1 = 0xF000000000000000500000000000000060000000000000007000000000000000;
@@ -662,7 +662,7 @@ fn b256() {
     );
 
     check(
-        &format!("{intents}"),
+        &format!("{compiled_program}"),
         expect_test::expect![[r#"
             --- Constraints ---
             constraint 0
@@ -694,7 +694,7 @@ fn b256() {
 
 #[test]
 fn storage_access_basic_types() {
-    let intents = &compile(
+    let compiled_program = &compile(
         r#"
 storage {
     supply: int,
@@ -702,7 +702,7 @@ storage {
     map2: (b256 => int),
 }
 
-intent Simple {
+predicate Simple {
     state supply = storage::supply;
     state x = storage::map1[69];
     state y = storage::map2[0x2222222222222222222222222222222222222222222222222222222222222222];
@@ -715,9 +715,9 @@ intent Simple {
     );
 
     check(
-        &format!("{intents}"),
+        &format!("{compiled_program}"),
         expect_test::expect![[r#"
-            intent ::Simple {
+            predicate ::Simple {
                 --- Constraints ---
                 constraint 0
                   Stack(Push(0))
@@ -778,7 +778,7 @@ intent Simple {
 
 #[test]
 fn storage_access_b256_values() {
-    let intents = &compile(
+    let compiled_program = &compile(
         r#"
 storage {
     addr1: b256,
@@ -787,7 +787,7 @@ storage {
     map2: (b256 => b256),
 }
 
-intent Simple {
+predicate Simple {
     state addr1 = storage::addr1;
     state addr2 = storage::addr2;
     state x = storage::map1[69];
@@ -802,9 +802,9 @@ intent Simple {
     );
 
     check(
-        &format!("{intents}"),
+        &format!("{compiled_program}"),
         expect_test::expect![[r#"
-            intent ::Simple {
+            predicate ::Simple {
                 --- Constraints ---
                 constraint 0
                   Stack(Push(0))
@@ -896,7 +896,7 @@ intent Simple {
 
 #[test]
 fn storage_access_tuples() {
-    let intents = &compile(
+    let compiled_program = &compile(
         r#"
 storage {
     u: { b256, int },
@@ -904,7 +904,7 @@ storage {
     w: { addr: b256, inner: { x: int, int } },
 }
 
-intent Foo {
+predicate Foo {
     state u = storage::u;
     state u0 = storage::u.0;
     state u1 = storage::u.1;
@@ -923,9 +923,9 @@ intent Foo {
     );
 
     check(
-        &format!("{intents}"),
+        &format!("{compiled_program}"),
         expect_test::expect![[r#"
-            intent ::Foo {
+            predicate ::Foo {
                 --- Constraints ---
                 --- State Reads ---
                 state read 0
@@ -1070,14 +1070,14 @@ intent Foo {
 
 #[test]
 fn storage_access_tuples_in_maps() {
-    let intents = &compile(
+    let compiled_program = &compile(
         r#"
 storage {
     w: b256,
     map_to_tuples: ( int => { b256, { int, int } } ),
 }
 
-intent Foo {
+predicate Foo {
     state map_to_tuples_69 = storage::map_to_tuples[69];
     state map_to_tuples_69_0 = storage::map_to_tuples[69].0;
     state map_to_tuples_69_1_0 = storage::map_to_tuples[69].1.0;
@@ -1087,9 +1087,9 @@ intent Foo {
     );
 
     check(
-        &format!("{intents}"),
+        &format!("{compiled_program}"),
         expect_test::expect![[r#"
-            intent ::Foo {
+            predicate ::Foo {
                 --- Constraints ---
                 --- State Reads ---
                 state read 0
@@ -1154,7 +1154,7 @@ intent Foo {
 
 #[test]
 fn storage_access_tuples_extern() {
-    let intents = &compile(
+    let compiled_program = &compile(
         r#"
 interface Foo {
     storage {
@@ -1164,7 +1164,7 @@ interface Foo {
     }
 }
 
-intent Bar {
+predicate Bar {
     interface FooInstance = Foo(0x1111111111111111111111111111111111111111111111111111111111111111);
 
     state foo_u = FooInstance::storage::u;
@@ -1185,9 +1185,9 @@ intent Bar {
     );
 
     check(
-        &format!("{intents}"),
+        &format!("{compiled_program}"),
         expect_test::expect![[r#"
-            intent ::Bar {
+            predicate ::Bar {
                 --- Constraints ---
                 --- State Reads ---
                 state read 0
@@ -1376,14 +1376,14 @@ intent Bar {
 
 #[test]
 fn storage_access_complex_maps() {
-    let intents = &compile(
+    let compiled_program = &compile(
         r#"
 storage {
     map_in_map: (int => (b256 => int)),
     map_in_map_in_map: (int => (b256 => (int => b256))),
 }
 
-intent Simple {
+predicate Simple {
     state map_in_map_entry = storage::map_in_map[9][0x0000000000000001000000000000000200000000000000030000000000000004];
     state map_in_map_in_map_entry = storage::map_in_map_in_map[88][0x0000000000000008000000000000000700000000000000060000000000000005][999];
 
@@ -1394,9 +1394,9 @@ intent Simple {
     );
 
     check(
-        &format!("{intents}"),
+        &format!("{compiled_program}"),
         expect_test::expect![[r#"
-            intent ::Simple {
+            predicate ::Simple {
                 --- Constraints ---
                 constraint 0
                   Stack(Push(0))
@@ -1452,7 +1452,7 @@ intent Simple {
 
 #[test]
 fn storage_external_access() {
-    let intents = &compile(
+    let compiled_program = &compile(
         r#"
 interface Extern1 {
     storage {
@@ -1468,7 +1468,7 @@ interface Extern2 {
     }
 }
 
-intent Foo {
+predicate Foo {
     interface Extern1Instance = Extern1(0x1233683A8F6B8AF1707FF76F40FC5EE714872F88FAEBB8F22851E93F56770128);
     interface Extern2Instance = Extern2(0x0C15A3534349FC710174299BA8F0347284955B35A28C01CF45A910495FA1EF2D);
 
@@ -1486,9 +1486,9 @@ intent Foo {
     );
 
     check(
-        &format!("{intents}"),
+        &format!("{compiled_program}"),
         expect_test::expect![[r#"
-            intent ::Foo {
+            predicate ::Foo {
                 --- Constraints ---
                 constraint 0
                   Stack(Push(0))

@@ -4,7 +4,7 @@ constraint ary != [];
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::ary: int[10];
 // constraint (::ary != []);
 // solve satisfy;

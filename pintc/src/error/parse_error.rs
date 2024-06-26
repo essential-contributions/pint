@@ -69,8 +69,8 @@ pub enum ParseError {
     },
     #[error("`solve` directive must only appear in the top level module")]
     SolveDirectiveMustBeTopLevel { span: Span },
-    #[error("`solve` directive must only appear outside an `intent` declaration")]
-    SolveDirectiveMustBeOutsideIntent { span: Span },
+    #[error("`solve` directive must only appear outside a predicate")]
+    SolveDirectiveMustBeOutsidePredicate { span: Span },
     #[error("`storage` block has already been declared")]
     TooManyStorageBlocks {
         span: Span,      // Actual error location
@@ -80,7 +80,7 @@ pub enum ParseError {
     StorageDirectiveMustBeTopLevel { span: Span },
     #[error("`storage` access expressions can only appear in the top level module")]
     StorageAccessMustBeTopLevel { span: Span },
-    #[error("path `{path}` to an intent interface is too short")]
+    #[error("path `{path}` to a predicate interface is too short")]
     PathTooShort { path: String, span: Span },
 }
 
@@ -260,10 +260,9 @@ impl ReportableError for ParseError {
                     color: Color::Red,
                 }]
             }
-            SolveDirectiveMustBeOutsideIntent { span } => {
+            SolveDirectiveMustBeOutsidePredicate { span } => {
                 vec![ErrorLabel {
-                    message: "`solve` directive must only appear outside an `intent` declaration"
-                        .to_string(),
+                    message: "`solve` directive must only appear outside a predicate".to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -301,7 +300,7 @@ impl ReportableError for ParseError {
             PathTooShort { path, span } => {
                 vec![ErrorLabel {
                     message: format!(
-                        "path `{path}` is too short and cannot refer to an intent interface"
+                        "path `{path}` is too short and cannot refer to a predicate interface"
                     ),
                     span: span.clone(),
                     color: Color::Red,
@@ -329,8 +328,8 @@ impl ReportableError for ParseError {
                 Some("names that start with `__` are reserved for compiler intrinsics".to_string())
             }
             PathTooShort { .. } => Some(
-                "a path to an intent interface must contain a path to an `interface` instance \
-                    followed by the name of the `intent`, separated by a `::`"
+                "a path to a predicate interface must contain a path to an interface \
+                    instance followed by the name of the predicate, separated by a `::`"
                     .to_string(),
             ),
             _ => None,
@@ -422,7 +421,7 @@ impl Spanned for ParseError {
             | IntLiteralTooLarge { span, .. }
             | TooManySolveDirectives { span, .. }
             | SolveDirectiveMustBeTopLevel { span, .. }
-            | SolveDirectiveMustBeOutsideIntent { span, .. }
+            | SolveDirectiveMustBeOutsidePredicate { span, .. }
             | TooManyStorageBlocks { span, .. }
             | StorageDirectiveMustBeTopLevel { span, .. }
             | StorageAccessMustBeTopLevel { span, .. }

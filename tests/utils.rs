@@ -13,7 +13,7 @@ use thiserror::Error;
 pub struct State(BTreeMap<ContentAddress, BTreeMap<Key, Vec<Word>>>);
 
 #[derive(Debug, Error)]
-#[error("no value for the given intent set, key pair")]
+#[error("no value for the given contract, key pair")]
 pub struct InvalidStateRead;
 
 pub type Kv = (Key, Vec<Word>);

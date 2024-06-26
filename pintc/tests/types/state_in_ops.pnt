@@ -10,7 +10,7 @@ var bad_and = b1 && i1;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // storage {
 //     i: int,
 //     b: bool,

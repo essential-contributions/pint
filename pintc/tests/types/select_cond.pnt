@@ -7,7 +7,7 @@ constraint b > (a ? 44 : 55);
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a;
 // var ::b: int;
 // var ::c;

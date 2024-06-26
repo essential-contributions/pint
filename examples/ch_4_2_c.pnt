@@ -4,11 +4,11 @@ interface Counter {
         counter: int,
     }
 
-    intent Initialize {
+    predicate Initialize {
         pub var value: int;
     }
 
-    intent Increment {
+    predicate Increment {
         pub var amount: int;
     }
 }
@@ -19,13 +19,13 @@ storage {
     counter: int,
 }
 
-intent Initialize {
+predicate Initialize {
     pub var value: int;
     state counter: int = storage::counter;
     constraint counter' == value;
 }
 
-intent Increment {
+predicate Increment {
     pub var amount: int;
     state counter: int = storage::counter;
     constraint counter' == counter + amount;

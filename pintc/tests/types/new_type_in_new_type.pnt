@@ -10,7 +10,7 @@ constraint y.1.0 == 22;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::x: ::B;
 // var ::y: ::D;
 // type ::A = int;

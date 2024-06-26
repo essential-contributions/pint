@@ -9,7 +9,7 @@ constraint !!c[0].1;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a: {int, bool};
 // var ::b: bool[3][5];
 // var ::c: {int, bool}[5];

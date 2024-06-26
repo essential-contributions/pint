@@ -1,7 +1,7 @@
 var a: int = 1;
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a: int;
 // constraint (::a == 1);
 // solve satisfy;

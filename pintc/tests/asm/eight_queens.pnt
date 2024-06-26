@@ -1,4 +1,4 @@
-// intermediate <<<
+// parsed <<<
 // var ::q: int[8];
 // constraint forall i in 0..7, { ((::q[::i] >= 0) && (::q[::i] <= 7)) };
 // constraint forall i in 0..7, j in 0..7, where (::i < ::j) { ((!(::q[::i] == ::q[::j]) && ((::q[::i] + ::i) != (::q[::j] + ::j))) && ((::q[::i] + ::j) != (::q[::j] + ::i))) };

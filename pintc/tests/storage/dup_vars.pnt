@@ -23,7 +23,7 @@ interface Bar {
     }
 }
 
-intent Baz {}
+predicate Baz {}
 
 // parse_failure <<<
 // symbol `s0` has already been declared
