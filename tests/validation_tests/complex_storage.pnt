@@ -6,7 +6,7 @@ storage {
     map_in_map_in_map: (int => (b256 => (int => b256))),
 }
 
-intent Foo {
+predicate Foo {
     state address = storage::address;
     state address2 = storage::address2;
     state map_entry = storage::map[69];

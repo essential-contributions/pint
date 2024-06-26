@@ -14,7 +14,7 @@ var j: int[MyEnum];
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 //+var ::a: int[true];
 //+var ::b: int[false];
 //+var ::d: int[0x0000000000000000000000000000000000000000000000000000000000000000];

@@ -1,6 +1,6 @@
 [[data]]
 decision_variables = []
-intent_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", intent = "::Simple" }
+predicate_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", predicate = "::Simple" }
 state_mutations = [
   { key = [
     0,

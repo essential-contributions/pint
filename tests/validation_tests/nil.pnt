@@ -11,8 +11,8 @@ storage {
     w: b256,
 }
 
-// Intent with address `0x0000000000000000000000000000000000000000000000000000000000000000`
-intent Foo {
+// Constraint set with address `0x0000000000000000000000000000000000000000000000000000000000000000`
+predicate Foo {
     state x = storage::x;
     state y = storage::y;
     state z = storage::z;

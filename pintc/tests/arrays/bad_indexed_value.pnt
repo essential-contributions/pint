@@ -4,7 +4,7 @@ constraint __foo()[0] == 3;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::n: int;
 // constraint (__foo()[0] == 3);
 // solve satisfy;

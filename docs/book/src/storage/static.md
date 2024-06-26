@@ -8,7 +8,7 @@ useful.
 Here's an example of a `storage` block:
 
 ```pint
-{{#include ../../../../examples/ch_4_1.pnt:storage_block}}
+{{#include ../../../../examples/ch_5_1.pnt:storage_block}}
 ```
 
 A `storage` starts with the keyword `storage` and followed by a comma-separated list of variable
@@ -49,7 +49,7 @@ smart contract languages before like [Solidity](https://soliditylang.org/). The 
 storage variable in Pint requires the `storage` keyword again:
 
 ```pint
-{{#include ../../../../examples/ch_4_1.pnt:storage_access_1}}
+{{#include ../../../../examples/ch_5_1.pnt:storage_access_1}}
 ```
 
 A few things to note here:
@@ -72,14 +72,14 @@ A state variable is a special type of variables that can only hold values read f
 expression. Type annotations for `state` declarations are optional:
 
 ```pint
-{{#include ../../../../examples/ch_4_1.pnt:state}}
+{{#include ../../../../examples/ch_5_1.pnt:state}}
 ```
 
 Once a `state` variable is declared, it can be used anywhere in its scope as if it were a decision
 variable:
 
 ```pint
-{{#include ../../../../examples/ch_4_1.pnt:constraint}}
+{{#include ../../../../examples/ch_5_1.pnt:constraint}}
 ```
 
 This is an example where two state variables are declared and later constrained as if they were
@@ -103,14 +103,14 @@ execution, statements like `x = x + 1` cannot be written and are not logical. In
 special syntax, reserved for `state` variables, that means "the future value of". Here's an example:
 
 ```pint
-{{#include ../../../../examples/ch_4_1.pnt:next_state}}
+{{#include ../../../../examples/ch_5_1.pnt:next_state}}
 ```
 
 Here, `bal'`, unlike `bal`, is actually unknown at solve-time. That is, `bal'` must be solved for as
 if it were a decision variable and every solution must include a proposed value for `bal'`. If, for
 example, the value of `bal` was read to be `100` at solve-time, a solver might propose that the next
 value of `bal` should be `150` (i.e. `bal' = 150`) which would be a valid solution because `150 >=
-100 + 42` (assuming all other constraints in the intent are also satisfied).
+100 + 42` (assuming all other constraints in the predicate are also satisfied).
 
 This concludes our overview on storage which only focused on statically-sized storage types. In the
 next chapter, we will cover dynamically-sized storage types which offer a lot more flexibility.

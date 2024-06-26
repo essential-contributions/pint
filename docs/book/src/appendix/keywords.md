@@ -18,13 +18,13 @@ modules, or types.
 - `if` - branch based on the result of a conditional expression
 - `in` - checks if an element belongs to a range or to an array
 - `int` - basic integer type
-- `intent` - define an intent
 - `interface` - declare an external interface
 - `macro` - define a macro
 - `maximize` - part of a `solve` statement: maximizes an objective function
 - `minimize` - part of a `solve` statement: minimizes an objective function
+- `predicate` - define a predicate
 - `real` - basic real type
-- `satisfy` - part of a `solve` statement: satisfy the constraints in the intent
+- `satisfy` - part of a `solve` statement: satisfy the constraints in the predicate
 - `self` - used in `use` statements
 - `solve` - define what solve directive to use
 - `state` - bind a state variable

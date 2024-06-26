@@ -21,7 +21,7 @@ var i: int[3 as int];   // Also redundant.
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a: int[[1, 2, 3][1]];
 // var ::b0: int[{1, 2, 3}.1];
 // var ::b1: int[{x: 1, y: 2, z: 3}.y];

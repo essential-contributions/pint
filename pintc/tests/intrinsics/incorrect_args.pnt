@@ -39,7 +39,7 @@ var bad_state_len_2 = __state_len();
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // storage {
 //     x: int,
 // }

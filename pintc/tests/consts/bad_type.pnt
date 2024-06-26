@@ -7,7 +7,7 @@ constraint d == c;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // const ::b: int = {11, 22};
 // const ::a: int = false;
 // const ::c = 33;

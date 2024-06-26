@@ -21,7 +21,7 @@ fn solver_e2e() {
         let handler = pintc::error::Handler::default();
         let deps = Default::default();
 
-        // Produce the initial `IntermediateIntent`
+        // Produce the initial `Predicate`
         let parsed = unwrap_or_continue!(
             pintc::parser::parse_project(&handler, &deps, &path),
             "parse pint",
@@ -30,7 +30,7 @@ fn solver_e2e() {
             handler
         );
 
-        // Parsed II -> Type-checked II
+        // Parsed predicate -> Type-checked predicate
         let type_checked = unwrap_or_continue!(
             parsed.type_check(&handler),
             "type check",
@@ -39,7 +39,7 @@ fn solver_e2e() {
             handler
         );
 
-        // Type checked II -> Flattened II
+        // Type checked predicate -> Flattened predicate
         let flattened = unwrap_or_continue!(
             type_checked.flatten(&handler),
             "flatten",
@@ -48,7 +48,7 @@ fn solver_e2e() {
             handler
         );
 
-        // Flattened II -> Flatpint
+        // Flattened predicate -> Flatpint
         #[allow(unused)]
         let flatpint = unwrap_or_continue!(
             pint_solve::parse_flatpint(&format!("{flattened}",)[..]),

@@ -1,23 +1,23 @@
 type myAlias = int;
 type myCustom = myAlias;
 
-intent Foo {}
+predicate Foo {}
 
 // flattened <<<
 // type ::myAlias = int;
 // type ::myCustom = ::myAlias (int);
 //
-// intent ::Foo {
+// predicate ::Foo {
 //     type ::myAlias = int;
 //     type ::myCustom = ::myAlias (int);
 // }
 // >>>
 
-// intermediate <<<
+// parsed <<<
 // type ::myAlias = int;
 // type ::myCustom = ::myAlias;
 //
-// intent ::Foo {
+// predicate ::Foo {
 //     type ::myAlias = int;
 //     type ::myCustom = ::myAlias;
 // }

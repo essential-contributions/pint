@@ -1,16 +1,16 @@
-intent Foo {
+predicate Foo {
     state y = storage::y;
 }
 
-// intermediate <<<
-// intent ::Foo {
+// parsed <<<
+// predicate ::Foo {
 //     state ::y = storage::y;
 // }
 // >>>
 
 // typecheck_failure <<<
 // cannot find storage variable `y`
-// @27..37: no storage declaration found
+// @30..40: no storage declaration found
 // unable to determine expression type
-// @17..37: type of this expression is ambiguous
+// @20..40: type of this expression is ambiguous
 // >>>

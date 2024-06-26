@@ -80,13 +80,13 @@ solve satisfy;"#;
             panic!("expected last built package `foo` to be a contract");
         };
 
-        // There's only one nameless intent in our simple `foo` test contract.
-        assert_eq!(&contract.intents[0].name, "");
-        let intent = &contract.intents[0];
+        // There's only one nameless predicate in our simple `foo` test contract.
+        assert_eq!(&contract.predicates[0].name, "");
+        let predicate = &contract.predicates[0];
 
         // It should have at least one constraint.
         assert!(
-            !intent.intent.constraints.is_empty(),
+            !predicate.predicate.constraints.is_empty(),
             "built foo should have at least one constraint"
         );
     });
@@ -161,13 +161,13 @@ solve satisfy;"#;
             panic!("expected last built package `foo` to be a contract");
         };
 
-        // There's only one nameless intent in our simple `foo` test contract.
-        assert_eq!(&contract.intents[0].name, "");
-        let intent = &contract.intents[0];
+        // There's only one nameless predicate in our simple `foo` test contract.
+        assert_eq!(&contract.predicates[0].name, "");
+        let predicate = &contract.predicates[0];
 
         // It should have at least one constraint.
         assert!(
-            !intent.intent.constraints.is_empty(),
+            !predicate.predicate.constraints.is_empty(),
             "built foo should have at least one constraint"
         );
     });
@@ -180,13 +180,13 @@ fn build_contract_one_contract_dep() {
     counter: int,
 }
 
-intent Init {
+predicate Init {
     var value: int;
     state counter: int = storage::counter;
     constraint counter' == value;
 }
 
-intent Increment {
+predicate Increment {
     state counter: int = storage::counter;
     constraint counter' == counter + 1;
 }
@@ -196,7 +196,7 @@ intent Increment {
 // The top-level contract address.
 constraint bar::ADDRESS != 0x0000000000000000000000000000000000000000000000000000000000000000;
 
-// The intent addresses.
+// The predicate addresses.
 constraint bar::Init::ADDRESS != 0x0000000000000000000000000000000000000000000000000000000000000000;
 constraint bar::Increment::ADDRESS != 0x0000000000000000000000000000000000000000000000000000000000000000;
 
@@ -234,12 +234,12 @@ solve satisfy;"#;
             panic!("expected first built package `bar` to be a library");
         };
 
-        fn intent_ca<'a>(
+        fn predicate_ca<'a>(
             contract: &'a pint_pkg::build::BuiltContract,
             name: &str,
         ) -> &'a ContentAddress {
             &contract
-                .intents
+                .predicates
                 .iter()
                 .find(|i| i.name.contains(name))
                 .unwrap()
@@ -248,8 +248,8 @@ solve satisfy;"#;
 
         // Retrieve the CA hex strings.
         let bar_ca = &bar_contract.ca;
-        let bar_init_ca = intent_ca(bar_contract, "Init");
-        let bar_increment_ca = intent_ca(bar_contract, "Increment");
+        let bar_init_ca = predicate_ca(bar_contract, "Init");
+        let bar_increment_ca = predicate_ca(bar_contract, "Increment");
 
         // Check that the last was foo and that it's a contract.
         let foo_n = order[1];
@@ -258,7 +258,7 @@ solve satisfy;"#;
             panic!("expected last built package `foo` to be a contract");
         };
 
-        // Check that the bar contract and intent CAs appear in foo's constraints.
+        // Check that the bar contract and predicate CAs appear in foo's constraints.
         fn constraints_contain_ca(
             contract: &pint_pkg::build::BuiltContract,
             ca: &ContentAddress,
@@ -267,8 +267,8 @@ solve satisfy;"#;
             // in the bytecode, the CA is "pushed" to the stack one word at a time.
             for ca_chunk in ca.0.chunks(std::mem::size_of::<Word>()) {
                 let mut contains_chunk = false;
-                for intent in &contract.intents {
-                    for constraint in &intent.intent.constraints {
+                for predicate in &contract.predicates {
+                    for constraint in &predicate.predicate.constraints {
                         if constraint.windows(ca_chunk.len()).any(|w| w == ca_chunk) {
                             contains_chunk |= true;
                         }

@@ -15,7 +15,7 @@ constraint exists i in 0..3 { i + i };
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // constraint forall i in false..true, { false };
 // constraint exists i in false..true, { false };
 // constraint forall i in 1.2e0..3.4e0, { false };

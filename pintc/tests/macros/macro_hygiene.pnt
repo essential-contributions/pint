@@ -11,7 +11,7 @@ var a: int;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a: int;
 // var ::anon@0::a: int;
 // var ::anon@1::a: int;

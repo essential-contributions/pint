@@ -19,7 +19,7 @@ var d_len = __state_len(d);
 
 solve satisfy;
 
-// intermediate <<<,
+// parsed <<<,
 // storage {
 //     a: int,
 //     b: bool,

@@ -1,8 +1,9 @@
-intent Simple {
+predicate Simple {
     pub var x: int;
     pub var y: int;
     pub var w: b256;
     pub var b: bool;
+    pub var c: { int, { int, b256 }, bool };
 
     var z: int;
     var q: int;
@@ -11,4 +12,11 @@ intent Simple {
     constraint w == 0x0000000000000009000000000000000900000000000000090000000000000009;
     constraint b == true;
     constraint !b == false;
+    constraint c == 
+        { 42, { 43, 0x0000000000000008000000000000000800000000000000080000000000000008}, true };
+    constraint c.0 == 42;
+    constraint c.1 == { 43, 0x0000000000000008000000000000000800000000000000080000000000000008};
+    constraint c.1.0 == 43;
+    constraint c.1.1 == 0x0000000000000008000000000000000800000000000000080000000000000008;
+    constraint c.2 == true;
 }

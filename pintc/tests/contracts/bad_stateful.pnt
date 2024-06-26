@@ -1,0 +1,72 @@
+// These are not okay
+var x: int;
+state y: int = __foo();
+constraint x == 3;
+solve satisfy;
+
+// These are okay
+enum Foo = A | B;
+type Boo = Foo;
+
+if true { }
+
+interface Bam { storage { } }
+interface BamInstance = Bam(0x0000000000000000000000000000000000000000000000000000000000000000);
+predicate BamPredicateInstance =
+    BamInstance::BamPredicate(0x0000000000000000000000000000000000000000000000000000000000000000);
+
+predicate Baz {}
+
+// parsed <<<
+// interface ::Bam {
+//     storage {
+//     }
+// }
+// interface ::BamInstance = ::Bam(0x0000000000000000000000000000000000000000000000000000000000000000)
+// predicate ::BamPredicateInstance = ::BamInstance::BamPredicate(0x0000000000000000000000000000000000000000000000000000000000000000)
+// var ::x: int;
+// var __::BamPredicateInstance_pathway: int;
+// state ::y: int = __foo();
+// enum ::Foo = A | B;
+// type ::Boo = ::Foo;
+// constraint (::x == 3);
+// if true {
+// }
+// solve satisfy;
+// 
+// predicate ::Baz {
+//     interface ::Bam {
+//         storage {
+//         }
+//     }
+//     enum ::Foo = A | B;
+//     type ::Boo = ::Foo;
+// }
+// >>>
+
+// typecheck_failure <<<
+// invalid declaration outside a predicate
+// @26..27: invalid variable declaration outside a predicate
+// only `enum` and `type` declarations are allowed outside a predicate
+// invalid declaration outside a predicate
+// @286..416: invalid variable declaration outside a predicate
+// only `enum` and `type` declarations are allowed outside a predicate
+// invalid declaration outside a predicate
+// @34..56: invalid state declaration outside a predicate
+// only `enum` and `type` declarations are allowed outside a predicate
+// invalid declaration outside a predicate
+// @58..75: invalid constraint declaration outside a predicate
+// only `enum` and `type` declarations are allowed outside a predicate
+// invalid declaration outside a predicate
+// @146..157: invalid `if` statement declaration outside a predicate
+// only `enum` and `type` declarations are allowed outside a predicate
+// invalid declaration outside a predicate
+// @77..90: invalid solve directive declaration outside a predicate
+// only `enum` and `type` declarations are allowed outside a predicate
+// invalid declaration outside a predicate
+// @189..284: invalid interface instance declaration outside a predicate
+// only `enum` and `type` declarations are allowed outside a predicate
+// invalid declaration outside a predicate
+// @286..416: invalid predicate instance declaration outside a predicate
+// only `enum` and `type` declarations are allowed outside a predicate
+// >>>

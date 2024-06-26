@@ -5,7 +5,7 @@ var a = Baz;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a;
 // enum ::Foo = Bar | Baz;
 // enum ::Bar = Baz | Xyzzy;

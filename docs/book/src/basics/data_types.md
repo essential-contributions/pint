@@ -182,19 +182,3 @@ You can access elements of an array using by _indexing_ into it, like this:
 In this example, the variable named `c_first` will get the value `1` because that is the value at
 index `0` in the array. The variable named `c_second` will get the value `2` from index `1` in the
 array.
-
-#### Compound Types and `const` Declarations
-
-`const` declarations may refer to values with compound types as long as every element within is a
-constant value. Constant value initializers may also dereference other array or tuple `const`
-declarations or even array or tuple immediates.
-
-```pint
-{{#include ../../../../examples/ch_3_2.pnt:const_compound_types}}
-```
-
-In the above example `next_count` is evaluated at compile time to be fixed as 40.
-
-The `min_size` tuple is adding a flag to a value to mark whether it should be used or not in a
-constraint. This may be convenient during development for turning the `min_size.size` constraint
-on or off.

@@ -34,7 +34,7 @@ state x: I = __storage_get(0);
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::t: ::A;
 // var ::u: ::TheLetterA;
 // var ::v: ::A;

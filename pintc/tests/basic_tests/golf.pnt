@@ -21,7 +21,7 @@ constraint h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 + h9 + h10 + h11 + h12 + h13 + 
 
 solve satisfy;
 
-// intermediate <<<<
+// parsed <<<<
 // var ::h1: int;
 // var ::h2: int;
 // var ::h3: int;

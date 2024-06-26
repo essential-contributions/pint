@@ -1,0 +1,52 @@
+use lib::Baz;
+
+enum Foo = A | B;
+
+predicate Foo {
+    var x: int;
+    constraint x == 3;
+}
+
+type Bar = Foo;
+
+predicate Bar {
+    var y: int;
+    constraint y == 4;
+}
+
+predicate Boo {
+    type Foo = int;
+}
+
+predicate Boo {
+    enum Baz = P | Q;
+
+    var Bar = 5;
+}
+
+// parse_failure <<<
+// symbol `Foo` has already been declared
+// @20..23: previous declaration of the symbol `Foo` here
+// @34..47: `Foo` redeclared here
+// `Foo` must be declared or imported only once in this scope
+// symbol `Bar` has already been declared
+// @97..100: previous declaration of the symbol `Bar` here
+// @109..122: `Bar` redeclared here
+// `Bar` must be declared or imported only once in this scope
+// symbol `Boo` has already been declared
+// @167..180: previous declaration of the symbol `Boo` here
+// @206..219: `Boo` redeclared here
+// `Boo` must be declared or imported only once in this scope
+// symbol `::Foo` has already been declared
+// @20..23: previous declaration of the symbol `::Foo` here
+// @192..195: `::Foo` redeclared here
+// `::Foo` must be declared or imported only once in this scope
+// symbol `::Bar` has already been declared
+// @97..100: previous declaration of the symbol `::Bar` here
+// @253..256: `::Bar` redeclared here
+// `::Bar` must be declared or imported only once in this scope
+// symbol `::Baz` has already been declared
+// @9..12: previous declaration of the symbol `::Baz` here
+// @231..234: `::Baz` redeclared here
+// `::Baz` must be declared or imported only once in this scope
+// >>>

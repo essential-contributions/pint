@@ -12,7 +12,7 @@ constraint ary[0] == b::bry[0];
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::ary: int[4];
 // var ::b::bry: int[4];
 // constraint forall i in 0..2, { (::ary[::i] > ::ary[(::i + 1)]) };

@@ -56,7 +56,7 @@ if condition2 && condition {
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::condition: bool;
 // var ::condition2: bool;
 // var ::condition3: bool;

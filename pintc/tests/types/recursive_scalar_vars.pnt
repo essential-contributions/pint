@@ -4,7 +4,7 @@ var c = a - b;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a;
 // var ::b;
 // var ::c;

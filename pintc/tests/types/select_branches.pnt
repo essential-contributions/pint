@@ -2,7 +2,7 @@ var a: int = true ? 11 : 22.2;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a: int;
 // constraint (::a == (true ? 11 : 2.22e1));
 // solve satisfy;

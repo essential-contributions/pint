@@ -2,7 +2,7 @@ constraint false;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // constraint false;
 // solve satisfy;
 // >>>

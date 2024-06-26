@@ -1,6 +1,6 @@
 use pintc::{
     error::{Errors, Handler, ReportableError},
-    intermediate::Program,
+    predicate::Program,
 };
 use std::{
     fs::{read_dir, File},
@@ -49,12 +49,12 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
 
         // Parse the project and check its output.
         let program = parse_test_and_check(&path, &test_data, &mut failed_tests)
-            .and_then(|ii|
-                // Type check the intermediate intent.
-                type_check(ii, &test_data, &mut failed_tests, &path))
-            .and_then(|ii|
-                // Flatten the intermediate intent check the result.
-                flatten_and_check(ii, &test_data, &mut failed_tests, &path));
+            .and_then(|pred|
+                // Type check the parsed intent.
+                type_check(pred, &test_data, &mut failed_tests, &path))
+            .and_then(|pred|
+                // Flatten the parsed intent check the result.
+                flatten_and_check(pred, &test_data, &mut failed_tests, &path));
 
         // Check the `json` ABI if a reference file exists.
         if let Some(program) = program {
@@ -127,9 +127,9 @@ fn parse_test_and_check(
             }
             None
         }
-        Ok(ii) => {
-            if let Some(expected_intent_str) = &test_data.intermediate {
-                similar_asserts::assert_eq!(expected_intent_str.trim(), format!("{ii}").trim());
+        Ok(pred) => {
+            if let Some(expected_intent_str) = &test_data.parsed {
+                similar_asserts::assert_eq!(expected_intent_str.trim(), format!("{pred}").trim());
             } else if test_data.parse_failure.is_some() {
                 failed_tests.push(path.display().to_string());
                 println!(
@@ -141,23 +141,23 @@ fn parse_test_and_check(
                 failed_tests.push(path.display().to_string());
                 println!(
                     "{} {}.",
-                    "MISSING 'intermediate' OR 'parse_failure' DIRECTIVE".red(),
+                    "MISSING 'parsed' OR 'parse_failure' DIRECTIVE".red(),
                     path.display().to_string().cyan(),
                 );
             }
-            Some(ii)
+            Some(pred)
         }
     }
 }
 
 fn type_check(
-    ii: Program,
+    pred: Program,
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
     path: &Path,
 ) -> Option<Program> {
     let handler = Handler::default();
-    ii.type_check(&handler)
+    pred.type_check(&handler)
         .map(|checked| {
             if test_data.typecheck_failure.is_some() {
                 failed_tests.push(path.display().to_string());
@@ -188,13 +188,13 @@ fn type_check(
 }
 
 fn flatten_and_check(
-    ii: Program,
+    pred: Program,
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
     path: &Path,
 ) -> Option<Program> {
     let handler = Handler::default();
-    ii.flatten(&handler)
+    pred.flatten(&handler)
         .map(|flattened| {
             if let Some(expected_flattened_str) = &test_data.flattened {
                 similar_asserts::assert_eq!(
@@ -260,7 +260,7 @@ mod e2e {
     e2e_test!(asm);
     e2e_test!(directives);
     e2e_test!(canonicalizes);
-    e2e_test!(sets_of_intents);
+    e2e_test!(contracts);
     e2e_test!(storage);
     e2e_test!(intrinsics);
     e2e_test!(root_types);

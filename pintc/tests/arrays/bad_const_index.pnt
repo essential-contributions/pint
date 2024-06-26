@@ -5,7 +5,7 @@ constraint a[-1.2] == 3;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::n: int;
 // var ::a: int[10];
 // constraint (::a[-1.2e0] == 3);

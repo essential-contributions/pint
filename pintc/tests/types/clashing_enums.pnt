@@ -9,7 +9,7 @@ var unfortunate_action = @panicked_response(AttackingBird::Goose);
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::unfortunate_action;
 // enum ::AttackingBird = Goose | Duck | Chicken;
 // enum ::AppropriateDefence = Kick | Runaway | Duck | StareDown;

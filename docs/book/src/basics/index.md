@@ -12,6 +12,6 @@ a strong core to start from.
 
 > **Keywords:** The Pint language has a set of keywords that are reserved for use by the language
 > only, much as in other languages. Keep in mind that you cannot use these words as names of
-> variables, intents, types, or macros. Most of the keywords have special meanings, and you’ll be
+> variables, predicates, types, or macros. Most of the keywords have special meanings, and you’ll be
 > using them to do various tasks in your Pint programs; You can find a list of the keywords in
 > [Appendix A](../appendix/keywords.md).

@@ -2,7 +2,7 @@ constraint b[1] == 2;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // constraint (::b[1] == 2);
 // solve satisfy;
 // >>>

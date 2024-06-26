@@ -31,7 +31,7 @@ var t = {28.28, 29} != {30, 31};
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a;
 // var ::b;
 // var ::c;
