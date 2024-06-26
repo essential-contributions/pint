@@ -65,17 +65,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - uses: conda-incubator/setup-miniconda@v3
-        with:
-          activate-environment: test
-          allow-softlinks: true
-
-      - name: Install dependencies (SCIPOptSuite)
-        run: |
-          conda install -y --prefix $CONDA/envs/test --channel conda-forge scip
-          echo "LD_LIBRARY_PATH=$CONDA/envs/test/lib" >> "${GITHUB_ENV}"
-          echo "CONDA_PREFIX=$CONDA/envs/test" >> "${GITHUB_ENV}"
-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
@@ -95,8 +84,8 @@ jobs:
       - name: Run Workspace Tests
         run: cargo nextest run --release --locked
 
-  build_without_solver:
-    name: Cargo Build and Test Workspace Without Solver Flow
+  build_with_solver:
+    name: Cargo Build and Test Workspace With Solver
     runs-on: ubuntu-latest
     steps:
       - name: Provide Access to Private Repos
@@ -109,6 +98,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: test
+          allow-softlinks: true
+
+      - name: Install dependencies (SCIPOptSuite)
+        run: |
+          conda install -y --prefix $CONDA/envs/test --channel conda-forge scip
+          echo "LD_LIBRARY_PATH=$CONDA/envs/test/lib" >> "${GITHUB_ENV}"
+          echo "CONDA_PREFIX=$CONDA/envs/test" >> "${GITHUB_ENV}"
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
@@ -116,8 +116,8 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Build Workspace Without Solver
-        run: cargo build --release --no-default-features
+      - name: Build Workspace With Solver
+        run: cargo build --release --features solver-scip
 
       - name: Install cargo-nextest
         uses: baptiste0928/cargo-install@v3
@@ -125,8 +125,8 @@ jobs:
           crate: cargo-nextest
           locked: true
 
-      - name: Run Workspace Tests Without Solver
-        run: cargo nextest run --release --locked --no-default-features
+      - name: Run Workspace Tests With Solver
+        run: cargo nextest run --release --locked --features solver-scip
 
   cargo-unused-deps-check:
     name: Cargo Unused Dependencies Check
