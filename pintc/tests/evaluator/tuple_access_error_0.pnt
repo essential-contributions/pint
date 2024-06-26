@@ -2,7 +2,7 @@ const a = { 11, 22 }.2;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // const ::a = {11, 22}.2;
 // solve satisfy;
 // >>>

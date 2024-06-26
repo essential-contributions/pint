@@ -8,7 +8,7 @@ constraint c != [88, 99, 111];
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a: int[4];
 // var ::b;
 // var ::c;

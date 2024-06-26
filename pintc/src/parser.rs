@@ -1,9 +1,9 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, ParseError},
     expr::{Expr, Ident},
-    intermediate::{CallKey, ExprKey, Exprs, IntermediateIntent, Program},
     lexer,
     macros::{self, MacroCall, MacroDecl, MacroExpander},
+    predicate::{CallKey, ExprKey, Exprs, Predicate, Program},
     span::{empty_span, Span, Spanned},
     types::*,
 };
@@ -91,7 +91,7 @@ impl<'a> ProjectParser<'a> {
             program: Program::default(),
             macros: vec![],
             macro_calls: BTreeMap::from([(
-                Program::ROOT_II_NAME.to_string(),
+                Program::ROOT_PRED_NAME.to_string(),
                 slotmap::SecondaryMap::default(),
             )]),
             proj_root_path,
@@ -102,17 +102,17 @@ impl<'a> ProjectParser<'a> {
             unique_idx: 0,
         };
 
-        // Start with an empty II with an empty name. This is the "root intent".
-        project_parser.program.iis.insert(
-            Program::ROOT_II_NAME.to_string(),
-            IntermediateIntent::default(),
-        );
+        // Start with an empty Pred with an empty name. This is the "root predicate".
+        project_parser
+            .program
+            .preds
+            .insert(Program::ROOT_PRED_NAME.to_string(), Predicate::default());
 
         project_parser
     }
 
-    /// Parse the project starting with the `root_src_path` and return an intermediate intent. Upon
-    /// failure, return a vector of all compile errors encountered.
+    /// Parse the project starting with the `root_src_path` and return a predicate. Upon failure,
+    /// return a vector of all compile errors encountered.
     fn parse_project(mut self) -> Self {
         let mut call_replacements = Vec::<(String, ExprKey, Option<ExprKey>, Span)>::new();
         let mut macro_expander = MacroExpander::default();
@@ -150,8 +150,8 @@ impl<'a> ProjectParser<'a> {
             }
 
             let keys = self.macro_calls.keys().cloned().collect::<Vec<_>>();
-            for current_ii in &keys {
-                let macro_calls = self.macro_calls.get_mut(current_ii).unwrap();
+            for current_pred in &keys {
+                let macro_calls = self.macro_calls.get_mut(current_pred).unwrap();
 
                 // Expand the next call. It may find new paths.
                 if let Some(call_key) = macro_calls.keys().nth(0) {
@@ -162,8 +162,8 @@ impl<'a> ProjectParser<'a> {
                     macros::splice_args(
                         self.handler,
                         self.program
-                            .iis
-                            .get(current_ii)
+                            .preds
+                            .get(current_pred)
                             .expect("Call key must be valid"),
                         &mut call,
                     );
@@ -177,13 +177,13 @@ impl<'a> ProjectParser<'a> {
                             &decl_sig_span.context,
                             &call.mod_path,
                             &call,
-                            current_ii.clone(),
+                            current_pred.clone(),
                         );
 
                         self.analyse_and_add_paths(&call.mod_path, &next_paths, &mut pending_paths);
 
                         call_replacements.push((
-                            current_ii.clone(),
+                            current_pred.clone(),
                             call_expr_key,
                             body_expr,
                             call.span.clone(),
@@ -192,10 +192,10 @@ impl<'a> ProjectParser<'a> {
                 }
             }
 
-            for current_ii in keys {
-                let macro_calls = self.macro_calls.get_mut(&current_ii).unwrap();
+            for current_pred in keys {
+                let macro_calls = self.macro_calls.get_mut(&current_pred).unwrap();
                 if macro_calls.is_empty() {
-                    self.macro_calls.remove(&current_ii);
+                    self.macro_calls.remove(&current_pred);
                 }
             }
 
@@ -219,31 +219,31 @@ impl<'a> ProjectParser<'a> {
         // For each call we need to replace its user (there should be just one) with the macro body
         // expression.  Or, for macros which only had declarations and no body expression, just
         // delete the call.
-        for (current_ii, call_expr_key, body_expr_key, span) in call_replacements {
-            let ii = self.program.iis.get_mut(&current_ii).unwrap();
+        for (current_pred, call_expr_key, body_expr_key, span) in call_replacements {
+            let pred = self.program.preds.get_mut(&current_pred).unwrap();
 
             if let Some(body_expr_key) = body_expr_key {
-                ii.replace_exprs(call_expr_key, body_expr_key);
+                pred.replace_exprs(call_expr_key, body_expr_key);
             } else {
-                // Keep track of the removed macro for type-checking, in case the intent
+                // Keep track of the removed macro for type-checking, in case the predicate
                 // erroneously expected the macro call to be an expression (and not just
                 // declarations).
-                ii.removed_macro_calls.insert(call_expr_key, span);
+                pred.removed_macro_calls.insert(call_expr_key, span);
             }
-            ii.exprs.remove(call_expr_key);
+            pred.exprs.remove(call_expr_key);
         }
 
         self
     }
 
     fn finalize(mut self) -> Result<Program, ErrorEmitted> {
-        // Insert all enums, new types, and storage variables from the root II into each non-root
-        // II (i.e. those declared using an `intent { }` decl). Also, insert all top level symbols
-        // since shadowing is not allowed. That is, we can't use a symbol inside an `intent { .. }`
-        // that was already used in the root II.
+        // Insert all enums, new types, and storage variables from the root Pred into each non-root
+        // Pred (i.e. those declared using an `predicate { }` decl). Also, insert all top level
+        // symbols since shadowing is not allowed. That is, we can't use a symbol inside an
+        // `predicate { .. }` that was already used in the root Pred.
 
         macro_rules! process_nested_expr {
-            ($expr_key: expr, $error_msg: literal, $root_exprs: expr, $ii: expr, $handler: expr) => {{
+            ($expr_key: expr, $error_msg: literal, $root_exprs: expr, $pred: expr, $handler: expr) => {{
                 let nested_expr = $root_exprs.get(*$expr_key).ok_or_else(|| {
                     $handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
@@ -252,18 +252,18 @@ impl<'a> ProjectParser<'a> {
                         },
                     })
                 })?;
-                $ii.exprs.insert(
+                $pred.exprs.insert(
                     nested_expr.clone(),
                     Type::Unknown(nested_expr.span().clone()),
                 );
-                deep_copy_expr(nested_expr, $root_exprs, $ii, $handler)
+                deep_copy_expr(nested_expr, $root_exprs, $pred, $handler)
             }};
         }
 
         fn deep_copy_expr(
             expr: &Expr,
             root_exprs: &Exprs,
-            ii: &mut IntermediateIntent,
+            pred: &mut Predicate,
             handler: &Handler,
         ) -> Result<(), ErrorEmitted> {
             match expr {
@@ -284,11 +284,11 @@ impl<'a> ProjectParser<'a> {
                             element_expr_key,
                             "array `element`",
                             root_exprs,
-                            ii,
+                            pred,
                             handler
                         )?;
                     }
-                    process_nested_expr!(range_expr, "array `range`", root_exprs, ii, handler)?;
+                    process_nested_expr!(range_expr, "array `range`", root_exprs, pred, handler)?;
                 }
                 Expr::Tuple { fields, .. } => {
                     for (_, field_expr_key) in fields {
@@ -296,17 +296,17 @@ impl<'a> ProjectParser<'a> {
                             field_expr_key,
                             "tuple `field`",
                             root_exprs,
-                            ii,
+                            pred,
                             handler
                         )?;
                     }
                 }
                 Expr::UnaryOp { expr, .. } => {
-                    process_nested_expr!(expr, "unary op", root_exprs, ii, handler)?;
+                    process_nested_expr!(expr, "unary op", root_exprs, pred, handler)?;
                 }
                 Expr::BinaryOp { lhs, rhs, .. } => {
-                    process_nested_expr!(lhs, "`lhs` of binary op", root_exprs, ii, handler)?;
-                    process_nested_expr!(rhs, "`rhs` of binary op", root_exprs, ii, handler)?;
+                    process_nested_expr!(lhs, "`lhs` of binary op", root_exprs, pred, handler)?;
+                    process_nested_expr!(rhs, "`rhs` of binary op", root_exprs, pred, handler)?;
                 }
                 Expr::IntrinsicCall { args, .. } => {
                     for arg_expr_key in args {
@@ -314,7 +314,7 @@ impl<'a> ProjectParser<'a> {
                             arg_expr_key,
                             "intrinsic call `arg`",
                             root_exprs,
-                            ii,
+                            pred,
                             handler
                         )?;
                     }
@@ -325,30 +325,30 @@ impl<'a> ProjectParser<'a> {
                     else_expr,
                     ..
                 } => {
-                    process_nested_expr!(condition, "if `condition`", root_exprs, ii, handler)?;
-                    process_nested_expr!(then_expr, "if `then expr`", root_exprs, ii, handler)?;
-                    process_nested_expr!(else_expr, "if `else expr`", root_exprs, ii, handler)?;
+                    process_nested_expr!(condition, "if `condition`", root_exprs, pred, handler)?;
+                    process_nested_expr!(then_expr, "if `then expr`", root_exprs, pred, handler)?;
+                    process_nested_expr!(else_expr, "if `else expr`", root_exprs, pred, handler)?;
                 }
                 Expr::Index { expr, index, .. } => {
-                    process_nested_expr!(expr, "index `expr`", root_exprs, ii, handler)?;
-                    process_nested_expr!(index, "index `index`", root_exprs, ii, handler)?;
+                    process_nested_expr!(expr, "index `expr`", root_exprs, pred, handler)?;
+                    process_nested_expr!(index, "index `index`", root_exprs, pred, handler)?;
                 }
                 Expr::TupleFieldAccess { tuple, .. } => {
-                    process_nested_expr!(tuple, "tuple field access", root_exprs, ii, handler)?;
+                    process_nested_expr!(tuple, "tuple field access", root_exprs, pred, handler)?;
                 }
                 Expr::Cast { value, ty, .. } => {
-                    process_nested_expr!(value, "cast `value`", root_exprs, ii, handler)?;
-                    deep_copy_type(ty, root_exprs, ii, handler)?;
+                    process_nested_expr!(value, "cast `value`", root_exprs, pred, handler)?;
+                    deep_copy_type(ty, root_exprs, pred, handler)?;
                 }
                 Expr::In {
                     value, collection, ..
                 } => {
-                    process_nested_expr!(value, "in `value`", root_exprs, ii, handler)?;
-                    process_nested_expr!(collection, "in `collection`", root_exprs, ii, handler)?;
+                    process_nested_expr!(value, "in `value`", root_exprs, pred, handler)?;
+                    process_nested_expr!(collection, "in `collection`", root_exprs, pred, handler)?;
                 }
                 Expr::Range { lb, ub, .. } => {
-                    process_nested_expr!(lb, "range `lower bound`", root_exprs, ii, handler)?;
-                    process_nested_expr!(ub, "range `upper bound`", root_exprs, ii, handler)?;
+                    process_nested_expr!(lb, "range `lower bound`", root_exprs, pred, handler)?;
+                    process_nested_expr!(ub, "range `upper bound`", root_exprs, pred, handler)?;
                 }
                 Expr::Generator {
                     gen_ranges,
@@ -361,7 +361,7 @@ impl<'a> ProjectParser<'a> {
                             range_expr_key,
                             "generator `range`",
                             root_exprs,
-                            ii,
+                            pred,
                             handler
                         )?;
                     }
@@ -370,11 +370,11 @@ impl<'a> ProjectParser<'a> {
                             condition_expr_key,
                             "generator `condition`",
                             root_exprs,
-                            ii,
+                            pred,
                             handler
                         )?;
                     }
-                    process_nested_expr!(body, "generator `body`", root_exprs, ii, handler)?;
+                    process_nested_expr!(body, "generator `body`", root_exprs, pred, handler)?;
                 }
             }
             Ok(())
@@ -383,7 +383,7 @@ impl<'a> ProjectParser<'a> {
         fn deep_copy_type(
             new_type: &Type,
             root_exprs: &Exprs,
-            ii: &mut IntermediateIntent,
+            pred: &mut Predicate,
             handler: &Handler,
         ) -> Result<Type, ErrorEmitted> {
             match &new_type {
@@ -396,13 +396,13 @@ impl<'a> ProjectParser<'a> {
                     let range_expr = range
                         .and_then(|range| root_exprs.get(range))
                         .expect("exists");
-                    deep_copy_expr(range_expr, root_exprs, ii, handler)?;
-                    let new_expr_key = ii
+                    deep_copy_expr(range_expr, root_exprs, pred, handler)?;
+                    let new_expr_key = pred
                         .exprs
                         .insert(range_expr.clone(), Type::Unknown(range_expr.span().clone()));
 
                     Ok(Type::Array {
-                        ty: Box::new(deep_copy_type(ty, root_exprs, ii, handler)?),
+                        ty: Box::new(deep_copy_type(ty, root_exprs, pred, handler)?),
                         range: Some(new_expr_key),
                         size: *size,
                         span: span.clone(),
@@ -413,7 +413,7 @@ impl<'a> ProjectParser<'a> {
                     for field in fields {
                         let new_field = (
                             field.0.clone(),
-                            deep_copy_type(&field.1, root_exprs, ii, handler)?,
+                            deep_copy_type(&field.1, root_exprs, pred, handler)?,
                         );
                         new_fields.push(new_field);
                     }
@@ -424,7 +424,7 @@ impl<'a> ProjectParser<'a> {
                 }
                 Type::Alias { path, ty, span } => Ok(Type::Alias {
                     path: path.to_string(),
-                    ty: Box::new(deep_copy_type(ty, root_exprs, ii, handler)?),
+                    ty: Box::new(deep_copy_type(ty, root_exprs, pred, handler)?),
                     span: span.clone(),
                 }),
                 Type::Map {
@@ -432,8 +432,8 @@ impl<'a> ProjectParser<'a> {
                     ty_to,
                     span,
                 } => Ok(Type::Map {
-                    ty_from: Box::new(deep_copy_type(ty_from, root_exprs, ii, handler)?),
-                    ty_to: Box::new(deep_copy_type(ty_to, root_exprs, ii, handler)?),
+                    ty_from: Box::new(deep_copy_type(ty_from, root_exprs, pred, handler)?),
+                    ty_to: Box::new(deep_copy_type(ty_to, root_exprs, pred, handler)?),
                     span: span.clone(),
                 }),
                 Type::Error(_)
@@ -446,12 +446,12 @@ impl<'a> ProjectParser<'a> {
         fn deep_copy_new_types(
             root_new_types: &Vec<NewTypeDecl>,
             root_exprs: &Exprs,
-            ii: &mut IntermediateIntent,
+            pred: &mut Predicate,
             handler: &Handler,
         ) -> Result<(), ErrorEmitted> {
             for new_type in root_new_types {
-                let new_type_decl = deep_copy_type(&new_type.ty, root_exprs, ii, handler)?;
-                ii.new_types.push(NewTypeDecl {
+                let new_type_decl = deep_copy_type(&new_type.ty, root_exprs, pred, handler)?;
+                pred.new_types.push(NewTypeDecl {
                     name: new_type.name.clone(),
                     ty: new_type_decl,
                     span: new_type.span.clone(),
@@ -460,28 +460,28 @@ impl<'a> ProjectParser<'a> {
             Ok(())
         }
 
-        let enums = self.program.root_ii().enums.clone();
-        let new_types = self.program.root_ii().new_types.clone();
-        let root_symbols = self.program.root_ii().top_level_symbols.clone();
-        let storage = self.program.root_ii().storage.clone();
-        let interfaces = self.program.root_ii().interfaces.clone();
-        let exprs = self.program.root_ii().exprs.clone();
+        let enums = self.program.root_pred().enums.clone();
+        let new_types = self.program.root_pred().new_types.clone();
+        let root_symbols = self.program.root_pred().top_level_symbols.clone();
+        let storage = self.program.root_pred().storage.clone();
+        let interfaces = self.program.root_pred().interfaces.clone();
+        let exprs = self.program.root_pred().exprs.clone();
 
         self.program
-            .iis
+            .preds
             .iter_mut()
-            .filter(|(name, _)| *name != &Program::ROOT_II_NAME.to_string())
-            .for_each(|(_, ii)| {
-                let _ = deep_copy_new_types(&new_types, &exprs, ii, self.handler);
-                ii.enums.extend_from_slice(&enums);
-                ii.storage.clone_from(&storage);
-                ii.interfaces.clone_from(&interfaces);
+            .filter(|(name, _)| *name != &Program::ROOT_PRED_NAME.to_string())
+            .for_each(|(_, pred)| {
+                let _ = deep_copy_new_types(&new_types, &exprs, pred, self.handler);
+                pred.enums.extend_from_slice(&enums);
+                pred.storage.clone_from(&storage);
+                pred.interfaces.clone_from(&interfaces);
 
                 for (symbol, span) in &root_symbols {
-                    // We could call `ii.add_top_level_symbol_with_name` directly here, but then
+                    // We could call `pred.add_top_level_symbol_with_name` directly here, but then
                     // the spans would be reversed so I decided to do this manually. We want the
-                    // actual error to point to the symbol inside the `intent` decl.
-                    ii.top_level_symbols
+                    // actual error to point to the symbol inside the `predicate` decl.
+                    pred.top_level_symbols
                         .get(symbol)
                         .map(|prev_span| {
                             self.handler.emit_err(Error::Parse {
@@ -493,7 +493,7 @@ impl<'a> ProjectParser<'a> {
                             });
                         })
                         .unwrap_or_else(|| {
-                            ii.top_level_symbols.insert(symbol.clone(), span.clone());
+                            pred.top_level_symbols.insert(symbol.clone(), span.clone());
                         });
                 }
             });
@@ -522,7 +522,7 @@ macro_rules! parse_with {
      $mod_path: ident,
      $local_scope: expr,
      $macro_ctx: expr,
-     $current_ii: expr,
+     $current_pred: expr,
      $handler: expr,
      ) => {{
         let span_from = |start, end| Span {
@@ -536,7 +536,7 @@ macro_rules! parse_with {
             .collect::<Vec<_>>()
             .concat();
         mod_prefix.push_str("::");
-        let mut current_ii = $current_ii.to_string();
+        let mut current_pred = $current_pred.to_string();
 
         let mut next_paths = Vec::new();
 
@@ -545,7 +545,7 @@ macro_rules! parse_with {
             mod_prefix: &mod_prefix,
             local_scope: $local_scope,
             program: &mut $self.program,
-            current_ii: &mut current_ii,
+            current_pred: &mut current_pred,
             macros: &mut $self.macros,
             macro_calls: &mut $self.macro_calls,
             span_from: &span_from,
@@ -608,7 +608,7 @@ impl<'a> ProjectParser<'a> {
             mod_path,
             None,                           // local_scope
             Option::<(String, Span)>::None, // macro_ctx
-            Program::ROOT_II_NAME, // The II when we explore a new module is always the root II
+            Program::ROOT_PRED_NAME, // The Pred when we explore a new module is always the root Pred
             self.handler,
         )
     }
@@ -619,7 +619,7 @@ impl<'a> ProjectParser<'a> {
         src_path: &Rc<Path>,
         mod_path: &[String],
         macro_call: &MacroCall,
-        current_ii: String,
+        current_pred: String,
     ) -> (Option<ExprKey>, Vec<NextModPath>) {
         let local_scope = format!("anon@{}", self.unique_idx);
         self.unique_idx += 1;
@@ -631,7 +631,7 @@ impl<'a> ProjectParser<'a> {
             mod_path,
             Some(&local_scope),
             Some((macro_call.name.clone(), macro_call.span.clone())),
-            current_ii,
+            current_pred,
             self.handler,
         )
     }
@@ -794,13 +794,13 @@ impl TestWrapper {
     }
 }
 
-impl crate::intermediate::DisplayWithII for TestWrapper {
-    fn fmt(&self, f: &mut std::fmt::Formatter, ii: &IntermediateIntent) -> std::fmt::Result {
+impl crate::predicate::DisplayWithPred for TestWrapper {
+    fn fmt(&self, f: &mut std::fmt::Formatter, pred: &Predicate) -> std::fmt::Result {
         match self {
-            TestWrapper::Expr(e) => e.fmt(f, ii),
-            TestWrapper::Type(t) => t.fmt(f, ii),
-            TestWrapper::Ident(i) => i.fmt(f, ii),
-            TestWrapper::UseTree(_) => panic!("DisplayWithII not avilable for UseTree"),
+            TestWrapper::Expr(e) => e.fmt(f, pred),
+            TestWrapper::Type(t) => t.fmt(f, pred),
+            TestWrapper::Ident(i) => i.fmt(f, pred),
+            TestWrapper::UseTree(_) => panic!("DisplayWithPred not avilable for UseTree"),
         }
     }
 }

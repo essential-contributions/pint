@@ -15,7 +15,6 @@ num-traits = "0.2"
 pintc = { path = "../pintc", default-features = false }
 regex = "1.10"
 serde = "1.0"
-# serde_json = "1.0" # This was triggering cargo-udeps lint error after removing intent-server?
 test-util = { path = "../test-util" }
 yansi = { workspace = true }
 

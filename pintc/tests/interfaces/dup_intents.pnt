@@ -1,34 +1,36 @@
 interface I1 {
-    intent A;
-    intent A { }
-    intent A { pub var x: int; }
-    intent B;
+    predicate A;
+    predicate A { }
+    predicate A { pub var x: int; }
+    predicate B;
 }
 
 interface I2 {
-    intent C;
-    intent C { }
-    intent C { pub var y: bool; }
-    intent B;
+    predicate C;
+    predicate C { }
+    predicate C { pub var y: bool; }
+    predicate B;
 }
 
-intent Foo { }
+Foo { }
 
 // parse_failure <<<
 // symbol `A` has already been declared
-// @26..27: previous declaration of the symbol `A` here
-// @40..41: `A` redeclared here
+// @29..30: previous declaration of the symbol `A` here
+// @46..47: `A` redeclared here
 // `A` must be declared or imported only once in this scope
 // symbol `A` has already been declared
-// @26..27: previous declaration of the symbol `A` here
-// @57..58: `A` redeclared here
+// @29..30: previous declaration of the symbol `A` here
+// @66..67: `A` redeclared here
 // `A` must be declared or imported only once in this scope
 // symbol `C` has already been declared
-// @122..123: previous declaration of the symbol `C` here
-// @136..137: `C` redeclared here
+// @137..138: previous declaration of the symbol `C` here
+// @154..155: `C` redeclared here
 // `C` must be declared or imported only once in this scope
 // symbol `C` has already been declared
-// @122..123: previous declaration of the symbol `C` here
-// @153..154: `C` redeclared here
+// @137..138: previous declaration of the symbol `C` here
+// @174..175: `C` redeclared here
 // `C` must be declared or imported only once in this scope
+// expected `::`, found `{`
+// @221..222: expected `::`
 // >>>

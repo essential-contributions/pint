@@ -1,8 +1,8 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{Expr, Ident, Immediate},
-    intermediate::{ExprKey, IntermediateIntent, Var},
     lexer::Token,
+    predicate::{ExprKey, Predicate, Var},
     span::Span,
     types::{EnumDecl, Path},
 };
@@ -105,7 +105,7 @@ pub(crate) fn verify_unique_set(
     Ok(())
 }
 
-pub(crate) fn splice_args(handler: &Handler, ii: &IntermediateIntent, call: &mut MacroCall) {
+pub(crate) fn splice_args(handler: &Handler, pred: &Predicate, call: &mut MacroCall) {
     // Find any args which are spliced identifiers.  Make a list of (arg idx, token idx,
     // identifier name, token span range).
     let mut spliced_args = Vec::new();
@@ -134,14 +134,15 @@ pub(crate) fn splice_args(handler: &Handler, ii: &IntermediateIntent, call: &mut
         // `mod_path_str` above, taken from the call) and we trim the `~` from the name here.
         let array_path = mod_path_str.clone() + "::" + &array_name[1..];
 
-        if let Some(var_key) = ii
+        if let Some(var_key) = pred
             .vars()
             .find_map(|(var_key, Var { name, .. })| (name == &array_path).then_some(var_key))
         {
-            let var_ty = var_key.get_ty(ii);
+            let var_ty = var_key.get_ty(pred);
             if !var_ty.is_unknown() {
                 if let Some(range_expr_key) = var_ty.get_array_range_expr() {
-                    if let Some((size, opt_enum)) = splice_get_array_range_size(ii, range_expr_key)
+                    if let Some((size, opt_enum)) =
+                        splice_get_array_range_size(pred, range_expr_key)
                     {
                         // Store where and what to replace in the new spliced args.
                         replacements.insert(
@@ -164,9 +165,9 @@ pub(crate) fn splice_args(handler: &Handler, ii: &IntermediateIntent, call: &mut
                         },
                     });
                 }
-            } else if let Some(var_init_key) = ii.var_inits.get(var_key) {
-                if let Some(Expr::Array { range_expr, .. }) = var_init_key.try_get(ii) {
-                    if let Some((size, opt_enum)) = splice_get_array_range_size(ii, *range_expr) {
+            } else if let Some(var_init_key) = pred.var_inits.get(var_key) {
+                if let Some(Expr::Array { range_expr, .. }) = var_init_key.try_get(pred) {
+                    if let Some((size, opt_enum)) = splice_get_array_range_size(pred, *range_expr) {
                         // Store where and what to replace in the new spliced args.
                         replacements.insert(
                             (arg_idx, tok_idx),
@@ -267,21 +268,23 @@ pub(crate) fn splice_args(handler: &Handler, ii: &IntermediateIntent, call: &mut
 type OptEnumDecl = Option<(Ident, Vec<Ident>)>;
 
 fn splice_get_array_range_size(
-    ii: &IntermediateIntent,
+    pred: &Predicate,
     range_expr_key: ExprKey,
 ) -> Option<(usize, OptEnumDecl)> {
     range_expr_key
-        .try_get(ii)
+        .try_get(pred)
         .and_then(|range_expr| match range_expr {
             Expr::Immediate {
                 value: Immediate::Int(size),
                 ..
             } => Some((*size as usize, None)),
             Expr::PathByName(path, _) => {
-                ii.enums.iter().find_map(|EnumDecl { name, variants, .. }| {
-                    (&name.name == path)
-                        .then(|| (variants.len(), Some((name.clone(), variants.clone()))))
-                })
+                pred.enums
+                    .iter()
+                    .find_map(|EnumDecl { name, variants, .. }| {
+                        (&name.name == path)
+                            .then(|| (variants.len(), Some((name.clone(), variants.clone()))))
+                    })
             }
 
             _ => None,

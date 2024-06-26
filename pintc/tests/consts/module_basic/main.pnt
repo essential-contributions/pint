@@ -3,7 +3,7 @@ var b = a + b::x;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // const ::a = (::b::x * 11);
 // const ::b::x: int = 22;
 // var ::b;

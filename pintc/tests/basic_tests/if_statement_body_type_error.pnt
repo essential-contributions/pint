@@ -31,7 +31,7 @@ if true {
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::z: bool;
 // var ::x: int;
 // var ::y: int;

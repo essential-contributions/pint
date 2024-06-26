@@ -2,12 +2,12 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ProgramABI {
-    pub intents: Vec<IntentABI>,
+    pub predicates: Vec<PredicateABI>,
     pub storage: Vec<KeyedVarABI>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct IntentABI {
+pub struct PredicateABI {
     pub name: String,
     pub vars: Vec<VarABI>,
     pub pub_vars: Vec<KeyedVarABI>,

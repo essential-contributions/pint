@@ -24,7 +24,7 @@ constraint nsw != v;
 // We're just looking for a satisfying assignment of colours
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::wa: ::Colour;
 // var ::nt: ::Colour;
 // var ::sa: ::Colour;

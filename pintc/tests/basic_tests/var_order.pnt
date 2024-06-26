@@ -10,7 +10,7 @@ var e: { MyEnum, bool };
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::y: bool;
 // var ::t: {int, bool, {b256, {int, bool}}, b256};
 // var ::a: int[2][4];

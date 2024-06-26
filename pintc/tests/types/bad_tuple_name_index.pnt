@@ -4,7 +4,7 @@ constraint a.z > 33;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a;
 // constraint (::a == {x: 11, y: 2.22e1});
 // constraint (::a.z > 33);

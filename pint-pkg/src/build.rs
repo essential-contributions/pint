@@ -5,8 +5,8 @@ use crate::{
     plan::{Graph, NodeIx, Pinned, PinnedManifests, Plan},
 };
 use abi_types::ProgramABI;
-use essential_types::{intent::Intent, ContentAddress};
-use pintc::{asm_gen::program_to_intents, intermediate::ProgramKind};
+use essential_types::{intent::Intent as CompiledPredicate, ContentAddress};
+use pintc::{asm_gen::compile_program, predicate::ProgramKind};
 use std::{collections::HashMap, path::PathBuf};
 use thiserror::Error;
 
@@ -42,8 +42,8 @@ pub enum BuiltPkg {
 #[derive(Debug)]
 pub struct BuiltContract {
     pub kind: ProgramKind,
-    /// All built intents.
-    pub intents: Vec<BuiltIntent>,
+    /// All built predicates.
+    pub predicates: Vec<BuiltPredicate>,
     /// The content address of the contract.
     pub ca: ContentAddress,
     /// The entry-point into the temp library submodules used to provide the CAs.
@@ -52,21 +52,21 @@ pub struct BuiltContract {
     pub abi: ProgramABI,
 }
 
-/// An intent built as a part of a contract.
+/// An predicate built as a part of a contract.
 #[derive(Debug)]
-pub struct BuiltIntent {
-    /// The content address of the intent.
+pub struct BuiltPredicate {
+    /// The content address of the predicate.
     pub ca: ContentAddress,
-    /// The name of the intent from the code.
+    /// The name of the predicate from the code.
     pub name: String,
-    pub intent: Intent,
+    pub predicate: CompiledPredicate,
 }
 
 /// A successfully built library package.
 #[derive(Debug)]
 pub struct BuiltLibrary {
     /// The compiled program.
-    pub program: pintc::intermediate::Program,
+    pub program: pintc::predicate::Program,
 }
 
 /// An error occurred while building according to a compilation plan.
@@ -92,8 +92,8 @@ pub enum BuildPkgErrorKind {
     #[error("`pintc` encountered an error: {0}")]
     Pintc(#[from] PintcError),
     #[error("expected library to be stateless, but type-checking shows the library is stateful")]
-    StatefulLibrary(pintc::intermediate::Program),
-    #[error("failed to create lib providing contract and intent CAs for {0:?}: {1}")]
+    StatefulLibrary(pintc::predicate::Program),
+    #[error("failed to create lib providing contract and predicate CAs for {0:?}: {1}")]
     ContractLibrary(String, std::io::Error),
 }
 
@@ -107,8 +107,8 @@ pub enum PintcError {
     Flatten,
     #[error("abi gen")]
     ABIGen,
-    #[error("intent-gen error")]
-    IntentGen,
+    #[error("asm-gen error")]
+    AsmGen,
 }
 
 impl<'p> PlanBuilder<'p> {
@@ -198,11 +198,14 @@ fn dependencies<'a>(
 }
 
 /// Given a built contract, generate a library with a module and constant for
-/// each intent's contract address along with a constant for the contract's
+/// each predicate's contract address along with a constant for the contract's
 /// content address.
 ///
 /// Returns the entry point to the library.
-fn contract_dep_lib(ca: &ContentAddress, intents: &[BuiltIntent]) -> std::io::Result<PathBuf> {
+fn contract_dep_lib(
+    ca: &ContentAddress,
+    predicates: &[BuiltPredicate],
+) -> std::io::Result<PathBuf> {
     // Temporary directory for the contract project.
     let temp_dir = std::env::temp_dir().join(format!("{:x}", ca));
     std::fs::create_dir_all(&temp_dir)?;
@@ -212,13 +215,13 @@ fn contract_dep_lib(ca: &ContentAddress, intents: &[BuiltIntent]) -> std::io::Re
     let lib_path = temp_dir.join("lib.pnt");
     std::fs::write(&lib_path, lib_str.as_bytes())?;
 
-    // Write the intent CAs to submodules.
-    for intent in intents {
-        let submod_str = format!("const ADDRESS: b256 = 0x{:x};", intent.ca);
+    // Write the predicate CAs to submodules.
+    for predicate in predicates {
+        let submod_str = format!("const ADDRESS: b256 = 0x{:x};", predicate.ca);
 
-        // Create the path to the submodule from the intent name.
-        let mut submod: Vec<&str> = intent.name.split("::").collect();
-        // The root intent is nameless when output from pint, so we give it a name.
+        // Create the path to the submodule from the predicate name.
+        let mut submod: Vec<&str> = predicate.name.split("::").collect();
+        // The root predicate is nameless when output from pint, so we give it a name.
         if matches!(&submod[..], &[""]) {
             submod = vec!["root"];
         }
@@ -260,7 +263,7 @@ fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg,
     let built_pkg = match manifest.pkg.kind {
         manifest::PackageKind::Library => {
             // Check that the Library is not stateful.
-            if let pintc::intermediate::ProgramKind::Stateful = program.kind {
+            if let ProgramKind::Stateful = program.kind {
                 let kind = BuildPkgErrorKind::StatefulLibrary(program);
                 return Err(BuildPkgError { handler, kind });
             }
@@ -280,30 +283,34 @@ fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg,
                 return Err(BuildPkgError { handler, kind });
             };
 
-            // Generate the assembly and the intents.
-            let Ok(contract) = handler.scope(|h| program_to_intents(h, &flattened)) else {
-                let kind = BuildPkgErrorKind::from(PintcError::IntentGen);
+            // Generate the assembly and the predicates.
+            let Ok(contract) = handler.scope(|h| compile_program(h, &flattened)) else {
+                let kind = BuildPkgErrorKind::from(PintcError::AsmGen);
                 return Err(BuildPkgError { handler, kind });
             };
 
-            // Collect the intents alongside their content addresses.
-            let intents: Vec<_> = contract
-                .intents
+            // Collect the predicates alongside their content addresses.
+            let predicates: Vec<_> = contract
+                .predicates
                 .into_iter()
                 .zip(contract.names)
-                .map(|(intent, name)| {
-                    let ca = essential_hash::content_addr(&intent);
-                    BuiltIntent { ca, name, intent }
+                .map(|(predicate, name)| {
+                    let ca = essential_hash::content_addr(&predicate);
+                    BuiltPredicate {
+                        ca,
+                        name,
+                        predicate,
+                    }
                 })
                 .collect();
 
             // The CA of the contract.
             let ca = essential_hash::intent_set_addr::from_intent_addrs(
-                intents.iter().map(|intent| intent.ca.clone()),
+                predicates.iter().map(|predicate| predicate.ca.clone()),
             );
 
-            // Generate a temp lib for providing the contract and intent CAs to dependents.
-            let lib_entry_point = match contract_dep_lib(&ca, &intents) {
+            // Generate a temp lib for providing the contract and predicate CAs to dependents.
+            let lib_entry_point = match contract_dep_lib(&ca, &predicates) {
                 Ok(path) => path,
                 Err(e) => {
                     let kind = BuildPkgErrorKind::ContractLibrary(pinned.name.clone(), e);
@@ -315,7 +322,7 @@ fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg,
             let contract = BuiltContract {
                 kind,
                 ca,
-                intents,
+                predicates,
                 lib_entry_point,
                 abi,
             };

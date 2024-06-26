@@ -28,7 +28,7 @@ __mut_keys_contains(key: int[<n>]) -> bool
 __this_address() -> b256
 ```
 
-**Description:** Returns the content hash of this intent.
+**Description:** Returns the content hash of this predicate.
 
 ---
 
@@ -36,7 +36,7 @@ __this_address() -> b256
 __this_set_address() -> b256
 ```
 
-**Description:** Returns the content hash of the set of intents that this intent belongs to.
+**Description:** Returns the content hash of the contract that this predicate belongs to.
 
 ---
 
@@ -44,8 +44,8 @@ __this_set_address() -> b256
 __this_pathway() -> int
 ```
 
-**Description:** Returns the "pathway" of this intent. The pathway of an intent is the index of the
-solution data currently being used to check the intent.
+**Description:** Returns the "pathway" of this predicate. The pathway of a predicate is the index of
+the solution data currently being used to check the predicate.
 
 ---
 

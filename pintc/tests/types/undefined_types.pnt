@@ -10,7 +10,7 @@ var e = a as Xyzzy;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a: int;
 // var ::b: ::Foo;
 // var ::c;

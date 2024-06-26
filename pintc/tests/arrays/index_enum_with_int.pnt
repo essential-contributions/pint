@@ -5,7 +5,7 @@ constraint ary[1] == 1;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::ary: int[::Num];
 // enum ::Num = Zero | One | Two | Three;
 // constraint (::ary[1] == 1);

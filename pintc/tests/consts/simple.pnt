@@ -22,7 +22,7 @@ constraint u == h.1 && u != i[2];
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // const ::i: bool[3] = [false, true, true];
 // const ::b = 0x2222222222222222222222222222222222222222222222222222222222222222;
 // const ::h: {int, bool} = {1010, false};

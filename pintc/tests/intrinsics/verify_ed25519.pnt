@@ -26,7 +26,7 @@ var verify_ed25519_9: bool = __verify_ed25519(a[1][2][3], sig, hash2);
 
 solve satisfy;
 
-// intermediate <<<,
+// parsed <<<,
 // var ::hash0: b256;
 // var ::hash1: b256;
 // var ::hash2: b256;

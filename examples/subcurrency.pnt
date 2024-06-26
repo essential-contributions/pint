@@ -4,7 +4,7 @@ storage {
 }
 
 // Sends an amount of newly created coins to an address
-intent Mint {
+predicate Mint {
     var receiver: b256;
     var amount: int;
 
@@ -16,7 +16,7 @@ intent Mint {
 }
 
 // Sends an amount of existing coins from address `from` to address `receiver`
-intent Send {
+predicate Send {
     var from: b256;
     var receiver: b256;
     var amount: int;

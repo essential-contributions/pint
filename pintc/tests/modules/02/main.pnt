@@ -16,7 +16,7 @@ constraint b > c;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::c: int;
 // var ::a::b: int;
 // state ::d: bool = ::hello_world();

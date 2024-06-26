@@ -74,9 +74,9 @@ async fn validation_e2e() -> anyhow::Result<()> {
             handler
         );
 
-        // Flattened program -> Assembly (aka collection of Intents)
-        let intents = unwrap_or_continue!(
-            pintc::asm_gen::program_to_intents(&handler, &flattened),
+        // Flattened program -> Assembly (aka collection of compiled predicates)
+        let compiled_program = unwrap_or_continue!(
+            pintc::asm_gen::compile_program(&handler, &flattened),
             "asm gen",
             failed_tests,
             path,
@@ -84,35 +84,36 @@ async fn validation_e2e() -> anyhow::Result<()> {
         );
 
         // Parse a solution file
-        let solution = parse_solution(&path.with_extension("toml"), &intents)?;
+        let solution = parse_solution(&path.with_extension("toml"), &compiled_program)?;
 
-        // We're only going to verify the intent in the first solution data, which we assume
-        // corresponds to one of the intents in `intents` produce above. All other solution data
-        // correspond to external intents that we're not going to verify here at this point.
-        let intent_to_check_index = 0; // Only the first one!
-        let intent_to_check = &solution.data[intent_to_check_index].intent_to_solve;
+        // We're only going to verify the predicate in the first solution data, which we assume
+        // corresponds to one of the predicates in `compiled_program` produce above. All other
+        // solution data correspond to external predicate that we're not going to verify here at
+        // this point.
+        let predicate_to_check_index = 0; // Only the first one!
+        let predicate_to_check = &solution.data[predicate_to_check_index].intent_to_solve;
         let transient_data = essential_constraint_vm::transient_data(&solution);
 
         // This is the access that contains an access to some solution data and will contain the
         // pre and post states.
-        let mutable_keys = mut_keys_set(&solution, intent_to_check_index as u16);
+        let mutable_keys = mut_keys_set(&solution, predicate_to_check_index as u16);
         let mut access = Access {
             solution: SolutionAccess::new(
                 &solution,
-                intent_to_check_index as u16,
+                predicate_to_check_index as u16,
                 &mutable_keys,
                 &transient_data,
             ),
             state_slots: StateSlots::EMPTY,
         };
 
-        // Find the individual intent that corresponds to the intent address specified in
-        // `intent_to_verify`. Here, we assume that the last byte in the address matches the
-        // index of the intent in in the BTreeMap `intents.intents`.
-        let intent = &intents.intents[intent_to_check.intent.0[31] as usize];
+        // Find the individual predicate that corresponds to the predicate address specified in
+        // `predicate_to_verify`. Here, we assume that the last byte in the address matches the
+        // index of the predicate in in the BTreeMap `compiled_program.predicates`.
+        let predicate = &compiled_program.predicates[predicate_to_check.intent.0[31] as usize];
 
         // Pre-populate the pre-state with all the db content, but first, every solution data
-        // intent set has to be inserted.
+        // predicate set has to be inserted.
         let mut pre_state = State::new(
             solution
                 .data
@@ -129,7 +130,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
                 let (set_address, key, value) = if split.len() == 3 {
                     (ContentAddress(hex_to_bytes(split[0])), split[1], split[2])
                 } else if split.len() == 2 {
-                    (intent_to_check.set.clone(), split[0], split[1])
+                    (predicate_to_check.set.clone(), split[0], split[1])
                 } else {
                     panic!("Error parsing db section");
                 };
@@ -149,9 +150,9 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
         // Produce the pre state slots by running all the state read programs
         let mut pre_state_slots = vec![];
-        for idx in 0..intent.state_read.len() {
+        for idx in 0..predicate.state_read.len() {
             let mut vm = Vm::default();
-            let state_read_ops: Vec<_> = asm::from_bytes(intent.state_read[idx].iter().copied())
+            let state_read_ops: Vec<_> = asm::from_bytes(predicate.state_read[idx].iter().copied())
                 .collect::<Result<BytecodeMapped, _>>()
                 .expect("expecting valid state read bytecode")
                 .ops()
@@ -184,9 +185,9 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
         // Produce the post state slots by running all the state read programs using `post_state`
         let mut post_state_slots = vec![];
-        for idx in 0..intent.state_read.len() {
+        for idx in 0..predicate.state_read.len() {
             let mut vm = Vm::default();
-            let ops: Vec<_> = asm::from_bytes(intent.state_read[idx].iter().copied())
+            let ops: Vec<_> = asm::from_bytes(predicate.state_read[idx].iter().copied())
                 .collect::<Result<BytecodeMapped, _>>()
                 .unwrap()
                 .ops()
@@ -208,7 +209,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
             post: &post_state_slots[..],
         };
 
-        match constraint::check_intent(&intent.constraints, access) {
+        match constraint::check_intent(&predicate.constraints, access) {
             Ok(_) => {}
             Err(err) => {
                 println!("{}", format!("    Error submitting solution: {err}").red());
@@ -231,7 +232,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
 /// Parse a `toml` file into a `Solution`
 fn parse_solution(
     path: &std::path::Path,
-    intents: &pintc::asm_gen::Intents,
+    compiled_program: &pintc::asm_gen::CompiledProgram,
 ) -> anyhow::Result<Solution> {
     let toml_content_str = std::fs::read_to_string(path)?;
     let toml_content = toml_content_str.parse::<toml::Value>()?;
@@ -261,32 +262,34 @@ fn parse_solution(
                     })
                     .collect::<anyhow::Result<Vec<_>, _>>()?;
 
-                // The intent to solve is either `Transient` or `Persistent`
-                let intent_to_solve = match e.get("intent_to_solve") {
+                // The predicate to solve is either `Transient` or `Persistent`
+                let predicate_to_solve = match e.get("predicate_to_solve") {
                     Some(s) => IntentAddress {
                         set: ContentAddress(hex_to_bytes(
-                            s.get("set")
-                                .and_then(|set| set.as_str())
-                                .ok_or_else(|| anyhow!("Invalid persistent intent_to_solve set"))?,
+                            s.get("set").and_then(|set| set.as_str()).ok_or_else(|| {
+                                anyhow!("Invalid persistent predicate_to_solve set")
+                            })?,
                         )),
-                        intent: match s.get("intent") {
-                            // Here, we convert the intent name into an address that is equal to
-                            // the index of the intent in the set of intents. This just a way to
-                            // later figure out what constraints we have to check.
-                            Some(intent) => {
-                                let index = intents
+                        intent: match s.get("predicate") {
+                            // Here, we convert the predicate name into an address that is equal to
+                            // the index of the predicate in the contract. This just a way to later
+                            // figure out what constraints we have to check.
+                            Some(predicate) => {
+                                let index = compiled_program
                                     .names
                                     .iter()
-                                    .position(|name| name == intent.as_str().unwrap())
+                                    .position(|name| name == predicate.as_str().unwrap())
                                     .unwrap_or_default();
                                 let mut bytes: [u8; 32] = [0; 32];
                                 bytes[31] = index as u8;
                                 ContentAddress(bytes)
                             }
-                            None => return Err(anyhow!("Invalid persistent intent_to_solve set")),
+                            None => {
+                                return Err(anyhow!("Invalid persistent predicate_to_solve set"))
+                            }
                         },
                     },
-                    None => return Err(anyhow!("'intent_to_solve' field is missing")),
+                    None => return Err(anyhow!("'predicate_to_solve' field is missing")),
                 };
 
                 let state_mutations = e
@@ -356,7 +359,7 @@ fn parse_solution(
                     .collect::<anyhow::Result<Vec<_>>>()?;
 
                 Ok(SolutionData {
-                    intent_to_solve,
+                    intent_to_solve: predicate_to_solve,
                     decision_variables,
                     state_mutations,
                     transient_data,

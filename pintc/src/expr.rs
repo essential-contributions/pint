@@ -1,5 +1,5 @@
 use crate::{
-    intermediate::{CallKey, ExprKey, VarKey},
+    predicate::{CallKey, ExprKey, VarKey},
     span::{empty_span, Span, Spanned},
     types::{Path, PrimitiveKind, Type},
 };

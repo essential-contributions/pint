@@ -120,16 +120,16 @@ pub enum CompileError {
     InvalidNextStateAccess { span: Span },
     #[error("cannot find interface declaration `{name}`")]
     MissingInterface { name: String, span: Span },
-    #[error("cannot find intent `{intent_name}` in interface `{interface_name}`")]
-    MissingIntentInterface {
-        intent_name: String,
+    #[error("cannot find predicate `{pred_name}` in interface `{interface_name}`")]
+    MissingPredicateInterface {
+        pred_name: String,
         interface_name: String,
         span: Span,
     },
     #[error("cannot find interface instance `{name}`")]
     MissingInterfaceInstance { name: String, span: Span },
-    #[error("cannot find intent instance `{name}`")]
-    MissingIntentInstance { name: String, span: Span },
+    #[error("cannot find predicate instance `{name}`")]
+    MissingPredicateInstance { name: String, span: Span },
     #[error("address expression type error")]
     AddressExpressionTypeError { large_err: Box<LargeTypeError> },
     #[error("attempt to use a non-constant value as an array length")]
@@ -225,8 +225,8 @@ pub enum CompileError {
     BadCastFrom { ty: String, span: Span },
     #[error("`solve` directive missing from this project")]
     MissingSolveDirective { span: Span },
-    #[error("invalid declaration outside an `intent {{ .. }}` declaration")]
-    InvalidDeclOutsideIntentDecl { kind: String, span: Span },
+    #[error("invalid declaration outside a predicate")]
+    InvalidDeclOutsidePredicateDecl { kind: String, span: Span },
     #[error("left and right types in range differ")]
     RangeTypesMismatch {
         lb_ty: String,
@@ -598,14 +598,14 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            MissingIntentInterface {
-                intent_name,
+            MissingPredicateInterface {
+                pred_name,
                 interface_name,
                 span,
             } => {
                 vec![ErrorLabel {
                     message: format!(
-                        "cannot find intent `{intent_name}` in interface `{interface_name}`"
+                        "cannot find predicate `{pred_name}` in interface `{interface_name}`"
                     ),
                     span: span.clone(),
                     color: Color::Red,
@@ -620,9 +620,9 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            MissingIntentInstance { name, span } => {
+            MissingPredicateInstance { name, span } => {
                 vec![ErrorLabel {
-                    message: format!("cannot find intent instance `{name}`"),
+                    message: format!("cannot find predicate instance `{name}`"),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -907,10 +907,8 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
-            InvalidDeclOutsideIntentDecl { kind, span } => vec![ErrorLabel {
-                message: format!(
-                    "invalid {kind} declaration outside an `intent {{ .. }}` declaration"
-                ),
+            InvalidDeclOutsidePredicateDecl { kind, span } => vec![ErrorLabel {
+                message: format!("invalid {kind} declaration outside a predicate"),
                 span: span.clone(),
                 color: Color::Red,
             }],
@@ -1079,7 +1077,7 @@ impl ReportableError for CompileError {
 
             MacroCallWasNotExpression { .. } => Some(
                 "macros which contain only declarations may only be used at the top level of \
-                an intent and not as an expression"
+                a predicate and not as an expression"
                     .to_string(),
             ),
 
@@ -1127,10 +1125,8 @@ impl ReportableError for CompileError {
                     .to_string(),
             ),
 
-            InvalidDeclOutsideIntentDecl { .. } => Some(
-                "only `enum` and `type` declarations \
-                 are allowed outside an `intent { .. }` declaration"
-                    .to_string(),
+            InvalidDeclOutsidePredicateDecl { .. } => Some(
+                "only `enum` and `type` declarations are allowed outside a predicate".to_string(),
             ),
 
             Internal { .. }
@@ -1142,9 +1138,9 @@ impl ReportableError for CompileError {
             | MissingStorageBlock { .. }
             | InvalidNextStateAccess { .. }
             | MissingInterface { .. }
-            | MissingIntentInterface { .. }
+            | MissingPredicateInterface { .. }
             | MissingInterfaceInstance { .. }
-            | MissingIntentInstance { .. }
+            | MissingPredicateInstance { .. }
             | AddressExpressionTypeError { .. }
             | NonConstArrayLength { .. }
             | InvalidConstArrayLength { .. }
@@ -1305,9 +1301,9 @@ impl Spanned for CompileError {
             | InvalidNextStateAccess { span, .. }
             | MissingStorageBlock { span, .. }
             | MissingInterface { span, .. }
-            | MissingIntentInterface { span, .. }
+            | MissingPredicateInterface { span, .. }
             | MissingInterfaceInstance { span, .. }
-            | MissingIntentInstance { span, .. }
+            | MissingPredicateInstance { span, .. }
             | NonConstArrayIndex { span }
             | InvalidConstArrayLength { span }
             | NonConstArrayLength { span }
@@ -1333,7 +1329,7 @@ impl Spanned for CompileError {
             | BadCastTo { span, .. }
             | BadCastFrom { span, .. }
             | MissingSolveDirective { span, .. }
-            | InvalidDeclOutsideIntentDecl { span, .. }
+            | InvalidDeclOutsidePredicateDecl { span, .. }
             | RangeTypesMismatch { span, .. }
             | RangeTypesNonNumeric { span, .. }
             | InExprTypesMismatch { span, .. }

@@ -30,7 +30,7 @@ if 1.0 {
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::z: bool;
 // var ::x: int;
 // var ::y: int;

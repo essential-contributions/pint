@@ -8,7 +8,7 @@ storage {
     my_nested_map: (int => (b256 => { int, { b256, int } })),
 }
 
-intent Foo {
+predicate Foo {
     var v0: bool;
     var v1: int;
     var v2: b256;
@@ -20,7 +20,7 @@ intent Foo {
     pub var t2: b256;
 }
 
-// intermediate <<<
+// parsed <<<
 // storage {
 //     s0: bool,
 //     s1: int,
@@ -31,7 +31,7 @@ intent Foo {
 //     my_nested_map: ( int => ( b256 => {int, {b256, int}} ) ),
 // }
 // 
-// intent ::Foo {
+// predicate ::Foo {
 //     storage {
 //         s0: bool,
 //         s1: int,
@@ -63,7 +63,7 @@ intent Foo {
 //     my_nested_map: ( int => ( b256 => {int, {b256, int}} ) ),
 // }
 // 
-// intent ::Foo {
+// predicate ::Foo {
 //     storage {
 //         s0: bool,
 //         s1: int,

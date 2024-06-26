@@ -18,7 +18,7 @@ interface Foo {
     }
 }
 
-intent Simple {
+predicate Simple {
     state x: int = storage::x;
     state y: int = storage::y;
     state z: int = storage::z;

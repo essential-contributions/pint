@@ -13,7 +13,7 @@ constraint x in [SupperGuest::Andrew, SupperGuest::Philip];
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::x: int;
 // var ::y: bool;
 // var ::z: ::SupperGuest;

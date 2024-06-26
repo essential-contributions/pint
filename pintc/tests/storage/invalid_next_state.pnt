@@ -3,7 +3,7 @@ constraint y' == 5;
 solve satisfy;
 
 
-// intermediate <<<
+// parsed <<<
 // var ::y: int;
 // constraint (::y' == 5);
 // solve satisfy;

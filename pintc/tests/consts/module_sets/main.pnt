@@ -1,14 +1,14 @@
 const a = true;
 
-intent A {
+predicate A {
     constraint a && !b::b;
 }
 
-// intermediate <<<
+// parsed <<<
 // const ::b::b = false;
 // const ::a = true;
 //
-// intent ::A {
+// predicate ::A {
 //     constraint (::a && !::b::b);
 // }
 // >>>
@@ -17,7 +17,7 @@ intent A {
 // const ::b::b: bool = 0;
 // const ::a: bool = 1;
 //
-// intent ::A {
+// predicate ::A {
 //     constraint (1 && !0);
 // }
 // >>>

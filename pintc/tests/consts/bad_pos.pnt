@@ -1,6 +1,6 @@
 const a = 11;
 
-intent A {
+predicate A {
     var b = a * 2;
 
     const c = 33;
@@ -9,6 +9,6 @@ intent A {
 }
 
 // parse_failure <<<
-// expected `::`, `an identifier`, `constraint`, `enum`, `if`, `intent`, `interface`, `macro_name`, `pub`, `solve`, `state`, `type`, `use`, `var`, or `}`, found `const`
-// @50..55: expected `::`, `an identifier`, `constraint`, `enum`, `if`, `intent`, `interface`, `macro_name`, `pub`, `solve`, `state`, `type`, `use`, `var`, or `}`
+// expected `::`, `an identifier`, `constraint`, `enum`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `solve`, `state`, `type`, `use`, `var`, or `}`, found `const`
+// @53..58: expected `::`, `an identifier`, `constraint`, `enum`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `solve`, `state`, `type`, `use`, `var`, or `}`
 // >>>

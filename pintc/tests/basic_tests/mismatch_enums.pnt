@@ -8,7 +8,7 @@ constraint saddest_sound == Key::DMinor;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::saddest_sound: ::Chord;
 // enum ::Key = CMajor | DMinor;
 // enum ::Chord = FFlatDiminished | EMinorOverG;
