@@ -33,5 +33,4 @@ name = "validation_tests"
 path = "validation_tests.rs"
 
 [features]
-default = []
 solver-scip = ["pint_solve/solver-scip", "pintc/solver-scip"]

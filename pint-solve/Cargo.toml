@@ -30,5 +30,4 @@ anyhow = { workspace = true }
 test-util = { path = "../test-util" }
 
 [features]
-default = []
 solver-scip = ["russcip"]
