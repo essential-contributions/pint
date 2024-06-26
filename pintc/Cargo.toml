@@ -46,5 +46,5 @@ test-util = { path = "../test-util" }
 test_bin = "0.4"
 
 [features]
-default = ["solver-scip"]
+default = []
 solver-scip = ["pint_solve/solver-scip"]

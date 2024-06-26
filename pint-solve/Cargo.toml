@@ -27,5 +27,5 @@ anyhow = { workspace = true }
 test-util = { path = "../test-util" }
 
 [features]
-default = ["solver-scip"]
-solver-scip = ["dep:russcip"]
+default = []
+solver-scip = ["russcip"]
