@@ -1,0 +1,311 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Smart Contracts - The Book of Pint</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../the-book-of-pint.html">The Book of Pint</a></li><li class="chapter-item expanded "><a href="../getting_started/index.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../getting_started/installation.html"><strong aria-hidden="true">1.1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="../getting_started/quickstart.html"><strong aria-hidden="true">1.2.</strong> Quickstart Guide</a></li></ol></li><li class="chapter-item expanded "><a href="../examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../examples/counter.html"><strong aria-hidden="true">2.1.</strong> Counter</a></li><li class="chapter-item expanded "><a href="../examples/subcurrency.html"><strong aria-hidden="true">2.2.</strong> Subcurrency</a></li></ol></li><li class="chapter-item expanded "><a href="../basics/index.html"><strong aria-hidden="true">3.</strong> Common Programming Concepts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../basics/variables.html"><strong aria-hidden="true">3.1.</strong> Decision Variables</a></li><li class="chapter-item expanded "><a href="../basics/data_types.html"><strong aria-hidden="true">3.2.</strong> Data Types</a></li><li class="chapter-item expanded "><a href="../basics/comments.html"><strong aria-hidden="true">3.3.</strong> Comments</a></li><li class="chapter-item expanded "><a href="../basics/conditionals.html"><strong aria-hidden="true">3.4.</strong> Conditionals</a></li><li class="chapter-item expanded "><a href="../basics/custom_types.html"><strong aria-hidden="true">3.5.</strong> Custom Types</a></li><li class="chapter-item expanded "><a href="../basics/constants.html"><strong aria-hidden="true">3.6.</strong> Constants</a></li></ol></li><li class="chapter-item expanded "><a href="../program_types/index.html"><strong aria-hidden="true">4.</strong> Program Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../program_types/stateless.html"><strong aria-hidden="true">4.1.</strong> Stateless Programs</a></li><li class="chapter-item expanded "><a href="../program_types/contract.html" class="active"><strong aria-hidden="true">4.2.</strong> Smart Contracts</a></li></ol></li><li class="chapter-item expanded "><a href="../storage/index.html"><strong aria-hidden="true">5.</strong> Storage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../storage/static.html"><strong aria-hidden="true">5.1.</strong> Statically-Sized Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/dynamic.html"><strong aria-hidden="true">5.2.</strong> Dynamically-Sized Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/layout.html"><strong aria-hidden="true">5.3.</strong> Storage Layout</a></li></ol></li><li class="chapter-item expanded "><a href="../public_decision_variables/index.html"><strong aria-hidden="true">6.</strong> Public Decision Variables</a></li><li class="chapter-item expanded "><a href="../appendix/index.html"><strong aria-hidden="true">7.</strong> Appendix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../appendix/keywords.html"><strong aria-hidden="true">7.1.</strong> A - Keywords</a></li><li class="chapter-item expanded "><a href="../appendix/intrinsics.html"><strong aria-hidden="true">7.2.</strong> B - Compiler Intrinsics</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Book of Pint</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/essential-contributions/pint" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h2 id="smart-contracts"><a class="header" href="#smart-contracts">Smart Contracts</a></h2>
+<p>The most common use case for Pint is writing &quot;smart contracts&quot;. If you're familiar with smart
+contract languages like <a href="https://soliditylang.org/">Solidity</a>, then many elements of a Pint contract
+should feel familiar. Of course, at its core, Pint is fundamentally different from imperative smart
+contract languages. Writing smart contracts in Pint requires a different way of thinking about how
+to express the rules that the smart contract must enforce.</p>
+<p>A Pint contract is a <strong>collection of predicates</strong>. Each predicate has a name and contains a list of
+constraints. A contract may also contain a <code>storage</code> declaration which contain all the storage
+variable that the contract owns. Contract storage is effectively the database of the contract where
+persistent state lives. We will discuss storage in details in <a href="../storage/index.html">Chapter 5</a>.</p>
+<h3 id="contract-structure"><a class="header" href="#contract-structure">Contract Structure</a></h3>
+<p>The structure of a Pint smart contract is fairly simple. We simply lay out all the code blocks as
+follows:</p>
+<pre><code class="language-pint">storage {
+    // storage variables
+}
+
+intent Foo {
+    // variables, constraints, etc.     
+}
+
+intent Bar {
+    // variables, constraints, etc.     
+}
+
+// other constraint sets
+</code></pre>
+<p>The order of the different blocks is not important, and the <code>storage</code> block is optional but most
+useful smart contracts will need it.</p>
+<p>Unlike imperative smart contracts where the logic lives in contract <em>methods</em> that can be <em>called</em>
+to make state updates, Pint contracts have predicates (not methods/functions!) and nothing is ever
+&quot;called&quot;. Instead, <em>solutions</em> have to submitted that satisfy one of the predicates in the contract.
+A solution must specify concrete values for all the decision variables in the predicate, as well as
+propose changes to the state. If the proposed state changes and the decision variables satisfy
+<strong>all</strong> the constraints in that particular predicate, then the solution is deemed valid and the
+proposed state changes are committed.</p>
+<h3 id="contract-interfaces"><a class="header" href="#contract-interfaces">Contract Interfaces</a></h3>
+<p>Each smart contract has an interface which can be easily generated from the contract. The interface
+is not required to write the smart contract but is required to interact with the contract from
+<em>external contexts</em>. For example, one smart contract can propose an update to a storage variables
+that is owned by another contract. Will will go over how to do that in <a href="../storage/index.html">Chapter
+5</a>.</p>
+<p>A contract interface has the following structure:</p>
+<pre><code class="language-pint">interface ExternalContract {
+    storage {
+        // storage variables
+    }
+
+    intent Foo {
+        // all **public** decision variables     
+    }
+
+    intent Bar {
+        // all **public** decision variables     
+    }
+
+    // other constraint sets
+}
+</code></pre>
+<p>You can see the similarities between the structure of the interface and the structure of the smart
+contract. An interface starts with <code>interface</code> keyword followed by the name of the interface which
+can be used when referring the interface from external contexts. Inside the interface declaration,
+an optional <code>storage</code> block can be declared as well as a list of <strong>predicate interfaces</strong>. These
+predicate interfaces contain all the <strong>public</strong> decision variables that the predicates expose. We
+will discuss public decision variables in detail in <a href="../public_decision_variables/index.html">Chapter
+6</a>, but for now, you can think of these variables as regular
+decision variable except that they can be read from an external context.</p>
+<p>Let's revisit the <a href="../examples/counter.html">counter example</a> but with a small modification where we
+have made all decision variables <code>pub</code>, which marks them as public:</p>
+<pre><code class="language-pint">storage {
+    counter: int,
+}
+
+intent Initialize {
+    pub var value: int;
+    state counter: int = storage::counter;
+    constraint counter' == value;
+}
+
+intent Increment {
+    pub var amount: int;
+    state counter: int = storage::counter;
+    constraint counter' == counter + amount;
+}
+</code></pre>
+<p>An interface for the contract above looks like this:</p>
+<pre><code class="language-pint">interface Counter {
+    storage {
+        counter: int,
+    }
+
+    intent Initialize {
+        pub var value: int;
+    }
+
+    intent Increment {
+        pub var amount: int;
+    }
+}
+</code></pre>
+<p>Hopefully nothing here is surprising! The key point is that an <code>interface</code> must expose <em>everything</em>
+that is public in a contract, and that includes the storage block and all public decision variables
+in each predicate.</p>
+<p>Note that, if a predicate <code>Foo</code> has no public decision variables, both <code>intent Foo { }</code> and <code>intent Foo;</code> can be used when adding it to the interface.</p>
+<blockquote>
+<p><strong>Note</strong> in the future, Pint will have a tool that will auto-generate interfaces.</p>
+</blockquote>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../program_types/stateless.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../storage/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../program_types/stateless.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../storage/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/pint.js"></script>
+        <script src="../theme/bnf.js"></script>
+
+
+    </div>
+    </body>
+</html>
