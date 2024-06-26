@@ -39,7 +39,7 @@ _external contexts_. For example, one smart contract can propose an update to a 
 that is owned by another contract. Will will go over how to do that in [Chapter
 5](../storage/index.md).
 
-The structure of an contract interface looks like this:
+A contract interface has the following structure:
 
 ```pint
 {{#include ../../../../examples/ch_4_2_b.pnt:interface}}
@@ -67,9 +67,9 @@ An interface for the contract above looks like this:
 {{#include ../../../../examples/ch_4_2_c.pnt:interface}}
 ```
 
-hopefully nothing here is surprising! The key point here is that an `interface` must expose
-_everything_ that is public in a contract, and that includes the storage block and all public
-decision variables in each predicate.
+Hopefully nothing here is surprising! The key point is that an `interface` must expose _everything_
+that is public in a contract, and that includes the storage block and all public decision variables
+in each predicate.
 
 Note that, if a predicate `Foo` has no public decision variables, both `intent Foo { }` and `intent
 Foo;` can be used when adding it to the interface.
