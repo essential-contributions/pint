@@ -1098,6 +1098,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "pint-abi"
+version = "0.1.0"
+dependencies = [
+ "essential-types",
+]
+
+[[package]]
 name = "pint-manifest"
 version = "0.1.0"
 dependencies = [

@@ -4,6 +4,7 @@ members = [
   "abi-types",
   "examples",
   "pint",
+  "pint-abi",
   "pint-manifest",
   "pint-pkg",
   "pint-solve",
@@ -28,6 +29,7 @@ fxhash = "0.2"
 itertools = "0.12"
 logos = "0.14"
 petgraph = "0.6"
+pint-abi = { path = "pint-abi" }
 pint-manifest = { path = "pint-manifest" }
 pint-pkg = { path = "pint-pkg" }
 pintc = { path = "pintc" }
