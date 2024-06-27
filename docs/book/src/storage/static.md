@@ -114,3 +114,27 @@ value of `bal` should be `150` (i.e. `bal' = 150`) which would be a valid soluti
 
 This concludes our overview on storage which only focused on statically-sized storage types. In the
 next chapter, we will cover dynamically-sized storage types which offer a lot more flexibility.
+
+#### "Empty" State
+
+You may be wondering what happens if a storage variable was never previously updated but was read
+anyways. In this case, there is no value stored at that storage variable and nothing can be read.
+To help you reason about this, Pint provides the literal `nil` to represent the _absence of a
+value_. For example,
+
+```pint
+{{#include ../../../../examples/ch_5_1.pnt:nil}}
+```
+
+In the example above, we first check if `w` is `nil` before attempting to read it. If it is `nil`
+(i.e. currently has no value), then we constrain `value` to `0`. Otherwise, we constrain it to the
+non-empty value of `w`. Without checking if `w` is `nil` first, and if we're not sure whether `w`
+has a value or not, then it is possible that the state read operation will panic.
+
+It is also possible to update a `state` variable to `nil` using the "next state" operator:
+
+```pint
+{{#include ../../../../examples/ch_5_1.pnt:update_to_nil}}
+```
+
+Here, if `w` currently has a value, then we constrain the next value of `w` to be `nil`.

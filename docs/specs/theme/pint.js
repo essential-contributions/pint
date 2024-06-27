@@ -2,7 +2,7 @@ hljs.registerLanguage("pint", (hljs) => ({
   name: "Pint",
   keywords: {
     keyword:
-      "as bool cond constraint contract else enum extern forall fn if implements in interface int let macro maximize minimize predicate real satisfy solve state string type use where",
+      "as bool b256 cond const constraint else enum exists false forall if in int interface macro maximize minimize nil predicate pub real satisfy self solve state storage string true type use var where",
     literal: "false true",
   },
   contains: [

@@ -4,6 +4,7 @@ storage {
     a: b256,
     t: { int, bool },
     y: bool,
+    w: int,
 }
 // ANCHOR_END: storage_block
 
@@ -29,5 +30,17 @@ constraint y && t_0 >= 42;
 state bal = storage::x;
 constraint bal' >= bal + 42;
 // ANCHOR_END: next_state 
+
+// ANCHOR: nil 
+state w = storage::w;
+var value: int = (w == nil ? 0 : w);
+// ANCHOR_END: nil 
+
+// ANCHOR: update_to_nil 
+if w != nil {
+    constraint w' == nil;
+}
+// ANCHOR_END: update_to_nil 
+
 
 solve satisfy;

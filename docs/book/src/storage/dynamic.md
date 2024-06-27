@@ -70,10 +70,17 @@ submitted by a solver, the desired state change will never be satisfied.
 #### "Missing" Keys
 
 Now, you may be wondering what happens if a key is missing from a storage map and we try to access
-it anyways. In Pint, a `0` value is returned, i.e. a byte representation of the value type that is
-equal to `0`. In the previous example, if the balance of `my_address` was never actually modified in
-the past, then `my_bal` would be equal to `0` and the constraint would simply be equivalent to
-`constraint my_bal' == 1000000`.
+it anyways. In Pint, a [`nil`](static.md#empty-state) is returned. In the previous example, if the
+balance of `my_address` was never actually modified in the past, then `my_bal` would be equal to
+`nil` and therefore, the expression `my_bal + 1000000` would panic. To avoid this problem, we can
+first check if `my_bal` is `nil` before trying to use it in an arithmetic operation:
+
+```pint
+{{#include ../../../../examples/ch_5_2_a.pnt:next_state_with_check}}
+```
+
+Here, if `my_bal` is not `nil`, then the constraint remains the same as before. Otherwise, we simply
+update `my_bal` to `1000000` (as if `my_bal` was previously 0!).
 
 #### Complex Maps
 

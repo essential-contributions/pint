@@ -234,11 +234,6 @@ fn operators() {
 }
 
 #[test]
-fn func() {
-    assert_eq!(lex_one_success("fn"), Token::Fn);
-}
-
-#[test]
 fn if_else_cond() {
     assert_eq!(lex_one_success("if"), Token::If);
     assert_eq!(lex_one_success("else"), Token::Else);

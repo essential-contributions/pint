@@ -407,10 +407,6 @@ pub MacroBody: Option<ExprKey> = {
     "{" DeclBarringMacro* <Expr?> "}"
 }
 
-FnParam: (Ident, Type)  = {
-    <name:Ident> ":" <ty:Type> => (name, ty)
-}
-
 /////////////
 /// Types ///
 /////////////
@@ -1185,7 +1181,6 @@ extern {
         "false" => lexer::Token::False,
         "nil" => lexer::Token::Nil,
 
-        "fn" => lexer::Token::Fn,
         "if" => lexer::Token::If,
         "else" => lexer::Token::Else,
         "cond" => lexer::Token::Cond,
