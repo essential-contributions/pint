@@ -1,0 +1,50 @@
+var a: int;
+
+const x = true;
+
+if x {
+    constraint a == 11;
+} else {
+    constraint a == 22;
+}
+
+const y = 33;
+const z = true;
+
+if true {
+    constraint a == y;
+} else {
+    constraint z;
+}
+
+solve satisfy;
+
+// parsed <<<
+// const ::x = true;
+// const ::z = true;
+// const ::y = 33;
+// var ::a: int;
+// if ::x {
+//     constraint (::a == 11)
+// } else {
+//     constraint (::a == 22)
+// }
+// if true {
+//     constraint (::a == ::y)
+// } else {
+//     constraint ::z
+// }
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// const ::x: bool = 1;
+// const ::z: bool = 1;
+// const ::y: int = 33;
+// var ::a: int;
+// constraint (!1 || (::a == 11));
+// constraint (1 || (::a == 22));
+// constraint (!1 || (::a == 33));
+// constraint (1 || 1);
+// solve satisfy;
+// >>>

@@ -64,14 +64,14 @@ impl super::Program {
             .collect::<Vec<_>>();
 
         for pred in self.preds.values_mut() {
-            // Plug const decls in everywhere so they maybe lowered below.
-            replace_const_refs(pred, &const_exprs);
-
-            // Transform each if declaration into a collection of constraints We do this early so
+            // Transform each if declaration into a collection of constraints. We do this early so
             // that we don't have to worry about `if` declarations in any of the later passes. All
             // other passes are safe to assume that `if` declarations and their content have
             // already been converted to raw constraints.
             lower_ifs(pred);
+
+            // Plug const decls in everywhere so they maybe lowered below.
+            replace_const_refs(pred, &const_exprs);
 
             let _ = lower_compares_to_nil(handler, pred);
 
