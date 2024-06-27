@@ -141,7 +141,7 @@ pub struct Predicate {
     // A list of all availabe predicate instances
     pub predicate_instances: Vec<PredicateInstance>,
 
-    pub top_level_symbols: BTreeMap<String, Span>,
+    pub top_level_symbols: FxHashMap<String, Span>,
 }
 
 impl Predicate {
@@ -330,6 +330,22 @@ impl Predicate {
                 *expr = new_expr;
             }
         });
+
+        self.interface_instances
+            .iter_mut()
+            .for_each(|InterfaceInstance { address, .. }| {
+                if *address == old_expr {
+                    *address = new_expr;
+                }
+            });
+
+        self.predicate_instances
+            .iter_mut()
+            .for_each(|PredicateInstance { address, .. }| {
+                if *address == old_expr {
+                    *address = new_expr;
+                }
+            });
     }
 
     pub fn replace_exprs_by_map(&mut self, expr_map: &FxHashMap<ExprKey, ExprKey>) {
@@ -490,6 +506,8 @@ impl Predicate {
                     .iter()
                     .filter_map(|(solve_func, _)| solve_func.get_expr().cloned()),
             )
+            .chain(self.interface_instances.iter().map(|ii| ii.address))
+            .chain(self.predicate_instances.iter().map(|pi| pi.address))
     }
 }
 
