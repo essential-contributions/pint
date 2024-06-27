@@ -1,5 +1,5 @@
 use crate::{
-    error::{CompileError, Error, ErrorEmitted, Handler, ParseError},
+    error::{Error, ErrorEmitted, Handler, ParseError},
     expr::{self, Expr, Ident},
     span::Span,
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type},
@@ -67,12 +67,12 @@ impl Program {
     }
 
     /// Generates a `ProgramABI` given a `Program`
-    pub fn abi(&self) -> Result<ProgramABI, CompileError> {
+    pub fn abi(&self, handler: &Handler) -> Result<ProgramABI, ErrorEmitted> {
         Ok(ProgramABI {
             predicates: self
                 .preds
                 .values()
-                .map(|pred| pred.abi())
+                .map(|pred| pred.abi(handler))
                 .collect::<Result<_, _>>()?,
             storage: self
                 .root_pred()
@@ -89,9 +89,13 @@ impl Program {
                             Ok(KeyedVarABI {
                                 name: name.to_string(),
                                 ty: if ty.is_any_primitive() || ty.is_map() {
-                                    ty.abi_with_key(vec![Some(index)])?
+                                    ty.abi_with_key(handler, vec![Some(index)], self.root_pred())?
                                 } else {
-                                    ty.abi_with_key(vec![Some(index), Some(0)])?
+                                    ty.abi_with_key(
+                                        handler,
+                                        vec![Some(index), Some(0)],
+                                        self.root_pred(),
+                                    )?
                                 },
                             })
                         })
@@ -157,7 +161,7 @@ impl Predicate {
     }
 
     /// Generate a `PredicateABI` given an `Predicate`
-    pub fn abi(&self) -> Result<PredicateABI, CompileError> {
+    pub fn abi(&self, handler: &Handler) -> Result<PredicateABI, ErrorEmitted> {
         Ok(PredicateABI {
             name: self.name.clone(),
             vars: self
@@ -172,7 +176,9 @@ impl Predicate {
                 .map(|(index, (var_key, Var { name, .. }))| {
                     Ok(KeyedVarABI {
                         name: name.to_string(),
-                        ty: var_key.get_ty(self).abi_with_key(vec![Some(index)])?,
+                        ty: var_key
+                            .get_ty(self)
+                            .abi_with_key(handler, vec![Some(index)], self)?,
                     })
                 })
                 .collect::<Result<Vec<_>, _>>()?,

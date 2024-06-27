@@ -3,7 +3,7 @@ use crate::{
     expr::{Expr, Ident},
     lexer,
     macros::{self, MacroCall, MacroDecl, MacroExpander},
-    predicate::{CallKey, ExprKey, Exprs, Predicate, Program},
+    predicate::{CallKey, ExprKey, Exprs, Interface, Predicate, Program},
     span::{empty_span, Span, Spanned},
     types::*,
 };
@@ -474,8 +474,59 @@ impl<'a> ProjectParser<'a> {
             .for_each(|(_, pred)| {
                 let _ = deep_copy_new_types(&new_types, &exprs, pred, self.handler);
                 pred.enums.extend_from_slice(&enums);
-                pred.storage.clone_from(&storage);
-                pred.interfaces.clone_from(&interfaces);
+                pred.storage = storage.as_ref().map(|storage| {
+                    (
+                        storage
+                            .0
+                            .iter()
+                            .map(|storage_var| {
+                                let mut new_storage_var = storage_var.clone();
+                                new_storage_var.ty =
+                                    deep_copy_type(&storage_var.ty, &exprs, pred, self.handler)
+                                        .unwrap();
+                                new_storage_var
+                            })
+                            .collect(),
+                        storage.1.clone(),
+                    )
+                });
+                pred.interfaces = interfaces
+                    .iter()
+                    .map(
+                        |Interface {
+                             name,
+                             storage,
+                             predicate_interfaces,
+                             span,
+                         }| Interface {
+                            name: name.clone(),
+                            storage: storage.as_ref().map(|storage| {
+                                (
+                                    storage
+                                        .0
+                                        .iter()
+                                        .map(|storage_var| {
+                                            let mut new_storage_var = storage_var.clone();
+                                            new_storage_var.ty = deep_copy_type(
+                                                &storage_var.ty,
+                                                &exprs,
+                                                pred,
+                                                self.handler,
+                                            )
+                                            .unwrap();
+                                            new_storage_var
+                                        })
+                                        .collect(),
+                                    storage.1.clone(),
+                                )
+                            }),
+                            // When we allow `pub var`s of type array, we should deep copy the
+                            // types here too
+                            predicate_interfaces: predicate_interfaces.clone(),
+                            span: span.clone(),
+                        },
+                    )
+                    .collect::<Vec<_>>();
 
                 for (symbol, span) in &root_symbols {
                     // We could call `pred.add_top_level_symbol_with_name` directly here, but then

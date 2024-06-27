@@ -81,7 +81,12 @@ fn fix_array_sizes(handler: &Handler, pred: &mut Predicate) -> Result<(), ErrorE
         range_expr_key: Option<ExprKey>,
         array_ty_span: Span,
     ) -> Result<Type, ErrorEmitted> {
-        if !(el_ty.is_array() || el_ty.is_int() || el_ty.is_real() || el_ty.is_bool()) {
+        if !(el_ty.is_array()
+            || el_ty.is_int()
+            || el_ty.is_real()
+            || el_ty.is_bool()
+            || el_ty.is_b256())
+        {
             // Eventually, this will go away. Hence why it's an internal error for the time being.
             return Err(handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
