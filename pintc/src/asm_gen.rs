@@ -8,10 +8,9 @@ use crate::{
     span::empty_span,
     types::Type,
 };
-use essential_types::intent::{Directive, Intent as CompiledPredicate};
+use essential_types::predicate::{Directive, Predicate as CompiledPredicate};
 use state_asm::{
-    Access, Alu, Constraint, ControlFlow, Crypto, Op as StateRead, Pred, Stack, StateSlots,
-    TotalControlFlow,
+    Access, Alu, Constraint, Crypto, Op as StateRead, Pred, Stack, StateSlots, TotalControlFlow,
 };
 
 mod display;
@@ -22,6 +21,7 @@ mod tests;
 pub struct CompiledProgram {
     pub kind: ProgramKind,
     pub names: Vec<String>,
+    pub salt: [u8; 32],
     pub predicates: Vec<CompiledPredicate>,
 }
 
@@ -73,6 +73,8 @@ pub fn compile_program(
     Ok(CompiledProgram {
         kind: program.kind.clone(),
         names,
+        // Salt is not used by pint yet.
+        salt: Default::default(),
         predicates,
     })
 }
@@ -720,7 +722,7 @@ impl AsmBuilder {
 
                 "__this_set_address" => {
                     assert!(args.is_empty());
-                    asm.push(Constraint::Access(Access::ThisSetAddress));
+                    asm.push(Constraint::Access(Access::ThisContractAddress));
                 }
 
                 "__this_pathway" => {
@@ -1075,7 +1077,7 @@ impl AsmBuilder {
             } else {
                 StateRead::KeyRange
             },
-            StateRead::ControlFlow(ControlFlow::Halt),
+            TotalControlFlow::Halt.into(),
         ]);
         self.s_asm.push(s_asm);
 
