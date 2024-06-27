@@ -10,5 +10,4 @@ In this chapter, we will cover the following:
 
 - How to declare and access storage variables with statically-sized types.
 - How to declare and access storage variables with dynamically-sized types.
-- How storage addresses (i.e. "keys") are assigned to storage variables and their contained data
-  (for storage containers).
+- How to access storage variables that belong to an external contract.

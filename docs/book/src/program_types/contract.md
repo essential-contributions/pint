@@ -50,9 +50,9 @@ contract. An interface starts with `interface` keyword followed by the name of t
 can be used when referring the interface from external contexts. Inside the interface declaration,
 an optional `storage` block can be declared as well as a list of **predicate interfaces**. These
 predicate interfaces contain all the **public** decision variables that the predicates expose. We
-will discuss public decision variables in detail in [Chapter
-6](../public_decision_variables/index.md), but for now, you can think of these variables as regular
-decision variable except that they can be read from an external context.
+will discuss public decision variables in detail in [Chapter 6.1](../advanced/pub_vars.md), but for
+now, you can think of these variables as regular decision variable except that they can be read from
+an external context.
 
 Let's revisit the [counter example](../examples/counter.md) but with a small modification where we
 have made all decision variables `pub`, which marks them as public:
