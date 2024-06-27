@@ -602,24 +602,29 @@ impl Predicate {
         // Check all the 'root' exprs (constraints, state init exprs, const and var init exprs, and
         // directives) one at a time, gathering errors as we go. Copying the keys out first to
         // avoid borrowing conflict.
-        self.constraints
+        let mut all_expr_keys = self
+            .constraints
             .iter()
             .map(|ConstraintDecl { expr: key, .. }| *key)
             .chain(self.states().map(|(_, state)| state.expr))
             .chain(self.var_inits.iter().map(|(_, expr)| *expr))
-            .chain(consts.iter().map(|(_, Const { expr, .. })| *expr))
             .chain(
                 self.directives
                     .iter()
                     .filter_map(|(solve_func, _)| solve_func.get_expr().cloned()),
             )
-            .collect::<Vec<_>>()
-            .into_iter()
-            .for_each(|expr_key| {
-                if let Err(err) = self.type_check_next_expr(consts, expr_key) {
-                    handler.emit_err(err);
-                }
-            });
+            .collect::<Vec<_>>();
+
+        // When we're checking the root predicate we check all the consts too.
+        if self.is_root() {
+            all_expr_keys.extend(consts.iter().map(|(_, Const { expr, .. })| *expr));
+        }
+
+        for expr_key in all_expr_keys {
+            if let Err(err) = self.type_check_next_expr(consts, expr_key) {
+                handler.emit_err(err);
+            }
+        }
 
         // Now check all if declarations
         self.if_decls
@@ -2091,26 +2096,28 @@ impl Predicate {
         }
 
         // Now confirm that every const initialiser type matches the const decl type.
-        for Const {
-            expr: init_expr_key,
-            decl_ty,
-            ..
-        } in consts.values()
-        {
-            let init_ty = init_expr_key.get_ty(self);
-            if !init_ty.eq(self, decl_ty) {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::InitTypeError {
-                        init_kind: "const",
-                        large_err: Box::new(LargeTypeError::InitTypeError {
+        if self.is_root() {
+            for Const {
+                expr: init_expr_key,
+                decl_ty,
+                ..
+            } in consts.values()
+            {
+                let init_ty = init_expr_key.get_ty(self);
+                if !init_ty.eq(self, decl_ty) {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::InitTypeError {
                             init_kind: "const",
-                            expected_ty: self.with_pred(decl_ty).to_string(),
-                            found_ty: self.with_pred(init_ty).to_string(),
-                            expected_ty_span: decl_ty.span().clone(),
-                            init_span: self.expr_key_to_span(*init_expr_key),
-                        }),
-                    },
-                });
+                            large_err: Box::new(LargeTypeError::InitTypeError {
+                                init_kind: "const",
+                                expected_ty: self.with_pred(decl_ty).to_string(),
+                                found_ty: self.with_pred(init_ty).to_string(),
+                                expected_ty_span: decl_ty.span().clone(),
+                                init_span: self.expr_key_to_span(*init_expr_key),
+                            }),
+                        },
+                    });
+                }
             }
         }
     }

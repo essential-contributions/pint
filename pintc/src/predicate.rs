@@ -152,6 +152,10 @@ impl Predicate {
         }
     }
 
+    pub fn is_root(&self) -> bool {
+        self.name == Program::ROOT_PRED_NAME
+    }
+
     /// Generate a `PredicateABI` given an `Predicate`
     pub fn abi(&self) -> Result<PredicateABI, CompileError> {
         Ok(PredicateABI {

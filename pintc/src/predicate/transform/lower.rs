@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, Expr, Ident, Immediate, TupleAccess, UnaryOp},
-    predicate::{BlockStatement, ConstraintDecl, ExprKey, IfDecl, Predicate, Program},
+    predicate::{BlockStatement, ConstraintDecl, ExprKey, IfDecl, Predicate},
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
 };
@@ -949,7 +949,7 @@ pub(super) fn replace_const_refs(pred: &mut Predicate, consts: &[(String, ExprKe
         .collect::<Vec<_>>();
 
     // Replace all paths to consts with the consts themselves.
-    if pred.name == Program::ROOT_PRED_NAME {
+    if pred.is_root() {
         // This is the root Pred, meaning we already have the ExprKeys for the consts available.
         pred.replace_exprs_by_map(&FxHashMap::from_iter(
             const_refs.into_iter().map(|refs| (refs.0, refs.1)),
