@@ -208,7 +208,7 @@ fn select() {
               Constraint(Stack(Push(1)))
               Constraint(Stack(Push(0)))
               KeyRange
-              ControlFlow(Halt)
+              Constraint(TotalControlFlow(Halt))
         "#]],
     );
 }
@@ -548,7 +548,7 @@ fn state_read() {
               Constraint(Stack(Push(1)))
               Constraint(Stack(Push(0)))
               KeyRange
-              ControlFlow(Halt)
+              Constraint(TotalControlFlow(Halt))
             state read 1
               Constraint(Stack(Push(2)))
               Constraint(Stack(Push(2)))
@@ -560,7 +560,7 @@ fn state_read() {
               Constraint(Stack(Push(1)))
               Constraint(Stack(Push(0)))
               KeyRange
-              ControlFlow(Halt)
+              Constraint(TotalControlFlow(Halt))
         "#]],
     );
 
@@ -622,7 +622,7 @@ fn state_read_extern() {
               Constraint(Stack(Push(1)))
               Constraint(Stack(Push(0)))
               KeyRangeExtern
-              ControlFlow(Halt)
+              Constraint(TotalControlFlow(Halt))
             state read 1
               Constraint(Stack(Push(5)))
               Constraint(Stack(Push(6)))
@@ -638,7 +638,7 @@ fn state_read_extern() {
               Constraint(Stack(Push(1)))
               Constraint(Stack(Push(0)))
               KeyRangeExtern
-              ControlFlow(Halt)
+              Constraint(TotalControlFlow(Halt))
         "#]],
     );
 
@@ -688,7 +688,7 @@ fn next_state() {
               Constraint(Stack(Push(1)))
               Constraint(Stack(Push(0)))
               KeyRange
-              ControlFlow(Halt)
+              Constraint(TotalControlFlow(Halt))
         "#]],
     );
 
@@ -791,7 +791,7 @@ predicate Simple {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 1
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(69)))
@@ -801,7 +801,7 @@ predicate Simple {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 2
                   Constraint(Stack(Push(2)))
                   Constraint(Stack(Push(2459565876494606882)))
@@ -814,7 +814,7 @@ predicate Simple {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
             }
 
         "#]],
@@ -900,7 +900,7 @@ predicate Simple {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 1
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(1)))
@@ -909,7 +909,7 @@ predicate Simple {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 2
                   Constraint(Stack(Push(2)))
                   Constraint(Stack(Push(69)))
@@ -919,7 +919,7 @@ predicate Simple {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 3
                   Constraint(Stack(Push(3)))
                   Constraint(Stack(Push(1)))
@@ -932,7 +932,7 @@ predicate Simple {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
             }
 
         "#]],
@@ -982,7 +982,7 @@ predicate Foo {
                   Constraint(Stack(Push(2)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 1
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(0)))
@@ -994,7 +994,7 @@ predicate Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 2
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(0)))
@@ -1006,7 +1006,7 @@ predicate Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 3
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
@@ -1016,7 +1016,7 @@ predicate Foo {
                   Constraint(Stack(Push(3)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 4
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
@@ -1028,7 +1028,7 @@ predicate Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 5
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
@@ -1042,7 +1042,7 @@ predicate Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 6
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
@@ -1056,7 +1056,7 @@ predicate Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 7
                   Constraint(Stack(Push(2)))
                   Constraint(Stack(Push(0)))
@@ -1066,7 +1066,7 @@ predicate Foo {
                   Constraint(Stack(Push(3)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 8
                   Constraint(Stack(Push(2)))
                   Constraint(Stack(Push(0)))
@@ -1078,7 +1078,7 @@ predicate Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 9
                   Constraint(Stack(Push(2)))
                   Constraint(Stack(Push(0)))
@@ -1092,7 +1092,7 @@ predicate Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 10
                   Constraint(Stack(Push(2)))
                   Constraint(Stack(Push(0)))
@@ -1106,7 +1106,7 @@ predicate Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
             }
 
         "#]],
@@ -1147,7 +1147,7 @@ predicate Foo {
                   Constraint(Stack(Push(3)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 1
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(69)))
@@ -1160,7 +1160,7 @@ predicate Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 2
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(69)))
@@ -1175,7 +1175,7 @@ predicate Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 3
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(69)))
@@ -1190,7 +1190,7 @@ predicate Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
             }
 
         "#]],
@@ -1248,7 +1248,7 @@ predicate Bar {
                   Constraint(Stack(Push(2)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 1
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1264,7 +1264,7 @@ predicate Bar {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 2
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1280,7 +1280,7 @@ predicate Bar {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 3
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1294,7 +1294,7 @@ predicate Bar {
                   Constraint(Stack(Push(3)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 4
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1310,7 +1310,7 @@ predicate Bar {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 5
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1328,7 +1328,7 @@ predicate Bar {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 6
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1346,7 +1346,7 @@ predicate Bar {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 7
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1360,7 +1360,7 @@ predicate Bar {
                   Constraint(Stack(Push(3)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 8
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1376,7 +1376,7 @@ predicate Bar {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 9
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1394,7 +1394,7 @@ predicate Bar {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 10
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1412,7 +1412,7 @@ predicate Bar {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
             }
 
         "#]],
@@ -1473,7 +1473,7 @@ predicate Simple {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 1
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(88)))
@@ -1488,7 +1488,7 @@ predicate Simple {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
             }
 
         "#]],
@@ -1584,7 +1584,7 @@ predicate Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 1
                   Constraint(Stack(Push(1311506517218527985)))
                   Constraint(Stack(Push(8106469911493893863)))
@@ -1599,7 +1599,7 @@ predicate Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 2
                   Constraint(Stack(Push(870781680972594289)))
                   Constraint(Stack(Push(104754439867348082)))
@@ -1612,7 +1612,7 @@ predicate Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
                 state read 3
                   Constraint(Stack(Push(870781680972594289)))
                   Constraint(Stack(Push(104754439867348082)))
@@ -1630,7 +1630,7 @@ predicate Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern
-                  ControlFlow(Halt)
+                  Constraint(TotalControlFlow(Halt))
             }
 
         "#]],

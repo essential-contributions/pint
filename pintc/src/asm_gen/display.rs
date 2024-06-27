@@ -1,6 +1,6 @@
 use super::CompiledProgram;
 use crate::predicate::ProgramKind;
-use essential_types::intent::Intent as CompiledPredicate;
+use essential_types::predicate::Predicate as CompiledPredicate;
 use state_asm::{Constraint, Op as StateRead};
 use std::fmt::{Display, Formatter};
 

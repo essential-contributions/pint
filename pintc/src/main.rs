@@ -124,7 +124,10 @@ fn main() -> anyhow::Result<()> {
                     } else {
                         File::create(filepath.with_extension("json"))?
                     },
-                    &compiled_program.predicates,
+                    &essential_types::contract::Contract {
+                        predicates: compiled_program.predicates,
+                        salt: compiled_program.salt,
+                    },
                 )?;
             }
             Err(_) => {

@@ -131,7 +131,7 @@ fn this_set_address() {
               Stack(Push(0))
               Stack(Push(4))
               Access(DecisionVarRange)
-              Access(ThisSetAddress)
+              Access(ThisContractAddress)
               Stack(Push(4))
               Pred(EqRange)
             --- State Reads ---

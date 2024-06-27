@@ -7,7 +7,7 @@ use essential_state_read_vm::{
     constraint,
     types::{
         solution::{Mutation, Solution, SolutionData},
-        ContentAddress, IntentAddress,
+        ContentAddress, PredicateAddress,
     },
     Access, BytecodeMapped, GasLimit, SolutionAccess, StateSlots, Vm,
 };
@@ -91,7 +91,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
         // solution data correspond to external predicate that we're not going to verify here at
         // this point.
         let predicate_to_check_index = 0; // Only the first one!
-        let predicate_to_check = &solution.data[predicate_to_check_index].intent_to_solve;
+        let predicate_to_check = &solution.data[predicate_to_check_index].predicate_to_solve;
         let transient_data = essential_constraint_vm::transient_data(&solution);
 
         // This is the access that contains an access to some solution data and will contain the
@@ -110,7 +110,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
         // Find the individual predicate that corresponds to the predicate address specified in
         // `predicate_to_verify`. Here, we assume that the last byte in the address matches the
         // index of the predicate in in the BTreeMap `compiled_program.predicates`.
-        let predicate = &compiled_program.predicates[predicate_to_check.intent.0[31] as usize];
+        let predicate = &compiled_program.predicates[predicate_to_check.predicate.0[31] as usize];
 
         // Pre-populate the pre-state with all the db content, but first, every solution data
         // predicate set has to be inserted.
@@ -118,7 +118,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
             solution
                 .data
                 .iter()
-                .map(|data| (data.intent_to_solve.set.clone(), vec![]))
+                .map(|data| (data.predicate_to_solve.contract.clone(), vec![]))
                 .collect(),
         );
 
@@ -130,7 +130,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
                 let (set_address, key, value) = if split.len() == 3 {
                     (ContentAddress(hex_to_bytes(split[0])), split[1], split[2])
                 } else if split.len() == 2 {
-                    (predicate_to_check.set.clone(), split[0], split[1])
+                    (predicate_to_check.contract.clone(), split[0], split[1])
                 } else {
                     panic!("Error parsing db section");
                 };
@@ -177,7 +177,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
         // Apply the state mutations to the state to produce the post state.
         let mut post_state = pre_state.clone();
         for data in &solution.data {
-            let set_addr = &data.intent_to_solve.set;
+            let set_addr = &data.predicate_to_solve.contract;
             for Mutation { key, value } in &data.state_mutations {
                 post_state.set(set_addr.clone(), key, value.clone());
             }
@@ -209,7 +209,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
             post: &post_state_slots[..],
         };
 
-        match constraint::check_intent(&predicate.constraints, access) {
+        match constraint::check_predicate(&predicate.constraints, access) {
             Ok(_) => {}
             Err(err) => {
                 println!("{}", format!("    Error submitting solution: {err}").red());
@@ -264,13 +264,13 @@ fn parse_solution(
 
                 // The predicate to solve is either `Transient` or `Persistent`
                 let predicate_to_solve = match e.get("predicate_to_solve") {
-                    Some(s) => IntentAddress {
-                        set: ContentAddress(hex_to_bytes(
+                    Some(s) => PredicateAddress {
+                        contract: ContentAddress(hex_to_bytes(
                             s.get("set").and_then(|set| set.as_str()).ok_or_else(|| {
                                 anyhow!("Invalid persistent predicate_to_solve set")
                             })?,
                         )),
-                        intent: match s.get("predicate") {
+                        predicate: match s.get("predicate") {
                             // Here, we convert the predicate name into an address that is equal to
                             // the index of the predicate in the contract. This just a way to later
                             // figure out what constraints we have to check.
@@ -359,7 +359,7 @@ fn parse_solution(
                     .collect::<anyhow::Result<Vec<_>>>()?;
 
                 Ok(SolutionData {
-                    intent_to_solve: predicate_to_solve,
+                    predicate_to_solve,
                     decision_variables,
                     state_mutations,
                     transient_data,

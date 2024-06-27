@@ -112,11 +112,10 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
             // Write the contract predicates to JSON, and write the ABI.
             BuiltPkg::Contract(contract) => {
                 // Write the predicates.
-                let predicates: Vec<_> = contract.predicates.iter().map(|i| &i.predicate).collect();
-                let predicates_string = serde_json::to_string_pretty(&predicates)
+                let contract_string = serde_json::to_string_pretty(&contract.contract)
                     .context("failed to serialize predicates to JSON")?;
                 let predicates_path = profile_dir.join(&pinned.name).with_extension("json");
-                std::fs::write(&predicates_path, predicates_string)
+                std::fs::write(&predicates_path, contract_string)
                     .with_context(|| format!("failed to write {predicates_path:?}"))?;
 
                 // Write the ABI.
@@ -157,7 +156,7 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
 
         // For contracts, print their predicates too.
         if let BuiltPkg::Contract(contract) = built {
-            let mut iter = contract.predicates.iter().peekable();
+            let mut iter = contract.predicate_metadata.iter().peekable();
             while let Some(predicate) = iter.next() {
                 let name = format!("{}{}", pinned.name, predicate.name);
                 let pipe = iter.peek().map(|_| "├──").unwrap_or("└──");
@@ -174,7 +173,7 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
 fn name_col_w(name: &str, built: &BuiltPkg) -> usize {
     let mut name_w = 0;
     if let BuiltPkg::Contract(contract) = built {
-        for predicate in &contract.predicates {
+        for predicate in &contract.predicate_metadata {
             let w = predicate.name.chars().count();
             name_w = std::cmp::max(name_w, w);
         }

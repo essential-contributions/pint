@@ -5,7 +5,9 @@ use crate::{
     plan::{Graph, NodeIx, Pinned, PinnedManifests, Plan},
 };
 use abi_types::ProgramABI;
-use essential_types::{intent::Intent as CompiledPredicate, ContentAddress};
+use essential_types::{
+    contract::Contract, predicate::Predicate as CompiledPredicate, ContentAddress,
+};
 use pintc::{asm_gen::compile_program, predicate::ProgramKind};
 use std::{collections::HashMap, path::PathBuf};
 use thiserror::Error;
@@ -43,7 +45,9 @@ pub enum BuiltPkg {
 pub struct BuiltContract {
     pub kind: ProgramKind,
     /// All built predicates.
-    pub predicates: Vec<BuiltPredicate>,
+    pub predicate_metadata: Vec<PredicateMetadata>,
+    /// The salt of this contract.
+    pub contract: Contract,
     /// The content address of the contract.
     pub ca: ContentAddress,
     /// The entry-point into the temp library submodules used to provide the CAs.
@@ -60,6 +64,15 @@ pub struct BuiltPredicate {
     /// The name of the predicate from the code.
     pub name: String,
     pub predicate: CompiledPredicate,
+}
+
+/// An predicate built as a part of a contract.
+#[derive(Debug)]
+pub struct PredicateMetadata {
+    /// The content address of the predicate.
+    pub ca: ContentAddress,
+    /// The name of the predicate from the code.
+    pub name: String,
 }
 
 /// A successfully built library package.
@@ -305,8 +318,9 @@ fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg,
                 .collect();
 
             // The CA of the contract.
-            let ca = essential_hash::intent_set_addr::from_intent_addrs(
+            let ca = essential_hash::contract_addr::from_predicate_addrs(
                 predicates.iter().map(|predicate| predicate.ca.clone()),
+                &contract.salt,
             );
 
             // Generate a temp lib for providing the contract and predicate CAs to dependents.
@@ -318,11 +332,26 @@ fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg,
                 }
             };
 
+            let (predicate_metadata, predicates) = predicates
+                .into_iter()
+                .map(
+                    |BuiltPredicate {
+                         ca,
+                         name,
+                         predicate,
+                     }| (PredicateMetadata { ca, name }, predicate),
+                )
+                .unzip();
+
             let kind = contract.kind;
             let contract = BuiltContract {
                 kind,
                 ca,
-                predicates,
+                predicate_metadata,
+                contract: Contract {
+                    predicates,
+                    salt: contract.salt,
+                },
                 lib_entry_point,
                 abi,
             };

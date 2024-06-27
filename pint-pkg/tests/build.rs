@@ -81,12 +81,12 @@ solve satisfy;"#;
         };
 
         // There's only one nameless predicate in our simple `foo` test contract.
-        assert_eq!(&contract.predicates[0].name, "");
-        let predicate = &contract.predicates[0];
+        assert_eq!(&contract.predicate_metadata[0].name, "");
+        let predicate = &contract.contract.predicates[0];
 
         // It should have at least one constraint.
         assert!(
-            !predicate.predicate.constraints.is_empty(),
+            !predicate.constraints.is_empty(),
             "built foo should have at least one constraint"
         );
     });
@@ -162,12 +162,12 @@ solve satisfy;"#;
         };
 
         // There's only one nameless predicate in our simple `foo` test contract.
-        assert_eq!(&contract.predicates[0].name, "");
-        let predicate = &contract.predicates[0];
+        assert_eq!(&contract.predicate_metadata[0].name, "");
+        let predicate = &contract.contract.predicates[0];
 
         // It should have at least one constraint.
         assert!(
-            !predicate.predicate.constraints.is_empty(),
+            !predicate.constraints.is_empty(),
             "built foo should have at least one constraint"
         );
     });
@@ -239,7 +239,7 @@ solve satisfy;"#;
             name: &str,
         ) -> &'a ContentAddress {
             &contract
-                .predicates
+                .predicate_metadata
                 .iter()
                 .find(|i| i.name.contains(name))
                 .unwrap()
@@ -267,8 +267,8 @@ solve satisfy;"#;
             // in the bytecode, the CA is "pushed" to the stack one word at a time.
             for ca_chunk in ca.0.chunks(std::mem::size_of::<Word>()) {
                 let mut contains_chunk = false;
-                for predicate in &contract.predicates {
-                    for constraint in &predicate.predicate.constraints {
+                for predicate in &contract.contract.predicates {
+                    for constraint in &predicate.constraints {
                         if constraint.windows(ca_chunk.len()).any(|w| w == ca_chunk) {
                             contains_chunk |= true;
                         }
