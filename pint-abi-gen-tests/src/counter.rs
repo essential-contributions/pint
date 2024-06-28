@@ -7,7 +7,7 @@ mod counter_from_str {
     // matches `from_file!` so no need to test much further.
     pint_abi_gen::from_str! {
       r#"{
-        "intents": [
+        "predicates": [
           {
             "name": "",
             "vars": [],

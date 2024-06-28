@@ -3,15 +3,16 @@
 //! For a given contract, the following items are generated:
 //!
 //! - A `mod` representing `storage`.
-//! - For each `intent`, a module with the following:
-//!     - A `struct` for the intent's decision variables.
-//!     - A `mod` for the intent's public decision variables.
+//! - For each `predicate`, a module with the following:
+//!     - A `struct` for the predicate's decision variables.
+//!     - A `mod` for the predicate's public decision variables.
 //!
 //! Implementations are generated for using these types to write solutions to the
 //! format expected by the Essential protocol.
 
 use abi_types::{
-    IntentABI, KeyedTupleField, KeyedTypeABI, KeyedVarABI, ProgramABI, TupleField, TypeABI, VarABI,
+    KeyedTupleField, KeyedTypeABI, KeyedVarABI, PredicateABI, ProgramABI, TupleField, TypeABI,
+    VarABI,
 };
 // use essential_types::Word;
 use proc_macro::TokenStream;
@@ -19,7 +20,7 @@ use proc_macro2::Span;
 use quote::ToTokens;
 use syn::parse_macro_input;
 
-/// The name of the root module within the intent set produced by the compiler.
+/// The name of the root module within the predicate set produced by the compiler.
 const ROOT_MOD_NAME: &str = "";
 
 /// Convert the given pint tuple fields to unnamed Rust fields.
@@ -87,11 +88,11 @@ fn fields_from_vars(vars: &[VarABI]) -> Vec<syn::Field> {
         .collect()
 }
 
-/// Generate a struct for an intent's decision variables.
+/// Generate a struct for an predicate's decision variables.
 fn struct_from_vars(vars: &[VarABI]) -> syn::ItemStruct {
     let fields = fields_from_vars(vars);
     syn::parse_quote! {
-        /// The intent's decision variables.
+        /// The predicate's decision variables.
         #[derive(Clone, Debug)]
         pub struct Vars {
             #(
@@ -101,21 +102,21 @@ fn struct_from_vars(vars: &[VarABI]) -> syn::ItemStruct {
     }
 }
 
-/// Generate all items for the given intent.
-fn items_from_intent(intent: &IntentABI) -> Vec<syn::Item> {
+/// Generate all items for the given predicate.
+fn items_from_predicate(predicate: &PredicateABI) -> Vec<syn::Item> {
     vec![
-        struct_from_vars(&intent.vars).into(),
-        mod_from_keyed_vars("pub_vars", &intent.pub_vars).into(),
+        struct_from_vars(&predicate.vars).into(),
+        mod_from_keyed_vars("pub_vars", &predicate.pub_vars).into(),
     ]
 }
 
-/// Generate a module for the given intent.
-/// Modules are only generated for named intents.
-fn mod_from_intent(intent: &IntentABI) -> syn::ItemMod {
-    let name = strip_colons_prefix(&intent.name);
-    let doc_str = format!("Items for the `{name}` intent.");
+/// Generate a module for the given predicate.
+/// Modules are only generated for named predicates.
+fn mod_from_predicate(predicate: &PredicateABI) -> syn::ItemMod {
+    let name = strip_colons_prefix(&predicate.name);
+    let doc_str = format!("Items for the `{name}` predicate.");
     let ident = syn::Ident::new(name, Span::call_site());
-    let items = items_from_intent(intent);
+    let items = items_from_predicate(predicate);
     syn::parse_quote! {
         #[allow(non_snake_case)]
         #[doc = #doc_str]
@@ -127,34 +128,36 @@ fn mod_from_intent(intent: &IntentABI) -> syn::ItemMod {
     }
 }
 
-/// Generate a module for each named intent.
-fn mods_from_named_intents(intents: &[IntentABI]) -> Vec<syn::ItemMod> {
-    intents
+/// Generate a module for each named predicate.
+fn mods_from_named_predicates(predicates: &[PredicateABI]) -> Vec<syn::ItemMod> {
+    predicates
         .iter()
-        .filter(|intent| intent.name != ROOT_MOD_NAME)
-        .map(mod_from_intent)
+        .filter(|predicate| predicate.name != ROOT_MOD_NAME)
+        .map(mod_from_predicate)
         .collect()
 }
 
-/// Find the root intent.
-fn find_root_intent(intents: &[IntentABI]) -> Option<&IntentABI> {
-    intents.iter().find(|intent| intent.name == ROOT_MOD_NAME)
+/// Find the root predicate.
+fn find_root_predicate(predicates: &[PredicateABI]) -> Option<&PredicateABI> {
+    predicates
+        .iter()
+        .find(|predicate| predicate.name == ROOT_MOD_NAME)
 }
 
-/// Given the set of intents, generate all items.
+/// Given the set of predicates, generate all items.
 ///
-/// This includes a module for each named intent, and types for the root intent.
-fn items_from_intents(intents: &[IntentABI]) -> Vec<syn::Item> {
+/// This includes a module for each named predicate, and types for the root predicate.
+fn items_from_predicates(predicates: &[PredicateABI]) -> Vec<syn::Item> {
     let mut items = vec![];
 
-    // Add the root intent items.
-    if let Some(root_intent) = find_root_intent(intents) {
-        items.extend(items_from_intent(root_intent));
+    // Add the root predicate items.
+    if let Some(root_predicate) = find_root_predicate(predicates) {
+        items.extend(items_from_predicate(root_predicate));
     }
 
-    // Add the named intent modules.
+    // Add the named predicate modules.
     items.extend(
-        mods_from_named_intents(intents)
+        mods_from_named_predicates(predicates)
             .into_iter()
             .map(syn::Item::from),
     );
@@ -433,6 +436,9 @@ fn map_mutation_method(ty_from: &TypeABI, ty_to: &KeyedTypeABI) -> syn::ImplItem
         KeyedTypeABI::Real(key) => (SingleKeyTy::Real, key),
         KeyedTypeABI::String(key) => (SingleKeyTy::String, key),
         KeyedTypeABI::B256(key) => (SingleKeyTy::B256, key),
+        KeyedTypeABI::Array { ty, size } => {
+            todo!()
+        }
         KeyedTypeABI::Tuple { fields: _, key } => {
             return map_mutation_method_for_tuple(ty_from, key);
         }
@@ -617,6 +623,7 @@ fn mutation_method_from_keyed_var(name: &str, ty: &KeyedTypeABI) -> syn::ImplIte
         KeyedTypeABI::Real(key) => (SingleKeyTy::Real, key),
         KeyedTypeABI::String(key) => (SingleKeyTy::String, key),
         KeyedTypeABI::B256(key) => (SingleKeyTy::B256, key),
+        KeyedTypeABI::Array { ty, size } => todo!(),
         // Tuple types take a closure.
         KeyedTypeABI::Tuple { fields: _, key } => return mutation_method_for_tuple(name, key),
         // Map types take a closure.
@@ -697,7 +704,7 @@ fn mod_from_keyed_vars(mod_name: &str, vars: &[KeyedVarABI]) -> syn::ItemMod {
 /// Given an ABI, generate all items.
 fn items_from_abi(abi: &ProgramABI) -> Vec<syn::Item> {
     let mut items = vec![];
-    items.extend(items_from_intents(&abi.intents));
+    items.extend(items_from_predicates(&abi.predicates));
     items.push(mod_from_keyed_vars("storage", &abi.storage).into());
     items
 }
