@@ -666,12 +666,9 @@ impl AsmBuilder {
                 }
             }
             Expr::UnaryOp { op, expr, .. } => {
-                // location right before the `expr` opcodes. To be used as the `rhs` if the unary
-                // op is a negation.
-                let expr_position = Self::compile_expr(handler, asm, expr, pred)?;
-
                 match op {
                     UnaryOp::Not => {
+                        Self::compile_expr(handler, asm, expr, pred)?;
                         asm.push(Pred::Not.into());
                     }
                     UnaryOp::NextState => {
@@ -683,9 +680,10 @@ impl AsmBuilder {
                         }));
                     }
                     UnaryOp::Neg => {
-                        // Push `0` (i.e. `lhs`) before the `expr` (i.e. `rhs`) opcodes. Then, to negate the
-                        // value, subtract `lhs` - `rhs`.
-                        asm.insert(expr_position, Stack::Push(0).into());
+                        // Push `0` (i.e. `lhs`) before the `expr` (i.e. `rhs`) opcodes. Then
+                        // subtract `lhs` - `rhs` to negate the value.
+                        asm.insert(asm.len()-1, Stack::Push(0).into());
+                        Self::compile_expr(handler, asm, expr, pred)?;
                         asm.push(Alu::Sub.into())
                     }
                     UnaryOp::Error => unreachable!("unexpected Unary::Error"),
