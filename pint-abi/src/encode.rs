@@ -19,10 +19,10 @@ impl Encode for bool {
     }
 }
 
-impl Encode for [i64] {
+impl<T: Encode> Encode for [T] {
     fn encode<W: Write>(&self, w: &mut W) -> Result<(), W::Error> {
-        for &word in self {
-            w.write_word(word)?;
+        for elem in self {
+            elem.encode(w)?;
         }
         Ok(())
     }
