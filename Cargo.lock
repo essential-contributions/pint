@@ -552,7 +552,7 @@ dependencies = [
 [[package]]
 name = "essential-asm-gen"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#9e731f4070a56b92414245a16e26d3f6329f6dca"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#9688d1eda34e0775dc59ecb9e58f27dedc66dde5"
 dependencies = [
  "essential-asm-spec",
  "essential-types",
@@ -564,7 +564,7 @@ dependencies = [
 [[package]]
 name = "essential-asm-spec"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#9e731f4070a56b92414245a16e26d3f6329f6dca"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#9688d1eda34e0775dc59ecb9e58f27dedc66dde5"
 dependencies = [
  "serde",
  "serde_yaml",
@@ -573,7 +573,7 @@ dependencies = [
 [[package]]
 name = "essential-constraint-asm"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#9e731f4070a56b92414245a16e26d3f6329f6dca"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#9688d1eda34e0775dc59ecb9e58f27dedc66dde5"
 dependencies = [
  "essential-asm-gen",
  "essential-types",
@@ -583,7 +583,7 @@ dependencies = [
 [[package]]
 name = "essential-constraint-vm"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#9e731f4070a56b92414245a16e26d3f6329f6dca"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#9688d1eda34e0775dc59ecb9e58f27dedc66dde5"
 dependencies = [
  "ed25519-dalek",
  "essential-constraint-asm",
@@ -597,7 +597,7 @@ dependencies = [
 [[package]]
 name = "essential-hash"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#9e731f4070a56b92414245a16e26d3f6329f6dca"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#9688d1eda34e0775dc59ecb9e58f27dedc66dde5"
 dependencies = [
  "essential-types",
  "postcard",
@@ -608,7 +608,7 @@ dependencies = [
 [[package]]
 name = "essential-state-asm"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#9e731f4070a56b92414245a16e26d3f6329f6dca"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#9688d1eda34e0775dc59ecb9e58f27dedc66dde5"
 dependencies = [
  "essential-asm-gen",
  "essential-constraint-asm",
@@ -618,7 +618,7 @@ dependencies = [
 [[package]]
 name = "essential-state-read-vm"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#9e731f4070a56b92414245a16e26d3f6329f6dca"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#9688d1eda34e0775dc59ecb9e58f27dedc66dde5"
 dependencies = [
  "essential-constraint-vm",
  "essential-state-asm",
@@ -629,7 +629,7 @@ dependencies = [
 [[package]]
 name = "essential-types"
 version = "0.1.0"
-source = "git+ssh://git@github.com/essential-contributions/essential-base.git#9e731f4070a56b92414245a16e26d3f6329f6dca"
+source = "git+ssh://git@github.com/essential-contributions/essential-base.git#9688d1eda34e0775dc59ecb9e58f27dedc66dde5"
 dependencies = [
  "hex",
  "serde",
