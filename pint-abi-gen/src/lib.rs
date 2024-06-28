@@ -102,11 +102,31 @@ fn struct_from_vars(vars: &[VarABI]) -> syn::ItemStruct {
     }
 }
 
+/// Generate a `From<Vars>` implementation for converting `Vars` to `Vec<Word>`.
+fn impl_from_vars(vars: &[VarABI]) -> syn::ItemImpl {
+    let field_idents = vars
+        .iter()
+        .map(|var| field_name_from_var_name(&var.name))
+        .map(|name| syn::Ident::new(&name, Span::call_site()));
+    syn::parse_quote! {
+        impl From<Vars> for Vec<essential_types::Word> {
+            fn from(vars: Vars) -> Self {
+                let mut words: Vec<essential_types::Word> = vec![];
+                #(
+                    pint_abi::Encode::encode(vars.#field_idents, &mut words).expect("cannot fail");
+                )*
+                words
+            }
+        }
+    }
+}
+
 /// Generate all items for the given predicate.
 fn items_from_predicate(predicate: &PredicateABI) -> Vec<syn::Item> {
     let mut items = vec![];
     if !predicate.vars.is_empty() {
         items.push(struct_from_vars(&predicate.vars).into());
+        items.push(impl_from_vars(&predicate.vars).into());
     }
     if !predicate.pub_vars.is_empty() {
         items.push(mod_from_keyed_vars("pub_vars", &predicate.pub_vars).into());
@@ -159,19 +179,16 @@ fn find_root_predicate(predicates: &[PredicateABI]) -> Option<&PredicateABI> {
 /// This includes a module for each named predicate, and types for the root predicate.
 fn items_from_predicates(predicates: &[PredicateABI]) -> Vec<syn::Item> {
     let mut items = vec![];
-
     // Add the root predicate items.
     if let Some(root_pred) = find_root_predicate(predicates) {
         items.extend(items_from_predicate(root_pred));
     }
-
     // Add the named predicate modules.
     items.extend(
         mods_from_named_predicates(predicates)
             .into_iter()
             .map(syn::Item::from),
     );
-
     items
 }
 
@@ -438,17 +455,29 @@ fn map_mutation_method_for_single_key(
     }
 }
 
+/// Extract the key from a keyed type.
+fn abi_key_from_keyed_type(ty: &KeyedTypeABI) -> &Vec<Option<usize>> {
+    match ty {
+        KeyedTypeABI::Bool(key) => key,
+        KeyedTypeABI::Int(key) => key,
+        KeyedTypeABI::Real(key) => key,
+        KeyedTypeABI::Array { ty, .. } => abi_key_from_keyed_type(ty),
+        KeyedTypeABI::String(key) => abi_key_from_keyed_type(ty),
+        KeyedTypeABI::B256(key) => key,
+        KeyedTypeABI::Tuple { key, .. } => key,
+        KeyedTypeABI::Map { key, .. } => key,
+    }
+}
+
 /// A map method for inserting mutations for an entry associated with a given key.
 fn map_mutation_method(ty_from: &TypeABI, ty_to: &KeyedTypeABI) -> syn::ImplItemFn {
     let (val_ty, key) = match ty_to {
         KeyedTypeABI::Bool(key) => (SingleKeyTy::Bool, key),
         KeyedTypeABI::Int(key) => (SingleKeyTy::Int, key),
         KeyedTypeABI::Real(key) => (SingleKeyTy::Real, key),
+        KeyedTypeABI::Array { ty, size } => todo!(),
         KeyedTypeABI::String(key) => (SingleKeyTy::String, key),
         KeyedTypeABI::B256(key) => (SingleKeyTy::B256, key),
-        KeyedTypeABI::Array { ty, size } => {
-            todo!()
-        }
         KeyedTypeABI::Tuple { fields: _, key } => {
             return map_mutation_method_for_tuple(ty_from, key);
         }
