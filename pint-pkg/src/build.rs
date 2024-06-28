@@ -291,7 +291,7 @@ fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg,
             };
 
             // Produce the ABI for the flattened program.
-            let Ok(abi) = flattened.abi() else {
+            let Ok(abi) = flattened.abi(&handler) else {
                 let kind = BuildPkgErrorKind::from(PintcError::ABIGen);
                 return Err(BuildPkgError { handler, kind });
             };

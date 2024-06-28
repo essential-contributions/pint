@@ -1,0 +1,120 @@
+{
+  "predicates": [
+    {
+      "name": "",
+      "vars": [],
+      "pub_vars": []
+    },
+    {
+      "name": "::Foo",
+      "vars": [],
+      "pub_vars": []
+    }
+  ],
+  "storage": [
+    {
+      "name": "a1",
+      "ty": {
+        "Array": {
+          "ty": {
+            "Int": [0, 0]
+          },
+          "size": 5
+        }
+      }
+    },
+    {
+      "name": "a2",
+      "ty": {
+        "Array": {
+          "ty": {
+            "Array": {
+              "ty": {
+                "B256": [1, 0]
+              },
+              "size": 2
+            }
+          },
+          "size": 3
+        }
+      }
+    },
+    {
+      "name": "a3",
+      "ty": {
+        "Array": {
+          "ty": {
+            "Array": {
+              "ty": {
+                "Tuple": {
+                  "fields": [
+                    {
+                      "name": null,
+                      "ty": {
+                        "Int": [2, 0]
+                      }
+                    },
+                    {
+                      "name": null,
+                      "ty": {
+                        "B256": [2, 1]
+                      }
+                    }
+                  ],
+                  "key": [2, 0]
+                }
+              },
+              "size": 4
+            }
+          },
+          "size": 3
+        }
+      }
+    },
+    {
+      "name": "my_map",
+      "ty": {
+        "Map": {
+          "ty_from": "Int",
+          "ty_to": {
+            "Array": {
+              "ty": {
+                "Array": {
+                  "ty": {
+                    "Int": [3, null, 0]
+                  },
+                  "size": 9
+                }
+              },
+              "size": 5
+            }
+          },
+          "key": [3]
+        }
+      }
+    },
+    {
+      "name": "my_nested_map",
+      "ty": {
+        "Map": {
+          "ty_from": "Int",
+          "ty_to": {
+            "Map": {
+              "ty_from": "B256",
+              "ty_to": {
+                "Array": {
+                  "ty": {
+                    "Int": [4, null, null, null, null, null, 0]
+                  },
+                  "size": 3
+                }
+              },
+              "key": [4, null]
+            }
+          },
+          "key": [4]
+        }
+      }
+    }
+  ]
+}

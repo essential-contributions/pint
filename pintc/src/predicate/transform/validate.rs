@@ -158,18 +158,6 @@ fn check_expr(expr_key: &ExprKey, handler: &Handler, pred: &Predicate) -> Result
             "macro call",
             "exprs"
         )),
-        Expr::Index { expr, span, .. } => {
-            if !expr.get_ty(pred).is_map() {
-                Err(emit_illegal_type_error!(
-                    handler,
-                    span,
-                    "array element access",
-                    "exprs"
-                ))
-            } else {
-                Ok(())
-            }
-        }
         Expr::In { span, .. } => Err(emit_illegal_type_error!(
             handler,
             span,
@@ -203,6 +191,7 @@ fn check_expr(expr_key: &ExprKey, handler: &Handler, pred: &Predicate) -> Result
         | Expr::Select { .. }
         | Expr::Cast { .. }
         | Expr::TupleFieldAccess { .. }
+        | Expr::Index { .. }
         | Expr::ExternalStorageAccess { .. } => Ok(()),
     }
 }
@@ -300,14 +289,6 @@ fn expr_types() {
 #[test]
 fn exprs() {
     // array and array field access
-    let src = "var a = [1, 2, 3];
-    var b = a[1];";
-    check(
-        &run_test(src),
-        expect_test::expect![
-            "compiler internal error: array element access present in final predicate exprs slotmap"
-        ],
-    );
     let src = "var x: bool = 5 in [3, 4, 5];";
     check(
         &run_test(src),
@@ -334,8 +315,6 @@ fn exprs() {
         &run_test(src),
         expect_test::expect![[r#"
             compiler internal error: exists generator present in final predicate exprs slotmap
-            compiler internal error: array element access present in final predicate exprs slotmap
-            compiler internal error: array element access present in final predicate exprs slotmap
             compiler internal error: range present in final predicate exprs slotmap
             compiler internal error: range present in final predicate exprs slotmap"#]],
     );

@@ -150,8 +150,7 @@ impl AsmBuilder {
             | Expr::Range { .. }
             | Expr::Generator { .. }
             | Expr::StorageAccess { .. }
-            | Expr::ExternalStorageAccess { .. }
-            | Expr::Index { .. } => Ok(Location::Value),
+            | Expr::ExternalStorageAccess { .. } => Ok(Location::Value),
             Expr::UnaryOp { op, expr, .. } => match op {
                 UnaryOp::NextState => {
                     // Next state expressions produce state expressions (i.e. ones that require
@@ -171,6 +170,7 @@ impl AsmBuilder {
                 match location {
                     Location::State(_) | Location::Transient(..) => {
                         // Offset calculation for state and transient data is the same
+
                         // Grab the fields of the tuple
                         let Type::Tuple { ref fields, .. } = tuple.get_ty(pred) else {
                             return Err(handler.emit_err(Error::Compile {
@@ -203,15 +203,49 @@ impl AsmBuilder {
                         };
 
                         // This is the offset from the base key where the full tuple is stored.
-                        let key_offset: usize = fields
-                            .iter()
-                            .take(field_idx)
-                            .map(|(_, ty)| ty.storage_slots())
-                            .sum();
+                        let key_offset: usize =
+                            fields.iter().take(field_idx).try_fold(0, |acc, (_, ty)| {
+                                ty.storage_slots(handler, pred).map(|slots| acc + slots)
+                            })?;
 
                         // Now offset using `Add`
                         asm.push(Stack::Push(key_offset as i64).into());
                         asm.push(Alu::Add.into());
+                        Ok(location)
+                    }
+                    Location::DecisionVar(_) => {
+                        unimplemented!("we'll handle this when we stop scalarizing")
+                    }
+                    Location::Value => {
+                        unimplemented!("we'll handle this eventually as a fallback option")
+                    }
+                }
+            }
+            Expr::Index { expr, index, .. } => {
+                let location = Self::compile_expr_pointer(handler, asm, expr, pred)?;
+                match location {
+                    Location::State(_) | Location::Transient(..) => {
+                        // Offset calculation for state and transient data is the same
+
+                        // Grab the element ty of the array
+                        let Type::Array { ty, .. } = expr.get_ty(pred) else {
+                            return Err(handler.emit_err(Error::Compile {
+                                error: CompileError::Internal {
+                                    msg: "type must exist and be an array type",
+                                    span: empty_span(),
+                                },
+                            }));
+                        };
+
+                        // Compile the index
+                        Self::compile_expr(handler, asm, index, pred)?;
+
+                        // Multiply the index by the number of storage slots for `ty` to get the
+                        // offset, then add the result to the base key
+                        asm.push(Stack::Push(ty.storage_slots(handler, pred)? as i64).into());
+                        asm.push(Alu::Mul.into());
+                        asm.push(Alu::Add.into());
+
                         Ok(location)
                     }
                     Location::DecisionVar(_) => {
@@ -372,22 +406,49 @@ impl AsmBuilder {
                 })
             }
             Expr::Index { expr, index, .. } => {
-                // Compile the key corresponding to `expr`
-                let storage_key = Self::compile_state_key(handler, s_asm, expr, pred)?;
+                if expr.get_ty(pred).is_map() {
+                    // Compile the key corresponding to `expr`
+                    let storage_key = Self::compile_state_key(handler, s_asm, expr, pred)?;
 
-                // Compile the index
-                let mut asm = vec![];
-                Self::compile_expr(handler, &mut asm, index, pred)?;
-                s_asm.extend(asm.iter().copied().map(StateRead::from));
-                let mut key_length = storage_key.len() + index.get_ty(pred).size();
-                if !(expr_ty.is_any_primitive() || expr_ty.is_map()) {
-                    s_asm.push(StateRead::from(Stack::Push(0)));
-                    key_length += 1;
+                    // Compile the index
+                    let mut asm = vec![];
+                    Self::compile_expr(handler, &mut asm, index, pred)?;
+                    s_asm.extend(asm.iter().copied().map(StateRead::from));
+                    let mut key_length = storage_key.len() + index.get_ty(pred).size();
+                    if !(expr_ty.is_any_primitive() || expr_ty.is_map()) {
+                        s_asm.push(StateRead::from(Stack::Push(0)));
+                        key_length += 1;
+                    }
+                    Ok(StorageKey {
+                        kind: StorageKeyKind::Dynamic(key_length),
+                        is_extern: storage_key.is_extern,
+                    })
+                } else {
+                    let Type::Array { ty, .. } = expr.get_ty(pred) else {
+                        return Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "type must exist and be an array type",
+                                span: empty_span(),
+                            },
+                        }));
+                    };
+
+                    // Compile the key corresponding to `expr`
+                    let storage_key = Self::compile_state_key(handler, s_asm, expr, pred)?;
+
+                    // Compile the index
+                    let mut asm = vec![];
+                    Self::compile_expr(handler, &mut asm, index, pred)?;
+                    s_asm.extend(asm.iter().copied().map(StateRead::from));
+
+                    // Multiply the index by the number of storage slots for `ty` to get the
+                    // offset, then add the result to the base key
+                    s_asm.push(Stack::Push(ty.storage_slots(handler, pred)? as i64).into());
+                    s_asm.push(Alu::Mul.into());
+                    s_asm.push(Alu::Add.into());
+
+                    Ok(storage_key)
                 }
-                Ok(StorageKey {
-                    kind: StorageKeyKind::Dynamic(key_length),
-                    is_extern: storage_key.is_extern,
-                })
             }
             Expr::TupleFieldAccess { tuple, field, .. } => {
                 // Compile the key corresponding to `tuple`
@@ -426,11 +487,10 @@ impl AsmBuilder {
                 };
 
                 // This is the offset from the base key where the full tuple is stored.
-                let key_offset: usize = fields
-                    .iter()
-                    .take(field_idx)
-                    .map(|(_, ty)| ty.storage_slots())
-                    .sum();
+                let key_offset: usize =
+                    fields.iter().take(field_idx).try_fold(0, |acc, (_, ty)| {
+                        ty.storage_slots(handler, pred).map(|slots| acc + slots)
+                    })?;
 
                 // Increment the last word on the satck by `key_offset`. This works fine for the
                 // static case because all static keys start at zero (at least for now). For
@@ -501,7 +561,7 @@ impl AsmBuilder {
                 }
             }
             Location::State(next_state) => {
-                let slots = expr_ty.storage_slots();
+                let slots = expr_ty.storage_slots(handler, pred)?;
                 if slots == 1 {
                     asm.push(Stack::Push(next_state as i64).into());
                     asm.push(Access::State.into());
@@ -952,11 +1012,15 @@ impl AsmBuilder {
                 Ok(Location::Transient(None, 2))
             }
         } else if let Some(storage_index) = storage_index {
-            let slot_index: usize = pred
-                .states()
-                .take(storage_index)
-                .map(|(state_key, _)| state_key.get_ty(pred).storage_slots())
-                .sum();
+            let slot_index: usize =
+                pred.states()
+                    .take(storage_index)
+                    .try_fold(0, |acc, (state_key, _)| {
+                        state_key
+                            .get_ty(pred)
+                            .storage_slots(handler, pred)
+                            .map(|slots| acc + slots)
+                    })?;
 
             asm.push(Stack::Push(slot_index as i64).into());
 
@@ -1065,7 +1129,7 @@ impl AsmBuilder {
             StorageKeyKind::Dynamic(size) => size,
         };
 
-        let storage_slots = state.expr.get_ty(pred).storage_slots();
+        let storage_slots = state.expr.get_ty(pred).storage_slots(handler, pred)?;
         s_asm.extend([
             Stack::Push(storage_slots as i64).into(),
             StateSlots::AllocSlots.into(),

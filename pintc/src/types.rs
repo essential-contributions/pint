@@ -1,6 +1,6 @@
 use crate::{
-    error::CompileError,
-    expr::Ident,
+    error::{CompileError, Error, ErrorEmitted, Handler},
+    expr::{evaluate::Evaluator, Expr, Ident, Immediate},
     predicate::{ExprKey, Predicate},
     span::{empty_span, Span, Spanned},
 };
@@ -196,6 +196,41 @@ impl Type {
         })
     }
 
+    pub fn get_array_size_from_range_expr(
+        handler: &Handler,
+        range_expr: &Expr,
+        pred: &Predicate,
+    ) -> Result<i64, ErrorEmitted> {
+        if let Expr::PathByName(path, _) = range_expr {
+            // It's hopefully an enum for the range expression.
+            if let Some(size) = pred.enums.iter().find_map(|enum_decl| {
+                (&enum_decl.name.name == path).then_some(enum_decl.variants.len() as i64)
+            }) {
+                Ok(size)
+            } else {
+                Err(handler.emit_err(Error::Compile {
+                    error: CompileError::NonConstArrayLength {
+                        span: range_expr.span().clone(),
+                    },
+                }))
+            }
+        } else {
+            match Evaluator::new(pred).evaluate(range_expr, handler, pred) {
+                Ok(Immediate::Int(size)) if size > 0 => Ok(size),
+                Ok(_) => Err(handler.emit_err(Error::Compile {
+                    error: CompileError::InvalidConstArrayLength {
+                        span: range_expr.span().clone(),
+                    },
+                })),
+                _ => Err(handler.emit_err(Error::Compile {
+                    error: CompileError::NonConstArrayLength {
+                        span: range_expr.span().clone(),
+                    },
+                })),
+            }
+        }
+    }
+
     pub fn get_map_ty_from(&self) -> Option<&Type> {
         check_alias!(self, get_map_ty_from, {
             if let Type::Map { ty_from, .. } = self {
@@ -284,32 +319,42 @@ impl Type {
 
     /// Calculate the number of storage slots required for this type. All primitive types fit in a
     /// single slot even if their size is > 1.
-    pub fn storage_slots(&self) -> usize {
+    pub fn storage_slots(
+        &self,
+        handler: &Handler,
+        pred: &Predicate,
+    ) -> Result<usize, ErrorEmitted> {
         match self {
-            Self::Primitive { .. } => 1,
+            Self::Primitive { .. } => Ok(1),
 
-            Self::Tuple { fields, .. } => fields
-                .iter()
-                .fold(0, |acc, (_, field_ty)| acc + field_ty.storage_slots()),
+            Self::Tuple { fields, .. } => fields.iter().try_fold(0, |acc, (_, field_ty)| {
+                field_ty
+                    .storage_slots(handler, pred)
+                    .map(|slots| acc + slots)
+            }),
 
-            Self::Array { ty, size, .. } => {
-                if let Some(size) = size {
-                    ty.storage_slots() * *size as usize
-                } else {
-                    unimplemented!("unable to find type size for array at the moment")
-                }
-            }
+            Self::Array {
+                ty, range, size, ..
+            } => Ok(ty.storage_slots(handler, pred)?
+                * size.unwrap_or(Self::get_array_size_from_range_expr(
+                    handler,
+                    range
+                        .as_ref()
+                        .and_then(|e| e.try_get(pred))
+                        .expect("expr key guaranteed to exist"),
+                    pred,
+                )?) as usize),
 
             // The point here is that a `Map` takes up a storage slot, even though it doesn't
             // actually store anything in it. The `Map` type is not really allowed anywhere else,
             // so we can't have a decision variable of type `Map` for example.
-            Self::Map { .. } => 1,
+            Self::Map { .. } => Ok(1),
             _ => unimplemented!("Size of type is not yet specified"),
         }
     }
 
     /// Produce a `TypeABI` given a `Type`.
-    pub fn abi(&self) -> Result<TypeABI, CompileError> {
+    pub fn abi(&self) -> Result<TypeABI, ErrorEmitted> {
         match self {
             Type::Primitive { kind, .. } => Ok(match kind {
                 PrimitiveKind::Bool => TypeABI::Bool,
@@ -336,7 +381,12 @@ impl Type {
 
     /// Produce a `KeyedTypeABI` given a `Type` and a base key. The layout of the keys follows how
     /// asm_gen produces storage and transient data keys.
-    pub fn abi_with_key(&self, key: Key) -> Result<KeyedTypeABI, CompileError> {
+    pub fn abi_with_key(
+        &self,
+        handler: &Handler,
+        key: Key,
+        pred: &Predicate,
+    ) -> Result<KeyedTypeABI, ErrorEmitted> {
         match self {
             Type::Primitive { kind, .. } => Ok(match kind {
                 PrimitiveKind::Bool => KeyedTypeABI::Bool(key),
@@ -357,22 +407,39 @@ impl Type {
                             *last_word += fields
                                 .iter()
                                 .take(index)
-                                .map(|(_, ty)| ty.storage_slots())
-                                .sum::<usize>();
+                                .try_fold(0, |acc, (_, ty)| {
+                                    ty.storage_slots(handler, pred).map(|slots| acc + slots)
+                                })
+                                .unwrap();
 
                             Ok(KeyedTupleField {
                                 name: name.as_ref().map(|name| name.name.clone()),
-                                ty: field_ty.abi_with_key(field_key.clone())?,
+                                ty: field_ty.abi_with_key(handler, field_key.clone(), pred)?,
                             })
                         } else {
-                            Err(CompileError::Internal {
-                                msg: "the last word in the key must exist and be non-null",
-                                span: empty_span(),
-                            })
+                            Err(handler.emit_err(Error::Compile {
+                                error: CompileError::Internal {
+                                    msg: "the last word in the key must exist and be non-null",
+                                    span: empty_span(),
+                                },
+                            }))
                         }
                     })
                     .collect::<Result<Vec<_>, _>>()?,
                 key,
+            }),
+            Type::Array {
+                ty, range, size, ..
+            } => Ok(KeyedTypeABI::Array {
+                ty: Box::new(ty.abi_with_key(handler, key.clone(), pred)?),
+                size: size.unwrap_or(Self::get_array_size_from_range_expr(
+                    handler,
+                    range
+                        .as_ref()
+                        .and_then(|e| e.try_get(pred))
+                        .expect("expr key guaranteed to exist"),
+                    pred,
+                )?),
             }),
             Type::Map { ty_from, ty_to, .. } => {
                 let mut value_key = key.clone();
@@ -383,10 +450,10 @@ impl Type {
                 Ok(KeyedTypeABI::Map {
                     ty_from: (*ty_from).abi()?,
                     ty_to: Box::new(if ty_to.is_any_primitive() || ty_to.is_map() {
-                        (*ty_to).abi_with_key(value_key.clone())?
+                        (*ty_to).abi_with_key(handler, value_key.clone(), pred)?
                     } else {
                         value_key.push(Some(0));
-                        (*ty_to).abi_with_key(value_key.clone())?
+                        (*ty_to).abi_with_key(handler, value_key.clone(), pred)?
                     }),
                     key,
                 })
