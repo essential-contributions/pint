@@ -104,10 +104,14 @@ fn struct_from_vars(vars: &[VarABI]) -> syn::ItemStruct {
 
 /// Generate all items for the given predicate.
 fn items_from_predicate(predicate: &PredicateABI) -> Vec<syn::Item> {
-    vec![
-        struct_from_vars(&predicate.vars).into(),
-        mod_from_keyed_vars("pub_vars", &predicate.pub_vars).into(),
-    ]
+    let mut items = vec![];
+    if !predicate.vars.is_empty() {
+        items.push(struct_from_vars(&predicate.vars).into());
+    }
+    if !predicate.pub_vars.is_empty() {
+        items.push(mod_from_keyed_vars("pub_vars", &predicate.pub_vars).into());
+    }
+    items
 }
 
 /// Generate a module for the given predicate.
@@ -128,10 +132,16 @@ fn mod_from_predicate(predicate: &PredicateABI) -> syn::ItemMod {
     }
 }
 
+/// Whether or not the given predicate contains any items.
+fn is_predicate_empty(pred: &PredicateABI) -> bool {
+    pred.vars.is_empty() && pred.pub_vars.is_empty()
+}
+
 /// Generate a module for each named predicate.
 fn mods_from_named_predicates(predicates: &[PredicateABI]) -> Vec<syn::ItemMod> {
     predicates
         .iter()
+        .filter(|&predicate| !is_predicate_empty(predicate))
         .filter(|predicate| predicate.name != ROOT_MOD_NAME)
         .map(mod_from_predicate)
         .collect()
@@ -151,8 +161,8 @@ fn items_from_predicates(predicates: &[PredicateABI]) -> Vec<syn::Item> {
     let mut items = vec![];
 
     // Add the root predicate items.
-    if let Some(root_predicate) = find_root_predicate(predicates) {
-        items.extend(items_from_predicate(root_predicate));
+    if let Some(root_pred) = find_root_predicate(predicates) {
+        items.extend(items_from_predicate(root_pred));
     }
 
     // Add the named predicate modules.
@@ -705,7 +715,9 @@ fn mod_from_keyed_vars(mod_name: &str, vars: &[KeyedVarABI]) -> syn::ItemMod {
 fn items_from_abi(abi: &ProgramABI) -> Vec<syn::Item> {
     let mut items = vec![];
     items.extend(items_from_predicates(&abi.predicates));
-    items.push(mod_from_keyed_vars("storage", &abi.storage).into());
+    if !abi.storage.is_empty() {
+        items.push(mod_from_keyed_vars("storage", &abi.storage).into());
+    }
     items
 }
 
