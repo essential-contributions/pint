@@ -294,7 +294,8 @@ ThenBlock: Vec<BlockStatement> = {
 };
 
 ElseBlock: Vec<BlockStatement> = {
-    "else" "{" <block_statements:BlockStatement*> "}" => block_statements
+    "else" "{" <block_statements:BlockStatement*> "}" => block_statements,
+    "else" <if_decl:If> => vec![BlockStatement::If(if_decl)],
 };
 
 If: IfDecl = {

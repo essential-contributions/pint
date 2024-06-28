@@ -54,6 +54,21 @@ if condition2 && condition {
     }
 }
 
+if condition {
+    constraint x == 11;
+} else if condition2 {
+    constraint x == 22;
+    if condition3 {
+        constraint x == 33;
+    } else if condition {
+        constraint x == 44;
+    }
+} else if false {
+    constraint x == 55;
+} else {
+    constraint x == 66;
+}
+
 solve satisfy;
 
 // parsed <<<
@@ -104,8 +119,28 @@ solve satisfy;
 //         }
 //     }
 // }
+// if ::condition {
+//     constraint (::x == 11)
+// } else {
+//     if ::condition2 {
+//         constraint (::x == 22)
+//         if ::condition3 {
+//             constraint (::x == 33)
+//         } else {
+//             if ::condition {
+//                 constraint (::x == 44)
+//             }
+//         }
+//     } else {
+//         if false {
+//             constraint (::x == 55)
+//         } else {
+//             constraint (::x == 66)
+//         }
+//     }
+// }
 // solve satisfy;
-// >>> 
+// >>>
 
 // flattened <<<
 // var ::condition: int;
@@ -131,5 +166,11 @@ solve satisfy;
 // constraint ((::condition2 && ::condition) || (!::condition3 || ((::yy + ::xx) == (::yy * ::xx))));
 // constraint ((::condition2 && ::condition) || (!::condition3 || ::z));
 // constraint ((::condition2 && ::condition) || (::condition3 || (!::z || (::z && 1))));
+// constraint (!::condition || (::x == 11));
+// constraint (::condition || (!::condition2 || (::x == 22)));
+// constraint (::condition || (!::condition2 || (!::condition3 || (::x == 33))));
+// constraint (::condition || (!::condition2 || (::condition3 || (!::condition || (::x == 44)))));
+// constraint (::condition || (::condition2 || (!0 || (::x == 55))));
+// constraint (::condition || (::condition2 || (0 || (::x == 66))));
 // solve satisfy;
-// >>> 
+// >>>
