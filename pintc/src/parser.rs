@@ -3,7 +3,9 @@ use crate::{
     expr::{Expr, Ident},
     lexer,
     macros::{self, MacroCall, MacroDecl, MacroExpander},
-    predicate::{CallKey, ExprKey, Exprs, Interface, Predicate, Program},
+    predicate::{
+        CallKey, ExprKey, Exprs, Interface, InterfaceVar, Predicate, PredicateInterface, Program,
+    },
     span::{empty_span, Span, Spanned},
     types::*,
 };
@@ -522,7 +524,24 @@ impl<'a> ProjectParser<'a> {
                             }),
                             // When we allow `pub var`s of type array, we should deep copy the
                             // types here too
-                            predicate_interfaces: predicate_interfaces.clone(),
+                            predicate_interfaces: predicate_interfaces
+                                .iter()
+                                .map(
+                                    |PredicateInterface { name, vars, span }| PredicateInterface {
+                                        name: name.clone(),
+                                        vars: vars
+                                            .iter()
+                                            .map(|InterfaceVar { name, ty, span }| InterfaceVar {
+                                                name: name.clone(),
+                                                ty: deep_copy_type(ty, &exprs, pred, self.handler)
+                                                    .unwrap(),
+                                                span: span.clone(),
+                                            })
+                                            .collect::<Vec<_>>(),
+                                        span: span.clone(),
+                                    },
+                                )
+                                .collect::<Vec<_>>(),
                             span: span.clone(),
                         },
                     )

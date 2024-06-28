@@ -9,6 +9,7 @@ interface Baz {
         pub var y: int;
         pub var q: b256;
         pub var c: { int, { int, b256 }, bool };
+        pub var e: { int, int }[2][3]; 
     }
 
     predicate Bar {
@@ -47,4 +48,21 @@ predicate Simple {
     constraint FooInstance2::c.1.0 == 53;
     constraint FooInstance2::c.1.1 == 0x0000000000000007000000000000000700000000000000070000000000000007;
     constraint FooInstance2::c.2 == false;
+
+    constraint FooInstance2::e == [
+        [ 
+            { 0, 1 },
+            { 2, 3 },
+            { 4, 5 },
+        ],
+        [
+            { 6, 7 },
+            { 8, 9 },
+            { 10, 11 },
+        ]
+    ];
+
+    constraint FooInstance2::e[0][0] == { 0, 1 };
+    constraint FooInstance2::e[1] == [{ 6, 7 }, { 8, 9 }, { 10, 11 }];
+
 }

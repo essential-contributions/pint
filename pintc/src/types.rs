@@ -404,13 +404,10 @@ impl Type {
                         let mut field_key = key.clone();
                         if let Some(Some(ref mut last_word)) = field_key.last_mut() {
                             // Offset the last word in the key given the field index
-                            *last_word += fields
-                                .iter()
-                                .take(index)
-                                .try_fold(0, |acc, (_, ty)| {
+                            *last_word +=
+                                fields.iter().take(index).try_fold(0, |acc, (_, ty)| {
                                     ty.storage_slots(handler, pred).map(|slots| acc + slots)
-                                })
-                                .unwrap();
+                                })?;
 
                             Ok(KeyedTupleField {
                                 name: name.as_ref().map(|name| name.name.clone()),
