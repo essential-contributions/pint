@@ -1,0 +1,1 @@
+enum Asparagus = Green | White | Purple;
