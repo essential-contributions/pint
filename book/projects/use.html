@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>B - Compiler Intrinsics - The Book of Pint</title>
+        <title>Bringing Paths into Scope with the use Keyword - The Book of Pint</title>
 
 
         <!-- Custom HTML head -->
@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../the-book-of-pint.html">The Book of Pint</a></li><li class="chapter-item expanded "><a href="../getting_started/index.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../getting_started/installation.html"><strong aria-hidden="true">1.1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="../getting_started/quickstart.html"><strong aria-hidden="true">1.2.</strong> Quickstart Guide</a></li></ol></li><li class="chapter-item expanded "><a href="../examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../examples/counter.html"><strong aria-hidden="true">2.1.</strong> Counter</a></li><li class="chapter-item expanded "><a href="../examples/subcurrency.html"><strong aria-hidden="true">2.2.</strong> Subcurrency</a></li></ol></li><li class="chapter-item expanded "><a href="../basics/index.html"><strong aria-hidden="true">3.</strong> Common Programming Concepts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../basics/variables.html"><strong aria-hidden="true">3.1.</strong> Decision Variables</a></li><li class="chapter-item expanded "><a href="../basics/data_types.html"><strong aria-hidden="true">3.2.</strong> Data Types</a></li><li class="chapter-item expanded "><a href="../basics/comments.html"><strong aria-hidden="true">3.3.</strong> Comments</a></li><li class="chapter-item expanded "><a href="../basics/conditionals.html"><strong aria-hidden="true">3.4.</strong> Conditionals</a></li><li class="chapter-item expanded "><a href="../basics/custom_types.html"><strong aria-hidden="true">3.5.</strong> Custom Types</a></li><li class="chapter-item expanded "><a href="../basics/constants.html"><strong aria-hidden="true">3.6.</strong> Constants</a></li></ol></li><li class="chapter-item expanded "><a href="../program_types/index.html"><strong aria-hidden="true">4.</strong> Program Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../program_types/stateless.html"><strong aria-hidden="true">4.1.</strong> Stateless Programs</a></li><li class="chapter-item expanded "><a href="../program_types/contract.html"><strong aria-hidden="true">4.2.</strong> Smart Contracts</a></li></ol></li><li class="chapter-item expanded "><a href="../storage/index.html"><strong aria-hidden="true">5.</strong> Storage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../storage/static.html"><strong aria-hidden="true">5.1.</strong> Statically-Sized Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/dynamic.html"><strong aria-hidden="true">5.2.</strong> Dynamically-Sized Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/external.html"><strong aria-hidden="true">5.3.</strong> External Storage Access</a></li></ol></li><li class="chapter-item expanded "><a href="../projects/index.html"><strong aria-hidden="true">6.</strong> Managing Growing Projects</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../projects/packages.html"><strong aria-hidden="true">6.1.</strong> Pint Projects</a></li><li class="chapter-item expanded "><a href="../projects/modules.html"><strong aria-hidden="true">6.2.</strong> Defining Modules</a></li><li class="chapter-item expanded "><a href="../projects/paths.html"><strong aria-hidden="true">6.3.</strong> Paths for Referring to an item in a Module Tree</a></li><li class="chapter-item expanded "><a href="../projects/use.html"><strong aria-hidden="true">6.4.</strong> Bringing Paths into Scope with the use Keyword</a></li></ol></li><li class="chapter-item expanded "><a href="../advanced/index.html"><strong aria-hidden="true">7.</strong> Advanced Features</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../advanced/pub_vars.html"><strong aria-hidden="true">7.1.</strong> Public Decision Variables</a></li></ol></li><li class="chapter-item expanded "><a href="../appendix/index.html"><strong aria-hidden="true">8.</strong> Appendix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../appendix/keywords.html"><strong aria-hidden="true">8.1.</strong> A - Keywords</a></li><li class="chapter-item expanded "><a href="../appendix/intrinsics.html" class="active"><strong aria-hidden="true">8.2.</strong> B - Compiler Intrinsics</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../the-book-of-pint.html">The Book of Pint</a></li><li class="chapter-item expanded "><a href="../getting_started/index.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../getting_started/installation.html"><strong aria-hidden="true">1.1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="../getting_started/quickstart.html"><strong aria-hidden="true">1.2.</strong> Quickstart Guide</a></li></ol></li><li class="chapter-item expanded "><a href="../examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../examples/counter.html"><strong aria-hidden="true">2.1.</strong> Counter</a></li><li class="chapter-item expanded "><a href="../examples/subcurrency.html"><strong aria-hidden="true">2.2.</strong> Subcurrency</a></li></ol></li><li class="chapter-item expanded "><a href="../basics/index.html"><strong aria-hidden="true">3.</strong> Common Programming Concepts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../basics/variables.html"><strong aria-hidden="true">3.1.</strong> Decision Variables</a></li><li class="chapter-item expanded "><a href="../basics/data_types.html"><strong aria-hidden="true">3.2.</strong> Data Types</a></li><li class="chapter-item expanded "><a href="../basics/comments.html"><strong aria-hidden="true">3.3.</strong> Comments</a></li><li class="chapter-item expanded "><a href="../basics/conditionals.html"><strong aria-hidden="true">3.4.</strong> Conditionals</a></li><li class="chapter-item expanded "><a href="../basics/custom_types.html"><strong aria-hidden="true">3.5.</strong> Custom Types</a></li><li class="chapter-item expanded "><a href="../basics/constants.html"><strong aria-hidden="true">3.6.</strong> Constants</a></li></ol></li><li class="chapter-item expanded "><a href="../program_types/index.html"><strong aria-hidden="true">4.</strong> Program Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../program_types/stateless.html"><strong aria-hidden="true">4.1.</strong> Stateless Programs</a></li><li class="chapter-item expanded "><a href="../program_types/contract.html"><strong aria-hidden="true">4.2.</strong> Smart Contracts</a></li></ol></li><li class="chapter-item expanded "><a href="../storage/index.html"><strong aria-hidden="true">5.</strong> Storage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../storage/static.html"><strong aria-hidden="true">5.1.</strong> Statically-Sized Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/dynamic.html"><strong aria-hidden="true">5.2.</strong> Dynamically-Sized Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/external.html"><strong aria-hidden="true">5.3.</strong> External Storage Access</a></li></ol></li><li class="chapter-item expanded "><a href="../projects/index.html"><strong aria-hidden="true">6.</strong> Managing Growing Projects</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../projects/packages.html"><strong aria-hidden="true">6.1.</strong> Pint Projects</a></li><li class="chapter-item expanded "><a href="../projects/modules.html"><strong aria-hidden="true">6.2.</strong> Defining Modules</a></li><li class="chapter-item expanded "><a href="../projects/paths.html"><strong aria-hidden="true">6.3.</strong> Paths for Referring to an item in a Module Tree</a></li><li class="chapter-item expanded "><a href="../projects/use.html" class="active"><strong aria-hidden="true">6.4.</strong> Bringing Paths into Scope with the use Keyword</a></li></ol></li><li class="chapter-item expanded "><a href="../advanced/index.html"><strong aria-hidden="true">7.</strong> Advanced Features</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../advanced/pub_vars.html"><strong aria-hidden="true">7.1.</strong> Public Decision Variables</a></li></ol></li><li class="chapter-item expanded "><a href="../appendix/index.html"><strong aria-hidden="true">8.</strong> Appendix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../appendix/keywords.html"><strong aria-hidden="true">8.1.</strong> A - Keywords</a></li><li class="chapter-item expanded "><a href="../appendix/intrinsics.html"><strong aria-hidden="true">8.2.</strong> B - Compiler Intrinsics</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -148,59 +148,37 @@
                 <div id="content" class="content">
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h2 id="appendix-b-compiler-intrinsics"><a class="header" href="#appendix-b-compiler-intrinsics">Appendix B: Compiler Intrinsics</a></h2>
-<p>The Pint compiler supports a list of intrinsics that perform various low level operations that are
-mostly useful for building libraries. Intrinsics are generally target-specific. They give library
-authors access to VM-specific instructions while preserving type safety. Below is a list of all
-available compiler intrinsics for the Essential VM:</p>
-<hr />
-<pre><code class="language-pint">__mut_keys_len() -&gt; int
+<h2 id="bringing-paths-into-scope-with-the-use-keyword"><a class="header" href="#bringing-paths-into-scope-with-the-use-keyword">Bringing Paths into Scope with the <code>use</code> Keyword</a></h2>
+<p>Having to write out the paths to access items can feel inconvenient and repetitive.
+In the previous chapter, whether we chose the absolute or relative path to <code>Asparagus</code>, every time
+we wanted to use <code>Asparagus</code> we had to specify the modules <code>garden</code> and <code>vegetables</code>. Fortunately,
+there’s a way to simplify this process: we can create a shortcut to a path with the <code>use</code> keyword
+once, and then use the shorter name everywhere else in the scope.</p>
+<p>In the example below, we bring the <code>::garden::vegetables</code> module into the scope of the root file to
+use the <code>Asparagus</code> enum:</p>
+<pre><code class="language-pint">
+use ::garden::vegetables;
+
+predicate Baz {
+    var third_asparagus: vegetables::Asparagus;
+}
 </code></pre>
-<p><strong>Description:</strong> Returns the number of mutable keys being proposed for mutation.</p>
-<hr />
-<pre><code class="language-pint">__mut_keys_contains(key: int[&lt;n&gt;]) -&gt; bool
-</code></pre>
-<p><strong>Description:</strong> Returns a <code>bool</code> indicating whether the mutable keys being proposed contain <code>key</code>.
-<code>&lt;n&gt;</code> is any positive integer.</p>
-<hr />
-<pre><code class="language-pint">__this_address() -&gt; b256
-</code></pre>
-<p><strong>Description:</strong> Returns the content hash of this predicate.</p>
-<hr />
-<pre><code class="language-pint">__this_set_address() -&gt; b256
-</code></pre>
-<p><strong>Description:</strong> Returns the content hash of the contract that this predicate belongs to.</p>
-<hr />
-<pre><code class="language-pint">__this_pathway() -&gt; int
-</code></pre>
-<p><strong>Description:</strong> Returns the &quot;pathway&quot; of this predicate. The pathway of a predicate is the index of
-the solution data currently being used to check the predicate.</p>
-<hr />
-<pre><code class="language-pint">__sha256(data: &lt;any&gt;) -&gt; b256
-</code></pre>
-<p><strong>Description:</strong> Returns a SHA 256 hash from the specified data.</p>
-<hr />
-<pre><code class="language-pint">__state_len(data: &lt;state&gt;) -&gt; int
-</code></pre>
-<p><strong>Description:</strong> Returns the length of a state variable. the argument <code>data</code> must be a state
-variable or a &quot;next state&quot; expression but can have any type.</p>
-<hr />
-<pre><code class="language-pint">__verify_ed25519(data: &lt;any&gt;, sig: { b256, b256 }, pub_key: b256) -&gt; bool
-</code></pre>
-<p><strong>Description:</strong> Validate an Ed25519 signature against a public key.</p>
-<hr />
-<pre><code class="language-pint">__recover_secp256k1(data_hash: b256, sig: { b256, b256, int }) -&gt; { b256, int }
-</code></pre>
-<p><strong>Description:</strong> Recover the public key from a secp256k1 signature.</p>
+<p>Adding <code>use</code> and a path in a scope is similar to creating a symbolic link in the filesystem. By
+adding use <code>::garden::vegetables</code> in the root file, <code>vegetables</code> is now a valid name in that scope.</p>
+<h3 id="importing-multiple-items-from-the-same-module"><a class="header" href="#importing-multiple-items-from-the-same-module">Importing multiple items from the same module</a></h3>
+<h3 id="providing-new-names-with-the-as-keyword"><a class="header" href="#providing-new-names-with-the-as-keyword">Providing New Names with the <code>as</code> Keyword</a></h3>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../appendix/keywords.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../projects/paths.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
+                            <a rel="next" href="../advanced/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -208,10 +186,13 @@ variable or a &quot;next state&quot; expression but can have any type.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../appendix/keywords.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../projects/paths.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
+                    <a rel="next" href="../advanced/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
             </nav>
 
         </div>

@@ -1,0 +1,266 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Defining Modules - The Book of Pint</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../the-book-of-pint.html">The Book of Pint</a></li><li class="chapter-item expanded "><a href="../getting_started/index.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../getting_started/installation.html"><strong aria-hidden="true">1.1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="../getting_started/quickstart.html"><strong aria-hidden="true">1.2.</strong> Quickstart Guide</a></li></ol></li><li class="chapter-item expanded "><a href="../examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../examples/counter.html"><strong aria-hidden="true">2.1.</strong> Counter</a></li><li class="chapter-item expanded "><a href="../examples/subcurrency.html"><strong aria-hidden="true">2.2.</strong> Subcurrency</a></li></ol></li><li class="chapter-item expanded "><a href="../basics/index.html"><strong aria-hidden="true">3.</strong> Common Programming Concepts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../basics/variables.html"><strong aria-hidden="true">3.1.</strong> Decision Variables</a></li><li class="chapter-item expanded "><a href="../basics/data_types.html"><strong aria-hidden="true">3.2.</strong> Data Types</a></li><li class="chapter-item expanded "><a href="../basics/comments.html"><strong aria-hidden="true">3.3.</strong> Comments</a></li><li class="chapter-item expanded "><a href="../basics/conditionals.html"><strong aria-hidden="true">3.4.</strong> Conditionals</a></li><li class="chapter-item expanded "><a href="../basics/custom_types.html"><strong aria-hidden="true">3.5.</strong> Custom Types</a></li><li class="chapter-item expanded "><a href="../basics/constants.html"><strong aria-hidden="true">3.6.</strong> Constants</a></li></ol></li><li class="chapter-item expanded "><a href="../program_types/index.html"><strong aria-hidden="true">4.</strong> Program Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../program_types/stateless.html"><strong aria-hidden="true">4.1.</strong> Stateless Programs</a></li><li class="chapter-item expanded "><a href="../program_types/contract.html"><strong aria-hidden="true">4.2.</strong> Smart Contracts</a></li></ol></li><li class="chapter-item expanded "><a href="../storage/index.html"><strong aria-hidden="true">5.</strong> Storage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../storage/static.html"><strong aria-hidden="true">5.1.</strong> Statically-Sized Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/dynamic.html"><strong aria-hidden="true">5.2.</strong> Dynamically-Sized Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/external.html"><strong aria-hidden="true">5.3.</strong> External Storage Access</a></li></ol></li><li class="chapter-item expanded "><a href="../projects/index.html"><strong aria-hidden="true">6.</strong> Managing Growing Projects</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../projects/packages.html"><strong aria-hidden="true">6.1.</strong> Pint Projects</a></li><li class="chapter-item expanded "><a href="../projects/modules.html" class="active"><strong aria-hidden="true">6.2.</strong> Defining Modules</a></li><li class="chapter-item expanded "><a href="../projects/paths.html"><strong aria-hidden="true">6.3.</strong> Paths for Referring to an item in a Module Tree</a></li><li class="chapter-item expanded "><a href="../projects/use.html"><strong aria-hidden="true">6.4.</strong> Bringing Paths into Scope with the use Keyword</a></li></ol></li><li class="chapter-item expanded "><a href="../advanced/index.html"><strong aria-hidden="true">7.</strong> Advanced Features</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../advanced/pub_vars.html"><strong aria-hidden="true">7.1.</strong> Public Decision Variables</a></li></ol></li><li class="chapter-item expanded "><a href="../appendix/index.html"><strong aria-hidden="true">8.</strong> Appendix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../appendix/keywords.html"><strong aria-hidden="true">8.1.</strong> A - Keywords</a></li><li class="chapter-item expanded "><a href="../appendix/intrinsics.html"><strong aria-hidden="true">8.2.</strong> B - Compiler Intrinsics</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Book of Pint</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/essential-contributions/pint" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h2 id="defining-modules"><a class="header" href="#defining-modules">Defining Modules</a></h2>
+<p>In this section, we’ll talk about modules and other parts of the module system, namely paths that
+allow you to name items and the <code>use</code> keyword that brings a path into scope.</p>
+<h3 id="modules-cheat-sheet"><a class="header" href="#modules-cheat-sheet">Modules Cheat Sheet</a></h3>
+<p>Here we provide a quick reference on how modules, paths, and the <code>use</code> keyword work in the compiler,
+and how most developers organize their code. We’ll be going through examples of each of these rules
+throughout this chapter, but this is a great place to refer to as a reminder of how modules work.</p>
+<ul>
+<li><strong>Start from the package root</strong>: When compiling a package, the compiler first looks for code to
+compile in the package root file, which is <code> src/lib.pnt</code> for a library package or
+<code>src/contract.rs</code> for a contract package.</li>
+<li><strong>Declaring modules</strong>: You can declare new modules by creating files for them in the appropriate
+directories. Say you want to declare a new <code>garden</code> module. You have two options:
+<ul>
+<li>You can create the file <code>src/garden.pnt</code> if you want the <code>garden</code> module to be a <em>single file</em>
+module. That is, if you don't want the module <code>garden</code> to have submodules.</li>
+<li>You can create the file <code>src/garden/garden.pnt</code> if you want the module to be a <em>multi-file
+module</em>. That is, if you want the module <code>garden</code> to have submodules. The submodules of <code>garden</code>
+would then live in the <code>src/garden</code> directory.</li>
+</ul>
+</li>
+<li><strong>Declaring submodules</strong>: In any directory other than the package root directory, you can create
+new <em>submodules</em>. For example, say you want to declare a submodule of <code>garden</code> named <code>vegetables</code>.
+You have two options:
+<ul>
+<li>You can create the file <code>src/garden/vegetables.rs</code> if you want the <code>vegetables</code> submodule to be
+a <em>single file</em> submodule. That is, if you don't want the submodule <code>vegetables</code> to have its own
+submodules.</li>
+<li>You can create the file <code>src/garden/vegetables/vegetables.rs</code> if you want the <code>vegetables</code>
+submodules to be a <em>multi-file submodule</em>. That is, if you want the submodule <code>vegetables</code> to
+have its own submodules.</li>
+</ul>
+</li>
+<li><strong>Paths to code in modules</strong>: Once a module is part of your package, you can refer to code in that
+module from anywhere else in the same package. For example, an enum <code>Asparagus</code> in the garden
+vegetables module would be found at <code>::garden::vegetables::Asparagus</code>.</li>
+<li><strong>The <code>use</code> keyword</strong>: Within a Pint file, the <code>use</code> keyword creates shortcuts to items to reduce
+repetition of long paths. For example, you can create a shortcut to
+<code>::garden::vegetables::Asparagus</code> using the statement <code>use ::garden::vegetables::Asparagus;</code>
+declared at global scope in a Pint file. From then on, you only need to write <code>Asparagus</code> to make
+use of that enum in this file.</li>
+</ul>
+<p>Here, we create a contract package named <code>backyard</code> that illustrates these rules. The package's
+directory, also named <code>backyard</code>, contains these files and directories:</p>
+<pre><code class="language-console">backyard
+├── pint.toml
+└── src
+    ├── contract.pnt
+    └── garden
+        ├── garden.rs
+        └── vegetables.rs
+</code></pre>
+<p>The package root file is <code>src/contract.rs</code> since this is a contract package. It contains:</p>
+<pre><code class="language-pint">use garden::vegetables::Asparagus;
+
+predicate Foo {
+    var green_asparagus = Asparagus::Green;
+}
+</code></pre>
+<p>The submodule <code>vegetables</code> which is defined in <code>src/garden/vegetables.pnt</code>, contains:</p>
+<pre><code class="language-pint">enum Asparagus = Green | White | Purple;
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../projects/packages.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../projects/paths.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../projects/packages.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../projects/paths.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/pint.js"></script>
+        <script src="../theme/bnf.js"></script>
+
+
+    </div>
+    </body>
+</html>
