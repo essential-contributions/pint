@@ -1,0 +1,6 @@
+predicate Foo {
+    pub var foo: int;
+    pub var bar: { int, b256, int[3] };
+    constraint __sha256({ foo, bar }) == __sha256({ foo, bar.0, bar.1, bar.2[0], bar.2[1], bar.2[2] });
+    constraint __sha256({ foo, { bar.0, bar.1 }, bar.2 }) == __sha256({ foo, bar.0, bar.1, bar.2[0], bar.2[1], bar.2[2] });
+}

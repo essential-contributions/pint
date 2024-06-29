@@ -401,6 +401,70 @@ fn sha256() {
             --- State Reads ---
         "#]],
     );
+
+    check(
+        &format!(
+            "{}",
+            compile(
+                r#"
+            pub var foo: int;
+            pub var bar: { int, b256, int[3] };
+            var hash = __sha256({ foo, bar });
+            solve satisfy;
+            "#,
+            )
+        ),
+        expect_test::expect![[r#"
+            --- Constraints ---
+            constraint 0
+              Stack(Push(0))
+              Stack(Push(0))
+              Stack(Push(4))
+              Access(DecisionVarRange)
+              Stack(Push(0))
+              Stack(Push(1))
+              Access(ThisPathway)
+              Access(Transient)
+              Stack(Push(1))
+              Stack(Push(0))
+              Stack(Push(2))
+              Access(ThisPathway)
+              Access(Transient)
+              Stack(Push(1))
+              Stack(Push(0))
+              Stack(Push(1))
+              Alu(Add)
+              Stack(Push(2))
+              Access(ThisPathway)
+              Access(Transient)
+              Stack(Push(1))
+              Stack(Push(0))
+              Stack(Push(2))
+              Alu(Add)
+              Stack(Push(2))
+              Access(ThisPathway)
+              Access(Transient)
+              Stack(Push(1))
+              Stack(Push(0))
+              Stack(Push(3))
+              Alu(Add)
+              Stack(Push(2))
+              Access(ThisPathway)
+              Access(Transient)
+              Stack(Push(1))
+              Stack(Push(0))
+              Stack(Push(4))
+              Alu(Add)
+              Stack(Push(2))
+              Access(ThisPathway)
+              Access(Transient)
+              Stack(Push(9))
+              Crypto(Sha256)
+              Stack(Push(4))
+              Pred(EqRange)
+            --- State Reads ---
+        "#]],
+    );
 }
 
 #[test]
