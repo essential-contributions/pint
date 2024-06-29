@@ -641,11 +641,15 @@ impl Predicate {
                     let ty = init_expr_key.get_ty(self);
                     if !ty.is_unknown() {
                         if var.is_pub
-                            && !(ty.is_bool() || ty.is_b256() || ty.is_int() || ty.is_tuple())
+                            && !(ty.is_bool()
+                                || ty.is_b256()
+                                || ty.is_int()
+                                || ty.is_tuple()
+                                || ty.is_array())
                         {
                             handler.emit_err(Error::Compile {
                                 error: CompileError::Internal {
-                                    msg: "only `bool`, b256`, `int`, and tuple pub vars \
+                                    msg: "only `bool`, b256`, `int`, tuple, and array pub vars \
                                           are currently supported",
                                     span: var.span.clone(),
                                 },
@@ -668,11 +672,12 @@ impl Predicate {
                         },
                     });
                 }
-            } else if var.is_pub && !(ty.is_bool() || ty.is_b256() || ty.is_int() || ty.is_tuple())
+            } else if var.is_pub
+                && !(ty.is_bool() || ty.is_b256() || ty.is_int() || ty.is_tuple() || ty.is_array())
             {
                 handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
-                        msg: "only `bool`, b256`, `int`, and tuple pub vars \
+                        msg: "only `bool`, b256`, `int`, tuple, and array pub vars \
                             are currently supported",
                         span: var.span.clone(),
                     },

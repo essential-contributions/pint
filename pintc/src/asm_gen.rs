@@ -88,24 +88,9 @@ pub struct AsmBuilder {
 }
 
 #[derive(Debug)]
-enum StorageKeyKind {
-    Static(Vec<i64>),
-    Dynamic(usize),
-}
-
-#[derive(Debug)]
 struct StorageKey {
-    kind: StorageKeyKind,
+    len: usize,
     is_extern: bool,
-}
-
-impl StorageKey {
-    fn len(&self) -> usize {
-        match &self.kind {
-            StorageKeyKind::Static(key) => key.len(),
-            StorageKeyKind::Dynamic(len) => *len,
-        }
-    }
 }
 
 /// Location of an expression:
@@ -261,7 +246,7 @@ impl AsmBuilder {
 
     /// Generates assembly for producing a storage key  where `expr` is stored.
     /// Returns a `StorageKey`. The `StorageKey` contains two values:
-    /// - The kind of the storage key: static where the keys are known at compile-time or dynamic.
+    /// - The length of the storage key.
     /// - Whether the key is internal or external. External keys should be accessed using
     /// `StateReadKeyRangeExtern`.
     fn compile_state_key(
@@ -276,7 +261,7 @@ impl AsmBuilder {
                 if name.name.ends_with("__storage_get") {
                     // Expecting a single argument that is an array of integers representing a key
                     assert_eq!(args.len(), 1);
-                    let Some(key_size) = args[0].get_ty(pred).get_array_size() else {
+                    let Some(key_len) = args[0].get_ty(pred).get_array_size() else {
                         return Err(handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
                                 msg: "unable to get key size",
@@ -289,7 +274,7 @@ impl AsmBuilder {
                     Self::compile_expr(handler, &mut asm, &args[0], pred)?;
                     s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
                     Ok(StorageKey {
-                        kind: StorageKeyKind::Dynamic(key_size as usize),
+                        len: key_len as usize,
                         is_extern: false,
                     })
                 } else if name.name.ends_with("__storage_get_extern") {
@@ -297,7 +282,7 @@ impl AsmBuilder {
                     // 1. An address that is a `b256`
                     // 2. A key: an array of integers
                     assert_eq!(args.len(), 2);
-                    let Some(key_size) = args[1].get_ty(pred).get_array_size() else {
+                    let Some(key_len) = args[1].get_ty(pred).get_array_size() else {
                         return Err(handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
                                 msg: "unable to get key size",
@@ -312,7 +297,7 @@ impl AsmBuilder {
                     Self::compile_expr(handler, &mut asm, &args[1], pred)?;
                     s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
                     Ok(StorageKey {
-                        kind: StorageKeyKind::Dynamic(key_size as usize),
+                        len: key_len as usize,
                         is_extern: true,
                     })
                 } else {
@@ -346,7 +331,7 @@ impl AsmBuilder {
                 };
 
                 Ok(StorageKey {
-                    kind: StorageKeyKind::Static(key),
+                    len: key.len(),
                     is_extern: false,
                 })
             }
@@ -401,7 +386,7 @@ impl AsmBuilder {
 
                 // This is external!
                 Ok(StorageKey {
-                    kind: StorageKeyKind::Static(key),
+                    len: key.len(),
                     is_extern: true,
                 })
             }
@@ -414,13 +399,13 @@ impl AsmBuilder {
                     let mut asm = vec![];
                     Self::compile_expr(handler, &mut asm, index, pred)?;
                     s_asm.extend(asm.iter().copied().map(StateRead::from));
-                    let mut key_length = storage_key.len() + index.get_ty(pred).size();
+                    let mut key_length = storage_key.len + index.get_ty(pred).size();
                     if !(expr_ty.is_any_primitive() || expr_ty.is_map()) {
                         s_asm.push(StateRead::from(Stack::Push(0)));
                         key_length += 1;
                     }
                     Ok(StorageKey {
-                        kind: StorageKeyKind::Dynamic(key_length),
+                        len: key_length,
                         is_extern: storage_key.is_extern,
                     })
                 } else {
@@ -452,8 +437,7 @@ impl AsmBuilder {
             }
             Expr::TupleFieldAccess { tuple, field, .. } => {
                 // Compile the key corresponding to `tuple`
-                let StorageKey { kind, is_extern } =
-                    Self::compile_state_key(handler, s_asm, tuple, pred)?;
+                let storage_key = Self::compile_state_key(handler, s_asm, tuple, pred)?;
 
                 // Grab the fields of the tuple
                 let Type::Tuple { ref fields, .. } = tuple.get_ty(pred) else {
@@ -498,25 +482,9 @@ impl AsmBuilder {
                 // keep this for now though so that we can keep things going, but we need a proper
                 // solution (`Add4` opcode, or storage reads with offset, or even a whole new
                 // storage design that uses b-trees.)
-                Ok(StorageKey {
-                    kind: match kind {
-                        StorageKeyKind::Dynamic(size) => {
-                            // Increment the last word on the stack by `key_offset`
-                            s_asm.push(Stack::Push(key_offset as i64).into());
-                            s_asm.push(Alu::Add.into());
-                            StorageKeyKind::Dynamic(size)
-                        }
-                        StorageKeyKind::Static(mut key) => {
-                            // Remove the last word on the stack and increment it by `key_offset`.
-                            s_asm.push(Stack::Pop.into());
-                            let len = key.len();
-                            key[len - 1] += key_offset as i64;
-                            s_asm.push(Stack::Push(key[len - 1]).into());
-                            StorageKeyKind::Static(key)
-                        }
-                    },
-                    is_extern,
-                })
+                s_asm.push(Stack::Push(key_offset as i64).into());
+                s_asm.push(Alu::Add.into());
+                Ok(storage_key)
             }
             _ => unreachable!("there really shouldn't be anything else at this stage"),
         }
@@ -1124,18 +1092,14 @@ impl AsmBuilder {
 
         // First, get the storage key
         let storage_key = Self::compile_state_key(handler, &mut s_asm, &state.expr, pred)?;
-        let key_len = match storage_key.kind {
-            StorageKeyKind::Static(key) => key.len(),
-            StorageKeyKind::Dynamic(size) => size,
-        };
 
         let storage_slots = state.expr.get_ty(pred).storage_slots(handler, pred)?;
         s_asm.extend([
             Stack::Push(storage_slots as i64).into(),
             StateSlots::AllocSlots.into(),
-            Stack::Push(key_len as i64).into(),       // key_len
-            Stack::Push(storage_slots as i64).into(), // num_keys_to_read
-            Stack::Push(0).into(),                    // slot_index
+            Stack::Push(storage_key.len as i64).into(), // key_len
+            Stack::Push(storage_slots as i64).into(),   // num_keys_to_read
+            Stack::Push(0).into(),                      // slot_index
             if storage_key.is_extern {
                 StateRead::KeyRangeExtern
             } else {

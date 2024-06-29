@@ -176,9 +176,14 @@ impl Predicate {
                 .map(|(index, (var_key, Var { name, .. }))| {
                     Ok(KeyedVarABI {
                         name: name.to_string(),
-                        ty: var_key
-                            .get_ty(self)
-                            .abi_with_key(handler, vec![Some(index)], self)?,
+                        ty: {
+                            let ty = var_key.get_ty(self);
+                            if ty.is_any_primitive() || ty.is_map() {
+                                ty.abi_with_key(handler, vec![Some(index)], self)?
+                            } else {
+                                ty.abi_with_key(handler, vec![Some(index), Some(0)], self)?
+                            }
+                        },
                     })
                 })
                 .collect::<Result<Vec<_>, _>>()?,
