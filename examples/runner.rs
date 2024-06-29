@@ -14,10 +14,11 @@ fn examples_runner() -> anyhow::Result<()> {
         let entry = entry?;
 
         // If it's a file it's expected to be a self contained pint script.  If it's a directory
-        // then `main.pnt` must exist within and will be used.
+        // then `contract.pnt` must exist within and will be used.
         let mut path = entry.path();
         if entry.file_type()?.is_dir() {
-            path.push("main.pnt");
+            path.push("src");
+            path.push("contract.pnt");
         } else if path.extension() != Some(std::ffi::OsStr::new("pnt")) {
             continue;
         }
