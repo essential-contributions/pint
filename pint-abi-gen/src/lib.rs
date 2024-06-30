@@ -119,14 +119,20 @@ fn impl_encode_for_vars(vars: &[VarABI]) -> syn::ItemImpl {
     }
 }
 
-/// Generate a `From<Vars>` implementation for converting `Vars` to `Vec<Word>`.
-fn impl_from_vars() -> syn::ItemImpl {
+/// Generate a `From<Vars>` implementation for converting `Vars` to `Vec<Value>`.
+fn impl_from_vars(vars: &[VarABI]) -> syn::ItemImpl {
+    let field_idents = vars
+        .iter()
+        .map(|var| field_name_from_var_name(&var.name))
+        .map(|name| syn::Ident::new(&name, Span::call_site()));
     syn::parse_quote! {
-        impl From<Vars> for Vec<pint_abi::types::essential::Word> {
+        impl From<Vars> for Vec<pint_abi::types::essential::Value> {
             fn from(vars: Vars) -> Self {
-                let mut words: Vec<pint_abi::types::essential::Word> = vec![];
-                pint_abi::Encode::encode(&vars, &mut words).expect("cannot fail");
-                words
+                let mut values: Vec<pint_abi::types::essential::Value> = vec![];
+                #(
+                    values.push(pint_abi::encode(&vars.#field_idents));
+                )*
+                values
             }
         }
     }
@@ -138,7 +144,7 @@ fn items_from_predicate(predicate: &PredicateABI) -> Vec<syn::Item> {
     if !predicate.vars.is_empty() {
         items.push(struct_from_vars(&predicate.vars).into());
         items.push(impl_encode_for_vars(&predicate.vars).into());
-        items.push(impl_from_vars().into());
+        items.push(impl_from_vars(&predicate.vars).into());
     }
     if !predicate.pub_vars.is_empty() {
         items.push(mod_from_keyed_vars("pub_vars", &predicate.pub_vars).into());
@@ -391,6 +397,7 @@ fn map_mutations_struct(struct_name: &str, key: &pint_abi_types::Key) -> syn::It
     );
     syn::parse_quote! {
         #[doc = #doc_str]
+        #[allow(non_camel_case_types)]
         pub struct #struct_ident<'a> {
             mutations: &'a mut Mutations,
         }
@@ -537,6 +544,7 @@ fn tuple_mutations_struct(struct_name: &str, key: &pint_abi_types::Key) -> syn::
     );
     syn::parse_quote! {
         #[doc = #doc_str]
+        #[allow(non_camel_case_types)]
         pub struct #struct_ident<'a> {
             mutations: &'a mut Mutations,
         }
