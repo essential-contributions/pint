@@ -43,7 +43,7 @@ fn main() {
     let test_pkgs_path = manifest_dir_path.join("test-pkgs");
 
     // Iterate over all inner app directories.
-    for entry in std::fs::read_dir(&test_pkgs_path)
+    for entry in std::fs::read_dir(test_pkgs_path)
         .expect("failed to read test-pkgs directory")
         .filter_map(Result::ok)
     {
