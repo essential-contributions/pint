@@ -10,7 +10,7 @@
 //! Implementations are generated for using these types to write solutions to the
 //! format expected by the Essential protocol.
 
-use abi_types::{
+use pint_abi_types::{
     KeyedTupleField, KeyedTypeABI, KeyedVarABI, PredicateABI, ProgramABI, TupleField, TypeABI,
     VarABI,
 };
@@ -255,7 +255,7 @@ impl SingleKeyTy {
 }
 
 /// Given an ABI key, create a Rust expression that results in its value.
-fn abi_key_expr(key: &abi_types::Key) -> syn::ExprArray {
+fn abi_key_expr(key: &pint_abi_types::Key) -> syn::ExprArray {
     let elems = key
         .iter()
         .map(|&opt| {
@@ -280,7 +280,7 @@ fn abi_key_expr(key: &abi_types::Key) -> syn::ExprArray {
 /// Given an ABI key, create a string for presenting the ABI key in docs.
 ///
 /// E.g. `[0, 1, _, _, _, _, 6, 7]`.
-fn abi_key_doc_str(key: &abi_types::Key) -> String {
+fn abi_key_doc_str(key: &pint_abi_types::Key) -> String {
     use core::fmt::Write;
     let mut s = "[".to_string();
     let mut opts = key.iter();
@@ -332,7 +332,7 @@ fn merge_key_expr() -> syn::Expr {
 fn mutation_method_for_single_key(
     name: &str,
     arg_ty: &SingleKeyTy,
-    key: &abi_types::Key,
+    key: &pint_abi_types::Key,
 ) -> syn::ImplItemFn {
     let method_ident = syn::Ident::new(name, Span::call_site());
     let abi_key_doc_str = abi_key_doc_str(key);
@@ -362,7 +362,7 @@ fn mutation_method_for_single_key(
 ///
 /// E.g. `[Some(1), None, Some(42)]` becomes `1_nil_42`, so that it may be
 /// appended to a type name, e.g. `Tuple_1_nil_42`.
-fn key_str(key: &abi_types::Key) -> String {
+fn key_str(key: &pint_abi_types::Key) -> String {
     fn opt_to_str(opt: &Option<usize>) -> String {
         opt.map(|u| u.to_string())
             .unwrap_or_else(|| "nil".to_string())
@@ -377,12 +377,12 @@ fn key_str(key: &abi_types::Key) -> String {
 }
 
 /// The name for the a map builder struct.
-fn map_mutations_struct_name(key: &abi_types::Key) -> String {
+fn map_mutations_struct_name(key: &pint_abi_types::Key) -> String {
     format!("Map_{}", key_str(key))
 }
 
 /// A builder struct for a map field.
-fn map_mutations_struct(struct_name: &str, key: &abi_types::Key) -> syn::ItemStruct {
+fn map_mutations_struct(struct_name: &str, key: &pint_abi_types::Key) -> syn::ItemStruct {
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
     let abi_key_doc_str = abi_key_doc_str(key);
     let doc_str = format!(
@@ -398,7 +398,10 @@ fn map_mutations_struct(struct_name: &str, key: &abi_types::Key) -> syn::ItemStr
 }
 
 /// A map mutation builder method for entries with tuple values.
-fn map_mutation_method_for_tuple(ty_from: &TypeABI, tup_key: &abi_types::Key) -> syn::ImplItemFn {
+fn map_mutation_method_for_tuple(
+    ty_from: &TypeABI,
+    tup_key: &pint_abi_types::Key,
+) -> syn::ImplItemFn {
     let key_ty = ty_from_pint_ty(ty_from);
     let struct_name = tuple_mutations_struct_name(tup_key);
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
@@ -416,7 +419,10 @@ fn map_mutation_method_for_tuple(ty_from: &TypeABI, tup_key: &abi_types::Key) ->
 }
 
 /// A map mutation builder method for entries with nested map values.
-fn map_mutation_method_for_map(ty_from: &TypeABI, map_key: &abi_types::Key) -> syn::ImplItemFn {
+fn map_mutation_method_for_map(
+    ty_from: &TypeABI,
+    map_key: &pint_abi_types::Key,
+) -> syn::ImplItemFn {
     let key_ty = ty_from_pint_ty(ty_from);
     let struct_name = map_mutations_struct_name(map_key);
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
@@ -437,7 +443,7 @@ fn map_mutation_method_for_map(ty_from: &TypeABI, map_key: &abi_types::Key) -> s
 fn map_mutation_method_for_single_key(
     ty_from: &TypeABI,
     val_ty: &SingleKeyTy,
-    val_key: &abi_types::Key,
+    val_key: &pint_abi_types::Key,
 ) -> syn::ImplItemFn {
     let key_ty = ty_from_pint_ty(ty_from);
     let val_ty = val_ty.syn_ty();
@@ -489,7 +495,10 @@ fn map_mutation_method(ty_from: &TypeABI, ty_to: &KeyedTypeABI) -> syn::ImplItem
         KeyedTypeABI::Bool(key) => (SingleKeyTy::Bool, key),
         KeyedTypeABI::Int(key) => (SingleKeyTy::Int, key),
         KeyedTypeABI::Real(key) => (SingleKeyTy::Real, key),
-        KeyedTypeABI::Array { ty, size } => todo!(),
+        KeyedTypeABI::Array { ty, size: _ } => {
+            let _key = abi_key_from_keyed_type(ty);
+            todo!()
+        }
         KeyedTypeABI::String(key) => (SingleKeyTy::String, key),
         KeyedTypeABI::B256(key) => (SingleKeyTy::B256, key),
         KeyedTypeABI::Tuple { fields: _, key } => {
@@ -514,12 +523,12 @@ fn map_mutations_impl(struct_name: &str, ty_from: &TypeABI, ty_to: &KeyedTypeABI
 }
 
 /// The name for the a tuple builder struct.
-fn tuple_mutations_struct_name(key: &abi_types::Key) -> String {
+fn tuple_mutations_struct_name(key: &pint_abi_types::Key) -> String {
     format!("Tuple_{}", key_str(key))
 }
 
 /// A builder struct for a tuple field.
-fn tuple_mutations_struct(struct_name: &str, key: &abi_types::Key) -> syn::ItemStruct {
+fn tuple_mutations_struct(struct_name: &str, key: &pint_abi_types::Key) -> syn::ItemStruct {
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
     let abi_key_doc_str = abi_key_doc_str(key);
     let doc_str = format!(
@@ -643,7 +652,7 @@ fn mutations_builders_from_keyed_vars(vars: &[KeyedVarABI]) -> Vec<syn::Item> {
 }
 
 /// A `Mutations` builder method for a map field.
-fn mutation_method_for_map(name: &str, key: &abi_types::Key) -> syn::ImplItemFn {
+fn mutation_method_for_map(name: &str, key: &pint_abi_types::Key) -> syn::ImplItemFn {
     let struct_name = map_mutations_struct_name(key);
     let method_ident = syn::Ident::new(name, Span::call_site());
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
@@ -658,7 +667,7 @@ fn mutation_method_for_map(name: &str, key: &abi_types::Key) -> syn::ImplItemFn 
 }
 
 /// A `Mutations` builder method for a tuple field.
-fn mutation_method_for_tuple(name: &str, key: &abi_types::Key) -> syn::ImplItemFn {
+fn mutation_method_for_tuple(name: &str, key: &pint_abi_types::Key) -> syn::ImplItemFn {
     let struct_name = tuple_mutations_struct_name(key);
     let method_ident = syn::Ident::new(name, Span::call_site());
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());

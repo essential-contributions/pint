@@ -4,7 +4,7 @@ use crate::{
     span::Span,
     types::{Path, Type},
 };
-use abi_types::VarABI;
+use pint_abi_types::VarABI;
 use std::fmt::{self, Formatter};
 
 /// A decision variable with an optional type.

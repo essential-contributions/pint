@@ -1,12 +1,12 @@
 [workspace]
 resolver = "2"
 members = [
-  "abi-types",
   "examples",
   "pint",
   "pint-abi",
   "pint-abi-gen",
   "pint-abi-gen-tests",
+  "pint-abi-types",
   "pint-manifest",
   "pint-pkg",
   "pint-solve",
@@ -18,7 +18,6 @@ members = [
 
 [workspace.dependencies]
 yansi = "1.0"
-abi-types = { path = "abi-types" }
 anyhow = "1.0"
 ariadne = "0.4"
 chumsky = "0.9"
@@ -33,6 +32,7 @@ logos = "0.14"
 petgraph = "0.6"
 pint-abi = { path = "pint-abi" }
 pint-abi-gen = { path = "pint-abi-gen" }
+pint-abi-types = { path = "pint-abi-types" }
 pint-manifest = { path = "pint-manifest" }
 pint-pkg = { path = "pint-pkg" }
 pintc = { path = "pintc" }

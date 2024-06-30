@@ -11,10 +11,11 @@ mod write;
 
 /// Both Pint ABI and Essential protocol types.
 pub mod types {
-    // Re-export the contents of `abi_types` here so that it is accesible via `pint_abi::types`.
+    // Re-export the contents of `pint_abi_types` here so that it is accesible
+    // via `pint_abi::types`.
     #[doc(inline)]
-    pub use abi_types::*;
-    // Re-export the Essential protocol types behind the `essential` namespace..
+    pub use pint_abi_types::*;
+    // Re-export the Essential protocol types behind the `essential` namespace.
     #[doc(inline)]
     pub use essential_types as essential;
 }
@@ -26,7 +27,3 @@ pub fn encode<T: Encode>(t: &T) -> Vec<Word> {
         .expect("encoding into `Vec<Word>` cannot error");
     v
 }
-
-// pub fn decode<T: Decode>(words: &[Word]) -> Result<T, T::Error> {
-//     todo!()
-// }

@@ -4,10 +4,10 @@ use crate::{
     manifest,
     plan::{Graph, NodeIx, Pinned, PinnedManifests, Plan},
 };
-use abi_types::ProgramABI;
 use essential_types::{
     contract::Contract, predicate::Predicate as CompiledPredicate, ContentAddress,
 };
+use pint_abi_types::ProgramABI;
 use pintc::{asm_gen::compile_program, predicate::ProgramKind};
 use std::{
     collections::HashMap,
