@@ -7,8 +7,8 @@
 //!     - A `struct` for the predicate's decision variables.
 //!     - A `mod` for the predicate's public decision variables.
 //!
-//! Implementations are generated for using these types to write solutions to the
-//! format expected by the Essential protocol.
+//! The aim for the generated items is to ease the construction of solutions
+//! including the encoding of keys, values and mutations from higher-level types.
 
 use pint_abi_types::{
     KeyedTupleField, KeyedTypeABI, KeyedVarABI, PredicateABI, ProgramABI, TupleField, TypeABI,
@@ -809,7 +809,7 @@ pub fn from_str(input: TokenStream) -> TokenStream {
 /// 1. An absolute path or
 /// 2. A path that is relative to the project's `CARGO_MANIFEST_DIR`.
 ///
-/// The limiation around relative paths is due to having no way to know the path
+/// The limitation around relative paths is due to having no way to know the path
 /// to the source file in which the macro is being invoked in stable Rust.
 #[proc_macro]
 pub fn from_file(input: TokenStream) -> TokenStream {
