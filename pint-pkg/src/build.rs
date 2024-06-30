@@ -57,6 +57,8 @@ pub struct BuiltContract {
     pub lib_entry_point: PathBuf,
     /// The ABI for the contract.
     pub abi: ProgramABI,
+    /// The flattened program.
+    pub flattened: pintc::predicate::Program,
 }
 
 /// An predicate built as a part of a contract.
@@ -390,6 +392,7 @@ fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg,
                 },
                 lib_entry_point,
                 abi,
+                flattened,
             };
             BuiltPkg::Contract(contract)
         }
