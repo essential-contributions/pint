@@ -3,7 +3,7 @@
 use anyhow::Context;
 use clap::{builder::styling::Style, Parser};
 use pint_pkg::{build::BuiltPkg, manifest::ManifestFile};
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 /// Build a package, writing the generated artifacts to `out/`.
 #[derive(Parser, Debug)]
@@ -14,6 +14,13 @@ pub(crate) struct Args {
     /// recursively until a manifest is found.
     #[arg(long = "manifest-path")]
     manifest_path: Option<PathBuf>,
+    /// Print the flattened pint program.
+    #[arg(long)]
+    print_flat: bool,
+
+    /// Don't print anything that wasn't explicitly requested.
+    #[arg(long)]
+    silent: bool,
 }
 
 // Find the file within the current directory or parent directories with the given name.
@@ -68,14 +75,16 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
             _ => format!("{}", pinned.source),
         };
 
-        println!(
-            "   {}Compiling{} {} [{}] ({})",
-            bold.render(),
-            bold.render_reset(),
-            pinned.name,
-            manifest.pkg.kind,
-            source_str,
-        );
+        if !args.silent {
+            println!(
+                "   {}Compiling{} {} [{}] ({})",
+                bold.render(),
+                bold.render_reset(),
+                pinned.name,
+                manifest.pkg.kind,
+                source_str,
+            );
+        }
 
         // Build the package.
         let _built = match prebuilt.build() {
@@ -93,6 +102,7 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
         let built = &builder.built_pkgs()[&n];
         let pinned = &plan.graph()[n];
         let manifest = &plan.manifests()[&pinned.id()];
+        let mut flattened_files = HashMap::new();
 
         // Create the output directory.
         let out_dir = manifest.out_dir();
@@ -125,16 +135,23 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
                 let abi_path = profile_dir.join(file_stem).with_extension("json");
                 std::fs::write(&abi_path, abi_string)
                     .with_context(|| format!("failed to write {abi_path:?}"))?;
+
+                // Write the flattened files.
+                if args.print_flat {
+                    flattened_files.insert(pinned.name.clone(), format!("{}", contract.flattened));
+                }
             }
         }
 
-        // Print the build summary.
-        println!(
-            "    {}Finished{} build [{profile}] in {:?}",
-            bold.render(),
-            bold.render_reset(),
-            build_start.elapsed()
-        );
+        if !args.silent {
+            // Print the build summary.
+            println!(
+                "    {}Finished{} build [{profile}] in {:?}",
+                bold.render(),
+                bold.render_reset(),
+                build_start.elapsed()
+            );
+        }
 
         // Print the build summary for our member package.
         let kind_str = format!("{}", manifest.pkg.kind);
@@ -146,13 +163,15 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
         };
         let name_col_w = name_col_w(&pinned.name, built);
 
-        println!(
-            "{padding}{}{kind_str}{} {:<name_col_w$} {}",
-            bold.render(),
-            bold.render_reset(),
-            pinned.name,
-            ca,
-        );
+        if !args.silent {
+            println!(
+                "{padding}{}{kind_str}{} {:<name_col_w$} {}",
+                bold.render(),
+                bold.render_reset(),
+                pinned.name,
+                ca,
+            );
+        }
 
         // For contracts, print their predicates too.
         if let BuiltPkg::Contract(contract) = built {
@@ -160,7 +179,17 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
             while let Some(predicate) = iter.next() {
                 let name = format!("{}{}", pinned.name, predicate.name);
                 let pipe = iter.peek().map(|_| "├──").unwrap_or("└──");
-                println!("         {pipe} {:<name_col_w$} {}", name, predicate.ca);
+                if !args.silent {
+                    println!("         {pipe} {:<name_col_w$} {}", name, predicate.ca);
+                }
+            }
+        }
+
+        // Print the flattened files.
+        if args.print_flat {
+            for (name, flat) in flattened_files {
+                println!("{}{}{}", bold.render(), name, bold.render_reset());
+                println!("{}", flat);
             }
         }
     }
