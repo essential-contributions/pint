@@ -220,13 +220,13 @@ fn mutations_struct() -> syn::ItemStruct {
         pub struct Mutations {
             /// The set of mutations being built.
             set: Vec<pint_abi::types::essential::solution::Mutation>,
-            /// The stack of map keys that need to be merged with the key
-            /// provided by the `KeyedTypeABI`.
+            /// The stack of keys that need to be merged with the key provided
+            /// by the `KeyedTypeABI`.
             ///
-            /// When a map's `entry` method is called, the provided key is
-            /// pushed to this stack. Upon completion of the `entry` method, the
-            /// key is popped.
-            map_keys: Vec<pint_abi::types::essential::Key>,
+            /// For example, when a map's `entry` method is called, the provided
+            /// key is pushed to this stack. Upon completion of the `entry`
+            /// method, the key is popped.
+            keys: Vec<pint_abi::types::essential::Key>,
         }
     }
 }
@@ -310,10 +310,10 @@ fn abi_key_doc_str(key: &pint_abi_types::Key) -> String {
 
 /// Assuming a `Mutations` instance is accessible via `self`, and a key from a
 /// `KeyedTypeABI` instance is accessible via `abi_key`, produce an expression
-/// that merges the current `Mutations`' `map_keys` into the ABI key.
+/// that merges the current `Mutations`' `keys` stack into the ABI key.
 fn merge_key_expr() -> syn::Expr {
     syn::parse_quote! {
-        pint_abi::__merge_key(&abi_key[..], &self.map_keys[..])
+        pint_abi::__merge_key(&abi_key[..], &self.keys[..])
     }
 }
 
@@ -399,9 +399,9 @@ fn map_mutation_method_for_tuple(
         /// Add mutations for the tuple at the given key.
         pub fn entry(mut self, key: #key_ty, f: impl FnOnce(#struct_ident) -> #struct_ident) -> Self {
             let key_words: pint_abi::types::essential::Key = pint_abi::encode(&key);
-            self.map_keys.push(key_words);
+            self.keys.push(key_words);
             f(#struct_ident { mutations: &mut self.mutations });
-            self.map_keys.pop();
+            self.keys.pop();
             self
         }
     }
@@ -419,9 +419,9 @@ fn map_mutation_method_for_map(
         /// Add mutations for the nested map at the given key.
         pub fn entry(mut self, key: #key_ty, f: impl FnOnce(#struct_ident) -> #struct_ident) -> Self {
             let key_words: pint_abi::types::essential::Key = pint_abi::encode(&key);
-            self.map_keys.push(key_words);
+            self.keys.push(key_words);
             f(#struct_ident { mutations: &mut self.mutations });
-            self.map_keys.pop();
+            self.keys.pop();
             self
         }
     }
@@ -449,9 +449,9 @@ fn map_mutation_method_for_single_key(
             use pint_abi::types::essential::{solution::Mutation, Key, Value};
             // Add the map key to the stack.
             let key: Key = pint_abi::encode(&key);
-            self.map_keys.push(key);
+            self.keys.push(key);
 
-            // Merge the map_keys with the ABI key.
+            // Merge the key stack with the ABI key.
             let abi_key = #abi_key_expr;
             let key: Key = #merge_key_expr;
             let value: Value = pint_abi::encode(&val);
@@ -462,7 +462,7 @@ fn map_mutation_method_for_single_key(
             self.set.push(mutation);
 
             // Pop the entry key from the stack.
-            self.map_keys.pop();
+            self.keys.pop();
             self
         }
     }
@@ -612,8 +612,6 @@ fn mutations_builders_from_keyed_type(ty: &KeyedTypeABI) -> Vec<syn::Item> {
                     .into_iter()
                     .map(syn::Item::from),
             );
-
-            // todo!()
         }
         KeyedTypeABI::Tuple { fields, key } => {
             let struct_name = tuple_mutations_struct_name(key);
