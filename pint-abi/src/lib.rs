@@ -43,7 +43,7 @@ pub fn __merge_key(
     abi_key: &[Option<types::essential::Word>],
     key_stack: &[types::essential::Key],
 ) -> types::essential::Key {
-    let mut key_stack_words = key_stack.iter().flat_map(|ws| ws).copied();
+    let mut key_stack_words = key_stack.iter().flatten().copied();
     abi_key
         .iter()
         .copied()

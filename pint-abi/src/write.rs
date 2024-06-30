@@ -18,6 +18,7 @@ impl<'a, W: Write> Write for &'a mut W {
 impl Write for Vec<Word> {
     type Error = core::convert::Infallible;
     fn write_word(&mut self, w: Word) -> Result<(), Self::Error> {
-        Ok(self.push(w))
+        self.push(w);
+        Ok(())
     }
 }
