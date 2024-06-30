@@ -377,7 +377,7 @@ fn map_mutations_struct_name(key: &pint_abi_types::Key) -> String {
 
 /// A builder struct for a map field.
 fn map_mutations_struct(struct_name: &str, key: &pint_abi_types::Key) -> syn::ItemStruct {
-    let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
+    let struct_ident = syn::Ident::new(struct_name, Span::call_site());
     let abi_key_doc_str = abi_key_doc_str(key);
     let doc_str = format!(
         "A mutations builder struct for the map at key `{abi_key_doc_str}`.\n\n\
@@ -527,7 +527,7 @@ fn tuple_mutations_struct_name(key: &pint_abi_types::Key) -> String {
 
 /// A builder struct for a tuple field.
 fn tuple_mutations_struct(struct_name: &str, key: &pint_abi_types::Key) -> syn::ItemStruct {
-    let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
+    let struct_ident = syn::Ident::new(struct_name, Span::call_site());
     let abi_key_doc_str = abi_key_doc_str(key);
     let doc_str = format!(
         "A mutations builder struct for the tuple at key `{abi_key_doc_str}`.\n\n\
@@ -613,7 +613,7 @@ fn mutations_builders_from_keyed_type(ty: &KeyedTypeABI) -> Vec<syn::Item> {
                     .map(syn::Item::from),
             );
             items.extend(
-                mutations_builders_from_keyed_type(&ty_to)
+                mutations_builders_from_keyed_type(ty_to)
                     .into_iter()
                     .map(syn::Item::from),
             );
@@ -758,7 +758,7 @@ fn items_from_keyed_vars(vars: &[KeyedVarABI]) -> Vec<syn::Item> {
 /// This is used for both `storage` and `pub_vars` mod generation.
 fn mod_from_keyed_vars(mod_name: &str, vars: &[KeyedVarABI]) -> syn::ItemMod {
     let items = items_from_keyed_vars(vars);
-    let mod_ident = syn::Ident::new(&mod_name, Span::call_site());
+    let mod_ident = syn::Ident::new(mod_name, Span::call_site());
     syn::parse_quote! {
         pub mod #mod_ident {
             //! Items related to simplifying the process of building a `Vec` of
@@ -790,7 +790,7 @@ fn items_from_abi(abi: &ProgramABI) -> Vec<syn::Item> {
 
 /// Shorthand for producing tokens given the full deserialized ABI.
 fn tokens_from_abi(abi: &ProgramABI) -> TokenStream {
-    let items = items_from_abi(&abi);
+    let items = items_from_abi(abi);
     items
         .into_iter()
         .map(|item| TokenStream::from(item.into_token_stream()))
