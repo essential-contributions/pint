@@ -311,27 +311,10 @@ fn abi_key_doc_str(key: &pint_abi_types::Key) -> String {
 /// Assuming a `Mutations` instance is accessible via `self`, and a key from a
 /// `KeyedTypeABI` instance is accessible via `abi_key`, produce an expression
 /// that merges the current `Mutations`' `map_keys` into the ABI key.
-///
-/// ## Example
-///
-/// Given the following:
-///
-/// - `abi_key`: `[Some(1), None, Some(3), None, None, Some(6)]`
-/// - `self.map_keys`: `[[2], [4, 5]]`
-///
-/// Produces an expression with the value `[1, 2, 3, 4, 5, 6]`.
 fn merge_key_expr() -> syn::Expr {
-    syn::parse_quote! {{
-        let mut map_key_words = self.map_keys.iter().flat_map(|ws| ws).copied();
-        abi_key
-            .iter()
-            .copied()
-            .map(|opt: Option<pint_abi::types::essential::Word>| {
-                opt.or_else(|| map_key_words.next())
-                    .expect("failed to merge key: missing words for key")
-            })
-            .collect()
-    }}
+    syn::parse_quote! {
+        pint_abi::__merge_key(&abi_key[..], &self.map_keys[..])
+    }
 }
 
 /// A `Mutations` builder method for a single-key mutation.
