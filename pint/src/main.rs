@@ -64,5 +64,6 @@ fn main() {
     if let Err(err) = run() {
         let bold = Style::new().bold();
         eprintln!("{}Error:{} {err}", bold.render(), bold.render_reset());
+        std::process::exit(1);
     }
 }
