@@ -1,11 +1,16 @@
 //! Macros for generating items from pint-generated contract ABI JSON.
 //!
+//! The entry points for this crate are:
+//!
+//! - [`from_file!`][crate::from_file!]
+//! - [`from_str!`][crate::from_str!]
+//!
 //! For a given contract, the following items are generated:
 //!
 //! - A `mod` representing `storage`.
 //! - For each `predicate`, a module with the following:
-//!     - A `struct` for the predicate's decision variables.
-//!     - A `mod` for the predicate's public decision variables.
+//!     - A `Vars` struct for the predicate's decision variables.
+//!     - A `pub_vars` mod for the predicate's public decision variables.
 //!
 //! The aim for the generated items is to ease the construction of solutions
 //! including the encoding of keys, values and mutations from higher-level types.
