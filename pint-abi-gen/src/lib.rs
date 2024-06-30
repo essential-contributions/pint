@@ -735,6 +735,8 @@ fn impl_from_mutations() -> syn::ItemImpl {
 }
 
 /// The `mutations` and `keys` items for the given keyed vars.
+///
+/// This is used for both `storage` and `pub_vars` mod generation.
 fn items_from_keyed_vars(vars: &[KeyedVarABI]) -> Vec<syn::Item> {
     let mut items: Vec<syn::Item> = vec![
         mutations_struct().into(),
@@ -747,6 +749,8 @@ fn items_from_keyed_vars(vars: &[KeyedVarABI]) -> Vec<syn::Item> {
 }
 
 /// Create a module with `mutations` and `keys` fns for the given keyed vars.
+///
+/// This is used for both `storage` and `pub_vars` mod generation.
 fn mod_from_keyed_vars(mod_name: &str, vars: &[KeyedVarABI]) -> syn::ItemMod {
     let items = items_from_keyed_vars(vars);
     let mod_ident = syn::Ident::new(&mod_name, Span::call_site());
