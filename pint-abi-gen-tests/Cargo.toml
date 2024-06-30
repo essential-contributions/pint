@@ -17,5 +17,5 @@ pint-pkg = { workspace = true }
 walkdir = { workspace = true }
 
 [dependencies]
-essential-types = { workspace = true }
+pint-abi = { workspace = true }
 pint-abi-gen = { workspace = true }

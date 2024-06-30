@@ -14,7 +14,6 @@ use abi_types::{
     KeyedTupleField, KeyedTypeABI, KeyedVarABI, PredicateABI, ProgramABI, TupleField, TypeABI,
     VarABI,
 };
-// use essential_types::Word;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::ToTokens;
@@ -102,19 +101,31 @@ fn struct_from_vars(vars: &[VarABI]) -> syn::ItemStruct {
     }
 }
 
-/// Generate a `From<Vars>` implementation for converting `Vars` to `Vec<Word>`.
-fn impl_from_vars(vars: &[VarABI]) -> syn::ItemImpl {
+/// Generate a `Encode` implementation for a `Vars` type.
+fn impl_encode_for_vars(vars: &[VarABI]) -> syn::ItemImpl {
     let field_idents = vars
         .iter()
         .map(|var| field_name_from_var_name(&var.name))
         .map(|name| syn::Ident::new(&name, Span::call_site()));
     syn::parse_quote! {
-        impl From<Vars> for Vec<essential_types::Word> {
-            fn from(vars: Vars) -> Self {
-                let mut words: Vec<essential_types::Word> = vec![];
+        impl pint_abi::Encode for Vars {
+            fn encode<W: pint_abi::Write>(&self, w: &mut W) -> Result<(), W::Error> {
                 #(
-                    pint_abi::Encode::encode(vars.#field_idents, &mut words).expect("cannot fail");
+                    pint_abi::Encode::encode(&self.#field_idents, w).expect("cannot fail");
                 )*
+                Ok(())
+            }
+        }
+    }
+}
+
+/// Generate a `From<Vars>` implementation for converting `Vars` to `Vec<Word>`.
+fn impl_from_vars() -> syn::ItemImpl {
+    syn::parse_quote! {
+        impl From<Vars> for Vec<pint_abi::types::essential::Word> {
+            fn from(vars: Vars) -> Self {
+                let mut words: Vec<pint_abi::types::essential::Word> = vec![];
+                pint_abi::Encode::encode(&vars, &mut words).expect("cannot fail");
                 words
             }
         }
@@ -126,7 +137,8 @@ fn items_from_predicate(predicate: &PredicateABI) -> Vec<syn::Item> {
     let mut items = vec![];
     if !predicate.vars.is_empty() {
         items.push(struct_from_vars(&predicate.vars).into());
-        items.push(impl_from_vars(&predicate.vars).into());
+        items.push(impl_encode_for_vars(&predicate.vars).into());
+        items.push(impl_from_vars().into());
     }
     if !predicate.pub_vars.is_empty() {
         items.push(mod_from_keyed_vars("pub_vars", &predicate.pub_vars).into());
@@ -195,18 +207,20 @@ fn items_from_predicates(predicates: &[PredicateABI]) -> Vec<syn::Item> {
 /// The builder struct for mutations.
 fn mutations_struct() -> syn::ItemStruct {
     syn::parse_quote! {
-        // TODO: Avoid having user need to manually import `essential_types`?
+        /// A builder for a set of mutations.
+        ///
+        /// Can be constructed via the [`mutations`] function.
         #[derive(Debug, Default)]
         pub struct Mutations {
             /// The set of mutations being built.
-            set: Vec<essential_types::solution::Mutation>,
+            set: Vec<pint_abi::types::essential::solution::Mutation>,
             /// The stack of map keys that need to be merged with the key
             /// provided by the `KeyedTypeABI`.
             ///
             /// When a map's `entry` method is called, the provided key is
             /// pushed to this stack. Upon completion of the `entry` method, the
             /// key is popped.
-            map_keys: Vec<essential_types::Key>,
+            map_keys: Vec<pint_abi::types::essential::Key>,
         }
     }
 }
@@ -306,7 +320,7 @@ fn merge_key_expr() -> syn::Expr {
         abi_key
             .iter()
             .copied()
-            .map(|opt: Option<essential_types::Word>| {
+            .map(|opt: Option<pint_abi::types::essential::Word>| {
                 opt.or_else(|| map_key_words.next())
                     .expect("failed to merge key: missing words for key")
             })
@@ -332,10 +346,10 @@ fn mutation_method_for_single_key(
     syn::parse_quote! {
         #[doc = #doc_str]
         pub fn #method_ident(mut self, val: #arg_ty) -> Self {
-            use essential_types::{Key, Value, solution::Mutation};
+            use pint_abi::types::essential::{Key, Value, solution::Mutation};
             let abi_key = #abi_key_expr;
             let key: Key = #merge_key_expr;
-            let value: Value = pint_abi::encode(val);
+            let value: Value = pint_abi::encode(&val);
             self.set.retain(|m: &Mutation| &m.key != &key);
             let mutation = Mutation { key, value };
             self.set.push(mutation);
@@ -392,9 +406,9 @@ fn map_mutation_method_for_tuple(ty_from: &TypeABI, tup_key: &abi_types::Key) ->
     syn::parse_quote! {
         // #[doc = #doc_str]
         pub fn entry(mut self, key: #key_ty, f: impl FnOnce(#struct_ident) -> #struct_ident) -> Self {
-            let key_words: essential_types::Key = pint_abi::encode(&key);
+            let key_words: pint_abi::types::essential::Key = pint_abi::encode(&key);
             self.map_keys.push(key_words);
-            f(#struct_ident { mutations: &mut self });
+            f(#struct_ident { mutations: &mut self.mutations });
             self.map_keys.pop();
             self
         }
@@ -410,9 +424,9 @@ fn map_mutation_method_for_map(ty_from: &TypeABI, map_key: &abi_types::Key) -> s
     syn::parse_quote! {
         // #[doc = #doc_str]
         pub fn entry(mut self, key: #key_ty, f: impl FnOnce(#struct_ident) -> #struct_ident) -> Self {
-            let key_words: essential_types::Key = pint_abi::encode(&key);
+            let key_words: pint_abi::types::essential::Key = pint_abi::encode(&key);
             self.map_keys.push(key_words);
-            f(#struct_ident { mutations: &mut self });
+            f(#struct_ident { mutations: &mut self.mutations });
             self.map_keys.pop();
             self
         }
@@ -433,7 +447,7 @@ fn map_mutation_method_for_single_key(
     syn::parse_quote! {
         // #[doc = #doc_str]
         pub fn entry(mut self, key: #key_ty, val: #val_ty) -> Self {
-            use essential_types::{Key, Value};
+            use pint_abi::types::essential::{Key, Value};
             // Add the map key to the stack.
             let key: Key = pint_abi::encode(&key);
             self.map_keys.push(key);
@@ -462,7 +476,7 @@ fn abi_key_from_keyed_type(ty: &KeyedTypeABI) -> &Vec<Option<usize>> {
         KeyedTypeABI::Int(key) => key,
         KeyedTypeABI::Real(key) => key,
         KeyedTypeABI::Array { ty, .. } => abi_key_from_keyed_type(ty),
-        KeyedTypeABI::String(key) => abi_key_from_keyed_type(ty),
+        KeyedTypeABI::String(key) => key,
         KeyedTypeABI::B256(key) => key,
         KeyedTypeABI::Tuple { key, .. } => key,
         KeyedTypeABI::Map { key, .. } => key,
@@ -539,7 +553,7 @@ fn tuple_mutations_methods(fields: &[KeyedTupleField]) -> Vec<syn::ImplItemFn> {
 ///
 /// This allows for sharing the `mutation_method_from_keyed_var` for method
 /// generation between the `Mutations` impl and the `Tuple_*` impls.
-fn tuple_mutation_impl_deref(struct_name: &str) -> Vec<syn::ItemImpl> {
+fn mutation_impl_deref(struct_name: &str) -> Vec<syn::ItemImpl> {
     let struct_ident = syn::Ident::new(struct_name, Span::call_site());
     let deref_impl = syn::parse_quote! {
         impl<'a> core::ops::Deref for #struct_ident<'a> {
@@ -585,7 +599,11 @@ fn mutations_builders_from_keyed_type(ty: &KeyedTypeABI) -> Vec<syn::Item> {
             // Items for this map.
             items.push(map_mutations_struct(&struct_name, key).into());
             items.push(map_mutations_impl(&struct_name, ty_from, ty_to).into());
-
+            items.extend(
+                mutation_impl_deref(&struct_name)
+                    .into_iter()
+                    .map(syn::Item::from),
+            );
             items.extend(
                 mutations_builders_from_keyed_type(&ty_to)
                     .into_iter()
@@ -600,7 +618,7 @@ fn mutations_builders_from_keyed_type(ty: &KeyedTypeABI) -> Vec<syn::Item> {
             items.push(tuple_mutations_struct(&struct_name, key).into());
             items.push(tuple_mutations_impl(&struct_name, fields).into());
             items.extend(
-                tuple_mutation_impl_deref(&struct_name)
+                mutation_impl_deref(&struct_name)
                     .into_iter()
                     .map(syn::Item::from),
             );
@@ -697,7 +715,7 @@ fn impl_mutations_from_keyed_vars(vars: &[KeyedVarABI]) -> syn::ItemImpl {
 /// Shorthand constructor for the `Mutations` builder.
 fn mutations_fn() -> syn::ItemFn {
     syn::parse_quote! {
-        /// Begin building a set of `Mutations`.
+        /// Begin building a set of [`Mutations`].
         pub fn mutations() -> Mutations {
             Mutations::default()
         }
@@ -707,7 +725,7 @@ fn mutations_fn() -> syn::ItemFn {
 /// The `From<Mutations>` implementation for `Vec<Mutation>`.
 fn impl_from_mutations() -> syn::ItemImpl {
     syn::parse_quote! {
-        impl From<Mutations> for Vec<essential_types::solution::Mutation> {
+        impl From<Mutations> for Vec<pint_abi::types::essential::solution::Mutation> {
             fn from(m: Mutations) -> Self {
                 m.set
             }
@@ -733,6 +751,16 @@ fn mod_from_keyed_vars(mod_name: &str, vars: &[KeyedVarABI]) -> syn::ItemMod {
     let mod_ident = syn::Ident::new(&mod_name, Span::call_site());
     syn::parse_quote! {
         pub mod #mod_ident {
+            //! Items related to simplifying the process of building a `Vec` of
+            //! [`Mutation`][pint_abi::types::essential::solution::Mutation]s for a
+            //! [`Solution`][pint_abi::types::essential::solution::Solution].
+            //!
+            //! See the [`mutations`] fn to start constructing a set of [`Mutations`].
+            //!
+            //! The [`Mutations`] impl provides a set of builder methods that
+            //! allow for writing `Mutation`s to an inner `Vec` from higher-level values.
+            //!
+            //! The final `Vec<Mutation>` can be produced using the `From<Mutations>` impl.
             #(
                 #items
             )*
