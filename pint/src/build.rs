@@ -94,39 +94,18 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
         let pinned = &plan.graph()[n];
         let manifest = &plan.manifests()[&pinned.id()];
 
-        // Create the output directory.
-        let out_dir = manifest.out_dir();
-        std::fs::create_dir_all(&out_dir)
-            .with_context(|| format!("failed to create directory {out_dir:?}"))?;
-
-        // Create the build profile directory.
+        // Create the output and profile directories.
         // TODO: Add build profiles with compiler params.
+        let out_dir = manifest.out_dir();
         let profile = "debug";
         let profile_dir = out_dir.join(profile);
         std::fs::create_dir_all(&profile_dir)
             .with_context(|| format!("failed to create directory {profile_dir:?}"))?;
 
-        match built {
-            // Nothing to write for `lib`
-            BuiltPkg::Library(_lib) => {}
-            // Write the contract predicates to JSON, and write the ABI.
-            BuiltPkg::Contract(contract) => {
-                // Write the predicates.
-                let contract_string = serde_json::to_string_pretty(&contract.contract)
-                    .context("failed to serialize predicates to JSON")?;
-                let predicates_path = profile_dir.join(&pinned.name).with_extension("json");
-                std::fs::write(&predicates_path, contract_string)
-                    .with_context(|| format!("failed to write {predicates_path:?}"))?;
-
-                // Write the ABI.
-                let abi_string = serde_json::to_string_pretty(&contract.abi)
-                    .context("failed to serialize ABI to JSON")?;
-                let file_stem = format!("{}-abi", pinned.name);
-                let abi_path = profile_dir.join(file_stem).with_extension("json");
-                std::fs::write(&abi_path, abi_string)
-                    .with_context(|| format!("failed to write {abi_path:?}"))?;
-            }
-        }
+        // Write the output artifacts to the directory.
+        built
+            .write_to_dir(&pinned.name, &profile_dir)
+            .with_context(|| format!("failed to write output artifacts to {profile_dir:?}"))?;
 
         // Print the build summary.
         println!(
