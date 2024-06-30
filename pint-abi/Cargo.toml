@@ -8,4 +8,5 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+abi-types = { workspace = true }
 essential-types = { workspace = true }

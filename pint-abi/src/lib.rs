@@ -9,6 +9,16 @@ pub use write::Write;
 mod encode;
 mod write;
 
+/// Both Pint ABI and Essential protocol types.
+pub mod types {
+    // Re-export the contents of `abi_types` here so that it is accesible via `pint_abi::types`.
+    #[doc(inline)]
+    pub use abi_types::*;
+    // Re-export the Essential protocol types behind the `essential` namespace..
+    #[doc(inline)]
+    pub use essential_types as essential;
+}
+
 /// Shorthand for encoding the given value into a `Vec` of Essential `Word`s.
 pub fn encode<T: Encode>(t: &T) -> Vec<Word> {
     let mut v = vec![];

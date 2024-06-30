@@ -28,6 +28,13 @@ impl<T: Encode> Encode for [T] {
     }
 }
 
+impl<T: Encode, const N: usize> Encode for [T; N] {
+    fn encode<W: Write>(&self, w: &mut W) -> Result<(), W::Error> {
+        self[..].encode(w)?;
+        Ok(())
+    }
+}
+
 macro_rules! impl_encode_for_tuple {
     ($($T:ident),+) => {
         impl<$($T: Encode),+> Encode for ($($T),+) {
