@@ -1,6 +1,6 @@
 //! All items generated from `simple-abi.json`.
 
-pint_abi_gen::from_file!("../pintc/tests/abi/simple-abi.json");
+pint_abi_gen::from_file!("test-pkgs/simple/out/debug/simple-abi.json");
 
 #[cfg(test)]
 mod tests {
@@ -41,7 +41,8 @@ mod tests {
             .s2([42; 4])
             .s3(|tup| tup._0(1)._1(2))
             .s4(|tup| tup._0(6)._1(7)._2(|tup| tup._0(11)._1(22)))
-            .my_map(|map| map.entry(1, |tup| tup._0(2)._1(|tup| tup._0([1, 2, 3, 4])._1(5))))
+            .my_map0(|map| map.entry(0, 64))
+            .my_map1(|map| map.entry(1, |tup| tup._0(2)._1(|tup| tup._0([1, 2, 3, 4])._1(5))))
             .my_nested_map(|map| {
                 map.entry(2, |map| {
                     map.entry([4, 3, 2, 1], |tup| {
@@ -58,13 +59,11 @@ mod tests {
         };
 
         // Create the solution data.
-        let solution_data = SolutionData {
+        let _solution_data = SolutionData {
             predicate_to_solve,
             decision_variables: vars.into(),
             transient_data: pub_vars,
             state_mutations,
         };
-
-        dbg!(solution_data);
     }
 }

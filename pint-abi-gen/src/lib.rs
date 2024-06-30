@@ -412,9 +412,8 @@ fn map_mutation_method_for_tuple(
     let key_ty = ty_from_pint_ty(ty_from);
     let struct_name = tuple_mutations_struct_name(tup_key);
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
-    // let doc_str = mutation_method_doc_str(name);
     syn::parse_quote! {
-        // #[doc = #doc_str]
+        /// Add mutations for the tuple at the given key.
         pub fn entry(mut self, key: #key_ty, f: impl FnOnce(#struct_ident) -> #struct_ident) -> Self {
             let key_words: pint_abi::types::essential::Key = pint_abi::encode(&key);
             self.map_keys.push(key_words);
@@ -433,9 +432,8 @@ fn map_mutation_method_for_map(
     let key_ty = ty_from_pint_ty(ty_from);
     let struct_name = map_mutations_struct_name(map_key);
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
-    // let doc_str = mutation_method_doc_str(name);
     syn::parse_quote! {
-        // #[doc = #doc_str]
+        /// Add mutations for the nested map at the given key.
         pub fn entry(mut self, key: #key_ty, f: impl FnOnce(#struct_ident) -> #struct_ident) -> Self {
             let key_words: pint_abi::types::essential::Key = pint_abi::encode(&key);
             self.map_keys.push(key_words);
@@ -454,13 +452,18 @@ fn map_mutation_method_for_single_key(
 ) -> syn::ImplItemFn {
     let key_ty = ty_from_pint_ty(ty_from);
     let val_ty = val_ty.syn_ty();
-    // let doc_str = mutation_method_doc_str(name);
     let abi_key_expr: syn::ExprArray = abi_key_expr(val_key);
     let merge_key_expr: syn::Expr = merge_key_expr();
+    let abi_key_doc_str = abi_key_doc_str(val_key);
+    let merge_doc_str = format!(
+        "The given key will be encoded as words and merged into the full key `{abi_key_doc_str}`."
+    );
     syn::parse_quote! {
-        // #[doc = #doc_str]
+        /// Add a mutation for the entry at the given key.
+        ///
+        #[doc = #merge_doc_str]
         pub fn entry(mut self, key: #key_ty, val: #val_ty) -> Self {
-            use pint_abi::types::essential::{Key, Value};
+            use pint_abi::types::essential::{solution::Mutation, Key, Value};
             // Add the map key to the stack.
             let key: Key = pint_abi::encode(&key);
             self.map_keys.push(key);
@@ -697,7 +700,7 @@ fn mutation_method_from_keyed_var(name: &str, ty: &KeyedTypeABI) -> syn::ImplIte
         KeyedTypeABI::Real(key) => (SingleKeyTy::Real, key),
         KeyedTypeABI::String(key) => (SingleKeyTy::String, key),
         KeyedTypeABI::B256(key) => (SingleKeyTy::B256, key),
-        KeyedTypeABI::Array { ty, size } => todo!(),
+        KeyedTypeABI::Array { ty: _, size: _ } => todo!(),
         // Tuple types take a closure.
         KeyedTypeABI::Tuple { fields: _, key } => return mutation_method_for_tuple(name, key),
         // Map types take a closure.
