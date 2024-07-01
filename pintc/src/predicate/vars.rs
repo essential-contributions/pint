@@ -1,6 +1,6 @@
 use super::{DisplayWithPred, Ident, Predicate};
 use crate::{
-    error::{CompileError, ErrorEmitted, Handler},
+    error::{ErrorEmitted, Handler},
     span::Span,
     types::{Path, Type},
 };
@@ -100,7 +100,7 @@ impl VarKey {
     }
 
     /// Generate a `VarABI` given a `VarKey` and an `Predicate`
-    pub fn abi(&self, pred: &Predicate) -> Result<VarABI, CompileError> {
+    pub fn abi(&self, pred: &Predicate) -> Result<VarABI, ErrorEmitted> {
         Ok(VarABI {
             name: self.get(pred).name.clone(),
             ty: self.get_ty(pred).abi()?,

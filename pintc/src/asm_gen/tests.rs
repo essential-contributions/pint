@@ -986,8 +986,8 @@ predicate Foo {
                 state read 1
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Pop))
                   Constraint(Stack(Push(0)))
+                  Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
                   Constraint(Stack(Push(2)))
@@ -998,8 +998,8 @@ predicate Foo {
                 state read 2
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Pop))
                   Constraint(Stack(Push(1)))
+                  Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
                   Constraint(Stack(Push(2)))
@@ -1020,8 +1020,8 @@ predicate Foo {
                 state read 4
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Pop))
                   Constraint(Stack(Push(0)))
+                  Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
                   Constraint(Stack(Push(2)))
@@ -1032,10 +1032,10 @@ predicate Foo {
                 state read 5
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Pop))
                   Constraint(Stack(Push(1)))
-                  Constraint(Stack(Pop))
-                  Constraint(Stack(Push(1)))
+                  Constraint(Alu(Add))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
                   Constraint(Stack(Push(2)))
@@ -1046,10 +1046,10 @@ predicate Foo {
                 state read 6
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Pop))
                   Constraint(Stack(Push(1)))
-                  Constraint(Stack(Pop))
-                  Constraint(Stack(Push(2)))
+                  Constraint(Alu(Add))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
                   Constraint(Stack(Push(2)))
@@ -1070,8 +1070,8 @@ predicate Foo {
                 state read 8
                   Constraint(Stack(Push(2)))
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Pop))
                   Constraint(Stack(Push(0)))
+                  Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
                   Constraint(Stack(Push(2)))
@@ -1082,10 +1082,10 @@ predicate Foo {
                 state read 9
                   Constraint(Stack(Push(2)))
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Pop))
                   Constraint(Stack(Push(1)))
-                  Constraint(Stack(Pop))
-                  Constraint(Stack(Push(1)))
+                  Constraint(Alu(Add))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
                   Constraint(Stack(Push(2)))
@@ -1096,10 +1096,10 @@ predicate Foo {
                 state read 10
                   Constraint(Stack(Push(2)))
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Pop))
                   Constraint(Stack(Push(1)))
-                  Constraint(Stack(Pop))
-                  Constraint(Stack(Push(2)))
+                  Constraint(Alu(Add))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
                   Constraint(Stack(Push(2)))
@@ -1256,8 +1256,8 @@ predicate Bar {
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Pop))
                   Constraint(Stack(Push(0)))
+                  Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
                   Constraint(Stack(Push(2)))
@@ -1272,8 +1272,8 @@ predicate Bar {
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(0)))
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Pop))
                   Constraint(Stack(Push(1)))
+                  Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
                   Constraint(Stack(Push(2)))
@@ -1302,8 +1302,8 @@ predicate Bar {
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Pop))
                   Constraint(Stack(Push(0)))
+                  Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
                   Constraint(Stack(Push(2)))
@@ -1318,10 +1318,10 @@ predicate Bar {
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Pop))
                   Constraint(Stack(Push(1)))
-                  Constraint(Stack(Pop))
-                  Constraint(Stack(Push(1)))
+                  Constraint(Alu(Add))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
                   Constraint(Stack(Push(2)))
@@ -1336,10 +1336,10 @@ predicate Bar {
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Pop))
                   Constraint(Stack(Push(1)))
-                  Constraint(Stack(Pop))
-                  Constraint(Stack(Push(2)))
+                  Constraint(Alu(Add))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
                   Constraint(Stack(Push(2)))
@@ -1368,8 +1368,8 @@ predicate Bar {
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(2)))
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Pop))
                   Constraint(Stack(Push(0)))
+                  Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
                   Constraint(Stack(Push(2)))
@@ -1384,10 +1384,10 @@ predicate Bar {
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(2)))
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Pop))
                   Constraint(Stack(Push(1)))
-                  Constraint(Stack(Pop))
-                  Constraint(Stack(Push(1)))
+                  Constraint(Alu(Add))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
                   Constraint(Stack(Push(2)))
@@ -1402,13 +1402,262 @@ predicate Bar {
                   Constraint(Stack(Push(1229782938247303441)))
                   Constraint(Stack(Push(2)))
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Pop))
                   Constraint(Stack(Push(1)))
-                  Constraint(Stack(Pop))
-                  Constraint(Stack(Push(2)))
+                  Constraint(Alu(Add))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Alu(Add))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
                   Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
+                  Constraint(TotalControlFlow(Halt))
+            }
+
+        "#]],
+    );
+}
+
+#[test]
+fn storage_access_arrays() {
+    let compiled_program = &compile(
+        r#"
+storage {
+    x: int,
+    v: int[2][3],
+}
+
+predicate Foo {
+    state v = storage::v;
+    state v1 = storage::v[1];
+    state v12 = storage::v[1][2];
+}
+        "#,
+    );
+
+    check(
+        &format!("{compiled_program}"),
+        expect_test::expect![[r#"
+            predicate ::Foo {
+                --- Constraints ---
+                --- State Reads ---
+                state read 0
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(6)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(6)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
+                  Constraint(TotalControlFlow(Halt))
+                state read 1
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(3)))
+                  Constraint(Alu(Mul))
+                  Constraint(Alu(Add))
+                  Constraint(Stack(Push(3)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(3)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
+                  Constraint(TotalControlFlow(Halt))
+                state read 2
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(3)))
+                  Constraint(Alu(Mul))
+                  Constraint(Alu(Add))
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Alu(Mul))
+                  Constraint(Alu(Add))
+                  Constraint(Stack(Push(1)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
+                  Constraint(TotalControlFlow(Halt))
+            }
+
+        "#]],
+    );
+}
+
+#[test]
+fn storage_access_arrays_in_maps() {
+    let compiled_program = &compile(
+        r#"
+storage {
+    x: int,
+    map_to_arrays: ( int => int[3] ),
+}
+
+predicate Foo {
+    state map_to_arrays_69 = storage::map_to_arrays[69];
+    state map_to_arrays_69_2 = storage::map_to_arrays[69][2];
+}
+        "#,
+    );
+
+    check(
+        &format!("{compiled_program}"),
+        expect_test::expect![[r#"
+            predicate ::Foo {
+                --- Constraints ---
+                --- State Reads ---
+                state read 0
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(69)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(3)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(3)))
+                  Constraint(Stack(Push(3)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
+                  Constraint(TotalControlFlow(Halt))
+                state read 1
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(69)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Alu(Mul))
+                  Constraint(Alu(Add))
+                  Constraint(Stack(Push(1)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(3)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
+                  Constraint(TotalControlFlow(Halt))
+            }
+
+        "#]],
+    );
+}
+
+#[test]
+fn storage_access_arrays_extern() {
+    let compiled_program = &compile(
+        r#"
+interface Foo {
+    storage {
+        v: int[2][3],
+        map_to_arrays: ( int => int[3] ),
+    }
+}
+
+predicate Bar {
+    interface FooInstance = Foo(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE);
+
+    state foo_v = FooInstance::storage::v;
+    state foo_v1 = FooInstance::storage::v[1];
+    state foo_v12 = FooInstance::storage::v[1][2];
+
+    state foo_map_to_arrays_69 = FooInstance::storage::map_to_arrays[69];
+    state foo_map_to_arrays_69_1 = FooInstance::storage::map_to_arrays[69][1];
+}
+        "#,
+    );
+
+    check(
+        &format!("{compiled_program}"),
+        expect_test::expect![[r#"
+            predicate ::Bar {
+                --- Constraints ---
+                --- State Reads ---
+                state read 0
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(6)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(6)))
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
+                  Constraint(TotalControlFlow(Halt))
+                state read 1
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(3)))
+                  Constraint(Alu(Mul))
+                  Constraint(Alu(Add))
+                  Constraint(Stack(Push(3)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(3)))
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
+                  Constraint(TotalControlFlow(Halt))
+                state read 2
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(3)))
+                  Constraint(Alu(Mul))
+                  Constraint(Alu(Add))
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Alu(Mul))
+                  Constraint(Alu(Add))
+                  Constraint(Stack(Push(1)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
+                  Constraint(TotalControlFlow(Halt))
+                state read 3
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(69)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(3)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(3)))
+                  Constraint(Stack(Push(3)))
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
+                  Constraint(TotalControlFlow(Halt))
+                state read 4
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(-1229782938247303442)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(69)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Alu(Mul))
+                  Constraint(Alu(Add))
+                  Constraint(Stack(Push(1)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(3)))
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern

@@ -80,28 +80,22 @@ predicate Foo {
 // These type check failures are temporary until we support other types for `pub var`
 //
 // typecheck_failure <<<
-// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// @145..147: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// @200..202: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// @224..226: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// @248..250: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// @418..420: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// @495..497: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// @538..540: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// @574..576: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// @739..741: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// @793..795: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// @828..830: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, and tuple pub vars are currently supported
-// @856..858: only `bool`, b256`, `int`, and tuple pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @145..147: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @224..226: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @248..250: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @418..420: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @538..540: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @574..576: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @739..741: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @828..830: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @856..858: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
 // >>>

@@ -58,13 +58,15 @@ fn main() -> anyhow::Result<()> {
     json_abi_path.set_extension("json");
 
     // Compute the JSON ABI
-    let abi = match flattened.abi() {
+    let abi = match handler.scope(|handler| flattened.abi(handler)) {
         Ok(abi) => abi,
-        Err(error) => {
+        Err(_) => {
+            let errors = handler.consume();
+            let errors_len = errors.len();
             if !cfg!(test) {
-                error::print_errors(&error::Errors(vec![error::Error::Compile { error }]));
+                error::print_errors(&error::Errors(errors));
             }
-            pintc::pintc_bail!(1, filepath)
+            pintc::pintc_bail!(errors_len, filepath)
         }
     };
 

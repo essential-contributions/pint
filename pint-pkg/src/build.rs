@@ -9,7 +9,10 @@ use essential_types::{
     contract::Contract, predicate::Predicate as CompiledPredicate, ContentAddress,
 };
 use pintc::{asm_gen::compile_program, predicate::ProgramKind};
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 use thiserror::Error;
 
 /// A context that allows for iteratively compiling packages within a given compilation `Plan`.
@@ -54,6 +57,8 @@ pub struct BuiltContract {
     pub lib_entry_point: PathBuf,
     /// The ABI for the contract.
     pub abi: ProgramABI,
+    /// The flattened program.
+    pub flattened: pintc::predicate::Program,
 }
 
 /// An predicate built as a part of a contract.
@@ -124,6 +129,17 @@ pub enum PintcError {
     AsmGen,
 }
 
+/// An error occurred while writing a built package's output artifacts.
+#[derive(Debug, Error)]
+pub enum WriteError {
+    /// Failed to serialize contract or ABI.
+    #[error("failed to serialize contract or ABI: {0}")]
+    SerdeJson(#[from] serde_json::Error),
+    /// An I/O error occurred.
+    #[error("an I/O error occurred: {0}")]
+    Io(#[from] std::io::Error),
+}
+
 impl<'p> PlanBuilder<'p> {
     /// Produce the next package that is to be built.
     pub fn next_pkg(&mut self) -> Option<PrebuiltPkg> {
@@ -184,6 +200,28 @@ impl BuildPkgError {
     pub fn eprint(self) {
         let errors = self.handler.consume();
         pintc::error::print_errors(&pintc::error::Errors(errors));
+    }
+}
+
+impl BuiltPkg {
+    /// Write the built artifacts for this package to the given directory.
+    pub fn write_to_dir(&self, name: &str, path: &Path) -> Result<(), WriteError> {
+        match self {
+            Self::Library(_) => (),
+            Self::Contract(built) => {
+                // Write the contract.
+                let contract_string = serde_json::to_string_pretty(&built.contract)?;
+                let contract_path = path.join(name).with_extension("json");
+                std::fs::write(contract_path, contract_string)?;
+
+                // Write the ABI.
+                let abi_string = serde_json::to_string_pretty(&built.abi)?;
+                let file_stem = format!("{}-abi", name);
+                let abi_path = path.join(file_stem).with_extension("json");
+                std::fs::write(abi_path, abi_string)?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -291,7 +329,7 @@ fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg,
             };
 
             // Produce the ABI for the flattened program.
-            let Ok(abi) = flattened.abi() else {
+            let Ok(abi) = flattened.abi(&handler) else {
                 let kind = BuildPkgErrorKind::from(PintcError::ABIGen);
                 return Err(BuildPkgError { handler, kind });
             };
@@ -354,6 +392,7 @@ fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg,
                 },
                 lib_entry_point,
                 abi,
+                flattened,
             };
             BuiltPkg::Contract(contract)
         }

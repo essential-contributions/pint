@@ -69,6 +69,10 @@ pub enum KeyedTypeABI {
         fields: Vec<KeyedTupleField>,
         key: Key,
     },
+    Array {
+        ty: Box<KeyedTypeABI>,
+        size: i64,
+    },
     Map {
         ty_from: TypeABI, // not in storage hence `TypeABI` instead of `KeyedTypeABI`
         ty_to: Box<Self>,

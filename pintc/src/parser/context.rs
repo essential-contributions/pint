@@ -61,7 +61,7 @@ impl<'a> ParserContext<'a> {
         (l, r): (usize, usize),
     ) -> StorageVar {
         let span = (self.span_from)(l, r);
-        if ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() {
+        if ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() || ty.is_array() {
             StorageVar { name, ty, span }
         } else if let Type::Map {
             ref ty_from,
@@ -74,7 +74,8 @@ impl<'a> ParserContext<'a> {
                     || ty_to.is_int()
                     || ty_to.is_b256()
                     || ty_to.is_map()
-                    || ty_to.is_tuple())
+                    || ty_to.is_tuple()
+                    || ty_to.is_array())
             {
                 StorageVar { name, ty, span }
             } else {

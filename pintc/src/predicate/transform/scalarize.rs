@@ -81,7 +81,13 @@ fn fix_array_sizes(handler: &Handler, pred: &mut Predicate) -> Result<(), ErrorE
         range_expr_key: Option<ExprKey>,
         array_ty_span: Span,
     ) -> Result<Type, ErrorEmitted> {
-        if !(el_ty.is_array() || el_ty.is_int() || el_ty.is_real() || el_ty.is_bool()) {
+        if !(el_ty.is_array()
+            || el_ty.is_int()
+            || el_ty.is_real()
+            || el_ty.is_bool()
+            || el_ty.is_b256()
+            || el_ty.is_tuple())
+        {
             // Eventually, this will go away. Hence why it's an internal error for the time being.
             return Err(handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
@@ -219,8 +225,14 @@ fn scalarize_array(handler: &Handler, pred: &mut Predicate) -> Result<bool, Erro
     // Find the next array variable to convert.
     let Some((array_var_key, el_ty, array_size, span)) = pred.vars().find_map(|(var_key, _)| {
         let var_ty = var_key.get_ty(pred);
-        get_array_params(pred, var_ty)
-            .map(|(el_ty, _range, array_size, span)| (var_key, el_ty, *array_size, span.clone()))
+        let Var { is_pub, .. } = var_key.get(pred);
+        if !is_pub {
+            get_array_params(pred, var_ty).map(|(el_ty, _range, array_size, span)| {
+                (var_key, el_ty, *array_size, span.clone())
+            })
+        } else {
+            None
+        }
     }) else {
         // No array vars found.
         return Ok(false);
