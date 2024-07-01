@@ -1097,6 +1097,8 @@ dependencies = [
  "essential-types",
  "pint-abi-gen",
  "pint-abi-types",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]
@@ -1115,8 +1117,10 @@ dependencies = [
 name = "pint-abi-gen-tests"
 version = "0.1.0"
 dependencies = [
+ "essential-hash",
  "pint-abi",
  "pint-pkg",
+ "serde_json",
  "walkdir",
 ]
 

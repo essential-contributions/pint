@@ -11,6 +11,8 @@ repository.workspace = true
 essential-types = { workspace = true }
 pint-abi-gen = { workspace = true, optional = true }
 pint-abi-types = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
 
 [features]
 default = ["pint-abi-gen"]

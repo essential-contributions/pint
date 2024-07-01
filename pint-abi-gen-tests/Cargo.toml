@@ -18,3 +18,7 @@ walkdir = { workspace = true }
 
 [dependencies]
 pint-abi = { workspace = true }
+
+[dev-dependencies]
+essential-hash = { workspace = true }
+serde_json = { workspace = true }
