@@ -190,7 +190,8 @@ impl AsmBuilder {
                         // This is the offset from the base key where the full tuple is stored.
                         let key_offset: usize =
                             fields.iter().take(field_idx).try_fold(0, |acc, (_, ty)| {
-                                ty.storage_slots(handler, pred).map(|slots| acc + slots)
+                                ty.storage_or_transient_slots(handler, pred)
+                                    .map(|slots| acc + slots)
                             })?;
 
                         // Now offset using `Add`
@@ -227,7 +228,10 @@ impl AsmBuilder {
 
                         // Multiply the index by the number of storage slots for `ty` to get the
                         // offset, then add the result to the base key
-                        asm.push(Stack::Push(ty.storage_slots(handler, pred)? as i64).into());
+                        asm.push(
+                            Stack::Push(ty.storage_or_transient_slots(handler, pred)? as i64)
+                                .into(),
+                        );
                         asm.push(Alu::Mul.into());
                         asm.push(Alu::Add.into());
 
@@ -399,7 +403,8 @@ impl AsmBuilder {
                     let mut asm = vec![];
                     Self::compile_expr(handler, &mut asm, index, pred)?;
                     s_asm.extend(asm.iter().copied().map(StateRead::from));
-                    let mut key_length = storage_key.len + index.get_ty(pred).size();
+                    let mut key_length =
+                        storage_key.len + index.get_ty(pred).size(handler, pred)?;
                     if !(expr_ty.is_any_primitive() || expr_ty.is_map()) {
                         s_asm.push(StateRead::from(Stack::Push(0)));
                         key_length += 1;
@@ -428,7 +433,9 @@ impl AsmBuilder {
 
                     // Multiply the index by the number of storage slots for `ty` to get the
                     // offset, then add the result to the base key
-                    s_asm.push(Stack::Push(ty.storage_slots(handler, pred)? as i64).into());
+                    s_asm.push(
+                        Stack::Push(ty.storage_or_transient_slots(handler, pred)? as i64).into(),
+                    );
                     s_asm.push(Alu::Mul.into());
                     s_asm.push(Alu::Add.into());
 
@@ -473,7 +480,8 @@ impl AsmBuilder {
                 // This is the offset from the base key where the full tuple is stored.
                 let key_offset: usize =
                     fields.iter().take(field_idx).try_fold(0, |acc, (_, ty)| {
-                        ty.storage_slots(handler, pred).map(|slots| acc + slots)
+                        ty.storage_or_transient_slots(handler, pred)
+                            .map(|slots| acc + slots)
                     })?;
 
                 // Increment the last word on the satck by `key_offset`. This works fine for the
@@ -513,23 +521,32 @@ impl AsmBuilder {
                 }
             }
             Location::Transient(pathway, len) => {
-                if let Some(pathway_var_name) = pathway {
-                    let var_index = pred
-                        .vars()
-                        .filter(|(_, var)| !var.is_pub)
-                        .position(|(_, var)| var.name == pathway_var_name);
-                    asm.push(Stack::Push(len as i64).into()); // key length
-                    asm.push(Stack::Push(var_index.unwrap() as i64).into()); // slot
-                    asm.push(Access::DecisionVar.into());
-                    asm.push(Constraint::Access(Access::Transient));
-                } else {
-                    asm.push(Stack::Push(len as i64).into()); // key length
-                    asm.push(Constraint::Access(Access::ThisPathway));
-                    asm.push(Constraint::Access(Access::Transient));
+                for i in 0..expr_ty.storage_or_transient_slots(handler, pred)? {
+                    if i != 0 {
+                        // Recompute the key and offset. We do this manually here because we don't
+                        // have a `TransientRange` op that is similar to `StateRange`
+                        Self::compile_expr_pointer(handler, asm, expr, pred)?;
+                        asm.push(Stack::Push(i as i64).into());
+                        asm.push(Alu::Add.into());
+                    }
+                    if let Some(ref pathway_var_name) = pathway {
+                        let var_index = pred
+                            .vars()
+                            .filter(|(_, var)| !var.is_pub)
+                            .position(|(_, var)| var.name == *pathway_var_name);
+                        asm.push(Stack::Push(len as i64).into()); // key length
+                        asm.push(Stack::Push(var_index.unwrap() as i64).into()); // slot
+                        asm.push(Access::DecisionVar.into());
+                        asm.push(Constraint::Access(Access::Transient));
+                    } else {
+                        asm.push(Stack::Push(len as i64).into()); // key length
+                        asm.push(Constraint::Access(Access::ThisPathway));
+                        asm.push(Constraint::Access(Access::Transient));
+                    }
                 }
             }
             Location::State(next_state) => {
-                let slots = expr_ty.storage_slots(handler, pred)?;
+                let slots = expr_ty.storage_or_transient_slots(handler, pred)?;
                 if slots == 1 {
                     asm.push(Stack::Push(next_state as i64).into());
                     asm.push(Access::State.into());
@@ -608,7 +625,7 @@ impl AsmBuilder {
                     BinaryOp::Div => asm.push(Alu::Div.into()),
                     BinaryOp::Mod => asm.push(Alu::Mod.into()),
                     BinaryOp::Equal => {
-                        let type_size = lhs.get_ty(pred).size();
+                        let type_size = lhs.get_ty(pred).size(handler, pred)?;
                         if type_size == 1 {
                             asm.push(Pred::Eq.into());
                         } else {
@@ -739,7 +756,9 @@ impl AsmBuilder {
                     // Compile the mut key argument, insert its length, and then insert the
                     // `Sha256` opcode
                     Self::compile_expr(handler, asm, &mut_key, pred)?;
-                    asm.push(Constraint::Stack(Stack::Push(mut_key_type.size() as i64)));
+                    asm.push(Constraint::Stack(Stack::Push(
+                        mut_key_type.size(handler, pred)? as i64,
+                    )));
                     asm.push(Constraint::Access(Access::MutKeysContains));
                 }
 
@@ -768,7 +787,9 @@ impl AsmBuilder {
                     // Compile the data argument, insert its length, and then insert the `Sha256`
                     // opcode
                     Self::compile_expr(handler, asm, &data, pred)?;
-                    asm.push(Constraint::Stack(Stack::Push(data_type.size() as i64)));
+                    asm.push(Constraint::Stack(Stack::Push(
+                        data_type.size(handler, pred)? as i64,
+                    )));
                     asm.push(Constraint::Crypto(Crypto::Sha256));
                 }
 
@@ -795,7 +816,9 @@ impl AsmBuilder {
 
                     // Compile all arguments separately and then insert the `VerifyEd25519` opcode
                     Self::compile_expr(handler, asm, &data, pred)?;
-                    asm.push(Constraint::Stack(Stack::Push(data_type.size() as i64)));
+                    asm.push(Constraint::Stack(Stack::Push(
+                        data_type.size(handler, pred)? as i64,
+                    )));
                     Self::compile_expr(handler, asm, &signature, pred)?;
                     Self::compile_expr(handler, asm, &public_key, pred)?;
                     asm.push(Constraint::Crypto(Crypto::VerifyEd25519));
@@ -911,7 +934,7 @@ impl AsmBuilder {
                     asm[to_end_jump_idx] = Constraint::Stack(Stack::Push(then_size as i64 + 1));
                 } else {
                     // Alternatively, evaluate both options and use ASM `select` to choose one.
-                    let type_size = then_expr.get_ty(pred).size();
+                    let type_size = then_expr.get_ty(pred).size(handler, pred)?;
                     Self::compile_expr(handler, asm, else_expr, pred)?;
                     Self::compile_expr(handler, asm, then_expr, pred)?;
                     if type_size == 1 {
@@ -967,7 +990,7 @@ impl AsmBuilder {
 
         if let Some(var_index) = var_index {
             let var_key = pred.vars().find(|(_, var)| &var.name == path).unwrap().0;
-            let var_ty_size = var_key.get_ty(pred).size();
+            let var_ty_size = var_key.get_ty(pred).size(handler, pred)?;
             asm.push(Stack::Push(var_index as i64).into()); // slot
             Ok(Location::DecisionVar(var_ty_size))
         } else if let Some(pub_var_index) = pub_var_index {
@@ -986,7 +1009,7 @@ impl AsmBuilder {
                     .try_fold(0, |acc, (state_key, _)| {
                         state_key
                             .get_ty(pred)
-                            .storage_slots(handler, pred)
+                            .storage_or_transient_slots(handler, pred)
                             .map(|slots| acc + slots)
                     })?;
 
@@ -1093,12 +1116,15 @@ impl AsmBuilder {
         // First, get the storage key
         let storage_key = Self::compile_state_key(handler, &mut s_asm, &state.expr, pred)?;
 
-        let storage_slots = state.expr.get_ty(pred).storage_slots(handler, pred)?;
+        let storage_or_transient_slots = state
+            .expr
+            .get_ty(pred)
+            .storage_or_transient_slots(handler, pred)?;
         s_asm.extend([
-            Stack::Push(storage_slots as i64).into(),
+            Stack::Push(storage_or_transient_slots as i64).into(),
             StateSlots::AllocSlots.into(),
             Stack::Push(storage_key.len as i64).into(), // key_len
-            Stack::Push(storage_slots as i64).into(),   // num_keys_to_read
+            Stack::Push(storage_or_transient_slots as i64).into(), // num_keys_to_read
             Stack::Push(0).into(),                      // slot_index
             if storage_key.is_extern {
                 StateRead::KeyRangeExtern
@@ -1109,7 +1135,7 @@ impl AsmBuilder {
         ]);
         self.s_asm.push(s_asm);
 
-        *slot_idx += storage_slots as u32;
+        *slot_idx += storage_or_transient_slots as u32;
         Ok(())
     }
 }

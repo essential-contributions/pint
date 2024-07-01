@@ -285,41 +285,49 @@ impl Type {
         })
     }
 
-    pub fn size(&self) -> usize {
+    pub fn size(&self, handler: &Handler, pred: &Predicate) -> Result<usize, ErrorEmitted> {
         match self {
             Self::Primitive {
                 kind: PrimitiveKind::Bool | PrimitiveKind::Int | PrimitiveKind::Real,
                 ..
-            } => 1,
+            } => Ok(1),
 
             Self::Primitive {
                 kind: PrimitiveKind::B256,
                 ..
-            } => 4,
+            } => Ok(4),
 
-            Self::Tuple { fields, .. } => fields
-                .iter()
-                .fold(0, |acc, (_, field_ty)| acc + field_ty.size()),
+            Self::Tuple { fields, .. } => fields.iter().try_fold(0, |acc, (_, field_ty)| {
+                field_ty.size(handler, pred).map(|size| acc + size)
+            }),
 
-            Self::Array { ty, size, .. } => {
-                if let Some(size) = size {
-                    ty.size() * *size as usize
-                } else {
-                    unimplemented!("unable to find type size for array at the moment")
-                }
-            }
+            Self::Array {
+                ty, range, size, ..
+            } => Ok(ty.size(handler, pred)?
+                * size.unwrap_or(
+                    Self::get_array_size_from_range_expr(
+                        handler,
+                        range
+                            .as_ref()
+                            .and_then(|e| e.try_get(pred))
+                            .expect("expr key guaranteed to exist"),
+                        pred,
+                    )
+                    .unwrap(),
+                ) as usize),
 
             // The point here is that a `Map` takes up a storage slot, even though it doesn't
             // actually store anything in it. The `Map` type is not really allowed anywhere else,
             // so we can't have a decision variable of type `Map` for example.
-            Self::Map { .. } => 1,
+            Self::Map { .. } => Ok(1),
             _ => unimplemented!("Size of type is not yet specified"),
         }
     }
 
-    /// Calculate the number of storage slots required for this type. All primitive types fit in a
-    /// single slot even if their size is > 1.
-    pub fn storage_slots(
+    /// Calculate the number of storage or transient slots required for this type. All primitive
+    /// types fit in a single slot even if their size is > 1. The math is the same for storage and
+    /// transient data
+    pub fn storage_or_transient_slots(
         &self,
         handler: &Handler,
         pred: &Predicate,
@@ -329,13 +337,13 @@ impl Type {
 
             Self::Tuple { fields, .. } => fields.iter().try_fold(0, |acc, (_, field_ty)| {
                 field_ty
-                    .storage_slots(handler, pred)
+                    .storage_or_transient_slots(handler, pred)
                     .map(|slots| acc + slots)
             }),
 
             Self::Array {
                 ty, range, size, ..
-            } => Ok(ty.storage_slots(handler, pred)?
+            } => Ok(ty.storage_or_transient_slots(handler, pred)?
                 * size.unwrap_or(Self::get_array_size_from_range_expr(
                     handler,
                     range
@@ -406,7 +414,8 @@ impl Type {
                             // Offset the last word in the key given the field index
                             *last_word +=
                                 fields.iter().take(index).try_fold(0, |acc, (_, ty)| {
-                                    ty.storage_slots(handler, pred).map(|slots| acc + slots)
+                                    ty.storage_or_transient_slots(handler, pred)
+                                        .map(|slots| acc + slots)
                                 })?;
 
                             Ok(KeyedTupleField {
@@ -440,7 +449,7 @@ impl Type {
             }),
             Type::Map { ty_from, ty_to, .. } => {
                 let mut value_key = key.clone();
-                value_key.extend(vec![None; ty_from.size()]);
+                value_key.extend(vec![None; ty_from.size(handler, pred)?]);
                 //  The key of `ty_to` is either the `value_key` if the type is primitive or a map,
                 //  or it's `[value_key, 0]`. The `0` here is a placeholder for offsets. `ty_from`
                 //  has no key because it's not stored in storage.
