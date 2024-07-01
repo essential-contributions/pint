@@ -524,7 +524,7 @@ impl<'sc> Lexer<'sc> {
                     return Ok((oparen_span.start, oparen_tok, oparen_span.end));
                 }
 
-                Some(Ok(Token::Semi)) => {
+                Some(Ok(Token::Semi)) if nested_paren_count == 0 => {
                     // The end of some arg tokens.
                     all_args.push(Vec::new());
                 }
