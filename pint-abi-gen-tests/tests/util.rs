@@ -44,10 +44,6 @@ impl State {
         }
     }
 
-    pub fn deploy_namespace(&mut self, contract_addr: ContentAddress) {
-        self.0.entry(contract_addr).or_default();
-    }
-
     /// Retrieve a word range.
     pub fn key_range(
         &self,
