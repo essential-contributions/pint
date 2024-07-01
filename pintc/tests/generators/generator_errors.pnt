@@ -16,7 +16,7 @@ constraint exists i in 0..6 where j != 4 { true };
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::j: int;
 // var ::k: int;
 // var ::b: int;

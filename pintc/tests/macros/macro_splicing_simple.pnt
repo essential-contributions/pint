@@ -32,7 +32,7 @@ var lt_a: int;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a_ary: int[5];
 // var ::b_ary;
 // var ::s_a;

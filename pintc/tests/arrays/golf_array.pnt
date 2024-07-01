@@ -15,7 +15,7 @@ constraint sum == 72;
 solve satisfy;
 
 
-// intermediate <<<<
+// parsed <<<<
 // var ::h: int[18];
 // var ::sum: int;
 // constraint forall i in 0..17, { ((::h[::i] >= 3) && (::h[::i] <= 5)) };

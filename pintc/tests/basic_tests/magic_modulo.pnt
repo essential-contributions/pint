@@ -20,7 +20,7 @@ constraint forall i in 2..10 {
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::x: int;
 // constraint forall i in 2..10, { ((::x % ::i) == (::i - 1)) };
 // solve satisfy;

@@ -3,7 +3,7 @@ var b = {true, {false, [true, true], false}, [false, false]};
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a;
 // var ::b;
 // constraint (::a == {11, [22, 33, 44], 55});

@@ -1,0 +1,50 @@
+interface Counter {
+    storage {
+        counter: int,
+    }
+}
+
+const ContractID: b256 = 0x0003000300030003000300030003000300030003000300030003000300030003;
+
+predicate Foo {
+    interface CounterInstance = Counter(ContractID);
+    state counter = CounterInstance::storage::counter;
+}
+
+// parsed <<<
+// const ::ContractID: b256 = 0x0003000300030003000300030003000300030003000300030003000300030003;
+// interface ::Counter {
+//     storage {
+//         counter: int,
+//     }
+// }
+//
+// predicate ::Foo {
+//     interface ::Counter {
+//         storage {
+//             counter: int,
+//         }
+//     }
+//     interface ::CounterInstance = ::Counter(::ContractID)
+//     state ::counter = ::CounterInstance::storage::counter;
+// }
+// >>>
+
+// flattened <<<
+// const ::ContractID: b256 = 0x0003000300030003000300030003000300030003000300030003000300030003;
+// interface ::Counter {
+//     storage {
+//         counter: int,
+//     }
+// }
+//
+// predicate ::Foo {
+//     interface ::Counter {
+//         storage {
+//             counter: int,
+//         }
+//     }
+//     interface ::CounterInstance = ::Counter(0x0003000300030003000300030003000300030003000300030003000300030003)
+//     state ::counter: int = ::CounterInstance::storage::counter;
+// }
+// >>>

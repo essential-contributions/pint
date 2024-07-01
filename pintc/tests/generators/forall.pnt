@@ -23,7 +23,7 @@ constraint   forall i in 0..3 { A[i] != 0 }
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::k: int;
 // var ::l: int;
 // var ::r: real;

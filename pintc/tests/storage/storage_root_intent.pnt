@@ -32,7 +32,7 @@ var sum = x + i0 + map_1_access_1 + map_1_access_2;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // storage {
 //     i: int,
 //     b: bool,

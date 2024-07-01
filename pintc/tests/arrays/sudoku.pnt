@@ -28,7 +28,7 @@ constraint forall k1 in 0..2, k2 in 0..2 {
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::grid: int[9][9];
 // constraint forall i in 0..8, { forall j in 0..8, { ((::grid[::i][::j] >= 1) && (::grid[::i][::j] <= 9)) } };
 // constraint forall k in 0..8, { forall i in 0..8, j in 0..8, where (::i < ::j) { ((::grid[::i][::k] != ::grid[::j][::k]) && (::grid[::k][::i] != ::grid[::k][::j])) } };

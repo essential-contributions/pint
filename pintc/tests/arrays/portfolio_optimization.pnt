@@ -73,7 +73,7 @@ constraint coeff[0][0] * x[0] * x[0] +
 
 solve minimize f;
 
-// intermediate <<<
+// parsed <<<
 // var ::B: real;
 // var ::G: real;
 // var ::r: real[4];

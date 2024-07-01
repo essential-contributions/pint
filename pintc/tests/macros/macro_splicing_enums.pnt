@@ -46,7 +46,7 @@ constraint @find_max_feeling(feeling; max_feeling; counts;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::counts: int[::Feeling];
 // var ::max_feeling: int;
 // var ::feeling: ::Feeling;

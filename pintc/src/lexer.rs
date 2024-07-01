@@ -85,13 +85,12 @@ pub enum Token {
     True,
     #[token("false")]
     False,
+    #[token("nil")]
+    Nil,
     #[token("string")]
     String,
     #[token("b256")]
     B256,
-
-    #[token("fn")]
-    Fn,
 
     #[token("macro")]
     Macro,
@@ -118,6 +117,8 @@ pub enum Token {
     Var,
     #[token("state")]
     State,
+    #[token("const")]
+    Const,
     #[token("storage")]
     Storage,
     #[token("interface")]
@@ -146,8 +147,8 @@ pub enum Token {
     #[token("as")]
     As,
 
-    #[token("intent")]
-    Intent,
+    #[token("predicate")]
+    Predicate,
 
     #[token("in")]
     In,
@@ -205,37 +206,38 @@ pub type MacroBody = Vec<(usize, Token, usize)>;
 
 #[cfg(test)]
 pub(super) static KEYWORDS: &[Token] = &[
-    Token::Real,
-    Token::Int,
+    Token::As,
     Token::Bool,
-    Token::True,
-    Token::False,
-    Token::String,
     Token::B256,
-    Token::ForAll,
-    Token::Exists,
-    Token::Fn,
-    Token::If,
-    Token::Else,
     Token::Cond,
-    Token::Var,
-    Token::State,
-    Token::Storage,
-    Token::Interface,
+    Token::Const,
     Token::Constraint,
+    Token::Else,
+    Token::Enum,
+    Token::Exists,
+    Token::False,
+    Token::ForAll,
+    Token::If,
+    Token::In,
+    Token::Int,
+    Token::Interface,
     Token::Macro,
     Token::Maximize,
     Token::Minimize,
-    Token::Solve,
-    Token::Satisfy,
+    Token::Nil,
+    Token::Predicate,
     Token::Pub,
-    Token::Use,
+    Token::Real,
+    Token::Satisfy,
     Token::SelfTok,
-    Token::As,
-    Token::Enum,
-    Token::Intent,
-    Token::In,
+    Token::Solve,
+    Token::State,
+    Token::Storage,
+    Token::String,
+    Token::True,
     Token::Type,
+    Token::Use,
+    Token::Var,
     Token::Where,
 ];
 
@@ -279,9 +281,9 @@ impl fmt::Display for Token {
             Token::Bool => write!(f, "bool"),
             Token::True => write!(f, "true"),
             Token::False => write!(f, "false"),
+            Token::Nil => write!(f, "nil"),
             Token::String => write!(f, "string"),
             Token::B256 => write!(f, "b256"),
-            Token::Fn => write!(f, "fn"),
             Token::Macro => write!(f, "macro"),
             Token::MacroName(name) => write!(f, "{name}"),
             Token::MacroParam(arg) | Token::MacroParamPack(arg) | Token::MacroSplice(arg) => {
@@ -320,6 +322,7 @@ impl fmt::Display for Token {
             Token::Cond => write!(f, "cond"),
             Token::Var => write!(f, "var"),
             Token::State => write!(f, "state"),
+            Token::Const => write!(f, "const"),
             Token::Storage => write!(f, "storage"),
             Token::Interface => write!(f, "interface"),
             Token::Enum => write!(f, "enum"),
@@ -333,7 +336,7 @@ impl fmt::Display for Token {
             Token::Use => write!(f, "use"),
             Token::SelfTok => write!(f, "self"),
             Token::As => write!(f, "as"),
-            Token::Intent => write!(f, "intent"),
+            Token::Predicate => write!(f, "predicate"),
             Token::In => write!(f, "in"),
             Token::ForAll => write!(f, "forall"),
             Token::Exists => write!(f, "exists"),
@@ -496,10 +499,23 @@ impl<'sc> Lexer<'sc> {
         // way to do this, especially with TokenSource::VecToken, but it works.
         let mut args_token_stream = self.token_stream.clone();
         let mut parsed_tok_count = 0;
+        let mut nested_paren_count = 0;
+
+        // We're building a vector of vectors of arg tokens.
+        let mut all_args: Vec<Vec<(usize, Token, usize)>> = vec![Vec::default()];
+
+        macro_rules! push_tok {
+            ($tok: ident) => {{
+                let tok_span = args_token_stream.span();
+                all_args
+                    .last_mut()
+                    .expect("Args vec is always valid.")
+                    .push((tok_span.start, $tok, tok_span.end))
+            }};
+        }
 
         // We've already parsed the `(`.  Next we need any tokens up to delimiting `;` or
         // terminating `)`.
-        let mut all_args: Vec<Vec<(usize, Token, usize)>> = vec![Vec::new()];
         loop {
             parsed_tok_count += 1;
             match args_token_stream.next() {
@@ -511,6 +527,18 @@ impl<'sc> Lexer<'sc> {
                 Some(Ok(Token::Semi)) => {
                     // The end of some arg tokens.
                     all_args.push(Vec::new());
+                }
+
+                Some(Ok(tok @ Token::ParenOpen)) => {
+                    // A nested open paren which needs to be counted.
+                    nested_paren_count += 1;
+                    push_tok!(tok);
+                }
+
+                Some(Ok(tok @ Token::ParenClose)) if nested_paren_count > 0 => {
+                    // A nested close paren.
+                    nested_paren_count -= 1;
+                    push_tok!(tok);
                 }
 
                 Some(Ok(Token::ParenClose)) => {
@@ -540,11 +568,7 @@ impl<'sc> Lexer<'sc> {
 
                 // A regular parameter token.
                 Some(Ok(tok)) => {
-                    let tok_span = args_token_stream.span();
-                    all_args
-                        .last_mut()
-                        .expect("Args vec is always valid.")
-                        .push((tok_span.start, tok, tok_span.end))
+                    push_tok!(tok)
                 }
 
                 Some(Err(_)) => {
@@ -765,7 +789,7 @@ pub fn get_token_error_category(lalrpop_token: &Option<String>) -> Option<String
     if let Some(token) = lalrpop_token {
         match token.as_str() {
             "int_ty" | "real_ty" | "bool_ty" | "string_ty" | "b256_ty" => Some("a type".to_owned()),
-            "int_lit" | "real_lit" | "str_lit" => Some("a literal".to_owned()),
+            "int_lit" | "real_lit" | "str_lit" | "nil" => Some("a literal".to_owned()),
             "true" | "false" => Some("a boolean".to_owned()),
             "ident" => Some("an identifier".to_owned()),
             "satisfy" => Some("a directive".to_owned()),

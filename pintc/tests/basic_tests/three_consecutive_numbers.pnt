@@ -12,7 +12,7 @@ constraint x0 + x1 + x2 == x0 * x1 * x2;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::x0: int;
 // var ::x1: int;
 // var ::x2: int;

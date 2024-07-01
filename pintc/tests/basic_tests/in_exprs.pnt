@@ -22,7 +22,7 @@ constraint g in [[-99, -99]];
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a: int;
 // var ::b: real;
 // var ::c: bool;

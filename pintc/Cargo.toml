@@ -18,7 +18,11 @@ path = "src/main.rs"
 [build-dependencies]
 lalrpop = "0.20"
 
+[package.metadata.cargo-udeps.ignore]
+normal = ["pint_solve"]
+
 [dependencies]
+abi-types = { path = "../abi-types" }
 anyhow = { workspace = true }
 ariadne = { workspace = true }
 clap = { workspace = true }
@@ -31,7 +35,8 @@ lalrpop-util = "0.20"
 logos = { workspace = true }
 pint_solve = { path = "../pint-solve", default-features = false }
 regex = "1.10"
-serde_json = "1.0"
+serde = { workspace = true }
+serde_json = { workspace = true }
 similar-asserts = { version = "1.5", default-features = false }
 slotmap = "1.0"
 state-asm = { workspace = true }
@@ -44,5 +49,4 @@ test-util = { path = "../test-util" }
 test_bin = "0.4"
 
 [features]
-default = ["solver-scip"]
 solver-scip = ["pint_solve/solver-scip"]

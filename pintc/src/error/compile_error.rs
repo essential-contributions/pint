@@ -120,16 +120,16 @@ pub enum CompileError {
     InvalidNextStateAccess { span: Span },
     #[error("cannot find interface declaration `{name}`")]
     MissingInterface { name: String, span: Span },
-    #[error("cannot find intent `{intent_name}` in interface `{interface_name}`")]
-    MissingIntentInterface {
-        intent_name: String,
+    #[error("cannot find predicate `{pred_name}` in interface `{interface_name}`")]
+    MissingPredicateInterface {
+        pred_name: String,
         interface_name: String,
         span: Span,
     },
     #[error("cannot find interface instance `{name}`")]
     MissingInterfaceInstance { name: String, span: Span },
-    #[error("cannot find intent instance `{name}`")]
-    MissingIntentInstance { name: String, span: Span },
+    #[error("cannot find predicate instance `{name}`")]
+    MissingPredicateInstance { name: String, span: Span },
     #[error("address expression type error")]
     AddressExpressionTypeError { large_err: Box<LargeTypeError> },
     #[error("attempt to use a non-constant value as an array length")]
@@ -205,6 +205,11 @@ pub enum CompileError {
         arity: &'static str,
         large_err: Box<LargeTypeError>,
     },
+    #[error("{init_kind} initialization type error")]
+    InitTypeError {
+        init_kind: &'static str,
+        large_err: Box<LargeTypeError>,
+    },
     #[error("state variable initialization type error")]
     StateVarInitTypeError { large_err: Box<LargeTypeError> },
     #[error("state variables cannot have storage map type")]
@@ -220,8 +225,8 @@ pub enum CompileError {
     BadCastFrom { ty: String, span: Span },
     #[error("`solve` directive missing from this project")]
     MissingSolveDirective { span: Span },
-    #[error("invalid declaration outside an `intent {{ .. }}` declaration")]
-    InvalidDeclOutsideIntentDecl { kind: String, span: Span },
+    #[error("invalid declaration outside a predicate")]
+    InvalidDeclOutsidePredicateDecl { kind: String, span: Span },
     #[error("left and right types in range differ")]
     RangeTypesMismatch {
         lb_ty: String,
@@ -268,6 +273,16 @@ pub enum CompileError {
         intrinsic_span: Span,
         arg_span: Span,
     },
+    #[error("intrinsic argument must be a state variable")]
+    IntrinsicArgMustBeStateVar { span: Span },
+    #[error("binary operator type error")]
+    CompareToNilError { op: &'static str, span: Span },
+    #[error("type alias refers to itself")]
+    RecursiveNewType {
+        name: String,
+        decl_span: Span,
+        use_span: Span,
+    },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -309,6 +324,13 @@ pub enum LargeTypeError {
         found_ty: String,
         span: Span,
         expected_span: Option<Span>,
+    },
+    InitTypeError {
+        init_kind: &'static str,
+        expected_ty: String,
+        found_ty: String,
+        expected_ty_span: Span,
+        init_span: Span,
     },
 }
 
@@ -576,14 +598,14 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            MissingIntentInterface {
-                intent_name,
+            MissingPredicateInterface {
+                pred_name,
                 interface_name,
                 span,
             } => {
                 vec![ErrorLabel {
                     message: format!(
-                        "cannot find intent `{intent_name}` in interface `{interface_name}`"
+                        "cannot find predicate `{pred_name}` in interface `{interface_name}`"
                     ),
                     span: span.clone(),
                     color: Color::Red,
@@ -598,9 +620,9 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            MissingIntentInstance { name, span } => {
+            MissingPredicateInstance { name, span } => {
                 vec![ErrorLabel {
-                    message: format!("cannot find intent instance `{name}`"),
+                    message: format!("cannot find predicate instance `{name}`"),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -772,7 +794,8 @@ impl ReportableError for CompileError {
             | OperatorTypeError { large_err, .. }
             | StateVarInitTypeError { large_err, .. }
             | ConstraintExpressionTypeError { large_err, .. }
-            | AddressExpressionTypeError { large_err, .. } => match &**large_err {
+            | AddressExpressionTypeError { large_err, .. }
+            | InitTypeError { large_err, .. } => match large_err.as_ref() {
                 LargeTypeError::SelectBranchesTypeMismatch {
                     then_type,
                     then_span,
@@ -800,23 +823,9 @@ impl ReportableError for CompileError {
                     expected_span,
                     ..
                 } => {
-                    let mut labels = vec![ErrorLabel {
-                        message: format!(
-                            "operator `{op}` argument has unexpected type `{found_ty}`"
-                        ),
-                        span: span.clone(),
-                        color: Color::Red,
-                    }];
+                    let what = format!("operator `{op}` argument");
 
-                    if let Some(span) = expected_span {
-                        labels.push(ErrorLabel {
-                            message: format!("expecting type `{expected_ty}`"),
-                            span: span.clone(),
-                            color: Color::Blue,
-                        });
-                    }
-
-                    labels
+                    generate_type_error_labels(&what, found_ty, expected_ty, span, expected_span)
                 }
 
                 LargeTypeError::StateVarInitTypeError {
@@ -825,25 +834,13 @@ impl ReportableError for CompileError {
                     span,
                     expected_span,
                     ..
-                } => {
-                    let mut labels = vec![ErrorLabel {
-                        message: format!(
-                            "initializing expression has unexpected type `{found_ty}`"
-                        ),
-                        span: span.clone(),
-                        color: Color::Red,
-                    }];
-
-                    if let Some(span) = expected_span {
-                        labels.push(ErrorLabel {
-                            message: format!("expecting type `{expected_ty}`"),
-                            span: span.clone(),
-                            color: Color::Blue,
-                        });
-                    }
-
-                    labels
-                }
+                } => generate_type_error_labels(
+                    "initializing expression",
+                    found_ty,
+                    expected_ty,
+                    span,
+                    expected_span,
+                ),
 
                 LargeTypeError::ConstraintExpressionTypeError {
                     found_ty,
@@ -851,23 +848,13 @@ impl ReportableError for CompileError {
                     span,
                     expected_span,
                     ..
-                } => {
-                    let mut labels = vec![ErrorLabel {
-                        message: format!("constraint expression has unexpected type `{found_ty}`"),
-                        span: span.clone(),
-                        color: Color::Red,
-                    }];
-
-                    if let Some(span) = expected_span {
-                        labels.push(ErrorLabel {
-                            message: format!("expecting type `{expected_ty}`"),
-                            span: span.clone(),
-                            color: Color::Blue,
-                        });
-                    }
-
-                    labels
-                }
+                } => generate_type_error_labels(
+                    "constraint expression",
+                    found_ty,
+                    expected_ty,
+                    span,
+                    expected_span,
+                ),
 
                 LargeTypeError::AddressExpressionTypeError {
                     found_ty,
@@ -875,22 +862,30 @@ impl ReportableError for CompileError {
                     span,
                     expected_span,
                     ..
+                } => generate_type_error_labels(
+                    "address expression",
+                    found_ty,
+                    expected_ty,
+                    span,
+                    expected_span,
+                ),
+
+                LargeTypeError::InitTypeError {
+                    init_kind,
+                    expected_ty,
+                    found_ty,
+                    expected_ty_span,
+                    init_span,
                 } => {
-                    let mut labels = vec![ErrorLabel {
-                        message: format!("address expression has unexpected type `{found_ty}`"),
-                        span: span.clone(),
-                        color: Color::Red,
-                    }];
+                    let what = format!("{init_kind} initializer");
 
-                    if let Some(span) = expected_span {
-                        labels.push(ErrorLabel {
-                            message: format!("expecting type `{expected_ty}`"),
-                            span: span.clone(),
-                            color: Color::Blue,
-                        });
-                    }
-
-                    labels
+                    generate_type_error_labels(
+                        &what,
+                        found_ty,
+                        expected_ty,
+                        init_span,
+                        &Some(expected_ty_span.clone()),
+                    )
                 }
             },
 
@@ -912,10 +907,8 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
-            InvalidDeclOutsideIntentDecl { kind, span } => vec![ErrorLabel {
-                message: format!(
-                    "invalid {kind} declaration outside an `intent {{ .. }}` declaration"
-                ),
+            InvalidDeclOutsidePredicateDecl { kind, span } => vec![ErrorLabel {
+                message: format!("invalid {kind} declaration outside a predicate"),
                 span: span.clone(),
                 color: Color::Red,
             }],
@@ -982,6 +975,37 @@ impl ReportableError for CompileError {
                 ErrorLabel {
                     message: "arguments to this intrinsic are incorrect`".to_string(),
                     span: intrinsic_span.clone(),
+                    color: Color::Blue,
+                },
+            ],
+
+            IntrinsicArgMustBeStateVar { span } => vec![ErrorLabel {
+                message: "intrinsic argument must be a state variable".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            CompareToNilError { op, span } => {
+                vec![ErrorLabel {
+                    message: format!("unexpected argument for operator `{op}`"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            RecursiveNewType {
+                name,
+                decl_span,
+                use_span,
+            } => vec![
+                ErrorLabel {
+                    message: format!("type alias `{name}` is used recursively in declaration"),
+                    span: use_span.clone(),
+                    color: Color::Red,
+                },
+                ErrorLabel {
+                    message: format!("`{name}` is declared here"),
+                    span: decl_span.clone(),
                     color: Color::Blue,
                 },
             ],
@@ -1053,7 +1077,7 @@ impl ReportableError for CompileError {
 
             MacroCallWasNotExpression { .. } => Some(
                 "macros which contain only declarations may only be used at the top level of \
-                an intent and not as an expression"
+                a predicate and not as an expression"
                     .to_string(),
             ),
 
@@ -1101,10 +1125,8 @@ impl ReportableError for CompileError {
                     .to_string(),
             ),
 
-            InvalidDeclOutsideIntentDecl { .. } => Some(
-                "only `enum` and `type` declarations \
-                 are allowed outside an `intent { .. }` declaration"
-                    .to_string(),
+            InvalidDeclOutsidePredicateDecl { .. } => Some(
+                "only `enum` and `type` declarations are allowed outside a predicate".to_string(),
             ),
 
             Internal { .. }
@@ -1116,9 +1138,9 @@ impl ReportableError for CompileError {
             | MissingStorageBlock { .. }
             | InvalidNextStateAccess { .. }
             | MissingInterface { .. }
-            | MissingIntentInterface { .. }
+            | MissingPredicateInterface { .. }
             | MissingInterfaceInstance { .. }
-            | MissingIntentInstance { .. }
+            | MissingPredicateInstance { .. }
             | AddressExpressionTypeError { .. }
             | NonConstArrayLength { .. }
             | InvalidConstArrayLength { .. }
@@ -1137,6 +1159,7 @@ impl ReportableError for CompileError {
             | SelectBranchesTypeMismatch { .. }
             | ConstraintExpressionTypeError { .. }
             | OperatorTypeError { .. }
+            | InitTypeError { .. }
             | StateVarInitTypeError { .. }
             | StateVarTypeIsMap { .. }
             | IndexExprNonIndexable { .. }
@@ -1154,7 +1177,10 @@ impl ReportableError for CompileError {
             | NonBoolGeneratorBody { .. }
             | MissingIntrinsic { .. }
             | UnexpectedIntrinsicArgCount { .. }
-            | MismatchedIntrinsicArgType { .. } => None,
+            | IntrinsicArgMustBeStateVar { .. }
+            | MismatchedIntrinsicArgType { .. }
+            | CompareToNilError { .. }
+            | RecursiveNewType { .. } => None,
         }
     }
 
@@ -1200,10 +1226,44 @@ impl ReportableError for CompileError {
                 from an enum to an int"
                     .to_string(),
             ),
+            CompareToNilError { .. } => Some(
+                "only state variables and next state expressions can be compared to `nil`"
+                    .to_string(),
+            ),
 
             _ => None,
         }
     }
+}
+
+fn generate_type_error_labels(
+    what: &str,
+    found_ty: &str,
+    expected_ty: &str,
+    found_span: &Span,
+    expected_span: &Option<Span>,
+) -> Vec<ErrorLabel> {
+    let message = if found_ty == "Unknown" {
+        format!("{what} has unknown type")
+    } else {
+        format!("{what} has unexpected type `{found_ty}`")
+    };
+
+    let mut labels = vec![ErrorLabel {
+        message,
+        span: found_span.clone(),
+        color: Color::Red,
+    }];
+
+    if let Some(span) = expected_span {
+        labels.push(ErrorLabel {
+            message: format!("expecting type `{expected_ty}`"),
+            span: span.clone(),
+            color: Color::Blue,
+        });
+    }
+
+    labels
 }
 
 impl Spanned for CompileError {
@@ -1241,9 +1301,9 @@ impl Spanned for CompileError {
             | InvalidNextStateAccess { span, .. }
             | MissingStorageBlock { span, .. }
             | MissingInterface { span, .. }
-            | MissingIntentInterface { span, .. }
+            | MissingPredicateInterface { span, .. }
             | MissingInterfaceInstance { span, .. }
-            | MissingIntentInstance { span, .. }
+            | MissingPredicateInstance { span, .. }
             | NonConstArrayIndex { span }
             | InvalidConstArrayLength { span }
             | NonConstArrayLength { span }
@@ -1269,7 +1329,7 @@ impl Spanned for CompileError {
             | BadCastTo { span, .. }
             | BadCastFrom { span, .. }
             | MissingSolveDirective { span, .. }
-            | InvalidDeclOutsideIntentDecl { span, .. }
+            | InvalidDeclOutsidePredicateDecl { span, .. }
             | RangeTypesMismatch { span, .. }
             | RangeTypesNonNumeric { span, .. }
             | InExprTypesMismatch { span, .. }
@@ -1277,18 +1337,25 @@ impl Spanned for CompileError {
             | InExprTypesArrayMismatch { span, .. }
             | MissingIntrinsic { span, .. }
             | UnexpectedIntrinsicArgCount { span, .. }
-            | MismatchedIntrinsicArgType { arg_span: span, .. } => span,
+            | MismatchedIntrinsicArgType { arg_span: span, .. }
+            | IntrinsicArgMustBeStateVar { span, .. }
+            | CompareToNilError { span, .. }
+            | RecursiveNewType { use_span: span, .. } => span,
 
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }
             | StateVarInitTypeError { large_err, .. }
             | ConstraintExpressionTypeError { large_err, .. }
-            | AddressExpressionTypeError { large_err, .. } => match &**large_err {
+            | AddressExpressionTypeError { large_err, .. }
+            | InitTypeError { large_err, .. } => match large_err.as_ref() {
                 LargeTypeError::SelectBranchesTypeMismatch { span, .. }
                 | LargeTypeError::OperatorTypeError { span, .. }
                 | LargeTypeError::StateVarInitTypeError { span, .. }
                 | LargeTypeError::ConstraintExpressionTypeError { span, .. }
-                | LargeTypeError::AddressExpressionTypeError { span, .. } => span,
+                | LargeTypeError::AddressExpressionTypeError { span, .. }
+                | LargeTypeError::InitTypeError {
+                    init_span: span, ..
+                } => span,
             },
         }
     }

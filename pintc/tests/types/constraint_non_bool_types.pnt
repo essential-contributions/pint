@@ -9,7 +9,7 @@ constraint Colour::Red;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a: b256;
 // enum ::Colour = Red | Green | Blue;
 // constraint (1 + 2);

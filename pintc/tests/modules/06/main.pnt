@@ -15,7 +15,7 @@ enum U = V | W;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::b_mod::s0;
 // var ::b_mod::s1;
 // var ::b_mod::s2;

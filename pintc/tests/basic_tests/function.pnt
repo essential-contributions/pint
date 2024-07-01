@@ -14,7 +14,7 @@ constraint c < b;
 
 solve minimize c;
 
-// intermediate <<<
+// parsed <<<
 // var ::a = 123;
 // var ::b = 1.23456e2;
 // var ::c: real;

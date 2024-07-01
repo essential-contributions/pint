@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp as BinOp, Expr, Immediate as Imm, TupleAccess, UnaryOp},
-    intermediate::{ExprKey, IntermediateIntent},
+    predicate::{ExprKey, Predicate},
     span::{empty_span, Spanned},
     types::{EnumDecl, Path},
 };
@@ -13,25 +13,34 @@ pub(crate) struct Evaluator {
 }
 
 impl Evaluator {
-    pub(crate) fn new(ii: &IntermediateIntent) -> Evaluator {
+    pub(crate) fn new(pred: &Predicate) -> Evaluator {
         Evaluator {
-            enum_values: Self::create_enum_map(ii),
+            enum_values: Self::create_enum_map(pred),
             scope_values: FxHashMap::default(),
         }
     }
 
-    pub(crate) fn from_values(
-        ii: &IntermediateIntent,
-        scope_values: FxHashMap<Path, Imm>,
-    ) -> Evaluator {
+    pub(crate) fn from_values(pred: &Predicate, scope_values: FxHashMap<Path, Imm>) -> Evaluator {
         Evaluator {
-            enum_values: Self::create_enum_map(ii),
+            enum_values: Self::create_enum_map(pred),
             scope_values,
         }
     }
 
-    fn create_enum_map(ii: &IntermediateIntent) -> FxHashMap<Path, Imm> {
-        FxHashMap::from_iter(ii.enums.iter().flat_map(
+    pub(crate) fn contains_path(&mut self, path: &Path) -> bool {
+        self.scope_values.contains_key(path)
+    }
+
+    pub(crate) fn insert_value(&mut self, path: Path, imm: Imm) -> Option<Imm> {
+        self.scope_values.insert(path, imm)
+    }
+
+    pub(crate) fn into_values(self) -> FxHashMap<Path, Imm> {
+        self.scope_values
+    }
+
+    fn create_enum_map(pred: &Predicate) -> FxHashMap<Path, Imm> {
+        FxHashMap::from_iter(pred.enums.iter().flat_map(
             |EnumDecl {
                  name: enum_name,
                  variants,
@@ -51,19 +60,40 @@ impl Evaluator {
         &self,
         expr_key: &ExprKey,
         handler: &Handler,
-        ii: &IntermediateIntent,
+        pred: &Predicate,
     ) -> Result<Imm, ErrorEmitted> {
-        self.evaluate(expr_key.get(ii), handler, ii)
+        self.evaluate(expr_key.get(pred), handler, pred)
     }
 
     pub(crate) fn evaluate(
         &self,
         expr: &Expr,
         handler: &Handler,
-        ii: &IntermediateIntent,
+        pred: &Predicate,
     ) -> Result<Imm, ErrorEmitted> {
         match expr {
             Expr::Immediate { value, .. } => Ok(value.clone()),
+
+            Expr::Array { elements, .. } => {
+                let imm_elements = elements
+                    .iter()
+                    .map(|el_key| self.evaluate_key(el_key, handler, pred))
+                    .collect::<Result<_, _>>()?;
+
+                Ok(Imm::Array(imm_elements))
+            }
+
+            Expr::Tuple { fields, .. } => {
+                let imm_fields = fields
+                    .iter()
+                    .map(|(name, fld_key)| {
+                        self.evaluate_key(fld_key, handler, pred)
+                            .map(|fld_imm| (name.clone(), fld_imm))
+                    })
+                    .collect::<Result<_, _>>()?;
+
+                Ok(Imm::Tuple(imm_fields))
+            }
 
             Expr::PathByName(path, span) => self
                 .scope_values
@@ -81,7 +111,7 @@ impl Evaluator {
                 }),
 
             Expr::UnaryOp { op, expr, .. } => {
-                let expr = self.evaluate_key(expr, handler, ii)?;
+                let expr = self.evaluate_key(expr, handler, pred)?;
 
                 match (expr, op) {
                     (Imm::Real(expr), UnaryOp::Neg) => Ok(Imm::Real(-expr)),
@@ -97,8 +127,8 @@ impl Evaluator {
             }
 
             Expr::BinaryOp { op, lhs, rhs, .. } => {
-                let lhs = self.evaluate_key(lhs, handler, ii)?;
-                let rhs = self.evaluate_key(rhs, handler, ii)?;
+                let lhs = self.evaluate_key(lhs, handler, pred)?;
+                let rhs = self.evaluate_key(rhs, handler, pred)?;
 
                 match (lhs, rhs) {
                     (Imm::Real(lhs), Imm::Real(rhs)) => match op {
@@ -198,21 +228,17 @@ impl Evaluator {
 
             Expr::Index { expr, index, span } => {
                 // If the expr is an array...
-                let ary = self.evaluate_key(expr, handler, ii)?;
-                if let Imm::Array { elements, .. } = ary {
+                let ary = self.evaluate_key(expr, handler, pred)?;
+                if let Imm::Array(elements) = ary {
                     // And the index is an int...
-                    let idx = self.evaluate_key(index, handler, ii)?;
+                    let idx = self.evaluate_key(index, handler, pred)?;
                     if let Imm::Int(n) = idx {
                         // And it's not out of bounds...
-                        let n = n as usize;
-                        if n < elements.len() {
-                            // Evaluate the element expression.
-                            self.evaluate_key(&elements[n], handler, ii)
-                        } else {
-                            Err(handler.emit_err(Error::Compile {
+                        elements.get(n as usize).cloned().ok_or_else(|| {
+                            handler.emit_err(Error::Compile {
                                 error: CompileError::ArrayIndexOutOfBounds { span: span.clone() },
-                            }))
-                        }
+                            })
+                        })
                     } else {
                         Err(handler.emit_err(Error::Compile {
                             error: CompileError::InvalidConstArrayIndex { span: span.clone() },
@@ -221,7 +247,7 @@ impl Evaluator {
                 } else {
                     Err(handler.emit_err(Error::Compile {
                         error: CompileError::CannotIndexIntoValue {
-                            span: expr.get(ii).span().clone(),
+                            span: expr.get(pred).span().clone(),
                             index_span: span.clone(),
                         },
                     }))
@@ -230,10 +256,10 @@ impl Evaluator {
 
             Expr::TupleFieldAccess { tuple, field, span } => {
                 // If the expr is a tuple...
-                let tup = self.evaluate_key(tuple, handler, ii)?;
+                let tup = self.evaluate_key(tuple, handler, pred)?;
                 if let Imm::Tuple(fields) = tup {
                     // And the field can be found...
-                    if let Some(field_expr) = match field {
+                    match field {
                         TupleAccess::Index(n) => fields.get(*n).map(|pair| &pair.1),
 
                         TupleAccess::Name(id) => fields.iter().find_map(|(fld, e)| {
@@ -242,22 +268,25 @@ impl Evaluator {
                         }),
 
                         TupleAccess::Error => None,
-                    } {
-                        // Evaluate the field expressions.
-                        self.evaluate_key(field_expr, handler, ii)
-                    } else {
-                        Err(handler.emit_err(Error::Compile {
+                    }
+                    .cloned()
+                    .ok_or_else(|| {
+                        let mut tuple_ty = tuple.get_ty(pred).clone();
+                        if tuple_ty.is_unknown() {
+                            tuple_ty = Imm::Tuple(fields).get_ty(Some(span));
+                        }
+                        handler.emit_err(Error::Compile {
                             error: CompileError::InvalidTupleAccessor {
                                 accessor: field.to_string(),
-                                tuple_type: ii.with_ii(tuple.get_ty(ii)).to_string(),
+                                tuple_type: pred.with_pred(tuple_ty).to_string(),
                                 span: span.clone(),
                             },
-                        }))
-                    }
+                        })
+                    })
                 } else {
                     Err(handler.emit_err(Error::Compile {
                         error: CompileError::TupleAccessNonTuple {
-                            non_tuple_type: ii.with_ii(tuple.get_ty(ii)).to_string(),
+                            non_tuple_type: pred.with_pred(tuple.get_ty(pred)).to_string(),
                             span: span.clone(),
                         },
                     }))
@@ -270,13 +299,20 @@ impl Evaluator {
                 else_expr,
                 span,
             } => {
-                let cond = self.evaluate_key(condition, handler, ii)?;
+                let cond = self.evaluate_key(condition, handler, pred)?;
                 if let Imm::Bool(b) = cond {
-                    self.evaluate_key(if b { then_expr } else { else_expr }, handler, ii)
+                    self.evaluate_key(if b { then_expr } else { else_expr }, handler, pred)
                 } else {
+                    let mut cond_ty = condition.get_ty(pred).clone();
+                    if cond_ty.is_unknown() {
+                        if let Expr::Immediate { value, .. } = condition.get(pred) {
+                            cond_ty = value.get_ty(Some(span));
+                        }
+                    }
+
                     Err(handler.emit_err(Error::Compile {
                         error: CompileError::NonBoolConditional {
-                            ty: ii.with_ii(condition.get_ty(ii)).to_string(),
+                            ty: pred.with_pred(cond_ty).to_string(),
                             conditional: "select expression".to_owned(),
                             span: span.clone(),
                         },
@@ -285,10 +321,15 @@ impl Evaluator {
             }
 
             Expr::Cast { value, ty, span } => {
-                let cast_error = || -> Result<Imm, ErrorEmitted> {
+                let cast_error = |imm: Imm| -> Result<Imm, ErrorEmitted> {
+                    let mut value_ty = value.get_ty(pred).clone();
+                    if value_ty.is_unknown() {
+                        value_ty = imm.get_ty(Some(span));
+                    }
+
                     Err(handler.emit_err(Error::Compile {
                         error: CompileError::BadCastFrom {
-                            ty: ii.with_ii(value.get_ty(ii)).to_string(),
+                            ty: pred.with_pred(value_ty).to_string(),
                             span: span.clone(),
                         },
                     }))
@@ -296,13 +337,13 @@ impl Evaluator {
 
                 // All casts are either redundant (e.g., bool as bool) or are to ints, except int
                 // as real.  They'll be rejected by the type checker if not.
-                let imm = self.evaluate_key(value, handler, ii)?;
+                let imm = self.evaluate_key(value, handler, pred)?;
                 match imm {
                     Imm::Real(_) => {
                         if ty.is_real() {
                             Ok(imm)
                         } else {
-                            cast_error()
+                            cast_error(imm)
                         }
                     }
 
@@ -312,7 +353,7 @@ impl Evaluator {
                         } else if ty.is_real() {
                             Ok(Imm::Real(i as f64))
                         } else {
-                            cast_error()
+                            cast_error(imm)
                         }
                     }
 
@@ -322,16 +363,17 @@ impl Evaluator {
                         } else if ty.is_int() {
                             Ok(Imm::Int(if b { 1 } else { 0 }))
                         } else {
-                            cast_error()
+                            cast_error(imm)
                         }
                     }
 
                     // Invalid to cast from these values.
-                    Imm::String(_)
+                    Imm::Nil
+                    | Imm::String(_)
                     | Imm::B256(_)
                     | Imm::Array { .. }
                     | Imm::Tuple(_)
-                    | Imm::Error => cast_error(),
+                    | Imm::Error => cast_error(imm),
                 }
             }
 
@@ -354,7 +396,7 @@ impl Evaluator {
 }
 
 impl ExprKey {
-    /// Given an `ExprKey` `self`, an `IntermediateIntent`, and a map between some symbols and
+    /// Given an `ExprKey` `self`, an `Predicate`, and a map between some symbols and
     /// their values as `Immediate`s, create a deep clone of `self` (i.e. clone the `Expr` it
     /// points to and all of its sub-expressions) while replacing each symbol by its immediate
     /// value as per `values_map`.
@@ -375,57 +417,47 @@ impl ExprKey {
     /// 5 + 9 > k
     /// ```
     ///
-    /// and inserts it (and its sub-expressions) into `ii.exprs`.
+    /// and inserts it (and its sub-expressions) into `pred.exprs`.
     pub(crate) fn plug_in(
         self,
-        ii: &mut IntermediateIntent,
+        pred: &mut Predicate,
         values_map: &FxHashMap<Path, Imm>,
     ) -> ExprKey {
-        let expr = self.get(ii).clone();
+        let expr = self.get(pred).clone();
 
         let plugged = match expr {
-            Expr::Immediate {
-                ref value,
-                ref span,
-            } => match value {
-                Imm::Array {
+            Expr::Immediate { .. } => expr,
+
+            Expr::Array {
+                elements,
+                range_expr,
+                span,
+            } => {
+                let elements = elements
+                    .iter()
+                    .map(|element| element.plug_in(pred, values_map))
+                    .collect::<Vec<_>>();
+                let range_expr = range_expr.plug_in(pred, values_map);
+
+                Expr::Array {
                     elements,
                     range_expr,
-                } => {
-                    let elements = elements
-                        .iter()
-                        .map(|element| element.plug_in(ii, values_map))
-                        .collect::<Vec<_>>();
-                    let range_expr = range_expr.plug_in(ii, values_map);
-
-                    Expr::Immediate {
-                        value: Imm::Array {
-                            elements,
-                            range_expr,
-                        },
-                        span: span.clone(),
-                    }
+                    span: span.clone(),
                 }
+            }
 
-                Imm::Tuple(fields) => {
-                    let fields = fields
-                        .iter()
-                        .map(|(name, value)| (name.clone(), value.plug_in(ii, values_map)))
-                        .collect::<Vec<_>>();
+            Expr::Tuple { fields, span } => {
+                let fields = fields
+                    .iter()
+                    .map(|(name, value)| (name.clone(), value.plug_in(pred, values_map)))
+                    .collect::<Vec<_>>();
 
-                    Expr::Immediate {
-                        value: Imm::Tuple(fields),
-                        span: span.clone(),
-                    }
+                Expr::Tuple {
+                    fields,
+                    span: span.clone(),
                 }
+            }
 
-                Imm::Error
-                | Imm::Real(_)
-                | Imm::Int(_)
-                | Imm::Bool(_)
-                | Imm::String(_)
-                | Imm::B256(_) => expr,
-            },
             Expr::StorageAccess(..)
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
@@ -440,27 +472,27 @@ impl ExprKey {
             Expr::PathByKey(key, ref span) => {
                 let span = span.clone();
                 values_map
-                    .get(&key.get(ii).name)
+                    .get(&key.get(pred).name)
                     .map_or(expr, |value| Expr::Immediate {
                         value: value.clone(),
                         span,
                     })
             }
             Expr::UnaryOp { op, expr, span } => {
-                let expr = expr.plug_in(ii, values_map);
+                let expr = expr.plug_in(pred, values_map);
 
                 Expr::UnaryOp { op, expr, span }
             }
             Expr::BinaryOp { op, lhs, rhs, span } => {
-                let lhs = lhs.plug_in(ii, values_map);
-                let rhs = rhs.plug_in(ii, values_map);
+                let lhs = lhs.plug_in(pred, values_map);
+                let rhs = rhs.plug_in(pred, values_map);
 
                 Expr::BinaryOp { op, lhs, rhs, span }
             }
             Expr::IntrinsicCall { name, args, span } => {
                 let args = args
                     .iter()
-                    .map(|arg| arg.plug_in(ii, values_map))
+                    .map(|arg| arg.plug_in(pred, values_map))
                     .collect::<Vec<_>>();
 
                 Expr::IntrinsicCall { name, args, span }
@@ -471,9 +503,9 @@ impl ExprKey {
                 else_expr,
                 span,
             } => {
-                let condition = condition.plug_in(ii, values_map);
-                let then_expr = then_expr.plug_in(ii, values_map);
-                let else_expr = else_expr.plug_in(ii, values_map);
+                let condition = condition.plug_in(pred, values_map);
+                let then_expr = then_expr.plug_in(pred, values_map);
+                let else_expr = else_expr.plug_in(pred, values_map);
 
                 Expr::Select {
                     condition,
@@ -483,18 +515,18 @@ impl ExprKey {
                 }
             }
             Expr::Index { expr, index, span } => {
-                let expr = expr.plug_in(ii, values_map);
-                let index = index.plug_in(ii, values_map);
+                let expr = expr.plug_in(pred, values_map);
+                let index = index.plug_in(pred, values_map);
 
                 Expr::Index { expr, index, span }
             }
             Expr::TupleFieldAccess { tuple, field, span } => {
-                let tuple = tuple.plug_in(ii, values_map);
+                let tuple = tuple.plug_in(pred, values_map);
 
                 Expr::TupleFieldAccess { tuple, field, span }
             }
             Expr::Cast { value, ty, span } => {
-                let value = value.plug_in(ii, values_map);
+                let value = value.plug_in(pred, values_map);
 
                 Expr::Cast { value, ty, span }
             }
@@ -503,8 +535,8 @@ impl ExprKey {
                 collection,
                 span,
             } => {
-                let value = value.plug_in(ii, values_map);
-                let collection = collection.plug_in(ii, values_map);
+                let value = value.plug_in(pred, values_map);
+                let collection = collection.plug_in(pred, values_map);
 
                 Expr::In {
                     value,
@@ -513,8 +545,8 @@ impl ExprKey {
                 }
             }
             Expr::Range { lb, ub, span } => {
-                let lb = lb.plug_in(ii, values_map);
-                let ub = ub.plug_in(ii, values_map);
+                let lb = lb.plug_in(pred, values_map);
+                let ub = ub.plug_in(pred, values_map);
 
                 Expr::Range { lb, ub, span }
             }
@@ -527,13 +559,13 @@ impl ExprKey {
             } => {
                 let gen_ranges = gen_ranges
                     .iter()
-                    .map(|(index, range)| (index.clone(), range.plug_in(ii, values_map)))
+                    .map(|(index, range)| (index.clone(), range.plug_in(pred, values_map)))
                     .collect::<Vec<_>>();
                 let conditions = conditions
                     .iter()
-                    .map(|condition| condition.plug_in(ii, values_map))
+                    .map(|condition| condition.plug_in(pred, values_map))
                     .collect::<Vec<_>>();
-                let body = body.plug_in(ii, values_map);
+                let body = body.plug_in(pred, values_map);
 
                 Expr::Generator {
                     kind,
@@ -546,6 +578,6 @@ impl ExprKey {
         };
 
         // Insert the new plugged expression and its type.
-        ii.exprs.insert(plugged, self.get_ty(ii).clone())
+        pred.exprs.insert(plugged, self.get_ty(pred).clone())
     }
 }

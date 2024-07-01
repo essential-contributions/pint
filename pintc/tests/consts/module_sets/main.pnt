@@ -1,0 +1,23 @@
+const a = true;
+
+predicate A {
+    constraint a && !b::b;
+}
+
+// parsed <<<
+// const ::b::b = false;
+// const ::a = true;
+//
+// predicate ::A {
+//     constraint (::a && !::b::b);
+// }
+// >>>
+
+// flattened <<<
+// const ::b::b: bool = 0;
+// const ::a: bool = 1;
+//
+// predicate ::A {
+//     constraint (1 && !0);
+// }
+// >>>

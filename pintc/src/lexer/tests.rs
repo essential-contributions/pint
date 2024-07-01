@@ -157,6 +157,7 @@ fn bools() {
     assert_eq!(lex_one_success("false"), Token::False);
     assert_ne!(lex_one_success("false"), Token::True);
     assert_ne!(lex_one_success("true"), Token::False);
+    assert_eq!(lex_one_success("nil"), Token::Nil);
 }
 
 #[test]
@@ -204,6 +205,7 @@ fn strings() {
 #[test]
 fn variables() {
     assert_eq!(lex_one_success("var"), Token::Var);
+    assert_eq!(lex_one_success("const"), Token::Const);
 }
 
 #[test]
@@ -229,11 +231,6 @@ fn operators() {
     assert_eq!(lex_one_success("!="), Token::NotEq);
     assert_eq!(lex_one_success("&&"), Token::DoubleAmpersand);
     assert_eq!(lex_one_success("||"), Token::DoublePipe);
-}
-
-#[test]
-fn func() {
-    assert_eq!(lex_one_success("fn"), Token::Fn);
 }
 
 #[test]
@@ -271,7 +268,7 @@ fn r#in() {
 #[test]
 fn blockchain_items() {
     assert_eq!(lex_one_success("state"), Token::State);
-    assert_eq!(lex_one_success("intent"), Token::Intent);
+    assert_eq!(lex_one_success("predicate"), Token::Predicate);
     assert_eq!(lex_one_success("storage"), Token::Storage);
     assert_eq!(lex_one_success("interface"), Token::Interface);
 }

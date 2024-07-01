@@ -29,13 +29,9 @@ fn local_transient() {
               Pred(Eq)
             constraint 1
               Stack(Push(1))
-              Access(DecisionVar)
-              Stack(Push(2))
-              Access(DecisionVar)
-              Stack(Push(3))
-              Access(DecisionVar)
+              Stack(Push(0))
               Stack(Push(4))
-              Access(DecisionVar)
+              Access(DecisionVarRange)
               Stack(Push(1))
               Stack(Push(1))
               Access(ThisPathway)
@@ -43,7 +39,7 @@ fn local_transient() {
               Stack(Push(4))
               Pred(EqRange)
             constraint 2
-              Stack(Push(5))
+              Stack(Push(2))
               Access(DecisionVar)
               Stack(Push(2))
               Stack(Push(1))
@@ -62,11 +58,11 @@ fn extern_transient() {
             "{}",
             compile(
                 r#"
-interface Foo { intent Bar { pub var x: int; pub var y: b256;} }
-intent Bar {
+interface Foo { predicate Bar { pub var x: int; pub var y: b256;} }
+predicate Bar {
     interface FooInstance = Foo(0x0000000000000000000000000000000000000000000000000000000000000000);
-    intent BarInstance1 = FooInstance::Bar(0x1111111111111111111111111111111111111111111111111111111111111111);
-    intent BarInstance2 = FooInstance::Bar(0x1111111111111111111111111111111111111111111111111111111111111111);
+    predicate BarInstance1 = FooInstance::Bar(0x1111111111111111111111111111111111111111111111111111111111111111);
+    predicate BarInstance2 = FooInstance::Bar(0x1111111111111111111111111111111111111111111111111111111111111111);
     var x = BarInstance1::x;
     var y = BarInstance2::y;
 }
@@ -74,7 +70,7 @@ intent Bar {
             )
         ),
         expect_test::expect![[r#"
-            intent ::Bar {
+            predicate ::Bar {
                 --- Constraints ---
                 constraint 0
                   Stack(Push(2))
@@ -87,13 +83,9 @@ intent Bar {
                   Pred(Eq)
                 constraint 1
                   Stack(Push(3))
-                  Access(DecisionVar)
+                  Stack(Push(0))
                   Stack(Push(4))
-                  Access(DecisionVar)
-                  Stack(Push(5))
-                  Access(DecisionVar)
-                  Stack(Push(6))
-                  Access(DecisionVar)
+                  Access(DecisionVarRange)
                   Stack(Push(1))
                   Stack(Push(1))
                   Stack(Push(1))

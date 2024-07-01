@@ -1,10 +1,10 @@
 use pintc::{
     error::{Errors, Handler, ReportableError},
-    intermediate::Program,
+    predicate::Program,
 };
 use std::{
     fs::{read_dir, File},
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Read},
     path::{Path, PathBuf},
 };
 use test_util::{parse_test_data, TestData};
@@ -29,7 +29,7 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
         }
 
         // Only go over pint file
-        if path.extension().unwrap() != "pnt" {
+        if path.extension().is_none() || path.extension().unwrap() != "pnt" {
             continue;
         }
 
@@ -48,13 +48,46 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
         let test_data = parse_test_data(&path)?;
 
         // Parse the project and check its output.
-        parse_test_and_check(&path, &test_data, &mut failed_tests)
-            .and_then(|ii|
-                // Type check the intermediate intent.
-                type_check(ii, &test_data, &mut failed_tests, &path))
-            .and_then(|ii|
-                // Flatten the intermediate intent check the result.
-                flatten_and_check(ii, &test_data, &mut failed_tests, &path));
+        let program = parse_test_and_check(&path, &test_data, &mut failed_tests)
+            .and_then(|pred|
+                // Type check the parsed intent.
+                type_check(pred, &test_data, &mut failed_tests, &path))
+            .and_then(|pred|
+                // Flatten the parsed intent check the result.
+                flatten_and_check(pred, &test_data, &mut failed_tests, &path));
+
+        // Check the `json` ABI if a reference file exists.
+        if let Some(program) = program {
+            let mut path_stem = path
+                .file_stem()
+                .expect("Failed to get file stem")
+                .to_os_string();
+            path_stem.push("-abi");
+            path.set_file_name(path_stem);
+            path.set_extension("json");
+
+            if let Ok(mut file) = File::open(&path) {
+                // The JSON ABI of the produce program
+                let handler = Handler::default();
+                let json_abi = serde_json::to_string_pretty(&program.abi(&handler).unwrap())?;
+
+                // The JSON ABI from the reference file
+                let mut json_abi_reference = String::new();
+                file.read_to_string(&mut json_abi_reference)?;
+
+                // Compare the two without any whitespaces
+                similar_asserts::assert_eq!(
+                    json_abi
+                        .chars()
+                        .filter(|c| !c.is_whitespace())
+                        .collect::<Vec<_>>(),
+                    json_abi_reference
+                        .chars()
+                        .filter(|c| !c.is_whitespace())
+                        .collect::<Vec<_>>()
+                );
+            }
+        }
     }
 
     if !failed_tests.is_empty() {
@@ -70,7 +103,8 @@ fn parse_test_and_check(
     failed_tests: &mut Vec<String>,
 ) -> Option<Program> {
     let handler = Handler::default();
-    match pintc::parser::parse_project(&handler, path) {
+    let deps = Default::default();
+    match pintc::parser::parse_project(&handler, &deps, path) {
         Err(_) => {
             let errs_str = handler
                 .consume()
@@ -94,9 +128,9 @@ fn parse_test_and_check(
             }
             None
         }
-        Ok(ii) => {
-            if let Some(expected_intent_str) = &test_data.intermediate {
-                similar_asserts::assert_eq!(expected_intent_str.trim(), format!("{ii}").trim());
+        Ok(pred) => {
+            if let Some(expected_intent_str) = &test_data.parsed {
+                similar_asserts::assert_eq!(expected_intent_str.trim(), format!("{pred}").trim());
             } else if test_data.parse_failure.is_some() {
                 failed_tests.push(path.display().to_string());
                 println!(
@@ -108,23 +142,23 @@ fn parse_test_and_check(
                 failed_tests.push(path.display().to_string());
                 println!(
                     "{} {}.",
-                    "MISSING 'intermediate' OR 'parse_failure' DIRECTIVE".red(),
+                    "MISSING 'parsed' OR 'parse_failure' DIRECTIVE".red(),
                     path.display().to_string().cyan(),
                 );
             }
-            Some(ii)
+            Some(pred)
         }
     }
 }
 
 fn type_check(
-    ii: Program,
+    pred: Program,
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
     path: &Path,
 ) -> Option<Program> {
     let handler = Handler::default();
-    ii.type_check(&handler)
+    pred.type_check(&handler)
         .map(|checked| {
             if test_data.typecheck_failure.is_some() {
                 failed_tests.push(path.display().to_string());
@@ -155,13 +189,13 @@ fn type_check(
 }
 
 fn flatten_and_check(
-    ii: Program,
+    pred: Program,
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
     path: &Path,
 ) -> Option<Program> {
     let handler = Handler::default();
-    ii.flatten(&handler)
+    pred.flatten(&handler)
         .map(|flattened| {
             if let Some(expected_flattened_str) = &test_data.flattened {
                 similar_asserts::assert_eq!(
@@ -227,10 +261,13 @@ mod e2e {
     e2e_test!(asm);
     e2e_test!(directives);
     e2e_test!(canonicalizes);
-    e2e_test!(sets_of_intents);
+    e2e_test!(contracts);
     e2e_test!(storage);
     e2e_test!(intrinsics);
     e2e_test!(root_types);
     e2e_test!(interfaces);
     e2e_test!(evaluator);
+    e2e_test!(abi);
+    e2e_test!(consts);
+    e2e_test!(regression);
 }

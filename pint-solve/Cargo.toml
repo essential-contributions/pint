@@ -14,6 +14,9 @@ path = "src/lib.rs"
 [build-dependencies]
 lalrpop = "0.20"
 
+[package.metadata.cargo-udeps.ignore]
+normal = ["thiserror"]
+
 [dependencies]
 expect-test = { workspace = true }
 fxhash = { workspace = true }
@@ -27,5 +30,4 @@ anyhow = { workspace = true }
 test-util = { path = "../test-util" }
 
 [features]
-default = ["solver-scip"]
-solver-scip = ["dep:russcip"]
+solver-scip = ["russcip"]

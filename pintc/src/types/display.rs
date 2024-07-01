@@ -1,20 +1,21 @@
-use crate::intermediate::{DisplayWithII, IntermediateIntent};
+use crate::predicate::{DisplayWithPred, Predicate};
 use std::fmt::{Formatter, Result};
 
-impl DisplayWithII for super::Path {
-    fn fmt(&self, f: &mut Formatter, _ii: &IntermediateIntent) -> Result {
+impl DisplayWithPred for super::Path {
+    fn fmt(&self, f: &mut Formatter, _pred: &Predicate) -> Result {
         write!(f, "{self}")
     }
 }
 
-impl DisplayWithII for super::Type {
-    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> Result {
+impl DisplayWithPred for super::Type {
+    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> Result {
         match self {
             super::Type::Error(..) => write!(f, "Error"),
 
             super::Type::Unknown(..) => write!(f, "Unknown"),
 
             super::Type::Primitive { kind, .. } => match kind {
+                super::PrimitiveKind::Nil => write!(f, "nil"),
                 super::PrimitiveKind::Bool => write!(f, "bool"),
                 super::PrimitiveKind::Int => write!(f, "int"),
                 super::PrimitiveKind::Real => write!(f, "real"),
@@ -23,30 +24,36 @@ impl DisplayWithII for super::Type {
             },
 
             super::Type::Array { ty, range, .. } => {
-                write!(f, "{}[", ii.with_ii(&**ty))?;
-                write!(f, "{}]", ii.with_ii(range))
+                write!(
+                    f,
+                    "{}[{}]",
+                    pred.with_pred(ty.as_ref()),
+                    range
+                        .map(|range| pred.with_pred(range).to_string())
+                        .unwrap_or("_".to_owned())
+                )
             }
 
             super::Type::Tuple { fields, .. } => {
                 macro_rules! write_field {
-                    ($f: expr, $field: expr, $comma: expr, $ii: expr) => {{
+                    ($f: expr, $field: expr, $comma: expr, $pred: expr) => {{
                         if $comma {
                             write!($f, ", ")?;
                         };
                         if let Some(name) = &$field.0 {
                             write!($f, "{}: ", name.name)?;
                         }
-                        write!($f, "{}", $ii.with_ii(&$field.1))?;
+                        write!($f, "{}", $pred.with_pred(&$field.1))?;
                     }};
                 }
 
                 write!(f, "{{")?;
                 let mut fields = fields.iter();
                 if let Some(first_field) = fields.next() {
-                    write_field!(f, first_field, false, ii);
+                    write_field!(f, first_field, false, pred);
                 }
                 for field in fields {
-                    write_field!(f, field, true, ii);
+                    write_field!(f, field, true, pred);
                 }
                 write!(f, "}}")
             }
@@ -54,31 +61,31 @@ impl DisplayWithII for super::Type {
             super::Type::Custom { path, .. } => write!(f, "{path}"),
 
             super::Type::Alias { path, ty, .. } => {
-                write!(f, "{path} ({})", ii.with_ii(&**ty))
+                write!(f, "{path} ({})", pred.with_pred(&**ty))
             }
 
             super::Type::Map { ty_from, ty_to, .. } => {
                 write!(
                     f,
                     "( {} => {} )",
-                    ii.with_ii(&**ty_from),
-                    ii.with_ii(&**ty_to)
+                    pred.with_pred(&**ty_from),
+                    pred.with_pred(&**ty_to)
                 )
             }
         }
     }
 }
 
-impl DisplayWithII for super::EnumDecl {
-    fn fmt(&self, f: &mut Formatter, _ii: &IntermediateIntent) -> Result {
+impl DisplayWithPred for super::EnumDecl {
+    fn fmt(&self, f: &mut Formatter, _pred: &Predicate) -> Result {
         write!(f, "enum {} = ", self.name)?;
         crate::util::write_many!(f, self.variants, " | ");
         Ok(())
     }
 }
 
-impl DisplayWithII for super::NewTypeDecl {
-    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> Result {
-        write!(f, "type {} = {}", self.name, ii.with_ii(&self.ty))
+impl DisplayWithPred for super::NewTypeDecl {
+    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> Result {
+        write!(f, "type {} = {}", self.name, pred.with_pred(&self.ty))
     }
 }

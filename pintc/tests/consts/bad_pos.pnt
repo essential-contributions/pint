@@ -1,0 +1,14 @@
+const a = 11;
+
+predicate A {
+    var b = a * 2;
+
+    const c = 33;
+
+    constraint b != c;
+}
+
+// parse_failure <<<
+// expected `::`, `an identifier`, `constraint`, `enum`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `solve`, `state`, `type`, `use`, `var`, or `}`, found `const`
+// @53..58: expected `::`, `an identifier`, `constraint`, `enum`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `solve`, `state`, `type`, `use`, `var`, or `}`
+// >>>

@@ -17,24 +17,24 @@ The contract starts with a `storage` declaration that contains two storage varia
    is a primitive type that represents a 256-bit hash value and is used here to represent an
    address.
 
-The contract also declares two intents: `Mint` and `Send`.
+The contract also declares two predicates: `Mint` and `Send`.
 
-The `Mint` intent is fairly simple:
+The `Mint` predicate is fairly simple:
 
-1. It declares two decision variables `receiver: b256` and `amount: int`. The goal of this intent to
-   mint `amount` coins and send them to `receiver`.
+1. It declares two decision variables `receiver: b256` and `amount: int`. The goal of this predicate
+   to mint `amount` coins and send them to `receiver`.
 1. It initializes a `state` variable called `receiver_balance` using the storage access expression
    `storage::balances[receiver]`. This syntax returns the value in `balances` that `receiver` maps
-   to. The intent also initializes another state variable called `total_supply` to
+   to. The predicate also initializes another state variable called `total_supply` to
    `storage::total_supply`.
 1. It enforces two constraints:
    1. the first constraint requires the total supply to be incremented by `amount`.
    1. The second constraint requires the balance of `receiver` to be incremented by `amount`.
 
-The `Send` intent has the following structure:
+The `Send` predicate has the following structure:
 
 1. It declares three decision variables `from: b256`, `receiver: b256`, and `amount: int`. The goal
-   of this intent to send `amount` coins from address `from` to address `receiver`.
+   of this predicate to send `amount` coins from address `from` to address `receiver`.
 1. It initializes a `state` variable called `from_balance` to the balance of `from` and another
    variable called `receiver_balance` to the balance of `receiver`.
 1. It enforces three constraints

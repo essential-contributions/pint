@@ -1,0 +1,36 @@
+interface I1 {
+    predicate A;
+    predicate A { }
+    predicate A { pub var x: int; }
+    predicate B;
+}
+
+interface I2 {
+    predicate C;
+    predicate C { }
+    predicate C { pub var y: bool; }
+    predicate B;
+}
+
+Foo { }
+
+// parse_failure <<<
+// symbol `A` has already been declared
+// @29..30: previous declaration of the symbol `A` here
+// @46..47: `A` redeclared here
+// `A` must be declared or imported only once in this scope
+// symbol `A` has already been declared
+// @29..30: previous declaration of the symbol `A` here
+// @66..67: `A` redeclared here
+// `A` must be declared or imported only once in this scope
+// symbol `C` has already been declared
+// @137..138: previous declaration of the symbol `C` here
+// @154..155: `C` redeclared here
+// `C` must be declared or imported only once in this scope
+// symbol `C` has already been declared
+// @137..138: previous declaration of the symbol `C` here
+// @174..175: `C` redeclared here
+// `C` must be declared or imported only once in this scope
+// expected `::`, found `{`
+// @221..222: expected `::`
+// >>>

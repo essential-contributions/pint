@@ -14,10 +14,11 @@ fn examples_runner() -> anyhow::Result<()> {
         let entry = entry?;
 
         // If it's a file it's expected to be a self contained pint script.  If it's a directory
-        // then `main.pnt` must exist within and will be used.
+        // then `contract.pnt` must exist within and will be used.
         let mut path = entry.path();
         if entry.file_type()?.is_dir() {
-            path.push("main.pnt");
+            path.push("src");
+            path.push("contract.pnt");
         } else if path.extension() != Some(std::ffi::OsStr::new("pnt")) {
             continue;
         }
@@ -35,9 +36,12 @@ fn examples_runner() -> anyhow::Result<()> {
         // Error handler
         let handler = pintc::error::Handler::default();
 
+        // The example has no dependencies.
+        let deps = Default::default();
+
         // Produce the initial parsed program
         let parsed = unwrap_or_continue!(
-            pintc::parser::parse_project(&handler, &path),
+            pintc::parser::parse_project(&handler, &deps, &path),
             "parse pint",
             failed_tests,
             path,
@@ -55,9 +59,9 @@ fn examples_runner() -> anyhow::Result<()> {
 
         // TODO: enable this when we can generate assembly for everything including reals, `if`
         // expressions, etc.
-        // Flattened program -> Assembly (aka collection of Intents)
+        // Flattened program -> Assembly (aka collection of compiled predicates)
         // unwrap_or_continue!(
-        //    pintc::asm_gen::program_to_intents(&handler, &flattened),
+        //    pintc::asm_gen::compile_program(&handler, &flattened),
         //    "asm gen",
         //    failed_tests,
         //    path,

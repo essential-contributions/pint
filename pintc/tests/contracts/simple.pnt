@@ -1,0 +1,66 @@
+enum MyEnum = A | B;
+
+type MyType = MyEnum;
+
+predicate Foo {
+    var x: int;
+    var y: MyEnum = MyEnum::A;
+    constraint x == 3;
+}
+
+predicate Bar {
+    var x: int;
+    var y: MyType = MyType::A;
+    constraint x < 2;
+}
+
+// parsed <<<
+// enum ::MyEnum = A | B;
+// type ::MyType = ::MyEnum;
+//
+// predicate ::Bar {
+//     var ::x: int;
+//     var ::y: ::MyType;
+//     enum ::MyEnum = A | B;
+//     type ::MyType = ::MyEnum;
+//     constraint (::y == ::MyType::A);
+//     constraint (::x < 2);
+// }
+//
+// predicate ::Foo {
+//     var ::x: int;
+//     var ::y: ::MyEnum;
+//     enum ::MyEnum = A | B;
+//     type ::MyType = ::MyEnum;
+//     constraint (::y == ::MyEnum::A);
+//     constraint (::x == 3);
+// }
+// >>>
+
+
+// flattened <<<
+// enum ::MyEnum = A | B;
+// type ::MyType = ::MyEnum;
+// 
+// predicate ::Bar {
+//     var ::x: int;
+//     var ::y: int;
+//     enum ::MyEnum = A | B;
+//     type ::MyType = ::MyEnum;
+//     constraint (::y == 0);
+//     constraint (::x < 2);
+//     constraint (::y >= 0);
+//     constraint (::y <= 1);
+// }
+// 
+// predicate ::Foo {
+//     var ::x: int;
+//     var ::y: int;
+//     enum ::MyEnum = A | B;
+//     type ::MyType = ::MyEnum;
+//     constraint (::y == 0);
+//     constraint (::x == 3);
+//     constraint (::y >= 0);
+//     constraint (::y <= 1);
+// }
+// >>>

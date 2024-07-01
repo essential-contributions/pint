@@ -5,7 +5,7 @@ constraint x + y == 3.3;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::x: real;
 // var ::y: real;
 // constraint (::x >= 1e0);

@@ -6,7 +6,7 @@ storage {
     map3: (int => (int => b256)),
 }
 
-intent Foo { 
+predicate Foo { 
     var x = 5;
     var address = 0x2222222222222222222222222222222222222222222222222222222222222222;
 
@@ -29,7 +29,7 @@ intent Foo {
     var sum = x + i0 + map_1_access_1 + map_1_access_2;
 }
 
-intent Bar { 
+predicate Bar { 
     var x = 5;
     var address = 0x2222222222222222222222222222222222222222222222222222222222222222;
 
@@ -52,7 +52,7 @@ intent Bar {
     var sum = x + i0 + map_1_access_1 + map_1_access_2;
 }
 
-// intermediate <<<
+// parsed <<<
 // storage {
 //     i: int,
 //     b: bool,
@@ -61,7 +61,7 @@ intent Bar {
 //     map3: ( int => ( int => b256 ) ),
 // }
 // 
-// intent ::Bar {
+// predicate ::Bar {
 //     storage {
 //         i: int,
 //         b: bool,
@@ -89,7 +89,7 @@ intent Bar {
 //     constraint (::sum == (((::x + ::i0) + ::map_1_access_1) + ::map_1_access_2));
 // }
 // 
-// intent ::Foo {
+// predicate ::Foo {
 //     storage {
 //         i: int,
 //         b: bool,
@@ -127,7 +127,7 @@ intent Bar {
 //     map3: ( int => ( int => b256 ) ),
 // }
 // 
-// intent ::Bar {
+// predicate ::Bar {
 //     storage {
 //         i: int,
 //         b: bool,
@@ -155,7 +155,7 @@ intent Bar {
 //     constraint (::sum == (((::x + ::i0) + ::map_1_access_1) + ::map_1_access_2));
 // }
 // 
-// intent ::Foo {
+// predicate ::Foo {
 //     storage {
 //         i: int,
 //         b: bool,

@@ -19,7 +19,7 @@ macro @chain_next($prev, $last) {
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::x: int;
 // var ::y: int;
 // var ::z: int;

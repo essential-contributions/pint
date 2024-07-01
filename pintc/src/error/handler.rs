@@ -34,6 +34,10 @@ impl Handler {
         !self.inner.borrow().errors.is_empty()
     }
 
+    pub fn clear(&self) {
+        self.inner.borrow_mut().errors.clear();
+    }
+
     pub fn scope<T>(
         &self,
         f: impl FnOnce(&Handler) -> Result<T, ErrorEmitted>,

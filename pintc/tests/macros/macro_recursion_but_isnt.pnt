@@ -19,7 +19,7 @@ constraint @b(v);
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::v: int;
 // constraint (::v == 0);
 // constraint (::v == 0);

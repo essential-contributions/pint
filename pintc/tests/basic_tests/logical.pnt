@@ -38,7 +38,7 @@ constraint (u >= 40.0 && u + w == 90.0) || w == 60.0;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::x: int;
 // var ::y: int;
 // var ::z: int;

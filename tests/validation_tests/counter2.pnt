@@ -2,13 +2,13 @@
 // 14 14 14 14, 42
 // >>>
 
-intent Initialize {
+predicate Initialize {
     var value: int;
     state counter: int = __storage_get([14, 14, 14, 14]);
     constraint counter' == value;
 }
 
-intent Increment {
+predicate Increment {
     var amount: int;
     state counter: int = __storage_get([14, 14, 14, 14]);
     constraint counter' == counter + amount;

@@ -2,7 +2,7 @@ constraint a::b::c == d::e;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::d::e: int;
 // var ::a::b::c: int;
 // constraint (::a::b::c == ::d::e);

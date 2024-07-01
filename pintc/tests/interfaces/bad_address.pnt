@@ -4,41 +4,41 @@ interface Foo {
         y: int,
     }
 
-    intent I1 {
+    predicate I1 {
         pub var x: int;
         pub var y: b256;
     }
 }
 
-intent Simple {
+predicate Simple {
     interface FooInstance1 = Foo(0 + true);
     interface FooInstance2 = Foo("bla");
 
     var addr: b256;
     interface FooInstance = Foo(addr);
-    intent I1Instance1 = FooInstance::I1(0 + true);
-    intent I1Instance2 = FooInstance::I1(false);
+    predicate I1Instance1 = FooInstance::I1(0 + true);
+    predicate I1Instance2 = FooInstance::I1(false);
 }
 
-// intermediate <<<
+// parsed <<<
 // interface ::Foo {
 //     storage {
 //         x: int,
 //         y: int,
 //     }
-//     intent I1 {
+//     predicate I1 {
 //         pub var x: int;
 //         pub var y: b256;
 //     }
 // }
 // 
-// intent ::Simple {
+// predicate ::Simple {
 //     interface ::Foo {
 //         storage {
 //             x: int,
 //             y: int,
 //         }
-//         intent I1 {
+//         predicate I1 {
 //             pub var x: int;
 //             pub var y: b256;
 //         }
@@ -46,8 +46,8 @@ intent Simple {
 //     interface ::FooInstance1 = ::Foo((0 + true))
 //     interface ::FooInstance2 = ::Foo("bla")
 //     interface ::FooInstance = ::Foo(::addr)
-//     intent ::I1Instance1 = ::FooInstance::I1((0 + true))
-//     intent ::I1Instance2 = ::FooInstance::I1(false)
+//     predicate ::I1Instance1 = ::FooInstance::I1((0 + true))
+//     predicate ::I1Instance2 = ::FooInstance::I1(false)
 //     var ::addr: b256;
 //     var __::I1Instance1_pathway: int;
 //     var __::I1Instance2_pathway: int;
@@ -56,13 +56,13 @@ intent Simple {
 
 // typecheck_failure <<<
 // binary operator type error
-// @196..200: operator `+` argument has unexpected type `bool`
+// @202..206: operator `+` argument has unexpected type `bool`
 // address expression type error
-// @236..241: address expression has unexpected type `string`
-// @236..241: expecting type `b256`
+// @242..247: address expression has unexpected type `string`
+// @242..247: expecting type `b256`
 // binary operator type error
-// @349..353: operator `+` argument has unexpected type `bool`
+// @358..362: operator `+` argument has unexpected type `bool`
 // address expression type error
-// @397..402: address expression has unexpected type `bool`
-// @397..402: expecting type `b256`
+// @409..414: address expression has unexpected type `bool`
+// @409..414: expecting type `b256`
 // >>>

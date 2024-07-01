@@ -1,0 +1,38 @@
+interface Foo {
+    predicate A {
+        pub var x: int;
+        pub var x: int;
+        pub var x: int;
+        pub var y: int;
+    }
+
+    predicate B {
+        pub var z: int;
+        pub var z: int;
+        pub var z: int;
+        pub var y: int;
+    }
+}
+
+Simple {}
+
+// parse_failure <<<
+// symbol `x` has already been declared
+// @50..51: previous declaration of the symbol `x` here
+// @74..75: `x` redeclared here
+// `x` must be declared or imported only once in this scope
+// symbol `x` has already been declared
+// @50..51: previous declaration of the symbol `x` here
+// @98..99: `x` redeclared here
+// `x` must be declared or imported only once in this scope
+// symbol `z` has already been declared
+// @171..172: previous declaration of the symbol `z` here
+// @195..196: `z` redeclared here
+// `z` must be declared or imported only once in this scope
+// symbol `z` has already been declared
+// @171..172: previous declaration of the symbol `z` here
+// @219..220: `z` redeclared here
+// `z` must be declared or imported only once in this scope
+// expected `::`, found `{`
+// @267..268: expected `::`
+// >>>

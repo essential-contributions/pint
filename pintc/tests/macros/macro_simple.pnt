@@ -9,7 +9,7 @@ constraint @a_macro(id; 1234; int) > 1;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::id: int;
 // var ::anon@0::b: int;
 // constraint (::anon@0::b > 1);

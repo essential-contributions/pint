@@ -3,7 +3,7 @@ storage {
     map2: (int => (bool => b256)),
 }
 
-intent Foo {
+predicate Foo {
     // Bad
     state map1 = storage::map1;
     state map2_inner = storage::map2[69];
@@ -13,13 +13,13 @@ intent Foo {
     state entry_inner = storage::map2[42][true];
 }
 
-// intermediate <<<
+// parsed <<<
 // storage {
 //     map1: ( int => bool ),
 //     map2: ( int => ( bool => b256 ) ),
 // }
 // 
-// intent ::Foo {
+// predicate ::Foo {
 //     storage {
 //         map1: ( int => bool ),
 //         map2: ( int => ( bool => b256 ) ),
@@ -33,7 +33,7 @@ intent Foo {
 
 // typecheck_failure <<<
 // state variables cannot have storage map type
-// @101..127: found state variable of type storage map here
+// @104..130: found state variable of type storage map here
 // state variables cannot have storage map type
-// @133..169: found state variable of type storage map here
+// @136..172: found state variable of type storage map here
 // >>>

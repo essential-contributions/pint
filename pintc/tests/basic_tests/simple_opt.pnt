@@ -5,7 +5,7 @@ var obj: int = x*x + 2*x - 8;
 
 solve minimize obj;
 
-// intermediate <<<<
+// parsed <<<<
 // var ::x: int;
 // var ::obj: int;
 // constraint (::x >= -10);

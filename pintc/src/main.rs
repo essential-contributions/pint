@@ -1,5 +1,5 @@
 use clap::Parser;
-use pintc::{asm_gen::program_to_intents, cli::Args, error, parser};
+use pintc::{asm_gen::compile_program, cli::Args, error, parser};
 use std::{
     fs::{create_dir_all, File},
     path::{Path, PathBuf},
@@ -11,7 +11,8 @@ fn main() -> anyhow::Result<()> {
 
     // Lex + Parse
     let handler = error::Handler::default();
-    let parsed = match parser::parse_project(&handler, filepath) {
+    let deps = Default::default(); // Allow for passing lib deps by CLI?
+    let parsed = match parser::parse_project(&handler, &deps, filepath) {
         Ok(parsed) => {
             if args.print_parsed {
                 println!("{parsed}");
@@ -46,11 +47,36 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
+    // Produce `json` ABI
+    let mut filepath_stem = filepath
+        .file_stem()
+        .expect("Failed to get file stem")
+        .to_os_string();
+    filepath_stem.push("-abi");
+    let mut json_abi_path = PathBuf::from(filepath);
+    json_abi_path.set_file_name(filepath_stem);
+    json_abi_path.set_extension("json");
+
+    // Compute the JSON ABI
+    let abi = match handler.scope(|handler| flattened.abi(handler)) {
+        Ok(abi) => abi,
+        Err(_) => {
+            let errors = handler.consume();
+            let errors_len = errors.len();
+            if !cfg!(test) {
+                error::print_errors(&error::Errors(errors));
+            }
+            pintc::pintc_bail!(errors_len, filepath)
+        }
+    };
+
+    serde_json::to_writer_pretty(File::create(json_abi_path)?, &abi)?;
+
     // The default backend is "codegen" which generates assembly.
     //
     // If `--solve` is passed to `pintc`, skip assembly generation. I think, eventually, we want to
     // always be generating assembly, but codegen is currently quite lacking (no reals, no negative
-    // numbers, etc.) and so, we can solve more intents than we can generate assembly for. When
+    // numbers, etc.) and so, we can solve more predicate than we can generate assembly for. When
     // this changes, we will always generate assembly and only solve when requested via `--solve`.
     if args.solve {
         if args.solve && !cfg!(feature = "solver-scip") {
@@ -59,7 +85,7 @@ fn main() -> anyhow::Result<()> {
 
         #[cfg(feature = "solver-scip")]
         if args.solve {
-            let flattened = &flattened.iis.get("").unwrap();
+            let flattened = &flattened.preds.get("").unwrap();
             let flatpint = match pint_solve::parse_flatpint(&format!("{flattened}")[..]) {
                 Ok(flatpint) => flatpint,
                 Err(err) => {
@@ -84,10 +110,10 @@ fn main() -> anyhow::Result<()> {
     } else {
         // This is WIP. So far, simply print the serialized JSON to `<filename>.json` or to
         // `<output>`. That'll likely change in the future when we decide on a serialized scheme.
-        match handler.scope(|handler| program_to_intents(handler, &flattened)) {
-            Ok(intents) => {
+        match handler.scope(|handler| compile_program(handler, &flattened)) {
+            Ok(compiled_program) => {
                 if args.print_asm {
-                    println!("{intents}");
+                    println!("{compiled_program}");
                 }
                 serde_json::to_writer(
                     if let Some(output) = args.output {
@@ -100,7 +126,10 @@ fn main() -> anyhow::Result<()> {
                     } else {
                         File::create(filepath.with_extension("json"))?
                     },
-                    &intents.intents,
+                    &essential_types::contract::Contract {
+                        predicates: compiled_program.predicates,
+                        salt: compiled_program.salt,
+                    },
                 )?;
             }
             Err(_) => {

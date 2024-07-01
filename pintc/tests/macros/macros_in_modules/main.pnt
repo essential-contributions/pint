@@ -27,7 +27,7 @@ g::@g_macro(55; 66; 77);
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a: int;
 // var ::d::d: int;
 // constraint (::a <= (11 + 22));

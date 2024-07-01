@@ -8,28 +8,33 @@ modules, or types.
 - `bool` - the Boolean type
 - `b256` - the 256-bit hash type
 - `cond` - select between multiple expressions based on some conditions
+- `const` -
 - `constraint` - define a Boolean constraint that a proposed solution must satisfy
 - `else` - fallback for `if` and `cond` conditionals
 - `enum` - define an enumeration
 - `exists` - existential quantification: checks whether a statements is `true` for at least one
   element in a domain.
+- `false` -
 - `forall` - universal quantification: checks whether a statement is `true` for all elements in a
   domain
 - `if` - branch based on the result of a conditional expression
 - `in` - checks if an element belongs to a range or to an array
 - `int` - basic integer type
-- `intent` - define an intent
 - `interface` - declare an external interface
 - `macro` - define a macro
 - `maximize` - part of a `solve` statement: maximizes an objective function
 - `minimize` - part of a `solve` statement: minimizes an objective function
+- `nil` -
+- `predicate` - define a predicate
+- `pub` -
 - `real` - basic real type
-- `satisfy` - part of a `solve` statement: satisfy the constraints in the intent
+- `satisfy` - part of a `solve` statement: satisfy the constraints in the predicate
 - `self` - used in `use` statements
 - `solve` - define what solve directive to use
 - `state` - bind a state variable
 - `storage` - declare a storage block
 - `string` - basic string type
+- `true` -
 - `type` - define a new type
 - `use` - bring symbols into scope
 - `var` - bind a decision variable

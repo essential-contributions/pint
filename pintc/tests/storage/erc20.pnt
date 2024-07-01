@@ -4,7 +4,7 @@ storage {
 }
 
 // Transfer `value` from `from` to `to`
-intent Transfer {
+predicate Transfer {
     var from: b256;
     var to: b256;
     var value: int;
@@ -21,7 +21,7 @@ intent Transfer {
 }
 
 // Mint `value` to `account`
-intent Mint {
+predicate Mint {
     var account: b256;
     var value: int;
     
@@ -33,7 +33,7 @@ intent Mint {
 }
 
 // Burn `value` from `account`
-intent Burn {
+predicate Burn {
     var account: b256;
     var value: int;
 
@@ -45,13 +45,13 @@ intent Burn {
     constraint total_supply' == total_supply - value;
 }
 
-// intermediate <<<
+// parsed <<<
 // storage {
 //     balances: ( b256 => int ),
 //     total_supply: int,
 // }
 // 
-// intent ::Burn {
+// predicate ::Burn {
 //     storage {
 //         balances: ( b256 => int ),
 //         total_supply: int,
@@ -65,7 +65,7 @@ intent Burn {
 //     constraint (::total_supply' == (::total_supply - ::value));
 // }
 // 
-// intent ::Mint {
+// predicate ::Mint {
 //     storage {
 //         balances: ( b256 => int ),
 //         total_supply: int,
@@ -78,7 +78,7 @@ intent Burn {
 //     constraint (::account_balance' == (::account_balance + ::value));
 // }
 // 
-// intent ::Transfer {
+// predicate ::Transfer {
 //     storage {
 //         balances: ( b256 => int ),
 //         total_supply: int,
@@ -102,7 +102,7 @@ intent Burn {
 //     total_supply: int,
 // }
 // 
-// intent ::Burn {
+// predicate ::Burn {
 //     storage {
 //         balances: ( b256 => int ),
 //         total_supply: int,
@@ -116,7 +116,7 @@ intent Burn {
 //     constraint (::total_supply' == (::total_supply - ::value));
 // }
 // 
-// intent ::Mint {
+// predicate ::Mint {
 //     storage {
 //         balances: ( b256 => int ),
 //         total_supply: int,
@@ -129,7 +129,7 @@ intent Burn {
 //     constraint (::account_balance' == (::account_balance + ::value));
 // }
 // 
-// intent ::Transfer {
+// predicate ::Transfer {
 //     storage {
 //         balances: ( b256 => int ),
 //         total_supply: int,

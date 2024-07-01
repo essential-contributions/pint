@@ -4,7 +4,7 @@ constraint a.4 == 44;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a;
 // constraint (::a == {11, 22, 33});
 // constraint (::a.4 == 44);
@@ -16,6 +16,6 @@ solve satisfy;
 // @36..39: unable to get field from tuple using `4`
 // tuple has type `{int, int, int}`
 // constraint expression type error
-// @25..45: constraint expression has unexpected type `Unknown`
+// @25..45: constraint expression has unknown type
 // @25..45: expecting type `bool`
 // >>>

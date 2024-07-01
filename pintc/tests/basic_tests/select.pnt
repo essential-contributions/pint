@@ -11,7 +11,7 @@ var d = !condition ? [ 1, 2, 3 ] : [ 3, 2, 1 ];
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::condition: bool;
 // var ::condition1: bool;
 // var ::condition2: bool;

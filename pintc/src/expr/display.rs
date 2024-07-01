@@ -2,28 +2,50 @@ use std::fmt::{Display, Formatter, Result};
 
 use crate::{
     expr,
-    intermediate::{DisplayWithII, IntermediateIntent},
-    util::{write_many_iter, write_many_with_ii},
+    predicate::{DisplayWithPred, Predicate},
+    util::{write_many_iter, write_many_with_pred},
 };
 
-impl DisplayWithII for super::ExprKey {
-    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> Result {
-        if ii.removed_macro_calls.contains_key(*self) {
+impl DisplayWithPred for super::ExprKey {
+    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> Result {
+        if pred.removed_macro_calls.contains_key(*self) {
             write!(f, "<REMOVED MACRO CALL>")
         } else {
-            write!(f, "{}", ii.with_ii(&self.get(ii)))
+            write!(f, "{}", pred.with_pred(&self.get(pred)))
         }
     }
 }
 
-impl DisplayWithII for &super::Expr {
-    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> Result {
+impl DisplayWithPred for &super::Expr {
+    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> Result {
         match self {
             super::Expr::Error(..) => write!(f, "Error"),
-            super::Expr::Immediate { value, .. } => value.fmt(f, ii),
+            super::Expr::Immediate { value, .. } => value.fmt(f, pred),
+
+            super::Expr::Array { elements, .. } => {
+                write!(f, "[")?;
+                write_many_with_pred!(f, elements, ", ", pred);
+                write!(f, "]")
+            }
+
+            super::Expr::Tuple { fields, .. } => {
+                write!(f, "{{")?;
+                let mut i = fields.iter().map(|(name, val)| {
+                    // This is the only place where we're building strings.  Could be alleviated
+                    // if the named tuple field was a struct which could be Display.
+                    format!(
+                        "{}{}",
+                        name.as_ref()
+                            .map_or(String::new(), |name| format!("{}: ", name.name)),
+                        pred.with_pred(val)
+                    )
+                });
+                write_many_iter!(f, i, ", ");
+                write!(f, "}}")
+            }
 
             super::Expr::PathByName(p, _) => write!(f, "{p}"),
-            super::Expr::PathByKey(k, _) => write!(f, "{}", k.get(ii).name),
+            super::Expr::PathByKey(k, _) => write!(f, "{}", k.get(pred).name),
             super::Expr::StorageAccess(p, _) => write!(f, "storage::{p}"),
             super::Expr::ExternalStorageAccess {
                 interface_instance,
@@ -33,7 +55,7 @@ impl DisplayWithII for &super::Expr {
 
             super::Expr::UnaryOp { op, expr, .. } => {
                 if matches!(op, expr::UnaryOp::NextState) {
-                    write!(f, "{}'", ii.with_ii(expr))
+                    write!(f, "{}'", pred.with_pred(expr))
                 } else {
                     match op {
                         expr::UnaryOp::Error => write!(f, "error"),
@@ -41,35 +63,51 @@ impl DisplayWithII for &super::Expr {
                         expr::UnaryOp::Not => write!(f, "!"),
                         expr::UnaryOp::NextState => unreachable!(),
                     }?;
-                    expr.fmt(f, ii)
+                    expr.fmt(f, pred)
                 }
             }
 
             super::Expr::BinaryOp { op, lhs, rhs, .. } => {
-                write!(f, "({} {} {})", ii.with_ii(lhs), op, ii.with_ii(rhs))
+                write!(
+                    f,
+                    "({} {} {})",
+                    pred.with_pred(lhs),
+                    op,
+                    pred.with_pred(rhs)
+                )
             }
 
             super::Expr::In {
                 value, collection, ..
-            } => write!(f, "{} in {}", ii.with_ii(value), ii.with_ii(collection)),
+            } => write!(
+                f,
+                "{} in {}",
+                pred.with_pred(value),
+                pred.with_pred(collection)
+            ),
 
             super::Expr::Cast { value, ty, .. } => {
-                write!(f, "{} as {}", ii.with_ii(value), ii.with_ii(ty.as_ref()))
+                write!(
+                    f,
+                    "{} as {}",
+                    pred.with_pred(value),
+                    pred.with_pred(ty.as_ref())
+                )
             }
 
             super::Expr::TupleFieldAccess { tuple, field, .. } => {
-                write!(f, "{}.{field}", ii.with_ii(tuple))
+                write!(f, "{}.{field}", pred.with_pred(tuple))
             }
 
             super::Expr::Index { expr, index, .. } => {
-                write!(f, "{}[{}]", ii.with_ii(expr), ii.with_ii(index))
+                write!(f, "{}[{}]", pred.with_pred(expr), pred.with_pred(index))
             }
 
             super::Expr::MacroCall { call, .. } => {
                 write!(
                     f,
                     "{}(...)",
-                    ii.calls
+                    pred.calls
                         .get(*call)
                         .unwrap_or(&"<CALL NOT FOUND>".to_owned())
                 )
@@ -77,7 +115,7 @@ impl DisplayWithII for &super::Expr {
 
             super::Expr::IntrinsicCall { name, args, .. } => {
                 write!(f, "{name}(")?;
-                write_many_with_ii!(f, args, ", ", ii);
+                write_many_with_pred!(f, args, ", ", pred);
                 write!(f, ")")
             }
 
@@ -89,13 +127,13 @@ impl DisplayWithII for &super::Expr {
             } => write!(
                 f,
                 "({} ? {} : {})",
-                ii.with_ii(condition),
-                ii.with_ii(then_expr),
-                ii.with_ii(else_expr)
+                pred.with_pred(condition),
+                pred.with_pred(then_expr),
+                pred.with_pred(else_expr)
             ),
 
             super::Expr::Range { lb, ub, .. } => {
-                write!(f, "{}..{}", ii.with_ii(lb), ii.with_ii(ub))
+                write!(f, "{}..{}", pred.with_pred(lb), pred.with_pred(ub))
             }
 
             super::Expr::Generator {
@@ -107,22 +145,23 @@ impl DisplayWithII for &super::Expr {
             } => {
                 write!(f, "{kind}")?;
                 for (ident, range) in gen_ranges {
-                    write!(f, " {} in {},", ident, ii.with_ii(range))?;
+                    write!(f, " {} in {},", ident, pred.with_pred(range))?;
                 }
                 if !conditions.is_empty() {
                     write!(f, " where ")?;
-                    write_many_with_ii!(f, conditions, ", ", ii);
+                    write_many_with_pred!(f, conditions, ", ", pred);
                 }
-                write!(f, " {{ {} }}", ii.with_ii(body))
+                write!(f, " {{ {} }}", pred.with_pred(body))
             }
         }
     }
 }
 
-impl DisplayWithII for super::Immediate {
-    fn fmt(&self, f: &mut Formatter, ii: &IntermediateIntent) -> Result {
+impl DisplayWithPred for super::Immediate {
+    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> Result {
         match self {
             super::Immediate::Error => write!(f, "Error"),
+            super::Immediate::Nil => write!(f, "nil"),
             super::Immediate::Real(n) => write!(f, "{n:e}"),
             super::Immediate::Int(n) => write!(f, "{n}"),
             super::Immediate::Bool(b) => write!(f, "{b}"),
@@ -134,21 +173,19 @@ impl DisplayWithII for super::Immediate {
                     val[0], val[1], val[2], val[3]
                 )
             }
-            super::Immediate::Array { elements, .. } => {
+            super::Immediate::Array(elements) => {
                 write!(f, "[")?;
-                write_many_with_ii!(f, elements, ", ", ii);
+                write_many_with_pred!(f, elements, ", ", pred);
                 write!(f, "]")
             }
             super::Immediate::Tuple(fields) => {
                 write!(f, "{{")?;
                 let mut i = fields.iter().map(|(name, val)| {
-                    // This is the only place where we're building strings.  Could be alleviated
-                    // if the named tuple field was a struct which could be Display.
                     format!(
                         "{}{}",
                         name.as_ref()
                             .map_or(String::new(), |name| format!("{}: ", name.name)),
-                        ii.with_ii(val)
+                        pred.with_pred(val)
                     )
                 });
                 write_many_iter!(f, i, ", ");
@@ -158,8 +195,8 @@ impl DisplayWithII for super::Immediate {
     }
 }
 
-impl DisplayWithII for super::Ident {
-    fn fmt(&self, f: &mut Formatter, _: &IntermediateIntent) -> Result {
+impl DisplayWithPred for super::Ident {
+    fn fmt(&self, f: &mut Formatter, _: &Predicate) -> Result {
         write!(f, "{self}")
     }
 }

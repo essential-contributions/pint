@@ -18,7 +18,7 @@ state map_2_access: int = storage::map2[address];
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // storage {
 //     i: int,
 //     b: bool,

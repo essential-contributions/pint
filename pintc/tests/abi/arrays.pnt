@@ -1,0 +1,59 @@
+storage {
+    a1: int[5],
+    a2: b256[3][2],
+    a3: { int, b256 }[3][4],
+    my_map: (int => int[5][9]),
+    my_nested_map: (int => (b256 => int[3])),
+}
+
+predicate Foo {
+    pub var a1: int[5];
+    pub var a2: b256[3][2];
+    pub var a3: { int, b256 }[3][4];
+}
+
+// parsed <<<
+// storage {
+//     a1: int[5],
+//     a2: b256[2][3],
+//     a3: {int, b256}[4][3],
+//     my_map: ( int => int[9][5] ),
+//     my_nested_map: ( int => ( b256 => int[3] ) ),
+// }
+// 
+// predicate ::Foo {
+//     storage {
+//         a1: int[5],
+//         a2: b256[2][3],
+//         a3: {int, b256}[4][3],
+//         my_map: ( int => int[9][5] ),
+//         my_nested_map: ( int => ( b256 => int[3] ) ),
+//     }
+//     pub var ::a1: int[5];
+//     pub var ::a2: b256[2][3];
+//     pub var ::a3: {int, b256}[4][3];
+// }
+// >>>
+
+// flattened <<<
+// storage {
+//     a1: int[5],
+//     a2: b256[2][3],
+//     a3: {int, b256}[4][3],
+//     my_map: ( int => int[9][5] ),
+//     my_nested_map: ( int => ( b256 => int[3] ) ),
+// }
+// 
+// predicate ::Foo {
+//     storage {
+//         a1: int[5],
+//         a2: b256[2][3],
+//         a3: {int, b256}[4][3],
+//         my_map: ( int => int[9][5] ),
+//         my_nested_map: ( int => ( b256 => int[3] ) ),
+//     }
+//     pub var ::a1: int[5];
+//     pub var ::a2: b256[2][3];
+//     pub var ::a3: {int, b256}[4][3];
+// }
+// >>>

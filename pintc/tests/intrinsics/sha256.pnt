@@ -20,7 +20,7 @@ var sha256_9 = __sha256(a[1][2][3]);
 
 solve satisfy;
 
-// intermediate <<<,
+// parsed <<<,
 // var ::sha256_0;
 // var ::x: int;
 // var ::sha256_1;

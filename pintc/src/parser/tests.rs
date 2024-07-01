@@ -1,8 +1,8 @@
 use crate::{
     error::{Error, Handler, ReportableError},
-    intermediate::{DisplayWithII, IntermediateIntent, Program, ProgramKind},
     lexer::{self, KEYWORDS},
     parser::ParserContext,
+    predicate::{DisplayWithPred, Predicate, Program, ProgramKind},
     span::Span,
 };
 use std::{collections::BTreeMap, path::Path, rc::Rc};
@@ -59,15 +59,16 @@ macro_rules! context {
             local_scope: None,
             program: &mut Program {
                 kind: ProgramKind::Stateless,
-                iis: BTreeMap::from([(
-                    Program::ROOT_II_NAME.to_string(),
-                    IntermediateIntent::default(),
+                preds: BTreeMap::from([(
+                    Program::ROOT_PRED_NAME.to_string(),
+                    Predicate::default(),
                 )]),
+                consts: fxhash::FxHashMap::default(),
             },
-            current_ii: &mut Program::ROOT_II_NAME.to_string(),
+            current_pred: &mut Program::ROOT_PRED_NAME.to_string(),
             macros: &mut vec![],
             macro_calls: &mut BTreeMap::from([(
-                Program::ROOT_II_NAME.to_string(),
+                Program::ROOT_PRED_NAME.to_string(),
                 slotmap::SecondaryMap::new(),
             )]),
             span_from: &|l, r| Span::new(Rc::from(Path::new("")), l..r),
@@ -79,7 +80,7 @@ macro_rules! context {
 
 /// Run a parser and print the following, in order:
 /// - All use statements, broken down into individual paths
-/// - The full content of the `IntermediateIntent` post parsing (useful for decls).
+/// - The full content of the `Predicate` post parsing (useful for decls).
 /// - The output of the parser itself (useful for expressions and types).
 #[cfg(test)]
 macro_rules! run_parser {
@@ -107,7 +108,7 @@ macro_rules! run_parser {
                 let result =
                     format!("{}{}",
                         context.program,
-                        context.program.root_ii().with_ii(&item)
+                        context.program.root_pred().with_pred(&item)
                     );
                 format!("{}{}",
                     use_paths
@@ -126,8 +127,8 @@ macro_rules! run_parser {
 
 /// Many parsers return () which we may need to print. Just do nothing!
 #[cfg(test)]
-impl DisplayWithII for () {
-    fn fmt(&self, _f: &mut std::fmt::Formatter, _ii: &IntermediateIntent) -> std::fmt::Result {
+impl DisplayWithPred for () {
+    fn fmt(&self, _f: &mut std::fmt::Formatter, _pred: &Predicate) -> std::fmt::Result {
         Ok(())
     }
 }
@@ -273,6 +274,17 @@ fn storage_types() {
 #[test]
 fn immediates() {
     let immediate = (yp::TestDelegateParser::new(), "expr");
+
+    check(&run_parser!(immediate, "nil"), expect_test::expect!["nil"]);
+
+    check(
+        &run_parser!(immediate, "true"),
+        expect_test::expect!["true"],
+    );
+    check(
+        &run_parser!(immediate, "false"),
+        expect_test::expect!["false"],
+    );
 
     check(&run_parser!(immediate, "0x88"), expect_test::expect!["136"]);
     check(&run_parser!(immediate, "0b111"), expect_test::expect!["7"]);
@@ -698,8 +710,8 @@ interface Foo {
         boolean: bool,
     }
 
-    intent Bar;
-    intent Baz { pub var x: int; }
+    predicate Bar;
+    predicate Baz { pub var x: int; }
 }
 "#;
 
@@ -711,8 +723,8 @@ interface Foo {
                     integer: int,
                     boolean: bool,
                 }
-                intent Bar;
-                intent Baz {
+                predicate Bar;
+                predicate Baz {
                     pub var x: int;
                 }
             }"#]],
@@ -786,13 +798,13 @@ interface Foo {
         &run_parser!(
             pint,
             r#"
-            interface Foo { storage { } intent Baz { } }"#
+            interface Foo { storage { } predicate Baz { } }"#
         ),
         expect_test::expect![[r#"
             interface ::Foo {
                 storage {
                 }
-                intent Baz;
+                predicate Baz;
             }"#]],
     );
     check(
@@ -830,12 +842,12 @@ interface Foo {
             pint,
             r#"
             interface Foo {
-                intent Baz { var x: int }
+                predicate Baz { var x: int }
             }"#
         ),
         expect_test::expect![[r#"
             expected `pub`, or `}`, found `var`
-            @58..61: expected `pub`, or `}`
+            @61..64: expected `pub`, or `}`
         "#]],
     );
 
@@ -844,12 +856,12 @@ interface Foo {
             pint,
             r#"
             interface Foo {
-                intent Baz { pub var x; }
+                predicate Baz { pub var x; }
             }"#
         ),
         expect_test::expect![[r#"
             expected `:`, found `;`
-            @67..68: expected `:`
+            @70..71: expected `:`
         "#]],
     );
 
@@ -858,12 +870,12 @@ interface Foo {
             pint,
             r#"
             interface Foo {
-                intent Baz { pub var x: int; pub var y: b256; }
+                predicate Baz { pub var x: int; pub var y: b256; }
             }"#
         ),
         expect_test::expect![[r#"
             interface ::Foo {
-                intent Baz {
+                predicate Baz {
                     pub var x: int;
                     pub var y: b256;
                 }
@@ -903,7 +915,7 @@ fn interface_instance() {
     let pint = (yp::PintParser::new(), "");
 
     let src = r#"
-interface FooInstance = 
+interface FooInstance =
     FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111);
 "#;
 
@@ -914,7 +926,7 @@ interface FooInstance =
 
     let src = r#"
     var addr: b256;
-interface FooInstance = 
+interface FooInstance =
     ::path::to::FooInstance(addr);
 "#;
 
@@ -927,84 +939,84 @@ interface FooInstance =
 }
 
 #[test]
-fn intent_instance() {
+fn predicate_instance() {
     let pint = (yp::PintParser::new(), "");
 
     let src = r#"
-intent FooInstance =
+predicate FooInstance =
     InterfaceInstance::FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111);
 "#;
 
     check(
         &run_parser!(pint, src),
         expect_test::expect![[r#"
-            intent ::FooInstance = ::InterfaceInstance::FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111)
+            predicate ::FooInstance = ::InterfaceInstance::FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111)
             var __::FooInstance_pathway: int;"#]],
     );
 
     let src = r#"
-intent FooInstance = 
+predicate FooInstance =
     ::InterfaceInstance::FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111);
 "#;
 
     check(
         &run_parser!(pint, src),
         expect_test::expect![[r#"
-            intent ::FooInstance = ::InterfaceInstance::FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111)
+            predicate ::FooInstance = ::InterfaceInstance::FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111)
             var __::FooInstance_pathway: int;"#]],
     );
 
     let src = r#"
 var addr: b256;
-intent FooInstance = path::to::FooInstance(addr);
+predicate FooInstance = path::to::FooInstance(addr);
 "#;
 
     check(
         &run_parser!(pint, src),
         expect_test::expect![[r#"
-            intent ::FooInstance = ::path::to::FooInstance(::addr)
+            predicate ::FooInstance = ::path::to::FooInstance(::addr)
             var ::addr: b256;
             var __::FooInstance_pathway: int;"#]],
     );
 
     let src = r#"
 var addr: b256;
-intent FooInstance = ::path::to::FooInstance(addr);
+predicate FooInstance = ::path::to::FooInstance(addr);
 "#;
 
     check(
         &run_parser!(pint, src),
         expect_test::expect![[r#"
-            intent ::FooInstance = ::path::to::FooInstance(::addr)
+            predicate ::FooInstance = ::path::to::FooInstance(::addr)
             var ::addr: b256;
             var __::FooInstance_pathway: int;"#]],
     );
 
     let src = r#"
 var addr: b256;
-intent FooInstance = FooInstance(addr);
+predicate FooInstance = FooInstance(addr);
 "#;
 
     check(
         &run_parser!(pint, src),
         expect_test::expect![[r#"
-            path `FooInstance` to an intent interface is too short
-            @17..55: path `FooInstance` is too short and cannot refer to an intent interface
-            a path to an intent interface must contain a path to an `interface` instance followed by the name of the `intent`, separated by a `::`
+            path `FooInstance` to a predicate interface is too short
+            @17..58: path `FooInstance` is too short and cannot refer to a predicate interface
+            a path to a predicate interface must contain a path to an interface instance followed by the name of the predicate, separated by a `::`
         "#]],
     );
 
     let src = r#"
 var addr: b256;
-intent FooInstance = ::FooInstance(addr);
+predicate FooInstance = ::FooInstance(addr);
 "#;
 
     check(
         &run_parser!(pint, src),
         expect_test::expect![[r#"
-            path `::FooInstance` to an intent interface is too short
-            @17..57: path `::FooInstance` is too short and cannot refer to an intent interface
-            a path to an intent interface must contain a path to an `interface` instance followed by the name of the `intent`, separated by a `::`
+            path `::FooInstance` to a predicate interface is too short
+            @17..60: path `::FooInstance` is too short and cannot refer to a predicate interface
+            a path to a predicate interface must contain a path to an interface instance followed by the name of the predicate, separated by a `::`
         "#]],
     );
 }
@@ -1206,66 +1218,66 @@ fn pub_var_decls() {
     check(
         &run_parser!(pint, "pub var blah = 1.0;", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah;
+            pub var ::foo::blah;
             constraint (::foo::blah == 1e0);"#]],
     );
     check(
         &run_parser!(pint, "pub var blah: real = 1.0;", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah: real;
+            pub var ::foo::blah: real;
             constraint (::foo::blah == 1e0);"#]],
     );
     check(
         &run_parser!(pint, "pub var blah: real;", mod_path),
-        expect_test::expect!["var ::foo::blah: real;"],
+        expect_test::expect!["pub var ::foo::blah: real;"],
     );
     check(
         &run_parser!(pint, "pub var blah = 1;", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah;
+            pub var ::foo::blah;
             constraint (::foo::blah == 1);"#]],
     );
     check(
         &run_parser!(pint, "pub var blah: int = 1;", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah: int;
+            pub var ::foo::blah: int;
             constraint (::foo::blah == 1);"#]],
     );
     check(
         &run_parser!(pint, "pub var blah: int;", mod_path),
-        expect_test::expect!["var ::foo::blah: int;"],
+        expect_test::expect!["pub var ::foo::blah: int;"],
     );
     check(
         &run_parser!(pint, "pub var blah = true;", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah;
+            pub var ::foo::blah;
             constraint (::foo::blah == true);"#]],
     );
     check(
         &run_parser!(pint, "pub var blah: bool = false;", mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah: bool;
+            pub var ::foo::blah: bool;
             constraint (::foo::blah == false);"#]],
     );
     check(
         &run_parser!(pint, "pub var blah: bool;", mod_path),
-        expect_test::expect!["var ::foo::blah: bool;"],
+        expect_test::expect!["pub var ::foo::blah: bool;"],
     );
     check(
         &run_parser!(pint, r#"pub var blah = "hello";"#, mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah;
+            pub var ::foo::blah;
             constraint (::foo::blah == "hello");"#]],
     );
     check(
         &run_parser!(pint, r#"pub var blah: string = "hello";"#, mod_path),
         expect_test::expect![[r#"
-            var ::foo::blah: string;
+            pub var ::foo::blah: string;
             constraint (::foo::blah == "hello");"#]],
     );
     check(
         &run_parser!(pint, r#"pub var blah: string;"#, mod_path),
-        expect_test::expect!["var ::foo::blah: string;"],
+        expect_test::expect!["pub var ::foo::blah: string;"],
     );
 }
 
@@ -1280,6 +1292,27 @@ fn state_decls() {
     check(
         &run_parser!(pint, "state y = __bar();"),
         expect_test::expect!["state ::y = __bar();"],
+    );
+}
+
+#[test]
+fn const_decls() {
+    let pint = (yp::PintParser::new(), "");
+
+    check(
+        &run_parser!(pint, "const x: int = 11;"),
+        expect_test::expect!["const ::x: int = 11;"],
+    );
+    check(
+        &run_parser!(pint, "const y = 22;"),
+        expect_test::expect!["const ::y = 22;"],
+    );
+    check(
+        &run_parser!(pint, "const z: int;"),
+        expect_test::expect![[r#"
+            expected `=`, found `;`
+            @12..13: expected `=`
+        "#]],
     );
 }
 
@@ -1436,6 +1469,14 @@ fn unary_op_exprs() {
     check(
         &run_parser!(expr, "! - - !  --  -1"),
         expect_test::expect!["!--!---1"],
+    );
+    check(
+        &run_parser!(expr, "! - - !  --  -t.0.1.2"),
+        expect_test::expect!["!--!---::t.0.1.2"],
+    );
+    check(
+        &run_parser!(expr, "! - - !  --  -a[5][3].1"),
+        expect_test::expect!["!--!---::a[5][3].1"],
     );
     check(
         &run_parser!(expr, "! - x '  '  "),
@@ -2027,7 +2068,7 @@ fn macro_call() {
     assert!(
         context
             .macro_calls
-            .get(Program::ROOT_II_NAME)
+            .get(Program::ROOT_PRED_NAME)
             .unwrap()
             .len()
             == 1
@@ -2036,8 +2077,8 @@ fn macro_call() {
     check(
         &context
             .program
-            .root_ii()
-            .with_ii(&result.unwrap())
+            .root_pred()
+            .with_pred(&result.unwrap())
             .to_string(),
         expect_test::expect!["::@foo(...)"],
     );
@@ -2045,7 +2086,7 @@ fn macro_call() {
     check(
         &context
             .macro_calls
-            .get(Program::ROOT_II_NAME)
+            .get(Program::ROOT_PRED_NAME)
             .unwrap()
             .iter()
             .next()
@@ -2345,6 +2386,16 @@ fn tuple_field_accesses() {
     check(
         &run_parser!(expr, "{1_100.4e3, 2_0e3}.x"),
         expect_test::expect!["{1.1004e6, 2e4}.x"],
+    );
+
+    check(
+        &run_parser!(expr, "a[5][3].foo.2[4].1"),
+        expect_test::expect!["::a[5][3].foo.2[4].1"],
+    );
+
+    check(
+        &run_parser!(expr, "a.foo[5][3].1"),
+        expect_test::expect!["::a.foo[5][3].1"],
     );
 
     let pint = (yp::PintParser::new(), "");
@@ -2699,14 +2750,14 @@ solve minimize mid;
 }
 
 #[test]
-fn intents_decls() {
+fn predicate_decls() {
     let src = r#"
-intent Foo { }
-intent Bar {
+predicate Foo { }
+predicate Bar {
     var x: int;
     constraint x == 1;
 }
-intent Baz {
+predicate Baz {
     enum MyEnum = A | B;
     type MyType = MyEnum;
 }
@@ -2716,17 +2767,17 @@ intent Baz {
         &run_parser!((yp::PintParser::new(), ""), src),
         expect_test::expect![[r#"
 
-            intent ::Bar {
+            predicate ::Bar {
                 var ::x: int;
                 constraint (::x == 1);
             }
 
-            intent ::Baz {
+            predicate ::Baz {
                 enum ::MyEnum = A | B;
                 type ::MyType = ::MyEnum;
             }
 
-            intent ::Foo {
+            predicate ::Foo {
             }"#]],
     );
 }

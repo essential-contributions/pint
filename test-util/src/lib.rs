@@ -92,7 +92,7 @@ pub fn bytes_to_hex(arr: [u8; 32]) -> String {
 
 #[derive(Default)]
 pub struct TestData {
-    pub intermediate: Option<String>,
+    pub parsed: Option<String>,
     pub parse_failure: Option<String>,
     pub typecheck_failure: Option<String>,
     pub flattened: Option<String>,
@@ -106,7 +106,7 @@ pub struct TestData {
 //
 // A section containing a single expected result string has a tag and is delimited by `<<<` and
 // `>>>`. The tags are
-//   * intermediate
+//   * parsed
 //   * parse_failure
 //   * typecheck_failure
 //   * flattened
@@ -118,7 +118,7 @@ pub struct TestData {
 // | constraint a == 42;
 // | solve satisfy;
 // |
-// | // intermediate <<<
+// | // parsed <<<
 // | // let ::a: int;
 // | // constraint (::a == 42);
 // | // solve satisfy;
@@ -138,9 +138,9 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
     enum Section {
         None,
         ParseFailure,
-        IntermediateIntent,
+        Predicate,
         TypeCheckFailure,
-        FlattenedIntent,
+        Flattened,
         FlatteningFailure,
         Db,
     }
@@ -149,7 +149,7 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
 
     let comment_re = regex::Regex::new(r"^\s*//")?;
     let open_sect_re = regex::Regex::new(
-        r"^\s*//\s*(intermediate|parse_failure|typecheck_failure|flattened|flattening_failure|db)\s*<<<",
+        r"^\s*//\s*(parsed|parse_failure|typecheck_failure|flattened|flattening_failure|db)\s*<<<",
     )?;
     let close_sect_re = regex::Regex::new(r"^\s*//\s*>>>")?;
 
@@ -168,9 +168,9 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
             assert!(cur_section == Section::None && section_lines.is_empty());
 
             match &tag[1] {
-                "intermediate" => cur_section = Section::IntermediateIntent,
+                "parsed" => cur_section = Section::Predicate,
                 "parse_failure" => cur_section = Section::ParseFailure,
-                "flattened" => cur_section = Section::FlattenedIntent,
+                "flattened" => cur_section = Section::Flattened,
                 "flattening_failure" => cur_section = Section::FlatteningFailure,
                 "typecheck_failure" => cur_section = Section::TypeCheckFailure,
                 "db" => cur_section = Section::Db,
@@ -194,8 +194,8 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
 
             // Store it in the correct part of our result.
             match cur_section {
-                Section::IntermediateIntent => {
-                    test_data.intermediate = Some(section_str);
+                Section::Predicate => {
+                    test_data.parsed = Some(section_str);
                 }
                 Section::ParseFailure => {
                     test_data.parse_failure = Some(section_str);
@@ -203,7 +203,7 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
                 Section::TypeCheckFailure => {
                     test_data.typecheck_failure = Some(section_str);
                 }
-                Section::FlattenedIntent => {
+                Section::Flattened => {
                     test_data.flattened = Some(section_str);
                 }
                 Section::FlatteningFailure => {

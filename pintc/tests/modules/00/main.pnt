@@ -4,7 +4,7 @@ constraint a == b::b;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::a: int;
 // var ::b::b;
 // constraint (::a == ::b::b);

@@ -24,7 +24,7 @@ constraint forall i in 1..24 {
 
 solve minimize P;
 
-// intermediate <<<
+// parsed <<<
 // var ::I: real;
 // var ::R: real;
 // var ::P: real;

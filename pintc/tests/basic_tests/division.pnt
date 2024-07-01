@@ -6,7 +6,7 @@ constraint x / y > y / z;
 
 solve satisfy;
 
-// intermediate <<<
+// parsed <<<
 // var ::x: int;
 // var ::y: int;
 // var ::z: int;
