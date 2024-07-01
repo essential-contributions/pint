@@ -682,7 +682,7 @@ impl AsmBuilder {
                     UnaryOp::Neg => {
                         // Push `0` (i.e. `lhs`) before the `expr` (i.e. `rhs`) opcodes. Then
                         // subtract `lhs` - `rhs` to negate the value.
-                        asm.insert(asm.len()-1, Stack::Push(0).into());
+                        asm.insert(asm.len() - 1, Stack::Push(0).into());
                         Self::compile_expr(handler, asm, expr, pred)?;
                         asm.push(Alu::Sub.into())
                     }
