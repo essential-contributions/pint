@@ -6,7 +6,8 @@ storage {
     s4: { int, int, { int, int } },
     my_map0: (int => int),
     my_map1: (int => { int, { b256, int } }),
-    my_nested_map: (int => (b256 => { int, { b256, int } })),
+    my_nested_map0: (int => (int => int)),
+    my_nested_map1: (int => (b256 => { int, { b256, int } })),
 }
 
 predicate Foo {
@@ -19,4 +20,42 @@ predicate Foo {
     pub var t0: bool;
     pub var t1: int;
     pub var t2: b256;
+
+    // Here we write a bunch of arbitrary constraints to check encoding/decoding
+    // of the different types etc.
+
+    // Start with the decision variables.
+    constraint v0;
+    constraint v1 == 42;
+    constraint v2 == 0x1111111100000000111111110000000011111111000000001111111100000000;
+    constraint v3 == { 30, 31 };
+    constraint v4 == { 40, 41, { 420, 421 } };
+
+    // Now check pub decision variables.
+    constraint !t0;
+    constraint t1 == 11;
+    constraint t2 == 0x2222222222222222222222222222222222222222222222222222222222222222;
+
+    // Read some state.
+    state s0: bool = storage::s0;
+    state s1: int = storage::s1;
+    state s2: b256 = storage::s2;
+    state s3: { int, int } = storage::s3;
+    state s4: { int, int, { int, int } } = storage::s4;
+    state my_map0_key42: int = storage::my_map0[42];
+    state my_map1_key1: { int, { b256, int } } = storage::my_map1[1];
+    state my_nested_map0_key1_2: int = storage::my_nested_map0[1][2];
+    state my_nested_map1_key2_3: { int, { b256, int } } = storage::my_nested_map1[2][0x3333333333333333333333333333333333333333333333333333333333333333];
+
+    // Check the state.
+    constraint s0' == true;
+    constraint s1' == 42;
+    constraint s2' == 0x4242424242424242424242424242424242424242424242424242424242424242;
+    constraint s3' == { 30, 31 };
+    constraint s4' == { 40, 41, { 420, 421 } };
+    constraint my_map0_key42' == 24;
+    constraint my_map0_key42' != 25;
+    constraint my_map1_key1' == { 1111, { 0x2222222222222222222222222222222222222222222222222222222222222222, 3333 } };
+    constraint my_nested_map0_key1_2' == 1234;
+    constraint my_nested_map1_key2_3' == { 69, { 0x1111111100000000111111110000000011111111000000001111111100000000, 96 } };
 }

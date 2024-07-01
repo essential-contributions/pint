@@ -21,9 +21,6 @@ pub struct InvalidStateRead;
 pub type Kv = (Key, Vec<Word>);
 
 impl State {
-    // Empry state, fine for tests unrelated to reading state.
-    pub const EMPTY: Self = State(BTreeMap::new());
-
     // Shorthand test state constructor.
     pub fn new(contracts: Vec<(ContentAddress, Vec<Kv>)>) -> Self {
         State(
