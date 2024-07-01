@@ -59,6 +59,12 @@ impl ExprKey {
         pred.exprs.exprs.get(*self).unwrap()
     }
 
+    /// Returns a mutable reference to the `Expr` corresponding to key `self`. Panics if the key
+    /// can't be found in the `exprs` map.
+    pub fn get_mut<'a>(&'a self, pred: &'a mut Predicate) -> &mut Expr {
+        pred.exprs.exprs.get_mut(*self).unwrap()
+    }
+
     /// Returns the type of key `self` given an `Predicate`. Panics if the type can't be
     /// found in the `expr_types` map.
     pub fn get_ty<'a>(&'a self, pred: &'a Predicate) -> &Type {

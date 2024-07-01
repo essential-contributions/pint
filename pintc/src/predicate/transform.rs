@@ -39,8 +39,8 @@ use crate::{
 };
 use canonicalize_solve_directive::canonicalize_solve_directive;
 use lower::{
-    lower_aliases, lower_bools, lower_casts, lower_compares_to_nil, lower_enums, lower_ifs,
-    lower_imm_accesses, lower_ins, replace_const_refs,
+    coalesce_prime_ops, lower_aliases, lower_bools, lower_casts, lower_compares_to_nil,
+    lower_enums, lower_ifs, lower_imm_accesses, lower_ins, replace_const_refs,
 };
 use scalarize::scalarize;
 use unroll::unroll_generators;
@@ -73,6 +73,7 @@ impl super::Program {
             // Plug const decls in everywhere so they maybe lowered below.
             replace_const_refs(pred, &const_exprs);
 
+            // Convert comparisons to `nil` into comparisons between __state_len() and 0.
             let _ = lower_compares_to_nil(handler, pred);
 
             // Unroll each generator into one large conjuction
@@ -91,7 +92,11 @@ impl super::Program {
             // Transform each enum variant into its integer discriminant
             let _ = lower_enums(handler, pred);
 
+            // Lower indexing or field access into immediates to the actual element or field.
             let _ = lower_imm_accesses(handler, pred);
+
+            // Coalesce all prime ops back down to the lowest path expression.
+            coalesce_prime_ops(pred);
 
             // Lower bools after scalarization since it creates new comparison expressions
             // which will return bools.
