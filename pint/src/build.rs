@@ -185,7 +185,7 @@ fn source_string(pinned: &pint_pkg::plan::Pinned, manifest_dir: &Path) -> String
     }
 }
 
-// In the summary, the root intent name is empty
+// In the summary, the root predicate name is empty
 fn summary_predicate_name(pred_name: &str) -> &str {
     match pred_name {
         "" => " (predicate)",

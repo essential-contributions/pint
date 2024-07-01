@@ -9,8 +9,8 @@ use util::State;
 mod util;
 
 // Test that we can trivially create a full `SolutionData` for the simple
-// contract's `Foo` intent. Set the values to adhere to the arbitrary
-// constraints of the intent.
+// contract's `Foo` predicate. Set the values to adhere to the arbitrary
+// constraints of the predicate.
 #[tokio::test]
 async fn test_solution_foo() {
     tracing_subscriber::fmt::init();
