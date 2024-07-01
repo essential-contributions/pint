@@ -25,7 +25,7 @@ async fn test_solution_init() {
     // Determine the predicate address by loading the ABI and finding the matching predicate.
     let abi_path = pkg_dir.join("out/debug/counter-abi.json");
     let abi = pint_abi::from_path(&abi_path).unwrap();
-    let (_pred_abi, pred) = pint_abi::find_predicate(&contract, &abi, "Init").unwrap();
+    let (pred, _pred_abi) = pint_abi::find_predicate(&contract, &abi, "Init").unwrap();
     let pred_ca = essential_hash::content_addr(pred);
     let pred_addr = PredicateAddress {
         contract: contract_ca.clone(),
@@ -50,15 +50,15 @@ async fn test_solution_init() {
         data: vec![solution_data],
     });
 
+    // Check the solution is valid.
+    essential_check::solution::check(&solution).unwrap();
+
     // Start with an empty pre-state.
     let pre_state = State::new(vec![(contract_ca, vec![])]);
 
     // Create the post-state by applying the mutations.
     let mut post_state = pre_state.clone();
     post_state.apply_mutations(&solution);
-
-    // Check the solution is valid.
-    essential_check::solution::check(&solution).unwrap();
 
     // Our `get_predicate` function can only return `Init`.
     let predicate = Arc::new(pred.clone());
@@ -67,7 +67,7 @@ async fn test_solution_init() {
     // Default configuration.
     let config = Default::default();
 
-    // Check the our proposed mutations are valid against the contract.
+    // Check our proposed mutations are valid against the contract.
     essential_check::solution::check_predicates(
         &pre_state,
         &post_state,

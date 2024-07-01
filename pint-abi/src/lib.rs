@@ -83,7 +83,7 @@ pub fn find_predicate<'a>(
     contract: &'a Contract,
     abi: &'a ProgramABI,
     pred_name: &str,
-) -> Option<(&'a PredicateABI, &'a Predicate)> {
+) -> Option<(&'a Predicate, &'a PredicateABI)> {
     // Currently, the ABI always includes the root predicate, even if the
     // contract does not. Here, we determine whether or not the root predicate
     // should be skipped. We skip if it is not the only predicate and it exists
@@ -99,9 +99,12 @@ pub fn find_predicate<'a>(
         abi_predicates.next();
     }
 
-    abi_predicates
-        .zip(&contract.predicates)
-        .find(|(pred_abi, _)| predicate_name_matches(&pred_abi.name, pred_name))
+    // Find the matching predicate entry and return it alongside its ABI.
+    contract
+        .predicates
+        .iter()
+        .zip(abi_predicates)
+        .find(|(_, pred_abi)| predicate_name_matches(&pred_abi.name, pred_name))
 }
 
 /// Checks if the predicate name matches exactly, and if not checks if the
