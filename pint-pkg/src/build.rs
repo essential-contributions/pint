@@ -132,8 +132,8 @@ pub enum PintcError {
 /// An error occurred while writing a built package's output artifacts.
 #[derive(Debug, Error)]
 pub enum WriteError {
-    /// Failed to serialize intents or ABI.
-    #[error("failed to serialize intents or ABI: {0}")]
+    /// Failed to serialize contract or ABI.
+    #[error("failed to serialize contract or ABI: {0}")]
     SerdeJson(#[from] serde_json::Error),
     /// An I/O error occurred.
     #[error("an I/O error occurred: {0}")]
@@ -209,7 +209,7 @@ impl BuiltPkg {
         match self {
             Self::Library(_) => (),
             Self::Contract(built) => {
-                // Write the intents.
+                // Write the contract.
                 let contract_string = serde_json::to_string_pretty(&built.contract)?;
                 let contract_path = path.join(name).with_extension("json");
                 std::fs::write(contract_path, contract_string)?;
