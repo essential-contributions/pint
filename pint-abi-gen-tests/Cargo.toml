@@ -1,7 +1,7 @@
 [package]
 name = "pint-abi-gen-tests"
 version = "0.1.0"
-description = "A crate solely for testing the `pint-abi-gen` proc-macro crate."
+description = "A crate solely for testing the `pint-abi` item generation proc-macros."
 edition.workspace = true
 authors.workspace = true
 homepage.workspace = true
@@ -18,4 +18,3 @@ walkdir = { workspace = true }
 
 [dependencies]
 pint-abi = { workspace = true }
-pint-abi-gen = { workspace = true }

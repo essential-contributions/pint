@@ -9,4 +9,8 @@ repository.workspace = true
 
 [dependencies]
 essential-types = { workspace = true }
+pint-abi-gen = { workspace = true, optional = true }
 pint-abi-types = { workspace = true }
+
+[features]
+default = ["pint-abi-gen"]

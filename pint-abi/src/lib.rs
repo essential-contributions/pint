@@ -1,5 +1,15 @@
 //! Encoding, decoding and other helpers for working with the Pint Essential ABI.
 
+// The `pint_abi_gen` macros require that the `pint_abi` crate is available, so
+// we re-export the ABI item-generation macros here so that users don't need to
+// import both crates separately.
+#[cfg(feature = "pint-abi-gen")]
+#[doc(inline)]
+pub use pint_abi_gen::from_file as gen_from_file;
+#[cfg(feature = "pint-abi-gen")]
+#[doc(inline)]
+pub use pint_abi_gen::from_str as gen_from_str;
+
 #[doc(inline)]
 pub use encode::Encode;
 #[doc(inline)]

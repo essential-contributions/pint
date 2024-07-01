@@ -1,11 +1,11 @@
 //! All items generated from `counter-abi.json`.
 
-pint_abi_gen::from_file!("test-pkgs/counter/out/debug/counter-abi.json");
+pint_abi::gen_from_file!("test-pkgs/counter/out/debug/counter-abi.json");
 
 mod counter_from_str {
     // Just check that this doesn't fail - the implementation almost entirely
     // matches `from_file!` so no need to test much further.
-    pint_abi_gen::from_str! {
+    pint_abi::gen_from_str! {
       r#"{
         "predicates": [
           {

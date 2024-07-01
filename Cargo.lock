@@ -1095,6 +1095,7 @@ name = "pint-abi"
 version = "0.1.0"
 dependencies = [
  "essential-types",
+ "pint-abi-gen",
  "pint-abi-types",
 ]
 
@@ -1115,7 +1116,6 @@ name = "pint-abi-gen-tests"
 version = "0.1.0"
 dependencies = [
  "pint-abi",
- "pint-abi-gen",
  "pint-pkg",
  "walkdir",
 ]
