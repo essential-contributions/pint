@@ -49,9 +49,6 @@ fn ty_from_tuple(tuple: &[TupleField]) -> syn::Type {
 }
 
 /// Convert the given pint ABI type to an equivalent Rust type.
-// TODO: Ideally we should use proper `Word` and `B256` types here,
-// but that would require users needing to have a particular crate as a
-// dependency :thinking_face:
 fn ty_from_pint_ty(ty: &TypeABI) -> syn::Type {
     match ty {
         TypeABI::Bool => syn::parse_quote!(bool),
