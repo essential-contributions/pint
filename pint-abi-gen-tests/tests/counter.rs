@@ -1,11 +1,17 @@
 use pint_abi::types::essential::{
-    solution::{Mutation, SolutionData},
+    solution::{Mutation, Solution, SolutionData},
     PredicateAddress,
 };
 use pint_abi_gen_tests::counter;
+use std::sync::Arc;
+use util::State;
 
-#[test]
-fn test_solution_init() {
+mod util;
+
+#[tokio::test]
+async fn test_solution_init() {
+    tracing_subscriber::fmt::init();
+
     // Construct the package path.
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
     let manifest_dir_path = std::path::Path::new(&manifest_dir);
@@ -22,7 +28,7 @@ fn test_solution_init() {
     let (_pred_abi, pred) = pint_abi::find_predicate(&contract, &abi, "Init").unwrap();
     let pred_ca = essential_hash::content_addr(pred);
     let pred_addr = PredicateAddress {
-        contract: contract_ca,
+        contract: contract_ca.clone(),
         predicate: pred_ca,
     };
 
@@ -31,11 +37,44 @@ fn test_solution_init() {
     let vars = counter::Init::Vars { value: INIT_VALUE };
     let state_mutations: Vec<Mutation> = counter::storage::mutations().counter(INIT_VALUE).into();
 
-    // Create the solution data.
-    let _solution_data = SolutionData {
+    // Create the solution data for solving `Init`.
+    let solution_data = SolutionData {
         predicate_to_solve: pred_addr,
         decision_variables: vars.into(),
         transient_data: vec![],
         state_mutations,
     };
+
+    // Create the solution.
+    let solution = Arc::new(Solution {
+        data: vec![solution_data],
+    });
+
+    // Start with an empty pre-state.
+    let pre_state = State::new(vec![(contract_ca, vec![])]);
+
+    // Create the post-state by applying the mutations.
+    let mut post_state = pre_state.clone();
+    post_state.apply_mutations(&solution);
+
+    // Check the solution is valid.
+    essential_check::solution::check(&solution).unwrap();
+
+    // Our `get_predicate` function can only return `Init`.
+    let predicate = Arc::new(pred.clone());
+    let get_predicate = |_: &_| predicate.clone();
+
+    // Default configuration.
+    let config = Default::default();
+
+    // Check the our proposed mutations are valid against the contract.
+    essential_check::solution::check_predicates(
+        &pre_state,
+        &post_state,
+        solution,
+        get_predicate,
+        config,
+    )
+    .await
+    .unwrap();
 }

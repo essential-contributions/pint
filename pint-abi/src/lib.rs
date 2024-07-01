@@ -107,7 +107,6 @@ pub fn find_predicate<'a>(
 /// Checks if the predicate name matches exactly, and if not checks if the
 /// predicate name matches with the `::` prefix.
 fn predicate_name_matches(abi_pred_name: &str, pred_name: &str) -> bool {
-    dbg!((abi_pred_name, pred_name));
     abi_pred_name == pred_name || abi_pred_name.split("::").nth(1) == Some(pred_name)
 }
 
