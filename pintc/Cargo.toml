@@ -22,7 +22,6 @@ lalrpop = "0.20"
 normal = ["pint_solve"]
 
 [dependencies]
-abi-types = { path = "../abi-types" }
 anyhow = { workspace = true }
 ariadne = { workspace = true }
 clap = { workspace = true }
@@ -33,6 +32,7 @@ fxhash = { workspace = true }
 itertools = { workspace = true }
 lalrpop-util = "0.20"
 logos = { workspace = true }
+pint-abi-types = { workspace = true }
 pint_solve = { path = "../pint-solve", default-features = false }
 regex = "1.10"
 serde = { workspace = true }

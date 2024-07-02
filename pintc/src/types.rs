@@ -4,7 +4,7 @@ use crate::{
     predicate::{ExprKey, Predicate},
     span::{empty_span, Span, Spanned},
 };
-use abi_types::{Key, KeyedTupleField, KeyedTypeABI, TupleField, TypeABI};
+use pint_abi_types::{Key, KeyedTupleField, KeyedTypeABI, TupleField, TypeABI};
 
 mod display;
 
