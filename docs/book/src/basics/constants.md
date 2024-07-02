@@ -14,6 +14,8 @@ Like `var` declarations the type may be ommitted and will be inferred by the Pin
 `const` initializer is required and must a constant expression which does not refer to decision
 variables nor other non-constant values such as state.
 
+<!--- Temporarily disabled.
+
 ### Constants of Compound Types
 
 `const` declarations may refer to values with compound types as long as every element within is a
@@ -29,3 +31,5 @@ In the above example `next_count` is evaluated at compile time to be fixed as 40
 The `min_size` tuple is adding a flag to a value to mark whether it should be used or not in a
 constraint. This may be convenient during development for turning the `min_size.size` constraint on
 or off.
+
+--->
