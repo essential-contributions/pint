@@ -162,24 +162,33 @@ constraint size &gt;= minimum &amp;&amp; foo &lt;= maximum;
 <p>Like <code>var</code> declarations the type may be ommitted and will be inferred by the Pint compiler, but the
 <code>const</code> initializer is required and must a constant expression which does not refer to decision
 variables nor other non-constant values such as state.</p>
-<h3 id="constants-of-compound-types"><a class="header" href="#constants-of-compound-types">Constants of Compound Types</a></h3>
-<p><code>const</code> declarations may refer to values with compound types as long as every element within is a
-constant value. Constant value initializers may also dereference other array or tuple <code>const</code>
-declarations or even array or tuple immediates.</p>
-<pre><code class="language-pint">const counts = [20, 30, 40];
+<!--- Temporarily disabled.
 
-const default_idx = 1;
-const next_count = counts[default_idx + 1];
+### Constants of Compound Types
 
-const min_size = { valid: true, size: 10 };
+`const` declarations may refer to values with compound types as long as every element within is a
+constant value. Constant value initializers may also dereference other array or tuple `const`
+declarations or even array or tuple immediates.
 
-var my_size: int;
-constraint !min_size.valid || my_size &gt;= min_size.size;
-</code></pre>
-<p>In the above example <code>next_count</code> is evaluated at compile time to be fixed as 40.</p>
-<p>The <code>min_size</code> tuple is adding a flag to a value to mark whether it should be used or not in a
-constraint. This may be convenient during development for turning the <code>min_size.size</code> constraint on
-or off.</p>
+```pint
+//|const counts = [20, 30, 40];
+//|
+//|const default_idx = 1;
+//|const next_count = counts[default_idx + 1];
+//|
+//|const min_size = { valid: true, size: 10 };
+//|
+//|var my_size: int;
+//|constraint !min_size.valid || my_size >= min_size.size;
+```
+
+In the above example `next_count` is evaluated at compile time to be fixed as 40.
+
+The `min_size` tuple is adding a flag to a value to mark whether it should be used or not in a
+constraint. This may be convenient during development for turning the `min_size.size` constraint on
+or off.
+
+--->
 
                     </main>
 
