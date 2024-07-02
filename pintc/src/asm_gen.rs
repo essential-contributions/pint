@@ -103,7 +103,7 @@ struct StorageKey {
 ///    `Option<String>` is the optional name of the pathway variable. If `None`, just use
 ///    `ThisPathway`. The `usize` is the transient key length.
 /// 4. `State` expressions refer to expressions that require the `State` or `StateRange` opcodes.
-///    The `bool` is the "delta": are we refering to the current or the next state?
+///    The `bool` is the "delta": are we referring to the current or the next state?
 enum Location {
     Value,
     DecisionVar(usize),
@@ -484,7 +484,7 @@ impl AsmBuilder {
                             .map(|slots| acc + slots)
                     })?;
 
-                // Increment the last word on the satck by `key_offset`. This works fine for the
+                // Increment the last word on the stack by `key_offset`. This works fine for the
                 // static case because all static keys start at zero (at least for now). For
                 // dynamic keys, this is not accurate due to a potential overflow. I'm going to
                 // keep this for now though so that we can keep things going, but we need a proper
@@ -658,7 +658,7 @@ impl AsmBuilder {
                         asm.insert(lhs_position, Stack::Push(0).into());
 
                         // Then push the number of instructions to skip over if the `lhs` is true.
-                        // That's `rhs_len + 2` because we're goint to add to add `Pop` later and
+                        // That's `rhs_len + 2` because we're going to add to add `Pop` later and
                         // we want to skip over that AND all the `rhs` opcodes
                         asm.insert(lhs_position + 1, Stack::Push(rhs_len as i64 + 2).into());
 
@@ -692,7 +692,7 @@ impl AsmBuilder {
                         asm.insert(lhs_position, Stack::Push(1).into());
 
                         // Then push the number of instructions to skip over if the `lhs` is true.
-                        // That's `rhs_len + 2` because we're goint to add to add `Pop` later and
+                        // That's `rhs_len + 2` because we're going to add to add `Pop` later and
                         // we want to skip over that AND all the `rhs` opcodes
                         asm.insert(lhs_position + 1, Stack::Push(rhs_len as i64 + 2).into());
 
@@ -711,9 +711,9 @@ impl AsmBuilder {
                 }
             }
             Expr::UnaryOp { op, expr, .. } => {
-                Self::compile_expr(handler, asm, expr, pred)?;
                 match op {
                     UnaryOp::Not => {
+                        Self::compile_expr(handler, asm, expr, pred)?;
                         asm.push(Pred::Not.into());
                     }
                     UnaryOp::NextState => {
@@ -724,7 +724,13 @@ impl AsmBuilder {
                             },
                         }));
                     }
-                    UnaryOp::Neg => unimplemented!("Unary::Neg is not yet supported"),
+                    UnaryOp::Neg => {
+                        // Push `0` (i.e. `lhs`) before the `expr` (i.e. `rhs`) opcodes. Then
+                        // subtract `lhs` - `rhs` to negate the value.
+                        asm.insert(asm.len() - 1, Stack::Push(0).into());
+                        Self::compile_expr(handler, asm, expr, pred)?;
+                        asm.push(Alu::Sub.into())
+                    }
                     UnaryOp::Error => unreachable!("unexpected Unary::Error"),
                 }
             }
