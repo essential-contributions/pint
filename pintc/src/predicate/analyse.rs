@@ -23,7 +23,7 @@ impl Program {
 
         // Evaluate all the constant decls to ensure they're all immediates. Each Const expr is
         // updated and has its type set.
-        let _ = handler.scope(|handler| self.evaluate_all_consts(handler));
+        handler.scope(|handler| self.evaluate_all_consts(handler))?;
 
         // We're temporarily blocking non-primitive consts until we refactor all expressions back
         // into the Program (Predicates will contain only their local vars, nothing more).

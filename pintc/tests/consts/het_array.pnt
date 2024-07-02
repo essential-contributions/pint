@@ -11,7 +11,4 @@ solve satisfy;
 // array element type mismatch
 // @10..21: array element has type `bool`
 // expecting array element type `int`
-// non-primitive const declaration
-// @10..21: constant declaration `::a` must not have a non-primitive type
-// constant immediate arrays and tuples will be supported in a future update
 // >>>

@@ -10,6 +10,12 @@ solve satisfy;
 // solve satisfy;
 // >>>
 
+// typecheck_failure <<<
+// non-primitive const declaration
+// @10..22: constant declaration `::b` must not have a non-primitive type
+// constant immediate arrays and tuples will be supported in a future update
+// >>>
+
 // flattening_failure <<<
 // attempt to access array with out of bounds index
 // @34..35: array index is out of bounds
