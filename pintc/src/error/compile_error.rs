@@ -283,6 +283,8 @@ pub enum CompileError {
         decl_span: Span,
         use_span: Span,
     },
+    #[error("non-primitive const declaration")]
+    TemporaryNonPrimitiveConst { name: String, span: Span },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -1010,6 +1012,14 @@ impl ReportableError for CompileError {
                 },
             ],
 
+            TemporaryNonPrimitiveConst { name, span } => vec![ErrorLabel {
+                message: format!(
+                    "constant declaration `{name}` must not have a non-primitive type"
+                ),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             Internal { msg, span } => {
                 if span == &empty_span() {
                     Vec::new()
@@ -1127,6 +1137,11 @@ impl ReportableError for CompileError {
 
             InvalidDeclOutsidePredicateDecl { .. } => Some(
                 "only `enum` and `type` declarations are allowed outside a predicate".to_string(),
+            ),
+
+            TemporaryNonPrimitiveConst { .. } => Some(
+                "constant immediate arrays and tuples will be supported in a future update"
+                    .to_string(),
             ),
 
             Internal { .. }
@@ -1340,7 +1355,8 @@ impl Spanned for CompileError {
             | MismatchedIntrinsicArgType { arg_span: span, .. }
             | IntrinsicArgMustBeStateVar { span, .. }
             | CompareToNilError { span, .. }
-            | RecursiveNewType { use_span: span, .. } => span,
+            | RecursiveNewType { use_span: span, .. }
+            | TemporaryNonPrimitiveConst { span, .. } => span,
 
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }
