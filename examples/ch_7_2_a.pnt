@@ -1,0 +1,57 @@
+// ANCHOR: in_range
+macro @in_range($v, $num) {
+    constraint $v >= $num;
+    constraint $v < ($num * $num);
+}
+// ANCHOR_END: in_range
+
+// ANCHOR: macro_use
+var x: int;
+@in_range(x; 10);
+// ANCHOR_END: macro_use
+
+// ANCHOR: ops
+macro @do_decls($a, $b, $ty, $op) {
+    var $a: $ty;
+    var $b: $ty;
+    constraint $b $op $a;
+}
+// ANCHOR_END: ops
+
+// ANCHOR: ops_call
+@do_decls(x1; x2; int; >);
+// ANCHOR_END: ops_call
+
+// ANCHOR: expr
+macro @quotion($a, $b) {
+    constraint $b > 0;  // Declaration.
+    $a / $b             // Final expression.
+}
+// ANCHOR_END: expr 
+
+// ANCHOR: expr_call
+var c: int;
+var d: int;
+var q: int = @quotion(c; d);
+// ANCHOR_END: expr_call
+
+// ANCHOR: is_even 
+macro @is_even($a) {
+    let half: int;
+    constraint $a == half * 2;
+}
+// ANCHOR_END: is_even 
+
+// ANCHOR: var_decls
+macro @let_decls($a) {
+    var foo: int;       // Hygienic anonymous binding for `foo`.
+    var $a: bool;       // Lexical binding for `$a`.
+}
+// ANCHOR_END: var_decls
+
+// ANCHOR: var_decls_call
+@let_decls(foo);
+@let_decls(bar);
+// ANCHOR_END: var_decls_call
+
+solve satisfy;

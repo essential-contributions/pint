@@ -1,0 +1,20 @@
+// ANCHOR: expanded 
+var x: int;
+constraint x >= 10;
+constraint x < (10 * 10);
+// ANCHOR_END: expanded
+
+// ANCHOR: ops_call_expanded
+var x1: int;
+var x2: int;
+constraint x2 > x1;
+// ANCHOR_END: ops_call_expanded
+
+// ANCHOR: expr_call_expanded 
+var c: int;
+var d: int;
+constraint d > 0;
+var q: int = c / d;
+// ANCHOR_END: expr_call_expanded 
+
+solve satisfy;
