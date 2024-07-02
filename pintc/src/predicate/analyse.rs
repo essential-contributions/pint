@@ -1351,6 +1351,55 @@ impl Predicate {
         rhs_expr_key: ExprKey,
         span: &Span,
     ) -> Result<Inference, Error> {
+        fn drill_down_to_path(
+            pred: &Predicate,
+            expr_key: &ExprKey,
+            span: &Span,
+        ) -> Result<(), Error> {
+            match expr_key.try_get(pred) {
+                Some(Expr::PathByName(name, span)) => {
+                    if !pred.states().any(|(_, state)| state.name == *name) {
+                        Err(Error::Compile {
+                            error: CompileError::InvalidNextStateAccess { span: span.clone() },
+                        })
+                    } else {
+                        Ok(())
+                    }
+                }
+
+                Some(Expr::PathByKey(var_key, span)) => {
+                    if !pred
+                        .states()
+                        .any(|(_, state)| state.name == var_key.get(pred).name)
+                    {
+                        Err(Error::Compile {
+                            error: CompileError::InvalidNextStateAccess { span: span.clone() },
+                        })
+                    } else {
+                        Ok(())
+                    }
+                }
+
+                // We recurse in three cases:
+                // - a'' is equivalent to a'.
+                // - a[x]' is equivalent to a'[x].
+                // - a.0' is equivalent to a'.0.
+                Some(Expr::UnaryOp {
+                    op: UnaryOp::NextState,
+                    expr,
+                    ..
+                })
+                | Some(Expr::Index { expr, .. })
+                | Some(Expr::TupleFieldAccess { tuple: expr, .. }) => {
+                    drill_down_to_path(pred, expr, span)
+                }
+
+                _ => Err(Error::Compile {
+                    error: CompileError::InvalidNextStateAccess { span: span.clone() },
+                }),
+            }
+        }
+
         match op {
             UnaryOp::Error => Err(Error::Compile {
                 error: CompileError::Internal {
@@ -1358,6 +1407,19 @@ impl Predicate {
                     span: span.clone(),
                 },
             }),
+
+            UnaryOp::NextState => {
+                // Next state access must be a path that resolves to a state variable.  It _may_ be
+                // via array indices or tuple fields or even other prime ops.
+                drill_down_to_path(self, &rhs_expr_key, span)?;
+
+                let ty = rhs_expr_key.get_ty(self);
+                Ok(if !ty.is_unknown() {
+                    Inference::Type(ty.clone())
+                } else {
+                    Inference::Dependant(rhs_expr_key)
+                })
+            }
 
             UnaryOp::Neg => {
                 // RHS must be an int or real.
@@ -1404,39 +1466,6 @@ impl Predicate {
                             },
                         })
                     }
-                } else {
-                    Ok(Inference::Dependant(rhs_expr_key))
-                }
-            }
-
-            UnaryOp::NextState => {
-                // Next state access must be a path that resolves to a state variable.
-                match rhs_expr_key.try_get(self) {
-                    Some(Expr::PathByName(name, span)) => {
-                        if !self.states().any(|(_, state)| state.name == *name) {
-                            Err(Error::Compile {
-                                error: CompileError::InvalidNextStateAccess { span: span.clone() },
-                            })?
-                        }
-                    }
-                    Some(Expr::PathByKey(var_key, span)) => {
-                        if !self
-                            .states()
-                            .any(|(_, state)| state.name == var_key.get(self).name)
-                        {
-                            Err(Error::Compile {
-                                error: CompileError::InvalidNextStateAccess { span: span.clone() },
-                            })?
-                        }
-                    }
-                    _ => Err(Error::Compile {
-                        error: CompileError::InvalidNextStateAccess { span: span.clone() },
-                    })?,
-                }
-
-                let ty = rhs_expr_key.get_ty(self);
-                if !ty.is_unknown() {
-                    Ok(Inference::Type(ty.clone()))
                 } else {
                     Ok(Inference::Dependant(rhs_expr_key))
                 }
