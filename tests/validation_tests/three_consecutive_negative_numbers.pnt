@@ -7,8 +7,9 @@ constraint forall i in 1..2 {
 };
 
 constraint forall i in 0..2 {
-    x[i] < 0
+    -x[i] > 0
 };
 
+constraint x[0] + x[1] + x[2] == x[0] * x[1] * x[2];
 
 solve satisfy;
