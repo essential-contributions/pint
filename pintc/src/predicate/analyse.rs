@@ -25,6 +25,10 @@ impl Program {
         // updated and has its type set.
         let _ = handler.scope(|handler| self.evaluate_all_consts(handler));
 
+        // We're temporarily blocking non-primitive consts until we refactor all expressions back
+        // into the Program (Predicates will contain only their local vars, nothing more).
+        self.reject_non_primitive_consts(handler)?;
+
         for pred in self.preds.values_mut() {
             for expr_key in pred.exprs() {
                 if let Some(span) = pred.removed_macro_calls.get(expr_key) {
@@ -129,6 +133,26 @@ impl Program {
                 .unwrap_or_else(empty_span);
 
             if let Some(imm_value) = all_const_immediates.get(&new_path) {
+                // Before we overwrite the unevaluated value with the immediate value we want to
+                // preserve enum variant types, since they'll become `int`s and lose this
+                // information below.
+                let mut preserved_enum_type = None;
+                if let Some(Const { expr, decl_ty }) = self.consts.get(&new_path) {
+                    if decl_ty.is_unknown() {
+                        if let Expr::PathByName(path, _) = expr.get(self.root_pred()) {
+                            // We have an unknown-typed const initialised with a path.  E.g.,
+                            // const a = MyEnum::MyVariant;
+                            if let Ok(Inference::Type(variant_ty)) = self
+                                .root_pred()
+                                .infer_enum_variant_by_name(path, &empty_span())
+                            {
+                                // It's definitely an enum.  Update the decl type below.
+                                preserved_enum_type = Some(variant_ty);
+                            }
+                        }
+                    }
+                }
+
                 let new_expr = Expr::Immediate {
                     value: imm_value.clone(),
                     span: init_span,
@@ -141,6 +165,9 @@ impl Program {
 
                 if let Some(cnst) = self.consts.get_mut(&new_path) {
                     cnst.expr = new_expr_key;
+                    if let Some(variant_ty) = preserved_enum_type {
+                        cnst.decl_ty = variant_ty;
+                    }
                 } else {
                     emit_internal("missing const decl for immediate update");
                 }
@@ -181,6 +208,26 @@ impl Program {
 
         for (path, new_ty) in type_replacements {
             self.consts.get_mut(&path).unwrap().decl_ty = new_ty;
+        }
+
+        if handler.has_errors() {
+            Err(handler.cancel())
+        } else {
+            Ok(())
+        }
+    }
+
+    fn reject_non_primitive_consts(&self, handler: &Handler) -> Result<(), ErrorEmitted> {
+        // Called after we've evaluated them all and resolved their types.
+        for (path, Const { expr, decl_ty }) in &self.consts {
+            if !decl_ty.is_any_primitive() && !decl_ty.is_enum(self.root_pred()) {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::TemporaryNonPrimitiveConst {
+                        name: path.to_string(),
+                        span: expr.get(self.root_pred()).span().clone(),
+                    },
+                });
+            }
         }
 
         if handler.has_errors() {
@@ -2109,7 +2156,10 @@ impl Predicate {
             } in consts.values()
             {
                 let init_ty = init_expr_key.get_ty(self);
-                if !init_ty.eq(self, decl_ty) {
+
+                // Special case for enum variants -- they'll have an init_ty of `int`.  So we have
+                // an error if the types mismatch and they're _not_ an enum/int combo exception.
+                if !(init_ty.eq(self, decl_ty) || decl_ty.is_enum(self) && init_ty.is_int()) {
                     handler.emit_err(Error::Compile {
                         error: CompileError::InitTypeError {
                             init_kind: "const",
