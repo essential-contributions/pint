@@ -65,10 +65,7 @@ solve satisfy;
 // >>>
 
 // flattened <<<
-// var ::counts[0]: int;
-// var ::counts[1]: int;
-// var ::counts[2]: int;
-// var ::counts[3]: int;
+// var ::counts: int[::Feeling];
 // var ::max_feeling: int;
 // var ::feeling: int;
 // enum ::Feeling = Uneasy | Queasy | Awkward | Anxious;

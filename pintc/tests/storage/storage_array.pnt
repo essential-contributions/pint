@@ -126,7 +126,7 @@ predicate Bar {
 //         map_to_arrays: ( int => int[3] ),
 //     }
 // }
-//
+// 
 // predicate ::Bar {
 //     storage {
 //         v: int[3][2],
@@ -149,22 +149,22 @@ predicate Bar {
 //     state ::foo_v10: int = ::FooInstance::storage::v[1][0];
 //     state ::foo_map_to_arrays_69: int[3] = ::FooInstance::storage::map_to_arrays[69];
 //     state ::foo_map_to_arrays_69_1: int = ::FooInstance::storage::map_to_arrays[69][1];
-//     constraint ((((::v'[0][0] == 42) && (::v'[0][1] == 43)) && (::v'[0][2] == 44)) && (((::v'[1][0] == 52) && (::v'[1][1] == 53)) && (::v'[1][2] == 54)));
-//     constraint (((::v'[1][0] == 52) && (::v'[1][1] == 53)) && (::v'[1][2] == 54));
+//     constraint (::v' == [[42, 43, 44], [52, 53, 54]]);
+//     constraint (::v'[1] == [52, 53, 54]);
 //     constraint (::v'[0][2] == 44);
-//     constraint (((::v1'[0] == 52) && (::v1'[1] == 53)) && (::v1'[2] == 54));
+//     constraint (::v1' == [52, 53, 54]);
 //     constraint (::v1'[2] == 54);
 //     constraint (::v10' == 52);
-//     constraint (((::map_to_arrays_69'[0] == 99) && (::map_to_arrays_69'[1] == 100)) && (::map_to_arrays_69'[2] == 101));
+//     constraint (::map_to_arrays_69' == [99, 100, 101]);
 //     constraint (::map_to_arrays_69'[2] == 101);
 //     constraint (::map_to_arrays_69_1' == 100);
-//     constraint ((((::foo_v'[0][0] == 142) && (::foo_v'[0][1] == 143)) && (::foo_v'[0][2] == 144)) && (((::foo_v'[1][0] == 152) && (::foo_v'[1][1] == 153)) && (::foo_v'[1][2] == 154)));
-//     constraint (((::foo_v'[1][0] == 152) && (::foo_v'[1][1] == 153)) && (::foo_v'[1][2] == 154));
+//     constraint (::foo_v' == [[142, 143, 144], [152, 153, 154]]);
+//     constraint (::foo_v'[1] == [152, 153, 154]);
 //     constraint (::foo_v'[0][2] == 144);
-//     constraint (((::foo_v1'[0] == 152) && (::foo_v1'[1] == 153)) && (::foo_v1'[2] == 154));
+//     constraint (::foo_v1' == [152, 153, 154]);
 //     constraint (::foo_v1'[2] == 154);
 //     constraint (::foo_v10' == 152);
-//     constraint (((::foo_map_to_arrays_69'[0] == 199) && (::foo_map_to_arrays_69'[1] == 1100)) && (::foo_map_to_arrays_69'[2] == 1101));
+//     constraint (::foo_map_to_arrays_69' == [199, 1100, 1101]);
 //     constraint (::foo_map_to_arrays_69'[2] == 1101);
 //     constraint (::foo_map_to_arrays_69_1' == 1100);
 // }

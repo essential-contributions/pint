@@ -362,7 +362,7 @@ impl Type {
     }
 
     /// Produce a `TypeABI` given a `Type`.
-    pub fn abi(&self) -> Result<TypeABI, ErrorEmitted> {
+    pub fn abi(&self, handler: &Handler, pred: &Predicate) -> Result<TypeABI, ErrorEmitted> {
         match self {
             Type::Primitive { kind, .. } => Ok(match kind {
                 PrimitiveKind::Bool => TypeABI::Bool,
@@ -378,11 +378,24 @@ impl Type {
                     .map(|(name, field_ty)| {
                         Ok(TupleField {
                             name: name.as_ref().map(|name| name.name.clone()),
-                            ty: field_ty.abi()?,
+                            ty: field_ty.abi(handler, pred)?,
                         })
                     })
                     .collect::<Result<Vec<_>, _>>()?,
             )),
+            Type::Array {
+                ty, range, size, ..
+            } => Ok(TypeABI::Array {
+                ty: Box::new(ty.abi(handler, pred)?),
+                size: size.unwrap_or(Self::get_array_size_from_range_expr(
+                    handler,
+                    range
+                        .as_ref()
+                        .and_then(|e| e.try_get(pred))
+                        .expect("expr key guaranteed to exist"),
+                    pred,
+                )?),
+            }),
             _ => unimplemented!("other types are not yet supported"),
         }
     }
@@ -454,7 +467,7 @@ impl Type {
                 //  or it's `[value_key, 0]`. The `0` here is a placeholder for offsets. `ty_from`
                 //  has no key because it's not stored in storage.
                 Ok(KeyedTypeABI::Map {
-                    ty_from: (*ty_from).abi()?,
+                    ty_from: (*ty_from).abi(handler, pred)?,
                     ty_to: Box::new(if ty_to.is_any_primitive() || ty_to.is_map() {
                         (*ty_to).abi_with_key(handler, value_key.clone(), pred)?
                     } else {

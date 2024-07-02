@@ -34,22 +34,19 @@ solve satisfy;
 
 // flattened <<<
 // var ::a: int;
-// var ::b.x: int;
-// var ::b.y: int;
+// var ::b: {x: ::A (int), y: ::A (int)};
 // var ::c: int;
 // var ::d: int;
-// var ::e[0]: int;
-// var ::e[1]: int;
-// var ::e[2]: int;
+// var ::e: ::A (int)[3];
 // var ::f: int;
 // var ::g: int;
 // type ::A = int;
 // type ::B = {x: ::A (int), y: ::A (int)};
 // type ::C = ::A (int)[3];
-// constraint ((::b.x == ::a) && (::b.y == ::a));
-// constraint (::c == ::b.y);
+// constraint (::b == {::a, ::a});
+// constraint (::c == ::b.1);
 // constraint (::d == ::b.x);
-// constraint (((::e[0] == ::a) && (::e[1] == ::a)) && (::e[2] == ::a));
+// constraint (::e == [::a, ::a, ::a]);
 // constraint (::f == ::e[1]);
 // constraint (::g == ::a);
 // solve satisfy;

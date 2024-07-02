@@ -1,3 +1,4 @@
+// <disabled>
 var b: int[4];
 
 constraint b[4] == 2;

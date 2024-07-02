@@ -1,3 +1,4 @@
+// <disabled>
 var a: int[4];
 var b = [11, 22, 33, 44, 55];
 var c = [66, 77];

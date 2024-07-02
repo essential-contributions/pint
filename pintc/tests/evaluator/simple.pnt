@@ -39,20 +39,13 @@ solve satisfy;
 // d is expanded, e is not.
 //
 // flattened <<<
-// var ::a[0]: int;
-// var ::a[1]: int;
-// var ::b0[0]: int;
-// var ::b0[1]: int;
-// var ::b1[0]: int;
-// var ::b1[1]: int;
-// var ::c[0]: int;
-// var ::c[1]: int;
-// var ::f[0]: int;
-// var ::h[0]: int;
-// var ::h[1]: int;
-// var ::i[0]: int;
-// var ::i[1]: int;
-// var ::i[2]: int;
+// var ::a: int[[1, 2, 3][1]];
+// var ::b0: int[{1, 2, 3}.1];
+// var ::b1: int[{x: 1, y: 2, z: 3}.y];
+// var ::c: int[(0 ? 1 : 2)];
+// var ::f: int[1 as int];
+// var ::h: int[::Egg::Uovo as int];
+// var ::i: int[3 as int];
 // enum ::Egg = Ovum | Oeuf | Uovo | HuaManu;
 // constraint (((1 && (0 == 0)) && (1 == 1)) && (2 == 2));
 // constraint 1;

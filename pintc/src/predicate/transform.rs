@@ -42,7 +42,7 @@ use lower::{
     coalesce_prime_ops, lower_aliases, lower_bools, lower_casts, lower_compares_to_nil,
     lower_enums, lower_ifs, lower_imm_accesses, lower_ins, replace_const_refs,
 };
-use scalarize::scalarize;
+// use scalarize::scalarize;
 use unroll::unroll_generators;
 use validate::validate;
 
@@ -87,7 +87,7 @@ impl super::Program {
             // longer be aggregate types.
             //
             // EXCEPT WE'RE NOW LOWERING ENUMS NEXT.  SCALARISING WILL BE REMOVED SOON.
-            let _ = scalarize(handler, pred);
+            // let _ = scalarize(handler, pred);
 
             // Transform each enum variant into its integer discriminant
             let _ = lower_enums(handler, pred);

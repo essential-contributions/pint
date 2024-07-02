@@ -7,6 +7,7 @@ use crate::{
 };
 use std::collections::BTreeMap;
 
+#[allow(dead_code)]
 pub(crate) fn scalarize(handler: &Handler, pred: &mut Predicate) -> Result<(), ErrorEmitted> {
     // Before we start, make sure all the array types have their sizes determined.
     fix_array_sizes(handler, pred)?;

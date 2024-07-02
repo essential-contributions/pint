@@ -7,7 +7,72 @@
     },
     {
       "name": "::Foo",
-      "vars": [],
+      "vars": [
+        {
+          "name": "::b1",
+          "ty": {
+            "Array": {
+              "ty": "B256",
+              "size": 9
+            }
+          }
+        },
+        {
+          "name": "::b2",
+          "ty": {
+            "Array": {
+              "ty": {
+                "Array": {
+                  "ty": {
+                    "Array": {
+                      "ty": "B256",
+                      "size": 3
+                    }
+                  },
+                  "size": 2
+                }
+              },
+              "size": 2
+            }
+          }
+        },
+        {
+          "name": "::b3",
+          "ty": {
+            "Array": {
+              "ty": {
+                "Array": {
+                  "ty": {
+                    "Tuple": [
+                      {
+                        "name": null,
+                        "ty": "Int"
+                      },
+                      {
+                        "name": null,
+                        "ty": {
+                          "Tuple": [
+                            {
+                              "name": null,
+                              "ty": "B256"
+                            },
+                            {
+                              "name": null,
+                              "ty": "Int"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "size": 5
+                }
+              },
+              "size": 2
+            }
+          }
+        }
+      ],
       "pub_vars": [
         {
           "name": "::a1",

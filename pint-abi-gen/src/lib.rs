@@ -57,6 +57,7 @@ fn ty_from_pint_ty(ty: &TypeABI) -> syn::Type {
         TypeABI::String => syn::parse_quote!(String),
         TypeABI::B256 => syn::parse_quote!([i64; 4]),
         TypeABI::Tuple(tuple) => ty_from_tuple(tuple),
+        TypeABI::Array { .. } => todo!(),
     }
 }
 

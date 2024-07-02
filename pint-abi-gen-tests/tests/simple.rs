@@ -40,12 +40,8 @@ async fn test_solution_foo() {
         v0: i64::from(true), // TODO: use `true` directly once #729 is addressed.
         v1: 42,
         v2: [0x1111111100000000; 4],
-        v3_0: 30,
-        v3_1: 31,
-        v4_0: 40,
-        v4_1: 41,
-        v4_2_0: 420,
-        v4_2_1: 421,
+        v3: [30, 31].into(),
+        v4: (40, 41, (420, 421)),
     };
 
     // Public decision variables (i.e. transient data).
