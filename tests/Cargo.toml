@@ -30,5 +30,5 @@ yansi = { workspace = true }
 name = "validation_tests"
 path = "validation_tests.rs"
 
-[features]
-solver-scip = ["pint_solve/solver-scip", "pintc/solver-scip"]
+#[features]
+#solver-scip = ["pint_solve/solver-scip", "pintc/solver-scip"]

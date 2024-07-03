@@ -1773,7 +1773,6 @@ dependencies = [
  "essential-constraint-vm",
  "essential-state-read-vm",
  "essential-types",
- "pint_solve",
  "pintc",
  "test-util",
  "thiserror",

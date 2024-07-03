@@ -82,12 +82,11 @@ impl super::Program {
             // Lower `in` expressions into more explicit comparisons.
             let _ = lower_ins(handler, pred);
 
-            // Scalarize after lowering enums so we only have to deal with integer indices and
-            // then lower array and tuple accesses into immediates.  After here there will no
-            // longer be aggregate types.
-            //
-            // EXCEPT WE'RE NOW LOWERING ENUMS NEXT.  SCALARISING WILL BE REMOVED SOON.
-            // let _ = scalarize(handler, pred);
+            // Do some array checks now that generators have been unrolled (and ephemerals aren't
+            // going to cause problems).
+            pred.check_array_lengths(handler);
+            pred.check_array_indexing(handler);
+            pred.check_array_compares(handler);
 
             // Transform each enum variant into its integer discriminant
             let _ = lower_enums(handler, pred);
