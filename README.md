@@ -2,7 +2,8 @@
 
 [![build](https://github.com/essential-contributions/DSL/actions/workflows/ci.yml/badge.svg)](https://github.com/essential-contributions/DSL/actions/workflows/ci.yml)
 
-Pint is a Domain Specific Language (DSL) for intent expression using constraints on state transitions on arbitrary blockchain architecture.
+Pint is a **Declarative** constraint-based Domain Specific Language (DSL) for intent expression.
+An introduction to the Pint language can be found in [**The Book of Pint**](https://essential-contributions.github.io/pint/book/).
 
 ## Dependencies
 
@@ -19,19 +20,6 @@ If not already done, add the Cargo bin directory to your `PATH` by adding the fo
 ```sh
 export PATH="${HOME}/.cargo/bin:${PATH}"
 ```
-
-### SCIP
-
-Pint uses [SCIP](https://www.scipopt.org/) as its default solver. To install SCIP, use your favourite package manager and, if needed, set the environment variable `SCIPOPTDIR` to where SCIP is installed.
-
-For example, Homebrew can be used to install SCIP on MacOS:
-
-```sh
-brew install scip
-export SCIPOPTDIR=<scip-install-dir> # Example: /opt/homebrew/Cellar/scip/8.1.0
-```
-
-If SCIP is not available with your package manager, you may use [Miniconda](https://docs.conda.io/projects/miniconda/en/latest/).
 
 ## Building
 
