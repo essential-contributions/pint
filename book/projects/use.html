@@ -149,11 +149,11 @@
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="bringing-paths-into-scope-with-the-use-keyword"><a class="header" href="#bringing-paths-into-scope-with-the-use-keyword">Bringing Paths into Scope with the <code>use</code> Keyword</a></h2>
-<p>Having to write out the paths to access items can feel inconvenient and repetitive.
-In the previous chapter, whether we chose the absolute or relative path to <code>Asparagus</code>, every time
-we wanted to use <code>Asparagus</code> we had to specify the modules <code>garden</code> and <code>vegetables</code>. Fortunately,
-there’s a way to simplify this process: we can create a shortcut to a path with the <code>use</code> keyword
-once, and then use the shorter name everywhere else in the scope.</p>
+<p>Having to write out the paths to access items can feel inconvenient and repetitive. In the previous
+chapter, whether we chose the absolute or relative path to <code>Asparagus</code>, every time we wanted to use
+<code>Asparagus</code> we had to specify the modules <code>garden</code> and <code>vegetables</code>. Fortunately, there’s a way to
+simplify this process: we can create a shortcut to a path with the <code>use</code> keyword once, and then use
+the shorter name everywhere else in the scope.</p>
 <p>In the example below, we bring the <code>::garden::vegetables</code> module into the scope of the root file to
 use the <code>Asparagus</code> enum:</p>
 <pre><code class="language-pint">
@@ -165,8 +165,76 @@ predicate Baz {
 </code></pre>
 <p>Adding <code>use</code> and a path in a scope is similar to creating a symbolic link in the filesystem. By
 adding use <code>::garden::vegetables</code> in the root file, <code>vegetables</code> is now a valid name in that scope.</p>
-<h3 id="importing-multiple-items-from-the-same-module"><a class="header" href="#importing-multiple-items-from-the-same-module">Importing multiple items from the same module</a></h3>
-<h3 id="providing-new-names-with-the-as-keyword"><a class="header" href="#providing-new-names-with-the-as-keyword">Providing New Names with the <code>as</code> Keyword</a></h3>
+<h3 id="handling-conflicting-imports"><a class="header" href="#handling-conflicting-imports">Handling conflicting imports</a></h3>
+<p>Pint does not allow bringing two items with the same name into scope with <code>use</code>. This name clash
+makes it impossible for the compiler to distinguish between the two items in the scope. There are
+two ways to avoid this problem. The first, is to only import the names of the parent modules.</p>
+<p>Consider the following two libraries:</p>
+<pre><code class="language-pint">// Module data::contract_lib
+
+type Data = { 
+    address: b256,
+    storage_vars: int,
+    predicates: int,
+};
+</code></pre>
+<pre><code class="language-pint">// Module data::predicate_lib
+
+type Data = { 
+    address: b256,
+    decision_vars: int,
+    pub_vars: int,
+};
+</code></pre>
+<p>Both libraries use the name <code>Data</code> to describe a types. The example below shows how to bring the two
+<code>Data</code> types into scope and how to refer to them without having a conflict.</p>
+<pre><code class="language-pint">use ::data::contract_lib;
+use ::data::predicate_lib;
+
+var contract_data: contract_lib::Data;
+var predicate_data: predicate_lib::Data;
+</code></pre>
+<p>As you can see, using the parent module distinguishes the two <code>Data</code> types. If instead we specified
+<code>use data::contract_lib::Data</code> and <code>use data::predicate_lib::Data</code>, we'd have two <code>Data</code> types in
+the same scope and Pint wouldn't know which one we meant when we used <code>Data</code>.</p>
+<p>There’s another solution to the problem of bringing two types of the same name into the same scope
+with <code>use</code>: after the path, we can specify <code>as</code> and a new local name, or <em>alias</em>, for the type. The
+example below shows another way to write the code in the previous example by renaming the two <code>Data</code>
+types using <code>as</code>.</p>
+<pre><code class="language-pint">use ::data::contract_lib::Data as ContractData;
+use ::data::predicate_lib::Data as PredicateData;
+
+var contract_data: ContractData;
+var predicate_data: PredicateData;
+</code></pre>
+<p>In each <code>use</code> statement, we choose a new name for <code>Data</code>. That guarantees that no conflicts arise.
+This also has the side benefit of giving <code>Data</code> a more meaningful name in the current context.</p>
+<h3 id="using-nested-paths-to-clean-up-large-use-lists"><a class="header" href="#using-nested-paths-to-clean-up-large-use-lists">Using Nested Paths to Clean Up Large <code>use</code> Lists</a></h3>
+<p>If we’re using multiple items defined in the same module, listing each item on its own line can take
+up a lot of vertical space in our files. For example, these two <code>use</code> statements we had in the
+previous example bring two items into scope:</p>
+<pre><code class="language-pint">use ::data::contract_lib::Data as ContractData;
+use ::data::predicate_lib::Data as PredicateData;
+</code></pre>
+<p>Instead, we can use nested paths to bring the same items into scope in one line. We do this by
+specifying the common part of the path, followed by two colons, and then curly brackets around a
+list of the parts of the paths that differ, as shown below.</p>
+<pre><code class="language-pint">use ::data::{contract_lib::Data as ContractData, predicate_lib::Data as PredicateData};
+</code></pre>
+<p>In bigger programs, bringing many items into scope from the same module using nested paths can
+reduce the number of separate <code>use</code> statements needed by a lot!</p>
+<p>We can use a nested path at any level in a path, which is useful when combining two <code>use</code> statements
+that share a subpath. For example, the code snippet below shows two <code>use</code> statements: one that
+brings <code>data::contract_lib</code> into scope and one that brings <code>data::contract_lib::Data</code> into scope.</p>
+<pre><code class="language-pint">use ::data::contract_lib;
+use ::data::contract_lib::Data;
+</code></pre>
+<p>The common part of these two paths is <code>data::contract_lib</code>, and that’s the complete first path. To
+merge these two paths into one <code>use</code> statement, we can use <code>self</code> in the nested path, as shown
+below.</p>
+<pre><code class="language-pint">use ::data::contract_lib::{self, Data};
+</code></pre>
+<p>This line brings <code>data::contract_lib</code> and <code>data::contract_lib::Data</code> into scope.</p>
 
                     </main>
 
