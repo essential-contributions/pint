@@ -144,3 +144,5 @@ we can store a reference to or copy/move around and state variables can only hav
 types!
 
 ### Storage Vector
+
+> **Note**: Storage vectors are work-in-progress

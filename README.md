@@ -43,11 +43,10 @@ cd pint
 cargo build
 ```
 
-Confirm that `pintc` and `pintfmt` built successfully:
+Confirm that `pint` built successfully:
 
 ```sh
-cargo run --bin pintc -- --help
-cargo run --bin pintfmt -- --help
+cargo run --bin pint -- --help
 ```
 
 ## Testing

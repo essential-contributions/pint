@@ -14,6 +14,7 @@
   - [Comments](basics/comments.md)
   - [Conditionals](basics/conditionals.md)
   - [Custom Types](basics/custom_types.md)
+  - [Constraints](basics/constraints.md)
   - [Constants](basics/constants.md)
 - [Program Types](program_types/index.md)
   - [Stateless Programs](program_types/stateless.md)
@@ -33,3 +34,4 @@
 - [Appendix](appendix/index.md)
   - [A - Keywords](appendix/keywords.md)
   - [B - Compiler Intrinsics](appendix/intrinsics.md)
+  - [C - Application Binary Interface (ABI) Spec](appendix/abi.md)

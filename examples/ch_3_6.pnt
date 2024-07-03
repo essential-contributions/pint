@@ -1,24 +1,16 @@
-var foo: int;
+// ANCHOR: simple
+var x: int;
+constraint x == 0;
+// ANCHOR_END: simple
 
-// ANCHOR: consts
-const minimum: int = 10;
-const maximum: int = 20;
+// ANCHOR: two_constraints
+var y: int;
+constraint y >= 0;
+constraint y <= 10;
+// ANCHOR_END: two_constraints
 
-var size: int;
-constraint size >= minimum && foo <= maximum;
-// ANCHOR_END: consts
-
-//| Temporarily disabled.
-//|// ANCHOR: const_compound_types
-//|const counts = [20, 30, 40];
-//|
-//|const default_idx = 1;
-//|const next_count = counts[default_idx + 1];
-//|
-//|const min_size = { valid: true, size: 10 };
-//|
-//|var my_size: int;
-//|constraint !min_size.valid || my_size >= min_size.size;
-//|// ANCHOR_END: const_compound_types
+// ANCHOR: anded
+constraint y >= 0 && y <= 10;
+// ANCHOR_END: anded
 
 solve satisfy;
