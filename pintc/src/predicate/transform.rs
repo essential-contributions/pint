@@ -39,10 +39,10 @@ use crate::{
 };
 use canonicalize_solve_directive::canonicalize_solve_directive;
 use lower::{
-    lower_aliases, lower_bools, lower_casts, lower_compares_to_nil, lower_enums, lower_ifs,
-    lower_imm_accesses, lower_ins, replace_const_refs,
+    coalesce_prime_ops, lower_aliases, lower_bools, lower_casts, lower_compares_to_nil,
+    lower_enums, lower_ifs, lower_imm_accesses, lower_ins, replace_const_refs,
 };
-use scalarize::scalarize;
+// use scalarize::scalarize;
 use unroll::unroll_generators;
 use validate::validate;
 
@@ -73,6 +73,7 @@ impl super::Program {
             // Plug const decls in everywhere so they maybe lowered below.
             replace_const_refs(pred, &const_exprs);
 
+            // Convert comparisons to `nil` into comparisons between __state_len() and 0.
             let _ = lower_compares_to_nil(handler, pred);
 
             // Unroll each generator into one large conjuction
@@ -81,17 +82,20 @@ impl super::Program {
             // Lower `in` expressions into more explicit comparisons.
             let _ = lower_ins(handler, pred);
 
-            // Scalarize after lowering enums so we only have to deal with integer indices and
-            // then lower array and tuple accesses into immediates.  After here there will no
-            // longer be aggregate types.
-            //
-            // EXCEPT WE'RE NOW LOWERING ENUMS NEXT.  SCALARISING WILL BE REMOVED SOON.
-            let _ = scalarize(handler, pred);
+            // Do some array checks now that generators have been unrolled (and ephemerals aren't
+            // going to cause problems).
+            pred.check_array_lengths(handler);
+            pred.check_array_indexing(handler);
+            pred.check_array_compares(handler);
 
             // Transform each enum variant into its integer discriminant
             let _ = lower_enums(handler, pred);
 
+            // Lower indexing or field access into immediates to the actual element or field.
             let _ = lower_imm_accesses(handler, pred);
+
+            // Coalesce all prime ops back down to the lowest path expression.
+            coalesce_prime_ops(pred);
 
             // Lower bools after scalarization since it creates new comparison expressions
             // which will return bools.

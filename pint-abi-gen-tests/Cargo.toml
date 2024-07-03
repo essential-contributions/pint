@@ -1,0 +1,28 @@
+[package]
+name = "pint-abi-gen-tests"
+version = "0.1.0"
+description = "A crate solely for testing the `pint-abi` item generation proc-macros."
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+# The build script for building each of the test pkgs and generating their ABIs.
+build = "build.rs"
+
+[build-dependencies]
+pint-pkg = { workspace = true }
+walkdir = { workspace = true }
+
+[dependencies]
+pint-abi = { workspace = true }
+
+[dev-dependencies]
+essential-check = { workspace = true }
+essential-hash = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing-subscriber = { workspace = true }

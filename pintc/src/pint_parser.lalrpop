@@ -664,23 +664,8 @@ AsOp: ExprKey = {
             Type::Unknown(span),
         )
      },
-    <PrimeOp>,
-};
-
-PrimeOp: ExprKey = {
-    <l:@L> <expr:PrimeOp> "'" <r:@R> => {
-        let span = (context.span_from)(l, r);
-        context.current_pred().exprs.insert(
-            Expr::UnaryOp {
-                op: UnaryOp::NextState,
-                expr,
-                span: span.clone(),
-            },
-            Type::Unknown(span),
-        )
-    },
     <UnaryOp>,
-}
+};
 
 UnaryOpOp: UnaryOp = {
     <l:@L> "+" <r:@R> => {
@@ -707,11 +692,11 @@ UnaryOp: ExprKey = {
             Type::Unknown(span),
         )
     },
-    <TupleFieldOpOrIndexOp>,
+    <PostfixOp>,
 };
 
-TupleFieldOpOrIndexOp: ExprKey = {
-    <l:@L> <expr:TupleFieldOpOrIndexOp> "[" <index:Expr> "]" <r:@R> => {
+PostfixOp: ExprKey = {
+    <l:@L> <expr:PostfixOp> "[" <index:Expr> "]" <r:@R> => {
         let span = (context.span_from)(l, r);
         context.current_pred().exprs.insert(
             Expr::Index {
@@ -722,7 +707,7 @@ TupleFieldOpOrIndexOp: ExprKey = {
             Type::Unknown(span),
         )
     },
-    <l:@L> <expr:TupleFieldOpOrIndexOp> "[" "]" <r:@R> => {
+    <l:@L> <expr:PostfixOp> "[" "]" <r:@R> => {
         let span = (context.span_from)(l, r);
         handler.emit_err(Error::Parse {
             error: ParseError::EmptyIndexAccess { span: span.clone() },
@@ -734,14 +719,25 @@ TupleFieldOpOrIndexOp: ExprKey = {
             .exprs
             .insert(Expr::Error(span.clone()), Type::Unknown(span))
     },
-    <l:@L> <tuple:TupleFieldOpOrIndexOp> "." <name:Ident> <r:@R> => {
+    <l:@L> <tuple:PostfixOp> "." <name:Ident> <r:@R> => {
         context.parse_tuple_field_op_with_ident(tuple, name, (l, r))
     },
-    <l:@L> <tuple:TupleFieldOpOrIndexOp> "." <m:@L> <num_str:"int_lit"> <r:@R> => {
+    <l:@L> <tuple:PostfixOp> "." <m:@L> <num_str:"int_lit"> <r:@R> => {
         context.parse_tuple_field_op_with_int(handler, tuple, num_str, (l, m, r))
     },
-    <l:@L> <tuple:TupleFieldOpOrIndexOp> "." <m:@L> <num_str:"real_lit"> <r:@R> => {
+    <l:@L> <tuple:PostfixOp> "." <m:@L> <num_str:"real_lit"> <r:@R> => {
         context.parse_tuple_field_op_with_real(handler, tuple, num_str, (l, m, r))
+    },
+    <l:@L> <expr:PostfixOp> "'" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context.current_pred().exprs.insert(
+            Expr::UnaryOp {
+                op: UnaryOp::NextState,
+                expr,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
     },
     <Term>,
 };

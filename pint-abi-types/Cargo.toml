@@ -1,15 +1,11 @@
 [package]
-name = "abi-types"
+name = "pint-abi-types"
 version = "0.1.0"
 edition.workspace = true
 authors.workspace = true
 homepage.workspace = true
 license.workspace = true
 repository.workspace = true
-
-[lib]
-name = "abi_types"
-path = "src/lib.rs"
 
 [dependencies]
 serde = { workspace = true }

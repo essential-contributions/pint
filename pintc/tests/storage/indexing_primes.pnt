@@ -1,0 +1,117 @@
+storage {
+    v: int,
+    w: int[2],
+    x: { int, int },
+    y: { int[2], int[2] },
+    z: { int, int }[2],
+}
+
+state a = storage::v;
+constraint a' > a;
+constraint a'' > a;
+constraint (a'')''' > a;
+
+state b = storage::w;
+constraint b[0]' > a;
+constraint b'[0] > a;
+constraint b'[0]' > a;
+
+state c = storage::x;
+constraint c'.0 > a;
+constraint c.0' > a;
+constraint c'.0' > a;
+
+state d = storage::y;
+constraint d'.0[0] > a;
+constraint d.0'[0] > a;
+constraint d.0[0]' > a;
+constraint d'.0'[0] > a;
+constraint d.0'[0]' > a;
+constraint d'.0'[0]' > a;
+
+state e = storage::z;
+constraint e'[0].0 > a;
+constraint e[0]'.0 > a;
+constraint e[0].0' > a;
+constraint e'[0]'.0 > a;
+constraint e'[0].0' > a;
+constraint e[0]'.0' > a;
+constraint e'[0]'.0' > a;
+
+solve satisfy;
+
+// parsed <<<
+// storage {
+//     v: int,
+//     w: int[2],
+//     x: {int, int},
+//     y: {int[2], int[2]},
+//     z: {int, int}[2],
+// }
+// state ::a = storage::v;
+// state ::b = storage::w;
+// state ::c = storage::x;
+// state ::d = storage::y;
+// state ::e = storage::z;
+// constraint (::a' > ::a);
+// constraint (::a'' > ::a);
+// constraint (::a''''' > ::a);
+// constraint (::b[0]' > ::a);
+// constraint (::b'[0] > ::a);
+// constraint (::b'[0]' > ::a);
+// constraint (::c'.0 > ::a);
+// constraint (::c.0' > ::a);
+// constraint (::c'.0' > ::a);
+// constraint (::d'.0[0] > ::a);
+// constraint (::d.0'[0] > ::a);
+// constraint (::d.0[0]' > ::a);
+// constraint (::d'.0'[0] > ::a);
+// constraint (::d.0'[0]' > ::a);
+// constraint (::d'.0'[0]' > ::a);
+// constraint (::e'[0].0 > ::a);
+// constraint (::e[0]'.0 > ::a);
+// constraint (::e[0].0' > ::a);
+// constraint (::e'[0]'.0 > ::a);
+// constraint (::e'[0].0' > ::a);
+// constraint (::e[0]'.0' > ::a);
+// constraint (::e'[0]'.0' > ::a);
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// storage {
+//     v: int,
+//     w: int[2],
+//     x: {int, int},
+//     y: {int[2], int[2]},
+//     z: {int, int}[2],
+// }
+// state ::a: int = storage::v;
+// state ::b: int[2] = storage::w;
+// state ::c: {int, int} = storage::x;
+// state ::d: {int[2], int[2]} = storage::y;
+// state ::e: {int, int}[2] = storage::z;
+// constraint (::a' > ::a);
+// constraint (::a' > ::a);
+// constraint (::a' > ::a);
+// constraint (::b'[0] > ::a);
+// constraint (::b'[0] > ::a);
+// constraint (::b'[0] > ::a);
+// constraint (::c'.0 > ::a);
+// constraint (::c'.0 > ::a);
+// constraint (::c'.0 > ::a);
+// constraint (::d'.0[0] > ::a);
+// constraint (::d'.0[0] > ::a);
+// constraint (::d'.0[0] > ::a);
+// constraint (::d'.0[0] > ::a);
+// constraint (::d'.0[0] > ::a);
+// constraint (::d'.0[0] > ::a);
+// constraint (::e'[0].0 > ::a);
+// constraint (::e'[0].0 > ::a);
+// constraint (::e'[0].0 > ::a);
+// constraint (::e'[0].0 > ::a);
+// constraint (::e'[0].0 > ::a);
+// constraint (::e'[0].0 > ::a);
+// constraint (::e'[0].0 > ::a);
+// solve satisfy;
+// >>>

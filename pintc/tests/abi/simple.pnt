@@ -76,12 +76,8 @@ predicate Foo {
 //     var ::v0: int;
 //     var ::v1: int;
 //     var ::v2: b256;
-//     var ::v3.0: int;
-//     var ::v3.1: int;
-//     var ::v4.0: int;
-//     var ::v4.1: int;
-//     var ::v4.2.0: int;
-//     var ::v4.2.1: int;
+//     var ::v3: {int, int};
+//     var ::v4: {int, int, {int, int}};
 //     pub var ::t0: int;
 //     pub var ::t1: int;
 //     pub var ::t2: b256;

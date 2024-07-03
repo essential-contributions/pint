@@ -1,15 +1,11 @@
 [[data]]
 decision_variables = [
-  [141],  # ::w
-  [129],  # ::u
-  [1936], # ::v
-  [69],   # ::e_old
-  [70],   # ::e_new
-  [0],    # ::a[0]
-  [1],    # ::a[1]
-  [4],    # ::a[2]
-  [9],    # ::a[3]
-  [16],   # ::a[4]
+  [141],            # ::w
+  [129],            # ::u
+  [1936],           # ::v
+  [69],             # ::e_old
+  [70],             # ::e_new
+  [0, 1, 4, 9, 16], # ::a
 ]
 predicate_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", predicate = "::Simple" }
 state_mutations = [

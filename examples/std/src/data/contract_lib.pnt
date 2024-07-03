@@ -1,0 +1,7 @@
+// Module data::contract_lib
+
+type Data = { 
+    address: b256,
+    storage_vars: int,
+    predicates: int,
+};

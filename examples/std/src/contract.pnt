@@ -1,0 +1,13 @@
+var a = entry1::predicate_data;
+
+var b = entry2::predicate_data;
+
+var c = entry3::predicate_data;
+
+var d0 = entry4::contract_data_1;
+var d1 = entry4::contract_data_2;
+
+var e0 = entry5::contract_data_1;
+var e1 = entry5::contract_data_2;
+
+solve satisfy;

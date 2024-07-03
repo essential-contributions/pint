@@ -23,12 +23,8 @@ solve satisfy;
 // >>>
 
 // flattened <<<
-// var ::x[0]: int;
-// var ::x[1]: int;
-// var ::y.0.0: int;
-// var ::y.0.1: int;
-// var ::y.1.0: int;
-// var ::y.1.1: int;
+// var ::x: ::A (int)[2];
+// var ::y: {::C ({::A (int), ::A (int)}), ::C ({::A (int), ::A (int)})};
 // type ::A = int;
 // type ::B = ::A (int)[2];
 // type ::C = {::A (int), ::A (int)};

@@ -37,6 +37,7 @@ pub enum TypeABI {
     String,
     B256,
     Tuple(Vec<TupleField>),
+    Array { ty: Box<TypeABI>, size: i64 },
 }
 
 //////////////////////////////////////////////////////////////////

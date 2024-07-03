@@ -19,7 +19,7 @@ Declaring public decision variables is fairly simple. All you have to do is pref
 declaration with the keyword `pub`:
 
 ```pint
-{{#include ../../../../examples/ch_6_1.pnt:predicate_foo}}
+{{#include ../../../../examples/ch_7_1.pnt:predicate_foo}}
 ```
 
 In the predicate above, we are declaring 3 public decision variables and 3 private decision
@@ -36,7 +36,7 @@ contract: the storage block as well as all the predicates and their public decis
 example, the following interface can be produced from the contract above:
 
 ```pint
-{{#include ../../../../examples/ch_6_1.pnt:interface}}
+{{#include ../../../../examples/ch_7_1.pnt:interface}}
 ```
 
 Note that everything in predicate `Foo` was dropped except for `pub var` declarations.
@@ -54,7 +54,7 @@ First, we need to declare an interface instance using the syntax we learned in [
 5.3](../storage/external.md)
 
 ```pint
-{{#include ../../../../examples/ch_6_1.pnt:interface_instance}}
+{{#include ../../../../examples/ch_7_1.pnt:interface_instance}}
 ```
 
 where `ContractID` is the address of the contract where the public decision variables are declared.
@@ -62,7 +62,7 @@ Then, and because the public decision variables live inside a predicate, we need
 **predicate instance** as follows:
 
 ```pint
-{{#include ../../../../examples/ch_6_1.pnt:predicate_instance}}
+{{#include ../../../../examples/ch_7_1.pnt:predicate_instance}}
 ```
 
 Similarly to interface instance declarations, a predicate instance declaration requires an address.
@@ -75,7 +75,7 @@ Now that we have an instance of `Foo`, we are able to access its public decision
 path that contains the predicate instance name and the name of the variable:
 
 ```pint
-{{#include ../../../../examples/ch_6_1.pnt:access}}
+{{#include ../../../../examples/ch_7_1.pnt:access}}
 ```
 
 ### Public Decision Variables in Solutions
@@ -96,7 +96,7 @@ represents the **index** of the solved predicate in the solution. An implicit de
 added for each predicate instance declaration. Therefore, in the example below:
 
 ```pint
-{{#include ../../../../examples/ch_6_1.pnt:multiple_instances}}
+{{#include ../../../../examples/ch_7_1.pnt:multiple_instances}}
 ```
 
 the variables `x1` and `x2` may not be the same since they may refer to two different values of `x`

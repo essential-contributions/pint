@@ -30,11 +30,7 @@
 // var ::w: int;
 // var ::u: int;
 // var ::v: int;
-// var ::a[0]: int;
-// var ::a[1]: int;
-// var ::a[2]: int;
-// var ::a[3]: int;
-// var ::a[4]: int;
+// var ::a: int[5];
 // state ::x: int = __storage_get(0x000000000000000E000000000000000E000000000000000E000000000000000E);
 // state ::y: int = __storage_get(0x000000000000000E000000000000000E000000000000000E000000000000000F);
 // state ::z: int = __storage_get(0x000000000000000E000000000000000E000000000000000E000000000000000A);

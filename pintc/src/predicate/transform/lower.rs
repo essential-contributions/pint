@@ -37,11 +37,15 @@ pub(crate) fn lower_enums(handler: &Handler, pred: &mut Predicate) -> Result<(),
     }
 
     // Find all the expressions referring to the variants and save them in a list.
-    let mut replacements = Vec::new();
+    let mut variant_replacements = Vec::default();
+    let mut enum_replacements = Vec::default();
     for old_expr_key in pred.exprs() {
         if let Some(Expr::PathByName(path, _span)) = old_expr_key.try_get(pred) {
             if let Some(idx) = variant_map.get(path) {
-                replacements.push((old_expr_key, idx));
+                variant_replacements.push((old_expr_key, idx));
+            }
+            if let Some(count) = variant_count_map.get(path) {
+                enum_replacements.push((old_expr_key, *count));
             }
         }
     }
@@ -57,7 +61,7 @@ pub(crate) fn lower_enums(handler: &Handler, pred: &mut Predicate) -> Result<(),
     };
 
     // Replace the variant expressions with literal int equivalents.
-    for (old_expr_key, idx) in replacements {
+    for (old_expr_key, idx) in variant_replacements {
         let new_expr_key = pred.exprs.insert(
             Expr::Immediate {
                 value: Immediate::Int(*idx as i64),
@@ -157,6 +161,45 @@ pub(crate) fn lower_enums(handler: &Handler, pred: &mut Predicate) -> Result<(),
     for enum_var_key in vars_with_enum_ty {
         enum_var_key.set_ty(int_ty.clone(), pred);
     }
+
+    // Array types can use enums as the range.  Recursively replace a range known to be an enum
+    // with an immediate integer equivalent.
+    fn replace_array_range(enum_expr_map: &FxHashMap<ExprKey, ExprKey>, ty: &mut Type) {
+        if let Type::Array {
+            ty: el_ty,
+            range: Some(range_key),
+            ..
+        } = ty
+        {
+            // If the range for this array is an enum (i.e., we found it in our map) then replace
+            // it with an immediate int.
+            if let Some(count_expr_key) = enum_expr_map.get(range_key) {
+                *range_key = *count_expr_key;
+            }
+
+            // Recurse for multi-dimensional arrays.
+            replace_array_range(enum_expr_map, el_ty);
+        }
+    }
+
+    // Build a map from expr-key-of-path-to-enum to immediate-int-of-variant-count.
+    let enum_count_exprs =
+        FxHashMap::from_iter(enum_replacements.into_iter().map(|(expr_key, count)| {
+            let imm_expr_key = pred.exprs.insert(
+                Expr::Immediate {
+                    value: Immediate::Int(count as i64),
+                    span: empty_span(),
+                },
+                int_ty.clone(),
+            );
+            (expr_key, imm_expr_key)
+        }));
+
+    // Update all the array types.
+    pred.vars
+        .update_types(|_var_key, ty| replace_array_range(&enum_count_exprs, ty));
+    pred.exprs
+        .update_types(|_expr_key, ty| replace_array_range(&enum_count_exprs, ty));
 
     // Not sure at this stage if we'll ever allow state to be an enum.
     for (state_key, _) in pred.states() {
@@ -960,6 +1003,164 @@ pub(super) fn replace_const_refs(pred: &mut Predicate, consts: &[(String, ExprKe
         for (path_expr_key, _, const_expr, const_ty) in const_refs {
             let const_expr_key = pred.exprs.insert(const_expr.clone(), const_ty.clone());
             pred.replace_exprs(path_expr_key, const_expr_key);
+        }
+    }
+}
+
+pub(super) fn coalesce_prime_ops(pred: &mut Predicate) {
+    // Gather up all the keys to any NextState ops in this predicate.
+    let mut work_list: Vec<(ExprKey, ExprKey)> = pred
+        .exprs()
+        .filter_map(|op_key| {
+            if let Expr::UnaryOp {
+                op: UnaryOp::NextState,
+                expr: arg_key,
+                ..
+            } = op_key.get(pred)
+            {
+                Some((op_key, *arg_key))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // We want to merge any ops which are applied to other ops.  And we want to push ops on index
+    // or field access expressions up to the array or tuple that they're indexing.  In turn that
+    // could create new prime ops applied to prime ops or indices/accesses.
+    //
+    // Doing this efficiently is non-trivial.  Whenever we replace an expression key in the
+    // predicate we need to update the work list at the same time.
+
+    fn replace_exprs(
+        pred: &mut Predicate,
+        work_list: &mut Vec<(ExprKey, ExprKey)>,
+        old_key: ExprKey,
+        new_key: ExprKey,
+    ) {
+        pred.replace_exprs(old_key, new_key);
+
+        for (ref mut op_key, ref mut arg_key) in work_list {
+            if *op_key == old_key {
+                *op_key = new_key;
+            }
+            if *arg_key == old_key {
+                *arg_key = new_key;
+            }
+        }
+    }
+
+    // The different transforms we may perform to coalesce prime ops.  Needed to avoid borrow
+    // violations when we update the expressions in-place.
+    enum Coalescence {
+        None,
+        MergeOps,
+        LowerIndex(ExprKey),
+        LowerAccess(ExprKey),
+    }
+
+    // Pop the next candidate (prime op key and its argument key) until the list is empty.
+    while let Some((op_key, arg_key)) = work_list.pop() {
+        let coalescence = match arg_key.get(pred) {
+            Expr::UnaryOp {
+                op: UnaryOp::NextState,
+                ..
+            } => Coalescence::MergeOps,
+
+            Expr::Index { expr, .. } => Coalescence::LowerIndex(*expr),
+
+            Expr::TupleFieldAccess { tuple, .. } => Coalescence::LowerAccess(*tuple),
+
+            // The only other valid expressions will be PathByKey and PathByName, and for either
+            // there's nothing to do -- they're popped off the work list.
+            Expr::Error(_)
+            | Expr::Immediate { .. }
+            | Expr::Array { .. }
+            | Expr::Tuple { .. }
+            | Expr::PathByKey(..)
+            | Expr::PathByName(..)
+            | Expr::StorageAccess(..)
+            | Expr::ExternalStorageAccess { .. }
+            | Expr::UnaryOp { .. }
+            | Expr::BinaryOp { .. }
+            | Expr::MacroCall { .. }
+            | Expr::IntrinsicCall { .. }
+            | Expr::Select { .. }
+            | Expr::Cast { .. }
+            | Expr::In { .. }
+            | Expr::Range { .. }
+            | Expr::Generator { .. } => Coalescence::None,
+        };
+
+        match coalescence {
+            Coalescence::None => {}
+
+            Coalescence::MergeOps => {
+                // E.g., a''.
+
+                // Replace any reference to the outer op expression with the inner arg op.
+                replace_exprs(pred, &mut work_list, op_key, arg_key);
+            }
+
+            Coalescence::LowerIndex(indexed_key) => {
+                // E.g., a[i]' -> a'[i].
+
+                // Update any reference the the prime op to instead be to the index expression.
+                replace_exprs(pred, &mut work_list, op_key, arg_key);
+
+                // Update the prime op to refer to the indexed expression and put this 'new' op
+                // back onto the list.
+                let Expr::UnaryOp {
+                    expr: arg_key_ref, ..
+                } = op_key.get_mut(pred)
+                else {
+                    unreachable!("op_key must be to a Unary::NextState")
+                };
+
+                *arg_key_ref = indexed_key;
+                work_list.push((op_key, indexed_key));
+
+                // Update the index expression to refer to the prime op.
+                let Expr::Index {
+                    expr: indexed_key_ref,
+                    ..
+                } = arg_key.get_mut(pred)
+                else {
+                    unreachable!("arg_key must be to an Expr::Index")
+                };
+
+                *indexed_key_ref = op_key;
+            }
+
+            Coalescence::LowerAccess(accessed_key) => {
+                // E.g., a.x' -> a'.x.
+
+                // Update any reference to the prime op to instead be to the access expression.
+                replace_exprs(pred, &mut work_list, op_key, arg_key);
+
+                // Update the prime op to refer to the accessed expression.  Also update the list
+                // to reflect the same.
+                let Expr::UnaryOp {
+                    expr: old_arg_key, ..
+                } = op_key.get_mut(pred)
+                else {
+                    unreachable!("op_key must be to a Unary::NextState")
+                };
+
+                *old_arg_key = accessed_key;
+                work_list.push((op_key, accessed_key));
+
+                // Update the access expression to refer to the prime op.
+                let Expr::TupleFieldAccess {
+                    tuple: old_accessed_key,
+                    ..
+                } = arg_key.get_mut(pred)
+                else {
+                    unreachable!("arg_key must be to an Expr::TupleFieldAccess")
+                };
+
+                *old_accessed_key = op_key;
+            }
         }
     }
 }

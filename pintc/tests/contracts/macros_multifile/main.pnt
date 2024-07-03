@@ -44,7 +44,7 @@ predicate Bar {
 // flattened <<<
 // predicate ::Bar {
 //     var ::anon@0::a: int;
-//     constraint ((1e0 == 1e0) && (2e0 == 2e0));
+//     constraint ([1e0, 2e0] == [1e0, 2e0]);
 //     constraint (::anon@0::a == 4);
 // }
 // 

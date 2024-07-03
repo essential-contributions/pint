@@ -4,10 +4,10 @@ use crate::{
     span::Span,
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type},
 };
-use abi_types::{KeyedVarABI, PredicateABI, ProgramABI};
 use exprs::ExprsIter;
 pub use exprs::{ExprKey, Exprs};
 use fxhash::FxHashMap;
+use pint_abi_types::{KeyedVarABI, PredicateABI, ProgramABI};
 pub use states::{State, StateKey, States};
 use std::{
     collections::BTreeMap,
@@ -167,7 +167,7 @@ impl Predicate {
             vars: self
                 .vars()
                 .filter(|(_, var)| !var.is_pub)
-                .map(|(var_key, _)| var_key.abi(self))
+                .map(|(var_key, _)| var_key.abi(handler, self))
                 .collect::<Result<_, _>>()?,
             pub_vars: self
                 .vars()

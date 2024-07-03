@@ -1,12 +1,8 @@
 [[data]]
 decision_variables = [
-  [5], #d[0]
-  [6], #d[1]
-  [8], #e[0]
-  [9], #e[1]
-  [5], #f1[0]
-  [6], #f1[1]
-  [8], #f2[0]
-  [9], #f2[1]
+  [5, 6], #d
+  [8, 9], #e
+  [5, 6], #f1
+  [8, 9], #f2
 ]
 predicate_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", predicate = "" }
