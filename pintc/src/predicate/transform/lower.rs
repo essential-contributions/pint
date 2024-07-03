@@ -37,11 +37,15 @@ pub(crate) fn lower_enums(handler: &Handler, pred: &mut Predicate) -> Result<(),
     }
 
     // Find all the expressions referring to the variants and save them in a list.
-    let mut replacements = Vec::new();
+    let mut variant_replacements = Vec::default();
+    let mut enum_replacements = Vec::default();
     for old_expr_key in pred.exprs() {
         if let Some(Expr::PathByName(path, _span)) = old_expr_key.try_get(pred) {
             if let Some(idx) = variant_map.get(path) {
-                replacements.push((old_expr_key, idx));
+                variant_replacements.push((old_expr_key, idx));
+            }
+            if let Some(count) = variant_count_map.get(path) {
+                enum_replacements.push((old_expr_key, *count));
             }
         }
     }
@@ -57,7 +61,7 @@ pub(crate) fn lower_enums(handler: &Handler, pred: &mut Predicate) -> Result<(),
     };
 
     // Replace the variant expressions with literal int equivalents.
-    for (old_expr_key, idx) in replacements {
+    for (old_expr_key, idx) in variant_replacements {
         let new_expr_key = pred.exprs.insert(
             Expr::Immediate {
                 value: Immediate::Int(*idx as i64),
@@ -157,6 +161,45 @@ pub(crate) fn lower_enums(handler: &Handler, pred: &mut Predicate) -> Result<(),
     for enum_var_key in vars_with_enum_ty {
         enum_var_key.set_ty(int_ty.clone(), pred);
     }
+
+    // Array types can use enums as the range.  Recursively replace a range known to be an enum
+    // with an immediate integer equivalent.
+    fn replace_array_range(enum_expr_map: &FxHashMap<ExprKey, ExprKey>, ty: &mut Type) {
+        if let Type::Array {
+            ty: el_ty,
+            range: Some(range_key),
+            ..
+        } = ty
+        {
+            // If the range for this array is an enum (i.e., we found it in our map) then replace
+            // it with an immediate int.
+            if let Some(count_expr_key) = enum_expr_map.get(range_key) {
+                *range_key = *count_expr_key;
+            }
+
+            // Recurse for multi-dimensional arrays.
+            replace_array_range(enum_expr_map, el_ty);
+        }
+    }
+
+    // Build a map from expr-key-of-path-to-enum to immediate-int-of-variant-count.
+    let enum_count_exprs =
+        FxHashMap::from_iter(enum_replacements.into_iter().map(|(expr_key, count)| {
+            let imm_expr_key = pred.exprs.insert(
+                Expr::Immediate {
+                    value: Immediate::Int(count as i64),
+                    span: empty_span(),
+                },
+                int_ty.clone(),
+            );
+            (expr_key, imm_expr_key)
+        }));
+
+    // Update all the array types.
+    pred.vars
+        .update_types(|_var_key, ty| replace_array_range(&enum_count_exprs, ty));
+    pred.exprs
+        .update_types(|_expr_key, ty| replace_array_range(&enum_count_exprs, ty));
 
     // Not sure at this stage if we'll ever allow state to be an enum.
     for (state_key, _) in pred.states() {

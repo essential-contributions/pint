@@ -96,9 +96,7 @@ struct StorageKey {
 /// Location of an expression:
 /// 1. `Value` expressions are just raw values such as immediates or the outputs of binary ops.
 /// 2. `DecisionVar` expressions refer to expressions that require the `DecisionVar` or
-///    `DecisionVarRange` opcodes. The `usize` here is the index of the decision variable. We will
-///    need to update this
-///    variant to also include an offset once we stop scalarizing.
+///    `DecisionVarRange` opcodes. The `usize` here is the index of the decision variable.
 /// 3. `Transient` expressions refer to expressions that require the `Transient` opcode. The
 ///    `Option<String>` is the optional name of the pathway variable. If `None`, just use
 ///    `ThisPathway`. The `usize` is the transient key length.
@@ -153,8 +151,8 @@ impl AsmBuilder {
             Expr::TupleFieldAccess { tuple, field, .. } => {
                 let location = Self::compile_expr_pointer(handler, asm, tuple, pred)?;
                 match location {
-                    Location::State(_) | Location::Transient(..) => {
-                        // Offset calculation for state and transient data is the same
+                    Location::State(_) | Location::Transient(..) | Location::DecisionVar(_) => {
+                        // Offset calculation is pretty much the same for all types of data
 
                         // Grab the fields of the tuple
                         let Type::Tuple { ref fields, .. } = tuple.get_ty(pred) else {
@@ -190,17 +188,22 @@ impl AsmBuilder {
                         // This is the offset from the base key where the full tuple is stored.
                         let key_offset: usize =
                             fields.iter().take(field_idx).try_fold(0, |acc, (_, ty)| {
-                                ty.storage_or_transient_slots(handler, pred)
-                                    .map(|slots| acc + slots)
+                                // Decision vars are flattened in a given slots, so we look at the
+                                // raw size in words. For transient and storage variables, we look
+                                // at the "storage size" which may yield different results (e.g. a
+                                // `b256` is 4 words but its storage size is 1
+                                if let Location::DecisionVar(_) = location {
+                                    ty.size(handler, pred)
+                                } else {
+                                    ty.storage_or_transient_slots(handler, pred)
+                                }
+                                .map(|slots| acc + slots)
                             })?;
 
                         // Now offset using `Add`
                         asm.push(Stack::Push(key_offset as i64).into());
                         asm.push(Alu::Add.into());
                         Ok(location)
-                    }
-                    Location::DecisionVar(_) => {
-                        unimplemented!("we'll handle this when we stop scalarizing")
                     }
                     Location::Value => {
                         unimplemented!("we'll handle this eventually as a fallback option")
@@ -210,8 +213,8 @@ impl AsmBuilder {
             Expr::Index { expr, index, .. } => {
                 let location = Self::compile_expr_pointer(handler, asm, expr, pred)?;
                 match location {
-                    Location::State(_) | Location::Transient(..) => {
-                        // Offset calculation for state and transient data is the same
+                    Location::State(_) | Location::Transient(..) | Location::DecisionVar(_) => {
+                        // Offset calculation is pretty much the same for all types of data
 
                         // Grab the element ty of the array
                         let Type::Array { ty, .. } = expr.get_ty(pred) else {
@@ -229,16 +232,21 @@ impl AsmBuilder {
                         // Multiply the index by the number of storage slots for `ty` to get the
                         // offset, then add the result to the base key
                         asm.push(
-                            Stack::Push(ty.storage_or_transient_slots(handler, pred)? as i64)
-                                .into(),
+                            // Decision vars are flattened in a given slots, so we look at the
+                            // raw size in words. For transient and storage variables, we look
+                            // at the "storage size" which may yield different results (e.g. a
+                            // `b256` is 4 words but its storage size is 1
+                            Stack::Push(if let Location::DecisionVar(_) = location {
+                                ty.size(handler, pred)?
+                            } else {
+                                ty.storage_or_transient_slots(handler, pred)?
+                            } as i64)
+                            .into(),
                         );
                         asm.push(Alu::Mul.into());
                         asm.push(Alu::Add.into());
 
                         Ok(location)
-                    }
-                    Location::DecisionVar(_) => {
-                        unimplemented!("we'll handle this when we stop scalarizing")
                     }
                     Location::Value => {
                         unimplemented!("we'll handle this eventually as a fallback option")
@@ -513,10 +521,12 @@ impl AsmBuilder {
             }
             Location::DecisionVar(len) => {
                 if len == 1 {
+                    // If the decision variable itself is a single word, just `DecisionVar`
+                    // directly. Otherwise, we may need `DecisionVarRange` (e.g. tuple access,
+                    // etc.)
                     asm.push(Access::DecisionVar.into());
                 } else {
-                    asm.push(Stack::Push(0).into()); // index
-                    asm.push(Stack::Push(len as i64).into()); // len
+                    asm.push(Stack::Push(expr_ty.size(handler, pred)? as i64).into()); // len
                     asm.push(Access::DecisionVarRange.into());
                 }
             }
@@ -998,6 +1008,9 @@ impl AsmBuilder {
             let var_key = pred.vars().find(|(_, var)| &var.name == path).unwrap().0;
             let var_ty_size = var_key.get_ty(pred).size(handler, pred)?;
             asm.push(Stack::Push(var_index as i64).into()); // slot
+            if var_key.get_ty(pred).size(handler, pred)? > 1 {
+                asm.push(Stack::Push(0).into()); // placeholder for index computation
+            }
             Ok(Location::DecisionVar(var_ty_size))
         } else if let Some(pub_var_index) = pub_var_index {
             let var_key = pred.vars().find(|(_, var)| &var.name == path).unwrap().0;

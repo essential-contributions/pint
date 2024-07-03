@@ -167,7 +167,7 @@ impl Predicate {
             vars: self
                 .vars()
                 .filter(|(_, var)| !var.is_pub)
-                .map(|(var_key, _)| var_key.abi(self))
+                .map(|(var_key, _)| var_key.abi(handler, self))
                 .collect::<Result<_, _>>()?,
             pub_vars: self
                 .vars()

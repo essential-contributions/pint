@@ -265,7 +265,14 @@ impl Expr {
     pub fn replace_ref<F: FnMut(&mut ExprKey)>(&mut self, mut replace: F) {
         match self {
             Expr::Immediate { .. } => {}
-            Expr::Array { elements, .. } => elements.iter_mut().for_each(replace),
+            Expr::Array {
+                elements,
+                range_expr,
+                ..
+            } => {
+                replace(range_expr);
+                elements.iter_mut().for_each(replace);
+            }
             Expr::Tuple { fields, .. } => fields.iter_mut().for_each(|(_, expr)| replace(expr)),
             Expr::UnaryOp { expr, .. } => replace(expr),
             Expr::BinaryOp { lhs, rhs, .. } => {
