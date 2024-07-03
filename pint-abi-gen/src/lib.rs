@@ -48,6 +48,15 @@ fn ty_from_tuple(tuple: &[TupleField]) -> syn::Type {
     }
 }
 
+/// Convert the given pint array to an equivalent Rust array type.
+fn ty_from_array(ty: &TypeABI, size: i64) -> syn::Type {
+    let syn_ty = ty_from_pint_ty(ty);
+    let len = usize::try_from(size).expect("array size out of range of `usize`");
+    syn::parse_quote! {
+        [#syn_ty; #len]
+    }
+}
+
 /// Convert the given pint ABI type to an equivalent Rust type.
 fn ty_from_pint_ty(ty: &TypeABI) -> syn::Type {
     match ty {
@@ -57,7 +66,7 @@ fn ty_from_pint_ty(ty: &TypeABI) -> syn::Type {
         TypeABI::String => syn::parse_quote!(String),
         TypeABI::B256 => syn::parse_quote!([i64; 4]),
         TypeABI::Tuple(tuple) => ty_from_tuple(tuple),
-        TypeABI::Array { .. } => todo!(),
+        TypeABI::Array { ty, size } => ty_from_array(ty, *size),
     }
 }
 
