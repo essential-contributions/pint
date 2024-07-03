@@ -29,6 +29,7 @@
   - [Bringing Paths into Scope with the use Keyword](projects/use.md)
 - [Advanced Features](advanced/index.md)
   - [Public Decision Variables](advanced/pub_vars.md)
+  - [Macros](advanced/macros.md)
 - [Appendix](appendix/index.md)
   - [A - Keywords](appendix/keywords.md)
   - [B - Compiler Intrinsics](appendix/intrinsics.md)
