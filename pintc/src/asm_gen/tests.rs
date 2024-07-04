@@ -1879,3 +1879,159 @@ predicate Foo {
         "#]],
     );
 }
+
+#[test]
+fn nil() {
+    check(
+        &format!(
+            "{}",
+            compile(
+                r#"
+storage {
+    x: int,
+    w: b256,
+    t: { b256, int },
+    a: int[2][3],
+}
+
+predicate Foo {
+    state x = storage::x;
+    state w = storage::w;
+    state t = storage::t;
+    state a = storage::a;
+
+    // `x` is set in the pre state db and in the solution
+    constraint x != nil;
+    constraint nil != x';
+
+    // `w` is set in the pre state db but unset in the solution
+    constraint w != nil;
+    constraint nil == w';
+
+    // `t` is not set in the pre state db but is set in the solution
+    constraint t == nil;
+    constraint t' != nil;
+
+    // `a` is not set in the pre state db and is partially set in the solution.
+    constraint a == nil;
+    constraint a' != nil;
+}
+            "#,
+            )
+        ),
+        expect_test::expect![[r#"
+            predicate ::Foo {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Access(StateLen)
+                  Stack(Push(0))
+                  Pred(Eq)
+                  Pred(Not)
+                constraint 1
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(StateLen)
+                  Stack(Push(0))
+                  Pred(Eq)
+                  Pred(Not)
+                constraint 2
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Access(StateLen)
+                  Stack(Push(0))
+                  Pred(Eq)
+                  Pred(Not)
+                constraint 3
+                  Stack(Push(1))
+                  Stack(Push(1))
+                  Access(StateLen)
+                  Stack(Push(0))
+                  Pred(Eq)
+                constraint 4
+                  Stack(Push(2))
+                  Stack(Push(2))
+                  Stack(Push(0))
+                  Access(StateLenRange)
+                  Alu(Add)
+                  Stack(Push(0))
+                  Pred(Eq)
+                constraint 5
+                  Stack(Push(2))
+                  Stack(Push(2))
+                  Stack(Push(1))
+                  Access(StateLenRange)
+                  Alu(Add)
+                  Stack(Push(0))
+                  Pred(Eq)
+                  Pred(Not)
+                constraint 6
+                  Stack(Push(4))
+                  Stack(Push(6))
+                  Stack(Push(0))
+                  Access(StateLenRange)
+                  Alu(Add)
+                  Alu(Add)
+                  Alu(Add)
+                  Alu(Add)
+                  Alu(Add)
+                  Stack(Push(0))
+                  Pred(Eq)
+                constraint 7
+                  Stack(Push(4))
+                  Stack(Push(6))
+                  Stack(Push(1))
+                  Access(StateLenRange)
+                  Alu(Add)
+                  Alu(Add)
+                  Alu(Add)
+                  Alu(Add)
+                  Alu(Add)
+                  Stack(Push(0))
+                  Pred(Eq)
+                  Pred(Not)
+                --- State Reads ---
+                state read 0
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(1)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
+                  Constraint(TotalControlFlow(Halt))
+                state read 1
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(1)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
+                  Constraint(TotalControlFlow(Halt))
+                state read 2
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(2)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
+                  Constraint(TotalControlFlow(Halt))
+                state read 3
+                  Constraint(Stack(Push(3)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(6)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(6)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
+                  Constraint(TotalControlFlow(Halt))
+            }
+
+        "#]],
+    );
+}

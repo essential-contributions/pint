@@ -2,6 +2,7 @@
 // 0, 42
 // 1, 43
 // 3, 1 1 1 1
+// 6 0, 9
 // >>>
 
 storage {
@@ -9,6 +10,9 @@ storage {
     y: int,
     z: int,
     w: b256,
+    t: { b256, int },
+    a: int[2][3],
+    t2: { int, int, { int, int } },
 }
 
 // Constraint set with address `0x0000000000000000000000000000000000000000000000000000000000000000`
@@ -17,6 +21,9 @@ predicate Foo {
     state y = storage::y;
     state z = storage::z;
     state w = storage::w;
+    state t = storage::t;
+    state a = storage::a;
+    state t2 = storage::t2;
 
     // `x` is set in the pre state db and in the solution
     constraint x != nil;
@@ -33,4 +40,16 @@ predicate Foo {
     // `w` is set in the pre state db but unset in the solution
     constraint w != nil;
     constraint nil == w';
+
+    // `t` is not set in the pre state db but is set in the solution
+    constraint t == nil;
+    constraint t' != nil;
+
+    // `a` is not set in the pre state db and is partially set in the solution.
+    constraint a == nil;
+    constraint a' != nil;
+
+    // `t2` is partially set in the pre state db and is set to nil in the solution.
+    constraint t2 != nil;
+    constraint t2' == nil;
 }
