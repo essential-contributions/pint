@@ -1,6 +1,6 @@
 use crate::{error::ParseError, span::Span};
 use logos::Logos;
-use std::{fmt, rc::Rc};
+use std::{fmt, ops::Range, rc::Rc};
 
 #[cfg(test)]
 mod tests;
@@ -74,6 +74,8 @@ pub enum Token {
     Dot,
     #[token("..")]
     TwoDots,
+    #[token("~")]
+    Tilde,
 
     #[token("real")]
     Real,
@@ -100,7 +102,6 @@ pub enum Token {
     MacroParam(String),
     #[regex(r"&[A-Za-z_0-9]+", |lex| lex.slice().to_string())]
     MacroParamPack(String),
-    #[regex(r"~[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice().to_string())]
     MacroSplice(String),
     MacroBody(MacroBody),
     MacroCallArgs(MacroCallArgs),
@@ -276,6 +277,7 @@ impl fmt::Display for Token {
             Token::HeavyArrow => write!(f, "=>"),
             Token::Dot => write!(f, "."),
             Token::TwoDots => write!(f, ".."),
+            Token::Tilde => write!(f, "~"),
             Token::Real => write!(f, "real"),
             Token::Int => write!(f, "int"),
             Token::Bool => write!(f, "bool"),
@@ -395,7 +397,7 @@ impl<'sc> Lexer<'sc> {
     fn gather_macro_body(
         &mut self,
         obrace_tok: Token,
-        obrace_span: &std::ops::Range<usize>,
+        obrace_span: &Range<usize>,
     ) -> Result<(usize, Token, usize), ParseError> {
         // Copy the lexer in case we need to backtrack.
         let mut body_token_stream = self.token_stream.clone();
@@ -493,19 +495,21 @@ impl<'sc> Lexer<'sc> {
     fn gather_macro_call_args(
         &mut self,
         oparen_tok: Token,
-        oparen_span: &std::ops::Range<usize>,
+        oparen_span: &Range<usize>,
     ) -> Result<(usize, Token, usize), ParseError> {
         // Copy the token stream in case we need to backtrack.  Cloning isn't the most efficient
         // way to do this, especially with TokenSource::VecToken, but it works.
         let mut args_token_stream = self.token_stream.clone();
         let mut parsed_tok_count = 0;
         let mut nested_paren_count = 0;
+        let mut most_recent_tilde = 0;
+        let mut tilde_tok_range: Option<Range<usize>> = None;
 
         // We're building a vector of vectors of arg tokens.
         let mut all_args: Vec<Vec<(usize, Token, usize)>> = vec![Vec::default()];
 
         macro_rules! push_tok {
-            ($tok: ident) => {{
+            ($tok: expr) => {{
                 let tok_span = args_token_stream.span();
                 all_args
                     .last_mut()
@@ -527,6 +531,20 @@ impl<'sc> Lexer<'sc> {
                 Some(Ok(Token::Semi)) if nested_paren_count == 0 => {
                     // The end of some arg tokens.
                     all_args.push(Vec::new());
+                }
+
+                Some(Ok(Token::Tilde)) => {
+                    // A macro splice, as long as the next token is an identifier.  Take note.
+                    tilde_tok_range = Some(args_token_stream.span());
+                    most_recent_tilde = parsed_tok_count;
+                }
+
+                Some(Ok(Token::Ident(id))) if tilde_tok_range.is_some() => {
+                    // This was preceded by a tilde so it's actually a MacroSplice.
+                    push_tok!(Token::MacroSplice(id.0.clone()));
+
+                    // Reset the tilde range to indicate it was converted to a splice token.
+                    tilde_tok_range = None;
                 }
 
                 Some(Ok(tok @ Token::ParenOpen)) => {
@@ -573,6 +591,17 @@ impl<'sc> Lexer<'sc> {
 
                 Some(Err(_)) => {
                     return Err(ParseError::InvalidToken);
+                }
+            }
+
+            if most_recent_tilde != parsed_tok_count {
+                if let Some(range) = tilde_tok_range {
+                    // We saw a tilde 2 tokens ago and didn't convert it to a splice token.  We can
+                    // emit a more descriptive error (than just a 'lexer error') here.
+                    return Err(ParseError::BadSplice(Span::new(
+                        self.filepath.clone(),
+                        range,
+                    )));
                 }
             }
         }
@@ -630,7 +659,7 @@ impl<'a> TokenSource<'a> {
         }
     }
 
-    fn span(&self) -> std::ops::Range<usize> {
+    fn span(&self) -> Range<usize> {
         match self {
             TokenSource::LogosLexer(lex) => lex.span(),
             TokenSource::VecToken(state) => state.start..state.end,
@@ -719,8 +748,14 @@ impl<'a> Iterator for Lexer<'a> {
                     Ok((span.start, tok, span.end))
                 }
             })
-            .map_err(|_| ParseError::Lex {
-                span: Span::new(self.filepath.clone(), span.start..span.end),
+            .map_err(|err| match err {
+                // Preserve some errors.
+                ParseError::BadSplice(_) => err,
+
+                // Generally just return a tokenisation failure with a proper span.
+                _ => ParseError::Lex {
+                    span: Span::new(self.filepath.clone(), span.start..span.end),
+                },
             })
         })
     }
