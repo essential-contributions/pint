@@ -168,12 +168,12 @@ error!
 ### Recursion and Variadic Macros
 
 The second type of macros we will look at is "Variadic Macros". Variadic macros allow a special type
-of recursive via _variadic parameters_. Such special parameters allow macros to call themselves,
+of recursion via _variadic parameters_. Such special parameters allow macros to call themselves,
 essentially entering an _expansion loop_. Think of this as **recursive code generation**.
 
 The term "variadic" means that the macro accepts a variable number of parameters. In the parameter
-list of the macro definition, this is indicated using a special parameter whose name starts with a
-`&`. Recursion may be performed via one or more recursing macros and one or more non-recursing, or
+list of the macro definition this is indicated using a special parameter whose name starts with an
+`&`. Recursion may be performed via one or more recursing macros and at least one non-recursing, or
 _terminating_ macros. The recursing macros call other versions of itself but with a different number
 of - usually fewer - arguments. The terminating macros do not call another version of itself. This
 is best explained with an example, so let's consider the following macro which implements a sum
@@ -186,8 +186,8 @@ operation over an arbitrary number of named variables:
 We have two versions of the `@sum` macro. Despite the apparent name clash, this is actually okay
 because the two macros accept a different number of parameters. The first version of `@sum` accepts
 `$x`, `$y`, and `&rest` while the second version accepts only `$x` and `$y`. The parameter `&rest`
-is a special one and is usually referred to as a "parameter pack". The parameter pack is never
-empty, therefore, in order to call the first version of `@sum`, we must pass 3 or more arguments.
+is special and is referred to as a "parameter pack". The parameter pack is never empty, therefore in
+order to call the first version of `@sum`, we must pass 3 or more arguments.
 
 > **Note**: The parameter pack is not addressable in any way. It may only be used as an argument to
 > another macro call.
@@ -223,7 +223,7 @@ constraints:
 {{#include ../../../../examples/ch_7_2_a.pnt:chain}}
 ```
 
-When call as `var r = @chain(m; n; p)`, the following code would be produced:
+When called as `var r = @chain(m; n; p)`, the following code would be produced:
 
 ```pint
 {{#include ../../../../examples/ch_7_2_b.pnt:chain_expanded}}
@@ -232,8 +232,8 @@ When call as `var r = @chain(m; n; p)`, the following code would be produced:
 #### Array Argument Splicing
 
 An extension to macro argument packing the the concept of _array splicing_. Array splicing allows
-expanding the elements of an array variable, in place, as the arguments to a macro call. This is
-done by prefixing the array name with a tilde `~`.
+passing the elements of an array variable, in place, as the arguments to a macro call. This is done
+by prefixing the array name with a tilde `~`.
 
 Say we want to find the sum of the elements of some array of integers. If we were to use the
 variadic macro `@sum` from earlier, we would have to write something like:
@@ -249,7 +249,7 @@ Instead, array splicing allows us to write this instead:
 {{#include ../../../../examples/ch_7_2_a.pnt:sum_splicing}}
 ```
 
-The compiler will then split `array` into its individual elements and pass them as individual
+The compiler will then split `array` into its individual elements and pass them as separate
 arguments to `@sum`, so that the resulting expansion is
 
 ```pint

@@ -1,10 +1,10 @@
 # The Book of Pint
 
 Welcome to _The Book of Pint_, an introductory book about **Pint**. Pint is a **declarative**
-programming language for building blockchain applications. The word declarative means that code
-written in Pint is focused on the _logic_ and not the _execution_. In Pint, you can describe _what_
-your program must accomplish rather than describing _how_ to accomplish it. This is in contrast with
-_imperative_ blockchain languages, like [Solidity](https://soliditylang.org/), which requires
+programming language for building blockchain applications. The term declarative means that code
+written in Pint is focused on _logic_ and not _execution_. In Pint, you can describe _what_ your
+program must accomplish rather than describing _how_ to accomplish it. This is in contrast with
+_imperative_ blockchain languages, like [Solidity](https://soliditylang.org/), which require
 implementing algorithms in explicit steps.
 
 In particular, Pint is a constraint-based language. A Pint program is essentially a collection of

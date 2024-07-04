@@ -101,7 +101,7 @@ In the `counter` directory, you will also notice a new directory called `out`. N
   variables are stored (i.e. their keys) and their types. This information is crucial to form
   correct solutions.
 
-> **Note**: [Append C](../appendix/abi.md) contains the ABI spec.
+> **Note**: [Appendix C](../appendix/abi.md) contains the ABI spec.
 
 Now that we have built and inspected the artifacts of our project, we can proceed to build an
 application that interacts with this contract. We won't cover this topic here, but you can check out
