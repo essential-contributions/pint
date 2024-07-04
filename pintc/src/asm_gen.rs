@@ -894,15 +894,21 @@ impl AsmBuilder {
 
                     // After compiling a path to a state var or a "next state" expression, we
                     // expect that the last opcode is a `State` or a `StateRange`. Pop that and
-                    // replace it with `StateLen` since we're after the state length here and not
-                    // the actual state.
-                    assert!(matches!(
-                        asm.last(),
-                        Some(&Constraint::Access(Access::State | Access::StateRange))
-                    ));
-                    asm.pop();
-
-                    asm.push(Constraint::Access(Access::StateLen));
+                    // replace it with `StateLen` or `StateLenRange` since we're after the state
+                    // length here and not the actual state.
+                    if let Some(Constraint::Access(Access::State)) = asm.last() {
+                        asm.pop();
+                        asm.push(Constraint::Access(Access::StateLen));
+                    } else if let Some(Constraint::Access(Access::StateRange)) = asm.last() {
+                        asm.pop();
+                        asm.push(Constraint::Access(Access::StateLenRange));
+                        // Now, add all the resulting state length. We should get back as many as
+                        // we have slots for `args[0]`.
+                        let slots = args[0]
+                            .get_ty(pred)
+                            .storage_or_transient_slots(handler, pred)?;
+                        (0..slots - 1).for_each(|_| asm.push(Alu::Add.into()));
+                    }
                 }
 
                 _ => {
