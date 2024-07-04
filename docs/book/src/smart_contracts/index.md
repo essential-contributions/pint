@@ -1,10 +1,10 @@
 ## Smart Contracts
 
-The most common use case for Pint is writing "smart contracts". If you're familiar with smart
-contract languages like [Solidity](https://soliditylang.org/), then many elements of a Pint contract
-should feel familiar. Of course, at its core, Pint is fundamentally different from imperative smart
-contract languages. Writing smart contracts in Pint requires a different way of thinking about how
-to express the rules that the smart contract must enforce.
+Pint is a language for writing "smart contracts". If you're familiar with smart contract languages
+like [Solidity](https://soliditylang.org/), then many elements of a Pint contract should feel
+familiar. Of course, at its core, Pint is fundamentally different from imperative smart contract
+languages. Writing smart contracts in Pint requires a different way of thinking about how to express
+the rules that the smart contract must enforce.
 
 A Pint contract is a **collection of predicates**. Each predicate has a name and contains a list of
 constraints. A contract may also contain a `storage` declaration which contain all the storage

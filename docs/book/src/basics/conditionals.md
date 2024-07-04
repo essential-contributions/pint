@@ -38,12 +38,11 @@ we will get the following error:
 Error: branches of a select expression must have the same type
    ╭─[test.pnt:3:9]
    │
- 3 │ var y = number < 5 ? 1 : 2.0;
-   │                      ┬   ─┬─
-   │                      ╰──────── 'then' branch has the type `int`
-   │                           │
-   │                           ╰─── 'else' branch has the type `real`
-───╯
+ 3 │ var y = number < 5 ? 1 : true;
+   │                      ┬   ──┬─
+   │                      ╰───────── 'then' branch has the type `int`
+   │                            │
+   │                            ╰─── 'else' branch has the type `bool`
 ```
 
 The condition of a select expression must be a `bool`. Otherwise, we will get a compile error. For
