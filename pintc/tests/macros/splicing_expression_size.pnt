@@ -14,9 +14,9 @@ solve satisfy;
 
 // parse_failure <<<
 // unable to determine spliced array size
-// @111..115: unable to determine spliced array size for `::ary` while parsing
+// @112..115: unable to determine spliced array size for `::ary` while parsing
 // macro array splicing is currently limited to immediate integer sizes or enums
-// expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `constraint`, `enum`, `exists`, `forall`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `solve`, `state`, `type`, `use`, `var`, `{`, or `}`, found `~ary`
-// @111..115: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `constraint`, `enum`, `exists`, `forall`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `solve`, `state`, `type`, `use`, `var`, `{`, or `}`
+// expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `constraint`, `enum`, `exists`, `forall`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `solve`, `state`, `type`, `use`, `var`, `{`, or `}`, found `ary`
+// @112..115: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `constraint`, `enum`, `exists`, `forall`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `solve`, `state`, `type`, `use`, `var`, `{`, or `}`
 // @106..116: when making macro call to '::@sum'
 // >>>

@@ -43,6 +43,7 @@ pub enum CompileError {
         name: String,
         arg_count: usize,
         param_counts_descr: String,
+        suggestion: Option<String>,
         span: Span,
     },
     #[error("macro declared with multiple parameter pack versions")]
@@ -1066,13 +1067,10 @@ impl ReportableError for CompileError {
                 arg_count,
                 param_counts_descr,
                 ..
-            } => {
-                // foobar
-                Some(format!(
-                    "the valid number of arguments may be {param_counts_descr} \
+            } => Some(format!(
+                "the valid number of arguments must be {param_counts_descr} \
                         but this call passes {arg_count} arguments"
-                ))
-            }
+            )),
 
             MacroRecursion { .. } => Some(
                 "a macro called recursively with the same number of arguments \
@@ -1230,10 +1228,11 @@ impl ReportableError for CompileError {
                 ))
             }
 
-            MacroCallMismatch { name, .. } => Some(format!(
-                "a macro named `{name}` is defined but not with the required \
-                signature to fulfill this call"
-            )),
+            MacroCallMismatch {
+                name, suggestion, ..
+            } => suggestion.clone().or(Some(format!(
+                "a macro named `{name}` found with a different signature"
+            ))),
 
             BadCastTo { .. } => Some("casts may only be made to an int or a real".to_string()),
             BadCastFrom { .. } => Some(

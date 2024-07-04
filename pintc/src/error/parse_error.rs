@@ -82,6 +82,8 @@ pub enum ParseError {
     StorageAccessMustBeTopLevel { span: Span },
     #[error("path `{path}` to a predicate interface is too short")]
     PathTooShort { path: String, span: Span },
+    #[error("bad argument splice")]
+    BadSplice(Span),
 }
 
 impl ReportableError for ParseError {
@@ -306,6 +308,12 @@ impl ReportableError for ParseError {
                     color: Color::Red,
                 }]
             }
+            BadSplice(span) => vec![ErrorLabel {
+                message: "the macro argument splice operator `~` must be applied to an identifier"
+                    .to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
         }
     }
 
@@ -426,6 +434,7 @@ impl Spanned for ParseError {
             | StorageDirectiveMustBeTopLevel { span, .. }
             | StorageAccessMustBeTopLevel { span, .. }
             | PathTooShort { span, .. }
+            | BadSplice(span)
             | Lex { span } => span,
 
             InvalidToken => unreachable!("The `InvalidToken` error is always wrapped in `Lex`."),

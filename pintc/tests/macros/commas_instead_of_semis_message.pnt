@@ -1,0 +1,31 @@
+macro @m($x, $y, $z) {
+    $x + $y + $z
+}
+
+var a: int;
+
+constraint @m(a, a);
+constraint @m(a, a, a);
+constraint @m(a, a, a, a);
+constraint @m([a, a, a]; a);
+
+solve satisfy;
+
+// parse_failure <<<
+// unable to match macro call
+// @67..75: unable to match call to macro `::@m`
+// the valid number of arguments must be exactly 3 but this call passes 1 arguments
+// a macro named `::@m` found with a different signature
+// unable to match macro call
+// @88..99: unable to match call to macro `::@m`
+// the valid number of arguments must be exactly 3 but this call passes 1 arguments
+// macro arguments are separated by `;`.  Perhaps try ::@m(a; a; a)
+// unable to match macro call
+// @112..126: unable to match call to macro `::@m`
+// the valid number of arguments must be exactly 3 but this call passes 1 arguments
+// a macro named `::@m` found with a different signature
+// unable to match macro call
+// @139..155: unable to match call to macro `::@m`
+// the valid number of arguments must be exactly 3 but this call passes 2 arguments
+// macro arguments are separated by `;`.  Perhaps try ::@m([a; a; a]a)
+// >>>

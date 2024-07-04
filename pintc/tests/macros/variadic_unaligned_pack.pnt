@@ -15,6 +15,6 @@ solve satisfy;
 // parse_failure <<<
 // unable to match macro call
 // @51..60: unable to match call to macro `::@m`
-// the valid number of arguments may be either 1 or 3 or more but this call passes 2 arguments
-// a macro named `::@m` is defined but not with the required signature to fulfill this call
+// the valid number of arguments must be either 1 or 3 or more but this call passes 2 arguments
+// a macro named `::@m` found with a different signature
 // >>>
