@@ -490,7 +490,7 @@ fn abi_key_from_keyed_type(ty: &KeyedTypeABI) -> &Vec<Option<usize>> {
         KeyedTypeABI::String(key) => key,
         KeyedTypeABI::B256(key) => key,
         KeyedTypeABI::Tuple(fields) => abi_key_from_keyed_type(&fields[0].ty),
-        KeyedTypeABI::Map { ty_to, .. } => abi_key_from_keyed_type(&ty_to),
+        KeyedTypeABI::Map { key, .. } => key,
     }
 }
 
@@ -509,8 +509,8 @@ fn map_mutation_method(ty_from: &TypeABI, ty_to: &KeyedTypeABI) -> syn::ImplItem
         KeyedTypeABI::Tuple(fields) => {
             return map_mutation_method_for_tuple(ty_from, abi_key_from_keyed_type(&fields[0].ty));
         }
-        KeyedTypeABI::Map { ty_to, .. } => {
-            return map_mutation_method_for_map(ty_from, abi_key_from_keyed_type(ty_to));
+        KeyedTypeABI::Map { key, .. } => {
+            return map_mutation_method_for_map(ty_from, key);
         }
     };
     map_mutation_method_for_single_key(ty_from, &val_ty, key)
@@ -605,8 +605,11 @@ fn tuple_mutations_impl(struct_name: &str, fields: &[KeyedTupleField]) -> syn::I
 fn mutations_builders_from_keyed_type(ty: &KeyedTypeABI) -> Vec<syn::Item> {
     let mut items = vec![];
     match ty {
-        KeyedTypeABI::Map { ty_from, ty_to } => {
-            let key = abi_key_from_keyed_type(ty_to);
+        KeyedTypeABI::Map {
+            ty_from,
+            ty_to,
+            key,
+        } => {
             let struct_name = map_mutations_struct_name(key);
             // Items for this map.
             items.push(map_mutations_struct(&struct_name, key).into());
@@ -697,9 +700,7 @@ fn mutation_method_from_keyed_var(name: &str, ty: &KeyedTypeABI) -> syn::ImplIte
             return mutation_method_for_tuple(name, abi_key_from_keyed_type(&fields[0].ty))
         }
         // Map types take a closure.
-        KeyedTypeABI::Map { ty_to, .. } => {
-            return mutation_method_for_map(name, abi_key_from_keyed_type(&ty_to))
-        }
+        KeyedTypeABI::Map { key, .. } => return mutation_method_for_map(name, key),
     };
     // A mutation builder method for a single mutation.
     mutation_method_for_single_key(name, &arg_ty, key)

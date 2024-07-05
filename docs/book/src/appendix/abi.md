@@ -159,19 +159,17 @@ Below is a list of the JSON objects for each possible type when a key is require
 
 ```json
 {
-  "Tuple": {
-    "fields": [
-      {
-        "name": <field1_name>,
-        "ty": <field1_keyed_ty>
-      }
-      {
-        "name": <field2_name>,
-        "ty": <field2_keyed_ty>
-      }
-      ...
-    ],
-  }
+  "Tuple": [
+    {
+      "name": <field1_name>,
+      "ty": <field1_keyed_ty>
+    }
+    {
+      "name": <field2_name>,
+      "ty": <field2_keyed_ty>
+    }
+    ...
+  ],
 }
 ```
 

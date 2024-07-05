@@ -74,5 +74,6 @@ pub enum KeyedTypeABI {
     Map {
         ty_from: TypeABI, // not in storage hence `TypeABI` instead of `KeyedTypeABI`
         ty_to: Box<Self>,
+        key: Key,
     },
 }

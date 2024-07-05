@@ -473,6 +473,7 @@ impl Type {
                         value_key.push(Some(0));
                         (*ty_to).abi_with_key(handler, value_key.clone(), pred)?
                     }),
+                    key,
                 })
             }
             _ => unimplemented!("other types are not yet supported"),

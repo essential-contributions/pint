@@ -28,23 +28,20 @@
           "ty": {
             "Array": {
               "ty": {
-                "Tuple": {
-                  "fields": [
-                    {
-                      "name": null,
-                      "ty": {
-                        "Int": [0, 0]
-                      }
-                    },
-                    {
-                      "name": null,
-                      "ty": {
-                        "Int": [0, 1]
-                      }
+                "Tuple": [
+                  {
+                    "name": null,
+                    "ty": {
+                      "Int": [0, 0]
                     }
-                  ],
-                  "key": [0, 0]
-                }
+                  },
+                  {
+                    "name": null,
+                    "ty": {
+                      "Int": [0, 1]
+                    }
+                  }
+                ]
               },
               "size": 5
             }
@@ -74,23 +71,20 @@
     {
       "name": "s1",
       "ty": {
-        "Tuple": {
-          "fields": [
-            {
-              "name": null,
-              "ty": {
-                "Int": [1, 0]
-              }
-            },
-            {
-              "name": null,
-              "ty": {
-                "Int": [1, 1]
-              }
+        "Tuple": [
+          {
+            "name": null,
+            "ty": {
+              "Int": [1, 0]
             }
-          ],
-          "key": [1, 0]
-        }
+          },
+          {
+            "name": null,
+            "ty": {
+              "Int": [1, 1]
+            }
+          }
+        ]
       }
     },
     {
@@ -99,23 +93,20 @@
         "Map": {
           "ty_from": "Int",
           "ty_to": {
-            "Tuple": {
-              "fields": [
-                {
-                  "name": null,
-                  "ty": {
-                    "Int": [2, null, 0]
-                  }
-                },
-                {
-                  "name": null,
-                  "ty": {
-                    "Int": [2, null, 1]
-                  }
+            "Tuple": [
+              {
+                "name": null,
+                "ty": {
+                  "Int": [2, null, 0]
                 }
-              ],
-              "key": [2, null, 0]
-            }
+              },
+              {
+                "name": null,
+                "ty": {
+                  "Int": [2, null, 1]
+                }
+              }
+            ]
           },
           "key": [2]
         }
