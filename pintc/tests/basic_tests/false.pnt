@@ -1,13 +1,15 @@
-constraint false;
-
-solve satisfy;
+predicate test {
+    constraint false;
+}
 
 // parsed <<<
-// constraint false;
-// solve satisfy;
+// predicate ::test {
+//     constraint false;
+// }
 // >>>
 
 // flattened <<<
-// constraint 0;
-// solve satisfy;
+// predicate ::test {
+//     constraint 0;
+// }
 // >>>

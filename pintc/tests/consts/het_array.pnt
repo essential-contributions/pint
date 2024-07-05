@@ -1,10 +1,13 @@
 const a = [11, false];
 
-solve satisfy;
+predicate test {
+}
 
 // parsed <<<
 // const ::a = [11, false];
-// solve satisfy;
+//
+// predicate ::test {
+// }
 // >>>
 
 // typecheck_failure <<<

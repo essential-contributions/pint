@@ -2,40 +2,40 @@ storage {
     x: int,
 }
 
-constraint (false && false) == false;
-constraint (false && true) == false;
-constraint (true && false) == false;
-constraint (true && true) == true;
+predicate test {
+    constraint (false && false) == false;
+    constraint (false && true) == false;
+    constraint (true && false) == false;
+    constraint (true && true) == true;
 
-var a1: bool = false;
-var b1: bool = false;
-constraint (a1 && b1) == false;
+    var a1: bool = false;
+    var b1: bool = false;
+    constraint (a1 && b1) == false;
 
-var a2: bool = false;
-var b2: bool = true;
-constraint (a2 && b2) == false;
+    var a2: bool = false;
+    var b2: bool = true;
+    constraint (a2 && b2) == false;
 
-var a3: bool = true;
-var b3: bool = false;
-constraint (a3 && b3) == false;
+    var a3: bool = true;
+    var b3: bool = false;
+    constraint (a3 && b3) == false;
 
-var a4: bool = true;
-var b4: bool = true;
-constraint (a4 && b4) == true;
+    var a4: bool = true;
+    var b4: bool = true;
+    constraint (a4 && b4) == true;
 
-constraint (a1 && b1 && a2 && b3) == false;
-constraint (a1 && b1 && a2 && b4) == false;
-constraint (b2 && a3 && a4 && b4) == true;
+    constraint (a1 && b1 && a2 && b3) == false;
+    constraint (a1 && b1 && a2 && b4) == false;
+    constraint (b2 && a3 && a4 && b4) == true;
 
-constraint ((1 + 2 != 3) && (3 + 4 != 7)) == false;
-constraint ((1 + 2 != 3) && (3 + 4 == 7)) == false;
-constraint ((1 + 2 == 3) && (3 + 4 != 7)) == false;
-constraint ((1 + 2 == 3) && (3 + 4 == 7)) == true;
+    constraint ((1 + 2 != 3) && (3 + 4 != 7)) == false;
+    constraint ((1 + 2 != 3) && (3 + 4 == 7)) == false;
+    constraint ((1 + 2 == 3) && (3 + 4 != 7)) == false;
+    constraint ((1 + 2 == 3) && (3 + 4 == 7)) == true;
 
-state x = storage::x;
+    state x = storage::x;
 
-// `x` here is `nil` because it's not set in the pre state db, so comparing it to 42 should panic.
-// However, the constraint should still pass due to the short-circuit
-constraint (false && (x == 42)) == false;
-
-solve satisfy;
+    // `x` here is `nil` because it's not set in the pre state db, so comparing it to 42 should panic.
+    // However, the constraint should still pass due to the short-circuit
+    constraint (false && (x == 42)) == false;
+}

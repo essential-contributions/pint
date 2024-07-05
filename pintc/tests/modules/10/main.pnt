@@ -8,9 +8,11 @@ enum E = A | B;
 
 type E = string;
 
-var E = 4;
+predicate test {
+    var E = 4;
 
-state E = __foo();
+    state E = __foo();
+}
 
 // parse_failure <<<
 // symbol `E` has already been declared
@@ -22,12 +24,8 @@ state E = __foo();
 // @56..57: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `E` has already been declared
-// @7..8: previous declaration of the symbol `E` here
-// @73..74: `E` redeclared here
-// `E` must be declared or imported only once in this scope
-// symbol `E` has already been declared
-// @7..8: previous declaration of the symbol `E` here
-// @87..88: `E` redeclared here
+// @94..95: previous declaration of the symbol `E` here
+// @112..113: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `F` has already been declared
 // @4..5: previous declaration of the symbol `F` here
@@ -49,4 +47,8 @@ state E = __foo();
 // @4..5: previous declaration of the symbol `F` here
 // @89..90: `F` redeclared here
 // `F` must be declared or imported only once in this scope
+// symbol `::E` has already been declared
+// @7..8: previous declaration of the symbol `::E` here
+// @94..95: `::E` redeclared here
+// `::E` must be declared or imported only once in this scope
 // >>>

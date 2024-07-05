@@ -7,19 +7,19 @@ storage {
     y: int,
 }
 
-state x = storage::x;
+predicate test {
+    state x = storage::x;
 
-// `x` here is set in the pre state db.  Selecting it should still work.
+    // `x` here is set in the pre state db.  Selecting it should still work.
 
-constraint true ? x == 42 : true;
-constraint x == nil ? true : x == 42;
+    constraint true ? x == 42 : true;
+    constraint x == nil ? true : x == 42;
 
-state y = storage::y;
+    state y = storage::y;
 
-// `y` here is `nil` because it's not set in the pre state db, so comparing it to 42 should panic.
-// However, the constraint should still pass due to the short-circuit.
+    // `y` here is `nil` because it's not set in the pre state db, so comparing it to 42 should panic.
+    // However, the constraint should still pass due to the short-circuit.
 
-constraint y == nil ? true : y == 42;
-constraint false ? y != 42 : true;
-
-solve satisfy;
+    constraint y == nil ? true : y == 42;
+    constraint false ? y != 42 : true;
+}

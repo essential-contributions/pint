@@ -7,46 +7,50 @@ fn local_transient() {
             "{}",
             compile(
                 r#"
-            pub var x: int;
-            pub var y: b256;
-            pub var z: bool;
-            var a = x;
-            var b = y;
-            var c = z;
-            solve satisfy;
+            predicate test {
+                pub var x: int;
+                pub var y: b256;
+                pub var z: bool;
+                var a = x;
+                var b = y;
+                var c = z;
+            }
             "#,
             )
         ),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(0))
-              Stack(Push(1))
-              Access(ThisPathway)
-              Access(Transient)
-              Pred(Eq)
-            constraint 1
-              Stack(Push(1))
-              Stack(Push(0))
-              Stack(Push(4))
-              Access(DecisionVarRange)
-              Stack(Push(1))
-              Stack(Push(1))
-              Access(ThisPathway)
-              Access(Transient)
-              Stack(Push(4))
-              Pred(EqRange)
-            constraint 2
-              Stack(Push(2))
-              Access(DecisionVar)
-              Stack(Push(2))
-              Stack(Push(1))
-              Access(ThisPathway)
-              Access(Transient)
-              Pred(Eq)
-            --- State Reads ---
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(ThisPathway)
+                  Access(Transient)
+                  Pred(Eq)
+                constraint 1
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(4))
+                  Access(DecisionVarRange)
+                  Stack(Push(1))
+                  Stack(Push(1))
+                  Access(ThisPathway)
+                  Access(Transient)
+                  Stack(Push(4))
+                  Pred(EqRange)
+                constraint 2
+                  Stack(Push(2))
+                  Access(DecisionVar)
+                  Stack(Push(2))
+                  Stack(Push(1))
+                  Access(ThisPathway)
+                  Access(Transient)
+                  Pred(Eq)
+                --- State Reads ---
+            }
+
         "#]],
     );
 }

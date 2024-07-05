@@ -1,37 +1,43 @@
 storage {
-    i: int,    
+    i: int,
     b: bool,
 }
 
-state i1 = storage::i;
-state b1 = storage::b;
+predicate test {
+    state i1 = storage::i;
+    state b1 = storage::b;
 
-var bad_and = b1 && i1;
-
-solve satisfy;
+    var bad_and = b1 && i1;
+}
 
 // parsed <<<
 // storage {
 //     i: int,
 //     b: bool,
 // }
-// var ::bad_and;
-// state ::i1 = storage::i;
-// state ::b1 = storage::b;
-// constraint (::bad_and == (::b1 && ::i1));
-// solve satisfy;
+//
+// predicate ::test {
+//     storage {
+//         i: int,
+//         b: bool,
+//     }
+//     var ::bad_and;
+//     state ::i1 = storage::i;
+//     state ::b1 = storage::b;
+//     constraint (::bad_and == (::b1 && ::i1));
+// }
 // >>>
 
 // typecheck_failure <<<
 // binary operator type error
-// @109..111: operator `&&` argument has unexpected type `int`
-// @103..111: expecting type `bool`
+// @134..136: operator `&&` argument has unexpected type `int`
+// @128..136: expecting type `bool`
 // binary operator type error
-// @109..111: operator `&&` argument has unexpected type `int`
-// @103..111: expecting type `bool`
+// @134..136: operator `&&` argument has unexpected type `int`
+// @128..136: expecting type `bool`
 // unable to determine expression type
-// @93..100: type of this expression is ambiguous
+// @118..125: type of this expression is ambiguous
 // constraint expression type error
-// @89..111: constraint expression has unknown type
-// @89..111: expecting type `bool`
+// @114..136: constraint expression has unknown type
+// @114..136: expecting type `bool`
 // >>>

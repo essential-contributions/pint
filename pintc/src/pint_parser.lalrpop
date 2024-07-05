@@ -3,7 +3,7 @@ use crate::{
     expr::*,
     predicate::{
         BlockStatement, Const, ConstraintDecl, ExprKey, IfDecl, PredicateInterface, InterfaceDecl,
-        InterfaceInstance, InterfaceVar, Predicate, Program, ProgramKind, SolveFunc,
+        InterfaceInstance, InterfaceVar, Predicate, Contract,
         StorageVar,
     },
     lexer,
@@ -44,7 +44,6 @@ DeclBarringMacro: () = {
     StateDecl ";",
     ConstraintDecl ";",
     IfDecl,
-    SolveDecl ";",
     EnumDecl ";",
     NewTypeDecl ";",
     MacroCallDecl ";",
@@ -69,9 +68,9 @@ PredicateOpen: () = {
             context.mod_prefix,
         );
 
-        // Brand new Pred in the program
+        // Brand new Pred in the contract
         context
-            .program
+            .contract
             .preds
             .insert(name.to_string(), Predicate::new(name.to_string()));
 
@@ -79,9 +78,6 @@ PredicateOpen: () = {
         context
             .macro_calls
             .insert(name.to_string(), slotmap::SecondaryMap::default());
-
-        // The program is now considered stateful
-        context.program.kind = ProgramKind::Stateful;
 
         // Switch the current_pred so that the parser inserts items in the right Pred until the
         // predicate closes
@@ -92,7 +88,7 @@ PredicateOpen: () = {
 PredicateClose: () = {
     "}" => {
         // At the end of the predicate declaration, return back to the root Pred
-        *context.current_pred = Program::ROOT_PRED_NAME.to_string();
+        *context.current_pred = Contract::ROOT_PRED_NAME.to_string();
     }
 }
 
@@ -251,7 +247,7 @@ StateDecl: () = {
 ConstDecl: () = {
     <l:@L> "const" <name:Ident> <ty:(":" <Type>)?> "=" <init:Expr> <r:@R> => {
         // consts are all added to the root Pred.
-        if let Ok(full_name) = context.program.root_pred_mut().add_top_level_symbol(
+        if let Ok(full_name) = context.contract.root_pred_mut().add_top_level_symbol(
             handler,
             context.mod_prefix,
             None,
@@ -260,7 +256,7 @@ ConstDecl: () = {
         ) {
             let decl_ty = ty.unwrap_or_else(|| Type::Unknown(name.span.clone()));
 
-            context.program.consts.insert(
+            context.contract.consts.insert(
                 full_name,
                 Const {
                     expr: init,
@@ -311,39 +307,6 @@ If: IfDecl = {
 
 IfDecl: () = {
     <if_decl: If> => context.current_pred().if_decls.push(if_decl)
-};
-
-SolveDecl: () = {
-    <l:@L> <sd:SolveDeclInner> <r:@R> => {
-        let span = (context.span_from)(l, r);
-        if let Some((_, prev_span)) = context.current_pred().directives.first() {
-            // Multiple `solve` directives are not allowed
-            handler.emit_err(Error::Parse {
-                error: ParseError::TooManySolveDirectives {
-                    span,
-                    prev_span: prev_span.clone(),
-                },
-            });
-        } else if !context.mod_path.is_empty() {
-            // `solve` directives in sub-modules are not allowed
-            handler.emit_err(Error::Parse {
-                error: ParseError::SolveDirectiveMustBeTopLevel { span },
-            });
-        } else if context.current_pred != Program::ROOT_PRED_NAME {
-            // `solve` directives inside an `predicate` declaration are not allowed
-            handler.emit_err(Error::Parse {
-                error: ParseError::SolveDirectiveMustBeOutsidePredicate { span },
-            });
-        } else {
-            context.current_pred().directives.push((sd.clone(), span));
-        }
-    }
-}
-
-SolveDeclInner: SolveFunc = {
-    "solve" "satisfy" => SolveFunc::Satisfy,
-    "solve" "minimize" <e:Expr> => SolveFunc::Minimize(e),
-    "solve" "maximize" <e:Expr> => SolveFunc::Maximize(e),
 };
 
 EnumDecl: () = {
@@ -1017,7 +980,10 @@ StateInit: ExprKey = {
     <StorageTupleFieldOp>,
     <call:IntrinsicCallExpr> => {
         let span = call.span().clone();
-        context.current_pred().exprs.insert(call, Type::Unknown(span))
+        context
+            .current_pred()
+            .exprs
+            .insert(call, Type::Unknown(span))
     },
 }
 
@@ -1195,11 +1161,6 @@ extern {
         "constraint" => lexer::Token::Constraint,
         "as" => lexer::Token::As,
         "predicate" => lexer::Token::Predicate,
-
-        "solve" => lexer::Token::Solve,
-        "satisfy" => lexer::Token::Satisfy,
-        "minimize" => lexer::Token::Minimize,
-        "maximize" => lexer::Token::Maximize,
 
         "in" => lexer::Token::In,
 

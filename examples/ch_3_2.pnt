@@ -1,3 +1,4 @@
+predicate test {
 // ANCHOR: reals 
 var x = 1.05;
 var y = 42e8;
@@ -72,5 +73,4 @@ var c: int[5] = [1, 2, 3, 4, 5];
 var c_first = c[0];
 var c_second = c[1];
 // ANCHOR_END: array_access
-
-solve satisfy;
+}

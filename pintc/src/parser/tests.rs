@@ -2,7 +2,7 @@ use crate::{
     error::{Error, Handler, ReportableError},
     lexer::{self, KEYWORDS},
     parser::ParserContext,
-    predicate::{DisplayWithPred, Predicate, Program, ProgramKind},
+    predicate::{Contract, DisplayWithPred, Predicate},
     span::Span,
 };
 use std::{collections::BTreeMap, path::Path, rc::Rc};
@@ -57,18 +57,17 @@ macro_rules! context {
                 .then(|| format!("::{}::", $mod_path.join("::")))
                 .unwrap_or("::".to_string()),
             local_scope: None,
-            program: &mut Program {
-                kind: ProgramKind::Stateless,
+            contract: &mut Contract {
                 preds: BTreeMap::from([(
-                    Program::ROOT_PRED_NAME.to_string(),
+                    Contract::ROOT_PRED_NAME.to_string(),
                     Predicate::default(),
                 )]),
                 consts: fxhash::FxHashMap::default(),
             },
-            current_pred: &mut Program::ROOT_PRED_NAME.to_string(),
+            current_pred: &mut Contract::ROOT_PRED_NAME.to_string(),
             macros: &mut vec![],
             macro_calls: &mut BTreeMap::from([(
-                Program::ROOT_PRED_NAME.to_string(),
+                Contract::ROOT_PRED_NAME.to_string(),
                 slotmap::SecondaryMap::new(),
             )]),
             span_from: &|l, r| Span::new(Rc::from(Path::new("")), l..r),
@@ -107,8 +106,8 @@ macro_rules! run_parser {
             Ok(item) => {
                 let result =
                     format!("{}{}",
-                        context.program,
-                        context.program.root_pred().with_pred(&item)
+                        context.contract,
+                        context.contract.root_pred().with_pred(&item)
                     );
                 format!("{}{}",
                     use_paths
@@ -1412,37 +1411,6 @@ fn if_decls() {
 }
 
 #[test]
-fn solve_decls() {
-    let pint = (yp::PintParser::new(), "");
-
-    check(
-        &run_parser!(pint, "solve satisfy;"),
-        expect_test::expect!["solve satisfy;"],
-    );
-    check(
-        &run_parser!(pint, "solve minimize foo;"),
-        expect_test::expect!["solve minimize ::foo;"],
-    );
-    check(
-        &run_parser!(pint, "solve maximize foo;"),
-        expect_test::expect!["solve maximize ::foo;"],
-    );
-
-    check(
-        &run_parser!(pint, "solve maximize x + y;"),
-        expect_test::expect!["solve maximize (::x + ::y);"],
-    );
-
-    check(
-        &run_parser!(pint, "solve world hunger;"),
-        expect_test::expect![[r#"
-            expected or `a directive`, found `world`
-            @6..11: expected or `a directive`
-        "#]],
-    );
-}
-
-#[test]
 fn basic_exprs() {
     let expr = (yp::TestDelegateParser::new(), "expr");
     check(&run_parser!(expr, "123"), expect_test::expect!["123"]);
@@ -2068,7 +2036,7 @@ fn macro_call() {
     assert!(
         context
             .macro_calls
-            .get(Program::ROOT_PRED_NAME)
+            .get(Contract::ROOT_PRED_NAME)
             .unwrap()
             .len()
             == 1
@@ -2076,7 +2044,7 @@ fn macro_call() {
 
     check(
         &context
-            .program
+            .contract
             .root_pred()
             .with_pred(&result.unwrap())
             .to_string(),
@@ -2086,7 +2054,7 @@ fn macro_call() {
     check(
         &context
             .macro_calls
-            .get(Program::ROOT_PRED_NAME)
+            .get(Contract::ROOT_PRED_NAME)
             .unwrap()
             .iter()
             .next()
@@ -2241,10 +2209,7 @@ fn array_element_accesses() {
 fn tuple_expressions() {
     let expr = (yp::TestDelegateParser::new(), "expr");
 
-    check(
-        &run_parser!(expr, r#"{ 0 }"#),
-        expect_test::expect![[r#"{0}"#]],
-    );
+    check(&run_parser!(expr, r#"{ 0 }"#), expect_test::expect!["{0}"]);
 
     check(
         &run_parser!(expr, r#"{x: 0}"#), // This is a tuple because the field is named so there is no ambiguity
@@ -2724,28 +2689,30 @@ fn intrinsic_call() {
 }
 
 #[test]
-fn basic_program() {
+fn basic_contract() {
     let src = r#"
-var low_val: real = 1.23;
-var high_val = 4.56;        // Implicit type.
+predicate test {
+    var low_val: real = 1.23;
+    var high_val = 4.56;        // Implicit type.
 
-// Here's the constraints.
-constraint mid > low_val * 2.0;
-constraint mid < high_val;
-
-solve minimize mid;
+    // Here's the constraints.
+    constraint mid > low_val * 2.0;
+    constraint mid < high_val;
+}
 "#;
 
     check(
         &run_parser!((yp::PintParser::new(), ""), src),
         expect_test::expect![[r#"
-            var ::low_val: real;
-            var ::high_val;
-            constraint (::low_val == 1.23e0);
-            constraint (::high_val == 4.56e0);
-            constraint (::mid > (::low_val * 2e0));
-            constraint (::mid < ::high_val);
-            solve minimize ::mid;"#]],
+
+            predicate ::test {
+                var ::low_val: real;
+                var ::high_val;
+                constraint (::low_val == 1.23e0);
+                constraint (::high_val == 4.56e0);
+                constraint (::mid > (::low_val * 2e0));
+                constraint (::mid < ::high_val);
+            }"#]],
     );
 }
 
@@ -2785,7 +2752,6 @@ predicate Baz {
 #[test]
 fn out_of_order_decls() {
     let src = r#"
-solve maximize low;
 constraint low < high;
 var high = 2.0;
 var low = 1.0;
@@ -2798,8 +2764,7 @@ var low = 1.0;
             var ::low;
             constraint (::low < ::high);
             constraint (::high == 2e0);
-            constraint (::low == 1e0);
-            solve maximize ::low;"#]],
+            constraint (::low == 1e0);"#]],
     );
 }
 

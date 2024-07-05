@@ -1,36 +1,37 @@
-type A = { A };
-type B = C[2];
-type C = { B, B };
-type D = A;
+predicate test {
+    type A = { A };
+    type B = C[2];
+    type C = { B, B };
+    type D = A;
 
-var x: A;
-var y: B;
-var z: C;
-
-solve satisfy;
+    var x: A;
+    var y: B;
+    var z: C;
+}
 
 // parsed <<<
-// var ::x: ::A;
-// var ::y: ::B;
-// var ::z: ::C;
-// type ::A = {::A};
-// type ::B = ::C[2];
-// type ::C = {::B, ::B};
-// type ::D = ::A;
-// solve satisfy;
+// predicate ::test {
+//     var ::x: ::A;
+//     var ::y: ::B;
+//     var ::z: ::C;
+//     type ::A = {::A};
+//     type ::B = ::C[2];
+//     type ::C = {::B, ::B};
+//     type ::D = ::A;
+// }
 // >>>
 
 // typecheck_failure <<<
 // type alias refers to itself
-// @11..12: type alias `::A` is used recursively in declaration
-// @0..14: `::A` is declared here
+// @32..33: type alias `::A` is used recursively in declaration
+// @21..35: `::A` is declared here
 // type alias refers to itself
-// @42..43: type alias `::B` is used recursively in declaration
-// @16..29: `::B` is declared here
+// @71..72: type alias `::B` is used recursively in declaration
+// @41..54: `::B` is declared here
 // type alias refers to itself
-// @25..26: type alias `::C` is used recursively in declaration
-// @31..48: `::C` is declared here
+// @50..51: type alias `::C` is used recursively in declaration
+// @60..77: `::C` is declared here
 // type alias refers to itself
-// @11..12: type alias `::A` is used recursively in declaration
-// @0..14: `::A` is declared here
+// @32..33: type alias `::A` is used recursively in declaration
+// @21..35: `::A` is declared here
 // >>>

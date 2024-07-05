@@ -14,7 +14,7 @@ impl Predicate {
     pub(super) fn lower_newtypes(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
         self.check_recursive_newtypes(handler)?;
         self.lower_newtypes_in_newtypes(handler)?;
-        self.lower_newtypes_in_program();
+        self.lower_newtypes_in_contract();
 
         Ok(())
     }
@@ -161,7 +161,7 @@ impl Predicate {
         Ok(())
     }
 
-    fn lower_newtypes_in_program(&mut self) {
+    fn lower_newtypes_in_contract(&mut self) {
         use std::borrow::BorrowMut;
 
         fn replace_custom_type(new_types: &[NewTypeDecl], ty: &mut Type) {
@@ -422,20 +422,14 @@ impl Predicate {
             },
         );
 
-        // Check all the 'root' exprs (constraints, state init exprs, const and var init exprs, and
-        // directives) one at a time, gathering errors as we go. Copying the keys out first to
-        // avoid borrowing conflict.
+        // Check all the 'root' exprs (constraints, state init exprs, and var init exprs) one at a
+        // time, gathering errors as we go. Copying the keys out first to avoid borrowing conflict.
         let mut all_expr_keys = self
             .constraints
             .iter()
             .map(|ConstraintDecl { expr: key, .. }| *key)
             .chain(self.states().map(|(_, state)| state.expr))
             .chain(self.var_inits.iter().map(|(_, expr)| *expr))
-            .chain(
-                self.directives
-                    .iter()
-                    .filter_map(|(solve_func, _)| solve_func.get_expr().cloned()),
-            )
             .collect::<Vec<_>>();
 
         // When we're checking the root predicate we check all the consts too.

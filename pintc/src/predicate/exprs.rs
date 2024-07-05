@@ -161,7 +161,7 @@ pub(crate) struct ExprsIter<'a> {
 
 impl<'a> ExprsIter<'a> {
     pub(super) fn new(pred: &'a Predicate) -> ExprsIter {
-        // We start with all the constraint, directive and state exprs.
+        // We start with all the constraint and state exprs.
         let queue = pred.root_set().collect();
 
         ExprsIter {

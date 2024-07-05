@@ -1,8 +1,8 @@
 use lib::MyEnum;
 
-var e: MyEnum = MyEnum::A;
-
-solve satisfy;
+predicate test {
+    var e: MyEnum = MyEnum::A;
+}
 
 // parse_failure <<<
 // a `storage` block can only appear in the top level module

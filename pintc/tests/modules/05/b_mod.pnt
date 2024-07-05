@@ -1,3 +1,0 @@
-use c_mod::c;
-
-var k = c;

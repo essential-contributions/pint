@@ -19,7 +19,7 @@ use std::path::Path;
 use thiserror::Error;
 use types::{
     essential::{contract::Contract, predicate::Predicate},
-    PredicateABI, ProgramABI,
+    ContractABI, PredicateABI,
 };
 
 mod encode;
@@ -36,7 +36,7 @@ pub mod types {
     pub use essential_types as essential;
 }
 
-/// Errors that might occur when loading a [`ProgramABI`] or [`Contract`] from a path.
+/// Errors that might occur when loading a [`ContractABI`] or [`Contract`] from a path.
 #[derive(Debug, Error)]
 pub enum FromPathError {
     /// An I/O error occurred.
@@ -55,11 +55,11 @@ pub fn encode<T: Encode>(t: &T) -> Vec<types::essential::Word> {
     v
 }
 
-/// Shorthand for loading the [`ProgramABI`] from a given ABI JSON file path.
+/// Shorthand for loading the [`ContractABI`] from a given ABI JSON file path.
 ///
 /// By default, after building a pint package this will be located within the
 /// package's output directory at `out/<profile>/<name>-abi.json`.
-pub fn from_path(path: &Path) -> Result<ProgramABI, FromPathError> {
+pub fn from_path(path: &Path) -> Result<ContractABI, FromPathError> {
     let json_str = std::fs::read_to_string(path)?;
     let abi = serde_json::from_str(&json_str)?;
     Ok(abi)
@@ -75,13 +75,13 @@ pub fn contract_from_path(path: &Path) -> Result<Contract, FromPathError> {
     Ok(abi)
 }
 
-/// Given a `Contract` and its associated `ProgramABI`, find and return the
+/// Given a `Contract` and its associated `ContractABI`, find and return the
 /// predicate with the given name.
 ///
 /// Returns the predicate ABI alongside the predicate itself.
 pub fn find_predicate<'a>(
     contract: &'a Contract,
-    abi: &'a ProgramABI,
+    abi: &'a ContractABI,
     pred_name: &str,
 ) -> Option<(&'a Predicate, &'a PredicateABI)> {
     // Currently, the ABI always includes the root predicate, even if the

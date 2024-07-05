@@ -1,2 +1,0 @@
-use ::b_mod::c_mod::c;
-var a = c + ::b_mod::k;

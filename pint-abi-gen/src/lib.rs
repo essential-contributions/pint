@@ -16,7 +16,7 @@
 //! including the encoding of keys, values and mutations from higher-level types.
 
 use pint_abi_types::{
-    KeyedTupleField, KeyedTypeABI, KeyedVarABI, PredicateABI, ProgramABI, TupleField, TypeABI,
+    ContractABI, KeyedTupleField, KeyedTypeABI, KeyedVarABI, PredicateABI, TupleField, TypeABI,
     VarABI,
 };
 use proc_macro::TokenStream;
@@ -786,7 +786,7 @@ fn mod_from_keyed_vars(mod_name: &str, vars: &[KeyedVarABI]) -> syn::ItemMod {
 }
 
 /// Given an ABI, generate all items.
-fn items_from_abi(abi: &ProgramABI) -> Vec<syn::Item> {
+fn items_from_abi(abi: &ContractABI) -> Vec<syn::Item> {
     let mut items = vec![];
     items.extend(items_from_predicates(&abi.predicates));
     if !abi.storage.is_empty() {
@@ -796,7 +796,7 @@ fn items_from_abi(abi: &ProgramABI) -> Vec<syn::Item> {
 }
 
 /// Shorthand for producing tokens given the full deserialized ABI.
-fn tokens_from_abi(abi: &ProgramABI) -> TokenStream {
+fn tokens_from_abi(abi: &ContractABI) -> TokenStream {
     let items = items_from_abi(abi);
     items
         .into_iter()
@@ -809,8 +809,8 @@ fn tokens_from_abi(abi: &ProgramABI) -> TokenStream {
 pub fn from_str(input: TokenStream) -> TokenStream {
     let input_lit_str = parse_macro_input!(input as syn::LitStr);
     let string = input_lit_str.value();
-    let abi: ProgramABI =
-        serde_json::from_str(&string).expect("failed to deserialize str from JSON to `ProgramABI`");
+    let abi: ContractABI = serde_json::from_str(&string)
+        .expect("failed to deserialize str from JSON to `ContractABI`");
     tokens_from_abi(&abi)
 }
 
@@ -842,8 +842,8 @@ pub fn from_file(input: TokenStream) -> TokenStream {
         panic!("failed to open {path:?}: {err}");
     });
     let reader = std::io::BufReader::new(file);
-    let abi: ProgramABI = serde_json::from_reader(reader).unwrap_or_else(|err| {
-        panic!("failed to deserialize {path:?} from JSON to `ProgramABI`: {err}");
+    let abi: ContractABI = serde_json::from_reader(reader).unwrap_or_else(|err| {
+        panic!("failed to deserialize {path:?} from JSON to `ContractABI`: {err}");
     });
     tokens_from_abi(&abi)
 }

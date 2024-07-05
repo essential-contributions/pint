@@ -1,28 +1,30 @@
-var a: int[4];
-var b: int[4];
+predicate test {
+    var a: int[4];
+    var b: int[4];
 
-// The inner `i` is shadowing the outer `i` which is probably not what we want to allow, considering
-// we disallow shadowing everywhere else in Pint.
+    // The inner `i` is shadowing the outer `i` which is probably not what we want to allow, considering
+    // we disallow shadowing everywhere else in Pint.
 
-constraint forall i in 0..3 {
-    b[i] == i &&
-    forall i in 0..3 {
-        a[i] > b[i]
-    }
-};
-
-solve satisfy;
+    constraint forall i in 0..3 {
+        b[i] == i &&
+        forall i in 0..3 {
+            a[i] > b[i]
+        }
+    };
+}
 
 // parsed <<<
-// var ::a: int[4];
-// var ::b: int[4];
-// constraint forall i in 0..3, { ((::b[::i] == ::i) && forall i in 0..3, { (::a[::i] > ::b[::i]) }) };
-// solve satisfy;
+// predicate ::test {
+//     var ::a: int[4];
+//     var ::b: int[4];
+//     constraint forall i in 0..3, { ((::b[::i] == ::i) && forall i in 0..3, { (::a[::i] > ::b[::i]) }) };
+// }
 // >>>
 
 // flattened <<<
-// var ::a: int[4];
-// var ::b: int[4];
-// constraint ((((1 && ((::b[0] == 0) && ((((1 && (::a[0] > ::b[0])) && (::a[1] > ::b[1])) && (::a[2] > ::b[2])) && (::a[3] > ::b[3])))) && ((::b[1] == 1) && ((((1 && (::a[0] > ::b[0])) && (::a[1] > ::b[1])) && (::a[2] > ::b[2])) && (::a[3] > ::b[3])))) && ((::b[2] == 2) && ((((1 && (::a[0] > ::b[0])) && (::a[1] > ::b[1])) && (::a[2] > ::b[2])) && (::a[3] > ::b[3])))) && ((::b[3] == 3) && ((((1 && (::a[0] > ::b[0])) && (::a[1] > ::b[1])) && (::a[2] > ::b[2])) && (::a[3] > ::b[3]))));
-// solve satisfy;
+// predicate ::test {
+//     var ::a: int[4];
+//     var ::b: int[4];
+//     constraint ((((1 && ((::b[0] == 0) && ((((1 && (::a[0] > ::b[0])) && (::a[1] > ::b[1])) && (::a[2] > ::b[2])) && (::a[3] > ::b[3])))) && ((::b[1] == 1) && ((((1 && (::a[0] > ::b[0])) && (::a[1] > ::b[1])) && (::a[2] > ::b[2])) && (::a[3] > ::b[3])))) && ((::b[2] == 2) && ((((1 && (::a[0] > ::b[0])) && (::a[1] > ::b[1])) && (::a[2] > ::b[2])) && (::a[3] > ::b[3])))) && ((::b[3] == 3) && ((((1 && (::a[0] > ::b[0])) && (::a[1] > ::b[1])) && (::a[2] > ::b[2])) && (::a[3] > ::b[3]))));
+// }
 // >>>

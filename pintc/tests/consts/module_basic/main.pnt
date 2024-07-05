@@ -1,20 +1,25 @@
 const a = b::x * 11;
-var b = a + b::x;
 
-solve satisfy;
+predicate test {
+    var b = a + b::x;
+}
 
 // parsed <<<
 // const ::a = (::b::x * 11);
 // const ::b::x: int = 22;
-// var ::b;
-// constraint (::b == (::a + ::b::x));
-// solve satisfy;
+//
+// predicate ::test {
+//     var ::b;
+//     constraint (::b == (::a + ::b::x));
+// }
 // >>>
 
 // flattened <<<
 // const ::a: int = 242;
 // const ::b::x: int = 22;
-// var ::b: int;
-// constraint (::b == (242 + 22));
-// solve satisfy;
+//
+// predicate ::test {
+//     var ::b: int;
+//     constraint (::b == (242 + 22));
+// }
 // >>>

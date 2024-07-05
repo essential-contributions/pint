@@ -4,7 +4,7 @@ use crate::{
     macros::{MacroCall, MacroDecl},
     parser::{Ident, NextModPath, UsePath, UseTree},
     predicate::{
-        CallKey, ExprKey, Interface, InterfaceDecl, Predicate, PredicateInstance, Program,
+        CallKey, Contract, ExprKey, Interface, InterfaceDecl, Predicate, PredicateInstance,
         StorageVar, Var,
     },
     span::{self, Span, Spanned},
@@ -16,7 +16,7 @@ pub struct ParserContext<'a> {
     pub(crate) mod_path: &'a [String],
     pub(crate) mod_prefix: &'a str,
     pub(crate) local_scope: Option<&'a str>,
-    pub(crate) program: &'a mut Program,
+    pub(crate) contract: &'a mut Contract,
     pub(crate) current_pred: &'a mut String,
     pub(crate) macros: &'a mut Vec<MacroDecl>,
     pub(crate) macro_calls:
@@ -48,7 +48,7 @@ impl<'a> ParserContext<'a> {
     /// Returns a mutable reference to the Pred named `self.current_pred`. Panics if the Pred cannot be
     /// found, indicating a bug.
     pub fn current_pred(&mut self) -> &mut Predicate {
-        self.program.preds.get_mut(self.current_pred).unwrap()
+        self.contract.preds.get_mut(self.current_pred).unwrap()
     }
 
     /// Given an identifier and an type, produce a `StorageVar`. `l` and `r` are the code locations

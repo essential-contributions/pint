@@ -5,24 +5,26 @@ macro @a_macro($a, $0, $type) {
     b
 }
 
-constraint @a_macro(id; 1234; int) > 1;
-
-solve satisfy;
+predicate test {
+    constraint @a_macro(id; 1234; int) > 1;
+}
 
 // parsed <<<
-// var ::id: int;
-// var ::anon@0::b: int;
-// constraint (::anon@0::b > 1);
-// constraint (::id == 1234);
-// constraint (::anon@0::b > ::id);
-// solve satisfy;
+// predicate ::test {
+//     var ::id: int;
+//     var ::anon@0::b: int;
+//     constraint (::anon@0::b > 1);
+//     constraint (::id == 1234);
+//     constraint (::anon@0::b > ::id);
+// }
 // >>>
 
 // flattened <<<
-// var ::id: int;
-// var ::anon@0::b: int;
-// constraint (::anon@0::b > 1);
-// constraint (::id == 1234);
-// constraint (::anon@0::b > ::id);
-// solve satisfy;
+// predicate ::test {
+//     var ::id: int;
+//     var ::anon@0::b: int;
+//     constraint (::anon@0::b > 1);
+//     constraint (::id == 1234);
+//     constraint (::anon@0::b > ::id);
+// }
 // >>>

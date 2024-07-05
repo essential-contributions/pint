@@ -1,3 +1,4 @@
+predicate test {
 // <disabled>
 // ANCHOR: alias
 type Balance = int;
@@ -65,6 +66,4 @@ var user3_bal = {
     bal: 100, 
 };
 // ANCHOR_END: enum_in_struct
-
-
-solve satisfy;
+}

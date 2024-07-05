@@ -1,22 +1,23 @@
-enum Num = Zero | One | Two | Three;
-var ary: int[Num];
+predicate test {
+    enum Num = Zero | One | Two | Three;
+    var ary: int[Num];
 
-constraint ary[1] == 1;
-
-solve satisfy;
+    constraint ary[1] == 1;
+}
 
 // parsed <<<
-// var ::ary: int[::Num];
-// enum ::Num = Zero | One | Two | Three;
-// constraint (::ary[1] == 1);
-// solve satisfy;
+// predicate ::test {
+//     var ::ary: int[::Num];
+//     enum ::Num = Zero | One | Two | Three;
+//     constraint (::ary[1] == 1);
+// }
 // >>>
 
 // typecheck_failure <<<
 // attempt to index an array with a mismatched value
-// @72..73: array access must be with a `::Num` variant
+// @101..102: array access must be with a `::Num` variant
 // found access using type `int`
 // constraint expression type error
-// @57..79: constraint expression has unknown type
-// @57..79: expecting type `bool`
+// @86..108: constraint expression has unknown type
+// @86..108: expecting type `bool`
 // >>>

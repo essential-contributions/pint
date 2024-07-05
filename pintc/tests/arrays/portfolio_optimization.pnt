@@ -1,28 +1,29 @@
-// Consider a portfolio optimization example. The two competing goals of investment are (1)
-// long-term growth of capital and (2) low risk. A good portfolio grows steadily without wild
-// fluctuations in value. The Markowitz model is an optimization model for balancing the return and
-// risk of a portfolio. The decision variables are the amounts invested in each asset. The objective
-// is to minimize the variance of the portfolio's total return, subject to the constraints that (1)
-// the expected growth of the portfolio reaches at least some target level and (2) you do not invest
-// more capital than you have.
+predicate test {
+    // Consider a portfolio optimization example. The two competing goals of investment are (1)
+    // long-term growth of capital and (2) low risk. A good portfolio grows steadily without wild
+    // fluctuations in value. The Markowitz model is an optimization model for balancing the return and
+    // risk of a portfolio. The decision variables are the amounts invested in each asset. The objective
+    // is to minimize the variance of the portfolio's total return, subject to the constraints that (1)
+    // the expected growth of the portfolio reaches at least some target level and (2) you do not invest
+    // more capital than you have.
 
-// Total capitable available
-var B: real = 10000.0;
+    // Total capitable available
+    var B: real = 10000.0;
 
-// Minimum growth we hope to obtain
-var G: real = 1000.0;
+    // Minimum growth we hope to obtain
+    var G: real = 1000.0;
 
-// Expected values of R, the random vector of asset return over some period (use an array literal
-// here when available)
-var r: real[4];
-constraint r[0] ==  0.05 &&
+    // Expected values of R, the random vector of asset return over some period (use an array literal
+    // here when available)
+    var r: real[4];
+    constraint r[0] ==  0.05 &&
            r[1] == -0.20 &&
            r[2] ==  0.15 &&
            r[3] ==  0.30;
 
-// Covariance matrix of R (use an array literal here when available)
-var coeff: real[4][4];
-constraint coeff[0][0] ==  0.08  &&
+    // Covariance matrix of R (use an array literal here when available)
+    var coeff: real[4][4];
+    constraint coeff[0][0] ==  0.08  &&
            coeff[0][1] ==  -0.05 &&
            coeff[0][2] ==  -0.05 &&
            coeff[0][3] ==  -0.05 &&
@@ -39,22 +40,22 @@ constraint coeff[0][0] ==  0.08  &&
            coeff[3][2] ==  0.06  &&
            coeff[3][3] ==  0.35;
 
-// Amount invested in each asset
-var x: real[4];
-constraint forall i in 0..3 {
-    x[i] >= 0.0 && x[i] <= 10000.0 * 10000.0
-};
+    // Amount invested in each asset
+    var x: real[4];
+    constraint forall i in 0..3 {
+        x[i] >= 0.0 && x[i] <= 10000.0 * 10000.0
+    };
 
-// Invest no more than a total of B (Use a `fold` or `sum` here when available)
-constraint x[0] + x[1] + x[2] + x[3] <= B;
+    // Invest no more than a total of B (Use a `fold` or `sum` here when available)
+    constraint x[0] + x[1] + x[2] + x[3] <= B;
 
-// Expect a growth of at least `G  (Use a `fold` or `sum` here when available)
-constraint r[0] * x[0] + r[1] * x[1] + r[2] * x[2] + r[3] * x[3] >= G;
+    // Expect a growth of at least `G  (Use a `fold` or `sum` here when available)
+    constraint r[0] * x[0] + r[1] * x[1] + r[2] * x[2] + r[3] * x[3] >= G;
 
-// Objective function = x^T * C * x  (Use a `fold` or `sum` here when available)
-var f: real;
-constraint f >= 0.0;
-constraint coeff[0][0] * x[0] * x[0] +
+    // Objective function = x^T * C * x  (Use a `fold` or `sum` here when available)
+    var f: real;
+    constraint f >= 0.0;
+    constraint coeff[0][0] * x[0] * x[0] +
            coeff[0][1] * x[0] * x[1] +
            coeff[0][2] * x[0] * x[2] +
            coeff[0][3] * x[0] * x[3] +
@@ -70,43 +71,44 @@ constraint coeff[0][0] * x[0] * x[0] +
            coeff[3][1] * x[3] * x[1] +
            coeff[3][2] * x[3] * x[2] +
            coeff[3][3] * x[3] * x[3] == f;
-
-solve minimize f;
+}
 
 // parsed <<<
-// var ::B: real;
-// var ::G: real;
-// var ::r: real[4];
-// var ::coeff: real[4][4];
-// var ::x: real[4];
-// var ::f: real;
-// constraint (::B == 1e4);
-// constraint (::G == 1e3);
-// constraint ((((::r[0] == 5e-2) && (::r[1] == -2e-1)) && (::r[2] == 1.5e-1)) && (::r[3] == 3e-1));
-// constraint ((((((((((((((((::coeff[0][0] == 8e-2) && (::coeff[0][1] == -5e-2)) && (::coeff[0][2] == -5e-2)) && (::coeff[0][3] == -5e-2)) && (::coeff[1][0] == -5e-2)) && (::coeff[1][1] == 1.6e-1)) && (::coeff[1][2] == -2e-2)) && (::coeff[1][3] == -2e-2)) && (::coeff[2][0] == -5e-2)) && (::coeff[2][1] == -2e-2)) && (::coeff[2][2] == 3.5e-1)) && (::coeff[2][3] == 6e-2)) && (::coeff[3][0] == -5e-2)) && (::coeff[3][1] == -2e-2)) && (::coeff[3][2] == 6e-2)) && (::coeff[3][3] == 3.5e-1));
-// constraint forall i in 0..3, { ((::x[::i] >= 0e0) && (::x[::i] <= (1e4 * 1e4))) };
-// constraint ((((::x[0] + ::x[1]) + ::x[2]) + ::x[3]) <= ::B);
-// constraint (((((::r[0] * ::x[0]) + (::r[1] * ::x[1])) + (::r[2] * ::x[2])) + (::r[3] * ::x[3])) >= ::G);
-// constraint (::f >= 0e0);
-// constraint ((((((((((((((((((::coeff[0][0] * ::x[0]) * ::x[0]) + ((::coeff[0][1] * ::x[0]) * ::x[1])) + ((::coeff[0][2] * ::x[0]) * ::x[2])) + ((::coeff[0][3] * ::x[0]) * ::x[3])) + ((::coeff[1][0] * ::x[1]) * ::x[0])) + ((::coeff[1][1] * ::x[1]) * ::x[1])) + ((::coeff[1][2] * ::x[1]) * ::x[2])) + ((::coeff[1][3] * ::x[1]) * ::x[3])) + ((::coeff[2][0] * ::x[2]) * ::x[0])) + ((::coeff[2][1] * ::x[2]) * ::x[1])) + ((::coeff[2][2] * ::x[2]) * ::x[2])) + ((::coeff[2][3] * ::x[2]) * ::x[3])) + ((::coeff[3][0] * ::x[3]) * ::x[0])) + ((::coeff[3][1] * ::x[3]) * ::x[1])) + ((::coeff[3][2] * ::x[3]) * ::x[2])) + ((::coeff[3][3] * ::x[3]) * ::x[3])) == ::f);
-// solve minimize ::f;
+// predicate ::test {
+//     var ::B: real;
+//     var ::G: real;
+//     var ::r: real[4];
+//     var ::coeff: real[4][4];
+//     var ::x: real[4];
+//     var ::f: real;
+//     constraint (::B == 1e4);
+//     constraint (::G == 1e3);
+//     constraint ((((::r[0] == 5e-2) && (::r[1] == -2e-1)) && (::r[2] == 1.5e-1)) && (::r[3] == 3e-1));
+//     constraint ((((((((((((((((::coeff[0][0] == 8e-2) && (::coeff[0][1] == -5e-2)) && (::coeff[0][2] == -5e-2)) && (::coeff[0][3] == -5e-2)) && (::coeff[1][0] == -5e-2)) && (::coeff[1][1] == 1.6e-1)) && (::coeff[1][2] == -2e-2)) && (::coeff[1][3] == -2e-2)) && (::coeff[2][0] == -5e-2)) && (::coeff[2][1] == -2e-2)) && (::coeff[2][2] == 3.5e-1)) && (::coeff[2][3] == 6e-2)) && (::coeff[3][0] == -5e-2)) && (::coeff[3][1] == -2e-2)) && (::coeff[3][2] == 6e-2)) && (::coeff[3][3] == 3.5e-1));
+//     constraint forall i in 0..3, { ((::x[::i] >= 0e0) && (::x[::i] <= (1e4 * 1e4))) };
+//     constraint ((((::x[0] + ::x[1]) + ::x[2]) + ::x[3]) <= ::B);
+//     constraint (((((::r[0] * ::x[0]) + (::r[1] * ::x[1])) + (::r[2] * ::x[2])) + (::r[3] * ::x[3])) >= ::G);
+//     constraint (::f >= 0e0);
+//     constraint ((((((((((((((((((::coeff[0][0] * ::x[0]) * ::x[0]) + ((::coeff[0][1] * ::x[0]) * ::x[1])) + ((::coeff[0][2] * ::x[0]) * ::x[2])) + ((::coeff[0][3] * ::x[0]) * ::x[3])) + ((::coeff[1][0] * ::x[1]) * ::x[0])) + ((::coeff[1][1] * ::x[1]) * ::x[1])) + ((::coeff[1][2] * ::x[1]) * ::x[2])) + ((::coeff[1][3] * ::x[1]) * ::x[3])) + ((::coeff[2][0] * ::x[2]) * ::x[0])) + ((::coeff[2][1] * ::x[2]) * ::x[1])) + ((::coeff[2][2] * ::x[2]) * ::x[2])) + ((::coeff[2][3] * ::x[2]) * ::x[3])) + ((::coeff[3][0] * ::x[3]) * ::x[0])) + ((::coeff[3][1] * ::x[3]) * ::x[1])) + ((::coeff[3][2] * ::x[3]) * ::x[2])) + ((::coeff[3][3] * ::x[3]) * ::x[3])) == ::f);
+// }
 // >>>
 
 // flattened <<<
-// var ::B: real;
-// var ::G: real;
-// var ::r: real[4];
-// var ::coeff: real[4][4];
-// var ::x: real[4];
-// var ::f: real;
-// constraint (::B == 1e4);
-// constraint (::G == 1e3);
-// constraint ((((::r[0] == 5e-2) && (::r[1] == -2e-1)) && (::r[2] == 1.5e-1)) && (::r[3] == 3e-1));
-// constraint ((((((((((((((((::coeff[0][0] == 8e-2) && (::coeff[0][1] == -5e-2)) && (::coeff[0][2] == -5e-2)) && (::coeff[0][3] == -5e-2)) && (::coeff[1][0] == -5e-2)) && (::coeff[1][1] == 1.6e-1)) && (::coeff[1][2] == -2e-2)) && (::coeff[1][3] == -2e-2)) && (::coeff[2][0] == -5e-2)) && (::coeff[2][1] == -2e-2)) && (::coeff[2][2] == 3.5e-1)) && (::coeff[2][3] == 6e-2)) && (::coeff[3][0] == -5e-2)) && (::coeff[3][1] == -2e-2)) && (::coeff[3][2] == 6e-2)) && (::coeff[3][3] == 3.5e-1));
-// constraint ((((1 && ((::x[0] >= 0e0) && (::x[0] <= (1e4 * 1e4)))) && ((::x[1] >= 0e0) && (::x[1] <= (1e4 * 1e4)))) && ((::x[2] >= 0e0) && (::x[2] <= (1e4 * 1e4)))) && ((::x[3] >= 0e0) && (::x[3] <= (1e4 * 1e4))));
-// constraint ((((::x[0] + ::x[1]) + ::x[2]) + ::x[3]) <= ::B);
-// constraint (((((::r[0] * ::x[0]) + (::r[1] * ::x[1])) + (::r[2] * ::x[2])) + (::r[3] * ::x[3])) >= ::G);
-// constraint (::f >= 0e0);
-// constraint ((((((((((((((((((::coeff[0][0] * ::x[0]) * ::x[0]) + ((::coeff[0][1] * ::x[0]) * ::x[1])) + ((::coeff[0][2] * ::x[0]) * ::x[2])) + ((::coeff[0][3] * ::x[0]) * ::x[3])) + ((::coeff[1][0] * ::x[1]) * ::x[0])) + ((::coeff[1][1] * ::x[1]) * ::x[1])) + ((::coeff[1][2] * ::x[1]) * ::x[2])) + ((::coeff[1][3] * ::x[1]) * ::x[3])) + ((::coeff[2][0] * ::x[2]) * ::x[0])) + ((::coeff[2][1] * ::x[2]) * ::x[1])) + ((::coeff[2][2] * ::x[2]) * ::x[2])) + ((::coeff[2][3] * ::x[2]) * ::x[3])) + ((::coeff[3][0] * ::x[3]) * ::x[0])) + ((::coeff[3][1] * ::x[3]) * ::x[1])) + ((::coeff[3][2] * ::x[3]) * ::x[2])) + ((::coeff[3][3] * ::x[3]) * ::x[3])) == ::f);
-// solve minimize ::f;
+// predicate ::test {
+//     var ::B: real;
+//     var ::G: real;
+//     var ::r: real[4];
+//     var ::coeff: real[4][4];
+//     var ::x: real[4];
+//     var ::f: real;
+//     constraint (::B == 1e4);
+//     constraint (::G == 1e3);
+//     constraint ((((::r[0] == 5e-2) && (::r[1] == -2e-1)) && (::r[2] == 1.5e-1)) && (::r[3] == 3e-1));
+//     constraint ((((((((((((((((::coeff[0][0] == 8e-2) && (::coeff[0][1] == -5e-2)) && (::coeff[0][2] == -5e-2)) && (::coeff[0][3] == -5e-2)) && (::coeff[1][0] == -5e-2)) && (::coeff[1][1] == 1.6e-1)) && (::coeff[1][2] == -2e-2)) && (::coeff[1][3] == -2e-2)) && (::coeff[2][0] == -5e-2)) && (::coeff[2][1] == -2e-2)) && (::coeff[2][2] == 3.5e-1)) && (::coeff[2][3] == 6e-2)) && (::coeff[3][0] == -5e-2)) && (::coeff[3][1] == -2e-2)) && (::coeff[3][2] == 6e-2)) && (::coeff[3][3] == 3.5e-1));
+//     constraint ((((1 && ((::x[0] >= 0e0) && (::x[0] <= (1e4 * 1e4)))) && ((::x[1] >= 0e0) && (::x[1] <= (1e4 * 1e4)))) && ((::x[2] >= 0e0) && (::x[2] <= (1e4 * 1e4)))) && ((::x[3] >= 0e0) && (::x[3] <= (1e4 * 1e4))));
+//     constraint ((((::x[0] + ::x[1]) + ::x[2]) + ::x[3]) <= ::B);
+//     constraint (((((::r[0] * ::x[0]) + (::r[1] * ::x[1])) + (::r[2] * ::x[2])) + (::r[3] * ::x[3])) >= ::G);
+//     constraint (::f >= 0e0);
+//     constraint ((((((((((((((((((::coeff[0][0] * ::x[0]) * ::x[0]) + ((::coeff[0][1] * ::x[0]) * ::x[1])) + ((::coeff[0][2] * ::x[0]) * ::x[2])) + ((::coeff[0][3] * ::x[0]) * ::x[3])) + ((::coeff[1][0] * ::x[1]) * ::x[0])) + ((::coeff[1][1] * ::x[1]) * ::x[1])) + ((::coeff[1][2] * ::x[1]) * ::x[2])) + ((::coeff[1][3] * ::x[1]) * ::x[3])) + ((::coeff[2][0] * ::x[2]) * ::x[0])) + ((::coeff[2][1] * ::x[2]) * ::x[1])) + ((::coeff[2][2] * ::x[2]) * ::x[2])) + ((::coeff[2][3] * ::x[2]) * ::x[3])) + ((::coeff[3][0] * ::x[3]) * ::x[0])) + ((::coeff[3][1] * ::x[3]) * ::x[1])) + ((::coeff[3][2] * ::x[3]) * ::x[2])) + ((::coeff[3][3] * ::x[3]) * ::x[3])) == ::f);
+// }
 // >>>
