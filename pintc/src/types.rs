@@ -417,8 +417,8 @@ impl Type {
                 PrimitiveKind::B256 => KeyedTypeABI::B256(key),
                 _ => unimplemented!(),
             }),
-            Type::Tuple { fields, .. } => Ok(KeyedTypeABI::Tuple {
-                fields: fields
+            Type::Tuple { fields, .. } => Ok(KeyedTypeABI::Tuple(
+                fields
                     .iter()
                     .enumerate()
                     .map(|(index, (name, field_ty))| {
@@ -445,8 +445,7 @@ impl Type {
                         }
                     })
                     .collect::<Result<Vec<_>, _>>()?,
-                key,
-            }),
+            )),
             Type::Array {
                 ty, range, size, ..
             } => Ok(KeyedTypeABI::Array {
@@ -474,7 +473,6 @@ impl Type {
                         value_key.push(Some(0));
                         (*ty_to).abi_with_key(handler, value_key.clone(), pred)?
                     }),
-                    key,
                 })
             }
             _ => unimplemented!("other types are not yet supported"),

@@ -66,10 +66,7 @@ pub enum KeyedTypeABI {
     Real(Key),
     String(Key),
     B256(Key),
-    Tuple {
-        fields: Vec<KeyedTupleField>,
-        key: Key,
-    },
+    Tuple(Vec<KeyedTupleField>),
     Array {
         ty: Box<KeyedTypeABI>,
         size: i64,
@@ -77,6 +74,5 @@ pub enum KeyedTypeABI {
     Map {
         ty_from: TypeABI, // not in storage hence `TypeABI` instead of `KeyedTypeABI`
         ty_to: Box<Self>,
-        key: Key,
     },
 }
