@@ -156,8 +156,7 @@ simplify this process: we can create a shortcut to a path with the <code>use</co
 the shorter name everywhere else in the scope.</p>
 <p>In the example below, we bring the <code>::garden::vegetables</code> module into the scope of the root file to
 use the <code>Asparagus</code> enum:</p>
-<pre><code class="language-pint">
-use ::garden::vegetables;
+<pre><code class="language-pint">use ::garden::vegetables;
 
 predicate Baz {
     var third_asparagus: vegetables::Asparagus;
@@ -191,8 +190,10 @@ type Data = {
 <pre><code class="language-pint">use ::data::contract_lib;
 use ::data::predicate_lib;
 
-var contract_data: contract_lib::Data;
-var predicate_data: predicate_lib::Data;
+predicate test {
+    var contract_data: contract_lib::Data;
+    var predicate_data: predicate_lib::Data;
+}
 </code></pre>
 <p>As you can see, using the parent module distinguishes the two <code>Data</code> types. If instead we specified
 <code>use data::contract_lib::Data</code> and <code>use data::predicate_lib::Data</code>, we'd have two <code>Data</code> types in
@@ -204,6 +205,7 @@ types using <code>as</code>.</p>
 <pre><code class="language-pint">use ::data::contract_lib::Data as ContractData;
 use ::data::predicate_lib::Data as PredicateData;
 
+predicate test {
 var contract_data: ContractData;
 var predicate_data: PredicateData;
 </code></pre>

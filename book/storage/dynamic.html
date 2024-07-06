@@ -249,10 +249,13 @@ operator accesses the second key (<code>int</code> in this case).</p>
     nested_map: (b256 =&gt; (int =&gt; bool)),
     // ...
 }
-var addr: b256;
 
-state nested_map = storage::nested_map; // Expecting to return the &quot;whole&quot; map
-state nested_map_inner = storage::nested_map[addr]; // Expecting to return the &quot;whole&quot; inner map
+predicate test {
+    var addr: b256;
+
+    state nested_map = storage::nested_map; // Expecting to return the &quot;whole&quot; map
+    state nested_map_inner = storage::nested_map[addr]; // Expecting to return the &quot;whole&quot; inner map
+}
 </code></pre>
 <p>However, the compiler will disallow this by emitting the following errors:</p>
 <pre><code class="language-console">Error: state variables cannot have storage map type

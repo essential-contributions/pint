@@ -916,13 +916,13 @@ var user3_bal = {
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="constraints"><a class="header" href="#constraints">Constraints</a></h2>
-<p>Constraints are the building blocks of a Pint program. Simply put, a constraint is a declaration
+<p>Constraints are the building blocks of a Pint contract. Simply put, a constraint is a declaration
 that starts with the keyword <code>constraint</code> followed by a <strong>Boolean</strong> expression:</p>
 <pre><code class="language-pint">var x: int;
 constraint x == 0;
 </code></pre>
 <p>The above is a simple constraint which ensures that the value of <code>x</code> is exactly 0. Every proposed
-solution to this program must set <code>x</code> to 0. Otherwise, the constraint will fail. If we have multiple
+solution to this contract must set <code>x</code> to 0. Otherwise, the constraint will fail. If we have multiple
 constraint declarations, then all of them must be satisfied for a solution to be valid. For example:</p>
 <pre><code class="language-pint">var y: int;
 constraint y &gt;= 0;
@@ -957,7 +957,15 @@ Error: could not compile `example.pnt` due to previous error
 is not a decision variable to be solved. These may be declared in Pint using the <code>const</code> keyword.</p>
 <p><code>const</code> declarations resemble <code>var</code> declarations in that they name an optionally typed value with an
 initializer.</p>
-<pre><code class="language-pint">
+<pre><code class="language-pint">const minimum: int = 10;
+const maximum: int = 20;
+
+predicate test {
+    var foo: int;
+
+    var size: int;
+    constraint size &gt;= minimum &amp;&amp; foo &lt;= maximum;
+}
 </code></pre>
 <p>Like <code>var</code> declarations the type may be ommitted and will be inferred by the Pint compiler, but the
 <code>const</code> initializer is required and must a constant expression which does not refer to decision
@@ -1339,10 +1347,13 @@ operator accesses the second key (<code>int</code> in this case).</p>
     nested_map: (b256 =&gt; (int =&gt; bool)),
     // ...
 }
-var addr: b256;
 
-state nested_map = storage::nested_map; // Expecting to return the &quot;whole&quot; map
-state nested_map_inner = storage::nested_map[addr]; // Expecting to return the &quot;whole&quot; inner map
+predicate test {
+    var addr: b256;
+
+    state nested_map = storage::nested_map; // Expecting to return the &quot;whole&quot; map
+    state nested_map_inner = storage::nested_map[addr]; // Expecting to return the &quot;whole&quot; inner map
+}
 </code></pre>
 <p>However, the compiler will disallow this by emitting the following errors:</p>
 <pre><code class="language-console">Error: state variables cannot have storage map type
@@ -1576,8 +1587,7 @@ simplify this process: we can create a shortcut to a path with the <code>use</co
 the shorter name everywhere else in the scope.</p>
 <p>In the example below, we bring the <code>::garden::vegetables</code> module into the scope of the root file to
 use the <code>Asparagus</code> enum:</p>
-<pre><code class="language-pint">
-use ::garden::vegetables;
+<pre><code class="language-pint">use ::garden::vegetables;
 
 predicate Baz {
     var third_asparagus: vegetables::Asparagus;
@@ -1611,8 +1621,10 @@ type Data = {
 <pre><code class="language-pint">use ::data::contract_lib;
 use ::data::predicate_lib;
 
-var contract_data: contract_lib::Data;
-var predicate_data: predicate_lib::Data;
+predicate test {
+    var contract_data: contract_lib::Data;
+    var predicate_data: predicate_lib::Data;
+}
 </code></pre>
 <p>As you can see, using the parent module distinguishes the two <code>Data</code> types. If instead we specified
 <code>use data::contract_lib::Data</code> and <code>use data::predicate_lib::Data</code>, we'd have two <code>Data</code> types in
@@ -1624,6 +1636,7 @@ types using <code>as</code>.</p>
 <pre><code class="language-pint">use ::data::contract_lib::Data as ContractData;
 use ::data::predicate_lib::Data as PredicateData;
 
+predicate test {
 var contract_data: ContractData;
 var predicate_data: PredicateData;
 </code></pre>
