@@ -489,7 +489,7 @@ fn abi_key_from_keyed_type(ty: &KeyedTypeABI) -> &Vec<Option<usize>> {
         KeyedTypeABI::Array { ty, .. } => abi_key_from_keyed_type(ty),
         KeyedTypeABI::String(key) => key,
         KeyedTypeABI::B256(key) => key,
-        KeyedTypeABI::Tuple { key, .. } => key,
+        KeyedTypeABI::Tuple(fields) => abi_key_from_keyed_type(&fields[0].ty),
         KeyedTypeABI::Map { key, .. } => key,
     }
 }
@@ -506,8 +506,8 @@ fn map_mutation_method(ty_from: &TypeABI, ty_to: &KeyedTypeABI) -> syn::ImplItem
         }
         KeyedTypeABI::String(key) => (SingleKeyTy::String, key),
         KeyedTypeABI::B256(key) => (SingleKeyTy::B256, key),
-        KeyedTypeABI::Tuple { fields: _, key } => {
-            return map_mutation_method_for_tuple(ty_from, key);
+        KeyedTypeABI::Tuple(fields) => {
+            return map_mutation_method_for_tuple(ty_from, abi_key_from_keyed_type(&fields[0].ty));
         }
         KeyedTypeABI::Map { key, .. } => {
             return map_mutation_method_for_map(ty_from, key);
@@ -625,7 +625,8 @@ fn mutations_builders_from_keyed_type(ty: &KeyedTypeABI) -> Vec<syn::Item> {
                     .map(syn::Item::from),
             );
         }
-        KeyedTypeABI::Tuple { fields, key } => {
+        KeyedTypeABI::Tuple(fields) => {
+            let key = abi_key_from_keyed_type(&fields[0].ty);
             let struct_name = tuple_mutations_struct_name(key);
             // Items for this tuple.
             items.push(tuple_mutations_struct(&struct_name, key).into());
@@ -695,7 +696,9 @@ fn mutation_method_from_keyed_var(name: &str, ty: &KeyedTypeABI) -> syn::ImplIte
         KeyedTypeABI::B256(key) => (SingleKeyTy::B256, key),
         KeyedTypeABI::Array { ty: _, size: _ } => todo!(),
         // Tuple types take a closure.
-        KeyedTypeABI::Tuple { fields: _, key } => return mutation_method_for_tuple(name, key),
+        KeyedTypeABI::Tuple(fields) => {
+            return mutation_method_for_tuple(name, abi_key_from_keyed_type(&fields[0].ty))
+        }
         // Map types take a closure.
         KeyedTypeABI::Map { key, .. } => return mutation_method_for_map(name, key),
     };

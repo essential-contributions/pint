@@ -11,8 +11,8 @@ described in the [chapter on decision variables](./variables.md).
 
 ### Scalar Types
 
-A _scalar_ type represents a single value. Pint has four primary scalar types: integers, reals,
-Booleans, and 256-bit hashes.
+A _scalar_ type represents a single value. Pint has three primary scalar types: integers, Booleans,
+and 256-bit hashes.
 
 #### Integer Type
 
@@ -31,35 +31,18 @@ will have the same value as if you had specified `1000`.
 | Hex             | `0x123f`      |
 | Binary          | `0b1111_1101` |
 
-#### Real Type
-
-> **Note** Pint only has preliminary support for reals
-
-Pint also has a type called `real` that represents real values. Real values are usually represented
-in computers using floating-point or fixed-point numbers. Because Pint is essentially a constraint
-modeling language, we do not specify exactly how a `real` is represented and we leave that decision
-to the backend. What matters here is that a decision variable of type `real` is _not_ constrained to
-be an integer. This has implications on constraint solvers where, typically, solving for a
-continuous variable (i.e. a real) is much easier than solving for an integer.
-
-Here's an example that shows some decision variables initialized to real literals:
-
-```pint
-{{#include ../../../../examples/ch_3_2.pnt:reals}}
-```
-
 #### Numeric Operations
 
-Pint supports the basic mathematical operations you’d expect for integers and reals: addition,
-subtraction, multiplication, division, and remainder. Integer division truncates toward zero to the
-nearest integer. The following code shows how you’d use each numeric operation in a `var` statement:
+Pint supports the basic mathematical operations you’d expect for integers: addition, subtraction,
+multiplication, division, and remainder. Integer division truncates toward zero to the nearest
+integer. The following code shows how you’d use each numeric operation in a `var` statement:
 
 ```pint
 {{#include ../../../../examples/ch_3_2.pnt:math_ops}}
 ```
 
 Note that binary operators in Pint are strict with regards to what types they allow, that is, only
-identical types can be used in a binary operator. For example, adding an integer and a real is not a
+identical types can be used in a binary operator. For example, adding an `int` and a `bool` is not a
 valid operation and will result in a compile error.
 
 #### The Boolean Type

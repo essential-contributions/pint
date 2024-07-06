@@ -1,0 +1,116 @@
+{
+  "predicates": [
+    {
+      "name": "",
+      "vars": [],
+      "pub_vars": []
+    },
+    {
+      "name": "::Foo",
+      "vars": [
+        {
+          "name": "::v0",
+          "ty": "Int"
+        },
+        {
+          "name": "::v1",
+          "ty": {
+            "Array": {
+              "ty": "Bool",
+              "size": 5
+            }
+          }
+        }
+      ],
+      "pub_vars": [
+        {
+          "name": "::t0",
+          "ty": {
+            "Array": {
+              "ty": {
+                "Tuple": [
+                  {
+                    "name": null,
+                    "ty": {
+                      "Int": [0, 0]
+                    }
+                  },
+                  {
+                    "name": null,
+                    "ty": {
+                      "Int": [0, 1]
+                    }
+                  }
+                ]
+              },
+              "size": 5
+            }
+          }
+        },
+        {
+          "name": "::t1",
+          "ty": {
+            "Array": {
+              "ty": {
+                "B256": [1, 0]
+              },
+              "size": 3
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "storage": [
+    {
+      "name": "s0",
+      "ty": {
+        "B256": [0]
+      }
+    },
+    {
+      "name": "s1",
+      "ty": {
+        "Tuple": [
+          {
+            "name": null,
+            "ty": {
+              "Int": [1, 0]
+            }
+          },
+          {
+            "name": null,
+            "ty": {
+              "Int": [1, 1]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "my_map",
+      "ty": {
+        "Map": {
+          "ty_from": "Int",
+          "ty_to": {
+            "Tuple": [
+              {
+                "name": null,
+                "ty": {
+                  "Int": [2, null, 0]
+                }
+              },
+              {
+                "name": null,
+                "ty": {
+                  "Int": [2, null, 1]
+                }
+              }
+            ]
+          },
+          "key": [2]
+        }
+      }
+    }
+  ]
+}
