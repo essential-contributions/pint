@@ -1,18 +1,19 @@
-var y: int;
-constraint y' == 5;
-solve satisfy;
-
+predicate test {
+    var y: int;
+    constraint y' == 5;
+}
 
 // parsed <<<
-// var ::y: int;
-// constraint (::y' == 5);
-// solve satisfy;
+// predicate ::test {
+//     var ::y: int;
+//     constraint (::y' == 5);
+// }
 // >>>
 
 // typecheck_failure <<<
 // `next state` access must be bound to a state variable
-// @23..24: `next state` access must be bound to a state variable
+// @48..49: `next state` access must be bound to a state variable
 // constraint expression type error
-// @12..30: constraint expression has unknown type
-// @12..30: expecting type `bool`
+// @37..55: constraint expression has unknown type
+// @37..55: expecting type `bool`
 // >>>

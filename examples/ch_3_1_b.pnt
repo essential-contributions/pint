@@ -1,3 +1,4 @@
+predicate test {
 // ANCHOR: initialized 
 var bar: int;
 constraint bar == 42;
@@ -7,5 +8,4 @@ constraint bar == 42;
 var baz: int;
 constraint baz == 43;
 // ANCHOR_END: initialized_unannotated
-
-solve satisfy;
+}

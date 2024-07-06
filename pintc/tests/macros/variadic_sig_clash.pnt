@@ -6,9 +6,9 @@ macro @m($x, $y) {
     var a = $x + $y;
 }
 
-@m(1; 2);
-
-solve satisfy;
+predicate test {
+    @m(1; 2);
+}
 
 // parse_failure <<<
 // macro ::@m is declared multiple times

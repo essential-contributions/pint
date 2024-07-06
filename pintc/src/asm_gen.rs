@@ -2,8 +2,7 @@ use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp, Expr, Immediate, TupleAccess, UnaryOp},
     predicate::{
-        ConstraintDecl, ExprKey, Predicate, PredicateInstance, Program, ProgramKind,
-        State as StateVar,
+        ConstraintDecl, Contract, ExprKey, Predicate, PredicateInstance, State as StateVar,
     },
     span::empty_span,
     types::Type,
@@ -18,17 +17,16 @@ mod display;
 mod tests;
 
 #[derive(Debug, Default, Clone)]
-pub struct CompiledProgram {
-    pub kind: ProgramKind,
+pub struct CompiledContract {
     pub names: Vec<String>,
     pub salt: [u8; 32],
     pub predicates: Vec<CompiledPredicate>,
 }
 
-impl CompiledProgram {
+impl CompiledContract {
     pub const ROOT_PRED_NAME: &'static str = "";
 
-    /// The root predicate is the one named `CompiledProgram::ROOT_PRED_NAME`
+    /// The root predicate is the one named `CompiledContract::ROOT_PRED_NAME`
     pub fn root_predicate(&self) -> &CompiledPredicate {
         &self.predicates[self
             .names
@@ -38,30 +36,19 @@ impl CompiledProgram {
     }
 }
 
-/// Convert a `Program` into `CompiledProgram`
-pub fn compile_program(
+/// Convert a `Contract` into `CompiledContract`
+pub fn compile_contract(
     handler: &Handler,
-    program: &Program,
-) -> Result<CompiledProgram, ErrorEmitted> {
+    contract: &Contract,
+) -> Result<CompiledContract, ErrorEmitted> {
     let mut names = Vec::new();
     let mut predicates = Vec::new();
-    match program.kind {
-        ProgramKind::Stateless => {
-            let (name, pred) = program.preds.iter().next().unwrap();
+
+    for (name, pred) in contract.preds.iter() {
+        if name != Contract::ROOT_PRED_NAME {
             if let Ok(predicate) = handler.scope(|handler| predicate_to_asm(handler, pred)) {
                 names.push(name.to_string());
                 predicates.push(predicate);
-            }
-        }
-        ProgramKind::Stateful => {
-            for (name, pred) in program.preds.iter() {
-                if name != Program::ROOT_PRED_NAME {
-                    if let Ok(predicate) = handler.scope(|handler| predicate_to_asm(handler, pred))
-                    {
-                        names.push(name.to_string());
-                        predicates.push(predicate);
-                    }
-                }
             }
         }
     }
@@ -70,8 +57,7 @@ pub fn compile_program(
         return Err(handler.cancel());
     }
 
-    Ok(CompiledProgram {
-        kind: program.kind.clone(),
+    Ok(CompiledContract {
         names,
         // Salt is not used by pint yet.
         salt: Default::default(),

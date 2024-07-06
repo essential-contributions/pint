@@ -1,28 +1,30 @@
-var x: real = 1.0..4.0;
-var y: real = 1.0..4.0;
+predicate test {
+    var x: real = 1.0..4.0;
+    var y: real = 1.0..4.0;
 
-constraint x + y == 3.3;
-
-solve satisfy;
+    constraint x + y == 3.3;
+}
 
 // parsed <<<
-// var ::x: real;
-// var ::y: real;
-// constraint (::x >= 1e0);
-// constraint (::x <= 4e0);
-// constraint (::y >= 1e0);
-// constraint (::y <= 4e0);
-// constraint ((::x + ::y) == 3.3e0);
-// solve satisfy;
+// predicate ::test {
+//     var ::x: real;
+//     var ::y: real;
+//     constraint (::x >= 1e0);
+//     constraint (::x <= 4e0);
+//     constraint (::y >= 1e0);
+//     constraint (::y <= 4e0);
+//     constraint ((::x + ::y) == 3.3e0);
+// }
 // >>>
 
 // flattened <<<
-// var ::x: real;
-// var ::y: real;
-// constraint (::x >= 1e0);
-// constraint (::x <= 4e0);
-// constraint (::y >= 1e0);
-// constraint (::y <= 4e0);
-// constraint ((::x + ::y) == 3.3e0);
-// solve satisfy;
+// predicate ::test {
+//     var ::x: real;
+//     var ::y: real;
+//     constraint (::x >= 1e0);
+//     constraint (::x <= 4e0);
+//     constraint (::y >= 1e0);
+//     constraint (::y <= 4e0);
+//     constraint ((::x + ::y) == 3.3e0);
+// }
 // >>>

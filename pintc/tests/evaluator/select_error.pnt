@@ -1,10 +1,7 @@
 const a = 11 ? 2 : 3;
 
-solve satisfy;
-
 // parsed <<<
 // const ::a = (11 ? 2 : 3);
-// solve satisfy;
 // >>>
 
 // typecheck_failure <<<

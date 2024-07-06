@@ -2,9 +2,9 @@ macro @m($a) {
     var x = @m(22);
 }
 
-@m(11);
-
-solve satisfy;
+predicate test {
+    @m(11);
+}
 
 // parse_failure <<<
 // macro call is recursive

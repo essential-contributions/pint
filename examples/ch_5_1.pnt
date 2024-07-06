@@ -8,6 +8,7 @@ storage {
 }
 // ANCHOR_END: storage_block
 
+predicate test {
 // ANCHOR: storage_access_1
 state x = storage::x;
 state a = storage::a;
@@ -41,6 +42,4 @@ if w != nil {
     constraint w' == nil;
 }
 // ANCHOR_END: update_to_nil 
-
-
-solve satisfy;
+}

@@ -7,10 +7,10 @@ macro @m($a) {
     $a
 }
 
-// @m() has no signature with only 2 params.  The param pack can never be empty.
-@m(1; 2; 3; 4);
-
-solve satisfy;
+predicate test {
+    // @m() has no signature with only 2 params.  The param pack can never be empty.
+    @m(1; 2; 3; 4);
+}
 
 // parse_failure <<<
 // unable to match macro call

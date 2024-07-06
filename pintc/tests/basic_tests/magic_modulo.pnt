@@ -1,33 +1,35 @@
-// Magic Modulo Number.
-//
-// A number with an interesting property:
-//
-// When I divide it by  2, the remainder is 1.
-// When I divide it by  3, the remainder is 2.
-// When I divide it by  4, the remainder is 3.
-// When I divide it by  5, the remainder is 4.
-// When I divide it by  6, the remainder is 5.
-// When I divide it by  7, the remainder is 6.
-// When I divide it by  8, the remainder is 7.
-// When I divide it by  9, the remainder is 8.
-// When I divide it by 10, the remainder is 9.
+predicate test {
+    // Magic Modulo Number.
+    //
+    // A number with an interesting property:
+    //
+    // When I divide it by  2, the remainder is 1.
+    // When I divide it by  3, the remainder is 2.
+    // When I divide it by  4, the remainder is 3.
+    // When I divide it by  5, the remainder is 4.
+    // When I divide it by  6, the remainder is 5.
+    // When I divide it by  7, the remainder is 6.
+    // When I divide it by  8, the remainder is 7.
+    // When I divide it by  9, the remainder is 8.
+    // When I divide it by 10, the remainder is 9.
 
-var x: int;
+    var x: int;
 
-constraint forall i in 2..10 {
-    x % i == i - 1
-};
-
-solve satisfy;
+    constraint forall i in 2..10 {
+        x % i == i - 1
+    };
+}
 
 // parsed <<<
-// var ::x: int;
-// constraint forall i in 2..10, { ((::x % ::i) == (::i - 1)) };
-// solve satisfy;
+// predicate ::test {
+//     var ::x: int;
+//     constraint forall i in 2..10, { ((::x % ::i) == (::i - 1)) };
+// }
 // >>>
 
 // flattened <<<
-// var ::x: int;
-// constraint (((((((((1 && ((::x % 2) == (2 - 1))) && ((::x % 3) == (3 - 1))) && ((::x % 4) == (4 - 1))) && ((::x % 5) == (5 - 1))) && ((::x % 6) == (6 - 1))) && ((::x % 7) == (7 - 1))) && ((::x % 8) == (8 - 1))) && ((::x % 9) == (9 - 1))) && ((::x % 10) == (10 - 1)));
-// solve satisfy;
+// predicate ::test {
+//     var ::x: int;
+//     constraint (((((((((1 && ((::x % 2) == (2 - 1))) && ((::x % 3) == (3 - 1))) && ((::x % 4) == (4 - 1))) && ((::x % 5) == (5 - 1))) && ((::x % 6) == (6 - 1))) && ((::x % 7) == (7 - 1))) && ((::x % 8) == (8 - 1))) && ((::x % 9) == (9 - 1))) && ((::x % 10) == (10 - 1)));
+// }
 // >>>

@@ -286,7 +286,6 @@ fn with_error() {
 var low_val: int = 5.0;
 constraint mid > low_val # 2;
 constraint mid < low_val @ 2;
-solve minimize mid;
 "#;
 
     let (tokens, errors) = lex(src, Rc::from(Path::new("test")));
@@ -300,7 +299,7 @@ solve minimize mid;
 
     // Check tokens
     use Token::*;
-    assert_eq!(tokens.len(), 23);
+    assert_eq!(tokens.len(), 19);
     assert!(matches!(tokens[0].0, Var));
     assert_eq!(tokens[1].0, Ident(("low_val".to_owned(), false)));
     assert!(matches!(tokens[2].0, Colon));
@@ -322,11 +321,6 @@ solve minimize mid;
     assert_eq!(tokens[16].0, Ident(("low_val".to_owned(), false)));
     assert_eq!(tokens[17].0, IntLiteral("2".to_owned()));
     assert!(matches!(tokens[18].0, Semi));
-
-    assert!(matches!(tokens[19].0, Solve));
-    assert!(matches!(tokens[20].0, Minimize));
-    assert_eq!(tokens[21].0, Ident(("mid".to_owned(), false)));
-    assert!(matches!(tokens[22].0, Semi));
 }
 
 #[test]

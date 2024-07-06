@@ -1,54 +1,46 @@
-// Call a macro in a module, should be expanded in the current scope.
-
-use c;
-use d::d;
-use e::@e_macro;
-
-var a: int;
-constraint ::b::@b_macro(a; 11 + 22);
-constraint c::@c_macro(a; 33);
-
 // A local macro which when called from other modules should expand in the correct scope.
 
 macro @main_macro($id) {
     $id == 44
 }
 
-constraint a != d;
+use c;
+use e::@e_macro;
 
-// A macro which calls another macro in a module we haven't referenced before.  `@e_macro()` calls
-// `::f::@f_macro()` but before now we haven't used `::f` in `main`.
+predicate test {
+    // Call a macro in a module, should be expanded in the current scope.
 
-constraint @e_macro(a);
+    var a: int;
+    constraint ::b::@b_macro(a; 11 + 22);
+    constraint c::@c_macro(a; 33);
 
-// A macro in ::g which in turn calls another macro in ::g -- local expansion still needs to resolve
-// the other ::g macro properly (i.e., not locally).
-g::@g_macro(55; 66; 77);
+    // A macro which calls another macro in a module we haven't referenced before.  `@e_macro()` calls
+    // `::f::@f_macro()` but before now we haven't used `::f` in `main`.
 
-solve satisfy;
+    constraint @e_macro(a);
+
+    g::@g_macro(55; 66; 77);
+
+}
 
 // parsed <<<
-// var ::a: int;
-// var ::d::d: int;
-// constraint (::a <= (11 + 22));
-// constraint (::a >= 33);
-// constraint (::a != ::d::d);
-// constraint ((::a % 3) == 0);
-// constraint (::d::d == 44);
-// constraint (55 != 66);
-// constraint (66 != 77);
-// solve satisfy;
+// predicate ::test {
+//     var ::a: int;
+//     constraint (::a <= (11 + 22));
+//     constraint (::a >= 33);
+//     constraint ((::a % 3) == 0);
+//     constraint (55 != 66);
+//     constraint (66 != 77);
+// }
 // >>>
 
 // flattened <<<
-// var ::a: int;
-// var ::d::d: int;
-// constraint (::a <= (11 + 22));
-// constraint (::a >= 33);
-// constraint (::a != ::d::d);
-// constraint ((::a % 3) == 0);
-// constraint (::d::d == 44);
-// constraint (55 != 66);
-// constraint (66 != 77);
-// solve satisfy;
+// predicate ::test {
+//     var ::a: int;
+//     constraint (::a <= (11 + 22));
+//     constraint (::a >= 33);
+//     constraint ((::a % 3) == 0);
+//     constraint (55 != 66);
+//     constraint (66 != 77);
+// }
 // >>>

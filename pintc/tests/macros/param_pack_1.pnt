@@ -2,9 +2,9 @@ macro @a($x, &pack, &rest) {
     $x + 33
 }
 
-var b = @a(11; 22; 33; 44; 55);
-
-solve satisfy;
+predicate test {
+    var b = @a(11; 22; 33; 44; 55);
+}
 
 // parse_failure <<<
 // expected `)`, found `&rest`

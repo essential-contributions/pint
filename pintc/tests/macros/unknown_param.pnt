@@ -2,9 +2,9 @@ macro @foo($a, $b) {
     $a + $b + $c
 }
 
-@foo(11; 22);
-
-solve satisfy;
+predicate test {
+    @foo(11; 22);
+}
 
 // parse_failure <<<
 // undefined macro parameter

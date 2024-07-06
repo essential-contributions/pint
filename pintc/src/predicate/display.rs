@@ -1,23 +1,18 @@
 use std::fmt::{Display, Formatter, Result};
 
-impl Display for super::Program {
+impl Display for super::Contract {
     fn fmt(&self, f: &mut Formatter) -> Result {
         for (path, cnst) in &self.consts {
             writeln!(f, "const {path}{};", self.root_pred().with_pred(cnst))?;
         }
 
-        match self.kind {
-            super::ProgramKind::Stateless => self.root_pred().fmt_with_indent(f, 0)?,
-            super::ProgramKind::Stateful => {
-                for (name, pred) in &self.preds {
-                    if name == Self::ROOT_PRED_NAME {
-                        writeln!(f, "{}", self.root_pred())?;
-                    } else {
-                        writeln!(f, "predicate {name} {{")?;
-                        pred.fmt_with_indent(f, 1)?;
-                        writeln!(f, "}}\n")?;
-                    }
-                }
+        for (name, pred) in &self.preds {
+            if name == Self::ROOT_PRED_NAME {
+                self.root_pred().fmt_with_indent(f, 0)?
+            } else {
+                writeln!(f, "\npredicate {name} {{")?;
+                pred.fmt_with_indent(f, 1)?;
+                writeln!(f, "}}")?;
             }
         }
 
@@ -135,10 +130,6 @@ impl super::Predicate {
 
         for if_decl in &self.if_decls {
             if_decl.fmt_with_indent(f, self, indent)?;
-        }
-
-        for directive in &self.directives {
-            writeln!(f, "{indentation}{};", self.with_pred(directive.0.clone()))?;
         }
 
         Ok(())

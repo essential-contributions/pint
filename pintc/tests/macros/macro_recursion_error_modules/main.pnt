@@ -1,8 +1,8 @@
-var a: int;
+predicate test {
+    var a: int;
 
-constraint b::@b_macro(a);
-
-solve satisfy;
+    constraint b::@b_macro(a);
+}
 
 // parse_failure <<<
 // macro call is recursive

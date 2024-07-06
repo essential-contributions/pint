@@ -1,3 +1,4 @@
+predicate test1 {
 // ANCHOR: expanded 
 var x: int;
 constraint x >= 10;
@@ -25,6 +26,7 @@ var p: int;
 constraint p > n + 10;
 var r = p;
 // ANCHOR_END: chain_expanded 
+}
 
 macro @sum($x, $y, &rest) {
     @sum($x + $y; &rest)
@@ -35,9 +37,9 @@ macro @sum($x, $y) {
     $x + $y
 }
 
+predicate test2 {
 var array: int[4];
 // ANCHOR: sum_splicing_expanded 
 var sum_of_array_v2 = @sum(array[0]; array[1]; array[2]; array[3]);
 // ANCHOR_END: sum_splicing_expanded
-
-solve satisfy;
+}

@@ -1,109 +1,111 @@
-enum TheLetterA = T | U | V;
+predicate test {
+    enum TheLetterA = T | U | V;
 
-type A = TheLetterA;
+    type A = TheLetterA;
 
-var t: A = A::T;
-var u: TheLetterA = A::U;
-var v: A = TheLetterA::V;
+    var t: A = A::T;
+    var u: TheLetterA = A::U;
+    var v: A = TheLetterA::V;
 
-type I = int;
+    type I = int;
 
-var i: I = 11;
-var j: {I, real} = {22, 33.3};
+    var i: I = 11;
+    var j: {I, real} = {22, 33.3};
 
-enum Experience = Real | Unreal;
+    enum Experience = Real | Unreal;
 
-type Real = real;
+    type Real = real;
 
-var r: Real = 44.4;
-var e: Experience = Experience::Real;
+    var r: Real = 44.4;
+    var e: Experience = Experience::Real;
 
-type Hooray = int[3];
+    type Hooray = int[3];
 
-var h: Hooray;
-constraint h[1] == 55;
+    var h: Hooray;
+    constraint h[1] == 55;
 
-type Point = { x: real, y: real };
+    type Point = { x: real, y: real };
 
-var p: Point = { 66.6, 77.7 };
-constraint r < p.y;
+    var p: Point = { 66.6, 77.7 };
+    constraint r < p.y;
 
-var q: real = i as Real;
+    var q: real = i as Real;
 
-state x: I = __storage_get(0);
-
-solve satisfy;
+    state x: I = __storage_get(0);
+}
 
 // parsed <<<
-// var ::t: ::A;
-// var ::u: ::TheLetterA;
-// var ::v: ::A;
-// var ::i: ::I;
-// var ::j: {::I, real};
-// var ::r: ::Real;
-// var ::e: ::Experience;
-// var ::h: ::Hooray;
-// var ::p: ::Point;
-// var ::q: real;
-// state ::x: ::I = __storage_get(0);
-// enum ::TheLetterA = T | U | V;
-// enum ::Experience = Real | Unreal;
-// type ::A = ::TheLetterA;
-// type ::I = int;
-// type ::Real = real;
-// type ::Hooray = int[3];
-// type ::Point = {x: real, y: real};
-// constraint (::t == ::A::T);
-// constraint (::u == ::A::U);
-// constraint (::v == ::TheLetterA::V);
-// constraint (::i == 11);
-// constraint (::j == {22, 3.33e1});
-// constraint (::r == 4.44e1);
-// constraint (::e == ::Experience::Real);
-// constraint (::h[1] == 55);
-// constraint (::p == {6.66e1, 7.77e1});
-// constraint (::r < ::p.y);
-// constraint (::q == ::i as ::Real);
-// solve satisfy;
+// predicate ::test {
+//     var ::t: ::A;
+//     var ::u: ::TheLetterA;
+//     var ::v: ::A;
+//     var ::i: ::I;
+//     var ::j: {::I, real};
+//     var ::r: ::Real;
+//     var ::e: ::Experience;
+//     var ::h: ::Hooray;
+//     var ::p: ::Point;
+//     var ::q: real;
+//     state ::x: ::I = __storage_get(0);
+//     enum ::TheLetterA = T | U | V;
+//     enum ::Experience = Real | Unreal;
+//     type ::A = ::TheLetterA;
+//     type ::I = int;
+//     type ::Real = real;
+//     type ::Hooray = int[3];
+//     type ::Point = {x: real, y: real};
+//     constraint (::t == ::A::T);
+//     constraint (::u == ::A::U);
+//     constraint (::v == ::TheLetterA::V);
+//     constraint (::i == 11);
+//     constraint (::j == {22, 3.33e1});
+//     constraint (::r == 4.44e1);
+//     constraint (::e == ::Experience::Real);
+//     constraint (::h[1] == 55);
+//     constraint (::p == {6.66e1, 7.77e1});
+//     constraint (::r < ::p.y);
+//     constraint (::q == ::i as ::Real);
+// }
 // >>>
 
 // flattened <<<
-// var ::t: int;
-// var ::u: int;
-// var ::v: int;
-// var ::i: int;
-// var ::j: {int, real};
-// var ::r: real;
-// var ::e: int;
-// var ::h: int[3];
-// var ::p: {x: real, y: real};
-// var ::q: real;
-// state ::x: int = __storage_get(0);
-// enum ::TheLetterA = T | U | V;
-// enum ::Experience = Real | Unreal;
-// type ::A = ::TheLetterA;
-// type ::I = int;
-// type ::Real = real;
-// type ::Hooray = int[3];
-// type ::Point = {x: real, y: real};
-// constraint (::t == 0);
-// constraint (::u == 1);
-// constraint (::v == 2);
-// constraint (::i == 11);
-// constraint (::j == {22, 3.33e1});
-// constraint (::r == 4.44e1);
-// constraint (::e == 0);
-// constraint (::h[1] == 55);
-// constraint (::p == {6.66e1, 7.77e1});
-// constraint (::r < ::p.y);
-// constraint (::q == ::i as real);
-// constraint (::t >= 0);
-// constraint (::t <= 2);
-// constraint (::u >= 0);
-// constraint (::u <= 2);
-// constraint (::v >= 0);
-// constraint (::v <= 2);
-// constraint (::e >= 0);
-// constraint (::e <= 1);
-// solve satisfy;
+// predicate ::test {
+//     var ::t: int;
+//     var ::u: int;
+//     var ::v: int;
+//     var ::i: int;
+//     var ::j: {int, real};
+//     var ::r: real;
+//     var ::e: int;
+//     var ::h: int[3];
+//     var ::p: {x: real, y: real};
+//     var ::q: real;
+//     state ::x: int = __storage_get(0);
+//     enum ::TheLetterA = T | U | V;
+//     enum ::Experience = Real | Unreal;
+//     type ::A = ::TheLetterA;
+//     type ::I = int;
+//     type ::Real = real;
+//     type ::Hooray = int[3];
+//     type ::Point = {x: real, y: real};
+//     constraint (::t == 0);
+//     constraint (::u == 1);
+//     constraint (::v == 2);
+//     constraint (::i == 11);
+//     constraint (::j == {22, 3.33e1});
+//     constraint (::r == 4.44e1);
+//     constraint (::e == 0);
+//     constraint (::h[1] == 55);
+//     constraint (::p == {6.66e1, 7.77e1});
+//     constraint (::r < ::p.y);
+//     constraint (::q == ::i as real);
+//     constraint (::t >= 0);
+//     constraint (::t <= 2);
+//     constraint (::u >= 0);
+//     constraint (::u <= 2);
+//     constraint (::v >= 0);
+//     constraint (::v <= 2);
+//     constraint (::e >= 0);
+//     constraint (::e <= 1);
+// }
 // >>>

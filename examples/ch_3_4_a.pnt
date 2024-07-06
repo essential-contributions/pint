@@ -1,3 +1,4 @@
+predicate test {
 // ANCHOR: basic_select
 var number: int;
 
@@ -42,6 +43,4 @@ if number < 5 {
     }
 }
 // ANCHOR_END: complex_if
-
-
-solve satisfy;
+}

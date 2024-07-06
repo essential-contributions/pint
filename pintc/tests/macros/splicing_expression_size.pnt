@@ -6,17 +6,17 @@ macro @sum($x) {
     $x
 }
 
-var ary: int[10 + 1];
+predicate test {
+    var ary: int[10 + 1];
 
-var a = @sum(~ary);
-
-solve satisfy;
+    var a = @sum(~ary);
+}
 
 // parse_failure <<<
 // unable to determine spliced array size
-// @112..115: unable to determine spliced array size for `::ary` while parsing
+// @137..140: unable to determine spliced array size for `::ary` while parsing
 // macro array splicing is currently limited to immediate integer sizes or enums
-// expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `constraint`, `enum`, `exists`, `forall`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `solve`, `state`, `type`, `use`, `var`, `{`, or `}`, found `ary`
-// @112..115: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `constraint`, `enum`, `exists`, `forall`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `solve`, `state`, `type`, `use`, `var`, `{`, or `}`
-// @106..116: when making macro call to '::@sum'
+// expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `constraint`, `enum`, `exists`, `forall`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `state`, `type`, `use`, `var`, `{`, or `}`, found `ary`
+// @137..140: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `constraint`, `enum`, `exists`, `forall`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `state`, `type`, `use`, `var`, `{`, or `}`
+// @131..141: when making macro call to '::@sum'
 // >>>

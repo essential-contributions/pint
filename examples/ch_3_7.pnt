@@ -1,11 +1,13 @@
-var foo: int;
-
 // ANCHOR: consts
 const minimum: int = 10;
 const maximum: int = 20;
 
-var size: int;
-constraint size >= minimum && foo <= maximum;
+predicate test {
+    var foo: int;
+
+    var size: int;
+    constraint size >= minimum && foo <= maximum;
+}
 // ANCHOR_END: consts
 
 //| Temporarily disabled.
@@ -20,5 +22,3 @@ constraint size >= minimum && foo <= maximum;
 //|var my_size: int;
 //|constraint !min_size.valid || my_size >= min_size.size;
 //|// ANCHOR_END: const_compound_types
-
-solve satisfy;

@@ -1,53 +1,55 @@
-// The generators tests are already testing most of the basics.  Here's some wacky stuff.
+predicate test {
+    // The generators tests are already testing most of the basics.  Here's some wacky stuff.
 
-var a: int[[1, 2, 3][1]];
-var b0: int[{1, 2, 3}.1];
-var b1: int[{x: 1, y: 2, z: 3}.y];
-var c: int[false ? 1 : 2];
+    var a: int[[1, 2, 3][1]];
+    var b0: int[{1, 2, 3}.1];
+    var b1: int[{x: 1, y: 2, z: 3}.y];
+    var c: int[false ? 1 : 2];
 
-constraint forall d in 0..2 where 0x1111111111111111111111111111111111111111111111111111111111111111 != 0x2222222222222222222222222222222222222222222222222222222222222222 { d == d };
-constraint forall e in 0..2 where 0x1111111111111111111111111111111111111111111111111111111111111111 == 0x2222222222222222222222222222222222222222222222222222222222222222 { e == e };
+    constraint forall d in 0..2 where 0x1111111111111111111111111111111111111111111111111111111111111111 != 0x2222222222222222222222222222222222222222222222222222222222222222 { d == d };
+    constraint forall e in 0..2 where 0x1111111111111111111111111111111111111111111111111111111111111111 == 0x2222222222222222222222222222222222222222222222222222222222222222 { e == e };
 
-var f: int[true as int];
+    var f: int[true as int];
 
-// * In theory the `in` expression could be evaluated at compile time, but it involves performing
-//   compile time equivalence checks between expressions for `in [...]` which can be a future task.
-// constraint forall g in 0..2, g in 0..2 where f in 1..3, g in [1, 2, 3] { true };
+    // * In theory the `in` expression could be evaluated at compile time, but it involves performing
+    //   compile time equivalence checks between expressions for `in [...]` which can be a future task.
+    // constraint forall g in 0..2, g in 0..2 where f in 1..3, g in [1, 2, 3] { true };
 
-enum Egg = Ovum | Oeuf | Uovo | HuaManu;
-var h: int[Egg::Uovo as int];   // Redundant but still valid.
+    enum Egg = Ovum | Oeuf | Uovo | HuaManu;
+    var h: int[Egg::Uovo as int];   // Redundant but still valid.
 
-var i: int[3 as int];   // Also redundant.
-
-solve satisfy;
+    var i: int[3 as int];   // Also redundant.
+}
 
 // parsed <<<
-// var ::a: int[[1, 2, 3][1]];
-// var ::b0: int[{1, 2, 3}.1];
-// var ::b1: int[{x: 1, y: 2, z: 3}.y];
-// var ::c: int[(false ? 1 : 2)];
-// var ::f: int[true as int];
-// var ::h: int[::Egg::Uovo as int];
-// var ::i: int[3 as int];
-// enum ::Egg = Ovum | Oeuf | Uovo | HuaManu;
-// constraint forall d in 0..2, where (0x1111111111111111111111111111111111111111111111111111111111111111 != 0x2222222222222222222222222222222222222222222222222222222222222222) { (::d == ::d) };
-// constraint forall e in 0..2, where (0x1111111111111111111111111111111111111111111111111111111111111111 == 0x2222222222222222222222222222222222222222222222222222222222222222) { (::e == ::e) };
-// solve satisfy;
+// predicate ::test {
+//     var ::a: int[[1, 2, 3][1]];
+//     var ::b0: int[{1, 2, 3}.1];
+//     var ::b1: int[{x: 1, y: 2, z: 3}.y];
+//     var ::c: int[(false ? 1 : 2)];
+//     var ::f: int[true as int];
+//     var ::h: int[::Egg::Uovo as int];
+//     var ::i: int[3 as int];
+//     enum ::Egg = Ovum | Oeuf | Uovo | HuaManu;
+//     constraint forall d in 0..2, where (0x1111111111111111111111111111111111111111111111111111111111111111 != 0x2222222222222222222222222222222222222222222222222222222222222222) { (::d == ::d) };
+//     constraint forall e in 0..2, where (0x1111111111111111111111111111111111111111111111111111111111111111 == 0x2222222222222222222222222222222222222222222222222222222222222222) { (::e == ::e) };
+// }
 // >>>
 
 // a, b, c and h are all int[2]; f is int[1].
 // d is expanded, e is not.
 //
 // flattened <<<
-// var ::a: int[[1, 2, 3][1]];
-// var ::b0: int[{1, 2, 3}.1];
-// var ::b1: int[{x: 1, y: 2, z: 3}.y];
-// var ::c: int[(0 ? 1 : 2)];
-// var ::f: int[1 as int];
-// var ::h: int[::Egg::Uovo as int];
-// var ::i: int[3 as int];
-// enum ::Egg = Ovum | Oeuf | Uovo | HuaManu;
-// constraint (((1 && (0 == 0)) && (1 == 1)) && (2 == 2));
-// constraint 1;
-// solve satisfy;
+// predicate ::test {
+//     var ::a: int[[1, 2, 3][1]];
+//     var ::b0: int[{1, 2, 3}.1];
+//     var ::b1: int[{x: 1, y: 2, z: 3}.y];
+//     var ::c: int[(0 ? 1 : 2)];
+//     var ::f: int[1 as int];
+//     var ::h: int[::Egg::Uovo as int];
+//     var ::i: int[3 as int];
+//     enum ::Egg = Ovum | Oeuf | Uovo | HuaManu;
+//     constraint (((1 && (0 == 0)) && (1 == 1)) && (2 == 2));
+//     constraint 1;
+// }
 // >>>

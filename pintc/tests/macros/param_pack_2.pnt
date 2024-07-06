@@ -6,9 +6,9 @@ macro @a($x) {
     $x
 }
 
-var b: int = @a(11; 22; 33; 44; 55);
-
-solve satisfy;
+predicate test {
+    var b: int = @a(11; 22; 33; 44; 55);
+}
 
 // parse_failure <<<
 // unknown parameter pack

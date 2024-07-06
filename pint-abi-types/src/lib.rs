@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct ProgramABI {
+pub struct ContractABI {
     pub predicates: Vec<PredicateABI>,
     pub storage: Vec<KeyedVarABI>,
 }

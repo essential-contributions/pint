@@ -1,71 +1,72 @@
-// Range errors.
-constraint forall i in false..true { false };
-constraint exists i in false..true { false };
-constraint forall i in (1.2)..(3.4) { false };
-constraint exists i in (1.2)..(3.4) { false };
+predicate test {
+    // Range errors.
+    constraint forall i in false..true { false };
+    constraint exists i in false..true { false };
+    constraint forall i in (1.2)..(3.4) { false };
+    constraint exists i in (1.2)..(3.4) { false };
 
-// Constraint errors.
-constraint forall i in 0..3 where i { true };
-constraint exists i in 0..3 where i { true };
+    // Constraint errors.
+    constraint forall i in 0..3 where i { true };
+    constraint exists i in 0..3 where i { true };
 
-// Body errors.
+    // Body errors.
 
-constraint forall i in 0..3 { i + i };
-constraint exists i in 0..3 { i + i };
-
-solve satisfy;
+    constraint forall i in 0..3 { i + i };
+    constraint exists i in 0..3 { i + i };
+}
 
 // parsed <<<
-// constraint forall i in false..true, { false };
-// constraint exists i in false..true, { false };
-// constraint forall i in 1.2e0..3.4e0, { false };
-// constraint exists i in 1.2e0..3.4e0, { false };
-// constraint forall i in 0..3, where ::i { true };
-// constraint exists i in 0..3, where ::i { true };
-// constraint forall i in 0..3, { (::i + ::i) };
-// constraint exists i in 0..3, { (::i + ::i) };
-// solve satisfy;
+// predicate ::test {
+//     constraint forall i in false..true, { false };
+//     constraint exists i in false..true, { false };
+//     constraint forall i in 1.2e0..3.4e0, { false };
+//     constraint exists i in 1.2e0..3.4e0, { false };
+//     constraint forall i in 0..3, where ::i { true };
+//     constraint exists i in 0..3, where ::i { true };
+//     constraint forall i in 0..3, { (::i + ::i) };
+//     constraint exists i in 0..3, { (::i + ::i) };
+// }
 // >>>
 
 // typecheck_failure <<<
 // range type must be numeric
-// @40..51: ranges must have numeric bounds; found `bool`
+// @65..76: ranges must have numeric bounds; found `bool`
 // range type must be numeric
-// @86..97: ranges must have numeric bounds; found `bool`
+// @115..126: ranges must have numeric bounds; found `bool`
 // range for `forall` must be an `int`
-// @132..144: invalid type `real`, expecting `int`
+// @165..177: invalid type `real`, expecting `int`
 // range for `exists` must be an `int`
-// @179..191: invalid type `real`, expecting `int`
+// @216..228: invalid type `real`, expecting `int`
 // condition for `forall` must be a `bool`
-// @260..261: invalid type `int`, expecting `bool`
+// @305..306: invalid type `int`, expecting `bool`
 // condition for `exists` must be a `bool`
-// @306..307: invalid type `int`, expecting `bool`
+// @355..356: invalid type `int`, expecting `bool`
 // body for `forall` must be a `bool` expression
-// @366..371: invalid type `int`, expecting `bool`
+// @423..428: invalid type `int`, expecting `bool`
 // body for `exists` must be a `bool` expression
-// @405..410: invalid type `int`, expecting `bool`
+// @466..471: invalid type `int`, expecting `bool`
 // constraint expression type error
-// @17..61: constraint expression has unknown type
-// @17..61: expecting type `bool`
+// @42..86: constraint expression has unknown type
+// @42..86: expecting type `bool`
 // constraint expression type error
-// @63..107: constraint expression has unknown type
-// @63..107: expecting type `bool`
+// @92..136: constraint expression has unknown type
+// @92..136: expecting type `bool`
 // constraint expression type error
-// @109..154: constraint expression has unknown type
-// @109..154: expecting type `bool`
+// @142..187: constraint expression has unknown type
+// @142..187: expecting type `bool`
 // constraint expression type error
-// @156..201: constraint expression has unknown type
-// @156..201: expecting type `bool`
+// @193..238: constraint expression has unknown type
+// @193..238: expecting type `bool`
 // constraint expression type error
-// @226..270: constraint expression has unknown type
-// @226..270: expecting type `bool`
+// @271..315: constraint expression has unknown type
+// @271..315: expecting type `bool`
 // constraint expression type error
-// @272..316: constraint expression has unknown type
-// @272..316: expecting type `bool`
+// @321..365: constraint expression has unknown type
+// @321..365: expecting type `bool`
 // constraint expression type error
-// @336..373: constraint expression has unknown type
-// @336..373: expecting type `bool`
+// @393..430: constraint expression has unknown type
+// @393..430: expecting type `bool`
 // constraint expression type error
-// @375..412: constraint expression has unknown type
-// @375..412: expecting type `bool`
+// @436..473: constraint expression has unknown type
+// @436..473: expecting type `bool`
 // >>>

@@ -1,70 +1,71 @@
-var z: bool;
-var x: int;
-var y: int;
-var xx: int;
-var yy: int;
+predicate test {
+    var z: bool;
+    var x: int;
+    var y: int;
+    var xx: int;
+    var yy: int;
 
-if 1.0 {
-    if false {
-    } else {
-        constraint z && !z;
-    }
+    if 1.0 {
+        if false {
+        } else {
+            constraint z && !z;
+        }
 
-    constraint yy != xx;
+        constraint yy != xx;
 
-    if x + 1 {
-        constraint x + 1;
+        if x + 1 {
+            constraint x + 1;
+        } else {
+            constraint z;
+        }
     } else {
-        constraint z;
-    }
-} else {
-    if { 1, 2 } {
-        constraint yy + xx == yy * xx;
-        constraint z;
-    } else {
-        if z {
-            constraint z && true;
+        if { 1, 2 } {
+            constraint yy + xx == yy * xx;
+            constraint z;
+        } else {
+            if z {
+                constraint z && true;
+            }
         }
     }
 }
 
-solve satisfy;
-
 // parsed <<<
-// var ::z: bool;
-// var ::x: int;
-// var ::y: int;
-// var ::xx: int;
-// var ::yy: int;
-// if 1e0 {
-//     if false {
+// predicate ::test {
+//     var ::z: bool;
+//     var ::x: int;
+//     var ::y: int;
+//     var ::xx: int;
+//     var ::yy: int;
+//     if 1e0 {
+//         if false {
+//         } else {
+//             constraint (::z && !::z)
+//         }
+//         constraint (::yy != ::xx)
+//         if (::x + 1) {
+//             constraint (::x + 1)
+//         } else {
+//             constraint ::z
+//         }
 //     } else {
-//         constraint (::z && !::z)
-//     }
-//     constraint (::yy != ::xx)
-//     if (::x + 1) {
-//         constraint (::x + 1)
-//     } else {
-//         constraint ::z
-//     }
-// } else {
-//     if {1, 2} {
-//         constraint ((::yy + ::xx) == (::yy * ::xx))
-//         constraint ::z
-//     } else {
-//         if ::z {
-//             constraint (::z && true)
+//         if {1, 2} {
+//             constraint ((::yy + ::xx) == (::yy * ::xx))
+//             constraint ::z
+//         } else {
+//             if ::z {
+//                 constraint (::z && true)
+//             }
 //         }
 //     }
 // }
-// solve satisfy;
-// >>> 
+// >>>
 
 // typecheck_failure <<<
 // condition for `if` statement must be a `bool`
-// @67..70: invalid type `real`, expecting `bool`
+// @108..111: invalid type `real`, expecting `bool`
 // condition for `if` statement must be a `bool`
-// @169..174: invalid type `int`, expecting `bool`
+// @234..239: invalid type `int`, expecting `bool`
 // condition for `if` statement must be a `bool`
-// @260..268: invalid type `{int, int}`, expecting `bool`
-// >>> 
+// @349..357: invalid type `{int, int}`, expecting `bool`
+// >>>

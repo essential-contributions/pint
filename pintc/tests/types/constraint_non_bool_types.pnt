@@ -1,39 +1,40 @@
-var a: b256;
-enum Colour = Red | Green | Blue;
+predicate test {
+    var a: b256;
+    enum Colour = Red | Green | Blue;
 
-constraint 1 + 2;
-constraint a;
-constraint { 1, 2 };
-constraint [1, 2, 3];
-constraint Colour::Red;
-
-solve satisfy;
+    constraint 1 + 2;
+    constraint a;
+    constraint { 1, 2 };
+    constraint [1, 2, 3];
+    constraint Colour::Red;
+}
 
 // parsed <<<
-// var ::a: b256;
-// enum ::Colour = Red | Green | Blue;
-// constraint (1 + 2);
-// constraint ::a;
-// constraint {1, 2};
-// constraint [1, 2, 3];
-// constraint ::Colour::Red;
-// solve satisfy;
+// predicate ::test {
+//     var ::a: b256;
+//     enum ::Colour = Red | Green | Blue;
+//     constraint (1 + 2);
+//     constraint ::a;
+//     constraint {1, 2};
+//     constraint [1, 2, 3];
+//     constraint ::Colour::Red;
+// }
 // >>>
 
 // typecheck_failure <<<
 // constraint expression type error
-// @48..64: constraint expression has unexpected type `int`
-// @48..64: expecting type `bool`
+// @77..93: constraint expression has unexpected type `int`
+// @77..93: expecting type `bool`
 // constraint expression type error
-// @66..78: constraint expression has unexpected type `b256`
-// @66..78: expecting type `bool`
+// @99..111: constraint expression has unexpected type `b256`
+// @99..111: expecting type `bool`
 // constraint expression type error
-// @80..99: constraint expression has unexpected type `{int, int}`
-// @80..99: expecting type `bool`
+// @117..136: constraint expression has unexpected type `{int, int}`
+// @117..136: expecting type `bool`
 // constraint expression type error
-// @101..121: constraint expression has unexpected type `int[3]`
-// @101..121: expecting type `bool`
+// @142..162: constraint expression has unexpected type `int[3]`
+// @142..162: expecting type `bool`
 // constraint expression type error
-// @123..145: constraint expression has unexpected type `::Colour`
-// @123..145: expecting type `bool`
+// @168..190: constraint expression has unexpected type `::Colour`
+// @168..190: expecting type `bool`
 // >>>

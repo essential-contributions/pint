@@ -1,11 +1,6 @@
 {
   "predicates": [
     {
-      "name": "",
-      "vars": [],
-      "pub_vars": []
-    },
-    {
       "name": "::Foo",
       "vars": [
         {

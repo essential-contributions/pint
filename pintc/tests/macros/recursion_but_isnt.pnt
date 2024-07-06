@@ -10,29 +10,31 @@ macro @c($z) {
     $z == 0
 }
 
-var v: int;
+predicate test {
+    var v: int;
 
-constraint @a(v);
-constraint @b(v);
-constraint @a(v);
-constraint @b(v);
-
-solve satisfy;
+    constraint @a(v);
+    constraint @b(v);
+    constraint @a(v);
+    constraint @b(v);
+}
 
 // parsed <<<
-// var ::v: int;
-// constraint (::v == 0);
-// constraint (::v == 0);
-// constraint (::v == 0);
-// constraint (::v == 0);
-// solve satisfy;
+// predicate ::test {
+//     var ::v: int;
+//     constraint (::v == 0);
+//     constraint (::v == 0);
+//     constraint (::v == 0);
+//     constraint (::v == 0);
+// }
 // >>>
 
 // flattened <<<
-// var ::v: int;
-// constraint (::v == 0);
-// constraint (::v == 0);
-// constraint (::v == 0);
-// constraint (::v == 0);
-// solve satisfy;
+// predicate ::test {
+//     var ::v: int;
+//     constraint (::v == 0);
+//     constraint (::v == 0);
+//     constraint (::v == 0);
+//     constraint (::v == 0);
+// }
 // >>>

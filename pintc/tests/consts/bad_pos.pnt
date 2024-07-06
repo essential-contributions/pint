@@ -9,6 +9,6 @@ predicate A {
 }
 
 // parse_failure <<<
-// expected `::`, `an identifier`, `constraint`, `enum`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `solve`, `state`, `type`, `use`, `var`, or `}`, found `const`
-// @53..58: expected `::`, `an identifier`, `constraint`, `enum`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `solve`, `state`, `type`, `use`, `var`, or `}`
+// expected `::`, `an identifier`, `constraint`, `enum`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `state`, `type`, `use`, `var`, or `}`, found `const`
+// @53..58: expected `::`, `an identifier`, `constraint`, `enum`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `state`, `type`, `use`, `var`, or `}`
 // >>>

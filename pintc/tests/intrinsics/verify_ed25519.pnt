@@ -1,93 +1,95 @@
-var hash0: b256;
-var hash1: b256;
-var hash2: b256;
-var sig: { b256, b256 } = { hash0, hash1 };
+predicate test {
+    var hash0: b256;
+    var hash1: b256;
+    var hash2: b256;
+    var sig: { b256, b256 } = { hash0, hash1 };
 
-var verify_ed25519_0: bool = __verify_ed25519(69, { hash0, hash1 }, hash2);
+    var verify_ed25519_0: bool = __verify_ed25519(69, { hash0, hash1 }, hash2);
 
 
-var x: int;
-var verify_ed25519_1: bool = __verify_ed25519(x, sig, hash2);
+    var x: int;
+    var verify_ed25519_1: bool = __verify_ed25519(x, sig, hash2);
 
-var verify_ed25519_2: bool = __verify_ed25519({ 69, { x, x } }, sig, hash2);
+    var verify_ed25519_2: bool = __verify_ed25519({ 69, { x, x } }, sig, hash2);
 
-var t: { int, bool, { b256, b256 } };
-var verify_ed25519_3: bool = __verify_ed25519(t, sig, hash2);
-var verify_ed25519_4: bool = __verify_ed25519(t.2, sig, hash2);
+    var t: { int, bool, { b256, b256 } };
+    var verify_ed25519_3: bool = __verify_ed25519(t, sig, hash2);
+    var verify_ed25519_4: bool = __verify_ed25519(t.2, sig, hash2);
 
-var y: int;
-var verify_ed25519_5: bool = __verify_ed25519([1, 2, 3, x, y], sig, hash2);
+    var y: int;
+    var verify_ed25519_5: bool = __verify_ed25519([1, 2, 3, x, y], sig, hash2);
 
-var a: int[2][3][4];
-var verify_ed25519_6: bool = __verify_ed25519(a, sig, hash2);
-var verify_ed25519_7: bool = __verify_ed25519(a[1], sig, hash2);
-var verify_ed25519_8: bool = __verify_ed25519(a[1][2], sig, hash2);
-var verify_ed25519_9: bool = __verify_ed25519(a[1][2][3], sig, hash2);
-
-solve satisfy;
+    var a: int[2][3][4];
+    var verify_ed25519_6: bool = __verify_ed25519(a, sig, hash2);
+    var verify_ed25519_7: bool = __verify_ed25519(a[1], sig, hash2);
+    var verify_ed25519_8: bool = __verify_ed25519(a[1][2], sig, hash2);
+    var verify_ed25519_9: bool = __verify_ed25519(a[1][2][3], sig, hash2);
+}
 
 // parsed <<<,
-// var ::hash0: b256;
-// var ::hash1: b256;
-// var ::hash2: b256;
-// var ::sig: {b256, b256};
-// var ::verify_ed25519_0: bool;
-// var ::x: int;
-// var ::verify_ed25519_1: bool;
-// var ::verify_ed25519_2: bool;
-// var ::t: {int, bool, {b256, b256}};
-// var ::verify_ed25519_3: bool;
-// var ::verify_ed25519_4: bool;
-// var ::y: int;
-// var ::verify_ed25519_5: bool;
-// var ::a: int[4][3][2];
-// var ::verify_ed25519_6: bool;
-// var ::verify_ed25519_7: bool;
-// var ::verify_ed25519_8: bool;
-// var ::verify_ed25519_9: bool;
-// constraint (::sig == {::hash0, ::hash1});
-// constraint (::verify_ed25519_0 == __verify_ed25519(69, {::hash0, ::hash1}, ::hash2));
-// constraint (::verify_ed25519_1 == __verify_ed25519(::x, ::sig, ::hash2));
-// constraint (::verify_ed25519_2 == __verify_ed25519({69, {::x, ::x}}, ::sig, ::hash2));
-// constraint (::verify_ed25519_3 == __verify_ed25519(::t, ::sig, ::hash2));
-// constraint (::verify_ed25519_4 == __verify_ed25519(::t.2, ::sig, ::hash2));
-// constraint (::verify_ed25519_5 == __verify_ed25519([1, 2, 3, ::x, ::y], ::sig, ::hash2));
-// constraint (::verify_ed25519_6 == __verify_ed25519(::a, ::sig, ::hash2));
-// constraint (::verify_ed25519_7 == __verify_ed25519(::a[1], ::sig, ::hash2));
-// constraint (::verify_ed25519_8 == __verify_ed25519(::a[1][2], ::sig, ::hash2));
-// constraint (::verify_ed25519_9 == __verify_ed25519(::a[1][2][3], ::sig, ::hash2));
-// solve satisfy;
+// predicate ::test {
+//     var ::hash0: b256;
+//     var ::hash1: b256;
+//     var ::hash2: b256;
+//     var ::sig: {b256, b256};
+//     var ::verify_ed25519_0: bool;
+//     var ::x: int;
+//     var ::verify_ed25519_1: bool;
+//     var ::verify_ed25519_2: bool;
+//     var ::t: {int, bool, {b256, b256}};
+//     var ::verify_ed25519_3: bool;
+//     var ::verify_ed25519_4: bool;
+//     var ::y: int;
+//     var ::verify_ed25519_5: bool;
+//     var ::a: int[4][3][2];
+//     var ::verify_ed25519_6: bool;
+//     var ::verify_ed25519_7: bool;
+//     var ::verify_ed25519_8: bool;
+//     var ::verify_ed25519_9: bool;
+//     constraint (::sig == {::hash0, ::hash1});
+//     constraint (::verify_ed25519_0 == __verify_ed25519(69, {::hash0, ::hash1}, ::hash2));
+//     constraint (::verify_ed25519_1 == __verify_ed25519(::x, ::sig, ::hash2));
+//     constraint (::verify_ed25519_2 == __verify_ed25519({69, {::x, ::x}}, ::sig, ::hash2));
+//     constraint (::verify_ed25519_3 == __verify_ed25519(::t, ::sig, ::hash2));
+//     constraint (::verify_ed25519_4 == __verify_ed25519(::t.2, ::sig, ::hash2));
+//     constraint (::verify_ed25519_5 == __verify_ed25519([1, 2, 3, ::x, ::y], ::sig, ::hash2));
+//     constraint (::verify_ed25519_6 == __verify_ed25519(::a, ::sig, ::hash2));
+//     constraint (::verify_ed25519_7 == __verify_ed25519(::a[1], ::sig, ::hash2));
+//     constraint (::verify_ed25519_8 == __verify_ed25519(::a[1][2], ::sig, ::hash2));
+//     constraint (::verify_ed25519_9 == __verify_ed25519(::a[1][2][3], ::sig, ::hash2));
+// }
 // >>>
 
 // flattened <<<,
-// var ::hash0: b256;
-// var ::hash1: b256;
-// var ::hash2: b256;
-// var ::sig: {b256, b256};
-// var ::verify_ed25519_0: int;
-// var ::x: int;
-// var ::verify_ed25519_1: int;
-// var ::verify_ed25519_2: int;
-// var ::t: {int, bool, {b256, b256}};
-// var ::verify_ed25519_3: int;
-// var ::verify_ed25519_4: int;
-// var ::y: int;
-// var ::verify_ed25519_5: int;
-// var ::a: int[4][3][2];
-// var ::verify_ed25519_6: int;
-// var ::verify_ed25519_7: int;
-// var ::verify_ed25519_8: int;
-// var ::verify_ed25519_9: int;
-// constraint (::sig == {::hash0, ::hash1});
-// constraint (::verify_ed25519_0 == __verify_ed25519(69, {::hash0, ::hash1}, ::hash2));
-// constraint (::verify_ed25519_1 == __verify_ed25519(::x, ::sig, ::hash2));
-// constraint (::verify_ed25519_2 == __verify_ed25519({69, {::x, ::x}}, ::sig, ::hash2));
-// constraint (::verify_ed25519_3 == __verify_ed25519(::t, ::sig, ::hash2));
-// constraint (::verify_ed25519_4 == __verify_ed25519(::t.2, ::sig, ::hash2));
-// constraint (::verify_ed25519_5 == __verify_ed25519([1, 2, 3, ::x, ::y], ::sig, ::hash2));
-// constraint (::verify_ed25519_6 == __verify_ed25519(::a, ::sig, ::hash2));
-// constraint (::verify_ed25519_7 == __verify_ed25519(::a[1], ::sig, ::hash2));
-// constraint (::verify_ed25519_8 == __verify_ed25519(::a[1][2], ::sig, ::hash2));
-// constraint (::verify_ed25519_9 == __verify_ed25519(::a[1][2][3], ::sig, ::hash2));
-// solve satisfy;
+// predicate ::test {
+//     var ::hash0: b256;
+//     var ::hash1: b256;
+//     var ::hash2: b256;
+//     var ::sig: {b256, b256};
+//     var ::verify_ed25519_0: int;
+//     var ::x: int;
+//     var ::verify_ed25519_1: int;
+//     var ::verify_ed25519_2: int;
+//     var ::t: {int, bool, {b256, b256}};
+//     var ::verify_ed25519_3: int;
+//     var ::verify_ed25519_4: int;
+//     var ::y: int;
+//     var ::verify_ed25519_5: int;
+//     var ::a: int[4][3][2];
+//     var ::verify_ed25519_6: int;
+//     var ::verify_ed25519_7: int;
+//     var ::verify_ed25519_8: int;
+//     var ::verify_ed25519_9: int;
+//     constraint (::sig == {::hash0, ::hash1});
+//     constraint (::verify_ed25519_0 == __verify_ed25519(69, {::hash0, ::hash1}, ::hash2));
+//     constraint (::verify_ed25519_1 == __verify_ed25519(::x, ::sig, ::hash2));
+//     constraint (::verify_ed25519_2 == __verify_ed25519({69, {::x, ::x}}, ::sig, ::hash2));
+//     constraint (::verify_ed25519_3 == __verify_ed25519(::t, ::sig, ::hash2));
+//     constraint (::verify_ed25519_4 == __verify_ed25519(::t.2, ::sig, ::hash2));
+//     constraint (::verify_ed25519_5 == __verify_ed25519([1, 2, 3, ::x, ::y], ::sig, ::hash2));
+//     constraint (::verify_ed25519_6 == __verify_ed25519(::a, ::sig, ::hash2));
+//     constraint (::verify_ed25519_7 == __verify_ed25519(::a[1], ::sig, ::hash2));
+//     constraint (::verify_ed25519_8 == __verify_ed25519(::a[1][2], ::sig, ::hash2));
+//     constraint (::verify_ed25519_9 == __verify_ed25519(::a[1][2][3], ::sig, ::hash2));
+// }
 // >>>

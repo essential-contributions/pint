@@ -1,27 +1,28 @@
-var a = 11;
-var b: int;
-var c = false;
+predicate test {
+    var a = 11;
+    var b: int;
+    var c = false;
 
-constraint b < (c ? 22 : 33);
-constraint b > (a ? 44 : 55);
-
-solve satisfy;
+    constraint b < (c ? 22 : 33);
+    constraint b > (a ? 44 : 55);
+}
 
 // parsed <<<
-// var ::a;
-// var ::b: int;
-// var ::c;
-// constraint (::a == 11);
-// constraint (::c == false);
-// constraint (::b < (::c ? 22 : 33));
-// constraint (::b > (::a ? 44 : 55));
-// solve satisfy;
+// predicate ::test {
+//     var ::a;
+//     var ::b: int;
+//     var ::c;
+//     constraint (::a == 11);
+//     constraint (::c == false);
+//     constraint (::b < (::c ? 22 : 33));
+//     constraint (::b > (::a ? 44 : 55));
+// }
 // >>>
 
 // typecheck_failure <<<
 // condition for select expression must be a `bool`
-// @86..87: invalid type `int`, expecting `bool`
+// @123..124: invalid type `int`, expecting `bool`
 // constraint expression type error
-// @70..98: constraint expression has unknown type
-// @70..98: expecting type `bool`
+// @107..135: constraint expression has unknown type
+// @107..135: expecting type `bool`
 // >>>

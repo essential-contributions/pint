@@ -3,8 +3,8 @@ mod intrinsics;
 mod type_check;
 
 use super::{
-    BlockStatement, Const, ConstraintDecl, Expr, ExprKey, Ident, IfDecl, InterfaceInstance,
-    Predicate, PredicateInstance, Program, VarKey,
+    BlockStatement, Const, ConstraintDecl, Contract, Expr, ExprKey, Ident, IfDecl,
+    InterfaceInstance, Predicate, PredicateInstance, VarKey,
 };
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
@@ -20,16 +20,16 @@ enum Inference {
     Dependencies(Vec<ExprKey>),
 }
 
-impl Program {
+impl Contract {
     pub fn type_check(mut self, handler: &Handler) -> Result<Self, ErrorEmitted> {
-        self = handler.scope(|handler| self.check_program_kind(handler))?;
+        self = handler.scope(|handler| self.check_contract(handler))?;
 
         // Evaluate all the constant decls to ensure they're all immediates. Each Const expr is
         // updated and has its type set.
         handler.scope(|handler| self.evaluate_all_consts(handler))?;
 
         // We're temporarily blocking non-primitive consts until we refactor all expressions back
-        // into the Program (Predicates will contain only their local vars, nothing more).
+        // into the Contract (Predicates will contain only their local vars, nothing more).
         self.reject_non_primitive_consts(handler)?;
 
         for pred in self.preds.values_mut() {

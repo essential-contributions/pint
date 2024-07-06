@@ -1,20 +1,23 @@
-var a: int;
 const b = [11, 22, 33];
 
-constraint b[a] == 22;
+predicate test {
+    var a: int;
 
-solve satisfy;
+    constraint b[a] == 22;
+}
 
 // parsed <<<
 // const ::b = [11, 22, 33];
-// var ::a: int;
-// constraint (::b[::a] == 22);
-// solve satisfy;
+//
+// predicate ::test {
+//     var ::a: int;
+//     constraint (::b[::a] == 22);
+// }
 // >>>
 
 // typecheck_failure <<<
 // non-primitive const declaration
-// @22..34: constant declaration `::b` must not have a non-primitive type
+// @10..22: constant declaration `::b` must not have a non-primitive type
 // constant immediate arrays and tuples will be supported in a future update
 // >>>
 

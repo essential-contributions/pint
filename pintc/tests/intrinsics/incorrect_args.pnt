@@ -1,282 +1,288 @@
-var hash0: b256;
-
-// All these intrinsic call have something wrong with them:
-// * Either an argument has the wrong type
-// * Or an incorrect number of arguments is supplied
-
-var mut_keys_len = __mut_keys_len(42);
-
-var mut_keys_contains_0: bool = __mut_keys_contains(5);
-var mut_keys_contains_1: bool = __mut_keys_contains();
-var mut_keys_contains_2: bool = __mut_keys_contains(hash0, hash0);
-
-var this_address = __this_address(42);
-
-var this_set_address = __this_set_address(42);
-
-var this_pathway = __this_pathway(42);
-
-var sha256_0 = __sha256();
-var sha256_1 = __sha256(1, 1);
-
-var verify_ed25519_0: bool = __verify_ed25519(69, { hash0, hash0 }, 5);
-var verify_ed25519_1: bool = __verify_ed25519(69, hash0, hash0);
-var verify_ed25519_3: bool = __verify_ed25519();
-var verify_ed25519_2: bool = __verify_ed25519(69, { hash0, hash0 }, hash0, 69);
-
-var recover_secp256k1_0: { b256, int } = __recover_secp256k1(42, { hash0, hash0, 69 });
-var recover_secp256k1_1: { b256, int } = __recover_secp256k1(hash0, { hash0, hash0 });
-var recover_secp256k1_2: { b256, int } = __recover_secp256k1(hash0);
-var recover_secp256k1_3: { b256, int } = __recover_secp256k1(hash0, {hash0, hash0, 69}, hash0);
-
 storage {
     x: int,
 }
-state x = storage::x;
 
-var bad_state_len_1 = __state_len(x, 0);
-var bad_state_len_2 = __state_len();
+predicate test {
+    var hash0: b256;
 
-solve satisfy;
+    // All these intrinsic call have something wrong with them:
+    // * Either an argument has the wrong type
+    // * Or an incorrect number of arguments is supplied
+
+    var mut_keys_len = __mut_keys_len(42);
+
+    var mut_keys_contains_0: bool = __mut_keys_contains(5);
+    var mut_keys_contains_1: bool = __mut_keys_contains();
+    var mut_keys_contains_2: bool = __mut_keys_contains(hash0, hash0);
+
+    var this_address = __this_address(42);
+
+    var this_set_address = __this_set_address(42);
+
+    var this_pathway = __this_pathway(42);
+
+    var sha256_0 = __sha256();
+    var sha256_1 = __sha256(1, 1);
+
+    var verify_ed25519_0: bool = __verify_ed25519(69, { hash0, hash0 }, 5);
+    var verify_ed25519_1: bool = __verify_ed25519(69, hash0, hash0);
+    var verify_ed25519_3: bool = __verify_ed25519();
+    var verify_ed25519_2: bool = __verify_ed25519(69, { hash0, hash0 }, hash0, 69);
+
+    var recover_secp256k1_0: { b256, int } = __recover_secp256k1(42, { hash0, hash0, 69 });
+    var recover_secp256k1_1: { b256, int } = __recover_secp256k1(hash0, { hash0, hash0 });
+    var recover_secp256k1_2: { b256, int } = __recover_secp256k1(hash0);
+    var recover_secp256k1_3: { b256, int } = __recover_secp256k1(hash0, {hash0, hash0, 69}, hash0);
+
+    state x = storage::x;
+
+    var bad_state_len_1 = __state_len(x, 0);
+    var bad_state_len_2 = __state_len();
+}
 
 // parsed <<<
 // storage {
 //     x: int,
 // }
-// var ::hash0: b256;
-// var ::mut_keys_len;
-// var ::mut_keys_contains_0: bool;
-// var ::mut_keys_contains_1: bool;
-// var ::mut_keys_contains_2: bool;
-// var ::this_address;
-// var ::this_set_address;
-// var ::this_pathway;
-// var ::sha256_0;
-// var ::sha256_1;
-// var ::verify_ed25519_0: bool;
-// var ::verify_ed25519_1: bool;
-// var ::verify_ed25519_3: bool;
-// var ::verify_ed25519_2: bool;
-// var ::recover_secp256k1_0: {b256, int};
-// var ::recover_secp256k1_1: {b256, int};
-// var ::recover_secp256k1_2: {b256, int};
-// var ::recover_secp256k1_3: {b256, int};
-// var ::bad_state_len_1;
-// var ::bad_state_len_2;
-// state ::x = storage::x;
-// constraint (::mut_keys_len == __mut_keys_len(42));
-// constraint (::mut_keys_contains_0 == __mut_keys_contains(5));
-// constraint (::mut_keys_contains_1 == __mut_keys_contains());
-// constraint (::mut_keys_contains_2 == __mut_keys_contains(::hash0, ::hash0));
-// constraint (::this_address == __this_address(42));
-// constraint (::this_set_address == __this_set_address(42));
-// constraint (::this_pathway == __this_pathway(42));
-// constraint (::sha256_0 == __sha256());
-// constraint (::sha256_1 == __sha256(1, 1));
-// constraint (::verify_ed25519_0 == __verify_ed25519(69, {::hash0, ::hash0}, 5));
-// constraint (::verify_ed25519_1 == __verify_ed25519(69, ::hash0, ::hash0));
-// constraint (::verify_ed25519_3 == __verify_ed25519());
-// constraint (::verify_ed25519_2 == __verify_ed25519(69, {::hash0, ::hash0}, ::hash0, 69));
-// constraint (::recover_secp256k1_0 == __recover_secp256k1(42, {::hash0, ::hash0, 69}));
-// constraint (::recover_secp256k1_1 == __recover_secp256k1(::hash0, {::hash0, ::hash0}));
-// constraint (::recover_secp256k1_2 == __recover_secp256k1(::hash0));
-// constraint (::recover_secp256k1_3 == __recover_secp256k1(::hash0, {::hash0, ::hash0, 69}, ::hash0));
-// constraint (::bad_state_len_1 == __state_len(::x, 0));
-// constraint (::bad_state_len_2 == __state_len());
-// solve satisfy;
+//
+// predicate ::test {
+//     storage {
+//         x: int,
+//     }
+//     var ::hash0: b256;
+//     var ::mut_keys_len;
+//     var ::mut_keys_contains_0: bool;
+//     var ::mut_keys_contains_1: bool;
+//     var ::mut_keys_contains_2: bool;
+//     var ::this_address;
+//     var ::this_set_address;
+//     var ::this_pathway;
+//     var ::sha256_0;
+//     var ::sha256_1;
+//     var ::verify_ed25519_0: bool;
+//     var ::verify_ed25519_1: bool;
+//     var ::verify_ed25519_3: bool;
+//     var ::verify_ed25519_2: bool;
+//     var ::recover_secp256k1_0: {b256, int};
+//     var ::recover_secp256k1_1: {b256, int};
+//     var ::recover_secp256k1_2: {b256, int};
+//     var ::recover_secp256k1_3: {b256, int};
+//     var ::bad_state_len_1;
+//     var ::bad_state_len_2;
+//     state ::x = storage::x;
+//     constraint (::mut_keys_len == __mut_keys_len(42));
+//     constraint (::mut_keys_contains_0 == __mut_keys_contains(5));
+//     constraint (::mut_keys_contains_1 == __mut_keys_contains());
+//     constraint (::mut_keys_contains_2 == __mut_keys_contains(::hash0, ::hash0));
+//     constraint (::this_address == __this_address(42));
+//     constraint (::this_set_address == __this_set_address(42));
+//     constraint (::this_pathway == __this_pathway(42));
+//     constraint (::sha256_0 == __sha256());
+//     constraint (::sha256_1 == __sha256(1, 1));
+//     constraint (::verify_ed25519_0 == __verify_ed25519(69, {::hash0, ::hash0}, 5));
+//     constraint (::verify_ed25519_1 == __verify_ed25519(69, ::hash0, ::hash0));
+//     constraint (::verify_ed25519_3 == __verify_ed25519());
+//     constraint (::verify_ed25519_2 == __verify_ed25519(69, {::hash0, ::hash0}, ::hash0, 69));
+//     constraint (::recover_secp256k1_0 == __recover_secp256k1(42, {::hash0, ::hash0, 69}));
+//     constraint (::recover_secp256k1_1 == __recover_secp256k1(::hash0, {::hash0, ::hash0}));
+//     constraint (::recover_secp256k1_2 == __recover_secp256k1(::hash0));
+//     constraint (::recover_secp256k1_3 == __recover_secp256k1(::hash0, {::hash0, ::hash0, 69}, ::hash0));
+//     constraint (::bad_state_len_1 == __state_len(::x, 0));
+//     constraint (::bad_state_len_2 == __state_len());
+// }
 // >>>
 
 // typecheck_failure <<<
 // this intrinsic takes 0 arguments but 1 argument was supplied
-// @194..212: unexpected number of arguments here
+// @256..274: unexpected number of arguments here
 // mismatched types
-// @267..268: expected `int[..]`, found `int`
-// @247..266: arguments to this intrinsic are incorrect`
+// @333..334: expected `int[..]`, found `int`
+// @313..332: arguments to this intrinsic are incorrect`
 // this intrinsic takes 1 argument but 0 arguments were supplied
-// @303..324: unexpected number of arguments here
+// @373..394: unexpected number of arguments here
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @358..391: unexpected number of arguments here
+// @432..465: unexpected number of arguments here
 // this intrinsic takes 0 arguments but 1 argument was supplied
-// @413..431: unexpected number of arguments here
+// @491..509: unexpected number of arguments here
 // this intrinsic takes 0 arguments but 1 argument was supplied
-// @457..479: unexpected number of arguments here
+// @539..561: unexpected number of arguments here
 // this intrinsic takes 0 arguments but 1 argument was supplied
-// @501..519: unexpected number of arguments here
+// @587..605: unexpected number of arguments here
 // this intrinsic takes 1 argument but 0 arguments were supplied
-// @537..547: unexpected number of arguments here
+// @627..637: unexpected number of arguments here
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @564..578: unexpected number of arguments here
+// @658..672: unexpected number of arguments here
 // mismatched types
-// @649..650: expected `b256`, found `int`
-// @610..626: arguments to this intrinsic are incorrect`
+// @747..748: expected `b256`, found `int`
+// @708..724: arguments to this intrinsic are incorrect`
 // mismatched types
-// @703..708: expected `{ b256, b256 }`, found `b256`
-// @682..698: arguments to this intrinsic are incorrect`
+// @805..810: expected `{ b256, b256 }`, found `b256`
+// @784..800: arguments to this intrinsic are incorrect`
 // this intrinsic takes 3 arguments but 0 arguments were supplied
-// @747..765: unexpected number of arguments here
+// @853..871: unexpected number of arguments here
 // this intrinsic takes 3 arguments but 4 arguments were supplied
-// @796..845: unexpected number of arguments here
+// @906..955: unexpected number of arguments here
 // mismatched types
-// @909..911: expected `b256`, found `int`
-// @889..908: arguments to this intrinsic are incorrect`
+// @1023..1025: expected `b256`, found `int`
+// @1003..1022: arguments to this intrinsic are incorrect`
 // mismatched types
-// @1004..1020: expected `{ b256, b256, int }`, found `{b256, b256}`
-// @977..996: arguments to this intrinsic are incorrect`
+// @1122..1138: expected `{ b256, b256, int }`, found `{b256, b256}`
+// @1095..1114: arguments to this intrinsic are incorrect`
 // this intrinsic takes 2 arguments but 1 argument was supplied
-// @1064..1090: unexpected number of arguments here
+// @1186..1212: unexpected number of arguments here
 // this intrinsic takes 2 arguments but 3 arguments were supplied
-// @1133..1186: unexpected number of arguments here
+// @1259..1312: unexpected number of arguments here
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @1258..1275: unexpected number of arguments here
+// @1368..1385: unexpected number of arguments here
 // this intrinsic takes 1 argument but 0 arguments were supplied
-// @1299..1312: unexpected number of arguments here
+// @1413..1426: unexpected number of arguments here
 // this intrinsic takes 0 arguments but 1 argument was supplied
-// @194..212: unexpected number of arguments here
+// @256..274: unexpected number of arguments here
 // mismatched types
-// @267..268: expected `int[..]`, found `int`
-// @247..266: arguments to this intrinsic are incorrect`
+// @333..334: expected `int[..]`, found `int`
+// @313..332: arguments to this intrinsic are incorrect`
 // this intrinsic takes 1 argument but 0 arguments were supplied
-// @303..324: unexpected number of arguments here
+// @373..394: unexpected number of arguments here
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @358..391: unexpected number of arguments here
+// @432..465: unexpected number of arguments here
 // this intrinsic takes 0 arguments but 1 argument was supplied
-// @413..431: unexpected number of arguments here
+// @491..509: unexpected number of arguments here
 // this intrinsic takes 0 arguments but 1 argument was supplied
-// @457..479: unexpected number of arguments here
+// @539..561: unexpected number of arguments here
 // this intrinsic takes 0 arguments but 1 argument was supplied
-// @501..519: unexpected number of arguments here
+// @587..605: unexpected number of arguments here
 // this intrinsic takes 1 argument but 0 arguments were supplied
-// @537..547: unexpected number of arguments here
+// @627..637: unexpected number of arguments here
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @564..578: unexpected number of arguments here
+// @658..672: unexpected number of arguments here
 // mismatched types
-// @649..650: expected `b256`, found `int`
-// @610..626: arguments to this intrinsic are incorrect`
+// @747..748: expected `b256`, found `int`
+// @708..724: arguments to this intrinsic are incorrect`
 // mismatched types
-// @703..708: expected `{ b256, b256 }`, found `b256`
-// @682..698: arguments to this intrinsic are incorrect`
+// @805..810: expected `{ b256, b256 }`, found `b256`
+// @784..800: arguments to this intrinsic are incorrect`
 // this intrinsic takes 3 arguments but 0 arguments were supplied
-// @747..765: unexpected number of arguments here
+// @853..871: unexpected number of arguments here
 // this intrinsic takes 3 arguments but 4 arguments were supplied
-// @796..845: unexpected number of arguments here
+// @906..955: unexpected number of arguments here
 // mismatched types
-// @909..911: expected `b256`, found `int`
-// @889..908: arguments to this intrinsic are incorrect`
+// @1023..1025: expected `b256`, found `int`
+// @1003..1022: arguments to this intrinsic are incorrect`
 // mismatched types
-// @1004..1020: expected `{ b256, b256, int }`, found `{b256, b256}`
-// @977..996: arguments to this intrinsic are incorrect`
+// @1122..1138: expected `{ b256, b256, int }`, found `{b256, b256}`
+// @1095..1114: arguments to this intrinsic are incorrect`
 // this intrinsic takes 2 arguments but 1 argument was supplied
-// @1064..1090: unexpected number of arguments here
+// @1186..1212: unexpected number of arguments here
 // this intrinsic takes 2 arguments but 3 arguments were supplied
-// @1133..1186: unexpected number of arguments here
+// @1259..1312: unexpected number of arguments here
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @1258..1275: unexpected number of arguments here
+// @1368..1385: unexpected number of arguments here
 // this intrinsic takes 1 argument but 0 arguments were supplied
-// @1299..1312: unexpected number of arguments here
+// @1413..1426: unexpected number of arguments here
 // unable to determine expression type
-// @179..191: type of this expression is ambiguous
+// @241..253: type of this expression is ambiguous
 // unable to determine expression type
-// @398..410: type of this expression is ambiguous
+// @476..488: type of this expression is ambiguous
 // unable to determine expression type
-// @438..454: type of this expression is ambiguous
+// @520..536: type of this expression is ambiguous
 // unable to determine expression type
-// @486..498: type of this expression is ambiguous
+// @572..584: type of this expression is ambiguous
 // unable to determine expression type
-// @526..534: type of this expression is ambiguous
+// @616..624: type of this expression is ambiguous
 // unable to determine expression type
-// @553..561: type of this expression is ambiguous
+// @647..655: type of this expression is ambiguous
 // unable to determine expression type
-// @1240..1255: type of this expression is ambiguous
+// @1350..1365: type of this expression is ambiguous
 // unable to determine expression type
-// @1281..1296: type of this expression is ambiguous
+// @1395..1410: type of this expression is ambiguous
 // variable initialization type error
-// @247..269: variable initializer has unknown type
-// @240..244: expecting type `bool`
+// @313..335: variable initializer has unknown type
+// @306..310: expecting type `bool`
 // variable initialization type error
-// @303..324: variable initializer has unknown type
-// @296..300: expecting type `bool`
+// @373..394: variable initializer has unknown type
+// @366..370: expecting type `bool`
 // variable initialization type error
-// @358..391: variable initializer has unknown type
-// @351..355: expecting type `bool`
+// @432..465: variable initializer has unknown type
+// @425..429: expecting type `bool`
 // variable initialization type error
-// @610..651: variable initializer has unknown type
-// @603..607: expecting type `bool`
+// @708..749: variable initializer has unknown type
+// @701..705: expecting type `bool`
 // variable initialization type error
-// @682..716: variable initializer has unknown type
-// @675..679: expecting type `bool`
+// @784..818: variable initializer has unknown type
+// @777..781: expecting type `bool`
 // variable initialization type error
-// @747..765: variable initializer has unknown type
-// @740..744: expecting type `bool`
+// @853..871: variable initializer has unknown type
+// @846..850: expecting type `bool`
 // variable initialization type error
-// @796..845: variable initializer has unknown type
-// @789..793: expecting type `bool`
+// @906..955: variable initializer has unknown type
+// @899..903: expecting type `bool`
 // variable initialization type error
-// @889..934: variable initializer has unknown type
-// @873..886: expecting type `{b256, int}`
+// @1003..1048: variable initializer has unknown type
+// @987..1000: expecting type `{b256, int}`
 // variable initialization type error
-// @977..1021: variable initializer has unknown type
-// @961..974: expecting type `{b256, int}`
+// @1095..1139: variable initializer has unknown type
+// @1079..1092: expecting type `{b256, int}`
 // variable initialization type error
-// @1064..1090: variable initializer has unknown type
-// @1048..1061: expecting type `{b256, int}`
+// @1186..1212: variable initializer has unknown type
+// @1170..1183: expecting type `{b256, int}`
 // variable initialization type error
-// @1133..1186: variable initializer has unknown type
-// @1117..1130: expecting type `{b256, int}`
+// @1259..1312: variable initializer has unknown type
+// @1243..1256: expecting type `{b256, int}`
 // constraint expression type error
-// @175..212: constraint expression has unknown type
-// @175..212: expecting type `bool`
+// @237..274: constraint expression has unknown type
+// @237..274: expecting type `bool`
 // constraint expression type error
-// @215..269: constraint expression has unknown type
-// @215..269: expecting type `bool`
+// @281..335: constraint expression has unknown type
+// @281..335: expecting type `bool`
 // constraint expression type error
-// @271..324: constraint expression has unknown type
-// @271..324: expecting type `bool`
+// @341..394: constraint expression has unknown type
+// @341..394: expecting type `bool`
 // constraint expression type error
-// @326..391: constraint expression has unknown type
-// @326..391: expecting type `bool`
+// @400..465: constraint expression has unknown type
+// @400..465: expecting type `bool`
 // constraint expression type error
-// @394..431: constraint expression has unknown type
-// @394..431: expecting type `bool`
+// @472..509: constraint expression has unknown type
+// @472..509: expecting type `bool`
 // constraint expression type error
-// @434..479: constraint expression has unknown type
-// @434..479: expecting type `bool`
+// @516..561: constraint expression has unknown type
+// @516..561: expecting type `bool`
 // constraint expression type error
-// @482..519: constraint expression has unknown type
-// @482..519: expecting type `bool`
+// @568..605: constraint expression has unknown type
+// @568..605: expecting type `bool`
 // constraint expression type error
-// @522..547: constraint expression has unknown type
-// @522..547: expecting type `bool`
+// @612..637: constraint expression has unknown type
+// @612..637: expecting type `bool`
 // constraint expression type error
-// @549..578: constraint expression has unknown type
-// @549..578: expecting type `bool`
+// @643..672: constraint expression has unknown type
+// @643..672: expecting type `bool`
 // constraint expression type error
-// @581..651: constraint expression has unknown type
-// @581..651: expecting type `bool`
+// @679..749: constraint expression has unknown type
+// @679..749: expecting type `bool`
 // constraint expression type error
-// @653..716: constraint expression has unknown type
-// @653..716: expecting type `bool`
+// @755..818: constraint expression has unknown type
+// @755..818: expecting type `bool`
 // constraint expression type error
-// @718..765: constraint expression has unknown type
-// @718..765: expecting type `bool`
+// @824..871: constraint expression has unknown type
+// @824..871: expecting type `bool`
 // constraint expression type error
-// @767..845: constraint expression has unknown type
-// @767..845: expecting type `bool`
+// @877..955: constraint expression has unknown type
+// @877..955: expecting type `bool`
 // constraint expression type error
-// @848..934: constraint expression has unknown type
-// @848..934: expecting type `bool`
+// @962..1048: constraint expression has unknown type
+// @962..1048: expecting type `bool`
 // constraint expression type error
-// @936..1021: constraint expression has unknown type
-// @936..1021: expecting type `bool`
+// @1054..1139: constraint expression has unknown type
+// @1054..1139: expecting type `bool`
 // constraint expression type error
-// @1023..1090: constraint expression has unknown type
-// @1023..1090: expecting type `bool`
+// @1145..1212: constraint expression has unknown type
+// @1145..1212: expecting type `bool`
 // constraint expression type error
-// @1092..1186: constraint expression has unknown type
-// @1092..1186: expecting type `bool`
+// @1218..1312: constraint expression has unknown type
+// @1218..1312: expecting type `bool`
 // constraint expression type error
-// @1236..1275: constraint expression has unknown type
-// @1236..1275: expecting type `bool`
+// @1346..1385: constraint expression has unknown type
+// @1346..1385: expecting type `bool`
 // constraint expression type error
-// @1277..1312: constraint expression has unknown type
-// @1277..1312: expecting type `bool`
+// @1391..1426: constraint expression has unknown type
+// @1391..1426: expecting type `bool`
 // >>>

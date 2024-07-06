@@ -1,53 +1,55 @@
-type A = int;
-type B = { x: A, y: A };
-type C = A[3];
+predicate test {
+    type A = int;
+    type B = { x: A, y: A };
+    type C = A[3];
 
-var a: A;
-var b: B = { a, a };
-var c: A = b.1;
-var d: A = b.x;
-var e: C = [a, a, a];
-var f: A = e[1];
-var g: A = a;
-
-solve satisfy;
+    var a: A;
+    var b: B = { a, a };
+    var c: A = b.1;
+    var d: A = b.x;
+    var e: C = [a, a, a];
+    var f: A = e[1];
+    var g: A = a;
+}
 
 // parsed <<<
-// var ::a: ::A;
-// var ::b: ::B;
-// var ::c: ::A;
-// var ::d: ::A;
-// var ::e: ::C;
-// var ::f: ::A;
-// var ::g: ::A;
-// type ::A = int;
-// type ::B = {x: ::A, y: ::A};
-// type ::C = ::A[3];
-// constraint (::b == {::a, ::a});
-// constraint (::c == ::b.1);
-// constraint (::d == ::b.x);
-// constraint (::e == [::a, ::a, ::a]);
-// constraint (::f == ::e[1]);
-// constraint (::g == ::a);
-// solve satisfy;
+// predicate ::test {
+//     var ::a: ::A;
+//     var ::b: ::B;
+//     var ::c: ::A;
+//     var ::d: ::A;
+//     var ::e: ::C;
+//     var ::f: ::A;
+//     var ::g: ::A;
+//     type ::A = int;
+//     type ::B = {x: ::A, y: ::A};
+//     type ::C = ::A[3];
+//     constraint (::b == {::a, ::a});
+//     constraint (::c == ::b.1);
+//     constraint (::d == ::b.x);
+//     constraint (::e == [::a, ::a, ::a]);
+//     constraint (::f == ::e[1]);
+//     constraint (::g == ::a);
+// }
 // >>>
 
 // flattened <<<
-// var ::a: int;
-// var ::b: {x: ::A (int), y: ::A (int)};
-// var ::c: int;
-// var ::d: int;
-// var ::e: ::A (int)[3];
-// var ::f: int;
-// var ::g: int;
-// type ::A = int;
-// type ::B = {x: ::A (int), y: ::A (int)};
-// type ::C = ::A (int)[3];
-// constraint (::b == {::a, ::a});
-// constraint (::c == ::b.1);
-// constraint (::d == ::b.x);
-// constraint (::e == [::a, ::a, ::a]);
-// constraint (::f == ::e[1]);
-// constraint (::g == ::a);
-// solve satisfy;
+// predicate ::test {
+//     var ::a: int;
+//     var ::b: {x: ::A (int), y: ::A (int)};
+//     var ::c: int;
+//     var ::d: int;
+//     var ::e: ::A (int)[3];
+//     var ::f: int;
+//     var ::g: int;
+//     type ::A = int;
+//     type ::B = {x: ::A (int), y: ::A (int)};
+//     type ::C = ::A (int)[3];
+//     constraint (::b == {::a, ::a});
+//     constraint (::c == ::b.1);
+//     constraint (::d == ::b.x);
+//     constraint (::e == [::a, ::a, ::a]);
+//     constraint (::f == ::e[1]);
+//     constraint (::g == ::a);
+// }
 // >>>

@@ -15,24 +15,26 @@ macro @chain_next($prev, $last) {
     $last
 }
 
-@chain(x; y; z);
-
-solve satisfy;
+predicate test {
+    @chain(x; y; z);
+}
 
 // parsed <<<
-// var ::x: int;
-// var ::y: int;
-// var ::z: int;
-// constraint (::y > (::x + 10));
-// constraint (::z > (::y + 10));
-// solve satisfy;
+// predicate ::test {
+//     var ::x: int;
+//     var ::y: int;
+//     var ::z: int;
+//     constraint (::y > (::x + 10));
+//     constraint (::z > (::y + 10));
+// }
 // >>>
 
 // flattened <<<
-// var ::x: int;
-// var ::y: int;
-// var ::z: int;
-// constraint (::y > (::x + 10));
-// constraint (::z > (::y + 10));
-// solve satisfy;
+// predicate ::test {
+//     var ::x: int;
+//     var ::y: int;
+//     var ::z: int;
+//     constraint (::y > (::x + 10));
+//     constraint (::z > (::y + 10));
+// }
 // >>>

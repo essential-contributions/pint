@@ -130,14 +130,6 @@ pub enum Token {
     Type,
     #[token("constraint")]
     Constraint,
-    #[token("maximize")]
-    Maximize,
-    #[token("minimize")]
-    Minimize,
-    #[token("solve")]
-    Solve,
-    #[token("satisfy")]
-    Satisfy,
 
     #[token("pub")]
     Pub,
@@ -223,15 +215,11 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Int,
     Token::Interface,
     Token::Macro,
-    Token::Maximize,
-    Token::Minimize,
     Token::Nil,
     Token::Predicate,
     Token::Pub,
     Token::Real,
-    Token::Satisfy,
     Token::SelfTok,
-    Token::Solve,
     Token::State,
     Token::Storage,
     Token::String,
@@ -330,10 +318,6 @@ impl fmt::Display for Token {
             Token::Enum => write!(f, "enum"),
             Token::Type => write!(f, "type"),
             Token::Constraint => write!(f, "constraint"),
-            Token::Maximize => write!(f, "maximize"),
-            Token::Minimize => write!(f, "minimize"),
-            Token::Solve => write!(f, "solve"),
-            Token::Satisfy => write!(f, "satisfy"),
             Token::Pub => write!(f, "pub"),
             Token::Use => write!(f, "use"),
             Token::SelfTok => write!(f, "self"),
@@ -827,9 +811,6 @@ pub fn get_token_error_category(lalrpop_token: &Option<String>) -> Option<String
             "int_lit" | "real_lit" | "str_lit" | "nil" => Some("a literal".to_owned()),
             "true" | "false" => Some("a boolean".to_owned()),
             "ident" => Some("an identifier".to_owned()),
-            "satisfy" => Some("a directive".to_owned()),
-            "minimize" => Some("a directive".to_owned()),
-            "maximize" => Some("a directive".to_owned()),
             _ => Some(token.to_string()),
         }
     } else {

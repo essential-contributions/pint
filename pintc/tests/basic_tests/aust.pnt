@@ -1,81 +1,82 @@
-// Colouring Australia using 3 colours
+predicate test {
+    // Colouring Australia using 3 colours
 
-enum Colour = Red | Green | Blue;
+    enum Colour = Red | Green | Blue;
 
-var wa: Colour;
-var nt: Colour;
-var sa: Colour;
-var q: Colour;
-var nsw: Colour;
-var v: Colour;
-var t: Colour;
+    var wa: Colour;
+    var nt: Colour;
+    var sa: Colour;
+    var q: Colour;
+    var nsw: Colour;
+    var v: Colour;
+    var t: Colour;
 
-// Make sure that no two neighboring states/territories share a colour
-constraint wa != nt;
-constraint wa != sa;
-constraint nt != sa;
-constraint nt != q;
-constraint sa != q;
-constraint sa != nsw;
-constraint sa != v;
-constraint q != nsw;
-constraint nsw != v;
-
-// We're just looking for a satisfying assignment of colours
-solve satisfy;
+    // Make sure that no two neighboring states/territories share a colour
+    constraint wa != nt;
+    constraint wa != sa;
+    constraint nt != sa;
+    constraint nt != q;
+    constraint sa != q;
+    constraint sa != nsw;
+    constraint sa != v;
+    constraint q != nsw;
+    constraint nsw != v;
+}
 
 // parsed <<<
-// var ::wa: ::Colour;
-// var ::nt: ::Colour;
-// var ::sa: ::Colour;
-// var ::q: ::Colour;
-// var ::nsw: ::Colour;
-// var ::v: ::Colour;
-// var ::t: ::Colour;
-// enum ::Colour = Red | Green | Blue;
-// constraint (::wa != ::nt);
-// constraint (::wa != ::sa);
-// constraint (::nt != ::sa);
-// constraint (::nt != ::q);
-// constraint (::sa != ::q);
-// constraint (::sa != ::nsw);
-// constraint (::sa != ::v);
-// constraint (::q != ::nsw);
-// constraint (::nsw != ::v);
-// solve satisfy;
+// predicate ::test {
+//     var ::wa: ::Colour;
+//     var ::nt: ::Colour;
+//     var ::sa: ::Colour;
+//     var ::q: ::Colour;
+//     var ::nsw: ::Colour;
+//     var ::v: ::Colour;
+//     var ::t: ::Colour;
+//     enum ::Colour = Red | Green | Blue;
+//     constraint (::wa != ::nt);
+//     constraint (::wa != ::sa);
+//     constraint (::nt != ::sa);
+//     constraint (::nt != ::q);
+//     constraint (::sa != ::q);
+//     constraint (::sa != ::nsw);
+//     constraint (::sa != ::v);
+//     constraint (::q != ::nsw);
+//     constraint (::nsw != ::v);
+// }
 // >>>
 
 // flattened <<<
-// var ::wa: int;
-// var ::nt: int;
-// var ::sa: int;
-// var ::q: int;
-// var ::nsw: int;
-// var ::v: int;
-// var ::t: int;
-// enum ::Colour = Red | Green | Blue;
-// constraint (::wa != ::nt);
-// constraint (::wa != ::sa);
-// constraint (::nt != ::sa);
-// constraint (::nt != ::q);
-// constraint (::sa != ::q);
-// constraint (::sa != ::nsw);
-// constraint (::sa != ::v);
-// constraint (::q != ::nsw);
-// constraint (::nsw != ::v);
-// constraint (::wa >= 0);
-// constraint (::wa <= 2);
-// constraint (::nt >= 0);
-// constraint (::nt <= 2);
-// constraint (::sa >= 0);
-// constraint (::sa <= 2);
-// constraint (::q >= 0);
-// constraint (::q <= 2);
-// constraint (::nsw >= 0);
-// constraint (::nsw <= 2);
-// constraint (::v >= 0);
-// constraint (::v <= 2);
-// constraint (::t >= 0);
-// constraint (::t <= 2);
-// solve satisfy;
+// predicate ::test {
+//     var ::wa: int;
+//     var ::nt: int;
+//     var ::sa: int;
+//     var ::q: int;
+//     var ::nsw: int;
+//     var ::v: int;
+//     var ::t: int;
+//     enum ::Colour = Red | Green | Blue;
+//     constraint (::wa != ::nt);
+//     constraint (::wa != ::sa);
+//     constraint (::nt != ::sa);
+//     constraint (::nt != ::q);
+//     constraint (::sa != ::q);
+//     constraint (::sa != ::nsw);
+//     constraint (::sa != ::v);
+//     constraint (::q != ::nsw);
+//     constraint (::nsw != ::v);
+//     constraint (::wa >= 0);
+//     constraint (::wa <= 2);
+//     constraint (::nt >= 0);
+//     constraint (::nt <= 2);
+//     constraint (::sa >= 0);
+//     constraint (::sa <= 2);
+//     constraint (::q >= 0);
+//     constraint (::q <= 2);
+//     constraint (::nsw >= 0);
+//     constraint (::nsw <= 2);
+//     constraint (::v >= 0);
+//     constraint (::v <= 2);
+//     constraint (::t >= 0);
+//     constraint (::t <= 2);
+// }
 // >>>

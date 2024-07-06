@@ -4,7 +4,7 @@ use crate::{
     lexer,
     macros::{self, MacroCall, MacroDecl, MacroExpander},
     predicate::{
-        CallKey, ExprKey, Exprs, Interface, InterfaceVar, Predicate, PredicateInterface, Program,
+        CallKey, Contract, ExprKey, Exprs, Interface, InterfaceVar, Predicate, PredicateInterface,
     },
     span::{empty_span, Span, Spanned},
     types::*,
@@ -34,14 +34,14 @@ pub fn parse_project(
     handler: &Handler,
     deps: &Dependencies,
     root_src_path: &Path,
-) -> Result<Program, ErrorEmitted> {
+) -> Result<Contract, ErrorEmitted> {
     ProjectParser::new(handler, deps, PathBuf::from(root_src_path))
         .parse_project()
         .finalize()
 }
 
 struct ProjectParser<'a> {
-    program: Program,
+    contract: Contract,
     macros: Vec<MacroDecl>,
     macro_calls: BTreeMap<String, slotmap::SecondaryMap<CallKey, (ExprKey, MacroCall)>>,
     proj_root_path: PathBuf,
@@ -90,10 +90,10 @@ impl<'a> ProjectParser<'a> {
             .map_or_else(|| PathBuf::from("/"), PathBuf::from);
 
         let mut project_parser = Self {
-            program: Program::default(),
+            contract: Contract::default(),
             macros: vec![],
             macro_calls: BTreeMap::from([(
-                Program::ROOT_PRED_NAME.to_string(),
+                Contract::ROOT_PRED_NAME.to_string(),
                 slotmap::SecondaryMap::default(),
             )]),
             proj_root_path,
@@ -106,9 +106,9 @@ impl<'a> ProjectParser<'a> {
 
         // Start with an empty Pred with an empty name. This is the "root predicate".
         project_parser
-            .program
+            .contract
             .preds
-            .insert(Program::ROOT_PRED_NAME.to_string(), Predicate::default());
+            .insert(Contract::ROOT_PRED_NAME.to_string(), Predicate::default());
 
         project_parser
     }
@@ -163,7 +163,7 @@ impl<'a> ProjectParser<'a> {
 
                     macros::splice_args(
                         self.handler,
-                        self.program
+                        self.contract
                             .preds
                             .get(current_pred)
                             .expect("Call key must be valid"),
@@ -222,7 +222,7 @@ impl<'a> ProjectParser<'a> {
         // expression.  Or, for macros which only had declarations and no body expression, just
         // delete the call.
         for (current_pred, call_expr_key, body_expr_key, span) in call_replacements {
-            let pred = self.program.preds.get_mut(&current_pred).unwrap();
+            let pred = self.contract.preds.get_mut(&current_pred).unwrap();
 
             if let Some(body_expr_key) = body_expr_key {
                 pred.replace_exprs(call_expr_key, body_expr_key);
@@ -238,7 +238,7 @@ impl<'a> ProjectParser<'a> {
         self
     }
 
-    fn finalize(mut self) -> Result<Program, ErrorEmitted> {
+    fn finalize(mut self) -> Result<Contract, ErrorEmitted> {
         // Insert all enums, new types, and storage variables from the root Pred into each non-root
         // Pred (i.e. those declared using an `predicate { }` decl). Also, insert all top level
         // symbols since shadowing is not allowed. That is, we can't use a symbol inside an
@@ -462,17 +462,17 @@ impl<'a> ProjectParser<'a> {
             Ok(())
         }
 
-        let enums = self.program.root_pred().enums.clone();
-        let new_types = self.program.root_pred().new_types.clone();
-        let root_symbols = self.program.root_pred().top_level_symbols.clone();
-        let storage = self.program.root_pred().storage.clone();
-        let interfaces = self.program.root_pred().interfaces.clone();
-        let exprs = self.program.root_pred().exprs.clone();
+        let enums = self.contract.root_pred().enums.clone();
+        let new_types = self.contract.root_pred().new_types.clone();
+        let root_symbols = self.contract.root_pred().top_level_symbols.clone();
+        let storage = self.contract.root_pred().storage.clone();
+        let interfaces = self.contract.root_pred().interfaces.clone();
+        let exprs = self.contract.root_pred().exprs.clone();
 
-        self.program
+        self.contract
             .preds
             .iter_mut()
-            .filter(|(name, _)| *name != &Program::ROOT_PRED_NAME.to_string())
+            .filter(|(name, _)| *name != &Contract::ROOT_PRED_NAME.to_string())
             .for_each(|(_, pred)| {
                 let _ = deep_copy_new_types(&new_types, &exprs, pred, self.handler);
                 pred.enums.extend_from_slice(&enums);
@@ -572,7 +572,7 @@ impl<'a> ProjectParser<'a> {
             return Err(self.handler.cancel());
         }
 
-        Ok(self.program)
+        Ok(self.contract)
     }
 }
 
@@ -614,7 +614,7 @@ macro_rules! parse_with {
             $mod_path,
             mod_prefix: &mod_prefix,
             local_scope: $local_scope,
-            program: &mut $self.program,
+            contract: &mut $self.contract,
             current_pred: &mut current_pred,
             macros: &mut $self.macros,
             macro_calls: &mut $self.macro_calls,
@@ -678,7 +678,7 @@ impl<'a> ProjectParser<'a> {
             mod_path,
             None,                           // local_scope
             Option::<(String, Span)>::None, // macro_ctx
-            Program::ROOT_PRED_NAME, // The Pred when we explore a new module is always the root Pred
+            Contract::ROOT_PRED_NAME, // The Pred when we explore a new module is always the root Pred
             self.handler,
         )
     }

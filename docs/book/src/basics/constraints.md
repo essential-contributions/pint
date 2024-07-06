@@ -1,6 +1,6 @@
 ## Constraints
 
-Constraints are the building blocks of a Pint program. Simply put, a constraint is a declaration
+Constraints are the building blocks of a Pint contract. Simply put, a constraint is a declaration
 that starts with the keyword `constraint` followed by a **Boolean** expression:
 
 ```pint
@@ -8,7 +8,7 @@ that starts with the keyword `constraint` followed by a **Boolean** expression:
 ```
 
 The above is a simple constraint which ensures that the value of `x` is exactly 0. Every proposed
-solution to this program must set `x` to 0. Otherwise, the constraint will fail. If we have multiple
+solution to this contract must set `x` to 0. Otherwise, the constraint will fail. If we have multiple
 constraint declarations, then all of them must be satisfied for a solution to be valid. For example:
 
 ```pint

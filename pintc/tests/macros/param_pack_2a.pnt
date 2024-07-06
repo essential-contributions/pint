@@ -2,9 +2,9 @@ macro @a($x) {
     @a($x + &rest)
 }
 
-var b: int = @a(11);
-
-solve satisfy;
+predicate test {
+    var b: int = @a(11);
+}
 
 // parse_failure <<<
 // unknown parameter pack
