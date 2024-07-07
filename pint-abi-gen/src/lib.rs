@@ -15,14 +15,16 @@
 //! The aim for the generated items is to ease the construction of solutions
 //! including the encoding of keys, values and mutations from higher-level types.
 
-use pint_abi_types::{
-    ContractABI, KeyedTupleField, KeyedTypeABI, KeyedVarABI, PredicateABI, TupleField, TypeABI,
-    VarABI,
-};
+use pint_abi_types::{ContractABI, KeyedTypeABI, KeyedVarABI, PredicateABI, TupleField, TypeABI};
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::ToTokens;
 use syn::parse_macro_input;
+
+mod map;
+mod tuple;
+mod vars;
+mod visit;
 
 /// The name of the root module within the predicate set produced by the compiler.
 const ROOT_MOD_NAME: &str = "";
@@ -85,78 +87,11 @@ fn field_name_from_var_name(name: &str) -> String {
         .replace("::", "_")
 }
 
-/// A named field for each of the decision variables.
-fn fields_from_vars(vars: &[VarABI]) -> Vec<syn::Field> {
-    vars.iter()
-        .map(|var| {
-            let name = field_name_from_var_name(&var.name);
-            let ident = syn::Ident::new(&name, Span::call_site());
-            let ty = ty_from_pint_ty(&var.ty);
-            syn::parse_quote! {
-                pub #ident: #ty
-            }
-        })
-        .collect()
-}
-
-/// Generate a struct for an predicate's decision variables.
-fn struct_from_vars(vars: &[VarABI]) -> syn::ItemStruct {
-    let fields = fields_from_vars(vars);
-    syn::parse_quote! {
-        /// The predicate's decision variables.
-        #[derive(Clone, Debug)]
-        pub struct Vars {
-            #(
-                #fields
-            ),*
-        }
-    }
-}
-
-/// Generate a `Encode` implementation for a `Vars` type.
-fn impl_encode_for_vars(vars: &[VarABI]) -> syn::ItemImpl {
-    let field_idents = vars
-        .iter()
-        .map(|var| field_name_from_var_name(&var.name))
-        .map(|name| syn::Ident::new(&name, Span::call_site()));
-    syn::parse_quote! {
-        impl pint_abi::Encode for Vars {
-            fn encode<W: pint_abi::Write>(&self, w: &mut W) -> Result<(), W::Error> {
-                #(
-                    pint_abi::Encode::encode(&self.#field_idents, w).expect("cannot fail");
-                )*
-                Ok(())
-            }
-        }
-    }
-}
-
-/// Generate a `From<Vars>` implementation for converting `Vars` to `Vec<Value>`.
-fn impl_from_vars(vars: &[VarABI]) -> syn::ItemImpl {
-    let field_idents = vars
-        .iter()
-        .map(|var| field_name_from_var_name(&var.name))
-        .map(|name| syn::Ident::new(&name, Span::call_site()));
-    syn::parse_quote! {
-        impl From<Vars> for Vec<pint_abi::types::essential::Value> {
-            fn from(vars: Vars) -> Self {
-                let mut values: Vec<pint_abi::types::essential::Value> = vec![];
-                #(
-                    values.push(pint_abi::encode(&vars.#field_idents));
-                )*
-                values
-            }
-        }
-    }
-}
-
 /// Generate all items for the given predicate.
 fn items_from_predicate(predicate: &PredicateABI) -> Vec<syn::Item> {
     let mut items = vec![];
     if !predicate.vars.is_empty() {
-        items.push(struct_from_vars(&predicate.vars).into());
-        items.push(impl_encode_for_vars(&predicate.vars).into());
-        items.push(impl_from_vars(&predicate.vars).into());
+        items.extend(vars::items(&predicate.vars));
     }
     if !predicate.pub_vars.is_empty() {
         items.push(mod_from_keyed_vars("pub_vars", &predicate.pub_vars).into());
@@ -377,109 +312,6 @@ fn key_str(key: &pint_abi_types::Key) -> String {
     s
 }
 
-/// The name for the a map builder struct.
-fn map_mutations_struct_name(key: &pint_abi_types::Key) -> String {
-    format!("Map_{}", key_str(key))
-}
-
-/// A builder struct for a map field.
-fn map_mutations_struct(struct_name: &str, key: &pint_abi_types::Key) -> syn::ItemStruct {
-    let struct_ident = syn::Ident::new(struct_name, Span::call_site());
-    let abi_key_doc_str = abi_key_doc_str(key);
-    let doc_str = format!(
-        "A mutations builder struct for the map at key `{abi_key_doc_str}`.\n\n\
-        Generated solely for use within the `Mutations` builder pattern.",
-    );
-    syn::parse_quote! {
-        #[doc = #doc_str]
-        #[allow(non_camel_case_types)]
-        pub struct #struct_ident<'a> {
-            mutations: &'a mut Mutations,
-        }
-    }
-}
-
-/// A map mutation builder method for entries with tuple values.
-fn map_mutation_method_for_tuple(
-    ty_from: &TypeABI,
-    tup_key: &pint_abi_types::Key,
-) -> syn::ImplItemFn {
-    let key_ty = ty_from_pint_ty(ty_from);
-    let struct_name = tuple_mutations_struct_name(tup_key);
-    let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
-    syn::parse_quote! {
-        /// Add mutations for the tuple at the given key.
-        pub fn entry(mut self, key: #key_ty, f: impl FnOnce(#struct_ident) -> #struct_ident) -> Self {
-            let key_words: pint_abi::types::essential::Key = pint_abi::encode(&key);
-            self.keys.push(key_words);
-            f(#struct_ident { mutations: &mut self.mutations });
-            self.keys.pop();
-            self
-        }
-    }
-}
-
-/// A map mutation builder method for entries with nested map values.
-fn map_mutation_method_for_map(
-    ty_from: &TypeABI,
-    map_key: &pint_abi_types::Key,
-) -> syn::ImplItemFn {
-    let key_ty = ty_from_pint_ty(ty_from);
-    let struct_name = map_mutations_struct_name(map_key);
-    let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
-    syn::parse_quote! {
-        /// Add mutations for the nested map at the given key.
-        pub fn entry(mut self, key: #key_ty, f: impl FnOnce(#struct_ident) -> #struct_ident) -> Self {
-            let key_words: pint_abi::types::essential::Key = pint_abi::encode(&key);
-            self.keys.push(key_words);
-            f(#struct_ident { mutations: &mut self.mutations });
-            self.keys.pop();
-            self
-        }
-    }
-}
-
-/// A map mutation builder method for an entry with a single-key value.
-fn map_mutation_method_for_single_key(
-    ty_from: &TypeABI,
-    val_ty: &SingleKeyTy,
-    val_key: &pint_abi_types::Key,
-) -> syn::ImplItemFn {
-    let key_ty = ty_from_pint_ty(ty_from);
-    let val_ty = val_ty.syn_ty();
-    let abi_key_expr: syn::ExprArray = abi_key_expr(val_key);
-    let merge_key_expr: syn::Expr = merge_key_expr();
-    let abi_key_doc_str = abi_key_doc_str(val_key);
-    let merge_doc_str = format!(
-        "The given key will be encoded as words and merged into the full key `{abi_key_doc_str}`."
-    );
-    syn::parse_quote! {
-        /// Add a mutation for the entry at the given key.
-        ///
-        #[doc = #merge_doc_str]
-        pub fn entry(mut self, key: #key_ty, val: #val_ty) -> Self {
-            use pint_abi::types::essential::{solution::Mutation, Key, Value};
-            // Add the map key to the stack.
-            let key: Key = pint_abi::encode(&key);
-            self.keys.push(key);
-
-            // Merge the key stack with the ABI key.
-            let abi_key = #abi_key_expr;
-            let key: Key = #merge_key_expr;
-            let value: Value = pint_abi::encode(&val);
-
-            // Add the mutation to the set.
-            self.set.retain(|m: &Mutation| &m.key != &key);
-            let mutation = Mutation { key, value };
-            self.set.push(mutation);
-
-            // Pop the entry key from the stack.
-            self.keys.pop();
-            self
-        }
-    }
-}
-
 /// Extract the key from a keyed type.
 fn abi_key_from_keyed_type(ty: &KeyedTypeABI) -> &Vec<Option<usize>> {
     match ty {
@@ -492,76 +324,6 @@ fn abi_key_from_keyed_type(ty: &KeyedTypeABI) -> &Vec<Option<usize>> {
         KeyedTypeABI::Tuple(fields) => abi_key_from_keyed_type(&fields[0].ty),
         KeyedTypeABI::Map { key, .. } => key,
     }
-}
-
-/// A map method for inserting mutations for an entry associated with a given key.
-fn map_mutation_method(ty_from: &TypeABI, ty_to: &KeyedTypeABI) -> syn::ImplItemFn {
-    let (val_ty, key) = match ty_to {
-        KeyedTypeABI::Bool(key) => (SingleKeyTy::Bool, key),
-        KeyedTypeABI::Int(key) => (SingleKeyTy::Int, key),
-        KeyedTypeABI::Real(key) => (SingleKeyTy::Real, key),
-        KeyedTypeABI::Array { ty, size: _ } => {
-            let _key = abi_key_from_keyed_type(ty);
-            todo!()
-        }
-        KeyedTypeABI::String(key) => (SingleKeyTy::String, key),
-        KeyedTypeABI::B256(key) => (SingleKeyTy::B256, key),
-        KeyedTypeABI::Tuple(fields) => {
-            return map_mutation_method_for_tuple(ty_from, abi_key_from_keyed_type(&fields[0].ty));
-        }
-        KeyedTypeABI::Map { key, .. } => {
-            return map_mutation_method_for_map(ty_from, key);
-        }
-    };
-    map_mutation_method_for_single_key(ty_from, &val_ty, key)
-}
-
-/// The implementation for the map mutations builder of the given name.
-fn map_mutations_impl(struct_name: &str, ty_from: &TypeABI, ty_to: &KeyedTypeABI) -> syn::ItemImpl {
-    let struct_ident = syn::Ident::new(struct_name, Span::call_site());
-    let method = map_mutation_method(ty_from, ty_to);
-    syn::parse_quote! {
-        impl<'a> #struct_ident<'a> {
-            #method
-        }
-    }
-}
-
-/// The name for the a tuple builder struct.
-fn tuple_mutations_struct_name(key: &pint_abi_types::Key) -> String {
-    format!("Tuple_{}", key_str(key))
-}
-
-/// A builder struct for a tuple field.
-fn tuple_mutations_struct(struct_name: &str, key: &pint_abi_types::Key) -> syn::ItemStruct {
-    let struct_ident = syn::Ident::new(struct_name, Span::call_site());
-    let abi_key_doc_str = abi_key_doc_str(key);
-    let doc_str = format!(
-        "A mutations builder struct for the tuple at key `{abi_key_doc_str}`.\n\n\
-        Generated solely for use within the `Mutations` builder pattern.",
-    );
-    syn::parse_quote! {
-        #[doc = #doc_str]
-        #[allow(non_camel_case_types)]
-        pub struct #struct_ident<'a> {
-            mutations: &'a mut Mutations,
-        }
-    }
-}
-
-/// A mutation buidler method for a tuple struct.
-fn tuple_mutation_method(ix: usize, field: &KeyedTupleField) -> syn::ImplItemFn {
-    let name = field.name.clone().unwrap_or_else(|| format!("_{ix}"));
-    mutation_method_from_keyed_var(&name, &field.ty)
-}
-
-/// The mutation builder methods for a tuple struct.
-fn tuple_mutations_methods(fields: &[KeyedTupleField]) -> Vec<syn::ImplItemFn> {
-    fields
-        .iter()
-        .enumerate()
-        .map(|(ix, field)| tuple_mutation_method(ix, field))
-        .collect()
 }
 
 /// A `DerefMut<Target = Mutations>` impl for the tuple struct.
@@ -588,19 +350,6 @@ fn mutation_impl_deref(struct_name: &str) -> Vec<syn::ItemImpl> {
     vec![deref_impl, deref_mut_impl]
 }
 
-/// The implementation for the tuple mutations builder of the given name.
-fn tuple_mutations_impl(struct_name: &str, fields: &[KeyedTupleField]) -> syn::ItemImpl {
-    let struct_ident = syn::Ident::new(struct_name, Span::call_site());
-    let methods = tuple_mutations_methods(fields);
-    syn::parse_quote! {
-        impl<'a> #struct_ident<'a> {
-            #(
-                #methods
-            )*
-        }
-    }
-}
-
 /// Recursively traverse the given keyed var and create a builder struct for each tuple.
 fn mutations_builders_from_keyed_type(ty: &KeyedTypeABI) -> Vec<syn::Item> {
     let mut items = vec![];
@@ -610,38 +359,11 @@ fn mutations_builders_from_keyed_type(ty: &KeyedTypeABI) -> Vec<syn::Item> {
             ty_to,
             key,
         } => {
-            let struct_name = map_mutations_struct_name(key);
-            // Items for this map.
-            items.push(map_mutations_struct(&struct_name, key).into());
-            items.push(map_mutations_impl(&struct_name, ty_from, ty_to).into());
-            items.extend(
-                mutation_impl_deref(&struct_name)
-                    .into_iter()
-                    .map(syn::Item::from),
-            );
-            items.extend(
-                mutations_builders_from_keyed_type(ty_to)
-                    .into_iter()
-                    .map(syn::Item::from),
-            );
+            items.extend(map::builder_items(ty_from, ty_to, key));
         }
         KeyedTypeABI::Tuple(fields) => {
             let key = abi_key_from_keyed_type(&fields[0].ty);
-            let struct_name = tuple_mutations_struct_name(key);
-            // Items for this tuple.
-            items.push(tuple_mutations_struct(&struct_name, key).into());
-            items.push(tuple_mutations_impl(&struct_name, fields).into());
-            items.extend(
-                mutation_impl_deref(&struct_name)
-                    .into_iter()
-                    .map(syn::Item::from),
-            );
-            // Recursively collect remaining items from child tuples.
-            items.extend(fields.iter().flat_map(|field| {
-                mutations_builders_from_keyed_type(&field.ty)
-                    .into_iter()
-                    .map(syn::Item::from)
-            }));
+            items.extend(tuple::builder_items(fields, key));
         }
         _ => (),
     }
@@ -651,14 +373,16 @@ fn mutations_builders_from_keyed_type(ty: &KeyedTypeABI) -> Vec<syn::Item> {
 /// Recursively traverse the given keyed vars and create a builder structs and
 /// impls for each tuple.
 fn mutations_builders_from_keyed_vars(vars: &[KeyedVarABI]) -> Vec<syn::Item> {
-    vars.iter()
-        .flat_map(|var| mutations_builders_from_keyed_type(&var.ty))
-        .collect()
+    let mut items = vec![];
+    visit::keyed_vars(vars, |keyed| {
+        items.extend(mutations_builders_from_keyed_type(keyed.ty));
+    });
+    items
 }
 
 /// A `Mutations` builder method for a map field.
 fn mutation_method_for_map(name: &str, key: &pint_abi_types::Key) -> syn::ImplItemFn {
-    let struct_name = map_mutations_struct_name(key);
+    let struct_name = map::mutations_struct_name(key);
     let method_ident = syn::Ident::new(name, Span::call_site());
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
     let doc_str = mutation_method_doc_str(name);
@@ -673,7 +397,7 @@ fn mutation_method_for_map(name: &str, key: &pint_abi_types::Key) -> syn::ImplIt
 
 /// A `Mutations` builder method for a tuple field.
 fn mutation_method_for_tuple(name: &str, key: &pint_abi_types::Key) -> syn::ImplItemFn {
-    let struct_name = tuple_mutations_struct_name(key);
+    let struct_name = tuple::mutations_struct_name(key);
     let method_ident = syn::Ident::new(name, Span::call_site());
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
     let doc_str = mutation_method_doc_str(name);
