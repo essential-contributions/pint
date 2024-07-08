@@ -4,10 +4,10 @@ The following inlines the `--help` output for each command so that you can get
 an idea of what `pint` is capable of prior to downloading the tool and running
 it yourself.
 
-| Command | Short Description |
-| --- | --- |
-| [`pint build`](#pint-build) | Build a package. |
-| [`pint new`](#pint-new) | Create a new package. |
+| Command                         | Short Description              |
+| ------------------------------- | ------------------------------ |
+| [`pint build`](#pint-build)     | Build a package.               |
+| [`pint new`](#pint-new)         | Create a new package.          |
 | [`pint plugins`](#pint-plugins) | List all pint plugins on path. |
 
 ## Overview

@@ -27,12 +27,12 @@ Optionally specify the license for the package.
 license = "MIT"
 ```
 
-###  `kind`
+### `kind`
 
 Describes whether the package is a `"contract"` (the default) or a `"library"`.
 
 - **library** packages allow for sharing types, macros and constants between
-multiple different packages.
+  multiple different packages.
 - **contract** packages describe a top-level contract that may be deployed.
 
 ```toml
