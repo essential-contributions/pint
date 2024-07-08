@@ -1,5 +1,5 @@
 [package]
-name = "pint"
+name = "pint-cli"
 version = "0.1.0"
 description = "Pint's package manager and CLI plugin host."
 edition.workspace = true
@@ -7,6 +7,10 @@ authors.workspace = true
 homepage.workspace = true
 license.workspace = true
 repository.workspace = true
+
+[[bin]]
+name = "pint"
+path = "src/main.rs"
 
 [dependencies]
 anyhow = { workspace = true }

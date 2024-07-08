@@ -23,11 +23,11 @@ $ rustup update && rustup default stable
 The Pint toolchain can be installed using `Cargo` with:
 
 ```console
-$ cargo install pint
+$ cargo install pint-cli
 ```
 
 You can update the toolchain with `Cargo` using:
 
 ```console
-$ cargo update pint
+$ cargo update pint-cli
 ```
