@@ -19,7 +19,7 @@ path = "src/main.rs"
 lalrpop = "0.20"
 
 [package.metadata.cargo-udeps.ignore]
-normal = ["pint_solve"]
+normal = ["pint-solve"]
 
 [dependencies]
 anyhow = { workspace = true }
@@ -33,7 +33,7 @@ itertools = { workspace = true }
 lalrpop-util = "0.20"
 logos = { workspace = true }
 pint-abi-types = { workspace = true }
-pint_solve = { path = "../pint-solve", default-features = false }
+pint-solve = { path = "../pint-solve", default-features = false }
 regex = "1.10"
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -49,4 +49,4 @@ test-util = { path = "../test-util" }
 test_bin = "0.4"
 
 [features]
-solver-scip = ["pint_solve/solver-scip"]
+solver-scip = ["pint-solve/solver-scip"]

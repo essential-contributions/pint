@@ -1206,7 +1206,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pint_solve"
+name = "pint-solve"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -1237,7 +1237,7 @@ dependencies = [
  "lalrpop-util",
  "logos",
  "pint-abi-types",
- "pint_solve",
+ "pint-solve",
  "regex",
  "serde",
  "serde_json",
