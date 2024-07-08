@@ -7,8 +7,8 @@ use crate::{
     predicate::Const,
 };
 use lower::{
-    coalesce_prime_ops, lower_aliases, lower_bools, lower_casts, lower_compares_to_nil,
-    lower_enums, lower_ifs, lower_imm_accesses, lower_ins, replace_const_refs,
+    coalesce_prime_ops, lower_aliases, lower_casts, lower_compares_to_nil, lower_enums, lower_ifs,
+    lower_imm_accesses, lower_ins, replace_const_refs,
 };
 use unroll::unroll_generators;
 use validate::validate;
@@ -63,10 +63,6 @@ impl super::Contract {
 
             // Coalesce all prime ops back down to the lowest path expression.
             coalesce_prime_ops(pred);
-
-            // Lower bools after scalarization since it creates new comparison expressions
-            // which will return bools.
-            lower_bools(pred);
 
             // This could be done straight after type checking but any error which prints the
             // type until now will have the more informative aliased description.  e.g.,

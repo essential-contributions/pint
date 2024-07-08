@@ -568,6 +568,8 @@ impl AsmBuilder {
             match imm {
                 Immediate::Int(val) => asm.push(Stack::Push(*val).into()),
 
+                Immediate::Bool(val) => asm.push(Stack::Push(*val as i64).into()),
+
                 Immediate::B256(val) => {
                     asm.push(Stack::Push(val[0] as i64).into());
                     asm.push(Stack::Push(val[1] as i64).into());
@@ -587,11 +589,7 @@ impl AsmBuilder {
                     }
                 }
 
-                Immediate::Error
-                | Immediate::Nil
-                | Immediate::Real(_)
-                | Immediate::Bool(_)
-                | Immediate::String(_) => {
+                Immediate::Error | Immediate::Nil | Immediate::Real(_) | Immediate::String(_) => {
                     unimplemented!("other literal types are not yet supported")
                 }
             }

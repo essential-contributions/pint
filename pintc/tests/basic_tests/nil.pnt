@@ -67,8 +67,8 @@ predicate test {
 //     }
 //     state ::x: int = storage::x;
 //     state ::z: {int, int, int} = storage::z;
-//     constraint 0;
-//     constraint 0;
+//     constraint false;
+//     constraint false;
 //     constraint (__state_len(::x) == 0);
 //     constraint (__state_len(::x) == 0);
 //     constraint (__state_len(::z) == 0);

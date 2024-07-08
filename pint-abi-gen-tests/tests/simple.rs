@@ -37,7 +37,7 @@ async fn test_solution_foo() {
 
     // Decision variables.
     let vars = simple::Foo::Vars {
-        v0: i64::from(true), // TODO: use `true` directly once #729 is addressed.
+        v0: true,
         v1: 42,
         v2: [0x1111111100000000; 4],
         v3: [30, 31].into(),
@@ -46,7 +46,7 @@ async fn test_solution_foo() {
 
     // Public decision variables (i.e. transient data).
     let pub_vars: Vec<Mutation> = simple::Foo::pub_vars::mutations()
-        .t0(i64::from(false))
+        .t0(false)
         .t1(11)
         .t2([0x2222222222222222; 4])
         .into();

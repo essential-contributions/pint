@@ -39,15 +39,15 @@ predicate test {
 // >>>
 
 // flattened <<<
-// const ::x: bool = 1;
-// const ::z: bool = 1;
+// const ::x: bool = true;
+// const ::z: bool = true;
 // const ::y: int = 33;
 //
 // predicate ::test {
 //     var ::a: int;
-//     constraint (!1 || (::a == 11));
-//     constraint (1 || (::a == 22));
-//     constraint (!1 || (::a == 33));
-//     constraint (1 || 1);
+//     constraint (!true || (::a == 11));
+//     constraint (true || (::a == 22));
+//     constraint (!true || (::a == 33));
+//     constraint (true || true);
 // }
 // >>>

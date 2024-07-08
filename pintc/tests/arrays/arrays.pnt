@@ -38,7 +38,7 @@ predicate test {
 //     var ::b_r_2: real;
 //     var ::c: int[4];
 //     var ::c1: int[4];
-//     var ::cb: int;
+//     var ::cb: bool;
 //     enum ::Colour = Red | Green | Blue;
 //     constraint (::a1 == ::a[1]);
 //     constraint (::b_r_2 == ::b[0][2]);
