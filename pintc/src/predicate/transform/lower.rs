@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, Expr, Ident, Immediate, TupleAccess, UnaryOp},
-    predicate::{BlockStatement, ConstraintDecl, ExprKey, IfDecl, Predicate},
+    predicate::{BlockStatement, ConstraintDecl, ExprKey, IfDecl, Predicate, StorageVar},
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
 };
@@ -286,17 +286,23 @@ pub(crate) fn lower_aliases(pred: &mut Predicate) {
 
     // Replace aliases with the actual type.
     pred.vars
-        .update_types(|_, var| replace_alias(&new_types, var));
+        .update_types(|_, var_ty| replace_alias(&new_types, var_ty));
     pred.states
-        .update_types(|_, state| replace_alias(&new_types, state));
+        .update_types(|_, state_ty| replace_alias(&new_types, state_ty));
     pred.exprs
-        .update_types(|_, expr| replace_alias(&new_types, expr));
+        .update_types(|_, expr_ty| replace_alias(&new_types, expr_ty));
 
     pred.exprs.update_exprs(|_, expr| {
         if let Expr::Cast { ty, .. } = expr {
             replace_alias(&new_types, ty.borrow_mut());
         }
     });
+
+    if let Some((storage_vars, _)) = &mut pred.storage {
+        for StorageVar { ty, .. } in storage_vars {
+            replace_alias(&new_types, ty);
+        }
+    }
 }
 
 pub(crate) fn lower_imm_accesses(

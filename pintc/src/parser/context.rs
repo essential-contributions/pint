@@ -1,5 +1,5 @@
 use crate::{
-    error::{CompileError, Error, Handler, ParseError},
+    error::{Error, Handler, ParseError},
     expr::{Expr, Immediate, TupleAccess},
     macros::{MacroCall, MacroDecl},
     parser::{Ident, NextModPath, UsePath, UseTree},
@@ -7,7 +7,7 @@ use crate::{
         CallKey, Contract, ExprKey, Interface, InterfaceDecl, Predicate, PredicateInstance,
         StorageVar, Var,
     },
-    span::{self, Span, Spanned},
+    span::{self, Span},
     types::{Path, PrimitiveKind, Type},
 };
 use std::collections::BTreeMap;
@@ -49,64 +49,6 @@ impl<'a> ParserContext<'a> {
     /// found, indicating a bug.
     pub fn current_pred(&mut self) -> &mut Predicate {
         self.contract.preds.get_mut(self.current_pred).unwrap()
-    }
-
-    /// Given an identifier and an type, produce a `StorageVar`. `l` and `r` are the code locations
-    /// before and after the storage var declaration
-    pub fn parse_storage_var(
-        &self,
-        handler: &Handler,
-        name: Ident,
-        ty: Type,
-        (l, r): (usize, usize),
-    ) -> StorageVar {
-        let span = (self.span_from)(l, r);
-        if ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() || ty.is_array() {
-            StorageVar { name, ty, span }
-        } else if let Type::Map {
-            ref ty_from,
-            ref ty_to,
-            ..
-        } = ty
-        {
-            if (ty_from.is_bool() || ty_from.is_int() || ty_from.is_b256())
-                && (ty_to.is_bool()
-                    || ty_to.is_int()
-                    || ty_to.is_b256()
-                    || ty_to.is_map()
-                    || ty_to.is_tuple()
-                    || ty_to.is_array())
-            {
-                StorageVar { name, ty, span }
-            } else {
-                // TODO: allow arbitrary types in storage maps
-                handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "currently in storage maps, keys must be int, bool, or b256 /
-                              and values must be int and bool",
-                        span: span::empty_span(),
-                    },
-                });
-                StorageVar {
-                    name,
-                    ty: Type::Error(ty.span().clone()),
-                    span,
-                }
-            }
-        } else {
-            // TODO: allow arbitrary types in storage blocks
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "only ints, bools, and maps are currently allowed in a storage block",
-                    span: span::empty_span(),
-                },
-            });
-            StorageVar {
-                name,
-                ty: Type::Error(ty.span().clone()),
-                span,
-            }
-        }
     }
 
     /// Given a list of storage variables, check that there are no duplicate names and return the

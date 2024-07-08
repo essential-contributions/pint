@@ -94,7 +94,8 @@ PredicateClose: () = {
 
 StorageVar: StorageVar = {
     <l:@L> <name:Ident> ":" <ty:StorageVarType> <r:@R> => {
-        context.parse_storage_var(handler, name, ty, (l, r))
+        let span = (context.span_from)(l, r);
+        StorageVar { name, ty, span }
     }
 }
 
