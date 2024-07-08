@@ -34,7 +34,7 @@ itertools = { workspace = true }
 lalrpop-util = "0.20"
 logos = { workspace = true }
 pint-abi-types = { workspace = true }
-pint-solve = { path = "../pint-solve", default-features = false }
+pint-solve = { path = "../pint-solve", version = "0.1.0", default-features = false }
 regex = "1.10"
 serde = { workspace = true }
 serde_json = { workspace = true }
