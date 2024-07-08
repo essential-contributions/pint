@@ -22,6 +22,7 @@ use proc_macro2::Span;
 use quote::ToTokens;
 use syn::parse_macro_input;
 
+mod array;
 mod map;
 mod mutation;
 mod tuple;
@@ -188,16 +189,16 @@ fn nesting_expr(nesting: &[Nesting]) -> syn::ExprArray {
         .map(|n| {
             let expr: syn::Expr = match n {
                 Nesting::Var { ix } => {
-                    syn::parse_quote!(pint_abi::visit::Nesting::Var { ix: #ix })
+                    syn::parse_quote!(pint_abi::key::Nesting::Var { ix: #ix })
                 }
-                Nesting::TupleField { ix, flat_ix } => {
-                    syn::parse_quote!(pint_abi::visit::Nesting::TupleField { ix: #ix, flat_ix: #flat_ix })
+                Nesting::TupleField { ix: _, flat_ix } => {
+                    syn::parse_quote!(pint_abi::key::Nesting::TupleField { flat_ix: #flat_ix })
                 }
-                Nesting::MapEntry { key_size } => {
-                    syn::parse_quote!(pint_abi::visit::Nesting::MapEntry { key_size: #key_size })
+                Nesting::MapEntry { key_size: _ } => {
+                    syn::parse_quote!(pint_abi::key::Nesting::MapEntry)
                 }
-                Nesting::ArrayElem { array_len } => {
-                    syn::parse_quote!(pint_abi::visit::Nesting::ArrayElem { array_len: #array_len })
+                Nesting::ArrayElem { elem_len, .. } => {
+                    syn::parse_quote!(pint_abi::key::Nesting::ArrayElem { elem_len: #elem_len })
                 }
             };
             expr

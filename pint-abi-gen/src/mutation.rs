@@ -2,7 +2,7 @@
 //! aimed at making it easier to build a set of
 //! [`Mutation`][essential_types::solution::Mutation]s for a solution.
 
-use crate::{map, tuple, SingleKeyTy};
+use crate::{array, map, tuple, SingleKeyTy};
 use pint_abi_types::{TypeABI, VarABI};
 use pint_abi_visit::{KeyedVarTree, Nesting, NodeIx};
 use proc_macro2::Span;
@@ -12,13 +12,16 @@ use proc_macro2::Span;
 fn nested_builder_items_from_node(tree: &KeyedVarTree, n: NodeIx) -> Vec<syn::Item> {
     let mut items = vec![];
     match tree[n].ty {
+        TypeABI::Array { ty, size: _ } => {
+            items.extend(array::builder_items(tree, n, ty));
+        }
         TypeABI::Map { ty_from, ty_to } => {
             items.extend(map::builder_items(tree, n, ty_from, ty_to));
         }
         TypeABI::Tuple(_fields) => {
             items.extend(tuple::builder_items(tree, n));
         }
-        _ => (),
+        TypeABI::Bool | TypeABI::Int | TypeABI::Real | TypeABI::String | TypeABI::B256 => (),
     }
     items
 }
@@ -51,6 +54,21 @@ fn method_doc_str(name: &str) -> String {
         "Add a mutation for the `{name}` field into the set.\n\n\
         Relaces any existing mutation for the given key.",
     )
+}
+
+/// A `Mutations` builder method for an array field.
+fn method_for_array(name: &str, array_nesting: &[Nesting]) -> syn::ImplItemFn {
+    let struct_name = array::mutations_struct_name(array_nesting);
+    let method_ident = syn::Ident::new(name, Span::call_site());
+    let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
+    let doc_str = method_doc_str(name);
+    syn::parse_quote! {
+        #[doc = #doc_str]
+        pub fn #method_ident(mut self, f: impl FnOnce(#struct_ident) -> #struct_ident) -> Self {
+            f(#struct_ident { mutations: &mut self });
+            self
+        }
+    }
 }
 
 /// A `Mutations` builder method for a map field.
@@ -118,7 +136,9 @@ pub(crate) fn method_from_node(tree: &KeyedVarTree, n: NodeIx, name: &str) -> sy
         TypeABI::Real => SingleKeyTy::Real,
         TypeABI::String => SingleKeyTy::String,
         TypeABI::B256 => SingleKeyTy::B256,
-        TypeABI::Array { ty: _, size: _ } => todo!(),
+        TypeABI::Array { ty: _, size: _ } => {
+            return method_for_array(name, &nesting);
+        }
         TypeABI::Tuple(_) => {
             return method_for_tuple(name, &nesting);
         }
