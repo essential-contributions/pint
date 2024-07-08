@@ -2,11 +2,11 @@
 resolver = "2"
 members = [
   "examples",
-  "pint",
   "pint-abi",
   "pint-abi-gen",
   "pint-abi-gen-tests",
   "pint-abi-types",
+  "pint-cli",
   "pint-manifest",
   "pint-pkg",
   "pint-solve",
