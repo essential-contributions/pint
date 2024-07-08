@@ -13,7 +13,7 @@ anyhow = { workspace = true }
 essential-constraint-vm = { git = "ssh://git@github.com/essential-contributions/essential-base.git", package = "essential-constraint-vm" }
 essential-state-read-vm = { git = "ssh://git@github.com/essential-contributions/essential-base.git", package = "essential-state-read-vm" }
 essential-types = { workspace = true }
-#pint_solve = { path = "../pint-solve", default-features = false }
+#pint-solve = { path = "../pint-solve", default-features = false }
 pintc = { path = "../pintc", default-features = false }
 test-util = { path = "../test-util" }
 thiserror = "1"
@@ -31,4 +31,4 @@ name = "validation_tests"
 path = "validation_tests.rs"
 
 #[features]
-#solver-scip = ["pint_solve/solver-scip", "pintc/solver-scip"]
+#solver-scip = ["pint-solve/solver-scip", "pintc/solver-scip"]
