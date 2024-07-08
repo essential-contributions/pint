@@ -13,26 +13,21 @@ The package table declares high-level information about the pint package. It inc
 
 ### `name`
 
-*required*
-
 The name of the package.
+
 ```toml
 name = "foo"
 ```
 
 ### `license`
 
-*optional*
-
-The license for the package.
+Optionally specify the license for the package.
 
 ```toml
 license = "MIT"
 ```
 
 ###  `kind`
-
-*required*
 
 Describes whether the package is a `"contract"` (the default) or a `"library"`.
 
@@ -46,10 +41,10 @@ kind = "contract"
 
 ### `entry-point`
 
-*optional*
+Optionally specify the path to the entry-point module for the package relative
+to the `src/` directory.
 
-The path to the entry-point module for the package relative to the `src/`
-directory. By default this is:
+By default this is:
 
 - `"contract.pnt"` for contracts and
 - `"library.pnt"` for libraries.
