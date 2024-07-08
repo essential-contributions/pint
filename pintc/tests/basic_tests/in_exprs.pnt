@@ -48,7 +48,7 @@ predicate test {
 // predicate ::test {
 //     var ::a: int;
 //     var ::b: real;
-//     var ::c: int;
+//     var ::c: bool;
 //     var ::d: string;
 //     var ::e: int;
 //     var ::f: {bool, int};
@@ -58,10 +58,10 @@ predicate test {
 //     constraint ((((::a == 11) || (::a == 13)) || (::a == 17)) || (::a == 19));
 //     constraint ((::b >= 1.23e1) && (::b <= 6.78e1));
 //     constraint (((::b == 2.5e1) || (::b == 2.997e1)) || (::b == 5.994e1));
-//     constraint ((::c == 1) || (::c == 1));
+//     constraint ((::c == true) || (::c == true));
 //     constraint ((::d == "foo") || (::d == "bar"));
 //     constraint ((::e == 1) || (::e == 0));
-//     constraint (((::f == {0, 66}) || (::f == {1, 77})) || (::f == {1, 88}));
+//     constraint (((::f == {false, 66}) || (::f == {true, 77})) || (::f == {true, 88}));
 //     constraint (::g == [-99, -99]);
 //     constraint (::e >= 0);
 //     constraint (::e <= 3);

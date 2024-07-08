@@ -32,9 +32,9 @@ predicate test {
 
 // flattened <<<
 // predicate ::test {
-//     var ::condition: int;
-//     var ::condition1: int;
-//     var ::condition2: int;
+//     var ::condition: bool;
+//     var ::condition1: bool;
+//     var ::condition2: bool;
 //     var ::x: int;
 //     var ::y: int;
 //     var ::z: b256;

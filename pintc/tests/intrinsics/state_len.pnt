@@ -72,7 +72,7 @@ predicate test {
 //     var ::c_len: int;
 //     var ::d_len: int;
 //     state ::a: int = storage::a;
-//     state ::b: int = storage::b;
+//     state ::b: bool = storage::b;
 //     state ::c: b256 = storage::c;
 //     state ::d: {int, bool} = storage::d;
 //     enum ::MyEnum = A | B;

@@ -216,46 +216,6 @@ pub(crate) fn lower_enums(handler: &Handler, pred: &mut Predicate) -> Result<(),
     Ok(())
 }
 
-pub(crate) fn lower_bools(pred: &mut Predicate) {
-    // Just do a blanket replacement of all bool types with int types.
-    let int_ty = Type::Primitive {
-        kind: PrimitiveKind::Int,
-        span: empty_span(),
-    };
-
-    pred.vars.update_types(|_, ty| {
-        if ty.is_bool() {
-            *ty = int_ty.clone();
-        }
-    });
-
-    pred.exprs.update_types(|_, expr_type| {
-        if expr_type.is_bool() {
-            *expr_type = int_ty.clone();
-        }
-    });
-
-    pred.states.update_types(|_, ty| {
-        if ty.is_bool() {
-            *ty = int_ty.clone();
-        }
-    });
-
-    // Replace any literal true or false falures with int equivalents.
-    pred.exprs.update_exprs(|_, expr| {
-        if let Expr::Immediate {
-            value: Immediate::Bool(bool_val),
-            span,
-        } = expr
-        {
-            *expr = Expr::Immediate {
-                value: Immediate::Int(*bool_val as i64),
-                span: span.clone(),
-            };
-        }
-    });
-}
-
 pub(crate) fn lower_casts(handler: &Handler, pred: &mut Predicate) -> Result<(), ErrorEmitted> {
     let mut replacements = Vec::new();
 

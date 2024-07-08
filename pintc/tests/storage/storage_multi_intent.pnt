@@ -137,16 +137,16 @@ predicate Bar {
 //     }
 //     var ::x: int;
 //     var ::address: b256;
-//     var ::and: int;
+//     var ::and: bool;
 //     var ::sum: int;
 //     state ::i0: int = storage::i;
 //     state ::i1: int = storage::i;
-//     state ::b0: int = storage::b;
-//     state ::b1: int = storage::b;
+//     state ::b0: bool = storage::b;
+//     state ::b1: bool = storage::b;
 //     state ::map_1_access_1: int = storage::map1[7];
 //     state ::map_1_access_2: int = storage::map1[::x];
-//     state ::map_2_access_1: int = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
-//     state ::map_2_access_2: int = storage::map2[::address];
+//     state ::map_2_access_1: bool = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
+//     state ::map_2_access_2: bool = storage::map2[::address];
 //     state ::map_3_access_1: b256 = storage::map3[42][69];
 //     state ::map_3_access_2: b256 = storage::map3[42][69];
 //     constraint (::x == 5);
@@ -165,16 +165,16 @@ predicate Bar {
 //     }
 //     var ::x: int;
 //     var ::address: b256;
-//     var ::and: int;
+//     var ::and: bool;
 //     var ::sum: int;
 //     state ::i0: int = storage::i;
 //     state ::i1: int = storage::i;
-//     state ::b0: int = storage::b;
-//     state ::b1: int = storage::b;
+//     state ::b0: bool = storage::b;
+//     state ::b1: bool = storage::b;
 //     state ::map_1_access_1: int = storage::map1[7];
 //     state ::map_1_access_2: int = storage::map1[::x];
-//     state ::map_2_access_1: int = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
-//     state ::map_2_access_2: int = storage::map2[::address];
+//     state ::map_2_access_1: bool = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
+//     state ::map_2_access_2: bool = storage::map2[::address];
 //     state ::map_3_access_1: b256 = storage::map3[42][69];
 //     state ::map_3_access_2: b256 = storage::map3[42][69];
 //     constraint (::x == 5);

@@ -55,7 +55,7 @@ predicate test {
 // flattened <<<
 // const ::j: ::JacketColour = 5;
 // const ::b: b256 = 0x2222222222222222222222222222222222222222222222222222222222222222;
-// const ::e: bool = 1;
+// const ::e: bool = true;
 // const ::k: ::JacketColour = 1;
 // const ::d: b256 = 0x4444444444444444444444444444444444444444444444444444444444444444;
 // const ::a: int = 11;

@@ -39,10 +39,10 @@ predicate test {
 // predicate ::test {
 //     var ::mut_keys_len: int;
 //     var ::key: int[5];
-//     var ::mut_keys_contains_1: int;
+//     var ::mut_keys_contains_1: bool;
 //     var ::z: int;
 //     var ::t: {int, int};
-//     var ::mut_keys_contains_2: int;
+//     var ::mut_keys_contains_2: bool;
 //     var ::this_address: b256;
 //     var ::this_set_address: b256;
 //     var ::this_pathway: int;
