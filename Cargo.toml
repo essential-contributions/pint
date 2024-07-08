@@ -31,12 +31,12 @@ fxhash = "0.2"
 itertools = "0.12"
 logos = "0.14"
 petgraph = "0.6"
-pint-abi = { path = "pint-abi" }
-pint-abi-gen = { path = "pint-abi-gen" }
-pint-abi-types = { path = "pint-abi-types" }
-pint-manifest = { path = "pint-manifest" }
-pint-pkg = { path = "pint-pkg" }
-pintc = { path = "pintc" }
+pint-abi = { path = "pint-abi", version = "0.1.0" }
+pint-abi-gen = { path = "pint-abi-gen", version = "0.1.0" }
+pint-abi-types = { path = "pint-abi-types", version = "0.1.0" }
+pint-manifest = { path = "pint-manifest", version = "0.1.0" }
+pint-pkg = { path = "pint-pkg", version = "0.1.0" }
+pintc = { path = "pintc", version = "0.1.0" }
 proc-macro2 = "1"
 quote = "1"
 serde = { version = "1", features = ["derive"] }

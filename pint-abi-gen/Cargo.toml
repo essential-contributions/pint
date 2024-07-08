@@ -1,6 +1,7 @@
 [package]
 name = "pint-abi-gen"
 version = "0.1.0"
+description = "proc-macro for generating pint ABI items"
 edition.workspace = true
 authors.workspace = true
 homepage.workspace = true
