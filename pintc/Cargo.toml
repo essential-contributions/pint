@@ -1,6 +1,7 @@
 [package]
 name = "pintc"
 version = "0.1.0"
+description = "Compiler for the Pint language"
 edition.workspace = true
 authors.workspace = true
 homepage.workspace = true
