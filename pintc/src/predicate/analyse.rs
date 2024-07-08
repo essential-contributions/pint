@@ -49,6 +49,7 @@ impl Contract {
 
             pred.check_undefined_types(handler);
             pred.lower_newtypes(handler)?;
+            pred.check_storage_types(handler);
             pred.type_check_all_exprs(handler, &self.consts);
             pred.check_inits(handler, &self.consts);
             pred.check_constraint_types(handler);

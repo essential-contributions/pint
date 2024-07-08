@@ -5,6 +5,7 @@ use super::{
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     expr::{BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
+    predicate::StorageVar,
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
@@ -201,8 +202,8 @@ impl Predicate {
             }
         }
 
-        // Then, loop for every known var or state type, or any `as` cast expr, and replace any
-        // custom types which match with the type alias.
+        // Then, loop for every known var or state type, or any `as` cast expr, or any storage
+        // type, and replace any custom types which match with the type alias.
         self.vars
             .update_types(|_, ty| replace_custom_type(&self.new_types, ty));
 
@@ -214,6 +215,12 @@ impl Predicate {
                 replace_custom_type(&self.new_types, ty.borrow_mut());
             }
         });
+
+        if let Some((storage_vars, _)) = &mut self.storage {
+            for StorageVar { ty, .. } in storage_vars {
+                replace_custom_type(&self.new_types, ty);
+            }
+        }
     }
 
     pub(super) fn check_undefined_types(&mut self, handler: &Handler) {
@@ -291,136 +298,61 @@ impl Predicate {
         })
     }
 
+    pub(super) fn check_storage_types(&self, handler: &Handler) {
+        if !self.is_root() {
+            // Only self check when we're the root predicate.
+            return;
+        }
+
+        if let Some((storage_vars, _)) = &self.storage {
+            for StorageVar { ty, span, .. } in storage_vars {
+                if !(ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() || ty.is_array())
+                {
+                    if let Type::Map {
+                        ref ty_from,
+                        ref ty_to,
+                        ..
+                    } = ty
+                    {
+                        if !((ty_from.is_bool() || ty_from.is_int() || ty_from.is_b256())
+                            && (ty_to.is_bool()
+                                || ty_to.is_int()
+                                || ty_to.is_b256()
+                                || ty_to.is_map()
+                                || ty_to.is_tuple()
+                                || ty_to.is_array()))
+                        {
+                            // TODO: allow arbitrary types in storage maps
+                            handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "currently in storage maps, keys must be int, bool, or b256 \
+                                    and values must be int or bool",
+                            span: span.clone(),
+                        },
+                    });
+                        }
+                    } else {
+                        // TODO: allow arbitrary types in storage blocks
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "only ints, bools, and maps are currently allowed in a \
+                                        storage block",
+                                span: span.clone(),
+                            },
+                        });
+                    }
+                }
+            }
+        }
+    }
+
     pub(super) fn type_check_all_exprs(
         &mut self,
         handler: &Handler,
         consts: &FxHashMap<String, Const>,
     ) {
-        // Type check all interface instance declarations
-        self.interface_instances.clone().into_iter().for_each(
-            |InterfaceInstance {
-                 interface,
-                 address,
-                 span,
-                 ..
-             }| {
-                if !self
-                    .interfaces
-                    .iter()
-                    .any(|e| e.name.to_string() == *interface)
-                {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::MissingInterface {
-                            name: interface.clone(),
-                            span: span.clone(),
-                        },
-                    });
-                }
-
-                match self.type_check_next_expr(consts, address) {
-                    Ok(()) => {
-                        let ty = address.get_ty(self);
-                        if !ty.is_b256() {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::AddressExpressionTypeError {
-                                    large_err: Box::new(
-                                        LargeTypeError::AddressExpressionTypeError {
-                                            expected_ty: self
-                                                .with_pred(Type::Primitive {
-                                                    kind: PrimitiveKind::B256,
-                                                    span: empty_span(),
-                                                })
-                                                .to_string(),
-                                            found_ty: self.with_pred(ty).to_string(),
-                                            span: self.expr_key_to_span(address),
-                                            expected_span: Some(self.expr_key_to_span(address)),
-                                        },
-                                    ),
-                                },
-                            });
-                        }
-                    }
-                    Err(err) => {
-                        handler.emit_err(err);
-                    }
-                }
-            },
-        );
-
-        // Type check all interface instance declarations
-        self.predicate_instances.clone().into_iter().for_each(
-            |PredicateInstance {
-                 interface_instance,
-                 predicate,
-                 address,
-                 span,
-                 ..
-             }| {
-                // Make sure that an appropriate interface instance exists and an appropriate
-                // predicate interface exists
-                if let Some(interface_instance) = self
-                    .interface_instances
-                    .iter()
-                    .find(|e| e.name.to_string() == *interface_instance)
-                {
-                    if let Some(interface) = self
-                        .interfaces
-                        .iter()
-                        .find(|e| e.name.to_string() == *interface_instance.interface)
-                    {
-                        if !interface
-                            .predicate_interfaces
-                            .iter()
-                            .any(|e| e.name.to_string() == *predicate.to_string())
-                        {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::MissingPredicateInterface {
-                                    pred_name: predicate.name.to_string(),
-                                    interface_name: interface.name.to_string(),
-                                    span: span.clone(),
-                                },
-                            });
-                        }
-                    }
-                } else {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::MissingInterfaceInstance {
-                            name: interface_instance.clone(),
-                            span: span.clone(),
-                        },
-                    });
-                };
-
-                // Type check the address field
-                match self.type_check_next_expr(consts, address) {
-                    Ok(()) => {
-                        let ty = address.get_ty(self);
-                        if !ty.is_b256() {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::AddressExpressionTypeError {
-                                    large_err: Box::new(
-                                        LargeTypeError::AddressExpressionTypeError {
-                                            expected_ty: self
-                                                .with_pred(Type::Primitive {
-                                                    kind: PrimitiveKind::B256,
-                                                    span: empty_span(),
-                                                })
-                                                .to_string(),
-                                            found_ty: self.with_pred(ty).to_string(),
-                                            span: self.expr_key_to_span(address),
-                                            expected_span: Some(self.expr_key_to_span(address)),
-                                        },
-                                    ),
-                                },
-                            });
-                        }
-                    }
-                    Err(err) => {
-                        handler.emit_err(err);
-                    }
-                }
-            },
-        );
+        self.check_iface_inst_addrs(handler, consts);
+        self.check_pred_inst_addrs(handler, consts);
 
         // Check all the 'root' exprs (constraints, state init exprs, and var init exprs) one at a
         // time, gathering errors as we go. Copying the keys out first to avoid borrowing conflict.
@@ -438,7 +370,7 @@ impl Predicate {
         }
 
         for expr_key in all_expr_keys {
-            if let Err(err) = self.type_check_next_expr(consts, expr_key) {
+            if let Err(err) = self.type_check_single_expr(consts, expr_key) {
                 handler.emit_err(err);
             }
         }
@@ -586,7 +518,7 @@ impl Predicate {
             .collect::<Vec<_>>()
             .iter()
         {
-            if let Err(err) = self.type_check_next_expr(consts, *range_expr) {
+            if let Err(err) = self.type_check_single_expr(consts, *range_expr) {
                 handler.emit_err(err);
             } else if !(range_expr.get_ty(self).is_int()
                 || range_expr.get_ty(self).is_enum(self)
@@ -600,6 +532,125 @@ impl Predicate {
                 });
                 // Make sure to not collect too many duplicate errors
                 checked_range_exprs.insert(range_expr);
+            }
+        }
+    }
+
+    fn check_iface_inst_addrs(&mut self, handler: &Handler, consts: &FxHashMap<String, Const>) {
+        // Type check all interface instance declarations.
+        let mut addr_keys = Vec::default();
+        for InterfaceInstance {
+            interface,
+            address,
+            span,
+            ..
+        } in &self.interface_instances
+        {
+            if self
+                .interfaces
+                .iter()
+                .any(|e| e.name.to_string() == *interface)
+            {
+                // OK. Type check this address below.
+                addr_keys.push(*address);
+            } else {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::MissingInterface {
+                        name: interface.clone(),
+                        span: span.clone(),
+                    },
+                });
+            }
+        }
+
+        self.check_instance_addresses(handler, consts, &addr_keys);
+    }
+
+    fn check_pred_inst_addrs(&mut self, handler: &Handler, consts: &FxHashMap<String, Const>) {
+        // Type check all predicate instance declarations.
+        let mut addr_keys = Vec::default();
+        for PredicateInstance {
+            interface_instance,
+            predicate,
+            address,
+            span,
+            ..
+        } in &self.predicate_instances
+        {
+            // Make sure that an appropriate interface instance exists and an appropriate
+            // predicate interface exists.
+            if let Some(interface_instance) = self
+                .interface_instances
+                .iter()
+                .find(|e| e.name.to_string() == *interface_instance)
+            {
+                if let Some(interface) = self
+                    .interfaces
+                    .iter()
+                    .find(|e| e.name.to_string() == *interface_instance.interface)
+                {
+                    if interface
+                        .predicate_interfaces
+                        .iter()
+                        .any(|e| e.name.to_string() == *predicate.to_string())
+                    {
+                        // OK. Type check this address below.
+                        addr_keys.push(*address);
+                    } else {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::MissingPredicateInterface {
+                                pred_name: predicate.name.to_string(),
+                                interface_name: interface.name.to_string(),
+                                span: span.clone(),
+                            },
+                        });
+                    }
+                }
+            } else {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::MissingInterfaceInstance {
+                        name: interface_instance.clone(),
+                        span: span.clone(),
+                    },
+                });
+            }
+        }
+
+        self.check_instance_addresses(handler, consts, &addr_keys);
+    }
+
+    fn check_instance_addresses(
+        &mut self,
+        handler: &Handler,
+        consts: &FxHashMap<String, Const>,
+        addr_keys: &[ExprKey],
+    ) {
+        for address in addr_keys {
+            match self.type_check_single_expr(consts, *address) {
+                Ok(()) => {
+                    let ty = address.get_ty(self);
+                    if !ty.is_b256() {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::AddressExpressionTypeError {
+                                large_err: Box::new(LargeTypeError::AddressExpressionTypeError {
+                                    expected_ty: self
+                                        .with_pred(Type::Primitive {
+                                            kind: PrimitiveKind::B256,
+                                            span: empty_span(),
+                                        })
+                                        .to_string(),
+                                    found_ty: self.with_pred(ty).to_string(),
+                                    span: self.expr_key_to_span(*address),
+                                    expected_span: Some(self.expr_key_to_span(*address)),
+                                }),
+                            },
+                        });
+                    }
+                }
+
+                Err(err) => {
+                    handler.emit_err(err);
+                }
             }
         }
     }
@@ -620,7 +671,7 @@ impl Predicate {
         } = if_decl;
 
         // Make sure the condition is a `bool`
-        if let Err(err) = self.type_check_next_expr(consts, *condition) {
+        if let Err(err) = self.type_check_single_expr(consts, *condition) {
             handler.emit_err(err);
         } else {
             let cond_ty = condition.get_ty(self);
@@ -654,7 +705,7 @@ impl Predicate {
     ) {
         match block_statement {
             BlockStatement::Constraint(ConstraintDecl { expr, .. }) => {
-                if let Err(err) = self.type_check_next_expr(consts, *expr) {
+                if let Err(err) = self.type_check_single_expr(consts, *expr) {
                     handler.emit_err(err);
                 }
             }
@@ -662,7 +713,7 @@ impl Predicate {
         }
     }
 
-    fn type_check_next_expr(
+    fn type_check_single_expr(
         &mut self,
         consts: &FxHashMap<String, Const>,
         expr_key: ExprKey,
