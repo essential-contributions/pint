@@ -437,6 +437,11 @@ TypeAtom: Type = {
         // Recover with a malformed type
         Type::Error(span)
     },
+    <l:@L> "(" <ty_from:Type> "=>" <ty_to:StorageVarType> ")" <r:@R> => Type::Map {
+        ty_from: Box::new(ty_from),
+        ty_to: Box::new(ty_to),
+        span: (context.span_from)(l, r),
+    },
     <l:@L> <path:Path> <r:@R> => Type::Custom {
         path,
         span: (context.span_from)(l, r),
@@ -488,7 +493,7 @@ TupleField: (Option<Ident>, Type) = {
 /// Storage Types ///
 /////////////////////
 
-// Does not yet allow for maps inside maps and is only to be used in storage blocks
+// Does not yet allow for maps inside maps
 MapType: Type = {
     <l:@L> "(" <ty_from:Type> "=>" <ty_to:StorageVarType> ")" <r:@R> => Type::Map {
         ty_from: Box::new(ty_from),
@@ -497,8 +502,35 @@ MapType: Type = {
     }
 }
 
+// ExplicitMapType: Type = {
+//     <l:@L> "(" <ty_from:Type> "=>" <ty_to:StorageVarType> ")" <r:@R> => Type::Map {
+//         ty_from: Box::new(ty_from),
+//         ty_to: Box::new(ty_to),
+//         span: (context.span_from)(l, r),
+//     }
+// }
+
+// MapType: Type = {
+//     // First syntax
+//     <l:@L> "(" <ty_from:Type> "=>" <ty_to:StorageVarType> ")" <r:@R> 
+//         => Type::Map {
+//             ty_from: Box::new(ty_from),
+//             ty_to: Box::new(ty_to),
+//             span: (context.span_from)(l, r),
+//         }
+//     // Second syntax (as an example, adjust according to your needs)
+//     | <l:@L>  "type (" <ty_from:Type> "=>" <ty_to:StorageVarType> ")" <r:@R> 
+//         => Type::Map {
+//             ty_from: Box::new(ty_from),
+//             ty_to: Box::new(ty_to),
+//             // Adjust span calculation as needed
+//             span: derive_span_somehow(),
+//         }
+// };
+
+
 StorageVarType: Type = {
-    <MapType>,
+    //<MapType>,
     <Type>,
 }
 

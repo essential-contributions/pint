@@ -189,14 +189,9 @@ fn types() {
         &run_parser!(type_, "::A::B::C::MyType"),
         expect_test::expect!["::A::B::C::MyType"],
     );
-
-    // Not allowed in arbitrary types
     check(
         &run_parser!(type_, "(int => bool)"),
-        expect_test::expect![[r#"
-            expected `::`, `a type`, `an identifier`, or `{`, found `(`
-            @11..12: expected `::`, `a type`, `an identifier`, or `{`
-        "#]],
+        expect_test::expect!["( int => bool )"],
     );
 }
 
@@ -2535,8 +2530,8 @@ fn casting() {
     check(
         &run_parser!(pint, r#"var x = 5 as"#),
         expect_test::expect![[r#"
-            expected `::`, `a type`, `an identifier`, or `{`, found `end of file`
-            @12..12: expected `::`, `a type`, `an identifier`, or `{`
+            expected `(`, `::`, `a type`, `an identifier`, or `{`, found `end of file`
+            @12..12: expected `(`, `::`, `a type`, `an identifier`, or `{`
         "#]],
     )
 }
