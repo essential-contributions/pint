@@ -29,7 +29,7 @@ will emit a compile error. For example, if we try to compile the following code:
 ```pint
 var number: int;
 
-var y = number < 5 ? 1 : 2.0;
+var y = number < 5 ? 1 : true;
 ```
 
 we will get the following error:

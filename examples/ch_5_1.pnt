@@ -5,6 +5,7 @@ storage {
     t: { int, bool },
     y: bool,
     w: int,
+    arr: { int, int }[3],
 }
 // ANCHOR_END: storage_block
 
@@ -14,6 +15,7 @@ state x = storage::x;
 state a = storage::a;
 state t = storage::t;
 state t_1 = storage::t.1;
+state arr_2_1 = storage::arr[2].1;
 // ANCHOR_END: storage_access_1
 
 // ANCHOR: state 

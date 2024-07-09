@@ -112,7 +112,7 @@ index of the tuple field or its name. For example:
 Tuples without any values are not allowed in `Pint`. That is, the following:
 
 ```pint
-var empty: { } = { };
+var empty: {} = {};
 ```
 
 is disallowed and errors out as follows:
