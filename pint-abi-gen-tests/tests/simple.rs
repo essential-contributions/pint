@@ -42,6 +42,7 @@ async fn test_solution_foo() {
         v2: [0x1111111100000000; 4],
         v3: [30, 31].into(),
         v4: (40, 41, (420, 421)),
+        anon_0_v5: 42,
     };
 
     // Public decision variables (i.e. transient data).

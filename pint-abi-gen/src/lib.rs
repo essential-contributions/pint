@@ -73,16 +73,16 @@ fn ty_from_pint_ty(ty: &TypeABI) -> syn::Type {
 /// Names for fields are emitted by pint with a `::` prefix.
 /// This function checks for the `::` prefix and strips it if it exists.
 fn strip_colons_prefix(name: &str) -> &str {
-    let mut split = name.split("::");
-    let first = split.next();
-    split.next().or(first).expect("name had unexpected format")
+    name.trim_start_matches("::")
 }
 
-/// Var names have the `::` prefix, and sometimes have `.` separators for
-/// flattened tuple fields. We strip the `::` prefix, and replace all `.`
+/// Var names have the `::` prefix, and sometimes have `.` or `@` or `::` separators for
+/// flattened tuple fields. We strip the `::` prefix, and replace all `.` or `@` or `::`
 /// occurrences with `_`.
 fn field_name_from_var_name(name: &str) -> String {
-    strip_colons_prefix(name).replace('.', "_")
+    strip_colons_prefix(name)
+        .replace(['.', '@'], "_")
+        .replace("::", "_")
 }
 
 /// A named field for each of the decision variables.

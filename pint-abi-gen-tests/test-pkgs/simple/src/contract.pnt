@@ -17,6 +17,8 @@ predicate Foo {
     var v3: { int, int };
     var v4: { int, int, { int, int } };
 
+    @foo();
+
     pub var t0: bool;
     pub var t1: int;
     pub var t2: b256;
@@ -58,4 +60,9 @@ predicate Foo {
     constraint my_map1_key1' == { 1111, { 0x2222222222222222222222222222222222222222222222222222222222222222, 3333 } };
     constraint my_nested_map0_key1_2' == 1234;
     constraint my_nested_map1_key2_3' == { 69, { 0x1111111100000000111111110000000011111111000000001111111100000000, 96 } };
+}
+
+macro @foo() {
+    var v5: int;
+    constraint v5 == 42;
 }
