@@ -1,10 +1,12 @@
-//! General visitors for traversing vars, keyed vars.
+//! Items to assist traversal of Pint ABI Keyed Vars.
+//!
+//! This assists in traversal of the `storage` and `pub_vars` sections of the Pint ABI.
 
 use essential_types::Word;
 use pint_abi_types::{KeyedTypeABI, KeyedVarABI, TypeABI};
 
 /// Represents how a pub var or storage field's key is constructed.
-pub(crate) enum KeyElem {
+pub enum KeyElem {
     /// A fixed word element, e.g. for a top-level field or tuple field.
     Word(Word),
     /// A key element provided by a map key. If the map key size is fixed, `len
@@ -20,43 +22,17 @@ pub(crate) enum KeyElem {
 }
 
 /// Represents a visited keyed var or nested type alongside it's key.
-pub(crate) struct Keyed<'a> {
+pub struct Keyed<'a> {
     /// The name of the var if it is named.
-    pub(crate) name: Option<&'a str>,
+    pub name: Option<&'a str>,
     /// The type of the var.
-    pub(crate) ty: &'a KeyedTypeABI,
+    pub ty: &'a KeyedTypeABI,
     /// A description of the key construction.
-    pub(crate) key: &'a [KeyElem],
-}
-
-/// The number of words used to represent an ABI type in key form.
-fn abi_ty_size(ty: &TypeABI) -> usize {
-    match ty {
-        TypeABI::Bool | TypeABI::Int | TypeABI::Real => 1,
-        TypeABI::B256 => 4,
-        TypeABI::String => panic!("unknown size of type `string`"),
-        TypeABI::Tuple(fields) => fields.iter().map(|f| abi_ty_size(&f.ty)).sum(),
-        TypeABI::Array { ty, size } => {
-            abi_ty_size(ty) * usize::try_from(*size).expect("size out of range")
-        }
-    }
-}
-
-/// Construct an ABI key in the form output by the compiler given a sequence of key elements.
-fn abi_key_from_elems(elems: &[KeyElem]) -> Vec<Option<usize>> {
-    let mut key = vec![];
-    for elem in elems {
-        match elem {
-            KeyElem::Word(w) => key.push(Some(usize::try_from(*w).expect("out of range"))),
-            KeyElem::MapKey { ty } => key.extend(vec![None; abi_ty_size(ty)]),
-            KeyElem::ArrayIx { .. } => key.push(None),
-        }
-    }
-    key
+    pub key: &'a [KeyElem],
 }
 
 /// Visit all keyed vars in `storage` or `pub_vars` alongside their associated key.
-pub(crate) fn keyed_vars(vars: &[KeyedVarABI], mut visit: impl FnMut(Keyed)) {
+pub fn keyed_vars(vars: &[KeyedVarABI], mut visit: impl FnMut(Keyed)) {
     /// Call `visit` with the given `var` and `key`, then recurse nested vars.
     fn visit_and_recurse(
         name: Option<&str>,
@@ -120,4 +96,30 @@ pub(crate) fn keyed_vars(vars: &[KeyedVarABI], mut visit: impl FnMut(Keyed)) {
         visit_and_recurse(Some(var.name.as_str()), &var.ty, &mut key, &mut visit);
         key.pop();
     }
+}
+
+/// The number of words used to represent an ABI type in key form.
+pub fn ty_size(ty: &TypeABI) -> usize {
+    match ty {
+        TypeABI::Bool | TypeABI::Int | TypeABI::Real => 1,
+        TypeABI::B256 => 4,
+        TypeABI::String => panic!("unknown size of type `string`"),
+        TypeABI::Tuple(fields) => fields.iter().map(|f| ty_size(&f.ty)).sum(),
+        TypeABI::Array { ty, size } => {
+            ty_size(ty) * usize::try_from(*size).expect("size out of range")
+        }
+    }
+}
+
+/// Construct an ABI key in the form output by the compiler given a sequence of key elements.
+fn _abi_key_from_elems(elems: &[KeyElem]) -> Vec<Option<usize>> {
+    let mut key = vec![];
+    for elem in elems {
+        match elem {
+            KeyElem::Word(w) => key.push(Some(usize::try_from(*w).expect("out of range"))),
+            KeyElem::MapKey { ty } => key.extend(vec![None; ty_size(ty)]),
+            KeyElem::ArrayIx { .. } => key.push(None),
+        }
+    }
+    key
 }

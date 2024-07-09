@@ -24,7 +24,6 @@ use syn::parse_macro_input;
 mod map;
 mod tuple;
 mod vars;
-mod visit;
 
 /// The name of the root module within the predicate set produced by the compiler.
 const ROOT_MOD_NAME: &str = "";
@@ -374,7 +373,7 @@ fn mutations_builders_from_keyed_type(ty: &KeyedTypeABI) -> Vec<syn::Item> {
 /// impls for each tuple.
 fn mutations_builders_from_keyed_vars(vars: &[KeyedVarABI]) -> Vec<syn::Item> {
     let mut items = vec![];
-    visit::keyed_vars(vars, |keyed| {
+    pint_abi_visit::keyed_vars(vars, |keyed| {
         items.extend(mutations_builders_from_keyed_type(keyed.ty));
     });
     items

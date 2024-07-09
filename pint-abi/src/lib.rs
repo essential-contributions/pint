@@ -9,6 +9,8 @@ pub use pint_abi_gen::from_file as gen_from_file;
 #[cfg(feature = "pint-abi-gen")]
 #[doc(inline)]
 pub use pint_abi_gen::from_str as gen_from_str;
+#[doc(inline)]
+pub use pint_abi_visit as visit;
 
 #[doc(inline)]
 pub use encode::Encode;
