@@ -172,7 +172,7 @@ also be <code>int</code>.</p>
 will emit a compile error. For example, if we try to compile the following code:</p>
 <pre><code class="language-pint">var number: int;
 
-var y = number &lt; 5 ? 1 : 2.0;
+var y = number &lt; 5 ? 1 : true;
 </code></pre>
 <p>we will get the following error:</p>
 <pre><code class="language-console">Error: branches of a select expression must have the same type

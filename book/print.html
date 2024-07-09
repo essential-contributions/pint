@@ -550,13 +550,13 @@ integer. The following code shows how you’d use each numeric operation in a <c
 var sum = 1 + 2 + 3;
 
 // subtraction
-var difference = 15.3 - 1e-1;
+var difference = 15 - 1;
 
 // multiplication
 var product = 42 * 42;
 
 // division
-var quotient = 3.3/2.0;
+var quotient = 3 / 2;
 var truncated = -5 / 3; // Results is -1
 
 // remainder
@@ -614,7 +614,7 @@ var tup_4_third = tup_4.2;
 var tup_4_third_named = tup_4.y; // same as `tup_4.y`
 </code></pre>
 <p>Tuples without any values are not allowed in <code>Pint</code>. That is, the following:</p>
-<pre><code class="language-pint">var empty: { } = { };
+<pre><code class="language-pint">var empty: {} = {};
 </code></pre>
 <p>is disallowed and errors out as follows:</p>
 <pre><code class="language-console">Error: empty tuple types are not allowed
@@ -702,7 +702,7 @@ also be <code>int</code>.</p>
 will emit a compile error. For example, if we try to compile the following code:</p>
 <pre><code class="language-pint">var number: int;
 
-var y = number &lt; 5 ? 1 : 2.0;
+var y = number &lt; 5 ? 1 : true;
 </code></pre>
 <p>we will get the following error:</p>
 <pre><code class="language-console">Error: branches of a select expression must have the same type
@@ -1040,7 +1040,7 @@ contract. An interface starts with <code>interface</code> keyword followed by th
 can be used when referring the interface from external contexts. Inside the interface declaration,
 an optional <code>storage</code> block can be declared as well as a list of <strong>predicate interfaces</strong>. These
 predicate interfaces contain all the <strong>public</strong> decision variables that the predicates expose. We
-will discuss public decision variables in detail in <a href="smart_contracts/../advanced/pub_vars.html">Chapter 6.1</a>, but for
+will discuss public decision variables in detail in <a href="smart_contracts/../advanced/pub_vars.html">Chapter 7.1</a>, but for
 now, you can think of these variables as regular decision variable except that they can be read from
 an external context.</p>
 <p>Let's revisit the <a href="smart_contracts/../examples/counter.html">counter example</a> but with a small modification where we
@@ -1109,6 +1109,7 @@ useful.</p>
     t: { int, bool },
     y: bool,
     w: int,
+    arr: { int, int }[3],
 }
 </code></pre>
 <p>A <code>storage</code> starts with the keyword <code>storage</code> and followed by a comma-separated list of variable
@@ -1145,6 +1146,7 @@ storage variable in Pint requires the <code>storage</code> keyword again:</p>
 state a = storage::a;
 state t = storage::t;
 state t_1 = storage::t.1;
+state arr_2_1 = storage::arr[2].1;
 </code></pre>
 <p>A few things to note here:</p>
 <ol>
@@ -1155,7 +1157,7 @@ block.</li>
 expressions can <strong>only</strong> ever be used to initialize <code>state</code> variables. Using a storage read
 expression in other contexts, such as in <code>constraint storage::x == 5</code>, is illegal.</li>
 <li>Fields or elements of a compound type in storage can be accessed individually, as in
-<code>storage::t.1</code>.</li>
+<code>storage::t.1</code> and <code>storage::arr[2].1</code>.</li>
 </ol>
 <p>We haven't really explained what a <code>state</code> variable is so this is probably a good time to do so.</p>
 <h4 id="state-variables"><a class="header" href="#state-variables">State Variables</a></h4>
@@ -1358,7 +1360,7 @@ the exchange.</p>
 external state is typically done by <em>calling</em> some methods in the external contract that access or
 modify that contract's state. In Pint however, the storage variables of a contract are <strong>public</strong>
 and can be accessed from outside the contract using the contract's
-<a href="storage/../program_types/contract.html#contract-interfaces">interface</a>.</p>
+<a href="storage/../smart_contracts/index.html#contract-interfaces">interface</a>.</p>
 <h3 id="interface-instance"><a class="header" href="#interface-instance">Interface Instance</a></h3>
 <p>While a contract's interface contains all the public symbols that can be externally accessed, it
 does not specify the <em>address</em> of the contract. The <em>address</em> of a contract is 256-bit value that
@@ -1645,8 +1647,9 @@ day. The features covered here are useful in very specific situations. Although 
 for them often, we want to make sure you have a grasp of all the features Pint has to offer.</p>
 <p>In this chapter, we'll cover:</p>
 <ul>
-<li>Public decision variables: how to declare decision variables that are public and how to access
+<li><strong>Public decision variables</strong>: how to declare decision variables that are public and how to access
 them from external contexts.</li>
+<li><strong>Macros</strong>: how to write reusable code using macros.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="public-decision-variables"><a class="header" href="#public-decision-variables">Public Decision Variables</a></h2>
@@ -1786,10 +1789,11 @@ When this macro is used, two constraints are always produced. Let's use this mac
 <pre><code class="language-pint">var x: int;
 @in_range(x; 10);
 </code></pre>
-<p>To call the macro, we write its name followed by a list of arguments, separated by a <code>;</code>, in between
-parentheses. The number of arguments must match the number of parameters that the macro expects.</p>
+<p>To call the macro, we write its name followed by a list of arguments, separated by a semicolon
+(<code>;</code>), in between parentheses. The number of arguments must match the number of parameters that the
+macro expects.</p>
 <blockquote>
-<p><strong>Note</strong>: yes, the arguments are separated by a <code>;</code> and not a <code>,</code>!</p>
+<p><strong>Note</strong>: yes, the arguments are separated by a semicolon (<code>;</code>) and not a comma (<code>,</code>).</p>
 </blockquote>
 <p>After the macro gets expanded, the compiler will produce code that is equivalent to the following:</p>
 <pre><code class="language-pint">var x: int;
@@ -2200,7 +2204,16 @@ baz = { path = &quot;/absolute/path/to/baz&quot; }
 or plugins downstream might find this library useful.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="appendix"><a class="header" href="#appendix">Appendix</a></h1>
-<p>The following sections contain reference material you may find useful in your Pint journey.</p>
+<p>The following sections contain reference material you may find useful in your Pint journey.
+Specifically, we will cover the following:</p>
+<ul>
+<li><strong>Keywords</strong>: A list of all the <em>keywords</em> in Pint, which are reserved and cannot be used as names
+of macros, variables, etc.</li>
+<li><strong>Compiler Intrinsics</strong>: A list of all available builtin intrinsics in Pint, which can be used to
+perform low level operations.</li>
+<li><strong>Application Binary Interface (ABI) Spec</strong>: A specification of the <em>JSON ABI</em>, which is a
+condensed representation of a smart contract that only exposes its data.</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="appendix-a-keywords"><a class="header" href="#appendix-a-keywords">Appendix A: Keywords</a></h2>
 <p>The following list contains keywords that are reserved for current use by the Pint language. As

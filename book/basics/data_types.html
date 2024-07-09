@@ -181,13 +181,13 @@ integer. The following code shows how you’d use each numeric operation in a <c
 var sum = 1 + 2 + 3;
 
 // subtraction
-var difference = 15.3 - 1e-1;
+var difference = 15 - 1;
 
 // multiplication
 var product = 42 * 42;
 
 // division
-var quotient = 3.3/2.0;
+var quotient = 3 / 2;
 var truncated = -5 / 3; // Results is -1
 
 // remainder
@@ -245,7 +245,7 @@ var tup_4_third = tup_4.2;
 var tup_4_third_named = tup_4.y; // same as `tup_4.y`
 </code></pre>
 <p>Tuples without any values are not allowed in <code>Pint</code>. That is, the following:</p>
-<pre><code class="language-pint">var empty: { } = { };
+<pre><code class="language-pint">var empty: {} = {};
 </code></pre>
 <p>is disallowed and errors out as follows:</p>
 <pre><code class="language-console">Error: empty tuple types are not allowed

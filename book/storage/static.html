@@ -160,6 +160,7 @@ useful.</p>
     t: { int, bool },
     y: bool,
     w: int,
+    arr: { int, int }[3],
 }
 </code></pre>
 <p>A <code>storage</code> starts with the keyword <code>storage</code> and followed by a comma-separated list of variable
@@ -196,6 +197,7 @@ storage variable in Pint requires the <code>storage</code> keyword again:</p>
 state a = storage::a;
 state t = storage::t;
 state t_1 = storage::t.1;
+state arr_2_1 = storage::arr[2].1;
 </code></pre>
 <p>A few things to note here:</p>
 <ol>
@@ -206,7 +208,7 @@ block.</li>
 expressions can <strong>only</strong> ever be used to initialize <code>state</code> variables. Using a storage read
 expression in other contexts, such as in <code>constraint storage::x == 5</code>, is illegal.</li>
 <li>Fields or elements of a compound type in storage can be accessed individually, as in
-<code>storage::t.1</code>.</li>
+<code>storage::t.1</code> and <code>storage::arr[2].1</code>.</li>
 </ol>
 <p>We haven't really explained what a <code>state</code> variable is so this is probably a good time to do so.</p>
 <h4 id="state-variables"><a class="header" href="#state-variables">State Variables</a></h4>

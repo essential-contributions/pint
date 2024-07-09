@@ -182,10 +182,11 @@ When this macro is used, two constraints are always produced. Let's use this mac
 <pre><code class="language-pint">var x: int;
 @in_range(x; 10);
 </code></pre>
-<p>To call the macro, we write its name followed by a list of arguments, separated by a <code>;</code>, in between
-parentheses. The number of arguments must match the number of parameters that the macro expects.</p>
+<p>To call the macro, we write its name followed by a list of arguments, separated by a semicolon
+(<code>;</code>), in between parentheses. The number of arguments must match the number of parameters that the
+macro expects.</p>
 <blockquote>
-<p><strong>Note</strong>: yes, the arguments are separated by a <code>;</code> and not a <code>,</code>!</p>
+<p><strong>Note</strong>: yes, the arguments are separated by a semicolon (<code>;</code>) and not a comma (<code>,</code>).</p>
 </blockquote>
 <p>After the macro gets expanded, the compiler will produce code that is equivalent to the following:</p>
 <pre><code class="language-pint">var x: int;
