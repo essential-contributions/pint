@@ -32,8 +32,8 @@ async fn test_solution_increment() {
         predicate: pred_ca,
     };
 
-    // Initialise the value to `0`.
-    const INIT_VALUE: i64 = 0;
+    // The first increment is from `nil` to `1`.
+    const INIT_VALUE: i64 = 1;
     let state_mutations: Vec<Mutation> = counter::storage::mutations().counter(INIT_VALUE).into();
 
     // Create the solution data for solving `Increment` the first time.
