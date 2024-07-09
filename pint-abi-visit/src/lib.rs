@@ -23,15 +23,15 @@ pub enum Nesting {
         /// influences how their keys are constructed.
         flat_ix: usize,
     },
-    /// A key element provided by a map key.
-    MapKey {
+    /// An entry within a map.
+    MapEntry {
         /// The type of the key.
-        ty: TypeABI,
+        key_ty: TypeABI,
     },
-    /// A key element provided by an array index.
-    ArrayIx {
-        /// The total length of the array if it's known.
-        array_len: Option<usize>,
+    /// An element within an array.
+    ArrayElem {
+        /// The total length of the array.
+        array_len: usize,
     },
 }
 
@@ -43,7 +43,8 @@ pub struct Keyed<'a> {
     pub ty: &'a KeyedTypeABI,
     /// Describes how the keyed var is nested within `storage` or `pub vars`.
     ///
-    /// The first element is always
+    /// The first element is always a `Var` representing the keyed var's
+    /// top-level index within `storage` or pub vars.
     pub nesting: &'a [Nesting],
 }
 
@@ -87,8 +88,8 @@ pub fn keyed_vars(vars: &[KeyedVarABI], mut visit: impl FnMut(Keyed)) {
 
             // Recurse for nested array element types.
             KeyedTypeABI::Array { ty, size } => {
-                let array_len = Some(usize::try_from(*size).expect("size out of range"));
-                nesting.push(Nesting::ArrayIx { array_len });
+                let array_len = usize::try_from(*size).expect("size out of range");
+                nesting.push(Nesting::ArrayElem { array_len });
                 visit_and_recurse(None, &ty, nesting, visit);
                 nesting.pop();
             }
@@ -99,8 +100,8 @@ pub fn keyed_vars(vars: &[KeyedVarABI], mut visit: impl FnMut(Keyed)) {
                 ty_to,
                 key: _,
             } => {
-                let ty = ty_from.clone();
-                nesting.push(Nesting::MapKey { ty });
+                let key_ty = ty_from.clone();
+                nesting.push(Nesting::MapEntry { key_ty });
                 visit_and_recurse(None, &ty_to, nesting, visit);
                 nesting.pop();
             }

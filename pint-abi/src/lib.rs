@@ -25,6 +25,7 @@ use types::{
 };
 
 mod encode;
+pub mod key;
 mod write;
 
 /// Both Pint ABI and Essential protocol types.
