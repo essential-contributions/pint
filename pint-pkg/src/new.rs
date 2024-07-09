@@ -130,15 +130,10 @@ const DEFAULT_CONTRACT_PNT: &str = r#"storage {
     counter: int,
 }
 
-predicate Init {
-    var value: int;
-    state counter: int = storage::counter;
-    constraint counter' == value;
-}
-
 predicate Increment {
     state counter: int = storage::counter;
-    constraint counter' == counter + 1;
+    constraint (counter == nil && counter' == 0)
+        || counter' == counter + 1;
 }
 "#;
 

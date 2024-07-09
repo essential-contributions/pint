@@ -9,7 +9,7 @@ use util::State;
 mod util;
 
 #[tokio::test]
-async fn test_solution_init() {
+async fn test_solution_increment() {
     tracing_subscriber::fmt::init();
 
     // Construct the package path.
@@ -25,7 +25,7 @@ async fn test_solution_init() {
     // Determine the predicate address by loading the ABI and finding the matching predicate.
     let abi_path = pkg_dir.join("out/debug/counter-abi.json");
     let abi = pint_abi::from_path(&abi_path).unwrap();
-    let (pred, _pred_abi) = pint_abi::find_predicate(&contract, &abi, "Init").unwrap();
+    let (pred, _pred_abi) = pint_abi::find_predicate(&contract, &abi, "Increment").unwrap();
     let pred_ca = essential_hash::content_addr(pred);
     let pred_addr = PredicateAddress {
         contract: contract_ca.clone(),
@@ -34,13 +34,12 @@ async fn test_solution_init() {
 
     // Initialise the value to `0`.
     const INIT_VALUE: i64 = 0;
-    let vars = counter::Init::Vars { value: INIT_VALUE };
     let state_mutations: Vec<Mutation> = counter::storage::mutations().counter(INIT_VALUE).into();
 
-    // Create the solution data for solving `Init`.
+    // Create the solution data for solving `Increment` the first time.
     let solution_data = SolutionData {
         predicate_to_solve: pred_addr,
-        decision_variables: vars.into(),
+        decision_variables: vec![],
         transient_data: vec![],
         state_mutations,
     };
@@ -60,7 +59,7 @@ async fn test_solution_init() {
     let mut post_state = pre_state.clone();
     post_state.apply_mutations(&solution);
 
-    // Our `get_predicate` function can only return `Init`.
+    // Our `get_predicate` function can only return `Increment`.
     let predicate = Arc::new(pred.clone());
     let get_predicate = |_: &_| predicate.clone();
 
