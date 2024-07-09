@@ -39,10 +39,11 @@ When this macro is used, two constraints are always produced. Let's use this mac
 {{#include ../../../../examples/ch_7_2_a.pnt:macro_use}}
 ```
 
-To call the macro, we write its name followed by a list of arguments, separated by a `;`, in between
-parentheses. The number of arguments must match the number of parameters that the macro expects.
+To call the macro, we write its name followed by a list of arguments, separated by a semicolon
+(`;`), in between parentheses. The number of arguments must match the number of parameters that the
+macro expects.
 
-> **Note**: yes, the arguments are separated by a `;` and not a `,`!
+> **Note**: yes, the arguments are separated by a semicolon (`;`) and not a comma (`,`).
 
 After the macro gets expanded, the compiler will produce code that is equivalent to the following:
 

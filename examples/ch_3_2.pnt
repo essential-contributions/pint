@@ -4,13 +4,13 @@ predicate test {
 var sum = 1 + 2 + 3;
 
 // subtraction
-var difference = 15.3 - 1e-1;
+var difference = 15 - 1;
 
 // multiplication
 var product = 42 * 42;
 
 // division
-var quotient = 3.3/2.0;
+var quotient = 3 / 2;
 var truncated = -5 / 3; // Results is -1
 
 // remainder
