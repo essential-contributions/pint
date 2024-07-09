@@ -31,3 +31,11 @@ You can update the toolchain with `Cargo` using:
 ```console
 $ cargo update pint-cli
 ```
+
+### Syntax Highlighting
+
+Currently there is only syntax highlighting support for VScode however, we are working on adding support for other editors.
+
+#### VScode
+
+Search the market place for `pint syntax` or use this [link](https://marketplace.visualstudio.com/items?itemName=essential-contributions.pint-lang)
