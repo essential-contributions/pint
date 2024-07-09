@@ -2,14 +2,28 @@
 //!
 //! This assists in traversal of the `storage` and `pub_vars` sections of the Pint ABI.
 
-use essential_types::Word;
-use pint_abi_types::{KeyedTypeABI, KeyedVarABI, TypeABI};
+use pint_abi_types::{KeyedTupleField, KeyedTypeABI, KeyedVarABI, TypeABI};
 
-/// Represents how a pub var or storage field's key is constructed.
-pub enum KeyElem {
-    /// A fixed word element, e.g. for a top-level field or tuple field.
-    Word(Word),
-    /// A key element provided by a map key. If the map key size is fixed, `len
+/// A stack of `Nesting` describes how a [`Keyed`] var type is nested.
+pub enum Nesting {
+    /// A top-level storage field of pub var.
+    ///
+    /// This is always the first element in a `Keyed`'s `nesting: [Nesting]` field.
+    Var {
+        /// Represents the index of the storage field or pub var.
+        ix: usize,
+    },
+    /// The `Keyed` var is within a tuple field.
+    TupleField {
+        /// The field index of the var within the tuple (not flattened).
+        ix: usize,
+        /// The flattened index of the var within a tree of directly nested tuples.
+        ///
+        /// This is required to match the way that pintc flattens tuples, which
+        /// influences how their keys are constructed.
+        flat_ix: usize,
+    },
+    /// A key element provided by a map key.
     MapKey {
         /// The type of the key.
         ty: TypeABI,
@@ -27,8 +41,10 @@ pub struct Keyed<'a> {
     pub name: Option<&'a str>,
     /// The type of the var.
     pub ty: &'a KeyedTypeABI,
-    /// A description of the key construction.
-    pub key: &'a [KeyElem],
+    /// Describes how the keyed var is nested within `storage` or `pub vars`.
+    ///
+    /// The first element is always
+    pub nesting: &'a [Nesting],
 }
 
 /// Visit all keyed vars in `storage` or `pub_vars` alongside their associated key.
@@ -37,13 +53,13 @@ pub fn keyed_vars(vars: &[KeyedVarABI], mut visit: impl FnMut(Keyed)) {
     fn visit_and_recurse(
         name: Option<&str>,
         ty: &KeyedTypeABI,
-        key_elems: &mut Vec<KeyElem>,
+        nesting: &mut Vec<Nesting>,
         visit: &mut impl FnMut(Keyed),
     ) {
         visit(Keyed {
             name,
             ty,
-            key: &key_elems[..],
+            nesting: &nesting[..],
         });
         match ty {
             KeyedTypeABI::Bool(_key)
@@ -54,23 +70,27 @@ pub fn keyed_vars(vars: &[KeyedVarABI], mut visit: impl FnMut(Keyed)) {
 
             // Recurse for nested tuple types.
             KeyedTypeABI::Tuple(fields) => {
-                for (i, field) in fields.iter().enumerate() {
-                    let ix_word = Word::try_from(i).expect("index out of range");
-                    let key_elem = KeyElem::Word(ix_word);
+                for (ix, field) in fields.iter().enumerate() {
+                    let flat_ix = {
+                        let start_flat_ix = match nesting.last() {
+                            Some(Nesting::TupleField { flat_ix, .. }) => *flat_ix,
+                            _ => 0,
+                        };
+                        flattened_ix(fields, ix, start_flat_ix)
+                    };
                     let name = field.name.as_deref();
-                    key_elems.push(key_elem);
-                    visit_and_recurse(name, &field.ty, key_elems, visit);
-                    key_elems.pop();
+                    nesting.push(Nesting::TupleField { ix, flat_ix });
+                    visit_and_recurse(name, &field.ty, nesting, visit);
+                    nesting.pop();
                 }
             }
 
             // Recurse for nested array element types.
             KeyedTypeABI::Array { ty, size } => {
                 let array_len = Some(usize::try_from(*size).expect("size out of range"));
-                let key_elem = KeyElem::ArrayIx { array_len };
-                key_elems.push(key_elem);
-                visit_and_recurse(None, &ty, key_elems, visit);
-                key_elems.pop();
+                nesting.push(Nesting::ArrayIx { array_len });
+                visit_and_recurse(None, &ty, nesting, visit);
+                nesting.pop();
             }
 
             // Recurse for nested map element types.
@@ -80,22 +100,39 @@ pub fn keyed_vars(vars: &[KeyedVarABI], mut visit: impl FnMut(Keyed)) {
                 key: _,
             } => {
                 let ty = ty_from.clone();
-                let key_elem = KeyElem::MapKey { ty };
-                key_elems.push(key_elem);
-                visit_and_recurse(None, &ty_to, key_elems, visit);
-                key_elems.pop();
+                nesting.push(Nesting::MapKey { ty });
+                visit_and_recurse(None, &ty_to, nesting, visit);
+                nesting.pop();
             }
         }
     }
 
     let mut key = vec![];
-    for (i, var) in vars.iter().enumerate() {
-        let ix_word = Word::try_from(i).expect("index out of range");
-        let key_elem = KeyElem::Word(ix_word);
+    for (ix, var) in vars.iter().enumerate() {
+        let key_elem = Nesting::Var { ix };
         key.push(key_elem);
         visit_and_recurse(Some(var.name.as_str()), &var.ty, &mut key, &mut visit);
         key.pop();
     }
+}
+
+/// Determine the flattened index of the tuple field at the given field index
+/// within the given `fields`.
+///
+/// The `start_flat_ix` represents the flat index of the enclosing tuple.
+fn flattened_ix(fields: &[KeyedTupleField], field_ix: usize, start_flat_ix: usize) -> usize {
+    // Given a slice of tuple fields, determine the total number of leaf fields
+    // within the directly nested tree of tuples.
+    fn count_flattened_leaf_fields(fields: &[KeyedTupleField]) -> usize {
+        fields
+            .iter()
+            .map(|field| match field.ty {
+                KeyedTypeABI::Tuple(ref fields) => count_flattened_leaf_fields(fields),
+                _ => 1,
+            })
+            .sum()
+    }
+    start_flat_ix + count_flattened_leaf_fields(&fields[0..field_ix])
 }
 
 /// The number of words used to represent an ABI type in key form.
@@ -109,17 +146,4 @@ pub fn ty_size(ty: &TypeABI) -> usize {
             ty_size(ty) * usize::try_from(*size).expect("size out of range")
         }
     }
-}
-
-/// Construct an ABI key in the form output by the compiler given a sequence of key elements.
-fn _abi_key_from_elems(elems: &[KeyElem]) -> Vec<Option<usize>> {
-    let mut key = vec![];
-    for elem in elems {
-        match elem {
-            KeyElem::Word(w) => key.push(Some(usize::try_from(*w).expect("out of range"))),
-            KeyElem::MapKey { ty } => key.extend(vec![None; ty_size(ty)]),
-            KeyElem::ArrayIx { .. } => key.push(None),
-        }
-    }
-    key
 }
