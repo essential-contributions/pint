@@ -97,7 +97,7 @@ PredicateClose: () = {
 }
 
 StorageVar: StorageVar = {
-    <l:@L> <name:Ident> ":" <ty:StorageVarType> <r:@R> => {
+    <l:@L> <name:Ident> ":" <ty:Type> <r:@R> => {
         context.parse_storage_var(handler, name, ty, (l, r))
     }
 }
@@ -491,16 +491,11 @@ TupleField: (Option<Ident>, Type) = {
 
 // Does not yet allow for maps inside maps
 MapType: Type = {
-    <l:@L> "(" <ty_from:Type> "=>" <ty_to:StorageVarType> ")" <r:@R> => Type::Map {
+    <l:@L> "(" <ty_from:Type> "=>" <ty_to:Type> ")" <r:@R> => Type::Map {
         ty_from: Box::new(ty_from),
         ty_to: Box::new(ty_to),
         span: (context.span_from)(l, r),
     }
-}
-
-
-StorageVarType: Type = {
-    <Type>,
 }
 
 ///////////////////
@@ -1111,7 +1106,7 @@ pub(crate) TestDelegate: crate::parser::TestWrapper = {
     "test_expr" <Expr> => crate::parser::TestWrapper::Expr(<>),
     "test_range" <Range> => crate::parser::TestWrapper::Expr(<>),
     "test_type" <Type> => crate::parser::TestWrapper::Type(<>),
-    "test_sv_type" <StorageVarType> => crate::parser::TestWrapper::Type(<>),
+    "test_sv_type" <Type> => crate::parser::TestWrapper::Type(<>),
     "test_ident" <Ident> => crate::parser::TestWrapper::Ident(<>),
     "test_intrinsic" <IntrinsicName> => crate::parser::TestWrapper::Ident(<>),
     "test_usetree" <UseTree> => crate::parser::TestWrapper::UseTree(<>),
