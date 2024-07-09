@@ -43,6 +43,7 @@ async fn test_solution_foo() {
         v3: [30, 31].into(),
         v4: (40, 41, (420, 421)),
         anon_0_v5: 42,
+        anon_0_v6: (43, 44),
     };
 
     // Public decision variables (i.e. transient data).
@@ -50,6 +51,7 @@ async fn test_solution_foo() {
         .t0(false)
         .t1(11)
         .t2([0x2222222222222222; 4])
+        .anon_1_t3(45)
         .into();
 
     // State mutations.

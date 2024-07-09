@@ -710,8 +710,8 @@ fn mutation_method_from_keyed_var(name: &str, ty: &KeyedTypeABI) -> syn::ImplIte
 fn mutations_methods_from_keyed_vars(vars: &[KeyedVarABI]) -> Vec<syn::ImplItemFn> {
     vars.iter()
         .map(|var| {
-            let name = strip_colons_prefix(&var.name);
-            mutation_method_from_keyed_var(name, &var.ty)
+            let name = field_name_from_var_name(&var.name);
+            mutation_method_from_keyed_var(&name, &var.ty)
         })
         .collect()
 }

@@ -23,6 +23,8 @@ predicate Foo {
     pub var t1: int;
     pub var t2: b256;
 
+    @bar();
+
     // Here we write a bunch of arbitrary constraints to check encoding/decoding
     // of the different types etc.
 
@@ -64,5 +66,12 @@ predicate Foo {
 
 macro @foo() {
     var v5: int;
+    var v6: { int, int };
     constraint v5 == 42;
+    constraint v6.0 == 43 && v6.1 == 44;
+}
+
+macro @bar() {
+    pub var t3: int;
+    constraint t3 == 45;
 }
