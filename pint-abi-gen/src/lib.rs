@@ -73,16 +73,16 @@ fn ty_from_pint_ty(ty: &TypeABI) -> syn::Type {
 /// Names for fields are emitted by pint with a `::` prefix.
 /// This function checks for the `::` prefix and strips it if it exists.
 fn strip_colons_prefix(name: &str) -> &str {
-    let mut split = name.split("::");
-    let first = split.next();
-    split.next().or(first).expect("name had unexpected format")
+    name.trim_start_matches("::")
 }
 
-/// Var names have the `::` prefix, and sometimes have `.` separators for
-/// flattened tuple fields. We strip the `::` prefix, and replace all `.`
+/// Var names have the `::` prefix, and sometimes have `.` or `@` or `::` separators for
+/// flattened tuple fields. We strip the `::` prefix, and replace all `.` or `@` or `::`
 /// occurrences with `_`.
 fn field_name_from_var_name(name: &str) -> String {
-    strip_colons_prefix(name).replace('.', "_")
+    strip_colons_prefix(name)
+        .replace(['.', '@'], "_")
+        .replace("::", "_")
 }
 
 /// A named field for each of the decision variables.
@@ -710,8 +710,8 @@ fn mutation_method_from_keyed_var(name: &str, ty: &KeyedTypeABI) -> syn::ImplIte
 fn mutations_methods_from_keyed_vars(vars: &[KeyedVarABI]) -> Vec<syn::ImplItemFn> {
     vars.iter()
         .map(|var| {
-            let name = strip_colons_prefix(&var.name);
-            mutation_method_from_keyed_var(name, &var.ty)
+            let name = field_name_from_var_name(&var.name);
+            mutation_method_from_keyed_var(&name, &var.ty)
         })
         .collect()
 }
