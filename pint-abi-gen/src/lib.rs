@@ -16,6 +16,7 @@
 //! including the encoding of keys, values and mutations from higher-level types.
 
 use pint_abi_types::{ContractABI, KeyedTypeABI, KeyedVarABI, PredicateABI, TupleField, TypeABI};
+use pint_abi_visit::{tree_from_keyed_vars, KeyedVarTree, Nesting, NodeIx};
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::ToTokens;
@@ -27,6 +28,28 @@ mod vars;
 
 /// The name of the root module within the predicate set produced by the compiler.
 const ROOT_MOD_NAME: &str = "";
+
+/// Pint keyed var types that occupy only a single key.
+enum SingleKeyTy {
+    Bool,
+    Int,
+    Real,
+    String,
+    B256,
+}
+
+impl SingleKeyTy {
+    /// The type of the builder method value.
+    fn syn_ty(&self) -> syn::Type {
+        match self {
+            SingleKeyTy::Bool => syn::parse_quote!(bool),
+            SingleKeyTy::Int => syn::parse_quote!(i64),
+            SingleKeyTy::Real => syn::parse_quote!(f64),
+            SingleKeyTy::String => syn::parse_quote!(String),
+            SingleKeyTy::B256 => syn::parse_quote!([i64; 4]),
+        }
+    }
+}
 
 /// Convert the given pint tuple fields to unnamed Rust fields.
 fn fields_from_tuple_fields(fields: &[TupleField]) -> Vec<syn::Field> {
@@ -166,13 +189,13 @@ fn mutations_struct() -> syn::ItemStruct {
         pub struct Mutations {
             /// The set of mutations being built.
             set: Vec<pint_abi::types::essential::solution::Mutation>,
-            /// The stack of keys that need to be merged with the key provided
-            /// by the `KeyedTypeABI`.
+            /// The stack of key elements that need to be merged with the
+            /// `&[Nesting]` derived by the `KeyedTypeABI` traversal.
             ///
             /// For example, when a map's `entry` method is called, the provided
             /// key is pushed to this stack. Upon completion of the `entry`
             /// method, the key is popped.
-            keys: Vec<pint_abi::types::essential::Key>,
+            key_elems: Vec<pint_abi::key::Elem>,
         }
     }
 }
@@ -184,39 +207,23 @@ fn mutation_method_doc_str(name: &str) -> String {
     )
 }
 
-/// Pint keyed var types that occupy only a single key.
-enum SingleKeyTy {
-    Bool,
-    Int,
-    Real,
-    String,
-    B256,
-}
-
-impl SingleKeyTy {
-    /// The type of the builder method value.
-    fn syn_ty(&self) -> syn::Type {
-        match self {
-            SingleKeyTy::Bool => syn::parse_quote!(bool),
-            SingleKeyTy::Int => syn::parse_quote!(i64),
-            SingleKeyTy::Real => syn::parse_quote!(f64),
-            SingleKeyTy::String => syn::parse_quote!(String),
-            SingleKeyTy::B256 => syn::parse_quote!([i64; 4]),
-        }
-    }
-}
-
-/// Given an ABI key, create a Rust expression that results in its value.
-fn abi_key_expr(key: &pint_abi_types::Key) -> syn::ExprArray {
-    let elems = key
+/// Given a keyed var `Nesting`, create a Rust expression that results in its value.
+fn nesting_expr(nesting: &[Nesting]) -> syn::ExprArray {
+    let elems = nesting
         .iter()
-        .map(|&opt| {
-            let expr: syn::Expr = match opt {
-                None => syn::parse_quote!(None),
-                Some(u) => {
-                    let w = essential_types::Word::try_from(u)
-                        .expect("failed to convert ABI key value to a `Word`");
-                    syn::parse_quote!(Some(#w))
+        .map(|n| {
+            let expr: syn::Expr = match n {
+                Nesting::Var { ix } => {
+                    syn::parse_quote!(pint_abi::visit::Nesting::Var { ix: #ix })
+                }
+                Nesting::TupleField { ix, flat_ix } => {
+                    syn::parse_quote!(pint_abi::visit::Nesting::TupleField { ix: #ix, flat_ix: #flat_ix })
+                }
+                Nesting::MapEntry { key_size } => {
+                    syn::parse_quote!(pint_abi::visit::Nesting::MapEntry { key_size: #key_size })
+                }
+                Nesting::ArrayElem { array_len } => {
+                    syn::parse_quote!(pint_abi::visit::Nesting::ArrayElem { array_len: #array_len })
                 }
             };
             expr
@@ -229,14 +236,77 @@ fn abi_key_expr(key: &pint_abi_types::Key) -> syn::ExprArray {
     }
 }
 
-/// Given an ABI key, create a string for presenting the ABI key in docs.
+/// A small expression for constructing a key from a keyed var nesting and a
+/// `Mutations` builder's `key_elems` stack.
+fn construct_key_expr() -> syn::Expr {
+    syn::parse_quote! {
+        pint_abi::key::construct(&nesting[..], &self.key_elems[..])
+    }
+}
+
+/// A `Mutations` builder method for a single-key mutation.
+fn mutation_method_for_single_key(
+    name: &str,
+    arg_ty: &SingleKeyTy,
+    nesting: &[Nesting],
+) -> syn::ImplItemFn {
+    let method_ident = syn::Ident::new(name, Span::call_site());
+    let abi_key_doc_str = nesting_key_doc_str(nesting);
+    let doc_str = format!(
+        "{}\n\nKey: `{abi_key_doc_str}`",
+        mutation_method_doc_str(name)
+    );
+    let arg_ty = arg_ty.syn_ty();
+    let nesting_expr: syn::ExprArray = nesting_expr(nesting);
+    let construct_key_expr: syn::Expr = construct_key_expr();
+    syn::parse_quote! {
+        #[doc = #doc_str]
+        pub fn #method_ident(mut self, val: #arg_ty) -> Self {
+            use pint_abi::types::essential::{Key, Value, solution::Mutation};
+            let nesting = #nesting_expr;
+            let key: Key = #construct_key_expr;
+            let value: Value = pint_abi::encode(&val);
+            self.set.retain(|m: &Mutation| &m.key != &key);
+            let mutation = Mutation { key, value };
+            self.set.push(mutation);
+            self
+        }
+    }
+}
+
+/// Convert the given type `&[Nesting]` into a string to use for a generated
+/// builder struct name.
+///
+/// E.g. `[Var { ix: 1 }, MapEntry { key_ty: i64 }, TupleField { ix: 3, .. }]`
+/// becomes `Var1_MapEntry_Tuple3` so that it may be appended to a builder type
+/// name, e.g. `Tuple_Var1_MapEntry_Tuple3`.
+fn nesting_ty_str<'a>(nesting: impl IntoIterator<Item = &'a Nesting>) -> String {
+    fn elem_str(nesting: &Nesting) -> String {
+        match nesting {
+            Nesting::Var { ix } => ix.to_string(),
+            Nesting::TupleField { ix, .. } => ix.to_string(),
+            Nesting::MapEntry { .. } => "MapEntry".to_string(),
+            Nesting::ArrayElem { .. } => "ArrayElem".to_string(),
+        }
+    }
+    let mut iter = nesting.into_iter();
+    let mut s = elem_str(iter.next().expect("nesting must contain at least one item"));
+    for n in iter {
+        use std::fmt::Write;
+        write!(&mut s, "_{}", elem_str(n)).expect("failed to fmt nesting ty str");
+    }
+    s
+}
+
+/// Given a type nesting, create a string for presenting the associated key in docs.
 ///
 /// E.g. `[0, 1, _, _, _, _, 6, 7]`.
-fn abi_key_doc_str(key: &pint_abi_types::Key) -> String {
+fn nesting_key_doc_str(nesting: &[Nesting]) -> String {
     use core::fmt::Write;
+    let partial_key = pint_abi_visit::partial_key_from_nesting(nesting);
     let mut s = "[".to_string();
-    let mut opts = key.iter();
-    fn write_opt(s: &mut String, opt: &Option<usize>) {
+    let mut opts = partial_key.iter();
+    fn write_opt(s: &mut String, opt: &Option<i64>) {
         match opt {
             None => write!(s, "_"),
             Some(u) => write!(s, "{u}"),
@@ -251,63 +321,6 @@ fn abi_key_doc_str(key: &pint_abi_types::Key) -> String {
         }
     }
     write!(&mut s, "]").unwrap();
-    s
-}
-
-/// Assuming a `Mutations` instance is accessible via `self`, and a key from a
-/// `KeyedTypeABI` instance is accessible via `abi_key`, produce an expression
-/// that merges the current `Mutations`' `keys` stack into the ABI key.
-fn merge_key_expr() -> syn::Expr {
-    syn::parse_quote! {
-        pint_abi::__merge_key(&abi_key[..], &self.keys[..])
-    }
-}
-
-/// A `Mutations` builder method for a single-key mutation.
-fn mutation_method_for_single_key(
-    name: &str,
-    arg_ty: &SingleKeyTy,
-    key: &pint_abi_types::Key,
-) -> syn::ImplItemFn {
-    let method_ident = syn::Ident::new(name, Span::call_site());
-    let abi_key_doc_str = abi_key_doc_str(key);
-    let doc_str = format!(
-        "{}\n\nKey: `{abi_key_doc_str}`",
-        mutation_method_doc_str(name)
-    );
-    let arg_ty = arg_ty.syn_ty();
-    let abi_key_expr: syn::ExprArray = abi_key_expr(key);
-    let merge_key_expr: syn::Expr = merge_key_expr();
-    syn::parse_quote! {
-        #[doc = #doc_str]
-        pub fn #method_ident(mut self, val: #arg_ty) -> Self {
-            use pint_abi::types::essential::{Key, Value, solution::Mutation};
-            let abi_key = #abi_key_expr;
-            let key: Key = #merge_key_expr;
-            let value: Value = pint_abi::encode(&val);
-            self.set.retain(|m: &Mutation| &m.key != &key);
-            let mutation = Mutation { key, value };
-            self.set.push(mutation);
-            self
-        }
-    }
-}
-
-/// Convert the key into a string to use for a generated tuple struct name.
-///
-/// E.g. `[Some(1), None, Some(42)]` becomes `1_nil_42`, so that it may be
-/// appended to a type name, e.g. `Tuple_1_nil_42`.
-fn key_str(key: &pint_abi_types::Key) -> String {
-    fn opt_to_str(opt: &Option<usize>) -> String {
-        opt.map(|u| u.to_string())
-            .unwrap_or_else(|| "nil".to_string())
-    }
-    let mut opts = key.iter();
-    let mut s = opt_to_str(opts.next().expect("key must have at least one element"));
-    for opt in opts {
-        use std::fmt::Write;
-        let _ = write!(&mut s, "_{}", opt_to_str(opt));
-    }
     s
 }
 
@@ -350,19 +363,18 @@ fn mutation_impl_deref(struct_name: &str) -> Vec<syn::ItemImpl> {
 }
 
 /// Recursively traverse the given keyed var and create a builder struct for each tuple.
-fn mutations_builders_from_keyed_type(ty: &KeyedTypeABI) -> Vec<syn::Item> {
+fn mutations_builders_from_node(tree: &KeyedVarTree, n: NodeIx) -> Vec<syn::Item> {
     let mut items = vec![];
-    match ty {
+    match tree[n].ty {
         KeyedTypeABI::Map {
             ty_from,
             ty_to,
-            key,
+            key: _,
         } => {
-            items.extend(map::builder_items(ty_from, ty_to, key));
+            items.extend(map::builder_items(tree, n, ty_from, ty_to));
         }
-        KeyedTypeABI::Tuple(fields) => {
-            let key = abi_key_from_keyed_type(&fields[0].ty);
-            items.extend(tuple::builder_items(fields, key));
+        KeyedTypeABI::Tuple(_fields) => {
+            items.extend(tuple::builder_items(tree, n));
         }
         _ => (),
     }
@@ -373,15 +385,16 @@ fn mutations_builders_from_keyed_type(ty: &KeyedTypeABI) -> Vec<syn::Item> {
 /// impls for each tuple.
 fn mutations_builders_from_keyed_vars(vars: &[KeyedVarABI]) -> Vec<syn::Item> {
     let mut items = vec![];
-    pint_abi_visit::keyed_vars(vars, |keyed| {
-        items.extend(mutations_builders_from_keyed_type(keyed.ty));
+    let tree = pint_abi_visit::tree_from_keyed_vars(vars);
+    tree.dfs(|n| {
+        items.extend(mutations_builders_from_node(&tree, n));
     });
     items
 }
 
 /// A `Mutations` builder method for a map field.
-fn mutation_method_for_map(name: &str, key: &pint_abi_types::Key) -> syn::ImplItemFn {
-    let struct_name = map::mutations_struct_name(key);
+fn mutation_method_for_map(name: &str, map_nesting: &[Nesting]) -> syn::ImplItemFn {
+    let struct_name = map::mutations_struct_name(map_nesting);
     let method_ident = syn::Ident::new(name, Span::call_site());
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
     let doc_str = mutation_method_doc_str(name);
@@ -395,8 +408,8 @@ fn mutation_method_for_map(name: &str, key: &pint_abi_types::Key) -> syn::ImplIt
 }
 
 /// A `Mutations` builder method for a tuple field.
-fn mutation_method_for_tuple(name: &str, key: &pint_abi_types::Key) -> syn::ImplItemFn {
-    let struct_name = tuple::mutations_struct_name(key);
+fn mutation_method_for_tuple(name: &str, nesting: &[Nesting]) -> syn::ImplItemFn {
+    let struct_name = tuple::mutations_struct_name(nesting);
     let method_ident = syn::Ident::new(name, Span::call_site());
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
     let doc_str = mutation_method_doc_str(name);
@@ -410,31 +423,36 @@ fn mutation_method_for_tuple(name: &str, key: &pint_abi_types::Key) -> syn::Impl
 }
 
 /// A `Mutations` builder method for the given keyed var.
-fn mutation_method_from_keyed_var(name: &str, ty: &KeyedTypeABI) -> syn::ImplItemFn {
-    let (arg_ty, key) = match ty {
-        KeyedTypeABI::Bool(key) => (SingleKeyTy::Bool, key),
-        KeyedTypeABI::Int(key) => (SingleKeyTy::Int, key),
-        KeyedTypeABI::Real(key) => (SingleKeyTy::Real, key),
-        KeyedTypeABI::String(key) => (SingleKeyTy::String, key),
-        KeyedTypeABI::B256(key) => (SingleKeyTy::B256, key),
+fn mutation_method_from_node(tree: &KeyedVarTree, n: NodeIx, name: &str) -> syn::ImplItemFn {
+    let nesting = tree.nesting(n);
+    let arg_ty = match &tree[n].ty {
+        KeyedTypeABI::Bool(_key) => SingleKeyTy::Bool,
+        KeyedTypeABI::Int(_key) => SingleKeyTy::Int,
+        KeyedTypeABI::Real(_key) => SingleKeyTy::Real,
+        KeyedTypeABI::String(_key) => SingleKeyTy::String,
+        KeyedTypeABI::B256(_key) => SingleKeyTy::B256,
         KeyedTypeABI::Array { ty: _, size: _ } => todo!(),
         // Tuple types take a closure.
-        KeyedTypeABI::Tuple(fields) => {
-            return mutation_method_for_tuple(name, abi_key_from_keyed_type(&fields[0].ty))
+        KeyedTypeABI::Tuple(_) => {
+            return mutation_method_for_tuple(name, &nesting);
         }
         // Map types take a closure.
-        KeyedTypeABI::Map { key, .. } => return mutation_method_for_map(name, key),
+        KeyedTypeABI::Map { .. } => {
+            return mutation_method_for_map(name, &nesting);
+        }
     };
     // A mutation builder method for a single mutation.
-    mutation_method_for_single_key(name, &arg_ty, key)
+    mutation_method_for_single_key(name, &arg_ty, &nesting)
 }
 
 /// All builder methods for the `Mutations builder type.
 fn mutations_methods_from_keyed_vars(vars: &[KeyedVarABI]) -> Vec<syn::ImplItemFn> {
-    vars.iter()
-        .map(|var| {
-            let name = field_name_from_var_name(&var.name);
-            mutation_method_from_keyed_var(&name, &var.ty)
+    let tree = tree_from_keyed_vars(vars);
+    tree.roots()
+        .iter()
+        .map(|&n| {
+            let name = field_name_from_var_name(tree[n].name.unwrap());
+            mutation_method_from_node(&tree, n, &name)
         })
         .collect()
 }

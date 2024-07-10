@@ -1185,6 +1185,7 @@ name = "pint-abi-visit"
 version = "0.0.1"
 dependencies = [
  "essential-types",
+ "petgraph",
  "pint-abi-types",
 ]
 

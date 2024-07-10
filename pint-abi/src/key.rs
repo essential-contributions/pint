@@ -1,5 +1,7 @@
 //! Items related to key construction.
 
+#[doc(inline)]
+pub use crate::visit::partial_key_from_nesting as partial_from_nesting;
 use crate::{
     types::essential::{Key, Word},
     visit::Nesting,

@@ -10,4 +10,5 @@ repository.workspace = true
 
 [dependencies]
 essential-types = { workspace = true }
+petgraph = { workspace = true }
 pint-abi-types = { workspace = true }
