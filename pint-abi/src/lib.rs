@@ -115,30 +115,3 @@ pub fn find_predicate<'a>(
 fn predicate_name_matches(abi_pred_name: &str, pred_name: &str) -> bool {
     abi_pred_name == pred_name || abi_pred_name.split("::").nth(1) == Some(pred_name)
 }
-
-/// This function is used by `pint-abi-gen`-generated mutation builder methods in
-/// order to merge a stack of map entry keys into a the full ABI-compatible key.
-///
-/// ## Example
-///
-/// Given the following:
-///
-/// - `abi_key`: `[Some(1), None, Some(3), None, None, Some(6)]`
-/// - `key_stack`: `[[2], [4, 5]]`
-///
-/// Produces an expression with the value `[1, 2, 3, 4, 5, 6]`.
-#[doc(hidden)]
-pub fn __merge_key(
-    abi_key: &[Option<types::essential::Word>],
-    key_stack: &[types::essential::Key],
-) -> types::essential::Key {
-    let mut key_stack_words = key_stack.iter().flatten().copied();
-    abi_key
-        .iter()
-        .copied()
-        .map(|opt: Option<types::essential::Word>| {
-            opt.or_else(|| key_stack_words.next())
-                .expect("failed to merge key: missing words for key")
-        })
-        .collect()
-}
