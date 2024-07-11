@@ -8,8 +8,9 @@ use pint_abi_types::{KeyedTupleField, KeyedTypeABI, KeyedVarABI, TypeABI};
 
 /// The [`KeyedTypeABI`] rose tree represented as a graph.
 ///
-/// By constructing the tree as an indexable type, it allows more flexibility
-/// around inspecting both parent and child nodes during traversal.
+/// By flattening the [`KeyedTypeVar`]s into an indexable tree type, we gain
+/// more flexibility around inspecting both parent and child nodes during
+/// traversal.
 ///
 /// This is particularly useful for generating both types and implementations
 /// (that may refer to child nodes) when visiting a single node.
@@ -76,109 +77,28 @@ pub enum Nesting {
     },
 }
 
-impl<'a> core::ops::Deref for KeyedVarTree<'a> {
-    type Target = KeyedVarGraph<'a>;
-    fn deref(&self) -> &Self::Target {
-        &self.graph
-    }
-}
-
-/// Construct a [`KeyedVarTree`] from a `storage` or `puv_vars` ABI representation.
-pub fn tree_from_keyed_vars(vars: &[KeyedVarABI]) -> KeyedVarTree {
-    /// Add the child nodes of the given node `a` with type `ty`, by traversing
-    /// the `KeyedTypeABI`.
-    fn add_children<'a>(graph: &mut KeyedVarGraph<'a>, a: NodeIx, ty: &'a KeyedTypeABI) {
-        match ty {
-            KeyedTypeABI::Bool(_key)
-            | KeyedTypeABI::Int(_key)
-            | KeyedTypeABI::Real(_key)
-            | KeyedTypeABI::String(_key)
-            | KeyedTypeABI::B256(_key) => {
-                // TODO: Remove this whole block once keys have been removed.
-                // This is just a sanity check to make sure that this traversal
-                // is deriving the same keys as the compiler is generating.
-                let nesting = nesting(graph, a);
-                let partial_key: Vec<_> = partial_key_from_nesting(&nesting)
-                    .into_iter()
-                    .map(|opt| opt.map(|w| usize::try_from(w).unwrap()))
-                    .collect();
-                assert_eq!(
-                    &partial_key[..],
-                    _key,
-                    "Key mismatch between `pint-abi-visit` and compiler generated ABI key. \
-                    Please report this to the pint repo as it indicates a key construction \
-                    discrepency between the compiler and the Pint ABI gen code.",
-                );
-            }
-
-            // Recurse for nested tuple types.
-            KeyedTypeABI::Tuple(fields) => {
-                for (ix, field) in fields.iter().enumerate() {
-                    let flat_ix = {
-                        let start_flat_ix = match &graph[a].nesting {
-                            Nesting::TupleField { flat_ix, .. } => *flat_ix,
-                            _ => 0,
-                        };
-                        flattened_ix(fields, ix, start_flat_ix)
-                    };
-                    let name = field.name.as_deref();
-                    let ty = &field.ty;
-                    let nesting = Nesting::TupleField { ix, flat_ix };
-                    let node = Keyed { ty, name, nesting };
-                    let b = graph.add_node(node);
-                    graph.add_edge(a, b, ());
-                    add_children(graph, b, &field.ty);
-                }
-            }
-
-            // Recurse for nested array element types.
-            KeyedTypeABI::Array { ty, size } => {
-                let array_len = usize::try_from(*size).expect("size out of range");
-                let nesting = Nesting::ArrayElem { array_len };
-                let name = None;
-                let node = Keyed { ty, name, nesting };
-                let b = graph.add_node(node);
-                graph.add_edge(a, b, ());
-                add_children(graph, b, ty);
-            }
-
-            // Recurse for nested map element types.
-            KeyedTypeABI::Map {
-                ty_from,
-                ty_to,
-                key: _,
-            } => {
-                let key_size = ty_size(ty_from);
-                let nesting = Nesting::MapEntry { key_size };
-                let name = None;
-                let ty = ty_to;
-                let node = Keyed { ty, name, nesting };
-                let b = graph.add_node(node);
-                graph.add_edge(a, b, ());
-                add_children(graph, b, ty_to);
-            }
-        }
-    }
-
-    // Construct the graph.
-    let mut graph = KeyedVarGraph::default();
-
-    // Add each root and its children.
-    let mut roots = vec![];
-    for (ix, var) in vars.iter().enumerate() {
-        let ty = &var.ty;
-        let name = Some(var.name.as_str());
-        let nesting = Nesting::Var { ix };
-        let node = Keyed { ty, name, nesting };
-        let n = graph.add_node(node);
-        add_children(&mut graph, n, &var.ty);
-        roots.push(n);
-    }
-
-    KeyedVarTree { graph, roots }
-}
-
 impl<'a> KeyedVarTree<'a> {
+    /// Construct a new tree from the given list of `KeyedVarABI`s from a
+    /// `storage` or `pub_vars`instance.
+    pub fn from_keyed_vars(vars: &'a [KeyedVarABI]) -> Self {
+        // Construct the graph.
+        let mut graph = KeyedVarGraph::default();
+
+        // Add each root and its children.
+        let mut roots = vec![];
+        for (ix, var) in vars.iter().enumerate() {
+            let ty = &var.ty;
+            let name = Some(var.name.as_str());
+            let nesting = Nesting::Var { ix };
+            let node = Keyed { ty, name, nesting };
+            let n = graph.add_node(node);
+            add_children(&mut graph, n, &var.ty);
+            roots.push(n);
+        }
+
+        KeyedVarTree { graph, roots }
+    }
+
     /// Visit all keyed types within the tree in depth-first order.
     pub fn dfs(&self, mut visit: impl FnMut(NodeIx)) {
         for &root in &self.roots {
@@ -218,47 +138,11 @@ impl<'a> KeyedVarTree<'a> {
     }
 }
 
-/// Return the node index of the parent node within the graph.
-fn parent(graph: &KeyedVarGraph, n: NodeIx) -> Option<NodeIx> {
-    graph
-        .edges_directed(n, petgraph::Direction::Incoming)
-        .next()
-        .map(|e| e.source())
-}
-
-/// Return the full nesting of the node at the given index.
-fn nesting(graph: &KeyedVarGraph, mut n: NodeIx) -> Vec<Nesting> {
-    // First, collect the path to the root.
-    let mut path = vec![n];
-    while let Some(p) = parent(graph, n) {
-        path.push(p);
-        n = p;
+impl<'a> core::ops::Deref for KeyedVarTree<'a> {
+    type Target = KeyedVarGraph<'a>;
+    fn deref(&self) -> &Self::Target {
+        &self.graph
     }
-    // Collect the nestings starting from the root.
-    let mut nestings = vec![];
-    while let Some(n) = path.pop() {
-        nestings.push(graph[n].nesting.clone());
-    }
-    nestings
-}
-
-/// Determine the flattened index of the tuple field at the given field index
-/// within the given `fields`.
-///
-/// The `start_flat_ix` represents the flat index of the enclosing tuple.
-fn flattened_ix(fields: &[KeyedTupleField], field_ix: usize, start_flat_ix: usize) -> usize {
-    // Given a slice of tuple fields, determine the total number of leaf fields
-    // within the directly nested tree of tuples.
-    fn count_flattened_leaf_fields(fields: &[KeyedTupleField]) -> usize {
-        fields
-            .iter()
-            .map(|field| match field.ty {
-                KeyedTypeABI::Tuple(ref fields) => count_flattened_leaf_fields(fields),
-                _ => 1,
-            })
-            .sum()
-    }
-    start_flat_ix + count_flattened_leaf_fields(&fields[0..field_ix])
 }
 
 /// Given a type nesting, returns a partial key to the nested value.
@@ -308,4 +192,122 @@ pub fn ty_size(ty: &TypeABI) -> usize {
             ty_size(ty) * usize::try_from(*size).expect("size out of range")
         }
     }
+}
+
+/// Add all child nodes of the given node `a` with type `ty`, by recursively
+/// traversing the given `KeyedTypeABI`.
+fn add_children<'a>(graph: &mut KeyedVarGraph<'a>, a: NodeIx, ty: &'a KeyedTypeABI) {
+    match ty {
+        KeyedTypeABI::Bool(_key)
+        | KeyedTypeABI::Int(_key)
+        | KeyedTypeABI::Real(_key)
+        | KeyedTypeABI::String(_key)
+        | KeyedTypeABI::B256(_key) => {
+            // TODO: Remove this whole block once keys have been removed.
+            // This is just a sanity check to make sure that this traversal
+            // is deriving the same keys as the compiler is generating.
+            let nesting = nesting(graph, a);
+            let partial_key: Vec<_> = partial_key_from_nesting(&nesting)
+                .into_iter()
+                .map(|opt| opt.map(|w| usize::try_from(w).unwrap()))
+                .collect();
+            assert_eq!(
+                &partial_key[..],
+                _key,
+                "Key mismatch between `pint-abi-visit` and compiler generated ABI key. \
+                Please report this to the pint repo as it indicates a key construction \
+                discrepency between the compiler and the Pint ABI gen code.",
+            );
+        }
+
+        // Recurse for nested tuple types.
+        KeyedTypeABI::Tuple(fields) => {
+            for (ix, field) in fields.iter().enumerate() {
+                let flat_ix = {
+                    let start_flat_ix = match &graph[a].nesting {
+                        Nesting::TupleField { flat_ix, .. } => *flat_ix,
+                        _ => 0,
+                    };
+                    flattened_ix(fields, ix, start_flat_ix)
+                };
+                let name = field.name.as_deref();
+                let ty = &field.ty;
+                let nesting = Nesting::TupleField { ix, flat_ix };
+                let node = Keyed { ty, name, nesting };
+                let b = graph.add_node(node);
+                graph.add_edge(a, b, ());
+                add_children(graph, b, &field.ty);
+            }
+        }
+
+        // Recurse for nested array element types.
+        KeyedTypeABI::Array { ty, size } => {
+            let array_len = usize::try_from(*size).expect("size out of range");
+            let nesting = Nesting::ArrayElem { array_len };
+            let name = None;
+            let node = Keyed { ty, name, nesting };
+            let b = graph.add_node(node);
+            graph.add_edge(a, b, ());
+            add_children(graph, b, ty);
+        }
+
+        // Recurse for nested map element types.
+        KeyedTypeABI::Map {
+            ty_from,
+            ty_to,
+            key: _,
+        } => {
+            let key_size = ty_size(ty_from);
+            let nesting = Nesting::MapEntry { key_size };
+            let name = None;
+            let ty = ty_to;
+            let node = Keyed { ty, name, nesting };
+            let b = graph.add_node(node);
+            graph.add_edge(a, b, ());
+            add_children(graph, b, ty_to);
+        }
+    }
+}
+
+/// Return the node index of the parent node within the graph.
+fn parent(graph: &KeyedVarGraph, n: NodeIx) -> Option<NodeIx> {
+    graph
+        .edges_directed(n, petgraph::Direction::Incoming)
+        .next()
+        .map(|e| e.source())
+}
+
+/// Return the full nesting of the node at the given index.
+fn nesting(graph: &KeyedVarGraph, mut n: NodeIx) -> Vec<Nesting> {
+    // First, collect the path to the root.
+    let mut path = vec![n];
+    while let Some(p) = parent(graph, n) {
+        path.push(p);
+        n = p;
+    }
+    // Collect the nestings starting from the root.
+    let mut nestings = vec![];
+    while let Some(n) = path.pop() {
+        nestings.push(graph[n].nesting.clone());
+    }
+    nestings
+}
+
+/// Determine the flattened index of the tuple field at the given field index
+/// within the given `fields`.
+///
+/// The `start_flat_ix` represents the flat index of the enclosing tuple.
+fn flattened_ix(fields: &[KeyedTupleField], field_ix: usize, start_flat_ix: usize) -> usize {
+    // Given a slice of tuple fields, determine the total number of leaf fields
+    // within the directly nested tree of tuples.
+    fn count_flattened_leaf_fields(fields: &[KeyedTupleField]) -> usize {
+        fields
+            .iter()
+            .map(|field| match field.ty {
+                KeyedTypeABI::Tuple(ref fields) => count_flattened_leaf_fields(fields),
+                _ => 1,
+            })
+            .sum()
+    }
+    start_flat_ix + count_flattened_leaf_fields(&fields[0..field_ix])
 }

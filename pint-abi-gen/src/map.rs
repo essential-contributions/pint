@@ -1,8 +1,8 @@
 //! Items related to generating the `Map` mutations and keys builders.
 
 use crate::{
-    abi_key_from_keyed_type, construct_key_expr, mutation_impl_deref, nesting_expr,
-    nesting_key_doc_str, nesting_ty_str, tuple, ty_from_pint_ty, KeyedTypeABI, SingleKeyTy,
+    abi_key_from_keyed_type, construct_key_expr, mutation, nesting_expr, nesting_key_doc_str,
+    nesting_ty_str, tuple, ty_from_pint_ty, KeyedTypeABI, SingleKeyTy,
 };
 use pint_abi_types::TypeABI;
 use pint_abi_visit::{KeyedVarTree, Nesting, NodeIx};
@@ -165,7 +165,7 @@ pub(crate) fn builder_items(
     items.push(mutations_struct(&struct_name, &nesting).into());
     items.push(mutations_impl(tree, map, &struct_name, ty_from, ty_to).into());
     items.extend(
-        mutation_impl_deref(&struct_name)
+        mutation::impl_deref_for_nested(&struct_name)
             .into_iter()
             .map(syn::Item::from),
     );

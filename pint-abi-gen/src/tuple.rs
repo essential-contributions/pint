@@ -1,6 +1,6 @@
 //! Items related to generating the `Map` mutations and keys builders.
 
-use crate::{mutation_impl_deref, mutation_method_from_node, nesting_key_doc_str, nesting_ty_str};
+use crate::{mutation, nesting_key_doc_str, nesting_ty_str};
 use pint_abi_visit::{KeyedVarTree, Nesting, NodeIx};
 use proc_macro2::Span;
 
@@ -36,7 +36,7 @@ fn mutation_method(tree: &KeyedVarTree, field: NodeIx) -> syn::ImplItemFn {
         };
         format!("_{ix}")
     });
-    mutation_method_from_node(tree, field, &name)
+    mutation::method_from_node(tree, field, &name)
 }
 
 /// The mutation builder methods for a tuple struct.
@@ -69,7 +69,7 @@ pub(crate) fn builder_items(tree: &KeyedVarTree, tuple: NodeIx) -> Vec<syn::Item
     items.push(mutations_struct(&nesting, &struct_name).into());
     items.push(mutations_impl(tree, tuple, &struct_name).into());
     items.extend(
-        mutation_impl_deref(&struct_name)
+        mutation::impl_deref_for_nested(&struct_name)
             .into_iter()
             .map(syn::Item::from),
     );
