@@ -1,0 +1,23 @@
+type MyMap = (int => int);
+
+storage {
+    m: MyMap,
+}
+
+solve satisfy;
+
+// parsed <<<
+// storage {
+//     m: ::MyMap,
+// }
+// type ::MyMap = ( int => int );
+// solve satisfy;
+// >>>
+
+// flattened <<<
+// storage {
+//     m: ::MyMap (( int => int )),
+// }
+// type ::MyMap = ( int => int );
+// solve satisfy;
+// >>>

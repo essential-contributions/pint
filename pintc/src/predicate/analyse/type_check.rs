@@ -230,6 +230,7 @@ impl Predicate {
             }
         });
 
+        // TODO: Major refactor, works for now
         if let Some((storage_vars, span)) = &self.storage.clone() {
             // storage_vars.update_types
             let mut updated_storage_vars: Vec<StorageVar> = Vec::new();
