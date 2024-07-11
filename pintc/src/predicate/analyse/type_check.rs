@@ -5,6 +5,7 @@ use super::{
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     expr::{BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
+    predicate::StorageVar,
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
@@ -92,6 +93,8 @@ impl Predicate {
     }
 
     fn lower_newtypes_in_newtypes(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
+        // Remove comment: lowers newtypes that are in NewTypeDecl vector, just loops and recurses til done
+
         // Search for a custom type with a specific name and return a mut ref to it.
         fn get_custom_type_mut_ref<'a>(
             custom_path: &str,
@@ -193,6 +196,18 @@ impl Predicate {
                 }
 
                 Type::Map { ty_from, ty_to, .. } => {
+                    // @mohammad, should we error here? ----
+                    // this is part of the type checking so it seems like we should?
+                    // as in we shouldn't allow a var to be a map type?
+                    // var x: ( int => int );
+                    // - should we still replace any nested custom types?
+                    // - note this does not catch
+                    // type MyMap = (int => int); var y: MyMap;
+                    // as in, y: will not trigger this, but will get lowered into (int => int)
+                    // - there is no handler here so maybe its not appropriate here?
+                    println!("crazy talk");
+                    println!("type from: {:?}", &ty_from);
+                    println!("type to: {:?}", &ty_to);
                     replace_custom_type(new_types, ty_from);
                     replace_custom_type(new_types, ty_to);
                 }
@@ -214,6 +229,34 @@ impl Predicate {
                 replace_custom_type(&self.new_types, ty.borrow_mut());
             }
         });
+
+        if let Some((storage_vars, span)) = &self.storage.clone() {
+            // storage_vars.update_types
+            let mut updated_storage_vars: Vec<StorageVar> = Vec::new();
+            for var in storage_vars {
+                println!("storage_var ty: {:#?}", &var.ty);
+                let mut temp_ty = var.ty.clone();
+                replace_custom_type(&self.new_types, &mut temp_ty);
+                println!("updated storage_var ty: {:#?}", &temp_ty);
+                updated_storage_vars.push(StorageVar {
+                    name: var.name.clone(),
+                    ty: temp_ty,
+                    span: var.span.clone(),
+                });
+            }
+            self.storage = Some((updated_storage_vars, span.clone()));
+        }
+
+        // println!("Oh boi, its the self {:#?}", &self);
+
+        // println!("{:?}", self.storage);
+        /* Some(([StorageVar { name: Ident { name: "balances", hygienic: false, span: "test.pnt":262..270 },
+        ty: Map { ty_from: Primitive { kind: B256, span: "test.pnt":273..277 },
+        ty_to: Primitive { kind: Int, span: "test.pnt":281..284 }, span: "test.pnt":272..285 },
+        span: "test.pnt":262..285 }], "test.pnt":166..288))
+            storage {
+                balances: ( b256 => int ),
+            } */
     }
 
     pub(super) fn check_undefined_types(&mut self, handler: &Handler) {
