@@ -61,7 +61,7 @@ impl<'a> ParserContext<'a> {
         (l, r): (usize, usize),
     ) -> StorageVar {
         let span = (self.span_from)(l, r);
-        if ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() || ty.is_array() {
+        if ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() || ty.is_array() || ty.is_custom() {
             StorageVar { name, ty, span }
         } else if let Type::Map {
             ref ty_from,
@@ -93,11 +93,19 @@ impl<'a> ParserContext<'a> {
                     span,
                 }
             }
-        } else {
+        } 
+        else {
+            println!("ty: {:?}", &ty);
+            // @mohammad, please review and advise
+            // TODO: Fix here -- allow custom types that are maps, ints, or bools
+            // - this is only for parsing, will need to be handled later
+            // - means we can't check if it will be lowered to a map or not, so just need to allow it
+            // which I did above in the first if conditional
+            // - can handle during analyse.rs?
             // TODO: allow arbitrary types in storage blocks
             handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
-                    msg: "only ints, bools, and maps are currently allowed in a storage block",
+                    msg: "only ints, bools, custom types, and maps are currently allowed in a storage block",
                     span: span::empty_span(),
                 },
             });
