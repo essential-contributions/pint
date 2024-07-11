@@ -1,7 +1,11 @@
 type MyMap = (int => int);
+type MyInt = int;
+type MyNestMap = (MyInt => int);
 
 storage {
     m: MyMap,
+    n: MyInt,
+    o: MyNestMap,
 }
 
 solve satisfy;
@@ -9,15 +13,23 @@ solve satisfy;
 // parsed <<<
 // storage {
 //     m: ::MyMap,
+//     n: ::MyInt,
+//     o: ::MyNestMap,
 // }
 // type ::MyMap = ( int => int );
+// type ::MyInt = int;
+// type ::MyNestMap = ( ::MyInt => int );
 // solve satisfy;
 // >>>
 
 // flattened <<<
 // storage {
 //     m: ::MyMap (( int => int )),
+//     n: ::MyInt (int),
+//     o: ::MyNestMap (( ::MyInt (int) => int )),
 // }
 // type ::MyMap = ( int => int );
+// type ::MyInt = int;
+// type ::MyNestMap = ( ::MyInt (int) => int );
 // solve satisfy;
 // >>>
