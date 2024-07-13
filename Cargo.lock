@@ -1140,6 +1140,7 @@ dependencies = [
  "essential-types",
  "pint-abi-gen",
  "pint-abi-types",
+ "pint-abi-visit",
  "serde_json",
  "thiserror",
 ]
@@ -1150,6 +1151,7 @@ version = "0.1.0"
 dependencies = [
  "essential-types",
  "pint-abi-types",
+ "pint-abi-visit",
  "proc-macro2",
  "quote",
  "serde_json",
@@ -1176,6 +1178,15 @@ name = "pint-abi-types"
 version = "0.1.0"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "pint-abi-visit"
+version = "0.0.1"
+dependencies = [
+ "essential-types",
+ "petgraph",
+ "pint-abi-types",
 ]
 
 [[package]]

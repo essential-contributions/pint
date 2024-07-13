@@ -6,6 +6,7 @@ members = [
   "pint-abi-gen",
   "pint-abi-gen-tests",
   "pint-abi-types",
+  "pint-abi-visit",
   "pint-cli",
   "pint-manifest",
   "pint-pkg",
@@ -34,6 +35,7 @@ petgraph = "0.6"
 pint-abi = { path = "pint-abi", version = "0.1.0" }
 pint-abi-gen = { path = "pint-abi-gen", version = "0.1.0" }
 pint-abi-types = { path = "pint-abi-types", version = "0.1.0" }
+pint-abi-visit = { path = "pint-abi-visit", version = "0.0.1" }
 pint-manifest = { path = "pint-manifest", version = "0.1.0" }
 pint-pkg = { path = "pint-pkg", version = "0.1.0" }
 pintc = { path = "pintc", version = "0.1.0" }

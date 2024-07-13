@@ -1,0 +1,14 @@
+[package]
+name = "pint-abi-visit"
+version = "0.0.1"
+description = "Items to assist in traversing the Pint ABI types."
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+essential-types = { workspace = true }
+petgraph = { workspace = true }
+pint-abi-types = { workspace = true }
