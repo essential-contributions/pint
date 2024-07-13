@@ -2,9 +2,9 @@ use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, Expr, Ident, Immediate},
     predicate::{ExprKey, Predicate},
-    span::{empty_span, Span, Spanned},
+    span::{Span, Spanned},
 };
-use pint_abi_types::{Key, KeyedTupleField, KeyedTypeABI, TupleField, TypeABI};
+use pint_abi_types::{TupleField, TypeABI};
 
 mod display;
 
@@ -396,86 +396,10 @@ impl Type {
                     pred,
                 )?),
             }),
-            _ => unimplemented!("other types are not yet supported"),
-        }
-    }
-
-    /// Produce a `KeyedTypeABI` given a `Type` and a base key. The layout of the keys follows how
-    /// asm_gen produces storage and transient data keys.
-    pub fn abi_with_key(
-        &self,
-        handler: &Handler,
-        key: Key,
-        pred: &Predicate,
-    ) -> Result<KeyedTypeABI, ErrorEmitted> {
-        match self {
-            Type::Primitive { kind, .. } => Ok(match kind {
-                PrimitiveKind::Bool => KeyedTypeABI::Bool(key),
-                PrimitiveKind::Int => KeyedTypeABI::Int(key),
-                PrimitiveKind::Real => KeyedTypeABI::Real(key),
-                PrimitiveKind::String => KeyedTypeABI::String(key),
-                PrimitiveKind::B256 => KeyedTypeABI::B256(key),
-                _ => unimplemented!(),
+            Type::Map { ty_from, ty_to, .. } => Ok(TypeABI::Map {
+                ty_from: Box::new((*ty_from).abi(handler, pred)?),
+                ty_to: Box::new((*ty_to).abi(handler, pred)?),
             }),
-            Type::Tuple { fields, .. } => Ok(KeyedTypeABI::Tuple(
-                fields
-                    .iter()
-                    .enumerate()
-                    .map(|(index, (name, field_ty))| {
-                        let mut field_key = key.clone();
-                        if let Some(Some(ref mut last_word)) = field_key.last_mut() {
-                            // Offset the last word in the key given the field index
-                            *last_word +=
-                                fields.iter().take(index).try_fold(0, |acc, (_, ty)| {
-                                    ty.storage_or_transient_slots(handler, pred)
-                                        .map(|slots| acc + slots)
-                                })?;
-
-                            Ok(KeyedTupleField {
-                                name: name.as_ref().map(|name| name.name.clone()),
-                                ty: field_ty.abi_with_key(handler, field_key.clone(), pred)?,
-                            })
-                        } else {
-                            Err(handler.emit_err(Error::Compile {
-                                error: CompileError::Internal {
-                                    msg: "the last word in the key must exist and be non-null",
-                                    span: empty_span(),
-                                },
-                            }))
-                        }
-                    })
-                    .collect::<Result<Vec<_>, _>>()?,
-            )),
-            Type::Array {
-                ty, range, size, ..
-            } => Ok(KeyedTypeABI::Array {
-                ty: Box::new(ty.abi_with_key(handler, key.clone(), pred)?),
-                size: size.unwrap_or(Self::get_array_size_from_range_expr(
-                    handler,
-                    range
-                        .as_ref()
-                        .and_then(|e| e.try_get(pred))
-                        .expect("expr key guaranteed to exist"),
-                    pred,
-                )?),
-            }),
-            Type::Map { ty_from, ty_to, .. } => {
-                let mut value_key = key.clone();
-                value_key.extend(vec![None; ty_from.size(handler, pred)?]);
-                //  The key of `ty_to` is either the `value_key` if the type is primitive or a map,
-                //  or it's `[value_key, 0]`. The `0` here is a placeholder for offsets. `ty_from`
-                //  has no key because it's not stored in storage.
-                Ok(KeyedTypeABI::Map {
-                    ty_from: (*ty_from).abi(handler, pred)?,
-                    ty_to: Box::new(if ty_to.is_any_primitive() || ty_to.is_map() {
-                        (*ty_to).abi_with_key(handler, value_key.clone(), pred)?
-                    } else {
-                        value_key.push(Some(0));
-                        (*ty_to).abi_with_key(handler, value_key.clone(), pred)?
-                    }),
-                    key,
-                })
-            }
             _ => unimplemented!("other types are not yet supported"),
         }
     }

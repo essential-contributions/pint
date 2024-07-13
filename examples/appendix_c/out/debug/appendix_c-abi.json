@@ -1,11 +1,6 @@
 {
   "predicates": [
     {
-      "name": "",
-      "vars": [],
-      "pub_vars": []
-    },
-    {
       "name": "::Foo",
       "vars": [
         {
@@ -31,15 +26,11 @@
                 "Tuple": [
                   {
                     "name": null,
-                    "ty": {
-                      "Int": [0, 0]
-                    }
+                    "ty": "Int"
                   },
                   {
                     "name": null,
-                    "ty": {
-                      "Int": [0, 1]
-                    }
+                    "ty": "Int"
                   }
                 ]
               },
@@ -51,9 +42,7 @@
           "name": "::t1",
           "ty": {
             "Array": {
-              "ty": {
-                "B256": [1, 0]
-              },
+              "ty": "B256",
               "size": 3
             }
           }
@@ -64,9 +53,7 @@
   "storage": [
     {
       "name": "s0",
-      "ty": {
-        "B256": [0]
-      }
+      "ty": "B256"
     },
     {
       "name": "s1",
@@ -74,15 +61,11 @@
         "Tuple": [
           {
             "name": null,
-            "ty": {
-              "Int": [1, 0]
-            }
+            "ty": "Int"
           },
           {
             "name": null,
-            "ty": {
-              "Int": [1, 1]
-            }
+            "ty": "Int"
           }
         ]
       }
@@ -96,19 +79,14 @@
             "Tuple": [
               {
                 "name": null,
-                "ty": {
-                  "Int": [2, null, 0]
-                }
+                "ty": "Int"
               },
               {
                 "name": null,
-                "ty": {
-                  "Int": [2, null, 1]
-                }
+                "ty": "Int"
               }
             ]
-          },
-          "key": [2]
+          }
         }
       }
     }
