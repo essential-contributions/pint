@@ -205,6 +205,9 @@ impl Predicate {
                     // type MyMap = (int => int); var y: MyMap;
                     // as in, y: will not trigger this, but will get lowered into (int => int)
                     // - there is no handler here so maybe its not appropriate here?
+                    // - Thinking out loud, we should still lower all nested types here,
+                    // since it's a recursive call and we don't know what the map
+                    // is nested in. It may be a valid path.
                     println!("crazy talk");
                     println!("type from: {:?}", &ty_from);
                     println!("type to: {:?}", &ty_to);
@@ -235,10 +238,10 @@ impl Predicate {
             // storage_vars.update_types
             let mut updated_storage_vars: Vec<StorageVar> = Vec::new();
             for var in storage_vars {
-                println!("storage_var ty: {:#?}", &var.ty);
+                // println!("storage_var ty: {:#?}", &var.ty);
                 let mut temp_ty = var.ty.clone();
                 replace_custom_type(&self.new_types, &mut temp_ty);
-                println!("updated storage_var ty: {:#?}", &temp_ty);
+                // println!("updated storage_var ty: {:#?}", &temp_ty);
                 updated_storage_vars.push(StorageVar {
                     name: var.name.clone(),
                     ty: temp_ty,
@@ -329,6 +332,21 @@ impl Predicate {
                             span: constraint_decl.span.clone(),
                             expected_span: Some(constraint_decl.span.clone()),
                         }),
+                    },
+                });
+            }
+        })
+    }
+
+    // TODO: change name, it is bad
+    pub(super) fn type_check_maps(&mut self, handler: &Handler) {
+        self.vars().for_each(|(var_key, var)| {
+            let ty = var_key.get_ty(self);
+            if ty.is_map() {
+                println!("Found a map while type checking vars");
+                handler.emit_err(Error::Compile {
+                    error: CompileError::VarTypeIsMap {
+                        span: var.span.clone(),
                     },
                 });
             }

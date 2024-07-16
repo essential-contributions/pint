@@ -1,0 +1,20 @@
+type MyMap = (int => int);
+
+var y: MyMap;
+var x: ( int => int );
+
+solve satisfy;
+
+// parsed <<<
+// var ::y: ::MyMap;
+// var ::x: ( int => int );
+// type ::MyMap = ( int => int );
+// solve satisfy;
+// >>>
+
+// typecheck_failure <<<
+// variables cannot have storage map type
+// @32..33: found variable of type storage map here
+// variables cannot have storage map type
+// @46..47: found variable of type storage map here
+// >>>
