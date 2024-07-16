@@ -61,7 +61,7 @@ A few things to note here:
    expressions can **only** ever be used to initialize `state` variables. Using a storage read
    expression in other contexts, such as in `constraint storage::x == 5`, is illegal.
 1. Fields or elements of a compound type in storage can be accessed individually, as in
-   `storage::t.1`.
+   `storage::t.1` and `storage::arr[2].1`.
 
 We haven't really explained what a `state` variable is so this is probably a good time to do so.
 

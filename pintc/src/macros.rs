@@ -131,8 +131,8 @@ pub(crate) fn splice_args(handler: &Handler, pred: &Predicate, call: &mut MacroC
     let mut replacements = FxHashMap::default();
     for (arg_idx, tok_idx, array_name, range) in spliced_args {
         // The identifier will have to be in the same module as the macro call (hence the use of
-        // `mod_path_str` above, taken from the call) and we trim the `~` from the name here.
-        let array_path = mod_path_str.clone() + "::" + &array_name[1..];
+        // `mod_path_str` above, taken from the call).
+        let array_path = mod_path_str.clone() + "::" + array_name;
 
         if let Some(var_key) = pred
             .vars()
@@ -147,7 +147,7 @@ pub(crate) fn splice_args(handler: &Handler, pred: &Predicate, call: &mut MacroC
                         // Store where and what to replace in the new spliced args.
                         replacements.insert(
                             (arg_idx, tok_idx),
-                            (array_name[1..].to_string(), size, opt_enum, range),
+                            (array_name.to_string(), size, opt_enum, range),
                         );
                     } else {
                         handler.emit_err(Error::Compile {
@@ -171,7 +171,7 @@ pub(crate) fn splice_args(handler: &Handler, pred: &Predicate, call: &mut MacroC
                         // Store where and what to replace in the new spliced args.
                         replacements.insert(
                             (arg_idx, tok_idx),
-                            (array_name[1..].to_string(), size, opt_enum, range),
+                            (array_name.to_string(), size, opt_enum, range),
                         );
                     } else {
                         handler.emit_err(Error::Compile {
@@ -508,11 +508,14 @@ fn match_macro<'a>(
         })
         .copied()
         .ok_or_else(|| {
+            let suggestion = make_comma_semi_suggestion(&named_macros, &call.args);
+
             handler.emit_err(Error::Compile {
                 error: CompileError::MacroCallMismatch {
                     name: call.name.clone(),
                     arg_count: call.args.len(),
                     param_counts_descr: format_param_counts_descr(&named_macros),
+                    suggestion,
                     span: call.span.clone(),
                 },
             })
@@ -568,4 +571,50 @@ fn format_param_counts_descr(named_macros: &[&MacroDecl]) -> String {
     }
 
     param_counts_descr
+}
+
+fn make_comma_semi_suggestion(
+    macro_decls: &[&MacroDecl],
+    args: &[Vec<(usize, Token, usize)>],
+) -> Option<String> {
+    use std::fmt::Write;
+
+    if macro_decls.len() != 1 {
+        // Too hard to make a suggestion if there are multiple call options.
+        None
+    } else {
+        let param_count = macro_decls[0].params.len();
+        if param_count > 1 {
+            let comma_count = args.iter().fold(0, |acc, arg| {
+                acc + arg
+                    .iter()
+                    .filter(|(_, tok, _)| tok == &Token::Comma)
+                    .count()
+            });
+
+            if comma_count == param_count - 1 {
+                let mut new_args_string = format!(
+                    "macro arguments are separated by `;`.  Perhaps try {}(",
+                    macro_decls[0].name.name
+                );
+
+                for arg in args.iter() {
+                    for (_, tok, _) in arg {
+                        if tok == &Token::Comma {
+                            write!(new_args_string, "; ").unwrap();
+                        } else {
+                            write!(new_args_string, "{tok}").unwrap();
+                        }
+                    }
+                }
+                new_args_string.push(')');
+
+                Some(new_args_string)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
 }

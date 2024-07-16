@@ -1,127 +1,129 @@
-// Temporarily disabling solving while the CI is solving some values to -0 instead of 0.
-//
-// Find distinct digits for the varters D, E, M, N, O, R, S, Y such that S and M are different from
-// zero (no leading zeros) and the equation
-//
-//    SEND
-//  + MORE
-//  ------
-//   MONEY
-//
-// is satisfied.
-//
-// The unique solution of the problem is 9567 + 1085 = 10652.
-//
+predicate test {
+    // Temporarily disabling solving while the CI is solving some values to -0 instead of 0.
+    //
+    // Find distinct digits for the varters D, E, M, N, O, R, S, Y such that S and M are different from
+    // zero (no leading zeros) and the equation
+    //
+    //    SEND
+    //  + MORE
+    //  ------
+    //   MONEY
+    //
+    // is satisfied.
+    //
+    // The unique solution of the problem is 9567 + 1085 = 10652.
+    //
 
-var s: int = 1..9;
-var e: int = 0..9;
-var n: int = 0..9;
-var d: int = 0..9;
-var m: int = 1..9;
-var o: int = 0..9;
-var r: int = 0..9;
-var y: int = 0..9;
+    var s: int = 1..9;
+    var e: int = 0..9;
+    var n: int = 0..9;
+    var d: int = 0..9;
+    var m: int = 1..9;
+    var o: int = 0..9;
+    var r: int = 0..9;
+    var y: int = 0..9;
 
-// All variables must be different. We will eventually have a `forall` directive that would allow
-// expressing the "all different" constraint more concisely.
-constraint    s != e
-           && s != n
-           && s != d
-           && s != m
-           && s != o
-           && s != r
-           && s != y
+    // All variables must be different. We will eventually have a `forall` directive that would allow
+    // expressing the "all different" constraint more concisely.
+    constraint    s != e
+               && s != n
+               && s != d
+               && s != m
+               && s != o
+               && s != r
+               && s != y
 
-           && e != n
-           && e != d
-           && e != m
-           && e != o
-           && e != r
-           && e != y
+               && e != n
+               && e != d
+               && e != m
+               && e != o
+               && e != r
+               && e != y
 
-           && n != d
-           && n != m
-           && n != o
-           && n != r
-           && n != y
+               && n != d
+               && n != m
+               && n != o
+               && n != r
+               && n != y
 
-           && d != m
-           && d != o
-           && d != r
-           && d != y
+               && d != m
+               && d != o
+               && d != r
+               && d != y
 
-           && m != o
-           && m != r
-           && m != y
+               && m != o
+               && m != r
+               && m != y
 
-           && o != r
-           && o != y
+               && o != r
+               && o != y
 
-           && r != y;
+               && r != y;
 
-// SEND + MORE == MONEY
-constraint    1000*s + 100*e + 10*n + d
-           +  1000*m + 100*o + 10*r + e
-           == 10000*m + 1000*o + 100*n + 10*e + y;
-
-solve satisfy;
+    // SEND + MORE == MONEY
+    constraint    1000*s + 100*e + 10*n + d
+               +  1000*m + 100*o + 10*r + e
+               == 10000*m + 1000*o + 100*n + 10*e + y;
+}
 
 // parsed <<<
-// var ::s: int;
-// var ::e: int;
-// var ::n: int;
-// var ::d: int;
-// var ::m: int;
-// var ::o: int;
-// var ::r: int;
-// var ::y: int;
-// constraint (::s >= 1);
-// constraint (::s <= 9);
-// constraint (::e >= 0);
-// constraint (::e <= 9);
-// constraint (::n >= 0);
-// constraint (::n <= 9);
-// constraint (::d >= 0);
-// constraint (::d <= 9);
-// constraint (::m >= 1);
-// constraint (::m <= 9);
-// constraint (::o >= 0);
-// constraint (::o <= 9);
-// constraint (::r >= 0);
-// constraint (::r <= 9);
-// constraint (::y >= 0);
-// constraint (::y <= 9);
-// constraint ((((((((((((((((((((((((((((::s != ::e) && (::s != ::n)) && (::s != ::d)) && (::s != ::m)) && (::s != ::o)) && (::s != ::r)) && (::s != ::y)) && (::e != ::n)) && (::e != ::d)) && (::e != ::m)) && (::e != ::o)) && (::e != ::r)) && (::e != ::y)) && (::n != ::d)) && (::n != ::m)) && (::n != ::o)) && (::n != ::r)) && (::n != ::y)) && (::d != ::m)) && (::d != ::o)) && (::d != ::r)) && (::d != ::y)) && (::m != ::o)) && (::m != ::r)) && (::m != ::y)) && (::o != ::r)) && (::o != ::y)) && (::r != ::y));
-// constraint (((((((((1000 * ::s) + (100 * ::e)) + (10 * ::n)) + ::d) + (1000 * ::m)) + (100 * ::o)) + (10 * ::r)) + ::e) == (((((10000 * ::m) + (1000 * ::o)) + (100 * ::n)) + (10 * ::e)) + ::y));
-// solve satisfy;
+// predicate ::test {
+//     var ::s: int;
+//     var ::e: int;
+//     var ::n: int;
+//     var ::d: int;
+//     var ::m: int;
+//     var ::o: int;
+//     var ::r: int;
+//     var ::y: int;
+//     constraint (::s >= 1);
+//     constraint (::s <= 9);
+//     constraint (::e >= 0);
+//     constraint (::e <= 9);
+//     constraint (::n >= 0);
+//     constraint (::n <= 9);
+//     constraint (::d >= 0);
+//     constraint (::d <= 9);
+//     constraint (::m >= 1);
+//     constraint (::m <= 9);
+//     constraint (::o >= 0);
+//     constraint (::o <= 9);
+//     constraint (::r >= 0);
+//     constraint (::r <= 9);
+//     constraint (::y >= 0);
+//     constraint (::y <= 9);
+//     constraint ((((((((((((((((((((((((((((::s != ::e) && (::s != ::n)) && (::s != ::d)) && (::s != ::m)) && (::s != ::o)) && (::s != ::r)) && (::s != ::y)) && (::e != ::n)) && (::e != ::d)) && (::e != ::m)) && (::e != ::o)) && (::e != ::r)) && (::e != ::y)) && (::n != ::d)) && (::n != ::m)) && (::n != ::o)) && (::n != ::r)) && (::n != ::y)) && (::d != ::m)) && (::d != ::o)) && (::d != ::r)) && (::d != ::y)) && (::m != ::o)) && (::m != ::r)) && (::m != ::y)) && (::o != ::r)) && (::o != ::y)) && (::r != ::y));
+//     constraint (((((((((1000 * ::s) + (100 * ::e)) + (10 * ::n)) + ::d) + (1000 * ::m)) + (100 * ::o)) + (10 * ::r)) + ::e) == (((((10000 * ::m) + (1000 * ::o)) + (100 * ::n)) + (10 * ::e)) + ::y));
+// }
 // >>>
 
 // flattened <<<
-// var ::s: int;
-// var ::e: int;
-// var ::n: int;
-// var ::d: int;
-// var ::m: int;
-// var ::o: int;
-// var ::r: int;
-// var ::y: int;
-// constraint (::s >= 1);
-// constraint (::s <= 9);
-// constraint (::e >= 0);
-// constraint (::e <= 9);
-// constraint (::n >= 0);
-// constraint (::n <= 9);
-// constraint (::d >= 0);
-// constraint (::d <= 9);
-// constraint (::m >= 1);
-// constraint (::m <= 9);
-// constraint (::o >= 0);
-// constraint (::o <= 9);
-// constraint (::r >= 0);
-// constraint (::r <= 9);
-// constraint (::y >= 0);
-// constraint (::y <= 9);
-// constraint ((((((((((((((((((((((((((((::s != ::e) && (::s != ::n)) && (::s != ::d)) && (::s != ::m)) && (::s != ::o)) && (::s != ::r)) && (::s != ::y)) && (::e != ::n)) && (::e != ::d)) && (::e != ::m)) && (::e != ::o)) && (::e != ::r)) && (::e != ::y)) && (::n != ::d)) && (::n != ::m)) && (::n != ::o)) && (::n != ::r)) && (::n != ::y)) && (::d != ::m)) && (::d != ::o)) && (::d != ::r)) && (::d != ::y)) && (::m != ::o)) && (::m != ::r)) && (::m != ::y)) && (::o != ::r)) && (::o != ::y)) && (::r != ::y));
-// constraint (((((((((1000 * ::s) + (100 * ::e)) + (10 * ::n)) + ::d) + (1000 * ::m)) + (100 * ::o)) + (10 * ::r)) + ::e) == (((((10000 * ::m) + (1000 * ::o)) + (100 * ::n)) + (10 * ::e)) + ::y));
-// solve satisfy;
+// predicate ::test {
+//     var ::s: int;
+//     var ::e: int;
+//     var ::n: int;
+//     var ::d: int;
+//     var ::m: int;
+//     var ::o: int;
+//     var ::r: int;
+//     var ::y: int;
+//     constraint (::s >= 1);
+//     constraint (::s <= 9);
+//     constraint (::e >= 0);
+//     constraint (::e <= 9);
+//     constraint (::n >= 0);
+//     constraint (::n <= 9);
+//     constraint (::d >= 0);
+//     constraint (::d <= 9);
+//     constraint (::m >= 1);
+//     constraint (::m <= 9);
+//     constraint (::o >= 0);
+//     constraint (::o <= 9);
+//     constraint (::r >= 0);
+//     constraint (::r <= 9);
+//     constraint (::y >= 0);
+//     constraint (::y <= 9);
+//     constraint ((((((((((((((((((((((((((((::s != ::e) && (::s != ::n)) && (::s != ::d)) && (::s != ::m)) && (::s != ::o)) && (::s != ::r)) && (::s != ::y)) && (::e != ::n)) && (::e != ::d)) && (::e != ::m)) && (::e != ::o)) && (::e != ::r)) && (::e != ::y)) && (::n != ::d)) && (::n != ::m)) && (::n != ::o)) && (::n != ::r)) && (::n != ::y)) && (::d != ::m)) && (::d != ::o)) && (::d != ::r)) && (::d != ::y)) && (::m != ::o)) && (::m != ::r)) && (::m != ::y)) && (::o != ::r)) && (::o != ::y)) && (::r != ::y));
+//     constraint (((((((((1000 * ::s) + (100 * ::e)) + (10 * ::n)) + ::d) + (1000 * ::m)) + (100 * ::o)) + (10 * ::r)) + ::e) == (((((10000 * ::m) + (1000 * ::o)) + (100 * ::n)) + (10 * ::e)) + ::y));
+// }
 // >>>

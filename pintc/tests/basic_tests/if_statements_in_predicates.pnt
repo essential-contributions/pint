@@ -94,7 +94,7 @@ predicate Bar {
 //         }
 //     }
 // }
-// 
+//
 // predicate ::Foo {
 //     var ::condition: bool;
 //     var ::condition2: bool;
@@ -122,34 +122,34 @@ predicate Bar {
 //     } else {
 //     }
 // }
-// >>> 
+// >>>
 
 // flattened <<<
 // predicate ::Bar {
-//     var ::condition: int;
-//     var ::condition2: int;
-//     var ::condition3: int;
+//     var ::condition: bool;
+//     var ::condition2: bool;
+//     var ::condition3: bool;
 //     var ::x: int;
 //     var ::xx: int;
 //     var ::yy: int;
-//     var ::z: int;
-//     constraint (!(::condition2 && ::condition) || (0 || (::z && !::z)));
+//     var ::z: bool;
+//     constraint (!(::condition2 && ::condition) || (false || (::z && !::z)));
 //     constraint (!(::condition2 && ::condition) || (::yy != ::xx));
-//     constraint (!(::condition2 && ::condition) || (!1 || (::x + 1)));
-//     constraint (!(::condition2 && ::condition) || (1 || ::z));
+//     constraint (!(::condition2 && ::condition) || (!true || (::x + 1)));
+//     constraint (!(::condition2 && ::condition) || (true || ::z));
 //     constraint ((::condition2 && ::condition) || (!::condition3 || ((::yy + ::xx) == (::yy * ::xx))));
 //     constraint ((::condition2 && ::condition) || (!::condition3 || ::z));
-//     constraint ((::condition2 && ::condition) || (::condition3 || (!::z || (::z && 1))));
+//     constraint ((::condition2 && ::condition) || (::condition3 || (!::z || (::z && true))));
 // }
-// 
+//
 // predicate ::Foo {
-//     var ::condition: int;
-//     var ::condition2: int;
+//     var ::condition: bool;
+//     var ::condition2: bool;
 //     var ::x: int;
 //     var ::y: int;
 //     var ::xx: int;
 //     var ::yy: int;
-//     var ::z: int;
+//     var ::z: bool;
 //     constraint (!::condition || (::x == 0));
 //     constraint (!::condition || (::y != ::x));
 //     constraint (!::condition2 || (::xx == 1));
@@ -159,4 +159,4 @@ predicate Bar {
 //     constraint (::condition2 || ::z);
 //     constraint (!::condition2 || (::yy != ::xx));
 // }
-// >>> 
+// >>>

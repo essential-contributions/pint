@@ -14,22 +14,22 @@ enum JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
 const j = JacketColour::Beige; // Yes.
 const k: JacketColour = JacketColour::Bone;
 
-var q: int;
-constraint q > a && q < c;
+predicate test {
+    var q: int;
+    constraint q > a && q < c;
 
-var r: b256;
-constraint r != b && r != d;
+    var r: b256;
+    constraint r != b && r != d;
 
-//var s = f.1;
-//var t = g[1];
+    //var s = f.1;
+    //var t = g[1];
 
-//var u: bool;
-//constraint u == h.1 && u != i[2];
+    //var u: bool;
+    //constraint u == h.1 && u != i[2];
 
-var v: JacketColour;
-constraint v != j && v != k;
-
-solve satisfy;
+    var v: JacketColour;
+    constraint v != j && v != k;
+}
 
 // parsed <<<
 // const ::j = ::JacketColour::Beige;
@@ -39,32 +39,38 @@ solve satisfy;
 // const ::d: b256 = 0x4444444444444444444444444444444444444444444444444444444444444444;
 // const ::a = 11;
 // const ::c: int = 33;
-// var ::q: int;
-// var ::r: b256;
-// var ::v: ::JacketColour;
 // enum ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
-// constraint ((::q > ::a) && (::q < ::c));
-// constraint ((::r != ::b) && (::r != ::d));
-// constraint ((::v != ::j) && (::v != ::k));
-// solve satisfy;
+//
+// predicate ::test {
+//     var ::q: int;
+//     var ::r: b256;
+//     var ::v: ::JacketColour;
+//     enum ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
+//     constraint ((::q > ::a) && (::q < ::c));
+//     constraint ((::r != ::b) && (::r != ::d));
+//     constraint ((::v != ::j) && (::v != ::k));
+// }
 // >>>
 
 // flattened <<<
 // const ::j: ::JacketColour = 5;
 // const ::b: b256 = 0x2222222222222222222222222222222222222222222222222222222222222222;
-// const ::e: bool = 1;
+// const ::e: bool = true;
 // const ::k: ::JacketColour = 1;
 // const ::d: b256 = 0x4444444444444444444444444444444444444444444444444444444444444444;
 // const ::a: int = 11;
 // const ::c: int = 33;
-// var ::q: int;
-// var ::r: b256;
-// var ::v: int;
 // enum ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
-// constraint ((::q > 11) && (::q < 33));
-// constraint ((::r != 0x2222222222222222222222222222222222222222222222222222222222222222) && (::r != 0x4444444444444444444444444444444444444444444444444444444444444444));
-// constraint ((::v != 5) && (::v != 1));
-// constraint (::v >= 0);
-// constraint (::v <= 5);
-// solve satisfy;
+//
+// predicate ::test {
+//     var ::q: int;
+//     var ::r: b256;
+//     var ::v: int;
+//     enum ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
+//     constraint ((::q > 11) && (::q < 33));
+//     constraint ((::r != 0x2222222222222222222222222222222222222222222222222222222222222222) && (::r != 0x4444444444444444444444444444444444444444444444444444444444444444));
+//     constraint ((::v != 5) && (::v != 1));
+//     constraint (::v >= 0);
+//     constraint (::v <= 5);
+// }
 // >>>

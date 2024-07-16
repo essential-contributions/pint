@@ -10,11 +10,11 @@ type T = { __x: int, y: bool };
 
 enum ___E = A | B;
 type __MyType = int;
-var __x = 5;
 
-constraint __x == 0;
-
-solve satisfy;
+predicate test {
+    var __x = 5;
+    constraint __x == 0;
+}
 
 // parse_failure <<<
 // expected identifier, found intrinsic name `__x`
@@ -36,13 +36,13 @@ solve satisfy;
 // @144..152: expected identifier, found intrinsic name
 // names that start with `__` are reserved for compiler intrinsics
 // expected identifier, found intrinsic name `__x`
-// @164..167: expected identifier, found intrinsic name
+// @186..189: expected identifier, found intrinsic name
 // names that start with `__` are reserved for compiler intrinsics
-// symbol `__x` has already been declared
-// @12..15: previous declaration of the symbol `__x` here
-// @164..167: `__x` redeclared here
-// `__x` must be declared or imported only once in this scope
 // expected identifier, found intrinsic name `__x`
-// @185..188: expected identifier, found intrinsic name
+// @210..213: expected identifier, found intrinsic name
 // names that start with `__` are reserved for compiler intrinsics
+// symbol `::__x` has already been declared
+// @12..15: previous declaration of the symbol `::__x` here
+// @186..189: `::__x` redeclared here
+// `::__x` must be declared or imported only once in this scope
 // >>> 

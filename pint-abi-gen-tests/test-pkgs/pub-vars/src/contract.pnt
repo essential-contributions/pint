@@ -2,10 +2,11 @@ storage {
     foo: int,
 }
 
-pub var a: bool;
-pub var b: int;
-pub var c: b256;
+predicate test {
+    pub var a: bool;
+    pub var b: int;
+    pub var c: b256;
 
-state foo: int = storage::foo;
-constraint b == foo';
-solve satisfy;
+    state foo: int = storage::foo;
+    constraint b == foo';
+}

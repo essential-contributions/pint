@@ -1,0 +1,17 @@
+macro @a($x, &pack) {
+    $x + &pack
+}
+
+predicate test {
+    var b: int = @a(11; 22; 33; 44; 55);
+}
+
+// This isn't ideal.  What we should be doing is barring the use of the param pack outside of a
+// recursive macro call.  But we don't have that context while expanding the macro body.  So this
+// will expand the body to `11 + 22; 33; 44; 55` which causes the syntax error.
+//
+// parse_failure <<<
+// expected `}`, found `;`
+// @0..0: expected `}`
+// @74..96: when making macro call to '::@a'
+// >>>

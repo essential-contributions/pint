@@ -18,7 +18,7 @@ Here's an example that shows how to declared a decision variable named `foo` of 
 You can actually think of the type annotation as a "constraint" on the decision variable: this
 decision variable can only take values in the set of signed integers (64-bit signed integers when
 targeting the EssentialVM). Any solution that proposes a value of `foo` must satisfy that
-constraint.
+constraint. We will go over constraints in more detail in [Chapter 3.6](constraints.md).
 
 A decision variable can also be "initialized". Initializing a decision variable may seem like an odd
 concept because decision variables are declared to be solved for. However, an initialized decision

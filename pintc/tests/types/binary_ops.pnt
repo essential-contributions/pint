@@ -1,284 +1,285 @@
-var a = 11 + false;
-var b = 22 - true;
-var c = [1,2] * 33;
-var d = "four" / 44;
+predicate test {
+    var a = 11 + false;
+    var b = 22 - true;
+    var c = [1,2] * 33;
+    var d = "four" / 44;
 
-enum T = FortyTwo | FleventyFive;
-var e = 55 % T::FortyTwo;
+    enum T = FortyTwo | FleventyFive;
+    var e = 55 % T::FortyTwo;
 
-// Numerics are allowed, but they must match.
-var f = 66 + 77.7;
-var g = 88 - 99.9;
-var h = 10.10 * 11;
-var i = 12 / 13.13;
-var j = 14.14 % 15;
+    // Numerics are allowed, but they must match.
+    var f = 66 + 77.7;
+    var g = 88 - 99.9;
+    var h = 10.10 * 11;
+    var i = 12 / 13.13;
+    var j = 14.14 % 15;
 
-// `==` and `!=` take any type but they must be equivalent.
-var k = 16 == T::FleventyFive;
-var l = 17 != true;
+    // `==` and `!=` take any type but they must be equivalent.
+    var k = 16 == T::FleventyFive;
+    var l = 17 != true;
 
-var m = true > false;
-var n = 18 >= 19.19;
-var o = 20 < "21";
-var p = 22 <= [23, 23];
+    var m = true > false;
+    var n = 18 >= 19.19;
+    var o = 20 < "21";
+    var p = 22 <= [23, 23];
 
-var q = true && 24;
-var r = 25.25 || false;
+    var q = true && 24;
+    var r = 25.25 || false;
 
-// Tuples can compare with `==` or `!=` too.
-var s = {true, 26} == {27, false};
-var t = {28.28, 29} != {30, 31};
-
-solve satisfy;
+    // Tuples can compare with `==` or `!=` too.
+    var s = {true, 26} == {27, false};
+    var t = {28.28, 29} != {30, 31};
+}
 
 // parsed <<<
-// var ::a;
-// var ::b;
-// var ::c;
-// var ::d;
-// var ::e;
-// var ::f;
-// var ::g;
-// var ::h;
-// var ::i;
-// var ::j;
-// var ::k;
-// var ::l;
-// var ::m;
-// var ::n;
-// var ::o;
-// var ::p;
-// var ::q;
-// var ::r;
-// var ::s;
-// var ::t;
-// enum ::T = FortyTwo | FleventyFive;
-// constraint (::a == (11 + false));
-// constraint (::b == (22 - true));
-// constraint (::c == ([1, 2] * 33));
-// constraint (::d == ("four" / 44));
-// constraint (::e == (55 % ::T::FortyTwo));
-// constraint (::f == (66 + 7.77e1));
-// constraint (::g == (88 - 9.99e1));
-// constraint (::h == (1.01e1 * 11));
-// constraint (::i == (12 / 1.313e1));
-// constraint (::j == (1.414e1 % 15));
-// constraint (::k == (16 == ::T::FleventyFive));
-// constraint (::l == (17 != true));
-// constraint (::m == (true > false));
-// constraint (::n == (18 >= 1.919e1));
-// constraint (::o == (20 < "21"));
-// constraint (::p == (22 <= [23, 23]));
-// constraint (::q == (true && 24));
-// constraint (::r == (2.525e1 || false));
-// constraint (::s == ({true, 26} == {27, false}));
-// constraint (::t == ({2.828e1, 29} != {30, 31}));
-// solve satisfy;
+// predicate ::test {
+//     var ::a;
+//     var ::b;
+//     var ::c;
+//     var ::d;
+//     var ::e;
+//     var ::f;
+//     var ::g;
+//     var ::h;
+//     var ::i;
+//     var ::j;
+//     var ::k;
+//     var ::l;
+//     var ::m;
+//     var ::n;
+//     var ::o;
+//     var ::p;
+//     var ::q;
+//     var ::r;
+//     var ::s;
+//     var ::t;
+//     enum ::T = FortyTwo | FleventyFive;
+//     constraint (::a == (11 + false));
+//     constraint (::b == (22 - true));
+//     constraint (::c == ([1, 2] * 33));
+//     constraint (::d == ("four" / 44));
+//     constraint (::e == (55 % ::T::FortyTwo));
+//     constraint (::f == (66 + 7.77e1));
+//     constraint (::g == (88 - 9.99e1));
+//     constraint (::h == (1.01e1 * 11));
+//     constraint (::i == (12 / 1.313e1));
+//     constraint (::j == (1.414e1 % 15));
+//     constraint (::k == (16 == ::T::FleventyFive));
+//     constraint (::l == (17 != true));
+//     constraint (::m == (true > false));
+//     constraint (::n == (18 >= 1.919e1));
+//     constraint (::o == (20 < "21"));
+//     constraint (::p == (22 <= [23, 23]));
+//     constraint (::q == (true && 24));
+//     constraint (::r == (2.525e1 || false));
+//     constraint (::s == ({true, 26} == {27, false}));
+//     constraint (::t == ({2.828e1, 29} != {30, 31}));
+// }
 // >>>
 
 // typecheck_failure <<<
 // binary operator type error
-// @13..18: operator `+` argument has unexpected type `bool`
+// @34..39: operator `+` argument has unexpected type `bool`
 // binary operator type error
-// @33..37: operator `-` argument has unexpected type `bool`
+// @58..62: operator `-` argument has unexpected type `bool`
 // binary operator type error
-// @47..52: operator `*` argument has unexpected type `int[2]`
+// @76..81: operator `*` argument has unexpected type `int[2]`
 // binary operator type error
-// @67..73: operator `/` argument has unexpected type `string`
+// @100..106: operator `/` argument has unexpected type `string`
 // binary operator type error
-// @128..139: operator `%` argument has unexpected type `::T`
+// @169..180: operator `%` argument has unexpected type `::T`
 // binary operator type error
-// @201..205: operator `+` argument has unexpected type `real`
-// @196..198: expecting type `int`
+// @250..254: operator `+` argument has unexpected type `real`
+// @245..247: expecting type `int`
 // binary operator type error
-// @220..224: operator `-` argument has unexpected type `real`
-// @215..217: expecting type `int`
+// @273..277: operator `-` argument has unexpected type `real`
+// @268..270: expecting type `int`
 // binary operator type error
-// @242..244: operator `*` argument has unexpected type `int`
-// @234..239: expecting type `real`
+// @299..301: operator `*` argument has unexpected type `int`
+// @291..296: expecting type `real`
 // binary operator type error
-// @259..264: operator `/` argument has unexpected type `real`
-// @254..256: expecting type `int`
+// @320..325: operator `/` argument has unexpected type `real`
+// @315..317: expecting type `int`
 // binary operator type error
-// @282..284: operator `%` argument has unexpected type `int`
-// @274..279: expecting type `real`
+// @347..349: operator `%` argument has unexpected type `int`
+// @339..344: expecting type `real`
 // binary operator type error
-// @361..376: operator `==` argument has unexpected type `::T`
-// @355..357: expecting type `int`
+// @434..449: operator `==` argument has unexpected type `::T`
+// @428..430: expecting type `int`
 // binary operator type error
-// @392..396: operator `!=` argument has unexpected type `bool`
-// @386..388: expecting type `int`
+// @469..473: operator `!=` argument has unexpected type `bool`
+// @463..465: expecting type `int`
 // binary operator type error
-// @407..411: operator `>` argument has unexpected type `bool`
+// @488..492: operator `>` argument has unexpected type `bool`
 // binary operator type error
-// @435..440: operator `>=` argument has unexpected type `real`
-// @429..431: expecting type `int`
+// @520..525: operator `>=` argument has unexpected type `real`
+// @514..516: expecting type `int`
 // binary operator type error
-// @455..459: operator `<` argument has unexpected type `string`
+// @544..548: operator `<` argument has unexpected type `string`
 // binary operator type error
-// @475..483: operator `<=` argument has unexpected type `int[2]`
+// @568..576: operator `<=` argument has unexpected type `int[2]`
 // binary operator type error
-// @502..504: operator `&&` argument has unexpected type `int`
-// @494..504: expecting type `bool`
+// @599..601: operator `&&` argument has unexpected type `int`
+// @591..601: expecting type `bool`
 // binary operator type error
-// @514..519: operator `||` argument has unexpected type `real`
-// @514..528: expecting type `bool`
+// @615..620: operator `||` argument has unexpected type `real`
+// @615..629: expecting type `bool`
 // binary operator type error
-// @598..609: operator `==` argument has unexpected type `{int, bool}`
-// @584..594: expecting type `{bool, int}`
+// @707..718: operator `==` argument has unexpected type `{int, bool}`
+// @693..703: expecting type `{bool, int}`
 // binary operator type error
-// @634..642: operator `!=` argument has unexpected type `{int, int}`
-// @619..630: expecting type `{real, int}`
+// @747..755: operator `!=` argument has unexpected type `{int, int}`
+// @732..743: expecting type `{real, int}`
 // binary operator type error
-// @13..18: operator `+` argument has unexpected type `bool`
+// @34..39: operator `+` argument has unexpected type `bool`
 // binary operator type error
-// @33..37: operator `-` argument has unexpected type `bool`
+// @58..62: operator `-` argument has unexpected type `bool`
 // binary operator type error
-// @47..52: operator `*` argument has unexpected type `int[2]`
+// @76..81: operator `*` argument has unexpected type `int[2]`
 // binary operator type error
-// @67..73: operator `/` argument has unexpected type `string`
+// @100..106: operator `/` argument has unexpected type `string`
 // binary operator type error
-// @128..139: operator `%` argument has unexpected type `::T`
+// @169..180: operator `%` argument has unexpected type `::T`
 // binary operator type error
-// @201..205: operator `+` argument has unexpected type `real`
-// @196..198: expecting type `int`
+// @250..254: operator `+` argument has unexpected type `real`
+// @245..247: expecting type `int`
 // binary operator type error
-// @220..224: operator `-` argument has unexpected type `real`
-// @215..217: expecting type `int`
+// @273..277: operator `-` argument has unexpected type `real`
+// @268..270: expecting type `int`
 // binary operator type error
-// @242..244: operator `*` argument has unexpected type `int`
-// @234..239: expecting type `real`
+// @299..301: operator `*` argument has unexpected type `int`
+// @291..296: expecting type `real`
 // binary operator type error
-// @259..264: operator `/` argument has unexpected type `real`
-// @254..256: expecting type `int`
+// @320..325: operator `/` argument has unexpected type `real`
+// @315..317: expecting type `int`
 // binary operator type error
-// @282..284: operator `%` argument has unexpected type `int`
-// @274..279: expecting type `real`
+// @347..349: operator `%` argument has unexpected type `int`
+// @339..344: expecting type `real`
 // binary operator type error
-// @361..376: operator `==` argument has unexpected type `::T`
-// @355..357: expecting type `int`
+// @434..449: operator `==` argument has unexpected type `::T`
+// @428..430: expecting type `int`
 // binary operator type error
-// @392..396: operator `!=` argument has unexpected type `bool`
-// @386..388: expecting type `int`
+// @469..473: operator `!=` argument has unexpected type `bool`
+// @463..465: expecting type `int`
 // binary operator type error
-// @407..411: operator `>` argument has unexpected type `bool`
+// @488..492: operator `>` argument has unexpected type `bool`
 // binary operator type error
-// @435..440: operator `>=` argument has unexpected type `real`
-// @429..431: expecting type `int`
+// @520..525: operator `>=` argument has unexpected type `real`
+// @514..516: expecting type `int`
 // binary operator type error
-// @455..459: operator `<` argument has unexpected type `string`
+// @544..548: operator `<` argument has unexpected type `string`
 // binary operator type error
-// @475..483: operator `<=` argument has unexpected type `int[2]`
+// @568..576: operator `<=` argument has unexpected type `int[2]`
 // binary operator type error
-// @502..504: operator `&&` argument has unexpected type `int`
-// @494..504: expecting type `bool`
+// @599..601: operator `&&` argument has unexpected type `int`
+// @591..601: expecting type `bool`
 // binary operator type error
-// @514..519: operator `||` argument has unexpected type `real`
-// @514..528: expecting type `bool`
+// @615..620: operator `||` argument has unexpected type `real`
+// @615..629: expecting type `bool`
 // binary operator type error
-// @598..609: operator `==` argument has unexpected type `{int, bool}`
-// @584..594: expecting type `{bool, int}`
+// @707..718: operator `==` argument has unexpected type `{int, bool}`
+// @693..703: expecting type `{bool, int}`
 // binary operator type error
-// @634..642: operator `!=` argument has unexpected type `{int, int}`
-// @619..630: expecting type `{real, int}`
+// @747..755: operator `!=` argument has unexpected type `{int, int}`
+// @732..743: expecting type `{real, int}`
 // unable to determine expression type
-// @4..5: type of this expression is ambiguous
+// @25..26: type of this expression is ambiguous
 // unable to determine expression type
-// @24..25: type of this expression is ambiguous
+// @49..50: type of this expression is ambiguous
 // unable to determine expression type
-// @43..44: type of this expression is ambiguous
+// @72..73: type of this expression is ambiguous
 // unable to determine expression type
-// @63..64: type of this expression is ambiguous
+// @96..97: type of this expression is ambiguous
 // unable to determine expression type
-// @119..120: type of this expression is ambiguous
+// @160..161: type of this expression is ambiguous
 // unable to determine expression type
-// @192..193: type of this expression is ambiguous
+// @241..242: type of this expression is ambiguous
 // unable to determine expression type
-// @211..212: type of this expression is ambiguous
+// @264..265: type of this expression is ambiguous
 // unable to determine expression type
-// @230..231: type of this expression is ambiguous
+// @287..288: type of this expression is ambiguous
 // unable to determine expression type
-// @250..251: type of this expression is ambiguous
+// @311..312: type of this expression is ambiguous
 // unable to determine expression type
-// @270..271: type of this expression is ambiguous
+// @335..336: type of this expression is ambiguous
 // unable to determine expression type
-// @351..352: type of this expression is ambiguous
+// @424..425: type of this expression is ambiguous
 // unable to determine expression type
-// @382..383: type of this expression is ambiguous
+// @459..460: type of this expression is ambiguous
 // unable to determine expression type
-// @403..404: type of this expression is ambiguous
-// unable to determine expression type
-// @425..426: type of this expression is ambiguous
-// unable to determine expression type
-// @446..447: type of this expression is ambiguous
-// unable to determine expression type
-// @465..466: type of this expression is ambiguous
-// unable to determine expression type
-// @490..491: type of this expression is ambiguous
+// @484..485: type of this expression is ambiguous
 // unable to determine expression type
 // @510..511: type of this expression is ambiguous
 // unable to determine expression type
-// @580..581: type of this expression is ambiguous
+// @535..536: type of this expression is ambiguous
 // unable to determine expression type
-// @615..616: type of this expression is ambiguous
+// @558..559: type of this expression is ambiguous
+// unable to determine expression type
+// @587..588: type of this expression is ambiguous
+// unable to determine expression type
+// @611..612: type of this expression is ambiguous
+// unable to determine expression type
+// @689..690: type of this expression is ambiguous
+// unable to determine expression type
+// @728..729: type of this expression is ambiguous
 // constraint expression type error
-// @0..18: constraint expression has unknown type
-// @0..18: expecting type `bool`
+// @21..39: constraint expression has unknown type
+// @21..39: expecting type `bool`
 // constraint expression type error
-// @20..37: constraint expression has unknown type
-// @20..37: expecting type `bool`
+// @45..62: constraint expression has unknown type
+// @45..62: expecting type `bool`
 // constraint expression type error
-// @39..57: constraint expression has unknown type
-// @39..57: expecting type `bool`
+// @68..86: constraint expression has unknown type
+// @68..86: expecting type `bool`
 // constraint expression type error
-// @59..78: constraint expression has unknown type
-// @59..78: expecting type `bool`
+// @92..111: constraint expression has unknown type
+// @92..111: expecting type `bool`
 // constraint expression type error
-// @115..139: constraint expression has unknown type
-// @115..139: expecting type `bool`
+// @156..180: constraint expression has unknown type
+// @156..180: expecting type `bool`
 // constraint expression type error
-// @188..205: constraint expression has unknown type
-// @188..205: expecting type `bool`
+// @237..254: constraint expression has unknown type
+// @237..254: expecting type `bool`
 // constraint expression type error
-// @207..224: constraint expression has unknown type
-// @207..224: expecting type `bool`
+// @260..277: constraint expression has unknown type
+// @260..277: expecting type `bool`
 // constraint expression type error
-// @226..244: constraint expression has unknown type
-// @226..244: expecting type `bool`
+// @283..301: constraint expression has unknown type
+// @283..301: expecting type `bool`
 // constraint expression type error
-// @246..264: constraint expression has unknown type
-// @246..264: expecting type `bool`
+// @307..325: constraint expression has unknown type
+// @307..325: expecting type `bool`
 // constraint expression type error
-// @266..284: constraint expression has unknown type
-// @266..284: expecting type `bool`
+// @331..349: constraint expression has unknown type
+// @331..349: expecting type `bool`
 // constraint expression type error
-// @347..376: constraint expression has unknown type
-// @347..376: expecting type `bool`
+// @420..449: constraint expression has unknown type
+// @420..449: expecting type `bool`
 // constraint expression type error
-// @378..396: constraint expression has unknown type
-// @378..396: expecting type `bool`
+// @455..473: constraint expression has unknown type
+// @455..473: expecting type `bool`
 // constraint expression type error
-// @399..419: constraint expression has unknown type
-// @399..419: expecting type `bool`
+// @480..500: constraint expression has unknown type
+// @480..500: expecting type `bool`
 // constraint expression type error
-// @421..440: constraint expression has unknown type
-// @421..440: expecting type `bool`
+// @506..525: constraint expression has unknown type
+// @506..525: expecting type `bool`
 // constraint expression type error
-// @442..459: constraint expression has unknown type
-// @442..459: expecting type `bool`
+// @531..548: constraint expression has unknown type
+// @531..548: expecting type `bool`
 // constraint expression type error
-// @461..483: constraint expression has unknown type
-// @461..483: expecting type `bool`
+// @554..576: constraint expression has unknown type
+// @554..576: expecting type `bool`
 // constraint expression type error
-// @486..504: constraint expression has unknown type
-// @486..504: expecting type `bool`
+// @583..601: constraint expression has unknown type
+// @583..601: expecting type `bool`
 // constraint expression type error
-// @506..528: constraint expression has unknown type
-// @506..528: expecting type `bool`
+// @607..629: constraint expression has unknown type
+// @607..629: expecting type `bool`
 // constraint expression type error
-// @576..609: constraint expression has unknown type
-// @576..609: expecting type `bool`
+// @685..718: constraint expression has unknown type
+// @685..718: expecting type `bool`
 // constraint expression type error
-// @611..642: constraint expression has unknown type
-// @611..642: expecting type `bool`
+// @724..755: constraint expression has unknown type
+// @724..755: expecting type `bool`
 // >>>

@@ -1,18 +1,17 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted},
     expr::{Expr, GeneratorKind},
-    predicate::{ExprKey, Handler, Predicate, Program, SolveFunc},
+    predicate::{Contract, ExprKey, Handler, Predicate},
     span::empty_span,
     types::Type,
 };
 
-pub(crate) fn validate(handler: &Handler, program: &mut Program) -> Result<(), ErrorEmitted> {
-    program.preds.values().for_each(|pred| {
+pub(crate) fn validate(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
+    contract.preds.values().for_each(|pred| {
         check_constraints(pred, handler);
         check_vars(pred, handler);
         check_states(pred, handler);
         check_ifs(pred, handler);
-        check_directive(pred, handler);
     });
 
     Ok(())
@@ -58,31 +57,6 @@ fn check_ifs(pred: &Predicate, handler: &Handler) {
             },
         });
     }
-}
-
-fn check_directive(pred: &Predicate, handler: &Handler) {
-    if pred.directives.len() > 1 {
-        handler.emit_err(Error::Compile {
-            error: CompileError::Internal {
-                msg: "final predicate contains more than one `solve` directive",
-                span: pred
-                    .directives
-                    .last()
-                    .expect("guaranteed to exist")
-                    .1
-                    .clone(),
-            },
-        });
-    }
-
-    pred.directives
-        .iter()
-        .for_each(|(solve_func, _)| match solve_func {
-            SolveFunc::Minimize(expr_key) | SolveFunc::Maximize(expr_key) => {
-                let _ = check_expr(expr_key, handler, pred);
-            }
-            SolveFunc::Satisfy => {}
-        })
 }
 
 fn check_constraints(pred: &Predicate, handler: &Handler) {
@@ -204,13 +178,13 @@ fn check(actual: &str, expect: expect_test::Expect) {
 #[cfg(test)]
 fn run_test(src: &str) -> String {
     use crate::error;
-    let (mut program, handler) = run_without_transforms(src);
-    let _ = validate(&handler, &mut program);
+    let (mut contract, handler) = run_without_transforms(src);
+    let _ = validate(&handler, &mut contract);
     error::Errors(handler.consume()).to_string()
 }
 
 #[cfg(test)]
-fn run_without_transforms(src: &str) -> (Program, Handler) {
+fn run_without_transforms(src: &str) -> (Contract, Handler) {
     let handler = Handler::default();
     let parsed_source = run_parser(src, &handler);
     let type_checked_source = parsed_source
@@ -220,16 +194,15 @@ fn run_without_transforms(src: &str) -> (Program, Handler) {
 }
 
 #[cfg(test)]
-fn run_parser(src: &str, handler: &Handler) -> Program {
-    use crate::{parser::pint_parser, predicate::ProgramKind, span};
+fn run_parser(src: &str, handler: &Handler) -> Contract {
+    use crate::{parser::pint_parser, span};
     use std::collections::BTreeMap;
 
     let parser = pint_parser::PintParser::new();
-    let mut current_pred = Program::ROOT_PRED_NAME.to_string();
+    let mut current_pred = Contract::ROOT_PRED_NAME.to_string();
     let filepath = std::rc::Rc::from(std::path::Path::new("test"));
-    let mut program = Program {
-        kind: ProgramKind::Stateless,
-        preds: BTreeMap::from([(Program::ROOT_PRED_NAME.to_string(), Predicate::default())]),
+    let mut contract = Contract {
+        preds: BTreeMap::from([(Contract::ROOT_PRED_NAME.to_string(), Predicate::default())]),
         consts: fxhash::FxHashMap::default(),
     };
 
@@ -239,11 +212,11 @@ fn run_parser(src: &str, handler: &Handler) -> Program {
                 mod_path: &[],
                 mod_prefix: "",
                 local_scope: None,
-                program: &mut program,
+                contract: &mut contract,
                 current_pred: &mut current_pred,
                 macros: &mut Vec::new(),
                 macro_calls: &mut BTreeMap::from([(
-                    Program::ROOT_PRED_NAME.to_string(),
+                    Contract::ROOT_PRED_NAME.to_string(),
                     slotmap::SecondaryMap::new(),
                 )]),
                 span_from: &|_, _| span::empty_span(),
@@ -255,31 +228,69 @@ fn run_parser(src: &str, handler: &Handler) -> Program {
         )
         .expect("Failed to parse test case.");
 
-    program
+    contract
 }
 
 #[test]
 fn expr_types() {
     // array
-    let src = "var a = [1, 2, 3];";
+    let src = "predicate test { var a = [1, 2, 3]; }";
     check(&run_test(src), expect_test::expect![""]);
     // tuple
-    let src = "var t = { x: 5, 3 };";
+    let src = "predicate test { var t = { x: 5, 3 }; }";
     check(&run_test(src), expect_test::expect![""]);
+
     // custom / enum
-    let src = "enum MyEnum = Variant1 | Variant2;
-    var x = MyEnum;";
+    let src = r#"
+enum MyEnum = Variant1 | Variant2;
+predicate test { var x = MyEnum; }
+"#;
+
+    // Do this manually here because we have to copy the enum into the predicate.
+    // TODO: Should imporve this eventually
+    let handler = Handler::default();
+    let mut contract = run_parser(src, &handler);
+    let enums = contract.preds[""].enums.clone();
+    contract
+        .preds
+        .get_mut("test")
+        .unwrap()
+        .enums
+        .clone_from(&enums);
+    let mut contract = contract.type_check(&handler).expect("Failed to type check");
+    let _ = validate(&handler, &mut contract);
     check(
-        &run_test(src),
+        &crate::error::Errors(handler.consume()).to_string(),
         expect_test::expect![[r#"
         compiler internal error: custom type present in final predicate expr_types slotmap
         compiler internal error: custom type present in final predicate expr_types slotmap"#]],
     );
+
+    // Do this manually here because we have to copy the enum into the predicate.
+    // TODO: Should imporve this eventually
+
     // type alias
-    let src = "type MyAliasInt = int;
-    var x: MyAliasInt = 3;";
+    let src = r#"
+type MyAliasInt = int;
+predicate test { var x: MyAliasInt = 3; }
+"#;
+
+    // Do this manually here because we have to copy the new type into the predicate.
+    // TODO: Should imporve this eventually
+    let handler = Handler::default();
+    let mut contract = run_parser(src, &handler);
+    let new_types = contract.preds[""].new_types.clone();
+    contract
+        .preds
+        .get_mut("test")
+        .unwrap()
+        .new_types
+        .clone_from(&new_types);
+    let mut contract = contract.type_check(&handler).expect("Failed to type check");
+    let _ = validate(&handler, &mut contract);
+
     check(
-        &run_test(src),
+        &crate::error::Errors(handler.consume()).to_string(),
         expect_test::expect![[
             r#"compiler internal error: type alias present in final predicate expr_types slotmap"#
         ]],
@@ -289,7 +300,7 @@ fn expr_types() {
 #[test]
 fn exprs() {
     // array and array field access
-    let src = "var x: bool = 5 in [3, 4, 5];";
+    let src = "predicate test { var x: bool = 5 in [3, 4, 5]; }";
     check(
         &run_test(src),
         expect_test::expect![
@@ -297,8 +308,8 @@ fn exprs() {
         ],
     );
     // forall
-    let src = "var k: int;
-    constraint forall i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { !(i - j < k) };";
+    let src = "predicate test { var k: int;
+    constraint forall i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { !(i - j < k) }; }";
     check(
         &run_test(src),
         expect_test::expect![[r#"
@@ -307,10 +318,10 @@ fn exprs() {
             compiler internal error: range present in final predicate exprs slotmap"#]],
     );
     // exists
-    let src = "var a: int[2][2];
+    let src = "predicate test { var a: int[2][2];
     constraint exists i in 0..1, j in 0..1 {
         a[i][j] == 70
-    };";
+    };}";
     check(
         &run_test(src),
         expect_test::expect![[r#"
@@ -325,9 +336,9 @@ fn states() {
     use crate::error;
     use crate::predicate::State;
 
-    let src = "var a = 1;";
-    let (mut program, handler) = run_without_transforms(src);
-    program.preds.iter_mut().for_each(|(_, pred)| {
+    let src = "predicate test { var a = 1; }";
+    let (mut contract, handler) = run_without_transforms(src);
+    contract.preds.iter_mut().for_each(|(_, pred)| {
         let dummy_expr_key = pred
             .exprs
             .insert(Expr::Error(empty_span()), Type::Unknown(empty_span()));
@@ -338,10 +349,14 @@ fn states() {
         };
         pred.states.insert(dummy_state, Type::Unknown(empty_span()));
     });
-    let _ = validate(&handler, &mut program);
+    let _ = validate(&handler, &mut contract);
     check(
         &error::Errors(handler.consume()).to_string(),
         expect_test::expect![[r#"
+            compiler internal error: Unknown expr type found invalid predicate expr_types slotmap key
+            compiler internal error: unknown type present in final predicate expr_types slotmap
+            compiler internal error: error expression present in final predicate exprs slotmap
+            compiler internal error: final predicate state_types slotmap is missing corresponding key from states slotmap
             compiler internal error: Unknown expr type found invalid predicate expr_types slotmap key
             compiler internal error: unknown type present in final predicate expr_types slotmap
             compiler internal error: error expression present in final predicate exprs slotmap
@@ -354,9 +369,9 @@ fn vars() {
     use crate::error;
     use crate::predicate::Var;
 
-    let src = "var a = 1;";
-    let (mut program, handler) = run_without_transforms(src);
-    program.preds.iter_mut().for_each(|(_, pred)| {
+    let src = "predicate test { var a = 1; }";
+    let (mut contract, handler) = run_without_transforms(src);
+    contract.preds.iter_mut().for_each(|(_, pred)| {
         pred.vars.insert(
             Var {
                 name: "test".to_owned(),
@@ -366,10 +381,12 @@ fn vars() {
             Type::Unknown(empty_span()),
         );
     });
-    let _ = validate(&handler, &mut program);
+    let _ = validate(&handler, &mut contract);
     check(
         &error::Errors(handler.consume()).to_string(),
-        expect_test::expect!["compiler internal error: final predicate var_types slotmap is missing corresponding key from vars slotmap"],
+        expect_test::expect![[r#"
+            compiler internal error: final predicate var_types slotmap is missing corresponding key from vars slotmap
+            compiler internal error: final predicate var_types slotmap is missing corresponding key from vars slotmap"#]],
     );
 }
 
@@ -377,51 +394,11 @@ fn vars() {
 fn if_decls() {
     use crate::error;
 
-    let src = "if true { constraint true; } solve satisfy;";
-    let (mut program, handler) = run_without_transforms(src);
-    let _ = validate(&handler, &mut program);
+    let src = "predicate test { if true { constraint true; } }";
+    let (mut contract, handler) = run_without_transforms(src);
+    let _ = validate(&handler, &mut contract);
     check(
         &error::Errors(handler.consume()).to_string(),
         expect_test::expect!["compiler internal error: final predicate contains if declarations"],
-    );
-}
-
-#[test]
-fn directives() {
-    use crate::error;
-
-    let src = "var a = 1;";
-    let (mut program, handler) = run_without_transforms(src);
-    program.preds.iter_mut().for_each(|(_, pred)| {
-        let solve_directive = (SolveFunc::Satisfy, empty_span());
-        pred.directives.push(solve_directive);
-
-        let dummy_expr_key = pred.exprs.insert(
-            Expr::Error(empty_span()),
-            Type::Custom {
-                path: "::b".to_owned(),
-                span: empty_span(),
-            },
-        );
-
-        let maximize_directive = (SolveFunc::Maximize(dummy_expr_key), empty_span());
-        pred.directives.push(maximize_directive);
-
-        let minimize_directive = (SolveFunc::Minimize(dummy_expr_key), empty_span());
-        pred.directives.push(minimize_directive);
-    });
-    let _ = validate(&handler, &mut program);
-    check(
-        &error::Errors(handler.consume()).to_string(),
-        expect_test::expect![[r#"
-            compiler internal error: custom type present in final predicate expr_types slotmap
-            compiler internal error: error expression present in final predicate exprs slotmap
-            compiler internal error: custom type present in final predicate expr_types slotmap
-            compiler internal error: error expression present in final predicate exprs slotmap
-            compiler internal error: final predicate contains more than one `solve` directive
-            compiler internal error: custom type present in final predicate expr_types slotmap
-            compiler internal error: error expression present in final predicate exprs slotmap
-            compiler internal error: custom type present in final predicate expr_types slotmap
-            compiler internal error: error expression present in final predicate exprs slotmap"#]],
     );
 }

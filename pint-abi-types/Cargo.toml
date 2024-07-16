@@ -1,6 +1,7 @@
 [package]
 name = "pint-abi-types"
 version = "0.1.0"
+description = "A crate containing the types used in the Pint ABI"
 edition.workspace = true
 authors.workspace = true
 homepage.workspace = true

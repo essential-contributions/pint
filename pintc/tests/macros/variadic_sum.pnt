@@ -1,0 +1,30 @@
+macro @sum($x, &rest) {
+    @sum($x + &rest)
+}
+
+macro @sum($x) {
+    $x
+}
+
+predicate test {
+    var a: int = 4;
+    var b: int = @sum(1; 2; 3; a);
+}
+
+// parsed <<<
+// predicate ::test {
+//     var ::a: int;
+//     var ::b: int;
+//     constraint (::a == 4);
+//     constraint (::b == (((1 + 2) + 3) + ::a));
+// }
+// >>>
+
+// flattened <<<
+// predicate ::test {
+//     var ::a: int;
+//     var ::b: int;
+//     constraint (::a == 4);
+//     constraint (::b == (((1 + 2) + 3) + ::a));
+// }
+// >>>

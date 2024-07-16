@@ -1,20 +1,21 @@
-var ary: int[2];
+predicate test {
+    var ary: int[2];
 
-constraint ary[false] == ary[11.1];
-
-solve satisfy;
+    constraint ary[false] == ary[11.1];
+}
 
 // parsed <<<
-// var ::ary: int[2];
-// constraint (::ary[false] == ::ary[1.11e1]);
-// solve satisfy;
+// predicate ::test {
+//     var ::ary: int[2];
+//     constraint (::ary[false] == ::ary[1.11e1]);
+// }
 // >>>
 
 // typecheck_failure <<<
 // attempt to index an array with a mismatched value
-// @33..38: array access must be with an int value
+// @58..63: array access must be with an int value
 // found access using type `bool`
 // constraint expression type error
-// @18..52: constraint expression has unknown type
-// @18..52: expecting type `bool`
+// @43..77: constraint expression has unknown type
+// @43..77: expecting type `bool`
 // >>>

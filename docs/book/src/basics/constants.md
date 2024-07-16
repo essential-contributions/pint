@@ -7,7 +7,7 @@ is not a decision variable to be solved. These may be declared in Pint using the
 initializer.
 
 ```pint
-{{#include ../../../../examples/ch_3_6.pnt:consts}}
+{{#include ../../../../examples/ch_3_7.pnt:consts}}
 ```
 
 Like `var` declarations the type may be ommitted and will be inferred by the Pint compiler, but the

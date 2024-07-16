@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, Expr, Ident, Immediate, TupleAccess, UnaryOp},
-    predicate::{BlockStatement, ConstraintDecl, ExprKey, IfDecl, Predicate},
+    predicate::{BlockStatement, ConstraintDecl, ExprKey, IfDecl, Predicate, StorageVar},
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
 };
@@ -216,46 +216,6 @@ pub(crate) fn lower_enums(handler: &Handler, pred: &mut Predicate) -> Result<(),
     Ok(())
 }
 
-pub(crate) fn lower_bools(pred: &mut Predicate) {
-    // Just do a blanket replacement of all bool types with int types.
-    let int_ty = Type::Primitive {
-        kind: PrimitiveKind::Int,
-        span: empty_span(),
-    };
-
-    pred.vars.update_types(|_, ty| {
-        if ty.is_bool() {
-            *ty = int_ty.clone();
-        }
-    });
-
-    pred.exprs.update_types(|_, expr_type| {
-        if expr_type.is_bool() {
-            *expr_type = int_ty.clone();
-        }
-    });
-
-    pred.states.update_types(|_, ty| {
-        if ty.is_bool() {
-            *ty = int_ty.clone();
-        }
-    });
-
-    // Replace any literal true or false falures with int equivalents.
-    pred.exprs.update_exprs(|_, expr| {
-        if let Expr::Immediate {
-            value: Immediate::Bool(bool_val),
-            span,
-        } = expr
-        {
-            *expr = Expr::Immediate {
-                value: Immediate::Int(*bool_val as i64),
-                span: span.clone(),
-            };
-        }
-    });
-}
-
 pub(crate) fn lower_casts(handler: &Handler, pred: &mut Predicate) -> Result<(), ErrorEmitted> {
     let mut replacements = Vec::new();
 
@@ -326,17 +286,23 @@ pub(crate) fn lower_aliases(pred: &mut Predicate) {
 
     // Replace aliases with the actual type.
     pred.vars
-        .update_types(|_, var| replace_alias(&new_types, var));
+        .update_types(|_, var_ty| replace_alias(&new_types, var_ty));
     pred.states
-        .update_types(|_, state| replace_alias(&new_types, state));
+        .update_types(|_, state_ty| replace_alias(&new_types, state_ty));
     pred.exprs
-        .update_types(|_, expr| replace_alias(&new_types, expr));
+        .update_types(|_, expr_ty| replace_alias(&new_types, expr_ty));
 
     pred.exprs.update_exprs(|_, expr| {
         if let Expr::Cast { ty, .. } = expr {
             replace_alias(&new_types, ty.borrow_mut());
         }
     });
+
+    if let Some((storage_vars, _)) = &mut pred.storage {
+        for StorageVar { ty, .. } in storage_vars {
+            replace_alias(&new_types, ty);
+        }
+    }
 }
 
 pub(crate) fn lower_imm_accesses(

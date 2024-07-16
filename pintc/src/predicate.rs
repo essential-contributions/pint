@@ -7,7 +7,7 @@ use crate::{
 use exprs::ExprsIter;
 pub use exprs::{ExprKey, Exprs};
 use fxhash::FxHashMap;
-use pint_abi_types::{KeyedVarABI, PredicateABI, ProgramABI};
+use pint_abi_types::{ContractABI, KeyedVarABI, PredicateABI};
 pub use states::{State, StateKey, States};
 use std::{
     collections::BTreeMap,
@@ -16,7 +16,7 @@ use std::{
 pub use vars::{Var, VarKey, Vars};
 
 mod analyse;
-mod check_program_kind;
+mod check_contract;
 mod display;
 mod exprs;
 mod states;
@@ -25,30 +25,15 @@ mod vars;
 
 slotmap::new_key_type! { pub struct CallKey; }
 
-#[derive(Debug, Default, Clone)]
-pub enum ProgramKind {
-    #[default]
-    Stateless,
-    Stateful,
-}
-
-/// A Program is a collection of predicates. There are two types of programs:
-///
-/// * Stateless: these must have a single Pred in the `BTreeMap` with an the name
-/// `Program::ROOT_PRED_NAME` and cannot own state.
-/// * Stateful: these must have at least one predicate other than the root predicate. The root predicate,
-/// which has the name `Program::ROOT_PRED_NAME`, contains everything that lives outside `predicate { ..
-/// }` declarations. Stateful programs are allowed to own state and the state is shared by all
-/// predicates.
+/// A Contract is a collection of predicates and some global consts.
 #[derive(Debug, Default)]
-pub struct Program {
-    pub kind: ProgramKind,
+pub struct Contract {
     pub preds: BTreeMap<String, Predicate>,
 
     pub consts: FxHashMap<String, Const>,
 }
 
-impl Program {
+impl Contract {
     pub const ROOT_PRED_NAME: &'static str = "";
 
     pub fn compile(self, handler: &Handler) -> Result<Self, ErrorEmitted> {
@@ -66,13 +51,21 @@ impl Program {
         self.preds.get_mut(Self::ROOT_PRED_NAME).unwrap()
     }
 
-    /// Generates a `ProgramABI` given a `Program`
-    pub fn abi(&self, handler: &Handler) -> Result<ProgramABI, ErrorEmitted> {
-        Ok(ProgramABI {
+    /// Generates a `ContractABI` given a `Contract`
+    pub fn abi(&self, handler: &Handler) -> Result<ContractABI, ErrorEmitted> {
+        Ok(ContractABI {
             predicates: self
                 .preds
-                .values()
-                .map(|pred| pred.abi(handler))
+                .iter()
+                .filter_map(|(name, pred)| {
+                    if name == Self::ROOT_PRED_NAME {
+                        // Skip the root predicate from the generated ABI. Its content is no longer
+                        // relevant
+                        None
+                    } else {
+                        Some(pred.abi(handler))
+                    }
+                })
                 .collect::<Result<_, _>>()?,
             storage: self
                 .root_pred()
@@ -118,7 +111,6 @@ pub struct Predicate {
 
     pub constraints: Vec<ConstraintDecl>,
     pub if_decls: Vec<IfDecl>,
-    pub directives: Vec<(SolveFunc, Span)>,
 
     pub ephemerals: Vec<EphemeralDecl>,
     pub enums: Vec<EnumDecl>,
@@ -157,7 +149,7 @@ impl Predicate {
     }
 
     pub fn is_root(&self) -> bool {
-        self.name == Program::ROOT_PRED_NAME
+        self.name == Contract::ROOT_PRED_NAME
     }
 
     /// Generate a `PredicateABI` given an `Predicate`
@@ -332,14 +324,6 @@ impl Predicate {
                 }
             });
 
-        self.directives.iter_mut().for_each(|(solve_func, _)| {
-            if let Some(expr) = solve_func.get_mut_expr() {
-                if *expr == old_expr {
-                    *expr = new_expr;
-                }
-            }
-        });
-
         self.var_inits.iter_mut().for_each(|(_, expr)| {
             if *expr == old_expr {
                 *expr = new_expr;
@@ -374,14 +358,6 @@ impl Predicate {
                     *expr = *new_expr;
                 }
             });
-
-        self.directives.iter_mut().for_each(|(solve_func, _)| {
-            if let Some(expr) = solve_func.get_mut_expr() {
-                if let Some(new_expr) = expr_map.get(expr) {
-                    *expr = *new_expr;
-                }
-            }
-        });
 
         self.var_inits.iter_mut().for_each(|(_, expr)| {
             if let Some(new_expr) = expr_map.get(expr) {
@@ -509,18 +485,13 @@ impl Predicate {
         }
     }
 
-    /// Return an iterator to the 'root set' of expressions, based on the constraints, states and
-    /// directives.
+    /// Return an iterator to the 'root set' of expressions, based on the constraints, states,
+    /// interface instances, and predicate instances.
     fn root_set(&self) -> impl Iterator<Item = ExprKey> + '_ {
         self.constraints
             .iter()
             .map(|c| c.expr)
             .chain(self.states().map(|(_, state)| state.expr))
-            .chain(
-                self.directives
-                    .iter()
-                    .filter_map(|(solve_func, _)| solve_func.get_expr().cloned()),
-            )
             .chain(self.interface_instances.iter().map(|ii| ii.address))
             .chain(self.predicate_instances.iter().map(|pi| pi.address))
     }
@@ -604,40 +575,6 @@ impl IfDecl {
             }
         }
         writeln!(f, "{indentation}}}")
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum SolveFunc {
-    Satisfy,
-    Minimize(ExprKey),
-    Maximize(ExprKey),
-}
-
-impl SolveFunc {
-    pub(crate) fn get_expr(&self) -> Option<&ExprKey> {
-        match self {
-            SolveFunc::Satisfy => None,
-            SolveFunc::Minimize(e) | SolveFunc::Maximize(e) => Some(e),
-        }
-    }
-
-    pub(crate) fn get_mut_expr(&mut self) -> Option<&mut ExprKey> {
-        match self {
-            SolveFunc::Satisfy => None,
-            SolveFunc::Minimize(e) | SolveFunc::Maximize(e) => Some(e),
-        }
-    }
-}
-
-impl DisplayWithPred for SolveFunc {
-    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> std::fmt::Result {
-        write!(f, "solve ")?;
-        match self {
-            SolveFunc::Satisfy => write!(f, "satisfy"),
-            SolveFunc::Minimize(key) => write!(f, "minimize {}", pred.with_pred(key)),
-            SolveFunc::Maximize(key) => write!(f, "maximize {}", pred.with_pred(key)),
-        }
     }
 }
 

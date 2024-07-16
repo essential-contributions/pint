@@ -1,0 +1,87 @@
+macro @gte($id, $next_count, &counts) {
+    constraint $id >= $next_count;
+    @gte($id; &counts);
+}
+
+macro @gte($id, $last_count) {
+    constraint $id >= $last_count;
+}
+
+macro @matches_one($id, $val, &vals) {
+    $id == $val || @matches_one($id; &vals)
+}
+
+macro @matches_one($id, $val) {
+    $id == $val
+}
+
+// This would be better done with an `exists` intrinsic (like `forall`).
+macro @find_max_feeling($feeling, $max_feeling, $counts_name, $idx, &idcs) {
+    ($feeling == $idx && $counts_name[$idx] == $max_feeling) ||
+        @find_max_feeling($feeling; $max_feeling; $counts_name; &idcs)
+}
+
+macro @find_max_feeling($feeling, $max_feeling, $counts_name, $last_idx) {
+    $feeling == $last_idx && $counts_name[$last_idx] == $max_feeling
+}
+
+predicate test {
+    enum Feeling = Uneasy | Queasy | Awkward | Anxious;
+
+    var counts: int[Feeling];
+    constraint counts[Feeling::Uneasy] == 33;
+    constraint counts[Feeling::Queasy] == 22;
+    constraint counts[Feeling::Awkward] == 44;
+    constraint counts[Feeling::Anxious] == 11;
+
+    // Constrain max_feeling to the max value (44).
+    var max_feeling: int;
+    @gte(max_feeling; ~counts);
+    constraint @matches_one(max_feeling; ~counts);
+
+    // Solve feeling to be the max (Feeling::Awkward).  This should be easier, with no need to put each
+    // enum variant into a new array.
+    var feeling: Feeling;
+    constraint @find_max_feeling(feeling; max_feeling; counts;
+                                 Feeling::Uneasy; Feeling::Queasy; Feeling::Awkward; Feeling::Anxious);
+}
+
+// parsed <<<
+// predicate ::test {
+//     var ::counts: int[::Feeling];
+//     var ::max_feeling: int;
+//     var ::feeling: ::Feeling;
+//     enum ::Feeling = Uneasy | Queasy | Awkward | Anxious;
+//     constraint (::counts[::Feeling::Uneasy] == 33);
+//     constraint (::counts[::Feeling::Queasy] == 22);
+//     constraint (::counts[::Feeling::Awkward] == 44);
+//     constraint (::counts[::Feeling::Anxious] == 11);
+//     constraint ((::max_feeling == ::counts[::Feeling::Uneasy]) || ((::max_feeling == ::counts[::Feeling::Queasy]) || ((::max_feeling == ::counts[::Feeling::Awkward]) || (::max_feeling == ::counts[::Feeling::Anxious]))));
+//     constraint (((::feeling == ::Feeling::Uneasy) && (::counts[::Feeling::Uneasy] == ::max_feeling)) || (((::feeling == ::Feeling::Queasy) && (::counts[::Feeling::Queasy] == ::max_feeling)) || (((::feeling == ::Feeling::Awkward) && (::counts[::Feeling::Awkward] == ::max_feeling)) || ((::feeling == ::Feeling::Anxious) && (::counts[::Feeling::Anxious] == ::max_feeling)))));
+//     constraint (::max_feeling >= ::counts[::Feeling::Uneasy]);
+//     constraint (::max_feeling >= ::counts[::Feeling::Queasy]);
+//     constraint (::max_feeling >= ::counts[::Feeling::Awkward]);
+//     constraint (::max_feeling >= ::counts[::Feeling::Anxious]);
+// }
+// >>>
+
+// flattened <<<
+// predicate ::test {
+//     var ::counts: int[4];
+//     var ::max_feeling: int;
+//     var ::feeling: int;
+//     enum ::Feeling = Uneasy | Queasy | Awkward | Anxious;
+//     constraint (::counts[0] == 33);
+//     constraint (::counts[1] == 22);
+//     constraint (::counts[2] == 44);
+//     constraint (::counts[3] == 11);
+//     constraint ((::max_feeling == ::counts[0]) || ((::max_feeling == ::counts[1]) || ((::max_feeling == ::counts[2]) || (::max_feeling == ::counts[3]))));
+//     constraint (((::feeling == 0) && (::counts[0] == ::max_feeling)) || (((::feeling == 1) && (::counts[1] == ::max_feeling)) || (((::feeling == 2) && (::counts[2] == ::max_feeling)) || ((::feeling == 3) && (::counts[3] == ::max_feeling)))));
+//     constraint (::max_feeling >= ::counts[0]);
+//     constraint (::max_feeling >= ::counts[1]);
+//     constraint (::max_feeling >= ::counts[2]);
+//     constraint (::max_feeling >= ::counts[3]);
+//     constraint (::feeling >= 0);
+//     constraint (::feeling <= 3);
+// }
+// >>>

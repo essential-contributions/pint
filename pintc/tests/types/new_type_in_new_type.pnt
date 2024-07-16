@@ -1,35 +1,37 @@
-type A = int;
-type B = A[2];
-type C = { A, A };
-type D = { C, C };
+predicate test {
+    type A = int;
+    type B = A[2];
+    type C = { A, A };
+    type D = { C, C };
 
-var x: B;
-var y: D;
-constraint x[1] == 11;
-constraint y.1.0 == 22;
-
-solve satisfy;
+    var x: B;
+    var y: D;
+    constraint x[1] == 11;
+    constraint y.1.0 == 22;
+}
 
 // parsed <<<
-// var ::x: ::B;
-// var ::y: ::D;
-// type ::A = int;
-// type ::B = ::A[2];
-// type ::C = {::A, ::A};
-// type ::D = {::C, ::C};
-// constraint (::x[1] == 11);
-// constraint (::y.1.0 == 22);
-// solve satisfy;
+// predicate ::test {
+//     var ::x: ::B;
+//     var ::y: ::D;
+//     type ::A = int;
+//     type ::B = ::A[2];
+//     type ::C = {::A, ::A};
+//     type ::D = {::C, ::C};
+//     constraint (::x[1] == 11);
+//     constraint (::y.1.0 == 22);
+// }
 // >>>
 
 // flattened <<<
-// var ::x: ::A (int)[2];
-// var ::y: {::C ({::A (int), ::A (int)}), ::C ({::A (int), ::A (int)})};
-// type ::A = int;
-// type ::B = ::A (int)[2];
-// type ::C = {::A (int), ::A (int)};
-// type ::D = {::C ({::A (int), ::A (int)}), ::C ({::A (int), ::A (int)})};
-// constraint (::x[1] == 11);
-// constraint (::y.1.0 == 22);
-// solve satisfy;
+// predicate ::test {
+//     var ::x: ::A (int)[2];
+//     var ::y: {::C ({::A (int), ::A (int)}), ::C ({::A (int), ::A (int)})};
+//     type ::A = int;
+//     type ::B = ::A (int)[2];
+//     type ::C = {::A (int), ::A (int)};
+//     type ::D = {::C ({::A (int), ::A (int)}), ::C ({::A (int), ::A (int)})};
+//     constraint (::x[1] == 11);
+//     constraint (::y.1.0 == 22);
+// }
 // >>>

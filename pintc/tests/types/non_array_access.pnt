@@ -1,19 +1,20 @@
-var a: real;
+predicate test {
+    var a: real;
 
-constraint a[0] == a[1];
-
-solve satisfy;
+    constraint a[0] == a[1];
+}
 
 // parsed <<<
-// var ::a: real;
-// constraint (::a[0] == ::a[1]);
-// solve satisfy;
+// predicate ::test {
+//     var ::a: real;
+//     constraint (::a[0] == ::a[1]);
+// }
 // >>>
 
 // typecheck_failure <<<
 // indexed expression invalid
-// @25..29: value must be an array or a storage map; found `real`
+// @50..54: value must be an array or a storage map; found `real`
 // constraint expression type error
-// @14..37: constraint expression has unknown type
-// @14..37: expecting type `bool`
+// @39..62: constraint expression has unknown type
+// @39..62: expecting type `bool`
 // >>>

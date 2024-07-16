@@ -2,54 +2,58 @@ use ::b::c;
 use ::d::MyEnum;
 use b;
 
-var c1 = ::b::c;
-var c2 = b::c;
-var c3 = c;
-var c4 = b::c;
+predicate test {
+    var c1 = ::b::c;
+    var c2 = b::c;
+    var c3 = c;
+    var c4 = b::c;
 
-var a_variant = MyEnum::A;
-var b_variant = d::MyEnum::B;
-
-solve satisfy;
+    var a_variant = MyEnum::A;
+    var b_variant = d::MyEnum::B;
+}
 
 // parsed <<<
-// var ::c1;
-// var ::c2;
-// var ::c3;
-// var ::c4;
-// var ::a_variant;
-// var ::b_variant;
-// var ::b::c;
+// const ::b::c = 5;
 // enum ::d::MyEnum = A | B;
-// constraint (::c1 == ::b::c);
-// constraint (::c2 == ::b::c);
-// constraint (::c3 == ::b::c);
-// constraint (::c4 == ::b::c);
-// constraint (::a_variant == ::d::MyEnum::A);
-// constraint (::b_variant == ::d::MyEnum::B);
-// constraint (::b::c == 5);
-// solve satisfy;
+//
+// predicate ::test {
+//     var ::c1;
+//     var ::c2;
+//     var ::c3;
+//     var ::c4;
+//     var ::a_variant;
+//     var ::b_variant;
+//     enum ::d::MyEnum = A | B;
+//     constraint (::c1 == ::b::c);
+//     constraint (::c2 == ::b::c);
+//     constraint (::c3 == ::b::c);
+//     constraint (::c4 == ::b::c);
+//     constraint (::a_variant == ::d::MyEnum::A);
+//     constraint (::b_variant == ::d::MyEnum::B);
+// }
 // >>>
 
 // flattened <<<
-// var ::c1: int;
-// var ::c2: int;
-// var ::c3: int;
-// var ::c4: int;
-// var ::a_variant: int;
-// var ::b_variant: int;
-// var ::b::c: int;
+// const ::b::c: int = 5;
 // enum ::d::MyEnum = A | B;
-// constraint (::c1 == ::b::c);
-// constraint (::c2 == ::b::c);
-// constraint (::c3 == ::b::c);
-// constraint (::c4 == ::b::c);
-// constraint (::a_variant == 0);
-// constraint (::b_variant == 1);
-// constraint (::b::c == 5);
-// constraint (::a_variant >= 0);
-// constraint (::a_variant <= 1);
-// constraint (::b_variant >= 0);
-// constraint (::b_variant <= 1);
-// solve satisfy;
+//
+// predicate ::test {
+//     var ::c1: int;
+//     var ::c2: int;
+//     var ::c3: int;
+//     var ::c4: int;
+//     var ::a_variant: int;
+//     var ::b_variant: int;
+//     enum ::d::MyEnum = A | B;
+//     constraint (::c1 == 5);
+//     constraint (::c2 == 5);
+//     constraint (::c3 == 5);
+//     constraint (::c4 == 5);
+//     constraint (::a_variant == 0);
+//     constraint (::b_variant == 1);
+//     constraint (::a_variant >= 0);
+//     constraint (::a_variant <= 1);
+//     constraint (::b_variant >= 0);
+//     constraint (::b_variant <= 1);
+// }
 // >>>

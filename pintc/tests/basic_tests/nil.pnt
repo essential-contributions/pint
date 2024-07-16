@@ -3,70 +3,81 @@ storage {
     z: {int, int, int},
 }
 
-state x = storage::x;
-state z = storage::z;
+predicate test {
+    state x = storage::x;
+    state z = storage::z;
 
-constraint nil == nil;
-constraint nil != nil;
+    constraint nil == nil;
+    constraint nil != nil;
 
-constraint x == nil;
-constraint nil == x;
+    constraint x == nil;
+    constraint nil == x;
 
-constraint z == nil;
-constraint nil == z;
+    constraint z == nil;
+    constraint nil == z;
 
-constraint x != nil;
-constraint nil != x;
+    constraint x != nil;
+    constraint nil != x;
 
-constraint z != nil;
-constraint nil != z;
+    constraint z != nil;
+    constraint nil != z;
 
-constraint (nil == z) && (nil != x);
-constraint (nil != z) && (nil == x);
-
-solve satisfy;
+    constraint (nil == z) && (nil != x);
+    constraint (nil != z) && (nil == x);
+}
 
 // parsed <<<
 // storage {
 //     x: int,
 //     z: {int, int, int},
 // }
-// state ::x = storage::x;
-// state ::z = storage::z;
-// constraint (nil == nil);
-// constraint (nil != nil);
-// constraint (::x == nil);
-// constraint (nil == ::x);
-// constraint (::z == nil);
-// constraint (nil == ::z);
-// constraint (::x != nil);
-// constraint (nil != ::x);
-// constraint (::z != nil);
-// constraint (nil != ::z);
-// constraint ((nil == ::z) && (nil != ::x));
-// constraint ((nil != ::z) && (nil == ::x));
-// solve satisfy;
+//
+// predicate ::test {
+//     storage {
+//         x: int,
+//         z: {int, int, int},
+//     }
+//     state ::x = storage::x;
+//     state ::z = storage::z;
+//     constraint (nil == nil);
+//     constraint (nil != nil);
+//     constraint (::x == nil);
+//     constraint (nil == ::x);
+//     constraint (::z == nil);
+//     constraint (nil == ::z);
+//     constraint (::x != nil);
+//     constraint (nil != ::x);
+//     constraint (::z != nil);
+//     constraint (nil != ::z);
+//     constraint ((nil == ::z) && (nil != ::x));
+//     constraint ((nil != ::z) && (nil == ::x));
+// }
 // >>>
 
 // flattened <<<
-
 // storage {
 //     x: int,
 //     z: {int, int, int},
 // }
-// state ::x: int = storage::x;
-// state ::z: {int, int, int} = storage::z;
-// constraint 0;
-// constraint 0;
-// constraint (__state_len(::x) == 0);
-// constraint (__state_len(::x) == 0);
-// constraint (__state_len(::z) == 0);
-// constraint (__state_len(::z) == 0);
-// constraint (__state_len(::x) != 0);
-// constraint (__state_len(::x) != 0);
-// constraint (__state_len(::z) != 0);
-// constraint (__state_len(::z) != 0);
-// constraint ((__state_len(::z) == 0) && (__state_len(::x) != 0));
-// constraint ((__state_len(::z) != 0) && (__state_len(::x) == 0));
-// solve satisfy;
+//
+// predicate ::test {
+//     storage {
+//         x: int,
+//         z: {int, int, int},
+//     }
+//     state ::x: int = storage::x;
+//     state ::z: {int, int, int} = storage::z;
+//     constraint false;
+//     constraint false;
+//     constraint (__state_len(::x) == 0);
+//     constraint (__state_len(::x) == 0);
+//     constraint (__state_len(::z) == 0);
+//     constraint (__state_len(::z) == 0);
+//     constraint (__state_len(::x) != 0);
+//     constraint (__state_len(::x) != 0);
+//     constraint (__state_len(::z) != 0);
+//     constraint (__state_len(::z) != 0);
+//     constraint ((__state_len(::z) == 0) && (__state_len(::x) != 0));
+//     constraint ((__state_len(::z) != 0) && (__state_len(::x) == 0));
+// }
 // >>>

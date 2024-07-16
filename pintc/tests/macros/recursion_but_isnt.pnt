@@ -1,0 +1,40 @@
+macro @a($x) {
+    @c($x)
+}
+
+macro @b($y) {
+    @c($y)
+}
+
+macro @c($z) {
+    $z == 0
+}
+
+predicate test {
+    var v: int;
+
+    constraint @a(v);
+    constraint @b(v);
+    constraint @a(v);
+    constraint @b(v);
+}
+
+// parsed <<<
+// predicate ::test {
+//     var ::v: int;
+//     constraint (::v == 0);
+//     constraint (::v == 0);
+//     constraint (::v == 0);
+//     constraint (::v == 0);
+// }
+// >>>
+
+// flattened <<<
+// predicate ::test {
+//     var ::v: int;
+//     constraint (::v == 0);
+//     constraint (::v == 0);
+//     constraint (::v == 0);
+//     constraint (::v == 0);
+// }
+// >>>

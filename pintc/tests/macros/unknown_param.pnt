@@ -1,0 +1,12 @@
+macro @foo($a, $b) {
+    $a + $b + $c
+}
+
+predicate test {
+    @foo(11; 22);
+}
+
+// parse_failure <<<
+// undefined macro parameter
+// @35..37: undefined parameter `$c` in macro body
+// >>>

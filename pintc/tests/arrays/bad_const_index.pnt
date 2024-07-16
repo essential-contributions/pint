@@ -1,22 +1,23 @@
-var n: int;
-var a: int[10];
+predicate test {
+    var n: int;
+    var a: int[10];
 
-constraint a[-1.2] == 3;
-
-solve satisfy;
+    constraint a[-1.2] == 3;
+}
 
 // parsed <<<
-// var ::n: int;
-// var ::a: int[10];
-// constraint (::a[-1.2e0] == 3);
-// solve satisfy;
+// predicate ::test {
+//     var ::n: int;
+//     var ::a: int[10];
+//     constraint (::a[-1.2e0] == 3);
+// }
 // >>>
 
 // typecheck_failure <<<
 // attempt to index an array with a mismatched value
-// @42..46: array access must be with an int value
+// @71..75: array access must be with an int value
 // found access using type `real`
 // constraint expression type error
-// @29..52: constraint expression has unknown type
-// @29..52: expecting type `bool`
+// @58..81: constraint expression has unknown type
+// @58..81: expecting type `bool`
 // >>>

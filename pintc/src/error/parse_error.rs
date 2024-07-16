@@ -62,15 +62,6 @@ pub enum ParseError {
     HexLiteralLength { digits: usize, span: Span },
     #[error("integer literal is too large")]
     IntLiteralTooLarge { span: Span },
-    #[error("`solve` directive must only appear once")]
-    TooManySolveDirectives {
-        span: Span,      // Actual error location
-        prev_span: Span, // Span of the previous occurrence
-    },
-    #[error("`solve` directive must only appear in the top level module")]
-    SolveDirectiveMustBeTopLevel { span: Span },
-    #[error("`solve` directive must only appear outside a predicate")]
-    SolveDirectiveMustBeOutsidePredicate { span: Span },
     #[error("`storage` block has already been declared")]
     TooManyStorageBlocks {
         span: Span,      // Actual error location
@@ -82,6 +73,8 @@ pub enum ParseError {
     StorageAccessMustBeTopLevel { span: Span },
     #[error("path `{path}` to a predicate interface is too short")]
     PathTooShort { path: String, span: Span },
+    #[error("bad argument splice")]
+    BadSplice(Span),
 }
 
 impl ReportableError for ParseError {
@@ -238,35 +231,6 @@ impl ReportableError for ParseError {
                     color: Color::Red,
                 }]
             }
-            TooManySolveDirectives { span, prev_span } => {
-                vec![
-                    ErrorLabel {
-                        message: "previous declaration of the `solve` directive here".to_string(),
-                        span: prev_span.clone(),
-                        color: Color::Blue,
-                    },
-                    ErrorLabel {
-                        message: "`solve` directive must only appear once".to_string(),
-                        span: span.clone(),
-                        color: Color::Red,
-                    },
-                ]
-            }
-            SolveDirectiveMustBeTopLevel { span } => {
-                vec![ErrorLabel {
-                    message: "`solve` directive must only appear in the top level module"
-                        .to_string(),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
-            }
-            SolveDirectiveMustBeOutsidePredicate { span } => {
-                vec![ErrorLabel {
-                    message: "`solve` directive must only appear outside a predicate".to_string(),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
-            }
             TooManyStorageBlocks { span, prev_span } => {
                 vec![
                     ErrorLabel {
@@ -306,6 +270,12 @@ impl ReportableError for ParseError {
                     color: Color::Red,
                 }]
             }
+            BadSplice(span) => vec![ErrorLabel {
+                message: "the macro argument splice operator `~` must be applied to an identifier"
+                    .to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
         }
     }
 
@@ -419,13 +389,11 @@ impl Spanned for ParseError {
             | BinaryLiteralLength { span, .. }
             | HexLiteralLength { span, .. }
             | IntLiteralTooLarge { span, .. }
-            | TooManySolveDirectives { span, .. }
-            | SolveDirectiveMustBeTopLevel { span, .. }
-            | SolveDirectiveMustBeOutsidePredicate { span, .. }
             | TooManyStorageBlocks { span, .. }
             | StorageDirectiveMustBeTopLevel { span, .. }
             | StorageAccessMustBeTopLevel { span, .. }
             | PathTooShort { span, .. }
+            | BadSplice(span)
             | Lex { span } => span,
 
             InvalidToken => unreachable!("The `InvalidToken` error is always wrapped in `Lex`."),

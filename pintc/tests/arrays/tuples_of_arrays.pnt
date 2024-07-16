@@ -1,20 +1,22 @@
-var a = {11, [22, 33, 44], 55};
-var b = {true, {false, [true, true], false}, [false, false]};
-
-solve satisfy;
+predicate test {
+    var a = {11, [22, 33, 44], 55};
+    var b = {true, {false, [true, true], false}, [false, false]};
+}
 
 // parsed <<<
-// var ::a;
-// var ::b;
-// constraint (::a == {11, [22, 33, 44], 55});
-// constraint (::b == {true, {false, [true, true], false}, [false, false]});
-// solve satisfy;
+// predicate ::test {
+//     var ::a;
+//     var ::b;
+//     constraint (::a == {11, [22, 33, 44], 55});
+//     constraint (::b == {true, {false, [true, true], false}, [false, false]});
+// }
 // >>>
 
 // flattened <<<
-// var ::a: {int, int[3], int};
-// var ::b: {bool, {bool, bool[2], bool}, bool[2]};
-// constraint (::a == {11, [22, 33, 44], 55});
-// constraint (::b == {1, {0, [1, 1], 0}, [0, 0]});
-// solve satisfy;
+// predicate ::test {
+//     var ::a: {int, int[3], int};
+//     var ::b: {bool, {bool, bool[2], bool}, bool[2]};
+//     constraint (::a == {11, [22, 33, 44], 55});
+//     constraint (::b == {true, {false, [true, true], false}, [false, false]});
+// }
 // >>>

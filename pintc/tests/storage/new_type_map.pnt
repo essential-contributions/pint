@@ -1,14 +1,14 @@
-type MyMap = (int => int);
-type MyInt = int;
-type MyNestMap = (MyInt => int);
+predicate test {
+    type MyMap = (int => int);
+    type MyInt = int;
+    type MyNestMap = (MyInt => int);
 
-storage {
-    m: MyMap,
-    n: MyInt,
-    o: MyNestMap,
+    storage {
+        m: MyMap,
+        n: MyInt,
+        o: MyNestMap,
+    }
 }
-
-solve satisfy;
 
 // parsed <<<
 // storage {

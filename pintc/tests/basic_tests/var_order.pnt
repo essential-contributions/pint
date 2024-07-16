@@ -1,37 +1,39 @@
-enum MyEnum = A | B;
-var y: bool;
-var t: { int, bool, { b256, { int, bool } }, b256 };
-var a: int[4][2];
-var u: { int, bool };
-var b: int[2][2][2];
-var x: int;
-var z: string;
-var e: { MyEnum, bool };
-
-solve satisfy;
+predicate test {
+    enum MyEnum = A | B;
+    var y: bool;
+    var t: { int, bool, { b256, { int, bool } }, b256 };
+    var a: int[4][2];
+    var u: { int, bool };
+    var b: int[2][2][2];
+    var x: int;
+    var z: string;
+    var e: { MyEnum, bool };
+}
 
 // parsed <<<
-// var ::y: bool;
-// var ::t: {int, bool, {b256, {int, bool}}, b256};
-// var ::a: int[2][4];
-// var ::u: {int, bool};
-// var ::b: int[2][2][2];
-// var ::x: int;
-// var ::z: string;
-// var ::e: {::MyEnum, bool};
-// enum ::MyEnum = A | B;
-// solve satisfy;
+// predicate ::test {
+//     var ::y: bool;
+//     var ::t: {int, bool, {b256, {int, bool}}, b256};
+//     var ::a: int[2][4];
+//     var ::u: {int, bool};
+//     var ::b: int[2][2][2];
+//     var ::x: int;
+//     var ::z: string;
+//     var ::e: {::MyEnum, bool};
+//     enum ::MyEnum = A | B;
+// }
 // >>>
 
 // flattened <<<
-// var ::y: int;
-// var ::t: {int, bool, {b256, {int, bool}}, b256};
-// var ::a: int[2][4];
-// var ::u: {int, bool};
-// var ::b: int[2][2][2];
-// var ::x: int;
-// var ::z: string;
-// var ::e: {::MyEnum, bool};
-// enum ::MyEnum = A | B;
-// solve satisfy;
+// predicate ::test {
+//     var ::y: bool;
+//     var ::t: {int, bool, {b256, {int, bool}}, b256};
+//     var ::a: int[2][4];
+//     var ::u: {int, bool};
+//     var ::b: int[2][2][2];
+//     var ::x: int;
+//     var ::z: string;
+//     var ::e: {::MyEnum, bool};
+//     enum ::MyEnum = A | B;
+// }
 // >>>

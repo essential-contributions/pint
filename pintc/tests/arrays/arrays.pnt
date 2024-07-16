@@ -1,47 +1,49 @@
-var a: real[5];
-var a1 = a[1];
+predicate test {
+    var a: real[5];
+    var a1 = a[1];
 
-enum Colour = Red | Green | Blue;
-var b: real[Colour][3];
-var b_r_2 = b[Colour::Red][2];
+    enum Colour = Red | Green | Blue;
+    var b: real[Colour][3];
+    var b_r_2 = b[Colour::Red][2];
 
-var c: int[4] = [0, 1, 2, 3];
-var c1 = [0, 1, 2, 4];
+    var c: int[4] = [0, 1, 2, 3];
+    var c1 = [0, 1, 2, 4];
 
-var cb: bool = c != c1;
-
-solve satisfy;
+    var cb: bool = c != c1;
+}
 
 // parsed <<<
-// var ::a: real[5];
-// var ::a1;
-// var ::b: real[3][::Colour];
-// var ::b_r_2;
-// var ::c: int[4];
-// var ::c1;
-// var ::cb: bool;
-// enum ::Colour = Red | Green | Blue;
-// constraint (::a1 == ::a[1]);
-// constraint (::b_r_2 == ::b[::Colour::Red][2]);
-// constraint (::c == [0, 1, 2, 3]);
-// constraint (::c1 == [0, 1, 2, 4]);
-// constraint (::cb == (::c != ::c1));
-// solve satisfy;
+// predicate ::test {
+//     var ::a: real[5];
+//     var ::a1;
+//     var ::b: real[3][::Colour];
+//     var ::b_r_2;
+//     var ::c: int[4];
+//     var ::c1;
+//     var ::cb: bool;
+//     enum ::Colour = Red | Green | Blue;
+//     constraint (::a1 == ::a[1]);
+//     constraint (::b_r_2 == ::b[::Colour::Red][2]);
+//     constraint (::c == [0, 1, 2, 3]);
+//     constraint (::c1 == [0, 1, 2, 4]);
+//     constraint (::cb == (::c != ::c1));
+// }
 // >>>
 
 // flattened <<<
-// var ::a: real[5];
-// var ::a1: real;
-// var ::b: real[3][3];
-// var ::b_r_2: real;
-// var ::c: int[4];
-// var ::c1: int[4];
-// var ::cb: int;
-// enum ::Colour = Red | Green | Blue;
-// constraint (::a1 == ::a[1]);
-// constraint (::b_r_2 == ::b[0][2]);
-// constraint (::c == [0, 1, 2, 3]);
-// constraint (::c1 == [0, 1, 2, 4]);
-// constraint (::cb == (::c != ::c1));
-// solve satisfy;
+// predicate ::test {
+//     var ::a: real[5];
+//     var ::a1: real;
+//     var ::b: real[3][3];
+//     var ::b_r_2: real;
+//     var ::c: int[4];
+//     var ::c1: int[4];
+//     var ::cb: bool;
+//     enum ::Colour = Red | Green | Blue;
+//     constraint (::a1 == ::a[1]);
+//     constraint (::b_r_2 == ::b[0][2]);
+//     constraint (::c == [0, 1, 2, 3]);
+//     constraint (::c1 == [0, 1, 2, 4]);
+//     constraint (::cb == (::c != ::c1));
+// }
 // >>>

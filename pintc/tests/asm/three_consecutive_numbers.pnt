@@ -1,25 +1,27 @@
 // parsed <<<
-// var ::x: int[3];
-// constraint forall i in 1..2, { (::x[::i] == (::x[(::i - 1)] + 1)) };
-// constraint (((::x[0] + ::x[1]) + ::x[2]) == ((::x[0] * ::x[1]) * ::x[2]));
-// solve satisfy;
+// predicate ::test {
+//     var ::x: int[3];
+//     constraint forall i in 1..2, { (::x[::i] == (::x[(::i - 1)] + 1)) };
+//     constraint (((::x[0] + ::x[1]) + ::x[2]) == ((::x[0] * ::x[1]) * ::x[2]));
+// }
 // >>>
 
 // flattened <<<
-//+var ::x: int[3];
-//+constraint ((1 && (::x[1] == (::x[(1 - 1)] + 1))) && (::x[2] == (::x[(2 - 1)] + 1)));
-//+constraint (((::x[0] + ::x[1]) + ::x[2]) == ((::x[0] * ::x[1]) * ::x[2]));
-//+solve satisfy;
+//     predicate ::test {
+//     var ::x: int[3];
+//     constraint ((true && (::x[1] == (::x[(1 - 1)] + 1))) && (::x[2] == (::x[(2 - 1)] + 1)));
+//     constraint (((::x[0] + ::x[1]) + ::x[2]) == ((::x[0] * ::x[1]) * ::x[2]));
+// }
 // >>>
 
-// Find three consecutive integers such that their product is equal to their sum.
+predicate test {
+    // Find three consecutive integers such that their product is equal to their sum.
 
-var x: int[3];
+    var x: int[3];
 
-constraint forall i in 1..2 {
-    x[i] == x[i - 1] + 1
-};
+    constraint forall i in 1..2 {
+        x[i] == x[i - 1] + 1
+    };
 
-constraint x[0] + x[1] + x[2] == x[0] * x[1] * x[2];
-
-solve satisfy;
+    constraint x[0] + x[1] + x[2] == x[0] * x[1] * x[2];
+}

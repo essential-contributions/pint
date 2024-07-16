@@ -43,6 +43,7 @@ pub enum CompileError {
         name: String,
         arg_count: usize,
         param_counts_descr: String,
+        suggestion: Option<String>,
         span: Span,
     },
     #[error("macro declared with multiple parameter pack versions")]
@@ -225,8 +226,6 @@ pub enum CompileError {
     BadCastTo { ty: String, span: Span },
     #[error("invalid cast")]
     BadCastFrom { ty: String, span: Span },
-    #[error("`solve` directive missing from this project")]
-    MissingSolveDirective { span: Span },
     #[error("invalid declaration outside a predicate")]
     InvalidDeclOutsidePredicateDecl { kind: String, span: Span },
     #[error("left and right types in range differ")]
@@ -913,12 +912,6 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
-            MissingSolveDirective { span } => vec![ErrorLabel {
-                message: "`solve` directive missing from this file".to_string(),
-                span: span.clone(),
-                color: Color::Red,
-            }],
-
             InvalidDeclOutsidePredicateDecl { kind, span } => vec![ErrorLabel {
                 message: format!("invalid {kind} declaration outside a predicate"),
                 span: span.clone(),
@@ -1076,13 +1069,10 @@ impl ReportableError for CompileError {
                 arg_count,
                 param_counts_descr,
                 ..
-            } => {
-                // foobar
-                Some(format!(
-                    "the valid number of arguments may be {param_counts_descr} \
+            } => Some(format!(
+                "the valid number of arguments must be {param_counts_descr} \
                         but this call passes {arg_count} arguments"
-                ))
-            }
+            )),
 
             MacroRecursion { .. } => Some(
                 "a macro called recursively with the same number of arguments \
@@ -1138,12 +1128,6 @@ impl ReportableError for CompileError {
             StorageMapAccessWithWrongType { found_ty, .. } => {
                 Some(format!("found access using type `{found_ty}`"))
             }
-
-            MissingSolveDirective { .. } => Some(
-                "`solve` directive must appear exactly once in a project and \
-                     must appear in the top level module"
-                    .to_string(),
-            ),
 
             InvalidDeclOutsidePredicateDecl { .. } => Some(
                 "only `enum` and `type` declarations are allowed outside a predicate".to_string(),
@@ -1241,10 +1225,11 @@ impl ReportableError for CompileError {
                 ))
             }
 
-            MacroCallMismatch { name, .. } => Some(format!(
-                "a macro named `{name}` is defined but not with the required \
-                signature to fulfill this call"
-            )),
+            MacroCallMismatch {
+                name, suggestion, ..
+            } => suggestion.clone().or(Some(format!(
+                "a macro named `{name}` found with a different signature"
+            ))),
 
             BadCastTo { .. } => Some("casts may only be made to an int or a real".to_string()),
             BadCastFrom { .. } => Some(
@@ -1355,7 +1340,6 @@ impl Spanned for CompileError {
             }
             | BadCastTo { span, .. }
             | BadCastFrom { span, .. }
-            | MissingSolveDirective { span, .. }
             | InvalidDeclOutsidePredicateDecl { span, .. }
             | RangeTypesMismatch { span, .. }
             | RangeTypesNonNumeric { span, .. }

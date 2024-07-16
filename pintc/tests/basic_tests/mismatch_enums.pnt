@@ -1,26 +1,27 @@
-enum Key = CMajor | DMinor;
-enum Chord = FFlatDiminished | EMinorOverG;
+predicate test {
+    enum Key = CMajor | DMinor;
+    enum Chord = FFlatDiminished | EMinorOverG;
 
-var saddest_sound: Chord;
+    var saddest_sound: Chord;
 
-// Saddest key is D-minor.  Should produce type error since `saddest_sound` is a `Chord`.
-constraint saddest_sound == Key::DMinor;
-
-solve satisfy;
+    // Saddest key is D-minor.  Should produce type error since `saddest_sound` is a `Chord`.
+    constraint saddest_sound == Key::DMinor;
+}
 
 // parsed <<<
-// var ::saddest_sound: ::Chord;
-// enum ::Key = CMajor | DMinor;
-// enum ::Chord = FFlatDiminished | EMinorOverG;
-// constraint (::saddest_sound == ::Key::DMinor);
-// solve satisfy;
+// predicate ::test {
+//     var ::saddest_sound: ::Chord;
+//     enum ::Key = CMajor | DMinor;
+//     enum ::Chord = FFlatDiminished | EMinorOverG;
+//     constraint (::saddest_sound == ::Key::DMinor);
+// }
 // >>>
 
 // typecheck_failure <<<
 // binary operator type error
-// @218..229: operator `==` argument has unexpected type `::Key`
-// @201..214: expecting type `::Chord`
+// @255..266: operator `==` argument has unexpected type `::Key`
+// @238..251: expecting type `::Chord`
 // constraint expression type error
-// @190..229: constraint expression has unknown type
-// @190..229: expecting type `bool`
+// @227..266: constraint expression has unknown type
+// @227..266: expecting type `bool`
 // >>>

@@ -1,11 +1,6 @@
 {
   "predicates": [
     {
-      "name": "",
-      "vars": [],
-      "pub_vars": []
-    },
-    {
       "name": "::Foo",
       "vars": [
         {
@@ -108,23 +103,20 @@
               "ty": {
                 "Array": {
                   "ty": {
-                    "Tuple": {
-                      "fields": [
-                        {
-                          "name": null,
-                          "ty": {
-                            "Int": [2, 0]
-                          }
-                        },
-                        {
-                          "name": null,
-                          "ty": {
-                            "B256": [2, 1]
-                          }
+                    "Tuple": [
+                      {
+                        "name": null,
+                        "ty": {
+                          "Int": [2, 0]
                         }
-                      ],
-                      "key": [2, 0]
-                    }
+                      },
+                      {
+                        "name": null,
+                        "ty": {
+                          "B256": [2, 1]
+                        }
+                      }
+                    ]
                   },
                   "size": 4
                 }
@@ -171,23 +163,20 @@
           "ty": {
             "Array": {
               "ty": {
-                "Tuple": {
-                  "fields": [
-                    {
-                      "name": null,
-                      "ty": {
-                        "Int": [2, 0]
-                      }
-                    },
-                    {
-                      "name": null,
-                      "ty": {
-                        "B256": [2, 1]
-                      }
+                "Tuple": [
+                  {
+                    "name": null,
+                    "ty": {
+                      "Int": [2, 0]
                     }
-                  ],
-                  "key": [2, 0]
-                }
+                  },
+                  {
+                    "name": null,
+                    "ty": {
+                      "B256": [2, 1]
+                    }
+                  }
+                ]
               },
               "size": 4
             }

@@ -1,50 +1,53 @@
-var a: int;
-
 const x = true;
-
-if x {
-    constraint a == 11;
-} else {
-    constraint a == 22;
-}
-
 const y = 33;
 const z = true;
 
-if true {
-    constraint a == y;
-} else {
-    constraint z;
-}
+predicate test {
+    var a: int;
 
-solve satisfy;
+    if x {
+        constraint a == 11;
+    } else {
+        constraint a == 22;
+    }
+
+    if true {
+        constraint a == y;
+    } else {
+        constraint z;
+    }
+}
 
 // parsed <<<
 // const ::x = true;
 // const ::z = true;
 // const ::y = 33;
-// var ::a: int;
-// if ::x {
-//     constraint (::a == 11)
-// } else {
-//     constraint (::a == 22)
+//
+// predicate ::test {
+//     var ::a: int;
+//     if ::x {
+//         constraint (::a == 11)
+//     } else {
+//         constraint (::a == 22)
+//     }
+//     if true {
+//         constraint (::a == ::y)
+//     } else {
+//         constraint ::z
+//     }
 // }
-// if true {
-//     constraint (::a == ::y)
-// } else {
-//     constraint ::z
-// }
-// solve satisfy;
 // >>>
 
 // flattened <<<
-// const ::x: bool = 1;
-// const ::z: bool = 1;
+// const ::x: bool = true;
+// const ::z: bool = true;
 // const ::y: int = 33;
-// var ::a: int;
-// constraint (!1 || (::a == 11));
-// constraint (1 || (::a == 22));
-// constraint (!1 || (::a == 33));
-// constraint (1 || 1);
-// solve satisfy;
+//
+// predicate ::test {
+//     var ::a: int;
+//     constraint (!true || (::a == 11));
+//     constraint (true || (::a == 22));
+//     constraint (!true || (::a == 33));
+//     constraint (true || true);
+// }
 // >>>

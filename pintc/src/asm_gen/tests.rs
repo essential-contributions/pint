@@ -1,5 +1,5 @@
 use crate::{
-    asm_gen::{compile_program, CompiledProgram},
+    asm_gen::{compile_contract, CompiledContract},
     error::Handler,
     parser::parse_project,
 };
@@ -13,18 +13,18 @@ pub(super) fn check(actual: &str, expect: expect_test::Expect) {
     expect.assert_eq(actual);
 }
 
-/// Compile some code into `CompiledProgram`. Panics if anything fails.
+/// Compile some code into `CompiledContract`. Panics if anything fails.
 #[cfg(test)]
-pub(super) fn compile(code: &str) -> CompiledProgram {
+pub(super) fn compile(code: &str) -> CompiledContract {
     let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
     write!(tmpfile.as_file_mut(), "{}", code).unwrap();
     let handler = Handler::default();
     let deps = Default::default();
-    let program = parse_project(&handler, &deps, tmpfile.path())
+    let contract = parse_project(&handler, &deps, tmpfile.path())
         .unwrap()
         .compile(&handler)
         .unwrap();
-    compile_program(&handler, &program).unwrap()
+    compile_contract(&handler, &contract).unwrap()
 }
 
 #[test]
@@ -34,53 +34,61 @@ fn bool_literals() {
             "{}",
             compile(
                 r#"
-            constraint true;
-            constraint false;
-            solve satisfy;
+            predicate test {
+                constraint true;
+                constraint false;
+            }
             "#,
             )
         ),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(1))
-            constraint 1
-              Stack(Push(0))
-            --- State Reads ---
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(1))
+                constraint 1
+                  Stack(Push(0))
+                --- State Reads ---
+            }
+
         "#]],
     );
 }
 
 #[test]
 fn int_literals() {
-    let compiled_program = &compile(
+    let compiled_contract = &compile(
         r#"
-        var x: int = 4;
-        var y: int = 0x333;
-        solve satisfy;
+        predicate test {
+            var x: int = 4;
+            var y: int = 0x333;
+        }
         "#,
     );
 
     check(
-        &format!("{compiled_program}"),
+        &format!("{compiled_contract}"),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(4))
-              Pred(Eq)
-            constraint 1
-              Stack(Push(1))
-              Access(DecisionVar)
-              Stack(Push(819))
-              Pred(Eq)
-            --- State Reads ---
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(4))
+                  Pred(Eq)
+                constraint 1
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Stack(Push(819))
+                  Pred(Eq)
+                --- State Reads ---
+            }
+
         "#]],
     );
 
-    // Single top-level predicate named `CompiledProgram::ROOT_PRED_NAME`
-    assert_eq!(compiled_program.predicates.len(), 1);
+    // Single top-level predicate named `CompiledContract::ROOT_PRED_NAME`
+    assert_eq!(compiled_contract.predicates.len(), 1);
 }
 
 #[test]
@@ -90,25 +98,29 @@ fn unary_not() {
             "{}",
             compile(
                 r#"
-            var t: bool = !true;
-            constraint !t;
-            solve satisfy;
+            predicate test {
+                var t: bool = !true;
+                constraint !t;
+            }
             "#,
             )
         ),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(1))
-              Pred(Not)
-              Pred(Eq)
-            constraint 1
-              Stack(Push(0))
-              Access(DecisionVar)
-              Pred(Not)
-            --- State Reads ---
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Pred(Not)
+                  Pred(Eq)
+                constraint 1
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Pred(Not)
+                --- State Reads ---
+            }
+
         "#]],
     );
 }
@@ -120,22 +132,26 @@ fn select() {
             "{}",
             compile(
                 r#"
-            var z = true ? 42 : 69;
-            solve satisfy;
+            predicate test {
+                var z = true ? 42 : 69;
+            }
             "#,
             )
         ),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(69))
-              Stack(Push(42))
-              Stack(Push(1))
-              Stack(Select)
-              Pred(Eq)
-            --- State Reads ---
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(69))
+                  Stack(Push(42))
+                  Stack(Push(1))
+                  Stack(Select)
+                  Pred(Eq)
+                --- State Reads ---
+            }
+
         "#]],
     );
 
@@ -144,26 +160,30 @@ fn select() {
             "{}",
             compile(
                 r#"
-            var c: bool; var x: int; var y: int;
-            var z = c ? x : y;
-            solve satisfy;
+            predicate test {
+                var c: bool; var x: int; var y: int;
+                var z = c ? x : y;
+            }
             "#,
             )
         ),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(3))
-              Access(DecisionVar)
-              Stack(Push(2))
-              Access(DecisionVar)
-              Stack(Push(1))
-              Access(DecisionVar)
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Select)
-              Pred(Eq)
-            --- State Reads ---
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(3))
+                  Access(DecisionVar)
+                  Stack(Push(2))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Select)
+                  Pred(Eq)
+                --- State Reads ---
+            }
+
         "#]],
     );
 
@@ -173,42 +193,46 @@ fn select() {
             compile(
                 r#"
             storage { x: int }
-            state x = storage::x;
-            var y = x == nil ? 11 : x;
-            solve satisfy;
+            predicate test {
+                state x = storage::x;
+                var y = x == nil ? 11 : x;
+            }
             "#,
             )
         ),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(7))
-              Stack(Push(0))
-              Stack(Push(0))
-              Access(StateLen)
-              Stack(Push(0))
-              Pred(Eq)
-              TotalControlFlow(JumpForwardIf)
-              Stack(Push(0))
-              Stack(Push(0))
-              Access(State)
-              Stack(Push(2))
-              Stack(Push(1))
-              TotalControlFlow(JumpForwardIf)
-              Stack(Push(11))
-              Pred(Eq)
-            --- State Reads ---
-            state read 0
-              Constraint(Stack(Push(0)))
-              Constraint(Stack(Push(1)))
-              StateSlots(AllocSlots)
-              Constraint(Stack(Push(1)))
-              Constraint(Stack(Push(1)))
-              Constraint(Stack(Push(0)))
-              KeyRange
-              Constraint(TotalControlFlow(Halt))
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(7))
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Access(StateLen)
+                  Stack(Push(0))
+                  Pred(Eq)
+                  TotalControlFlow(JumpForwardIf)
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(2))
+                  Stack(Push(1))
+                  TotalControlFlow(JumpForwardIf)
+                  Stack(Push(11))
+                  Pred(Eq)
+                --- State Reads ---
+                state read 0
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(1)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
+                  Constraint(TotalControlFlow(Halt))
+            }
+
         "#]],
     );
 }
@@ -220,33 +244,37 @@ fn select_range() {
             "{}",
             compile(
                 r#"
-            var z = true ? 0x0000000000000001000000000000000200000000000000030000000000000004
-                         : 0x0000000000000005000000000000000600000000000000070000000000000008;
-            solve satisfy;
+            predicate test {
+                var z = true ? 0x0000000000000001000000000000000200000000000000030000000000000004
+                             : 0x0000000000000005000000000000000600000000000000070000000000000008;
+            }
             "#,
             )
         ),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(0))
-              Stack(Push(0))
-              Stack(Push(4))
-              Access(DecisionVarRange)
-              Stack(Push(5))
-              Stack(Push(6))
-              Stack(Push(7))
-              Stack(Push(8))
-              Stack(Push(1))
-              Stack(Push(2))
-              Stack(Push(3))
-              Stack(Push(4))
-              Stack(Push(4))
-              Stack(Push(1))
-              Stack(SelectRange)
-              Stack(Push(4))
-              Pred(EqRange)
-            --- State Reads ---
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(4))
+                  Access(DecisionVarRange)
+                  Stack(Push(5))
+                  Stack(Push(6))
+                  Stack(Push(7))
+                  Stack(Push(8))
+                  Stack(Push(1))
+                  Stack(Push(2))
+                  Stack(Push(3))
+                  Stack(Push(4))
+                  Stack(Push(4))
+                  Stack(Push(1))
+                  Stack(SelectRange)
+                  Stack(Push(4))
+                  Pred(EqRange)
+                --- State Reads ---
+            }
+
         "#]],
     );
 
@@ -255,28 +283,32 @@ fn select_range() {
             "{}",
             compile(
                 r#"
-            var z = true ? { 0, 1 } : { 2, 3 };
-            solve satisfy;
+            predicate test {
+                var z = true ? { 0, 1 } : { 2, 3 };
+            }
             "#,
             )
         ),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(0))
-              Stack(Push(0))
-              Stack(Push(2))
-              Access(DecisionVarRange)
-              Stack(Push(2))
-              Stack(Push(3))
-              Stack(Push(0))
-              Stack(Push(1))
-              Stack(Push(2))
-              Stack(Push(1))
-              Stack(SelectRange)
-              Stack(Push(2))
-              Pred(EqRange)
-            --- State Reads ---
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(2))
+                  Access(DecisionVarRange)
+                  Stack(Push(2))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Stack(Push(2))
+                  Stack(Push(1))
+                  Stack(SelectRange)
+                  Stack(Push(2))
+                  Pred(EqRange)
+                --- State Reads ---
+            }
+
         "#]],
     );
 
@@ -285,34 +317,38 @@ fn select_range() {
             "{}",
             compile(
                 r#"
-            var c: bool; var x: int[3]; var y: int[3];
-            var z = c ? x : y;
-            solve satisfy;
+            predicate test {
+                var c: bool; var x: int[3]; var y: int[3];
+                var z = c ? x : y;
+            }
             "#,
             )
         ),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(3))
-              Stack(Push(0))
-              Stack(Push(3))
-              Access(DecisionVarRange)
-              Stack(Push(2))
-              Stack(Push(0))
-              Stack(Push(3))
-              Access(DecisionVarRange)
-              Stack(Push(1))
-              Stack(Push(0))
-              Stack(Push(3))
-              Access(DecisionVarRange)
-              Stack(Push(3))
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(SelectRange)
-              Stack(Push(3))
-              Pred(EqRange)
-            --- State Reads ---
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Stack(Push(3))
+                  Access(DecisionVarRange)
+                  Stack(Push(2))
+                  Stack(Push(0))
+                  Stack(Push(3))
+                  Access(DecisionVarRange)
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(3))
+                  Access(DecisionVarRange)
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(SelectRange)
+                  Stack(Push(3))
+                  Pred(EqRange)
+                --- State Reads ---
+            }
+
         "#]],
     );
 }
@@ -324,115 +360,119 @@ fn binary_ops() {
             "{}",
             compile(
                 r#"
-            var x: int; var y: int; var z: int;
-            var b0: bool; var b1: bool;
-            constraint x + y == z;
-            constraint x - y == z;
-            constraint x * y == z;
-            constraint x / y == z;
-            constraint x % y == z;
-            constraint x != y;
-            constraint x == y;
-            constraint x <= y;
-            constraint x < y;
-            constraint x >= y;
-            constraint x > y;
-            constraint x > y;
-            solve satisfy;
+            predicate test {
+                var x: int; var y: int; var z: int;
+                var b0: bool; var b1: bool;
+                constraint x + y == z;
+                constraint x - y == z;
+                constraint x * y == z;
+                constraint x / y == z;
+                constraint x % y == z;
+                constraint x != y;
+                constraint x == y;
+                constraint x <= y;
+                constraint x < y;
+                constraint x >= y;
+                constraint x > y;
+                constraint x > y;
+            }
             "#,
             ),
         ),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(1))
-              Access(DecisionVar)
-              Alu(Add)
-              Stack(Push(2))
-              Access(DecisionVar)
-              Pred(Eq)
-            constraint 1
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(1))
-              Access(DecisionVar)
-              Alu(Sub)
-              Stack(Push(2))
-              Access(DecisionVar)
-              Pred(Eq)
-            constraint 2
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(1))
-              Access(DecisionVar)
-              Alu(Mul)
-              Stack(Push(2))
-              Access(DecisionVar)
-              Pred(Eq)
-            constraint 3
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(1))
-              Access(DecisionVar)
-              Alu(Div)
-              Stack(Push(2))
-              Access(DecisionVar)
-              Pred(Eq)
-            constraint 4
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(1))
-              Access(DecisionVar)
-              Alu(Mod)
-              Stack(Push(2))
-              Access(DecisionVar)
-              Pred(Eq)
-            constraint 5
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(1))
-              Access(DecisionVar)
-              Pred(Eq)
-              Pred(Not)
-            constraint 6
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(1))
-              Access(DecisionVar)
-              Pred(Eq)
-            constraint 7
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(1))
-              Access(DecisionVar)
-              Pred(Lte)
-            constraint 8
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(1))
-              Access(DecisionVar)
-              Pred(Lt)
-            constraint 9
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(1))
-              Access(DecisionVar)
-              Pred(Gte)
-            constraint 10
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(1))
-              Access(DecisionVar)
-              Pred(Gt)
-            constraint 11
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(1))
-              Access(DecisionVar)
-              Pred(Gt)
-            --- State Reads ---
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Alu(Add)
+                  Stack(Push(2))
+                  Access(DecisionVar)
+                  Pred(Eq)
+                constraint 1
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Alu(Sub)
+                  Stack(Push(2))
+                  Access(DecisionVar)
+                  Pred(Eq)
+                constraint 2
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Alu(Mul)
+                  Stack(Push(2))
+                  Access(DecisionVar)
+                  Pred(Eq)
+                constraint 3
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Alu(Div)
+                  Stack(Push(2))
+                  Access(DecisionVar)
+                  Pred(Eq)
+                constraint 4
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Alu(Mod)
+                  Stack(Push(2))
+                  Access(DecisionVar)
+                  Pred(Eq)
+                constraint 5
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Pred(Eq)
+                  Pred(Not)
+                constraint 6
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Pred(Eq)
+                constraint 7
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Pred(Lte)
+                constraint 8
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Pred(Lt)
+                constraint 9
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Pred(Gte)
+                constraint 10
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Pred(Gt)
+                constraint 11
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Pred(Gt)
+                --- State Reads ---
+            }
+
         "#]],
     );
 }
@@ -444,26 +484,30 @@ fn short_circuit_and() {
             "{}",
             compile(
                 r#"
-            var a: bool;
-            var b: bool;
-            constraint a && b;
-            solve satisfy;
+            predicate test {
+                var a: bool;
+                var b: bool;
+                constraint a && b;
+            }
             "#,
             ),
         ),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(0))
-              Stack(Push(4))
-              Stack(Push(0))
-              Access(DecisionVar)
-              Pred(Not)
-              TotalControlFlow(JumpForwardIf)
-              Stack(Pop)
-              Stack(Push(1))
-              Access(DecisionVar)
-            --- State Reads ---
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(0))
+                  Stack(Push(4))
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Pred(Not)
+                  TotalControlFlow(JumpForwardIf)
+                  Stack(Pop)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                --- State Reads ---
+            }
+
         "#]],
     );
 }
@@ -475,265 +519,285 @@ fn short_circuit_or() {
             "{}",
             compile(
                 r#"
-            var a: bool;
-            var b: bool;
-            constraint a || b;
-            solve satisfy;
+            predicate test {
+                var a: bool;
+                var b: bool;
+                constraint a || b;
+            }
             "#,
             ),
         ),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(1))
-              Stack(Push(4))
-              Stack(Push(0))
-              Access(DecisionVar)
-              TotalControlFlow(JumpForwardIf)
-              Stack(Pop)
-              Stack(Push(1))
-              Access(DecisionVar)
-            --- State Reads ---
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(1))
+                  Stack(Push(4))
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  TotalControlFlow(JumpForwardIf)
+                  Stack(Pop)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                --- State Reads ---
+            }
+
         "#]],
     );
 }
 
 #[test]
 fn state_read() {
-    let compiled_program = compile(
+    let compiled_contract = compile(
         r#"
-        state x: int = __storage_get([0, 0, 0, 1]);
-        state y: int = __storage_get([2, 2, 2, 2]);
-        constraint x == y;
-        constraint x' == y';
-        solve satisfy;
+        predicate test {
+            state x: int = __storage_get([0, 0, 0, 1]);
+            state y: int = __storage_get([2, 2, 2, 2]);
+            constraint x == y;
+            constraint x' == y';
+        }
         "#,
     );
 
     check(
-        &format!("{compiled_program}"),
+        &format!("{compiled_contract}"),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(0))
-              Stack(Push(0))
-              Access(State)
-              Stack(Push(1))
-              Stack(Push(0))
-              Access(State)
-              Pred(Eq)
-            constraint 1
-              Stack(Push(0))
-              Stack(Push(1))
-              Access(State)
-              Stack(Push(1))
-              Stack(Push(1))
-              Access(State)
-              Pred(Eq)
-            --- State Reads ---
-            state read 0
-              Constraint(Stack(Push(0)))
-              Constraint(Stack(Push(0)))
-              Constraint(Stack(Push(0)))
-              Constraint(Stack(Push(1)))
-              Constraint(Stack(Push(1)))
-              StateSlots(AllocSlots)
-              Constraint(Stack(Push(4)))
-              Constraint(Stack(Push(1)))
-              Constraint(Stack(Push(0)))
-              KeyRange
-              Constraint(TotalControlFlow(Halt))
-            state read 1
-              Constraint(Stack(Push(2)))
-              Constraint(Stack(Push(2)))
-              Constraint(Stack(Push(2)))
-              Constraint(Stack(Push(2)))
-              Constraint(Stack(Push(1)))
-              StateSlots(AllocSlots)
-              Constraint(Stack(Push(4)))
-              Constraint(Stack(Push(1)))
-              Constraint(Stack(Push(0)))
-              KeyRange
-              Constraint(TotalControlFlow(Halt))
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 1
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(State)
+                  Stack(Push(1))
+                  Stack(Push(1))
+                  Access(State)
+                  Pred(Eq)
+                --- State Reads ---
+                state read 0
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(1)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
+                  Constraint(TotalControlFlow(Halt))
+                state read 1
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(1)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
+                  Constraint(TotalControlFlow(Halt))
+            }
+
         "#]],
     );
 
-    // Single top-level predicate named `CompiledProgram::ROOT_PRED_NAME`
-    assert_eq!(compiled_program.predicates.len(), 1);
+    // Single top-level predicate named `CompiledContract::ROOT_PRED_NAME`
+    assert_eq!(compiled_contract.predicates.len(), 1);
 }
 
 #[test]
 fn state_read_extern() {
-    let compiled_program = &compile(
+    let compiled_contract = &compile(
         r#"
-        state x: int = __storage_get_extern(
-            0x0000000000000001000000000000000200000000000000030000000000000004,
-            [11, 22, 33, 44],
-        );
-        state y: int = __storage_get_extern(
-            0x0000000000000005000000000000000600000000000000070000000000000008,
-            [55, 66, 77, 88],
-        );
-        constraint x == y;
-        constraint x' == y';
-        solve satisfy;
+        predicate test {
+            state x: int = __storage_get_extern(
+                0x0000000000000001000000000000000200000000000000030000000000000004,
+                [11, 22, 33, 44],
+            );
+            state y: int = __storage_get_extern(
+                0x0000000000000005000000000000000600000000000000070000000000000008,
+                [55, 66, 77, 88],
+            );
+            constraint x == y;
+            constraint x' == y';
+        }
         "#,
     );
 
     check(
-        &format!("{compiled_program}"),
+        &format!("{compiled_contract}"),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(0))
-              Stack(Push(0))
-              Access(State)
-              Stack(Push(1))
-              Stack(Push(0))
-              Access(State)
-              Pred(Eq)
-            constraint 1
-              Stack(Push(0))
-              Stack(Push(1))
-              Access(State)
-              Stack(Push(1))
-              Stack(Push(1))
-              Access(State)
-              Pred(Eq)
-            --- State Reads ---
-            state read 0
-              Constraint(Stack(Push(1)))
-              Constraint(Stack(Push(2)))
-              Constraint(Stack(Push(3)))
-              Constraint(Stack(Push(4)))
-              Constraint(Stack(Push(11)))
-              Constraint(Stack(Push(22)))
-              Constraint(Stack(Push(33)))
-              Constraint(Stack(Push(44)))
-              Constraint(Stack(Push(1)))
-              StateSlots(AllocSlots)
-              Constraint(Stack(Push(4)))
-              Constraint(Stack(Push(1)))
-              Constraint(Stack(Push(0)))
-              KeyRangeExtern
-              Constraint(TotalControlFlow(Halt))
-            state read 1
-              Constraint(Stack(Push(5)))
-              Constraint(Stack(Push(6)))
-              Constraint(Stack(Push(7)))
-              Constraint(Stack(Push(8)))
-              Constraint(Stack(Push(55)))
-              Constraint(Stack(Push(66)))
-              Constraint(Stack(Push(77)))
-              Constraint(Stack(Push(88)))
-              Constraint(Stack(Push(1)))
-              StateSlots(AllocSlots)
-              Constraint(Stack(Push(4)))
-              Constraint(Stack(Push(1)))
-              Constraint(Stack(Push(0)))
-              KeyRangeExtern
-              Constraint(TotalControlFlow(Halt))
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 1
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(State)
+                  Stack(Push(1))
+                  Stack(Push(1))
+                  Access(State)
+                  Pred(Eq)
+                --- State Reads ---
+                state read 0
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(3)))
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(11)))
+                  Constraint(Stack(Push(22)))
+                  Constraint(Stack(Push(33)))
+                  Constraint(Stack(Push(44)))
+                  Constraint(Stack(Push(1)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
+                  Constraint(TotalControlFlow(Halt))
+                state read 1
+                  Constraint(Stack(Push(5)))
+                  Constraint(Stack(Push(6)))
+                  Constraint(Stack(Push(7)))
+                  Constraint(Stack(Push(8)))
+                  Constraint(Stack(Push(55)))
+                  Constraint(Stack(Push(66)))
+                  Constraint(Stack(Push(77)))
+                  Constraint(Stack(Push(88)))
+                  Constraint(Stack(Push(1)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  KeyRangeExtern
+                  Constraint(TotalControlFlow(Halt))
+            }
+
         "#]],
     );
 
-    // Single top-level predicate named `CompiledProgram::ROOT_PRED_NAME`
-    assert_eq!(compiled_program.predicates.len(), 1);
+    // Single top-level predicate named `CompiledContract::ROOT_PRED_NAME`
+    assert_eq!(compiled_contract.predicates.len(), 1);
 }
 
 #[test]
 fn next_state() {
-    let compiled_program = &compile(
+    let compiled_contract = &compile(
         r#"
-        var diff: int = 5;
-        state x: int = __storage_get([0, 0, 0, 3]);
-        constraint x' - x == 5;
-        solve satisfy;
+        predicate test {
+            var diff: int = 5;
+            state x: int = __storage_get([0, 0, 0, 3]);
+            constraint x' - x == 5;
+        }
         "#,
     );
 
     check(
-        &format!("{compiled_program}"),
+        &format!("{compiled_contract}"),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(0))
-              Access(DecisionVar)
-              Stack(Push(5))
-              Pred(Eq)
-            constraint 1
-              Stack(Push(0))
-              Stack(Push(1))
-              Access(State)
-              Stack(Push(0))
-              Stack(Push(0))
-              Access(State)
-              Alu(Sub)
-              Stack(Push(5))
-              Pred(Eq)
-            --- State Reads ---
-            state read 0
-              Constraint(Stack(Push(0)))
-              Constraint(Stack(Push(0)))
-              Constraint(Stack(Push(0)))
-              Constraint(Stack(Push(3)))
-              Constraint(Stack(Push(1)))
-              StateSlots(AllocSlots)
-              Constraint(Stack(Push(4)))
-              Constraint(Stack(Push(1)))
-              Constraint(Stack(Push(0)))
-              KeyRange
-              Constraint(TotalControlFlow(Halt))
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Stack(Push(5))
+                  Pred(Eq)
+                constraint 1
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(State)
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Access(State)
+                  Alu(Sub)
+                  Stack(Push(5))
+                  Pred(Eq)
+                --- State Reads ---
+                state read 0
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(3)))
+                  Constraint(Stack(Push(1)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
+                  Constraint(TotalControlFlow(Halt))
+            }
+
         "#]],
     );
 
-    // Single top-level predicate named `CompiledProgram::ROOT_PRED_NAME`
-    assert_eq!(compiled_program.predicates.len(), 1);
+    // Single top-level predicate named `CompiledContract::ROOT_PRED_NAME`
+    assert_eq!(compiled_contract.predicates.len(), 1);
 }
 
 #[test]
 fn b256() {
-    let compiled_program = &compile(
+    let compiled_contract = &compile(
         r#"
-        var b0 = 0x0000000000000005000000000000000600000000000000070000000000000008;
-        var b1 = 0xF000000000000000500000000000000060000000000000007000000000000000;
-        solve satisfy;
+        predicate test {
+            var b0 = 0x0000000000000005000000000000000600000000000000070000000000000008;
+            var b1 = 0xF000000000000000500000000000000060000000000000007000000000000000;
+        }
         "#,
     );
 
     check(
-        &format!("{compiled_program}"),
+        &format!("{compiled_contract}"),
         expect_test::expect![[r#"
-            --- Constraints ---
-            constraint 0
-              Stack(Push(0))
-              Stack(Push(0))
-              Stack(Push(4))
-              Access(DecisionVarRange)
-              Stack(Push(5))
-              Stack(Push(6))
-              Stack(Push(7))
-              Stack(Push(8))
-              Stack(Push(4))
-              Pred(EqRange)
-            constraint 1
-              Stack(Push(1))
-              Stack(Push(0))
-              Stack(Push(4))
-              Access(DecisionVarRange)
-              Stack(Push(-1152921504606846976))
-              Stack(Push(5764607523034234880))
-              Stack(Push(6917529027641081856))
-              Stack(Push(8070450532247928832))
-              Stack(Push(4))
-              Pred(EqRange)
-            --- State Reads ---
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(4))
+                  Access(DecisionVarRange)
+                  Stack(Push(5))
+                  Stack(Push(6))
+                  Stack(Push(7))
+                  Stack(Push(8))
+                  Stack(Push(4))
+                  Pred(EqRange)
+                constraint 1
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(4))
+                  Access(DecisionVarRange)
+                  Stack(Push(-1152921504606846976))
+                  Stack(Push(5764607523034234880))
+                  Stack(Push(6917529027641081856))
+                  Stack(Push(8070450532247928832))
+                  Stack(Push(4))
+                  Pred(EqRange)
+                --- State Reads ---
+            }
+
         "#]],
     );
 }
 
 #[test]
 fn storage_access_basic_types() {
-    let compiled_program = &compile(
+    let compiled_contract = &compile(
         r#"
 storage {
     supply: int,
@@ -754,7 +818,7 @@ predicate Simple {
     );
 
     check(
-        &format!("{compiled_program}"),
+        &format!("{compiled_contract}"),
         expect_test::expect![[r#"
             predicate ::Simple {
                 --- Constraints ---
@@ -817,7 +881,7 @@ predicate Simple {
 
 #[test]
 fn storage_access_b256_values() {
-    let compiled_program = &compile(
+    let compiled_contract = &compile(
         r#"
 storage {
     addr1: b256,
@@ -841,7 +905,7 @@ predicate Simple {
     );
 
     check(
-        &format!("{compiled_program}"),
+        &format!("{compiled_contract}"),
         expect_test::expect![[r#"
             predicate ::Simple {
                 --- Constraints ---
@@ -935,7 +999,7 @@ predicate Simple {
 
 #[test]
 fn storage_access_tuples() {
-    let compiled_program = &compile(
+    let compiled_contract = &compile(
         r#"
 storage {
     u: { b256, int },
@@ -962,7 +1026,7 @@ predicate Foo {
     );
 
     check(
-        &format!("{compiled_program}"),
+        &format!("{compiled_contract}"),
         expect_test::expect![[r#"
             predicate ::Foo {
                 --- Constraints ---
@@ -1109,7 +1173,7 @@ predicate Foo {
 
 #[test]
 fn storage_access_tuples_in_maps() {
-    let compiled_program = &compile(
+    let compiled_contract = &compile(
         r#"
 storage {
     w: b256,
@@ -1126,7 +1190,7 @@ predicate Foo {
     );
 
     check(
-        &format!("{compiled_program}"),
+        &format!("{compiled_contract}"),
         expect_test::expect![[r#"
             predicate ::Foo {
                 --- Constraints ---
@@ -1193,7 +1257,7 @@ predicate Foo {
 
 #[test]
 fn storage_access_tuples_extern() {
-    let compiled_program = &compile(
+    let compiled_contract = &compile(
         r#"
 interface Foo {
     storage {
@@ -1224,7 +1288,7 @@ predicate Bar {
     );
 
     check(
-        &format!("{compiled_program}"),
+        &format!("{compiled_contract}"),
         expect_test::expect![[r#"
             predicate ::Bar {
                 --- Constraints ---
@@ -1415,7 +1479,7 @@ predicate Bar {
 
 #[test]
 fn storage_access_arrays() {
-    let compiled_program = &compile(
+    let compiled_contract = &compile(
         r#"
 storage {
     x: int,
@@ -1431,7 +1495,7 @@ predicate Foo {
     );
 
     check(
-        &format!("{compiled_program}"),
+        &format!("{compiled_contract}"),
         expect_test::expect![[r#"
             predicate ::Foo {
                 --- Constraints ---
@@ -1486,7 +1550,7 @@ predicate Foo {
 
 #[test]
 fn storage_access_arrays_in_maps() {
-    let compiled_program = &compile(
+    let compiled_contract = &compile(
         r#"
 storage {
     x: int,
@@ -1501,7 +1565,7 @@ predicate Foo {
     );
 
     check(
-        &format!("{compiled_program}"),
+        &format!("{compiled_contract}"),
         expect_test::expect![[r#"
             predicate ::Foo {
                 --- Constraints ---
@@ -1540,7 +1604,7 @@ predicate Foo {
 
 #[test]
 fn storage_access_arrays_extern() {
-    let compiled_program = &compile(
+    let compiled_contract = &compile(
         r#"
 interface Foo {
     storage {
@@ -1563,7 +1627,7 @@ predicate Bar {
     );
 
     check(
-        &format!("{compiled_program}"),
+        &format!("{compiled_contract}"),
         expect_test::expect![[r#"
             predicate ::Bar {
                 --- Constraints ---
@@ -1664,7 +1728,7 @@ predicate Bar {
 
 #[test]
 fn storage_access_complex_maps() {
-    let compiled_program = &compile(
+    let compiled_contract = &compile(
         r#"
 storage {
     map_in_map: (int => (b256 => int)),
@@ -1682,7 +1746,7 @@ predicate Simple {
     );
 
     check(
-        &format!("{compiled_program}"),
+        &format!("{compiled_contract}"),
         expect_test::expect![[r#"
             predicate ::Simple {
                 --- Constraints ---
@@ -1740,7 +1804,7 @@ predicate Simple {
 
 #[test]
 fn storage_external_access() {
-    let compiled_program = &compile(
+    let compiled_contract = &compile(
         r#"
 interface Extern1 {
     storage {
@@ -1774,7 +1838,7 @@ predicate Foo {
     );
 
     check(
-        &format!("{compiled_program}"),
+        &format!("{compiled_contract}"),
         expect_test::expect![[r#"
             predicate ::Foo {
                 --- Constraints ---
@@ -1873,6 +1937,162 @@ predicate Foo {
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRangeExtern
+                  Constraint(TotalControlFlow(Halt))
+            }
+
+        "#]],
+    );
+}
+
+#[test]
+fn nil() {
+    check(
+        &format!(
+            "{}",
+            compile(
+                r#"
+storage {
+    x: int,
+    w: b256,
+    t: { b256, int },
+    a: int[2][3],
+}
+
+predicate Foo {
+    state x = storage::x;
+    state w = storage::w;
+    state t = storage::t;
+    state a = storage::a;
+
+    // `x` is set in the pre state db and in the solution
+    constraint x != nil;
+    constraint nil != x';
+
+    // `w` is set in the pre state db but unset in the solution
+    constraint w != nil;
+    constraint nil == w';
+
+    // `t` is not set in the pre state db but is set in the solution
+    constraint t == nil;
+    constraint t' != nil;
+
+    // `a` is not set in the pre state db and is partially set in the solution.
+    constraint a == nil;
+    constraint a' != nil;
+}
+            "#,
+            )
+        ),
+        expect_test::expect![[r#"
+            predicate ::Foo {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Access(StateLen)
+                  Stack(Push(0))
+                  Pred(Eq)
+                  Pred(Not)
+                constraint 1
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(StateLen)
+                  Stack(Push(0))
+                  Pred(Eq)
+                  Pred(Not)
+                constraint 2
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Access(StateLen)
+                  Stack(Push(0))
+                  Pred(Eq)
+                  Pred(Not)
+                constraint 3
+                  Stack(Push(1))
+                  Stack(Push(1))
+                  Access(StateLen)
+                  Stack(Push(0))
+                  Pred(Eq)
+                constraint 4
+                  Stack(Push(2))
+                  Stack(Push(2))
+                  Stack(Push(0))
+                  Access(StateLenRange)
+                  Alu(Add)
+                  Stack(Push(0))
+                  Pred(Eq)
+                constraint 5
+                  Stack(Push(2))
+                  Stack(Push(2))
+                  Stack(Push(1))
+                  Access(StateLenRange)
+                  Alu(Add)
+                  Stack(Push(0))
+                  Pred(Eq)
+                  Pred(Not)
+                constraint 6
+                  Stack(Push(4))
+                  Stack(Push(6))
+                  Stack(Push(0))
+                  Access(StateLenRange)
+                  Alu(Add)
+                  Alu(Add)
+                  Alu(Add)
+                  Alu(Add)
+                  Alu(Add)
+                  Stack(Push(0))
+                  Pred(Eq)
+                constraint 7
+                  Stack(Push(4))
+                  Stack(Push(6))
+                  Stack(Push(1))
+                  Access(StateLenRange)
+                  Alu(Add)
+                  Alu(Add)
+                  Alu(Add)
+                  Alu(Add)
+                  Alu(Add)
+                  Stack(Push(0))
+                  Pred(Eq)
+                  Pred(Not)
+                --- State Reads ---
+                state read 0
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(1)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
+                  Constraint(TotalControlFlow(Halt))
+                state read 1
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(1)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(1)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
+                  Constraint(TotalControlFlow(Halt))
+                state read 2
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(2)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
+                  Constraint(TotalControlFlow(Halt))
+                state read 3
+                  Constraint(Stack(Push(3)))
+                  Constraint(Stack(Push(0)))
+                  Constraint(Stack(Push(6)))
+                  StateSlots(AllocSlots)
+                  Constraint(Stack(Push(2)))
+                  Constraint(Stack(Push(6)))
+                  Constraint(Stack(Push(0)))
+                  KeyRange
                   Constraint(TotalControlFlow(Halt))
             }
 
