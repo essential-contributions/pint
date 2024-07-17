@@ -3,7 +3,7 @@
 //! [`Mutation`][essential_types::solution::Mutation]s for a solution.
 
 use crate::{map, tuple, SingleKeyTy};
-use pint_abi_types::{KeyedTypeABI, KeyedVarABI};
+use pint_abi_types::{TypeABI, VarABI};
 use pint_abi_visit::{KeyedVarTree, Nesting, NodeIx};
 use proc_macro2::Span;
 
@@ -12,14 +12,10 @@ use proc_macro2::Span;
 fn nested_builder_items_from_node(tree: &KeyedVarTree, n: NodeIx) -> Vec<syn::Item> {
     let mut items = vec![];
     match tree[n].ty {
-        KeyedTypeABI::Map {
-            ty_from,
-            ty_to,
-            key: _,
-        } => {
+        TypeABI::Map { ty_from, ty_to } => {
             items.extend(map::builder_items(tree, n, ty_from, ty_to));
         }
-        KeyedTypeABI::Tuple(_fields) => {
+        TypeABI::Tuple(_fields) => {
             items.extend(tuple::builder_items(tree, n));
         }
         _ => (),
@@ -29,7 +25,7 @@ fn nested_builder_items_from_node(tree: &KeyedVarTree, n: NodeIx) -> Vec<syn::It
 
 /// Recursively traverse the given keyed vars and create a builder structs and
 /// impls for each tuple, map and array.
-fn nested_builder_items_from_keyed_vars(vars: &[KeyedVarABI]) -> Vec<syn::Item> {
+fn nested_builder_items_from_keyed_vars(vars: &[VarABI]) -> Vec<syn::Item> {
     let mut items = vec![];
     let tree = KeyedVarTree::from_keyed_vars(vars);
     tree.dfs(|n| {
@@ -117,16 +113,16 @@ fn method_for_single_key(name: &str, arg_ty: &SingleKeyTy, nesting: &[Nesting]) 
 pub(crate) fn method_from_node(tree: &KeyedVarTree, n: NodeIx, name: &str) -> syn::ImplItemFn {
     let nesting = tree.nesting(n);
     let arg_ty = match &tree[n].ty {
-        KeyedTypeABI::Bool(_key) => SingleKeyTy::Bool,
-        KeyedTypeABI::Int(_key) => SingleKeyTy::Int,
-        KeyedTypeABI::Real(_key) => SingleKeyTy::Real,
-        KeyedTypeABI::String(_key) => SingleKeyTy::String,
-        KeyedTypeABI::B256(_key) => SingleKeyTy::B256,
-        KeyedTypeABI::Array { ty: _, size: _ } => todo!(),
-        KeyedTypeABI::Tuple(_) => {
+        TypeABI::Bool => SingleKeyTy::Bool,
+        TypeABI::Int => SingleKeyTy::Int,
+        TypeABI::Real => SingleKeyTy::Real,
+        TypeABI::String => SingleKeyTy::String,
+        TypeABI::B256 => SingleKeyTy::B256,
+        TypeABI::Array { ty: _, size: _ } => todo!(),
+        TypeABI::Tuple(_) => {
             return method_for_tuple(name, &nesting);
         }
-        KeyedTypeABI::Map { .. } => {
+        TypeABI::Map { .. } => {
             return method_for_map(name, &nesting);
         }
     };
@@ -135,7 +131,7 @@ pub(crate) fn method_from_node(tree: &KeyedVarTree, n: NodeIx, name: &str) -> sy
 }
 
 /// All builder methods for the `Mutations` builder type.
-fn impl_mutations_methods(vars: &[KeyedVarABI]) -> Vec<syn::ImplItemFn> {
+fn impl_mutations_methods(vars: &[VarABI]) -> Vec<syn::ImplItemFn> {
     let tree = KeyedVarTree::from_keyed_vars(vars);
     tree.roots()
         .iter()
@@ -147,7 +143,7 @@ fn impl_mutations_methods(vars: &[KeyedVarABI]) -> Vec<syn::ImplItemFn> {
 }
 
 /// The implementation for the `Mutations` builder type.
-fn impl_mutations(vars: &[KeyedVarABI]) -> syn::ItemImpl {
+fn impl_mutations(vars: &[VarABI]) -> syn::ItemImpl {
     let methods = impl_mutations_methods(vars);
     syn::parse_quote! {
         impl Mutations {
@@ -179,7 +175,7 @@ fn mutations_struct() -> syn::ItemStruct {
             /// The set of mutations being built.
             set: Vec<pint_abi::types::essential::solution::Mutation>,
             /// The stack of key elements that need to be merged with the
-            /// `&[Nesting]` derived by the `KeyedTypeABI` traversal.
+            /// `&[Nesting]` derived by the `TypeABI` traversal.
             ///
             /// For example, when a map's `entry` method is called, the provided
             /// key is pushed to this stack. Upon completion of the `entry`
@@ -214,7 +210,7 @@ pub(crate) fn impl_deref_for_nested(struct_name: &str) -> Vec<syn::ItemImpl> {
 }
 
 /// All items for the `Mutations` type, nested mutations builder types and their impls.
-pub(crate) fn items(vars: &[KeyedVarABI]) -> Vec<syn::Item> {
+pub(crate) fn items(vars: &[VarABI]) -> Vec<syn::Item> {
     let mut items = vec![
         mutations_struct().into(),
         mutations_fn().into(),

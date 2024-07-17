@@ -15,7 +15,7 @@
 //! The aim for the generated items is to ease the construction of solutions
 //! including the encoding of keys, values and mutations from higher-level types.
 
-use pint_abi_types::{ContractABI, KeyedTypeABI, KeyedVarABI, PredicateABI, TupleField, TypeABI};
+use pint_abi_types::{ContractABI, PredicateABI, TupleField, TypeABI, VarABI};
 use pint_abi_visit::Nesting;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
@@ -92,6 +92,7 @@ fn ty_from_pint_ty(ty: &TypeABI) -> syn::Type {
         TypeABI::B256 => syn::parse_quote!([i64; 4]),
         TypeABI::Tuple(tuple) => ty_from_tuple(tuple),
         TypeABI::Array { ty, size } => ty_from_array(ty, *size),
+        TypeABI::Map { .. } => unreachable!("Maps are not allowed as non-storage types"),
     }
 }
 
@@ -267,24 +268,10 @@ fn nesting_key_doc_str(nesting: &[Nesting]) -> String {
     s
 }
 
-/// Extract the key from a keyed type.
-fn abi_key_from_keyed_type(ty: &KeyedTypeABI) -> &Vec<Option<usize>> {
-    match ty {
-        KeyedTypeABI::Bool(key) => key,
-        KeyedTypeABI::Int(key) => key,
-        KeyedTypeABI::Real(key) => key,
-        KeyedTypeABI::Array { ty, .. } => abi_key_from_keyed_type(ty),
-        KeyedTypeABI::String(key) => key,
-        KeyedTypeABI::B256(key) => key,
-        KeyedTypeABI::Tuple(fields) => abi_key_from_keyed_type(&fields[0].ty),
-        KeyedTypeABI::Map { key, .. } => key,
-    }
-}
-
 /// The `mutations` and `keys` items for the given keyed vars.
 ///
 /// This is used for both `storage` and `pub_vars` mod generation.
-fn items_from_keyed_vars(vars: &[KeyedVarABI]) -> Vec<syn::Item> {
+fn items_from_keyed_vars(vars: &[VarABI]) -> Vec<syn::Item> {
     let mut items = vec![];
     items.extend(mutation::items(vars));
     items
@@ -293,7 +280,7 @@ fn items_from_keyed_vars(vars: &[KeyedVarABI]) -> Vec<syn::Item> {
 /// Create a module with `mutations` and `keys` fns for the given keyed vars.
 ///
 /// This is used for both `storage` and `pub_vars` mod generation.
-fn mod_from_keyed_vars(mod_name: &str, vars: &[KeyedVarABI]) -> syn::ItemMod {
+fn mod_from_keyed_vars(mod_name: &str, vars: &[VarABI]) -> syn::ItemMod {
     let items = items_from_keyed_vars(vars);
     let mod_ident = syn::Ident::new(mod_name, Span::call_site());
     syn::parse_quote! {

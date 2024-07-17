@@ -32,11 +32,7 @@ mod counter_from_str {
         "storage": [
           {
             "name": "counter",
-            "ty": {
-              "Int": [
-                0
-              ]
-            }
+            "ty": "Int"
           }
         ]
       }"#
