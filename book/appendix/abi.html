@@ -166,9 +166,8 @@ declared in the <code>storage { .. }</code> block. Each entry in this array is a
 following properties:</p>
 <ul>
 <li><code>&quot;name&quot;</code>: a string representing the name of the storage variable.</li>
-<li><code>&quot;ty&quot;</code>: a JSON object representing the type of the storage variable and the <em>storage key(s)</em> used
-to store the variable. This is further explained in <a href="#json-representation-of-types-with-keys">JSON Representation of Types With
-Keys</a>.</li>
+<li><code>&quot;ty&quot;</code>: a JSON object representing the type of the storage variable. This is further explained in
+<a href="#json-representation-of-types">JSON Representation of Types</a>.</li>
 </ul>
 <h4 id="predicates"><a class="header" href="#predicates"><code>&quot;predicates&quot;</code></a></h4>
 <p>This is an array that describes every predicate in the contract. Each entry in this array is a JSON
@@ -187,9 +186,8 @@ in <a href="#json-representation-of-types">JSON Representation of Types</a>.</li
 this array is a JSON object that contains the following properties:
 <ul>
 <li><code>&quot;name&quot;</code>: a string representing the name of the public decision variable.</li>
-<li><code>&quot;ty&quot;</code>: a JSON object representing the type of the public decision variable and the <em>transient
-storage key(s)</em> used to storage the variable. This is further explained in <a href="#json-representation-of-types-with-keys">JSON Representation
-of Types With Keys</a>.</li>
+<li><code>&quot;ty&quot;</code>: a JSON object representing the type of the public decision variable. This is further
+explained in <a href="#json-representation-of-types">JSON Representation of Types</a>.</li>
 </ul>
 </li>
 </ul>
@@ -243,75 +241,16 @@ formatted according to the rules of this section.</p>
 <p>In the above, <code>&lt;element_ty&gt;</code> is a JSON object representing the type of each element in the array,
 formatted according to the rules of this section. <code>&lt;array_size&gt;</code> is an integer representing the size
 of the array.</p>
-<h3 id="json-representation-of-types-with-keys"><a class="header" href="#json-representation-of-types-with-keys">JSON Representation of Types With Keys</a></h3>
-<p>Storage variables and public decision variables are stored in key-value data structures where each
-key is a vector of integers of arbitrary length. The keys assigned to those variables by the
-compiler are included in the JSON ABI as part of their types.</p>
-<p>Below is a list of the JSON objects for each possible type when a key is required.</p>
-<h4 id="int-1"><a class="header" href="#int-1"><code>int</code></a></h4>
-<pre><code class="language-json">{
-  &quot;Int&quot;: &lt;key&gt;
-}
-</code></pre>
-<p><code>&lt;key&gt;</code> is an array of integers representing the key.</p>
-<h4 id="bool-1"><a class="header" href="#bool-1"><code>bool</code></a></h4>
-<pre><code class="language-json">&quot;Bool&quot;: &lt;key&gt;
-</code></pre>
-<p><code>&lt;key&gt;</code> is an array of integers representing the key.</p>
-<h4 id="string-1"><a class="header" href="#string-1"><code>string</code></a></h4>
-<pre><code class="language-json">&quot;String&quot;: &lt;key&gt;
-</code></pre>
-<p><code>&lt;key&gt;</code> is an array of integers representing the key.</p>
-<h4 id="b256-1"><a class="header" href="#b256-1"><code>b256</code></a></h4>
-<pre><code class="language-json">&quot;B256&quot;: &lt;key&gt;
-</code></pre>
-<p><code>&lt;key&gt;</code> is an array of integers representing the key.</p>
-<h4 id="tuple-1"><a class="header" href="#tuple-1">Tuple</a></h4>
-<pre><code class="language-json">{
-  &quot;Tuple&quot;: [
-    {
-      &quot;name&quot;: &lt;field1_name&gt;,
-      &quot;ty&quot;: &lt;field1_keyed_ty&gt;
-    }
-    {
-      &quot;name&quot;: &lt;field2_name&gt;,
-      &quot;ty&quot;: &lt;field2_keyed_ty&gt;
-    }
-    ...
-  ],
-}
-</code></pre>
-<p>In the above, <code>&lt;field1_name&gt;</code>, <code>&lt;field2_name&gt;</code>, ... are strings representing the names of the tuple
-fields. These are optional, that is, they can be set to <code>null</code> if the tuple field has no name.
-<code>&lt;field1_keyed_ty.</code>, <code>&lt;field2_keyed_ty&gt;</code>, ... are JSON objects representing the types of the tuple
-fields along with their keys, formatted according to the rules of this section.</p>
-<h4 id="array-1"><a class="header" href="#array-1">Array</a></h4>
-<pre><code class="language-json">{
-  &quot;Array&quot;: {
-    &quot;ty&quot;: &lt;element_keyed_ty&gt;,
-    &quot;size&quot;: &lt;array_size&gt;,
-  }
-}
-</code></pre>
-<p>In the above, <code>&lt;element_keyed_ty&gt;</code> is a JSON object representing the type of each element in the
-array, formatted according to the rules of this section. <code>&lt;array_size&gt;</code> is an integer representing
-the size of the array.</p>
 <h4 id="storage-map"><a class="header" href="#storage-map">Storage Map</a></h4>
 <pre><code class="language-json">{
   &quot;Map&quot;: {
     &quot;ty_from&quot;: &lt;ty_from&gt;,
-    &quot;ty_to&quot;: &lt;keyed_ty_to&gt;,
+    &quot;ty_to&quot;: &lt;ty_to&gt;,
   }
 }
 </code></pre>
-<p>In the above, <code>&lt;ty_from&gt;</code> is a JSON object representing the &quot;from&quot; type in the map, formatted
-according to the rules of the previous section (i.e. without a key). <code>&lt;keyed_ty_to&gt;</code> is the JSON
-object representing the &quot;to&quot; type in the map, formatted according to the rules of this section.</p>
-<blockquote>
-<p><strong>Note</strong>: Keys to values in a storage map contain 1 or more <code>null</code>. These <code>null</code> values are
-placeholders; this is where the &quot;from&quot; value of the map is inserted to obtain the full concrete
-key.</p>
-</blockquote>
+<p>In the above, <code>&lt;ty_from&gt;</code> and <code>&lt;ty_to&gt;</code> are JSON objects representing the &quot;from&quot; type and the &quot;to&quot;
+type in the map, formatted according to the rules of this section.</p>
 <h3 id="example"><a class="header" href="#example">Example</a></h3>
 <p>Here's an example contract and its corresponding JSON ABI:</p>
 <pre><code class="language-pint">storage {
@@ -331,11 +270,6 @@ predicate Foo {
 </code></pre>
 <pre><code class="language-json">{
   &quot;predicates&quot;: [
-    {
-      &quot;name&quot;: &quot;&quot;,
-      &quot;vars&quot;: [],
-      &quot;pub_vars&quot;: []
-    },
     {
       &quot;name&quot;: &quot;::Foo&quot;,
       &quot;vars&quot;: [
@@ -362,15 +296,11 @@ predicate Foo {
                 &quot;Tuple&quot;: [
                   {
                     &quot;name&quot;: null,
-                    &quot;ty&quot;: {
-                      &quot;Int&quot;: [0, 0]
-                    }
+                    &quot;ty&quot;: &quot;Int&quot;
                   },
                   {
                     &quot;name&quot;: null,
-                    &quot;ty&quot;: {
-                      &quot;Int&quot;: [0, 1]
-                    }
+                    &quot;ty&quot;: &quot;Int&quot;
                   }
                 ]
               },
@@ -382,9 +312,7 @@ predicate Foo {
           &quot;name&quot;: &quot;::t1&quot;,
           &quot;ty&quot;: {
             &quot;Array&quot;: {
-              &quot;ty&quot;: {
-                &quot;B256&quot;: [1, 0]
-              },
+              &quot;ty&quot;: &quot;B256&quot;,
               &quot;size&quot;: 3
             }
           }
@@ -395,9 +323,7 @@ predicate Foo {
   &quot;storage&quot;: [
     {
       &quot;name&quot;: &quot;s0&quot;,
-      &quot;ty&quot;: {
-        &quot;B256&quot;: [0]
-      }
+      &quot;ty&quot;: &quot;B256&quot;
     },
     {
       &quot;name&quot;: &quot;s1&quot;,
@@ -405,15 +331,11 @@ predicate Foo {
         &quot;Tuple&quot;: [
           {
             &quot;name&quot;: null,
-            &quot;ty&quot;: {
-              &quot;Int&quot;: [1, 0]
-            }
+            &quot;ty&quot;: &quot;Int&quot;
           },
           {
             &quot;name&quot;: null,
-            &quot;ty&quot;: {
-              &quot;Int&quot;: [1, 1]
-            }
+            &quot;ty&quot;: &quot;Int&quot;
           }
         ]
       }
@@ -427,19 +349,14 @@ predicate Foo {
             &quot;Tuple&quot;: [
               {
                 &quot;name&quot;: null,
-                &quot;ty&quot;: {
-                  &quot;Int&quot;: [2, null, 0]
-                }
+                &quot;ty&quot;: &quot;Int&quot;
               },
               {
                 &quot;name&quot;: null,
-                &quot;ty&quot;: {
-                  &quot;Int&quot;: [2, null, 1]
-                }
+                &quot;ty&quot;: &quot;Int&quot;
               }
             ]
-          },
-          &quot;key&quot;: [2]
+          }
         }
       }
     }
@@ -458,35 +375,16 @@ predicate in the contract above.</li>
 </li>
 <li>Predicate <code>::Foo</code> has two public decision variables:
 <ul>
-<li>The first is called <code>::t0</code>. Its an array of 5 tuples, where each tuple contains two integers
-with no field names.
-<ul>
-<li>The key for the first field of the <em>first tuple</em> in the array is <code>[0, 0]</code>.</li>
-<li>The key for the second field of the <em>first tuple</em> in the array is <code>[0, 1]</code>.</li>
-<li>Keys for the other tuples in the array can be inferred to be:
-<ul>
-<li><code>[0, 2]</code> and <code>[0, 3]</code> for the second tuple.</li>
-<li><code>[0, 4]</code> and <code>[0, 5]</code> for the third tuple.</li>
-<li>... and so on.</li>
-</ul>
-</li>
-</ul>
-</li>
-<li>The second is called <code>::t1</code> and is an array of 3 <code>b256</code>s. The key for the first <code>b256</code> is <code>[1, 0]</code>. The keys for the second and third <code>b256</code> are therefore <code>[1, 1]</code> and <code>[1, 2]</code> respectively.</li>
+<li>The first is called <code>::t0</code>. Its an array of 5 tuples, where each tuple contains two <code>int</code>s
+with no field names.</li>
+<li>The second is called <code>::t1</code> and is an array of 3 <code>b256</code>s.</li>
 </ul>
 </li>
 <li>The contract also has three storage variables:
 <ul>
-<li>The first is called <code>s0</code> and is of type <code>b256</code> and its key is <code>[0]</code>.</li>
-<li>The second is called <code>s1</code> and is a tuple of two integers. The key for the first integer is <code>[1, 0]</code> and the key for the second integer is <code>[1, 1]</code>.</li>
-<li>The third is called <code>my_map</code> and is a storage map from <code>int</code> to a tuple of two integers.
-<ul>
-<li>The key for the first integer in the tuple is <code>[2, null, 0]</code>. The <code>null</code> here is a
-placeholder; this is where the &quot;from&quot; value, in this case an integer, is inserted to obtain
-the full concrete key. For example, the key for <code>my_map[69]</code> is <code>[2, 69, 0]</code>. Similarly, the
-key for the second integer in the tuple is <code>[2, null, 1]</code>.</li>
-</ul>
-</li>
+<li>The first is called <code>s0</code> and is of type <code>b256</code>.</li>
+<li>The second is called <code>s1</code> and is a tuple of two <code>int</code>s.</li>
+<li>The third is called <code>my_map</code> and is a storage map from <code>int</code> to a tuple of two <code>int</code>s.</li>
 </ul>
 </li>
 </ul>
