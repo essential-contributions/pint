@@ -1,5 +1,5 @@
 use super::{
-    BlockStatement, Const, ConstraintDecl, Expr, ExprKey, Ident, IfDecl, Inference,
+    BlockStatement, Const, ConstraintDecl, Contract, Expr, ExprKey, Ident, IfDecl, Inference,
     InterfaceInstance, Predicate, PredicateInstance, VarKey,
 };
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
 };
 use fxhash::{FxHashMap, FxHashSet};
 
-impl Predicate {
+impl Contract {
     pub(super) fn lower_newtypes(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
         self.check_recursive_newtypes(handler)?;
         self.lower_newtypes_in_newtypes(handler)?;
@@ -79,10 +79,13 @@ impl Predicate {
             }
         }
 
-        for NewTypeDecl { name, ty, span } in &self.new_types {
-            let mut seen_names = FxHashMap::from_iter(std::iter::once((name.name.as_str(), span)));
+        for pred in self.preds.values() {
+            for NewTypeDecl { name, ty, span } in &pred.new_types {
+                let mut seen_names =
+                    FxHashMap::from_iter(std::iter::once((name.name.as_str(), span)));
 
-            let _ = inspect_type_names(handler, &self.new_types, &mut seen_names, ty);
+                let _ = inspect_type_names(handler, &pred.new_types, &mut seen_names, ty);
+            }
         }
 
         if handler.has_errors() {
@@ -122,39 +125,41 @@ impl Predicate {
         //   type B = { A, A };
         //   // B will have `Type::Custom("A")` which need to be `Type::Alias("A", int)`
 
-        for new_type_idx in 0..self.new_types.len() {
-            // We're replacing only a single new type at a time, if found in other new-types.
-            let new_type = self.new_types[new_type_idx].clone();
+        for pred in self.preds.values_mut() {
+            for new_type_idx in 0..pred.new_types.len() {
+                // We're replacing only a single new type at a time, if found in other new-types.
+                let new_type = pred.new_types[new_type_idx].clone();
 
-            // Replace the next found custom type which needs to be replaced with a an alias.
-            // There may be multiple replacements required per iteration, so we'll visit every
-            // current new-type decl per iteration until none are updated.
-            for loop_check in 0.. {
-                let mut modified = false;
+                // Replace the next found custom type which needs to be replaced with a an alias.
+                // There may be multiple replacements required per iteration, so we'll visit every
+                // current new-type decl per iteration until none are updated.
+                for loop_check in 0.. {
+                    let mut modified = false;
 
-                for NewTypeDecl { ref mut ty, .. } in &mut self.new_types {
-                    if let Some(custom_ty) = get_custom_type_mut_ref(&new_type.name.name, ty) {
-                        *custom_ty = Type::Alias {
-                            path: new_type.name.name.clone(),
-                            ty: Box::new(new_type.ty.clone()),
-                            span: new_type.span.clone(),
-                        };
+                    for NewTypeDecl { ref mut ty, .. } in &mut pred.new_types {
+                        if let Some(custom_ty) = get_custom_type_mut_ref(&new_type.name.name, ty) {
+                            *custom_ty = Type::Alias {
+                                path: new_type.name.name.clone(),
+                                ty: Box::new(new_type.ty.clone()),
+                                span: new_type.span.clone(),
+                            };
 
-                        modified = true;
+                            modified = true;
+                        }
                     }
-                }
 
-                if !modified {
-                    break;
-                }
+                    if !modified {
+                        break;
+                    }
 
-                if loop_check > 10_000 {
-                    return Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "infinite loop in lower_newtypes_in_newtypes()",
-                            span: empty_span(),
-                        },
-                    }));
+                    if loop_check > 10_000 {
+                        return Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "infinite loop in lower_newtypes_in_newtypes()",
+                                span: empty_span(),
+                            },
+                        }));
+                    }
                 }
             }
         }
@@ -202,68 +207,40 @@ impl Predicate {
             }
         }
 
-        // Then, loop for every known var or state type, or any `as` cast expr, or any storage
-        // type, and replace any custom types which match with the type alias.
-        self.vars
-            .update_types(|_, ty| replace_custom_type(&self.new_types, ty));
+        for pred in self.preds.values_mut() {
+            // Then, loop for every known var or state type, or any `as` cast expr, or any storage
+            // type, and replace any custom types which match with the type alias.
+            pred.vars
+                .update_types(|_, ty| replace_custom_type(&pred.new_types, ty));
 
-        self.states
-            .update_types(|_, ty| replace_custom_type(&self.new_types, ty));
+            pred.states
+                .update_types(|_, ty| replace_custom_type(&pred.new_types, ty));
 
-        self.exprs.update_exprs(|_, expr| {
-            if let Expr::Cast { ty, .. } = expr {
-                replace_custom_type(&self.new_types, ty.borrow_mut());
-            }
-        });
+            self.exprs.update_exprs(|_, expr| {
+                if let Expr::Cast { ty, .. } = expr {
+                    replace_custom_type(&pred.new_types, ty.borrow_mut());
+                }
+            });
 
-        if let Some((storage_vars, _)) = &mut self.storage {
-            for StorageVar { ty, .. } in storage_vars {
-                replace_custom_type(&self.new_types, ty);
+            if let Some((storage_vars, _)) = &mut pred.storage {
+                for StorageVar { ty, .. } in storage_vars {
+                    replace_custom_type(&pred.new_types, ty);
+                }
             }
         }
     }
 
     pub(super) fn check_undefined_types(&mut self, handler: &Handler) {
-        let valid_custom_tys: FxHashSet<&String> = FxHashSet::from_iter(
-            self.enums
-                .iter()
-                .map(|ed| &ed.name.name)
-                .chain(self.new_types.iter().map(|ntd| &ntd.name.name)),
-        );
+        for pred in self.preds.values() {
+            let valid_custom_tys: FxHashSet<&String> = FxHashSet::from_iter(
+                pred.enums
+                    .iter()
+                    .map(|ed| &ed.name.name)
+                    .chain(pred.new_types.iter().map(|ntd| &ntd.name.name)),
+            );
 
-        for (state_key, _) in self.states() {
-            if let Type::Custom { path, span, .. } = state_key.get_ty(self) {
-                if !valid_custom_tys.contains(path) {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::UndefinedType { span: span.clone() },
-                    });
-                }
-            }
-        }
-
-        for (var_key, _) in self.vars() {
-            if let Type::Custom { path, span, .. } = var_key.get_ty(self) {
-                if !valid_custom_tys.contains(path) {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::UndefinedType { span: span.clone() },
-                    });
-                }
-            }
-        }
-
-        for expr in self.exprs() {
-            if let Type::Custom { path, span, .. } = expr.get_ty(self) {
-                if !valid_custom_tys.contains(path) {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::UndefinedType { span: span.clone() },
-                    });
-                }
-            }
-        }
-
-        for expr_key in self.exprs() {
-            if let Some(Expr::Cast { ty, .. }) = expr_key.try_get(self) {
-                if let Type::Custom { path, span, .. } = ty.as_ref() {
+            for (state_key, _) in pred.states() {
+                if let Type::Custom { path, span, .. } = state_key.get_ty(pred) {
                     if !valid_custom_tys.contains(path) {
                         handler.emit_err(Error::Compile {
                             error: CompileError::UndefinedType { span: span.clone() },
@@ -271,40 +248,70 @@ impl Predicate {
                     }
                 }
             }
+
+            for (var_key, _) in pred.vars() {
+                if let Type::Custom { path, span, .. } = var_key.get_ty(pred) {
+                    if !valid_custom_tys.contains(path) {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::UndefinedType { span: span.clone() },
+                        });
+                    }
+                }
+            }
+
+            for expr_key in self.exprs(pred) {
+                if let Type::Custom { path, span, .. } = expr_key.get_ty(self) {
+                    if !valid_custom_tys.contains(path) {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::UndefinedType { span: span.clone() },
+                        });
+                    }
+                }
+
+                if let Some(Expr::Cast { ty, .. }) = expr_key.try_get(self) {
+                    if let Type::Custom { path, span, .. } = ty.as_ref() {
+                        if !valid_custom_tys.contains(path) {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::UndefinedType { span: span.clone() },
+                            });
+                        }
+                    }
+                }
+            }
         }
     }
 
-    pub(super) fn check_constraint_types(&mut self, handler: &Handler) {
-        // After all expression types are inferred, then all constraint expressions must be of type bool
-        self.constraints.iter().for_each(|constraint_decl| {
-            let expr_type = constraint_decl.expr.get_ty(self);
-            if !expr_type.is_bool() {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::ConstraintExpressionTypeError {
-                        large_err: Box::new(LargeTypeError::ConstraintExpressionTypeError {
-                            expected_ty: self
-                                .with_pred(Type::Primitive {
-                                    kind: PrimitiveKind::Bool,
-                                    span: empty_span(),
-                                })
-                                .to_string(),
-                            found_ty: self.with_pred(expr_type).to_string(),
-                            span: constraint_decl.span.clone(),
-                            expected_span: Some(constraint_decl.span.clone()),
-                        }),
-                    },
-                });
-            }
-        })
+    pub(super) fn check_constraint_types(&self, handler: &Handler) {
+        for pred in self.preds.values() {
+            // After all expression types are inferred, then all constraint expressions must be of type bool
+            pred.constraints.iter().for_each(|constraint_decl| {
+                let expr_type = constraint_decl.expr.get_ty(self);
+                if !expr_type.is_bool() {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::ConstraintExpressionTypeError {
+                            large_err: Box::new(LargeTypeError::ConstraintExpressionTypeError {
+                                expected_ty: pred
+                                    .with_pred(
+                                        self,
+                                        Type::Primitive {
+                                            kind: PrimitiveKind::Bool,
+                                            span: empty_span(),
+                                        },
+                                    )
+                                    .to_string(),
+                                found_ty: pred.with_pred(self, expr_type).to_string(),
+                                span: constraint_decl.span.clone(),
+                                expected_span: Some(constraint_decl.span.clone()),
+                            }),
+                        },
+                    });
+                }
+            })
+        }
     }
 
     pub(super) fn check_storage_types(&self, handler: &Handler) {
-        if !self.is_root() {
-            // Only self check when we're the root predicate.
-            return;
-        }
-
-        if let Some((storage_vars, _)) = &self.storage {
+        if let Some((storage_vars, _)) = &self.root_pred().storage {
             for StorageVar { ty, span, .. } in storage_vars {
                 if !(ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() || ty.is_array())
                 {
@@ -346,300 +353,337 @@ impl Predicate {
         }
     }
 
-    pub(super) fn type_check_all_exprs(
-        &mut self,
-        handler: &Handler,
-        consts: &FxHashMap<String, Const>,
-    ) {
-        self.check_iface_inst_addrs(handler, consts);
-        self.check_pred_inst_addrs(handler, consts);
+    pub(super) fn type_check_all_exprs(&mut self, handler: &Handler) {
+        self.check_iface_inst_addrs(handler);
+        self.check_pred_inst_addrs(handler);
 
-        // Check all the 'root' exprs (constraints, state init exprs, and var init exprs) one at a
-        // time, gathering errors as we go. Copying the keys out first to avoid borrowing conflict.
-        let mut all_expr_keys = self
-            .constraints
-            .iter()
-            .map(|ConstraintDecl { expr: key, .. }| *key)
-            .chain(self.states().map(|(_, state)| state.expr))
-            .chain(self.var_inits.iter().map(|(_, expr)| *expr))
-            .collect::<Vec<_>>();
+        let pred_names = self.preds.keys().cloned().collect::<Vec<_>>();
+        for pred_name in &pred_names {
+            // Check all the 'root' exprs (constraints, state init exprs, and var init exprs) one at a
+            // time, gathering errors as we go. Copying the keys out first to avoid borrowing conflict.
+            let mut all_expr_keys = self.preds[pred_name]
+                .constraints
+                .iter()
+                .map(|ConstraintDecl { expr: key, .. }| *key)
+                .chain(self.preds[pred_name].states().map(|(_, state)| state.expr))
+                .chain(
+                    self.preds[pred_name]
+                        .var_inits
+                        .iter()
+                        .map(|(_, expr)| *expr),
+                )
+                .collect::<Vec<_>>();
 
-        // When we're checking the root predicate we check all the consts too.
-        if self.is_root() {
-            all_expr_keys.extend(consts.iter().map(|(_, Const { expr, .. })| *expr));
-        }
-
-        for expr_key in all_expr_keys {
-            if let Err(err) = self.type_check_single_expr(consts, expr_key) {
-                handler.emit_err(err);
+            // When we're checking the root predicate we check all the consts too.
+            if pred_name == Contract::ROOT_PRED_NAME {
+                all_expr_keys.extend(self.consts.iter().map(|(_, Const { expr, .. })| *expr));
             }
-        }
 
-        // Now check all if declarations
-        self.if_decls
-            .clone()
-            .iter()
-            .for_each(|if_decl| self.type_check_if_decl(consts, if_decl, handler));
+            for expr_key in all_expr_keys {
+                if let Err(err) = self.type_check_single_expr(pred_name, expr_key) {
+                    handler.emit_err(err);
+                }
+            }
 
-        // Confirm now that all decision variables are typed.
-        let mut var_key_to_new_type = FxHashMap::default();
-        for (var_key, var) in self.vars() {
-            let ty = var_key.get_ty(self);
-            if ty.is_unknown() {
-                if let Some(init_expr_key) = self.var_inits.get(var_key) {
-                    let ty = init_expr_key.get_ty(self);
-                    if !ty.is_unknown() {
-                        if var.is_pub
-                            && !(ty.is_bool()
-                                || ty.is_b256()
-                                || ty.is_int()
-                                || ty.is_tuple()
-                                || ty.is_array())
-                        {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::Internal {
-                                    msg: "only `bool`, b256`, `int`, tuple, and array pub vars \
+            // Now check all if declarations
+            self.preds[pred_name]
+                .if_decls
+                .clone()
+                .iter()
+                .for_each(|if_decl| self.type_check_if_decl(handler, pred_name, if_decl));
+
+            // Confirm now that all decision variables are typed.
+            let mut var_key_to_new_type = FxHashMap::default();
+            for (var_key, var) in self.preds[pred_name].vars() {
+                let ty = var_key.get_ty(&self.preds[pred_name]);
+                if ty.is_unknown() {
+                    if let Some(init_expr_key) = self.preds[pred_name].var_inits.get(var_key) {
+                        let ty = init_expr_key.get_ty(self);
+                        if !ty.is_unknown() {
+                            if var.is_pub
+                                && !(ty.is_bool()
+                                    || ty.is_b256()
+                                    || ty.is_int()
+                                    || ty.is_tuple()
+                                    || ty.is_array())
+                            {
+                                handler.emit_err(Error::Compile {
+                                    error: CompileError::Internal {
+                                        msg:
+                                            "only `bool`, b256`, `int`, tuple, and array pub vars \
                                           are currently supported",
+                                        span: var.span.clone(),
+                                    },
+                                });
+                            } else {
+                                var_key_to_new_type.insert(var_key, ty.clone());
+                            }
+                        } else {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::UnknownType {
                                     span: var.span.clone(),
                                 },
                             });
-                        } else {
-                            var_key_to_new_type.insert(var_key, ty.clone());
                         }
                     } else {
                         handler.emit_err(Error::Compile {
-                            error: CompileError::UnknownType {
+                            error: CompileError::Internal {
+                                msg: "untyped variable has no initialiser",
                                 span: var.span.clone(),
                             },
                         });
                     }
-                } else {
+                } else if var.is_pub
+                    && !(ty.is_bool()
+                        || ty.is_b256()
+                        || ty.is_int()
+                        || ty.is_tuple()
+                        || ty.is_array())
+                {
                     handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
-                            msg: "untyped variable has no initialiser",
+                            msg: "only `bool`, b256`, `int`, tuple, and array pub vars \
+                            are currently supported",
                             span: var.span.clone(),
                         },
                     });
                 }
-            } else if var.is_pub
-                && !(ty.is_bool() || ty.is_b256() || ty.is_int() || ty.is_tuple() || ty.is_array())
-            {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "only `bool`, b256`, `int`, tuple, and array pub vars \
-                            are currently supported",
-                        span: var.span.clone(),
-                    },
-                });
             }
-        }
 
-        self.vars.update_types(|var_key, ty| {
-            if let Some(new_ty) = var_key_to_new_type.get(&var_key) {
-                *ty = new_ty.clone()
-            }
-        });
-
-        // Confirm now that all state variables are typed.
-        let mut state_key_to_new_type = FxHashMap::default();
-        for (state_key, state) in self.states() {
-            let state_ty = state_key.get_ty(self);
-            if !state_ty.is_unknown() {
-                let expr_ty = state.expr.get_ty(self);
-                if !expr_ty.is_unknown() {
-                    if !state_ty.eq(self, expr_ty) {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::StateVarInitTypeError {
-                                large_err: Box::new(LargeTypeError::StateVarInitTypeError {
-                                    expected_ty: self.with_pred(state_ty).to_string(),
-                                    found_ty: self.with_pred(expr_ty).to_string(),
-                                    span: self.expr_key_to_span(state.expr),
-                                    expected_span: Some(state_ty.span().clone()),
-                                }),
-                            },
-                        });
+            self.preds
+                .get_mut(pred_name)
+                .unwrap()
+                .vars
+                .update_types(|var_key, ty| {
+                    if let Some(new_ty) = var_key_to_new_type.get(&var_key) {
+                        *ty = new_ty.clone()
                     }
-                    // State variables of type `Map` are not allowed
-                    if state_ty.is_map() {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::StateVarTypeIsMap {
-                                span: state.span.clone(),
-                            },
-                        });
-                    }
-                } else {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::UnknownType {
-                            span: state.span.clone(),
-                        },
-                    });
-                }
-            } else {
-                let expr_ty = state.expr.get_ty(self).clone();
-                if !expr_ty.is_unknown() {
-                    state_key_to_new_type.insert(state_key, expr_ty.clone());
-                    // State variables of type `Map` are not allowed
-                    if expr_ty.is_map() {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::StateVarTypeIsMap {
-                                span: state.span.clone(),
-                            },
-                        });
-                    }
-                } else {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::UnknownType {
-                            span: state.span.clone(),
-                        },
-                    });
-                }
-            }
-        }
-        self.states.update_types(|state_key, ty| {
-            if let Some(new_ty) = state_key_to_new_type.get(&state_key) {
-                *ty = new_ty.clone()
-            }
-        });
-
-        // Last thing we have to do is to type check all the range expressions in array types and
-        // make sure they are integers or enums
-        let mut checked_range_exprs = FxHashSet::default();
-        for range_expr in self
-            .vars()
-            .filter_map(|(var_key, _)| var_key.get_ty(self).get_array_range_expr())
-            .chain(
-                self.states()
-                    .filter_map(|(state_key, _)| state_key.get_ty(self).get_array_range_expr()),
-            )
-            .chain(
-                self.exprs()
-                    .filter_map(|expr_key| expr_key.get_ty(self).get_array_range_expr()),
-            )
-            .collect::<Vec<_>>()
-            .iter()
-        {
-            if let Err(err) = self.type_check_single_expr(consts, *range_expr) {
-                handler.emit_err(err);
-            } else if !(range_expr.get_ty(self).is_int()
-                || range_expr.get_ty(self).is_enum(self)
-                || checked_range_exprs.contains(range_expr))
-            {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::InvalidArrayRangeType {
-                        found_ty: self.with_pred(range_expr.get_ty(self)).to_string(),
-                        span: self.expr_key_to_span(*range_expr),
-                    },
                 });
-                // Make sure to not collect too many duplicate errors
-                checked_range_exprs.insert(range_expr);
-            }
-        }
-    }
 
-    fn check_iface_inst_addrs(&mut self, handler: &Handler, consts: &FxHashMap<String, Const>) {
-        // Type check all interface instance declarations.
-        let mut addr_keys = Vec::default();
-        for InterfaceInstance {
-            interface,
-            address,
-            span,
-            ..
-        } in &self.interface_instances
-        {
-            if self
-                .interfaces
-                .iter()
-                .any(|e| e.name.to_string() == *interface)
-            {
-                // OK. Type check this address below.
-                addr_keys.push(*address);
-            } else {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::MissingInterface {
-                        name: interface.clone(),
-                        span: span.clone(),
-                    },
-                });
-            }
-        }
-
-        self.check_instance_addresses(handler, consts, &addr_keys);
-    }
-
-    fn check_pred_inst_addrs(&mut self, handler: &Handler, consts: &FxHashMap<String, Const>) {
-        // Type check all predicate instance declarations.
-        let mut addr_keys = Vec::default();
-        for PredicateInstance {
-            interface_instance,
-            predicate,
-            address,
-            span,
-            ..
-        } in &self.predicate_instances
-        {
-            // Make sure that an appropriate interface instance exists and an appropriate
-            // predicate interface exists.
-            if let Some(interface_instance) = self
-                .interface_instances
-                .iter()
-                .find(|e| e.name.to_string() == *interface_instance)
-            {
-                if let Some(interface) = self
-                    .interfaces
-                    .iter()
-                    .find(|e| e.name.to_string() == *interface_instance.interface)
-                {
-                    if interface
-                        .predicate_interfaces
-                        .iter()
-                        .any(|e| e.name.to_string() == *predicate.to_string())
-                    {
-                        // OK. Type check this address below.
-                        addr_keys.push(*address);
+            // Confirm now that all state variables are typed.
+            let mut state_key_to_new_type = FxHashMap::default();
+            for (state_key, state) in self.preds[pred_name].states() {
+                let state_ty = state_key.get_ty(&self.preds[pred_name]);
+                if !state_ty.is_unknown() {
+                    let expr_ty = state.expr.get_ty(self);
+                    if !expr_ty.is_unknown() {
+                        if !state_ty.eq(&self.preds[pred_name], expr_ty) {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::StateVarInitTypeError {
+                                    large_err: Box::new(LargeTypeError::StateVarInitTypeError {
+                                        expected_ty: self.preds[pred_name]
+                                            .with_pred(self, state_ty)
+                                            .to_string(),
+                                        found_ty: self.preds[pred_name]
+                                            .with_pred(self, expr_ty)
+                                            .to_string(),
+                                        span: self.expr_key_to_span(state.expr),
+                                        expected_span: Some(state_ty.span().clone()),
+                                    }),
+                                },
+                            });
+                        }
+                        // State variables of type `Map` are not allowed
+                        if state_ty.is_map() {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::StateVarTypeIsMap {
+                                    span: state.span.clone(),
+                                },
+                            });
+                        }
                     } else {
                         handler.emit_err(Error::Compile {
-                            error: CompileError::MissingPredicateInterface {
-                                pred_name: predicate.name.to_string(),
-                                interface_name: interface.name.to_string(),
-                                span: span.clone(),
+                            error: CompileError::UnknownType {
+                                span: state.span.clone(),
+                            },
+                        });
+                    }
+                } else {
+                    let expr_ty = state.expr.get_ty(self).clone();
+                    if !expr_ty.is_unknown() {
+                        state_key_to_new_type.insert(state_key, expr_ty.clone());
+                        // State variables of type `Map` are not allowed
+                        if expr_ty.is_map() {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::StateVarTypeIsMap {
+                                    span: state.span.clone(),
+                                },
+                            });
+                        }
+                    } else {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::UnknownType {
+                                span: state.span.clone(),
                             },
                         });
                     }
                 }
-            } else {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::MissingInterfaceInstance {
-                        name: interface_instance.clone(),
-                        span: span.clone(),
-                    },
+            }
+
+            self.preds
+                .get_mut(pred_name)
+                .unwrap()
+                .states
+                .update_types(|state_key, ty| {
+                    if let Some(new_ty) = state_key_to_new_type.get(&state_key) {
+                        *ty = new_ty.clone()
+                    }
                 });
+
+            // Last thing we have to do is to type check all the range expressions in array types and
+            // make sure they are integers or enums
+            let mut checked_range_exprs = FxHashSet::default();
+            for range_expr in self.preds[pred_name]
+                .vars()
+                .filter_map(|(var_key, _)| {
+                    var_key
+                        .get_ty(&self.preds[pred_name])
+                        .get_array_range_expr()
+                })
+                .chain(self.preds[pred_name].states().filter_map(|(state_key, _)| {
+                    state_key
+                        .get_ty(&self.preds[pred_name])
+                        .get_array_range_expr()
+                }))
+                .chain(
+                    self.exprs(&self.preds[pred_name])
+                        .filter_map(|expr_key| expr_key.get_ty(self).get_array_range_expr()),
+                )
+                .collect::<Vec<_>>()
+                .iter()
+            {
+                if let Err(err) = self.type_check_single_expr(pred_name, *range_expr) {
+                    handler.emit_err(err);
+                } else if !(range_expr.get_ty(self).is_int()
+                    || range_expr.get_ty(self).is_enum(&self.preds[pred_name])
+                    || checked_range_exprs.contains(range_expr))
+                {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::InvalidArrayRangeType {
+                            found_ty: self.preds[pred_name]
+                                .with_pred(self, range_expr.get_ty(self))
+                                .to_string(),
+                            span: self.expr_key_to_span(*range_expr),
+                        },
+                    });
+                    // Make sure to not collect too many duplicate errors
+                    checked_range_exprs.insert(range_expr);
+                }
             }
         }
+    }
 
-        self.check_instance_addresses(handler, consts, &addr_keys);
+    fn check_iface_inst_addrs(&mut self, handler: &Handler) {
+        for pred_name in self.preds.keys().cloned().collect::<Vec<_>>().iter() {
+            // Type check all interface instance declarations.
+            let mut addr_keys = Vec::default();
+            for InterfaceInstance {
+                interface,
+                address,
+                span,
+                ..
+            } in &self.preds[pred_name].interface_instances
+            {
+                if self.preds[pred_name]
+                    .interfaces
+                    .iter()
+                    .any(|e| e.name.to_string() == *interface)
+                {
+                    // OK. Type check this address below.
+                    addr_keys.push(*address);
+                } else {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::MissingInterface {
+                            name: interface.clone(),
+                            span: span.clone(),
+                        },
+                    });
+                }
+            }
+
+            self.check_instance_addresses(handler, pred_name, &addr_keys);
+        }
+    }
+
+    fn check_pred_inst_addrs(&mut self, handler: &Handler) {
+        for pred_name in self.preds.keys().cloned().collect::<Vec<_>>().iter() {
+            // Type check all predicate instance declarations.
+            let mut addr_keys = Vec::default();
+            for PredicateInstance {
+                interface_instance,
+                predicate,
+                address,
+                span,
+                ..
+            } in &self.preds[pred_name].predicate_instances
+            {
+                // Make sure that an appropriate interface instance exists and an appropriate
+                // predicate interface exists.
+                if let Some(interface_instance) = self.preds[pred_name]
+                    .interface_instances
+                    .iter()
+                    .find(|e| e.name.to_string() == *interface_instance)
+                {
+                    if let Some(interface) = self.preds[pred_name]
+                        .interfaces
+                        .iter()
+                        .find(|e| e.name.to_string() == *interface_instance.interface)
+                    {
+                        if interface
+                            .predicate_interfaces
+                            .iter()
+                            .any(|e| e.name.to_string() == *predicate.to_string())
+                        {
+                            // OK. Type check this address below.
+                            addr_keys.push(*address);
+                        } else {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::MissingPredicateInterface {
+                                    pred_name: predicate.name.to_string(),
+                                    interface_name: interface.name.to_string(),
+                                    span: span.clone(),
+                                },
+                            });
+                        }
+                    }
+                } else {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::MissingInterfaceInstance {
+                            name: interface_instance.clone(),
+                            span: span.clone(),
+                        },
+                    });
+                }
+            }
+
+            self.check_instance_addresses(handler, pred_name, &addr_keys);
+        }
     }
 
     fn check_instance_addresses(
         &mut self,
         handler: &Handler,
-        consts: &FxHashMap<String, Const>,
+        pred_name: &str,
         addr_keys: &[ExprKey],
     ) {
         for address in addr_keys {
-            match self.type_check_single_expr(consts, *address) {
+            match self.type_check_single_expr(pred_name, *address) {
                 Ok(()) => {
                     let ty = address.get_ty(self);
                     if !ty.is_b256() {
                         handler.emit_err(Error::Compile {
                             error: CompileError::AddressExpressionTypeError {
                                 large_err: Box::new(LargeTypeError::AddressExpressionTypeError {
-                                    expected_ty: self
-                                        .with_pred(Type::Primitive {
-                                            kind: PrimitiveKind::B256,
-                                            span: empty_span(),
-                                        })
+                                    expected_ty: self.preds[pred_name]
+                                        .with_pred(
+                                            self,
+                                            Type::Primitive {
+                                                kind: PrimitiveKind::B256,
+                                                span: empty_span(),
+                                            },
+                                        )
                                         .to_string(),
-                                    found_ty: self.with_pred(ty).to_string(),
+                                    found_ty: self.preds[pred_name].with_pred(self, ty).to_string(),
                                     span: self.expr_key_to_span(*address),
                                     expected_span: Some(self.expr_key_to_span(*address)),
                                 }),
@@ -657,12 +701,7 @@ impl Predicate {
 
     // Type check an if statement and all of its sub-statements including other ifs. This is a
     // recursive function.
-    fn type_check_if_decl(
-        &mut self,
-        consts: &FxHashMap<String, Const>,
-        if_decl: &IfDecl,
-        handler: &Handler,
-    ) {
+    fn type_check_if_decl(&mut self, handler: &Handler, pred_name: &str, if_decl: &IfDecl) {
         let IfDecl {
             condition,
             then_block,
@@ -671,14 +710,14 @@ impl Predicate {
         } = if_decl;
 
         // Make sure the condition is a `bool`
-        if let Err(err) = self.type_check_single_expr(consts, *condition) {
+        if let Err(err) = self.type_check_single_expr(pred_name, *condition) {
             handler.emit_err(err);
         } else {
             let cond_ty = condition.get_ty(self);
             if !cond_ty.is_bool() {
                 handler.emit_err(Error::Compile {
                     error: CompileError::NonBoolConditional {
-                        ty: self.with_pred(cond_ty).to_string(),
+                        ty: self.preds[pred_name].with_pred(self, cond_ty).to_string(),
                         conditional: "`if` statement".to_string(),
                         span: self.expr_key_to_span(*condition),
                     },
@@ -688,36 +727,32 @@ impl Predicate {
 
         // Type check each block statement in the "then" block
         then_block.iter().for_each(|block_statement| {
-            self.type_check_block_statement(consts, block_statement, handler);
+            self.type_check_block_statement(handler, pred_name, block_statement);
         });
 
         // Type check each block statement in the "else" block, if available
         else_block.iter().flatten().for_each(|block_statement| {
-            self.type_check_block_statement(consts, block_statement, handler);
+            self.type_check_block_statement(handler, pred_name, block_statement);
         });
     }
 
     fn type_check_block_statement(
         &mut self,
-        consts: &FxHashMap<String, Const>,
-        block_statement: &BlockStatement,
         handler: &Handler,
+        pred_name: &str,
+        block_statement: &BlockStatement,
     ) {
         match block_statement {
             BlockStatement::Constraint(ConstraintDecl { expr, .. }) => {
-                if let Err(err) = self.type_check_single_expr(consts, *expr) {
+                if let Err(err) = self.type_check_single_expr(pred_name, *expr) {
                     handler.emit_err(err);
                 }
             }
-            BlockStatement::If(if_decl) => self.type_check_if_decl(consts, if_decl, handler),
+            BlockStatement::If(if_decl) => self.type_check_if_decl(handler, pred_name, if_decl),
         }
     }
 
-    fn type_check_single_expr(
-        &mut self,
-        consts: &FxHashMap<String, Const>,
-        expr_key: ExprKey,
-    ) -> Result<(), Error> {
+    fn type_check_single_expr(&mut self, pred_name: &str, expr_key: ExprKey) -> Result<(), Error> {
         // Attempt to infer all the types of each expr.
         let mut queue = Vec::new();
 
@@ -748,7 +783,7 @@ impl Predicate {
             if !next_key.get_ty(self).is_unknown() {
                 queue.pop();
             } else {
-                match self.infer_expr_key_type(consts, next_key)? {
+                match self.infer_expr_key_type(&self.preds[pred_name], next_key)? {
                     // Successfully inferred its type.  Save it and pop it from the queue.
                     Inference::Type(ty) => {
                         next_key.set_ty(ty, self);
@@ -775,11 +810,7 @@ impl Predicate {
         Ok(())
     }
 
-    fn infer_expr_key_type(
-        &self,
-        consts: &FxHashMap<String, Const>,
-        expr_key: ExprKey,
-    ) -> Result<Inference, Error> {
+    fn infer_expr_key_type(&self, pred: &Predicate, expr_key: ExprKey) -> Result<Inference, Error> {
         let expr: &Expr = expr_key.try_get(self).ok_or_else(|| Error::Compile {
             error: CompileError::Internal {
                 msg: "orphaned expr key when type checking",
@@ -795,41 +826,43 @@ impl Predicate {
                 },
             }),
 
-            Expr::Immediate { value, span } => self.infer_immediate(value, span),
+            Expr::Immediate { value, span } => self.infer_immediate(pred, value, span),
 
             Expr::Array {
                 elements,
                 range_expr,
                 span,
-            } => self.infer_array_expr(*range_expr, elements, span),
+            } => self.infer_array_expr(pred, *range_expr, elements, span),
 
             Expr::Tuple { fields, span } => self.infer_tuple_expr(fields, span),
 
-            Expr::PathByKey(var_key, span) => self.infer_path_by_key(*var_key, span),
+            Expr::PathByKey(var_key, span) => self.infer_path_by_key(pred, *var_key, span),
 
-            Expr::PathByName(path, span) => self.infer_path_by_name(consts, path, span),
+            Expr::PathByName(path, span) => self.infer_path_by_name(pred, path, span),
 
-            Expr::StorageAccess(name, span) => self.infer_storage_access(name, span),
+            Expr::StorageAccess(name, span) => self.infer_storage_access(pred, name, span),
 
             Expr::ExternalStorageAccess {
                 interface_instance,
                 name,
                 span,
                 ..
-            } => self.infer_external_storage_access(interface_instance, name, span),
+            } => self.infer_external_storage_access(pred, interface_instance, name, span),
 
             Expr::UnaryOp {
                 op,
                 expr: op_expr_key,
                 span,
-            } => self.infer_unary_op(*op, *op_expr_key, span),
+            } => self.infer_unary_op(pred, *op, *op_expr_key, span),
 
-            Expr::BinaryOp { op, lhs, rhs, span } => self.infer_binary_op(*op, *lhs, *rhs, span),
+            Expr::BinaryOp { op, lhs, rhs, span } => {
+                self.infer_binary_op(pred, *op, *lhs, *rhs, span)
+            }
 
             Expr::MacroCall { .. } => Ok(Inference::Ignored),
 
             Expr::IntrinsicCall { name, args, span } => {
-                self.infer_intrinsic_call_expr(name, args, span)
+                self.infer_intrinsic_call_expr(pred, name, args, span)
             }
 
             Expr::Select {
@@ -837,23 +870,23 @@ impl Predicate {
                 then_expr,
                 else_expr,
                 span,
-            } => self.infer_select_expr(*condition, *then_expr, *else_expr, span),
+            } => self.infer_select_expr(pred, *condition, *then_expr, *else_expr, span),
 
-            Expr::Index { expr, index, span } => self.infer_index_expr(*expr, *index, span),
+            Expr::Index { expr, index, span } => self.infer_index_expr(pred, *expr, *index, span),
 
             Expr::TupleFieldAccess { tuple, field, span } => {
-                self.infer_tuple_access_expr(*tuple, field, span)
+                self.infer_tuple_access_expr(pred, *tuple, field, span)
             }
 
-            Expr::Cast { value, ty, span } => self.infer_cast_expr(*value, ty, span),
+            Expr::Cast { value, ty, span } => self.infer_cast_expr(pred, *value, ty, span),
 
             Expr::In {
                 value,
                 collection,
                 span,
-            } => self.infer_in_expr(*value, *collection, span),
+            } => self.infer_in_expr(pred, *value, *collection, span),
 
-            Expr::Range { lb, ub, span } => self.infer_range_expr(*lb, *ub, span),
+            Expr::Range { lb, ub, span } => self.infer_range_expr(pred, *lb, *ub, span),
 
             Expr::Generator {
                 kind,
@@ -861,11 +894,16 @@ impl Predicate {
                 conditions,
                 body,
                 span,
-            } => self.infer_generator_expr(kind, gen_ranges, conditions, *body, span),
+            } => self.infer_generator_expr(pred, kind, gen_ranges, conditions, *body, span),
         }
     }
 
-    pub(super) fn infer_immediate(&self, imm: &Immediate, span: &Span) -> Result<Inference, Error> {
+    pub(super) fn infer_immediate(
+        &self,
+        pred: &Predicate,
+        imm: &Immediate,
+        span: &Span,
+    ) -> Result<Inference, Error> {
         if let Immediate::Array(el_imms) = imm {
             // Immediate::get_ty() assumes the array is well formed.  We need to
             // confirm here.
@@ -888,11 +926,11 @@ impl Predicate {
 
             el_imms.iter().try_for_each(|el_imm| {
                 let el_ty = el_imm.get_ty(None);
-                if !el_ty.eq(self, el0_ty.as_ref()) {
+                if !el_ty.eq(pred, el0_ty.as_ref()) {
                     Err(Error::Compile {
                         error: CompileError::NonHomogeneousArrayElement {
-                            expected_ty: self.with_pred(el0_ty.as_ref()).to_string(),
-                            ty: self.with_pred(el_ty).to_string(),
+                            expected_ty: pred.with_pred(self, el0_ty.as_ref()).to_string(),
+                            ty: pred.with_pred(self, el_ty).to_string(),
                             span: span.clone(),
                         },
                     })
@@ -907,11 +945,16 @@ impl Predicate {
         }
     }
 
-    fn infer_path_by_key(&self, var_key: VarKey, span: &Span) -> Result<Inference, Error> {
-        let ty = var_key.get_ty(self);
+    fn infer_path_by_key(
+        &self,
+        pred: &Predicate,
+        var_key: VarKey,
+        span: &Span,
+    ) -> Result<Inference, Error> {
+        let ty = var_key.get_ty(pred);
         if !ty.is_unknown() {
             Ok(Inference::Type(ty.clone()))
-        } else if let Some(init_expr_key) = self.var_inits.get(var_key) {
+        } else if let Some(init_expr_key) = pred.var_inits.get(var_key) {
             let init_expr_ty = init_expr_key.get_ty(self);
             if !init_expr_ty.is_unknown() {
                 Ok(Inference::Type(init_expr_ty.clone()))
@@ -932,22 +975,22 @@ impl Predicate {
 
     fn infer_path_by_name(
         &self,
-        consts: &FxHashMap<String, Const>,
+        pred: &Predicate,
         path: &Path,
         span: &Span,
     ) -> Result<Inference, Error> {
-        if let Some(var_key) = self
+        if let Some(var_key) = pred
             .vars()
             .find_map(|(var_key, var)| (&var.name == path).then_some(var_key))
         {
             // It's a var.
-            self.infer_path_by_key(var_key, span)
+            self.infer_path_by_key(pred, var_key, span)
         } else if let Some((state_key, state)) =
-            self.states().find(|(_, state)| (&state.name == path))
+            pred.states().find(|(_, state)| (&state.name == path))
         {
             // It's state.
             let state_expr_ty = state.expr.get_ty(self);
-            let state_type = state_key.get_ty(self);
+            let state_type = state_key.get_ty(pred);
             Ok(if !state_type.is_unknown() {
                 Inference::Type(state_type.clone())
             } else if !state_expr_ty.is_unknown() {
@@ -955,7 +998,7 @@ impl Predicate {
             } else {
                 Inference::Dependant(state.expr)
             })
-        } else if let Some(Const { decl_ty, .. }) = consts.get(path) {
+        } else if let Some(Const { decl_ty, .. }) = self.consts.get(path) {
             if !decl_ty.is_unknown() {
                 Ok(Inference::Type(decl_ty.clone()))
             } else {
@@ -966,31 +1009,36 @@ impl Predicate {
                     },
                 })
             }
-        } else if let Some(EphemeralDecl { ty, .. }) = self
+        } else if let Some(EphemeralDecl { ty, .. }) = pred
             .ephemerals
             .iter()
             .find(|eph_decl| &eph_decl.name == path)
         {
             // It's an ephemeral value.
             Ok(Inference::Type(ty.clone()))
-        } else if let Some(ty) = self
+        } else if let Some(ty) = pred
             .new_types
             .iter()
             .find_map(|NewTypeDecl { name, ty, .. }| (&name.name == path).then_some(ty))
         {
             // It's a fully matched newtype.
             Ok(Inference::Type(ty.clone()))
-        } else if let Some(ty) = self.infer_extern_var(path) {
+        } else if let Some(ty) = self.infer_extern_var(pred, path) {
             // It's an external var
             Ok(ty)
         } else {
             // None of the above. That leaves enums.
-            self.infer_enum_variant_by_name(path, span)
+            Self::infer_enum_variant_by_name(pred, path, span)
         }
     }
 
-    fn infer_storage_access(&self, name: &String, span: &Span) -> Result<Inference, Error> {
-        match self.storage.as_ref() {
+    fn infer_storage_access(
+        &self,
+        pred: &Predicate,
+        name: &String,
+        span: &Span,
+    ) -> Result<Inference, Error> {
+        match pred.storage.as_ref() {
             Some(storage) => match storage.0.iter().find(|s_var| s_var.name.name == *name) {
                 Some(s_var) => Ok(Inference::Type(s_var.ty.clone())),
                 None => Err(Error::Compile {
@@ -1011,12 +1059,13 @@ impl Predicate {
 
     fn infer_external_storage_access(
         &self,
+        pred: &Predicate,
         interface_instance: &Path,
         name: &String,
         span: &Span,
     ) -> Result<Inference, Error> {
         // Find the interface instance or emit an error
-        let Some(interface_instance) = self
+        let Some(interface_instance) = pred
             .interface_instances
             .iter()
             .find(|e| e.name.to_string() == *interface_instance)
@@ -1030,7 +1079,7 @@ impl Predicate {
         };
 
         // Find the interface declaration corresponding to the interface instance
-        let Some(interface) = self
+        let Some(interface) = pred
             .interfaces
             .iter()
             .find(|e| e.name.to_string() == *interface_instance.interface)
@@ -1061,7 +1110,7 @@ impl Predicate {
         }
     }
 
-    fn infer_extern_var(&self, path: &Path) -> Option<Inference> {
+    fn infer_extern_var(&self, pred: &Predicate, path: &Path) -> Option<Inference> {
         // Look through all available predicate instances and their corresponding interfaces for a var
         // with the same path as `path`
         for PredicateInstance {
@@ -1069,14 +1118,14 @@ impl Predicate {
             interface_instance,
             predicate,
             ..
-        } in &self.predicate_instances
+        } in &pred.predicate_instances
         {
-            if let Some(interface_instance) = self
+            if let Some(interface_instance) = pred
                 .interface_instances
                 .iter()
                 .find(|e| e.name.to_string() == *interface_instance)
             {
-                if let Some(interface) = self
+                if let Some(interface) = pred
                     .interfaces
                     .iter()
                     .find(|e| e.name.to_string() == *interface_instance.interface)
@@ -1101,12 +1150,12 @@ impl Predicate {
     }
 
     pub(super) fn infer_enum_variant_by_name(
-        &self,
+        pred: &Predicate,
         path: &Path,
         span: &Span,
     ) -> Result<Inference, Error> {
         // Check first if the path prefix matches a new type.
-        for NewTypeDecl { name, ty, .. } in &self.new_types {
+        for NewTypeDecl { name, ty, .. } in &pred.new_types {
             if let Type::Custom {
                 path: enum_path,
                 span,
@@ -1119,7 +1168,8 @@ impl Predicate {
                     if path.chars().nth(new_type_len) == Some(':') {
                         // Definitely worth trying.  Recurse.
                         let new_path = enum_path.clone() + &path[new_type_len..];
-                        if let ty @ Ok(_) = self.infer_enum_variant_by_name(&new_path, span) {
+                        if let ty @ Ok(_) = Self::infer_enum_variant_by_name(pred, &new_path, span)
+                        {
                             // We found an enum variant.
                             return ty;
                         }
@@ -1132,7 +1182,7 @@ impl Predicate {
         // report some hints.
         let mut err_potential_enums = Vec::new();
 
-        if let Some(ty) = self.enums.iter().find_map(
+        if let Some(ty) = pred.enums.iter().find_map(
             |EnumDecl {
                  name: enum_name,
                  variants,
@@ -1172,16 +1222,18 @@ impl Predicate {
 
     fn infer_unary_op(
         &self,
+        pred: &Predicate,
         op: UnaryOp,
         rhs_expr_key: ExprKey,
         span: &Span,
     ) -> Result<Inference, Error> {
         fn drill_down_to_path(
+            contract: &Contract,
             pred: &Predicate,
             expr_key: &ExprKey,
             span: &Span,
         ) -> Result<(), Error> {
-            match expr_key.try_get(pred) {
+            match expr_key.try_get(contract) {
                 Some(Expr::PathByName(name, span)) => {
                     if !pred.states().any(|(_, state)| state.name == *name) {
                         Err(Error::Compile {
@@ -1216,7 +1268,7 @@ impl Predicate {
                 })
                 | Some(Expr::Index { expr, .. })
                 | Some(Expr::TupleFieldAccess { tuple: expr, .. }) => {
-                    drill_down_to_path(pred, expr, span)
+                    drill_down_to_path(contract, pred, expr, span)
                 }
 
                 _ => Err(Error::Compile {
@@ -1236,7 +1288,7 @@ impl Predicate {
             UnaryOp::NextState => {
                 // Next state access must be a path that resolves to a state variable.  It _may_ be
                 // via array indices or tuple fields or even other prime ops.
-                drill_down_to_path(self, &rhs_expr_key, span)?;
+                drill_down_to_path(self, pred, &rhs_expr_key, span)?;
 
                 let ty = rhs_expr_key.get_ty(self);
                 Ok(if !ty.is_unknown() {
@@ -1259,7 +1311,7 @@ impl Predicate {
                                 large_err: Box::new(LargeTypeError::OperatorTypeError {
                                     op: "-",
                                     expected_ty: "numeric".to_string(),
-                                    found_ty: self.with_pred(ty).to_string(),
+                                    found_ty: pred.with_pred(self, ty).to_string(),
                                     span: span.clone(),
                                     expected_span: None,
                                 }),
@@ -1284,7 +1336,7 @@ impl Predicate {
                                 large_err: Box::new(LargeTypeError::OperatorTypeError {
                                     op: "!",
                                     expected_ty: "bool".to_string(),
-                                    found_ty: self.with_pred(ty).to_string(),
+                                    found_ty: pred.with_pred(self, ty).to_string(),
                                     span: span.clone(),
                                     expected_span: None,
                                 }),
@@ -1300,6 +1352,7 @@ impl Predicate {
 
     fn infer_binary_op(
         &self,
+        pred: &Predicate,
         op: BinaryOp,
         lhs_expr_key: ExprKey,
         rhs_expr_key: ExprKey,
@@ -1313,7 +1366,7 @@ impl Predicate {
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
                             op: op.as_str(),
                             expected_ty: ty_str.to_string(),
-                            found_ty: self.with_pred(lhs_ty).to_string(),
+                            found_ty: pred.with_pred(self, lhs_ty).to_string(),
                             span: self.expr_key_to_span(lhs_expr_key),
                             expected_span: None,
                         }),
@@ -1326,21 +1379,21 @@ impl Predicate {
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
                             op: op.as_str(),
                             expected_ty: ty_str.to_string(),
-                            found_ty: self.with_pred(rhs_ty).to_string(),
+                            found_ty: pred.with_pred(self, rhs_ty).to_string(),
                             span: self.expr_key_to_span(rhs_expr_key),
                             expected_span: None,
                         }),
                     },
                 })
-            } else if !lhs_ty.eq(self, rhs_ty) {
+            } else if !lhs_ty.eq(pred, rhs_ty) {
                 // Here we assume the LHS is the 'correct' type.
                 Err(Error::Compile {
                     error: CompileError::OperatorTypeError {
                         arity: "binary",
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
                             op: op.as_str(),
-                            expected_ty: self.with_pred(lhs_ty).to_string(),
-                            found_ty: self.with_pred(rhs_ty).to_string(),
+                            expected_ty: pred.with_pred(self, lhs_ty).to_string(),
+                            found_ty: pred.with_pred(self, rhs_ty).to_string(),
                             span: self.expr_key_to_span(rhs_expr_key),
                             expected_span: Some(self.expr_key_to_span(lhs_expr_key)),
                         }),
@@ -1355,14 +1408,14 @@ impl Predicate {
         // not, emit an error.
         let check_state_var_arg = |arg: ExprKey| match arg.try_get(self) {
             Some(Expr::PathByName(name, _))
-                if self.states().any(|(_, state)| state.name == *name) =>
+                if pred.states().any(|(_, state)| state.name == *name) =>
             {
                 Ok(())
             }
             Some(Expr::PathByKey(var_key, _))
-                if self
+                if pred
                     .states()
-                    .any(|(_, state)| state.name == var_key.get(self).name) =>
+                    .any(|(_, state)| state.name == var_key.get(pred).name) =>
             {
                 Ok(())
             }
@@ -1408,9 +1461,9 @@ impl Predicate {
                         // which we check for type mismatches elsewhere, and emit a much better
                         // error then.
                         let mut is_init_constraint = false;
-                        if !lhs_ty.eq(self, rhs_ty)
+                        if !lhs_ty.eq(pred, rhs_ty)
                             && op == BinaryOp::Equal
-                            && self
+                            && pred
                                 .var_inits
                                 .values()
                                 .any(|init_key| *init_key == rhs_expr_key)
@@ -1420,7 +1473,7 @@ impl Predicate {
 
                         // Both args must be equatable, which at this stage is any type; binary op
                         // type is bool.
-                        if !lhs_ty.eq(self, rhs_ty)
+                        if !lhs_ty.eq(pred, rhs_ty)
                             && !lhs_ty.is_nil()
                             && !rhs_ty.is_nil()
                             && !is_init_constraint
@@ -1430,8 +1483,8 @@ impl Predicate {
                                     arity: "binary",
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
                                         op: op.as_str(),
-                                        expected_ty: self.with_pred(lhs_ty).to_string(),
-                                        found_ty: self.with_pred(rhs_ty).to_string(),
+                                        expected_ty: pred.with_pred(self, lhs_ty).to_string(),
+                                        found_ty: pred.with_pred(self, rhs_ty).to_string(),
                                         span: self.expr_key_to_span(rhs_expr_key),
                                         expected_span: Some(self.expr_key_to_span(lhs_expr_key)),
                                     }),
@@ -1467,7 +1520,7 @@ impl Predicate {
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
                                         op: op.as_str(),
                                         expected_ty: "bool".to_string(),
-                                        found_ty: self.with_pred(lhs_ty).to_string(),
+                                        found_ty: pred.with_pred(self, lhs_ty).to_string(),
                                         span: self.expr_key_to_span(lhs_expr_key),
                                         expected_span: Some(span.clone()),
                                     }),
@@ -1480,7 +1533,7 @@ impl Predicate {
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
                                         op: op.as_str(),
                                         expected_ty: "bool".to_string(),
-                                        found_ty: self.with_pred(rhs_ty).to_string(),
+                                        found_ty: pred.with_pred(self, rhs_ty).to_string(),
                                         span: self.expr_key_to_span(rhs_expr_key),
                                         expected_span: Some(span.clone()),
                                     }),
@@ -1501,6 +1554,7 @@ impl Predicate {
 
     fn infer_select_expr(
         &self,
+        pred: &Predicate,
         cond_expr_key: ExprKey,
         then_expr_key: ExprKey,
         else_expr_key: ExprKey,
@@ -1513,22 +1567,22 @@ impl Predicate {
             if !cond_ty.is_bool() {
                 Err(Error::Compile {
                     error: CompileError::NonBoolConditional {
-                        ty: self.with_pred(cond_ty).to_string(),
+                        ty: pred.with_pred(self, cond_ty).to_string(),
                         conditional: "select expression".to_string(),
                         span: self.expr_key_to_span(cond_expr_key),
                     },
                 })
             } else if !then_ty.is_unknown() {
                 if !else_ty.is_unknown() {
-                    if then_ty.eq(self, else_ty) {
+                    if then_ty.eq(pred, else_ty) {
                         Ok(Inference::Type(then_ty.clone()))
                     } else {
                         Err(Error::Compile {
                             error: CompileError::SelectBranchesTypeMismatch {
                                 large_err: Box::new(LargeTypeError::SelectBranchesTypeMismatch {
-                                    then_type: self.with_pred(then_ty).to_string(),
+                                    then_type: pred.with_pred(self, then_ty).to_string(),
                                     then_span: self.expr_key_to_span(then_expr_key),
-                                    else_type: self.with_pred(else_ty).to_string(),
+                                    else_type: pred.with_pred(self, else_ty).to_string(),
                                     else_span: self.expr_key_to_span(else_expr_key),
                                     span: span.clone(),
                                 }),
@@ -1548,6 +1602,7 @@ impl Predicate {
 
     fn infer_range_expr(
         &self,
+        pred: &Predicate,
         lower_bound_key: ExprKey,
         upper_bound_key: ExprKey,
         span: &Span,
@@ -1556,18 +1611,18 @@ impl Predicate {
         let ub_ty = upper_bound_key.get_ty(self);
         if !lb_ty.is_unknown() {
             if !ub_ty.is_unknown() {
-                if !lb_ty.eq(self, ub_ty) {
+                if !lb_ty.eq(pred, ub_ty) {
                     Err(Error::Compile {
                         error: CompileError::RangeTypesMismatch {
-                            lb_ty: self.with_pred(lb_ty).to_string(),
-                            ub_ty: self.with_pred(ub_ty).to_string(),
+                            lb_ty: pred.with_pred(self, lb_ty).to_string(),
+                            ub_ty: pred.with_pred(self, ub_ty).to_string(),
                             span: ub_ty.span().clone(),
                         },
                     })
                 } else if !lb_ty.is_num() {
                     Err(Error::Compile {
                         error: CompileError::RangeTypesNonNumeric {
-                            ty: self.with_pred(lb_ty).to_string(),
+                            ty: pred.with_pred(self, lb_ty).to_string(),
                             span: span.clone(),
                         },
                     })
@@ -1584,6 +1639,7 @@ impl Predicate {
 
     fn infer_cast_expr(
         &self,
+        pred: &Predicate,
         value_key: ExprKey,
         to_ty: &Type,
         span: &Span,
@@ -1601,20 +1657,20 @@ impl Predicate {
                 // We can only cast to ints or reals.
                 Err(Error::Compile {
                     error: CompileError::BadCastTo {
-                        ty: self.with_pred(to_ty).to_string(),
+                        ty: pred.with_pred(self, to_ty).to_string(),
                         span: span.clone(),
                     },
                 })
             } else if (to_ty.is_int()
                 && !from_ty.is_int()
-                && !from_ty.is_enum(self)
+                && !from_ty.is_enum(pred)
                 && !from_ty.is_bool())
                 || (to_ty.is_real() && !from_ty.is_int() && !from_ty.is_real())
             {
                 // We can only cast to ints from ints, enums or bools and to reals from ints or reals.
                 Err(Error::Compile {
                     error: CompileError::BadCastFrom {
-                        ty: self.with_pred(from_ty).to_string(),
+                        ty: pred.with_pred(self, from_ty).to_string(),
                         span: span.clone(),
                     },
                 })
@@ -1628,6 +1684,7 @@ impl Predicate {
 
     fn infer_in_expr(
         &self,
+        pred: &Predicate,
         value_key: ExprKey,
         collection_key: ExprKey,
         span: &Span,
@@ -1640,11 +1697,11 @@ impl Predicate {
         if !value_ty.is_unknown() {
             if !collection_ty.is_unknown() {
                 if collection_ty.is_num() {
-                    if !value_ty.eq(self, collection_ty) {
+                    if !value_ty.eq(pred, collection_ty) {
                         Err(Error::Compile {
                             error: CompileError::InExprTypesMismatch {
-                                val_ty: self.with_pred(value_ty).to_string(),
-                                range_ty: self.with_pred(collection_ty).to_string(),
+                                val_ty: pred.with_pred(self, value_ty).to_string(),
+                                range_ty: pred.with_pred(self, collection_ty).to_string(),
                                 span: collection_ty.span().clone(),
                             },
                         })
@@ -1655,11 +1712,11 @@ impl Predicate {
                         }))
                     }
                 } else if let Some(el_ty) = collection_ty.get_array_el_type() {
-                    if !value_ty.eq(self, el_ty) {
+                    if !value_ty.eq(pred, el_ty) {
                         Err(Error::Compile {
                             error: CompileError::InExprTypesArrayMismatch {
-                                val_ty: self.with_pred(value_ty).to_string(),
-                                el_ty: self.with_pred(el_ty).to_string(),
+                                val_ty: pred.with_pred(self, value_ty).to_string(),
+                                el_ty: pred.with_pred(self, el_ty).to_string(),
                                 span: el_ty.span().clone(),
                             },
                         })
@@ -1687,6 +1744,7 @@ impl Predicate {
 
     fn infer_array_expr(
         &self,
+        pred: &Predicate,
         range_expr_key: ExprKey,
         element_exprs: &[ExprKey],
         span: &Span,
@@ -1709,11 +1767,11 @@ impl Predicate {
             for el_key in elements {
                 let el_ty = el_key.get_ty(self);
                 if !el_ty.is_unknown() {
-                    if !el_ty.eq(self, el0_ty) {
+                    if !el_ty.eq(pred, el0_ty) {
                         return Err(Error::Compile {
                             error: CompileError::NonHomogeneousArrayElement {
-                                expected_ty: self.with_pred(&el0_ty).to_string(),
-                                ty: self.with_pred(el_ty).to_string(),
+                                expected_ty: pred.with_pred(self, &el0_ty).to_string(),
+                                ty: pred.with_pred(self, el_ty).to_string(),
                                 span: self.expr_key_to_span(*el_key),
                             },
                         });
@@ -1745,6 +1803,7 @@ impl Predicate {
 
     fn infer_index_expr(
         &self,
+        pred: &Predicate,
         array_expr_key: ExprKey,
         index_expr_key: ExprKey,
         span: &Span,
@@ -1766,11 +1825,11 @@ impl Predicate {
                 return Ok(Inference::Dependant(range_expr_key));
             }
 
-            if (!index_ty.is_int() && !index_ty.is_enum(self)) || !index_ty.eq(self, range_ty) {
+            if (!index_ty.is_int() && !index_ty.is_enum(pred)) || !index_ty.eq(pred, range_ty) {
                 Err(Error::Compile {
                     error: CompileError::ArrayAccessWithWrongType {
-                        found_ty: self.with_pred(index_ty).to_string(),
-                        expected_ty: self.with_pred(range_ty).to_string(),
+                        found_ty: pred.with_pred(self, index_ty).to_string(),
+                        expected_ty: pred.with_pred(self, range_ty).to_string(),
                         span: self.expr_key_to_span(index_expr_key),
                     },
                 })
@@ -1790,11 +1849,11 @@ impl Predicate {
             Ok(Inference::Type(ty.clone()))
         } else if let Some(from_ty) = ary_ty.get_map_ty_from() {
             // Is this a storage map?
-            if !from_ty.eq(self, index_ty) {
+            if !from_ty.eq(pred, index_ty) {
                 Err(Error::Compile {
                     error: CompileError::StorageMapAccessWithWrongType {
-                        found_ty: self.with_pred(index_ty).to_string(),
-                        expected_ty: self.with_pred(from_ty).to_string(),
+                        found_ty: pred.with_pred(self, index_ty).to_string(),
+                        expected_ty: pred.with_pred(self, from_ty).to_string(),
                         span: self.expr_key_to_span(index_expr_key),
                     },
                 })
@@ -1812,7 +1871,7 @@ impl Predicate {
         } else {
             Err(Error::Compile {
                 error: CompileError::IndexExprNonIndexable {
-                    non_indexable_type: self.with_pred(ary_ty).to_string(),
+                    non_indexable_type: pred.with_pred(self, ary_ty).to_string(),
                     span: span.clone(),
                 },
             })
@@ -1848,6 +1907,7 @@ impl Predicate {
 
     fn infer_tuple_access_expr(
         &self,
+        pred: &Predicate,
         tuple_expr_key: ExprKey,
         field: &TupleAccess,
         span: &Span,
@@ -1870,7 +1930,7 @@ impl Predicate {
                             Err(Error::Compile {
                                 error: CompileError::InvalidTupleAccessor {
                                     accessor: idx.to_string(),
-                                    tuple_type: self.with_pred(tuple_ty).to_string(),
+                                    tuple_type: pred.with_pred(self, tuple_ty).to_string(),
                                     span: span.clone(),
                                 },
                             })
@@ -1884,7 +1944,7 @@ impl Predicate {
                             Err(Error::Compile {
                                 error: CompileError::InvalidTupleAccessor {
                                     accessor: name.name.clone(),
-                                    tuple_type: self.with_pred(&tuple_ty).to_string(),
+                                    tuple_type: pred.with_pred(self, &tuple_ty).to_string(),
                                     span: span.clone(),
                                 },
                             })
@@ -1894,7 +1954,7 @@ impl Predicate {
             } else {
                 Err(Error::Compile {
                     error: CompileError::TupleAccessNonTuple {
-                        non_tuple_type: self.with_pred(tuple_ty).to_string(),
+                        non_tuple_type: pred.with_pred(self, tuple_ty).to_string(),
                         span: span.clone(),
                     },
                 })
@@ -1906,6 +1966,7 @@ impl Predicate {
 
     fn infer_generator_expr(
         &self,
+        pred: &Predicate,
         kind: &GeneratorKind,
         ranges: &[(Ident, ExprKey)],
         conditions: &[ExprKey],
@@ -1920,7 +1981,7 @@ impl Predicate {
                 if !range_ty.is_int() {
                     return Err(Error::Compile {
                         error: CompileError::NonIntGeneratorRange {
-                            ty: self.with_pred(range_ty).to_string(),
+                            ty: pred.with_pred(self, range_ty).to_string(),
                             gen_kind: kind.to_string(),
                             span: self.expr_key_to_span(*range_expr_key),
                         },
@@ -1937,7 +1998,7 @@ impl Predicate {
                 if !cond_ty.is_bool() {
                     return Err(Error::Compile {
                         error: CompileError::NonBoolGeneratorCondition {
-                            ty: self.with_pred(cond_ty).to_string(),
+                            ty: pred.with_pred(self, cond_ty).to_string(),
                             gen_kind: kind.to_string(),
                             span: self.expr_key_to_span(*cond_expr_key),
                         },
@@ -1953,7 +2014,7 @@ impl Predicate {
             if !body_ty.is_bool() {
                 return Err(Error::Compile {
                     error: CompileError::NonBoolGeneratorBody {
-                        ty: self.with_pred(body_ty).to_string(),
+                        ty: pred.with_pred(self, body_ty).to_string(),
                         gen_kind: kind.to_string(),
                         span: self.expr_key_to_span(body_expr_key),
                     },
@@ -1975,66 +2036,60 @@ impl Predicate {
 
     // Confirm that all var init exprs and const init exprs match their declared type, if they have
     // one.
-    pub(super) fn check_inits(&mut self, handler: &Handler, consts: &FxHashMap<String, Const>) {
-        // Confirm types for all the variable initialisers first.
-        for (var_key, init_expr_key) in &self.var_inits {
-            let var_decl_ty = var_key.get_ty(self);
+    pub(super) fn check_inits(&self, handler: &Handler) {
+        for pred in self.preds.values() {
+            // Confirm types for all the variable initialisers first.
+            for (var_key, init_expr_key) in &pred.var_inits {
+                let var_decl_ty = var_key.get_ty(pred);
 
-            // Reporting an error that we're expecting 'Unknown' is not useful.
-            if !var_decl_ty.is_unknown() {
-                let init_ty = init_expr_key.get_ty(self);
+                // Reporting an error that we're expecting 'Unknown' is not useful.
+                if !var_decl_ty.is_unknown() {
+                    let init_ty = init_expr_key.get_ty(self);
 
-                if !var_decl_ty.eq(self, init_ty) {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::InitTypeError {
-                            init_kind: "variable",
-                            large_err: Box::new(LargeTypeError::InitTypeError {
+                    if !var_decl_ty.eq(pred, init_ty) {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::InitTypeError {
                                 init_kind: "variable",
-                                expected_ty: self.with_pred(var_decl_ty).to_string(),
-                                found_ty: self.with_pred(init_ty).to_string(),
-                                expected_ty_span: var_decl_ty.span().clone(),
-                                init_span: self.expr_key_to_span(*init_expr_key),
-                            }),
-                        },
-                    });
+                                large_err: Box::new(LargeTypeError::InitTypeError {
+                                    init_kind: "variable",
+                                    expected_ty: pred.with_pred(self, var_decl_ty).to_string(),
+                                    found_ty: pred.with_pred(self, init_ty).to_string(),
+                                    expected_ty_span: var_decl_ty.span().clone(),
+                                    init_span: self.expr_key_to_span(*init_expr_key),
+                                }),
+                            },
+                        });
+                    }
                 }
             }
         }
 
         // Now confirm that every const initialiser type matches the const decl type.
-        if self.is_root() {
-            for Const {
-                expr: init_expr_key,
-                decl_ty,
-                ..
-            } in consts.values()
-            {
-                let init_ty = init_expr_key.get_ty(self);
+        let root_pred = self.root_pred();
+        for Const {
+            expr: init_expr_key,
+            decl_ty,
+            ..
+        } in self.consts.values()
+        {
+            let init_ty = init_expr_key.get_ty(self);
 
-                // Special case for enum variants -- they'll have an init_ty of `int`.  So we have
-                // an error if the types mismatch and they're _not_ an enum/int combo exception.
-                if !(init_ty.eq(self, decl_ty) || decl_ty.is_enum(self) && init_ty.is_int()) {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::InitTypeError {
+            // Special case for enum variants -- they'll have an init_ty of `int`.  So we have
+            // an error if the types mismatch and they're _not_ an enum/int combo exception.
+            if !(init_ty.eq(root_pred, decl_ty) || decl_ty.is_enum(root_pred) && init_ty.is_int()) {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::InitTypeError {
+                        init_kind: "const",
+                        large_err: Box::new(LargeTypeError::InitTypeError {
                             init_kind: "const",
-                            large_err: Box::new(LargeTypeError::InitTypeError {
-                                init_kind: "const",
-                                expected_ty: self.with_pred(decl_ty).to_string(),
-                                found_ty: self.with_pred(init_ty).to_string(),
-                                expected_ty_span: decl_ty.span().clone(),
-                                init_span: self.expr_key_to_span(*init_expr_key),
-                            }),
-                        },
-                    });
-                }
+                            expected_ty: root_pred.with_pred(self, decl_ty).to_string(),
+                            found_ty: root_pred.with_pred(self, init_ty).to_string(),
+                            expected_ty_span: decl_ty.span().clone(),
+                            init_span: self.expr_key_to_span(*init_expr_key),
+                        }),
+                    },
+                });
             }
         }
-    }
-
-    pub(super) fn expr_key_to_span(&self, expr_key: ExprKey) -> Span {
-        expr_key
-            .try_get(self)
-            .map(|expr| expr.span().clone())
-            .unwrap_or_else(empty_span)
     }
 }

@@ -1,20 +1,20 @@
 /// A place for small utility functions which can use used in various places throughout the crate.
 
 macro_rules! write_many_iter_with_pred {
-    ($f: expr, $i: ident, $sep: literal, $pred: ident) => {
+    ($f: expr, $i: ident, $sep: literal, $contract: ident, $pred: ident) => {
         if let Some(e) = $i.next() {
-            write!($f, "{}", $pred.with_pred(e))?;
+            write!($f, "{}", $pred.with_pred($contract, e))?;
         }
         for e in $i {
-            write!($f, "{}{}", $sep, $pred.with_pred(e))?;
+            write!($f, "{}{}", $sep, $pred.with_pred($contract, e))?;
         }
     };
 }
 
 macro_rules! write_many_with_pred {
-    ($f: expr, $vec: expr, $sep: literal, $pred: ident) => {
+    ($f: expr, $vec: expr, $sep: literal, $contract: ident, $pred: ident) => {
         let mut i = $vec.iter();
-        crate::util::write_many_iter_with_pred!($f, i, $sep, $pred);
+        crate::util::write_many_iter_with_pred!($f, i, $sep, $contract, $pred);
     };
 }
 
