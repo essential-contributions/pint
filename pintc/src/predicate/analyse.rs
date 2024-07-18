@@ -36,7 +36,7 @@ impl Contract {
             for expr_key in pred.exprs() {
                 if let Some(span) = pred.removed_macro_calls.get(expr_key) {
                     // This expression was actually a macro call which expanded to just declarations,
-                    // not another expression. We can set a specific error in this case.
+                    // not another expression. We can set a specific erro   r in this case.
                     handler.emit_err(Error::Compile {
                         error: CompileError::MacroCallWasNotExpression { span: span.clone() },
                     });
@@ -48,18 +48,12 @@ impl Contract {
             }
 
             pred.check_undefined_types(handler);
-            // println!("after checking undefined types");
             pred.lower_newtypes(handler)?;
-            // println!("after lowering newtypes");
-            pred.type_check_maps(handler);
-            pred.check_storage_types(handler); // pops the error, but is not the issue. We are not lowering properly
-                                               // println!("after checking storage types");
+            pred.check_storage_types(handler);
+            pred.check_for_map_type_vars(handler);
             pred.type_check_all_exprs(handler, &self.consts);
-            // println!("after checking exprs");
             pred.check_inits(handler, &self.consts);
-            // println!("after checking inits");
             pred.check_constraint_types(handler);
-            // println!("after checking constraints");
         }
 
         if handler.has_errors() {

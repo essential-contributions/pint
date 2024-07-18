@@ -305,25 +305,16 @@ impl Predicate {
         }
 
         if let Some((storage_vars, _)) = &self.storage {
-            println!("confirmed, there are storage vars");
             for StorageVar { ty, span, .. } in storage_vars {
-                println!("found a storage var of ty: {:#?}", ty);
                 if !(ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() || ty.is_array())
                 {
-                    // could be an alias for a map
-                    let ty = match ty.is_alias() {
-                        Some(alias) => alias,
-                        None => ty,
-                    };
-
-                    println!("found allowed type");
+                    let ty = ty.is_alias().unwrap_or(ty);
                     if let Type::Map {
                         ref ty_from,
                         ref ty_to,
                         ..
                     } = ty
                     {
-                        println!("found a map");
                         if !((ty_from.is_bool() || ty_from.is_int() || ty_from.is_b256())
                             && (ty_to.is_bool()
                                 || ty_to.is_int()
@@ -332,7 +323,6 @@ impl Predicate {
                                 || ty_to.is_tuple()
                                 || ty_to.is_array()))
                         {
-                            println!("emitting an error because of map types");
                             // TODO: allow arbitrary types in storage maps
                             handler.emit_err(Error::Compile {
                                 error: CompileError::Internal {
@@ -343,14 +333,6 @@ impl Predicate {
                             });
                         }
                     } else {
-                        if ty.is_map() {
-                            println!("yeet");
-                        }
-                        println!("It was an alias for: {:#?}", ty.is_alias());
-                        // if ty.is_alias().is_some() {
-                        //     println!("good to rock");
-                        // }
-                        println!("found something that wasn't a map");
                         // TODO: allow arbitrary types in storage blocks
                         handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
@@ -365,11 +347,11 @@ impl Predicate {
         }
     }
 
-    pub(super) fn type_check_maps(&mut self, handler: &Handler) {
+    pub(super) fn check_for_map_type_vars(&mut self, handler: &Handler) {
+        // Ex. var x: ( int => int ); is disallowed
         self.vars().for_each(|(var_key, var)| {
             let ty = var_key.get_ty(self);
             if ty.is_map() {
-                println!("Found a map while type checking vars");
                 handler.emit_err(Error::Compile {
                     error: CompileError::VarTypeIsMap {
                         span: var.span.clone(),
