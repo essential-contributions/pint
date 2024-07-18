@@ -365,6 +365,20 @@ impl Predicate {
         }
     }
 
+    pub(super) fn type_check_maps(&mut self, handler: &Handler) {
+        self.vars().for_each(|(var_key, var)| {
+            let ty = var_key.get_ty(self);
+            if ty.is_map() {
+                println!("Found a map while type checking vars");
+                handler.emit_err(Error::Compile {
+                    error: CompileError::VarTypeIsMap {
+                        span: var.span.clone(),
+                    },
+                });
+            }
+        })
+    }
+
     pub(super) fn type_check_all_exprs(
         &mut self,
         handler: &Handler,

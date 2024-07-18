@@ -51,6 +51,7 @@ impl Contract {
             // println!("after checking undefined types");
             pred.lower_newtypes(handler)?;
             // println!("after lowering newtypes");
+            pred.type_check_maps(handler);
             pred.check_storage_types(handler); // pops the error, but is not the issue. We are not lowering properly
                                                // println!("after checking storage types");
             pred.type_check_all_exprs(handler, &self.consts);
