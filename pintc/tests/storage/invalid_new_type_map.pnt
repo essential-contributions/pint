@@ -2,8 +2,6 @@ storage {
     type MyMap = (b256 => int);
 }
 
-solve satisfy;
-
 // parse_failure <<<
 // expected `an identifier`, or `}`, found `type`
 // @14..18: expected `an identifier`, or `}`
