@@ -4,9 +4,9 @@
 
 use essential_types::Word;
 use petgraph::visit::EdgeRef;
-use pint_abi_types::{KeyedTupleField, KeyedTypeABI, KeyedVarABI, TypeABI};
+use pint_abi_types::{TupleField, TypeABI, VarABI};
 
-/// The [`KeyedTypeABI`] rose tree represented as a graph.
+/// The [`TypeABI`] rose tree represented as a graph.
 ///
 /// By flattening the [`KeyedTypeVar`]s into an indexable tree type, we gain
 /// more flexibility around inspecting both parent and child nodes during
@@ -37,7 +37,7 @@ pub struct Keyed<'a> {
     /// The name of the var if it is named.
     pub name: Option<&'a str>,
     /// The type of the var.
-    pub ty: &'a KeyedTypeABI,
+    pub ty: &'a TypeABI,
     /// Describes how the keyed var is nested within `storage` or `pub vars`.
     ///
     /// The first element is always a `Var` representing the keyed var's
@@ -45,7 +45,7 @@ pub struct Keyed<'a> {
     pub nesting: Nesting,
 }
 
-/// Describes how a [`KeyedTypeABI`] is nested within the tree.
+/// Describes how a [`TypeABI`] is nested within the tree.
 #[derive(Clone, Debug)]
 pub enum Nesting {
     /// A top-level storage field of pub var.
@@ -78,9 +78,9 @@ pub enum Nesting {
 }
 
 impl<'a> KeyedVarTree<'a> {
-    /// Construct a new tree from the given list of `KeyedVarABI`s from a
+    /// Construct a new tree from the given list of `VarABI`s from a
     /// `storage` or `pub_vars`instance.
-    pub fn from_keyed_vars(vars: &'a [KeyedVarABI]) -> Self {
+    pub fn from_keyed_vars(vars: &'a [VarABI]) -> Self {
         // Construct the graph.
         let mut graph = KeyedVarGraph::default();
 
@@ -191,37 +191,18 @@ pub fn ty_size(ty: &TypeABI) -> usize {
         TypeABI::Array { ty, size } => {
             ty_size(ty) * usize::try_from(*size).expect("size out of range")
         }
+        TypeABI::Map { .. } => 1,
     }
 }
 
 /// Add all child nodes of the given node `a` with type `ty`, by recursively
-/// traversing the given `KeyedTypeABI`.
-fn add_children<'a>(graph: &mut KeyedVarGraph<'a>, a: NodeIx, ty: &'a KeyedTypeABI) {
+/// traversing the given `TypeABI`.
+fn add_children<'a>(graph: &mut KeyedVarGraph<'a>, a: NodeIx, ty: &'a TypeABI) {
     match ty {
-        KeyedTypeABI::Bool(_key)
-        | KeyedTypeABI::Int(_key)
-        | KeyedTypeABI::Real(_key)
-        | KeyedTypeABI::String(_key)
-        | KeyedTypeABI::B256(_key) => {
-            // TODO: Remove this whole block once keys have been removed.
-            // This is just a sanity check to make sure that this traversal
-            // is deriving the same keys as the compiler is generating.
-            let nesting = nesting(graph, a);
-            let partial_key: Vec<_> = partial_key_from_nesting(&nesting)
-                .into_iter()
-                .map(|opt| opt.map(|w| usize::try_from(w).unwrap()))
-                .collect();
-            assert_eq!(
-                &partial_key[..],
-                _key,
-                "Key mismatch between `pint-abi-visit` and compiler generated ABI key. \
-                Please report this to the pint repo as it indicates a key construction \
-                discrepency between the compiler and the Pint ABI gen code.",
-            );
-        }
+        TypeABI::Bool | TypeABI::Int | TypeABI::Real | TypeABI::String | TypeABI::B256 => {}
 
         // Recurse for nested tuple types.
-        KeyedTypeABI::Tuple(fields) => {
+        TypeABI::Tuple(fields) => {
             for (ix, field) in fields.iter().enumerate() {
                 let flat_ix = {
                     let start_flat_ix = match &graph[a].nesting {
@@ -241,7 +222,7 @@ fn add_children<'a>(graph: &mut KeyedVarGraph<'a>, a: NodeIx, ty: &'a KeyedTypeA
         }
 
         // Recurse for nested array element types.
-        KeyedTypeABI::Array { ty, size } => {
+        TypeABI::Array { ty, size } => {
             let array_len = usize::try_from(*size).expect("size out of range");
             let nesting = Nesting::ArrayElem { array_len };
             let name = None;
@@ -252,11 +233,7 @@ fn add_children<'a>(graph: &mut KeyedVarGraph<'a>, a: NodeIx, ty: &'a KeyedTypeA
         }
 
         // Recurse for nested map element types.
-        KeyedTypeABI::Map {
-            ty_from,
-            ty_to,
-            key: _,
-        } => {
+        TypeABI::Map { ty_from, ty_to } => {
             let key_size = ty_size(ty_from);
             let nesting = Nesting::MapEntry { key_size };
             let name = None;
@@ -297,14 +274,14 @@ fn nesting(graph: &KeyedVarGraph, mut n: NodeIx) -> Vec<Nesting> {
 /// within the given `fields`.
 ///
 /// The `start_flat_ix` represents the flat index of the enclosing tuple.
-fn flattened_ix(fields: &[KeyedTupleField], field_ix: usize, start_flat_ix: usize) -> usize {
+fn flattened_ix(fields: &[TupleField], field_ix: usize, start_flat_ix: usize) -> usize {
     // Given a slice of tuple fields, determine the total number of leaf fields
     // within the directly nested tree of tuples.
-    fn count_flattened_leaf_fields(fields: &[KeyedTupleField]) -> usize {
+    fn count_flattened_leaf_fields(fields: &[TupleField]) -> usize {
         fields
             .iter()
             .map(|field| match field.ty {
-                KeyedTypeABI::Tuple(ref fields) => count_flattened_leaf_fields(fields),
+                TypeABI::Tuple(ref fields) => count_flattened_leaf_fields(fields),
                 _ => 1,
             })
             .sum()

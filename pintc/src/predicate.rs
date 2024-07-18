@@ -7,7 +7,7 @@ use crate::{
 use exprs::ExprsIter;
 pub use exprs::{ExprKey, Exprs};
 use fxhash::FxHashMap;
-use pint_abi_types::{ContractABI, KeyedVarABI, PredicateABI};
+use pint_abi_types::{ContractABI, PredicateABI, VarABI};
 pub use states::{State, StateKey, States};
 use std::{
     collections::BTreeMap,
@@ -74,22 +74,13 @@ impl Contract {
                 .map(|(storage, _)| {
                     storage
                         .iter()
-                        .enumerate()
-                        .map(|(index, StorageVar { name, ty, .. })| {
+                        .map(|StorageVar { name, ty, .. }| {
                             // The key of `ty` is either the `index` if the storage type is
                             // primitive or a map, or it's `[index, 0]`. The `0` here is a
                             // placeholder for offsets.
-                            Ok(KeyedVarABI {
+                            Ok(VarABI {
                                 name: name.to_string(),
-                                ty: if ty.is_any_primitive() || ty.is_map() {
-                                    ty.abi_with_key(handler, vec![Some(index)], self.root_pred())?
-                                } else {
-                                    ty.abi_with_key(
-                                        handler,
-                                        vec![Some(index), Some(0)],
-                                        self.root_pred(),
-                                    )?
-                                },
+                                ty: ty.abi(handler, self.root_pred())?,
                             })
                         })
                         .collect::<Result<_, _>>()
@@ -164,17 +155,12 @@ impl Predicate {
             pub_vars: self
                 .vars()
                 .filter(|(_, var)| var.is_pub)
-                .enumerate()
-                .map(|(index, (var_key, Var { name, .. }))| {
-                    Ok(KeyedVarABI {
+                .map(|(var_key, Var { name, .. })| {
+                    Ok(VarABI {
                         name: name.to_string(),
                         ty: {
                             let ty = var_key.get_ty(self);
-                            if ty.is_any_primitive() || ty.is_map() {
-                                ty.abi_with_key(handler, vec![Some(index)], self)?
-                            } else {
-                                ty.abi_with_key(handler, vec![Some(index), Some(0)], self)?
-                            }
+                            ty.abi(handler, self)?
                         },
                     })
                 })

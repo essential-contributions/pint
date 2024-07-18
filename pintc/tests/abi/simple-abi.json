@@ -64,21 +64,15 @@
       "pub_vars": [
         {
           "name": "::t0",
-          "ty": {
-            "Bool": [0]
-          }
+          "ty": "Bool"
         },
         {
           "name": "::t1",
-          "ty": {
-            "Int": [1]
-          }
+          "ty": "Int"
         },
         {
           "name": "::t2",
-          "ty": {
-            "B256": [2]
-          }
+          "ty": "B256"
         }
       ]
     }
@@ -86,21 +80,15 @@
   "storage": [
     {
       "name": "s0",
-      "ty": {
-        "Bool": [0]
-      }
+      "ty": "Bool"
     },
     {
       "name": "s1",
-      "ty": {
-        "Int": [1]
-      }
+      "ty": "Int"
     },
     {
       "name": "s2",
-      "ty": {
-        "B256": [2]
-      }
+      "ty": "B256"
     },
     {
       "name": "s3",
@@ -108,15 +96,11 @@
         "Tuple": [
           {
             "name": null,
-            "ty": {
-              "Int": [3, 0]
-            }
+            "ty": "Int"
           },
           {
             "name": null,
-            "ty": {
-              "Int": [3, 1]
-            }
+            "ty": "Int"
           }
         ]
       }
@@ -127,15 +111,11 @@
         "Tuple": [
           {
             "name": null,
-            "ty": {
-              "Int": [4, 0]
-            }
+            "ty": "Int"
           },
           {
             "name": null,
-            "ty": {
-              "Int": [4, 1]
-            }
+            "ty": "Int"
           },
           {
             "name": null,
@@ -143,15 +123,11 @@
               "Tuple": [
                 {
                   "name": null,
-                  "ty": {
-                    "Int": [4, 2]
-                  }
+                  "ty": "Int"
                 },
                 {
                   "name": null,
-                  "ty": {
-                    "Int": [4, 3]
-                  }
+                  "ty": "Int"
                 }
               ]
             }
@@ -168,9 +144,7 @@
             "Tuple": [
               {
                 "name": null,
-                "ty": {
-                  "Int": [5, null, 0]
-                }
+                "ty": "Int"
               },
               {
                 "name": null,
@@ -178,22 +152,17 @@
                   "Tuple": [
                     {
                       "name": null,
-                      "ty": {
-                        "B256": [5, null, 1]
-                      }
+                      "ty": "B256"
                     },
                     {
                       "name": null,
-                      "ty": {
-                        "Int": [5, null, 2]
-                      }
+                      "ty": "Int"
                     }
                   ]
                 }
               }
             ]
-          },
-          "key": [5]
+          }
         }
       }
     },
@@ -209,9 +178,7 @@
                 "Tuple": [
                   {
                     "name": null,
-                    "ty": {
-                      "Int": [6, null, null, null, null, null, 0]
-                    }
+                    "ty": "Int"
                   },
                   {
                     "name": null,
@@ -219,25 +186,19 @@
                       "Tuple": [
                         {
                           "name": null,
-                          "ty": {
-                            "B256": [6, null, null, null, null, null, 1]
-                          }
+                          "ty": "B256"
                         },
                         {
                           "name": null,
-                          "ty": {
-                            "Int": [6, null, null, null, null, null, 2]
-                          }
+                          "ty": "Int"
                         }
                       ]
                     }
                   }
                 ]
-              },
-              "key": [6, null]
+              }
             }
-          },
-          "key": [6]
+          }
         }
       }
     }

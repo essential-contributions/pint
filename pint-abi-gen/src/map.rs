@@ -1,8 +1,8 @@
 //! Items related to generating the `Map` mutations and keys builders.
 
 use crate::{
-    abi_key_from_keyed_type, construct_key_expr, mutation, nesting_expr, nesting_key_doc_str,
-    nesting_ty_str, tuple, ty_from_pint_ty, KeyedTypeABI, SingleKeyTy,
+    construct_key_expr, mutation, nesting_expr, nesting_key_doc_str, nesting_ty_str, tuple,
+    ty_from_pint_ty, SingleKeyTy,
 };
 use pint_abi_types::TypeABI;
 use pint_abi_visit::{KeyedVarTree, Nesting, NodeIx};
@@ -110,23 +110,22 @@ fn map_mutation_method(
     tree: &KeyedVarTree,
     entry: NodeIx,
     ty_from: &TypeABI,
-    ty_to: &KeyedTypeABI,
+    ty_to: &TypeABI,
 ) -> syn::ImplItemFn {
     let nesting = tree.nesting(entry);
     let val_ty = match ty_to {
-        KeyedTypeABI::Bool(_key) => SingleKeyTy::Bool,
-        KeyedTypeABI::Int(_key) => SingleKeyTy::Int,
-        KeyedTypeABI::Real(_key) => SingleKeyTy::Real,
-        KeyedTypeABI::Array { ty, size: _ } => {
-            let _key = abi_key_from_keyed_type(ty);
+        TypeABI::Bool => SingleKeyTy::Bool,
+        TypeABI::Int => SingleKeyTy::Int,
+        TypeABI::Real => SingleKeyTy::Real,
+        TypeABI::Array { ty: _, size: _ } => {
             todo!()
         }
-        KeyedTypeABI::String(_key) => SingleKeyTy::String,
-        KeyedTypeABI::B256(_key) => SingleKeyTy::B256,
-        KeyedTypeABI::Tuple(_) => {
+        TypeABI::String => SingleKeyTy::String,
+        TypeABI::B256 => SingleKeyTy::B256,
+        TypeABI::Tuple(_) => {
             return mutation_method_for_tuple(ty_from, &nesting);
         }
-        KeyedTypeABI::Map { .. } => {
+        TypeABI::Map { .. } => {
             return mutation_method_for_map(ty_from, &nesting);
         }
     };
@@ -139,7 +138,7 @@ fn mutations_impl(
     map: NodeIx,
     struct_name: &str,
     ty_from: &TypeABI,
-    ty_to: &KeyedTypeABI,
+    ty_to: &TypeABI,
 ) -> syn::ItemImpl {
     let struct_ident = syn::Ident::new(struct_name, Span::call_site());
     // The node for a map entry is its only child.
@@ -157,7 +156,7 @@ pub(crate) fn builder_items(
     tree: &KeyedVarTree,
     map: NodeIx,
     ty_from: &TypeABI,
-    ty_to: &KeyedTypeABI,
+    ty_to: &TypeABI,
 ) -> Vec<syn::Item> {
     let nesting = tree.nesting(map);
     let struct_name = mutations_struct_name(&nesting);
