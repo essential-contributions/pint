@@ -36,7 +36,7 @@ impl Contract {
             for expr_key in pred.exprs() {
                 if let Some(span) = pred.removed_macro_calls.get(expr_key) {
                     // This expression was actually a macro call which expanded to just declarations,
-                    // not another expression. We can set a specific erro   r in this case.
+                    // not another expression. We can set a specific error in this case.
                     handler.emit_err(Error::Compile {
                         error: CompileError::MacroCallWasNotExpression { span: span.clone() },
                     });
