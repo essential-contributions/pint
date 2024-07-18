@@ -93,8 +93,6 @@ impl Predicate {
     }
 
     fn lower_newtypes_in_newtypes(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
-        // Remove comment: lowers newtypes that are in NewTypeDecl vector, just loops and recurses til done
-
         // Search for a custom type with a specific name and return a mut ref to it.
         fn get_custom_type_mut_ref<'a>(
             custom_path: &str,
@@ -196,18 +194,6 @@ impl Predicate {
                 }
 
                 Type::Map { ty_from, ty_to, .. } => {
-                    // @mohammad, should we error here? ----
-                    // this is part of the type checking so it seems like we should?
-                    // as in we shouldn't allow a var to be a map type?
-                    // var x: ( int => int );
-                    // - should we still replace any nested custom types?
-                    // - note this does not catch
-                    // type MyMap = (int => int); var y: MyMap;
-                    // as in, y: will not trigger this, but will get lowered into (int => int)
-                    // - there is no handler here so maybe its not appropriate here?
-                    // - Thinking out loud, we should still lower all nested types here,
-                    // since it's a recursive call and we don't know what the map
-                    // is nested in. It may be a valid path.
                     replace_custom_type(new_types, ty_from);
                     replace_custom_type(new_types, ty_to);
                 }
@@ -312,21 +298,6 @@ impl Predicate {
         })
     }
 
-    // TODO: change name, it is bad
-    pub(super) fn type_check_maps(&mut self, handler: &Handler) {
-        self.vars().for_each(|(var_key, var)| {
-            let ty = var_key.get_ty(self);
-            if ty.is_map() {
-                println!("Found a map while type checking vars");
-                handler.emit_err(Error::Compile {
-                    error: CompileError::VarTypeIsMap {
-                        span: var.span.clone(),
-                    },
-                });
-            }
-        })
-    }
-
     pub(super) fn check_storage_types(&self, handler: &Handler) {
         if !self.is_root() {
             // Only self check when we're the root predicate.
@@ -334,16 +305,25 @@ impl Predicate {
         }
 
         if let Some((storage_vars, _)) = &self.storage {
-            println!("storage vars {:#?}", &storage_vars);
+            println!("confirmed, there are storage vars");
             for StorageVar { ty, span, .. } in storage_vars {
+                println!("found a storage var of ty: {:#?}", ty);
                 if !(ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() || ty.is_array())
                 {
+                    // could be an alias for a map
+                    let ty = match ty.is_alias() {
+                        Some(alias) => alias,
+                        None => ty,
+                    };
+
+                    println!("found allowed type");
                     if let Type::Map {
                         ref ty_from,
                         ref ty_to,
                         ..
                     } = ty
                     {
+                        println!("found a map");
                         if !((ty_from.is_bool() || ty_from.is_int() || ty_from.is_b256())
                             && (ty_to.is_bool()
                                 || ty_to.is_int()
@@ -352,16 +332,25 @@ impl Predicate {
                                 || ty_to.is_tuple()
                                 || ty_to.is_array()))
                         {
+                            println!("emitting an error because of map types");
                             // TODO: allow arbitrary types in storage maps
                             handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "currently in storage maps, keys must be int, bool, or b256 \
-                                    and values must be int or bool",
-                            span: span.clone(),
-                        },
-                    });
+                                error: CompileError::Internal {
+                                    msg: "currently in storage maps, keys must be int, bool, or b256 \
+                                            and values must be int or bool",
+                                    span: span.clone(),
+                                },
+                            });
                         }
                     } else {
+                        if ty.is_map() {
+                            println!("yeet");
+                        }
+                        println!("It was an alias for: {:#?}", ty.is_alias());
+                        // if ty.is_alias().is_some() {
+                        //     println!("good to rock");
+                        // }
+                        println!("found something that wasn't a map");
                         // TODO: allow arbitrary types in storage blocks
                         handler.emit_err(Error::Compile {
                             error: CompileError::Internal {

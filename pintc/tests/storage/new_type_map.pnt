@@ -1,13 +1,11 @@
-predicate test {
-    type MyMap = (int => int);
-    type MyInt = int;
-    type MyNestMap = (MyInt => int);
+type MyMap = (int => int);
+type MyInt = int;
+type MyNestMap = (MyInt => int);
 
-    storage {
-        m: MyMap,
-        n: MyInt,
-        o: MyNestMap,
-    }
+storage {
+    m: MyMap,
+    n: MyInt,
+    o: MyNestMap,
 }
 
 // parsed <<<
@@ -19,17 +17,15 @@ predicate test {
 // type ::MyMap = ( int => int );
 // type ::MyInt = int;
 // type ::MyNestMap = ( ::MyInt => int );
-// solve satisfy;
 // >>>
 
 // flattened <<<
 // storage {
-//     m: ::MyMap (( int => int )),
-//     n: ::MyInt (int),
-//     o: ::MyNestMap (( ::MyInt (int) => int )),
+//     m: ( int => int ),
+//     n: int,
+//     o: ( ::MyInt (int) => int ),
 // }
 // type ::MyMap = ( int => int );
 // type ::MyInt = int;
 // type ::MyNestMap = ( ::MyInt (int) => int );
-// solve satisfy;
 // >>>
