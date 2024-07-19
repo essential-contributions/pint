@@ -1,12 +1,10 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, ParseError},
-    expr::{Expr, Ident},
+    expr::Ident,
     lexer,
     macros::{self, MacroCall, MacroDecl, MacroExpander},
-    predicate::{
-        CallKey, Contract, ExprKey, Exprs, Interface, InterfaceVar, Predicate, PredicateInterface,
-    },
-    span::{empty_span, Span, Spanned},
+    predicate::{CallKey, Contract, ExprKey, Predicate},
+    span::{empty_span, Span},
     types::*,
 };
 
@@ -163,6 +161,7 @@ impl<'a> ProjectParser<'a> {
 
                     macros::splice_args(
                         self.handler,
+                        &self.contract,
                         self.contract
                             .preds
                             .get(current_pred)
@@ -222,17 +221,18 @@ impl<'a> ProjectParser<'a> {
         // expression.  Or, for macros which only had declarations and no body expression, just
         // delete the call.
         for (current_pred, call_expr_key, body_expr_key, span) in call_replacements {
-            let pred = self.contract.preds.get_mut(&current_pred).unwrap();
-
             if let Some(body_expr_key) = body_expr_key {
-                pred.replace_exprs(call_expr_key, body_expr_key);
+                self.contract
+                    .replace_exprs(&current_pred, call_expr_key, body_expr_key);
             } else {
                 // Keep track of the removed macro for type-checking, in case the predicate
                 // erroneously expected the macro call to be an expression (and not just
                 // declarations).
-                pred.removed_macro_calls.insert(call_expr_key, span);
+                self.contract
+                    .removed_macro_calls
+                    .insert(call_expr_key, span);
             }
-            pred.exprs.remove(call_expr_key);
+            self.contract.exprs.remove(call_expr_key);
         }
 
         self
@@ -244,308 +244,21 @@ impl<'a> ProjectParser<'a> {
         // symbols since shadowing is not allowed. That is, we can't use a symbol inside an
         // `predicate { .. }` that was already used in the root Pred.
 
-        macro_rules! process_nested_expr {
-            ($expr_key: expr, $error_msg: literal, $root_exprs: expr, $pred: expr, $handler: expr) => {{
-                let nested_expr = $root_exprs.get(*$expr_key).ok_or_else(|| {
-                    $handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: concat!("missing ", $error_msg, " expr key in exprs slotmap"),
-                            span: empty_span(),
-                        },
-                    })
-                })?;
-                $pred.exprs.insert(
-                    nested_expr.clone(),
-                    Type::Unknown(nested_expr.span().clone()),
-                );
-                deep_copy_expr(nested_expr, $root_exprs, $pred, $handler)
-            }};
-        }
-
-        fn deep_copy_expr(
-            expr: &Expr,
-            root_exprs: &Exprs,
-            pred: &mut Predicate,
-            handler: &Handler,
-        ) -> Result<(), ErrorEmitted> {
-            match expr {
-                Expr::Error(_)
-                | Expr::Immediate { .. }
-                | Expr::PathByKey(_, _)
-                | Expr::PathByName(_, _)
-                | Expr::StorageAccess(_, _)
-                | Expr::ExternalStorageAccess { .. }
-                | Expr::MacroCall { .. } => {}
-                Expr::Array {
-                    elements,
-                    range_expr,
-                    ..
-                } => {
-                    for element_expr_key in elements {
-                        process_nested_expr!(
-                            element_expr_key,
-                            "array `element`",
-                            root_exprs,
-                            pred,
-                            handler
-                        )?;
-                    }
-                    process_nested_expr!(range_expr, "array `range`", root_exprs, pred, handler)?;
-                }
-                Expr::Tuple { fields, .. } => {
-                    for (_, field_expr_key) in fields {
-                        process_nested_expr!(
-                            field_expr_key,
-                            "tuple `field`",
-                            root_exprs,
-                            pred,
-                            handler
-                        )?;
-                    }
-                }
-                Expr::UnaryOp { expr, .. } => {
-                    process_nested_expr!(expr, "unary op", root_exprs, pred, handler)?;
-                }
-                Expr::BinaryOp { lhs, rhs, .. } => {
-                    process_nested_expr!(lhs, "`lhs` of binary op", root_exprs, pred, handler)?;
-                    process_nested_expr!(rhs, "`rhs` of binary op", root_exprs, pred, handler)?;
-                }
-                Expr::IntrinsicCall { args, .. } => {
-                    for arg_expr_key in args {
-                        process_nested_expr!(
-                            arg_expr_key,
-                            "intrinsic call `arg`",
-                            root_exprs,
-                            pred,
-                            handler
-                        )?;
-                    }
-                }
-                Expr::Select {
-                    condition,
-                    then_expr,
-                    else_expr,
-                    ..
-                } => {
-                    process_nested_expr!(condition, "if `condition`", root_exprs, pred, handler)?;
-                    process_nested_expr!(then_expr, "if `then expr`", root_exprs, pred, handler)?;
-                    process_nested_expr!(else_expr, "if `else expr`", root_exprs, pred, handler)?;
-                }
-                Expr::Index { expr, index, .. } => {
-                    process_nested_expr!(expr, "index `expr`", root_exprs, pred, handler)?;
-                    process_nested_expr!(index, "index `index`", root_exprs, pred, handler)?;
-                }
-                Expr::TupleFieldAccess { tuple, .. } => {
-                    process_nested_expr!(tuple, "tuple field access", root_exprs, pred, handler)?;
-                }
-                Expr::Cast { value, ty, .. } => {
-                    process_nested_expr!(value, "cast `value`", root_exprs, pred, handler)?;
-                    deep_copy_type(ty, root_exprs, pred, handler)?;
-                }
-                Expr::In {
-                    value, collection, ..
-                } => {
-                    process_nested_expr!(value, "in `value`", root_exprs, pred, handler)?;
-                    process_nested_expr!(collection, "in `collection`", root_exprs, pred, handler)?;
-                }
-                Expr::Range { lb, ub, .. } => {
-                    process_nested_expr!(lb, "range `lower bound`", root_exprs, pred, handler)?;
-                    process_nested_expr!(ub, "range `upper bound`", root_exprs, pred, handler)?;
-                }
-                Expr::Generator {
-                    gen_ranges,
-                    conditions,
-                    body,
-                    ..
-                } => {
-                    for (_, range_expr_key) in gen_ranges {
-                        process_nested_expr!(
-                            range_expr_key,
-                            "generator `range`",
-                            root_exprs,
-                            pred,
-                            handler
-                        )?;
-                    }
-                    for condition_expr_key in conditions {
-                        process_nested_expr!(
-                            condition_expr_key,
-                            "generator `condition`",
-                            root_exprs,
-                            pred,
-                            handler
-                        )?;
-                    }
-                    process_nested_expr!(body, "generator `body`", root_exprs, pred, handler)?;
-                }
-            }
-            Ok(())
-        }
-
-        fn deep_copy_type(
-            new_type: &Type,
-            root_exprs: &Exprs,
-            pred: &mut Predicate,
-            handler: &Handler,
-        ) -> Result<Type, ErrorEmitted> {
-            match &new_type {
-                Type::Array {
-                    ty,
-                    range,
-                    size,
-                    span,
-                } => {
-                    let range_expr = range
-                        .and_then(|range| root_exprs.get(range))
-                        .expect("exists");
-                    deep_copy_expr(range_expr, root_exprs, pred, handler)?;
-                    let new_expr_key = pred
-                        .exprs
-                        .insert(range_expr.clone(), Type::Unknown(range_expr.span().clone()));
-
-                    Ok(Type::Array {
-                        ty: Box::new(deep_copy_type(ty, root_exprs, pred, handler)?),
-                        range: Some(new_expr_key),
-                        size: *size,
-                        span: span.clone(),
-                    })
-                }
-                Type::Tuple { fields, span } => {
-                    let mut new_fields: Vec<(Option<Ident>, Type)> = vec![];
-                    for field in fields {
-                        let new_field = (
-                            field.0.clone(),
-                            deep_copy_type(&field.1, root_exprs, pred, handler)?,
-                        );
-                        new_fields.push(new_field);
-                    }
-                    Ok(Type::Tuple {
-                        fields: new_fields,
-                        span: span.clone(),
-                    })
-                }
-                Type::Alias { path, ty, span } => Ok(Type::Alias {
-                    path: path.to_string(),
-                    ty: Box::new(deep_copy_type(ty, root_exprs, pred, handler)?),
-                    span: span.clone(),
-                }),
-                Type::Map {
-                    ty_from,
-                    ty_to,
-                    span,
-                } => Ok(Type::Map {
-                    ty_from: Box::new(deep_copy_type(ty_from, root_exprs, pred, handler)?),
-                    ty_to: Box::new(deep_copy_type(ty_to, root_exprs, pred, handler)?),
-                    span: span.clone(),
-                }),
-                Type::Error(_)
-                | Type::Unknown(_)
-                | Type::Primitive { .. }
-                | Type::Custom { .. } => Ok(new_type.clone()),
-            }
-        }
-
-        fn deep_copy_new_types(
-            root_new_types: &Vec<NewTypeDecl>,
-            root_exprs: &Exprs,
-            pred: &mut Predicate,
-            handler: &Handler,
-        ) -> Result<(), ErrorEmitted> {
-            for new_type in root_new_types {
-                let new_type_decl = deep_copy_type(&new_type.ty, root_exprs, pred, handler)?;
-                pred.new_types.push(NewTypeDecl {
-                    name: new_type.name.clone(),
-                    ty: new_type_decl,
-                    span: new_type.span.clone(),
-                })
-            }
-            Ok(())
-        }
-
         let enums = self.contract.root_pred().enums.clone();
         let new_types = self.contract.root_pred().new_types.clone();
         let root_symbols = self.contract.root_pred().top_level_symbols.clone();
         let storage = self.contract.root_pred().storage.clone();
         let interfaces = self.contract.root_pred().interfaces.clone();
-        let exprs = self.contract.root_pred().exprs.clone();
 
         self.contract
             .preds
             .iter_mut()
             .filter(|(name, _)| *name != &Contract::ROOT_PRED_NAME.to_string())
             .for_each(|(_, pred)| {
-                let _ = deep_copy_new_types(&new_types, &exprs, pred, self.handler);
+                pred.new_types.extend_from_slice(&new_types);
                 pred.enums.extend_from_slice(&enums);
-                pred.storage = storage.as_ref().map(|storage| {
-                    (
-                        storage
-                            .0
-                            .iter()
-                            .map(|storage_var| {
-                                let mut new_storage_var = storage_var.clone();
-                                new_storage_var.ty =
-                                    deep_copy_type(&storage_var.ty, &exprs, pred, self.handler)
-                                        .unwrap();
-                                new_storage_var
-                            })
-                            .collect(),
-                        storage.1.clone(),
-                    )
-                });
-                pred.interfaces = interfaces
-                    .iter()
-                    .map(
-                        |Interface {
-                             name,
-                             storage,
-                             predicate_interfaces,
-                             span,
-                         }| Interface {
-                            name: name.clone(),
-                            storage: storage.as_ref().map(|storage| {
-                                (
-                                    storage
-                                        .0
-                                        .iter()
-                                        .map(|storage_var| {
-                                            let mut new_storage_var = storage_var.clone();
-                                            new_storage_var.ty = deep_copy_type(
-                                                &storage_var.ty,
-                                                &exprs,
-                                                pred,
-                                                self.handler,
-                                            )
-                                            .unwrap();
-                                            new_storage_var
-                                        })
-                                        .collect(),
-                                    storage.1.clone(),
-                                )
-                            }),
-                            // When we allow `pub var`s of type array, we should deep copy the
-                            // types here too
-                            predicate_interfaces: predicate_interfaces
-                                .iter()
-                                .map(
-                                    |PredicateInterface { name, vars, span }| PredicateInterface {
-                                        name: name.clone(),
-                                        vars: vars
-                                            .iter()
-                                            .map(|InterfaceVar { name, ty, span }| InterfaceVar {
-                                                name: name.clone(),
-                                                ty: deep_copy_type(ty, &exprs, pred, self.handler)
-                                                    .unwrap(),
-                                                span: span.clone(),
-                                            })
-                                            .collect::<Vec<_>>(),
-                                        span: span.clone(),
-                                    },
-                                )
-                                .collect::<Vec<_>>(),
-                            span: span.clone(),
-                        },
-                    )
-                    .collect::<Vec<_>>();
+                pred.storage.clone_from(&storage);
+                pred.interfaces.extend_from_slice(&interfaces);
 
                 for (symbol, span) in &root_symbols {
                     // We could call `pred.add_top_level_symbol_with_name` directly here, but then
@@ -865,11 +578,16 @@ impl TestWrapper {
 }
 
 impl crate::predicate::DisplayWithPred for TestWrapper {
-    fn fmt(&self, f: &mut std::fmt::Formatter, pred: &Predicate) -> std::fmt::Result {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter,
+        contract: &Contract,
+        pred: &Predicate,
+    ) -> std::fmt::Result {
         match self {
-            TestWrapper::Expr(e) => e.fmt(f, pred),
-            TestWrapper::Type(t) => t.fmt(f, pred),
-            TestWrapper::Ident(i) => i.fmt(f, pred),
+            TestWrapper::Expr(e) => e.fmt(f, contract, pred),
+            TestWrapper::Type(t) => t.fmt(f, contract, pred),
+            TestWrapper::Ident(i) => i.fmt(f, contract, pred),
             TestWrapper::UseTree(_) => panic!("DisplayWithPred not avilable for UseTree"),
         }
     }

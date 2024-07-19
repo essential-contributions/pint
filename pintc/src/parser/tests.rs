@@ -2,7 +2,7 @@ use crate::{
     error::{Error, Handler, ReportableError},
     lexer::{self, KEYWORDS},
     parser::ParserContext,
-    predicate::{Contract, DisplayWithPred, Predicate},
+    predicate::{Contract, DisplayWithPred, Exprs, Predicate},
     span::Span,
 };
 use std::{collections::BTreeMap, path::Path, rc::Rc};
@@ -62,7 +62,9 @@ macro_rules! context {
                     Contract::ROOT_PRED_NAME.to_string(),
                     Predicate::default(),
                 )]),
+                exprs: Exprs::default(),
                 consts: fxhash::FxHashMap::default(),
+                removed_macro_calls: slotmap::SecondaryMap::default(),
             },
             current_pred: &mut Contract::ROOT_PRED_NAME.to_string(),
             macros: &mut vec![],
@@ -107,7 +109,7 @@ macro_rules! run_parser {
                 let result =
                     format!("{}{}",
                         context.contract,
-                        context.contract.root_pred().with_pred(&item)
+                        context.contract.root_pred().with_pred(context.contract, &item)
                     );
                 format!("{}{}",
                     use_paths
@@ -127,7 +129,12 @@ macro_rules! run_parser {
 /// Many parsers return () which we may need to print. Just do nothing!
 #[cfg(test)]
 impl DisplayWithPred for () {
-    fn fmt(&self, _f: &mut std::fmt::Formatter, _pred: &Predicate) -> std::fmt::Result {
+    fn fmt(
+        &self,
+        _f: &mut std::fmt::Formatter,
+        _contract: &Contract,
+        _pred: &Predicate,
+    ) -> std::fmt::Result {
         Ok(())
     }
 }
@@ -2046,7 +2053,7 @@ fn macro_call() {
         &context
             .contract
             .root_pred()
-            .with_pred(&result.unwrap())
+            .with_pred(context.contract, &result.unwrap())
             .to_string(),
         expect_test::expect!["::@foo(...)"],
     );

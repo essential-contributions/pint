@@ -8,7 +8,7 @@ use crate::{
 
 pub(crate) fn validate(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
     contract.preds.values().for_each(|pred| {
-        check_constraints(pred, handler);
+        check_constraints(contract, pred, handler);
         check_vars(pred, handler);
         check_states(pred, handler);
         check_ifs(pred, handler);
@@ -22,10 +22,11 @@ fn check_vars(pred: &Predicate, handler: &Handler) {
         if var_key.get_ty(pred).is_unknown() {
             handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
-                msg:
-                    "final predicate var_types slotmap is missing corresponding key from vars slotmap",
-                span: var.span.clone(),
-            }});
+                    msg: "final predicate var_types slotmap is missing corresponding key from \
+                    vars slotmap",
+                    span: var.span.clone(),
+                },
+            });
         }
     }
 }
@@ -35,10 +36,11 @@ fn check_states(pred: &Predicate, handler: &Handler) {
         if state_key.get_ty(pred).is_unknown() {
             handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
-                msg:
-                    "final predicate state_types slotmap is missing corresponding key from states slotmap",
-                span: state.span.clone(),
-            }});
+                    msg: "final predicate state_types slotmap is missing corresponding key from \
+                    states slotmap",
+                    span: state.span.clone(),
+                },
+            });
         }
     }
 }
@@ -59,13 +61,17 @@ fn check_ifs(pred: &Predicate, handler: &Handler) {
     }
 }
 
-fn check_constraints(pred: &Predicate, handler: &Handler) {
-    for expr_key in pred.exprs() {
-        let _ = check_expr(&expr_key, handler, pred);
+fn check_constraints(contract: &Contract, pred: &Predicate, handler: &Handler) {
+    for expr_key in contract.exprs(pred) {
+        let _ = check_expr(&expr_key, handler, contract);
     }
 }
 
-fn check_expr(expr_key: &ExprKey, handler: &Handler, pred: &Predicate) -> Result<(), ErrorEmitted> {
+fn check_expr(
+    expr_key: &ExprKey,
+    handler: &Handler,
+    contract: &Contract,
+) -> Result<(), ErrorEmitted> {
     macro_rules! emit_illegal_type_error {
         ($handler: expr, $span: expr, $type_str: literal, $slotmap_str: literal) => {
             $handler.emit_err(Error::Compile {
@@ -82,7 +88,7 @@ fn check_expr(expr_key: &ExprKey, handler: &Handler, pred: &Predicate) -> Result
         };
     }
 
-    let expr_type = expr_key.get_ty(pred);
+    let expr_type = expr_key.get_ty(contract);
     if expr_type.is_unknown() {
         handler.emit_err(Error::Compile {
             error: CompileError::Internal {
@@ -92,7 +98,7 @@ fn check_expr(expr_key: &ExprKey, handler: &Handler, pred: &Predicate) -> Result
         });
     }
 
-    let expr = expr_key.try_get(pred).ok_or_else(|| {
+    let expr = expr_key.try_get(contract).ok_or_else(|| {
         handler.emit_err(Error::Compile {
             error: CompileError::Internal {
                 msg: "invalid predicate exprs slotmap key",
@@ -195,7 +201,11 @@ fn run_without_transforms(src: &str) -> (Contract, Handler) {
 
 #[cfg(test)]
 fn run_parser(src: &str, handler: &Handler) -> Contract {
-    use crate::{parser::pint_parser, span};
+    use crate::{
+        lexer,
+        parser::{self, pint_parser},
+        predicate, span,
+    };
     use std::collections::BTreeMap;
 
     let parser = pint_parser::PintParser::new();
@@ -203,12 +213,14 @@ fn run_parser(src: &str, handler: &Handler) -> Contract {
     let filepath = std::rc::Rc::from(std::path::Path::new("test"));
     let mut contract = Contract {
         preds: BTreeMap::from([(Contract::ROOT_PRED_NAME.to_string(), Predicate::default())]),
+        exprs: predicate::Exprs::default(),
         consts: fxhash::FxHashMap::default(),
+        removed_macro_calls: slotmap::SecondaryMap::default(),
     };
 
     parser
         .parse(
-            &mut crate::parser::ParserContext {
+            &mut parser::ParserContext {
                 mod_path: &[],
                 mod_prefix: "",
                 local_scope: None,
@@ -224,7 +236,7 @@ fn run_parser(src: &str, handler: &Handler) -> Contract {
                 next_paths: &mut Vec::new(),
             },
             handler,
-            crate::lexer::Lexer::new(src, &filepath, &[]),
+            lexer::Lexer::new(src, &filepath, &[]),
         )
         .expect("Failed to parse test case.");
 
@@ -339,7 +351,7 @@ fn states() {
     let src = "predicate test { var a = 1; }";
     let (mut contract, handler) = run_without_transforms(src);
     contract.preds.iter_mut().for_each(|(_, pred)| {
-        let dummy_expr_key = pred
+        let dummy_expr_key = contract
             .exprs
             .insert(Expr::Error(empty_span()), Type::Unknown(empty_span()));
         let dummy_state = State {

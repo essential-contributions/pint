@@ -3,15 +3,15 @@ use std::fmt::{Display, Formatter, Result};
 impl Display for super::Contract {
     fn fmt(&self, f: &mut Formatter) -> Result {
         for (path, cnst) in &self.consts {
-            writeln!(f, "const {path}{};", self.root_pred().with_pred(cnst))?;
+            writeln!(f, "const {path}{};", self.root_pred().with_pred(self, cnst))?;
         }
 
         for (name, pred) in &self.preds {
             if name == Self::ROOT_PRED_NAME {
-                self.root_pred().fmt_with_indent(f, 0)?
+                self.root_pred().fmt_with_indent(f, self, 0)?
             } else {
                 writeln!(f, "\npredicate {name} {{")?;
-                pred.fmt_with_indent(f, 1)?;
+                pred.fmt_with_indent(f, self, 1)?;
                 writeln!(f, "}}")?;
             }
         }
@@ -20,20 +20,29 @@ impl Display for super::Contract {
     }
 }
 
-impl Display for super::Predicate {
-    fn fmt(&self, f: &mut Formatter) -> Result {
-        self.fmt_with_indent(f, 0)
-    }
-}
+//impl Display for super::Predicate {
+//    fn fmt(&self, f: &mut Formatter) -> Result {
+//        self.fmt_with_indent(f, 0)
+//    }
+//}
 
 impl super::Predicate {
-    fn fmt_with_indent(&self, f: &mut Formatter, indent: usize) -> Result {
+    fn fmt_with_indent(
+        &self,
+        f: &mut Formatter,
+        contract: &super::Contract,
+        indent: usize,
+    ) -> Result {
         let indentation = " ".repeat(4 * indent);
 
         if let Some(storage) = &self.storage {
             writeln!(f, "{indentation}storage {{")?;
             for storage_var in &storage.0 {
-                writeln!(f, "{indentation}    {}", self.with_pred(storage_var))?;
+                writeln!(
+                    f,
+                    "{indentation}    {}",
+                    self.with_pred(contract, storage_var)
+                )?;
             }
             writeln!(f, "{indentation}}}")?;
         }
@@ -51,7 +60,11 @@ impl super::Predicate {
             if let Some(storage) = &storage {
                 writeln!(f, "{indentation}    storage {{")?;
                 for storage_var in &storage.0 {
-                    writeln!(f, "{indentation}        {}", self.with_pred(storage_var))?;
+                    writeln!(
+                        f,
+                        "{indentation}        {}",
+                        self.with_pred(contract, storage_var)
+                    )?;
                 }
                 writeln!(f, "{indentation}    }}")?;
             }
@@ -69,7 +82,7 @@ impl super::Predicate {
                             f,
                             "{indentation}        pub var {}: {};",
                             var.name,
-                            self.with_pred(var.ty.clone())
+                            self.with_pred(contract, var.ty.clone())
                         )?;
                     }
                     writeln!(f, "{indentation}    }}")?;
@@ -89,7 +102,7 @@ impl super::Predicate {
             writeln!(
                 f,
                 "{indentation}interface {name} = {interface}({})",
-                self.with_pred(address)
+                self.with_pred(contract, address)
             )?;
         }
 
@@ -104,32 +117,32 @@ impl super::Predicate {
             writeln!(
                 f,
                 "{indentation}predicate {name} = {interface_instance}::{predicate}({})",
-                self.with_pred(address)
+                self.with_pred(contract, address)
             )?;
         }
 
         for (var_key, _) in self.vars() {
-            writeln!(f, "{indentation}{};", self.with_pred(var_key))?;
+            writeln!(f, "{indentation}{};", self.with_pred(contract, var_key))?;
         }
 
         for (state_key, _) in self.states() {
-            writeln!(f, "{indentation}{};", self.with_pred(state_key))?;
+            writeln!(f, "{indentation}{};", self.with_pred(contract, state_key))?;
         }
 
         for r#enum in &self.enums {
-            writeln!(f, "{indentation}{};", self.with_pred(r#enum))?;
+            writeln!(f, "{indentation}{};", self.with_pred(contract, r#enum))?;
         }
 
         for new_type in &self.new_types {
-            writeln!(f, "{indentation}{};", self.with_pred(new_type))?;
+            writeln!(f, "{indentation}{};", self.with_pred(contract, new_type))?;
         }
 
         for constraint in &self.constraints {
-            writeln!(f, "{indentation}{};", self.with_pred(constraint))?;
+            writeln!(f, "{indentation}{};", self.with_pred(contract, constraint))?;
         }
 
         for if_decl in &self.if_decls {
-            if_decl.fmt_with_indent(f, self, indent)?;
+            if_decl.fmt_with_indent(f, contract, self, indent)?;
         }
 
         Ok(())

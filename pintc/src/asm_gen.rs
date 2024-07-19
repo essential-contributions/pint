@@ -46,7 +46,9 @@ pub fn compile_contract(
 
     for (name, pred) in contract.preds.iter() {
         if name != Contract::ROOT_PRED_NAME {
-            if let Ok(predicate) = handler.scope(|handler| predicate_to_asm(handler, pred)) {
+            if let Ok(predicate) =
+                handler.scope(|handler| predicate_to_asm(handler, contract, pred))
+            {
                 names.push(name.to_string());
                 predicates.push(predicate);
             }
@@ -102,9 +104,10 @@ impl AsmBuilder {
         handler: &Handler,
         asm: &mut Vec<Constraint>,
         expr: &ExprKey,
+        contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        match &expr.get(pred) {
+        match &expr.get(contract) {
             // All of these are just values
             Expr::Error(_)
             | Expr::Immediate { .. }
@@ -124,24 +127,24 @@ impl AsmBuilder {
                 UnaryOp::NextState => {
                     // Next state expressions produce state expressions (i.e. ones that require
                     // `State` or `StateRange`
-                    Self::compile_expr_pointer(handler, asm, expr, pred)?;
+                    Self::compile_expr_pointer(handler, asm, expr, contract, pred)?;
                     Ok(Location::State(true))
                 }
                 _ => Ok(Location::Value),
             },
-            Expr::PathByName(path, _) => Self::compile_path(handler, asm, path, pred),
+            Expr::PathByName(path, _) => Self::compile_path(handler, asm, path, contract, pred),
             Expr::PathByKey(var_key, _) => {
                 let path = &var_key.get(pred).name;
-                Self::compile_path(handler, asm, path, pred)
+                Self::compile_path(handler, asm, path, contract, pred)
             }
             Expr::TupleFieldAccess { tuple, field, .. } => {
-                let location = Self::compile_expr_pointer(handler, asm, tuple, pred)?;
+                let location = Self::compile_expr_pointer(handler, asm, tuple, contract, pred)?;
                 match location {
                     Location::State(_) | Location::Transient(..) | Location::DecisionVar(_) => {
                         // Offset calculation is pretty much the same for all types of data
 
                         // Grab the fields of the tuple
-                        let Type::Tuple { ref fields, .. } = tuple.get_ty(pred) else {
+                        let Type::Tuple { ref fields, .. } = tuple.get_ty(contract) else {
                             return Err(handler.emit_err(Error::Compile {
                                 error: CompileError::Internal {
                                     msg: "type must exist and be a tuple type",
@@ -179,9 +182,9 @@ impl AsmBuilder {
                                 // at the "storage size" which may yield different results (e.g. a
                                 // `b256` is 4 words but its storage size is 1
                                 if let Location::DecisionVar(_) = location {
-                                    ty.size(handler, pred)
+                                    ty.size(handler, contract, pred)
                                 } else {
-                                    ty.storage_or_transient_slots(handler, pred)
+                                    ty.storage_or_transient_slots(handler, contract, pred)
                                 }
                                 .map(|slots| acc + slots)
                             })?;
@@ -197,13 +200,13 @@ impl AsmBuilder {
                 }
             }
             Expr::Index { expr, index, .. } => {
-                let location = Self::compile_expr_pointer(handler, asm, expr, pred)?;
+                let location = Self::compile_expr_pointer(handler, asm, expr, contract, pred)?;
                 match location {
                     Location::State(_) | Location::Transient(..) | Location::DecisionVar(_) => {
                         // Offset calculation is pretty much the same for all types of data
 
                         // Grab the element ty of the array
-                        let Type::Array { ty, .. } = expr.get_ty(pred) else {
+                        let Type::Array { ty, .. } = expr.get_ty(contract) else {
                             return Err(handler.emit_err(Error::Compile {
                                 error: CompileError::Internal {
                                     msg: "type must exist and be an array type",
@@ -213,7 +216,7 @@ impl AsmBuilder {
                         };
 
                         // Compile the index
-                        Self::compile_expr(handler, asm, index, pred)?;
+                        Self::compile_expr(handler, asm, index, contract, pred)?;
 
                         // Multiply the index by the number of storage slots for `ty` to get the
                         // offset, then add the result to the base key
@@ -223,9 +226,9 @@ impl AsmBuilder {
                             // at the "storage size" which may yield different results (e.g. a
                             // `b256` is 4 words but its storage size is 1
                             Stack::Push(if let Location::DecisionVar(_) = location {
-                                ty.size(handler, pred)?
+                                ty.size(handler, contract, pred)?
                             } else {
-                                ty.storage_or_transient_slots(handler, pred)?
+                                ty.storage_or_transient_slots(handler, contract, pred)?
                             } as i64)
                             .into(),
                         );
@@ -251,15 +254,16 @@ impl AsmBuilder {
         handler: &Handler,
         s_asm: &mut Vec<StateRead>,
         expr: &ExprKey,
+        contract: &Contract,
         pred: &Predicate,
     ) -> Result<StorageKey, ErrorEmitted> {
-        let expr_ty = expr.get_ty(pred);
-        match &expr.get(pred) {
+        let expr_ty = expr.get_ty(contract);
+        match &expr.get(contract) {
             Expr::IntrinsicCall { name, args, .. } => {
                 if name.name.ends_with("__storage_get") {
                     // Expecting a single argument that is an array of integers representing a key
                     assert_eq!(args.len(), 1);
-                    let Some(key_len) = args[0].get_ty(pred).get_array_size() else {
+                    let Some(key_len) = args[0].get_ty(contract).get_array_size() else {
                         return Err(handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
                                 msg: "unable to get key size",
@@ -269,7 +273,7 @@ impl AsmBuilder {
                     };
 
                     let mut asm = Vec::new();
-                    Self::compile_expr(handler, &mut asm, &args[0], pred)?;
+                    Self::compile_expr(handler, &mut asm, &args[0], contract, pred)?;
                     s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
                     Ok(StorageKey {
                         len: key_len as usize,
@@ -280,7 +284,7 @@ impl AsmBuilder {
                     // 1. An address that is a `b256`
                     // 2. A key: an array of integers
                     assert_eq!(args.len(), 2);
-                    let Some(key_len) = args[1].get_ty(pred).get_array_size() else {
+                    let Some(key_len) = args[1].get_ty(contract).get_array_size() else {
                         return Err(handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
                                 msg: "unable to get key size",
@@ -291,8 +295,8 @@ impl AsmBuilder {
 
                     // First, get the contract address and the storage key
                     let mut asm = Vec::new();
-                    Self::compile_expr(handler, &mut asm, &args[0], pred)?;
-                    Self::compile_expr(handler, &mut asm, &args[1], pred)?;
+                    Self::compile_expr(handler, &mut asm, &args[0], contract, pred)?;
+                    Self::compile_expr(handler, &mut asm, &args[1], contract, pred)?;
                     s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
                     Ok(StorageKey {
                         len: key_len as usize,
@@ -347,7 +351,13 @@ impl AsmBuilder {
 
                 // Compile the interface instance address
                 let mut asm = Vec::new();
-                Self::compile_expr(handler, &mut asm, &interface_instance.address, pred)?;
+                Self::compile_expr(
+                    handler,
+                    &mut asm,
+                    &interface_instance.address,
+                    contract,
+                    pred,
+                )?;
                 s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
 
                 // Get the `interface` declaration that the storage access refers to
@@ -389,16 +399,17 @@ impl AsmBuilder {
                 })
             }
             Expr::Index { expr, index, .. } => {
-                if expr.get_ty(pred).is_map() {
+                if expr.get_ty(contract).is_map() {
                     // Compile the key corresponding to `expr`
-                    let storage_key = Self::compile_state_key(handler, s_asm, expr, pred)?;
+                    let storage_key =
+                        Self::compile_state_key(handler, s_asm, expr, contract, pred)?;
 
                     // Compile the index
                     let mut asm = vec![];
-                    Self::compile_expr(handler, &mut asm, index, pred)?;
+                    Self::compile_expr(handler, &mut asm, index, contract, pred)?;
                     s_asm.extend(asm.iter().copied().map(StateRead::from));
                     let mut key_length =
-                        storage_key.len + index.get_ty(pred).size(handler, pred)?;
+                        storage_key.len + index.get_ty(contract).size(handler, contract, pred)?;
                     if !(expr_ty.is_any_primitive() || expr_ty.is_map()) {
                         s_asm.push(StateRead::from(Stack::Push(0)));
                         key_length += 1;
@@ -408,7 +419,7 @@ impl AsmBuilder {
                         is_extern: storage_key.is_extern,
                     })
                 } else {
-                    let Type::Array { ty, .. } = expr.get_ty(pred) else {
+                    let Type::Array { ty, .. } = expr.get_ty(contract) else {
                         return Err(handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
                                 msg: "type must exist and be an array type",
@@ -418,17 +429,19 @@ impl AsmBuilder {
                     };
 
                     // Compile the key corresponding to `expr`
-                    let storage_key = Self::compile_state_key(handler, s_asm, expr, pred)?;
+                    let storage_key =
+                        Self::compile_state_key(handler, s_asm, expr, contract, pred)?;
 
                     // Compile the index
                     let mut asm = vec![];
-                    Self::compile_expr(handler, &mut asm, index, pred)?;
+                    Self::compile_expr(handler, &mut asm, index, contract, pred)?;
                     s_asm.extend(asm.iter().copied().map(StateRead::from));
 
                     // Multiply the index by the number of storage slots for `ty` to get the
                     // offset, then add the result to the base key
                     s_asm.push(
-                        Stack::Push(ty.storage_or_transient_slots(handler, pred)? as i64).into(),
+                        Stack::Push(ty.storage_or_transient_slots(handler, contract, pred)? as i64)
+                            .into(),
                     );
                     s_asm.push(Alu::Mul.into());
                     s_asm.push(Alu::Add.into());
@@ -438,10 +451,10 @@ impl AsmBuilder {
             }
             Expr::TupleFieldAccess { tuple, field, .. } => {
                 // Compile the key corresponding to `tuple`
-                let storage_key = Self::compile_state_key(handler, s_asm, tuple, pred)?;
+                let storage_key = Self::compile_state_key(handler, s_asm, tuple, contract, pred)?;
 
                 // Grab the fields of the tuple
-                let Type::Tuple { ref fields, .. } = tuple.get_ty(pred) else {
+                let Type::Tuple { ref fields, .. } = tuple.get_ty(contract) else {
                     return Err(handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
                             msg: "type must exist and be a tuple type",
@@ -474,7 +487,7 @@ impl AsmBuilder {
                 // This is the offset from the base key where the full tuple is stored.
                 let key_offset: usize =
                     fields.iter().take(field_idx).try_fold(0, |acc, (_, ty)| {
-                        ty.storage_or_transient_slots(handler, pred)
+                        ty.storage_or_transient_slots(handler, contract, pred)
                             .map(|slots| acc + slots)
                     })?;
 
@@ -497,13 +510,14 @@ impl AsmBuilder {
         handler: &Handler,
         asm: &mut Vec<Constraint>,
         expr: &ExprKey,
+        contract: &Contract,
         pred: &Predicate,
     ) -> Result<usize, ErrorEmitted> {
         let old_asm_len = asm.len();
-        let expr_ty = expr.get_ty(pred);
-        match Self::compile_expr_pointer(handler, asm, expr, pred)? {
+        let expr_ty = expr.get_ty(contract);
+        match Self::compile_expr_pointer(handler, asm, expr, contract, pred)? {
             Location::Value => {
-                Self::compile_value_expr(handler, asm, expr, pred)?;
+                Self::compile_value_expr(handler, asm, expr, contract, pred)?;
             }
             Location::DecisionVar(len) => {
                 if len == 1 {
@@ -512,16 +526,16 @@ impl AsmBuilder {
                     // etc.)
                     asm.push(Access::DecisionVar.into());
                 } else {
-                    asm.push(Stack::Push(expr_ty.size(handler, pred)? as i64).into()); // len
+                    asm.push(Stack::Push(expr_ty.size(handler, contract, pred)? as i64).into()); // len
                     asm.push(Access::DecisionVarRange.into());
                 }
             }
             Location::Transient(pathway, len) => {
-                for i in 0..expr_ty.storage_or_transient_slots(handler, pred)? {
+                for i in 0..expr_ty.storage_or_transient_slots(handler, contract, pred)? {
                     if i != 0 {
                         // Recompute the key and offset. We do this manually here because we don't
                         // have a `TransientRange` op that is similar to `StateRange`
-                        Self::compile_expr_pointer(handler, asm, expr, pred)?;
+                        Self::compile_expr_pointer(handler, asm, expr, contract, pred)?;
                         asm.push(Stack::Push(i as i64).into());
                         asm.push(Alu::Add.into());
                     }
@@ -542,7 +556,7 @@ impl AsmBuilder {
                 }
             }
             Location::State(next_state) => {
-                let slots = expr_ty.storage_or_transient_slots(handler, pred)?;
+                let slots = expr_ty.storage_or_transient_slots(handler, contract, pred)?;
                 if slots == 1 {
                     asm.push(Stack::Push(next_state as i64).into());
                     asm.push(Access::State.into());
@@ -562,6 +576,7 @@ impl AsmBuilder {
         handler: &Handler,
         asm: &mut Vec<Constraint>,
         expr: &ExprKey,
+        contract: &Contract,
         pred: &Predicate,
     ) -> Result<usize, ErrorEmitted> {
         fn compile_immediate(asm: &mut Vec<Constraint>, imm: &Immediate) {
@@ -597,21 +612,21 @@ impl AsmBuilder {
 
         let old_asm_len = asm.len();
 
-        match &expr.get(pred) {
+        match &expr.get(contract) {
             Expr::Immediate { value, .. } => compile_immediate(asm, value),
             Expr::Array { elements, .. } => {
                 for element in elements {
-                    Self::compile_expr(handler, asm, element, pred)?;
+                    Self::compile_expr(handler, asm, element, contract, pred)?;
                 }
             }
             Expr::Tuple { fields, .. } => {
                 for (_, field) in fields {
-                    Self::compile_expr(handler, asm, field, pred)?;
+                    Self::compile_expr(handler, asm, field, contract, pred)?;
                 }
             }
             Expr::BinaryOp { op, lhs, rhs, .. } => {
-                let lhs_len = Self::compile_expr(handler, asm, lhs, pred)?;
-                let rhs_len = Self::compile_expr(handler, asm, rhs, pred)?;
+                let lhs_len = Self::compile_expr(handler, asm, lhs, contract, pred)?;
+                let rhs_len = Self::compile_expr(handler, asm, rhs, contract, pred)?;
                 match op {
                     BinaryOp::Add => asm.push(Alu::Add.into()),
                     BinaryOp::Sub => asm.push(Alu::Sub.into()),
@@ -619,7 +634,7 @@ impl AsmBuilder {
                     BinaryOp::Div => asm.push(Alu::Div.into()),
                     BinaryOp::Mod => asm.push(Alu::Mod.into()),
                     BinaryOp::Equal => {
-                        let type_size = lhs.get_ty(pred).size(handler, pred)?;
+                        let type_size = lhs.get_ty(contract).size(handler, contract, pred)?;
                         if type_size == 1 {
                             asm.push(Pred::Eq.into());
                         } else {
@@ -707,7 +722,7 @@ impl AsmBuilder {
             Expr::UnaryOp { op, expr, .. } => {
                 match op {
                     UnaryOp::Not => {
-                        Self::compile_expr(handler, asm, expr, pred)?;
+                        Self::compile_expr(handler, asm, expr, contract, pred)?;
                         asm.push(Pred::Not.into());
                     }
                     UnaryOp::NextState => {
@@ -722,7 +737,7 @@ impl AsmBuilder {
                         // Push `0` (i.e. `lhs`) before the `expr` (i.e. `rhs`) opcodes. Then
                         // subtract `lhs` - `rhs` to negate the value.
                         asm.push(Constraint::Stack(Stack::Push(0)));
-                        Self::compile_expr(handler, asm, expr, pred)?;
+                        Self::compile_expr(handler, asm, expr, contract, pred)?;
                         asm.push(Alu::Sub.into())
                     }
                     UnaryOp::Error => unreachable!("unexpected Unary::Error"),
@@ -747,7 +762,7 @@ impl AsmBuilder {
                     assert_eq!(args.len(), 1);
 
                     let mut_key = args[0];
-                    let mut_key_type = &mut_key.get_ty(pred);
+                    let mut_key_type = &mut_key.get_ty(contract);
 
                     // Check that the mutable key is an array of integers
                     let el_ty = mut_key_type.get_array_el_type().unwrap();
@@ -755,9 +770,9 @@ impl AsmBuilder {
 
                     // Compile the mut key argument, insert its length, and then insert the
                     // `Sha256` opcode
-                    Self::compile_expr(handler, asm, &mut_key, pred)?;
+                    Self::compile_expr(handler, asm, &mut_key, contract, pred)?;
                     asm.push(Constraint::Stack(Stack::Push(
-                        mut_key_type.size(handler, pred)? as i64,
+                        mut_key_type.size(handler, contract, pred)? as i64,
                     )));
                     asm.push(Constraint::Access(Access::MutKeysContains));
                 }
@@ -782,13 +797,13 @@ impl AsmBuilder {
                     assert_eq!(args.len(), 1);
 
                     let data = args[0];
-                    let data_type = &data.get_ty(pred);
+                    let data_type = &data.get_ty(contract);
 
                     // Compile the data argument, insert its length, and then insert the `Sha256`
                     // opcode
-                    Self::compile_expr(handler, asm, &data, pred)?;
+                    Self::compile_expr(handler, asm, &data, contract, pred)?;
                     asm.push(Constraint::Stack(Stack::Push(
-                        data_type.size(handler, pred)? as i64,
+                        data_type.size(handler, contract, pred)? as i64,
                     )));
                     asm.push(Constraint::Crypto(Crypto::Sha256));
                 }
@@ -800,9 +815,9 @@ impl AsmBuilder {
                     let signature = args[1];
                     let public_key = args[2];
 
-                    let data_type = &data.get_ty(pred);
-                    let signature_type = &signature.get_ty(pred);
-                    let public_key_type = &public_key.get_ty(pred);
+                    let data_type = &data.get_ty(contract);
+                    let signature_type = &signature.get_ty(contract);
+                    let public_key_type = &public_key.get_ty(contract);
 
                     // Check argument types:
                     // - `data_type` can be anything, so nothing to check
@@ -815,12 +830,12 @@ impl AsmBuilder {
                     assert!(public_key_type.is_b256());
 
                     // Compile all arguments separately and then insert the `VerifyEd25519` opcode
-                    Self::compile_expr(handler, asm, &data, pred)?;
+                    Self::compile_expr(handler, asm, &data, contract, pred)?;
                     asm.push(Constraint::Stack(Stack::Push(
-                        data_type.size(handler, pred)? as i64,
+                        data_type.size(handler, contract, pred)? as i64,
                     )));
-                    Self::compile_expr(handler, asm, &signature, pred)?;
-                    Self::compile_expr(handler, asm, &public_key, pred)?;
+                    Self::compile_expr(handler, asm, &signature, contract, pred)?;
+                    Self::compile_expr(handler, asm, &public_key, contract, pred)?;
                     asm.push(Constraint::Crypto(Crypto::VerifyEd25519));
                 }
 
@@ -830,8 +845,8 @@ impl AsmBuilder {
                     let data_hash = args[0];
                     let signature = args[1];
 
-                    let data_hash_type = &data_hash.get_ty(pred);
-                    let signature_type = &signature.get_ty(pred);
+                    let data_hash_type = &data_hash.get_ty(contract);
+                    let signature_type = &signature.get_ty(contract);
 
                     // Check argument types:
                     // - `data_hash_type` must be a `b256`
@@ -848,8 +863,8 @@ impl AsmBuilder {
                     );
 
                     // Compile all arguments separately and then insert the `VerifyEd25519` opcode
-                    Self::compile_expr(handler, asm, &data_hash, pred)?;
-                    Self::compile_expr(handler, asm, &signature, pred)?;
+                    Self::compile_expr(handler, asm, &data_hash, contract, pred)?;
+                    Self::compile_expr(handler, asm, &signature, contract, pred)?;
                     asm.push(Constraint::Crypto(Crypto::RecoverSecp256k1));
                 }
 
@@ -858,7 +873,7 @@ impl AsmBuilder {
 
                     // Check argument:
                     // - `state_var` must be a path to a state var or a "next state" expression
-                    assert!(match args[0].try_get(pred) {
+                    assert!(match args[0].try_get(contract) {
                         Some(Expr::PathByName(name, _))
                             if pred.states().any(|(_, state)| state.name == *name) =>
                             true,
@@ -874,7 +889,7 @@ impl AsmBuilder {
                         _ => false,
                     });
 
-                    Self::compile_expr(handler, asm, &args[0], pred)?;
+                    Self::compile_expr(handler, asm, &args[0], contract, pred)?;
 
                     // After compiling a path to a state var or a "next state" expression, we
                     // expect that the last opcode is a `State` or a `StateRange`. Pop that and
@@ -889,8 +904,8 @@ impl AsmBuilder {
                         // Now, add all the resulting state length. We should get back as many as
                         // we have slots for `args[0]`.
                         let slots = args[0]
-                            .get_ty(pred)
-                            .storage_or_transient_slots(handler, pred)?;
+                            .get_ty(contract)
+                            .storage_or_transient_slots(handler, contract, pred)?;
                         (0..slots - 1).for_each(|_| asm.push(Alu::Add.into()));
                     }
                 }
@@ -910,21 +925,21 @@ impl AsmBuilder {
                 else_expr,
                 ..
             } => {
-                if then_expr.can_panic(pred) || else_expr.can_panic(pred) {
+                if then_expr.can_panic(contract, pred) || else_expr.can_panic(contract, pred) {
                     // We need to short circuit these with control flow to avoid potential panics.
                     // The 'else' is put before the 'then' since it's easier to jump-if-true.
                     //
                     // This jump to 'then' will get updated with the proper distance below.
                     let to_then_jump_idx = asm.len();
                     asm.push(Constraint::Stack(Stack::Push(-1)));
-                    Self::compile_expr(handler, asm, condition, pred)?;
+                    Self::compile_expr(handler, asm, condition, contract, pred)?;
                     asm.push(Constraint::TotalControlFlow(
                         TotalControlFlow::JumpForwardIf,
                     ));
 
                     // Compile the 'else' selection, update the prior jump.  We need to jump over
                     // the size of 'else` plus 3 instructions it uses to jump the 'then'.
-                    let else_size = Self::compile_expr(handler, asm, else_expr, pred)?;
+                    let else_size = Self::compile_expr(handler, asm, else_expr, contract, pred)?;
                     asm[to_then_jump_idx] = Constraint::Stack(Stack::Push(else_size as i64 + 4));
 
                     // This (unconditional) jump over 'then' will also get updated.
@@ -936,19 +951,19 @@ impl AsmBuilder {
                     ));
 
                     // Compile the 'then' selection, update the prior jump.
-                    let then_size = Self::compile_expr(handler, asm, then_expr, pred)?;
+                    let then_size = Self::compile_expr(handler, asm, then_expr, contract, pred)?;
                     asm[to_end_jump_idx] = Constraint::Stack(Stack::Push(then_size as i64 + 1));
                 } else {
                     // Alternatively, evaluate both options and use ASM `select` to choose one.
-                    let type_size = then_expr.get_ty(pred).size(handler, pred)?;
-                    Self::compile_expr(handler, asm, else_expr, pred)?;
-                    Self::compile_expr(handler, asm, then_expr, pred)?;
+                    let type_size = then_expr.get_ty(contract).size(handler, contract, pred)?;
+                    Self::compile_expr(handler, asm, else_expr, contract, pred)?;
+                    Self::compile_expr(handler, asm, then_expr, contract, pred)?;
                     if type_size == 1 {
-                        Self::compile_expr(handler, asm, condition, pred)?;
+                        Self::compile_expr(handler, asm, condition, contract, pred)?;
                         asm.push(Constraint::Stack(Stack::Select));
                     } else {
                         asm.push(Constraint::Stack(Stack::Push(type_size as i64)));
-                        Self::compile_expr(handler, asm, condition, pred)?;
+                        Self::compile_expr(handler, asm, condition, contract, pred)?;
                         asm.push(Constraint::Stack(Stack::SelectRange));
                     }
                 }
@@ -980,6 +995,7 @@ impl AsmBuilder {
         handler: &Handler,
         asm: &mut Vec<Constraint>,
         path: &String,
+        contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
         let var_index = pred
@@ -996,9 +1012,9 @@ impl AsmBuilder {
 
         if let Some(var_index) = var_index {
             let var_key = pred.vars().find(|(_, var)| &var.name == path).unwrap().0;
-            let var_ty_size = var_key.get_ty(pred).size(handler, pred)?;
+            let var_ty_size = var_key.get_ty(pred).size(handler, contract, pred)?;
             asm.push(Stack::Push(var_index as i64).into()); // slot
-            if var_key.get_ty(pred).size(handler, pred)? > 1 {
+            if var_key.get_ty(pred).size(handler, contract, pred)? > 1 {
                 asm.push(Stack::Push(0).into()); // placeholder for index computation
             }
             Ok(Location::DecisionVar(var_ty_size))
@@ -1018,7 +1034,7 @@ impl AsmBuilder {
                     .try_fold(0, |acc, (state_key, _)| {
                         state_key
                             .get_ty(pred)
-                            .storage_or_transient_slots(handler, pred)
+                            .storage_or_transient_slots(handler, contract, pred)
                             .map(|slots| acc + slots)
                     })?;
 
@@ -1104,10 +1120,11 @@ impl AsmBuilder {
         &mut self,
         handler: &Handler,
         expr: &ExprKey,
+        contract: &Contract,
         pred: &Predicate,
     ) -> Result<(), ErrorEmitted> {
         let mut asm = Vec::new();
-        Self::compile_expr(handler, &mut asm, expr, pred)?;
+        Self::compile_expr(handler, &mut asm, expr, contract, pred)?;
         self.c_asm.push(asm);
         Ok(())
     }
@@ -1118,17 +1135,19 @@ impl AsmBuilder {
         handler: &Handler,
         state: &StateVar,
         slot_idx: &mut u32,
+        contract: &Contract,
         pred: &Predicate,
     ) -> Result<(), ErrorEmitted> {
         let mut s_asm: Vec<StateRead> = Vec::new();
 
         // First, get the storage key
-        let storage_key = Self::compile_state_key(handler, &mut s_asm, &state.expr, pred)?;
+        let storage_key =
+            Self::compile_state_key(handler, &mut s_asm, &state.expr, contract, pred)?;
 
         let storage_or_transient_slots = state
             .expr
-            .get_ty(pred)
-            .storage_or_transient_slots(handler, pred)?;
+            .get_ty(contract)
+            .storage_or_transient_slots(handler, contract, pred)?;
         s_asm.extend([
             Stack::Push(storage_or_transient_slots as i64).into(),
             StateSlots::AllocSlots.into(),
@@ -1153,20 +1172,21 @@ impl AsmBuilder {
 /// includes generating assembly for the constraints and for state reads.
 pub fn predicate_to_asm(
     handler: &Handler,
+    contract: &Contract,
     pred: &Predicate,
 ) -> Result<CompiledPredicate, ErrorEmitted> {
     let mut builder = AsmBuilder::default();
 
     let mut slot_idx = 0;
     for (_, state) in pred.states() {
-        let _ = builder.compile_state(handler, state, &mut slot_idx, pred);
+        let _ = builder.compile_state(handler, state, &mut slot_idx, contract, pred);
     }
 
     for ConstraintDecl {
         expr: constraint, ..
     } in &pred.constraints
     {
-        let _ = builder.compile_constraint(handler, constraint, pred);
+        let _ = builder.compile_constraint(handler, constraint, contract, pred);
     }
 
     if handler.has_errors() {

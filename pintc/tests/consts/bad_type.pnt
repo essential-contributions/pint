@@ -4,7 +4,6 @@ const b: int = {11, 22};
 const c = 33;
 
 predicate test {
-    // The type checker currently stops with the const type errors before getting to this constraint.
     var d: b256;
     constraint d == c;
 }
@@ -21,10 +20,16 @@ predicate test {
 // >>>
 
 // typecheck_failure <<<
+// binary operator type error
+// @117..118: operator `==` argument has unexpected type `int`
+// @112..113: expecting type `b256`
 // const initialization type error
 // @37..45: const initializer has unexpected type `{int, int}`
 // @31..34: expecting type `int`
 // const initialization type error
 // @15..20: const initializer has unexpected type `bool`
 // @9..12: expecting type `int`
+// constraint expression type error
+// @101..118: constraint expression has unknown type
+// @101..118: expecting type `bool`
 // >>>

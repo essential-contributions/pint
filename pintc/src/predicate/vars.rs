@@ -1,4 +1,4 @@
-use super::{DisplayWithPred, Ident, Predicate};
+use super::{Contract, DisplayWithPred, Ident, Predicate};
 use crate::{
     error::{ErrorEmitted, Handler},
     span::Span,
@@ -100,16 +100,21 @@ impl VarKey {
     }
 
     /// Generate a `VarABI` given a `VarKey` and an `Predicate`
-    pub fn abi(&self, handler: &Handler, pred: &Predicate) -> Result<VarABI, ErrorEmitted> {
+    pub fn abi(
+        &self,
+        handler: &Handler,
+        contract: &Contract,
+        pred: &Predicate,
+    ) -> Result<VarABI, ErrorEmitted> {
         Ok(VarABI {
             name: self.get(pred).name.clone(),
-            ty: self.get_ty(pred).abi(handler, pred)?,
+            ty: self.get_ty(pred).abi(handler, contract, pred)?,
         })
     }
 }
 
 impl DisplayWithPred for VarKey {
-    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> fmt::Result {
         let var = &self.get(pred);
         if var.is_pub {
             write!(f, "pub ")?;
@@ -117,7 +122,7 @@ impl DisplayWithPred for VarKey {
         write!(f, "var {}", var.name)?;
         let ty = self.get_ty(pred);
         if !ty.is_unknown() {
-            write!(f, ": {}", pred.with_pred(ty))?;
+            write!(f, ": {}", pred.with_pred(contract, ty))?;
         }
         Ok(())
     }

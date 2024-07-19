@@ -102,7 +102,7 @@ lalrpop_mod!(#[allow(unused)] pub pint_parser);
 fn gather_use_paths() {
     use crate::{
         error::Handler,
-        predicate::{Contract, Predicate},
+        predicate::{Contract, Exprs, Predicate},
     };
     use std::collections::BTreeMap;
     let parser = pint_parser::TestDelegateParser::new();
@@ -121,17 +121,19 @@ fn gather_use_paths() {
                             Contract::ROOT_PRED_NAME.to_string(),
                             Predicate::default(),
                         )]),
+                        exprs: Exprs::default(),
                         consts: fxhash::FxHashMap::default(),
+                        removed_macro_calls: slotmap::SecondaryMap::default(),
                     },
                     current_pred: &mut current_pred,
-                    macros: &mut Vec::new(),
+                    macros: &mut Vec::default(),
                     macro_calls: &mut BTreeMap::from([(
                         Contract::ROOT_PRED_NAME.to_string(),
-                        slotmap::SecondaryMap::new(),
+                        slotmap::SecondaryMap::default(),
                     )]),
                     span_from: &|_, _| span::empty_span(),
-                    use_paths: &mut Vec::new(),
-                    next_paths: &mut Vec::new(),
+                    use_paths: &mut Vec::default(),
+                    next_paths: &mut Vec::default(),
                 },
                 &Handler::default(),
                 crate::lexer::Lexer::new(src, &filepath, &[]),
