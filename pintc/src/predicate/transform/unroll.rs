@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, GeneratorKind, Immediate},
-    predicate::{Expr, ExprKey, Predicate, VisitorKind},
+    predicate::{Contract, Expr, ExprKey, VisitorKind},
     span::{empty_span, Spanned},
     types::{PrimitiveKind, Type},
 };
@@ -31,7 +31,8 @@ use std::collections::HashSet;
 /// ```
 fn unroll_generator(
     handler: &Handler,
-    pred: &mut Predicate,
+    contract: &mut Contract,
+    pred_name: &str,
     generator: Expr,
 ) -> Result<ExprKey, ErrorEmitted> {
     let Expr::Generator {
@@ -72,10 +73,10 @@ fn unroll_generator(
     let product_of_ranges = gen_ranges
         .iter()
         .map(|range| {
-            match range.1.get(pred) {
+            match range.1.get(contract) {
                 Expr::Range { lb, ub, .. } => {
-                    let lb = lb.get(pred);
-                    let ub = ub.get(pred);
+                    let lb = lb.get(contract);
+                    let ub = ub.get(contract);
                     match (lb, ub) {
                         // Only support integer literals as bounds, for now
                         (
@@ -142,7 +143,7 @@ fn unroll_generator(
     };
 
     // Base value = `true` for foralls and `false` for exists
-    let mut unrolled = pred.exprs.insert(
+    let mut unrolled = contract.exprs.insert(
         Expr::Immediate {
             value: Immediate::Bool(match kind {
                 GeneratorKind::ForAll => true,
@@ -161,24 +162,27 @@ fn unroll_generator(
             .map(|(index, int_index)| ("::".to_owned() + &index.name, Immediate::Int(*int_index)))
             .collect::<FxHashMap<_, _>>();
 
-        let evaluator = Evaluator::from_values(pred, values_map.clone());
-
-        // Check each condition, if available, against the values map above
         let mut satisfied = true;
-        for condition in &conditions {
-            match evaluator.evaluate_key(condition, handler, pred)? {
-                Immediate::Bool(false) => {
-                    satisfied = false;
-                    break;
-                }
-                Immediate::Bool(true) => {}
-                _ => {
-                    return Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "type error: boolean expression expected",
-                            span: empty_span(),
-                        },
-                    }))
+        {
+            let pred = contract.preds.get(pred_name).unwrap();
+            let evaluator = Evaluator::from_values(pred, values_map.clone());
+
+            // Check each condition, if available, against the values map above
+            for condition in &conditions {
+                match evaluator.evaluate_key(condition, handler, contract, pred_name)? {
+                    Immediate::Bool(false) => {
+                        satisfied = false;
+                        break;
+                    }
+                    Immediate::Bool(true) => {}
+                    _ => {
+                        return Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "type error: boolean expression expected",
+                                span: empty_span(),
+                            },
+                        }))
+                    }
                 }
             }
         }
@@ -186,8 +190,8 @@ fn unroll_generator(
         // If all conditions are satisifed (or if none are present), then update the resulting
         // expression by joining it with the newly unrolled generator body.
         if satisfied {
-            let rhs = body.plug_in(pred, &values_map);
-            unrolled = pred.exprs.insert(
+            let rhs = body.plug_in(contract, pred_name, &values_map);
+            unrolled = contract.exprs.insert(
                 Expr::BinaryOp {
                     op: match kind {
                         GeneratorKind::ForAll => BinaryOp::LogicalAnd,
@@ -209,42 +213,47 @@ fn unroll_generator(
 /// expressions map with their unrolled version
 pub(crate) fn unroll_generators(
     handler: &Handler,
-    pred: &mut Predicate,
+    contract: &mut Contract,
 ) -> Result<(), ErrorEmitted> {
-    // Perform a depth first iteration of all expressions searching for generators, ensuring that
-    // dependencies are detected.
-    //
-    // With nested generators, e.g.,
-    //     forall i in xs {
-    //         forall j in ys {
-    //             ...
-    //         }
-    //     }
-    // by explicitly going depth first and child-before-parent we'll always encounter the inner
-    // generator (`j in ys`) before the outer (`i in xs`).
+    for pred_name in contract.preds.keys().cloned().collect::<Vec<_>>() {
+        // Perform a depth first iteration of all expressions searching for generators, ensuring that
+        // dependencies are detected.
+        //
+        // With nested generators, e.g.,
+        //     forall i in xs {
+        //         forall j in ys {
+        //             ...
+        //         }
+        //     }
+        // by explicitly going depth first and child-before-parent we'll always encounter the inner
+        // generator (`j in ys`) before the outer (`i in xs`).
 
-    let mut generators = Vec::new();
-    pred.visitor(
-        VisitorKind::DepthFirstChildrenBeforeParents,
-        |expr_key: ExprKey, expr: &Expr| {
-            // Only collect generators and only by key since unrolling nested generators will
-            // update the outer generators.
-            if matches!(expr, Expr::Generator { .. }) {
-                generators.push(expr_key);
+        let mut generators = Vec::new();
+        contract.visitor(
+            contract.preds.get(&pred_name).unwrap(),
+            VisitorKind::DepthFirstChildrenBeforeParents,
+            |expr_key: ExprKey, expr: &Expr| {
+                // Only collect generators and only by key since unrolling nested generators will
+                // update the outer generators.
+                if matches!(expr, Expr::Generator { .. }) {
+                    generators.push(expr_key);
+                }
+            },
+        );
+
+        for old_generator_key in generators {
+            // On success, update the key of the generator to map to the new unrolled expression.
+            let generator = old_generator_key.get(contract).clone();
+            if let Ok(unrolled_generator_key) =
+                unroll_generator(handler, contract, &pred_name, generator)
+            {
+                contract.replace_exprs(&pred_name, old_generator_key, unrolled_generator_key);
             }
-        },
-    );
-
-    for old_generator_key in generators {
-        // On success, update the key of the generator to map to the new unrolled expression.
-        let generator = old_generator_key.get(pred).clone();
-        if let Ok(unrolled_generator_key) = unroll_generator(handler, pred, generator) {
-            pred.replace_exprs(old_generator_key, unrolled_generator_key);
         }
-    }
 
-    if handler.has_errors() {
-        return Err(handler.cancel());
+        if handler.has_errors() {
+            return Err(handler.cancel());
+        }
     }
 
     Ok(())

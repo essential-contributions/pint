@@ -32,9 +32,9 @@ impl Contract {
         // into the Contract (Predicates will contain only their local vars, nothing more).
         self.reject_non_primitive_consts(handler)?;
 
-        for pred in self.preds.values_mut() {
-            for expr_key in pred.exprs() {
-                if let Some(span) = pred.removed_macro_calls.get(expr_key) {
+        for pred in self.preds.values() {
+            for expr_key in self.exprs(pred) {
+                if let Some(span) = self.removed_macro_calls.get(expr_key) {
                     // This expression was actually a macro call which expanded to just declarations,
                     // not another expression. We can set a specific error in this case.
                     handler.emit_err(Error::Compile {
@@ -42,19 +42,19 @@ impl Contract {
                     });
                 }
             }
-
-            if handler.has_errors() {
-                return Err(handler.cancel());
-            }
-
-            pred.check_undefined_types(handler);
-            pred.lower_newtypes(handler)?;
-            pred.check_storage_types(handler);
-            pred.check_for_map_type_vars(handler);
-            pred.type_check_all_exprs(handler, &self.consts);
-            pred.check_inits(handler, &self.consts);
-            pred.check_constraint_types(handler);
         }
+
+        if handler.has_errors() {
+            return Err(handler.cancel());
+        }
+
+        self.check_undefined_types(handler);
+        self.lower_newtypes(handler)?;
+        self.check_storage_types(handler);
+        self.check_for_map_type_vars(handler);
+        self.type_check_all_exprs(handler);
+        self.check_inits(handler);
+        self.check_constraint_types(handler);
 
         if handler.has_errors() {
             Err(handler.cancel())
@@ -65,9 +65,9 @@ impl Contract {
 
     pub fn array_check(self, handler: &Handler) -> Result<Self, ErrorEmitted> {
         for pred in self.preds.values() {
-            pred.check_array_lengths(handler);
-            pred.check_array_indexing(handler);
-            pred.check_array_compares(handler);
+            pred.check_array_lengths(&self, handler);
+            pred.check_array_indexing(&self, handler);
+            pred.check_array_compares(&self, handler);
         }
 
         if handler.has_errors() {
@@ -97,15 +97,18 @@ impl Contract {
         let const_count = self.consts.len();
         for loop_idx in 0..const_count {
             for (path, cnst) in &self.consts {
-                let expr = cnst.expr.get(self.root_pred());
+                let expr = cnst.expr.get(self);
 
                 // There's no need to re-evaluate known immediates.
                 if !evaluator.contains_path(path) {
                     if let Expr::Immediate { value, .. } = expr {
                         evaluator.insert_value(path.clone(), value.clone());
-                    } else if let Ok(imm) =
-                        evaluator.evaluate_key(&cnst.expr, &tmp_handler, self.root_pred())
-                    {
+                    } else if let Ok(imm) = evaluator.evaluate_key(
+                        &cnst.expr,
+                        &tmp_handler,
+                        self,
+                        &self.root_pred().name,
+                    ) {
                         evaluator.insert_value(path.clone(), imm);
 
                         // Take note of this const as we need to update the const declaration
@@ -148,7 +151,7 @@ impl Contract {
             let init_span: Span = self
                 .consts
                 .get(&new_path)
-                .map(|cnst| self.root_pred().expr_key_to_span(cnst.expr))
+                .map(|cnst| self.expr_key_to_span(cnst.expr))
                 .unwrap_or_else(empty_span);
 
             if let Some(imm_value) = all_const_immediates.get(&new_path) {
@@ -158,12 +161,15 @@ impl Contract {
                 let mut preserved_enum_type = None;
                 if let Some(Const { expr, decl_ty }) = self.consts.get(&new_path) {
                     if decl_ty.is_unknown() {
-                        if let Expr::PathByName(path, _) = expr.get(self.root_pred()) {
+                        if let Expr::PathByName(path, _) = expr.get(self) {
                             // We have an unknown-typed const initialised with a path.  E.g.,
                             // const a = MyEnum::MyVariant;
-                            if let Ok(Inference::Type(variant_ty)) = self
-                                .root_pred()
-                                .infer_enum_variant_by_name(path, &empty_span())
+                            if let Ok(Inference::Type(variant_ty)) =
+                                Self::infer_enum_variant_by_name(
+                                    self.root_pred(),
+                                    path,
+                                    &empty_span(),
+                                )
                             {
                                 // It's definitely an enum.  Update the decl type below.
                                 preserved_enum_type = Some(variant_ty);
@@ -177,10 +183,7 @@ impl Contract {
                     span: init_span,
                 };
 
-                let new_expr_key = self
-                    .root_pred_mut()
-                    .exprs
-                    .insert(new_expr, imm_value.get_ty(None));
+                let new_expr_key = self.exprs.insert(new_expr, imm_value.get_ty(None));
 
                 if let Some(cnst) = self.consts.get_mut(&new_path) {
                     cnst.expr = new_expr_key;
@@ -201,8 +204,8 @@ impl Contract {
             if decl_ty.is_unknown() {
                 if let Some(imm_value) = all_const_immediates.get(path) {
                     // Check the type is valid.
-                    let span = self.root_pred().expr_key_to_span(*expr);
-                    match self.root_pred().infer_immediate(imm_value, &span) {
+                    let span = self.expr_key_to_span(*expr);
+                    match self.infer_immediate(self.root_pred(), imm_value, &span) {
                         Ok(inferred) => match inferred {
                             Inference::Type(new_ty) => {
                                 type_replacements.push((path.clone(), new_ty))
@@ -243,7 +246,7 @@ impl Contract {
                 handler.emit_err(Error::Compile {
                     error: CompileError::TemporaryNonPrimitiveConst {
                         name: path.to_string(),
-                        span: expr.get(self.root_pred()).span().clone(),
+                        span: expr.get(self).span().clone(),
                     },
                 });
             }

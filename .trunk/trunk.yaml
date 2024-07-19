@@ -4,21 +4,21 @@ cli:
 plugins:
   sources:
     - id: trunk
-      ref: v1.6.0
+      ref: v1.6.1
       uri: https://github.com/trunk-io/plugins
 lint:
   enabled:
-    - checkov@3.2.186
+    - checkov@3.2.193
     - osv-scanner@1.8.2
-    - oxipng@9.1.1
-    - trivy@0.52.2
+    - oxipng@9.1.2
+    - trivy@0.53.0
     - trufflehog@3.79.0
     - actionlint@1.7.1
     - git-diff-check
     - markdownlint@0.41.0
-    - prettier@3.3.2
+    - prettier@3.3.3
     - rustfmt@1.77.2
-    - taplo@0.8.1
+    - taplo@0.9.2
     - yamllint@1.35.1
 runtimes:
   enabled:
