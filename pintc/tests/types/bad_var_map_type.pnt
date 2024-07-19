@@ -1,0 +1,21 @@
+predicate test {
+    type MyMap = (int => int);
+
+    var y: MyMap;
+    var x: ( int => int );
+}
+
+// parsed <<<
+// predicate ::test {
+//     var ::y: ::MyMap;
+//     var ::x: ( int => int );
+//     type ::MyMap = ( int => int );
+// }
+// >>>
+
+// typecheck_failure <<<
+// variables cannot have storage map type
+// @57..58: found variable of type storage map here
+// variables cannot have storage map type
+// @75..76: found variable of type storage map here
+// >>>

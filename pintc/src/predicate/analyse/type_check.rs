@@ -315,6 +315,7 @@ impl Contract {
             for StorageVar { ty, span, .. } in storage_vars {
                 if !(ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() || ty.is_array())
                 {
+                    let ty = ty.is_alias().unwrap_or(ty);
                     if let Type::Map {
                         ref ty_from,
                         ref ty_to,
@@ -331,12 +332,12 @@ impl Contract {
                         {
                             // TODO: allow arbitrary types in storage maps
                             handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "currently in storage maps, keys must be int, bool, or b256 \
-                                    and values must be int or bool",
-                            span: span.clone(),
-                        },
-                    });
+                                error: CompileError::Internal {
+                                    msg: "currently in storage maps, keys must be int, bool, or b256 \
+                                            and values must be int or bool",
+                                    span: span.clone(),
+                                },
+                            });
                         }
                     } else {
                         // TODO: allow arbitrary types in storage blocks
@@ -350,6 +351,22 @@ impl Contract {
                     }
                 }
             }
+        }
+    }
+
+    pub(super) fn check_for_map_type_vars(&self, handler: &Handler) {
+        for pred in self.preds.values() {
+            // Ex. var x: ( int => int ); is disallowed
+            pred.vars().for_each(|(var_key, var)| {
+                let ty = var_key.get_ty(pred);
+                if ty.is_map() {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::VarTypeIsMap {
+                            span: var.span.clone(),
+                        },
+                    });
+                }
+            })
         }
     }
 

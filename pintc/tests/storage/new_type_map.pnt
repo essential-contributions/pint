@@ -1,0 +1,31 @@
+type MyMap = (int => int);
+type MyInt = int;
+type MyNestMap = (MyInt => int);
+
+storage {
+    m: MyMap,
+    n: MyInt,
+    o: MyNestMap,
+}
+
+// parsed <<<
+// storage {
+//     m: ::MyMap,
+//     n: ::MyInt,
+//     o: ::MyNestMap,
+// }
+// type ::MyMap = ( int => int );
+// type ::MyInt = int;
+// type ::MyNestMap = ( ::MyInt => int );
+// >>>
+
+// flattened <<<
+// storage {
+//     m: ( int => int ),
+//     n: int,
+//     o: ( ::MyInt (int) => int ),
+// }
+// type ::MyMap = ( int => int );
+// type ::MyInt = int;
+// type ::MyNestMap = ( ::MyInt (int) => int );
+// >>>

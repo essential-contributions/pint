@@ -172,6 +172,8 @@ pub enum CompileError {
     },
     #[error("invalid array range type {found_ty}")]
     InvalidArrayRangeType { found_ty: String, span: Span },
+    #[error("variables cannot have storage map type")]
+    VarTypeIsMap { span: Span },
     #[error("attempt to index a storage map with a mismatched value")]
     StorageMapAccessWithWrongType {
         found_ty: String,
@@ -723,6 +725,14 @@ impl ReportableError for CompileError {
                 }]
             }
 
+            VarTypeIsMap { span } => {
+                vec![ErrorLabel {
+                    message: "found variable of type storage map here".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
             StorageMapAccessWithWrongType {
                 expected_ty, span, ..
             } => {
@@ -1162,6 +1172,7 @@ impl ReportableError for CompileError {
             | StateVarInitTypeError { .. }
             | StateVarTypeIsMap { .. }
             | IndexExprNonIndexable { .. }
+            | VarTypeIsMap { .. }
             | TupleAccessNonTuple { .. }
             | EmptyArrayExpression { .. }
             | ExprRecursion { .. }
@@ -1316,6 +1327,7 @@ impl Spanned for CompileError {
             | IndexExprNonIndexable { span, .. }
             | ArrayAccessWithWrongType { span, .. }
             | InvalidArrayRangeType { span, .. }
+            | VarTypeIsMap { span }
             | StorageMapAccessWithWrongType { span, .. }
             | MismatchedArrayComparisonSizes { span, .. }
             | TupleAccessNonTuple { span, .. }
