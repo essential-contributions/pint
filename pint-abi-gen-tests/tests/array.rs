@@ -1,6 +1,6 @@
 use pint_abi::types::essential::{
     solution::{Mutation, Solution, SolutionData},
-    PredicateAddress,
+    Key, PredicateAddress,
 };
 use pint_abi_gen_tests::array;
 use std::sync::Arc;
@@ -98,6 +98,57 @@ async fn test_array_solution_foo() {
             })
         })
         .into();
+
+    // Build the same set of keys, so we can ensure they match the mutations.
+    let keys: Vec<Key> = array::storage::keys()
+        .arr_0(|arr| arr.entry(0).entry(1))
+        .arr_1(|arr| (0..10).fold(arr, |arr, i| arr.entry(i)))
+        .arr_2(|arr| {
+            [[4, 4, 4], [2, 2, 2]]
+                .into_iter()
+                .enumerate()
+                .fold(arr, |arr, (i, elems)| {
+                    arr.entry(i, |arr| (0..elems.len()).fold(arr, |arr, i| arr.entry(i)))
+                })
+        })
+        .arr_3(|arr| {
+            [[[0, 0], [1, 1]], [[2, 2], [3, 3]], [[4, 4], [5, 5]]]
+                .into_iter()
+                .enumerate()
+                .fold(arr, |arr, (i, vs)| {
+                    arr.entry(i, |arr| {
+                        vs.into_iter().enumerate().fold(arr, |arr, (i, vs)| {
+                            arr.entry(i, |arr| (0..vs.len()).fold(arr, |arr, i| arr.entry(i)))
+                        })
+                    })
+                })
+        })
+        .arr_4(|arr| {
+            arr.entry(0, |tup| tup._0()._1())
+                .entry(1, |tup| tup._0()._1())
+                .entry(2, |tup| tup._0()._1())
+        })
+        .tup_5(|tup| {
+            tup._0(|arr| arr.entry(0).entry(1))
+                ._1(|arr| arr.entry(0).entry(1))
+                ._2(|arr| arr.entry(0).entry(1))
+        })
+        .arr_6(|arr| {
+            arr.entry(0, |tup| {
+                tup._0(|arr| arr.entry(0).entry(1))
+                    ._1(|arr| arr.entry(0).entry(1))
+            })
+            .entry(1, |tup| {
+                tup._0(|arr| arr.entry(0).entry(1))
+                    ._1(|arr| arr.entry(0).entry(1))
+            })
+        })
+        .into();
+
+    // Check keys match the mutation keys.
+    for (key, mutation) in keys.iter().zip(&state_mutations) {
+        assert_eq!(key, &mutation.key);
+    }
 
     // Create the solution data.
     let solution_data = SolutionData {
