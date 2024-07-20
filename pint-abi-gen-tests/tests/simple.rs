@@ -76,6 +76,12 @@ async fn test_solution_foo() {
                 })
             })
         })
+        .my_array(|arr| {
+            [11, 12, 13, 14, 15]
+                .into_iter()
+                .enumerate()
+                .fold(arr, |arr, (ix, val)| arr.entry(ix, val))
+        })
         .into();
 
     // Create the solution data.

@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-pub type Key = Vec<Option<usize>>;
-
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ContractABI {
     pub predicates: Vec<PredicateABI>,

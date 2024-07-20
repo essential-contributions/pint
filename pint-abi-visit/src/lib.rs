@@ -8,7 +8,7 @@ use pint_abi_types::{TupleField, TypeABI, VarABI};
 
 /// The [`TypeABI`] rose tree represented as a graph.
 ///
-/// By flattening the [`KeyedTypeVar`]s into an indexable tree type, we gain
+/// By flattening the [`VarABI`]s into an indexable tree type, we gain
 /// more flexibility around inspecting both parent and child nodes during
 /// traversal.
 ///
@@ -59,10 +59,12 @@ pub enum Nesting {
     TupleField {
         /// The field index of the var within the tuple (not flattened).
         ix: usize,
-        /// The flattened index of the var within a tree of directly nested tuples.
+        /// The flattened index of the field within the directly enclosing tuple.
         ///
-        /// This is required to match the way that pintc flattens tuples, which
-        /// influences how their keys are constructed.
+        /// If this is the first field in the tuple, it will always be `0`.
+        ///
+        /// For all other fields, this will be the sum of the
+        /// `flattened_key_count` of all prior fields.
         flat_ix: usize,
     },
     /// An entry within a map.
@@ -74,6 +76,10 @@ pub enum Nesting {
     ArrayElem {
         /// The total length of the array.
         array_len: usize,
+        /// The size of a single element's key in words.
+        ///
+        /// E.g. for `{ int, int }[10]`, the array's `elem_len` is `2`.
+        elem_len: usize,
     },
 }
 
@@ -154,31 +160,53 @@ pub fn partial_key_from_nesting(nesting: &[Nesting]) -> Vec<Option<Word>> {
     let mut iter = nesting.iter().peekable();
     while let Some(nesting) = iter.next() {
         match nesting {
+            // The first word is always the Var index.
             Nesting::Var { ix } => {
                 let word = Word::try_from(*ix).expect("out of Word range");
                 opts.push(Some(word));
             }
-            Nesting::TupleField { ix: _, flat_ix } => {
-                let mut deepest_flat_ix = *flat_ix;
-                while let Some(Nesting::TupleField { ix: _, flat_ix }) = iter.peek() {
-                    deepest_flat_ix = *flat_ix;
-                    iter.next();
-                }
-                let word = Word::try_from(deepest_flat_ix).expect("out of Word range");
-                opts.push(Some(word));
-            }
+            // Map entries are keyed by a dynamically provided map key.
             Nesting::MapEntry { key_size } => {
                 opts.resize(opts.len() + key_size, None);
             }
-            Nesting::ArrayElem { array_len: _ } => {
-                while let Some(Nesting::ArrayElem { array_len: _ }) = iter.peek() {
-                    iter.next();
-                }
-                opts.push(None);
+            // Tuples are flattened into arrays and other tuples.
+            // If there's an array within this nesting, we can't know the index.
+            Nesting::TupleField { ix: _, flat_ix } => {
+                opts.push(flattened_opt_word(Some(*flat_ix), &mut iter));
+            }
+            // Arrays are flattened into other arrays and tuples.
+            Nesting::ArrayElem { array_len: _, .. } => {
+                opts.push(flattened_opt_word(None, &mut iter));
             }
         }
     }
     opts
+}
+
+/// Flattens directly nested tuple and array nestings into a single word.
+///
+/// In the case that an array appears in the nesting, `None` is returned as the
+/// precise word cannot be known until an array index is provided dynamically.
+///
+/// The provided iterator's `next` method will only be called for each
+/// directly nested array and tuple.
+fn flattened_opt_word<'a>(
+    mut tuple_flattened_ix: Option<usize>,
+    iter: &mut std::iter::Peekable<impl Iterator<Item = &'a Nesting>>,
+) -> Option<Word> {
+    while let Some(nesting) = iter.peek() {
+        match nesting {
+            Nesting::ArrayElem { .. } => tuple_flattened_ix = None,
+            Nesting::TupleField { flat_ix, .. } => {
+                if let Some(ref mut ix) = tuple_flattened_ix {
+                    *ix += *flat_ix;
+                }
+            }
+            _ => break,
+        }
+        iter.next();
+    }
+    tuple_flattened_ix.map(|ix| Word::try_from(ix).expect("out of `Word` range"))
 }
 
 /// The number of words used to represent an ABI type in key form.
@@ -199,18 +227,13 @@ pub fn ty_size(ty: &TypeABI) -> usize {
 /// traversing the given `TypeABI`.
 fn add_children<'a>(graph: &mut KeyedVarGraph<'a>, a: NodeIx, ty: &'a TypeABI) {
     match ty {
+        // Leaf types have no further nesting.
         TypeABI::Bool | TypeABI::Int | TypeABI::Real | TypeABI::String | TypeABI::B256 => {}
 
         // Recurse for nested tuple types.
         TypeABI::Tuple(fields) => {
             for (ix, field) in fields.iter().enumerate() {
-                let flat_ix = {
-                    let start_flat_ix = match &graph[a].nesting {
-                        Nesting::TupleField { flat_ix, .. } => *flat_ix,
-                        _ => 0,
-                    };
-                    flattened_ix(fields, ix, start_flat_ix)
-                };
+                let flat_ix = flattened_tuple_key_count(&fields[0..ix]);
                 let name = field.name.as_deref();
                 let ty = &field.ty;
                 let nesting = Nesting::TupleField { ix, flat_ix };
@@ -224,7 +247,11 @@ fn add_children<'a>(graph: &mut KeyedVarGraph<'a>, a: NodeIx, ty: &'a TypeABI) {
         // Recurse for nested array element types.
         TypeABI::Array { ty, size } => {
             let array_len = usize::try_from(*size).expect("size out of range");
-            let nesting = Nesting::ArrayElem { array_len };
+            let elem_len = flattened_key_count(ty);
+            let nesting = Nesting::ArrayElem {
+                array_len,
+                elem_len,
+            };
             let name = None;
             let node = Keyed { ty, name, nesting };
             let b = graph.add_node(node);
@@ -270,21 +297,31 @@ fn nesting(graph: &KeyedVarGraph, mut n: NodeIx) -> Vec<Nesting> {
     nestings
 }
 
-/// Determine the flattened index of the tuple field at the given field index
-/// within the given `fields`.
+/// Determine the total number of keys within the directly nested flattened types.
 ///
-/// The `start_flat_ix` represents the flat index of the enclosing tuple.
-fn flattened_ix(fields: &[TupleField], field_ix: usize, start_flat_ix: usize) -> usize {
-    // Given a slice of tuple fields, determine the total number of leaf fields
-    // within the directly nested tree of tuples.
-    fn count_flattened_leaf_fields(fields: &[TupleField]) -> usize {
-        fields
-            .iter()
-            .map(|field| match field.ty {
-                TypeABI::Tuple(ref fields) => count_flattened_leaf_fields(fields),
-                _ => 1,
-            })
-            .sum()
+/// Types that are flattened together include arrays and tuples.
+fn flattened_key_count(ty: &TypeABI) -> usize {
+    match ty {
+        TypeABI::Tuple(fields) => flattened_tuple_key_count(fields),
+        TypeABI::Array { ty, size } => {
+            let size = usize::try_from(*size).expect("size out of usize range");
+            size * flattened_key_count(ty)
+        }
+        // The keys for the following are not flattened any further.
+        TypeABI::Bool
+        | TypeABI::Real
+        | TypeABI::Int
+        | TypeABI::String
+        | TypeABI::B256
+        | TypeABI::Map { .. } => 1,
     }
-    start_flat_ix + count_flattened_leaf_fields(&fields[0..field_ix])
+}
+
+// Given a slice of tuple fields, determine the total number of keys within the
+// directly nested flattened types.
+fn flattened_tuple_key_count(fields: &[TupleField]) -> usize {
+    fields
+        .iter()
+        .map(|field| flattened_key_count(&field.ty))
+        .sum()
 }

@@ -1,0 +1,54 @@
+storage {
+    arr_0: int[2],
+    arr_1: int[10],
+    // 2D array.
+    arr_2: int[2][3],
+    // 3D array.
+    arr_3: int[3][2][2],
+    // Array of tuples.
+    arr_4: { int, int }[3],
+    // Tuple of arrays.
+    tup_5: { int[2], int[2], int[2] },
+    // Array of tuples of arrays.
+    arr_6: { int[2], int[2] }[2],
+}
+
+predicate Foo {
+    // Test the first element of the first array.
+    state arr_0_0: int = storage::arr_0[0];
+    constraint arr_0_0' == 42;
+
+    // Test the second element of the first array.
+    state arr_0_1: int = storage::arr_0[1];
+    constraint arr_0_1' == 43;
+
+    // Test the whole array.
+    state arr_0: int[2] = storage::arr_0;
+    constraint arr_0'[0] == 42;
+    constraint arr_0'[1] == 43;
+    constraint arr_0' == [42, 43];
+
+    // A longer array to demonstrate folding in array test.
+    state arr_1: int[10] = storage::arr_1;
+    constraint arr_1' == [9, 9, 9, 9, 9, 9, 9, 9, 9, 9];
+
+    // A 2D array to check key flattening in array test.
+    state arr_2: int[2][3] = storage::arr_2;
+    constraint arr_2' == [[4, 4, 4], [2, 2, 2]];
+
+    // A 3D array.
+    state arr_3: int[3][2][2] = storage::arr_3;
+    constraint arr_3' == [[[0, 0], [1, 1]], [[2, 2], [3, 3]], [[4, 4], [5, 5]]];
+
+    // An array of tuples.
+    state arr_4: { int, int }[3] = storage::arr_4;
+    constraint arr_4' == [{ 1, 2 }, { 3, 4 }, { 5, 6 }];
+
+    // A tuple of arrays.
+    state tup_5: { int[2], int[2], int[2] } = storage::tup_5;
+    constraint tup_5' == { [0, 1], [2, 3], [4, 5] };
+
+    // An array of tuples of arrays.
+    state arr_6: { int[2], int[2] }[2] = storage::arr_6;
+    constraint arr_6' == [{ [0, 1], [2, 3] }, { [4, 5], [6, 7] }];
+}

@@ -1,7 +1,7 @@
 //! Items related to generating the `Map` mutations and keys builders.
 
 use crate::{
-    construct_key_expr, mutation, nesting_expr, nesting_key_doc_str, nesting_ty_str, tuple,
+    array, construct_key_expr, mutation, nesting_expr, nesting_key_doc_str, nesting_ty_str, tuple,
     ty_from_pint_ty, SingleKeyTy,
 };
 use pint_abi_types::TypeABI;
@@ -16,9 +16,9 @@ pub(crate) fn mutations_struct_name(nesting: &[Nesting]) -> String {
 /// A builder struct for a map field.
 fn mutations_struct(struct_name: &str, nesting: &[Nesting]) -> syn::ItemStruct {
     let struct_ident = syn::Ident::new(struct_name, Span::call_site());
-    let abi_key_doc_str = nesting_key_doc_str(nesting);
+    let nesting_key_doc_str = nesting_key_doc_str(nesting);
     let doc_str = format!(
-        "A mutations builder struct for the map at key `{abi_key_doc_str}`.\n\n\
+        "A mutations builder struct for the map at key `{nesting_key_doc_str}`.\n\n\
         Generated solely for use within the `Mutations` builder pattern.",
     );
     syn::parse_quote! {
@@ -30,13 +30,13 @@ fn mutations_struct(struct_name: &str, nesting: &[Nesting]) -> syn::ItemStruct {
     }
 }
 
-/// A map mutation builder method for entries with tuple values.
-fn mutation_method_for_tuple(ty_from: &TypeABI, tup_nesting: &[Nesting]) -> syn::ImplItemFn {
+/// A map mutation builder method for entries with nested array values.
+fn mutation_method_for_array(ty_from: &TypeABI, array_nesting: &[Nesting]) -> syn::ImplItemFn {
     let key_ty = ty_from_pint_ty(ty_from);
-    let struct_name = tuple::mutations_struct_name(tup_nesting);
+    let struct_name = array::mutations_struct_name(array_nesting);
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
     syn::parse_quote! {
-        /// Add mutations for the tuple at the given key.
+        /// Add mutations for the nested map at the given key.
         pub fn entry(mut self, key: #key_ty, f: impl FnOnce(#struct_ident) -> #struct_ident) -> Self {
             let key_words: pint_abi::types::essential::Key = pint_abi::encode(&key);
             self.key_elems.push(pint_abi::key::Elem::MapKey(key_words));
@@ -54,6 +54,23 @@ fn mutation_method_for_map(ty_from: &TypeABI, map_nesting: &[Nesting]) -> syn::I
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
     syn::parse_quote! {
         /// Add mutations for the nested map at the given key.
+        pub fn entry(mut self, key: #key_ty, f: impl FnOnce(#struct_ident) -> #struct_ident) -> Self {
+            let key_words: pint_abi::types::essential::Key = pint_abi::encode(&key);
+            self.key_elems.push(pint_abi::key::Elem::MapKey(key_words));
+            f(#struct_ident { mutations: &mut self.mutations });
+            self.key_elems.pop();
+            self
+        }
+    }
+}
+
+/// A map mutation builder method for entries with tuple values.
+fn mutation_method_for_tuple(ty_from: &TypeABI, tup_nesting: &[Nesting]) -> syn::ImplItemFn {
+    let key_ty = ty_from_pint_ty(ty_from);
+    let struct_name = tuple::mutations_struct_name(tup_nesting);
+    let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
+    syn::parse_quote! {
+        /// Add mutations for the tuple at the given key.
         pub fn entry(mut self, key: #key_ty, f: impl FnOnce(#struct_ident) -> #struct_ident) -> Self {
             let key_words: pint_abi::types::essential::Key = pint_abi::encode(&key);
             self.key_elems.push(pint_abi::key::Elem::MapKey(key_words));
@@ -106,7 +123,7 @@ fn mutation_method_for_single_key(
 }
 
 /// A map method for inserting mutations for an entry associated with a given key.
-fn map_mutation_method(
+fn mutation_method(
     tree: &KeyedVarTree,
     entry: NodeIx,
     ty_from: &TypeABI,
@@ -118,7 +135,7 @@ fn map_mutation_method(
         TypeABI::Int => SingleKeyTy::Int,
         TypeABI::Real => SingleKeyTy::Real,
         TypeABI::Array { ty: _, size: _ } => {
-            todo!()
+            return mutation_method_for_array(ty_from, &nesting);
         }
         TypeABI::String => SingleKeyTy::String,
         TypeABI::B256 => SingleKeyTy::B256,
@@ -143,7 +160,7 @@ fn mutations_impl(
     let struct_ident = syn::Ident::new(struct_name, Span::call_site());
     // The node for a map entry is its only child.
     let entry = tree.children(map)[0];
-    let method = map_mutation_method(tree, entry, ty_from, ty_to);
+    let method = mutation_method(tree, entry, ty_from, ty_to);
     syn::parse_quote! {
         impl<'a> #struct_ident<'a> {
             #method

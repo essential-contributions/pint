@@ -8,6 +8,7 @@ storage {
     my_map1: (int => { int, { b256, int } }),
     my_nested_map0: (int => (int => int)),
     my_nested_map1: (int => (b256 => { int, { b256, int } })),
+    my_array: int[5],
 }
 
 predicate Foo {
@@ -50,6 +51,7 @@ predicate Foo {
     state my_map1_key1: { int, { b256, int } } = storage::my_map1[1];
     state my_nested_map0_key1_2: int = storage::my_nested_map0[1][2];
     state my_nested_map1_key2_3: { int, { b256, int } } = storage::my_nested_map1[2][0x3333333333333333333333333333333333333333333333333333333333333333];
+    state my_array: int[5] = storage::my_array;
 
     // Check the state.
     constraint s0' == true;
@@ -62,6 +64,7 @@ predicate Foo {
     constraint my_map1_key1' == { 1111, { 0x2222222222222222222222222222222222222222222222222222222222222222, 3333 } };
     constraint my_nested_map0_key1_2' == 1234;
     constraint my_nested_map1_key2_3' == { 69, { 0x1111111100000000111111110000000011111111000000001111111100000000, 96 } };
+    constraint my_array' == [11, 12, 13, 14, 15];
 }
 
 macro @foo() {
