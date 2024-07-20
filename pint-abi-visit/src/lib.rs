@@ -8,7 +8,7 @@ use pint_abi_types::{TupleField, TypeABI, VarABI};
 
 /// The [`TypeABI`] rose tree represented as a graph.
 ///
-/// By flattening the [`KeyedTypeVar`]s into an indexable tree type, we gain
+/// By flattening the [`VarABI`]s into an indexable tree type, we gain
 /// more flexibility around inspecting both parent and child nodes during
 /// traversal.
 ///
@@ -208,16 +208,6 @@ fn flattened_opt_word<'a>(
     }
     tuple_flattened_ix.map(|ix| Word::try_from(ix).expect("out of `Word` range"))
 }
-
-// /// Flatten consecutively nested tuples and arrays together.
-// ///
-// /// Only consumes enough elements from the iterator to
-// fn flattened_word(
-//     array_ix: usize,
-//     flattened_tuple_field_ix: usize,
-//     mut iter: &mut std::iter::Peekable<impl Iterator<Item = Nesting>>,
-// ) -> Word {
-// }
 
 /// The number of words used to represent an ABI type in key form.
 pub fn ty_size(ty: &TypeABI) -> usize {

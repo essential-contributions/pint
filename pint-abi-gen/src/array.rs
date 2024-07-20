@@ -81,10 +81,10 @@ fn mutation_method_for_single_key(ty: &SingleKeyTy, elem_nesting: &[Nesting]) ->
     let construct_key_expr: syn::Expr = construct_key_expr();
     let nesting_key_doc_str = nesting_key_doc_str(elem_nesting);
     let method_doc_str = format!(
-        "The given key will be encoded as words and merged into the full key `{nesting_key_doc_str}`."
+        "The given index will be flattened and encoded as a word and merged into the full key `{nesting_key_doc_str}`."
     );
     syn::parse_quote! {
-        /// Add a mutation for the entry at the given key.
+        /// Add a mutation for the element at the given index.
         ///
         #[doc = #method_doc_str]
         pub fn entry(mut self, ix: usize, val: #ty) -> Self {
