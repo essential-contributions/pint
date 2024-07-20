@@ -1,6 +1,6 @@
 use pint_abi::types::essential::{
     solution::{Mutation, Solution, SolutionData},
-    PredicateAddress,
+    Key, PredicateAddress,
 };
 use pint_abi_gen_tests::simple;
 use std::sync::Arc;
@@ -83,6 +83,31 @@ async fn test_solution_foo() {
                 .fold(arr, |arr, (ix, val)| arr.entry(ix, val))
         })
         .into();
+
+    // Build the same set of keys, so we can ensure they match the mutations.
+    let keys: Vec<Key> = simple::storage::keys()
+        .s0()
+        .s1()
+        .s2()
+        .s3(|tup| tup._0()._1())
+        .s4(|tup| tup._0()._1()._2(|tup| tup._0()._1()))
+        .my_map0(|map| map.entry(42))
+        .my_map1(|map| map.entry(1, |tup| tup._0()._1(|tup| tup._0()._1())))
+        .my_nested_map0(|map| map.entry(1, |map| map.entry(2)))
+        .my_nested_map1(|map| {
+            map.entry(2, |map| {
+                map.entry([0x3333333333333333; 4], |tup| {
+                    tup._0()._1(|tup| tup._0()._1())
+                })
+            })
+        })
+        .my_array(|arr| (0..[11, 12, 13, 14, 15].len()).fold(arr, |arr, ix| arr.entry(ix)))
+        .into();
+
+    // Check keys match the mutation keys.
+    for (key, mutation) in keys.iter().zip(&state_mutations) {
+        assert_eq!(key, &mutation.key);
+    }
 
     // Create the solution data.
     let solution_data = SolutionData {

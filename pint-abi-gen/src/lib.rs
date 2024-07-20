@@ -23,8 +23,9 @@ use quote::ToTokens;
 use syn::parse_macro_input;
 
 mod array;
+mod keys;
 mod map;
-mod mutation;
+mod mutations;
 mod tuple;
 mod vars;
 
@@ -274,7 +275,21 @@ fn nesting_key_doc_str(nesting: &[Nesting]) -> String {
 /// This is used for both `storage` and `pub_vars` mod generation.
 fn items_from_keyed_vars(vars: &[VarABI]) -> Vec<syn::Item> {
     let mut items = vec![];
-    items.extend(mutation::items(vars));
+
+    // The `mutations` module and re-exports.
+    items.push(mutations::module(vars).into());
+    items.push(syn::parse_quote! {
+        #[doc(inline)]
+        pub use mutations::{mutations, Mutations};
+    });
+
+    // The `keys` module and re-exports.
+    items.push(keys::module(vars).into());
+    items.push(syn::parse_quote! {
+        #[doc(inline)]
+        pub use keys::{keys, Keys};
+    });
+
     items
 }
 
@@ -286,16 +301,24 @@ fn mod_from_keyed_vars(mod_name: &str, vars: &[VarABI]) -> syn::ItemMod {
     let mod_ident = syn::Ident::new(mod_name, Span::call_site());
     syn::parse_quote! {
         pub mod #mod_ident {
-            //! Items related to simplifying the process of building a `Vec` of
-            //! [`Mutation`][pint_abi::types::essential::solution::Mutation]s for a
-            //! [`Solution`][pint_abi::types::essential::solution::Solution].
+            //! Items related to simplifying the process of building sets of
+            //! [`Mutation`][pint_abi::types::essential::solution::Mutation]s and
+            //! [`Key`][pint_abi::types::essential::Key]s for
+            //! [`Solution`][pint_abi::types::essential::solution::Solution]s and queries.
             //!
-            //! See the [`mutations`] fn to start constructing a set of [`Mutations`].
             //!
-            //! The [`Mutations`] impl provides a set of builder methods that
-            //! allow for writing `Mutation`s to an inner `Vec` from higher-level values.
+            //! See the [`mutations`](./fn.mutations.html) fn to start constructing
+            //! a set of [`Mutations`].
             //!
-            //! The final `Vec<Mutation>` can be produced using the `From<Mutations>` impl.
+            //! See the [`keys`](./fn.mutations.html) fn to start constructing a set
+            //! of [`Keys`].
+            //!
+            //! The [`Mutations`] and [`Keys`] impls provides a set of builder
+            //! methods that allow for writing `Mutation`s and `Key`s to an
+            //! inner `Vec` from higher-level values.
+            //!
+            //! The final `Vec<Mutation>` or `Vec<Key>` can be produced using the
+            //! `From<Mutations>` or `From<Keys>` conversion impls.
             #(
                 #items
             )*
