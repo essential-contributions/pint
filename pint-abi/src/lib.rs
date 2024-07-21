@@ -88,7 +88,7 @@ pub fn encode<T: Encode>(t: &T) -> Vec<Word> {
 /// length cannot be known.
 pub fn decode<T: Decode>(mut words: &[Word]) -> Result<T, DecodeError<T::Error>> {
     let cursor = &mut words;
-    let t = T::decode(cursor).map_err(|e| DecodeError::Decode(e))?;
+    let t = T::decode(cursor).map_err(DecodeError::Decode)?;
     if !cursor.is_empty() {
         let remaining = cursor.len();
         return Err(TooManyWords { remaining }.into());
