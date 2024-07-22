@@ -14,7 +14,7 @@ impl<'a> From<&'a Contract> for Addresses {
         let predicates: Vec<_> = contract
             .predicates
             .iter()
-            .map(|pred| essential_hash::content_addr(pred))
+            .map(essential_hash::content_addr)
             .collect();
         Self {
             contract: essential_hash::contract_addr::from_predicate_addrs(

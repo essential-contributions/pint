@@ -390,7 +390,7 @@ fn resolve_path(path: &std::path::Path) -> std::path::PathBuf {
         let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
             .expect("`CARGO_MANIFEST_DIR` not set, but required for relative path expansion");
         let manifest_dir_path = std::path::Path::new(&manifest_dir);
-        manifest_dir_path.join(&path)
+        manifest_dir_path.join(path)
     } else {
         path.to_path_buf()
     }
