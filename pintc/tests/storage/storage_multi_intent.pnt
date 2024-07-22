@@ -61,7 +61,7 @@ predicate Bar {
 //     map3: ( int => ( int => b256 ) ),
 // }
 //
-// predicate ::Bar {
+// predicate ::Foo {
 //     storage {
 //         i: int,
 //         b: bool,
@@ -89,7 +89,7 @@ predicate Bar {
 //     constraint (::sum == (((::x + ::i0) + ::map_1_access_1) + ::map_1_access_2));
 // }
 //
-// predicate ::Foo {
+// predicate ::Bar {
 //     storage {
 //         i: int,
 //         b: bool,
@@ -127,7 +127,7 @@ predicate Bar {
 //     map3: ( int => ( int => b256 ) ),
 // }
 //
-// predicate ::Bar {
+// predicate ::Foo {
 //     storage {
 //         i: int,
 //         b: bool,
@@ -155,7 +155,7 @@ predicate Bar {
 //     constraint (::sum == (((::x + ::i0) + ::map_1_access_1) + ::map_1_access_2));
 // }
 //
-// predicate ::Foo {
+// predicate ::Bar {
 //     storage {
 //         i: int,
 //         b: bool,

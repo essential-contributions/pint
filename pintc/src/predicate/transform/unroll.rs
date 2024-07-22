@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, GeneratorKind, Immediate},
-    predicate::{Contract, Expr, ExprKey, VisitorKind},
+    predicate::{Contract, Expr, ExprKey, PredKey, VisitorKind},
     span::{empty_span, Spanned},
     types::{PrimitiveKind, Type},
 };
@@ -32,7 +32,7 @@ use std::collections::HashSet;
 fn unroll_generator(
     handler: &Handler,
     contract: &mut Contract,
-    pred_name: &str,
+    pred_key: PredKey,
     generator: Expr,
 ) -> Result<ExprKey, ErrorEmitted> {
     let Expr::Generator {
@@ -164,12 +164,12 @@ fn unroll_generator(
 
         let mut satisfied = true;
         {
-            let pred = contract.preds.get(pred_name).unwrap();
+            let pred = contract.preds.get(pred_key).unwrap();
             let evaluator = Evaluator::from_values(pred, values_map.clone());
 
             // Check each condition, if available, against the values map above
             for condition in &conditions {
-                match evaluator.evaluate_key(condition, handler, contract, pred_name)? {
+                match evaluator.evaluate_key(condition, handler, contract, pred_key)? {
                     Immediate::Bool(false) => {
                         satisfied = false;
                         break;
@@ -190,7 +190,7 @@ fn unroll_generator(
         // If all conditions are satisifed (or if none are present), then update the resulting
         // expression by joining it with the newly unrolled generator body.
         if satisfied {
-            let rhs = body.plug_in(contract, pred_name, &values_map);
+            let rhs = body.plug_in(contract, pred_key, &values_map);
             unrolled = contract.exprs.insert(
                 Expr::BinaryOp {
                     op: match kind {
@@ -215,7 +215,7 @@ pub(crate) fn unroll_generators(
     handler: &Handler,
     contract: &mut Contract,
 ) -> Result<(), ErrorEmitted> {
-    for pred_name in contract.preds.keys().cloned().collect::<Vec<_>>() {
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         // Perform a depth first iteration of all expressions searching for generators, ensuring that
         // dependencies are detected.
         //
@@ -230,7 +230,7 @@ pub(crate) fn unroll_generators(
 
         let mut generators = Vec::new();
         contract.visitor(
-            contract.preds.get(&pred_name).unwrap(),
+            pred_key,
             VisitorKind::DepthFirstChildrenBeforeParents,
             |expr_key: ExprKey, expr: &Expr| {
                 // Only collect generators and only by key since unrolling nested generators will
@@ -245,9 +245,9 @@ pub(crate) fn unroll_generators(
             // On success, update the key of the generator to map to the new unrolled expression.
             let generator = old_generator_key.get(contract).clone();
             if let Ok(unrolled_generator_key) =
-                unroll_generator(handler, contract, &pred_name, generator)
+                unroll_generator(handler, contract, pred_key, generator)
             {
-                contract.replace_exprs(&pred_name, old_generator_key, unrolled_generator_key);
+                contract.replace_exprs(pred_key, old_generator_key, unrolled_generator_key);
             }
         }
 

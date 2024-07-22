@@ -1,7 +1,9 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, Expr, Ident, Immediate, TupleAccess, UnaryOp},
-    predicate::{BlockStatement, Const, ConstraintDecl, Contract, ExprKey, IfDecl, StorageVar},
+    predicate::{
+        BlockStatement, Const, ConstraintDecl, Contract, ExprKey, IfDecl, PredKey, StorageVar,
+    },
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
 };
@@ -9,7 +11,7 @@ use crate::{
 use fxhash::FxHashMap;
 
 pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
-    for pred_name in contract.preds.keys().cloned().collect::<Vec<_>>() {
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         // Each enum has its variants indexed from 0.  Gather all the enum declarations and create a
         // map from path to integer index.
         let mut variant_map = FxHashMap::default();
@@ -29,7 +31,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
             span: empty_span(),
         };
 
-        let pred = contract.preds.get(&pred_name).unwrap();
+        let pred = contract.preds.get(pred_key).unwrap();
 
         let mut add_variants = |e: &EnumDecl, name: &String| {
             for (i, v) in e.variants.iter().enumerate() {
@@ -56,7 +58,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
         }
 
         // Find all the expressions referring to the variants and save them in a list.
-        for old_expr_key in contract.exprs(pred) {
+        for old_expr_key in contract.exprs(pred_key) {
             if let Some(Expr::PathByName(path, _span)) = old_expr_key.try_get(contract) {
                 if let Some(idx) = variant_map.get(path) {
                     variant_replacements.push((old_expr_key, idx));
@@ -100,7 +102,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
                 },
                 int_ty.clone(),
             );
-            contract.replace_exprs(&pred_name, old_expr_key, new_expr_key);
+            contract.replace_exprs(pred_key, old_expr_key, new_expr_key);
         }
 
         // Replace any var or state enum type with int.  Also add constraints to disallow vars or state
@@ -159,7 +161,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
                 bool_ty.clone(),
             );
 
-            if let Some(pred) = contract.preds.get_mut(&pred_name) {
+            if let Some(pred) = contract.preds.get_mut(pred_key) {
                 pred.constraints.push(ConstraintDecl {
                     expr: lower_bound_cmp_key,
                     span: empty_span(),
@@ -172,11 +174,11 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
 
             // Replace the type.
             let exprs_with_enum_ty = contract
-                .exprs_for_pred_name(&pred_name)
+                .exprs(pred_key)
                 .filter(|expr_key| {
                     expr_key
                         .get_ty(contract)
-                        .eq(contract.preds.get(&pred_name).unwrap(), enum_ty)
+                        .eq(contract.preds.get(pred_key).unwrap(), enum_ty)
                 })
                 .collect::<Vec<_>>();
 
@@ -187,7 +189,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
 
         // Now do the actual type update from enum to int
         for (enum_var_key, _, _) in enum_var_keys {
-            enum_var_key.set_ty(int_ty.clone(), contract.preds.get_mut(&pred_name).unwrap());
+            enum_var_key.set_ty(int_ty.clone(), contract.preds.get_mut(pred_key).unwrap());
         }
 
         // Array types can use enums as the range.  Recursively replace a range known to be an enum
@@ -226,7 +228,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
         // Update all the array types.
         contract
             .preds
-            .get_mut(&pred_name)
+            .get_mut(pred_key)
             .unwrap()
             .vars
             .update_types(|_var_key, ty| replace_array_range(&enum_count_exprs, ty));
@@ -239,10 +241,10 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
 }
 
 pub(crate) fn lower_casts(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
-    for pred_name in contract.preds.keys().cloned().collect::<Vec<_>>() {
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         let mut replacements = Vec::new();
 
-        for old_expr_key in contract.exprs_for_pred_name(&pred_name) {
+        for old_expr_key in contract.exprs(pred_key) {
             if let Some(Expr::Cast {
                 value,
                 ty: to_ty,
@@ -267,7 +269,7 @@ pub(crate) fn lower_casts(handler: &Handler, contract: &mut Contract) -> Result<
         }
 
         for (old_expr_key, new_expr_key) in replacements {
-            contract.replace_exprs(&pred_name, old_expr_key, new_expr_key);
+            contract.replace_exprs(pred_key, old_expr_key, new_expr_key);
         }
     }
 
@@ -277,11 +279,11 @@ pub(crate) fn lower_casts(handler: &Handler, contract: &mut Contract) -> Result<
 pub(crate) fn lower_aliases(contract: &mut Contract) {
     use std::borrow::BorrowMut;
 
-    for pred_name in contract.preds.keys().cloned().collect::<Vec<_>>() {
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         let new_types = FxHashMap::from_iter(
             contract
                 .preds
-                .get(&pred_name)
+                .get(pred_key)
                 .unwrap()
                 .new_types
                 .iter()
@@ -314,7 +316,7 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
         }
 
         // Replace aliases with the actual type.
-        if let Some(pred) = contract.preds.get_mut(&pred_name) {
+        if let Some(pred) = contract.preds.get_mut(pred_key) {
             pred.vars
                 .update_types(|_, var_ty| replace_alias(&new_types, var_ty));
             pred.states
@@ -343,11 +345,11 @@ pub(crate) fn lower_imm_accesses(
     handler: &Handler,
     contract: &mut Contract,
 ) -> Result<(), ErrorEmitted> {
-    let pred_names = contract.preds.keys().cloned().collect::<Vec<_>>();
+    let pred_keys = contract.preds.keys().collect::<Vec<_>>();
 
-    let mut replace_direct_accesses = |pred_name: &str| {
+    let mut replace_direct_accesses = |pred_key: PredKey| {
         let candidates = contract
-            .exprs_for_pred_name(pred_name)
+            .exprs(pred_key)
             .filter_map(|expr_key| match expr_key.get(contract) {
                 Expr::Index { expr, index, .. } => expr.try_get(contract).and_then(|array_expr| {
                     let is_array_expr = matches!(array_expr, Expr::Array { .. });
@@ -386,7 +388,7 @@ pub(crate) fn lower_imm_accesses(
             })
             .collect::<Vec<_>>();
 
-        let evaluator = Evaluator::new(contract.preds.get(pred_name).unwrap());
+        let evaluator = Evaluator::new(contract.preds.get(pred_key).unwrap());
         let mut replacements = Vec::new();
         for (old_expr_key, array_idx, field_idx) in candidates {
             assert!(
@@ -405,7 +407,7 @@ pub(crate) fn lower_imm_accesses(
                     }));
                 };
 
-                match evaluator.evaluate(idx_expr, handler, contract, pred_name) {
+                match evaluator.evaluate(idx_expr, handler, contract, pred_key) {
                     Ok(Immediate::Int(idx_val)) if idx_val >= 0 => {
                         match array_key.try_get(contract) {
                             Some(Expr::Array { elements, .. }) => {
@@ -529,7 +531,7 @@ pub(crate) fn lower_imm_accesses(
         // Iterate for each replacement without borrowing.
         while let Some((old_expr_key, new_expr_key)) = replacements.pop() {
             // Replace the old with the new throughout the Pred.
-            contract.replace_exprs(pred_name, old_expr_key, new_expr_key);
+            contract.replace_exprs(pred_key, old_expr_key, new_expr_key);
             contract.exprs.remove(old_expr_key);
 
             // But _also_ replace the old within `replacements` in case any of our new keys is now
@@ -546,9 +548,9 @@ pub(crate) fn lower_imm_accesses(
 
     // Replace all the direct array and tuple accesses until there are none left.  This will loop
     // for all the nested aggregates.
-    for pred_name in &pred_names {
+    for pred_key in pred_keys {
         for loop_check in 0.. {
-            if !replace_direct_accesses(pred_name)? {
+            if !replace_direct_accesses(pred_key)? {
                 break;
             }
 
@@ -567,12 +569,12 @@ pub(crate) fn lower_imm_accesses(
 }
 
 pub(crate) fn lower_ins(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
-    for pred_name in contract.preds.keys().cloned().collect::<Vec<_>>() {
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         let mut in_range_collections = Vec::new();
         let mut array_collections = Vec::new();
 
         // Collect all the `in` expressions which need to be replaced.  (Copy them out of the Pred.)
-        for in_expr_key in contract.exprs_for_pred_name(&pred_name) {
+        for in_expr_key in contract.exprs(pred_key) {
             if let Some(Expr::In {
                 value,
                 collection,
@@ -683,7 +685,7 @@ pub(crate) fn lower_ins(handler: &Handler, contract: &mut Contract) -> Result<()
                 bool_ty.clone(),
             );
 
-            contract.replace_exprs(&pred_name, in_expr_key, and_key);
+            contract.replace_exprs(pred_key, in_expr_key, and_key);
         }
 
         let int_ty = Type::Primitive {
@@ -740,7 +742,7 @@ pub(crate) fn lower_ins(handler: &Handler, contract: &mut Contract) -> Result<()
                 })
                 .expect("can't have empty array expressions");
 
-            contract.replace_exprs(&pred_name, in_expr_key, or_key);
+            contract.replace_exprs(pred_key, in_expr_key, or_key);
         }
     }
 
@@ -767,9 +769,9 @@ pub(crate) fn lower_ins(handler: &Handler, contract: &mut Contract) -> Result<()
 /// constraint __state_len(y) != 0;
 ///
 pub(crate) fn lower_compares_to_nil(contract: &mut Contract) {
-    for pred_name in contract.preds.keys().cloned().collect::<Vec<_>>() {
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         let compares_to_nil = contract
-            .exprs_for_pred_name(&pred_name)
+            .exprs(pred_key)
             .filter_map(|expr_key| match expr_key.try_get(contract) {
                 Some(Expr::BinaryOp { op, lhs, rhs, span })
                     if (*op == BinaryOp::Equal || *op == BinaryOp::NotEqual)
@@ -844,7 +846,7 @@ pub(crate) fn lower_compares_to_nil(contract: &mut Contract) {
                 _ => unreachable!("both operands cannot be non-nil simultaneously at this stage"),
             };
 
-            contract.replace_exprs(&pred_name, *old_bin_op, new_bin_op);
+            contract.replace_exprs(pred_key, *old_bin_op, new_bin_op);
         }
     }
 }
@@ -872,15 +874,15 @@ pub(crate) fn lower_compares_to_nil(contract: &mut Contract) {
 /// `a ==> b` is equivalent to `!a || b`.
 ///
 pub(crate) fn lower_ifs(contract: &mut Contract) {
-    for pred_name in contract.preds.keys().cloned().collect::<Vec<_>>() {
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         let mut all_exprs = Vec::default();
 
         // Ideally we'd refactor this to not require cloning the IfDecl.
-        for if_decl in &contract.preds.get(&pred_name).unwrap().if_decls.clone() {
-            all_exprs.extend(&convert_if(contract, &pred_name, if_decl));
+        for if_decl in &contract.preds.get(pred_key).unwrap().if_decls.clone() {
+            all_exprs.extend(&convert_if(contract, pred_key, if_decl));
         }
 
-        let mut_pred = contract.preds.get_mut(&pred_name).unwrap();
+        let mut_pred = contract.preds.get_mut(pred_key).unwrap();
 
         for expr in all_exprs {
             mut_pred.constraints.push(ConstraintDecl {
@@ -898,7 +900,7 @@ pub(crate) fn lower_ifs(contract: &mut Contract) {
 // them in a `Vec<ExprKey>`. This follows the principle that `a ==> b` is equivalent to `!a || b`.
 fn convert_if(
     contract: &mut Contract,
-    pred_name: &str,
+    pred_key: PredKey,
     IfDecl {
         condition,
         then_block,
@@ -924,7 +926,7 @@ fn convert_if(
         // `condition => statement` i.e. `!condition || statement`
         all_exprs.extend(convert_if_block_statement(
             contract,
-            pred_name,
+            pred_key,
             statement,
             condition_inverse,
         ));
@@ -934,7 +936,7 @@ fn convert_if(
         // `!condition => statement` i.e. `!!condition || statement`
         for statement in else_block {
             all_exprs.extend(convert_if_block_statement(
-                contract, pred_name, statement,
+                contract, pred_key, statement,
                 *condition, // use condition is here since it's the inverse of the inverse,
             ));
         }
@@ -954,7 +956,7 @@ fn convert_if(
 //
 fn convert_if_block_statement(
     contract: &mut Contract,
-    pred_name: &str,
+    pred_key: PredKey,
     statement: &BlockStatement,
     condition_inverse: ExprKey,
 ) -> Vec<ExprKey> {
@@ -977,7 +979,7 @@ fn convert_if_block_statement(
             ));
         }
         BlockStatement::If(if_decl) => {
-            for inner_expr in convert_if(contract, pred_name, if_decl) {
+            for inner_expr in convert_if(contract, pred_key, if_decl) {
                 converted_exprs.push(contract.exprs.insert(
                     Expr::BinaryOp {
                         op: BinaryOp::LogicalOr,
@@ -1008,10 +1010,10 @@ pub(super) fn replace_const_refs(contract: &mut Contract) {
         })
         .collect::<Vec<_>>();
 
-    for pred_name in contract.preds.keys().cloned().collect::<Vec<_>>() {
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         // Find all the paths which refer to a const and link them.
         let const_refs = contract
-            .exprs_for_pred_name(&pred_name)
+            .exprs(pred_key)
             .filter_map(|path_expr_key| {
                 if let Expr::PathByName(path, _span) = path_expr_key.get(contract) {
                     consts
@@ -1031,10 +1033,10 @@ pub(super) fn replace_const_refs(contract: &mut Contract) {
             .collect::<Vec<_>>();
 
         // Replace all paths to consts with the consts themselves.
-        if pred_name == Contract::ROOT_PRED_NAME {
+        if pred_key == contract.root_pred_key() {
             // This is the root Pred, meaning we already have the ExprKeys for the consts available.
             contract.replace_exprs_by_map(
-                &pred_name,
+                pred_key,
                 &FxHashMap::from_iter(const_refs.into_iter().map(|refs| (refs.0, refs.1))),
             );
         } else {
@@ -1042,17 +1044,17 @@ pub(super) fn replace_const_refs(contract: &mut Contract) {
             // Pred before we can replace the paths.
             for (path_expr_key, _, const_expr, const_ty) in const_refs {
                 let const_expr_key = contract.exprs.insert(const_expr.clone(), const_ty.clone());
-                contract.replace_exprs(&pred_name, path_expr_key, const_expr_key);
+                contract.replace_exprs(pred_key, path_expr_key, const_expr_key);
             }
         }
     }
 }
 
 pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
-    for pred_name in contract.preds.keys().cloned().collect::<Vec<_>>() {
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         // Gather up all the keys to any NextState ops in this predicate.
         let mut work_list: Vec<(ExprKey, ExprKey)> = contract
-            .exprs_for_pred_name(&pred_name)
+            .exprs(pred_key)
             .filter_map(|op_key| {
                 if let Expr::UnaryOp {
                     op: UnaryOp::NextState,
@@ -1076,12 +1078,12 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
 
         fn replace_exprs(
             contract: &mut Contract,
-            pred_name: &str,
+            pred_key: PredKey,
             work_list: &mut Vec<(ExprKey, ExprKey)>,
             old_key: ExprKey,
             new_key: ExprKey,
         ) {
-            contract.replace_exprs(pred_name, old_key, new_key);
+            contract.replace_exprs(pred_key, old_key, new_key);
 
             for (ref mut op_key, ref mut arg_key) in work_list {
                 if *op_key == old_key {
@@ -1142,14 +1144,14 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                     // E.g., a''.
 
                     // Replace any reference to the outer op expression with the inner arg op.
-                    replace_exprs(contract, &pred_name, &mut work_list, op_key, arg_key);
+                    replace_exprs(contract, pred_key, &mut work_list, op_key, arg_key);
                 }
 
                 Coalescence::LowerIndex(indexed_key) => {
                     // E.g., a[i]' -> a'[i].
 
                     // Update any reference the the prime op to instead be to the index expression.
-                    replace_exprs(contract, &pred_name, &mut work_list, op_key, arg_key);
+                    replace_exprs(contract, pred_key, &mut work_list, op_key, arg_key);
 
                     // Update the prime op to refer to the indexed expression and put this 'new' op
                     // back onto the list.
@@ -1179,7 +1181,7 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                     // E.g., a.x' -> a'.x.
 
                     // Update any reference to the prime op to instead be to the access expression.
-                    replace_exprs(contract, &pred_name, &mut work_list, op_key, arg_key);
+                    replace_exprs(contract, pred_key, &mut work_list, op_key, arg_key);
 
                     // Update the prime op to refer to the accessed expression.  Also update the list
                     // to reflect the same.

@@ -64,6 +64,34 @@ predicate Bar {
 }
 
 // parsed <<<
+// predicate ::Foo {
+//     var ::condition: bool;
+//     var ::condition2: bool;
+//     var ::x: int;
+//     var ::y: int;
+//     var ::xx: int;
+//     var ::yy: int;
+//     var ::z: bool;
+//     if ::condition {
+//         constraint (::x == 0)
+//         constraint (::y != ::x)
+//     }
+//     if ::condition {
+//     }
+//     if ::condition2 {
+//         constraint (::xx == 1)
+//         constraint (::yy != ::xx)
+//     } else {
+//         constraint (::yy != 0)
+//         constraint (::xx > (::yy + 1))
+//         constraint ::z
+//     }
+//     if ::condition2 {
+//         constraint (::yy != ::xx)
+//     } else {
+//     }
+// }
+//
 // predicate ::Bar {
 //     var ::condition: bool;
 //     var ::condition2: bool;
@@ -94,54 +122,9 @@ predicate Bar {
 //         }
 //     }
 // }
-//
-// predicate ::Foo {
-//     var ::condition: bool;
-//     var ::condition2: bool;
-//     var ::x: int;
-//     var ::y: int;
-//     var ::xx: int;
-//     var ::yy: int;
-//     var ::z: bool;
-//     if ::condition {
-//         constraint (::x == 0)
-//         constraint (::y != ::x)
-//     }
-//     if ::condition {
-//     }
-//     if ::condition2 {
-//         constraint (::xx == 1)
-//         constraint (::yy != ::xx)
-//     } else {
-//         constraint (::yy != 0)
-//         constraint (::xx > (::yy + 1))
-//         constraint ::z
-//     }
-//     if ::condition2 {
-//         constraint (::yy != ::xx)
-//     } else {
-//     }
-// }
 // >>>
 
 // flattened <<<
-// predicate ::Bar {
-//     var ::condition: bool;
-//     var ::condition2: bool;
-//     var ::condition3: bool;
-//     var ::x: int;
-//     var ::xx: int;
-//     var ::yy: int;
-//     var ::z: bool;
-//     constraint (!(::condition2 && ::condition) || (false || (::z && !::z)));
-//     constraint (!(::condition2 && ::condition) || (::yy != ::xx));
-//     constraint (!(::condition2 && ::condition) || (!true || (::x + 1)));
-//     constraint (!(::condition2 && ::condition) || (true || ::z));
-//     constraint ((::condition2 && ::condition) || (!::condition3 || ((::yy + ::xx) == (::yy * ::xx))));
-//     constraint ((::condition2 && ::condition) || (!::condition3 || ::z));
-//     constraint ((::condition2 && ::condition) || (::condition3 || (!::z || (::z && true))));
-// }
-//
 // predicate ::Foo {
 //     var ::condition: bool;
 //     var ::condition2: bool;
@@ -158,5 +141,22 @@ predicate Bar {
 //     constraint (::condition2 || (::xx > (::yy + 1)));
 //     constraint (::condition2 || ::z);
 //     constraint (!::condition2 || (::yy != ::xx));
+// }
+//
+// predicate ::Bar {
+//     var ::condition: bool;
+//     var ::condition2: bool;
+//     var ::condition3: bool;
+//     var ::x: int;
+//     var ::xx: int;
+//     var ::yy: int;
+//     var ::z: bool;
+//     constraint (!(::condition2 && ::condition) || (false || (::z && !::z)));
+//     constraint (!(::condition2 && ::condition) || (::yy != ::xx));
+//     constraint (!(::condition2 && ::condition) || (!true || (::x + 1)));
+//     constraint (!(::condition2 && ::condition) || (true || ::z));
+//     constraint ((::condition2 && ::condition) || (!::condition3 || ((::yy + ::xx) == (::yy * ::xx))));
+//     constraint ((::condition2 && ::condition) || (!::condition3 || ::z));
+//     constraint ((::condition2 && ::condition) || (::condition3 || (!::z || (::z && true))));
 // }
 // >>>

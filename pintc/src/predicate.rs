@@ -6,14 +6,13 @@ use crate::{
 };
 use exprs::ExprsIter;
 pub use exprs::{ExprKey, Exprs};
-use fxhash::FxHashMap;
 use pint_abi_types::{ContractABI, PredicateABI, VarABI};
 pub use states::{State, StateKey, States};
-use std::{
-    collections::BTreeMap,
-    fmt::{self, Formatter},
-};
 pub use vars::{Var, VarKey, Vars};
+
+use std::fmt::{self, Formatter};
+
+use fxhash::FxHashMap;
 
 mod analyse;
 mod check_contract;
@@ -23,18 +22,35 @@ mod states;
 mod transform;
 mod vars;
 
+slotmap::new_key_type! { pub struct PredKey; }
 slotmap::new_key_type! { pub struct CallKey; }
 
 /// A Contract is a collection of predicates and some global consts.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Contract {
-    pub preds: BTreeMap<String, Predicate>,
+    pub preds: slotmap::SlotMap<PredKey, Predicate>,
+    root_pred_key: PredKey,
 
     pub exprs: Exprs,
     pub consts: FxHashMap<String, Const>,
 
     // Keep track of obsolete expanded macro calls in case they're erroneously depended upon.
     pub removed_macro_calls: slotmap::SecondaryMap<ExprKey, Span>,
+}
+
+impl Default for Contract {
+    fn default() -> Self {
+        let mut preds = slotmap::SlotMap::<PredKey, Predicate>::default();
+        let root_pred_key = preds.insert(Predicate::new(Self::ROOT_PRED_NAME.to_string()));
+
+        Self {
+            preds,
+            root_pred_key,
+            exprs: Default::default(),
+            consts: Default::default(),
+            removed_macro_calls: Default::default(),
+        }
+    }
 }
 
 impl Contract {
@@ -47,20 +63,22 @@ impl Contract {
 
     /// The root predicate is the one named `Predicates::ROOT_PRED_NAME`
     pub fn root_pred(&self) -> &Predicate {
-        self.preds.get(Self::ROOT_PRED_NAME).unwrap()
+        self.preds.get(self.root_pred_key).unwrap()
+    }
+
+    /// The root predicate key refers to the one named `Predicates::ROOT_PRED_NAME`
+    pub fn root_pred_key(&self) -> PredKey {
+        self.root_pred_key
     }
 
     /// The root predicate is the one named `Predicates::ROOT_PRED_NAME`
     pub fn root_pred_mut(&mut self) -> &mut Predicate {
-        self.preds.get_mut(Self::ROOT_PRED_NAME).unwrap()
+        self.preds.get_mut(self.root_pred_key).unwrap()
     }
 
     /// An iterator for all expressions in a predicate.
-    pub(crate) fn exprs(&self, pred: &Predicate) -> ExprsIter {
-        ExprsIter::new(self, pred)
-    }
-    pub(crate) fn exprs_for_pred_name(&self, pred_name: &str) -> ExprsIter {
-        ExprsIter::new(self, self.preds.get(pred_name).unwrap())
+    pub(crate) fn exprs(&self, pred_key: PredKey) -> ExprsIter {
+        ExprsIter::new(self, pred_key)
     }
 
     /// Visit expression and every sub-expression with a function.
@@ -174,35 +192,39 @@ impl Contract {
 
     pub(crate) fn visitor<F: FnMut(ExprKey, &Expr)>(
         &self,
-        pred: &Predicate,
+        pred_key: PredKey,
         kind: VisitorKind,
         mut f: F,
     ) {
-        for expr_key in pred.root_set() {
+        for expr_key in self.root_set(pred_key) {
             self.visitor_from_key(kind, expr_key, &mut |k, e| f(k, e));
         }
     }
 
-    pub fn replace_exprs(&mut self, pred_name: &str, old_expr: ExprKey, new_expr: ExprKey) {
+    pub fn root_set(&self, pred_key: PredKey) -> impl Iterator<Item = ExprKey> + '_ {
+        self.preds.get(pred_key).unwrap().root_set()
+    }
+
+    pub fn replace_exprs(&mut self, pred_key: PredKey, old_expr: ExprKey, new_expr: ExprKey) {
         self.exprs
             .update_exprs(|_, expr| expr.replace_one_to_one(old_expr, new_expr));
 
         self.preds
-            .get_mut(pred_name)
+            .get_mut(pred_key)
             .unwrap()
             .replace_exprs(old_expr, new_expr);
     }
 
     pub fn replace_exprs_by_map(
         &mut self,
-        pred_name: &str,
+        pred_key: PredKey,
         expr_map: &FxHashMap<ExprKey, ExprKey>,
     ) {
         self.exprs
             .update_exprs(|_, expr| expr.replace_ref_by_map(expr_map));
 
         self.preds
-            .get_mut(pred_name)
+            .get_mut(pred_key)
             .unwrap()
             .replace_exprs_by_map(expr_map);
     }
@@ -213,13 +235,13 @@ impl Contract {
             predicates: self
                 .preds
                 .iter()
-                .filter_map(|(name, pred)| {
-                    if name == Self::ROOT_PRED_NAME {
+                .filter_map(|(key, pred)| {
+                    if key == self.root_pred_key {
                         // Skip the root predicate from the generated ABI. Its content is no longer
                         // relevant
                         None
                     } else {
-                        Some(pred.abi(handler, self))
+                        Some(pred.abi(handler, self, key))
                     }
                 })
                 .collect::<Result<_, _>>()?,
@@ -236,7 +258,7 @@ impl Contract {
                             // placeholder for offsets.
                             Ok(VarABI {
                                 name: name.to_string(),
-                                ty: ty.abi(handler, self, self.root_pred())?,
+                                ty: ty.abi(handler, self, self.root_pred_key())?,
                             })
                         })
                         .collect::<Result<_, _>>()
@@ -298,22 +320,21 @@ impl Predicate {
         }
     }
 
-    pub fn is_root(&self) -> bool {
-        self.name == Contract::ROOT_PRED_NAME
-    }
-
     /// Generate a `PredicateABI` given an `Predicate`
+    // The self_pred_key is a bit broken (since `self` is `&Predicate`) but it will go away once we
+    // move enums from `Predicate` to `Contract`.
     pub fn abi(
         &self,
         handler: &Handler,
         contract: &Contract,
+        self_pred_key: PredKey,
     ) -> Result<PredicateABI, ErrorEmitted> {
         Ok(PredicateABI {
             name: self.name.clone(),
             vars: self
                 .vars()
                 .filter(|(_, var)| !var.is_pub)
-                .map(|(var_key, _)| var_key.abi(handler, contract, self))
+                .map(|(var_key, _)| var_key.abi(handler, contract, self_pred_key))
                 .collect::<Result<_, _>>()?,
             pub_vars: self
                 .vars()
@@ -323,7 +344,7 @@ impl Predicate {
                         name: name.to_string(),
                         ty: {
                             let ty = var_key.get_ty(self);
-                            ty.abi(handler, contract, self)?
+                            ty.abi(handler, contract, self_pred_key)?
                         },
                     })
                 })
@@ -477,7 +498,6 @@ impl Predicate {
             });
     }
 
-    // Panics if `root_key` is invalid.
     /// Return an iterator to the 'root set' of expressions, based on the constraints, states,
     /// interface instances, and predicate instances.
     fn root_set(&self) -> impl Iterator<Item = ExprKey> + '_ {
