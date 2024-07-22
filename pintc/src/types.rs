@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, Expr, Ident, Immediate},
-    predicate::{Contract, ExprKey, Predicate},
+    predicate::{Contract, ExprKey, PredKey, Predicate},
     span::{Span, Spanned},
 };
 use pint_abi_types::{TupleField, TypeABI};
@@ -200,8 +200,10 @@ impl Type {
         handler: &Handler,
         range_expr: &Expr,
         contract: &Contract,
-        pred: &Predicate,
+        pred_key: PredKey,
     ) -> Result<i64, ErrorEmitted> {
+        let pred = &contract.preds[pred_key];
+
         if let Expr::PathByName(path, _) = range_expr {
             // It's hopefully an enum for the range expression.
             if let Some(size) = pred.enums.iter().find_map(|enum_decl| {
@@ -216,7 +218,7 @@ impl Type {
                 }))
             }
         } else {
-            match Evaluator::new(pred).evaluate(range_expr, handler, contract, &pred.name) {
+            match Evaluator::new(pred).evaluate(range_expr, handler, contract, pred_key) {
                 Ok(Immediate::Int(size)) if size > 0 => Ok(size),
                 Ok(_) => Err(handler.emit_err(Error::Compile {
                     error: CompileError::InvalidConstArrayLength {
@@ -290,7 +292,7 @@ impl Type {
         &self,
         handler: &Handler,
         contract: &Contract,
-        pred: &Predicate,
+        pred_key: PredKey,
     ) -> Result<usize, ErrorEmitted> {
         match self {
             Self::Primitive {
@@ -305,13 +307,13 @@ impl Type {
 
             Self::Tuple { fields, .. } => fields.iter().try_fold(0, |acc, (_, field_ty)| {
                 field_ty
-                    .size(handler, contract, pred)
+                    .size(handler, contract, pred_key)
                     .map(|size| acc + size)
             }),
 
             Self::Array {
                 ty, range, size, ..
-            } => Ok(ty.size(handler, contract, pred)?
+            } => Ok(ty.size(handler, contract, pred_key)?
                 * size.unwrap_or(
                     Self::get_array_size_from_range_expr(
                         handler,
@@ -320,7 +322,7 @@ impl Type {
                             .and_then(|e| e.try_get(contract))
                             .expect("expr key guaranteed to exist"),
                         contract,
-                        pred,
+                        pred_key,
                     )
                     .unwrap(),
                 ) as usize),
@@ -340,20 +342,20 @@ impl Type {
         &self,
         handler: &Handler,
         contract: &Contract,
-        pred: &Predicate,
+        pred_key: PredKey,
     ) -> Result<usize, ErrorEmitted> {
         match self {
             Self::Primitive { .. } => Ok(1),
 
             Self::Tuple { fields, .. } => fields.iter().try_fold(0, |acc, (_, field_ty)| {
                 field_ty
-                    .storage_or_transient_slots(handler, contract, pred)
+                    .storage_or_transient_slots(handler, contract, pred_key)
                     .map(|slots| acc + slots)
             }),
 
             Self::Array {
                 ty, range, size, ..
-            } => Ok(ty.storage_or_transient_slots(handler, contract, pred)?
+            } => Ok(ty.storage_or_transient_slots(handler, contract, pred_key)?
                 * size.unwrap_or(Self::get_array_size_from_range_expr(
                     handler,
                     range
@@ -361,7 +363,7 @@ impl Type {
                         .and_then(|e| e.try_get(contract))
                         .expect("expr key guaranteed to exist"),
                     contract,
-                    pred,
+                    pred_key,
                 )?) as usize),
 
             // The point here is that a `Map` takes up a storage slot, even though it doesn't
@@ -377,7 +379,7 @@ impl Type {
         &self,
         handler: &Handler,
         contract: &Contract,
-        pred: &Predicate,
+        pred_key: PredKey,
     ) -> Result<TypeABI, ErrorEmitted> {
         match self {
             Type::Primitive { kind, .. } => Ok(match kind {
@@ -394,7 +396,7 @@ impl Type {
                     .map(|(name, field_ty)| {
                         Ok(TupleField {
                             name: name.as_ref().map(|name| name.name.clone()),
-                            ty: field_ty.abi(handler, contract, pred)?,
+                            ty: field_ty.abi(handler, contract, pred_key)?,
                         })
                     })
                     .collect::<Result<Vec<_>, _>>()?,
@@ -402,7 +404,7 @@ impl Type {
             Type::Array {
                 ty, range, size, ..
             } => Ok(TypeABI::Array {
-                ty: Box::new(ty.abi(handler, contract, pred)?),
+                ty: Box::new(ty.abi(handler, contract, pred_key)?),
                 size: size.unwrap_or(Self::get_array_size_from_range_expr(
                     handler,
                     range
@@ -410,12 +412,12 @@ impl Type {
                         .and_then(|e| e.try_get(contract))
                         .expect("expr key guaranteed to exist"),
                     contract,
-                    pred,
+                    pred_key,
                 )?),
             }),
             Type::Map { ty_from, ty_to, .. } => Ok(TypeABI::Map {
-                ty_from: Box::new((*ty_from).abi(handler, contract, pred)?),
-                ty_to: Box::new((*ty_to).abi(handler, contract, pred)?),
+                ty_from: Box::new((*ty_from).abi(handler, contract, pred_key)?),
+                ty_to: Box::new((*ty_to).abi(handler, contract, pred_key)?),
             }),
             _ => unimplemented!("other types are not yet supported"),
         }

@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp as BinOp, Expr, Immediate as Imm, TupleAccess, UnaryOp},
-    predicate::{Contract, ExprKey, Predicate},
+    predicate::{Contract, ExprKey, PredKey, Predicate},
     span::{empty_span, Spanned},
     types::{EnumDecl, Path},
 };
@@ -61,9 +61,9 @@ impl Evaluator {
         expr_key: &ExprKey,
         handler: &Handler,
         contract: &Contract,
-        pred_name: &str,
+        pred_key: PredKey,
     ) -> Result<Imm, ErrorEmitted> {
-        self.evaluate(expr_key.get(contract), handler, contract, pred_name)
+        self.evaluate(expr_key.get(contract), handler, contract, pred_key)
     }
 
     pub(crate) fn evaluate(
@@ -71,7 +71,7 @@ impl Evaluator {
         expr: &Expr,
         handler: &Handler,
         contract: &Contract,
-        pred_name: &str,
+        pred_key: PredKey,
     ) -> Result<Imm, ErrorEmitted> {
         match expr {
             Expr::Immediate { value, .. } => Ok(value.clone()),
@@ -79,7 +79,7 @@ impl Evaluator {
             Expr::Array { elements, .. } => {
                 let imm_elements = elements
                     .iter()
-                    .map(|el_key| self.evaluate_key(el_key, handler, contract, pred_name))
+                    .map(|el_key| self.evaluate_key(el_key, handler, contract, pred_key))
                     .collect::<Result<_, _>>()?;
 
                 Ok(Imm::Array(imm_elements))
@@ -89,7 +89,7 @@ impl Evaluator {
                 let imm_fields = fields
                     .iter()
                     .map(|(name, fld_key)| {
-                        self.evaluate_key(fld_key, handler, contract, pred_name)
+                        self.evaluate_key(fld_key, handler, contract, pred_key)
                             .map(|fld_imm| (name.clone(), fld_imm))
                     })
                     .collect::<Result<_, _>>()?;
@@ -113,7 +113,7 @@ impl Evaluator {
                 }),
 
             Expr::UnaryOp { op, expr, .. } => {
-                let expr = self.evaluate_key(expr, handler, contract, pred_name)?;
+                let expr = self.evaluate_key(expr, handler, contract, pred_key)?;
 
                 match (expr, op) {
                     (Imm::Real(expr), UnaryOp::Neg) => Ok(Imm::Real(-expr)),
@@ -129,8 +129,8 @@ impl Evaluator {
             }
 
             Expr::BinaryOp { op, lhs, rhs, .. } => {
-                let lhs = self.evaluate_key(lhs, handler, contract, pred_name)?;
-                let rhs = self.evaluate_key(rhs, handler, contract, pred_name)?;
+                let lhs = self.evaluate_key(lhs, handler, contract, pred_key)?;
+                let rhs = self.evaluate_key(rhs, handler, contract, pred_key)?;
 
                 match (lhs, rhs) {
                     (Imm::Real(lhs), Imm::Real(rhs)) => match op {
@@ -230,10 +230,10 @@ impl Evaluator {
 
             Expr::Index { expr, index, span } => {
                 // If the expr is an array...
-                let ary = self.evaluate_key(expr, handler, contract, pred_name)?;
+                let ary = self.evaluate_key(expr, handler, contract, pred_key)?;
                 if let Imm::Array(elements) = ary {
                     // And the index is an int...
-                    let idx = self.evaluate_key(index, handler, contract, pred_name)?;
+                    let idx = self.evaluate_key(index, handler, contract, pred_key)?;
                     if let Imm::Int(n) = idx {
                         // And it's not out of bounds...
                         elements.get(n as usize).cloned().ok_or_else(|| {
@@ -258,9 +258,9 @@ impl Evaluator {
 
             Expr::TupleFieldAccess { tuple, field, span } => {
                 // If the expr is a tuple...
-                let pred = contract.preds.get(pred_name).unwrap();
+                let pred = contract.preds.get(pred_key).unwrap();
 
-                let tup = self.evaluate_key(tuple, handler, contract, pred_name)?;
+                let tup = self.evaluate_key(tuple, handler, contract, pred_key)?;
                 if let Imm::Tuple(fields) = tup {
                     // And the field can be found...
                     match field {
@@ -305,13 +305,13 @@ impl Evaluator {
                 else_expr,
                 span,
             } => {
-                let cond = self.evaluate_key(condition, handler, contract, pred_name)?;
+                let cond = self.evaluate_key(condition, handler, contract, pred_key)?;
                 if let Imm::Bool(b) = cond {
                     self.evaluate_key(
                         if b { then_expr } else { else_expr },
                         handler,
                         contract,
-                        pred_name,
+                        pred_key,
                     )
                 } else {
                     let mut cond_ty = condition.get_ty(contract).clone();
@@ -321,7 +321,7 @@ impl Evaluator {
                         }
                     }
 
-                    let pred = contract.preds.get(pred_name).unwrap();
+                    let pred = contract.preds.get(pred_key).unwrap();
 
                     Err(handler.emit_err(Error::Compile {
                         error: CompileError::NonBoolConditional {
@@ -340,7 +340,7 @@ impl Evaluator {
                         value_ty = imm.get_ty(Some(span));
                     }
 
-                    let pred = contract.preds.get(pred_name).unwrap();
+                    let pred = contract.preds.get(pred_key).unwrap();
 
                     Err(handler.emit_err(Error::Compile {
                         error: CompileError::BadCastFrom {
@@ -352,7 +352,7 @@ impl Evaluator {
 
                 // All casts are either redundant (e.g., bool as bool) or are to ints, except int
                 // as real.  They'll be rejected by the type checker if not.
-                let imm = self.evaluate_key(value, handler, contract, pred_name)?;
+                let imm = self.evaluate_key(value, handler, contract, pred_key)?;
                 match imm {
                     Imm::Real(_) => {
                         if ty.is_real() {
@@ -436,7 +436,7 @@ impl ExprKey {
     pub(crate) fn plug_in(
         self,
         contract: &mut Contract,
-        pred_name: &str,
+        pred_key: PredKey,
         values_map: &FxHashMap<Path, Imm>,
     ) -> ExprKey {
         let expr = self.get(contract).clone();
@@ -451,9 +451,9 @@ impl ExprKey {
             } => {
                 let elements = elements
                     .iter()
-                    .map(|element| element.plug_in(contract, pred_name, values_map))
+                    .map(|element| element.plug_in(contract, pred_key, values_map))
                     .collect::<Vec<_>>();
-                let range_expr = range_expr.plug_in(contract, pred_name, values_map);
+                let range_expr = range_expr.plug_in(contract, pred_key, values_map);
 
                 Expr::Array {
                     elements,
@@ -466,7 +466,7 @@ impl ExprKey {
                 let fields = fields
                     .iter()
                     .map(|(name, value)| {
-                        (name.clone(), value.plug_in(contract, pred_name, values_map))
+                        (name.clone(), value.plug_in(contract, pred_key, values_map))
                     })
                     .collect::<Vec<_>>();
 
@@ -490,27 +490,27 @@ impl ExprKey {
             Expr::PathByKey(key, ref span) => {
                 let span = span.clone();
                 values_map
-                    .get(&key.get(contract.preds.get(pred_name).unwrap()).name)
+                    .get(&key.get(&contract.preds[pred_key]).name)
                     .map_or(expr, |value| Expr::Immediate {
                         value: value.clone(),
                         span,
                     })
             }
             Expr::UnaryOp { op, expr, span } => {
-                let expr = expr.plug_in(contract, pred_name, values_map);
+                let expr = expr.plug_in(contract, pred_key, values_map);
 
                 Expr::UnaryOp { op, expr, span }
             }
             Expr::BinaryOp { op, lhs, rhs, span } => {
-                let lhs = lhs.plug_in(contract, pred_name, values_map);
-                let rhs = rhs.plug_in(contract, pred_name, values_map);
+                let lhs = lhs.plug_in(contract, pred_key, values_map);
+                let rhs = rhs.plug_in(contract, pred_key, values_map);
 
                 Expr::BinaryOp { op, lhs, rhs, span }
             }
             Expr::IntrinsicCall { name, args, span } => {
                 let args = args
                     .iter()
-                    .map(|arg| arg.plug_in(contract, pred_name, values_map))
+                    .map(|arg| arg.plug_in(contract, pred_key, values_map))
                     .collect::<Vec<_>>();
 
                 Expr::IntrinsicCall { name, args, span }
@@ -521,9 +521,9 @@ impl ExprKey {
                 else_expr,
                 span,
             } => {
-                let condition = condition.plug_in(contract, pred_name, values_map);
-                let then_expr = then_expr.plug_in(contract, pred_name, values_map);
-                let else_expr = else_expr.plug_in(contract, pred_name, values_map);
+                let condition = condition.plug_in(contract, pred_key, values_map);
+                let then_expr = then_expr.plug_in(contract, pred_key, values_map);
+                let else_expr = else_expr.plug_in(contract, pred_key, values_map);
 
                 Expr::Select {
                     condition,
@@ -533,18 +533,18 @@ impl ExprKey {
                 }
             }
             Expr::Index { expr, index, span } => {
-                let expr = expr.plug_in(contract, pred_name, values_map);
-                let index = index.plug_in(contract, pred_name, values_map);
+                let expr = expr.plug_in(contract, pred_key, values_map);
+                let index = index.plug_in(contract, pred_key, values_map);
 
                 Expr::Index { expr, index, span }
             }
             Expr::TupleFieldAccess { tuple, field, span } => {
-                let tuple = tuple.plug_in(contract, pred_name, values_map);
+                let tuple = tuple.plug_in(contract, pred_key, values_map);
 
                 Expr::TupleFieldAccess { tuple, field, span }
             }
             Expr::Cast { value, ty, span } => {
-                let value = value.plug_in(contract, pred_name, values_map);
+                let value = value.plug_in(contract, pred_key, values_map);
 
                 Expr::Cast { value, ty, span }
             }
@@ -553,8 +553,8 @@ impl ExprKey {
                 collection,
                 span,
             } => {
-                let value = value.plug_in(contract, pred_name, values_map);
-                let collection = collection.plug_in(contract, pred_name, values_map);
+                let value = value.plug_in(contract, pred_key, values_map);
+                let collection = collection.plug_in(contract, pred_key, values_map);
 
                 Expr::In {
                     value,
@@ -563,8 +563,8 @@ impl ExprKey {
                 }
             }
             Expr::Range { lb, ub, span } => {
-                let lb = lb.plug_in(contract, pred_name, values_map);
-                let ub = ub.plug_in(contract, pred_name, values_map);
+                let lb = lb.plug_in(contract, pred_key, values_map);
+                let ub = ub.plug_in(contract, pred_key, values_map);
 
                 Expr::Range { lb, ub, span }
             }
@@ -578,17 +578,14 @@ impl ExprKey {
                 let gen_ranges = gen_ranges
                     .iter()
                     .map(|(index, range)| {
-                        (
-                            index.clone(),
-                            range.plug_in(contract, pred_name, values_map),
-                        )
+                        (index.clone(), range.plug_in(contract, pred_key, values_map))
                     })
                     .collect::<Vec<_>>();
                 let conditions = conditions
                     .iter()
-                    .map(|condition| condition.plug_in(contract, pred_name, values_map))
+                    .map(|condition| condition.plug_in(contract, pred_key, values_map))
                     .collect::<Vec<_>>();
-                let body = body.plug_in(contract, pred_name, values_map);
+                let body = body.plug_in(contract, pred_key, values_map);
 
                 Expr::Generator {
                     kind,

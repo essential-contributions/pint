@@ -2,7 +2,7 @@ use crate::{
     error::{Error, Handler, ReportableError},
     lexer::{self, KEYWORDS},
     parser::ParserContext,
-    predicate::{Contract, DisplayWithPred, Exprs, Predicate},
+    predicate::{Contract, DisplayWithPred, Predicate},
     span::Span,
 };
 use std::{collections::BTreeMap, path::Path, rc::Rc};
@@ -50,28 +50,17 @@ macro_rules! parse_and_collect_errors {
 /// collects all use statements encountered by a parser.
 #[cfg(test)]
 macro_rules! context {
-    ($mod_path: expr, $use_paths: expr) => {{
+    ($contract: expr, $root_pred: expr, $mod_path: expr, $use_paths: expr) => {{
         ParserContext {
             mod_path: &$mod_path,
             mod_prefix: &(!$mod_path.is_empty())
                 .then(|| format!("::{}::", $mod_path.join("::")))
                 .unwrap_or("::".to_string()),
             local_scope: None,
-            contract: &mut Contract {
-                preds: BTreeMap::from([(
-                    Contract::ROOT_PRED_NAME.to_string(),
-                    Predicate::default(),
-                )]),
-                exprs: Exprs::default(),
-                consts: fxhash::FxHashMap::default(),
-                removed_macro_calls: slotmap::SecondaryMap::default(),
-            },
-            current_pred: &mut Contract::ROOT_PRED_NAME.to_string(),
+            contract: &mut $contract,
+            current_pred: $root_pred,
             macros: &mut vec![],
-            macro_calls: &mut BTreeMap::from([(
-                Contract::ROOT_PRED_NAME.to_string(),
-                slotmap::SecondaryMap::new(),
-            )]),
+            macro_calls: &mut BTreeMap::from([($root_pred, slotmap::SecondaryMap::new())]),
             span_from: &|l, r| Span::new(Rc::from(Path::new("")), l..r),
             use_paths: &mut $use_paths,
             next_paths: &mut vec![],
@@ -87,7 +76,7 @@ macro_rules! context {
 macro_rules! run_parser {
     ($parser: expr, $source: expr) => {{
         let mod_path = Vec::<String>::new();
-        run_parser!(@internal $parser, $source, mod_path)
+        run_parser!(@internal $parser, $source, &mod_path)
     }};
 
     ($parser: expr, $source: expr, $mod_path: expr) => {{
@@ -100,8 +89,10 @@ macro_rules! run_parser {
         } else {
             "###".to_owned() + $parser.1 + "### " + $source
         };
+        let mut contract = Contract::default();
+        let root_pred_key = contract.root_pred_key();
         let mut use_paths = Vec::new();
-        let mut context = context!($mod_path, &mut use_paths);
+        let mut context = context!(contract, root_pred_key, $mod_path, &mut use_paths);
         let result = parse_and_collect_errors!($parser.0, &source, context);
 
         let parser_output = match result {
@@ -1952,7 +1943,14 @@ fn macro_decl() {
           }
       "#;
 
-    let mut context = context!(Vec::<String>::new(), Vec::new());
+    let mut contract = Contract::default();
+    let root_pred_key = contract.root_pred_key();
+    let mut context = context!(
+        contract,
+        root_pred_key,
+        &Vec::<String>::new(),
+        &mut Vec::new()
+    );
     let result = parse_and_collect_errors!(yp::PintParser::new(), src, context);
 
     assert!(result.is_ok());
@@ -1966,7 +1964,9 @@ fn macro_decl() {
 
 #[test]
 fn macro_decl_good_params() {
-    let mut context = context!(Vec::<String>::new(), Vec::new());
+    let mut contract = Contract::default();
+    let root_pred_key = contract.root_pred_key();
+    let mut context = context!(contract, root_pred_key, Vec::<String>::new(), Vec::new());
     let parser = yp::PintParser::new();
 
     assert!(parse_and_collect_errors!(parser, r#"macro @foo($a) { x }"#, context).is_ok());
@@ -1984,7 +1984,9 @@ fn macro_decl_good_params() {
 
 #[test]
 fn macro_decl_bad_params() {
-    let mut context = context!(Vec::<String>::new(), Vec::new());
+    let mut contract = Contract::default();
+    let root_pred_key = contract.root_pred_key();
+    let mut context = context!(contract, root_pred_key, Vec::<String>::new(), Vec::new());
     let parser = yp::PintParser::new();
 
     let result = parse_and_collect_errors!(parser, r#"macro @foo(&rest) { x }"#, context);
@@ -2031,18 +2033,13 @@ fn macro_decl_bad_params() {
 #[test]
 fn macro_call() {
     let src = r#"###expr### @foo(a * 3; int; <= =>)"#;
-    let mut context = context!(Vec::<String>::new(), Vec::new());
+    let mut contract = Contract::default();
+    let root_pred_key = contract.root_pred_key();
+    let mut context = context!(contract, root_pred_key, Vec::<String>::new(), Vec::new());
     let result = parse_and_collect_errors!(yp::TestDelegateParser::new(), src, context);
 
     assert!(result.is_ok());
-    assert!(
-        context
-            .macro_calls
-            .get(Contract::ROOT_PRED_NAME)
-            .unwrap()
-            .len()
-            == 1
-    );
+    assert!(context.macro_calls.get(&root_pred_key).unwrap().len() == 1);
 
     check(
         &context
@@ -2056,7 +2053,7 @@ fn macro_call() {
     check(
         &context
             .macro_calls
-            .get(Contract::ROOT_PRED_NAME)
+            .get(&root_pred_key)
             .unwrap()
             .iter()
             .next()
@@ -2736,6 +2733,9 @@ predicate Baz {
         &run_parser!((yp::PintParser::new(), ""), src),
         expect_test::expect![[r#"
 
+            predicate ::Foo {
+            }
+
             predicate ::Bar {
                 var ::x: int;
                 constraint (::x == 1);
@@ -2744,9 +2744,6 @@ predicate Baz {
             predicate ::Baz {
                 enum ::MyEnum = A | B;
                 type ::MyType = ::MyEnum;
-            }
-
-            predicate ::Foo {
             }"#]],
     );
 }

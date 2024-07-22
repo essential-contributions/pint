@@ -5,7 +5,7 @@ use super::{
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     expr::{BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
-    predicate::StorageVar,
+    predicate::{PredKey, StorageVar},
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
@@ -231,7 +231,7 @@ impl Contract {
     }
 
     pub(super) fn check_undefined_types(&mut self, handler: &Handler) {
-        for pred in self.preds.values() {
+        for (pred_key, pred) in self.preds.iter() {
             let valid_custom_tys: FxHashSet<&String> = FxHashSet::from_iter(
                 pred.enums
                     .iter()
@@ -259,7 +259,7 @@ impl Contract {
                 }
             }
 
-            for expr_key in self.exprs(pred) {
+            for expr_key in self.exprs(pred_key) {
                 if let Type::Custom { path, span, .. } = expr_key.get_ty(self) {
                     if !valid_custom_tys.contains(path) {
                         handler.emit_err(Error::Compile {
@@ -374,47 +374,41 @@ impl Contract {
         self.check_iface_inst_addrs(handler);
         self.check_pred_inst_addrs(handler);
 
-        let pred_names = self.preds.keys().cloned().collect::<Vec<_>>();
-        for pred_name in &pred_names {
+        for pred_key in self.preds.keys().collect::<Vec<_>>() {
             // Check all the 'root' exprs (constraints, state init exprs, and var init exprs) one at a
             // time, gathering errors as we go. Copying the keys out first to avoid borrowing conflict.
-            let mut all_expr_keys = self.preds[pred_name]
+            let mut all_expr_keys = self.preds[pred_key]
                 .constraints
                 .iter()
                 .map(|ConstraintDecl { expr: key, .. }| *key)
-                .chain(self.preds[pred_name].states().map(|(_, state)| state.expr))
-                .chain(
-                    self.preds[pred_name]
-                        .var_inits
-                        .iter()
-                        .map(|(_, expr)| *expr),
-                )
+                .chain(self.preds[pred_key].states().map(|(_, state)| state.expr))
+                .chain(self.preds[pred_key].var_inits.iter().map(|(_, expr)| *expr))
                 .collect::<Vec<_>>();
 
             // When we're checking the root predicate we check all the consts too.
-            if pred_name == Contract::ROOT_PRED_NAME {
+            if self.preds[pred_key].name == Contract::ROOT_PRED_NAME {
                 all_expr_keys.extend(self.consts.iter().map(|(_, Const { expr, .. })| *expr));
             }
 
             for expr_key in all_expr_keys {
-                if let Err(err) = self.type_check_single_expr(pred_name, expr_key) {
+                if let Err(err) = self.type_check_single_expr(pred_key, expr_key) {
                     handler.emit_err(err);
                 }
             }
 
             // Now check all if declarations
-            self.preds[pred_name]
+            self.preds[pred_key]
                 .if_decls
                 .clone()
                 .iter()
-                .for_each(|if_decl| self.type_check_if_decl(handler, pred_name, if_decl));
+                .for_each(|if_decl| self.type_check_if_decl(handler, pred_key, if_decl));
 
             // Confirm now that all decision variables are typed.
             let mut var_key_to_new_type = FxHashMap::default();
-            for (var_key, var) in self.preds[pred_name].vars() {
-                let ty = var_key.get_ty(&self.preds[pred_name]);
+            for (var_key, var) in self.preds[pred_key].vars() {
+                let ty = var_key.get_ty(&self.preds[pred_key]);
                 if ty.is_unknown() {
-                    if let Some(init_expr_key) = self.preds[pred_name].var_inits.get(var_key) {
+                    if let Some(init_expr_key) = self.preds[pred_key].var_inits.get(var_key) {
                         let ty = init_expr_key.get_ty(self);
                         if !ty.is_unknown() {
                             if var.is_pub
@@ -468,7 +462,7 @@ impl Contract {
             }
 
             self.preds
-                .get_mut(pred_name)
+                .get_mut(pred_key)
                 .unwrap()
                 .vars
                 .update_types(|var_key, ty| {
@@ -479,19 +473,19 @@ impl Contract {
 
             // Confirm now that all state variables are typed.
             let mut state_key_to_new_type = FxHashMap::default();
-            for (state_key, state) in self.preds[pred_name].states() {
-                let state_ty = state_key.get_ty(&self.preds[pred_name]);
+            for (state_key, state) in self.preds[pred_key].states() {
+                let state_ty = state_key.get_ty(&self.preds[pred_key]);
                 if !state_ty.is_unknown() {
                     let expr_ty = state.expr.get_ty(self);
                     if !expr_ty.is_unknown() {
-                        if !state_ty.eq(&self.preds[pred_name], expr_ty) {
+                        if !state_ty.eq(&self.preds[pred_key], expr_ty) {
                             handler.emit_err(Error::Compile {
                                 error: CompileError::StateVarInitTypeError {
                                     large_err: Box::new(LargeTypeError::StateVarInitTypeError {
-                                        expected_ty: self.preds[pred_name]
+                                        expected_ty: self.preds[pred_key]
                                             .with_pred(self, state_ty)
                                             .to_string(),
-                                        found_ty: self.preds[pred_name]
+                                        found_ty: self.preds[pred_key]
                                             .with_pred(self, expr_ty)
                                             .to_string(),
                                         span: self.expr_key_to_span(state.expr),
@@ -538,7 +532,7 @@ impl Contract {
             }
 
             self.preds
-                .get_mut(pred_name)
+                .get_mut(pred_key)
                 .unwrap()
                 .states
                 .update_types(|state_key, ty| {
@@ -550,34 +544,32 @@ impl Contract {
             // Last thing we have to do is to type check all the range expressions in array types and
             // make sure they are integers or enums
             let mut checked_range_exprs = FxHashSet::default();
-            for range_expr in self.preds[pred_name]
+            for range_expr in self.preds[pred_key]
                 .vars()
                 .filter_map(|(var_key, _)| {
-                    var_key
-                        .get_ty(&self.preds[pred_name])
-                        .get_array_range_expr()
+                    var_key.get_ty(&self.preds[pred_key]).get_array_range_expr()
                 })
-                .chain(self.preds[pred_name].states().filter_map(|(state_key, _)| {
+                .chain(self.preds[pred_key].states().filter_map(|(state_key, _)| {
                     state_key
-                        .get_ty(&self.preds[pred_name])
+                        .get_ty(&self.preds[pred_key])
                         .get_array_range_expr()
                 }))
                 .chain(
-                    self.exprs(&self.preds[pred_name])
+                    self.exprs(pred_key)
                         .filter_map(|expr_key| expr_key.get_ty(self).get_array_range_expr()),
                 )
                 .collect::<Vec<_>>()
                 .iter()
             {
-                if let Err(err) = self.type_check_single_expr(pred_name, *range_expr) {
+                if let Err(err) = self.type_check_single_expr(pred_key, *range_expr) {
                     handler.emit_err(err);
                 } else if !(range_expr.get_ty(self).is_int()
-                    || range_expr.get_ty(self).is_enum(&self.preds[pred_name])
+                    || range_expr.get_ty(self).is_enum(&self.preds[pred_key])
                     || checked_range_exprs.contains(range_expr))
                 {
                     handler.emit_err(Error::Compile {
                         error: CompileError::InvalidArrayRangeType {
-                            found_ty: self.preds[pred_name]
+                            found_ty: self.preds[pred_key]
                                 .with_pred(self, range_expr.get_ty(self))
                                 .to_string(),
                             span: self.expr_key_to_span(*range_expr),
@@ -591,7 +583,7 @@ impl Contract {
     }
 
     fn check_iface_inst_addrs(&mut self, handler: &Handler) {
-        for pred_name in self.preds.keys().cloned().collect::<Vec<_>>().iter() {
+        for pred_key in self.preds.keys().collect::<Vec<_>>() {
             // Type check all interface instance declarations.
             let mut addr_keys = Vec::default();
             for InterfaceInstance {
@@ -599,9 +591,9 @@ impl Contract {
                 address,
                 span,
                 ..
-            } in &self.preds[pred_name].interface_instances
+            } in &self.preds[pred_key].interface_instances
             {
-                if self.preds[pred_name]
+                if self.preds[pred_key]
                     .interfaces
                     .iter()
                     .any(|e| e.name.to_string() == *interface)
@@ -618,12 +610,12 @@ impl Contract {
                 }
             }
 
-            self.check_instance_addresses(handler, pred_name, &addr_keys);
+            self.check_instance_addresses(handler, pred_key, &addr_keys);
         }
     }
 
     fn check_pred_inst_addrs(&mut self, handler: &Handler) {
-        for pred_name in self.preds.keys().cloned().collect::<Vec<_>>().iter() {
+        for pred_key in self.preds.keys().collect::<Vec<_>>() {
             // Type check all predicate instance declarations.
             let mut addr_keys = Vec::default();
             for PredicateInstance {
@@ -632,16 +624,16 @@ impl Contract {
                 address,
                 span,
                 ..
-            } in &self.preds[pred_name].predicate_instances
+            } in &self.preds[pred_key].predicate_instances
             {
                 // Make sure that an appropriate interface instance exists and an appropriate
                 // predicate interface exists.
-                if let Some(interface_instance) = self.preds[pred_name]
+                if let Some(interface_instance) = self.preds[pred_key]
                     .interface_instances
                     .iter()
                     .find(|e| e.name.to_string() == *interface_instance)
                 {
-                    if let Some(interface) = self.preds[pred_name]
+                    if let Some(interface) = self.preds[pred_key]
                         .interfaces
                         .iter()
                         .find(|e| e.name.to_string() == *interface_instance.interface)
@@ -673,25 +665,25 @@ impl Contract {
                 }
             }
 
-            self.check_instance_addresses(handler, pred_name, &addr_keys);
+            self.check_instance_addresses(handler, pred_key, &addr_keys);
         }
     }
 
     fn check_instance_addresses(
         &mut self,
         handler: &Handler,
-        pred_name: &str,
+        pred_key: PredKey,
         addr_keys: &[ExprKey],
     ) {
         for address in addr_keys {
-            match self.type_check_single_expr(pred_name, *address) {
+            match self.type_check_single_expr(pred_key, *address) {
                 Ok(()) => {
                     let ty = address.get_ty(self);
                     if !ty.is_b256() {
                         handler.emit_err(Error::Compile {
                             error: CompileError::AddressExpressionTypeError {
                                 large_err: Box::new(LargeTypeError::AddressExpressionTypeError {
-                                    expected_ty: self.preds[pred_name]
+                                    expected_ty: self.preds[pred_key]
                                         .with_pred(
                                             self,
                                             Type::Primitive {
@@ -700,7 +692,7 @@ impl Contract {
                                             },
                                         )
                                         .to_string(),
-                                    found_ty: self.preds[pred_name].with_pred(self, ty).to_string(),
+                                    found_ty: self.preds[pred_key].with_pred(self, ty).to_string(),
                                     span: self.expr_key_to_span(*address),
                                     expected_span: Some(self.expr_key_to_span(*address)),
                                 }),
@@ -718,7 +710,7 @@ impl Contract {
 
     // Type check an if statement and all of its sub-statements including other ifs. This is a
     // recursive function.
-    fn type_check_if_decl(&mut self, handler: &Handler, pred_name: &str, if_decl: &IfDecl) {
+    fn type_check_if_decl(&mut self, handler: &Handler, pred_key: PredKey, if_decl: &IfDecl) {
         let IfDecl {
             condition,
             then_block,
@@ -727,14 +719,14 @@ impl Contract {
         } = if_decl;
 
         // Make sure the condition is a `bool`
-        if let Err(err) = self.type_check_single_expr(pred_name, *condition) {
+        if let Err(err) = self.type_check_single_expr(pred_key, *condition) {
             handler.emit_err(err);
         } else {
             let cond_ty = condition.get_ty(self);
             if !cond_ty.is_bool() {
                 handler.emit_err(Error::Compile {
                     error: CompileError::NonBoolConditional {
-                        ty: self.preds[pred_name].with_pred(self, cond_ty).to_string(),
+                        ty: self.preds[pred_key].with_pred(self, cond_ty).to_string(),
                         conditional: "`if` statement".to_string(),
                         span: self.expr_key_to_span(*condition),
                     },
@@ -744,32 +736,36 @@ impl Contract {
 
         // Type check each block statement in the "then" block
         then_block.iter().for_each(|block_statement| {
-            self.type_check_block_statement(handler, pred_name, block_statement);
+            self.type_check_block_statement(handler, pred_key, block_statement);
         });
 
         // Type check each block statement in the "else" block, if available
         else_block.iter().flatten().for_each(|block_statement| {
-            self.type_check_block_statement(handler, pred_name, block_statement);
+            self.type_check_block_statement(handler, pred_key, block_statement);
         });
     }
 
     fn type_check_block_statement(
         &mut self,
         handler: &Handler,
-        pred_name: &str,
+        pred_key: PredKey,
         block_statement: &BlockStatement,
     ) {
         match block_statement {
             BlockStatement::Constraint(ConstraintDecl { expr, .. }) => {
-                if let Err(err) = self.type_check_single_expr(pred_name, *expr) {
+                if let Err(err) = self.type_check_single_expr(pred_key, *expr) {
                     handler.emit_err(err);
                 }
             }
-            BlockStatement::If(if_decl) => self.type_check_if_decl(handler, pred_name, if_decl),
+            BlockStatement::If(if_decl) => self.type_check_if_decl(handler, pred_key, if_decl),
         }
     }
 
-    fn type_check_single_expr(&mut self, pred_name: &str, expr_key: ExprKey) -> Result<(), Error> {
+    fn type_check_single_expr(
+        &mut self,
+        pred_key: PredKey,
+        expr_key: ExprKey,
+    ) -> Result<(), Error> {
         // Attempt to infer all the types of each expr.
         let mut queue = Vec::new();
 
@@ -800,7 +796,7 @@ impl Contract {
             if !next_key.get_ty(self).is_unknown() {
                 queue.pop();
             } else {
-                match self.infer_expr_key_type(&self.preds[pred_name], next_key)? {
+                match self.infer_expr_key_type(&self.preds[pred_key], next_key)? {
                     // Successfully inferred its type.  Save it and pop it from the queue.
                     Inference::Type(ty) => {
                         next_key.set_ty(ty, self);

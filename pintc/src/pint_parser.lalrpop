@@ -3,7 +3,7 @@ use crate::{
     expr::*,
     predicate::{
         BlockStatement, Const, ConstraintDecl, ExprKey, IfDecl, PredicateInterface, InterfaceDecl,
-        InterfaceInstance, InterfaceVar, Predicate, Contract,
+        InterfaceInstance, InterfaceVar, Predicate,
         StorageVar,
     },
     lexer,
@@ -69,26 +69,26 @@ PredicateOpen: () = {
         );
 
         // Brand new Pred in the contract
-        context
+        let pred_key = context
             .contract
             .preds
-            .insert(name.to_string(), Predicate::new(name.to_string()));
+            .insert(Predicate::new(name.to_string()));
 
         // Keep track of the macro call in this new predicate
         context
             .macro_calls
-            .insert(name.to_string(), slotmap::SecondaryMap::default());
+            .insert(pred_key, slotmap::SecondaryMap::default());
 
         // Switch the current_pred so that the parser inserts items in the right Pred until the
         // predicate closes
-        *context.current_pred = name.to_string();
+        context.current_pred = pred_key;
     }
 }
 
 PredicateClose: () = {
     "}" => {
         // At the end of the predicate declaration, return back to the root Pred
-        *context.current_pred = Contract::ROOT_PRED_NAME.to_string();
+        context.current_pred = context.contract.root_pred_key();
     }
 }
 
@@ -821,7 +821,7 @@ MacroCallExpr: ExprKey = {
         );
         context
             .macro_calls
-            .get_mut(context.current_pred)
+            .get_mut(&context.current_pred)
             .unwrap()
             .insert(call_key, (call_expr_key, call_data));
         call_expr_key

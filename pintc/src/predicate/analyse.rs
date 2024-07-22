@@ -32,8 +32,8 @@ impl Contract {
         // into the Contract (Predicates will contain only their local vars, nothing more).
         self.reject_non_primitive_consts(handler)?;
 
-        for pred in self.preds.values() {
-            for expr_key in self.exprs(pred) {
+        for pred_key in self.preds.keys() {
+            for expr_key in self.exprs(pred_key) {
                 if let Some(span) = self.removed_macro_calls.get(expr_key) {
                     // This expression was actually a macro call which expanded to just declarations,
                     // not another expression. We can set a specific error in this case.
@@ -64,10 +64,10 @@ impl Contract {
     }
 
     pub fn array_check(self, handler: &Handler) -> Result<Self, ErrorEmitted> {
-        for pred in self.preds.values() {
-            pred.check_array_lengths(&self, handler);
-            pred.check_array_indexing(&self, handler);
-            pred.check_array_compares(&self, handler);
+        for pred_key in self.preds.keys() {
+            self.check_array_lengths(handler, pred_key);
+            self.check_array_indexing(handler, pred_key);
+            self.check_array_compares(handler, pred_key);
         }
 
         if handler.has_errors() {
@@ -103,12 +103,9 @@ impl Contract {
                 if !evaluator.contains_path(path) {
                     if let Expr::Immediate { value, .. } = expr {
                         evaluator.insert_value(path.clone(), value.clone());
-                    } else if let Ok(imm) = evaluator.evaluate_key(
-                        &cnst.expr,
-                        &tmp_handler,
-                        self,
-                        &self.root_pred().name,
-                    ) {
+                    } else if let Ok(imm) =
+                        evaluator.evaluate_key(&cnst.expr, &tmp_handler, self, self.root_pred_key())
+                    {
                         evaluator.insert_value(path.clone(), imm);
 
                         // Take note of this const as we need to update the const declaration
