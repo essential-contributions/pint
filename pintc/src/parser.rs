@@ -3,7 +3,7 @@ use crate::{
     expr::Ident,
     lexer,
     macros::{self, MacroCall, MacroDecl, MacroExpander},
-    predicate::{CallKey, Contract, ExprKey, Predicate},
+    predicate::{CallKey, Contract, ExprKey, PredKey, Predicate},
     span::{empty_span, Span},
     types::*,
 };
@@ -41,7 +41,7 @@ pub fn parse_project(
 struct ProjectParser<'a> {
     contract: Contract,
     macros: Vec<MacroDecl>,
-    macro_calls: BTreeMap<String, slotmap::SecondaryMap<CallKey, (ExprKey, MacroCall)>>,
+    macro_calls: BTreeMap<PredKey, slotmap::SecondaryMap<CallKey, (ExprKey, MacroCall)>>,
     proj_root_path: PathBuf,
     root_src_path: PathBuf,
     visited_paths: Vec<PathBuf>,
@@ -87,34 +87,27 @@ impl<'a> ProjectParser<'a> {
             .parent()
             .map_or_else(|| PathBuf::from("/"), PathBuf::from);
 
-        let mut project_parser = Self {
-            contract: Contract::default(),
+        let contract = Contract::default();
+        let macro_calls =
+            BTreeMap::from([(contract.root_pred_key(), slotmap::SecondaryMap::default())]);
+
+        Self {
+            contract,
             macros: vec![],
-            macro_calls: BTreeMap::from([(
-                Contract::ROOT_PRED_NAME.to_string(),
-                slotmap::SecondaryMap::default(),
-            )]),
+            macro_calls,
             proj_root_path,
             root_src_path,
             visited_paths: vec![],
             handler,
             deps,
             unique_idx: 0,
-        };
-
-        // Start with an empty Pred with an empty name. This is the "root predicate".
-        project_parser
-            .contract
-            .preds
-            .insert(Contract::ROOT_PRED_NAME.to_string(), Predicate::default());
-
-        project_parser
+        }
     }
 
     /// Parse the project starting with the `root_src_path` and return a predicate. Upon failure,
     /// return a vector of all compile errors encountered.
     fn parse_project(mut self) -> Self {
-        let mut call_replacements = Vec::<(String, ExprKey, Option<ExprKey>, Span)>::new();
+        let mut call_replacements = Vec::<(PredKey, ExprKey, Option<ExprKey>, Span)>::new();
         let mut macro_expander = MacroExpander::default();
         let mut pending_paths = vec![(self.root_src_path.clone(), Vec::new())];
 
@@ -149,9 +142,8 @@ impl<'a> ProjectParser<'a> {
                 return self;
             }
 
-            let keys = self.macro_calls.keys().cloned().collect::<Vec<_>>();
-            for current_pred in &keys {
-                let macro_calls = self.macro_calls.get_mut(current_pred).unwrap();
+            for current_pred in self.macro_calls.keys().cloned().collect::<Vec<_>>() {
+                let macro_calls = self.macro_calls.get_mut(&current_pred).unwrap();
 
                 // Expand the next call. It may find new paths.
                 if let Some(call_key) = macro_calls.keys().nth(0) {
@@ -178,13 +170,13 @@ impl<'a> ProjectParser<'a> {
                             &decl_sig_span.context,
                             &call.mod_path,
                             &call,
-                            current_pred.clone(),
+                            current_pred,
                         );
 
                         self.analyse_and_add_paths(&call.mod_path, &next_paths, &mut pending_paths);
 
                         call_replacements.push((
-                            current_pred.clone(),
+                            current_pred,
                             call_expr_key,
                             body_expr,
                             call.span.clone(),
@@ -193,7 +185,7 @@ impl<'a> ProjectParser<'a> {
                 }
             }
 
-            for current_pred in keys {
+            for current_pred in self.macro_calls.keys().cloned().collect::<Vec<_>>() {
                 let macro_calls = self.macro_calls.get_mut(&current_pred).unwrap();
                 if macro_calls.is_empty() {
                     self.macro_calls.remove(&current_pred);
@@ -223,7 +215,7 @@ impl<'a> ProjectParser<'a> {
         for (current_pred, call_expr_key, body_expr_key, span) in call_replacements {
             if let Some(body_expr_key) = body_expr_key {
                 self.contract
-                    .replace_exprs(&current_pred, call_expr_key, body_expr_key);
+                    .replace_exprs(current_pred, call_expr_key, body_expr_key);
             } else {
                 // Keep track of the removed macro for type-checking, in case the predicate
                 // erroneously expected the macro call to be an expression (and not just
@@ -252,9 +244,9 @@ impl<'a> ProjectParser<'a> {
 
         self.contract
             .preds
-            .iter_mut()
-            .filter(|(name, _)| *name != &Contract::ROOT_PRED_NAME.to_string())
-            .for_each(|(_, pred)| {
+            .values_mut()
+            .filter(|pred| pred.name != Contract::ROOT_PRED_NAME)
+            .for_each(|pred| {
                 pred.new_types.extend_from_slice(&new_types);
                 pred.enums.extend_from_slice(&enums);
                 pred.storage.clone_from(&storage);
@@ -319,7 +311,6 @@ macro_rules! parse_with {
             .collect::<Vec<_>>()
             .concat();
         mod_prefix.push_str("::");
-        let mut current_pred = $current_pred.to_string();
 
         let mut next_paths = Vec::new();
 
@@ -328,7 +319,7 @@ macro_rules! parse_with {
             mod_prefix: &mod_prefix,
             local_scope: $local_scope,
             contract: &mut $self.contract,
-            current_pred: &mut current_pred,
+            current_pred: $current_pred,
             macros: &mut $self.macros,
             macro_calls: &mut $self.macro_calls,
             span_from: &span_from,
@@ -383,6 +374,8 @@ impl<'a> ProjectParser<'a> {
             .concat();
         mod_prefix.push_str("");
 
+        let root_pred_key = self.contract.root_pred_key();
+
         parse_with!(
             self,
             lexer::Lexer::new(&src_str, src_path, mod_path),
@@ -391,7 +384,7 @@ impl<'a> ProjectParser<'a> {
             mod_path,
             None,                           // local_scope
             Option::<(String, Span)>::None, // macro_ctx
-            Contract::ROOT_PRED_NAME, // The Pred when we explore a new module is always the root Pred
+            root_pred_key,                  // Always use root pred when we explore a new module.
             self.handler,
         )
     }
@@ -402,7 +395,7 @@ impl<'a> ProjectParser<'a> {
         src_path: &Rc<Path>,
         mod_path: &[String],
         macro_call: &MacroCall,
-        current_pred: String,
+        current_pred: PredKey,
     ) -> (Option<ExprKey>, Vec<NextModPath>) {
         let local_scope = format!("anon@{}", self.unique_idx);
         self.unique_idx += 1;

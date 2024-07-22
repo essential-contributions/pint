@@ -1,14 +1,14 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted},
     expr::{Expr, GeneratorKind},
-    predicate::{Contract, ExprKey, Handler, Predicate},
+    predicate::{Contract, ExprKey, Handler, PredKey, Predicate},
     span::empty_span,
     types::Type,
 };
 
 pub(crate) fn validate(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
-    contract.preds.values().for_each(|pred| {
-        check_constraints(contract, pred, handler);
+    contract.preds.iter().for_each(|(pred_key, pred)| {
+        check_constraints(contract, pred_key, handler);
         check_vars(pred, handler);
         check_states(pred, handler);
         check_ifs(pred, handler);
@@ -61,8 +61,8 @@ fn check_ifs(pred: &Predicate, handler: &Handler) {
     }
 }
 
-fn check_constraints(contract: &Contract, pred: &Predicate, handler: &Handler) {
-    for expr_key in contract.exprs(pred) {
+fn check_constraints(contract: &Contract, pred_key: PredKey, handler: &Handler) {
+    for expr_key in contract.exprs(pred_key) {
         let _ = check_expr(&expr_key, handler, contract);
     }
 }
@@ -204,19 +204,14 @@ fn run_parser(src: &str, handler: &Handler) -> Contract {
     use crate::{
         lexer,
         parser::{self, pint_parser},
-        predicate, span,
+        span,
     };
     use std::collections::BTreeMap;
 
     let parser = pint_parser::PintParser::new();
-    let mut current_pred = Contract::ROOT_PRED_NAME.to_string();
     let filepath = std::rc::Rc::from(std::path::Path::new("test"));
-    let mut contract = Contract {
-        preds: BTreeMap::from([(Contract::ROOT_PRED_NAME.to_string(), Predicate::default())]),
-        exprs: predicate::Exprs::default(),
-        consts: fxhash::FxHashMap::default(),
-        removed_macro_calls: slotmap::SecondaryMap::default(),
-    };
+    let mut contract = Contract::default();
+    let current_pred = contract.root_pred_key();
 
     parser
         .parse(
@@ -225,12 +220,9 @@ fn run_parser(src: &str, handler: &Handler) -> Contract {
                 mod_prefix: "",
                 local_scope: None,
                 contract: &mut contract,
-                current_pred: &mut current_pred,
+                current_pred,
                 macros: &mut Vec::new(),
-                macro_calls: &mut BTreeMap::from([(
-                    Contract::ROOT_PRED_NAME.to_string(),
-                    slotmap::SecondaryMap::new(),
-                )]),
+                macro_calls: &mut BTreeMap::from([(current_pred, slotmap::SecondaryMap::new())]),
                 span_from: &|_, _| span::empty_span(),
                 use_paths: &mut Vec::new(),
                 next_paths: &mut Vec::new(),
@@ -255,17 +247,18 @@ fn expr_types() {
     // custom / enum
     let src = r#"
 enum MyEnum = Variant1 | Variant2;
-predicate test { var x = MyEnum; }
+predicate test { var x = MyEnum::Variant2; }
 "#;
 
     // Do this manually here because we have to copy the enum into the predicate.
     // TODO: Should imporve this eventually
     let handler = Handler::default();
     let mut contract = run_parser(src, &handler);
-    let enums = contract.preds[""].enums.clone();
+    let enums = contract.root_pred().enums.clone();
     contract
         .preds
-        .get_mut("test")
+        .values_mut()
+        .find(|pred| pred.name == "test")
         .unwrap()
         .enums
         .clone_from(&enums);
@@ -291,10 +284,11 @@ predicate test { var x: MyAliasInt = 3; }
     // TODO: Should imporve this eventually
     let handler = Handler::default();
     let mut contract = run_parser(src, &handler);
-    let new_types = contract.preds[""].new_types.clone();
+    let new_types = contract.root_pred().new_types.clone();
     contract
         .preds
-        .get_mut("test")
+        .values_mut()
+        .find(|pred| pred.name == "test")
         .unwrap()
         .new_types
         .clone_from(&new_types);

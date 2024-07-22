@@ -4,7 +4,7 @@ use crate::{
     macros::{MacroCall, MacroDecl},
     parser::{Ident, NextModPath, UsePath, UseTree},
     predicate::{
-        CallKey, ConstraintDecl, Contract, ExprKey, Interface, InterfaceDecl, Predicate,
+        CallKey, ConstraintDecl, Contract, ExprKey, Interface, InterfaceDecl, PredKey, Predicate,
         PredicateInstance, StorageVar, Var,
     },
     span::{self, Span},
@@ -17,10 +17,10 @@ pub struct ParserContext<'a> {
     pub(crate) mod_prefix: &'a str,
     pub(crate) local_scope: Option<&'a str>,
     pub(crate) contract: &'a mut Contract,
-    pub(crate) current_pred: &'a mut String,
+    pub(crate) current_pred: PredKey,
     pub(crate) macros: &'a mut Vec<MacroDecl>,
     pub(crate) macro_calls:
-        &'a mut BTreeMap<String, slotmap::SecondaryMap<CallKey, (ExprKey, MacroCall)>>,
+        &'a mut BTreeMap<PredKey, slotmap::SecondaryMap<CallKey, (ExprKey, MacroCall)>>,
     pub(crate) span_from: &'a dyn Fn(usize, usize) -> Span,
     pub(crate) use_paths: &'a mut Vec<UsePath>,
     pub(crate) next_paths: &'a mut Vec<NextModPath>,

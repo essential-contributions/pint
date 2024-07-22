@@ -1,4 +1,4 @@
-use super::{Contract, Predicate};
+use super::{Contract, PredKey, Predicate};
 use crate::{expr::Expr, types::Type};
 use std::collections::HashSet;
 
@@ -168,9 +168,9 @@ pub(crate) struct ExprsIter<'a> {
 }
 
 impl<'a> ExprsIter<'a> {
-    pub(super) fn new(contract: &'a Contract, pred: &Predicate) -> ExprsIter<'a> {
+    pub(super) fn new(contract: &'a Contract, pred_key: PredKey) -> ExprsIter<'a> {
         // We start with all the constraint and state exprs.
-        let queue = pred.root_set().collect();
+        let queue = contract.root_set(pred_key).collect();
 
         ExprsIter {
             contract,

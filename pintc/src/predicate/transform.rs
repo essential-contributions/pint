@@ -32,10 +32,10 @@ impl super::Contract {
 
         // Do some array checks now that generators have been unrolled (and ephemerals aren't
         // going to cause problems).
-        for pred in self.preds.values() {
-            pred.check_array_lengths(&self, handler);
-            pred.check_array_indexing(&self, handler);
-            pred.check_array_compares(&self, handler);
+        for pred_key in self.preds.keys() {
+            self.check_array_lengths(handler, pred_key);
+            self.check_array_indexing(handler, pred_key);
+            self.check_array_compares(handler, pred_key);
         }
 
         // Transform each enum variant into its integer discriminant
