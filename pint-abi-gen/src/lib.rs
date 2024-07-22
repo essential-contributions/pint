@@ -15,6 +15,8 @@
 //! The aim for the generated items is to ease the construction of solutions
 //! including the encoding of keys, values and mutations from higher-level types.
 
+use addr::Addresses;
+use essential_types::{contract::Contract, PredicateAddress};
 use pint_abi_types::{ContractABI, PredicateABI, TupleField, TypeABI, VarABI};
 use pint_abi_visit::Nesting;
 use proc_macro::TokenStream;
@@ -22,6 +24,8 @@ use proc_macro2::Span;
 use quote::ToTokens;
 use syn::parse_macro_input;
 
+mod addr;
+mod args;
 mod array;
 mod keys;
 mod map;
@@ -114,8 +118,14 @@ fn field_name_from_var_name(name: &str) -> String {
 }
 
 /// Generate all items for the given predicate.
-fn items_from_predicate(predicate: &PredicateABI) -> Vec<syn::Item> {
+fn items_from_predicate(
+    predicate: &PredicateABI,
+    addr: Option<&PredicateAddress>,
+) -> Vec<syn::Item> {
     let mut items = vec![];
+    if let Some(addr) = addr {
+        items.push(addr::predicate_const(&addr.contract, &addr.predicate).into());
+    }
     if !predicate.vars.is_empty() {
         items.extend(vars::items(&predicate.vars));
     }
@@ -127,11 +137,14 @@ fn items_from_predicate(predicate: &PredicateABI) -> Vec<syn::Item> {
 
 /// Generate a module for the given predicate.
 /// Modules are only generated for named predicates.
-fn mod_from_predicate(predicate: &PredicateABI) -> syn::ItemMod {
-    let name = strip_colons_prefix(&predicate.name);
+fn mod_from_predicate(
+    name: &str,
+    predicate: &PredicateABI,
+    addr: Option<PredicateAddress>,
+) -> syn::ItemMod {
     let doc_str = format!("Items for the `{name}` predicate.");
     let ident = syn::Ident::new(name, Span::call_site());
-    let items = items_from_predicate(predicate);
+    let items = items_from_predicate(predicate, addr.as_ref());
     syn::parse_quote! {
         #[allow(non_snake_case)]
         #[doc = #doc_str]
@@ -148,35 +161,57 @@ fn is_predicate_empty(pred: &PredicateABI) -> bool {
     pred.vars.is_empty() && pred.pub_vars.is_empty()
 }
 
+/// Zip the predicates with their addresses.
+fn predicates_with_addrs<'a>(
+    predicates: &'a [PredicateABI],
+    addrs: Option<&'a Addresses>,
+) -> impl 'a + Iterator<Item = (&'a PredicateABI, Option<PredicateAddress>)> {
+    predicates.iter().enumerate().map(move |(ix, predicate)| {
+        let addr = addrs.map(|addrs| PredicateAddress {
+            contract: addrs.contract.clone(),
+            predicate: addrs.predicates[ix].clone(),
+        });
+        (predicate, addr)
+    })
+}
+
 /// Generate a module for each named predicate.
-fn mods_from_named_predicates(predicates: &[PredicateABI]) -> Vec<syn::ItemMod> {
-    predicates
-        .iter()
-        .filter(|&predicate| !is_predicate_empty(predicate))
-        .filter(|predicate| predicate.name != ROOT_MOD_NAME)
-        .map(mod_from_predicate)
+fn mods_from_named_predicates(
+    predicates: &[PredicateABI],
+    addrs: Option<&Addresses>,
+) -> Vec<syn::ItemMod> {
+    predicates_with_addrs(predicates, addrs)
+        .filter(|(predicate, addr)| !is_predicate_empty(predicate) || addr.is_some())
+        .filter(|(predicate, _)| predicate.name != ROOT_MOD_NAME)
+        .map(|(predicate, addr)| {
+            let name = strip_colons_prefix(&predicate.name);
+            mod_from_predicate(name, predicate, addr)
+        })
         .collect()
 }
 
 /// Find the root predicate.
-fn find_root_predicate(predicates: &[PredicateABI]) -> Option<&PredicateABI> {
-    predicates
-        .iter()
-        .find(|predicate| predicate.name == ROOT_MOD_NAME)
+fn find_root_predicate<'a>(
+    predicates: &'a [PredicateABI],
+    addrs: Option<&'a Addresses>,
+) -> Option<(&'a PredicateABI, Option<PredicateAddress>)> {
+    predicates_with_addrs(predicates, addrs).find(|(predicate, _)| predicate.name == ROOT_MOD_NAME)
 }
 
 /// Given the set of predicates, generate all items.
 ///
 /// This includes a module for each named predicate, and types for the root predicate.
-fn items_from_predicates(predicates: &[PredicateABI]) -> Vec<syn::Item> {
+fn items_from_predicates(predicates: &[PredicateABI], addrs: Option<&Addresses>) -> Vec<syn::Item> {
     let mut items = vec![];
     // Add the root predicate items.
-    if let Some(root_pred) = find_root_predicate(predicates) {
-        items.extend(items_from_predicate(root_pred));
+    if let Some((root_pred, addr)) = find_root_predicate(predicates, addrs) {
+        // By default, the root predicate has no name. We name its predicate module `root`.
+        let name = "root";
+        items.push(mod_from_predicate(name, root_pred, addr).into());
     }
     // Add the named predicate modules.
     items.extend(
-        mods_from_named_predicates(predicates)
+        mods_from_named_predicates(predicates, addrs)
             .into_iter()
             .map(syn::Item::from),
     );
@@ -327,9 +362,12 @@ fn mod_from_keyed_vars(mod_name: &str, vars: &[VarABI]) -> syn::ItemMod {
 }
 
 /// Given an ABI, generate all items.
-fn items_from_abi(abi: &ContractABI) -> Vec<syn::Item> {
+fn items_from_abi_and_addrs(abi: &ContractABI, addrs: Option<&Addresses>) -> Vec<syn::Item> {
     let mut items = vec![];
-    items.extend(items_from_predicates(&abi.predicates));
+    items.extend(items_from_predicates(&abi.predicates, addrs));
+    if let Some(addrs) = addrs {
+        items.push(addr::contract_const(&addrs.contract).into());
+    }
     if !abi.storage.is_empty() {
         items.push(mod_from_keyed_vars("storage", &abi.storage).into());
     }
@@ -337,12 +375,25 @@ fn items_from_abi(abi: &ContractABI) -> Vec<syn::Item> {
 }
 
 /// Shorthand for producing tokens given the full deserialized ABI.
-fn tokens_from_abi(abi: &ContractABI) -> TokenStream {
-    let items = items_from_abi(abi);
+fn tokens_from_abi_and_addrs(abi: &ContractABI, addrs: Option<&Addresses>) -> TokenStream {
+    let items = items_from_abi_and_addrs(abi, addrs);
     items
         .into_iter()
         .map(|item| TokenStream::from(item.into_token_stream()))
         .collect()
+}
+
+/// Given a path specified as an argument to the `from_file!` macro, resolve
+/// whether it's relative to the `CARGO_MANIFEST_DIR` or absolute.
+fn resolve_path(path: &std::path::Path) -> std::path::PathBuf {
+    if path.is_relative() {
+        let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
+            .expect("`CARGO_MANIFEST_DIR` not set, but required for relative path expansion");
+        let manifest_dir_path = std::path::Path::new(&manifest_dir);
+        manifest_dir_path.join(&path)
+    } else {
+        path.to_path_buf()
+    }
 }
 
 /// Generate all items from a raw ABI JSON string.
@@ -352,7 +403,19 @@ pub fn from_str(input: TokenStream) -> TokenStream {
     let string = input_lit_str.value();
     let abi: ContractABI = serde_json::from_str(&string)
         .expect("failed to deserialize str from JSON to `ContractABI`");
-    tokens_from_abi(&abi)
+    tokens_from_abi_and_addrs(&abi, None)
+}
+
+/// Read and deserialize an instance of type `T` from the JSON file.
+fn read_from_json_file<T>(path: &std::path::Path) -> Result<T, serde_json::Error>
+where
+    T: for<'de> serde::Deserialize<'de>,
+{
+    let file = std::fs::File::open(path).unwrap_or_else(|err| {
+        panic!("failed to open {path:?}: {err}");
+    });
+    let reader = std::io::BufReader::new(file);
+    serde_json::from_reader(reader)
 }
 
 /// Generate all items from an ABI JSON file at the given path.
@@ -368,23 +431,24 @@ pub fn from_str(input: TokenStream) -> TokenStream {
 /// to the source file in which the macro is being invoked in stable Rust.
 #[proc_macro]
 pub fn from_file(input: TokenStream) -> TokenStream {
-    let input_lit_str = parse_macro_input!(input as syn::LitStr);
-    let string = input_lit_str.value();
-    let mut path = std::path::Path::new(&string).to_path_buf();
-    if path.is_relative() {
-        // If the path is relative, assume it is relative to the `CARGO_MANIFEST_DIR`.
-        let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
-            .expect("`CARGO_MANIFEST_DIR` not set, but required for relative path expansion");
-        let manifest_dir_path = std::path::Path::new(&manifest_dir);
-        path = manifest_dir_path.join(&path);
-    }
+    let args = parse_macro_input!(input as args::FromFile);
 
-    let file = std::fs::File::open(&path).unwrap_or_else(|err| {
-        panic!("failed to open {path:?}: {err}");
+    // Load the contract ABI.
+    let abi_path = resolve_path(args.abi.value().as_ref());
+    let abi: ContractABI = read_from_json_file(&abi_path).unwrap_or_else(|err| {
+        panic!("failed to deserialize {abi_path:?} from JSON to `ContractABI`: {err}");
     });
-    let reader = std::io::BufReader::new(file);
-    let abi: ContractABI = serde_json::from_reader(reader).unwrap_or_else(|err| {
-        panic!("failed to deserialize {path:?} from JSON to `ContractABI`: {err}");
+
+    // Load the contract itself if provided.
+    let contract: Option<Contract> = args.contract.map(|contract| {
+        let contract_path = resolve_path(contract.value().as_ref());
+        read_from_json_file(&contract_path).unwrap_or_else(|err| {
+            panic!("failed to deserialize {contract_path:?} from JSON to `Contract`: {err}");
+        })
     });
-    tokens_from_abi(&abi)
+
+    // Collect the contract and predicate addresses.
+    let addrs = contract.as_ref().map(Addresses::from);
+
+    tokens_from_abi_and_addrs(&abi, addrs.as_ref())
 }

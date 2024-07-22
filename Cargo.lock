@@ -1148,11 +1148,13 @@ dependencies = [
 name = "pint-abi-gen"
 version = "0.1.0"
 dependencies = [
+ "essential-hash",
  "essential-types",
  "pint-abi-types",
  "pint-abi-visit",
  "proc-macro2",
  "quote",
+ "serde",
  "serde_json",
  "syn 2.0.71",
 ]

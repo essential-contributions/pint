@@ -23,17 +23,20 @@ async fn test_solution_foo() {
     // Determine the content address of the contract.
     let contract_path = pkg_dir.join("out/debug/simple.json");
     let contract = pint_abi::contract_from_path(&contract_path).unwrap();
-    let contract_ca = essential_hash::contract_addr::from_contract(&contract);
 
     // Determine the predicate address by loading the ABI and finding the matching predicate.
     let abi_path = pkg_dir.join("out/debug/simple-abi.json");
     let abi = pint_abi::from_path(&abi_path).unwrap();
     let (pred, _pred_abi) = pint_abi::find_predicate(&contract, &abi, "Foo").unwrap();
-    let pred_ca = essential_hash::content_addr(pred);
+
+    // Check the generated addresses are correct.
+    let contract_ca = essential_hash::contract_addr::from_contract(&contract);
     let pred_addr = PredicateAddress {
         contract: contract_ca.clone(),
-        predicate: pred_ca,
+        predicate: essential_hash::content_addr(pred),
     };
+    assert_eq!(contract_ca, simple::ADDRESS);
+    assert_eq!(pred_addr, simple::Foo::ADDRESS);
 
     // Decision variables.
     let vars = simple::Foo::Vars {
@@ -111,7 +114,7 @@ async fn test_solution_foo() {
 
     // Create the solution data.
     let solution_data = SolutionData {
-        predicate_to_solve: pred_addr,
+        predicate_to_solve: simple::Foo::ADDRESS,
         decision_variables: vars.into(),
         transient_data: pub_vars,
         state_mutations,
@@ -126,7 +129,7 @@ async fn test_solution_foo() {
     essential_check::solution::check(&solution).unwrap();
 
     // Start with an empty pre-state.
-    let pre_state = State::new(vec![(contract_ca, vec![])]);
+    let pre_state = State::new(vec![(simple::ADDRESS, vec![])]);
 
     // Create the post-state by applying the mutations.
     let mut post_state = pre_state.clone();
