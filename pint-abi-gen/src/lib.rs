@@ -420,6 +420,22 @@ where
 
 /// Generate all items from an ABI JSON file at the given path.
 ///
+/// Also allows for optionally providing a path to the associated contract JSON
+/// for generating `ADDRESS` consts for the contract and its predicates.
+///
+/// NOTE: This macro is designed for use via the `pint-abi` crate, from which
+/// it is re-exported as `pint_abi::gen_from_file!`. Much of the code generation
+/// assumes the `pint-abi` crate is available as a dependency.
+///
+/// ## Usage
+///
+/// ```ignore
+/// pint_abi::gen_from_file! {
+///     abi: "path/to/abi.json",
+///     contract: "path/to/contract.json",
+/// }
+/// ```
+///
 /// ## Supported Paths
 ///
 /// The given path must be either:
