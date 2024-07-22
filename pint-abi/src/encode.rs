@@ -1,5 +1,4 @@
-use crate::write::Write;
-use essential_types::Word;
+use crate::{types::essential::Word, write::Write};
 
 /// A trait for encoding types as Essential `Word`s in a manner compatible with Pint's ABI.
 pub trait Encode {

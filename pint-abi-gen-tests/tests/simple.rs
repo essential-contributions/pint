@@ -1,6 +1,6 @@
 use pint_abi::types::essential::{
     solution::{Mutation, Solution, SolutionData},
-    Key, PredicateAddress,
+    Key, PredicateAddress, Value,
 };
 use pint_abi_gen_tests::simple;
 use std::sync::Arc;
@@ -111,6 +111,16 @@ async fn test_solution_foo() {
     for (key, mutation) in keys.iter().zip(&state_mutations) {
         assert_eq!(key, &mutation.key);
     }
+
+    // Check Encoding/Decoding roundtrip for decision vars.
+    let words = pint_abi::encode(&vars);
+    let vars2: simple::Foo::Vars = pint_abi::decode(&words[..]).unwrap();
+    assert_eq!(&vars, &vars2);
+
+    // Check To/From Vec<Value> roundtrip.
+    let values: Vec<Value> = vars.clone().into();
+    let vars3 = simple::Foo::Vars::try_from(&values[..]).unwrap();
+    assert_eq!(&vars, &vars3);
 
     // Create the solution data.
     let solution_data = SolutionData {
