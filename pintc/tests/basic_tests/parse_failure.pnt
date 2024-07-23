@@ -26,8 +26,6 @@ predicate test {
 // @112..114: empty tuple type found
 // empty tuple expressions are not allowed
 // @117..119: empty tuple expression found
-// empty array types are not allowed
-// @142..147: empty array type found
 // missing array or map index
 // @176..179: missing array or map element index
 // invalid integer `0x5` as tuple index

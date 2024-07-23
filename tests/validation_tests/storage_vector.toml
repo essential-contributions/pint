@@ -1,0 +1,37 @@
+[[data]]
+decision_variables = []
+predicate_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", predicate = "::Bar" }
+state_mutations = [
+  { key = [1], value = [3] },     # length
+  { key = [1, 0], value = [42] }, # v0[0]
+  { key = [1, 1], value = [43] }, # v0[1]
+  { key = [1, 2], value = [44] }, # v0[2]
+
+  { key = [2], value = [5] },     # length
+  { key = [2, 3], value = [16] }, # v1[3]
+  { key = [2, 4], value = [17] }, # v1[4]
+
+  { key = [3], value = [3] },                # length
+  { key = [3, 0], value = [1, 2, 3, 4] },    # v2[0]
+  { key = [3, 1], value = [] },              # v2[1]
+  { key = [3, 2], value = [9, 10, 11, 12] }, # v2[2]
+]
+
+[[data]]
+decision_variables = []
+predicate_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", predicate = "" }
+state_mutations = [
+  { key = [1], value = [3] },     # length
+  { key = [1, 0], value = [42] }, # v0[0]
+  { key = [1, 1], value = [43] }, # v0[1]
+  { key = [1, 2], value = [44] }, # v0[2]
+
+  { key = [2], value = [5] },     # length
+  { key = [2, 3], value = [16] }, # v1[3]
+  { key = [2, 4], value = [17] }, # v1[4]
+
+  { key = [3], value = [3] },                # length
+  { key = [3, 0], value = [1, 2, 3, 4] },    # v2[0]
+  { key = [3, 1], value = [] },              # v2[1]
+  { key = [3, 2], value = [9, 10, 11, 12] }, # v2[2]
+]

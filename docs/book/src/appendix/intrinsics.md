@@ -67,6 +67,14 @@ variable or a "next state" expression but can have any type.
 ---
 
 ```pint
+__vec_len(<storage access>) -> int
+```
+
+**Description:** Returns the length of a storage vector.
+
+---
+
+```pint
 __verify_ed25519(data: <any>, sig: { b256, b256 }, pub_key: b256) -> bool
 ```
 

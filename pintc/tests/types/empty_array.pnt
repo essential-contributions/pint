@@ -2,19 +2,24 @@ predicate test {
     var ary: int[10];
 
     constraint ary != [];
+
+    var vector: int[];
 }
 
 // parsed <<<
 // predicate ::test {
 //     var ::ary: int[10];
+//     var ::vector: int[];
 //     constraint (::ary != []);
 // }
 // >>>
 
 // typecheck_failure <<<
-// illegal empty array value
-// @62..64: empty array values are illegal
-// constraint expression type error
-// @44..64: constraint expression has unknown type
-// @44..64: expecting type `bool`
+// variables cannot have storage types
+// @75..81: found variable of storage type int[] here
+//+illegal empty array value
+//+@62..64: empty array values are illegal
+//+constraint expression type error
+//+@44..64: constraint expression has unknown type
+//+@44..64: expecting type `bool`
 // >>>

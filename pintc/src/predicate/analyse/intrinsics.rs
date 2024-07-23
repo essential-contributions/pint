@@ -36,6 +36,7 @@ impl Contract {
                 "__recover_secp256k1" => infer_intrinsic_recover_secp256k1(self, name, args, span),
 
                 "__state_len" => infer_intrinsic_state_len(self, pred, args, span),
+                "__vec_len" => infer_intrinsic_vec_len(self, pred, args, span),
 
                 // State reads - these will likely change in the future as they don't directly
                 // match the underlying opcodes
@@ -491,6 +492,74 @@ fn infer_intrinsic_state_len(
         }) => Ok(()),
         _ => Err(Error::Compile {
             error: CompileError::IntrinsicArgMustBeStateVar { span: span.clone() },
+        }),
+    }?;
+
+    // This intrinsic returns a `int`
+    Ok(Inference::Type(Type::Primitive {
+        kind: PrimitiveKind::Int,
+        span: span.clone(),
+    }))
+}
+
+//
+// Intrinsic `__vec_len`
+//
+// - Arguments:
+//     * Storage access expression of type `Vector`
+//
+// - Returns: `int`
+//
+// Description: this operation returns the "length" of a storage vector variable.
+//
+fn infer_intrinsic_vec_len(
+    contract: &Contract,
+    pred: Option<&Predicate>,
+    args: &[ExprKey],
+    span: &Span,
+) -> Result<Inference, Error> {
+    // This intrinsic expects exactly 1 argument
+    if args.len() != 1 {
+        return Err(Error::Compile {
+            error: CompileError::UnexpectedIntrinsicArgCount {
+                expected: 1,
+                found: args.len(),
+                span: span.clone(),
+            },
+        });
+    }
+
+    // The only argument must be a storage access of type vector
+    match args[0].try_get(contract) {
+        Some(Expr::StorageAccess(name, ..)) if contract.storage_var(name).1.ty.is_vector() => {
+            Ok(())
+        }
+        Some(Expr::ExternalStorageAccess {
+            interface_instance,
+            name,
+            ..
+        }) if pred
+            .map(|pred| {
+                contract
+                    .external_storage_var(
+                        &pred
+                            .interface_instances
+                            .iter()
+                            .find(|e| e.name.to_string() == *interface_instance)
+                            .expect("missing interface instance")
+                            .interface,
+                        name,
+                    )
+                    .1
+                    .ty
+                    .is_vector()
+            })
+            .unwrap_or(false) =>
+        {
+            Ok(())
+        }
+        _ => Err(Error::Compile {
+            error: CompileError::IntrinsicArgMustBeStorageAccess { span: span.clone() },
         }),
     }?;
 

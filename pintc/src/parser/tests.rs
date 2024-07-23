@@ -255,6 +255,30 @@ fn storage_types() {
         &run_parser!(storage_var_type, "(int => (int => (b256 => b256)))"),
         expect_test::expect!["( int => ( int => ( b256 => b256 ) ) )"],
     );
+
+    check(
+        &run_parser!(storage_var_type, "int[]"),
+        expect_test::expect!["int[]"],
+    );
+
+    check(
+        &run_parser!(storage_var_type, "b256[]"),
+        expect_test::expect!["b256[]"],
+    );
+
+    check(
+        &run_parser!(storage_var_type, "bool[]"),
+        expect_test::expect!["bool[]"],
+    );
+
+    // Multi dimensional vectors are not yet supported
+    check(
+        &run_parser!(storage_var_type, "int[][]"),
+        expect_test::expect![[r#"
+            expected something else, found `[`
+            @18..19: expected something else
+        "#]],
+    );
 }
 
 #[test]
@@ -2270,15 +2294,17 @@ fn array_type() {
         expect_test::expect!["{int, {real, string}}[9][::N]"],
     );
 
+    // This should fail in type checking
     check(
         &run_parser!(
             (yp::PintParser::new(), ""),
             r#"predicate test { var a: int[]; }"#
         ),
         expect_test::expect![[r#"
-            empty array types are not allowed
-            @24..29: empty array type found
-        "#]],
+
+            predicate ::test {
+                var ::a: int[];
+            }"#]],
     );
 }
 
@@ -3122,8 +3148,6 @@ fn error_recovery() {
             @161..163: empty tuple type found
             empty tuple expressions are not allowed
             @166..168: empty tuple expression found
-            empty array types are not allowed
-            @199..204: empty array type found
             missing array or map index
             @241..244: missing array or map element index
             invalid integer `0x5` as tuple index

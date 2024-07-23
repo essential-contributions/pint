@@ -1,0 +1,231 @@
+use crate::{
+    error::{ErrorEmitted, Handler},
+    expr::{BinaryOp, Expr, Ident, UnaryOp},
+    predicate::{ConstraintDecl, Contract, ExprKey, PredKey, State},
+    span::empty_span,
+    types::{PrimitiveKind, Type},
+};
+use fxhash::{FxHashMap, FxHashSet};
+
+/// In a given contract, insert constraints that enforce that all storage vector accesses are
+/// within bounds.
+pub(crate) fn legalize_vector_accesses(
+    handler: &Handler,
+    contract: &mut Contract,
+) -> Result<(), ErrorEmitted> {
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
+        legalize_vector_accesses_in_predicate(handler, contract, pred_key)?;
+    }
+
+    Ok(())
+}
+
+/// In a given predicate, insert constraints that enforce that all storage vector accesses are
+/// within bounds.
+///
+/// Currently, this only assumes single dimensional storage vectors
+pub(crate) fn legalize_vector_accesses_in_predicate(
+    _handler: &Handler,
+    contract: &mut Contract,
+    pred_key: PredKey,
+) -> Result<(), ErrorEmitted> {
+    let int_ty = Type::Primitive {
+        kind: PrimitiveKind::Int,
+        span: empty_span(),
+    };
+
+    let bool_ty = Type::Primitive {
+        kind: PrimitiveKind::Bool,
+        span: empty_span(),
+    };
+
+    // Collect all state variables that are initialized to index expressions to storage vector
+    let state_vector_accesses = contract
+        .preds
+        .get(pred_key)
+        .unwrap()
+        .states()
+        .filter_map(|(_, state)| {
+            let State {
+                name: state_var_name,
+                expr: init_expr,
+                ..
+            } = state;
+            if let Expr::Index {
+                expr: storage_vec_expr,
+                index,
+                ..
+            } = init_expr.get(contract)
+            {
+                if let Expr::StorageAccess(storage_var_name, _) = storage_vec_expr.get(contract) {
+                    if contract.storage_var(storage_var_name).1.ty.is_vector() {
+                        return Some((
+                            state_var_name.clone(),
+                            (storage_var_name.clone(), *index, *storage_vec_expr),
+                        ));
+                    }
+                }
+            }
+            None
+        })
+        .collect::<FxHashMap<String, (String, ExprKey, ExprKey)>>();
+
+    // Collect all `Path` expressions that reference one of the state variables collected in
+    // `state_vector_accesses` and are "primed", i.e., they are used in a `NextState` unary op
+    // expression
+    let primed_exprs = contract
+        .exprs(pred_key)
+        .filter_map(|expr| {
+            if let Expr::UnaryOp {
+                op: UnaryOp::NextState,
+                expr: primed_expr,
+                ..
+            } = expr.get(contract)
+            {
+                if let Expr::Path(name, _) = primed_expr.get(contract) {
+                    if let Some((storage_var_name, index, storage_vec_expr)) =
+                        state_vector_accesses.get(name)
+                    {
+                        return Some((
+                            *primed_expr,
+                            (storage_var_name.clone(), *index, *storage_vec_expr),
+                        ));
+                    }
+                }
+            }
+            None
+        })
+        .collect::<FxHashMap<ExprKey, (String, ExprKey, ExprKey)>>();
+
+    // Collect all `Path` expression that reference one of the state variables collected in
+    // `state_vector_accesses` and are *not* "primed".
+    //
+    // The I'm doing this is probably okay but I think can fail in situations where the `Path`
+    // expression key is used in a prime expression AND outside a prime expression.
+    let non_primed_exprs = contract
+        .exprs(pred_key)
+        .filter_map(|expr| {
+            if let Expr::Path(name, _) = expr.get(contract) {
+                if let Some((storage_var_name, index, storage_vec_expr)) =
+                    state_vector_accesses.get(name)
+                {
+                    if !primed_exprs.contains_key(&expr) {
+                        return Some((storage_var_name.clone(), *index, *storage_vec_expr));
+                    }
+                }
+            }
+            None
+        })
+        .collect::<FxHashSet<(String, ExprKey, ExprKey)>>();
+
+    // This is a helper closure that creates a `state` variable initialized the `__vec_len` of an
+    // expression `vector`.
+    let create_vec_len_state_var = |contract: &mut Contract, name: String, vector: &ExprKey| {
+        let intrinsic = contract.exprs.insert(
+            Expr::IntrinsicCall {
+                name: Ident {
+                    name: "__vec_len".to_string(),
+                    hygienic: false,
+                    span: empty_span(),
+                },
+                args: vec![*vector],
+                span: empty_span(),
+            },
+            int_ty.clone(),
+        );
+
+        if let Some(pred) = contract.preds.get_mut(pred_key) {
+            pred.states.insert(
+                State {
+                    name,
+                    expr: intrinsic,
+                    span: empty_span(),
+                },
+                int_ty.clone(),
+            );
+        }
+    };
+
+    // Keep track of all created vector length `state` variables so that we don't create them
+    // again.
+    let mut vec_len_state_var_names = FxHashSet::default();
+
+    // Handle "non" primed vector first
+    for (storage_var_name, index, storage_vec_expr) in &non_primed_exprs {
+        let vec_len_state_var_name = "__".to_owned() + storage_var_name + "_len";
+
+        // Insert a new state variable that contains the length of the vector being accessed
+        if vec_len_state_var_names.insert(vec_len_state_var_name.clone()) {
+            create_vec_len_state_var(contract, vec_len_state_var_name.clone(), storage_vec_expr);
+        }
+
+        // Now create insert a new constraint that ensures that the index is smaller than the
+        // current length of the vector
+        let vec_len_path = contract.exprs.insert(
+            Expr::Path(vec_len_state_var_name.clone(), empty_span()),
+            int_ty.clone(),
+        );
+
+        let index_less_than_vec_len = contract.exprs.insert(
+            Expr::BinaryOp {
+                op: BinaryOp::LessThan,
+                lhs: *index,
+                rhs: vec_len_path,
+                span: empty_span(),
+            },
+            bool_ty.clone(),
+        );
+
+        if let Some(pred) = contract.preds.get_mut(pred_key) {
+            pred.constraints.push(ConstraintDecl {
+                expr: index_less_than_vec_len,
+                span: empty_span(),
+            });
+        }
+    }
+
+    // Now handle primed vector first
+    for (storage_var_name, index, storage_vec_expr) in primed_exprs.values() {
+        let vec_len_state_var_name = "__".to_owned() + storage_var_name + "_len";
+
+        // Insert a new state variable that contains the length of the vector being accessed
+        if vec_len_state_var_names.insert(vec_len_state_var_name.clone()) {
+            create_vec_len_state_var(contract, vec_len_state_var_name.clone(), storage_vec_expr);
+        }
+
+        // Now create insert a new constraint that ensures that the index is smaller than the
+        // future length of the vector
+        let vec_len_path = contract.exprs.insert(
+            Expr::Path(vec_len_state_var_name.clone(), empty_span()),
+            int_ty.clone(),
+        );
+
+        let vec_len_path_prime = contract.exprs.insert(
+            Expr::UnaryOp {
+                op: UnaryOp::NextState,
+                expr: vec_len_path,
+                span: empty_span(),
+            },
+            int_ty.clone(),
+        );
+
+        let index_less_than_vec_len_prime = contract.exprs.insert(
+            Expr::BinaryOp {
+                op: BinaryOp::LessThan,
+                lhs: *index,
+                rhs: vec_len_path_prime,
+                span: empty_span(),
+            },
+            bool_ty.clone(),
+        );
+
+        if let Some(pred) = contract.preds.get_mut(pred_key) {
+            pred.constraints.push(ConstraintDecl {
+                expr: index_less_than_vec_len_prime,
+                span: empty_span(),
+            });
+        }
+    }
+
+    Ok(())
+}

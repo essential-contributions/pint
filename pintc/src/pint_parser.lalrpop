@@ -405,6 +405,7 @@ pub MacroBody: Option<ExprKey> = {
 
 Type: Type = {
     <ArrayType>,
+    <VectorType>,
     <TypeAtom>,
 };
 
@@ -448,15 +449,6 @@ ArrayType: Type = {
             span: (context.span_from)(l, r),
         })
     },
-    <l:@L> <ty:TypeAtom> "[" "]" <r:@R> => {
-        let span = (context.span_from)(l, r);
-        handler.emit_err(Error::Parse {
-            error: ParseError::EmptyArrayType { span: span.clone() },
-        });
-
-        // Recover with a malformed type
-        Type::Error(span)
-    },
 };
 
 PrimitiveType: PrimitiveKind = {
@@ -480,11 +472,18 @@ TupleField: (Option<Ident>, Type) = {
 /// Storage Types ///
 /////////////////////
 
-// Does not yet allow for maps inside maps
 MapType: Type = {
     <l:@L> "(" <ty_from:Type> "=>" <ty_to:Type> ")" <r:@R> => Type::Map {
         ty_from: Box::new(ty_from),
         ty_to: Box::new(ty_to),
+        span: (context.span_from)(l, r),
+    }
+}
+
+// This only allows single dimensional vectors for the time being
+VectorType: Type = {
+    <l:@L> <ty:TypeAtom> "[" "]" <r:@R> => Type::Vector {
+        ty: Box::new(ty),
         span: (context.span_from)(l, r),
     }
 }
@@ -747,7 +746,19 @@ TermInner: Expr = {
         }
     },
     <GeneratorExpr>,
-    <IntrinsicCallExpr>,
+    <l:@L> <call:IntrinsicCallExpr> <r:@R> => {
+        if let Expr::IntrinsicCall { ref name, .. } = call {
+            if name.name == "__vec_len"
+                || name.name == "__storage_get"
+                || name.name == "__storage_get_extern"
+            {
+                handler.emit_err(Error::Parse {
+                    error: ParseError::BadStorageIntrinsic((context.span_from)(l, r)),
+                });
+            }
+        }
+        call
+    },
     <ArrayExpr>,
     <TupleExpr>,
     <l:@L> <path:Path> <r:@R> => Expr::Path(path, (context.span_from)(l, r)),
@@ -855,15 +866,24 @@ MacroCallExpr: ExprKey = {
         );
         context
             .macro_calls
-            .get_mut(&context.current_pred_key.expect("adding a macro call to the predicate"))
+            .get_mut(
+                &context
+                    .current_pred_key
+                    .expect("adding a macro call to the predicate"),
+            )
             .unwrap()
             .insert(call_key, (call_expr_key, call_data));
         call_expr_key
     },
 };
 
+IntrinsicArg: ExprKey = {
+    <Expr>,
+    <StorageTupleFieldOp>,
+}
+
 IntrinsicCallExpr: Expr = {
-    <l:@L> <ident:IntrinsicName> "(" <args:SepList<Expr, ",">> ")" <r:@R> => {
+    <l:@L> <ident:IntrinsicName> "(" <args:SepList<IntrinsicArg, ",">> ")" <r:@R> => {
         Expr::IntrinsicCall {
             name: ident,
             args,
@@ -1021,8 +1041,6 @@ StorageTupleFieldOp: ExprKey = {
 }
 
 StorageIndexOp: ExprKey = {
-    // Even though we don't allow complex types in storage maps just yet, this does support indexing
-    // into a map of maps.
     <l:@L> <expr:StorageIndexOp> "[" <index:Expr> "]" <r:@R> => {
         let span = (context.span_from)(l, r);
         context.contract.exprs.insert(
