@@ -22,8 +22,6 @@ predicate Bar {
 //     var ::f1;
 //     var ::e2;
 //     var ::f2;
-//     enum ::baz::MyEnum = A | B;
-//     type ::baz::MyType = ::baz::MyEnum;
 //     constraint (::y == 4);
 //     constraint (::e1 == ::baz::MyEnum::A);
 //     constraint (::f1 == ::baz::MyType::B);
@@ -43,8 +41,6 @@ predicate Bar {
 //     var ::f1: int;
 //     var ::e2: int;
 //     var ::f2: int;
-//     enum ::baz::MyEnum = A | B;
-//     type ::baz::MyType = ::baz::MyEnum;
 //     constraint (::y == 4);
 //     constraint (::e1 == 0);
 //     constraint (::f1 == 1);

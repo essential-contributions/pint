@@ -251,18 +251,10 @@ predicate test { var x = MyEnum::Variant2; }
 "#;
 
     // Do this manually here because we have to copy the enum into the predicate.
-    // TODO: Should imporve this eventually
     let handler = Handler::default();
-    let mut contract = run_parser(src, &handler);
-    let enums = contract.root_pred().enums.clone();
-    contract
-        .preds
-        .values_mut()
-        .find(|pred| pred.name == "test")
-        .unwrap()
-        .enums
-        .clone_from(&enums);
-    let mut contract = contract.type_check(&handler).expect("Failed to type check");
+    let mut contract = run_parser(src, &handler)
+        .type_check(&handler)
+        .expect("Failed to type check");
     let _ = validate(&handler, &mut contract);
     check(
         &crate::error::Errors(handler.consume()).to_string(),
@@ -271,9 +263,6 @@ predicate test { var x = MyEnum::Variant2; }
         compiler internal error: custom type present in final predicate expr_types slotmap"#]],
     );
 
-    // Do this manually here because we have to copy the enum into the predicate.
-    // TODO: Should imporve this eventually
-
     // type alias
     let src = r#"
 type MyAliasInt = int;
@@ -281,18 +270,10 @@ predicate test { var x: MyAliasInt = 3; }
 "#;
 
     // Do this manually here because we have to copy the new type into the predicate.
-    // TODO: Should imporve this eventually
     let handler = Handler::default();
-    let mut contract = run_parser(src, &handler);
-    let new_types = contract.root_pred().new_types.clone();
-    contract
-        .preds
-        .values_mut()
-        .find(|pred| pred.name == "test")
-        .unwrap()
-        .new_types
-        .clone_from(&new_types);
-    let mut contract = contract.type_check(&handler).expect("Failed to type check");
+    let mut contract = run_parser(src, &handler)
+        .type_check(&handler)
+        .expect("Failed to type check");
     let _ = validate(&handler, &mut contract);
 
     check(

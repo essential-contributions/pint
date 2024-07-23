@@ -1,3 +1,5 @@
+enum Egg = Ovum | Oeuf | Uovo | HuaManu;
+
 predicate test {
     // The generators tests are already testing most of the basics.  Here's some wacky stuff.
 
@@ -15,13 +17,14 @@ predicate test {
     //   compile time equivalence checks between expressions for `in [...]` which can be a future task.
     // constraint forall g in 0..2, g in 0..2 where f in 1..3, g in [1, 2, 3] { true };
 
-    enum Egg = Ovum | Oeuf | Uovo | HuaManu;
     var h: int[Egg::Uovo as int];   // Redundant but still valid.
 
     var i: int[3 as int];   // Also redundant.
 }
 
 // parsed <<<
+// enum ::Egg = Ovum | Oeuf | Uovo | HuaManu;
+//
 // predicate ::test {
 //     var ::a: int[[1, 2, 3][1]];
 //     var ::b0: int[{1, 2, 3}.1];
@@ -30,7 +33,6 @@ predicate test {
 //     var ::f: int[true as int];
 //     var ::h: int[::Egg::Uovo as int];
 //     var ::i: int[3 as int];
-//     enum ::Egg = Ovum | Oeuf | Uovo | HuaManu;
 //     constraint forall d in 0..2, where (0x1111111111111111111111111111111111111111111111111111111111111111 != 0x2222222222222222222222222222222222222222222222222222222222222222) { (::d == ::d) };
 //     constraint forall e in 0..2, where (0x1111111111111111111111111111111111111111111111111111111111111111 == 0x2222222222222222222222222222222222222222222222222222222222222222) { (::e == ::e) };
 // }
@@ -40,6 +42,8 @@ predicate test {
 // d is expanded, e is not.
 //
 // flattened <<<
+// enum ::Egg = Ovum | Oeuf | Uovo | HuaManu;
+//
 // predicate ::test {
 //     var ::a: int[[1, 2, 3][1]];
 //     var ::b0: int[{1, 2, 3}.1];
@@ -48,7 +52,6 @@ predicate test {
 //     var ::f: int[true as int];
 //     var ::h: int[::Egg::Uovo as int];
 //     var ::i: int[3 as int];
-//     enum ::Egg = Ovum | Oeuf | Uovo | HuaManu;
 //     constraint (((true && (0 == 0)) && (1 == 1)) && (2 == 2));
 //     constraint true;
 // }

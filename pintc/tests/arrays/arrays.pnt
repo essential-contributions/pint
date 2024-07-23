@@ -1,8 +1,9 @@
+enum Colour = Red | Green | Blue;
+
 predicate test {
     var a: real[5];
     var a1 = a[1];
 
-    enum Colour = Red | Green | Blue;
     var b: real[Colour][3];
     var b_r_2 = b[Colour::Red][2];
 
@@ -13,6 +14,8 @@ predicate test {
 }
 
 // parsed <<<
+// enum ::Colour = Red | Green | Blue;
+//
 // predicate ::test {
 //     var ::a: real[5];
 //     var ::a1;
@@ -21,7 +24,6 @@ predicate test {
 //     var ::c: int[4];
 //     var ::c1;
 //     var ::cb: bool;
-//     enum ::Colour = Red | Green | Blue;
 //     constraint (::a1 == ::a[1]);
 //     constraint (::b_r_2 == ::b[::Colour::Red][2]);
 //     constraint (::c == [0, 1, 2, 3]);
@@ -31,6 +33,8 @@ predicate test {
 // >>>
 
 // flattened <<<
+// enum ::Colour = Red | Green | Blue;
+//
 // predicate ::test {
 //     var ::a: real[5];
 //     var ::a1: real;
@@ -39,7 +43,6 @@ predicate test {
 //     var ::c: int[4];
 //     var ::c1: int[4];
 //     var ::cb: bool;
-//     enum ::Colour = Red | Green | Blue;
 //     constraint (::a1 == ::a[1]);
 //     constraint (::b_r_2 == ::b[0][2]);
 //     constraint (::c == [0, 1, 2, 3]);

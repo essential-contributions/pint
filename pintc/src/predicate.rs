@@ -35,6 +35,9 @@ pub struct Contract {
     pub consts: FxHashMap<String, Const>,
     pub storage: Option<(Vec<StorageVar>, Span)>,
 
+    pub enums: Vec<EnumDecl>,
+    pub new_types: Vec<NewTypeDecl>,
+
     // Keep track of obsolete expanded macro calls in case they're erroneously depended upon.
     pub removed_macro_calls: slotmap::SecondaryMap<ExprKey, Span>,
 }
@@ -50,6 +53,8 @@ impl Default for Contract {
             exprs: Default::default(),
             consts: Default::default(),
             storage: Default::default(),
+            enums: Default::default(),
+            new_types: Default::default(),
             removed_macro_calls: Default::default(),
         }
     }
@@ -289,8 +294,6 @@ pub struct Predicate {
     pub if_decls: Vec<IfDecl>,
 
     pub ephemerals: Vec<EphemeralDecl>,
-    pub enums: Vec<EnumDecl>,
-    pub new_types: Vec<NewTypeDecl>,
 
     // Each of the initialised variables.  Used by type inference.
     pub var_inits: slotmap::SecondaryMap<VarKey, ExprKey>,

@@ -1,25 +1,26 @@
-predicate test {
-    type Ambiguous = NonExistentEnum;
+type Ambiguous = NonExistentEnum;
 
+predicate test {
     var a = Ambiguous::MissingVariant;
 }
 
 // parsed <<<
+// type ::Ambiguous = ::NonExistentEnum;
+//
 // predicate ::test {
 //     var ::a;
-//     type ::Ambiguous = ::NonExistentEnum;
 //     constraint (::a == ::Ambiguous::MissingVariant);
 // }
 // >>>
 
 // typecheck_failure <<<
 // cannot find value `::Ambiguous::MissingVariant` in this scope
-// @68..93: not found in this scope
+// @64..89: not found in this scope
 // cannot find value `::Ambiguous::MissingVariant` in this scope
-// @68..93: not found in this scope
+// @64..89: not found in this scope
 // unable to determine expression type
-// @64..65: type of this expression is ambiguous
+// @60..61: type of this expression is ambiguous
 // constraint expression type error
-// @60..93: constraint expression has unknown type
-// @60..93: expecting type `bool`
+// @56..89: constraint expression has unknown type
+// @56..89: expecting type `bool`
 // >>>

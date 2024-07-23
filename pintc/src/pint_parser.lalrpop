@@ -45,11 +45,9 @@ Decl: () = {
 // Decls allowed inside predicates.
 PredicateInnerDecl: () = {
     ConstraintDecl ";",
-    EnumDecl ";",
     IfDecl,
     InterfaceInstance ";",
     MacroCallDecl ";",
-    NewTypeDecl ";",
     PredicateInstance ";",
     StateDecl ";",
     UseStatement ";",
@@ -340,7 +338,7 @@ EnumDecl: () = {
             variants,
             span: (context.span_from)(l, r),
         };
-        context.current_pred().enums.push(enum_decl);
+        context.contract.enums.push(enum_decl);
     }
 }
 
@@ -351,7 +349,7 @@ NewTypeDecl: () = {
             ty,
             span: (context.span_from)(l, r),
         };
-        context.current_pred().new_types.push(new_type_decl);
+        context.contract.new_types.push(new_type_decl);
     }
 }
 

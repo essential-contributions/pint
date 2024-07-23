@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, Expr, Ident, Immediate},
-    predicate::{Contract, ExprKey, PredKey, Predicate},
+    predicate::{Contract, ExprKey, PredKey},
     span::{Span, Spanned},
 };
 use pint_abi_types::{TupleField, TypeABI};
@@ -142,14 +142,14 @@ impl Type {
         })
     }
 
-    pub fn is_enum(&self, pred: &Predicate) -> bool {
-        self.get_enum_name(pred).is_some()
+    pub fn is_enum(&self, enums: &[EnumDecl]) -> bool {
+        self.get_enum_name(enums).is_some()
     }
 
-    pub fn get_enum_name(&self, pred: &Predicate) -> Option<&Path> {
-        check_alias!(self, get_enum_name, pred, {
+    pub fn get_enum_name(&self, enums: &[EnumDecl]) -> Option<&Path> {
+        check_alias!(self, get_enum_name, enums, {
             if let Type::Custom { path, .. } = self {
-                pred.enums
+                enums
                     .iter()
                     .find_map(|EnumDecl { name, .. }| (&name.name == path).then_some(path))
             } else {
@@ -202,11 +202,9 @@ impl Type {
         contract: &Contract,
         pred_key: PredKey,
     ) -> Result<i64, ErrorEmitted> {
-        let pred = &contract.preds[pred_key];
-
         if let Expr::PathByName(path, _) = range_expr {
             // It's hopefully an enum for the range expression.
-            if let Some(size) = pred.enums.iter().find_map(|enum_decl| {
+            if let Some(size) = contract.enums.iter().find_map(|enum_decl| {
                 (&enum_decl.name.name == path).then_some(enum_decl.variants.len() as i64)
             }) {
                 Ok(size)
@@ -218,7 +216,8 @@ impl Type {
                 }))
             }
         } else {
-            match Evaluator::new(pred).evaluate(range_expr, handler, contract, pred_key) {
+            match Evaluator::new(&contract.enums).evaluate(range_expr, handler, contract, pred_key)
+            {
                 Ok(Immediate::Int(size)) if size > 0 => Ok(size),
                 Ok(_) => Err(handler.emit_err(Error::Compile {
                     error: CompileError::InvalidConstArrayLength {
@@ -423,20 +422,20 @@ impl Type {
         }
     }
 
-    pub fn eq(&self, pred: &Predicate, other: &Self) -> bool {
+    pub fn eq(&self, new_types: &[NewTypeDecl], other: &Self) -> bool {
         match (self, other) {
             (Self::Error(_), Self::Error(_)) => true,
             (Self::Unknown(_), Self::Unknown(_)) => true,
 
-            (Self::Alias { ty: lhs_ty, .. }, rhs) => lhs_ty.eq(pred, rhs),
-            (lhs, Self::Alias { ty: rhs_ty, .. }) => lhs.eq(pred, rhs_ty.as_ref()),
+            (Self::Alias { ty: lhs_ty, .. }, rhs) => lhs_ty.eq(new_types, rhs),
+            (lhs, Self::Alias { ty: rhs_ty, .. }) => lhs.eq(new_types, rhs_ty.as_ref()),
 
             (Self::Primitive { kind: lhs, .. }, Self::Primitive { kind: rhs, .. }) => lhs == rhs,
 
             // This is sub-optimal; we're saying two arrays of the same element type are
             // equivalent, regardless of their size.
             (Self::Array { ty: lhs_ty, .. }, Self::Array { ty: rhs_ty, .. }) => {
-                lhs_ty.eq(pred, rhs_ty)
+                lhs_ty.eq(new_types, rhs_ty)
             }
 
             (
@@ -476,7 +475,7 @@ impl Type {
                                         .expect("have already checked is Some")
                                         .name,
                                 )
-                                .map(|lhs_ty| lhs_ty.eq(pred, rhs_ty))
+                                .map(|lhs_ty| lhs_ty.eq(new_types, rhs_ty))
                                 .unwrap_or(false)
                         })
                     } else {
@@ -484,7 +483,7 @@ impl Type {
                         lhs_fields
                             .iter()
                             .zip(rhs_fields.iter())
-                            .all(|((_, lhs_ty), (_, rhs_ty))| lhs_ty.eq(pred, rhs_ty))
+                            .all(|((_, lhs_ty), (_, rhs_ty))| lhs_ty.eq(new_types, rhs_ty))
                     }
                 }
             }
@@ -500,7 +499,7 @@ impl Type {
                     ty_to: rhs_ty_to,
                     ..
                 },
-            ) => lhs_ty_from.eq(pred, rhs_ty_from) && lhs_ty_to.eq(pred, rhs_ty_to),
+            ) => lhs_ty_from.eq(new_types, rhs_ty_from) && lhs_ty_to.eq(new_types, rhs_ty_to),
 
             (lhs_ty, rhs_ty) => {
                 // Custom types are tricky as they may be either aliases or enums.  Or, at this
@@ -509,36 +508,30 @@ impl Type {
                 let mut lhs_enum_path = None;
 
                 if let Self::Custom { path: lhs_path, .. } = lhs_ty {
-                    lhs_alias_ty =
-                        pred.new_types
-                            .iter()
-                            .find_map(|NewTypeDecl { name, ty, .. }| {
-                                (lhs_path == &name.name).then_some(ty)
-                            });
+                    lhs_alias_ty = new_types.iter().find_map(|NewTypeDecl { name, ty, .. }| {
+                        (lhs_path == &name.name).then_some(ty)
+                    });
                     lhs_enum_path = Some(lhs_path);
                 }
 
                 if let Some(lhs_alias_ty) = lhs_alias_ty {
                     // The LHS is an alias; recurse.
-                    return lhs_alias_ty.eq(pred, rhs_ty);
+                    return lhs_alias_ty.eq(new_types, rhs_ty);
                 }
 
                 let mut rhs_alias_ty = None;
                 let mut rhs_enum_path = None;
 
                 if let Self::Custom { path: rhs_path, .. } = rhs_ty {
-                    rhs_alias_ty =
-                        pred.new_types
-                            .iter()
-                            .find_map(|NewTypeDecl { name, ty, .. }| {
-                                (rhs_path == &name.name).then_some(ty)
-                            });
+                    rhs_alias_ty = new_types.iter().find_map(|NewTypeDecl { name, ty, .. }| {
+                        (rhs_path == &name.name).then_some(ty)
+                    });
                     rhs_enum_path = Some(rhs_path);
                 }
 
                 if let Some(rhs_alias_ty) = rhs_alias_ty {
                     // The RHS is an alias; recurse.
-                    return rhs_alias_ty.eq(pred, lhs_ty);
+                    return rhs_alias_ty.eq(new_types, lhs_ty);
                 }
 
                 if let (Some(lhs_enum_path), Some(rhs_enum_path)) = (lhs_enum_path, rhs_enum_path) {

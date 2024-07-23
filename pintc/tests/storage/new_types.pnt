@@ -19,22 +19,19 @@ predicate test {
 }
 
 // parsed <<<
+// type ::OneOrTheOther = bool;
+// type ::Count = int;
+// type ::Haaash = b256;
 // storage {
 //     m: ( ::OneOrTheOther => int ),
 //     n: ( bool => ::Count ),
 //     o: ( ::OneOrTheOther => ::Haaash ),
 // }
-// type ::OneOrTheOther = bool;
-// type ::Count = int;
-// type ::Haaash = b256;
 //
 // predicate ::test {
 //     state ::x = storage::m[true];
 //     state ::y = storage::n[false];
 //     state ::z = storage::o[false];
-//     type ::OneOrTheOther = bool;
-//     type ::Count = int;
-//     type ::Haaash = b256;
 //     constraint (::x == 11);
 //     constraint (::y' < 22);
 //     constraint (::z != 0x3333333333333333333333333333333333333333333333333333333333333333);
@@ -42,22 +39,19 @@ predicate test {
 // >>>
 
 // flattened <<<
+// type ::OneOrTheOther = bool;
+// type ::Count = int;
+// type ::Haaash = b256;
 // storage {
 //     m: ( bool => int ),
 //     n: ( bool => int ),
 //     o: ( bool => b256 ),
 // }
-// type ::OneOrTheOther = bool;
-// type ::Count = int;
-// type ::Haaash = b256;
 //
 // predicate ::test {
 //     state ::x: int = storage::m[true];
 //     state ::y: int = storage::n[false];
 //     state ::z: b256 = storage::o[false];
-//     type ::OneOrTheOther = bool;
-//     type ::Count = int;
-//     type ::Haaash = b256;
 //     constraint (::x == 11);
 //     constraint (::y' < 22);
 //     constraint (::z != 0x3333333333333333333333333333333333333333333333333333333333333333);

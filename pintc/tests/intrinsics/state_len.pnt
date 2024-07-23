@@ -20,13 +20,13 @@ predicate test {
 }
 
 // parsed <<<,
+// enum ::MyEnum = A | B;
 // storage {
 //     a: int,
 //     b: bool,
 //     c: b256,
 //     d: {int, bool},
 // }
-// enum ::MyEnum = A | B;
 //
 // predicate ::test {
 //     var ::a_len;
@@ -37,7 +37,6 @@ predicate test {
 //     state ::b = storage::b;
 //     state ::c = storage::c;
 //     state ::d = storage::d;
-//     enum ::MyEnum = A | B;
 //     constraint (::a_len == __state_len(::a));
 //     constraint (::b_len == __state_len(::b));
 //     constraint (::c_len == __state_len(::c));
@@ -46,13 +45,13 @@ predicate test {
 // >>>
 
 // flattened <<<,
+// enum ::MyEnum = A | B;
 // storage {
 //     a: int,
 //     b: bool,
 //     c: b256,
 //     d: {int, bool},
 // }
-// enum ::MyEnum = A | B;
 //
 // predicate ::test {
 //     var ::a_len: int;
@@ -63,7 +62,6 @@ predicate test {
 //     state ::b: bool = storage::b;
 //     state ::c: b256 = storage::c;
 //     state ::d: {int, bool} = storage::d;
-//     enum ::MyEnum = A | B;
 //     constraint (::a_len == __state_len(::a));
 //     constraint (::b_len == __state_len(::b));
 //     constraint (::c_len == __state_len(::c));

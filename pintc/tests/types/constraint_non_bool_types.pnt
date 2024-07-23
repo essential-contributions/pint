@@ -1,6 +1,7 @@
+enum Colour = Red | Green | Blue;
+
 predicate test {
     var a: b256;
-    enum Colour = Red | Green | Blue;
 
     constraint 1 + 2;
     constraint a;
@@ -10,9 +11,10 @@ predicate test {
 }
 
 // parsed <<<
+// enum ::Colour = Red | Green | Blue;
+//
 // predicate ::test {
 //     var ::a: b256;
-//     enum ::Colour = Red | Green | Blue;
 //     constraint (1 + 2);
 //     constraint ::a;
 //     constraint {1, 2};
@@ -23,18 +25,18 @@ predicate test {
 
 // typecheck_failure <<<
 // constraint expression type error
-// @77..93: constraint expression has unexpected type `int`
-// @77..93: expecting type `bool`
+// @74..90: constraint expression has unexpected type `int`
+// @74..90: expecting type `bool`
 // constraint expression type error
-// @99..111: constraint expression has unexpected type `b256`
-// @99..111: expecting type `bool`
+// @96..108: constraint expression has unexpected type `b256`
+// @96..108: expecting type `bool`
 // constraint expression type error
-// @117..136: constraint expression has unexpected type `{int, int}`
-// @117..136: expecting type `bool`
+// @114..133: constraint expression has unexpected type `{int, int}`
+// @114..133: expecting type `bool`
 // constraint expression type error
-// @142..162: constraint expression has unexpected type `int[3]`
-// @142..162: expecting type `bool`
+// @139..159: constraint expression has unexpected type `int[3]`
+// @139..159: expecting type `bool`
 // constraint expression type error
-// @168..190: constraint expression has unexpected type `::Colour`
-// @168..190: expecting type `bool`
+// @165..187: constraint expression has unexpected type `::Colour`
+// @165..187: expecting type `bool`
 // >>>

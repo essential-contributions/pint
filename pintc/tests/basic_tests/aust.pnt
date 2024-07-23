@@ -1,7 +1,7 @@
+enum Colour = Red | Green | Blue;
+
 predicate test {
     // Colouring Australia using 3 colours
-
-    enum Colour = Red | Green | Blue;
 
     var wa: Colour;
     var nt: Colour;
@@ -24,6 +24,8 @@ predicate test {
 }
 
 // parsed <<<
+// enum ::Colour = Red | Green | Blue;
+//
 // predicate ::test {
 //     var ::wa: ::Colour;
 //     var ::nt: ::Colour;
@@ -32,7 +34,6 @@ predicate test {
 //     var ::nsw: ::Colour;
 //     var ::v: ::Colour;
 //     var ::t: ::Colour;
-//     enum ::Colour = Red | Green | Blue;
 //     constraint (::wa != ::nt);
 //     constraint (::wa != ::sa);
 //     constraint (::nt != ::sa);
@@ -46,6 +47,8 @@ predicate test {
 // >>>
 
 // flattened <<<
+// enum ::Colour = Red | Green | Blue;
+//
 // predicate ::test {
 //     var ::wa: int;
 //     var ::nt: int;
@@ -54,7 +57,6 @@ predicate test {
 //     var ::nsw: int;
 //     var ::v: int;
 //     var ::t: int;
-//     enum ::Colour = Red | Green | Blue;
 //     constraint (::wa != ::nt);
 //     constraint (::wa != ::sa);
 //     constraint (::nt != ::sa);

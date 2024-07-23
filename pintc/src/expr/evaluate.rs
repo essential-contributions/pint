@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp as BinOp, Expr, Immediate as Imm, TupleAccess, UnaryOp},
-    predicate::{Contract, ExprKey, PredKey, Predicate},
+    predicate::{Contract, ExprKey, PredKey},
     span::{empty_span, Spanned},
     types::{EnumDecl, Path},
 };
@@ -13,16 +13,16 @@ pub(crate) struct Evaluator {
 }
 
 impl Evaluator {
-    pub(crate) fn new(pred: &Predicate) -> Evaluator {
+    pub(crate) fn new(enums: &[EnumDecl]) -> Evaluator {
         Evaluator {
-            enum_values: Self::create_enum_map(pred),
+            enum_values: Self::create_enum_map(enums),
             scope_values: FxHashMap::default(),
         }
     }
 
-    pub(crate) fn from_values(pred: &Predicate, scope_values: FxHashMap<Path, Imm>) -> Evaluator {
+    pub(crate) fn from_values(enums: &[EnumDecl], scope_values: FxHashMap<Path, Imm>) -> Evaluator {
         Evaluator {
-            enum_values: Self::create_enum_map(pred),
+            enum_values: Self::create_enum_map(enums),
             scope_values,
         }
     }
@@ -39,8 +39,8 @@ impl Evaluator {
         self.scope_values
     }
 
-    fn create_enum_map(pred: &Predicate) -> FxHashMap<Path, Imm> {
-        FxHashMap::from_iter(pred.enums.iter().flat_map(
+    fn create_enum_map(enums: &[EnumDecl]) -> FxHashMap<Path, Imm> {
+        FxHashMap::from_iter(enums.iter().flat_map(
             |EnumDecl {
                  name: enum_name,
                  variants,

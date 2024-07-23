@@ -1,6 +1,6 @@
-predicate test {
-    enum Cake = Crab | Mud | Uranium | Urinal;
+enum Cake = Crab | Mud | Uranium | Urinal;
 
+predicate test {
     var a: int;
     var b: real;
     var c: bool;
@@ -23,6 +23,8 @@ predicate test {
 }
 
 // parsed <<<
+// enum ::Cake = Crab | Mud | Uranium | Urinal;
+//
 // predicate ::test {
 //     var ::a: int;
 //     var ::b: real;
@@ -31,7 +33,6 @@ predicate test {
 //     var ::e: ::Cake;
 //     var ::f: {bool, int};
 //     var ::g: int[2];
-//     enum ::Cake = Crab | Mud | Uranium | Urinal;
 //     constraint ::a in 11..22;
 //     constraint ::a in [11, 13, 17, 19];
 //     constraint ::b in 1.23e1..6.78e1;
@@ -45,6 +46,8 @@ predicate test {
 // >>>
 
 // flattened <<<
+// enum ::Cake = Crab | Mud | Uranium | Urinal;
+//
 // predicate ::test {
 //     var ::a: int;
 //     var ::b: real;
@@ -53,7 +56,6 @@ predicate test {
 //     var ::e: int;
 //     var ::f: {bool, int};
 //     var ::g: int[2];
-//     enum ::Cake = Crab | Mud | Uranium | Urinal;
 //     constraint ((::a >= 11) && (::a <= 22));
 //     constraint ((((::a == 11) || (::a == 13)) || (::a == 17)) || (::a == 19));
 //     constraint ((::b >= 1.23e1) && (::b <= 6.78e1));

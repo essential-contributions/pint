@@ -2913,15 +2913,17 @@ predicate Bar {
     var x: int;
     constraint x == 1;
 }
+enum MyEnum = A | B;
+type MyType = MyEnum;
 predicate Baz {
-    enum MyEnum = A | B;
-    type MyType = MyEnum;
 }
 "#;
 
     check(
         &run_parser!((yp::PintParser::new(), ""), src),
         expect_test::expect![[r#"
+            enum ::MyEnum = A | B;
+            type ::MyType = ::MyEnum;
 
             predicate ::Foo {
             }
@@ -2932,8 +2934,6 @@ predicate Baz {
             }
 
             predicate ::Baz {
-                enum ::MyEnum = A | B;
-                type ::MyType = ::MyEnum;
             }"#]],
     );
 }

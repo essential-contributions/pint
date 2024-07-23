@@ -147,7 +147,7 @@ pub(crate) fn splice_args(
             if !var_ty.is_unknown() {
                 if let Some(range_expr_key) = var_ty.get_array_range_expr() {
                     if let Some((size, opt_enum)) =
-                        splice_get_array_range_size(contract, pred, range_expr_key)
+                        splice_get_array_range_size(contract, range_expr_key)
                     {
                         // Store where and what to replace in the new spliced args.
                         replacements.insert(
@@ -173,7 +173,7 @@ pub(crate) fn splice_args(
             } else if let Some(var_init_key) = pred.var_inits.get(var_key) {
                 if let Some(Expr::Array { range_expr, .. }) = var_init_key.try_get(contract) {
                     if let Some((size, opt_enum)) =
-                        splice_get_array_range_size(contract, pred, *range_expr)
+                        splice_get_array_range_size(contract, *range_expr)
                     {
                         // Store where and what to replace in the new spliced args.
                         replacements.insert(
@@ -276,7 +276,6 @@ type OptEnumDecl = Option<(Ident, Vec<Ident>)>;
 
 fn splice_get_array_range_size(
     contract: &Contract,
-    pred: &Predicate,
     range_expr_key: ExprKey,
 ) -> Option<(usize, OptEnumDecl)> {
     range_expr_key
@@ -287,7 +286,8 @@ fn splice_get_array_range_size(
                 ..
             } => Some((*size as usize, None)),
             Expr::PathByName(path, _) => {
-                pred.enums
+                contract
+                    .enums
                     .iter()
                     .find_map(|EnumDecl { name, variants, .. }| {
                         (&name.name == path)

@@ -1,7 +1,7 @@
-predicate test {
-    enum Baz = X | Y;
-    type Xyzzy = int;
+enum Baz = X | Y;
+type Xyzzy = int;
 
+predicate test {
     var a: int;
     var b: Foo;
     var c = a as Bar;
@@ -11,14 +11,15 @@ predicate test {
 }
 
 // parsed <<<
+// enum ::Baz = X | Y;
+// type ::Xyzzy = int;
+//
 // predicate ::test {
 //     var ::a: int;
 //     var ::b: ::Foo;
 //     var ::c;
 //     var ::d: ::Baz;
 //     var ::e;
-//     enum ::Baz = X | Y;
-//     type ::Xyzzy = int;
 //     constraint (::c == ::a as ::Bar);
 //     constraint (::e == ::a as ::Xyzzy);
 // }
@@ -26,7 +27,7 @@ predicate test {
 
 // typecheck_failure <<<
 // undefined type
-// @89..92: type is undefined
+// @81..84: type is undefined
 // undefined type
-// @111..114: type is undefined
+// @103..106: type is undefined
 // >>>
