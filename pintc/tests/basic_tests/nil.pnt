@@ -33,10 +33,6 @@ predicate test {
 // }
 //
 // predicate ::test {
-//     storage {
-//         x: int,
-//         z: {int, int, int},
-//     }
 //     state ::x = storage::x;
 //     state ::z = storage::z;
 //     constraint (nil == nil);
@@ -61,10 +57,6 @@ predicate test {
 // }
 //
 // predicate ::test {
-//     storage {
-//         x: int,
-//         z: {int, int, int},
-//     }
 //     state ::x: int = storage::x;
 //     state ::z: {int, int, int} = storage::z;
 //     constraint false;

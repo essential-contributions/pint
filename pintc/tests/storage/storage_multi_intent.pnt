@@ -62,13 +62,6 @@ predicate Bar {
 // }
 //
 // predicate ::Foo {
-//     storage {
-//         i: int,
-//         b: bool,
-//         map1: ( int => int ),
-//         map2: ( b256 => bool ),
-//         map3: ( int => ( int => b256 ) ),
-//     }
 //     var ::x;
 //     var ::address;
 //     var ::and;
@@ -90,13 +83,6 @@ predicate Bar {
 // }
 //
 // predicate ::Bar {
-//     storage {
-//         i: int,
-//         b: bool,
-//         map1: ( int => int ),
-//         map2: ( b256 => bool ),
-//         map3: ( int => ( int => b256 ) ),
-//     }
 //     var ::x;
 //     var ::address;
 //     var ::and;
@@ -128,13 +114,6 @@ predicate Bar {
 // }
 //
 // predicate ::Foo {
-//     storage {
-//         i: int,
-//         b: bool,
-//         map1: ( int => int ),
-//         map2: ( b256 => bool ),
-//         map3: ( int => ( int => b256 ) ),
-//     }
 //     var ::x: int;
 //     var ::address: b256;
 //     var ::and: bool;
@@ -156,13 +135,6 @@ predicate Bar {
 // }
 //
 // predicate ::Bar {
-//     storage {
-//         i: int,
-//         b: bool,
-//         map1: ( int => int ),
-//         map2: ( b256 => bool ),
-//         map3: ( int => ( int => b256 ) ),
-//     }
 //     var ::x: int;
 //     var ::address: b256;
 //     var ::and: bool;

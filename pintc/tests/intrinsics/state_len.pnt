@@ -29,12 +29,6 @@ predicate test {
 // enum ::MyEnum = A | B;
 //
 // predicate ::test {
-//     storage {
-//         a: int,
-//         b: bool,
-//         c: b256,
-//         d: {int, bool},
-//     }
 //     var ::a_len;
 //     var ::b_len;
 //     var ::c_len;
@@ -61,12 +55,6 @@ predicate test {
 // enum ::MyEnum = A | B;
 //
 // predicate ::test {
-//     storage {
-//         a: int,
-//         b: bool,
-//         c: b256,
-//         d: {int, bool},
-//     }
 //     var ::a_len: int;
 //     var ::b_len: int;
 //     var ::c_len: int;

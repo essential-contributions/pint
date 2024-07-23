@@ -20,10 +20,6 @@ predicate Foo {
 // }
 //
 // predicate ::Foo {
-//     storage {
-//         map1: ( int => bool ),
-//         map2: ( int => ( bool => b256 ) ),
-//     }
 //     state ::map1 = storage::map1;
 //     state ::map2_inner = storage::map2[69];
 //     state ::entry = storage::map1[42];

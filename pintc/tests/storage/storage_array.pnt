@@ -73,10 +73,6 @@ predicate Bar {
 // }
 //
 // predicate ::Bar {
-//     storage {
-//         v: int[3][2],
-//         map_to_arrays: ( int => int[3] ),
-//     }
 //     interface ::Foo {
 //         storage {
 //             v: int[3][2],
@@ -126,12 +122,8 @@ predicate Bar {
 //         map_to_arrays: ( int => int[3] ),
 //     }
 // }
-// 
+//
 // predicate ::Bar {
-//     storage {
-//         v: int[3][2],
-//         map_to_arrays: ( int => int[3] ),
-//     }
 //     interface ::Foo {
 //         storage {
 //             v: int[3][2],

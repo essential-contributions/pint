@@ -52,10 +52,6 @@ predicate Burn {
 // }
 //
 // predicate ::Transfer {
-//     storage {
-//         balances: ( b256 => int ),
-//         total_supply: int,
-//     }
 //     var ::from: b256;
 //     var ::to: b256;
 //     var ::value: int;
@@ -69,10 +65,6 @@ predicate Burn {
 // }
 //
 // predicate ::Mint {
-//     storage {
-//         balances: ( b256 => int ),
-//         total_supply: int,
-//     }
 //     var ::account: b256;
 //     var ::value: int;
 //     state ::total_supply = storage::total_supply;
@@ -82,10 +74,6 @@ predicate Burn {
 // }
 //
 // predicate ::Burn {
-//     storage {
-//         balances: ( b256 => int ),
-//         total_supply: int,
-//     }
 //     var ::account: b256;
 //     var ::value: int;
 //     state ::account_balance = storage::balances[::account];
@@ -103,10 +91,6 @@ predicate Burn {
 // }
 //
 // predicate ::Transfer {
-//     storage {
-//         balances: ( b256 => int ),
-//         total_supply: int,
-//     }
 //     var ::from: b256;
 //     var ::to: b256;
 //     var ::value: int;
@@ -120,10 +104,6 @@ predicate Burn {
 // }
 //
 // predicate ::Mint {
-//     storage {
-//         balances: ( b256 => int ),
-//         total_supply: int,
-//     }
 //     var ::account: b256;
 //     var ::value: int;
 //     state ::total_supply: int = storage::total_supply;
@@ -133,10 +113,6 @@ predicate Burn {
 // }
 //
 // predicate ::Burn {
-//     storage {
-//         balances: ( b256 => int ),
-//         total_supply: int,
-//     }
 //     var ::account: b256;
 //     var ::value: int;
 //     state ::account_balance: int = storage::balances[::account];

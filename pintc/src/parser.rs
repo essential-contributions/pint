@@ -239,7 +239,6 @@ impl<'a> ProjectParser<'a> {
         let enums = self.contract.root_pred().enums.clone();
         let new_types = self.contract.root_pred().new_types.clone();
         let root_symbols = self.contract.root_pred().top_level_symbols.clone();
-        let storage = self.contract.root_pred().storage.clone();
         let interfaces = self.contract.root_pred().interfaces.clone();
 
         self.contract
@@ -249,7 +248,6 @@ impl<'a> ProjectParser<'a> {
             .for_each(|pred| {
                 pred.new_types.extend_from_slice(&new_types);
                 pred.enums.extend_from_slice(&enums);
-                pred.storage.clone_from(&storage);
                 pred.interfaces.extend_from_slice(&interfaces);
 
                 for (symbol, span) in &root_symbols {

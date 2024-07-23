@@ -321,13 +321,13 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
                 .update_types(|_, var_ty| replace_alias(&new_types, var_ty));
             pred.states
                 .update_types(|_, state_ty| replace_alias(&new_types, state_ty));
-
-            if let Some((storage_vars, _)) = &mut pred.storage {
-                for StorageVar { ty, .. } in storage_vars {
-                    replace_alias(&new_types, ty);
-                }
-            }
         };
+
+        if let Some((storage_vars, _)) = &mut contract.storage {
+            for StorageVar { ty, .. } in storage_vars {
+                replace_alias(&new_types, ty);
+            }
+        }
 
         contract
             .exprs

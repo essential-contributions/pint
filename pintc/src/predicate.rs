@@ -33,6 +33,7 @@ pub struct Contract {
 
     pub exprs: Exprs,
     pub consts: FxHashMap<String, Const>,
+    pub storage: Option<(Vec<StorageVar>, Span)>,
 
     // Keep track of obsolete expanded macro calls in case they're erroneously depended upon.
     pub removed_macro_calls: slotmap::SecondaryMap<ExprKey, Span>,
@@ -48,6 +49,7 @@ impl Default for Contract {
             root_pred_key,
             exprs: Default::default(),
             consts: Default::default(),
+            storage: Default::default(),
             removed_macro_calls: Default::default(),
         }
     }
@@ -246,7 +248,6 @@ impl Contract {
                 })
                 .collect::<Result<_, _>>()?,
             storage: self
-                .root_pred()
                 .storage
                 .as_ref()
                 .map(|(storage, _)| {
@@ -296,9 +297,6 @@ pub struct Predicate {
 
     // CallKey is used in a secondary map in the parser context to access the actual call data.
     pub calls: slotmap::SlotMap<CallKey, Path>,
-
-    // A list of all storage variables in the order in which they were declared
-    pub storage: Option<(Vec<StorageVar>, Span)>,
 
     // A list of all availabe interfaces
     pub interfaces: Vec<Interface>,

@@ -6,6 +6,14 @@ impl Display for super::Contract {
             writeln!(f, "const {path}{};", self.root_pred().with_pred(self, cnst))?;
         }
 
+        if let Some(storage) = &self.storage {
+            writeln!(f, "storage {{")?;
+            for storage_var in &storage.0 {
+                writeln!(f, "    {}", self.root_pred().with_pred(self, storage_var))?;
+            }
+            writeln!(f, "}}")?;
+        }
+
         for pred in self.preds.values() {
             if pred.name == Self::ROOT_PRED_NAME {
                 self.root_pred().fmt_with_indent(f, self, 0)?
@@ -34,18 +42,6 @@ impl super::Predicate {
         indent: usize,
     ) -> Result {
         let indentation = " ".repeat(4 * indent);
-
-        if let Some(storage) = &self.storage {
-            writeln!(f, "{indentation}storage {{")?;
-            for storage_var in &storage.0 {
-                writeln!(
-                    f,
-                    "{indentation}    {}",
-                    self.with_pred(contract, storage_var)
-                )?;
-            }
-            writeln!(f, "{indentation}}}")?;
-        }
 
         for super::Interface {
             name,

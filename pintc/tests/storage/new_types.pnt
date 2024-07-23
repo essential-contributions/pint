@@ -29,11 +29,6 @@ predicate test {
 // type ::Haaash = b256;
 //
 // predicate ::test {
-//     storage {
-//         m: ( ::OneOrTheOther => int ),
-//         n: ( bool => ::Count ),
-//         o: ( ::OneOrTheOther => ::Haaash ),
-//     }
 //     state ::x = storage::m[true];
 //     state ::y = storage::n[false];
 //     state ::z = storage::o[false];
@@ -57,11 +52,6 @@ predicate test {
 // type ::Haaash = b256;
 //
 // predicate ::test {
-//     storage {
-//         m: ( bool => int ),
-//         n: ( bool => int ),
-//         o: ( bool => b256 ),
-//     }
 //     state ::x: int = storage::m[true];
 //     state ::y: int = storage::n[false];
 //     state ::z: b256 = storage::o[false];

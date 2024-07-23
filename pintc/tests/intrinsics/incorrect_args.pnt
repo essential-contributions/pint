@@ -46,9 +46,6 @@ predicate test {
 // }
 //
 // predicate ::test {
-//     storage {
-//         x: int,
-//     }
 //     var ::hash0: b256;
 //     var ::mut_keys_len;
 //     var ::mut_keys_contains_0: bool;

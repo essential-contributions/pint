@@ -17,10 +17,6 @@ predicate test {
 // }
 //
 // predicate ::test {
-//     storage {
-//         i: int,
-//         b: bool,
-//     }
 //     var ::bad_and;
 //     state ::i1 = storage::i;
 //     state ::b1 = storage::b;

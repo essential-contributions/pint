@@ -221,11 +221,20 @@ impl Contract {
                     replace_custom_type(&pred.new_types, ty.borrow_mut());
                 }
             });
+        }
 
-            if let Some((storage_vars, _)) = &mut pred.storage {
-                for StorageVar { ty, .. } in storage_vars {
-                    replace_custom_type(&pred.new_types, ty);
-                }
+        // We have to (?) clone the new_types here else the borrow checker will complain about it
+        // being borrowed immutably from `self` while `storage` is borrowed mutably from `self`.
+        // OK, fair enough, except why does it allow the `pred` in the for-loop above to be
+        // borrowed mutably and then `pred.new_types` immutably?  It's the same code but... what...
+        // because it's `self` it's different rules?  IDK.  Perhaps the lifetimes are slightly
+        // different, but then there's no way to fix that anyway.  Lifetimes can only be annotated
+        // and controlled in functions.  Hopefully when `new_types` moves to `Contract` it'll work
+        // again.
+        let new_types = self.root_pred().new_types.clone();
+        if let Some((storage_vars, _)) = &mut self.storage {
+            for StorageVar { ty, .. } in storage_vars {
+                replace_custom_type(&new_types, ty);
             }
         }
     }
@@ -311,7 +320,7 @@ impl Contract {
     }
 
     pub(super) fn check_storage_types(&self, handler: &Handler) {
-        if let Some((storage_vars, _)) = &self.root_pred().storage {
+        if let Some((storage_vars, _)) = &self.storage {
             for StorageVar { ty, span, .. } in storage_vars {
                 if !(ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() || ty.is_array())
                 {
@@ -853,7 +862,7 @@ impl Contract {
 
             Expr::PathByName(path, span) => self.infer_path_by_name(pred, path, span),
 
-            Expr::StorageAccess(name, span) => self.infer_storage_access(pred, name, span),
+            Expr::StorageAccess(name, span) => self.infer_storage_access(name, span),
 
             Expr::ExternalStorageAccess {
                 interface_instance,
@@ -1045,13 +1054,8 @@ impl Contract {
         }
     }
 
-    fn infer_storage_access(
-        &self,
-        pred: &Predicate,
-        name: &String,
-        span: &Span,
-    ) -> Result<Inference, Error> {
-        match pred.storage.as_ref() {
+    fn infer_storage_access(&self, name: &String, span: &Span) -> Result<Inference, Error> {
+        match self.storage.as_ref() {
             Some(storage) => match storage.0.iter().find(|s_var| s_var.name.name == *name) {
                 Some(s_var) => Ok(Inference::Type(s_var.ty.clone())),
                 None => Err(Error::Compile {
