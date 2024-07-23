@@ -152,6 +152,8 @@
 <p>Custom data types are named types that you can define in your program to refer, via an alias, to a
 primitive type, a compound type, or an <code>enum</code>. Enums are another special class of custom types that
 define enumerations with named variants.</p>
+<p>Both custom type and enum declarations must be made at the top level of a module, and are not
+allowed inside a <code>predicate</code> declaration.</p>
 <h3 id="type-aliases"><a class="header" href="#type-aliases">Type Aliases</a></h3>
 <p>Pint provides the ability to declare a type alias to give an existing type another name. For this we
 use the <code>type</code> keyword. For example, we can create the alias <code>Balance</code> to <code>int</code> like so:</p>
@@ -227,23 +229,25 @@ var token_type: Token = cond {
 <p>We can even use enums inside structs as follows:</p>
 <pre><code class="language-pint">type Bal = {
     token: Token,
-    bal: int, 
+    bal: int,
 };
 
-var user1_bal = {
-    token: Token::DAI,
-    bal: 42, 
-};
+predicate balances {
+    var user1_bal = {
+        token: Token::DAI,
+        bal: 42,
+    };
 
-var user2_bal = {
-    token: Token::USDC,
-    bal: 96, 
-};
+    var user2_bal = {
+        token: Token::USDC,
+        bal: 96,
+    };
 
-var user3_bal = {
-    token: Token::USDT,
-    bal: 100, 
-};
+    var user3_bal = {
+        token: Token::USDT,
+        bal: 100,
+    };
+}
 </code></pre>
 
                     </main>
