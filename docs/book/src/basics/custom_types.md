@@ -4,6 +4,9 @@ Custom data types are named types that you can define in your program to refer, 
 primitive type, a compound type, or an `enum`. Enums are another special class of custom types that
 define enumerations with named variants.
 
+Both custom type and enum declarations must be made at the top level of a module, and are not
+allowed inside a `predicate` declaration.
+
 ### Type Aliases
 
 Pint provides the ability to declare a type alias to give an existing type another name. For this we
