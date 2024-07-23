@@ -147,6 +147,7 @@ fn decode_field_error_enum(vars: &[VarABI]) -> syn::ItemEnum {
     syn::parse_quote! {
         /// A type describing which field failed to decode.
         #[derive(Debug)]
+        #[allow(non_camel_case_types)]
         pub enum DecodeFieldError {
             #(
                 #field_idents,
