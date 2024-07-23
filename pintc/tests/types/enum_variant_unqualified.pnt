@@ -1,29 +1,30 @@
-predicate test {
-    enum Foo = Bar | Baz;
-    enum Bar = Baz | Xyzzy;
+enum Foo = Bar | Baz;
+enum Bar = Baz | Xyzzy;
 
+predicate test {
     var a = Baz;
 }
 
 // parsed <<<
+// enum ::Foo = Bar | Baz;
+// enum ::Bar = Baz | Xyzzy;
+//
 // predicate ::test {
 //     var ::a;
-//     enum ::Foo = Bar | Baz;
-//     enum ::Bar = Baz | Xyzzy;
 //     constraint (::a == ::Baz);
 // }
 // >>>
 
 // typecheck_failure <<<
 // cannot find value `::Baz` in this scope
-// @84..87: not found in this scope
+// @76..79: not found in this scope
 // this symbol is a variant of enums `::Foo` and `::Bar` and may need a fully qualified path
 // cannot find value `::Baz` in this scope
-// @84..87: not found in this scope
+// @76..79: not found in this scope
 // this symbol is a variant of enums `::Foo` and `::Bar` and may need a fully qualified path
 // unable to determine expression type
-// @80..81: type of this expression is ambiguous
+// @72..73: type of this expression is ambiguous
 // constraint expression type error
-// @76..87: constraint expression has unknown type
-// @76..87: expecting type `bool`
+// @68..79: constraint expression has unknown type
+// @68..79: expecting type `bool`
 // >>>

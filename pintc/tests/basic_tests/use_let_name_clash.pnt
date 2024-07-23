@@ -1,11 +1,13 @@
 use a::b;
 
-var b: int;
+predicate test {
+    var b: int;
+}
 
 // parse_failure <<<
-// symbol `b` has already been declared
-// @7..8: previous declaration of the symbol `b` here
-// @15..16: `b` redeclared here
-// `b` must be declared or imported only once in this scope
+// symbol `::b` has already been declared
+// @7..8: previous declaration of the symbol `::b` here
+// @36..37: `::b` redeclared here
+// `::b` must be declared or imported only once in this scope
 // >>>
 

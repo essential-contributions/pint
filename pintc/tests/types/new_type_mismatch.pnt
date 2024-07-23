@@ -1,15 +1,16 @@
-predicate test {
-    type I = int;
+type I = int;
 
+predicate test {
     var i: I = 11;
     var j: I = 22.2;
 }
 
 // parsed <<<
+// type ::I = int;
+//
 // predicate ::test {
 //     var ::i: ::I;
 //     var ::j: ::I;
-//     type ::I = int;
 //     constraint (::i == 11);
 //     constraint (::j == 2.22e1);
 // }
@@ -17,6 +18,6 @@ predicate test {
 
 // typecheck_failure <<<
 // variable initialization type error
-// @70..74: variable initializer has unexpected type `real`
-// @21..33: expecting type `::I (int)`
+// @66..70: variable initializer has unexpected type `real`
+// @0..12: expecting type `::I (int)`
 // >>>

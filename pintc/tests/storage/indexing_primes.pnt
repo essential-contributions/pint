@@ -50,13 +50,6 @@ predicate test {
 // }
 //
 // predicate ::test {
-//     storage {
-//         v: int,
-//         w: int[2],
-//         x: {int, int},
-//         y: {int[2], int[2]},
-//         z: {int, int}[2],
-//     }
 //     state ::a = storage::v;
 //     state ::b = storage::w;
 //     state ::c = storage::x;
@@ -97,13 +90,6 @@ predicate test {
 // }
 //
 // predicate ::test {
-//     storage {
-//         v: int,
-//         w: int[2],
-//         x: {int, int},
-//         y: {int[2], int[2]},
-//         z: {int, int}[2],
-//     }
 //     state ::a: int = storage::v;
 //     state ::b: int[2] = storage::w;
 //     state ::c: {int, int} = storage::x;

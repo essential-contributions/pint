@@ -8,8 +8,6 @@ predicate Foo {}
 // type ::myCustom = ::myAlias (int);
 //
 // predicate ::Foo {
-//     type ::myAlias = int;
-//     type ::myCustom = ::myAlias (int);
 // }
 // >>>
 
@@ -18,7 +16,5 @@ predicate Foo {}
 // type ::myCustom = ::myAlias;
 //
 // predicate ::Foo {
-//     type ::myAlias = int;
-//     type ::myCustom = ::myAlias;
 // }
 // >>>

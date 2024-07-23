@@ -94,11 +94,6 @@ predicate Bar {
 // }
 //
 // predicate ::Foo {
-//     storage {
-//         x: int,
-//         y: bool,
-//         map: ( int => ( int => b256 ) ),
-//     }
 //     interface ::ERC20_0 {
 //         storage {
 //             x: int,
@@ -138,11 +133,6 @@ predicate Bar {
 // }
 //
 // predicate ::Bar {
-//     storage {
-//         x: int,
-//         y: bool,
-//         map: ( int => ( int => b256 ) ),
-//     }
 //     interface ::ERC20_0 {
 //         storage {
 //             x: int,
@@ -211,11 +201,6 @@ predicate Bar {
 // }
 //
 // predicate ::Foo {
-//     storage {
-//         x: int,
-//         y: bool,
-//         map: ( int => ( int => b256 ) ),
-//     }
 //     interface ::ERC20_0 {
 //         storage {
 //             x: int,
@@ -255,11 +240,6 @@ predicate Bar {
 // }
 //
 // predicate ::Bar {
-//     storage {
-//         x: int,
-//         y: bool,
-//         map: ( int => ( int => b256 ) ),
-//     }
 //     interface ::ERC20_0 {
 //         storage {
 //             x: int,

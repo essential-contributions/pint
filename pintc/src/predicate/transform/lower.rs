@@ -11,12 +11,37 @@ use crate::{
 use fxhash::FxHashMap;
 
 pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
-    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
-        // Each enum has its variants indexed from 0.  Gather all the enum declarations and create a
-        // map from path to integer index.
-        let mut variant_map = FxHashMap::default();
-        let mut variant_count_map = FxHashMap::default();
+    // Each enum has its variants indexed from 0.  Gather all the enum declarations and create a
+    // map from path to integer index.
+    let mut variant_map = FxHashMap::default();
+    let mut variant_count_map = FxHashMap::default();
 
+    let mut add_variants = |e: &EnumDecl, name: &String| {
+        for (i, v) in e.variants.iter().enumerate() {
+            let full_path = name.clone() + "::" + v.name.as_str();
+            variant_map.insert(full_path, i);
+        }
+        variant_count_map.insert(e.name.name.clone(), e.variants.len());
+    };
+
+    for e in &contract.enums {
+        // Add all variants for the enum.
+        add_variants(e, &e.name.name);
+
+        // We need to do exactly the same for any newtypes which are aliasing this enum.
+        if let Some(alias_name) =
+            contract
+                .new_types
+                .iter()
+                .find_map(|NewTypeDecl { name, ty, .. }| {
+                    (ty.get_enum_name(&contract.enums) == Some(&e.name.name)).then_some(&name.name)
+                })
+        {
+            add_variants(e, alias_name);
+        }
+    }
+
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         let mut enum_replacements = Vec::default();
         let mut variant_replacements = Vec::default();
         let mut enum_var_keys = Vec::default();
@@ -32,30 +57,6 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
         };
 
         let pred = contract.preds.get(pred_key).unwrap();
-
-        let mut add_variants = |e: &EnumDecl, name: &String| {
-            for (i, v) in e.variants.iter().enumerate() {
-                let full_path = name.clone() + "::" + v.name.as_str();
-                variant_map.insert(full_path, i);
-            }
-            variant_count_map.insert(e.name.name.clone(), e.variants.len());
-        };
-
-        for e in &pred.enums {
-            // Add all variants for the enum.
-            add_variants(e, &e.name.name);
-
-            // We need to do exactly the same for any newtypes which are aliasing this enum.
-            if let Some(alias_name) =
-                pred.new_types
-                    .iter()
-                    .find_map(|NewTypeDecl { name, ty, .. }| {
-                        (ty.get_enum_name(pred) == Some(&e.name.name)).then_some(&name.name)
-                    })
-            {
-                add_variants(e, alias_name);
-            }
-        }
 
         // Find all the expressions referring to the variants and save them in a list.
         for old_expr_key in contract.exprs(pred_key) {
@@ -73,17 +74,18 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
         // count.  Clippy says .filter(..).map(..) is cleaner than .filter_map(.. bool.then(..)).
         enum_var_keys.extend(
             pred.vars()
-                .filter(|(var_key, _)| var_key.get_ty(pred).is_enum(pred))
+                .filter(|(var_key, _)| var_key.get_ty(pred).is_enum(&contract.enums))
                 .map(|(var_key, _)| {
                     let enum_ty = var_key.get_ty(pred).clone();
-                    let variant_count = variant_count_map.get(enum_ty.get_enum_name(pred).unwrap());
+                    let variant_count =
+                        variant_count_map.get(enum_ty.get_enum_name(&contract.enums).unwrap());
                     (var_key, enum_ty, variant_count)
                 }),
         );
 
         // Not sure at this stage if we'll ever allow state to be an enum.
         for (state_key, _) in pred.states() {
-            if state_key.get_ty(pred).is_enum(pred) {
+            if state_key.get_ty(pred).is_enum(&contract.enums) {
                 return Err(handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "found state with an enum type",
@@ -175,11 +177,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
             // Replace the type.
             let exprs_with_enum_ty = contract
                 .exprs(pred_key)
-                .filter(|expr_key| {
-                    expr_key
-                        .get_ty(contract)
-                        .eq(contract.preds.get(pred_key).unwrap(), enum_ty)
-                })
+                .filter(|expr_key| expr_key.get_ty(contract).eq(&contract.new_types, enum_ty))
                 .collect::<Vec<_>>();
 
             for enum_expr_key in exprs_with_enum_ty {
@@ -279,17 +277,14 @@ pub(crate) fn lower_casts(handler: &Handler, contract: &mut Contract) -> Result<
 pub(crate) fn lower_aliases(contract: &mut Contract) {
     use std::borrow::BorrowMut;
 
-    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
-        let new_types = FxHashMap::from_iter(
-            contract
-                .preds
-                .get(pred_key)
-                .unwrap()
-                .new_types
-                .iter()
-                .map(|NewTypeDecl { name, ty, .. }| (name.name.clone(), ty.clone())),
-        );
+    let new_types = FxHashMap::from_iter(
+        contract
+            .new_types
+            .iter()
+            .map(|NewTypeDecl { name, ty, .. }| (name.name.clone(), ty.clone())),
+    );
 
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         fn replace_alias(new_types_map: &FxHashMap<String, Type>, old_ty: &mut Type) {
             match old_ty {
                 Type::Alias { ty, .. } => {
@@ -321,13 +316,13 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
                 .update_types(|_, var_ty| replace_alias(&new_types, var_ty));
             pred.states
                 .update_types(|_, state_ty| replace_alias(&new_types, state_ty));
-
-            if let Some((storage_vars, _)) = &mut pred.storage {
-                for StorageVar { ty, .. } in storage_vars {
-                    replace_alias(&new_types, ty);
-                }
-            }
         };
+
+        if let Some((storage_vars, _)) = &mut contract.storage {
+            for StorageVar { ty, .. } in storage_vars {
+                replace_alias(&new_types, ty);
+            }
+        }
 
         contract
             .exprs
@@ -388,7 +383,7 @@ pub(crate) fn lower_imm_accesses(
             })
             .collect::<Vec<_>>();
 
-        let evaluator = Evaluator::new(contract.preds.get(pred_key).unwrap());
+        let evaluator = Evaluator::new(&contract.enums);
         let mut replacements = Vec::new();
         for (old_expr_key, array_idx, field_idx) in candidates {
             assert!(

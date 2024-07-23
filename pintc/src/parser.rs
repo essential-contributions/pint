@@ -231,15 +231,10 @@ impl<'a> ProjectParser<'a> {
     }
 
     fn finalize(mut self) -> Result<Contract, ErrorEmitted> {
-        // Insert all enums, new types, and storage variables from the root Pred into each non-root
-        // Pred (i.e. those declared using an `predicate { }` decl). Also, insert all top level
-        // symbols since shadowing is not allowed. That is, we can't use a symbol inside an
-        // `predicate { .. }` that was already used in the root Pred.
+        // Insert all top level symbols since shadowing is not allowed. That is, we can't use a
+        // symbol inside an `predicate { .. }` that was already used in the root Pred.
 
-        let enums = self.contract.root_pred().enums.clone();
-        let new_types = self.contract.root_pred().new_types.clone();
         let root_symbols = self.contract.root_pred().top_level_symbols.clone();
-        let storage = self.contract.root_pred().storage.clone();
         let interfaces = self.contract.root_pred().interfaces.clone();
 
         self.contract
@@ -247,9 +242,6 @@ impl<'a> ProjectParser<'a> {
             .values_mut()
             .filter(|pred| pred.name != Contract::ROOT_PRED_NAME)
             .for_each(|pred| {
-                pred.new_types.extend_from_slice(&new_types);
-                pred.enums.extend_from_slice(&enums);
-                pred.storage.clone_from(&storage);
                 pred.interfaces.extend_from_slice(&interfaces);
 
                 for (symbol, span) in &root_symbols {

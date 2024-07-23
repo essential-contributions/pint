@@ -27,12 +27,6 @@ predicate test {
 // }
 //
 // predicate ::test {
-//     storage {
-//         i: int,
-//         b: bool,
-//         map1: ( int => int ),
-//         map2: ( b256 => bool ),
-//     }
 //     var ::x;
 //     var ::address;
 //     state ::i1: bool = storage::i;

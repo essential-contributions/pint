@@ -32,15 +32,6 @@ predicate Foo {
 // }
 //
 // predicate ::Foo {
-//     storage {
-//         s0: bool,
-//         s1: int,
-//         s2: b256,
-//         s3: {int, int},
-//         s4: {int, int, {int, int}},
-//         my_map: ( int => {int, {b256, int}} ),
-//         my_nested_map: ( int => ( b256 => {int, {b256, int}} ) ),
-//     }
 //     var ::v0: bool;
 //     var ::v1: int;
 //     var ::v2: b256;
@@ -64,15 +55,6 @@ predicate Foo {
 // }
 //
 // predicate ::Foo {
-//     storage {
-//         s0: bool,
-//         s1: int,
-//         s2: b256,
-//         s3: {int, int},
-//         s4: {int, int, {int, int}},
-//         my_map: ( int => {int, {b256, int}} ),
-//         my_nested_map: ( int => ( b256 => {int, {b256, int}} ) ),
-//     }
 //     var ::v0: bool;
 //     var ::v1: int;
 //     var ::v2: b256;

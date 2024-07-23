@@ -19,7 +19,7 @@ predicate test {
 // `c1_alias` must be declared or imported only once in this scope
 // symbol `c1_alias` has already been declared
 // @12..26: previous declaration of the symbol `c1_alias` here
-// @80..88: `c1_alias` redeclared here
+// @82..90: `c1_alias` redeclared here
 // `c1_alias` must be declared or imported only once in this scope
 // symbol `::a1_alias` has already been declared
 // @11..25: previous declaration of the symbol `::a1_alias` here

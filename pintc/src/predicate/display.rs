@@ -6,6 +6,22 @@ impl Display for super::Contract {
             writeln!(f, "const {path}{};", self.root_pred().with_pred(self, cnst))?;
         }
 
+        for r#enum in &self.enums {
+            writeln!(f, "{};", self.root_pred().with_pred(self, r#enum))?;
+        }
+
+        for new_type in &self.new_types {
+            writeln!(f, "{};", self.root_pred().with_pred(self, new_type))?;
+        }
+
+        if let Some(storage) = &self.storage {
+            writeln!(f, "storage {{")?;
+            for storage_var in &storage.0 {
+                writeln!(f, "    {}", self.root_pred().with_pred(self, storage_var))?;
+            }
+            writeln!(f, "}}")?;
+        }
+
         for pred in self.preds.values() {
             if pred.name == Self::ROOT_PRED_NAME {
                 self.root_pred().fmt_with_indent(f, self, 0)?
@@ -34,18 +50,6 @@ impl super::Predicate {
         indent: usize,
     ) -> Result {
         let indentation = " ".repeat(4 * indent);
-
-        if let Some(storage) = &self.storage {
-            writeln!(f, "{indentation}storage {{")?;
-            for storage_var in &storage.0 {
-                writeln!(
-                    f,
-                    "{indentation}    {}",
-                    self.with_pred(contract, storage_var)
-                )?;
-            }
-            writeln!(f, "{indentation}}}")?;
-        }
 
         for super::Interface {
             name,
@@ -127,14 +131,6 @@ impl super::Predicate {
 
         for (state_key, _) in self.states() {
             writeln!(f, "{indentation}{};", self.with_pred(contract, state_key))?;
-        }
-
-        for r#enum in &self.enums {
-            writeln!(f, "{indentation}{};", self.with_pred(contract, r#enum))?;
-        }
-
-        for new_type in &self.new_types {
-            writeln!(f, "{indentation}{};", self.with_pred(contract, new_type))?;
         }
 
         for constraint in &self.constraints {

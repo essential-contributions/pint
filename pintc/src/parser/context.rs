@@ -85,7 +85,7 @@ impl<'a> ParserContext<'a> {
         (l, r): (usize, usize),
     ) {
         let span = (self.span_from)(l, r);
-        if let Some((_, prev_span)) = &self.current_pred().storage {
+        if let Some((_, prev_span)) = &self.contract.storage {
             // Multiple `storage` blocks are not allowed
             handler.emit_err(Error::Parse {
                 error: ParseError::TooManyStorageBlocks {
@@ -99,7 +99,7 @@ impl<'a> ParserContext<'a> {
                 error: ParseError::StorageDirectiveMustBeTopLevel { span },
             });
         } else {
-            self.current_pred().storage = Some((storage_vars, span));
+            self.contract.storage = Some((storage_vars, span));
         }
     }
 

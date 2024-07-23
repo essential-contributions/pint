@@ -1,7 +1,9 @@
 use a::b;
 use c::b;
 
-var d: int;
+predicate test {
+    var d: int;
+}
 
 // parse_failure <<<
 // symbol `b` has already been declared

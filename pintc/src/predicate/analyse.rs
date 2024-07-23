@@ -88,7 +88,7 @@ impl Contract {
         // performing N-1 evaluation passes for N consts should resolve all dependencies and in
         // most cases will be done in only 1 or 2 passes.
 
-        let mut evaluator = Evaluator::new(self.root_pred());
+        let mut evaluator = Evaluator::new(&self.enums);
         let mut new_immediates = Vec::default();
 
         // Use a temporary error handler to manage in-progress errors.
@@ -162,11 +162,7 @@ impl Contract {
                             // We have an unknown-typed const initialised with a path.  E.g.,
                             // const a = MyEnum::MyVariant;
                             if let Ok(Inference::Type(variant_ty)) =
-                                Self::infer_enum_variant_by_name(
-                                    self.root_pred(),
-                                    path,
-                                    &empty_span(),
-                                )
+                                self.infer_enum_variant_by_name(path, &empty_span())
                             {
                                 // It's definitely an enum.  Update the decl type below.
                                 preserved_enum_type = Some(variant_ty);
@@ -239,7 +235,7 @@ impl Contract {
     fn reject_non_primitive_consts(&self, handler: &Handler) -> Result<(), ErrorEmitted> {
         // Called after we've evaluated them all and resolved their types.
         for (path, Const { expr, decl_ty }) in &self.consts {
-            if !decl_ty.is_any_primitive() && !decl_ty.is_enum(self.root_pred()) {
+            if !decl_ty.is_any_primitive() && !decl_ty.is_enum(&self.enums) {
                 handler.emit_err(Error::Compile {
                     error: CompileError::TemporaryNonPrimitiveConst {
                         name: path.to_string(),

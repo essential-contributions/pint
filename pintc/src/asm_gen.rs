@@ -313,7 +313,7 @@ impl AsmBuilder {
                 }
             }
             Expr::StorageAccess(name, _) => {
-                let storage = &pred
+                let storage = &contract
                     .storage
                     .as_ref()
                     .expect("a storage block must have been declared")

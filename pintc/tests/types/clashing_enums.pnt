@@ -1,33 +1,35 @@
 macro @panicked_response($bird) {
+    // There's no such thing as just `Duck` or `Kick`, they must be fully qualified.
     $bird != ::AttackingBird::Goose ? Duck : Kick
 }
 
-predicate test {
-    enum AttackingBird = Goose | Duck | Chicken;
-    enum AppropriateDefence = Kick | Runaway | Duck | StareDown;
+enum AttackingBird = Goose | Duck | Chicken;
+enum AppropriateDefence = Kick | Runaway | Duck | StareDown;
 
+predicate test {
     var unfortunate_action = @panicked_response(AttackingBird::Goose);
 }
 
 // parsed <<<
+// enum ::AttackingBird = Goose | Duck | Chicken;
+// enum ::AppropriateDefence = Kick | Runaway | Duck | StareDown;
+//
 // predicate ::test {
 //     var ::unfortunate_action;
-//     enum ::AttackingBird = Goose | Duck | Chicken;
-//     enum ::AppropriateDefence = Kick | Runaway | Duck | StareDown;
 //     constraint (::unfortunate_action == ((::AttackingBird::Goose != ::AttackingBird::Goose) ? ::Duck : ::Kick));
 // }
 // >>>
 
 // typecheck_failure <<<
 // cannot find value `::Duck` in this scope
-// @72..76: not found in this scope
+// @157..161: not found in this scope
 // this symbol is a variant of enums `::AttackingBird` and `::AppropriateDefence` and may need a fully qualified path
 // cannot find value `::Duck` in this scope
-// @72..76: not found in this scope
+// @157..161: not found in this scope
 // this symbol is a variant of enums `::AttackingBird` and `::AppropriateDefence` and may need a fully qualified path
 // unable to determine expression type
-// @227..245: type of this expression is ambiguous
+// @304..322: type of this expression is ambiguous
 // constraint expression type error
-// @223..288: constraint expression has unknown type
-// @223..288: expecting type `bool`
+// @300..365: constraint expression has unknown type
+// @300..365: expecting type `bool`
 // >>>

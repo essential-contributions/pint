@@ -1,16 +1,17 @@
-predicate test {
 // <disabled>
 // ANCHOR: alias
 type Balance = int;
-// ANCHOR_END: alias 
+// ANCHOR_END: alias
 
+predicate test0 {
 // ANCHOR: alias_same
 var x: int = 5;
 var y: Balance = 5;
 constraint x == y;
 // ANCHOR_END: alias_same
+}
 
-// ANCHOR: simple_struct 
+// ANCHOR: simple_struct
 type User = {
     status: bool,
     address: b256,
@@ -18,6 +19,7 @@ type User = {
 };
 // ANCHOR_END: simple_struct
 
+predicate test1 {
 // ANCHOR: simple_struct_instance
 var user1: User = {
     status: true,
@@ -25,11 +27,13 @@ var user1: User = {
     balance: 42,
 };
 // ANCHOR_END: simple_struct_instance
+}
 
 // ANCHOR: simple_enum
 enum Token = DAI | USDC | USDT;
 // ANCHOR_END: simple_enum
 
+predicate test2 {
 // ANCHOR: simple_enum_instances
 var dai: Token = Token::DAI;
 var usdc: Token = Token::USDC;
@@ -44,26 +48,28 @@ var token_type: Token = cond {
     else  => Token::USDT,
 };
 // ANCHOR_END: enum_selection
+}
 
 // ANCHOR: enum_in_struct
 type Bal = {
     token: Token,
-    bal: int, 
+    bal: int,
 };
 
-var user1_bal = {
-    token: Token::DAI,
-    bal: 42, 
-};
+predicate balances {
+    var user1_bal = {
+        token: Token::DAI,
+        bal: 42,
+    };
 
-var user2_bal = {
-    token: Token::USDC,
-    bal: 96, 
-};
+    var user2_bal = {
+        token: Token::USDC,
+        bal: 96,
+    };
 
-var user3_bal = {
-    token: Token::USDT,
-    bal: 100, 
-};
-// ANCHOR_END: enum_in_struct
+    var user3_bal = {
+        token: Token::USDT,
+        bal: 100,
+    };
 }
+// ANCHOR_END: enum_in_struct

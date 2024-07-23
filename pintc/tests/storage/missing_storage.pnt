@@ -12,9 +12,6 @@ predicate Foo {
 // }
 //
 // predicate ::Foo {
-//     storage {
-//         x: int,
-//     }
 //     state ::y = storage::y;
 // }
 // >>>

@@ -1,3 +1,5 @@
+enum MyEnum = A | B;
+
 predicate test {
     // Bad
     var a: int[true];
@@ -9,12 +11,13 @@ predicate test {
     var h: int[10.0];
 
     // Ok
-    enum MyEnum = A | B;
     var i: int[10];
     var j: int[MyEnum];
 }
 
 // parsed <<<
+// enum ::MyEnum = A | B;
+//
 // predicate ::test {
 //     var ::a: int[true];
 //     var ::b: int[false];
@@ -25,30 +28,29 @@ predicate test {
 //     var ::h: int[1e1];
 //     var ::i: int[10];
 //     var ::j: int[::MyEnum];
-//     enum ::MyEnum = A | B;
 // }
 // >>>
 
 // typecheck_failure <<<
 // invalid array range type bool
-// @43..47: array access must be of type `int` or `enum`
+// @65..69: array access must be of type `int` or `enum`
 // found range type `bool`
 // invalid array range type bool
-// @65..70: array access must be of type `int` or `enum`
+// @87..92: array access must be of type `int` or `enum`
 // found range type `bool`
 // invalid array range type b256
-// @88..154: array access must be of type `int` or `enum`
+// @110..176: array access must be of type `int` or `enum`
 // found range type `b256`
 // invalid array range type {int, int}
-// @172..178: array access must be of type `int` or `enum`
+// @194..200: array access must be of type `int` or `enum`
 // found range type `{int, int}`
 // invalid array range type int[2]
-// @196..202: array access must be of type `int` or `enum`
+// @218..224: array access must be of type `int` or `enum`
 // found range type `int[2]`
 // invalid array range type string
-// @220..225: array access must be of type `int` or `enum`
+// @242..247: array access must be of type `int` or `enum`
 // found range type `string`
 // invalid array range type real
-// @243..247: array access must be of type `int` or `enum`
+// @265..269: array access must be of type `int` or `enum`
 // found range type `real`
 // >>>

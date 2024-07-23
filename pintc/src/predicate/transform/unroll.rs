@@ -164,8 +164,7 @@ fn unroll_generator(
 
         let mut satisfied = true;
         {
-            let pred = contract.preds.get(pred_key).unwrap();
-            let evaluator = Evaluator::from_values(pred, values_map.clone());
+            let evaluator = Evaluator::from_values(&contract.enums, values_map.clone());
 
             // Check each condition, if available, against the values map above
             for condition in &conditions {

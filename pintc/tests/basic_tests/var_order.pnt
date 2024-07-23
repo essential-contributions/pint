@@ -1,5 +1,6 @@
+enum MyEnum = A | B;
+
 predicate test {
-    enum MyEnum = A | B;
     var y: bool;
     var t: { int, bool, { b256, { int, bool } }, b256 };
     var a: int[4][2];
@@ -11,6 +12,8 @@ predicate test {
 }
 
 // parsed <<<
+// enum ::MyEnum = A | B;
+//
 // predicate ::test {
 //     var ::y: bool;
 //     var ::t: {int, bool, {b256, {int, bool}}, b256};
@@ -20,11 +23,12 @@ predicate test {
 //     var ::x: int;
 //     var ::z: string;
 //     var ::e: {::MyEnum, bool};
-//     enum ::MyEnum = A | B;
 // }
 // >>>
 
 // flattened <<<
+// enum ::MyEnum = A | B;
+//
 // predicate ::test {
 //     var ::y: bool;
 //     var ::t: {int, bool, {b256, {int, bool}}, b256};
@@ -34,6 +38,5 @@ predicate test {
 //     var ::x: int;
 //     var ::z: string;
 //     var ::e: {::MyEnum, bool};
-//     enum ::MyEnum = A | B;
 // }
 // >>>

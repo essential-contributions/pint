@@ -25,9 +25,9 @@ macro @find_max_feeling($feeling, $max_feeling, $counts_name, $last_idx) {
     $feeling == $last_idx && $counts_name[$last_idx] == $max_feeling
 }
 
-predicate test {
-    enum Feeling = Uneasy | Queasy | Awkward | Anxious;
+enum Feeling = Uneasy | Queasy | Awkward | Anxious;
 
+predicate test {
     var counts: int[Feeling];
     constraint counts[Feeling::Uneasy] == 33;
     constraint counts[Feeling::Queasy] == 22;
@@ -47,11 +47,12 @@ predicate test {
 }
 
 // parsed <<<
+// enum ::Feeling = Uneasy | Queasy | Awkward | Anxious;
+//
 // predicate ::test {
 //     var ::counts: int[::Feeling];
 //     var ::max_feeling: int;
 //     var ::feeling: ::Feeling;
-//     enum ::Feeling = Uneasy | Queasy | Awkward | Anxious;
 //     constraint (::counts[::Feeling::Uneasy] == 33);
 //     constraint (::counts[::Feeling::Queasy] == 22);
 //     constraint (::counts[::Feeling::Awkward] == 44);
@@ -66,11 +67,12 @@ predicate test {
 // >>>
 
 // flattened <<<
+// enum ::Feeling = Uneasy | Queasy | Awkward | Anxious;
+//
 // predicate ::test {
 //     var ::counts: int[4];
 //     var ::max_feeling: int;
 //     var ::feeling: int;
-//     enum ::Feeling = Uneasy | Queasy | Awkward | Anxious;
 //     constraint (::counts[0] == 33);
 //     constraint (::counts[1] == 22);
 //     constraint (::counts[2] == 44);

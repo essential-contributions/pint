@@ -70,7 +70,7 @@ impl Contract {
             })
             .collect();
 
-        let evaluator = Evaluator::new(&self.preds[pred_key]);
+        let evaluator = Evaluator::new(&self.enums);
         for (array_ty, index_key) in accesses {
             // First, try evaluating the index value, since it must be an immediate int (or enum
             // variant, which evaluates to int).

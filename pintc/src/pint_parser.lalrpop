@@ -29,30 +29,51 @@ pub Pint: () = {
 /// Declarations ///
 ////////////////////
 
+// Decls allowed at the top level, outside predicates.
 Decl: () = {
-    DeclBarringMacro,
-    PredicateDecl,
-    MacroDecl,
-    StorageDecl,
-    Interface,
     ConstDecl ";",
+    EnumDecl ";",
+    Interface,
+    MacroCallDecl ";",
+    MacroDecl,
+    NewTypeDecl ";",
+    PredicateDecl,
+    StorageDecl,
+    UseStatement ";",
 };
 
-DeclBarringMacro: () = {
-    UseStatement ";",
-    VarDecl ";",
-    StateDecl ";",
+// Decls allowed inside predicates.
+PredicateInnerDecl: () = {
     ConstraintDecl ";",
     IfDecl,
-    EnumDecl ";",
-    NewTypeDecl ";",
-    MacroCallDecl ";",
     InterfaceInstance ";",
+    MacroCallDecl ";",
     PredicateInstance ";",
+    StateDecl ";",
+    UseStatement ";",
+    VarDecl ";",
+};
+
+// Decls allowed inside macro bodies, which is ALL of them except `MacroDecl`.
+DeclInnerMacroBody: () = {
+    ConstDecl ";",
+    ConstraintDecl ";",
+    EnumDecl ";",
+    IfDecl,
+    Interface,
+    InterfaceInstance ";",
+    MacroCallDecl ";",
+    NewTypeDecl ";",
+    PredicateDecl,
+    PredicateInstance ";",
+    StateDecl ";",
+    StorageDecl,
+    UseStatement ";",
+    VarDecl ";",
 };
 
 PredicateDecl: () = {
-    PredicateOpen DeclBarringMacro* PredicateClose,
+    PredicateOpen PredicateInnerDecl* PredicateClose,
 }
 
 PredicateOpen: () = {
@@ -317,7 +338,7 @@ EnumDecl: () = {
             variants,
             span: (context.span_from)(l, r),
         };
-        context.current_pred().enums.push(enum_decl);
+        context.contract.enums.push(enum_decl);
     }
 }
 
@@ -328,7 +349,7 @@ NewTypeDecl: () = {
             ty,
             span: (context.span_from)(l, r),
         };
-        context.current_pred().new_types.push(new_type_decl);
+        context.contract.new_types.push(new_type_decl);
     }
 }
 
@@ -369,7 +390,7 @@ MacroCallDecl: () = {
 }
 
 pub MacroBody: Option<ExprKey> = {
-    "{" DeclBarringMacro* <Expr?> "}"
+    "{" DeclInnerMacroBody* <Expr?> "}"
 }
 
 /////////////

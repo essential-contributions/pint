@@ -23,7 +23,6 @@ predicate test {
 //     var ::c4;
 //     var ::a_variant;
 //     var ::b_variant;
-//     enum ::d::MyEnum = A | B;
 //     constraint (::c1 == ::b::c);
 //     constraint (::c2 == ::b::c);
 //     constraint (::c3 == ::b::c);
@@ -44,7 +43,6 @@ predicate test {
 //     var ::c4: int;
 //     var ::a_variant: int;
 //     var ::b_variant: int;
-//     enum ::d::MyEnum = A | B;
 //     constraint (::c1 == 5);
 //     constraint (::c2 == 5);
 //     constraint (::c3 == 5);

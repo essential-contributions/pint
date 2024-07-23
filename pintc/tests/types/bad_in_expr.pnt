@@ -1,3 +1,5 @@
+enum SupperGuest = Bartholomew | JamesL | Andrew | Judas | Peter | John | Thomas | JamesG | Philip | Matthew | Jude | Simon;
+
 predicate test {
     var x: int;
 
@@ -7,18 +9,18 @@ predicate test {
     var y: bool;
     constraint y in "foo"..false;
 
-    enum SupperGuest = Bartholomew | JamesL | Andrew | Judas | Peter | John | Thomas | JamesG | Philip | Matthew | Jude | Simon;
     var z: SupperGuest;
     constraint z in [1, 4, 7];
     constraint x in [SupperGuest::Andrew, SupperGuest::Philip];
 }
 
 // parsed <<<
+// enum ::SupperGuest = Bartholomew | JamesL | Andrew | Judas | Peter | John | Thomas | JamesG | Philip | Matthew | Jude | Simon;
+//
 // predicate ::test {
 //     var ::x: int;
 //     var ::y: bool;
 //     var ::z: ::SupperGuest;
-//     enum ::SupperGuest = Bartholomew | JamesL | Andrew | Judas | Peter | John | Thomas | JamesG | Philip | Matthew | Jude | Simon;
 //     constraint ::x in 11..22 in 13..20;
 //     constraint ::x in 1.55e1..1.83e1;
 //     constraint ::y in "foo"..false;
@@ -29,28 +31,28 @@ predicate test {
 
 // typecheck_failure <<<
 // value type and range type differ
-// @64..66: range type mismatch; expecting `bool` type, found `int` type
+// @190..192: range type mismatch; expecting `bool` type, found `int` type
 // value type and range type differ
-// @92..96: range type mismatch; expecting `int` type, found `real` type
+// @218..222: range type mismatch; expecting `int` type, found `real` type
 // left and right types in range differ
-// @149..154: expecting `string` type , found `bool` type
+// @275..280: expecting `string` type , found `bool` type
 // value type and array element type in range differ
-// @331..332: array element type mismatch; expecting `::SupperGuest` type, found `int` type
+// @328..329: array element type mismatch; expecting `::SupperGuest` type, found `int` type
 // value type and array element type in range differ
-// @161..284: array element type mismatch; expecting `int` type, found `::SupperGuest` type
+// @0..123: array element type mismatch; expecting `int` type, found `::SupperGuest` type
 // constraint expression type error
-// @38..70: constraint expression has unknown type
-// @38..70: expecting type `bool`
+// @164..196: constraint expression has unknown type
+// @164..196: expecting type `bool`
 // constraint expression type error
-// @76..102: constraint expression has unknown type
-// @76..102: expecting type `bool`
+// @202..228: constraint expression has unknown type
+// @202..228: expecting type `bool`
 // constraint expression type error
-// @126..154: constraint expression has unknown type
-// @126..154: expecting type `bool`
+// @252..280: constraint expression has unknown type
+// @252..280: expecting type `bool`
 // constraint expression type error
-// @314..339: constraint expression has unknown type
-// @314..339: expecting type `bool`
+// @311..336: constraint expression has unknown type
+// @311..336: expecting type `bool`
 // constraint expression type error
-// @345..403: constraint expression has unknown type
-// @345..403: expecting type `bool`
+// @342..400: constraint expression has unknown type
+// @342..400: expecting type `bool`
 // >>>

@@ -79,13 +79,10 @@ impl Contract {
             }
         }
 
-        for pred in self.preds.values() {
-            for NewTypeDecl { name, ty, span } in &pred.new_types {
-                let mut seen_names =
-                    FxHashMap::from_iter(std::iter::once((name.name.as_str(), span)));
+        for NewTypeDecl { name, ty, span } in &self.new_types {
+            let mut seen_names = FxHashMap::from_iter(std::iter::once((name.name.as_str(), span)));
 
-                let _ = inspect_type_names(handler, &pred.new_types, &mut seen_names, ty);
-            }
+            let _ = inspect_type_names(handler, &self.new_types, &mut seen_names, ty);
         }
 
         if handler.has_errors() {
@@ -125,41 +122,39 @@ impl Contract {
         //   type B = { A, A };
         //   // B will have `Type::Custom("A")` which need to be `Type::Alias("A", int)`
 
-        for pred in self.preds.values_mut() {
-            for new_type_idx in 0..pred.new_types.len() {
-                // We're replacing only a single new type at a time, if found in other new-types.
-                let new_type = pred.new_types[new_type_idx].clone();
+        for new_type_idx in 0..self.new_types.len() {
+            // We're replacing only a single new type at a time, if found in other new-types.
+            let new_type = self.new_types[new_type_idx].clone();
 
-                // Replace the next found custom type which needs to be replaced with a an alias.
-                // There may be multiple replacements required per iteration, so we'll visit every
-                // current new-type decl per iteration until none are updated.
-                for loop_check in 0.. {
-                    let mut modified = false;
+            // Replace the next found custom type which needs to be replaced with a an alias.
+            // There may be multiple replacements required per iteration, so we'll visit every
+            // current new-type decl per iteration until none are updated.
+            for loop_check in 0.. {
+                let mut modified = false;
 
-                    for NewTypeDecl { ref mut ty, .. } in &mut pred.new_types {
-                        if let Some(custom_ty) = get_custom_type_mut_ref(&new_type.name.name, ty) {
-                            *custom_ty = Type::Alias {
-                                path: new_type.name.name.clone(),
-                                ty: Box::new(new_type.ty.clone()),
-                                span: new_type.span.clone(),
-                            };
+                for NewTypeDecl { ref mut ty, .. } in &mut self.new_types {
+                    if let Some(custom_ty) = get_custom_type_mut_ref(&new_type.name.name, ty) {
+                        *custom_ty = Type::Alias {
+                            path: new_type.name.name.clone(),
+                            ty: Box::new(new_type.ty.clone()),
+                            span: new_type.span.clone(),
+                        };
 
-                            modified = true;
-                        }
+                        modified = true;
                     }
+                }
 
-                    if !modified {
-                        break;
-                    }
+                if !modified {
+                    break;
+                }
 
-                    if loop_check > 10_000 {
-                        return Err(handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "infinite loop in lower_newtypes_in_newtypes()",
-                                span: empty_span(),
-                            },
-                        }));
-                    }
+                if loop_check > 10_000 {
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "infinite loop in lower_newtypes_in_newtypes()",
+                            span: empty_span(),
+                        },
+                    }));
                 }
             }
         }
@@ -211,34 +206,43 @@ impl Contract {
             // Then, loop for every known var or state type, or any `as` cast expr, or any storage
             // type, and replace any custom types which match with the type alias.
             pred.vars
-                .update_types(|_, ty| replace_custom_type(&pred.new_types, ty));
+                .update_types(|_, ty| replace_custom_type(&self.new_types, ty));
 
             pred.states
-                .update_types(|_, ty| replace_custom_type(&pred.new_types, ty));
+                .update_types(|_, ty| replace_custom_type(&self.new_types, ty));
 
             self.exprs.update_exprs(|_, expr| {
                 if let Expr::Cast { ty, .. } = expr {
-                    replace_custom_type(&pred.new_types, ty.borrow_mut());
+                    replace_custom_type(&self.new_types, ty.borrow_mut());
                 }
             });
+        }
 
-            if let Some((storage_vars, _)) = &mut pred.storage {
-                for StorageVar { ty, .. } in storage_vars {
-                    replace_custom_type(&pred.new_types, ty);
-                }
+        // We have to (?) clone the new_types here else the borrow checker will complain about it
+        // being borrowed immutably from `self` while `storage` is borrowed mutably from `self`.
+        // OK, fair enough, except why does it allow the `pred` in the for-loop above to be
+        // borrowed mutably and then `pred.new_types` immutably?  It's the same code but... what...
+        // because it's `self` it's different rules?  IDK.  Perhaps the lifetimes are slightly
+        // different, but then there's no way to fix that anyway.  Lifetimes can only be annotated
+        // and controlled in functions.  Hopefully when `new_types` moves to `Contract` it'll work
+        // again.
+        let new_types = self.new_types.clone();
+        if let Some((storage_vars, _)) = &mut self.storage {
+            for StorageVar { ty, .. } in storage_vars {
+                replace_custom_type(&new_types, ty);
             }
         }
     }
 
     pub(super) fn check_undefined_types(&mut self, handler: &Handler) {
-        for (pred_key, pred) in self.preds.iter() {
-            let valid_custom_tys: FxHashSet<&String> = FxHashSet::from_iter(
-                pred.enums
-                    .iter()
-                    .map(|ed| &ed.name.name)
-                    .chain(pred.new_types.iter().map(|ntd| &ntd.name.name)),
-            );
+        let valid_custom_tys: FxHashSet<&String> = FxHashSet::from_iter(
+            self.enums
+                .iter()
+                .map(|ed| &ed.name.name)
+                .chain(self.new_types.iter().map(|ntd| &ntd.name.name)),
+        );
 
+        for (pred_key, pred) in self.preds.iter() {
             for (state_key, _) in pred.states() {
                 if let Type::Custom { path, span, .. } = state_key.get_ty(pred) {
                     if !valid_custom_tys.contains(path) {
@@ -311,7 +315,7 @@ impl Contract {
     }
 
     pub(super) fn check_storage_types(&self, handler: &Handler) {
-        if let Some((storage_vars, _)) = &self.root_pred().storage {
+        if let Some((storage_vars, _)) = &self.storage {
             for StorageVar { ty, span, .. } in storage_vars {
                 if !(ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() || ty.is_array())
                 {
@@ -478,7 +482,7 @@ impl Contract {
                 if !state_ty.is_unknown() {
                     let expr_ty = state.expr.get_ty(self);
                     if !expr_ty.is_unknown() {
-                        if !state_ty.eq(&self.preds[pred_key], expr_ty) {
+                        if !state_ty.eq(&self.new_types, expr_ty) {
                             handler.emit_err(Error::Compile {
                                 error: CompileError::StateVarInitTypeError {
                                     large_err: Box::new(LargeTypeError::StateVarInitTypeError {
@@ -564,7 +568,7 @@ impl Contract {
                 if let Err(err) = self.type_check_single_expr(pred_key, *range_expr) {
                     handler.emit_err(err);
                 } else if !(range_expr.get_ty(self).is_int()
-                    || range_expr.get_ty(self).is_enum(&self.preds[pred_key])
+                    || range_expr.get_ty(self).is_enum(&self.enums)
                     || checked_range_exprs.contains(range_expr))
                 {
                     handler.emit_err(Error::Compile {
@@ -853,7 +857,7 @@ impl Contract {
 
             Expr::PathByName(path, span) => self.infer_path_by_name(pred, path, span),
 
-            Expr::StorageAccess(name, span) => self.infer_storage_access(pred, name, span),
+            Expr::StorageAccess(name, span) => self.infer_storage_access(name, span),
 
             Expr::ExternalStorageAccess {
                 interface_instance,
@@ -939,7 +943,7 @@ impl Contract {
 
             el_imms.iter().try_for_each(|el_imm| {
                 let el_ty = el_imm.get_ty(None);
-                if !el_ty.eq(pred, el0_ty.as_ref()) {
+                if !el_ty.eq(&self.new_types, el0_ty.as_ref()) {
                     Err(Error::Compile {
                         error: CompileError::NonHomogeneousArrayElement {
                             expected_ty: pred.with_pred(self, el0_ty.as_ref()).to_string(),
@@ -1029,7 +1033,7 @@ impl Contract {
         {
             // It's an ephemeral value.
             Ok(Inference::Type(ty.clone()))
-        } else if let Some(ty) = pred
+        } else if let Some(ty) = self
             .new_types
             .iter()
             .find_map(|NewTypeDecl { name, ty, .. }| (&name.name == path).then_some(ty))
@@ -1041,17 +1045,12 @@ impl Contract {
             Ok(ty)
         } else {
             // None of the above. That leaves enums.
-            Self::infer_enum_variant_by_name(pred, path, span)
+            self.infer_enum_variant_by_name(path, span)
         }
     }
 
-    fn infer_storage_access(
-        &self,
-        pred: &Predicate,
-        name: &String,
-        span: &Span,
-    ) -> Result<Inference, Error> {
-        match pred.storage.as_ref() {
+    fn infer_storage_access(&self, name: &String, span: &Span) -> Result<Inference, Error> {
+        match self.storage.as_ref() {
             Some(storage) => match storage.0.iter().find(|s_var| s_var.name.name == *name) {
                 Some(s_var) => Ok(Inference::Type(s_var.ty.clone())),
                 None => Err(Error::Compile {
@@ -1163,12 +1162,12 @@ impl Contract {
     }
 
     pub(super) fn infer_enum_variant_by_name(
-        pred: &Predicate,
+        &self,
         path: &Path,
         span: &Span,
     ) -> Result<Inference, Error> {
         // Check first if the path prefix matches a new type.
-        for NewTypeDecl { name, ty, .. } in &pred.new_types {
+        for NewTypeDecl { name, ty, .. } in &self.new_types {
             if let Type::Custom {
                 path: enum_path,
                 span,
@@ -1181,8 +1180,7 @@ impl Contract {
                     if path.chars().nth(new_type_len) == Some(':') {
                         // Definitely worth trying.  Recurse.
                         let new_path = enum_path.clone() + &path[new_type_len..];
-                        if let ty @ Ok(_) = Self::infer_enum_variant_by_name(pred, &new_path, span)
-                        {
+                        if let ty @ Ok(_) = self.infer_enum_variant_by_name(&new_path, span) {
                             // We found an enum variant.
                             return ty;
                         }
@@ -1195,7 +1193,7 @@ impl Contract {
         // report some hints.
         let mut err_potential_enums = Vec::new();
 
-        if let Some(ty) = pred.enums.iter().find_map(
+        if let Some(ty) = self.enums.iter().find_map(
             |EnumDecl {
                  name: enum_name,
                  variants,
@@ -1398,7 +1396,7 @@ impl Contract {
                         }),
                     },
                 })
-            } else if !lhs_ty.eq(pred, rhs_ty) {
+            } else if !lhs_ty.eq(&self.new_types, rhs_ty) {
                 // Here we assume the LHS is the 'correct' type.
                 Err(Error::Compile {
                     error: CompileError::OperatorTypeError {
@@ -1474,7 +1472,7 @@ impl Contract {
                         // which we check for type mismatches elsewhere, and emit a much better
                         // error then.
                         let mut is_init_constraint = false;
-                        if !lhs_ty.eq(pred, rhs_ty)
+                        if !lhs_ty.eq(&self.new_types, rhs_ty)
                             && op == BinaryOp::Equal
                             && pred
                                 .var_inits
@@ -1486,7 +1484,7 @@ impl Contract {
 
                         // Both args must be equatable, which at this stage is any type; binary op
                         // type is bool.
-                        if !lhs_ty.eq(pred, rhs_ty)
+                        if !lhs_ty.eq(&self.new_types, rhs_ty)
                             && !lhs_ty.is_nil()
                             && !rhs_ty.is_nil()
                             && !is_init_constraint
@@ -1587,7 +1585,7 @@ impl Contract {
                 })
             } else if !then_ty.is_unknown() {
                 if !else_ty.is_unknown() {
-                    if then_ty.eq(pred, else_ty) {
+                    if then_ty.eq(&self.new_types, else_ty) {
                         Ok(Inference::Type(then_ty.clone()))
                     } else {
                         Err(Error::Compile {
@@ -1624,7 +1622,7 @@ impl Contract {
         let ub_ty = upper_bound_key.get_ty(self);
         if !lb_ty.is_unknown() {
             if !ub_ty.is_unknown() {
-                if !lb_ty.eq(pred, ub_ty) {
+                if !lb_ty.eq(&self.new_types, ub_ty) {
                     Err(Error::Compile {
                         error: CompileError::RangeTypesMismatch {
                             lb_ty: pred.with_pred(self, lb_ty).to_string(),
@@ -1676,7 +1674,7 @@ impl Contract {
                 })
             } else if (to_ty.is_int()
                 && !from_ty.is_int()
-                && !from_ty.is_enum(pred)
+                && !from_ty.is_enum(&self.enums)
                 && !from_ty.is_bool())
                 || (to_ty.is_real() && !from_ty.is_int() && !from_ty.is_real())
             {
@@ -1710,7 +1708,7 @@ impl Contract {
         if !value_ty.is_unknown() {
             if !collection_ty.is_unknown() {
                 if collection_ty.is_num() {
-                    if !value_ty.eq(pred, collection_ty) {
+                    if !value_ty.eq(&self.new_types, collection_ty) {
                         Err(Error::Compile {
                             error: CompileError::InExprTypesMismatch {
                                 val_ty: pred.with_pred(self, value_ty).to_string(),
@@ -1725,7 +1723,7 @@ impl Contract {
                         }))
                     }
                 } else if let Some(el_ty) = collection_ty.get_array_el_type() {
-                    if !value_ty.eq(pred, el_ty) {
+                    if !value_ty.eq(&self.new_types, el_ty) {
                         Err(Error::Compile {
                             error: CompileError::InExprTypesArrayMismatch {
                                 val_ty: pred.with_pred(self, value_ty).to_string(),
@@ -1780,7 +1778,7 @@ impl Contract {
             for el_key in elements {
                 let el_ty = el_key.get_ty(self);
                 if !el_ty.is_unknown() {
-                    if !el_ty.eq(pred, el0_ty) {
+                    if !el_ty.eq(&self.new_types, el0_ty) {
                         return Err(Error::Compile {
                             error: CompileError::NonHomogeneousArrayElement {
                                 expected_ty: pred.with_pred(self, &el0_ty).to_string(),
@@ -1838,7 +1836,9 @@ impl Contract {
                 return Ok(Inference::Dependant(range_expr_key));
             }
 
-            if (!index_ty.is_int() && !index_ty.is_enum(pred)) || !index_ty.eq(pred, range_ty) {
+            if (!index_ty.is_int() && !index_ty.is_enum(&self.enums))
+                || !index_ty.eq(&self.new_types, range_ty)
+            {
                 Err(Error::Compile {
                     error: CompileError::ArrayAccessWithWrongType {
                         found_ty: pred.with_pred(self, index_ty).to_string(),
@@ -1862,7 +1862,7 @@ impl Contract {
             Ok(Inference::Type(ty.clone()))
         } else if let Some(from_ty) = ary_ty.get_map_ty_from() {
             // Is this a storage map?
-            if !from_ty.eq(pred, index_ty) {
+            if !from_ty.eq(&self.new_types, index_ty) {
                 Err(Error::Compile {
                     error: CompileError::StorageMapAccessWithWrongType {
                         found_ty: pred.with_pred(self, index_ty).to_string(),
@@ -2059,7 +2059,7 @@ impl Contract {
                 if !var_decl_ty.is_unknown() {
                     let init_ty = init_expr_key.get_ty(self);
 
-                    if !var_decl_ty.eq(pred, init_ty) {
+                    if !var_decl_ty.eq(&self.new_types, init_ty) {
                         handler.emit_err(Error::Compile {
                             error: CompileError::InitTypeError {
                                 init_kind: "variable",
@@ -2089,7 +2089,9 @@ impl Contract {
 
             // Special case for enum variants -- they'll have an init_ty of `int`.  So we have
             // an error if the types mismatch and they're _not_ an enum/int combo exception.
-            if !(init_ty.eq(root_pred, decl_ty) || decl_ty.is_enum(root_pred) && init_ty.is_int()) {
+            if !(init_ty.eq(&self.new_types, decl_ty)
+                || decl_ty.is_enum(&self.enums) && init_ty.is_int())
+            {
                 handler.emit_err(Error::Compile {
                     error: CompileError::InitTypeError {
                         init_kind: "const",

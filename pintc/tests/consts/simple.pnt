@@ -45,7 +45,6 @@ predicate test {
 //     var ::q: int;
 //     var ::r: b256;
 //     var ::v: ::JacketColour;
-//     enum ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
 //     constraint ((::q > ::a) && (::q < ::c));
 //     constraint ((::r != ::b) && (::r != ::d));
 //     constraint ((::v != ::j) && (::v != ::k));
@@ -66,7 +65,6 @@ predicate test {
 //     var ::q: int;
 //     var ::r: b256;
 //     var ::v: int;
-//     enum ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
 //     constraint ((::q > 11) && (::q < 33));
 //     constraint ((::r != 0x2222222222222222222222222222222222222222222222222222222222222222) && (::r != 0x4444444444444444444444444444444444444444444444444444444444444444));
 //     constraint ((::v != 5) && (::v != 1));
