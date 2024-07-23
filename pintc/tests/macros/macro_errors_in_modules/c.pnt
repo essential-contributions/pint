@@ -1,1 +1,1 @@
-var c: int = 33;
+const c: int = 33;

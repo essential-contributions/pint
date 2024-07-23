@@ -29,30 +29,53 @@ pub Pint: () = {
 /// Declarations ///
 ////////////////////
 
+// Decls allowed at the top level, outside predicates.
 Decl: () = {
-    DeclBarringMacro,
-    PredicateDecl,
-    MacroDecl,
-    StorageDecl,
-    Interface,
     ConstDecl ";",
+    EnumDecl ";",
+    Interface,
+    MacroCallDecl ";",
+    MacroDecl,
+    NewTypeDecl ";",
+    PredicateDecl,
+    StorageDecl,
+    UseStatement ";",
 };
 
-DeclBarringMacro: () = {
+// Decls allowed inside predicates.
+PredicateInnerDecl: () = {
+    ConstraintDecl ";",
+    EnumDecl ";",
+    IfDecl,
+    InterfaceInstance ";",
+    MacroCallDecl ";",
+    NewTypeDecl ";",
+    PredicateInstance ";",
+    StateDecl ";",
     UseStatement ";",
     VarDecl ";",
-    StateDecl ";",
+};
+
+// Decls allowed inside macro bodies, which is ALL of them except `MacroDecl`.
+DeclInnerMacroBody: () = {
+    ConstDecl ";",
     ConstraintDecl ";",
-    IfDecl,
     EnumDecl ";",
-    NewTypeDecl ";",
-    MacroCallDecl ";",
+    IfDecl,
+    Interface,
     InterfaceInstance ";",
+    MacroCallDecl ";",
+    NewTypeDecl ";",
+    PredicateDecl,
     PredicateInstance ";",
+    StateDecl ";",
+    StorageDecl,
+    UseStatement ";",
+    VarDecl ";",
 };
 
 PredicateDecl: () = {
-    PredicateOpen DeclBarringMacro* PredicateClose,
+    PredicateOpen PredicateInnerDecl* PredicateClose,
 }
 
 PredicateOpen: () = {
@@ -369,7 +392,7 @@ MacroCallDecl: () = {
 }
 
 pub MacroBody: Option<ExprKey> = {
-    "{" DeclBarringMacro* <Expr?> "}"
+    "{" DeclInnerMacroBody* <Expr?> "}"
 }
 
 /////////////

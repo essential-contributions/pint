@@ -2,7 +2,7 @@ use a::E;
 
 use a::F;
 
-var b = F;
+const b = F;
 
 enum E = A | B;
 
@@ -17,38 +17,30 @@ predicate test {
 // parse_failure <<<
 // symbol `E` has already been declared
 // @7..8: previous declaration of the symbol `E` here
-// @39..40: `E` redeclared here
+// @41..42: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `E` has already been declared
 // @7..8: previous declaration of the symbol `E` here
-// @56..57: `E` redeclared here
+// @58..59: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `E` has already been declared
-// @94..95: previous declaration of the symbol `E` here
-// @112..113: `E` redeclared here
+// @96..97: previous declaration of the symbol `E` here
+// @114..115: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `F` has already been declared
-// @4..5: previous declaration of the symbol `F` here
-// @17..18: `F` redeclared here
+// @6..7: previous declaration of the symbol `F` here
+// @19..20: `F` redeclared here
 // `F` must be declared or imported only once in this scope
 // symbol `F` has already been declared
-// @4..5: previous declaration of the symbol `F` here
-// @34..35: `F` redeclared here
+// @6..7: previous declaration of the symbol `F` here
+// @36..37: `F` redeclared here
 // `F` must be declared or imported only once in this scope
 // symbol `F` has already been declared
-// @4..5: previous declaration of the symbol `F` here
-// @51..52: `F` redeclared here
-// `F` must be declared or imported only once in this scope
-// symbol `F` has already been declared
-// @4..5: previous declaration of the symbol `F` here
-// @65..66: `F` redeclared here
-// `F` must be declared or imported only once in this scope
-// symbol `F` has already been declared
-// @4..5: previous declaration of the symbol `F` here
-// @89..90: `F` redeclared here
+// @6..7: previous declaration of the symbol `F` here
+// @55..56: `F` redeclared here
 // `F` must be declared or imported only once in this scope
 // symbol `::E` has already been declared
 // @7..8: previous declaration of the symbol `::E` here
-// @94..95: `::E` redeclared here
+// @96..97: `::E` redeclared here
 // `::E` must be declared or imported only once in this scope
 // >>>
