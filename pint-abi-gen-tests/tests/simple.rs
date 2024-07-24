@@ -1,6 +1,6 @@
 use pint_abi::types::essential::{
     solution::{Mutation, Solution, SolutionData},
-    PredicateAddress,
+    Key, PredicateAddress, Value,
 };
 use pint_abi_gen_tests::simple;
 use std::sync::Arc;
@@ -23,32 +23,38 @@ async fn test_solution_foo() {
     // Determine the content address of the contract.
     let contract_path = pkg_dir.join("out/debug/simple.json");
     let contract = pint_abi::contract_from_path(&contract_path).unwrap();
-    let contract_ca = essential_hash::contract_addr::from_contract(&contract);
 
     // Determine the predicate address by loading the ABI and finding the matching predicate.
     let abi_path = pkg_dir.join("out/debug/simple-abi.json");
     let abi = pint_abi::from_path(&abi_path).unwrap();
     let (pred, _pred_abi) = pint_abi::find_predicate(&contract, &abi, "Foo").unwrap();
-    let pred_ca = essential_hash::content_addr(pred);
+
+    // Check the generated addresses are correct.
+    let contract_ca = essential_hash::contract_addr::from_contract(&contract);
     let pred_addr = PredicateAddress {
         contract: contract_ca.clone(),
-        predicate: pred_ca,
+        predicate: essential_hash::content_addr(pred),
     };
+    assert_eq!(contract_ca, simple::ADDRESS);
+    assert_eq!(pred_addr, simple::Foo::ADDRESS);
 
     // Decision variables.
     let vars = simple::Foo::Vars {
-        v0: i64::from(true), // TODO: use `true` directly once #729 is addressed.
+        v0: true,
         v1: 42,
         v2: [0x1111111100000000; 4],
         v3: [30, 31].into(),
         v4: (40, 41, (420, 421)),
+        anon_0_v5: 42,
+        anon_0_v6: (43, 44),
     };
 
     // Public decision variables (i.e. transient data).
     let pub_vars: Vec<Mutation> = simple::Foo::pub_vars::mutations()
-        .t0(i64::from(false))
+        .t0(false)
         .t1(11)
         .t2([0x2222222222222222; 4])
+        .anon_1_t3(45)
         .into();
 
     // State mutations.
@@ -73,11 +79,52 @@ async fn test_solution_foo() {
                 })
             })
         })
+        .my_array(|arr| {
+            [11, 12, 13, 14, 15]
+                .into_iter()
+                .enumerate()
+                .fold(arr, |arr, (ix, val)| arr.entry(ix, val))
+        })
         .into();
+
+    // Build the same set of keys, so we can ensure they match the mutations.
+    let keys: Vec<Key> = simple::storage::keys()
+        .s0()
+        .s1()
+        .s2()
+        .s3(|tup| tup._0()._1())
+        .s4(|tup| tup._0()._1()._2(|tup| tup._0()._1()))
+        .my_map0(|map| map.entry(42))
+        .my_map1(|map| map.entry(1, |tup| tup._0()._1(|tup| tup._0()._1())))
+        .my_nested_map0(|map| map.entry(1, |map| map.entry(2)))
+        .my_nested_map1(|map| {
+            map.entry(2, |map| {
+                map.entry([0x3333333333333333; 4], |tup| {
+                    tup._0()._1(|tup| tup._0()._1())
+                })
+            })
+        })
+        .my_array(|arr| (0..[11, 12, 13, 14, 15].len()).fold(arr, |arr, ix| arr.entry(ix)))
+        .into();
+
+    // Check keys match the mutation keys.
+    for (key, mutation) in keys.iter().zip(&state_mutations) {
+        assert_eq!(key, &mutation.key);
+    }
+
+    // Check Encoding/Decoding roundtrip for decision vars.
+    let words = pint_abi::encode(&vars);
+    let vars2: simple::Foo::Vars = pint_abi::decode(&words[..]).unwrap();
+    assert_eq!(&vars, &vars2);
+
+    // Check To/From Vec<Value> roundtrip.
+    let values: Vec<Value> = vars.clone().into();
+    let vars3 = simple::Foo::Vars::try_from(&values[..]).unwrap();
+    assert_eq!(&vars, &vars3);
 
     // Create the solution data.
     let solution_data = SolutionData {
-        predicate_to_solve: pred_addr,
+        predicate_to_solve: simple::Foo::ADDRESS,
         decision_variables: vars.into(),
         transient_data: pub_vars,
         state_mutations,
@@ -92,7 +139,7 @@ async fn test_solution_foo() {
     essential_check::solution::check(&solution).unwrap();
 
     // Start with an empty pre-state.
-    let pre_state = State::new(vec![(contract_ca, vec![])]);
+    let pre_state = State::new(vec![(simple::ADDRESS, vec![])]);
 
     // Create the post-state by applying the mutations.
     let mut post_state = pre_state.clone();

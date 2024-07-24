@@ -1,0 +1,12 @@
+macro @add3($x, $y, $z) {
+    $x + $y + $z
+}
+
+predicate F {
+    constraint @add3(~[1, 2, 3]);
+}
+
+// parse_failure <<<
+// bad argument splice
+// @81..82: the macro argument splice operator `~` must be applied to an identifier
+// >>>

@@ -6,6 +6,7 @@ storage {
 }
 // ANCHOR_END: storage_block
 
+predicate test {
 // ANCHOR: storage_access_1
 var from_address: b256;
 var receiver_address: b256;
@@ -26,5 +27,4 @@ if my_bal != nil {
     constraint my_bal' == 1000000;
 }
 // ANCHOR_END: next_state_with_check
-
-solve satisfy;
+}

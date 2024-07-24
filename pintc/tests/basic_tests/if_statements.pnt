@@ -1,176 +1,178 @@
-var condition: bool;
-var condition2: bool;
-var condition3: bool;
+predicate test {
+    var condition: bool;
+    var condition2: bool;
+    var condition3: bool;
 
-var x: int;
-var y: int;
+    var x: int;
+    var y: int;
 
-if condition {
-    constraint x == 0;
-    constraint y != x;
-}
-
-if condition { }
-
-var xx: int;
-var yy: int;
-var z: bool;
-
-if condition2 {
-    constraint xx == 1;
-    constraint yy != xx;
-} else {
-    constraint yy != 0;
-    constraint xx > yy + 1;
-    constraint z;
-}
-
-if condition2 {
-    constraint yy != xx;
-} else {
-}
-
-if condition2 && condition {
-    if false {
-    } else {
-        constraint z && !z;
+    if condition {
+        constraint x == 0;
+        constraint y != x;
     }
 
-    constraint yy != xx;
+    if condition { }
 
-    if true {
-        constraint x + 1;
+    var xx: int;
+    var yy: int;
+    var z: bool;
+
+    if condition2 {
+        constraint xx == 1;
+        constraint yy != xx;
     } else {
+        constraint yy != 0;
+        constraint xx > yy + 1;
         constraint z;
     }
-} else {
-    if condition3 {
-        constraint yy + xx == yy * xx;
-        constraint z;
+
+    if condition2 {
+        constraint yy != xx;
     } else {
-        if z {
-            constraint z && true;
+    }
+
+    if condition2 && condition {
+        if false {
+        } else {
+            constraint z && !z;
+        }
+
+        constraint yy != xx;
+
+        if true {
+            constraint x + 1;
+        } else {
+            constraint z;
+        }
+    } else {
+        if condition3 {
+            constraint yy + xx == yy * xx;
+            constraint z;
+        } else {
+            if z {
+                constraint z && true;
+            }
         }
     }
-}
 
-if condition {
-    constraint x == 11;
-} else if condition2 {
-    constraint x == 22;
-    if condition3 {
-        constraint x == 33;
-    } else if condition {
-        constraint x == 44;
+    if condition {
+        constraint x == 11;
+    } else if condition2 {
+        constraint x == 22;
+        if condition3 {
+            constraint x == 33;
+        } else if condition {
+            constraint x == 44;
+        }
+    } else if false {
+        constraint x == 55;
+    } else {
+        constraint x == 66;
     }
-} else if false {
-    constraint x == 55;
-} else {
-    constraint x == 66;
 }
-
-solve satisfy;
 
 // parsed <<<
-// var ::condition: bool;
-// var ::condition2: bool;
-// var ::condition3: bool;
-// var ::x: int;
-// var ::y: int;
-// var ::xx: int;
-// var ::yy: int;
-// var ::z: bool;
-// if ::condition {
-//     constraint (::x == 0)
-//     constraint (::y != ::x)
-// }
-// if ::condition {
-// }
-// if ::condition2 {
-//     constraint (::xx == 1)
-//     constraint (::yy != ::xx)
-// } else {
-//     constraint (::yy != 0)
-//     constraint (::xx > (::yy + 1))
-//     constraint ::z
-// }
-// if ::condition2 {
-//     constraint (::yy != ::xx)
-// } else {
-// }
-// if (::condition2 && ::condition) {
-//     if false {
-//     } else {
-//         constraint (::z && !::z)
+// predicate ::test {
+//     var ::condition: bool;
+//     var ::condition2: bool;
+//     var ::condition3: bool;
+//     var ::x: int;
+//     var ::y: int;
+//     var ::xx: int;
+//     var ::yy: int;
+//     var ::z: bool;
+//     if ::condition {
+//         constraint (::x == 0)
+//         constraint (::y != ::x)
 //     }
-//     constraint (::yy != ::xx)
-//     if true {
-//         constraint (::x + 1)
-//     } else {
-//         constraint ::z
+//     if ::condition {
 //     }
-// } else {
-//     if ::condition3 {
-//         constraint ((::yy + ::xx) == (::yy * ::xx))
-//         constraint ::z
-//     } else {
-//         if ::z {
-//             constraint (::z && true)
-//         }
-//     }
-// }
-// if ::condition {
-//     constraint (::x == 11)
-// } else {
 //     if ::condition2 {
-//         constraint (::x == 22)
-//         if ::condition3 {
-//             constraint (::x == 33)
+//         constraint (::xx == 1)
+//         constraint (::yy != ::xx)
+//     } else {
+//         constraint (::yy != 0)
+//         constraint (::xx > (::yy + 1))
+//         constraint ::z
+//     }
+//     if ::condition2 {
+//         constraint (::yy != ::xx)
+//     } else {
+//     }
+//     if (::condition2 && ::condition) {
+//         if false {
 //         } else {
-//             if ::condition {
-//                 constraint (::x == 44)
+//             constraint (::z && !::z)
+//         }
+//         constraint (::yy != ::xx)
+//         if true {
+//             constraint (::x + 1)
+//         } else {
+//             constraint ::z
+//         }
+//     } else {
+//         if ::condition3 {
+//             constraint ((::yy + ::xx) == (::yy * ::xx))
+//             constraint ::z
+//         } else {
+//             if ::z {
+//                 constraint (::z && true)
 //             }
 //         }
+//     }
+//     if ::condition {
+//         constraint (::x == 11)
 //     } else {
-//         if false {
-//             constraint (::x == 55)
+//         if ::condition2 {
+//             constraint (::x == 22)
+//             if ::condition3 {
+//                 constraint (::x == 33)
+//             } else {
+//                 if ::condition {
+//                     constraint (::x == 44)
+//                 }
+//             }
 //         } else {
-//             constraint (::x == 66)
+//             if false {
+//                 constraint (::x == 55)
+//             } else {
+//                 constraint (::x == 66)
+//             }
 //         }
 //     }
 // }
-// solve satisfy;
 // >>>
 
 // flattened <<<
-// var ::condition: int;
-// var ::condition2: int;
-// var ::condition3: int;
-// var ::x: int;
-// var ::y: int;
-// var ::xx: int;
-// var ::yy: int;
-// var ::z: int;
-// constraint (!::condition || (::x == 0));
-// constraint (!::condition || (::y != ::x));
-// constraint (!::condition2 || (::xx == 1));
-// constraint (!::condition2 || (::yy != ::xx));
-// constraint (::condition2 || (::yy != 0));
-// constraint (::condition2 || (::xx > (::yy + 1)));
-// constraint (::condition2 || ::z);
-// constraint (!::condition2 || (::yy != ::xx));
-// constraint (!(::condition2 && ::condition) || (0 || (::z && !::z)));
-// constraint (!(::condition2 && ::condition) || (::yy != ::xx));
-// constraint (!(::condition2 && ::condition) || (!1 || (::x + 1)));
-// constraint (!(::condition2 && ::condition) || (1 || ::z));
-// constraint ((::condition2 && ::condition) || (!::condition3 || ((::yy + ::xx) == (::yy * ::xx))));
-// constraint ((::condition2 && ::condition) || (!::condition3 || ::z));
-// constraint ((::condition2 && ::condition) || (::condition3 || (!::z || (::z && 1))));
-// constraint (!::condition || (::x == 11));
-// constraint (::condition || (!::condition2 || (::x == 22)));
-// constraint (::condition || (!::condition2 || (!::condition3 || (::x == 33))));
-// constraint (::condition || (!::condition2 || (::condition3 || (!::condition || (::x == 44)))));
-// constraint (::condition || (::condition2 || (!0 || (::x == 55))));
-// constraint (::condition || (::condition2 || (0 || (::x == 66))));
-// solve satisfy;
+// predicate ::test {
+//     var ::condition: bool;
+//     var ::condition2: bool;
+//     var ::condition3: bool;
+//     var ::x: int;
+//     var ::y: int;
+//     var ::xx: int;
+//     var ::yy: int;
+//     var ::z: bool;
+//     constraint (!::condition || (::x == 0));
+//     constraint (!::condition || (::y != ::x));
+//     constraint (!::condition2 || (::xx == 1));
+//     constraint (!::condition2 || (::yy != ::xx));
+//     constraint (::condition2 || (::yy != 0));
+//     constraint (::condition2 || (::xx > (::yy + 1)));
+//     constraint (::condition2 || ::z);
+//     constraint (!::condition2 || (::yy != ::xx));
+//     constraint (!(::condition2 && ::condition) || (false || (::z && !::z)));
+//     constraint (!(::condition2 && ::condition) || (::yy != ::xx));
+//     constraint (!(::condition2 && ::condition) || (!true || (::x + 1)));
+//     constraint (!(::condition2 && ::condition) || (true || ::z));
+//     constraint ((::condition2 && ::condition) || (!::condition3 || ((::yy + ::xx) == (::yy * ::xx))));
+//     constraint ((::condition2 && ::condition) || (!::condition3 || ::z));
+//     constraint ((::condition2 && ::condition) || (::condition3 || (!::z || (::z && true))));
+//     constraint (!::condition || (::x == 11));
+//     constraint (::condition || (!::condition2 || (::x == 22)));
+//     constraint (::condition || (!::condition2 || (!::condition3 || (::x == 33))));
+//     constraint (::condition || (!::condition2 || (::condition3 || (!::condition || (::x == 44)))));
+//     constraint (::condition || (::condition2 || (!false || (::x == 55))));
+//     constraint (::condition || (::condition2 || (false || (::x == 66))));
+// }
 // >>>

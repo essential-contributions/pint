@@ -1,0 +1,19 @@
+macro @m($a, $b) {
+    var z = $a + $b;
+}
+
+predicate test {
+    @m(1);
+    @m(1; 2; 3);
+}
+
+// parse_failure <<<
+// unable to match macro call
+// @64..69: unable to match call to macro `::@m`
+// the valid number of arguments must be exactly 2 but this call passes 1 arguments
+// a macro named `::@m` found with a different signature
+// unable to match macro call
+// @75..86: unable to match call to macro `::@m`
+// the valid number of arguments must be exactly 2 but this call passes 3 arguments
+// a macro named `::@m` found with a different signature
+// >>>

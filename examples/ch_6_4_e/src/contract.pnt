@@ -1,0 +1,8 @@
+// ANCHOR: imports_self
+use ::data::contract_lib::{self, Data};
+// ANCHOR_END: imports_self
+
+predicate test {
+    var contract_data_1: contract_lib::Data;
+    var contract_data_2: Data;
+}

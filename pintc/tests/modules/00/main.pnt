@@ -1,21 +1,23 @@
-var a: int;
+predicate test {
+    var a: int;
 
-constraint a == b::b;
-
-solve satisfy;
+    constraint a == b::b;
+}
 
 // parsed <<<
-// var ::a: int;
-// var ::b::b;
-// constraint (::a == ::b::b);
-// constraint (::b::b == 1);
-// solve satisfy;
+// const ::b::b = 1;
+//
+// predicate ::test {
+//     var ::a: int;
+//     constraint (::a == ::b::b);
+// }
 // >>>
 
 // flattened <<<
-// var ::a: int;
-// var ::b::b: int;
-// constraint (::a == ::b::b);
-// constraint (::b::b == 1);
-// solve satisfy;
+// const ::b::b: int = 1;
+//
+// predicate ::test {
+//     var ::a: int;
+//     constraint (::a == 1);
+// }
 // >>>

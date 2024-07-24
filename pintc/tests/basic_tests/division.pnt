@@ -1,35 +1,37 @@
-var x: int = 3..10;
-var y: int = 3..10;
-var z: int = 3..10;
+predicate test {
+    var x: int = 3..10;
+    var y: int = 3..10;
+    var z: int = 3..10;
 
-constraint x / y > y / z;
-
-solve satisfy;
+    constraint x / y > y / z;
+}
 
 // parsed <<<
-// var ::x: int;
-// var ::y: int;
-// var ::z: int;
-// constraint (::x >= 3);
-// constraint (::x <= 10);
-// constraint (::y >= 3);
-// constraint (::y <= 10);
-// constraint (::z >= 3);
-// constraint (::z <= 10);
-// constraint ((::x / ::y) > (::y / ::z));
-// solve satisfy;
+// predicate ::test {
+//     var ::x: int;
+//     var ::y: int;
+//     var ::z: int;
+//     constraint (::x >= 3);
+//     constraint (::x <= 10);
+//     constraint (::y >= 3);
+//     constraint (::y <= 10);
+//     constraint (::z >= 3);
+//     constraint (::z <= 10);
+//     constraint ((::x / ::y) > (::y / ::z));
+// }
 // >>>
 
 // flattened <<<
-// var ::x: int;
-// var ::y: int;
-// var ::z: int;
-// constraint (::x >= 3);
-// constraint (::x <= 10);
-// constraint (::y >= 3);
-// constraint (::y <= 10);
-// constraint (::z >= 3);
-// constraint (::z <= 10);
-// constraint ((::x / ::y) > (::y / ::z));
-// solve satisfy;
+// predicate ::test {
+//     var ::x: int;
+//     var ::y: int;
+//     var ::z: int;
+//     constraint (::x >= 3);
+//     constraint (::x <= 10);
+//     constraint (::y >= 3);
+//     constraint (::y <= 10);
+//     constraint (::z >= 3);
+//     constraint (::z <= 10);
+//     constraint ((::x / ::y) > (::y / ::z));
+// }
 // >>>

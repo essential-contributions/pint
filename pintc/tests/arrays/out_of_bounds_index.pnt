@@ -1,17 +1,18 @@
-var b: int[4];
+predicate test {
+    var b: int[4];
 
-constraint b[4] == 2;
-
-solve satisfy;
+    constraint b[4] == 2;
+}
 
 // parsed <<<
-// var ::b: int[4];
-// constraint (::b[4] == 2);
-// solve satisfy;
+// predicate ::test {
+//     var ::b: int[4];
+//     constraint (::b[4] == 2);
+// }
 // >>>
 
 // flattening_failure <<<
 // attempt to access array with out of bounds index
-// @29..30: array index is out of bounds
+// @54..55: array index is out of bounds
 // >>>
 

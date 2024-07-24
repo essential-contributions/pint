@@ -1,3 +1,0 @@
-use ::b_mod::e_mod::f_mod::f;
-
-var c = f;

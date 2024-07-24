@@ -15,7 +15,6 @@ predicate Bar {
 // ANCHOR_END: bar
 
 // ANCHOR: baz 
-
 use ::garden::vegetables;
 
 predicate Baz {

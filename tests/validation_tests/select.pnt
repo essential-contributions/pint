@@ -1,24 +1,24 @@
-var x: int = 2;
-var y: int = 3;
-var z1: int = true ? x + y : x * y;
-var z2: int = false ? x + y : x * y;
+predicate test {
+    var x: int = 2;
+    var y: int = 3;
+    var z1: int = true ? x + y : x * y;
+    var z2: int = false ? x + y : x * y;
 
-var p: b256 = 0x0000000000000001000000000000000200000000000000030000000000000004;
-var q: b256 = 0x0000000000000004000000000000000300000000000000020000000000000001;
-var w1: b256 = true ? p : q;
-var w2: b256 = false ? p : q;
-constraint w1 == p;
-constraint w2 == q;
+    var p: b256 = 0x0000000000000001000000000000000200000000000000030000000000000004;
+    var q: b256 = 0x0000000000000004000000000000000300000000000000020000000000000001;
+    var w1: b256 = true ? p : q;
+    var w2: b256 = false ? p : q;
+    constraint w1 == p;
+    constraint w2 == q;
 
-var a = { 5, 6 };
-var b = { 8, 9 };
-var c1 = true ? a : b;
-var c2 = false ? a : b;
-constraint c1.0 == 5;
-constraint c1.1 == 6;
-constraint c1 == a;
-constraint c2.0 == 8;
-constraint c2.1 == 9;
-constraint c2 == b;
-
-solve satisfy;
+    var a = { 5, 6 };
+    var b = { 8, 9 };
+    var c1 = true ? a : b;
+    var c2 = false ? a : b;
+    constraint c1.0 == 5;
+    constraint c1.1 == 6;
+    constraint c1 == a;
+    constraint c2.0 == 8;
+    constraint c2.1 == 9;
+    constraint c2 == b;
+}

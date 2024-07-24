@@ -1,0 +1,12 @@
+macro @a($x, &pack, &rest) {
+    $x + 33
+}
+
+predicate test {
+    var b = @a(11; 22; 33; 44; 55);
+}
+
+// parse_failure <<<
+// expected `)`, found `&rest`
+// @20..25: expected `)`
+// >>>

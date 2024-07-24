@@ -1,19 +1,20 @@
-var n: int;
+predicate test {
+    var n: int;
 
-constraint __foo()[0] == 3;
-
-solve satisfy;
+    constraint __foo()[0] == 3;
+}
 
 // parsed <<<
-// var ::n: int;
-// constraint (__foo()[0] == 3);
-// solve satisfy;
+// predicate ::test {
+//     var ::n: int;
+//     constraint (__foo()[0] == 3);
+// }
 // >>>
 
 // typecheck_failure <<<
 // no intrinsic named `__foo` is found
-// @24..31: intrinsic not found
+// @49..56: intrinsic not found
 // constraint expression type error
-// @13..39: constraint expression has unknown type
-// @13..39: expecting type `bool`
+// @38..64: constraint expression has unknown type
+// @38..64: expecting type `bool`
 // >>>

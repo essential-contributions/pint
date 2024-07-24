@@ -1,31 +1,33 @@
-var x: int = 1..5;
-var y: real = 1.1..5.5;
+predicate test {
+    var x: int = 1..5;
+    var y: real = 1.1..5.5;
 
-constraint x > 2;
-constraint y <= 1.9;
-
-solve maximize y;
+    constraint x > 2;
+    constraint y <= 1.9;
+}
 
 // parsed <<<<
-// var ::x: int;
-// var ::y: real;
-// constraint (::x >= 1);
-// constraint (::x <= 5);
-// constraint (::y >= 1.1e0);
-// constraint (::y <= 5.5e0);
-// constraint (::x > 2);
-// constraint (::y <= 1.9e0);
-// solve maximize ::y;
+// predicate ::test {
+//     var ::x: int;
+//     var ::y: real;
+//     constraint (::x >= 1);
+//     constraint (::x <= 5);
+//     constraint (::y >= 1.1e0);
+//     constraint (::y <= 5.5e0);
+//     constraint (::x > 2);
+//     constraint (::y <= 1.9e0);
+// }
 // >>>
 
 // flattened <<<
-// var ::x: int;
-// var ::y: real;
-// constraint (::x >= 1);
-// constraint (::x <= 5);
-// constraint (::y >= 1.1e0);
-// constraint (::y <= 5.5e0);
-// constraint (::x > 2);
-// constraint (::y <= 1.9e0);
-// solve maximize ::y;
+// predicate ::test {
+//     var ::x: int;
+//     var ::y: real;
+//     constraint (::x >= 1);
+//     constraint (::x <= 5);
+//     constraint (::y >= 1.1e0);
+//     constraint (::y <= 5.5e0);
+//     constraint (::x > 2);
+//     constraint (::y <= 1.9e0);
+// }
 // >>>

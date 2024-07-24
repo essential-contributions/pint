@@ -3,8 +3,8 @@ mod intrinsics;
 mod type_check;
 
 use super::{
-    BlockStatement, Const, ConstraintDecl, Expr, ExprKey, Ident, IfDecl, InterfaceInstance,
-    Predicate, PredicateInstance, Program, VarKey,
+    BlockStatement, Const, ConstraintDecl, Contract, Expr, ExprKey, Ident, IfDecl,
+    InterfaceInstance, Predicate, PredicateInstance, VarKey,
 };
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
@@ -20,21 +20,21 @@ enum Inference {
     Dependencies(Vec<ExprKey>),
 }
 
-impl Program {
+impl Contract {
     pub fn type_check(mut self, handler: &Handler) -> Result<Self, ErrorEmitted> {
-        self = handler.scope(|handler| self.check_program_kind(handler))?;
+        self = handler.scope(|handler| self.check_contract(handler))?;
 
         // Evaluate all the constant decls to ensure they're all immediates. Each Const expr is
         // updated and has its type set.
         handler.scope(|handler| self.evaluate_all_consts(handler))?;
 
         // We're temporarily blocking non-primitive consts until we refactor all expressions back
-        // into the Program (Predicates will contain only their local vars, nothing more).
+        // into the Contract (Predicates will contain only their local vars, nothing more).
         self.reject_non_primitive_consts(handler)?;
 
-        for pred in self.preds.values_mut() {
-            for expr_key in pred.exprs() {
-                if let Some(span) = pred.removed_macro_calls.get(expr_key) {
+        for pred_key in self.preds.keys() {
+            for expr_key in self.exprs(pred_key) {
+                if let Some(span) = self.removed_macro_calls.get(expr_key) {
                     // This expression was actually a macro call which expanded to just declarations,
                     // not another expression. We can set a specific error in this case.
                     handler.emit_err(Error::Compile {
@@ -42,17 +42,19 @@ impl Program {
                     });
                 }
             }
-
-            if handler.has_errors() {
-                return Err(handler.cancel());
-            }
-
-            pred.check_undefined_types(handler);
-            pred.lower_newtypes(handler)?;
-            pred.type_check_all_exprs(handler, &self.consts);
-            pred.check_inits(handler, &self.consts);
-            pred.check_constraint_types(handler);
         }
+
+        if handler.has_errors() {
+            return Err(handler.cancel());
+        }
+
+        self.check_undefined_types(handler);
+        self.lower_newtypes(handler)?;
+        self.check_storage_types(handler);
+        self.check_for_map_type_vars(handler);
+        self.type_check_all_exprs(handler);
+        self.check_inits(handler);
+        self.check_constraint_types(handler);
 
         if handler.has_errors() {
             Err(handler.cancel())
@@ -62,10 +64,10 @@ impl Program {
     }
 
     pub fn array_check(self, handler: &Handler) -> Result<Self, ErrorEmitted> {
-        for pred in self.preds.values() {
-            pred.check_array_lengths(handler);
-            pred.check_array_indexing(handler);
-            pred.check_array_compares(handler);
+        for pred_key in self.preds.keys() {
+            self.check_array_lengths(handler, pred_key);
+            self.check_array_indexing(handler, pred_key);
+            self.check_array_compares(handler, pred_key);
         }
 
         if handler.has_errors() {
@@ -86,7 +88,7 @@ impl Program {
         // performing N-1 evaluation passes for N consts should resolve all dependencies and in
         // most cases will be done in only 1 or 2 passes.
 
-        let mut evaluator = Evaluator::new(self.root_pred());
+        let mut evaluator = Evaluator::new(&self.enums);
         let mut new_immediates = Vec::default();
 
         // Use a temporary error handler to manage in-progress errors.
@@ -95,14 +97,14 @@ impl Program {
         let const_count = self.consts.len();
         for loop_idx in 0..const_count {
             for (path, cnst) in &self.consts {
-                let expr = cnst.expr.get(self.root_pred());
+                let expr = cnst.expr.get(self);
 
                 // There's no need to re-evaluate known immediates.
                 if !evaluator.contains_path(path) {
                     if let Expr::Immediate { value, .. } = expr {
                         evaluator.insert_value(path.clone(), value.clone());
                     } else if let Ok(imm) =
-                        evaluator.evaluate_key(&cnst.expr, &tmp_handler, self.root_pred())
+                        evaluator.evaluate_key(&cnst.expr, &tmp_handler, self, self.root_pred_key())
                     {
                         evaluator.insert_value(path.clone(), imm);
 
@@ -146,7 +148,7 @@ impl Program {
             let init_span: Span = self
                 .consts
                 .get(&new_path)
-                .map(|cnst| self.root_pred().expr_key_to_span(cnst.expr))
+                .map(|cnst| self.expr_key_to_span(cnst.expr))
                 .unwrap_or_else(empty_span);
 
             if let Some(imm_value) = all_const_immediates.get(&new_path) {
@@ -156,12 +158,11 @@ impl Program {
                 let mut preserved_enum_type = None;
                 if let Some(Const { expr, decl_ty }) = self.consts.get(&new_path) {
                     if decl_ty.is_unknown() {
-                        if let Expr::PathByName(path, _) = expr.get(self.root_pred()) {
+                        if let Expr::PathByName(path, _) = expr.get(self) {
                             // We have an unknown-typed const initialised with a path.  E.g.,
                             // const a = MyEnum::MyVariant;
-                            if let Ok(Inference::Type(variant_ty)) = self
-                                .root_pred()
-                                .infer_enum_variant_by_name(path, &empty_span())
+                            if let Ok(Inference::Type(variant_ty)) =
+                                self.infer_enum_variant_by_name(path, &empty_span())
                             {
                                 // It's definitely an enum.  Update the decl type below.
                                 preserved_enum_type = Some(variant_ty);
@@ -175,10 +176,7 @@ impl Program {
                     span: init_span,
                 };
 
-                let new_expr_key = self
-                    .root_pred_mut()
-                    .exprs
-                    .insert(new_expr, imm_value.get_ty(None));
+                let new_expr_key = self.exprs.insert(new_expr, imm_value.get_ty(None));
 
                 if let Some(cnst) = self.consts.get_mut(&new_path) {
                     cnst.expr = new_expr_key;
@@ -199,8 +197,8 @@ impl Program {
             if decl_ty.is_unknown() {
                 if let Some(imm_value) = all_const_immediates.get(path) {
                     // Check the type is valid.
-                    let span = self.root_pred().expr_key_to_span(*expr);
-                    match self.root_pred().infer_immediate(imm_value, &span) {
+                    let span = self.expr_key_to_span(*expr);
+                    match self.infer_immediate(self.root_pred(), imm_value, &span) {
                         Ok(inferred) => match inferred {
                             Inference::Type(new_ty) => {
                                 type_replacements.push((path.clone(), new_ty))
@@ -237,11 +235,11 @@ impl Program {
     fn reject_non_primitive_consts(&self, handler: &Handler) -> Result<(), ErrorEmitted> {
         // Called after we've evaluated them all and resolved their types.
         for (path, Const { expr, decl_ty }) in &self.consts {
-            if !decl_ty.is_any_primitive() && !decl_ty.is_enum(self.root_pred()) {
+            if !decl_ty.is_any_primitive() && !decl_ty.is_enum(&self.enums) {
                 handler.emit_err(Error::Compile {
                     error: CompileError::TemporaryNonPrimitiveConst {
                         name: path.to_string(),
-                        span: expr.get(self.root_pred()).span().clone(),
+                        span: expr.get(self).span().clone(),
                     },
                 });
             }

@@ -1,8 +1,0 @@
-predicate Foo {
-    solve satisfy;
-}
-
-// parse_failure <<<
-// `solve` directive must only appear outside a predicate
-// @20..33: `solve` directive must only appear outside a predicate
-// >>>

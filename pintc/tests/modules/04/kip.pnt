@@ -1,4 +1,1 @@
 enum Skill = ChattingOnlineWithBabes | CageFighting;
-
-// Reflexes not good enough.
-var kip_skill = Skill::ChattingOnlineWithBabes;

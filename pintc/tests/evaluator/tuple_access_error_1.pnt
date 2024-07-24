@@ -1,10 +1,7 @@
 const a = { a: 11, b: 22 }.c;
 
-solve satisfy;
-
 // parsed <<<
 // const ::a = {a: 11, b: 22}.c;
-// solve satisfy;
 // >>>
 
 // typecheck_failure <<<

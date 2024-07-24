@@ -1,13 +1,16 @@
 const b = [11, 22, 33];
-var c = b[4];
 
-solve satisfy;
+predicate test {
+    var c = b[4];
+}
 
 // parsed <<<
 // const ::b = [11, 22, 33];
-// var ::c;
-// constraint (::c == ::b[4]);
-// solve satisfy;
+//
+// predicate ::test {
+//     var ::c;
+//     constraint (::c == ::b[4]);
+// }
 // >>>
 
 // typecheck_failure <<<

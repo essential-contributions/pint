@@ -56,7 +56,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
         // These tests have no dependencies.
         let deps = Default::default();
 
-        // Produce the initial parsed program
+        // Produce the initial parsed contract
         let parsed = unwrap_or_continue!(
             pintc::parser::parse_project(&handler, &deps, &path),
             "parse pint",
@@ -65,7 +65,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
             handler
         );
 
-        // Parsed program -> Flattened program
+        // Parsed contract -> Flattened contract
         let flattened = unwrap_or_continue!(
             parsed.compile(&handler),
             "compile",
@@ -74,9 +74,9 @@ async fn validation_e2e() -> anyhow::Result<()> {
             handler
         );
 
-        // Flattened program -> Assembly (aka collection of compiled predicates)
-        let compiled_program = unwrap_or_continue!(
-            pintc::asm_gen::compile_program(&handler, &flattened),
+        // Flattened contract -> Assembly (aka collection of compiled predicates)
+        let compiled_contract = unwrap_or_continue!(
+            pintc::asm_gen::compile_contract(&handler, &flattened),
             "asm gen",
             failed_tests,
             path,
@@ -84,10 +84,10 @@ async fn validation_e2e() -> anyhow::Result<()> {
         );
 
         // Parse a solution file
-        let solution = parse_solution(&path.with_extension("toml"), &compiled_program)?;
+        let solution = parse_solution(&path.with_extension("toml"), &compiled_contract)?;
 
         // We're only going to verify the predicate in the first solution data, which we assume
-        // corresponds to one of the predicates in `compiled_program` produce above. All other
+        // corresponds to one of the predicates in `compiled_contract` produce above. All other
         // solution data correspond to external predicate that we're not going to verify here at
         // this point.
         let predicate_to_check_index = 0; // Only the first one!
@@ -109,8 +109,8 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
         // Find the individual predicate that corresponds to the predicate address specified in
         // `predicate_to_verify`. Here, we assume that the last byte in the address matches the
-        // index of the predicate in in the BTreeMap `compiled_program.predicates`.
-        let predicate = &compiled_program.predicates[predicate_to_check.predicate.0[31] as usize];
+        // index of the predicate in in the BTreeMap `compiled_contract.predicates`.
+        let predicate = &compiled_contract.predicates[predicate_to_check.predicate.0[31] as usize];
 
         // Pre-populate the pre-state with all the db content, but first, every solution data
         // predicate set has to be inserted.
@@ -148,7 +148,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
             }
         }
 
-        // Produce the pre state slots by running all the state read programs
+        // Produce the pre state slots by running all the state read contracts
         let mut pre_state_slots = vec![];
         for idx in 0..predicate.state_read.len() {
             let mut vm = Vm::default();
@@ -183,7 +183,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
             }
         }
 
-        // Produce the post state slots by running all the state read programs using `post_state`
+        // Produce the post state slots by running all the state read contracts using `post_state`
         let mut post_state_slots = vec![];
         for idx in 0..predicate.state_read.len() {
             let mut vm = Vm::default();
@@ -232,7 +232,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
 /// Parse a `toml` file into a `Solution`
 fn parse_solution(
     path: &std::path::Path,
-    compiled_program: &pintc::asm_gen::CompiledProgram,
+    compiled_contract: &pintc::asm_gen::CompiledContract,
 ) -> anyhow::Result<Solution> {
     let toml_content_str = std::fs::read_to_string(path)?;
     let toml_content = toml_content_str.parse::<toml::Value>()?;
@@ -275,7 +275,7 @@ fn parse_solution(
                             // the index of the predicate in the contract. This just a way to later
                             // figure out what constraints we have to check.
                             Some(predicate) => {
-                                let index = compiled_program
+                                let index = compiled_contract
                                     .names
                                     .iter()
                                     .position(|name| name == predicate.as_str().unwrap())

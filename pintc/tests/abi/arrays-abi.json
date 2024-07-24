@@ -1,11 +1,6 @@
 {
   "predicates": [
     {
-      "name": "",
-      "vars": [],
-      "pub_vars": []
-    },
-    {
       "name": "::Foo",
       "vars": [
         {
@@ -78,9 +73,7 @@
           "name": "::a1",
           "ty": {
             "Array": {
-              "ty": {
-                "Int": [0, 0]
-              },
+              "ty": "Int",
               "size": 5
             }
           }
@@ -91,9 +84,7 @@
             "Array": {
               "ty": {
                 "Array": {
-                  "ty": {
-                    "B256": [1, 0]
-                  },
+                  "ty": "B256",
                   "size": 2
                 }
               },
@@ -108,23 +99,16 @@
               "ty": {
                 "Array": {
                   "ty": {
-                    "Tuple": {
-                      "fields": [
-                        {
-                          "name": null,
-                          "ty": {
-                            "Int": [2, 0]
-                          }
-                        },
-                        {
-                          "name": null,
-                          "ty": {
-                            "B256": [2, 1]
-                          }
-                        }
-                      ],
-                      "key": [2, 0]
-                    }
+                    "Tuple": [
+                      {
+                        "name": null,
+                        "ty": "Int"
+                      },
+                      {
+                        "name": null,
+                        "ty": "B256"
+                      }
+                    ]
                   },
                   "size": 4
                 }
@@ -141,9 +125,7 @@
       "name": "a1",
       "ty": {
         "Array": {
-          "ty": {
-            "Int": [0, 0]
-          },
+          "ty": "Int",
           "size": 5
         }
       }
@@ -154,9 +136,7 @@
         "Array": {
           "ty": {
             "Array": {
-              "ty": {
-                "B256": [1, 0]
-              },
+              "ty": "B256",
               "size": 2
             }
           },
@@ -171,23 +151,16 @@
           "ty": {
             "Array": {
               "ty": {
-                "Tuple": {
-                  "fields": [
-                    {
-                      "name": null,
-                      "ty": {
-                        "Int": [2, 0]
-                      }
-                    },
-                    {
-                      "name": null,
-                      "ty": {
-                        "B256": [2, 1]
-                      }
-                    }
-                  ],
-                  "key": [2, 0]
-                }
+                "Tuple": [
+                  {
+                    "name": null,
+                    "ty": "Int"
+                  },
+                  {
+                    "name": null,
+                    "ty": "B256"
+                  }
+                ]
               },
               "size": 4
             }
@@ -205,16 +178,13 @@
             "Array": {
               "ty": {
                 "Array": {
-                  "ty": {
-                    "Int": [3, null, 0]
-                  },
+                  "ty": "Int",
                   "size": 9
                 }
               },
               "size": 5
             }
-          },
-          "key": [3]
+          }
         }
       }
     },
@@ -228,16 +198,12 @@
               "ty_from": "B256",
               "ty_to": {
                 "Array": {
-                  "ty": {
-                    "Int": [4, null, null, null, null, null, 0]
-                  },
+                  "ty": "Int",
                   "size": 3
                 }
-              },
-              "key": [4, null]
+              }
             }
-          },
-          "key": [4]
+          }
         }
       }
     }

@@ -1,1 +1,1 @@
-var c = 6;
+const c = 6;

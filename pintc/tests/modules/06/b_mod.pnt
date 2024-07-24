@@ -2,9 +2,3 @@ use c_mod::A::{C, D};
 use ::b_mod::c_mod::{A, A::B};
 
 enum X = Y | Z;
-
-var s0 = B;
-var s1 = C;
-var s2 = A::B;
-var s3 = c_mod::A::C;
-var s4 = ::b_mod::c_mod::A::B;

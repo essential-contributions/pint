@@ -1,20 +1,21 @@
-var n: int;
-var a: int[10];
+predicate test {
+    var n: int;
+    var a: int[10];
 
-constraint a[n] == 3;
-
-solve satisfy;
+    constraint a[n] == 3;
+}
 
 // parsed <<<
-// var ::n: int;
-// var ::a: int[10];
-// constraint (::a[::n] == 3);
-// solve satisfy;
+// predicate ::test {
+//     var ::n: int;
+//     var ::a: int[10];
+//     constraint (::a[::n] == 3);
+// }
 // >>>
 
 // flattening_failure <<<
 // cannot find value `::n` in this scope
-// @42..43: not found in this scope
+// @71..72: not found in this scope
 // attempt to use a non-constant value as an array index
-// @42..43: this must be a constant
+// @71..72: this must be a constant
 // >>>

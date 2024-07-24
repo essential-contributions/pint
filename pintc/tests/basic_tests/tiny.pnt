@@ -1,14 +1,17 @@
-var a: int = 1;
-solve satisfy;
+predicate test {
+    var a: int = 1;
+}
 
 // parsed <<<
-// var ::a: int;
-// constraint (::a == 1);
-// solve satisfy;
+// predicate ::test {
+//     var ::a: int;
+//     constraint (::a == 1);
+// }
 // >>>
 
 // flattened <<<<
-// var ::a: int;
-// constraint (::a == 1);
-// solve satisfy;
+// predicate ::test {
+//     var ::a: int;
+//     constraint (::a == 1);
+// }
 // >>>

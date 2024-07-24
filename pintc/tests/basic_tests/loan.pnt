@@ -1,55 +1,57 @@
-// Model for determining relationships between a 1 year loan repaying every quarter
+predicate test {
+    // Model for determining relationships between a 1 year loan repaying every quarter
 
-// variables
-var r: real = 260.0;   // quarterly repayment
-var p: real = 1000.0;  // principal initially borrowed
-var i: real = 0.04;    // interest rate (per quarter)
+    // variables
+    var r: real = 260.0;   // quarterly repayment
+    var p: real = 1000.0;  // principal initially borrowed
+    var i: real = 0.04;    // interest rate (per quarter)
 
-// parsed variables
-var b1: real; // balance after one quarter
-var b2: real; // balance after two quarters
-var b3: real; // balance after three quarters
-var b4: real; // balance owing at end
+    // parsed variables
+    var b1: real; // balance after one quarter
+    var b2: real; // balance after two quarters
+    var b3: real; // balance after three quarters
+    var b4: real; // balance owing at end
 
-constraint b1 == p * (1.0 + i) - r;
-constraint b2 == b1 * (1.0 + i) - r;
-constraint b3 == b2 * (1.0 + i) - r;
-constraint b4 == b3 * (1.0 + i) - r;
-
-solve satisfy;
+    constraint b1 == p * (1.0 + i) - r;
+    constraint b2 == b1 * (1.0 + i) - r;
+    constraint b3 == b2 * (1.0 + i) - r;
+    constraint b4 == b3 * (1.0 + i) - r;
+}
 
 // parsed <<<
-// var ::r: real;
-// var ::p: real;
-// var ::i: real;
-// var ::b1: real;
-// var ::b2: real;
-// var ::b3: real;
-// var ::b4: real;
-// constraint (::r == 2.6e2);
-// constraint (::p == 1e3);
-// constraint (::i == 4e-2);
-// constraint (::b1 == ((::p * (1e0 + ::i)) - ::r));
-// constraint (::b2 == ((::b1 * (1e0 + ::i)) - ::r));
-// constraint (::b3 == ((::b2 * (1e0 + ::i)) - ::r));
-// constraint (::b4 == ((::b3 * (1e0 + ::i)) - ::r));
-// solve satisfy;
+// predicate ::test {
+//     var ::r: real;
+//     var ::p: real;
+//     var ::i: real;
+//     var ::b1: real;
+//     var ::b2: real;
+//     var ::b3: real;
+//     var ::b4: real;
+//     constraint (::r == 2.6e2);
+//     constraint (::p == 1e3);
+//     constraint (::i == 4e-2);
+//     constraint (::b1 == ((::p * (1e0 + ::i)) - ::r));
+//     constraint (::b2 == ((::b1 * (1e0 + ::i)) - ::r));
+//     constraint (::b3 == ((::b2 * (1e0 + ::i)) - ::r));
+//     constraint (::b4 == ((::b3 * (1e0 + ::i)) - ::r));
+// }
 // >>>
 
 // flattened <<<
-// var ::r: real;
-// var ::p: real;
-// var ::i: real;
-// var ::b1: real;
-// var ::b2: real;
-// var ::b3: real;
-// var ::b4: real;
-// constraint (::r == 2.6e2);
-// constraint (::p == 1e3);
-// constraint (::i == 4e-2);
-// constraint (::b1 == ((::p * (1e0 + ::i)) - ::r));
-// constraint (::b2 == ((::b1 * (1e0 + ::i)) - ::r));
-// constraint (::b3 == ((::b2 * (1e0 + ::i)) - ::r));
-// constraint (::b4 == ((::b3 * (1e0 + ::i)) - ::r));
-// solve satisfy;
+// predicate ::test {
+//     var ::r: real;
+//     var ::p: real;
+//     var ::i: real;
+//     var ::b1: real;
+//     var ::b2: real;
+//     var ::b3: real;
+//     var ::b4: real;
+//     constraint (::r == 2.6e2);
+//     constraint (::p == 1e3);
+//     constraint (::i == 4e-2);
+//     constraint (::b1 == ((::p * (1e0 + ::i)) - ::r));
+//     constraint (::b2 == ((::b1 * (1e0 + ::i)) - ::r));
+//     constraint (::b3 == ((::b2 * (1e0 + ::i)) - ::r));
+//     constraint (::b4 == ((::b3 * (1e0 + ::i)) - ::r));
+// }
 // >>>

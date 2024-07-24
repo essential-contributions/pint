@@ -1,10 +1,7 @@
 const a = { 11, 22 }.2;
 
-solve satisfy;
-
 // parsed <<<
 // const ::a = {11, 22}.2;
-// solve satisfy;
 // >>>
 
 // typecheck_failure <<<

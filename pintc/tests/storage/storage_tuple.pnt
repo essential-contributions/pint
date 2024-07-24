@@ -71,14 +71,8 @@ predicate Bar {
 //         map_to_tuples: ( int => {b256, {int, int}} ),
 //     }
 // }
-// 
+//
 // predicate ::Bar {
-//     storage {
-//         u: {b256, int},
-//         t: {b256, {int, int}},
-//         w: {addr: b256, inner: {x: int, int}},
-//         map_to_tuples: ( int => {b256, {int, int}} ),
-//     }
 //     interface ::Foo {
 //         storage {
 //             u: {b256, int},
@@ -136,14 +130,8 @@ predicate Bar {
 //         map_to_tuples: ( int => {b256, {int, int}} ),
 //     }
 // }
-// 
+//
 // predicate ::Bar {
-//     storage {
-//         u: {b256, int},
-//         t: {b256, {int, int}},
-//         w: {addr: b256, inner: {x: int, int}},
-//         map_to_tuples: ( int => {b256, {int, int}} ),
-//     }
 //     interface ::Foo {
 //         storage {
 //             u: {b256, int},

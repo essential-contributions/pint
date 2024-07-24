@@ -1,0 +1,9 @@
+// ANCHOR: imports_share
+use ::data::contract_lib;
+use ::data::contract_lib::Data;
+// ANCHOR_END: imports_share
+
+predicate test {
+    var contract_data_1: contract_lib::Data;
+    var contract_data_2: Data;
+}

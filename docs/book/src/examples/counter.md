@@ -47,13 +47,13 @@ behalf) can propose a solution to `Initialize` that looks like this:
 value: 42
 
 # state mutations:
-0x0000000000000000000000000000000000000000000000000000000000000000: 42
+0: 42
 ```
 
 This solution proposes a value of `42` for the decision variable `value` and a new value of `42` for
-the storage location `0x00...00` where `counter` is stored (we will go over the storage data layout
-later!). A solution must also indicate which predicate is being solved using its address but we're
-omitting that here for simplicity.
+the storage key `0` where `counter` is stored (we will go over the storage data layout later!). A
+solution must also indicate which predicate is being solved using its address but we're omitting
+that here for simplicity.
 
 Alternatively, a solution to `Increment` can be proposed to satisfy the user requirement `counter =
 42`. For example, if the current value of `counter` happens to be `35`, then the following solution
@@ -64,7 +64,7 @@ to `Increment` can be proposed:
 amount: 7
 
 # state mutations:
-0x0000000000000000000000000000000000000000000000000000000000000000: 42
+0: 42
 ```
 
 It should be easy to verify that this solution satisfies the constraint `counter' == counter +

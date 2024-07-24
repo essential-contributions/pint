@@ -1,4 +1,4 @@
-use super::{DisplayWithPred, ExprKey, Ident, Predicate};
+use super::{Contract, DisplayWithPred, ExprKey, Ident, Predicate};
 use crate::{
     error::{ErrorEmitted, Handler},
     span::Span,
@@ -99,14 +99,14 @@ impl StateKey {
 }
 
 impl DisplayWithPred for StateKey {
-    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> fmt::Result {
         let state = &self.get(pred);
         write!(f, "state {}", state.name)?;
         let ty = self.get_ty(pred);
         if !ty.is_unknown() {
-            write!(f, ": {}", pred.with_pred(ty))?;
+            write!(f, ": {}", pred.with_pred(contract, ty))?;
         }
-        write!(f, " = {}", pred.with_pred(&state.expr))
+        write!(f, " = {}", pred.with_pred(contract, &state.expr))
     }
 }
 

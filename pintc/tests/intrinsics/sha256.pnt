@@ -1,77 +1,79 @@
-var sha256_0 = __sha256(69);
+predicate test {
+    var sha256_0 = __sha256(69);
 
-var x: int;
-var sha256_1 = __sha256(x);
+    var x: int;
+    var sha256_1 = __sha256(x);
 
-var sha256_2 = __sha256({ 69, { x, x } });
+    var sha256_2 = __sha256({ 69, { x, x } });
 
-var t: { int, bool, { b256, b256 } };
-var sha256_3 = __sha256(t);
-var sha256_4 = __sha256(t.2);
+    var t: { int, bool, { b256, b256 } };
+    var sha256_3 = __sha256(t);
+    var sha256_4 = __sha256(t.2);
 
-var y: int;
-var sha256_5 = __sha256([1, 2, 3, x, y]);
+    var y: int;
+    var sha256_5 = __sha256([1, 2, 3, x, y]);
 
-var a: int[2][3][4];
-var sha256_6 = __sha256(a);
-var sha256_7 = __sha256(a[1]);
-var sha256_8 = __sha256(a[1][2]);
-var sha256_9 = __sha256(a[1][2][3]);
-
-solve satisfy;
+    var a: int[2][3][4];
+    var sha256_6 = __sha256(a);
+    var sha256_7 = __sha256(a[1]);
+    var sha256_8 = __sha256(a[1][2]);
+    var sha256_9 = __sha256(a[1][2][3]);
+}
 
 // parsed <<<,
-// var ::sha256_0;
-// var ::x: int;
-// var ::sha256_1;
-// var ::sha256_2;
-// var ::t: {int, bool, {b256, b256}};
-// var ::sha256_3;
-// var ::sha256_4;
-// var ::y: int;
-// var ::sha256_5;
-// var ::a: int[4][3][2];
-// var ::sha256_6;
-// var ::sha256_7;
-// var ::sha256_8;
-// var ::sha256_9;
-// constraint (::sha256_0 == __sha256(69));
-// constraint (::sha256_1 == __sha256(::x));
-// constraint (::sha256_2 == __sha256({69, {::x, ::x}}));
-// constraint (::sha256_3 == __sha256(::t));
-// constraint (::sha256_4 == __sha256(::t.2));
-// constraint (::sha256_5 == __sha256([1, 2, 3, ::x, ::y]));
-// constraint (::sha256_6 == __sha256(::a));
-// constraint (::sha256_7 == __sha256(::a[1]));
-// constraint (::sha256_8 == __sha256(::a[1][2]));
-// constraint (::sha256_9 == __sha256(::a[1][2][3]));
-// solve satisfy;
+// predicate ::test {
+//     var ::sha256_0;
+//     var ::x: int;
+//     var ::sha256_1;
+//     var ::sha256_2;
+//     var ::t: {int, bool, {b256, b256}};
+//     var ::sha256_3;
+//     var ::sha256_4;
+//     var ::y: int;
+//     var ::sha256_5;
+//     var ::a: int[4][3][2];
+//     var ::sha256_6;
+//     var ::sha256_7;
+//     var ::sha256_8;
+//     var ::sha256_9;
+//     constraint (::sha256_0 == __sha256(69));
+//     constraint (::sha256_1 == __sha256(::x));
+//     constraint (::sha256_2 == __sha256({69, {::x, ::x}}));
+//     constraint (::sha256_3 == __sha256(::t));
+//     constraint (::sha256_4 == __sha256(::t.2));
+//     constraint (::sha256_5 == __sha256([1, 2, 3, ::x, ::y]));
+//     constraint (::sha256_6 == __sha256(::a));
+//     constraint (::sha256_7 == __sha256(::a[1]));
+//     constraint (::sha256_8 == __sha256(::a[1][2]));
+//     constraint (::sha256_9 == __sha256(::a[1][2][3]));
+// }
 // >>>
 
 // flattened <<<,
-// var ::sha256_0: b256;
-// var ::x: int;
-// var ::sha256_1: b256;
-// var ::sha256_2: b256;
-// var ::t: {int, bool, {b256, b256}};
-// var ::sha256_3: b256;
-// var ::sha256_4: b256;
-// var ::y: int;
-// var ::sha256_5: b256;
-// var ::a: int[4][3][2];
-// var ::sha256_6: b256;
-// var ::sha256_7: b256;
-// var ::sha256_8: b256;
-// var ::sha256_9: b256;
-// constraint (::sha256_0 == __sha256(69));
-// constraint (::sha256_1 == __sha256(::x));
-// constraint (::sha256_2 == __sha256({69, {::x, ::x}}));
-// constraint (::sha256_3 == __sha256(::t));
-// constraint (::sha256_4 == __sha256(::t.2));
-// constraint (::sha256_5 == __sha256([1, 2, 3, ::x, ::y]));
-// constraint (::sha256_6 == __sha256(::a));
-// constraint (::sha256_7 == __sha256(::a[1]));
-// constraint (::sha256_8 == __sha256(::a[1][2]));
-// constraint (::sha256_9 == __sha256(::a[1][2][3]));
-// solve satisfy;
+// predicate ::test {
+//     var ::sha256_0: b256;
+//     var ::x: int;
+//     var ::sha256_1: b256;
+//     var ::sha256_2: b256;
+//     var ::t: {int, bool, {b256, b256}};
+//     var ::sha256_3: b256;
+//     var ::sha256_4: b256;
+//     var ::y: int;
+//     var ::sha256_5: b256;
+//     var ::a: int[4][3][2];
+//     var ::sha256_6: b256;
+//     var ::sha256_7: b256;
+//     var ::sha256_8: b256;
+//     var ::sha256_9: b256;
+//     constraint (::sha256_0 == __sha256(69));
+//     constraint (::sha256_1 == __sha256(::x));
+//     constraint (::sha256_2 == __sha256({69, {::x, ::x}}));
+//     constraint (::sha256_3 == __sha256(::t));
+//     constraint (::sha256_4 == __sha256(::t.2));
+//     constraint (::sha256_5 == __sha256([1, 2, 3, ::x, ::y]));
+//     constraint (::sha256_6 == __sha256(::a));
+//     constraint (::sha256_7 == __sha256(::a[1]));
+//     constraint (::sha256_8 == __sha256(::a[1][2]));
+//     constraint (::sha256_9 == __sha256(::a[1][2][3]));
+// }
 // >>>

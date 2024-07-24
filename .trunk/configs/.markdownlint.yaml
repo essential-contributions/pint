@@ -11,3 +11,4 @@ whitespace: false
 MD026: false # Allow trailing punctuation in heading
 MD041: false # Allow first line in a file to not be a top-level heading
 MD014: false # Allow dollar signs to be used before commands
+MD024: false # Allow multiple headings with the same content

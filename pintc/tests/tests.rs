@@ -1,6 +1,6 @@
 use pintc::{
     error::{Errors, Handler, ReportableError},
-    predicate::Program,
+    predicate::Contract,
 };
 use std::{
     fs::{read_dir, File},
@@ -101,7 +101,7 @@ fn parse_test_and_check(
     path: &Path,
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
-) -> Option<Program> {
+) -> Option<Contract> {
     let handler = Handler::default();
     let deps = Default::default();
     match pintc::parser::parse_project(&handler, &deps, path) {
@@ -152,11 +152,11 @@ fn parse_test_and_check(
 }
 
 fn type_check(
-    pred: Program,
+    pred: Contract,
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
     path: &Path,
-) -> Option<Program> {
+) -> Option<Contract> {
     let handler = Handler::default();
     pred.type_check(&handler)
         .map(|checked| {
@@ -189,11 +189,11 @@ fn type_check(
 }
 
 fn flatten_and_check(
-    pred: Program,
+    pred: Contract,
     test_data: &TestData,
     failed_tests: &mut Vec<String>,
     path: &Path,
-) -> Option<Program> {
+) -> Option<Contract> {
     let handler = Handler::default();
     pred.flatten(&handler)
         .map(|flattened| {

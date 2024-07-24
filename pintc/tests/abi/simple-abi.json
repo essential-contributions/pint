@@ -1,16 +1,11 @@
 {
   "predicates": [
     {
-      "name": "",
-      "vars": [],
-      "pub_vars": []
-    },
-    {
       "name": "::Foo",
       "vars": [
         {
           "name": "::v0",
-          "ty": "Int"
+          "ty": "Bool"
         },
         {
           "name": "::v1",
@@ -69,21 +64,15 @@
       "pub_vars": [
         {
           "name": "::t0",
-          "ty": {
-            "Int": [0]
-          }
+          "ty": "Bool"
         },
         {
           "name": "::t1",
-          "ty": {
-            "Int": [1]
-          }
+          "ty": "Int"
         },
         {
           "name": "::t2",
-          "ty": {
-            "B256": [2]
-          }
+          "ty": "B256"
         }
       ]
     }
@@ -91,86 +80,59 @@
   "storage": [
     {
       "name": "s0",
-      "ty": {
-        "Bool": [0]
-      }
+      "ty": "Bool"
     },
     {
       "name": "s1",
-      "ty": {
-        "Int": [1]
-      }
+      "ty": "Int"
     },
     {
       "name": "s2",
-      "ty": {
-        "B256": [2]
-      }
+      "ty": "B256"
     },
     {
       "name": "s3",
       "ty": {
-        "Tuple": {
-          "fields": [
-            {
-              "name": null,
-              "ty": {
-                "Int": [3, 0]
-              }
-            },
-            {
-              "name": null,
-              "ty": {
-                "Int": [3, 1]
-              }
-            }
-          ],
-          "key": [3, 0]
-        }
+        "Tuple": [
+          {
+            "name": null,
+            "ty": "Int"
+          },
+          {
+            "name": null,
+            "ty": "Int"
+          }
+        ]
       }
     },
     {
       "name": "s4",
       "ty": {
-        "Tuple": {
-          "fields": [
-            {
-              "name": null,
-              "ty": {
-                "Int": [4, 0]
-              }
-            },
-            {
-              "name": null,
-              "ty": {
-                "Int": [4, 1]
-              }
-            },
-            {
-              "name": null,
-              "ty": {
-                "Tuple": {
-                  "fields": [
-                    {
-                      "name": null,
-                      "ty": {
-                        "Int": [4, 2]
-                      }
-                    },
-                    {
-                      "name": null,
-                      "ty": {
-                        "Int": [4, 3]
-                      }
-                    }
-                  ],
-                  "key": [4, 2]
+        "Tuple": [
+          {
+            "name": null,
+            "ty": "Int"
+          },
+          {
+            "name": null,
+            "ty": "Int"
+          },
+          {
+            "name": null,
+            "ty": {
+              "Tuple": [
+                {
+                  "name": null,
+                  "ty": "Int"
+                },
+                {
+                  "name": null,
+                  "ty": "Int"
                 }
-              }
+              ]
             }
-          ],
-          "key": [4, 0]
-        }
+          }
+        ]
       }
     },
     {
@@ -179,41 +141,28 @@
         "Map": {
           "ty_from": "Int",
           "ty_to": {
-            "Tuple": {
-              "fields": [
-                {
-                  "name": null,
-                  "ty": {
-                    "Int": [5, null, 0]
-                  }
-                },
-                {
-                  "name": null,
-                  "ty": {
-                    "Tuple": {
-                      "fields": [
-                        {
-                          "name": null,
-                          "ty": {
-                            "B256": [5, null, 1]
-                          }
-                        },
-                        {
-                          "name": null,
-                          "ty": {
-                            "Int": [5, null, 2]
-                          }
-                        }
-                      ],
-                      "key": [5, null, 1]
+            "Tuple": [
+              {
+                "name": null,
+                "ty": "Int"
+              },
+              {
+                "name": null,
+                "ty": {
+                  "Tuple": [
+                    {
+                      "name": null,
+                      "ty": "B256"
+                    },
+                    {
+                      "name": null,
+                      "ty": "Int"
                     }
-                  }
+                  ]
                 }
-              ],
-              "key": [5, null, 0]
-            }
-          },
-          "key": [5]
+              }
+            ]
+          }
         }
       }
     },
@@ -226,44 +175,30 @@
             "Map": {
               "ty_from": "B256",
               "ty_to": {
-                "Tuple": {
-                  "fields": [
-                    {
-                      "name": null,
-                      "ty": {
-                        "Int": [6, null, null, null, null, null, 0]
-                      }
-                    },
-                    {
-                      "name": null,
-                      "ty": {
-                        "Tuple": {
-                          "fields": [
-                            {
-                              "name": null,
-                              "ty": {
-                                "B256": [6, null, null, null, null, null, 1]
-                              }
-                            },
-                            {
-                              "name": null,
-                              "ty": {
-                                "Int": [6, null, null, null, null, null, 2]
-                              }
-                            }
-                          ],
-                          "key": [6, null, null, null, null, null, 1]
+                "Tuple": [
+                  {
+                    "name": null,
+                    "ty": "Int"
+                  },
+                  {
+                    "name": null,
+                    "ty": {
+                      "Tuple": [
+                        {
+                          "name": null,
+                          "ty": "B256"
+                        },
+                        {
+                          "name": null,
+                          "ty": "Int"
                         }
-                      }
+                      ]
                     }
-                  ],
-                  "key": [6, null, null, null, null, null, 0]
-                }
-              },
-              "key": [6, null]
+                  }
+                ]
+              }
             }
-          },
-          "key": [6]
+          }
         }
       }
     }

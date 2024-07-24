@@ -1,19 +1,20 @@
-var a: bool;
+predicate test {
+    var a: bool;
 
-constraint a.0 == a.bar;
-
-solve satisfy;
+    constraint a.0 == a.bar;
+}
 
 // parsed <<<
-// var ::a: bool;
-// constraint (::a.0 == ::a.bar);
-// solve satisfy;
+// predicate ::test {
+//     var ::a: bool;
+//     constraint (::a.0 == ::a.bar);
+// }
 // >>>
 
 // typecheck_failure <<<
 // attempt to access tuple field from a non-tuple value
-// @25..28: value must be a tuple; found `bool`
+// @50..53: value must be a tuple; found `bool`
 // constraint expression type error
-// @14..37: constraint expression has unknown type
-// @14..37: expecting type `bool`
+// @39..62: constraint expression has unknown type
+// @39..62: expecting type `bool`
 // >>>

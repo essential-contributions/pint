@@ -1,7 +1,7 @@
-predicate Foo {
-    enum MyEnum = A | B;
-    type MyType = MyEnum;
+enum MyEnum = A | B;
+type MyType = MyEnum;
 
+predicate Foo {
     pub var x1: bool;
     pub var x2: int;
     pub var x3: b256;
@@ -31,6 +31,9 @@ predicate Foo {
 }
 
 // parsed <<<
+// enum ::MyEnum = A | B;
+// type ::MyType = ::MyEnum;
+//
 // predicate ::Foo {
 //     pub var ::x1: bool;
 //     pub var ::x2: int;
@@ -56,8 +59,6 @@ predicate Foo {
 //     pub var ::z6;
 //     pub var ::z7;
 //     pub var ::z8;
-//     enum ::MyEnum = A | B;
-//     type ::MyType = ::MyEnum;
 //     constraint (::y1 == true);
 //     constraint (::y2 == 5);
 //     constraint (::y3 == 0x0000111100001111000011110000111100001111000011110000111100001111);
@@ -81,21 +82,21 @@ predicate Foo {
 //
 // typecheck_failure <<<
 // compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @145..147: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @137..139: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
 // compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @224..226: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @216..218: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
 // compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @248..250: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @240..242: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
 // compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @418..420: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @410..412: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
 // compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @538..540: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @530..532: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
 // compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @574..576: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @566..568: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
 // compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @739..741: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @731..733: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
 // compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @828..830: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @820..822: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
 // compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @856..858: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// @848..850: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
 // >>>

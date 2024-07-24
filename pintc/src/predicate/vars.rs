@@ -1,4 +1,4 @@
-use super::{DisplayWithPred, Ident, Predicate};
+use super::{Contract, DisplayWithPred, Ident, PredKey, Predicate};
 use crate::{
     error::{ErrorEmitted, Handler},
     span::Span,
@@ -99,17 +99,23 @@ impl VarKey {
         pred.vars.var_types.insert(*self, ty);
     }
 
-    /// Generate a `VarABI` given a `VarKey` and an `Predicate`
-    pub fn abi(&self, handler: &Handler, pred: &Predicate) -> Result<VarABI, ErrorEmitted> {
+    /// Generate a `VarABI` given a `VarKey` and a `PredKey`
+    pub fn abi(
+        &self,
+        handler: &Handler,
+        contract: &Contract,
+        pred_key: PredKey,
+    ) -> Result<VarABI, ErrorEmitted> {
+        let pred = &contract.preds[pred_key];
         Ok(VarABI {
             name: self.get(pred).name.clone(),
-            ty: self.get_ty(pred).abi(handler, pred)?,
+            ty: self.get_ty(pred).abi(handler, contract, pred_key)?,
         })
     }
 }
 
 impl DisplayWithPred for VarKey {
-    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> fmt::Result {
         let var = &self.get(pred);
         if var.is_pub {
             write!(f, "pub ")?;
@@ -117,7 +123,7 @@ impl DisplayWithPred for VarKey {
         write!(f, "var {}", var.name)?;
         let ty = self.get_ty(pred);
         if !ty.is_unknown() {
-            write!(f, ": {}", pred.with_pred(ty))?;
+            write!(f, ": {}", pred.with_pred(contract, ty))?;
         }
         Ok(())
     }

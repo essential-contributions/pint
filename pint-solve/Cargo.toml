@@ -1,15 +1,12 @@
 [package]
-name = "pint_solve"
+name = "pint-solve"
 version = "0.1.0"
+description = "Pint solver"
 edition.workspace = true
 authors.workspace = true
 homepage.workspace = true
 license.workspace = true
 repository.workspace = true
-
-[lib]
-name = "pint_solve"
-path = "src/lib.rs"
 
 [build-dependencies]
 lalrpop = "0.20"

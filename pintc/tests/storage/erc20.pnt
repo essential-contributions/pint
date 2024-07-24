@@ -24,7 +24,7 @@ predicate Transfer {
 predicate Mint {
     var account: b256;
     var value: int;
-    
+
     state total_supply = storage::total_supply;
     constraint total_supply' == total_supply + value;
 
@@ -50,39 +50,8 @@ predicate Burn {
 //     balances: ( b256 => int ),
 //     total_supply: int,
 // }
-// 
-// predicate ::Burn {
-//     storage {
-//         balances: ( b256 => int ),
-//         total_supply: int,
-//     }
-//     var ::account: b256;
-//     var ::value: int;
-//     state ::account_balance = storage::balances[::account];
-//     state ::total_supply = storage::total_supply;
-//     constraint (::account_balance >= ::value);
-//     constraint (::account_balance' == (::account_balance - ::value));
-//     constraint (::total_supply' == (::total_supply - ::value));
-// }
-// 
-// predicate ::Mint {
-//     storage {
-//         balances: ( b256 => int ),
-//         total_supply: int,
-//     }
-//     var ::account: b256;
-//     var ::value: int;
-//     state ::total_supply = storage::total_supply;
-//     state ::account_balance = storage::balances[::account];
-//     constraint (::total_supply' == (::total_supply + ::value));
-//     constraint (::account_balance' == (::account_balance + ::value));
-// }
-// 
+//
 // predicate ::Transfer {
-//     storage {
-//         balances: ( b256 => int ),
-//         total_supply: int,
-//     }
 //     var ::from: b256;
 //     var ::to: b256;
 //     var ::value: int;
@@ -94,6 +63,25 @@ predicate Burn {
 //     constraint (::from_balance' == (::from_balance - ::value));
 //     constraint (::to_balance' == (::to_balance + ::value));
 // }
+//
+// predicate ::Mint {
+//     var ::account: b256;
+//     var ::value: int;
+//     state ::total_supply = storage::total_supply;
+//     state ::account_balance = storage::balances[::account];
+//     constraint (::total_supply' == (::total_supply + ::value));
+//     constraint (::account_balance' == (::account_balance + ::value));
+// }
+//
+// predicate ::Burn {
+//     var ::account: b256;
+//     var ::value: int;
+//     state ::account_balance = storage::balances[::account];
+//     state ::total_supply = storage::total_supply;
+//     constraint (::account_balance >= ::value);
+//     constraint (::account_balance' == (::account_balance - ::value));
+//     constraint (::total_supply' == (::total_supply - ::value));
+// }
 // >>>
 
 // flattened <<<
@@ -101,39 +89,8 @@ predicate Burn {
 //     balances: ( b256 => int ),
 //     total_supply: int,
 // }
-// 
-// predicate ::Burn {
-//     storage {
-//         balances: ( b256 => int ),
-//         total_supply: int,
-//     }
-//     var ::account: b256;
-//     var ::value: int;
-//     state ::account_balance: int = storage::balances[::account];
-//     state ::total_supply: int = storage::total_supply;
-//     constraint (::account_balance >= ::value);
-//     constraint (::account_balance' == (::account_balance - ::value));
-//     constraint (::total_supply' == (::total_supply - ::value));
-// }
-// 
-// predicate ::Mint {
-//     storage {
-//         balances: ( b256 => int ),
-//         total_supply: int,
-//     }
-//     var ::account: b256;
-//     var ::value: int;
-//     state ::total_supply: int = storage::total_supply;
-//     state ::account_balance: int = storage::balances[::account];
-//     constraint (::total_supply' == (::total_supply + ::value));
-//     constraint (::account_balance' == (::account_balance + ::value));
-// }
-// 
+//
 // predicate ::Transfer {
-//     storage {
-//         balances: ( b256 => int ),
-//         total_supply: int,
-//     }
 //     var ::from: b256;
 //     var ::to: b256;
 //     var ::value: int;
@@ -144,5 +101,24 @@ predicate Burn {
 //     constraint (::from_balance >= ::value);
 //     constraint (::from_balance' == (::from_balance - ::value));
 //     constraint (::to_balance' == (::to_balance + ::value));
+// }
+//
+// predicate ::Mint {
+//     var ::account: b256;
+//     var ::value: int;
+//     state ::total_supply: int = storage::total_supply;
+//     state ::account_balance: int = storage::balances[::account];
+//     constraint (::total_supply' == (::total_supply + ::value));
+//     constraint (::account_balance' == (::account_balance + ::value));
+// }
+//
+// predicate ::Burn {
+//     var ::account: b256;
+//     var ::value: int;
+//     state ::account_balance: int = storage::balances[::account];
+//     state ::total_supply: int = storage::total_supply;
+//     constraint (::account_balance >= ::value);
+//     constraint (::account_balance' == (::account_balance - ::value));
+//     constraint (::total_supply' == (::total_supply - ::value));
 // }
 // >>>

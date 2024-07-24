@@ -2,29 +2,29 @@ use std::fmt::{Display, Formatter, Result};
 
 use crate::{
     expr,
-    predicate::{DisplayWithPred, Predicate},
+    predicate::{Contract, DisplayWithPred, Predicate},
     util::{write_many_iter, write_many_with_pred},
 };
 
 impl DisplayWithPred for super::ExprKey {
-    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> Result {
-        if pred.removed_macro_calls.contains_key(*self) {
+    fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> Result {
+        if contract.removed_macro_calls.contains_key(*self) {
             write!(f, "<REMOVED MACRO CALL>")
         } else {
-            write!(f, "{}", pred.with_pred(&self.get(pred)))
+            write!(f, "{}", pred.with_pred(contract, &self.get(contract)))
         }
     }
 }
 
 impl DisplayWithPred for &super::Expr {
-    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> Result {
+    fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> Result {
         match self {
             super::Expr::Error(..) => write!(f, "Error"),
-            super::Expr::Immediate { value, .. } => value.fmt(f, pred),
+            super::Expr::Immediate { value, .. } => value.fmt(f, contract, pred),
 
             super::Expr::Array { elements, .. } => {
                 write!(f, "[")?;
-                write_many_with_pred!(f, elements, ", ", pred);
+                write_many_with_pred!(f, elements, ", ", contract, pred);
                 write!(f, "]")
             }
 
@@ -37,7 +37,7 @@ impl DisplayWithPred for &super::Expr {
                         "{}{}",
                         name.as_ref()
                             .map_or(String::new(), |name| format!("{}: ", name.name)),
-                        pred.with_pred(val)
+                        pred.with_pred(contract, val)
                     )
                 });
                 write_many_iter!(f, i, ", ");
@@ -55,7 +55,7 @@ impl DisplayWithPred for &super::Expr {
 
             super::Expr::UnaryOp { op, expr, .. } => {
                 if matches!(op, expr::UnaryOp::NextState) {
-                    write!(f, "{}'", pred.with_pred(expr))
+                    write!(f, "{}'", pred.with_pred(contract, expr))
                 } else {
                     match op {
                         expr::UnaryOp::Error => write!(f, "error"),
@@ -63,7 +63,7 @@ impl DisplayWithPred for &super::Expr {
                         expr::UnaryOp::Not => write!(f, "!"),
                         expr::UnaryOp::NextState => unreachable!(),
                     }?;
-                    expr.fmt(f, pred)
+                    expr.fmt(f, contract, pred)
                 }
             }
 
@@ -71,9 +71,9 @@ impl DisplayWithPred for &super::Expr {
                 write!(
                     f,
                     "({} {} {})",
-                    pred.with_pred(lhs),
+                    pred.with_pred(contract, lhs),
                     op,
-                    pred.with_pred(rhs)
+                    pred.with_pred(contract, rhs)
                 )
             }
 
@@ -82,25 +82,30 @@ impl DisplayWithPred for &super::Expr {
             } => write!(
                 f,
                 "{} in {}",
-                pred.with_pred(value),
-                pred.with_pred(collection)
+                pred.with_pred(contract, value),
+                pred.with_pred(contract, collection)
             ),
 
             super::Expr::Cast { value, ty, .. } => {
                 write!(
                     f,
                     "{} as {}",
-                    pred.with_pred(value),
-                    pred.with_pred(ty.as_ref())
+                    pred.with_pred(contract, value),
+                    pred.with_pred(contract, ty.as_ref())
                 )
             }
 
             super::Expr::TupleFieldAccess { tuple, field, .. } => {
-                write!(f, "{}.{field}", pred.with_pred(tuple))
+                write!(f, "{}.{field}", pred.with_pred(contract, tuple))
             }
 
             super::Expr::Index { expr, index, .. } => {
-                write!(f, "{}[{}]", pred.with_pred(expr), pred.with_pred(index))
+                write!(
+                    f,
+                    "{}[{}]",
+                    pred.with_pred(contract, expr),
+                    pred.with_pred(contract, index)
+                )
             }
 
             super::Expr::MacroCall { call, .. } => {
@@ -115,7 +120,7 @@ impl DisplayWithPred for &super::Expr {
 
             super::Expr::IntrinsicCall { name, args, .. } => {
                 write!(f, "{name}(")?;
-                write_many_with_pred!(f, args, ", ", pred);
+                write_many_with_pred!(f, args, ", ", contract, pred);
                 write!(f, ")")
             }
 
@@ -127,13 +132,18 @@ impl DisplayWithPred for &super::Expr {
             } => write!(
                 f,
                 "({} ? {} : {})",
-                pred.with_pred(condition),
-                pred.with_pred(then_expr),
-                pred.with_pred(else_expr)
+                pred.with_pred(contract, condition),
+                pred.with_pred(contract, then_expr),
+                pred.with_pred(contract, else_expr)
             ),
 
             super::Expr::Range { lb, ub, .. } => {
-                write!(f, "{}..{}", pred.with_pred(lb), pred.with_pred(ub))
+                write!(
+                    f,
+                    "{}..{}",
+                    pred.with_pred(contract, lb),
+                    pred.with_pred(contract, ub)
+                )
             }
 
             super::Expr::Generator {
@@ -145,20 +155,20 @@ impl DisplayWithPred for &super::Expr {
             } => {
                 write!(f, "{kind}")?;
                 for (ident, range) in gen_ranges {
-                    write!(f, " {} in {},", ident, pred.with_pred(range))?;
+                    write!(f, " {} in {},", ident, pred.with_pred(contract, range))?;
                 }
                 if !conditions.is_empty() {
                     write!(f, " where ")?;
-                    write_many_with_pred!(f, conditions, ", ", pred);
+                    write_many_with_pred!(f, conditions, ", ", contract, pred);
                 }
-                write!(f, " {{ {} }}", pred.with_pred(body))
+                write!(f, " {{ {} }}", pred.with_pred(contract, body))
             }
         }
     }
 }
 
 impl DisplayWithPred for super::Immediate {
-    fn fmt(&self, f: &mut Formatter, pred: &Predicate) -> Result {
+    fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> Result {
         match self {
             super::Immediate::Error => write!(f, "Error"),
             super::Immediate::Nil => write!(f, "nil"),
@@ -175,7 +185,7 @@ impl DisplayWithPred for super::Immediate {
             }
             super::Immediate::Array(elements) => {
                 write!(f, "[")?;
-                write_many_with_pred!(f, elements, ", ", pred);
+                write_many_with_pred!(f, elements, ", ", contract, pred);
                 write!(f, "]")
             }
             super::Immediate::Tuple(fields) => {
@@ -185,7 +195,7 @@ impl DisplayWithPred for super::Immediate {
                         "{}{}",
                         name.as_ref()
                             .map_or(String::new(), |name| format!("{}: ", name.name)),
-                        pred.with_pred(val)
+                        pred.with_pred(contract, val)
                     )
                 });
                 write_many_iter!(f, i, ", ");
@@ -196,7 +206,7 @@ impl DisplayWithPred for super::Immediate {
 }
 
 impl DisplayWithPred for super::Ident {
-    fn fmt(&self, f: &mut Formatter, _: &Predicate) -> Result {
+    fn fmt(&self, f: &mut Formatter, _: &Contract, _: &Predicate) -> Result {
         write!(f, "{self}")
     }
 }

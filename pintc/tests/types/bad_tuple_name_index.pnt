@@ -1,21 +1,22 @@
-var a = { x: 11, y: 22.2 };
+predicate test {
+    var a = { x: 11, y: 22.2 };
 
-constraint a.z > 33;
-
-solve satisfy;
+    constraint a.z > 33;
+}
 
 // parsed <<<
-// var ::a;
-// constraint (::a == {x: 11, y: 2.22e1});
-// constraint (::a.z > 33);
-// solve satisfy;
+// predicate ::test {
+//     var ::a;
+//     constraint (::a == {x: 11, y: 2.22e1});
+//     constraint (::a.z > 33);
+// }
 // >>>
 
 // typecheck_failure <<<
 // invalid tuple accessor
-// @40..43: unable to get field from tuple using `z`
+// @65..68: unable to get field from tuple using `z`
 // tuple has type `{x: int, y: real}`
 // constraint expression type error
-// @29..48: constraint expression has unknown type
-// @29..48: expecting type `bool`
+// @54..73: constraint expression has unknown type
+// @54..73: expecting type `bool`
 // >>>

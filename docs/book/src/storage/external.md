@@ -9,7 +9,7 @@ In imperative smart contract languages like [Solidity](https://soliditylang.org/
 external state is typically done by _calling_ some methods in the external contract that access or
 modify that contract's state. In Pint however, the storage variables of a contract are **public**
 and can be accessed from outside the contract using the contract's
-[interface](../program_types/contract.md#contract-interfaces).
+[interface](../smart_contracts/index.md#contract-interfaces).
 
 ### Interface Instance
 

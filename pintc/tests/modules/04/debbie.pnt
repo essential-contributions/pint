@@ -1,3 +1,1 @@
 enum Skill = GlamourShots | Handicrafts;
-
-var debbie_skill = Skill::GlamourShots;

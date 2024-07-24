@@ -100,14 +100,13 @@ lalrpop_mod!(#[allow(unused)] pub pint_parser);
 
 #[test]
 fn gather_use_paths() {
-    use crate::{
-        error::Handler,
-        predicate::{Predicate, Program, ProgramKind},
-    };
+    use crate::{error::Handler, predicate::Contract};
     use std::collections::BTreeMap;
+
     let parser = pint_parser::TestDelegateParser::new();
-    let mut current_pred = Program::ROOT_PRED_NAME.to_string();
     let filepath = std::rc::Rc::from(std::path::Path::new("test"));
+    let mut contract = Contract::default();
+    let current_pred = contract.root_pred_key();
 
     let mut to_use_paths = |src: &str| -> Vec<UsePath> {
         parser
@@ -116,23 +115,16 @@ fn gather_use_paths() {
                     mod_path: &[],
                     mod_prefix: "",
                     local_scope: None,
-                    program: &mut Program {
-                        kind: ProgramKind::Stateless,
-                        preds: BTreeMap::from([(
-                            Program::ROOT_PRED_NAME.to_string(),
-                            Predicate::default(),
-                        )]),
-                        consts: fxhash::FxHashMap::default(),
-                    },
-                    current_pred: &mut current_pred,
-                    macros: &mut Vec::new(),
+                    contract: &mut contract,
+                    current_pred,
+                    macros: &mut Vec::default(),
                     macro_calls: &mut BTreeMap::from([(
-                        Program::ROOT_PRED_NAME.to_string(),
-                        slotmap::SecondaryMap::new(),
+                        current_pred,
+                        slotmap::SecondaryMap::default(),
                     )]),
                     span_from: &|_, _| span::empty_span(),
-                    use_paths: &mut Vec::new(),
-                    next_paths: &mut Vec::new(),
+                    use_paths: &mut Vec::default(),
+                    next_paths: &mut Vec::default(),
                 },
                 &Handler::default(),
                 crate::lexer::Lexer::new(src, &filepath, &[]),

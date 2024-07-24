@@ -1,24 +1,25 @@
-var a: int = true ? 11 : 22.2;
-
-solve satisfy;
+predicate test {
+    var a: int = true ? 11 : 22.2;
+}
 
 // parsed <<<
-// var ::a: int;
-// constraint (::a == (true ? 11 : 2.22e1));
-// solve satisfy;
+// predicate ::test {
+//     var ::a: int;
+//     constraint (::a == (true ? 11 : 2.22e1));
+// }
 // >>>
 
 // typecheck_failure <<<
 // branches of a select expression must have the same type
-// @20..22: 'then' branch has the type `int`
-// @25..29: 'else' branch has the type `real`
+// @41..43: 'then' branch has the type `int`
+// @46..50: 'else' branch has the type `real`
 // branches of a select expression must have the same type
-// @20..22: 'then' branch has the type `int`
-// @25..29: 'else' branch has the type `real`
+// @41..43: 'then' branch has the type `int`
+// @46..50: 'else' branch has the type `real`
 // variable initialization type error
-// @13..29: variable initializer has unknown type
-// @7..10: expecting type `int`
+// @34..50: variable initializer has unknown type
+// @28..31: expecting type `int`
 // constraint expression type error
-// @0..29: constraint expression has unknown type
-// @0..29: expecting type `bool`
+// @21..50: constraint expression has unknown type
+// @21..50: expecting type `bool`
 // >>>

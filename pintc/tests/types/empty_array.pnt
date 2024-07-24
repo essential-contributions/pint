@@ -1,19 +1,20 @@
-var ary: int[10];
+predicate test {
+    var ary: int[10];
 
-constraint ary != [];
-
-solve satisfy;
+    constraint ary != [];
+}
 
 // parsed <<<
-// var ::ary: int[10];
-// constraint (::ary != []);
-// solve satisfy;
+// predicate ::test {
+//     var ::ary: int[10];
+//     constraint (::ary != []);
+// }
 // >>>
 
 // typecheck_failure <<<
 // illegal empty array value
-// @37..39: empty array values are illegal
+// @62..64: empty array values are illegal
 // constraint expression type error
-// @19..39: constraint expression has unknown type
-// @19..39: expecting type `bool`
+// @44..64: constraint expression has unknown type
+// @44..64: expecting type `bool`
 // >>>

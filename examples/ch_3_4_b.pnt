@@ -1,8 +1,8 @@
+predicate test {
 // ANCHOR: cond_unrolled 
 var x: int;
 var z = x == 0 ? 0 :
                x > 0 && x <= 10 ? 1
                  : x > 10 && x <= 100 ? 2 : 3;
 // ANCHOR_END: cond_unrolled
-
-solve satisfy;
+}

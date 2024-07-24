@@ -1,58 +1,59 @@
-var a = -true;
-var b = -{1,2};
+predicate test {
+    var a = -true;
+    var b = -{1,2};
 
-var c = !11;
-var d = !"sure";
-
-solve satisfy;
+    var c = !11;
+    var d = !"sure";
+}
 
 // parsed <<<
-// var ::a;
-// var ::b;
-// var ::c;
-// var ::d;
-// constraint (::a == -true);
-// constraint (::b == -{1, 2});
-// constraint (::c == !11);
-// constraint (::d == !"sure");
-// solve satisfy;
+// predicate ::test {
+//     var ::a;
+//     var ::b;
+//     var ::c;
+//     var ::d;
+//     constraint (::a == -true);
+//     constraint (::b == -{1, 2});
+//     constraint (::c == !11);
+//     constraint (::d == !"sure");
+// }
 // >>>
 
 // typecheck_failure <<<
 // unary operator type error
-// @8..13: operator `-` argument has unexpected type `bool`
+// @29..34: operator `-` argument has unexpected type `bool`
 // unary operator type error
-// @23..29: operator `-` argument has unexpected type `{int, int}`
+// @48..54: operator `-` argument has unexpected type `{int, int}`
 // unary operator type error
-// @40..43: operator `!` argument has unexpected type `int`
+// @69..72: operator `!` argument has unexpected type `int`
 // unary operator type error
-// @53..60: operator `!` argument has unexpected type `string`
+// @86..93: operator `!` argument has unexpected type `string`
 // unary operator type error
-// @8..13: operator `-` argument has unexpected type `bool`
+// @29..34: operator `-` argument has unexpected type `bool`
 // unary operator type error
-// @23..29: operator `-` argument has unexpected type `{int, int}`
+// @48..54: operator `-` argument has unexpected type `{int, int}`
 // unary operator type error
-// @40..43: operator `!` argument has unexpected type `int`
+// @69..72: operator `!` argument has unexpected type `int`
 // unary operator type error
-// @53..60: operator `!` argument has unexpected type `string`
+// @86..93: operator `!` argument has unexpected type `string`
 // unable to determine expression type
-// @4..5: type of this expression is ambiguous
+// @25..26: type of this expression is ambiguous
 // unable to determine expression type
-// @19..20: type of this expression is ambiguous
+// @44..45: type of this expression is ambiguous
 // unable to determine expression type
-// @36..37: type of this expression is ambiguous
+// @65..66: type of this expression is ambiguous
 // unable to determine expression type
-// @49..50: type of this expression is ambiguous
+// @82..83: type of this expression is ambiguous
 // constraint expression type error
-// @0..13: constraint expression has unknown type
-// @0..13: expecting type `bool`
+// @21..34: constraint expression has unknown type
+// @21..34: expecting type `bool`
 // constraint expression type error
-// @15..29: constraint expression has unknown type
-// @15..29: expecting type `bool`
+// @40..54: constraint expression has unknown type
+// @40..54: expecting type `bool`
 // constraint expression type error
-// @32..43: constraint expression has unknown type
-// @32..43: expecting type `bool`
+// @61..72: constraint expression has unknown type
+// @61..72: expecting type `bool`
 // constraint expression type error
-// @45..60: constraint expression has unknown type
-// @45..60: expecting type `bool`
+// @78..93: constraint expression has unknown type
+// @78..93: expecting type `bool`
 // >>>

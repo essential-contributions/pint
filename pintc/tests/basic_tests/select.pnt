@@ -1,48 +1,50 @@
-var condition: bool;
-var condition1: bool;
-var condition2: bool;
-var x: int;
-var y: int;
-var z: b256;
-var a = condition ? condition1 ? 1 : 2 : condition2 ? 3 : 4;
-var b = condition ? condition1 ? x : y : condition2 ? x + 1 : x * y;
-var c = !condition ? { 1, 2, 3 } : { 3, 2, 1 };
-var d = !condition ? [ 1, 2, 3 ] : [ 3, 2, 1 ];
-
-solve satisfy;
+predicate test {
+    var condition: bool;
+    var condition1: bool;
+    var condition2: bool;
+    var x: int;
+    var y: int;
+    var z: b256;
+    var a = condition ? condition1 ? 1 : 2 : condition2 ? 3 : 4;
+    var b = condition ? condition1 ? x : y : condition2 ? x + 1 : x * y;
+    var c = !condition ? { 1, 2, 3 } : { 3, 2, 1 };
+    var d = !condition ? [ 1, 2, 3 ] : [ 3, 2, 1 ];
+}
 
 // parsed <<<
-// var ::condition: bool;
-// var ::condition1: bool;
-// var ::condition2: bool;
-// var ::x: int;
-// var ::y: int;
-// var ::z: b256;
-// var ::a;
-// var ::b;
-// var ::c;
-// var ::d;
-// constraint (::a == (::condition ? (::condition1 ? 1 : 2) : (::condition2 ? 3 : 4)));
-// constraint (::b == (::condition ? (::condition1 ? ::x : ::y) : (::condition2 ? (::x + 1) : (::x * ::y))));
-// constraint (::c == (!::condition ? {1, 2, 3} : {3, 2, 1}));
-// constraint (::d == (!::condition ? [1, 2, 3] : [3, 2, 1]));
-// solve satisfy;
+// predicate ::test {
+//     var ::condition: bool;
+//     var ::condition1: bool;
+//     var ::condition2: bool;
+//     var ::x: int;
+//     var ::y: int;
+//     var ::z: b256;
+//     var ::a;
+//     var ::b;
+//     var ::c;
+//     var ::d;
+//     constraint (::a == (::condition ? (::condition1 ? 1 : 2) : (::condition2 ? 3 : 4)));
+//     constraint (::b == (::condition ? (::condition1 ? ::x : ::y) : (::condition2 ? (::x + 1) : (::x * ::y))));
+//     constraint (::c == (!::condition ? {1, 2, 3} : {3, 2, 1}));
+//     constraint (::d == (!::condition ? [1, 2, 3] : [3, 2, 1]));
+// }
 // >>>
 
 // flattened <<<
-// var ::condition: int;
-// var ::condition1: int;
-// var ::condition2: int;
-// var ::x: int;
-// var ::y: int;
-// var ::z: b256;
-// var ::a: int;
-// var ::b: int;
-// var ::c: {int, int, int};
-// var ::d: int[3];
-// constraint (::a == (::condition ? (::condition1 ? 1 : 2) : (::condition2 ? 3 : 4)));
-// constraint (::b == (::condition ? (::condition1 ? ::x : ::y) : (::condition2 ? (::x + 1) : (::x * ::y))));
-// constraint (::c == (!::condition ? {1, 2, 3} : {3, 2, 1}));
-// constraint (::d == (!::condition ? [1, 2, 3] : [3, 2, 1]));
-// solve satisfy;
+// predicate ::test {
+//     var ::condition: bool;
+//     var ::condition1: bool;
+//     var ::condition2: bool;
+//     var ::x: int;
+//     var ::y: int;
+//     var ::z: b256;
+//     var ::a: int;
+//     var ::b: int;
+//     var ::c: {int, int, int};
+//     var ::d: int[3];
+//     constraint (::a == (::condition ? (::condition1 ? 1 : 2) : (::condition2 ? 3 : 4)));
+//     constraint (::b == (::condition ? (::condition1 ? ::x : ::y) : (::condition2 ? (::x + 1) : (::x * ::y))));
+//     constraint (::c == (!::condition ? {1, 2, 3} : {3, 2, 1}));
+//     constraint (::d == (!::condition ? [1, 2, 3] : [3, 2, 1]));
+// }
 // >>>

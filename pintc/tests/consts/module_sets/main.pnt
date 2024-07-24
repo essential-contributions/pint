@@ -14,10 +14,10 @@ predicate A {
 // >>>
 
 // flattened <<<
-// const ::b::b: bool = 0;
-// const ::a: bool = 1;
+// const ::b::b: bool = false;
+// const ::a: bool = true;
 //
 // predicate ::A {
-//     constraint (1 && !0);
+//     constraint (true && !false);
 // }
 // >>>

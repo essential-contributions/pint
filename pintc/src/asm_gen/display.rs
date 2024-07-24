@@ -1,25 +1,17 @@
-use super::CompiledProgram;
-use crate::predicate::ProgramKind;
+use super::CompiledContract;
 use essential_types::predicate::Predicate as CompiledPredicate;
 use state_asm::{Constraint, Op as StateRead};
 use std::fmt::{Display, Formatter};
 
-impl Display for CompiledProgram {
+impl Display for CompiledContract {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        match self.kind {
-            ProgramKind::Stateless => {
-                fmt_compiled_predicate_with_indent(self.root_predicate(), f, 0)?
-            }
-            ProgramKind::Stateful => {
-                for (name, compiled_predicate) in self.names.iter().zip(self.predicates.iter()) {
-                    if name == Self::ROOT_PRED_NAME {
-                        fmt_compiled_predicate_with_indent(compiled_predicate, f, 0)?;
-                    } else {
-                        writeln!(f, "predicate {name} {{")?;
-                        fmt_compiled_predicate_with_indent(compiled_predicate, f, 1)?;
-                        writeln!(f, "}}\n")?;
-                    }
-                }
+        for (name, compiled_predicate) in self.names.iter().zip(self.predicates.iter()) {
+            if name == Self::ROOT_PRED_NAME {
+                fmt_compiled_predicate_with_indent(compiled_predicate, f, 0)?;
+            } else {
+                writeln!(f, "predicate {name} {{")?;
+                fmt_compiled_predicate_with_indent(compiled_predicate, f, 1)?;
+                writeln!(f, "}}\n")?;
             }
         }
 

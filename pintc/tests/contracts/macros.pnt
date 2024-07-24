@@ -51,24 +51,24 @@ predicate Sum {
 }
 
 // parsed <<<
-// predicate ::Bar {
+// predicate ::Foo {
 //     var ::anon@0::a: int;
-//     constraint ([1e0, 2e0] == [1e0, 2e0]);
-//     constraint (::anon@0::a == 4);
+//     constraint (4 == 4);
+//     constraint (::anon@0::a == 3);
 // }
-// 
+//
+// predicate ::Bar {
+//     var ::anon@1::a: int;
+//     constraint ([1e0, 2e0] == [1e0, 2e0]);
+//     constraint (::anon@1::a == 4);
+// }
+//
 // predicate ::Baz {
 //     var ::v: int;
 //     constraint (::v == 0);
 //     constraint (::v == 0);
 //     constraint (::v == 0);
 //     constraint (::v == 0);
-// }
-//
-// predicate ::Foo {
-//     var ::anon@2::a: int;
-//     constraint (4 == 4);
-//     constraint (::anon@2::a == 3);
 // }
 //
 // predicate ::Sum {
@@ -80,12 +80,18 @@ predicate Sum {
 // >>>
 
 // flattened <<<
-// predicate ::Bar {
+// predicate ::Foo {
 //     var ::anon@0::a: int;
-//     constraint ([1e0, 2e0] == [1e0, 2e0]);
-//     constraint (::anon@0::a == 4);
+//     constraint (4 == 4);
+//     constraint (::anon@0::a == 3);
 // }
-// 
+//
+// predicate ::Bar {
+//     var ::anon@1::a: int;
+//     constraint ([1e0, 2e0] == [1e0, 2e0]);
+//     constraint (::anon@1::a == 4);
+// }
+//
 // predicate ::Baz {
 //     var ::v: int;
 //     constraint (::v == 0);
@@ -93,13 +99,7 @@ predicate Sum {
 //     constraint (::v == 0);
 //     constraint (::v == 0);
 // }
-// 
-// predicate ::Foo {
-//     var ::anon@2::a: int;
-//     constraint (4 == 4);
-//     constraint (::anon@2::a == 3);
-// }
-// 
+//
 // predicate ::Sum {
 //     var ::a: int;
 //     var ::b: int;

@@ -2,11 +2,12 @@
 resolver = "2"
 members = [
   "examples",
-  "pint",
   "pint-abi",
   "pint-abi-gen",
   "pint-abi-gen-tests",
   "pint-abi-types",
+  "pint-abi-visit",
+  "pint-cli",
   "pint-manifest",
   "pint-pkg",
   "pint-solve",
@@ -22,29 +23,28 @@ anyhow = "1.0"
 ariadne = "0.4"
 chumsky = "0.9"
 clap = { version = "4.5", features = ["derive"] }
-constraint-asm = { git = "ssh://git@github.com/essential-contributions/essential-base.git", package = "essential-constraint-asm" }
-essential-check = { git = "ssh://git@github.com/essential-contributions/essential-base.git", features = [
-  "tracing",
-] }
-essential-hash = { git = "ssh://git@github.com/essential-contributions/essential-base.git" }
-essential-types = { git = "ssh://git@github.com/essential-contributions/essential-base.git" }
+constraint-asm = { version = "0.1.0", package = "essential-constraint-asm" }
+essential-check = { version = "0.1.0", features = ["tracing"] }
+essential-hash = "0.1.0"
+essential-types = "0.1.0"
 expect-test = "1.4"
 fxhash = "0.2"
 itertools = "0.12"
 logos = "0.14"
 petgraph = "0.6"
-pint-abi = { path = "pint-abi" }
-pint-abi-gen = { path = "pint-abi-gen" }
-pint-abi-types = { path = "pint-abi-types" }
-pint-manifest = { path = "pint-manifest" }
-pint-pkg = { path = "pint-pkg" }
-pintc = { path = "pintc" }
+pint-abi = { path = "pint-abi", version = "0.1.0" }
+pint-abi-gen = { path = "pint-abi-gen", version = "0.1.0" }
+pint-abi-types = { path = "pint-abi-types", version = "0.1.0" }
+pint-abi-visit = { path = "pint-abi-visit", version = "0.0.1" }
+pint-manifest = { path = "pint-manifest", version = "0.1.0" }
+pint-pkg = { path = "pint-pkg", version = "0.1.0" }
+pintc = { path = "pintc", version = "0.1.0" }
 proc-macro2 = "1"
 quote = "1"
 serde = { version = "1", features = ["derive"] }
 serde_ignored = "0.1"
 serde_json = "1"
-state-asm = { git = "ssh://git@github.com/essential-contributions/essential-base.git", package = "essential-state-asm" }
+state-asm = { version = "0.1.0", package = "essential-state-asm" }
 syn = { version = "2", features = ["extra-traits", "full", "printing"] }
 thiserror = "1.0"
 tokio = { version = "1.36", default-features = false, features = [

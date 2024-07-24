@@ -1,33 +1,34 @@
-var a: int[4];
-var b = [11, 22, 33, 44, 55];
-var c = [66, 77];
+predicate test {
+    var a: int[4];
+    var b = [11, 22, 33, 44, 55];
+    var c = [66, 77];
 
-constraint a == b;
-constraint a != c;
-constraint c != [88, 99, 111];
-
-solve satisfy;
+    constraint a == b;
+    constraint a != c;
+    constraint c != [88, 99, 111];
+}
 
 // parsed <<<
-// var ::a: int[4];
-// var ::b;
-// var ::c;
-// constraint (::b == [11, 22, 33, 44, 55]);
-// constraint (::c == [66, 77]);
-// constraint (::a == ::b);
-// constraint (::a != ::c);
-// constraint (::c != [88, 99, 111]);
-// solve satisfy;
+// predicate ::test {
+//     var ::a: int[4];
+//     var ::b;
+//     var ::c;
+//     constraint (::b == [11, 22, 33, 44, 55]);
+//     constraint (::c == [66, 77]);
+//     constraint (::a == ::b);
+//     constraint (::a != ::c);
+//     constraint (::c != [88, 99, 111]);
+// }
 // >>>
 
 // flattening_failure <<<
 // comparison between differently sized arrays
-// @113..131: cannot compare arrays of different sizes
+// @154..172: cannot compare arrays of different sizes
 // the left-hand side argument of the `!=` operator has 2 elements while the right-hand side argument has 3 elements
 // comparison between differently sized arrays
-// @94..100: cannot compare arrays of different sizes
+// @131..137: cannot compare arrays of different sizes
 // the left-hand side argument of the `!=` operator has 4 elements while the right-hand side argument has 2 elements
 // comparison between differently sized arrays
-// @75..81: cannot compare arrays of different sizes
+// @108..114: cannot compare arrays of different sizes
 // the left-hand side argument of the `==` operator has 4 elements while the right-hand side argument has 5 elements
 // >>>

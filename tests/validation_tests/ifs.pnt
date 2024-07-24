@@ -1,115 +1,115 @@
-var x_1: int;
-var y_1: int;
-var z_1: int;
-var w_1: int;
-var condition_1_a: bool = true;
-var condition_1_b: bool = true;
-var condition_1_c: bool;
+predicate test {
+    var x_1: int;
+    var y_1: int;
+    var z_1: int;
+    var w_1: int;
+    var condition_1_a: bool = true;
+    var condition_1_b: bool = true;
+    var condition_1_c: bool;
 
-if condition_1_a {
-    if condition_1_b {
-        constraint x_1 == 1;
+    if condition_1_a {
+        if condition_1_b {
+            constraint x_1 == 1;
+        } else {
+            constraint y_1 == 2;
+        }
     } else {
-        constraint y_1 == 2;
+        if condition_1_c {
+            constraint z_1 == 3;
+        } else {
+            constraint w_1 == 4;
+        }
     }
-} else {
-    if condition_1_c {
-        constraint z_1 == 3;
+
+    constraint x_1 == 1;
+    constraint y_1 == 42;
+    constraint z_1 == 69;
+    constraint w_1 == 99;
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+
+    var x_2: int;
+    var y_2: int;
+    var z_2: int;
+    var w_2: int;
+    var condition_2_a: bool = true;
+    var condition_2_b: bool = false;
+    var condition_2_c: bool;
+
+    if condition_2_a {
+        if condition_2_b {
+            constraint x_2 == 1;
+        } else {
+            constraint y_2 == 2;
+        }
     } else {
-        constraint w_1 == 4;
+        if condition_2_c {
+            constraint z_2 == 3;
+        } else {
+            constraint w_2 == 4;
+        }
     }
+
+    constraint x_2 == 42;
+    constraint y_2 == 2;
+    constraint z_2 == 69;
+    constraint w_2 == 99;
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+
+    var x_3: int;
+    var y_3: int;
+    var z_3: int;
+    var w_3: int;
+    var condition_3_a: bool = false;
+    var condition_3_b: bool;
+    var condition_3_c: bool = true;
+
+    if condition_3_a {
+        if condition_3_b {
+            constraint x_3 == 1;
+        } else {
+            constraint y_3 == 2;
+        }
+    } else {
+        if condition_3_c {
+            constraint z_3 == 3;
+        } else {
+            constraint w_3 == 4;
+        }
+    }
+
+    constraint x_3 == 69;
+    constraint y_3 == 42;
+    constraint z_3 == 3;
+    constraint w_3 == 99;
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+
+    var x_4: int;
+    var y_4: int;
+    var z_4: int;
+    var w_4: int;
+    var condition_4_a: bool = false;
+    var condition_4_b: bool;
+    var condition_4_c: bool = false;
+
+    if condition_4_a {
+        if condition_4_b {
+            constraint x_4 == 1;
+        } else {
+            constraint y_4 == 2;
+        }
+    } else {
+        if condition_4_c {
+            constraint z_4 == 3;
+        } else {
+            constraint w_4 == 4;
+        }
+    }
+
+    constraint x_4 == 99;
+    constraint y_4 == 42;
+    constraint z_4 == 69;
+    constraint w_4 == 4;
 }
-
-constraint x_1 == 1;
-constraint y_1 == 42;
-constraint z_1 == 69;
-constraint w_1 == 99;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-var x_2: int;
-var y_2: int;
-var z_2: int;
-var w_2: int;
-var condition_2_a: bool = true;
-var condition_2_b: bool = false;
-var condition_2_c: bool;
-
-if condition_2_a {
-    if condition_2_b {
-        constraint x_2 == 1;
-    } else {
-        constraint y_2 == 2;
-    }
-} else {
-    if condition_2_c {
-        constraint z_2 == 3;
-    } else {
-        constraint w_2 == 4;
-    }
-}
-
-constraint x_2 == 42;
-constraint y_2 == 2;
-constraint z_2 == 69;
-constraint w_2 == 99;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-var x_3: int;
-var y_3: int;
-var z_3: int;
-var w_3: int;
-var condition_3_a: bool = false;
-var condition_3_b: bool;
-var condition_3_c: bool = true;
-
-if condition_3_a {
-    if condition_3_b {
-        constraint x_3 == 1;
-    } else {
-        constraint y_3 == 2;
-    }
-} else {
-    if condition_3_c {
-        constraint z_3 == 3;
-    } else {
-        constraint w_3 == 4;
-    }
-}
-
-constraint x_3 == 69;
-constraint y_3 == 42;
-constraint z_3 == 3;
-constraint w_3 == 99;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-var x_4: int;
-var y_4: int;
-var z_4: int;
-var w_4: int;
-var condition_4_a: bool = false;
-var condition_4_b: bool;
-var condition_4_c: bool = false;
-
-if condition_4_a {
-    if condition_4_b {
-        constraint x_4 == 1;
-    } else {
-        constraint y_4 == 2;
-    }
-} else {
-    if condition_4_c {
-        constraint z_4 == 3;
-    } else {
-        constraint w_4 == 4;
-    }
-}
-
-constraint x_4 == 99;
-constraint y_4 == 42;
-constraint z_4 == 69;
-constraint w_4 == 4;
-
-solve satisfy;

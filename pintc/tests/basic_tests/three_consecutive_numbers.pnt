@@ -1,31 +1,33 @@
-// Find three consecutive integers such that their product is equal to their sum.
+predicate test {
+    // Find three consecutive integers such that their product is equal to their sum.
 
-var x0: int;
-var x1: int;
-var x2: int;
+    var x0: int;
+    var x1: int;
+    var x2: int;
 
-// Make sure the numbers are consecutive
-constraint x1 == x0 + 1 && x2 == x1 + 1;
+    // Make sure the numbers are consecutive
+    constraint x1 == x0 + 1 && x2 == x1 + 1;
 
-// Make sure their sum is equal to their product
-constraint x0 + x1 + x2 == x0 * x1 * x2;
-
-solve satisfy;
+    // Make sure their sum is equal to their product
+    constraint x0 + x1 + x2 == x0 * x1 * x2;
+}
 
 // parsed <<<
-// var ::x0: int;
-// var ::x1: int;
-// var ::x2: int;
-// constraint ((::x1 == (::x0 + 1)) && (::x2 == (::x1 + 1)));
-// constraint (((::x0 + ::x1) + ::x2) == ((::x0 * ::x1) * ::x2));
-// solve satisfy;
+// predicate ::test {
+//     var ::x0: int;
+//     var ::x1: int;
+//     var ::x2: int;
+//     constraint ((::x1 == (::x0 + 1)) && (::x2 == (::x1 + 1)));
+//     constraint (((::x0 + ::x1) + ::x2) == ((::x0 * ::x1) * ::x2));
+// }
 // >>>
 
 // flattened <<<
-// var ::x0: int;
-// var ::x1: int;
-// var ::x2: int;
-// constraint ((::x1 == (::x0 + 1)) && (::x2 == (::x1 + 1)));
-// constraint (((::x0 + ::x1) + ::x2) == ((::x0 * ::x1) * ::x2));
-// solve satisfy;
+// predicate ::test {
+//     var ::x0: int;
+//     var ::x1: int;
+//     var ::x2: int;
+//     constraint ((::x1 == (::x0 + 1)) && (::x2 == (::x1 + 1)));
+//     constraint (((::x0 + ::x1) + ::x2) == ((::x0 * ::x1) * ::x2));
+// }
 // >>>

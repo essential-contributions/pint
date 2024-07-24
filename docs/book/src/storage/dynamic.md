@@ -113,10 +113,13 @@ storage {
     nested_map: (b256 => (int => bool)),
     // ...
 }
-var addr: b256;
 
-state nested_map = storage::nested_map; // Expecting to return the "whole" map
-state nested_map_inner = storage::nested_map[addr]; // Expecting to return the "whole" inner map
+predicate test {
+    var addr: b256;
+
+    state nested_map = storage::nested_map; // Expecting to return the "whole" map
+    state nested_map_inner = storage::nested_map[addr]; // Expecting to return the "whole" inner map
+}
 ```
 
 However, the compiler will disallow this by emitting the following errors:
@@ -144,3 +147,5 @@ we can store a reference to or copy/move around and state variables can only hav
 types!
 
 ### Storage Vector
+
+> **Note**: Storage vectors are work-in-progress

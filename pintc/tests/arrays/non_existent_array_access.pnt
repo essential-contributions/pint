@@ -1,16 +1,17 @@
-constraint b[1] == 2;
-
-solve satisfy;
+predicate test {
+    constraint b[1] == 2;
+}
 
 // parsed <<<
-// constraint (::b[1] == 2);
-// solve satisfy;
+// predicate ::test {
+//     constraint (::b[1] == 2);
+// }
 // >>>
 
 // typecheck_failure <<<
 // cannot find value `::b` in this scope
-// @11..12: not found in this scope
+// @32..33: not found in this scope
 // constraint expression type error
-// @0..20: constraint expression has unknown type
-// @0..20: expecting type `bool`
+// @21..41: constraint expression has unknown type
+// @21..41: expecting type `bool`
 // >>>

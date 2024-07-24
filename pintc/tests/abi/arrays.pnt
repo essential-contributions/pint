@@ -24,15 +24,8 @@ predicate Foo {
 //     my_map: ( int => int[9][5] ),
 //     my_nested_map: ( int => ( b256 => int[3] ) ),
 // }
-// 
+//
 // predicate ::Foo {
-//     storage {
-//         a1: int[5],
-//         a2: b256[2][3],
-//         a3: {int, b256}[4][3],
-//         my_map: ( int => int[9][5] ),
-//         my_nested_map: ( int => ( b256 => int[3] ) ),
-//     }
 //     pub var ::a1: int[5];
 //     pub var ::a2: b256[2][3];
 //     pub var ::a3: {int, b256}[4][3];
@@ -50,15 +43,8 @@ predicate Foo {
 //     my_map: ( int => int[9][5] ),
 //     my_nested_map: ( int => ( b256 => int[3] ) ),
 // }
-// 
+//
 // predicate ::Foo {
-//     storage {
-//         a1: int[5],
-//         a2: b256[2][3],
-//         a3: {int, b256}[4][3],
-//         my_map: ( int => int[9][5] ),
-//         my_nested_map: ( int => ( b256 => int[3] ) ),
-//     }
 //     pub var ::a1: int[5];
 //     pub var ::a2: b256[2][3];
 //     pub var ::a3: {int, b256}[4][3];

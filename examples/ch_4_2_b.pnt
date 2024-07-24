@@ -15,5 +15,3 @@ interface ExternalContract {
     // other constraint sets
 }
 // ANCHOR_END: interface
-
-solve satisfy;

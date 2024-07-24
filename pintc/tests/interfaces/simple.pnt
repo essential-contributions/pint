@@ -100,7 +100,7 @@ predicate Simple {
 //     }
 //     predicate I3;
 // }
-// 
+//
 // predicate ::Simple {
 //     interface ::Foo {
 //         storage {
@@ -199,7 +199,7 @@ predicate Simple {
 //     }
 //     predicate I3;
 // }
-// 
+//
 // predicate ::Simple {
 //     interface ::Foo {
 //         storage {
@@ -253,7 +253,7 @@ predicate Simple {
 //     var __::BarI2Instance3_pathway: int;
 //     var ::x1: int;
 //     var ::x2: b256;
-//     var ::x3: int;
+//     var ::x3: bool;
 //     state ::x: int = ::FooInstance::storage::x;
 //     state ::y: int = ::FooInstance::storage::y;
 //     state ::z: b256 = ::BarInstance::storage::z;

@@ -1,21 +1,22 @@
-var a = { 11, 22, 33 };
+predicate test {
+    var a = { 11, 22, 33 };
 
-constraint a.4 == 44;
-
-solve satisfy;
+    constraint a.4 == 44;
+}
 
 // parsed <<<
-// var ::a;
-// constraint (::a == {11, 22, 33});
-// constraint (::a.4 == 44);
-// solve satisfy;
+// predicate ::test {
+//     var ::a;
+//     constraint (::a == {11, 22, 33});
+//     constraint (::a.4 == 44);
+// }
 // >>>
 
 // typecheck_failure <<<
 // invalid tuple accessor
-// @36..39: unable to get field from tuple using `4`
+// @61..64: unable to get field from tuple using `4`
 // tuple has type `{int, int, int}`
 // constraint expression type error
-// @25..45: constraint expression has unknown type
-// @25..45: expecting type `bool`
+// @50..70: constraint expression has unknown type
+// @50..70: expecting type `bool`
 // >>>

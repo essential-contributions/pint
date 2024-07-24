@@ -1,0 +1,40 @@
+macro @chain($a, &rest) {
+    var $a: int;
+    @chain_next($a; &rest)
+}
+
+macro @chain_next($prev, $next, &rest) {
+    var $next: int;
+    constraint $next > $prev + 10;
+    @chain_next($next; &rest)
+}
+
+macro @chain_next($prev, $last) {
+    var $last: int;
+    constraint $last > $prev + 10;
+    $last
+}
+
+predicate test {
+    @chain(x; y; z);
+}
+
+// parsed <<<
+// predicate ::test {
+//     var ::x: int;
+//     var ::y: int;
+//     var ::z: int;
+//     constraint (::y > (::x + 10));
+//     constraint (::z > (::y + 10));
+// }
+// >>>
+
+// flattened <<<
+// predicate ::test {
+//     var ::x: int;
+//     var ::y: int;
+//     var ::z: int;
+//     constraint (::y > (::x + 10));
+//     constraint (::z > (::y + 10));
+// }
+// >>>

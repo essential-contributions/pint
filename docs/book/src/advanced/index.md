@@ -7,5 +7,6 @@ for them often, we want to make sure you have a grasp of all the features Pint h
 
 In this chapter, we'll cover:
 
-- Public decision variables: how to declare decision variables that are public and how to access
+- **Public decision variables**: how to declare decision variables that are public and how to access
   them from external contexts.
+- **Macros**: how to write reusable code using macros.

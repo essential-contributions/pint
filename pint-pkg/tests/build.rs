@@ -35,12 +35,14 @@ fn build_default_library() {
 #[test]
 fn build_contract_one_lib_dep() {
     const BAR_SRC: &str = r#"type Age = int;"#;
-    const FOO_SRC: &str = r#"use bar::Age;
+    const FOO_SRC: &str = r#"
+use bar::Age;
+predicate test {
+    var bob_age: Age = 42;
 
-var bob_age: Age = 42;
-
-constraint bob_age == 6 * 7;
-solve satisfy;"#;
+    constraint bob_age == 6 * 7;
+}
+"#;
 
     with_temp_dir(|dir| {
         let mut foo = new_pkg(&dir.join("foo"), PackageKind::Contract);
@@ -81,7 +83,7 @@ solve satisfy;"#;
         };
 
         // There's only one nameless predicate in our simple `foo` test contract.
-        assert_eq!(&contract.predicate_metadata[0].name, "");
+        assert_eq!(&contract.predicate_metadata[0].name, "::test");
         let predicate = &contract.contract.predicates[0];
 
         // It should have at least one constraint.
@@ -105,12 +107,14 @@ type Person = {
     const FOO_SRC: &str = r#"
 use bar::Person;
 
-var bob = {
-    age: 42,
-};
+predicate test {
+    var bob = {
+        age: 42,
+    };
 
-constraint bob.age == 6 * 7;
-solve satisfy;"#;
+    constraint bob.age == 6 * 7;
+}
+"#;
 
     with_temp_dir(|dir| {
         let mut foo = new_pkg(&dir.join("foo"), PackageKind::Contract);
@@ -162,7 +166,7 @@ solve satisfy;"#;
         };
 
         // There's only one nameless predicate in our simple `foo` test contract.
-        assert_eq!(&contract.predicate_metadata[0].name, "");
+        assert_eq!(&contract.predicate_metadata[0].name, "::test");
         let predicate = &contract.contract.predicates[0];
 
         // It should have at least one constraint.
@@ -193,14 +197,15 @@ predicate Increment {
 "#;
 
     const FOO_SRC: &str = r#"
-// The top-level contract address.
-constraint bar::ADDRESS != 0x0000000000000000000000000000000000000000000000000000000000000000;
+predicate test {
+    // The top-level contract address.
+    constraint bar::ADDRESS != 0x0000000000000000000000000000000000000000000000000000000000000000;
 
-// The predicate addresses.
-constraint bar::Init::ADDRESS != 0x0000000000000000000000000000000000000000000000000000000000000000;
-constraint bar::Increment::ADDRESS != 0x0000000000000000000000000000000000000000000000000000000000000000;
-
-solve satisfy;"#;
+    // The predicate addresses.
+    constraint bar::Init::ADDRESS != 0x0000000000000000000000000000000000000000000000000000000000000000;
+    constraint bar::Increment::ADDRESS != 0x0000000000000000000000000000000000000000000000000000000000000000;
+}
+"#;
 
     with_temp_dir(|dir| {
         // Overwrite `bar`'s source with a simple counter example.

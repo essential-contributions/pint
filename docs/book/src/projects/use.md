@@ -25,18 +25,18 @@ two ways to avoid this problem. The first, is to only import the names of the pa
 Consider the following two libraries:
 
 ```pint
-{{#include ../../../../examples/std/src/data/contract_lib.pnt}}
+{{#include ../../../../examples/ch_6_4_a/src/data/contract_lib.pnt}}
 ```
 
 ```pint
-{{#include ../../../../examples/std/src/data/predicate_lib.pnt}}
+{{#include ../../../../examples/ch_6_4_a/src/data/predicate_lib.pnt}}
 ```
 
 Both libraries use the name `Data` to describe a types. The example below shows how to bring the two
 `Data` types into scope and how to refer to them without having a conflict.
 
 ```pint
-{{#include ../../../../examples/std/src/entry1.pnt:solution}}
+{{#include ../../../../examples/ch_6_4_a/src/contract.pnt:solution}}
 ```
 
 As you can see, using the parent module distinguishes the two `Data` types. If instead we specified
@@ -49,7 +49,7 @@ example below shows another way to write the code in the previous example by ren
 types using `as`.
 
 ```pint
-{{#include ../../../../examples/std/src/entry2.pnt:solution}}
+{{#include ../../../../examples/ch_6_4_b/src/contract.pnt:solution}}
 ```
 
 In each `use` statement, we choose a new name for `Data`. That guarantees that no conflicts arise.
@@ -62,7 +62,7 @@ up a lot of vertical space in our files. For example, these two `use` statements
 previous example bring two items into scope:
 
 ```pint
-{{#include ../../../../examples/std/src/entry2.pnt:imports}}
+{{#include ../../../../examples/ch_6_4_b/src/contract.pnt:imports}}
 ```
 
 Instead, we can use nested paths to bring the same items into scope in one line. We do this by
@@ -70,7 +70,7 @@ specifying the common part of the path, followed by two colons, and then curly b
 list of the parts of the paths that differ, as shown below.
 
 ```pint
-{{#include ../../../../examples/std/src/entry3.pnt:imports_short}}
+{{#include ../../../../examples/ch_6_4_c/src/contract.pnt:imports_short}}
 ```
 
 In bigger programs, bringing many items into scope from the same module using nested paths can
@@ -81,7 +81,7 @@ that share a subpath. For example, the code snippet below shows two `use` statem
 brings `data::contract_lib` into scope and one that brings `data::contract_lib::Data` into scope.
 
 ```pint
-{{#include ../../../../examples/std/src/entry4.pnt:imports_share}}
+{{#include ../../../../examples/ch_6_4_d/src/contract.pnt:imports_share}}
 ```
 
 The common part of these two paths is `data::contract_lib`, and that’s the complete first path. To
@@ -89,7 +89,7 @@ merge these two paths into one `use` statement, we can use `self` in the nested 
 below.
 
 ```pint
-{{#include ../../../../examples/std/src/entry5.pnt:imports_self}}
+{{#include ../../../../examples/ch_6_4_e/src/contract.pnt:imports_self}}
 ```
 
 This line brings `data::contract_lib` and `data::contract_lib::Data` into scope.

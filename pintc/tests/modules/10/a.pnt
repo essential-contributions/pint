@@ -1,11 +1,7 @@
-var F = 1;
+const F = 1;
 
 enum F = A | B;
 
 type F = string;
 
-var F = 4;
-
-state F = __foo();
-
-interface F { storage { } }
+const F = 4;

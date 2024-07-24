@@ -2,8 +2,6 @@ enum Experience = Real | Unreal;
 
 type Experience = bool;
 
-solve satisfy;
-
 // parse_failure <<<
 // symbol `Experience` has already been declared
 // @5..15: previous declaration of the symbol `Experience` here

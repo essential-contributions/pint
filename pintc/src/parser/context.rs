@@ -1,13 +1,13 @@
 use crate::{
-    error::{CompileError, Error, Handler, ParseError},
-    expr::{Expr, Immediate, TupleAccess},
+    error::{Error, Handler, ParseError},
+    expr::{BinaryOp, Expr, Immediate, TupleAccess},
     macros::{MacroCall, MacroDecl},
     parser::{Ident, NextModPath, UsePath, UseTree},
     predicate::{
-        CallKey, ExprKey, Interface, InterfaceDecl, Predicate, PredicateInstance, Program,
-        StorageVar, Var,
+        CallKey, ConstraintDecl, Contract, ExprKey, Interface, InterfaceDecl, PredKey, Predicate,
+        PredicateInstance, StorageVar, Var,
     },
-    span::{self, Span, Spanned},
+    span::{self, Span},
     types::{Path, PrimitiveKind, Type},
 };
 use std::collections::BTreeMap;
@@ -16,11 +16,11 @@ pub struct ParserContext<'a> {
     pub(crate) mod_path: &'a [String],
     pub(crate) mod_prefix: &'a str,
     pub(crate) local_scope: Option<&'a str>,
-    pub(crate) program: &'a mut Program,
-    pub(crate) current_pred: &'a mut String,
+    pub(crate) contract: &'a mut Contract,
+    pub(crate) current_pred: PredKey,
     pub(crate) macros: &'a mut Vec<MacroDecl>,
     pub(crate) macro_calls:
-        &'a mut BTreeMap<String, slotmap::SecondaryMap<CallKey, (ExprKey, MacroCall)>>,
+        &'a mut BTreeMap<PredKey, slotmap::SecondaryMap<CallKey, (ExprKey, MacroCall)>>,
     pub(crate) span_from: &'a dyn Fn(usize, usize) -> Span,
     pub(crate) use_paths: &'a mut Vec<UsePath>,
     pub(crate) next_paths: &'a mut Vec<NextModPath>,
@@ -48,65 +48,7 @@ impl<'a> ParserContext<'a> {
     /// Returns a mutable reference to the Pred named `self.current_pred`. Panics if the Pred cannot be
     /// found, indicating a bug.
     pub fn current_pred(&mut self) -> &mut Predicate {
-        self.program.preds.get_mut(self.current_pred).unwrap()
-    }
-
-    /// Given an identifier and an type, produce a `StorageVar`. `l` and `r` are the code locations
-    /// before and after the storage var declaration
-    pub fn parse_storage_var(
-        &self,
-        handler: &Handler,
-        name: Ident,
-        ty: Type,
-        (l, r): (usize, usize),
-    ) -> StorageVar {
-        let span = (self.span_from)(l, r);
-        if ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() || ty.is_array() {
-            StorageVar { name, ty, span }
-        } else if let Type::Map {
-            ref ty_from,
-            ref ty_to,
-            ..
-        } = ty
-        {
-            if (ty_from.is_bool() || ty_from.is_int() || ty_from.is_b256())
-                && (ty_to.is_bool()
-                    || ty_to.is_int()
-                    || ty_to.is_b256()
-                    || ty_to.is_map()
-                    || ty_to.is_tuple()
-                    || ty_to.is_array())
-            {
-                StorageVar { name, ty, span }
-            } else {
-                // TODO: allow arbitrary types in storage maps
-                handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "currently in storage maps, keys must be int, bool, or b256 /
-                              and values must be int and bool",
-                        span: span::empty_span(),
-                    },
-                });
-                StorageVar {
-                    name,
-                    ty: Type::Error(ty.span().clone()),
-                    span,
-                }
-            }
-        } else {
-            // TODO: allow arbitrary types in storage blocks
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "only ints, bools, and maps are currently allowed in a storage block",
-                    span: span::empty_span(),
-                },
-            });
-            StorageVar {
-                name,
-                ty: Type::Error(ty.span().clone()),
-                span,
-            }
-        }
+        self.contract.preds.get_mut(self.current_pred).unwrap()
     }
 
     /// Given a list of storage variables, check that there are no duplicate names and return the
@@ -143,7 +85,7 @@ impl<'a> ParserContext<'a> {
         (l, r): (usize, usize),
     ) {
         let span = (self.span_from)(l, r);
-        if let Some((_, prev_span)) = &self.current_pred().storage {
+        if let Some((_, prev_span)) = &self.contract.storage {
             // Multiple `storage` blocks are not allowed
             handler.emit_err(Error::Parse {
                 error: ParseError::TooManyStorageBlocks {
@@ -157,7 +99,7 @@ impl<'a> ParserContext<'a> {
                 error: ParseError::StorageDirectiveMustBeTopLevel { span },
             });
         } else {
-            self.current_pred().storage = Some((storage_vars, span));
+            self.contract.storage = Some((storage_vars, span));
         }
     }
 
@@ -340,8 +282,57 @@ impl<'a> ParserContext<'a> {
                     if let Some(expr_key) = init {
                         self.current_pred().var_inits.insert(var_key, expr_key);
                         let span = (self.span_from)(l, r);
-                        self.current_pred()
-                            .insert_eq_or_ineq_constraint(var_key, expr_key, span);
+                        let var_span = name.0.span;
+
+                        let var_expr_key = self.contract.exprs.insert(
+                            Expr::PathByKey(var_key, var_span.clone()),
+                            Type::Unknown(var_span.clone()),
+                        );
+
+                        if let Some(Expr::Range { lb, ub, .. }) =
+                            expr_key.try_get(self.contract).cloned()
+                        {
+                            let geq_expr_key = self.contract.exprs.insert(
+                                Expr::BinaryOp {
+                                    op: BinaryOp::GreaterThanOrEqual,
+                                    lhs: var_expr_key,
+                                    rhs: lb,
+                                    span: span.clone(),
+                                },
+                                Type::Unknown(span.clone()),
+                            );
+                            self.current_pred().constraints.push(ConstraintDecl {
+                                expr: geq_expr_key,
+                                span: span.clone(),
+                            });
+                            let geq_expr_key = self.contract.exprs.insert(
+                                Expr::BinaryOp {
+                                    op: BinaryOp::LessThanOrEqual,
+                                    lhs: var_expr_key,
+                                    rhs: ub,
+                                    span: span.clone(),
+                                },
+                                Type::Unknown(span.clone()),
+                            );
+                            self.current_pred().constraints.push(ConstraintDecl {
+                                expr: geq_expr_key,
+                                span,
+                            });
+                        } else {
+                            let eq_expr_key = self.contract.exprs.insert(
+                                Expr::BinaryOp {
+                                    op: BinaryOp::Equal,
+                                    lhs: var_expr_key,
+                                    rhs: expr_key,
+                                    span: span.clone(),
+                                },
+                                Type::Unknown(span.clone()),
+                            );
+                            self.current_pred().constraints.push(ConstraintDecl {
+                                expr: eq_expr_key,
+                                span,
+                            });
+                        }
                     }
                 });
         }
@@ -650,7 +641,7 @@ impl<'a> ParserContext<'a> {
     /// Parses a tuple access expression with an identifier.
     ///
     /// Given an `ExprKey` and an `Ident`, insert a new `TupleFieldAccess` expression into
-    /// `current_pred().exprs`. This function also takes two integers `l` and `r`:
+    /// `contract.exprs`. This function also takes two integers `l` and `r`:
     /// - `l` is the source code location before the tuple access
     /// - `r` is the source code location after the tuple access
     pub fn parse_tuple_field_op_with_ident(
@@ -660,7 +651,7 @@ impl<'a> ParserContext<'a> {
         (l, r): (usize, usize),
     ) -> ExprKey {
         let span = (self.span_from)(l, r);
-        self.current_pred().exprs.insert(
+        self.contract.exprs.insert(
             Expr::TupleFieldAccess {
                 tuple,
                 field: TupleAccess::Name(name),
@@ -673,7 +664,7 @@ impl<'a> ParserContext<'a> {
     /// Parses a tuple access expression with an integer.
     ///
     /// Given an `ExprKey` and a string that represents an integer, insert a new `TupleFieldAccess`
-    /// expression into `current_pred().exprs`. This function also takes three integers `l`, `m`, and
+    /// expression into `contract.exprs`. This function also takes three integers `l`, `m`, and
     /// `r`:
     /// - `l` is the source code location before the tuple access
     /// - `m` is the source code location before the integer used to access the tuple
@@ -689,7 +680,7 @@ impl<'a> ParserContext<'a> {
         let index_span = (self.span_from)(m, r);
         let int_str = int_str.replace('_', "");
 
-        self.current_pred().exprs.insert(
+        self.contract.exprs.insert(
             Expr::TupleFieldAccess {
                 tuple,
                 field: int_str
@@ -715,7 +706,7 @@ impl<'a> ParserContext<'a> {
     /// real).
     ///
     /// Given an `ExprKey` and a string that represents a real, insert a new (nested)
-    /// `TupleFieldAccess` expression into `current_pred().exprs`. This function also takes three
+    /// `TupleFieldAccess` expression into `contract.exprs`. This function also takes three
     /// integers `l`, `m`, and `r`:
     /// - `l` is the source code location before the tuple access
     /// - `m` is the source code location before the real used to access the tuple
@@ -761,7 +752,7 @@ impl<'a> ParserContext<'a> {
                     });
 
                 let span = (self.span_from)(l, m + dot_index);
-                let lhs_access_key = self.current_pred().exprs.insert(
+                let lhs_access_key = self.contract.exprs.insert(
                     Expr::TupleFieldAccess {
                         tuple,
                         field: first_index,
@@ -771,7 +762,7 @@ impl<'a> ParserContext<'a> {
                 );
 
                 let span = (self.span_from)(l, r);
-                self.current_pred().exprs.insert(
+                self.contract.exprs.insert(
                     Expr::TupleFieldAccess {
                         tuple: lhs_access_key,
                         field: second_index,
@@ -790,7 +781,7 @@ impl<'a> ParserContext<'a> {
 
                 // Recover with a malformed tuple access
                 let span = (self.span_from)(l, r);
-                self.current_pred().exprs.insert(
+                self.contract.exprs.insert(
                     Expr::TupleFieldAccess {
                         tuple,
                         field: TupleAccess::Error,
@@ -919,7 +910,7 @@ impl<'a> ParserContext<'a> {
             };
 
             let span = (self.span_from)(l, r);
-            self.current_pred().exprs.insert(
+            self.contract.exprs.insert(
                 Expr::ExternalStorageAccess {
                     interface_instance,
                     name: name.to_string(),
@@ -938,7 +929,7 @@ impl<'a> ParserContext<'a> {
             } else {
                 Expr::StorageAccess(name.to_string(), span.clone())
             };
-            self.current_pred().exprs.insert(expr, Type::Unknown(span))
+            self.contract.exprs.insert(expr, Type::Unknown(span))
         }
     }
 }

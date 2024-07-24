@@ -1,47 +1,49 @@
-var a = 1_100_000;
-var b = 1000;
-var c = 1_2_3_4_5;
-var x = 1_100e3;
-var y = 1_100.500_123e0_000_00;
-var z = 1.2E5;
+predicate test {
+    var a = 1_100_000;
+    var b = 1000;
+    var c = 1_2_3_4_5;
+    var x = 1_100e3;
+    var y = 1_100.500_123e0_000_00;
+    var z = 1.2E5;
 
-constraint a / b > c;
-constraint x / y > z;
-
-solve satisfy;
+    constraint a / b > c;
+    constraint x / y > z;
+}
 
 // parsed <<<
-// var ::a;
-// var ::b;
-// var ::c;
-// var ::x;
-// var ::y;
-// var ::z;
-// constraint (::a == 1100000);
-// constraint (::b == 1000);
-// constraint (::c == 12345);
-// constraint (::x == 1.1e6);
-// constraint (::y == 1.100500123e3);
-// constraint (::z == 1.2e5);
-// constraint ((::a / ::b) > ::c);
-// constraint ((::x / ::y) > ::z);
-// solve satisfy;
+// predicate ::test {
+//     var ::a;
+//     var ::b;
+//     var ::c;
+//     var ::x;
+//     var ::y;
+//     var ::z;
+//     constraint (::a == 1100000);
+//     constraint (::b == 1000);
+//     constraint (::c == 12345);
+//     constraint (::x == 1.1e6);
+//     constraint (::y == 1.100500123e3);
+//     constraint (::z == 1.2e5);
+//     constraint ((::a / ::b) > ::c);
+//     constraint ((::x / ::y) > ::z);
+// }
 // >>>
 
 // flattened <<<
-// var ::a: int;
-// var ::b: int;
-// var ::c: int;
-// var ::x: real;
-// var ::y: real;
-// var ::z: real;
-// constraint (::a == 1100000);
-// constraint (::b == 1000);
-// constraint (::c == 12345);
-// constraint (::x == 1.1e6);
-// constraint (::y == 1.100500123e3);
-// constraint (::z == 1.2e5);
-// constraint ((::a / ::b) > ::c);
-// constraint ((::x / ::y) > ::z);
-// solve satisfy;
+// predicate ::test {
+//     var ::a: int;
+//     var ::b: int;
+//     var ::c: int;
+//     var ::x: real;
+//     var ::y: real;
+//     var ::z: real;
+//     constraint (::a == 1100000);
+//     constraint (::b == 1000);
+//     constraint (::c == 12345);
+//     constraint (::x == 1.1e6);
+//     constraint (::y == 1.100500123e3);
+//     constraint (::z == 1.2e5);
+//     constraint ((::a / ::b) > ::c);
+//     constraint ((::x / ::y) > ::z);
+// }
 // >>>

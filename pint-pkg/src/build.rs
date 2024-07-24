@@ -7,8 +7,8 @@ use crate::{
 use essential_types::{
     contract::Contract, predicate::Predicate as CompiledPredicate, ContentAddress,
 };
-use pint_abi_types::ProgramABI;
-use pintc::{asm_gen::compile_program, predicate::ProgramKind};
+use pint_abi_types::ContractABI;
+use pintc::asm_gen::compile_contract;
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -46,7 +46,6 @@ pub enum BuiltPkg {
 /// A successfully built contract package.
 #[derive(Debug)]
 pub struct BuiltContract {
-    pub kind: ProgramKind,
     /// All built predicates.
     pub predicate_metadata: Vec<PredicateMetadata>,
     /// The salt of this contract.
@@ -56,9 +55,9 @@ pub struct BuiltContract {
     /// The entry-point into the temp library submodules used to provide the CAs.
     pub lib_entry_point: PathBuf,
     /// The ABI for the contract.
-    pub abi: ProgramABI,
-    /// The flattened program.
-    pub flattened: pintc::predicate::Program,
+    pub abi: ContractABI,
+    /// The flattened contract.
+    pub flattened: pintc::predicate::Contract,
 }
 
 /// An predicate built as a part of a contract.
@@ -83,8 +82,8 @@ pub struct PredicateMetadata {
 /// A successfully built library package.
 #[derive(Debug)]
 pub struct BuiltLibrary {
-    /// The compiled program.
-    pub program: pintc::predicate::Program,
+    /// The compiled contract.
+    pub contract: pintc::predicate::Contract,
 }
 
 /// An error occurred while building according to a compilation plan.
@@ -109,8 +108,6 @@ pub struct BuildPkgError {
 pub enum BuildPkgErrorKind {
     #[error("`pintc` encountered an error: {0}")]
     Pintc(#[from] PintcError),
-    #[error("expected library to be stateless, but type-checking shows the library is stateful")]
-    StatefulLibrary(pintc::predicate::Program),
     #[error("failed to create lib providing contract and predicate CAs for {0:?}: {1}")]
     ContractLibrary(String, std::io::Error),
 }
@@ -306,36 +303,33 @@ fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg,
     };
 
     // Type check the package.
-    let Ok(program) = handler.scope(|handler| parsed.type_check(handler)) else {
+    let Ok(contract) = handler.scope(|handler| parsed.type_check(handler)) else {
         let kind = BuildPkgErrorKind::from(PintcError::TypeCheck);
         return Err(BuildPkgError { handler, kind });
     };
 
     let built_pkg = match manifest.pkg.kind {
         manifest::PackageKind::Library => {
-            // Check that the Library is not stateful.
-            if let ProgramKind::Stateful = program.kind {
-                let kind = BuildPkgErrorKind::StatefulLibrary(program);
-                return Err(BuildPkgError { handler, kind });
-            }
-            let lib = BuiltLibrary { program };
+            // TODO: Add checks here to make sure the library is sane.. E.g., the library is
+            // stateless, etc.
+            let lib = BuiltLibrary { contract };
             BuiltPkg::Library(lib)
         }
         manifest::PackageKind::Contract => {
-            // Flatten the program to flat pint (the IR).
-            let Ok(flattened) = handler.scope(|handler| program.flatten(handler)) else {
+            // Flatten the contract to flat pint (the IR).
+            let Ok(flattened) = handler.scope(|handler| contract.flatten(handler)) else {
                 let kind = BuildPkgErrorKind::from(PintcError::Flatten);
                 return Err(BuildPkgError { handler, kind });
             };
 
-            // Produce the ABI for the flattened program.
+            // Produce the ABI for the flattened contract.
             let Ok(abi) = flattened.abi(&handler) else {
                 let kind = BuildPkgErrorKind::from(PintcError::ABIGen);
                 return Err(BuildPkgError { handler, kind });
             };
 
             // Generate the assembly and the predicates.
-            let Ok(contract) = handler.scope(|h| compile_program(h, &flattened)) else {
+            let Ok(contract) = handler.scope(|h| compile_contract(h, &flattened)) else {
                 let kind = BuildPkgErrorKind::from(PintcError::AsmGen);
                 return Err(BuildPkgError { handler, kind });
             };
@@ -381,9 +375,7 @@ fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg,
                 )
                 .unzip();
 
-            let kind = contract.kind;
             let contract = BuiltContract {
-                kind,
                 ca,
                 predicate_metadata,
                 contract: Contract {

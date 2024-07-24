@@ -1,9 +1,0 @@
-// ANCHOR: solution
-// ANCHOR: imports 
-use ::data::contract_lib::Data as ContractData;
-use ::data::predicate_lib::Data as PredicateData;
-// ANCHOR_END: imports 
-
-var contract_data: ContractData;
-var predicate_data: PredicateData;
-// ANCHOR_END: solution

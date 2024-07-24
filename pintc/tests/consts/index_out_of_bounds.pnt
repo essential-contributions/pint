@@ -1,13 +1,15 @@
 const a: int[3] = [11, 22, 33];
 
-constraint a[9] != 0;
-
-solve satisfy;
+predicate test {
+    constraint a[9] != 0;
+}
 
 // parsed <<<
 // const ::a: int[3] = [11, 22, 33];
-// constraint (::a[9] != 0);
-// solve satisfy;
+//
+// predicate ::test {
+//     constraint (::a[9] != 0);
+// }
 // >>>
 
 // typecheck_failure <<<

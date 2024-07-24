@@ -1,0 +1,22 @@
+macro @a($x) {
+    var z = @b($x);
+}
+
+macro @b($x) {
+    var z = @c($x);
+}
+
+macro @c($x) {
+    var z = @a($x);
+}
+
+predicate test {
+    @a(11);
+}
+
+// parse_failure <<<
+// macro call is recursive
+// @103..109: macro `::@a` is recursively called
+// @6..12: macro `::@a` declared here
+// a macro called recursively with the same number of arguments will cause a non-terminating loop during expansion
+// >>>

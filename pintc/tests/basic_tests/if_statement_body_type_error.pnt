@@ -1,74 +1,75 @@
-var z: bool;
-var x: int;
-var y: int;
-var xx: int;
-var yy: int;
+predicate test {
+    var z: bool;
+    var x: int;
+    var y: int;
+    var xx: int;
+    var yy: int;
 
-if true {
-    if false {
-    } else {
-        constraint z && !z && 1;
-    }
+    if true {
+        if false {
+        } else {
+            constraint z && !z && 1;
+        }
 
-    constraint yy != xx;
+        constraint yy != xx;
 
-    if z {
-        constraint x + 1.0;
-    } else {
-        constraint z;
-    }
-} else {
-    if z {
-        constraint yy + xx == yy * xx;
-        constraint z;
+        if z {
+            constraint x + 1.0;
+        } else {
+            constraint z;
+        }
     } else {
         if z {
-            constraint z && true;
-            constraint yy + { 1, 2.0 };
+            constraint yy + xx == yy * xx;
+            constraint z;
+        } else {
+            if z {
+                constraint z && true;
+                constraint yy + { 1, 2.0 };
+            }
         }
     }
 }
 
-solve satisfy;
-
 // parsed <<<
-// var ::z: bool;
-// var ::x: int;
-// var ::y: int;
-// var ::xx: int;
-// var ::yy: int;
-// if true {
-//     if false {
-//     } else {
-//         constraint ((::z && !::z) && 1)
-//     }
-//     constraint (::yy != ::xx)
-//     if ::z {
-//         constraint (::x + 1e0)
-//     } else {
-//         constraint ::z
-//     }
-// } else {
-//     if ::z {
-//         constraint ((::yy + ::xx) == (::yy * ::xx))
-//         constraint ::z
+// predicate ::test {
+//     var ::z: bool;
+//     var ::x: int;
+//     var ::y: int;
+//     var ::xx: int;
+//     var ::yy: int;
+//     if true {
+//         if false {
+//         } else {
+//             constraint ((::z && !::z) && 1)
+//         }
+//         constraint (::yy != ::xx)
+//         if ::z {
+//             constraint (::x + 1e0)
+//         } else {
+//             constraint ::z
+//         }
 //     } else {
 //         if ::z {
-//             constraint (::z && true)
-//             constraint (::yy + {1, 2e0})
+//             constraint ((::yy + ::xx) == (::yy * ::xx))
+//             constraint ::z
+//         } else {
+//             if ::z {
+//                 constraint (::z && true)
+//                 constraint (::yy + {1, 2e0})
+//             }
 //         }
 //     }
 // }
-// solve satisfy;
-// >>> 
+// >>>
 
 // typecheck_failure <<<
 // binary operator type error
-// @132..133: operator `&&` argument has unexpected type `int`
-// @121..133: expecting type `bool`
+// @185..186: operator `&&` argument has unexpected type `int`
+// @174..186: expecting type `bool`
 // binary operator type error
-// @202..205: operator `+` argument has unexpected type `real`
-// @198..199: expecting type `int`
+// @271..274: operator `+` argument has unexpected type `real`
+// @267..268: expecting type `int`
 // binary operator type error
-// @419..429: operator `+` argument has unexpected type `{int, real}`
-// >>> 
+// @532..542: operator `+` argument has unexpected type `{int, real}`
+// >>>

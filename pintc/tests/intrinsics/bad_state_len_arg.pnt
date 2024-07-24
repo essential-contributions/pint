@@ -1,35 +1,36 @@
-var x: int;
-var y = __state_len(x);
-var z = __state_len(5);
-
-solve satisfy;
+predicate test {
+    var x: int;
+    var y = __state_len(x);
+    var z = __state_len(5);
+}
 
 // parsed <<<
-// var ::x: int;
-// var ::y;
-// var ::z;
-// constraint (::y == __state_len(::x));
-// constraint (::z == __state_len(5));
-// solve satisfy;
+// predicate ::test {
+//     var ::x: int;
+//     var ::y;
+//     var ::z;
+//     constraint (::y == __state_len(::x));
+//     constraint (::z == __state_len(5));
+// }
 // >>>
 
 // typecheck_failure <<<
 // intrinsic argument must be a state variable
-// @20..34: intrinsic argument must be a state variable
+// @45..59: intrinsic argument must be a state variable
 // intrinsic argument must be a state variable
-// @44..58: intrinsic argument must be a state variable
+// @73..87: intrinsic argument must be a state variable
 // intrinsic argument must be a state variable
-// @20..34: intrinsic argument must be a state variable
+// @45..59: intrinsic argument must be a state variable
 // intrinsic argument must be a state variable
-// @44..58: intrinsic argument must be a state variable
+// @73..87: intrinsic argument must be a state variable
 // unable to determine expression type
-// @16..17: type of this expression is ambiguous
+// @41..42: type of this expression is ambiguous
 // unable to determine expression type
-// @40..41: type of this expression is ambiguous
+// @69..70: type of this expression is ambiguous
 // constraint expression type error
-// @12..34: constraint expression has unknown type
-// @12..34: expecting type `bool`
+// @37..59: constraint expression has unknown type
+// @37..59: expecting type `bool`
 // constraint expression type error
-// @36..58: constraint expression has unknown type
-// @36..58: expecting type `bool`
+// @65..87: constraint expression has unknown type
+// @65..87: expecting type `bool`
 // >>>

@@ -1,23 +1,16 @@
-// ANCHOR: reals 
-var x = 1.05;
-var y = 42e8;
-var z = 2.5e-4;
-var w: real = 1.3E5;
-var u: real = 0.34;
-// ANCHOR_END: reals
-
+predicate test {
 // ANCHOR: math_ops 
 // addition
 var sum = 1 + 2 + 3;
 
 // subtraction
-var difference = 15.3 - 1e-1;
+var difference = 15 - 1;
 
 // multiplication
 var product = 42 * 42;
 
 // division
-var quotient = 3.3/2.0;
+var quotient = 3 / 2;
 var truncated = -5 / 3; // Results is -1
 
 // remainder
@@ -35,22 +28,22 @@ var addr2: b256 = 0b111111111111111111111111111111111111111111111111111111111111
 // ANCHOR_END: b256
 
 // ANCHOR: simple_tuple 
-var tup_1: { int, real, bool } = { 42, 4.2, true };
+var tup_1: { int, int, bool } = { 42, 4, true };
 // ANCHOR_END: simple_tuple
 
 // ANCHOR: tuple_access 
-var tup_2: { int, real, bool } = { 42, 4.2, true };
+var tup_2: { int, int, bool } = { 42, 4, true };
 var tup_2_first = tup_2.0;
 var tup_2_second = tup_2.1;
 var tup_2_third = tup_2.2;
 // ANCHOR_END: tuple_access
 
 // ANCHOR: simple_tuple_named
-var tup_3: { x: int, real, y: bool } = { 42, 4.2, true };
+var tup_3: { x: int, int, y: bool } = { 42, 4, true };
 // ANCHOR_END: simple_tuple_named
 
 // ANCHOR: tuple_access_named 
-var tup_4: { x: int, real, y: bool } = { 42, 4.2, true };
+var tup_4: { x: int, int, y: bool } = { 42, 4, true };
 var tup_4_first = tup_4.0;
 var tup_4_first_named = tup_4.x; // same as `tup_4.0`
 var tup_4_second = tup_4.1;
@@ -72,5 +65,4 @@ var c: int[5] = [1, 2, 3, 4, 5];
 var c_first = c[0];
 var c_second = c[1];
 // ANCHOR_END: array_access
-
-solve satisfy;
+}

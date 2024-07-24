@@ -1,51 +1,53 @@
-// Interest
-var I: real = 0.1;
+predicate test {
+    // Interest
+    var I: real = 0.1;
 
-// Withdrawal amount for each interest period
-var R: real = 150.0;
+    // Withdrawal amount for each interest period
+    var R: real = 150.0;
 
-// Balance at time 0
-var P: real;
+    // Balance at time 0
+    var P: real;
 
-// Remaining balances
-var mortgage: real[25];
+    // Remaining balances
+    var mortgage: real[25];
 
-constraint forall i in 0..24 {
-   mortgage[i] >= 0.0
-};
+    constraint forall i in 0..24 {
+       mortgage[i] >= 0.0
+    };
 
-// Initial balance
-constraint mortgage[0] == P + (P  * I) - R;
+    // Initial balance
+    constraint mortgage[0] == P + (P  * I) - R;
 
-constraint forall i in 1..24 {
-    // Add interst and deduct withdrawal amount
-    mortgage[i] == mortgage[i-1] + (mortgage[i-1]  * I) - R
-};
-
-solve minimize P;
+    constraint forall i in 1..24 {
+        // Add interst and deduct withdrawal amount
+        mortgage[i] == mortgage[i-1] + (mortgage[i-1]  * I) - R
+    };
+}
 
 // parsed <<<
-// var ::I: real;
-// var ::R: real;
-// var ::P: real;
-// var ::mortgage: real[25];
-// constraint (::I == 1e-1);
-// constraint (::R == 1.5e2);
-// constraint forall i in 0..24, { (::mortgage[::i] >= 0e0) };
-// constraint (::mortgage[0] == ((::P + (::P * ::I)) - ::R));
-// constraint forall i in 1..24, { (::mortgage[::i] == ((::mortgage[(::i - 1)] + (::mortgage[(::i - 1)] * ::I)) - ::R)) };
-// solve minimize ::P;
+// predicate ::test {
+//     var ::I: real;
+//     var ::R: real;
+//     var ::P: real;
+//     var ::mortgage: real[25];
+//     constraint (::I == 1e-1);
+//     constraint (::R == 1.5e2);
+//     constraint forall i in 0..24, { (::mortgage[::i] >= 0e0) };
+//     constraint (::mortgage[0] == ((::P + (::P * ::I)) - ::R));
+//     constraint forall i in 1..24, { (::mortgage[::i] == ((::mortgage[(::i - 1)] + (::mortgage[(::i - 1)] * ::I)) - ::R)) };
+// }
 // >>>
 
 // flattened <<<
-// var ::I: real;
-// var ::R: real;
-// var ::P: real;
-// var ::mortgage: real[25];
-// constraint (::I == 1e-1);
-// constraint (::R == 1.5e2);
-// constraint (((((((((((((((((((((((((1 && (::mortgage[0] >= 0e0)) && (::mortgage[1] >= 0e0)) && (::mortgage[2] >= 0e0)) && (::mortgage[3] >= 0e0)) && (::mortgage[4] >= 0e0)) && (::mortgage[5] >= 0e0)) && (::mortgage[6] >= 0e0)) && (::mortgage[7] >= 0e0)) && (::mortgage[8] >= 0e0)) && (::mortgage[9] >= 0e0)) && (::mortgage[10] >= 0e0)) && (::mortgage[11] >= 0e0)) && (::mortgage[12] >= 0e0)) && (::mortgage[13] >= 0e0)) && (::mortgage[14] >= 0e0)) && (::mortgage[15] >= 0e0)) && (::mortgage[16] >= 0e0)) && (::mortgage[17] >= 0e0)) && (::mortgage[18] >= 0e0)) && (::mortgage[19] >= 0e0)) && (::mortgage[20] >= 0e0)) && (::mortgage[21] >= 0e0)) && (::mortgage[22] >= 0e0)) && (::mortgage[23] >= 0e0)) && (::mortgage[24] >= 0e0));
-// constraint (::mortgage[0] == ((::P + (::P * ::I)) - ::R));
-// constraint ((((((((((((((((((((((((1 && (::mortgage[1] == ((::mortgage[(1 - 1)] + (::mortgage[(1 - 1)] * ::I)) - ::R))) && (::mortgage[2] == ((::mortgage[(2 - 1)] + (::mortgage[(2 - 1)] * ::I)) - ::R))) && (::mortgage[3] == ((::mortgage[(3 - 1)] + (::mortgage[(3 - 1)] * ::I)) - ::R))) && (::mortgage[4] == ((::mortgage[(4 - 1)] + (::mortgage[(4 - 1)] * ::I)) - ::R))) && (::mortgage[5] == ((::mortgage[(5 - 1)] + (::mortgage[(5 - 1)] * ::I)) - ::R))) && (::mortgage[6] == ((::mortgage[(6 - 1)] + (::mortgage[(6 - 1)] * ::I)) - ::R))) && (::mortgage[7] == ((::mortgage[(7 - 1)] + (::mortgage[(7 - 1)] * ::I)) - ::R))) && (::mortgage[8] == ((::mortgage[(8 - 1)] + (::mortgage[(8 - 1)] * ::I)) - ::R))) && (::mortgage[9] == ((::mortgage[(9 - 1)] + (::mortgage[(9 - 1)] * ::I)) - ::R))) && (::mortgage[10] == ((::mortgage[(10 - 1)] + (::mortgage[(10 - 1)] * ::I)) - ::R))) && (::mortgage[11] == ((::mortgage[(11 - 1)] + (::mortgage[(11 - 1)] * ::I)) - ::R))) && (::mortgage[12] == ((::mortgage[(12 - 1)] + (::mortgage[(12 - 1)] * ::I)) - ::R))) && (::mortgage[13] == ((::mortgage[(13 - 1)] + (::mortgage[(13 - 1)] * ::I)) - ::R))) && (::mortgage[14] == ((::mortgage[(14 - 1)] + (::mortgage[(14 - 1)] * ::I)) - ::R))) && (::mortgage[15] == ((::mortgage[(15 - 1)] + (::mortgage[(15 - 1)] * ::I)) - ::R))) && (::mortgage[16] == ((::mortgage[(16 - 1)] + (::mortgage[(16 - 1)] * ::I)) - ::R))) && (::mortgage[17] == ((::mortgage[(17 - 1)] + (::mortgage[(17 - 1)] * ::I)) - ::R))) && (::mortgage[18] == ((::mortgage[(18 - 1)] + (::mortgage[(18 - 1)] * ::I)) - ::R))) && (::mortgage[19] == ((::mortgage[(19 - 1)] + (::mortgage[(19 - 1)] * ::I)) - ::R))) && (::mortgage[20] == ((::mortgage[(20 - 1)] + (::mortgage[(20 - 1)] * ::I)) - ::R))) && (::mortgage[21] == ((::mortgage[(21 - 1)] + (::mortgage[(21 - 1)] * ::I)) - ::R))) && (::mortgage[22] == ((::mortgage[(22 - 1)] + (::mortgage[(22 - 1)] * ::I)) - ::R))) && (::mortgage[23] == ((::mortgage[(23 - 1)] + (::mortgage[(23 - 1)] * ::I)) - ::R))) && (::mortgage[24] == ((::mortgage[(24 - 1)] + (::mortgage[(24 - 1)] * ::I)) - ::R)));
-// solve minimize ::P;
+// predicate ::test {
+//     var ::I: real;
+//     var ::R: real;
+//     var ::P: real;
+//     var ::mortgage: real[25];
+//     constraint (::I == 1e-1);
+//     constraint (::R == 1.5e2);
+//     constraint (((((((((((((((((((((((((true && (::mortgage[0] >= 0e0)) && (::mortgage[1] >= 0e0)) && (::mortgage[2] >= 0e0)) && (::mortgage[3] >= 0e0)) && (::mortgage[4] >= 0e0)) && (::mortgage[5] >= 0e0)) && (::mortgage[6] >= 0e0)) && (::mortgage[7] >= 0e0)) && (::mortgage[8] >= 0e0)) && (::mortgage[9] >= 0e0)) && (::mortgage[10] >= 0e0)) && (::mortgage[11] >= 0e0)) && (::mortgage[12] >= 0e0)) && (::mortgage[13] >= 0e0)) && (::mortgage[14] >= 0e0)) && (::mortgage[15] >= 0e0)) && (::mortgage[16] >= 0e0)) && (::mortgage[17] >= 0e0)) && (::mortgage[18] >= 0e0)) && (::mortgage[19] >= 0e0)) && (::mortgage[20] >= 0e0)) && (::mortgage[21] >= 0e0)) && (::mortgage[22] >= 0e0)) && (::mortgage[23] >= 0e0)) && (::mortgage[24] >= 0e0));
+//     constraint (::mortgage[0] == ((::P + (::P * ::I)) - ::R));
+//     constraint ((((((((((((((((((((((((true && (::mortgage[1] == ((::mortgage[(1 - 1)] + (::mortgage[(1 - 1)] * ::I)) - ::R))) && (::mortgage[2] == ((::mortgage[(2 - 1)] + (::mortgage[(2 - 1)] * ::I)) - ::R))) && (::mortgage[3] == ((::mortgage[(3 - 1)] + (::mortgage[(3 - 1)] * ::I)) - ::R))) && (::mortgage[4] == ((::mortgage[(4 - 1)] + (::mortgage[(4 - 1)] * ::I)) - ::R))) && (::mortgage[5] == ((::mortgage[(5 - 1)] + (::mortgage[(5 - 1)] * ::I)) - ::R))) && (::mortgage[6] == ((::mortgage[(6 - 1)] + (::mortgage[(6 - 1)] * ::I)) - ::R))) && (::mortgage[7] == ((::mortgage[(7 - 1)] + (::mortgage[(7 - 1)] * ::I)) - ::R))) && (::mortgage[8] == ((::mortgage[(8 - 1)] + (::mortgage[(8 - 1)] * ::I)) - ::R))) && (::mortgage[9] == ((::mortgage[(9 - 1)] + (::mortgage[(9 - 1)] * ::I)) - ::R))) && (::mortgage[10] == ((::mortgage[(10 - 1)] + (::mortgage[(10 - 1)] * ::I)) - ::R))) && (::mortgage[11] == ((::mortgage[(11 - 1)] + (::mortgage[(11 - 1)] * ::I)) - ::R))) && (::mortgage[12] == ((::mortgage[(12 - 1)] + (::mortgage[(12 - 1)] * ::I)) - ::R))) && (::mortgage[13] == ((::mortgage[(13 - 1)] + (::mortgage[(13 - 1)] * ::I)) - ::R))) && (::mortgage[14] == ((::mortgage[(14 - 1)] + (::mortgage[(14 - 1)] * ::I)) - ::R))) && (::mortgage[15] == ((::mortgage[(15 - 1)] + (::mortgage[(15 - 1)] * ::I)) - ::R))) && (::mortgage[16] == ((::mortgage[(16 - 1)] + (::mortgage[(16 - 1)] * ::I)) - ::R))) && (::mortgage[17] == ((::mortgage[(17 - 1)] + (::mortgage[(17 - 1)] * ::I)) - ::R))) && (::mortgage[18] == ((::mortgage[(18 - 1)] + (::mortgage[(18 - 1)] * ::I)) - ::R))) && (::mortgage[19] == ((::mortgage[(19 - 1)] + (::mortgage[(19 - 1)] * ::I)) - ::R))) && (::mortgage[20] == ((::mortgage[(20 - 1)] + (::mortgage[(20 - 1)] * ::I)) - ::R))) && (::mortgage[21] == ((::mortgage[(21 - 1)] + (::mortgage[(21 - 1)] * ::I)) - ::R))) && (::mortgage[22] == ((::mortgage[(22 - 1)] + (::mortgage[(22 - 1)] * ::I)) - ::R))) && (::mortgage[23] == ((::mortgage[(23 - 1)] + (::mortgage[(23 - 1)] * ::I)) - ::R))) && (::mortgage[24] == ((::mortgage[(24 - 1)] + (::mortgage[(24 - 1)] * ::I)) - ::R)));
+// }
 // >>>

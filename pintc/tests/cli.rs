@@ -53,8 +53,7 @@ fn err() {
     );
 
     // Missing output file after `-o`
-    let mut input_file = tempfile::NamedTempFile::new().unwrap();
-    write!(input_file.as_file_mut(), "solve satisfy;").unwrap();
+    let input_file = tempfile::NamedTempFile::new().unwrap();
 
     let output = pintc_command(&format!("{} -o", input_file.path().to_str().unwrap(),));
     check(
@@ -70,7 +69,7 @@ fn err() {
 #[test]
 fn compile_errors() {
     let mut input_file = tempfile::NamedTempFile::new().unwrap();
-    let code = r#"var t: {} = {}; var a = a[]; solve satisfy;"#;
+    let code = r#"predicate test { var t: {} = {}; var a = a[]; }"#;
     write!(input_file.as_file_mut(), "{code}").unwrap();
 
     let output = pintc_command(input_file.path().to_str().unwrap());
@@ -85,25 +84,25 @@ fn compile_errors() {
             .replace(input_file.path().to_str().unwrap(), "filepath"),
         expect_test::expect![[r#"
             Error: empty tuple types are not allowed
-               ╭─[filepath:1:8]
-               │
-             1 │ var t: {} = {}; var a = a[]; solve satisfy;
-               │        ─┬  
-               │         ╰── empty tuple type found
-            ───╯
-            Error: empty tuple expressions are not allowed
-               ╭─[filepath:1:13]
-               │
-             1 │ var t: {} = {}; var a = a[]; solve satisfy;
-               │             ─┬  
-               │              ╰── empty tuple expression found
-            ───╯
-            Error: missing array or map index
                ╭─[filepath:1:25]
                │
-             1 │ var t: {} = {}; var a = a[]; solve satisfy;
-               │                         ─┬─  
-               │                          ╰─── missing array or map element index
+             1 │ predicate test { var t: {} = {}; var a = a[]; }
+               │                         ─┬  
+               │                          ╰── empty tuple type found
+            ───╯
+            Error: empty tuple expressions are not allowed
+               ╭─[filepath:1:30]
+               │
+             1 │ predicate test { var t: {} = {}; var a = a[]; }
+               │                              ─┬  
+               │                               ╰── empty tuple expression found
+            ───╯
+            Error: missing array or map index
+               ╭─[filepath:1:42]
+               │
+             1 │ predicate test { var t: {} = {}; var a = a[]; }
+               │                                          ─┬─  
+               │                                           ╰─── missing array or map element index
             ───╯
             Error: could not compile `filepath` due to 3 previous errors
         "#]],
@@ -115,7 +114,7 @@ fn compile_errors() {
 #[test]
 fn default_output() {
     let mut input_file = tempfile::NamedTempFile::new().unwrap();
-    write!(input_file.as_file_mut(), "solve satisfy;").unwrap();
+    write!(input_file.as_file_mut(), "predicate test {{}}").unwrap();
 
     let output = pintc_command(input_file.path().to_str().unwrap());
 
@@ -129,7 +128,7 @@ fn default_output() {
 #[test]
 fn explicit_output() {
     let mut input_file = tempfile::NamedTempFile::new().unwrap();
-    write!(input_file.as_file_mut(), "solve satisfy;").unwrap();
+    write!(input_file.as_file_mut(), "predicate test {{}}").unwrap();
 
     let temp_dir = tempfile::TempDir::new().unwrap();
     let mut output_file = PathBuf::from(temp_dir.path());
@@ -145,28 +144,4 @@ fn explicit_output() {
 
     check(&output.stderr, expect_test::expect![""]);
     check(&output.stdout, expect_test::expect![""]);
-}
-
-#[cfg(feature = "solver-scip")]
-#[test]
-fn solve() {
-    let mut input_file = tempfile::NamedTempFile::new().unwrap();
-    write!(input_file.as_file_mut(), "var x: int = 5; solve satisfy;").unwrap();
-
-    let output = pintc_command(&format!("{} --solve", input_file.path().to_str().unwrap(),));
-
-    // No output file generated since this is a --solve flow
-    assert!(!input_file.path().with_extension("json").exists());
-
-    println!("{}", output.stdout);
-    check(&output.stderr, expect_test::expect![""]);
-
-    // `check(..)` is not working well here for some reason, so I'm using `assert_eq` instead.
-    assert_eq!(
-        &output.stdout,
-        r#"   Problem is satisfiable
-    Solution:
-     ::x: 5
-"#
-    );
 }
