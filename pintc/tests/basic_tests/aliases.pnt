@@ -6,9 +6,13 @@ type MyArray = bool[5];
 type MyMap = (b256 => int);
 type MyB256 = b256;
 type MyNestedAlias = MyInt;
+type MyAliasedMap = (MyB256 => MyTuple);
+type MyComplexMap = (MyBool => MyMap);
 
 storage {
-    r: MyMap,
+    x: MyMap,
+    y: MyAliasedMap,
+    z: MyComplexMap,
 }
 
 predicate test {
@@ -17,8 +21,8 @@ predicate test {
    var o: MyBool;
    var p: MyTuple;
    var q: MyArray;
-   var s: MyB256;
-   var x: MyNestedAlias;
+   var r: MyB256;
+   var s: MyNestedAlias;
 }
 
 // parsed <<<
@@ -30,8 +34,12 @@ predicate test {
 // type ::MyMap = ( b256 => int );
 // type ::MyB256 = b256;
 // type ::MyNestedAlias = ::MyInt;
+// type ::MyAliasedMap = ( ::MyB256 => ::MyTuple );
+// type ::MyComplexMap = ( ::MyBool => ::MyMap );
 // storage {
-//     r: ::MyMap,
+//     x: ::MyMap,
+//     y: ::MyAliasedMap,
+//     z: ::MyComplexMap,
 // }
 //
 // predicate ::test {
@@ -40,8 +48,8 @@ predicate test {
 //     var ::o: ::MyBool;
 //     var ::p: ::MyTuple;
 //     var ::q: ::MyArray;
-//     var ::s: ::MyB256;
-//     var ::x: ::MyNestedAlias;
+//     var ::r: ::MyB256;
+//     var ::s: ::MyNestedAlias;
 // }
 // >>>
 
@@ -54,8 +62,12 @@ predicate test {
 // type ::MyMap = ( b256 => int );
 // type ::MyB256 = b256;
 // type ::MyNestedAlias = ::MyInt (int);
+// type ::MyAliasedMap = ( ::MyB256 (b256) => ::MyTuple ({int, int}) );
+// type ::MyComplexMap = ( ::MyBool (bool) => ::MyMap (( b256 => int )) );
 // storage {
-//     r: ( b256 => int ),
+//     x: ( b256 => int ),
+//     y: ( b256 => {int, int} ),
+//     z: ( bool => ( b256 => int ) ),
 // }
 //
 // predicate ::test {
@@ -64,7 +76,7 @@ predicate test {
 //     var ::o: bool;
 //     var ::p: {int, int};
 //     var ::q: bool[5];
-//     var ::s: b256;
-//     var ::x: int;
+//     var ::r: b256;
+//     var ::s: int;
 // }
 // >>>
