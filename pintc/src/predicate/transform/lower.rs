@@ -277,90 +277,64 @@ pub(crate) fn lower_casts(handler: &Handler, contract: &mut Contract) -> Result<
 pub(crate) fn lower_aliases(contract: &mut Contract) {
     use std::borrow::BorrowMut;
 
-    println!("Starting lower_aliases");
-
-    let new_types = FxHashMap::from_iter(contract.new_types.iter().map(
-        |NewTypeDecl { name, ty, .. }| {
-            println!("Mapping new type: {}", name.name);
-            (name.name.clone(), ty.clone())
-        },
-    ));
+    let new_types = FxHashMap::from_iter(
+        contract
+            .new_types
+            .iter()
+            .map(|NewTypeDecl { name, ty, .. }| (name.name.clone(), ty.clone())),
+    );
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         fn replace_alias(new_types_map: &FxHashMap<String, Type>, old_ty: &mut Type) {
-            println!("Replacing alias in type: {:?}", old_ty);
             match old_ty {
                 Type::Alias { ty, .. } => {
-                    println!("Found Alias, replacing with actual type");
                     *old_ty = *ty.clone();
-                    // check if it is another alias and go again
-                    // potentiall just run the entire check again at the end? What if there are other nested things instead of just aliases?
-                    // I guess we do that for all the other types...
-                    replace_alias(new_types_map, old_ty)
+                    replace_alias(new_types_map, old_ty);
                 }
 
                 Type::Custom { path, .. } => {
                     if let Some(ty) = new_types_map.get(path) {
-                        println!("Found Custom type for path: {}, replacing", path);
                         *old_ty = ty.clone();
                     }
                 }
 
-                Type::Array { ty, .. } => {
-                    println!("Found Array, recursing into elements");
-                    replace_alias(new_types_map, ty)
-                }
-                Type::Tuple { fields, .. } => {
-                    println!("Found Tuple, recursing into fields");
-                    fields
-                        .iter_mut()
-                        .for_each(|(_, ty)| replace_alias(new_types_map, ty))
-                }
+                Type::Array { ty, .. } => replace_alias(new_types_map, ty),
+                Type::Tuple { fields, .. } => fields
+                    .iter_mut()
+                    .for_each(|(_, ty)| replace_alias(new_types_map, ty)),
                 Type::Map { ty_from, ty_to, .. } => {
-                    println!("Found Map, recursing into key and value types");
                     replace_alias(new_types_map, ty_from);
                     replace_alias(new_types_map, ty_to);
                 }
 
-                Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } => {
-                    println!("Found base type, no action needed");
-                }
+                Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } => {}
             }
         }
 
-        println!("Processing predicate: {:?}", pred_key);
-
+        // Replace aliases with the actual type.
         if let Some(pred) = contract.preds.get_mut(pred_key) {
-            println!("Updating types for vars in predicate");
             pred.vars
                 .update_types(|_, var_ty| replace_alias(&new_types, var_ty));
-            println!("Updating types for states in predicate");
             pred.states
                 .update_types(|_, state_ty| replace_alias(&new_types, state_ty));
         };
 
         if let Some((storage_vars, _)) = &mut contract.storage {
-            println!("Updating types for storage vars");
             for StorageVar { ty, .. } in storage_vars {
                 replace_alias(&new_types, ty);
             }
         }
 
-        println!("Updating types for expressions");
         contract
             .exprs
             .update_types(|_, expr_ty| replace_alias(&new_types, expr_ty));
 
-        println!("Updating types in expressions");
         contract.exprs.update_exprs(|_, expr| {
             if let Expr::Cast { ty, .. } = expr {
-                println!("Found Cast expression, updating type");
                 replace_alias(&new_types, ty.borrow_mut());
             }
         });
     }
-
-    println!("Finished lower_aliases");
 }
 
 pub(crate) fn lower_imm_accesses(
