@@ -47,36 +47,37 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    // Produce `json` ABI
-    let mut filepath_stem = filepath
-        .file_stem()
-        .expect("Failed to get file stem")
-        .to_os_string();
-    filepath_stem.push("-abi");
-    let mut json_abi_path = PathBuf::from(filepath);
-    json_abi_path.set_file_name(filepath_stem);
-    json_abi_path.set_extension("json");
-
-    // Compute the JSON ABI
-    let abi = match handler.scope(|handler| flattened.abi(handler)) {
-        Ok(abi) => abi,
-        Err(_) => {
-            let errors = handler.consume();
-            let errors_len = errors.len();
-            if !cfg!(test) {
-                error::print_errors(&error::Errors(errors));
-            }
-            pintc::pintc_bail!(errors_len, filepath)
-        }
-    };
-
-    serde_json::to_writer_pretty(File::create(json_abi_path)?, &abi)?;
-
     match handler.scope(|handler| compile_contract(handler, &flattened)) {
         Ok(compiled_contract) => {
             if args.print_asm {
                 println!("{compiled_contract}");
             }
+
+            // Produce `json` ABI
+            let mut filepath_stem = filepath
+                .file_stem()
+                .expect("Failed to get file stem")
+                .to_os_string();
+            filepath_stem.push("-abi");
+            let mut json_abi_path = PathBuf::from(filepath);
+            json_abi_path.set_file_name(filepath_stem);
+            json_abi_path.set_extension("json");
+
+            // Compute the JSON ABI
+            let abi = match handler.scope(|handler| flattened.abi(handler)) {
+                Ok(abi) => abi,
+                Err(_) => {
+                    let errors = handler.consume();
+                    let errors_len = errors.len();
+                    if !cfg!(test) {
+                        error::print_errors(&error::Errors(errors));
+                    }
+                    pintc::pintc_bail!(errors_len, filepath)
+                }
+            };
+
+            serde_json::to_writer_pretty(File::create(json_abi_path)?, &abi)?;
+
             serde_json::to_writer(
                 if let Some(output) = args.output {
                     let output_file_path = PathBuf::from(&output);
