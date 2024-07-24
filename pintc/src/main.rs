@@ -53,6 +53,17 @@ fn main() -> anyhow::Result<()> {
                 println!("{compiled_contract}");
             }
 
+            // Determine output directory
+            let mut output_directory_path = PathBuf::from("");
+            let mut output_file_path = filepath.with_extension("json");
+            if let Some(ref output) = args.output {
+                output_file_path = PathBuf::from(&output);
+                output_directory_path = output_file_path.parent().unwrap().to_path_buf();
+                if !output_directory_path.exists() {
+                    create_dir_all(output_directory_path.clone())?;
+                }
+            }
+
             // Produce `json` ABI
             let mut filepath_stem = filepath
                 .file_stem()
@@ -62,6 +73,7 @@ fn main() -> anyhow::Result<()> {
             let mut json_abi_path = PathBuf::from(filepath);
             json_abi_path.set_file_name(filepath_stem);
             json_abi_path.set_extension("json");
+            json_abi_path = output_directory_path.join(json_abi_path);
 
             // Compute the JSON ABI
             let abi = match handler.scope(|handler| flattened.abi(handler)) {
@@ -76,19 +88,10 @@ fn main() -> anyhow::Result<()> {
                 }
             };
 
+            // Write ABI and contract
             serde_json::to_writer_pretty(File::create(json_abi_path)?, &abi)?;
-
             serde_json::to_writer(
-                if let Some(output) = args.output {
-                    let output_file_path = PathBuf::from(&output);
-                    let output_directory_path = output_file_path.parent().unwrap();
-                    if !output_directory_path.exists() {
-                        create_dir_all(output_directory_path)?;
-                    }
-                    File::create(output_file_path)?
-                } else {
-                    File::create(filepath.with_extension("json"))?
-                },
+                File::create(output_file_path)?,
                 &essential_types::contract::Contract {
                     predicates: compiled_contract.predicates,
                     salt: compiled_contract.salt,
