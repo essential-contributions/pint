@@ -289,6 +289,7 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
             match old_ty {
                 Type::Alias { ty, .. } => {
                     *old_ty = *ty.clone();
+                    replace_alias(new_types_map, old_ty);
                 }
 
                 Type::Custom { path, .. } => {
