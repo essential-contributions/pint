@@ -180,14 +180,14 @@ jobs:
 
   publish:
     runs-on: ubuntu-latest
-    needs: 
+    needs:
       [
         trunk-check,
         clippy_check,
         build,
         build_with_solver,
         cargo-unused-deps-check,
-        cargo-toml-lint-check
+        cargo-toml-lint-check,
       ]
     steps:
       - uses: actions/checkout@v4
