@@ -24,11 +24,6 @@ predicate Foo {
 // }
 //
 // predicate ::Foo {
-//     interface ::ERC20 {
-//         storage {
-//             x: int,
-//         }
-//     }
 //     interface ::ERC20Instance = ::ERC20Missing(0x1111111111111111111111111111111111111111111111111111111111111111)
 //     interface ::ERC20Instance2 = ::ERC20(0x2222222222222222222222222222222222222222222222222222222222222222)
 //     state ::x = ::ERC20Instance::storage::x;

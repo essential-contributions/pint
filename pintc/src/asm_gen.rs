@@ -368,7 +368,7 @@ impl AsmBuilder {
                 s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
 
                 // Get the `interface` declaration that the storage access refers to
-                let interface = &pred
+                let interface = &contract
                     .interfaces
                     .iter()
                     .find(|e| e.name.to_string() == *interface_instance.interface)
@@ -1076,7 +1076,7 @@ impl AsmBuilder {
                     continue;
                 };
 
-                let Some(interface) = pred
+                let Some(interface) = contract
                     .interfaces
                     .iter()
                     .find(|e| e.name.to_string() == *interface_instance.interface)

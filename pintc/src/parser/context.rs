@@ -174,7 +174,7 @@ impl<'a> ParserContext<'a> {
             }
         }
 
-        self.current_pred().interfaces.push(interface);
+        self.contract.interfaces.push(interface);
     }
 
     /// Given a predicate instance name as an `Predicate`, a list `els` of `Ident`s forming a path, an

@@ -597,7 +597,7 @@ impl Contract {
                 ..
             } in &self.preds[pred_key].interface_instances
             {
-                if self.preds[pred_key]
+                if self
                     .interfaces
                     .iter()
                     .any(|e| e.name.to_string() == *interface)
@@ -637,7 +637,7 @@ impl Contract {
                     .iter()
                     .find(|e| e.name.to_string() == *interface_instance)
                 {
-                    if let Some(interface) = self.preds[pred_key]
+                    if let Some(interface) = self
                         .interfaces
                         .iter()
                         .find(|e| e.name.to_string() == *interface_instance.interface)
@@ -1091,7 +1091,7 @@ impl Contract {
         };
 
         // Find the interface declaration corresponding to the interface instance
-        let Some(interface) = pred
+        let Some(interface) = self
             .interfaces
             .iter()
             .find(|e| e.name.to_string() == *interface_instance.interface)
@@ -1137,7 +1137,7 @@ impl Contract {
                 .iter()
                 .find(|e| e.name.to_string() == *interface_instance)
             {
-                if let Some(interface) = pred
+                if let Some(interface) = self
                     .interfaces
                     .iter()
                     .find(|e| e.name.to_string() == *interface_instance.interface)

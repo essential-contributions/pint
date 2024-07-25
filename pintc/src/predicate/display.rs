@@ -22,6 +22,8 @@ impl Display for super::Contract {
             writeln!(f, "}}")?;
         }
 
+        self.fmt_interfaces(f)?;
+
         for pred in self.preds.values() {
             if pred.name == Self::ROOT_PRED_NAME {
                 self.root_pred().fmt_with_indent(f, self, 0)?
@@ -36,11 +38,56 @@ impl Display for super::Contract {
     }
 }
 
-//impl Display for super::Predicate {
-//    fn fmt(&self, f: &mut Formatter) -> Result {
-//        self.fmt_with_indent(f, 0)
-//    }
-//}
+impl super::Contract {
+    fn fmt_interfaces(&self, f: &mut Formatter) -> Result {
+        for super::Interface {
+            name,
+            storage,
+            predicate_interfaces,
+            ..
+        } in &self.interfaces
+        {
+            writeln!(f, "interface {name} {{",)?;
+
+            // Print storage
+            if let Some(storage) = &storage {
+                writeln!(f, "    storage {{")?;
+                for storage_var in &storage.0 {
+                    writeln!(
+                        f,
+                        "        {}",
+                        self.root_pred().with_pred(self, storage_var)
+                    )?;
+                }
+                writeln!(f, "    }}")?;
+            }
+
+            // Print each predicate interface
+            for predicate_interface in predicate_interfaces {
+                write!(f, "    predicate {}", predicate_interface.name)?;
+
+                if predicate_interface.vars.is_empty() {
+                    writeln!(f, ";")?;
+                } else {
+                    writeln!(f, " {{")?;
+                    for var in &predicate_interface.vars {
+                        writeln!(
+                            f,
+                            "        pub var {}: {};",
+                            var.name,
+                            self.root_pred().with_pred(self, var.ty.clone())
+                        )?;
+                    }
+                    writeln!(f, "    }}")?;
+                }
+            }
+
+            writeln!(f, "}}")?;
+        }
+
+        Ok(())
+    }
+}
 
 impl super::Predicate {
     fn fmt_with_indent(
@@ -50,51 +97,6 @@ impl super::Predicate {
         indent: usize,
     ) -> Result {
         let indentation = " ".repeat(4 * indent);
-
-        for super::Interface {
-            name,
-            storage,
-            predicate_interfaces,
-            ..
-        } in &self.interfaces
-        {
-            writeln!(f, "{indentation}interface {name} {{",)?;
-
-            // Print storage
-            if let Some(storage) = &storage {
-                writeln!(f, "{indentation}    storage {{")?;
-                for storage_var in &storage.0 {
-                    writeln!(
-                        f,
-                        "{indentation}        {}",
-                        self.with_pred(contract, storage_var)
-                    )?;
-                }
-                writeln!(f, "{indentation}    }}")?;
-            }
-
-            // Print each predicate interface
-            for predicate_interface in predicate_interfaces {
-                write!(f, "{indentation}    predicate {}", predicate_interface.name)?;
-
-                if predicate_interface.vars.is_empty() {
-                    writeln!(f, ";")?;
-                } else {
-                    writeln!(f, " {{")?;
-                    for var in &predicate_interface.vars {
-                        writeln!(
-                            f,
-                            "{indentation}        pub var {}: {};",
-                            var.name,
-                            self.with_pred(contract, var.ty.clone())
-                        )?;
-                    }
-                    writeln!(f, "{indentation}    }}")?;
-                }
-            }
-
-            writeln!(f, "{indentation}}}")?;
-        }
 
         for super::InterfaceInstance {
             name,

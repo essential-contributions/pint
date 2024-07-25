@@ -235,15 +235,12 @@ impl<'a> ProjectParser<'a> {
         // symbol inside an `predicate { .. }` that was already used in the root Pred.
 
         let root_symbols = self.contract.root_pred().top_level_symbols.clone();
-        let interfaces = self.contract.root_pred().interfaces.clone();
 
         self.contract
             .preds
             .values_mut()
             .filter(|pred| pred.name != Contract::ROOT_PRED_NAME)
             .for_each(|pred| {
-                pred.interfaces.extend_from_slice(&interfaces);
-
                 for (symbol, span) in &root_symbols {
                     // We could call `pred.add_top_level_symbol_with_name` directly here, but then
                     // the spans would be reversed so I decided to do this manually. We want the

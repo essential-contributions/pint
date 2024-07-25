@@ -34,6 +34,7 @@ pub struct Contract {
     pub exprs: Exprs,
     pub consts: FxHashMap<String, Const>,
     pub storage: Option<(Vec<StorageVar>, Span)>,
+    pub interfaces: Vec<Interface>,
 
     pub enums: Vec<EnumDecl>,
     pub new_types: Vec<NewTypeDecl>,
@@ -53,6 +54,7 @@ impl Default for Contract {
             exprs: Default::default(),
             consts: Default::default(),
             storage: Default::default(),
+            interfaces: Default::default(),
             enums: Default::default(),
             new_types: Default::default(),
             removed_macro_calls: Default::default(),
@@ -300,9 +302,6 @@ pub struct Predicate {
 
     // CallKey is used in a secondary map in the parser context to access the actual call data.
     pub calls: slotmap::SlotMap<CallKey, Path>,
-
-    // A list of all availabe interfaces
-    pub interfaces: Vec<Interface>,
 
     // A list of all availabe interface instances
     pub interface_instances: Vec<InterfaceInstance>,
