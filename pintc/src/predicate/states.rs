@@ -120,7 +120,7 @@ impl Predicate {
         expr: ExprKey,
         span: Span,
     ) -> std::result::Result<StateKey, ErrorEmitted> {
-        let name = self.add_top_level_symbol(handler, mod_prefix, None, name, span.clone())?;
+        let name = self.symbols.add_symbol(handler, mod_prefix, None, name, span.clone())?;
         let state_key = self.states.insert(
             State {
                 name,

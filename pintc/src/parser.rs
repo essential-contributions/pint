@@ -1,5 +1,5 @@
 use crate::{
-    error::{CompileError, Error, ErrorEmitted, Handler, ParseError},
+    error::{CompileError, Error, ErrorEmitted, Handler},
     expr::Ident,
     lexer,
     macros::{self, MacroCall, MacroDecl, MacroExpander},
@@ -220,9 +220,7 @@ impl<'a> ProjectParser<'a> {
                 // Keep track of the removed macro for type-checking, in case the predicate
                 // erroneously expected the macro call to be an expression (and not just
                 // declarations).
-                self.contract
-                    .removed_macro_calls
-                    .insert(call_expr_key, span);
+                self.contract.add_removed_macro_call(call_expr_key, span);
             }
             self.contract.exprs.remove(call_expr_key);
         }
@@ -230,43 +228,25 @@ impl<'a> ProjectParser<'a> {
         self
     }
 
-    fn finalize(mut self) -> Result<Contract, ErrorEmitted> {
-        // Insert all top level symbols since shadowing is not allowed. That is, we can't use a
-        // symbol inside an `predicate { .. }` that was already used in the root Pred.
-
-        let root_symbols = self.contract.root_pred().top_level_symbols.clone();
-
+    fn finalize(self) -> Result<Contract, ErrorEmitted> {
+        // Check all predicate symbols against top level symbols for name clashes.
         self.contract
             .preds
-            .values_mut()
+            .values()
             .filter(|pred| pred.name != Contract::ROOT_PRED_NAME)
             .for_each(|pred| {
-                for (symbol, span) in &root_symbols {
-                    // We could call `pred.add_top_level_symbol_with_name` directly here, but then
-                    // the spans would be reversed so I decided to do this manually. We want the
-                    // actual error to point to the symbol inside the `predicate` decl.
-                    pred.top_level_symbols
-                        .get(symbol)
-                        .map(|prev_span| {
-                            self.handler.emit_err(Error::Parse {
-                                error: ParseError::NameClash {
-                                    sym: symbol.clone(),
-                                    span: prev_span.clone(),
-                                    prev_span: span.clone(),
-                                },
-                            });
-                        })
-                        .unwrap_or_else(|| {
-                            pred.top_level_symbols.insert(symbol.clone(), span.clone());
-                        });
-                }
+                let _ = self
+                    .contract
+                    .root_pred()
+                    .symbols
+                    .check_for_clash(self.handler, &pred.symbols);
             });
 
         if self.handler.has_errors() {
-            return Err(self.handler.cancel());
+            Err(self.handler.cancel())
+        } else {
+            Ok(self.contract)
         }
-
-        Ok(self.contract)
     }
 }
 

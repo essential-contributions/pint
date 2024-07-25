@@ -33,7 +33,7 @@ impl<'a> ParserContext<'a> {
         mut ident: Ident,
         prefix: &str,
     ) -> Ident {
-        if let Ok(name) = self.current_pred().add_top_level_symbol(
+        if let Ok(name) = self.current_pred().symbols.add_symbol(
             handler,
             prefix,
             None,
@@ -615,7 +615,8 @@ impl<'a> ParserContext<'a> {
                 //
                 // use a::b::mod::my_mod::self;    // Inserted as ::local::mod::my_mod
                 self.current_pred()
-                    .add_top_level_symbol(
+                    .symbols
+                    .add_symbol(
                         &local_handler,
                         mod_prefix,
                         None,

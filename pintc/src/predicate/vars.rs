@@ -140,7 +140,7 @@ impl Predicate {
         ty: Option<Type>,
     ) -> std::result::Result<VarKey, ErrorEmitted> {
         let full_name =
-            self.add_top_level_symbol(handler, mod_prefix, local_scope, name, name.span.clone())?;
+            self.symbols.add_symbol(handler, mod_prefix, local_scope, name, name.span.clone())?;
         let var_key = self.vars.insert(
             Var {
                 name: full_name,

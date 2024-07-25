@@ -8,7 +8,7 @@ use crate::{
 
 impl DisplayWithPred for super::ExprKey {
     fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> Result {
-        if contract.removed_macro_calls.contains_key(*self) {
+        if contract.is_removed_macro_call(*self) {
             write!(f, "<REMOVED MACRO CALL>")
         } else {
             write!(f, "{}", pred.with_pred(contract, &self.get(contract)))

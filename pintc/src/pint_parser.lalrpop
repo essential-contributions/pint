@@ -269,7 +269,7 @@ StateDecl: () = {
 ConstDecl: () = {
     <l:@L> "const" <name:Ident> <ty:(":" <Type>)?> "=" <init:Expr> <r:@R> => {
         // consts are all added to the root Pred.
-        if let Ok(full_name) = context.contract.root_pred_mut().add_top_level_symbol(
+        if let Ok(full_name) = context.contract.root_pred_mut().symbols.add_symbol(
             handler,
             context.mod_prefix,
             None,
@@ -753,7 +753,6 @@ GeneratorRange: (Ident, ExprKey) = {
         // list.
         let mod_prefix = context.mod_prefix;
         let _ = context.current_pred().insert_ephemeral(
-            handler,
             mod_prefix,
             &index,
             Type::Primitive {
