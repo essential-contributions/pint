@@ -435,7 +435,6 @@ impl ExprKey {
     pub(crate) fn plug_in(
         self,
         contract: &mut Contract,
-        pred_key: PredKey,
         values_map: &FxHashMap<Path, Imm>,
     ) -> ExprKey {
         let expr = self.get(contract).clone();
@@ -450,9 +449,9 @@ impl ExprKey {
             } => {
                 let elements = elements
                     .iter()
-                    .map(|element| element.plug_in(contract, pred_key, values_map))
+                    .map(|element| element.plug_in(contract, values_map))
                     .collect::<Vec<_>>();
-                let range_expr = range_expr.plug_in(contract, pred_key, values_map);
+                let range_expr = range_expr.plug_in(contract, values_map);
 
                 Expr::Array {
                     elements,
@@ -465,7 +464,7 @@ impl ExprKey {
                 let fields = fields
                     .iter()
                     .map(|(name, value)| {
-                        (name.clone(), value.plug_in(contract, pred_key, values_map))
+                        (name.clone(), value.plug_in(contract, values_map))
                     })
                     .collect::<Vec<_>>();
 
@@ -487,20 +486,20 @@ impl ExprKey {
                 })
             }
             Expr::UnaryOp { op, expr, span } => {
-                let expr = expr.plug_in(contract, pred_key, values_map);
+                let expr = expr.plug_in(contract, values_map);
 
                 Expr::UnaryOp { op, expr, span }
             }
             Expr::BinaryOp { op, lhs, rhs, span } => {
-                let lhs = lhs.plug_in(contract, pred_key, values_map);
-                let rhs = rhs.plug_in(contract, pred_key, values_map);
+                let lhs = lhs.plug_in(contract, values_map);
+                let rhs = rhs.plug_in(contract, values_map);
 
                 Expr::BinaryOp { op, lhs, rhs, span }
             }
             Expr::IntrinsicCall { name, args, span } => {
                 let args = args
                     .iter()
-                    .map(|arg| arg.plug_in(contract, pred_key, values_map))
+                    .map(|arg| arg.plug_in(contract, values_map))
                     .collect::<Vec<_>>();
 
                 Expr::IntrinsicCall { name, args, span }
@@ -511,9 +510,9 @@ impl ExprKey {
                 else_expr,
                 span,
             } => {
-                let condition = condition.plug_in(contract, pred_key, values_map);
-                let then_expr = then_expr.plug_in(contract, pred_key, values_map);
-                let else_expr = else_expr.plug_in(contract, pred_key, values_map);
+                let condition = condition.plug_in(contract, values_map);
+                let then_expr = then_expr.plug_in(contract, values_map);
+                let else_expr = else_expr.plug_in(contract, values_map);
 
                 Expr::Select {
                     condition,
@@ -523,18 +522,18 @@ impl ExprKey {
                 }
             }
             Expr::Index { expr, index, span } => {
-                let expr = expr.plug_in(contract, pred_key, values_map);
-                let index = index.plug_in(contract, pred_key, values_map);
+                let expr = expr.plug_in(contract, values_map);
+                let index = index.plug_in(contract, values_map);
 
                 Expr::Index { expr, index, span }
             }
             Expr::TupleFieldAccess { tuple, field, span } => {
-                let tuple = tuple.plug_in(contract, pred_key, values_map);
+                let tuple = tuple.plug_in(contract, values_map);
 
                 Expr::TupleFieldAccess { tuple, field, span }
             }
             Expr::Cast { value, ty, span } => {
-                let value = value.plug_in(contract, pred_key, values_map);
+                let value = value.plug_in(contract, values_map);
 
                 Expr::Cast { value, ty, span }
             }
@@ -543,8 +542,8 @@ impl ExprKey {
                 collection,
                 span,
             } => {
-                let value = value.plug_in(contract, pred_key, values_map);
-                let collection = collection.plug_in(contract, pred_key, values_map);
+                let value = value.plug_in(contract, values_map);
+                let collection = collection.plug_in(contract, values_map);
 
                 Expr::In {
                     value,
@@ -553,8 +552,8 @@ impl ExprKey {
                 }
             }
             Expr::Range { lb, ub, span } => {
-                let lb = lb.plug_in(contract, pred_key, values_map);
-                let ub = ub.plug_in(contract, pred_key, values_map);
+                let lb = lb.plug_in(contract, values_map);
+                let ub = ub.plug_in(contract, values_map);
 
                 Expr::Range { lb, ub, span }
             }
@@ -568,14 +567,14 @@ impl ExprKey {
                 let gen_ranges = gen_ranges
                     .iter()
                     .map(|(index, range)| {
-                        (index.clone(), range.plug_in(contract, pred_key, values_map))
+                        (index.clone(), range.plug_in(contract, values_map))
                     })
                     .collect::<Vec<_>>();
                 let conditions = conditions
                     .iter()
-                    .map(|condition| condition.plug_in(contract, pred_key, values_map))
+                    .map(|condition| condition.plug_in(contract, values_map))
                     .collect::<Vec<_>>();
-                let body = body.plug_in(contract, pred_key, values_map);
+                let body = body.plug_in(contract, values_map);
 
                 Expr::Generator {
                     kind,
