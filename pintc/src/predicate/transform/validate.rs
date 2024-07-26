@@ -162,8 +162,7 @@ fn check_expr(
         Expr::Immediate { .. }
         | Expr::Array { .. }
         | Expr::Tuple { .. }
-        | Expr::PathByKey(..)
-        | Expr::PathByName(..)
+        | Expr::Path(..)
         | Expr::StorageAccess(..)
         | Expr::UnaryOp { .. }
         | Expr::BinaryOp { .. }

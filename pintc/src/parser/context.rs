@@ -33,7 +33,7 @@ impl<'a> ParserContext<'a> {
         mut ident: Ident,
         prefix: &str,
     ) -> Ident {
-        if let Ok(name) = self.current_pred().add_top_level_symbol(
+        if let Ok(name) = self.current_pred().symbols.add_symbol(
             handler,
             prefix,
             None,
@@ -174,7 +174,7 @@ impl<'a> ParserContext<'a> {
             }
         }
 
-        self.current_pred().interfaces.push(interface);
+        self.contract.interfaces.push(interface);
     }
 
     /// Given a predicate instance name as an `Predicate`, a list `els` of `Ident`s forming a path, an
@@ -278,14 +278,14 @@ impl<'a> ParserContext<'a> {
             let _ = self
                 .current_pred()
                 .insert_var(handler, mod_prefix, name.1, is_pub, &name.0, ty)
-                .map(|var_key| {
+                .map(|(var_key, var_full_name)| {
                     if let Some(expr_key) = init {
                         self.current_pred().var_inits.insert(var_key, expr_key);
                         let span = (self.span_from)(l, r);
                         let var_span = name.0.span;
 
                         let var_expr_key = self.contract.exprs.insert(
-                            Expr::PathByKey(var_key, var_span.clone()),
+                            Expr::Path(var_full_name, var_span.clone()),
                             Type::Unknown(var_span.clone()),
                         );
 
@@ -606,7 +606,8 @@ impl<'a> ParserContext<'a> {
                 //
                 // use a::b::mod::my_mod::self;    // Inserted as ::local::mod::my_mod
                 self.current_pred()
-                    .add_top_level_symbol(
+                    .symbols
+                    .add_symbol(
                         &local_handler,
                         mod_prefix,
                         None,

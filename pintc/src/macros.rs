@@ -285,7 +285,7 @@ fn splice_get_array_range_size(
                 value: Immediate::Int(size),
                 ..
             } => Some((*size as usize, None)),
-            Expr::PathByName(path, _) => {
+            Expr::Path(path, _) => {
                 contract
                     .enums
                     .iter()

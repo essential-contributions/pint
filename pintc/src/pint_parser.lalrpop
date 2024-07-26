@@ -269,7 +269,7 @@ StateDecl: () = {
 ConstDecl: () = {
     <l:@L> "const" <name:Ident> <ty:(":" <Type>)?> "=" <init:Expr> <r:@R> => {
         // consts are all added to the root Pred.
-        if let Ok(full_name) = context.contract.root_pred_mut().add_top_level_symbol(
+        if let Ok(full_name) = context.contract.root_pred_mut().symbols.add_symbol(
             handler,
             context.mod_prefix,
             None,
@@ -744,7 +744,7 @@ TermInner: Expr = {
     <IntrinsicCallExpr>,
     <ArrayExpr>,
     <TupleExpr>,
-    <l:@L> <path:Path> <r:@R> => Expr::PathByName(path, (context.span_from)(l, r)),
+    <l:@L> <path:Path> <r:@R> => Expr::Path(path, (context.span_from)(l, r)),
 };
 
 GeneratorRange: (Ident, ExprKey) = {
@@ -753,7 +753,6 @@ GeneratorRange: (Ident, ExprKey) = {
         // list.
         let mod_prefix = context.mod_prefix;
         let _ = context.current_pred().insert_ephemeral(
-            handler,
             mod_prefix,
             &index,
             Type::Primitive {
@@ -827,7 +826,7 @@ MacroCallExpr: ExprKey = {
         let call_key = context.current_pred().calls.insert(name.clone());
         let span = (context.span_from)(l, r);
         let call_data = MacroCall {
-            name,
+            name: name.clone(),
             mod_path: context.mod_path.to_vec(),
             args,
             span: span.clone(),
@@ -835,6 +834,7 @@ MacroCallExpr: ExprKey = {
         };
         let call_expr_key = context.contract.exprs.insert(
             Expr::MacroCall {
+                path: name,
                 call: call_key,
                 span: span.clone(),
             },

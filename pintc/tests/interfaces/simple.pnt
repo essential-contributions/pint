@@ -102,40 +102,6 @@ predicate Simple {
 // }
 //
 // predicate ::Simple {
-//     interface ::Foo {
-//         storage {
-//             x: int,
-//             y: int,
-//         }
-//         predicate I1 {
-//             pub var x1: int;
-//             pub var x2: b256;
-//             pub var x3: bool;
-//         }
-//         predicate I2 {
-//             pub var x1: int;
-//             pub var x2: b256;
-//             pub var x3: bool;
-//         }
-//         predicate I3;
-//     }
-//     interface ::Bar {
-//         storage {
-//             x: int,
-//             z: b256,
-//         }
-//         predicate I1 {
-//             pub var x1: int;
-//             pub var x2: b256;
-//             pub var x3: bool;
-//         }
-//         predicate I2 {
-//             pub var x1: int;
-//             pub var x2: b256;
-//             pub var x3: bool;
-//         }
-//         predicate I3;
-//     }
 //     interface ::FooInstance = ::Foo(::addr1)
 //     interface ::BarInstance = ::Bar(::addr2)
 //     predicate ::FooI1Instance1 = ::FooInstance::I1(::addr3)
@@ -201,40 +167,6 @@ predicate Simple {
 // }
 //
 // predicate ::Simple {
-//     interface ::Foo {
-//         storage {
-//             x: int,
-//             y: int,
-//         }
-//         predicate I1 {
-//             pub var x1: int;
-//             pub var x2: b256;
-//             pub var x3: bool;
-//         }
-//         predicate I2 {
-//             pub var x1: int;
-//             pub var x2: b256;
-//             pub var x3: bool;
-//         }
-//         predicate I3;
-//     }
-//     interface ::Bar {
-//         storage {
-//             x: int,
-//             z: b256,
-//         }
-//         predicate I1 {
-//             pub var x1: int;
-//             pub var x2: b256;
-//             pub var x3: bool;
-//         }
-//         predicate I2 {
-//             pub var x1: int;
-//             pub var x2: b256;
-//             pub var x3: bool;
-//         }
-//         predicate I3;
-//     }
 //     interface ::FooInstance = ::Foo(::addr1)
 //     interface ::BarInstance = ::Bar(::addr2)
 //     predicate ::FooI1Instance1 = ::FooInstance::I1(::addr3)

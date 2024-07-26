@@ -158,7 +158,7 @@ impl Contract {
                 let mut preserved_enum_type = None;
                 if let Some(Const { expr, decl_ty }) = self.consts.get(&new_path) {
                     if decl_ty.is_unknown() {
-                        if let Expr::PathByName(path, _) = expr.get(self) {
+                        if let Expr::Path(path, _) = expr.get(self) {
                             // We have an unknown-typed const initialised with a path.  E.g.,
                             // const a = MyEnum::MyVariant;
                             if let Ok(Inference::Type(variant_ty)) =
@@ -198,7 +198,7 @@ impl Contract {
                 if let Some(imm_value) = all_const_immediates.get(path) {
                     // Check the type is valid.
                     let span = self.expr_key_to_span(*expr);
-                    match self.infer_immediate(self.root_pred(), imm_value, &span) {
+                    match self.infer_immediate(imm_value, &span) {
                         Ok(inferred) => match inferred {
                             Inference::Type(new_ty) => {
                                 type_replacements.push((path.clone(), new_ty))
