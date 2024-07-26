@@ -246,7 +246,7 @@ VarDecl: () = {
 };
 
 VarName: (Ident, Option<&'a str>) = {
-    <l:@L> <id:"ident"> <r:@R> => context.parse_var_name(handler, id, (l, r)),
+    <l:@L> <id:"ident"> <r:@R> => context.parse_var_name(id, (l, r)),
 };
 
 VarInit: ExprKey = {
@@ -958,14 +958,6 @@ Ident: Ident = {
     <l:@L> <id:"ident"> <r:@R> => {
         let name = id.0.to_string();
         let span = (context.span_from)(l, r);
-        // if name.starts_with("__") {
-        //     handler.emit_err(Error::Parse {
-        //         error: ParseError::LeadingUnderscoresInIdent {
-        //             span: span.clone(),
-        //             name: name.clone(),
-        //         },
-        //     });
-        // }
         Ident {
             name,
             hygienic: id.1,

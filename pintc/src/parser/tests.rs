@@ -1066,16 +1066,16 @@ fn storage_access() {
     check(
         &run_parser!(pint, r#"predicate test { var x = storage::foo; }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `macro_name`, or `{`, found `storage`
-            @25..32: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `macro_name`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `storage`
+            @25..32: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(pint, r#"predicate test { var x = storage::map[4][3]; }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `macro_name`, or `{`, found `storage`
-            @25..32: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `macro_name`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `storage`
+            @25..32: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
         "#]],
     );
 
@@ -1835,8 +1835,8 @@ fn parens_exprs() {
     check(
         &run_parser!(expr, "()"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `macro_name`, or `{`, found `)`
-            @12..13: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `macro_name`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `)`
+            @12..13: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
         "#]],
     );
 
@@ -1846,7 +1846,10 @@ fn parens_exprs() {
     );
     check(
         &run_parser!(expr, "(foo(a, b, c))"),
-        expect_test::expect!["foo(::a, ::b, ::c)"],
+        expect_test::expect![[r#"
+            expected `!=`, `%`, `&&`, `'`, `)`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`, found `(`
+            @15..16: expected `!=`, `%`, `&&`, `'`, `)`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`
+        "#]],
     );
 }
 
@@ -1961,8 +1964,8 @@ fn ranges() {
     check(
         &run_parser!(range, "1...2"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `macro_name`, or `{`, found `.`
-            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `macro_name`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `.`
+            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
         "#]],
     );
 
@@ -2019,9 +2022,8 @@ fn idents() {
     check(
         &run_parser!(ident, "__FOO"),
         expect_test::expect![[r#"
-            expected identifier, found intrinsic name `__FOO`
-            @12..17: expected identifier, found intrinsic name
-            names that start with `__` are reserved for compiler intrinsics
+            expected `an identifier`, found `__FOO`
+            @12..17: expected `an identifier`
         "#]],
     );
     check(
@@ -2053,7 +2055,10 @@ fn intrinsic_name() {
 
     check(
         &run_parser!(intrinsic_name, "foo_bar"),
-        expect_test::expect!["foo_bar"],
+        expect_test::expect![[r#"
+            expected `intrinsic_name`, found `foo_bar`
+            @16..23: expected `intrinsic_name`
+        "#]],
     );
 }
 
@@ -2635,8 +2640,8 @@ fn cond_exprs() {
     check(
         &run_parser!(expr, r#"cond { a => b, }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `else`, `exists`, `forall`, `macro_name`, or `{`, found `}`
-            @26..27: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `else`, `exists`, `forall`, `macro_name`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `else`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `}`
+            @26..27: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `else`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
         "#]],
     );
 
@@ -2721,8 +2726,8 @@ fn in_expr() {
             r#"predicate test { var x = 5 in"#
         ),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `macro_name`, or `{`, found `end of file`
-            @29..29: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `macro_name`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `end of file`
+            @29..29: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
         "#]],
     );
 }
@@ -2772,8 +2777,8 @@ fn forall_expr() {
     check(
         &run_parser!(expr, r#"forall i in 0..3 { constraint x; true }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `macro_name`, or `{`, found `constraint`
-            @30..40: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `macro_name`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `constraint`
+            @30..40: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
         "#]],
     );
 }
@@ -2823,8 +2828,8 @@ fn exists_expr() {
     check(
         &run_parser!(expr, r#"exists i in 0..3 { constraint x; true }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `macro_name`, or `{`, found `constraint`
-            @30..40: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `macro_name`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `constraint`
+            @30..40: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
         "#]],
     );
 }
@@ -2840,22 +2845,34 @@ fn intrinsic_call() {
 
     check(
         &run_parser!(expr, r#"foo(x)"#),
-        expect_test::expect!["foo(::x)"],
+        expect_test::expect![[r#"
+            expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`, found `(`
+            @14..15: expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`
+        "#]],
     );
 
     check(
         &run_parser!(expr, r#"foo(1,)"#),
-        expect_test::expect!["foo(1)"],
+        expect_test::expect![[r#"
+            expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`, found `(`
+            @14..15: expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`
+        "#]],
     );
 
     check(
         &run_parser!(expr, r#"foo(1, 2,)"#),
-        expect_test::expect!["foo(1, 2)"],
+        expect_test::expect![[r#"
+            expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`, found `(`
+            @14..15: expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`
+        "#]],
     );
 
     check(
         &run_parser!(expr, r#"foo(1, 2, { 3, x }.1, [y, __bar()])"#),
-        expect_test::expect!["foo(1, 2, {3, ::x}.1, [::y, __bar()])"],
+        expect_test::expect![[r#"
+            expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`, found `(`
+            @14..15: expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`
+        "#]],
     );
 
     check(
@@ -2864,11 +2881,9 @@ fn intrinsic_call() {
             r#"predicate test { var x = foo(a*3, c); }"#
         ),
         expect_test::expect![[r#"
-
-            predicate ::test {
-                var ::x;
-                constraint (::x == foo((::a * 3), ::c));
-            }"#]],
+            expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `..`, `/`, `;`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`, found `(`
+            @28..29: expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `..`, `/`, `;`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`
+        "#]],
     );
 
     check(
