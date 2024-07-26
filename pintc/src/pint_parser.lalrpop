@@ -826,7 +826,7 @@ MacroCallExpr: ExprKey = {
         let call_key = context.current_pred().calls.insert(name.clone());
         let span = (context.span_from)(l, r);
         let call_data = MacroCall {
-            name,
+            name: name.clone(),
             mod_path: context.mod_path.to_vec(),
             args,
             span: span.clone(),
@@ -834,6 +834,7 @@ MacroCallExpr: ExprKey = {
         };
         let call_expr_key = context.contract.exprs.insert(
             Expr::MacroCall {
+                path: name,
                 call: call_key,
                 span: span.clone(),
             },

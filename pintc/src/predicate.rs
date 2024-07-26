@@ -5,10 +5,7 @@ use crate::{
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type},
 };
 use exprs::ExprsIter;
-pub use exprs::{ExprKey, Exprs};
 use pint_abi_types::{ContractABI, PredicateABI, VarABI};
-pub use states::{State, StateKey, States};
-pub use vars::{Var, VarKey, Vars};
 
 use std::fmt::{self, Formatter};
 
@@ -21,6 +18,11 @@ mod exprs;
 mod states;
 mod transform;
 mod vars;
+
+pub(crate) use display::{DisplayWithContract, DisplayWithPred};
+pub use exprs::{ExprKey, Exprs};
+pub use states::{State, StateKey, States};
+pub use vars::{Var, VarKey, Vars};
 
 slotmap::new_key_type! { pub struct PredKey; }
 slotmap::new_key_type! { pub struct CallKey; }
@@ -358,15 +360,6 @@ impl Predicate {
         })
     }
 
-    /// Helps out some `thing: T` by adding `self` as context.
-    pub fn with_pred<'a, T>(&'a self, contract: &'a Contract, thing: T) -> WithPred<T> {
-        WithPred {
-            thing,
-            contract,
-            pred: self,
-        }
-    }
-
     pub fn insert_ephemeral(
         &mut self,
         mod_prefix: &str,
@@ -480,26 +473,10 @@ pub struct Const {
     pub(crate) decl_ty: Type,
 }
 
-impl DisplayWithPred for Const {
-    fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> fmt::Result {
-        if !self.decl_ty.is_unknown() {
-            write!(f, ": {}", pred.with_pred(contract, &self.decl_ty))?;
-        }
-
-        write!(f, " = {}", pred.with_pred(contract, self.expr))
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct ConstraintDecl {
     pub expr: ExprKey,
     pub span: Span,
-}
-
-impl DisplayWithPred for ConstraintDecl {
-    fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> fmt::Result {
-        write!(f, "constraint {}", pred.with_pred(contract, self.expr))
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -522,7 +499,7 @@ impl BlockStatement {
                 writeln!(
                     f,
                     "{indentation}constraint {}",
-                    pred.with_pred(contract, constraint.expr)
+                    contract.with_ctrct(constraint.expr)
                 )
             }
             Self::If(if_decl) => if_decl.fmt_with_indent(f, contract, pred, indent),
@@ -550,7 +527,7 @@ impl IfDecl {
         writeln!(
             f,
             "{indentation}if {} {{",
-            pred.with_pred(contract, self.condition)
+            contract.with_ctrct(self.condition)
         )?;
         for block_statament in &self.then_block {
             block_statament.fmt_with_indent(f, contract, pred, indent + 1)?;
@@ -570,17 +547,6 @@ pub struct StorageVar {
     pub name: Ident,
     pub ty: Type,
     pub span: Span,
-}
-
-impl DisplayWithPred for StorageVar {
-    fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> fmt::Result {
-        write!(
-            f,
-            "{}: {},",
-            self.name.name,
-            pred.with_pred(contract, &self.ty)
-        )
-    }
 }
 
 /// A a predicate interface that belong in an `Interface`.
@@ -634,39 +600,6 @@ pub struct PredicateInstance {
     pub predicate: Ident,
     pub address: ExprKey,
     pub span: Span,
-}
-
-#[derive(Clone, Copy)]
-pub struct WithPred<'a, T> {
-    pub thing: T,
-    pub contract: &'a Contract,
-    pub pred: &'a Predicate,
-}
-
-impl<'a, T> WithPred<'a, T> {
-    pub fn new(thing: T, contract: &'a Contract, pred: &'a Predicate) -> Self {
-        WithPred {
-            thing,
-            contract,
-            pred,
-        }
-    }
-}
-
-pub(crate) trait DisplayWithPred {
-    fn fmt(&self, f: &mut fmt::Formatter, contract: &Contract, pred: &Predicate) -> fmt::Result;
-}
-
-impl<T: DisplayWithPred> fmt::Display for WithPred<'_, T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.thing.fmt(f, self.contract, self.pred)
-    }
-}
-
-impl<T: DisplayWithPred> DisplayWithPred for &T {
-    fn fmt(&self, f: &mut fmt::Formatter, contract: &Contract, pred: &Predicate) -> fmt::Result {
-        (*self).fmt(f, contract, pred)
-    }
 }
 
 #[derive(Clone, Debug, Default)]

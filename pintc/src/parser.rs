@@ -3,7 +3,7 @@ use crate::{
     expr::Ident,
     lexer,
     macros::{self, MacroCall, MacroDecl, MacroExpander},
-    predicate::{CallKey, Contract, ExprKey, PredKey, Predicate},
+    predicate::{CallKey, Contract, ExprKey, PredKey},
     span::{empty_span, Span},
     types::*,
 };
@@ -539,18 +539,13 @@ impl TestWrapper {
     }
 }
 
-impl crate::predicate::DisplayWithPred for TestWrapper {
-    fn fmt(
-        &self,
-        f: &mut std::fmt::Formatter,
-        contract: &Contract,
-        pred: &Predicate,
-    ) -> std::fmt::Result {
+impl crate::predicate::DisplayWithContract for TestWrapper {
+    fn fmt(&self, f: &mut std::fmt::Formatter, contract: &Contract) -> std::fmt::Result {
         match self {
-            TestWrapper::Expr(e) => e.fmt(f, contract, pred),
-            TestWrapper::Type(t) => t.fmt(f, contract, pred),
-            TestWrapper::Ident(i) => i.fmt(f, contract, pred),
-            TestWrapper::UseTree(_) => panic!("DisplayWithPred not avilable for UseTree"),
+            TestWrapper::Expr(e) => e.fmt(f, contract),
+            TestWrapper::Type(t) => t.fmt(f, contract),
+            TestWrapper::Ident(i) => std::fmt::Display::fmt(i, f),
+            TestWrapper::UseTree(_) => panic!("DisplayWithContract not avilable for UseTree"),
         }
     }
 }

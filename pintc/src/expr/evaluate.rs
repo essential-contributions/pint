@@ -258,8 +258,6 @@ impl Evaluator {
 
             Expr::TupleFieldAccess { tuple, field, span } => {
                 // If the expr is a tuple...
-                let pred = contract.preds.get(pred_key).unwrap();
-
                 let tup = self.evaluate_key(tuple, handler, contract, pred_key)?;
                 if let Imm::Tuple(fields) = tup {
                     // And the field can be found...
@@ -282,7 +280,7 @@ impl Evaluator {
                         handler.emit_err(Error::Compile {
                             error: CompileError::InvalidTupleAccessor {
                                 accessor: field.to_string(),
-                                tuple_type: pred.with_pred(contract, tuple_ty).to_string(),
+                                tuple_type: contract.with_ctrct(tuple_ty).to_string(),
                                 span: span.clone(),
                             },
                         })
@@ -290,9 +288,7 @@ impl Evaluator {
                 } else {
                     Err(handler.emit_err(Error::Compile {
                         error: CompileError::TupleAccessNonTuple {
-                            non_tuple_type: pred
-                                .with_pred(contract, tuple.get_ty(contract))
-                                .to_string(),
+                            non_tuple_type: contract.with_ctrct(tuple.get_ty(contract)).to_string(),
                             span: span.clone(),
                         },
                     }))
@@ -321,11 +317,9 @@ impl Evaluator {
                         }
                     }
 
-                    let pred = contract.preds.get(pred_key).unwrap();
-
                     Err(handler.emit_err(Error::Compile {
                         error: CompileError::NonBoolConditional {
-                            ty: pred.with_pred(contract, cond_ty).to_string(),
+                            ty: contract.with_ctrct(cond_ty).to_string(),
                             conditional: "select expression".to_owned(),
                             span: span.clone(),
                         },
@@ -340,11 +334,9 @@ impl Evaluator {
                         value_ty = imm.get_ty(Some(span));
                     }
 
-                    let pred = contract.preds.get(pred_key).unwrap();
-
                     Err(handler.emit_err(Error::Compile {
                         error: CompileError::BadCastFrom {
-                            ty: pred.with_pred(contract, value_ty).to_string(),
+                            ty: contract.with_ctrct(value_ty).to_string(),
                             span: span.clone(),
                         },
                     }))
@@ -463,9 +455,7 @@ impl ExprKey {
             Expr::Tuple { fields, span } => {
                 let fields = fields
                     .iter()
-                    .map(|(name, value)| {
-                        (name.clone(), value.plug_in(contract, values_map))
-                    })
+                    .map(|(name, value)| (name.clone(), value.plug_in(contract, values_map)))
                     .collect::<Vec<_>>();
 
                 Expr::Tuple {
@@ -566,9 +556,7 @@ impl ExprKey {
             } => {
                 let gen_ranges = gen_ranges
                     .iter()
-                    .map(|(index, range)| {
-                        (index.clone(), range.plug_in(contract, values_map))
-                    })
+                    .map(|(index, range)| (index.clone(), range.plug_in(contract, values_map)))
                     .collect::<Vec<_>>();
                 let conditions = conditions
                     .iter()

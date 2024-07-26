@@ -25,19 +25,15 @@ impl Contract {
             match &name.name[..] {
                 // Access ops
                 "__mut_keys_len" => infer_intrinsic_mut_keys_len(args, span),
-                "__mut_keys_contains" => {
-                    infer_intrinsic_mut_keys_contains(self, pred, name, args, span)
-                }
+                "__mut_keys_contains" => infer_intrinsic_mut_keys_contains(self, name, args, span),
                 "__this_address" => infer_intrinsic_this_address(args, span),
                 "__this_set_address" => infer_intrinsic_this_set_address(args, span),
                 "__this_pathway" => infer_intrinsic_this_pathway(args, span),
 
                 // Crypto ops
                 "__sha256" => infer_intrinsic_sha256(args, span),
-                "__verify_ed25519" => infer_intrinsic_verify_ed25519(self, pred, name, args, span),
-                "__recover_secp256k1" => {
-                    infer_intrinsic_recover_secp256k1(self, pred, name, args, span)
-                }
+                "__verify_ed25519" => infer_intrinsic_verify_ed25519(self, name, args, span),
+                "__recover_secp256k1" => infer_intrinsic_recover_secp256k1(self, name, args, span),
 
                 "__state_len" => infer_intrinsic_state_len(self, pred, args, span),
 
@@ -101,7 +97,6 @@ fn infer_intrinsic_mut_keys_len(args: &[ExprKey], span: &Span) -> Result<Inferen
 //
 fn infer_intrinsic_mut_keys_contains(
     contract: &Contract,
-    pred: &Predicate,
     name: &Ident,
     args: &[ExprKey],
     span: &Span,
@@ -136,7 +131,7 @@ fn infer_intrinsic_mut_keys_contains(
         if !ty.is_int() {
             return arg_type_error(
                 "int[..]".to_string(),
-                pred.with_pred(contract, mut_key_type).to_string(),
+                contract.with_ctrct(mut_key_type).to_string(),
                 name.span.clone(),
                 mut_key_span.clone(),
             );
@@ -144,7 +139,7 @@ fn infer_intrinsic_mut_keys_contains(
     } else {
         return arg_type_error(
             "int[..]".to_string(),
-            pred.with_pred(contract, mut_key_type).to_string(),
+            contract.with_ctrct(mut_key_type).to_string(),
             name.span.clone(),
             mut_key_span.clone(),
         );
@@ -285,7 +280,6 @@ fn infer_intrinsic_sha256(args: &[ExprKey], span: &Span) -> Result<Inference, Er
 //
 fn infer_intrinsic_verify_ed25519(
     contract: &Contract,
-    pred: &Predicate,
     name: &Ident,
     args: &[ExprKey],
     span: &Span,
@@ -322,7 +316,7 @@ fn infer_intrinsic_verify_ed25519(
         if fields.len() != 2 || !fields[0].1.is_b256() || !fields[1].1.is_b256() {
             return arg_type_error(
                 "{ b256, b256 }".to_string(),
-                pred.with_pred(contract, sig_type).to_string(),
+                contract.with_ctrct(sig_type).to_string(),
                 name.span.clone(),
                 sig_span.clone(),
             );
@@ -330,7 +324,7 @@ fn infer_intrinsic_verify_ed25519(
     } else {
         return arg_type_error(
             "{ b256, b256 }".to_string(),
-            pred.with_pred(contract, sig_type).to_string(),
+            contract.with_ctrct(sig_type).to_string(),
             name.span.clone(),
             sig_span.clone(),
         );
@@ -342,7 +336,7 @@ fn infer_intrinsic_verify_ed25519(
     if !pub_key_type.is_b256() {
         return arg_type_error(
             "b256".to_string(),
-            pred.with_pred(contract, pub_key_type).to_string(),
+            contract.with_ctrct(pub_key_type).to_string(),
             name.span.clone(),
             pub_key_span.clone(),
         );
@@ -368,7 +362,6 @@ fn infer_intrinsic_verify_ed25519(
 //
 fn infer_intrinsic_recover_secp256k1(
     contract: &Contract,
-    pred: &Predicate,
     name: &Ident,
     args: &[ExprKey],
     span: &Span,
@@ -402,7 +395,7 @@ fn infer_intrinsic_recover_secp256k1(
     if !pub_key_type.is_b256() {
         return arg_type_error(
             "b256".to_string(),
-            pred.with_pred(contract, pub_key_type).to_string(),
+            contract.with_ctrct(pub_key_type).to_string(),
             name.span.clone(),
             pub_key_span.clone(),
         );
@@ -419,7 +412,7 @@ fn infer_intrinsic_recover_secp256k1(
         {
             return arg_type_error(
                 "{ b256, b256, int }".to_string(),
-                pred.with_pred(contract, sig_type).to_string(),
+                contract.with_ctrct(sig_type).to_string(),
                 name.span.clone(),
                 sig_span.clone(),
             );
@@ -427,7 +420,7 @@ fn infer_intrinsic_recover_secp256k1(
     } else {
         return arg_type_error(
             "{ b256, b256, int }".to_string(),
-            pred.with_pred(contract, sig_type).to_string(),
+            contract.with_ctrct(sig_type).to_string(),
             name.span.clone(),
             sig_span.clone(),
         );

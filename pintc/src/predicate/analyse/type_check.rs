@@ -294,16 +294,13 @@ impl Contract {
                     handler.emit_err(Error::Compile {
                         error: CompileError::ConstraintExpressionTypeError {
                             large_err: Box::new(LargeTypeError::ConstraintExpressionTypeError {
-                                expected_ty: pred
-                                    .with_pred(
-                                        self,
-                                        Type::Primitive {
-                                            kind: PrimitiveKind::Bool,
-                                            span: empty_span(),
-                                        },
-                                    )
+                                expected_ty: self
+                                    .with_ctrct(Type::Primitive {
+                                        kind: PrimitiveKind::Bool,
+                                        span: empty_span(),
+                                    })
                                     .to_string(),
-                                found_ty: pred.with_pred(self, expr_type).to_string(),
+                                found_ty: self.with_ctrct(expr_type).to_string(),
                                 span: constraint_decl.span.clone(),
                                 expected_span: Some(constraint_decl.span.clone()),
                             }),
@@ -486,12 +483,8 @@ impl Contract {
                             handler.emit_err(Error::Compile {
                                 error: CompileError::StateVarInitTypeError {
                                     large_err: Box::new(LargeTypeError::StateVarInitTypeError {
-                                        expected_ty: self.preds[pred_key]
-                                            .with_pred(self, state_ty)
-                                            .to_string(),
-                                        found_ty: self.preds[pred_key]
-                                            .with_pred(self, expr_ty)
-                                            .to_string(),
+                                        expected_ty: self.with_ctrct(state_ty).to_string(),
+                                        found_ty: self.with_ctrct(expr_ty).to_string(),
                                         span: self.expr_key_to_span(state.expr),
                                         expected_span: Some(state_ty.span().clone()),
                                     }),
@@ -573,9 +566,7 @@ impl Contract {
                 {
                     handler.emit_err(Error::Compile {
                         error: CompileError::InvalidArrayRangeType {
-                            found_ty: self.preds[pred_key]
-                                .with_pred(self, range_expr.get_ty(self))
-                                .to_string(),
+                            found_ty: self.with_ctrct(range_expr.get_ty(self)).to_string(),
                             span: self.expr_key_to_span(*range_expr),
                         },
                     });
@@ -687,16 +678,13 @@ impl Contract {
                         handler.emit_err(Error::Compile {
                             error: CompileError::AddressExpressionTypeError {
                                 large_err: Box::new(LargeTypeError::AddressExpressionTypeError {
-                                    expected_ty: self.preds[pred_key]
-                                        .with_pred(
-                                            self,
-                                            Type::Primitive {
-                                                kind: PrimitiveKind::B256,
-                                                span: empty_span(),
-                                            },
-                                        )
+                                    expected_ty: self
+                                        .with_ctrct(Type::Primitive {
+                                            kind: PrimitiveKind::B256,
+                                            span: empty_span(),
+                                        })
                                         .to_string(),
-                                    found_ty: self.preds[pred_key].with_pred(self, ty).to_string(),
+                                    found_ty: self.with_ctrct(ty).to_string(),
                                     span: self.expr_key_to_span(*address),
                                     expected_span: Some(self.expr_key_to_span(*address)),
                                 }),
@@ -730,7 +718,7 @@ impl Contract {
             if !cond_ty.is_bool() {
                 handler.emit_err(Error::Compile {
                     error: CompileError::NonBoolConditional {
-                        ty: self.preds[pred_key].with_pred(self, cond_ty).to_string(),
+                        ty: self.with_ctrct(cond_ty).to_string(),
                         conditional: "`if` statement".to_string(),
                         span: self.expr_key_to_span(*condition),
                     },
@@ -843,13 +831,13 @@ impl Contract {
                 },
             }),
 
-            Expr::Immediate { value, span } => self.infer_immediate(pred, value, span),
+            Expr::Immediate { value, span } => self.infer_immediate(value, span),
 
             Expr::Array {
                 elements,
                 range_expr,
                 span,
-            } => self.infer_array_expr(pred, *range_expr, elements, span),
+            } => self.infer_array_expr(*range_expr, elements, span),
 
             Expr::Tuple { fields, span } => self.infer_tuple_expr(fields, span),
 
@@ -885,23 +873,23 @@ impl Contract {
                 then_expr,
                 else_expr,
                 span,
-            } => self.infer_select_expr(pred, *condition, *then_expr, *else_expr, span),
+            } => self.infer_select_expr(*condition, *then_expr, *else_expr, span),
 
-            Expr::Index { expr, index, span } => self.infer_index_expr(pred, *expr, *index, span),
+            Expr::Index { expr, index, span } => self.infer_index_expr(*expr, *index, span),
 
             Expr::TupleFieldAccess { tuple, field, span } => {
-                self.infer_tuple_access_expr(pred, *tuple, field, span)
+                self.infer_tuple_access_expr(*tuple, field, span)
             }
 
-            Expr::Cast { value, ty, span } => self.infer_cast_expr(pred, *value, ty, span),
+            Expr::Cast { value, ty, span } => self.infer_cast_expr(*value, ty, span),
 
             Expr::In {
                 value,
                 collection,
                 span,
-            } => self.infer_in_expr(pred, *value, *collection, span),
+            } => self.infer_in_expr(*value, *collection, span),
 
-            Expr::Range { lb, ub, span } => self.infer_range_expr(pred, *lb, *ub, span),
+            Expr::Range { lb, ub, span } => self.infer_range_expr(*lb, *ub, span),
 
             Expr::Generator {
                 kind,
@@ -909,16 +897,11 @@ impl Contract {
                 conditions,
                 body,
                 span,
-            } => self.infer_generator_expr(pred, kind, gen_ranges, conditions, *body, span),
+            } => self.infer_generator_expr(kind, gen_ranges, conditions, *body, span),
         }
     }
 
-    pub(super) fn infer_immediate(
-        &self,
-        pred: &Predicate,
-        imm: &Immediate,
-        span: &Span,
-    ) -> Result<Inference, Error> {
+    pub(super) fn infer_immediate(&self, imm: &Immediate, span: &Span) -> Result<Inference, Error> {
         if let Immediate::Array(el_imms) = imm {
             // Immediate::get_ty() assumes the array is well formed.  We need to
             // confirm here.
@@ -944,8 +927,8 @@ impl Contract {
                 if !el_ty.eq(&self.new_types, el0_ty.as_ref()) {
                     Err(Error::Compile {
                         error: CompileError::NonHomogeneousArrayElement {
-                            expected_ty: pred.with_pred(self, el0_ty.as_ref()).to_string(),
-                            ty: pred.with_pred(self, el_ty).to_string(),
+                            expected_ty: self.with_ctrct(el0_ty.as_ref()).to_string(),
+                            ty: self.with_ctrct(el_ty).to_string(),
                             span: span.clone(),
                         },
                     })
@@ -1307,7 +1290,7 @@ impl Contract {
                                 large_err: Box::new(LargeTypeError::OperatorTypeError {
                                     op: "-",
                                     expected_ty: "numeric".to_string(),
-                                    found_ty: pred.with_pred(self, ty).to_string(),
+                                    found_ty: self.with_ctrct(ty).to_string(),
                                     span: span.clone(),
                                     expected_span: None,
                                 }),
@@ -1332,7 +1315,7 @@ impl Contract {
                                 large_err: Box::new(LargeTypeError::OperatorTypeError {
                                     op: "!",
                                     expected_ty: "bool".to_string(),
-                                    found_ty: pred.with_pred(self, ty).to_string(),
+                                    found_ty: self.with_ctrct(ty).to_string(),
                                     span: span.clone(),
                                     expected_span: None,
                                 }),
@@ -1362,7 +1345,7 @@ impl Contract {
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
                             op: op.as_str(),
                             expected_ty: ty_str.to_string(),
-                            found_ty: pred.with_pred(self, lhs_ty).to_string(),
+                            found_ty: self.with_ctrct(lhs_ty).to_string(),
                             span: self.expr_key_to_span(lhs_expr_key),
                             expected_span: None,
                         }),
@@ -1375,7 +1358,7 @@ impl Contract {
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
                             op: op.as_str(),
                             expected_ty: ty_str.to_string(),
-                            found_ty: pred.with_pred(self, rhs_ty).to_string(),
+                            found_ty: self.with_ctrct(rhs_ty).to_string(),
                             span: self.expr_key_to_span(rhs_expr_key),
                             expected_span: None,
                         }),
@@ -1388,8 +1371,8 @@ impl Contract {
                         arity: "binary",
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
                             op: op.as_str(),
-                            expected_ty: pred.with_pred(self, lhs_ty).to_string(),
-                            found_ty: pred.with_pred(self, rhs_ty).to_string(),
+                            expected_ty: self.with_ctrct(lhs_ty).to_string(),
+                            found_ty: self.with_ctrct(rhs_ty).to_string(),
                             span: self.expr_key_to_span(rhs_expr_key),
                             expected_span: Some(self.expr_key_to_span(lhs_expr_key)),
                         }),
@@ -1470,8 +1453,8 @@ impl Contract {
                                     arity: "binary",
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
                                         op: op.as_str(),
-                                        expected_ty: pred.with_pred(self, lhs_ty).to_string(),
-                                        found_ty: pred.with_pred(self, rhs_ty).to_string(),
+                                        expected_ty: self.with_ctrct(lhs_ty).to_string(),
+                                        found_ty: self.with_ctrct(rhs_ty).to_string(),
                                         span: self.expr_key_to_span(rhs_expr_key),
                                         expected_span: Some(self.expr_key_to_span(lhs_expr_key)),
                                     }),
@@ -1507,7 +1490,7 @@ impl Contract {
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
                                         op: op.as_str(),
                                         expected_ty: "bool".to_string(),
-                                        found_ty: pred.with_pred(self, lhs_ty).to_string(),
+                                        found_ty: self.with_ctrct(lhs_ty).to_string(),
                                         span: self.expr_key_to_span(lhs_expr_key),
                                         expected_span: Some(span.clone()),
                                     }),
@@ -1520,7 +1503,7 @@ impl Contract {
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
                                         op: op.as_str(),
                                         expected_ty: "bool".to_string(),
-                                        found_ty: pred.with_pred(self, rhs_ty).to_string(),
+                                        found_ty: self.with_ctrct(rhs_ty).to_string(),
                                         span: self.expr_key_to_span(rhs_expr_key),
                                         expected_span: Some(span.clone()),
                                     }),
@@ -1541,7 +1524,6 @@ impl Contract {
 
     fn infer_select_expr(
         &self,
-        pred: &Predicate,
         cond_expr_key: ExprKey,
         then_expr_key: ExprKey,
         else_expr_key: ExprKey,
@@ -1554,7 +1536,7 @@ impl Contract {
             if !cond_ty.is_bool() {
                 Err(Error::Compile {
                     error: CompileError::NonBoolConditional {
-                        ty: pred.with_pred(self, cond_ty).to_string(),
+                        ty: self.with_ctrct(cond_ty).to_string(),
                         conditional: "select expression".to_string(),
                         span: self.expr_key_to_span(cond_expr_key),
                     },
@@ -1567,9 +1549,9 @@ impl Contract {
                         Err(Error::Compile {
                             error: CompileError::SelectBranchesTypeMismatch {
                                 large_err: Box::new(LargeTypeError::SelectBranchesTypeMismatch {
-                                    then_type: pred.with_pred(self, then_ty).to_string(),
+                                    then_type: self.with_ctrct(then_ty).to_string(),
                                     then_span: self.expr_key_to_span(then_expr_key),
-                                    else_type: pred.with_pred(self, else_ty).to_string(),
+                                    else_type: self.with_ctrct(else_ty).to_string(),
                                     else_span: self.expr_key_to_span(else_expr_key),
                                     span: span.clone(),
                                 }),
@@ -1589,7 +1571,6 @@ impl Contract {
 
     fn infer_range_expr(
         &self,
-        pred: &Predicate,
         lower_bound_key: ExprKey,
         upper_bound_key: ExprKey,
         span: &Span,
@@ -1601,15 +1582,15 @@ impl Contract {
                 if !lb_ty.eq(&self.new_types, ub_ty) {
                     Err(Error::Compile {
                         error: CompileError::RangeTypesMismatch {
-                            lb_ty: pred.with_pred(self, lb_ty).to_string(),
-                            ub_ty: pred.with_pred(self, ub_ty).to_string(),
+                            lb_ty: self.with_ctrct(lb_ty).to_string(),
+                            ub_ty: self.with_ctrct(ub_ty).to_string(),
                             span: ub_ty.span().clone(),
                         },
                     })
                 } else if !lb_ty.is_num() {
                     Err(Error::Compile {
                         error: CompileError::RangeTypesNonNumeric {
-                            ty: pred.with_pred(self, lb_ty).to_string(),
+                            ty: self.with_ctrct(lb_ty).to_string(),
                             span: span.clone(),
                         },
                     })
@@ -1626,7 +1607,6 @@ impl Contract {
 
     fn infer_cast_expr(
         &self,
-        pred: &Predicate,
         value_key: ExprKey,
         to_ty: &Type,
         span: &Span,
@@ -1644,7 +1624,7 @@ impl Contract {
                 // We can only cast to ints or reals.
                 Err(Error::Compile {
                     error: CompileError::BadCastTo {
-                        ty: pred.with_pred(self, to_ty).to_string(),
+                        ty: self.with_ctrct(to_ty).to_string(),
                         span: span.clone(),
                     },
                 })
@@ -1657,7 +1637,7 @@ impl Contract {
                 // We can only cast to ints from ints, enums or bools and to reals from ints or reals.
                 Err(Error::Compile {
                     error: CompileError::BadCastFrom {
-                        ty: pred.with_pred(self, from_ty).to_string(),
+                        ty: self.with_ctrct(from_ty).to_string(),
                         span: span.clone(),
                     },
                 })
@@ -1671,7 +1651,6 @@ impl Contract {
 
     fn infer_in_expr(
         &self,
-        pred: &Predicate,
         value_key: ExprKey,
         collection_key: ExprKey,
         span: &Span,
@@ -1687,8 +1666,8 @@ impl Contract {
                     if !value_ty.eq(&self.new_types, collection_ty) {
                         Err(Error::Compile {
                             error: CompileError::InExprTypesMismatch {
-                                val_ty: pred.with_pred(self, value_ty).to_string(),
-                                range_ty: pred.with_pred(self, collection_ty).to_string(),
+                                val_ty: self.with_ctrct(value_ty).to_string(),
+                                range_ty: self.with_ctrct(collection_ty).to_string(),
                                 span: collection_ty.span().clone(),
                             },
                         })
@@ -1702,8 +1681,8 @@ impl Contract {
                     if !value_ty.eq(&self.new_types, el_ty) {
                         Err(Error::Compile {
                             error: CompileError::InExprTypesArrayMismatch {
-                                val_ty: pred.with_pred(self, value_ty).to_string(),
-                                el_ty: pred.with_pred(self, el_ty).to_string(),
+                                val_ty: self.with_ctrct(value_ty).to_string(),
+                                el_ty: self.with_ctrct(el_ty).to_string(),
                                 span: el_ty.span().clone(),
                             },
                         })
@@ -1731,7 +1710,6 @@ impl Contract {
 
     fn infer_array_expr(
         &self,
-        pred: &Predicate,
         range_expr_key: ExprKey,
         element_exprs: &[ExprKey],
         span: &Span,
@@ -1757,8 +1735,8 @@ impl Contract {
                     if !el_ty.eq(&self.new_types, el0_ty) {
                         return Err(Error::Compile {
                             error: CompileError::NonHomogeneousArrayElement {
-                                expected_ty: pred.with_pred(self, &el0_ty).to_string(),
-                                ty: pred.with_pred(self, el_ty).to_string(),
+                                expected_ty: self.with_ctrct(&el0_ty).to_string(),
+                                ty: self.with_ctrct(el_ty).to_string(),
                                 span: self.expr_key_to_span(*el_key),
                             },
                         });
@@ -1790,7 +1768,6 @@ impl Contract {
 
     fn infer_index_expr(
         &self,
-        pred: &Predicate,
         array_expr_key: ExprKey,
         index_expr_key: ExprKey,
         span: &Span,
@@ -1817,8 +1794,8 @@ impl Contract {
             {
                 Err(Error::Compile {
                     error: CompileError::ArrayAccessWithWrongType {
-                        found_ty: pred.with_pred(self, index_ty).to_string(),
-                        expected_ty: pred.with_pred(self, range_ty).to_string(),
+                        found_ty: self.with_ctrct(index_ty).to_string(),
+                        expected_ty: self.with_ctrct(range_ty).to_string(),
                         span: self.expr_key_to_span(index_expr_key),
                     },
                 })
@@ -1841,8 +1818,8 @@ impl Contract {
             if !from_ty.eq(&self.new_types, index_ty) {
                 Err(Error::Compile {
                     error: CompileError::StorageMapAccessWithWrongType {
-                        found_ty: pred.with_pred(self, index_ty).to_string(),
-                        expected_ty: pred.with_pred(self, from_ty).to_string(),
+                        found_ty: self.with_ctrct(index_ty).to_string(),
+                        expected_ty: self.with_ctrct(from_ty).to_string(),
                         span: self.expr_key_to_span(index_expr_key),
                     },
                 })
@@ -1860,7 +1837,7 @@ impl Contract {
         } else {
             Err(Error::Compile {
                 error: CompileError::IndexExprNonIndexable {
-                    non_indexable_type: pred.with_pred(self, ary_ty).to_string(),
+                    non_indexable_type: self.with_ctrct(ary_ty).to_string(),
                     span: span.clone(),
                 },
             })
@@ -1896,7 +1873,6 @@ impl Contract {
 
     fn infer_tuple_access_expr(
         &self,
-        pred: &Predicate,
         tuple_expr_key: ExprKey,
         field: &TupleAccess,
         span: &Span,
@@ -1919,7 +1895,7 @@ impl Contract {
                             Err(Error::Compile {
                                 error: CompileError::InvalidTupleAccessor {
                                     accessor: idx.to_string(),
-                                    tuple_type: pred.with_pred(self, tuple_ty).to_string(),
+                                    tuple_type: self.with_ctrct(tuple_ty).to_string(),
                                     span: span.clone(),
                                 },
                             })
@@ -1933,7 +1909,7 @@ impl Contract {
                             Err(Error::Compile {
                                 error: CompileError::InvalidTupleAccessor {
                                     accessor: name.name.clone(),
-                                    tuple_type: pred.with_pred(self, &tuple_ty).to_string(),
+                                    tuple_type: self.with_ctrct(&tuple_ty).to_string(),
                                     span: span.clone(),
                                 },
                             })
@@ -1943,7 +1919,7 @@ impl Contract {
             } else {
                 Err(Error::Compile {
                     error: CompileError::TupleAccessNonTuple {
-                        non_tuple_type: pred.with_pred(self, tuple_ty).to_string(),
+                        non_tuple_type: self.with_ctrct(tuple_ty).to_string(),
                         span: span.clone(),
                     },
                 })
@@ -1955,7 +1931,6 @@ impl Contract {
 
     fn infer_generator_expr(
         &self,
-        pred: &Predicate,
         kind: &GeneratorKind,
         ranges: &[(Ident, ExprKey)],
         conditions: &[ExprKey],
@@ -1970,7 +1945,7 @@ impl Contract {
                 if !range_ty.is_int() {
                     return Err(Error::Compile {
                         error: CompileError::NonIntGeneratorRange {
-                            ty: pred.with_pred(self, range_ty).to_string(),
+                            ty: self.with_ctrct(range_ty).to_string(),
                             gen_kind: kind.to_string(),
                             span: self.expr_key_to_span(*range_expr_key),
                         },
@@ -1987,7 +1962,7 @@ impl Contract {
                 if !cond_ty.is_bool() {
                     return Err(Error::Compile {
                         error: CompileError::NonBoolGeneratorCondition {
-                            ty: pred.with_pred(self, cond_ty).to_string(),
+                            ty: self.with_ctrct(cond_ty).to_string(),
                             gen_kind: kind.to_string(),
                             span: self.expr_key_to_span(*cond_expr_key),
                         },
@@ -2003,7 +1978,7 @@ impl Contract {
             if !body_ty.is_bool() {
                 return Err(Error::Compile {
                     error: CompileError::NonBoolGeneratorBody {
-                        ty: pred.with_pred(self, body_ty).to_string(),
+                        ty: self.with_ctrct(body_ty).to_string(),
                         gen_kind: kind.to_string(),
                         span: self.expr_key_to_span(body_expr_key),
                     },
@@ -2041,8 +2016,8 @@ impl Contract {
                                 init_kind: "variable",
                                 large_err: Box::new(LargeTypeError::InitTypeError {
                                     init_kind: "variable",
-                                    expected_ty: pred.with_pred(self, var_decl_ty).to_string(),
-                                    found_ty: pred.with_pred(self, init_ty).to_string(),
+                                    expected_ty: self.with_ctrct(var_decl_ty).to_string(),
+                                    found_ty: self.with_ctrct(init_ty).to_string(),
                                     expected_ty_span: var_decl_ty.span().clone(),
                                     init_span: self.expr_key_to_span(*init_expr_key),
                                 }),
@@ -2054,7 +2029,6 @@ impl Contract {
         }
 
         // Now confirm that every const initialiser type matches the const decl type.
-        let root_pred = self.root_pred();
         for Const {
             expr: init_expr_key,
             decl_ty,
@@ -2073,8 +2047,8 @@ impl Contract {
                         init_kind: "const",
                         large_err: Box::new(LargeTypeError::InitTypeError {
                             init_kind: "const",
-                            expected_ty: root_pred.with_pred(self, decl_ty).to_string(),
-                            found_ty: root_pred.with_pred(self, init_ty).to_string(),
+                            expected_ty: self.with_ctrct(decl_ty).to_string(),
+                            found_ty: self.with_ctrct(init_ty).to_string(),
                             expected_ty_span: decl_ty.span().clone(),
                             init_span: self.expr_key_to_span(*init_expr_key),
                         }),

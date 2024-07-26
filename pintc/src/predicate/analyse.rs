@@ -198,7 +198,7 @@ impl Contract {
                 if let Some(imm_value) = all_const_immediates.get(path) {
                     // Check the type is valid.
                     let span = self.expr_key_to_span(*expr);
-                    match self.infer_immediate(self.root_pred(), imm_value, &span) {
+                    match self.infer_immediate(imm_value, &span) {
                         Ok(inferred) => match inferred {
                             Inference::Type(new_ty) => {
                                 type_replacements.push((path.clone(), new_ty))

@@ -123,7 +123,7 @@ impl DisplayWithPred for VarKey {
         write!(f, "var {}", var.name)?;
         let ty = self.get_ty(pred);
         if !ty.is_unknown() {
-            write!(f, ": {}", pred.with_pred(contract, ty))?;
+            write!(f, ": {}", contract.with_ctrct(ty))?;
         }
         Ok(())
     }

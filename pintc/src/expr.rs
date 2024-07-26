@@ -45,6 +45,7 @@ pub enum Expr {
     },
     MacroCall {
         call: CallKey,
+        path: Path,
         span: Span,
     },
     IntrinsicCall {

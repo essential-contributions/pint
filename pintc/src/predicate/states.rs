@@ -104,9 +104,9 @@ impl DisplayWithPred for StateKey {
         write!(f, "state {}", state.name)?;
         let ty = self.get_ty(pred);
         if !ty.is_unknown() {
-            write!(f, ": {}", pred.with_pred(contract, ty))?;
+            write!(f, ": {}", contract.with_ctrct(ty))?;
         }
-        write!(f, " = {}", pred.with_pred(contract, &state.expr))
+        write!(f, " = {}", contract.with_ctrct(&state.expr))
     }
 }
 
