@@ -105,8 +105,7 @@ impl Contract {
 
         match expr {
             Expr::Error(_)
-            | Expr::PathByKey(_, _)
-            | Expr::PathByName(_, _)
+            | Expr::Path(_, _)
             | Expr::StorageAccess(_, _)
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }

@@ -202,7 +202,7 @@ impl Type {
         contract: &Contract,
         pred_key: PredKey,
     ) -> Result<i64, ErrorEmitted> {
-        if let Expr::PathByName(path, _) = range_expr {
+        if let Expr::Path(path, _) = range_expr {
             // It's hopefully an enum for the range expression.
             if let Some(size) = contract.enums.iter().find_map(|enum_decl| {
                 (&enum_decl.name.name == path).then_some(enum_decl.variants.len() as i64)

@@ -853,9 +853,7 @@ impl Contract {
 
             Expr::Tuple { fields, span } => self.infer_tuple_expr(fields, span),
 
-            Expr::PathByKey(var_key, span) => self.infer_path_by_key(pred, *var_key, span),
-
-            Expr::PathByName(path, span) => self.infer_path_by_name(pred, path, span),
+            Expr::Path(path, span) => self.infer_path_by_name(pred, path, span),
 
             Expr::StorageAccess(name, span) => self.infer_storage_access(name, span),
 
@@ -1245,21 +1243,8 @@ impl Contract {
             span: &Span,
         ) -> Result<(), Error> {
             match expr_key.try_get(contract) {
-                Some(Expr::PathByName(name, span)) => {
+                Some(Expr::Path(name, span)) => {
                     if !pred.states().any(|(_, state)| state.name == *name) {
-                        Err(Error::Compile {
-                            error: CompileError::InvalidNextStateAccess { span: span.clone() },
-                        })
-                    } else {
-                        Ok(())
-                    }
-                }
-
-                Some(Expr::PathByKey(var_key, span)) => {
-                    if !pred
-                        .states()
-                        .any(|(_, state)| state.name == var_key.get(pred).name)
-                    {
                         Err(Error::Compile {
                             error: CompileError::InvalidNextStateAccess { span: span.clone() },
                         })
@@ -1418,16 +1403,7 @@ impl Contract {
         // Checks if a given `ExprKey` is a path to a state var or a "next state" expression. If
         // not, emit an error.
         let check_state_var_arg = |arg: ExprKey| match arg.try_get(self) {
-            Some(Expr::PathByName(name, _))
-                if pred.states().any(|(_, state)| state.name == *name) =>
-            {
-                Ok(())
-            }
-            Some(Expr::PathByKey(var_key, _))
-                if pred
-                    .states()
-                    .any(|(_, state)| state.name == var_key.get(pred).name) =>
-            {
+            Some(Expr::Path(name, _)) if pred.states().any(|(_, state)| state.name == *name) => {
                 Ok(())
             }
             Some(Expr::UnaryOp {

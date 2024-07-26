@@ -744,7 +744,7 @@ TermInner: Expr = {
     <IntrinsicCallExpr>,
     <ArrayExpr>,
     <TupleExpr>,
-    <l:@L> <path:Path> <r:@R> => Expr::PathByName(path, (context.span_from)(l, r)),
+    <l:@L> <path:Path> <r:@R> => Expr::Path(path, (context.span_from)(l, r)),
 };
 
 GeneratorRange: (Ident, ExprKey) = {

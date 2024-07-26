@@ -158,7 +158,7 @@ impl Contract {
                 let mut preserved_enum_type = None;
                 if let Some(Const { expr, decl_ty }) = self.consts.get(&new_path) {
                     if decl_ty.is_unknown() {
-                        if let Expr::PathByName(path, _) = expr.get(self) {
+                        if let Expr::Path(path, _) = expr.get(self) {
                             // We have an unknown-typed const initialised with a path.  E.g.,
                             // const a = MyEnum::MyVariant;
                             if let Ok(Inference::Type(variant_ty)) =

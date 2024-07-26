@@ -82,12 +82,9 @@ impl ExprKey {
         contract.exprs.get(*self).map_or(false, |expr| match expr {
             Expr::StorageAccess(_, _) | Expr::ExternalStorageAccess { .. } => true,
 
-            Expr::PathByName(path, _) => pred.states().any(|(_, state)| &state.name == path),
+            Expr::Path(path, _) => pred.states().any(|(_, state)| &state.name == path),
 
-            Expr::Error(_)
-            | Expr::Immediate { .. }
-            | Expr::PathByKey(_, _)
-            | Expr::MacroCall { .. } => false,
+            Expr::Error(_) | Expr::Immediate { .. } | Expr::MacroCall { .. } => false,
 
             Expr::Array {
                 elements,
@@ -292,8 +289,7 @@ impl<'a> Iterator for ExprsIter<'a> {
             Expr::Error(_)
             | Expr::StorageAccess(..)
             | Expr::ExternalStorageAccess { .. }
-            | Expr::PathByKey(_, _)
-            | Expr::PathByName(_, _)
+            | Expr::Path(_, _)
             | Expr::MacroCall { .. } => {}
         };
 

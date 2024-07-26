@@ -97,7 +97,7 @@ impl Evaluator {
                 Ok(Imm::Tuple(imm_fields))
             }
 
-            Expr::PathByName(path, span) => self
+            Expr::Path(path, span) => self
                 .scope_values
                 .get(path)
                 .or_else(|| self.enum_values.get(path))
@@ -393,7 +393,6 @@ impl Evaluator {
             }
 
             Expr::Error(_)
-            | Expr::PathByKey(_, _)
             | Expr::StorageAccess(_, _)
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
@@ -480,21 +479,12 @@ impl ExprKey {
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
             | Expr::Error(_) => expr,
-            Expr::PathByName(ref path, ref span) => {
+            Expr::Path(ref path, ref span) => {
                 let span = span.clone();
                 values_map.get(path).map_or(expr, |value| Expr::Immediate {
                     value: value.clone(),
                     span,
                 })
-            }
-            Expr::PathByKey(key, ref span) => {
-                let span = span.clone();
-                values_map
-                    .get(&key.get(&contract.preds[pred_key]).name)
-                    .map_or(expr, |value| Expr::Immediate {
-                        value: value.clone(),
-                        span,
-                    })
             }
             Expr::UnaryOp { op, expr, span } => {
                 let expr = expr.plug_in(contract, pred_key, values_map);

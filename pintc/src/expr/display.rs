@@ -44,8 +44,7 @@ impl DisplayWithPred for &super::Expr {
                 write!(f, "}}")
             }
 
-            super::Expr::PathByName(p, _) => write!(f, "{p}"),
-            super::Expr::PathByKey(k, _) => write!(f, "{}", k.get(pred).name),
+            super::Expr::Path(p, _) => write!(f, "{p}"),
             super::Expr::StorageAccess(p, _) => write!(f, "storage::{p}"),
             super::Expr::ExternalStorageAccess {
                 interface_instance,

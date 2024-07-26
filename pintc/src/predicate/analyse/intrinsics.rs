@@ -485,16 +485,7 @@ fn infer_intrinsic_state_len(
 
     // First argument must be a path to a state variable
     match args[0].try_get(contract) {
-        Some(Expr::PathByName(name, _)) if pred.states().any(|(_, state)| state.name == *name) => {
-            Ok(())
-        }
-        Some(Expr::PathByKey(var_key, _))
-            if pred
-                .states()
-                .any(|(_, state)| state.name == var_key.get(pred).name) =>
-        {
-            Ok(())
-        }
+        Some(Expr::Path(name, _)) if pred.states().any(|(_, state)| state.name == *name) => Ok(()),
         Some(Expr::UnaryOp {
             op: UnaryOp::NextState,
             ..
