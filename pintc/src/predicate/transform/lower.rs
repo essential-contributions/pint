@@ -2,7 +2,7 @@ use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, Expr, Ident, Immediate, TupleAccess, UnaryOp},
     predicate::{
-        BlockStatement, Const, ConstraintDecl, Contract, ExprKey, IfDecl, PredKey, StorageVar,
+        BlockStatement, Const, ConstraintDecl, Contract, ExprKey, IfDecl, PredKey, StorageVar, Var,
     },
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
@@ -60,7 +60,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
 
         // Find all the expressions referring to the variants and save them in a list.
         for old_expr_key in contract.exprs(pred_key) {
-            if let Some(Expr::PathByName(path, _span)) = old_expr_key.try_get(contract) {
+            if let Some(Expr::Path(path, _span)) = old_expr_key.try_get(contract) {
                 if let Some(idx) = variant_map.get(path) {
                     variant_replacements.push((old_expr_key, idx));
                 }
@@ -75,11 +75,12 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
         enum_var_keys.extend(
             pred.vars()
                 .filter(|(var_key, _)| var_key.get_ty(pred).is_enum(&contract.enums))
-                .map(|(var_key, _)| {
+                .map(|(var_key, Var { name, .. })| {
                     let enum_ty = var_key.get_ty(pred).clone();
-                    let variant_count =
-                        variant_count_map.get(enum_ty.get_enum_name(&contract.enums).unwrap());
-                    (var_key, enum_ty, variant_count)
+                    let variant_count = variant_count_map
+                        .get(enum_ty.get_enum_name(&contract.enums).unwrap())
+                        .copied();
+                    (var_key, name.clone(), enum_ty, variant_count)
                 }),
         );
 
@@ -109,10 +110,10 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
 
         // Replace any var or state enum type with int.  Also add constraints to disallow vars or state
         // to have values outside of the enum.
-        for (var_key, enum_ty, variant_count) in &enum_var_keys {
+        for (_, var_name, enum_ty, variant_count) in &enum_var_keys {
             // Add the constraint.  Get the variant max for this enum first.
             let variant_max = match variant_count {
-                Some(c) => **c as i64 - 1,
+                Some(c) => *c as i64 - 1,
                 None => {
                     return Err(handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
@@ -123,9 +124,10 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
                 }
             };
 
-            let var_expr_key = contract
-                .exprs
-                .insert(Expr::PathByKey(*var_key, empty_span()), int_ty.clone());
+            let var_expr_key = contract.exprs.insert(
+                Expr::Path(var_name.to_string(), empty_span()),
+                int_ty.clone(),
+            );
 
             let lower_bound_key = contract.exprs.insert(
                 Expr::Immediate {
@@ -186,7 +188,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
         }
 
         // Now do the actual type update from enum to int
-        for (enum_var_key, _, _) in enum_var_keys {
+        for (enum_var_key, _, _, _) in enum_var_keys {
             enum_var_key.set_ty(int_ty.clone(), contract.preds.get_mut(pred_key).unwrap());
         }
 
@@ -1011,7 +1013,7 @@ pub(super) fn replace_const_refs(contract: &mut Contract) {
         let const_refs = contract
             .exprs(pred_key)
             .filter_map(|path_expr_key| {
-                if let Expr::PathByName(path, _span) = path_expr_key.get(contract) {
+                if let Expr::Path(path, _span) = path_expr_key.get(contract) {
                     consts
                         .iter()
                         .find_map(|(const_path, const_expr_key, const_expr, const_ty)| {
@@ -1118,8 +1120,7 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                 | Expr::Immediate { .. }
                 | Expr::Array { .. }
                 | Expr::Tuple { .. }
-                | Expr::PathByKey(..)
-                | Expr::PathByName(..)
+                | Expr::Path(..)
                 | Expr::StorageAccess(..)
                 | Expr::ExternalStorageAccess { .. }
                 | Expr::UnaryOp { .. }

@@ -1,5 +1,5 @@
 use crate::{
-    predicate::{CallKey, ExprKey, VarKey},
+    predicate::{CallKey, ExprKey},
     span::{empty_span, Span, Spanned},
     types::{Path, PrimitiveKind, Type},
 };
@@ -25,8 +25,7 @@ pub enum Expr {
         fields: Vec<(Option<Ident>, ExprKey)>,
         span: Span,
     },
-    PathByKey(VarKey, Span),
-    PathByName(Path, Span),
+    Path(Path, Span),
     StorageAccess(String, Span),
     ExternalStorageAccess {
         interface_instance: Path,
@@ -46,6 +45,7 @@ pub enum Expr {
     },
     MacroCall {
         call: CallKey,
+        path: Path,
         span: Span,
     },
     IntrinsicCall {
@@ -232,8 +232,7 @@ impl Spanned for Expr {
             | Expr::Immediate { span, .. }
             | Expr::Array { span, .. }
             | Expr::Tuple { span, .. }
-            | Expr::PathByKey(_, span)
-            | Expr::PathByName(_, span)
+            | Expr::Path(_, span)
             | Expr::StorageAccess(_, span)
             | Expr::ExternalStorageAccess { span, .. }
             | Expr::UnaryOp { span, .. }
@@ -318,10 +317,9 @@ impl Expr {
             }
 
             Expr::MacroCall { .. }
-            | Expr::PathByName(_, _)
+            | Expr::Path(_, _)
             | Expr::StorageAccess(_, _)
             | Expr::ExternalStorageAccess { .. }
-            | Expr::PathByKey(_, _)
             | Expr::Error(_) => {}
         }
     }

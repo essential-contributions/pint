@@ -2,7 +2,7 @@ use crate::{
     error::{Error, Handler, ReportableError},
     lexer::{self, KEYWORDS},
     parser::ParserContext,
-    predicate::{Contract, DisplayWithPred, Predicate},
+    predicate::{Contract, DisplayWithContract},
     span::Span,
 };
 use std::{collections::BTreeMap, path::Path, rc::Rc};
@@ -100,7 +100,7 @@ macro_rules! run_parser {
                 let result =
                     format!("{}{}",
                         context.contract,
-                        context.contract.root_pred().with_pred(context.contract, &item)
+                        context.contract.with_ctrct(&item)
                     );
                 format!("{}{}",
                     use_paths
@@ -119,13 +119,8 @@ macro_rules! run_parser {
 
 /// Many parsers return () which we may need to print. Just do nothing!
 #[cfg(test)]
-impl DisplayWithPred for () {
-    fn fmt(
-        &self,
-        _f: &mut std::fmt::Formatter,
-        _contract: &Contract,
-        _pred: &Predicate,
-    ) -> std::fmt::Result {
+impl DisplayWithContract for () {
+    fn fmt(&self, _f: &mut std::fmt::Formatter, _contract: &Contract) -> std::fmt::Result {
         Ok(())
     }
 }
@@ -2204,11 +2199,7 @@ fn macro_call() {
     assert!(context.macro_calls.get(&root_pred_key).unwrap().len() == 1);
 
     check(
-        &context
-            .contract
-            .root_pred()
-            .with_pred(context.contract, &result.unwrap())
-            .to_string(),
+        &context.contract.with_ctrct(&result.unwrap()).to_string(),
         expect_test::expect!["::@foo(...)"],
     );
 

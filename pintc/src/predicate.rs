@@ -5,10 +5,7 @@ use crate::{
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type},
 };
 use exprs::ExprsIter;
-pub use exprs::{ExprKey, Exprs};
 use pint_abi_types::{ContractABI, PredicateABI, VarABI};
-pub use states::{State, StateKey, States};
-pub use vars::{Var, VarKey, Vars};
 
 use std::fmt::{self, Formatter};
 
@@ -22,6 +19,11 @@ mod states;
 mod transform;
 mod vars;
 
+pub(crate) use display::{DisplayWithContract, DisplayWithPred};
+pub use exprs::{ExprKey, Exprs};
+pub use states::{State, StateKey, States};
+pub use vars::{Var, VarKey, Vars};
+
 slotmap::new_key_type! { pub struct PredKey; }
 slotmap::new_key_type! { pub struct CallKey; }
 
@@ -34,12 +36,12 @@ pub struct Contract {
     pub exprs: Exprs,
     pub consts: FxHashMap<String, Const>,
     pub storage: Option<(Vec<StorageVar>, Span)>,
+    pub interfaces: Vec<Interface>,
 
     pub enums: Vec<EnumDecl>,
     pub new_types: Vec<NewTypeDecl>,
 
-    // Keep track of obsolete expanded macro calls in case they're erroneously depended upon.
-    pub removed_macro_calls: slotmap::SecondaryMap<ExprKey, Span>,
+    removed_macro_calls: slotmap::SecondaryMap<ExprKey, Span>,
 }
 
 impl Default for Contract {
@@ -53,6 +55,7 @@ impl Default for Contract {
             exprs: Default::default(),
             consts: Default::default(),
             storage: Default::default(),
+            interfaces: Default::default(),
             enums: Default::default(),
             new_types: Default::default(),
             removed_macro_calls: Default::default(),
@@ -104,8 +107,7 @@ impl Contract {
 
         match expr {
             Expr::Error(_)
-            | Expr::PathByKey(_, _)
-            | Expr::PathByName(_, _)
+            | Expr::Path(_, _)
             | Expr::StorageAccess(_, _)
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
@@ -279,6 +281,14 @@ impl Contract {
             .map(|expr| expr.span().clone())
             .unwrap_or_else(empty_span)
     }
+
+    pub fn add_removed_macro_call(&mut self, expr_key: ExprKey, span: Span) {
+        self.removed_macro_calls.insert(expr_key, span);
+    }
+
+    pub fn is_removed_macro_call(&self, expr_key: ExprKey) -> bool {
+        self.removed_macro_calls.contains_key(expr_key)
+    }
 }
 
 /// An in-progress predicate, possibly malformed or containing redundant information.  Designed to
@@ -301,16 +311,13 @@ pub struct Predicate {
     // CallKey is used in a secondary map in the parser context to access the actual call data.
     pub calls: slotmap::SlotMap<CallKey, Path>,
 
-    // A list of all availabe interfaces
-    pub interfaces: Vec<Interface>,
-
     // A list of all availabe interface instances
     pub interface_instances: Vec<InterfaceInstance>,
 
     // A list of all availabe predicate instances
     pub predicate_instances: Vec<PredicateInstance>,
 
-    pub top_level_symbols: FxHashMap<String, Span>,
+    pub symbols: SymbolTable,
 }
 
 impl Predicate {
@@ -353,86 +360,29 @@ impl Predicate {
         })
     }
 
-    /// Helps out some `thing: T` by adding `self` as context.
-    pub fn with_pred<'a, T>(&'a self, contract: &'a Contract, thing: T) -> WithPred<T> {
-        WithPred {
-            thing,
-            contract,
-            pred: self,
-        }
-    }
-
     pub fn insert_ephemeral(
         &mut self,
-        handler: &Handler,
         mod_prefix: &str,
         name: &Ident,
         ty: Type,
     ) -> std::result::Result<(), ErrorEmitted> {
-        let full_name = Self::make_full_symbol(mod_prefix, None, name);
+        let full_name = self
+            .symbols
+            .add_symbol_no_clash(mod_prefix, None, name, name.span.clone());
+
         if !self
             .ephemerals
             .iter()
             .any(|eph_decl| eph_decl.name == full_name)
         {
-            self.add_top_level_symbol_with_name(
-                handler,
-                name,
-                full_name.clone(),
-                name.span.clone(),
-            )?;
             self.ephemerals.push(EphemeralDecl {
                 name: full_name,
                 ty,
                 span: name.span.clone(),
             });
         }
+
         Ok(())
-    }
-
-    fn make_full_symbol(mod_prefix: &str, local_scope: Option<&str>, name: &Ident) -> String {
-        let local_scope_str = local_scope
-            .map(|ls| ls.to_owned() + "::")
-            .unwrap_or_default();
-        mod_prefix.to_owned() + &local_scope_str + &name.name
-    }
-
-    fn add_top_level_symbol_with_name(
-        &mut self,
-        handler: &Handler,
-        short_name: &Ident,
-        full_name: String,
-        span: Span,
-    ) -> std::result::Result<String, ErrorEmitted> {
-        self.top_level_symbols
-            .get(&full_name)
-            .map(|prev_span| {
-                // Name clash.
-                Err(handler.emit_err(Error::Parse {
-                    error: ParseError::NameClash {
-                        sym: short_name.name.clone(),
-                        span: short_name.span.clone(),
-                        prev_span: prev_span.clone(),
-                    },
-                }))
-            })
-            .unwrap_or_else(|| {
-                // Not found in the symbol table.
-                self.top_level_symbols.insert(full_name.clone(), span);
-                Ok(full_name)
-            })
-    }
-
-    pub fn add_top_level_symbol(
-        &mut self,
-        handler: &Handler,
-        mod_prefix: &str,
-        local_scope: Option<&str>,
-        name: &Ident,
-        span: Span,
-    ) -> std::result::Result<String, ErrorEmitted> {
-        let full_name = Self::make_full_symbol(mod_prefix, local_scope, name);
-        self.add_top_level_symbol_with_name(handler, name, full_name, span)
     }
 
     pub fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
@@ -523,26 +473,10 @@ pub struct Const {
     pub(crate) decl_ty: Type,
 }
 
-impl DisplayWithPred for Const {
-    fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> fmt::Result {
-        if !self.decl_ty.is_unknown() {
-            write!(f, ": {}", pred.with_pred(contract, &self.decl_ty))?;
-        }
-
-        write!(f, " = {}", pred.with_pred(contract, self.expr))
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct ConstraintDecl {
     pub expr: ExprKey,
     pub span: Span,
-}
-
-impl DisplayWithPred for ConstraintDecl {
-    fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> fmt::Result {
-        write!(f, "constraint {}", pred.with_pred(contract, self.expr))
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -565,7 +499,7 @@ impl BlockStatement {
                 writeln!(
                     f,
                     "{indentation}constraint {}",
-                    pred.with_pred(contract, constraint.expr)
+                    contract.with_ctrct(constraint.expr)
                 )
             }
             Self::If(if_decl) => if_decl.fmt_with_indent(f, contract, pred, indent),
@@ -593,7 +527,7 @@ impl IfDecl {
         writeln!(
             f,
             "{indentation}if {} {{",
-            pred.with_pred(contract, self.condition)
+            contract.with_ctrct(self.condition)
         )?;
         for block_statament in &self.then_block {
             block_statament.fmt_with_indent(f, contract, pred, indent + 1)?;
@@ -613,17 +547,6 @@ pub struct StorageVar {
     pub name: Ident,
     pub ty: Type,
     pub span: Span,
-}
-
-impl DisplayWithPred for StorageVar {
-    fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> fmt::Result {
-        write!(
-            f,
-            "{}: {},",
-            self.name.name,
-            pred.with_pred(contract, &self.ty)
-        )
-    }
 }
 
 /// A a predicate interface that belong in an `Interface`.
@@ -679,35 +602,81 @@ pub struct PredicateInstance {
     pub span: Span,
 }
 
-#[derive(Clone, Copy)]
-pub struct WithPred<'a, T> {
-    pub thing: T,
-    pub contract: &'a Contract,
-    pub pred: &'a Predicate,
+#[derive(Clone, Debug, Default)]
+pub struct SymbolTable {
+    symbols: FxHashMap<String, Span>,
 }
 
-impl<'a, T> WithPred<'a, T> {
-    pub fn new(thing: T, contract: &'a Contract, pred: &'a Predicate) -> Self {
-        WithPred {
-            thing,
-            contract,
-            pred,
+impl SymbolTable {
+    pub fn add_symbol_no_clash(
+        &mut self,
+        mod_prefix: &str,
+        local_scope: Option<&str>,
+        name: &Ident,
+        span: Span,
+    ) -> String {
+        let full_name = Self::make_full_symbol(mod_prefix, local_scope, name);
+        self.symbols.entry(full_name.clone()).or_insert(span);
+        full_name
+    }
+
+    pub fn add_symbol(
+        &mut self,
+        handler: &Handler,
+        mod_prefix: &str,
+        local_scope: Option<&str>,
+        name: &Ident,
+        span: Span,
+    ) -> std::result::Result<String, ErrorEmitted> {
+        let full_name = Self::make_full_symbol(mod_prefix, local_scope, name);
+        self.symbols
+            .get(&full_name)
+            .map(|prev_span| {
+                // Name clash.
+                Err(handler.emit_err(Error::Parse {
+                    error: ParseError::NameClash {
+                        sym: name.name.clone(),
+                        span: name.span.clone(),
+                        prev_span: prev_span.clone(),
+                    },
+                }))
+            })
+            .unwrap_or_else(|| {
+                // Not found in the symbol table.
+                self.symbols.insert(full_name.clone(), span);
+                Ok(full_name)
+            })
+    }
+
+    pub fn check_for_clash(
+        &self,
+        handler: &Handler,
+        other: &SymbolTable,
+    ) -> std::result::Result<(), ErrorEmitted> {
+        // Self has the original symbols, `other` has the new potentially clashing symbols.
+        for (symbol, span) in &other.symbols {
+            if let Some(prev_span) = self.symbols.get(symbol) {
+                handler.emit_err(Error::Parse {
+                    error: ParseError::NameClash {
+                        sym: symbol.clone(),
+                        span: span.clone(),
+                        prev_span: prev_span.clone(),
+                    },
+                });
+            }
+        }
+
+        if handler.has_errors() {
+            Err(handler.cancel())
+        } else {
+            Ok(())
         }
     }
-}
 
-pub(crate) trait DisplayWithPred {
-    fn fmt(&self, f: &mut fmt::Formatter, contract: &Contract, pred: &Predicate) -> fmt::Result;
-}
-
-impl<T: DisplayWithPred> fmt::Display for WithPred<'_, T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.thing.fmt(f, self.contract, self.pred)
-    }
-}
-
-impl<T: DisplayWithPred> DisplayWithPred for &T {
-    fn fmt(&self, f: &mut fmt::Formatter, contract: &Contract, pred: &Predicate) -> fmt::Result {
-        (*self).fmt(f, contract, pred)
+    fn make_full_symbol(mod_prefix: &str, local_scope: Option<&str>, name: &Ident) -> String {
+        let local_scope_str = local_scope
+            .map(|ls| ls.to_owned() + "::")
+            .unwrap_or_default();
+        mod_prefix.to_owned() + &local_scope_str + &name.name
     }
 }

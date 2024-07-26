@@ -133,13 +133,7 @@ impl AsmBuilder {
                 }
                 _ => Ok(Location::Value),
             },
-            Expr::PathByName(path, _) => {
-                Self::compile_path(handler, asm, path, contract, pred_key, pred)
-            }
-            Expr::PathByKey(var_key, _) => {
-                let path = &var_key.get(pred).name;
-                Self::compile_path(handler, asm, path, contract, pred_key, pred)
-            }
+            Expr::Path(path, _) => Self::compile_path(handler, asm, path, contract, pred_key, pred),
             Expr::TupleFieldAccess { tuple, field, .. } => {
                 let location =
                     Self::compile_expr_pointer(handler, asm, tuple, contract, pred_key, pred)?;
@@ -368,7 +362,7 @@ impl AsmBuilder {
                 s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
 
                 // Get the `interface` declaration that the storage access refers to
-                let interface = &pred
+                let interface = &contract
                     .interfaces
                     .iter()
                     .find(|e| e.name.to_string() == *interface_instance.interface)
@@ -886,14 +880,8 @@ impl AsmBuilder {
                     // Check argument:
                     // - `state_var` must be a path to a state var or a "next state" expression
                     assert!(match args[0].try_get(contract) {
-                        Some(Expr::PathByName(name, _))
-                            if pred.states().any(|(_, state)| state.name == *name) =>
-                            true,
-                        Some(Expr::PathByKey(var_key, _))
-                            if pred
-                                .states()
-                                .any(|(_, state)| state.name == var_key.get(pred).name) =>
-                            true,
+                        Some(Expr::Path(name, _)) =>
+                            pred.states().any(|(_, state)| state.name == *name),
                         Some(Expr::UnaryOp {
                             op: UnaryOp::NextState,
                             ..
@@ -984,8 +972,7 @@ impl AsmBuilder {
                     }
                 }
             }
-            Expr::PathByName(..)
-            | Expr::PathByKey(..)
+            Expr::Path(..)
             | Expr::Error(_)
             | Expr::MacroCall { .. }
             | Expr::Index { .. }
@@ -1076,7 +1063,7 @@ impl AsmBuilder {
                     continue;
                 };
 
-                let Some(interface) = pred
+                let Some(interface) = contract
                     .interfaces
                     .iter()
                     .find(|e| e.name.to_string() == *interface_instance.interface)

@@ -31,18 +31,8 @@ predicate Simple {
 //         pub var y: b256;
 //     }
 // }
-// 
+//
 // predicate ::Simple {
-//     interface ::Foo {
-//         storage {
-//             x: int,
-//             y: int,
-//         }
-//         predicate I1 {
-//             pub var x: int;
-//             pub var y: b256;
-//         }
-//     }
 //     interface ::FooInstance1 = ::Foo((0 + true))
 //     interface ::FooInstance2 = ::Foo("bla")
 //     interface ::FooInstance = ::Foo(::addr)

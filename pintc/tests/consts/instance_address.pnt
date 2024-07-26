@@ -24,11 +24,6 @@ predicate Q {
 // }
 //
 // predicate ::Q {
-//     interface ::I {
-//         predicate P {
-//             pub var x: int;
-//         }
-//     }
 //     interface ::Iface = ::I(::i_addr)
 //     predicate ::PInstance = ::Iface::P(::p_addr)
 //     var __::PInstance_pathway: int;
@@ -46,11 +41,6 @@ predicate Q {
 // }
 //
 // predicate ::Q {
-//     interface ::I {
-//         predicate P {
-//             pub var x: int;
-//         }
-//     }
 //     interface ::Iface = ::I(0x0000000000000000000000000000000000000000000000000000000000000000)
 //     predicate ::PInstance = ::Iface::P(0x1111111111111111111111111111111111111111111111111111111111111111)
 //     var __::PInstance_pathway: int;

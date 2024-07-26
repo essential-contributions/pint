@@ -41,18 +41,8 @@ predicate Simple {
 //         pub var y: b256;
 //     }
 // }
-// 
+//
 // predicate ::Simple {
-//     interface ::Foo {
-//         storage {
-//             x: int,
-//             y: int,
-//         }
-//         predicate I1 {
-//             pub var x: int;
-//             pub var y: b256;
-//         }
-//     }
 //     interface ::Instance1 = ::MissingInterface(::addr1)
 //     interface ::FooInstance = ::Foo(::addr2)
 //     predicate ::Bad1 = ::MissingInterfaceInstance::Foo(::addr2)
