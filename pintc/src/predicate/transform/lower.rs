@@ -405,7 +405,7 @@ pub(crate) fn lower_imm_accesses(
                     }));
                 };
 
-                match evaluator.evaluate(idx_expr, handler, contract, pred_key) {
+                match evaluator.evaluate(idx_expr, handler, contract) {
                     Ok(Immediate::Int(idx_val)) if idx_val >= 0 => {
                         match array_key.try_get(contract) {
                             Some(Expr::Array { elements, .. }) => {

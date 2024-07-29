@@ -266,7 +266,7 @@ impl Contract {
                             // placeholder for offsets.
                             Ok(VarABI {
                                 name: name.to_string(),
-                                ty: ty.abi(handler, self, self.root_pred_key())?,
+                                ty: ty.abi(handler, self)?,
                             })
                         })
                         .collect::<Result<_, _>>()
@@ -352,7 +352,7 @@ impl Predicate {
                         name: name.to_string(),
                         ty: {
                             let ty = var_key.get_ty(self);
-                            ty.abi(handler, contract, self_pred_key)?
+                            ty.abi(handler, contract)?
                         },
                     })
                 })

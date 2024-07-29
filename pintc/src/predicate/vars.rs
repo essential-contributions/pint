@@ -109,7 +109,7 @@ impl VarKey {
         let pred = &contract.preds[pred_key];
         Ok(VarABI {
             name: self.get(pred).name.clone(),
-            ty: self.get_ty(pred).abi(handler, contract, pred_key)?,
+            ty: self.get_ty(pred).abi(handler, contract)?,
         })
     }
 }
