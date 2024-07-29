@@ -12,7 +12,6 @@ use std::fmt::{self, Formatter};
 use fxhash::FxHashMap;
 
 mod analyse;
-mod check_contract;
 mod display;
 mod exprs;
 mod states;
@@ -28,10 +27,9 @@ slotmap::new_key_type! { pub struct PredKey; }
 slotmap::new_key_type! { pub struct CallKey; }
 
 /// A Contract is a collection of predicates and some global consts.
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct Contract {
     pub preds: slotmap::SlotMap<PredKey, Predicate>,
-    root_pred_key: PredKey,
 
     pub exprs: Exprs,
     pub consts: FxHashMap<String, Const>,
@@ -42,48 +40,13 @@ pub struct Contract {
     pub new_types: Vec<NewTypeDecl>,
 
     removed_macro_calls: slotmap::SecondaryMap<ExprKey, Span>,
-}
-
-impl Default for Contract {
-    fn default() -> Self {
-        let mut preds = slotmap::SlotMap::<PredKey, Predicate>::default();
-        let root_pred_key = preds.insert(Predicate::new(Self::ROOT_PRED_NAME.to_string()));
-
-        Self {
-            preds,
-            root_pred_key,
-            exprs: Default::default(),
-            consts: Default::default(),
-            storage: Default::default(),
-            interfaces: Default::default(),
-            enums: Default::default(),
-            new_types: Default::default(),
-            removed_macro_calls: Default::default(),
-        }
-    }
+    pub(crate) symbols: SymbolTable,
 }
 
 impl Contract {
-    pub const ROOT_PRED_NAME: &'static str = "";
-
     pub fn compile(self, handler: &Handler) -> Result<Self, ErrorEmitted> {
         let type_checked = handler.scope(|handler| self.type_check(handler))?;
         handler.scope(|handler| type_checked.flatten(handler))
-    }
-
-    /// The root predicate is the one named `Predicates::ROOT_PRED_NAME`
-    pub fn root_pred(&self) -> &Predicate {
-        self.preds.get(self.root_pred_key).unwrap()
-    }
-
-    /// The root predicate key refers to the one named `Predicates::ROOT_PRED_NAME`
-    pub fn root_pred_key(&self) -> PredKey {
-        self.root_pred_key
-    }
-
-    /// The root predicate is the one named `Predicates::ROOT_PRED_NAME`
-    pub fn root_pred_mut(&mut self) -> &mut Predicate {
-        self.preds.get_mut(self.root_pred_key).unwrap()
     }
 
     /// An iterator for all expressions in a predicate.
@@ -244,15 +207,7 @@ impl Contract {
             predicates: self
                 .preds
                 .iter()
-                .filter_map(|(key, pred)| {
-                    if key == self.root_pred_key {
-                        // Skip the root predicate from the generated ABI. Its content is no longer
-                        // relevant
-                        None
-                    } else {
-                        Some(pred.abi(handler, self, key))
-                    }
-                })
+                .map(|(_, pred)| pred.abi(handler, self))
                 .collect::<Result<_, _>>()?,
             storage: self
                 .storage
@@ -266,7 +221,7 @@ impl Contract {
                             // placeholder for offsets.
                             Ok(VarABI {
                                 name: name.to_string(),
-                                ty: ty.abi(handler, self, self.root_pred_key())?,
+                                ty: ty.abi(handler, self)?,
                             })
                         })
                         .collect::<Result<_, _>>()
@@ -329,20 +284,17 @@ impl Predicate {
     }
 
     /// Generate a `PredicateABI` given an `Predicate`
-    // The self_pred_key is a bit broken (since `self` is `&Predicate`) but it will go away once we
-    // move enums from `Predicate` to `Contract`.
     pub fn abi(
         &self,
         handler: &Handler,
         contract: &Contract,
-        self_pred_key: PredKey,
     ) -> Result<PredicateABI, ErrorEmitted> {
         Ok(PredicateABI {
             name: self.name.clone(),
             vars: self
                 .vars()
                 .filter(|(_, var)| !var.is_pub)
-                .map(|(var_key, _)| var_key.abi(handler, contract, self_pred_key))
+                .map(|(var_key, _)| var_key.abi(handler, contract, self))
                 .collect::<Result<_, _>>()?,
             pub_vars: self
                 .vars()
@@ -352,7 +304,7 @@ impl Predicate {
                         name: name.to_string(),
                         ty: {
                             let ty = var_key.get_ty(self);
-                            ty.abi(handler, contract, self_pred_key)?
+                            ty.abi(handler, contract)?
                         },
                     })
                 })

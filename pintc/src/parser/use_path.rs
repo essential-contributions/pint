@@ -106,7 +106,6 @@ fn gather_use_paths() {
     let parser = pint_parser::TestDelegateParser::new();
     let filepath = std::rc::Rc::from(std::path::Path::new("test"));
     let mut contract = Contract::default();
-    let current_pred = contract.root_pred_key();
 
     let mut to_use_paths = |src: &str| -> Vec<UsePath> {
         parser
@@ -116,12 +115,9 @@ fn gather_use_paths() {
                     mod_prefix: "",
                     local_scope: None,
                     contract: &mut contract,
-                    current_pred,
+                    current_pred_key: None,
                     macros: &mut Vec::default(),
-                    macro_calls: &mut BTreeMap::from([(
-                        current_pred,
-                        slotmap::SecondaryMap::default(),
-                    )]),
+                    macro_calls: &mut BTreeMap::default(),
                     span_from: &|_, _| span::empty_span(),
                     use_paths: &mut Vec::default(),
                     next_paths: &mut Vec::default(),

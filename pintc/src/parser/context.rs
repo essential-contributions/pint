@@ -5,7 +5,7 @@ use crate::{
     parser::{Ident, NextModPath, UsePath, UseTree},
     predicate::{
         CallKey, ConstraintDecl, Contract, ExprKey, Interface, InterfaceDecl, PredKey, Predicate,
-        PredicateInstance, StorageVar, Var,
+        PredicateInstance, StorageVar, SymbolTable, Var,
     },
     span::{self, Span},
     types::{Path, PrimitiveKind, Type},
@@ -17,7 +17,7 @@ pub struct ParserContext<'a> {
     pub(crate) mod_prefix: &'a str,
     pub(crate) local_scope: Option<&'a str>,
     pub(crate) contract: &'a mut Contract,
-    pub(crate) current_pred: PredKey,
+    pub(crate) current_pred_key: Option<PredKey>,
     pub(crate) macros: &'a mut Vec<MacroDecl>,
     pub(crate) macro_calls:
         &'a mut BTreeMap<PredKey, slotmap::SecondaryMap<CallKey, (ExprKey, MacroCall)>>,
@@ -33,7 +33,7 @@ impl<'a> ParserContext<'a> {
         mut ident: Ident,
         prefix: &str,
     ) -> Ident {
-        if let Ok(name) = self.current_pred().symbols.add_symbol(
+        if let Ok(name) = self.current_symbol_table().add_symbol(
             handler,
             prefix,
             None,
@@ -47,8 +47,15 @@ impl<'a> ParserContext<'a> {
 
     /// Returns a mutable reference to the Pred named `self.current_pred`. Panics if the Pred cannot be
     /// found, indicating a bug.
-    pub fn current_pred(&mut self) -> &mut Predicate {
-        self.contract.preds.get_mut(self.current_pred).unwrap()
+    pub fn current_pred(&mut self) -> Option<&mut Predicate> {
+        self.current_pred_key
+            .map(|current_pred| self.contract.preds.get_mut(current_pred).unwrap())
+    }
+
+    pub fn current_symbol_table(&mut self) -> &mut SymbolTable {
+        self.current_pred_key
+            .map(|current_pred| &mut self.contract.preds.get_mut(current_pred).unwrap().symbols)
+            .unwrap_or(&mut self.contract.symbols)
     }
 
     /// Given a list of storage variables, check that there are no duplicate names and return the
@@ -236,22 +243,26 @@ impl<'a> ParserContext<'a> {
             span: span.clone(),
         };
         self.current_pred()
+            .expect("can only parse instances within predicates")
             .predicate_instances
             .push(predicate_instance);
 
         // Also insert a local integer decision variable that represents the pathway corresponding
         // to this particular predicate instance
-        self.current_pred().vars.insert(
-            Var {
-                name: "__".to_string() + &full_predicate_instance_name.to_string() + "_pathway",
-                is_pub: false,
-                span,
-            },
-            Type::Primitive {
-                kind: PrimitiveKind::Int,
-                span: span::empty_span(),
-            },
-        );
+        self.current_pred()
+            .expect("can only parse instances within predicates")
+            .vars
+            .insert(
+                Var {
+                    name: "__".to_string() + &full_predicate_instance_name.to_string() + "_pathway",
+                    is_pub: false,
+                    span,
+                },
+                Type::Primitive {
+                    kind: PrimitiveKind::Int,
+                    span: span::empty_span(),
+                },
+            );
     }
 
     /// Given an identifier an optional type, and an optional initializer `ExprKey`, produce a
@@ -277,10 +288,14 @@ impl<'a> ParserContext<'a> {
             let mod_prefix = self.mod_prefix;
             let _ = self
                 .current_pred()
+                .expect("can only parse vars within predicates")
                 .insert_var(handler, mod_prefix, name.1, is_pub, &name.0, ty)
                 .map(|(var_key, var_full_name)| {
                     if let Some(expr_key) = init {
-                        self.current_pred().var_inits.insert(var_key, expr_key);
+                        self.current_pred()
+                            .expect("can only parse vars within predicates")
+                            .var_inits
+                            .insert(var_key, expr_key);
                         let span = (self.span_from)(l, r);
                         let var_span = name.0.span;
 
@@ -301,10 +316,13 @@ impl<'a> ParserContext<'a> {
                                 },
                                 Type::Unknown(span.clone()),
                             );
-                            self.current_pred().constraints.push(ConstraintDecl {
-                                expr: geq_expr_key,
-                                span: span.clone(),
-                            });
+                            self.current_pred()
+                                .expect("can only parse vars within predicates")
+                                .constraints
+                                .push(ConstraintDecl {
+                                    expr: geq_expr_key,
+                                    span: span.clone(),
+                                });
                             let geq_expr_key = self.contract.exprs.insert(
                                 Expr::BinaryOp {
                                     op: BinaryOp::LessThanOrEqual,
@@ -314,10 +332,13 @@ impl<'a> ParserContext<'a> {
                                 },
                                 Type::Unknown(span.clone()),
                             );
-                            self.current_pred().constraints.push(ConstraintDecl {
-                                expr: geq_expr_key,
-                                span,
-                            });
+                            self.current_pred()
+                                .expect("can only parse vars within predicates")
+                                .constraints
+                                .push(ConstraintDecl {
+                                    expr: geq_expr_key,
+                                    span,
+                                });
                         } else {
                             let eq_expr_key = self.contract.exprs.insert(
                                 Expr::BinaryOp {
@@ -328,10 +349,13 @@ impl<'a> ParserContext<'a> {
                                 },
                                 Type::Unknown(span.clone()),
                             );
-                            self.current_pred().constraints.push(ConstraintDecl {
-                                expr: eq_expr_key,
-                                span,
-                            });
+                            self.current_pred()
+                                .expect("can only parse vars within predicates")
+                                .constraints
+                                .push(ConstraintDecl {
+                                    expr: eq_expr_key,
+                                    span,
+                                });
                         }
                     }
                 });
@@ -605,8 +629,7 @@ impl<'a> ParserContext<'a> {
                 // example:
                 //
                 // use a::b::mod::my_mod::self;    // Inserted as ::local::mod::my_mod
-                self.current_pred()
-                    .symbols
+                self.current_symbol_table()
                     .add_symbol(
                         &local_handler,
                         mod_prefix,

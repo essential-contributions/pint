@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, GeneratorKind, Immediate},
-    predicate::{Contract, Expr, ExprKey, PredKey, VisitorKind},
+    predicate::{Contract, Expr, ExprKey, VisitorKind},
     span::{empty_span, Spanned},
     types::{PrimitiveKind, Type},
 };
@@ -32,7 +32,6 @@ use std::collections::HashSet;
 fn unroll_generator(
     handler: &Handler,
     contract: &mut Contract,
-    pred_key: PredKey,
     generator: Expr,
 ) -> Result<ExprKey, ErrorEmitted> {
     let Expr::Generator {
@@ -168,7 +167,7 @@ fn unroll_generator(
 
             // Check each condition, if available, against the values map above
             for condition in &conditions {
-                match evaluator.evaluate_key(condition, handler, contract, pred_key)? {
+                match evaluator.evaluate_key(condition, handler, contract)? {
                     Immediate::Bool(false) => {
                         satisfied = false;
                         break;
@@ -243,9 +242,7 @@ pub(crate) fn unroll_generators(
         for old_generator_key in generators {
             // On success, update the key of the generator to map to the new unrolled expression.
             let generator = old_generator_key.get(contract).clone();
-            if let Ok(unrolled_generator_key) =
-                unroll_generator(handler, contract, pred_key, generator)
-            {
+            if let Ok(unrolled_generator_key) = unroll_generator(handler, contract, generator) {
                 contract.replace_exprs(pred_key, old_generator_key, unrolled_generator_key);
             }
         }

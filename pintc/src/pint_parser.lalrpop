@@ -100,16 +100,16 @@ PredicateOpen: () = {
             .macro_calls
             .insert(pred_key, slotmap::SecondaryMap::default());
 
-        // Switch the current_pred so that the parser inserts items in the right Pred until the
+        // Switch the current_pred_key so that the parser inserts items in the right Pred until the
         // predicate closes
-        context.current_pred = pred_key;
+        context.current_pred_key = Some(pred_key);
     }
 }
 
 PredicateClose: () = {
     "}" => {
-        // At the end of the predicate declaration, return back to the root Pred
-        context.current_pred = context.contract.root_pred_key();
+        // At the end of the predicate declaration, return back to no pred.
+        context.current_pred_key = None;
     }
 }
 
@@ -194,6 +194,7 @@ InterfaceInstance: () = {
         };
         context
             .current_pred()
+            .expect("adding an interface to the predicate")
             .interface_instances
             .push(interface_instance);
     }
@@ -261,6 +262,7 @@ StateDecl: () = {
         let mod_prefix = context.mod_prefix;
         let _ = context
             .current_pred()
+            .expect("adding a state to the predicate")
             .insert_state(handler, mod_prefix, &name, ty, init, span)
             .map(|_| ());
     },
@@ -269,7 +271,7 @@ StateDecl: () = {
 ConstDecl: () = {
     <l:@L> "const" <name:Ident> <ty:(":" <Type>)?> "=" <init:Expr> <r:@R> => {
         // consts are all added to the root Pred.
-        if let Ok(full_name) = context.contract.root_pred_mut().symbols.add_symbol(
+        if let Ok(full_name) = context.contract.symbols.add_symbol(
             handler,
             context.mod_prefix,
             None,
@@ -290,7 +292,9 @@ ConstDecl: () = {
 };
 
 ConstraintDecl: () = {
-    <constraint: Constraint> => context.current_pred().constraints.push(constraint),
+    <constraint: Constraint> => context.current_pred()
+            .expect("adding a contraint to the predicate")
+    .constraints.push(constraint),
 };
 
 Constraint: ConstraintDecl = {
@@ -328,7 +332,9 @@ If: IfDecl = {
 };
 
 IfDecl: () = {
-    <if_decl: If> => context.current_pred().if_decls.push(if_decl)
+    <if_decl: If> => context.current_pred()
+            .expect("adding an if-decl to the predicate")
+    .if_decls.push(if_decl)
 };
 
 EnumDecl: () = {
@@ -752,14 +758,17 @@ GeneratorRange: (Ident, ExprKey) = {
         // Generators for `forall`/`exists` are always `int`s and need to be saved in the ephemeral
         // list.
         let mod_prefix = context.mod_prefix;
-        let _ = context.current_pred().insert_ephemeral(
-            mod_prefix,
-            &index,
-            Type::Primitive {
-                kind: PrimitiveKind::Int,
-                span: index.span.clone(),
-            },
-        );
+        let _ = context
+            .current_pred()
+            .expect("adding an ephemeral to the predicate")
+            .insert_ephemeral(
+                mod_prefix,
+                &index,
+                Type::Primitive {
+                    kind: PrimitiveKind::Int,
+                    span: index.span.clone(),
+                },
+            );
         (index, range)
     }
 }
@@ -823,7 +832,11 @@ CondExpr: ExprKey = {
 
 MacroCallExpr: ExprKey = {
     <l:@L> <name:MacroPath> <tag:"macro_tag"?> <args:"macro_call_args"> <r:@L> => {
-        let call_key = context.current_pred().calls.insert(name.clone());
+        let call_key = context
+            .current_pred()
+            .expect("adding a macro call to the predicate")
+            .calls
+            .insert(name.clone());
         let span = (context.span_from)(l, r);
         let call_data = MacroCall {
             name: name.clone(),
@@ -842,7 +855,7 @@ MacroCallExpr: ExprKey = {
         );
         context
             .macro_calls
-            .get_mut(&context.current_pred)
+            .get_mut(&context.current_pred_key.expect("adding a macro call to the predicate"))
             .unwrap()
             .insert(call_key, (call_expr_key, call_data));
         call_expr_key
@@ -990,10 +1003,7 @@ StateInit: ExprKey = {
     <StorageTupleFieldOp>,
     <call:IntrinsicCallExpr> => {
         let span = call.span().clone();
-        context
-            .contract
-            .exprs
-            .insert(call, Type::Unknown(span))
+        context.contract.exprs.insert(call, Type::Unknown(span))
     },
 }
 

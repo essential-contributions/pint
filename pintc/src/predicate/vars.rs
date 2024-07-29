@@ -1,4 +1,4 @@
-use super::{Contract, DisplayWithPred, Ident, PredKey, Predicate};
+use super::{Contract, DisplayWithPred, Ident, Predicate};
 use crate::{
     error::{ErrorEmitted, Handler},
     span::Span,
@@ -104,12 +104,11 @@ impl VarKey {
         &self,
         handler: &Handler,
         contract: &Contract,
-        pred_key: PredKey,
+        pred: &Predicate,
     ) -> Result<VarABI, ErrorEmitted> {
-        let pred = &contract.preds[pred_key];
         Ok(VarABI {
             name: self.get(pred).name.clone(),
-            ty: self.get_ty(pred).abi(handler, contract, pred_key)?,
+            ty: self.get_ty(pred).abi(handler, contract)?,
         })
     }
 }

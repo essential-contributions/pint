@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp as BinOp, Expr, Immediate as Imm, TupleAccess, UnaryOp},
-    predicate::{Contract, ExprKey, PredKey},
+    predicate::{Contract, ExprKey},
     span::{empty_span, Spanned},
     types::{EnumDecl, Path},
 };
@@ -61,9 +61,8 @@ impl Evaluator {
         expr_key: &ExprKey,
         handler: &Handler,
         contract: &Contract,
-        pred_key: PredKey,
     ) -> Result<Imm, ErrorEmitted> {
-        self.evaluate(expr_key.get(contract), handler, contract, pred_key)
+        self.evaluate(expr_key.get(contract), handler, contract)
     }
 
     pub(crate) fn evaluate(
@@ -71,7 +70,6 @@ impl Evaluator {
         expr: &Expr,
         handler: &Handler,
         contract: &Contract,
-        pred_key: PredKey,
     ) -> Result<Imm, ErrorEmitted> {
         match expr {
             Expr::Immediate { value, .. } => Ok(value.clone()),
@@ -79,7 +77,7 @@ impl Evaluator {
             Expr::Array { elements, .. } => {
                 let imm_elements = elements
                     .iter()
-                    .map(|el_key| self.evaluate_key(el_key, handler, contract, pred_key))
+                    .map(|el_key| self.evaluate_key(el_key, handler, contract))
                     .collect::<Result<_, _>>()?;
 
                 Ok(Imm::Array(imm_elements))
@@ -89,7 +87,7 @@ impl Evaluator {
                 let imm_fields = fields
                     .iter()
                     .map(|(name, fld_key)| {
-                        self.evaluate_key(fld_key, handler, contract, pred_key)
+                        self.evaluate_key(fld_key, handler, contract)
                             .map(|fld_imm| (name.clone(), fld_imm))
                     })
                     .collect::<Result<_, _>>()?;
@@ -113,7 +111,7 @@ impl Evaluator {
                 }),
 
             Expr::UnaryOp { op, expr, .. } => {
-                let expr = self.evaluate_key(expr, handler, contract, pred_key)?;
+                let expr = self.evaluate_key(expr, handler, contract)?;
 
                 match (expr, op) {
                     (Imm::Real(expr), UnaryOp::Neg) => Ok(Imm::Real(-expr)),
@@ -129,8 +127,8 @@ impl Evaluator {
             }
 
             Expr::BinaryOp { op, lhs, rhs, .. } => {
-                let lhs = self.evaluate_key(lhs, handler, contract, pred_key)?;
-                let rhs = self.evaluate_key(rhs, handler, contract, pred_key)?;
+                let lhs = self.evaluate_key(lhs, handler, contract)?;
+                let rhs = self.evaluate_key(rhs, handler, contract)?;
 
                 match (lhs, rhs) {
                     (Imm::Real(lhs), Imm::Real(rhs)) => match op {
@@ -230,10 +228,10 @@ impl Evaluator {
 
             Expr::Index { expr, index, span } => {
                 // If the expr is an array...
-                let ary = self.evaluate_key(expr, handler, contract, pred_key)?;
+                let ary = self.evaluate_key(expr, handler, contract)?;
                 if let Imm::Array(elements) = ary {
                     // And the index is an int...
-                    let idx = self.evaluate_key(index, handler, contract, pred_key)?;
+                    let idx = self.evaluate_key(index, handler, contract)?;
                     if let Imm::Int(n) = idx {
                         // And it's not out of bounds...
                         elements.get(n as usize).cloned().ok_or_else(|| {
@@ -258,7 +256,7 @@ impl Evaluator {
 
             Expr::TupleFieldAccess { tuple, field, span } => {
                 // If the expr is a tuple...
-                let tup = self.evaluate_key(tuple, handler, contract, pred_key)?;
+                let tup = self.evaluate_key(tuple, handler, contract)?;
                 if let Imm::Tuple(fields) = tup {
                     // And the field can be found...
                     match field {
@@ -301,14 +299,9 @@ impl Evaluator {
                 else_expr,
                 span,
             } => {
-                let cond = self.evaluate_key(condition, handler, contract, pred_key)?;
+                let cond = self.evaluate_key(condition, handler, contract)?;
                 if let Imm::Bool(b) = cond {
-                    self.evaluate_key(
-                        if b { then_expr } else { else_expr },
-                        handler,
-                        contract,
-                        pred_key,
-                    )
+                    self.evaluate_key(if b { then_expr } else { else_expr }, handler, contract)
                 } else {
                     let mut cond_ty = condition.get_ty(contract).clone();
                     if cond_ty.is_unknown() {
@@ -344,7 +337,7 @@ impl Evaluator {
 
                 // All casts are either redundant (e.g., bool as bool) or are to ints, except int
                 // as real.  They'll be rejected by the type checker if not.
-                let imm = self.evaluate_key(value, handler, contract, pred_key)?;
+                let imm = self.evaluate_key(value, handler, contract)?;
                 match imm {
                     Imm::Real(_) => {
                         if ty.is_real() {

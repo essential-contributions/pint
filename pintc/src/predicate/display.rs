@@ -109,13 +109,9 @@ impl Display for Contract {
         self.fmt_interfaces(f)?;
 
         for pred in self.preds.values() {
-            if pred.name == Self::ROOT_PRED_NAME {
-                self.root_pred().fmt_with_indent(f, self, 0)?
-            } else {
-                writeln!(f, "\npredicate {} {{", pred.name)?;
-                pred.fmt_with_indent(f, self, 1)?;
-                writeln!(f, "}}")?;
-            }
+            writeln!(f, "\npredicate {} {{", pred.name)?;
+            pred.fmt_with_indent(f, self, 1)?;
+            writeln!(f, "}}")?;
         }
 
         Ok(())
