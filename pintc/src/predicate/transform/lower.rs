@@ -286,33 +286,49 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
             .map(|NewTypeDecl { name, ty, .. }| (name.name.clone(), ty.clone())),
     );
 
-    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
-        fn replace_alias(new_types_map: &FxHashMap<String, Type>, old_ty: &mut Type) {
-            match old_ty {
-                Type::Alias { ty, .. } => {
-                    *old_ty = *ty.clone();
-                    replace_alias(new_types_map, old_ty);
-                }
-
-                Type::Custom { path, .. } => {
-                    if let Some(ty) = new_types_map.get(path) {
-                        *old_ty = ty.clone();
-                    }
-                }
-
-                Type::Array { ty, .. } => replace_alias(new_types_map, ty),
-                Type::Tuple { fields, .. } => fields
-                    .iter_mut()
-                    .for_each(|(_, ty)| replace_alias(new_types_map, ty)),
-                Type::Map { ty_from, ty_to, .. } => {
-                    replace_alias(new_types_map, ty_from);
-                    replace_alias(new_types_map, ty_to);
-                }
-
-                Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } => {}
+    fn replace_alias(new_types_map: &FxHashMap<String, Type>, old_ty: &mut Type) {
+        match old_ty {
+            Type::Alias { ty, .. } => {
+                *old_ty = *ty.clone();
+                replace_alias(new_types_map, old_ty);
             }
-        }
 
+            Type::Custom { path, .. } => {
+                if let Some(ty) = new_types_map.get(path) {
+                    *old_ty = ty.clone();
+                }
+            }
+
+            Type::Array { ty, .. } => replace_alias(new_types_map, ty),
+            Type::Tuple { fields, .. } => fields
+                .iter_mut()
+                .for_each(|(_, ty)| replace_alias(new_types_map, ty)),
+            Type::Map { ty_from, ty_to, .. } => {
+                replace_alias(new_types_map, ty_from);
+                replace_alias(new_types_map, ty_to);
+            }
+
+            Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } => {}
+        }
+    }
+
+    contract
+        .exprs
+        .update_types(|_, expr_ty| replace_alias(&new_types, expr_ty));
+
+    contract.exprs.update_exprs(|_, expr| {
+        if let Expr::Cast { ty, .. } = expr {
+            replace_alias(&new_types, ty.borrow_mut());
+        }
+    });
+
+    if let Some((storage_vars, _)) = &mut contract.storage {
+        for StorageVar { ty, .. } in storage_vars {
+            replace_alias(&new_types, ty);
+        }
+    }
+
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         // Replace aliases with the actual type.
         if let Some(pred) = contract.preds.get_mut(pred_key) {
             pred.vars
@@ -320,22 +336,6 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
             pred.states
                 .update_types(|_, state_ty| replace_alias(&new_types, state_ty));
         };
-
-        if let Some((storage_vars, _)) = &mut contract.storage {
-            for StorageVar { ty, .. } in storage_vars {
-                replace_alias(&new_types, ty);
-            }
-        }
-
-        contract
-            .exprs
-            .update_types(|_, expr_ty| replace_alias(&new_types, expr_ty));
-
-        contract.exprs.update_exprs(|_, expr| {
-            if let Expr::Cast { ty, .. } = expr {
-                replace_alias(&new_types, ty.borrow_mut());
-            }
-        });
     }
 }
 
@@ -998,14 +998,7 @@ pub(super) fn replace_const_refs(contract: &mut Contract) {
     let consts = contract
         .consts
         .iter()
-        .map(|(path, Const { expr, decl_ty })| {
-            (
-                path.clone(),
-                *expr,
-                expr.get(contract).clone(),
-                decl_ty.clone(),
-            )
-        })
+        .map(|(path, Const { expr, .. })| (path.clone(), *expr))
         .collect::<Vec<_>>();
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
@@ -1014,16 +1007,9 @@ pub(super) fn replace_const_refs(contract: &mut Contract) {
             .exprs(pred_key)
             .filter_map(|path_expr_key| {
                 if let Expr::Path(path, _span) = path_expr_key.get(contract) {
-                    consts
-                        .iter()
-                        .find_map(|(const_path, const_expr_key, const_expr, const_ty)| {
-                            (path == const_path).then_some((
-                                path_expr_key,
-                                *const_expr_key,
-                                const_expr,
-                                const_ty,
-                            ))
-                        })
+                    consts.iter().find_map(|(const_path, const_expr_key)| {
+                        (path == const_path).then_some((path_expr_key, *const_expr_key))
+                    })
                 } else {
                     None
                 }
@@ -1031,20 +1017,10 @@ pub(super) fn replace_const_refs(contract: &mut Contract) {
             .collect::<Vec<_>>();
 
         // Replace all paths to consts with the consts themselves.
-        if pred_key == contract.root_pred_key() {
-            // This is the root Pred, meaning we already have the ExprKeys for the consts available.
-            contract.replace_exprs_by_map(
-                pred_key,
-                &FxHashMap::from_iter(const_refs.into_iter().map(|refs| (refs.0, refs.1))),
-            );
-        } else {
-            // This is NOT the root Pred, so we need to inject these const expressions into the
-            // Pred before we can replace the paths.
-            for (path_expr_key, _, const_expr, const_ty) in const_refs {
-                let const_expr_key = contract.exprs.insert(const_expr.clone(), const_ty.clone());
-                contract.replace_exprs(pred_key, path_expr_key, const_expr_key);
-            }
-        }
+        contract.replace_exprs_by_map(
+            pred_key,
+            &FxHashMap::from_iter(const_refs.into_iter().map(|refs| (refs.0, refs.1))),
+        );
     }
 }
 

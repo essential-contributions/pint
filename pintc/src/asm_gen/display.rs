@@ -6,13 +6,9 @@ use std::fmt::{Display, Formatter};
 impl Display for CompiledContract {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         for (name, compiled_predicate) in self.names.iter().zip(self.predicates.iter()) {
-            if name == Self::ROOT_PRED_NAME {
-                fmt_compiled_predicate_with_indent(compiled_predicate, f, 0)?;
-            } else {
-                writeln!(f, "predicate {name} {{")?;
-                fmt_compiled_predicate_with_indent(compiled_predicate, f, 1)?;
-                writeln!(f, "}}\n")?;
-            }
+            writeln!(f, "predicate {name} {{")?;
+            fmt_compiled_predicate_with_indent(compiled_predicate, f, 1)?;
+            writeln!(f, "}}\n")?;
         }
 
         Ok(())

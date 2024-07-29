@@ -375,10 +375,22 @@ impl Contract {
         self.check_iface_inst_addrs(handler);
         self.check_pred_inst_addrs(handler);
 
+        // Check all the const expr decls first.
+        let const_expr_keys = self
+            .consts
+            .iter()
+            .map(|(_, Const { expr, .. })| *expr)
+            .collect::<Vec<_>>();
+        for expr_key in const_expr_keys {
+            if let Err(err) = self.type_check_single_expr(None, expr_key) {
+                handler.emit_err(err);
+            }
+        }
+
         for pred_key in self.preds.keys().collect::<Vec<_>>() {
             // Check all the 'root' exprs (constraints, state init exprs, and var init exprs) one at a
             // time, gathering errors as we go. Copying the keys out first to avoid borrowing conflict.
-            let mut all_expr_keys = self.preds[pred_key]
+            let all_expr_keys = self.preds[pred_key]
                 .constraints
                 .iter()
                 .map(|ConstraintDecl { expr: key, .. }| *key)
@@ -386,13 +398,8 @@ impl Contract {
                 .chain(self.preds[pred_key].var_inits.iter().map(|(_, expr)| *expr))
                 .collect::<Vec<_>>();
 
-            // When we're checking the root predicate we check all the consts too.
-            if self.preds[pred_key].name == Contract::ROOT_PRED_NAME {
-                all_expr_keys.extend(self.consts.iter().map(|(_, Const { expr, .. })| *expr));
-            }
-
             for expr_key in all_expr_keys {
-                if let Err(err) = self.type_check_single_expr(pred_key, expr_key) {
+                if let Err(err) = self.type_check_single_expr(Some(pred_key), expr_key) {
                     handler.emit_err(err);
                 }
             }
@@ -402,7 +409,7 @@ impl Contract {
                 .if_decls
                 .clone()
                 .iter()
-                .for_each(|if_decl| self.type_check_if_decl(handler, pred_key, if_decl));
+                .for_each(|if_decl| self.type_check_if_decl(handler, Some(pred_key), if_decl));
 
             // Confirm now that all decision variables are typed.
             let mut var_key_to_new_type = FxHashMap::default();
@@ -558,7 +565,7 @@ impl Contract {
                 .collect::<Vec<_>>()
                 .iter()
             {
-                if let Err(err) = self.type_check_single_expr(pred_key, *range_expr) {
+                if let Err(err) = self.type_check_single_expr(Some(pred_key), *range_expr) {
                     handler.emit_err(err);
                 } else if !(range_expr.get_ty(self).is_int()
                     || range_expr.get_ty(self).is_enum(&self.enums)
@@ -605,7 +612,7 @@ impl Contract {
                 }
             }
 
-            self.check_instance_addresses(handler, pred_key, &addr_keys);
+            self.check_instance_addresses(handler, Some(pred_key), &addr_keys);
         }
     }
 
@@ -660,14 +667,14 @@ impl Contract {
                 }
             }
 
-            self.check_instance_addresses(handler, pred_key, &addr_keys);
+            self.check_instance_addresses(handler, Some(pred_key), &addr_keys);
         }
     }
 
     fn check_instance_addresses(
         &mut self,
         handler: &Handler,
-        pred_key: PredKey,
+        pred_key: Option<PredKey>,
         addr_keys: &[ExprKey],
     ) {
         for address in addr_keys {
@@ -702,7 +709,12 @@ impl Contract {
 
     // Type check an if statement and all of its sub-statements including other ifs. This is a
     // recursive function.
-    fn type_check_if_decl(&mut self, handler: &Handler, pred_key: PredKey, if_decl: &IfDecl) {
+    fn type_check_if_decl(
+        &mut self,
+        handler: &Handler,
+        pred_key: Option<PredKey>,
+        if_decl: &IfDecl,
+    ) {
         let IfDecl {
             condition,
             then_block,
@@ -740,7 +752,7 @@ impl Contract {
     fn type_check_block_statement(
         &mut self,
         handler: &Handler,
-        pred_key: PredKey,
+        pred_key: Option<PredKey>,
         block_statement: &BlockStatement,
     ) {
         match block_statement {
@@ -755,7 +767,7 @@ impl Contract {
 
     fn type_check_single_expr(
         &mut self,
-        pred_key: PredKey,
+        pred_key: Option<PredKey>,
         expr_key: ExprKey,
     ) -> Result<(), Error> {
         // Attempt to infer all the types of each expr.
@@ -788,7 +800,9 @@ impl Contract {
             if !next_key.get_ty(self).is_unknown() {
                 queue.pop();
             } else {
-                match self.infer_expr_key_type(&self.preds[pred_key], next_key)? {
+                match self
+                    .infer_expr_key_type(pred_key.map(|pred_key| &self.preds[pred_key]), next_key)?
+                {
                     // Successfully inferred its type.  Save it and pop it from the queue.
                     Inference::Type(ty) => {
                         next_key.set_ty(ty, self);
@@ -815,7 +829,11 @@ impl Contract {
         Ok(())
     }
 
-    fn infer_expr_key_type(&self, pred: &Predicate, expr_key: ExprKey) -> Result<Inference, Error> {
+    fn infer_expr_key_type(
+        &self,
+        pred: Option<&Predicate>,
+        expr_key: ExprKey,
+    ) -> Result<Inference, Error> {
         let expr: &Expr = expr_key.try_get(self).ok_or_else(|| Error::Compile {
             error: CompileError::Internal {
                 msg: "orphaned expr key when type checking",
@@ -973,30 +991,15 @@ impl Contract {
 
     fn infer_path_by_name(
         &self,
-        pred: &Predicate,
+        pred: Option<&Predicate>,
         path: &Path,
         span: &Span,
     ) -> Result<Inference, Error> {
-        if let Some(var_key) = pred
-            .vars()
-            .find_map(|(var_key, var)| (&var.name == path).then_some(var_key))
-        {
-            // It's a var.
-            self.infer_path_by_key(pred, var_key, span)
-        } else if let Some((state_key, state)) =
-            pred.states().find(|(_, state)| (&state.name == path))
-        {
-            // It's state.
-            let state_expr_ty = state.expr.get_ty(self);
-            let state_type = state_key.get_ty(pred);
-            Ok(if !state_type.is_unknown() {
-                Inference::Type(state_type.clone())
-            } else if !state_expr_ty.is_unknown() {
-                Inference::Type(state_expr_ty.clone())
-            } else {
-                Inference::Dependant(state.expr)
-            })
-        } else if let Some(Const { decl_ty, .. }) = self.consts.get(path) {
+        // If we're searching for an enum variant and it appears to be unqualified then we can
+        // report some hints.
+        let mut err_potential_enums = Vec::new();
+
+        if let Some(Const { decl_ty, .. }) = self.consts.get(path) {
             if !decl_ty.is_unknown() {
                 Ok(Inference::Type(decl_ty.clone()))
             } else {
@@ -1007,13 +1010,6 @@ impl Contract {
                     },
                 })
             }
-        } else if let Some(EphemeralDecl { ty, .. }) = pred
-            .ephemerals
-            .iter()
-            .find(|eph_decl| &eph_decl.name == path)
-        {
-            // It's an ephemeral value.
-            Ok(Inference::Type(ty.clone()))
         } else if let Some(ty) = self
             .new_types
             .iter()
@@ -1021,13 +1017,129 @@ impl Contract {
         {
             // It's a fully matched newtype.
             Ok(Inference::Type(ty.clone()))
-        } else if let Some(ty) = self.infer_extern_var(pred, path) {
-            // It's an external var
-            Ok(ty)
         } else {
-            // None of the above. That leaves enums.
-            self.infer_enum_variant_by_name(path, span)
+            // It might be an enum variant.  If it isn't we get a handy list of potential variant
+            // names we can return in our error.
+            let enum_res = self.infer_enum_variant_by_name(path);
+            if let Ok(inf) = enum_res {
+                // Need to translate the type between Results.
+                Ok(inf)
+            } else {
+                // Save the enums variants list for the SymbolNotFound error if we need it.
+                let Err(enums_list) = enum_res else {
+                    unreachable!("it's not Ok(), must be Err()")
+                };
+                err_potential_enums.extend(enums_list);
+
+                // For all other paths we need a predicate.
+                if let Some(pred) = pred {
+                    if let Some(var_key) = pred
+                        .vars()
+                        .find_map(|(var_key, var)| (&var.name == path).then_some(var_key))
+                    {
+                        // It's a var.
+                        self.infer_path_by_key(pred, var_key, span)
+                    } else if let Some((state_key, state)) =
+                        pred.states().find(|(_, state)| (&state.name == path))
+                    {
+                        // It's state.
+                        let state_expr_ty = state.expr.get_ty(self);
+                        let state_type = state_key.get_ty(pred);
+                        Ok(if !state_type.is_unknown() {
+                            Inference::Type(state_type.clone())
+                        } else if !state_expr_ty.is_unknown() {
+                            Inference::Type(state_expr_ty.clone())
+                        } else {
+                            Inference::Dependant(state.expr)
+                        })
+                    } else if let Some(EphemeralDecl { ty, .. }) = pred
+                        .ephemerals
+                        .iter()
+                        .find(|eph_decl| &eph_decl.name == path)
+                    {
+                        // It's an ephemeral value.
+                        Ok(Inference::Type(ty.clone()))
+                    } else if let Some(ty) = self.infer_extern_var(pred, path) {
+                        // It's an external var
+                        Ok(ty)
+                    } else {
+                        // None of the above.
+                        Err(Error::Compile {
+                            error: CompileError::SymbolNotFound {
+                                name: path.clone(),
+                                span: span.clone(),
+                                enum_names: err_potential_enums,
+                            },
+                        })
+                    }
+                } else {
+                    Err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "attempting to infer item without required predicate ref",
+                            span: span.clone(),
+                        },
+                    })
+                }
+            }
         }
+    }
+
+    pub(super) fn infer_enum_variant_by_name(&self, path: &Path) -> Result<Inference, Vec<String>> {
+        // Check first if the path prefix matches a new type.
+        for NewTypeDecl { name, ty, .. } in &self.new_types {
+            if let Type::Custom {
+                path: enum_path, ..
+            } = ty
+            {
+                // This new type is to an enum.  Does the new type path match the passed path?
+                if path.starts_with(&name.name) {
+                    // Yep, we might have an enum wrapped in a new type.
+                    let new_type_len = name.name.len();
+                    if path.chars().nth(new_type_len) == Some(':') {
+                        // Definitely worth trying.  Recurse.
+                        let new_path = enum_path.clone() + &path[new_type_len..];
+                        if let ty @ Ok(_) = self.infer_enum_variant_by_name(&new_path) {
+                            // We found an enum variant.
+                            return ty;
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut err_potential_enums = Vec::default();
+
+        self.enums
+            .iter()
+            .find_map(
+                |EnumDecl {
+                     name: enum_name,
+                     variants,
+                     span,
+                 }| {
+                    // The path might be to the enum itself, or to its variants, in which case the
+                    // returned type is the enum.
+                    (&enum_name.name == path
+                        || variants.iter().any(|variant| {
+                            if path.len() > 2 && path[2..] == variant.name {
+                                err_potential_enums.push(enum_name.name.clone());
+                            }
+
+                            let mut full_variant = enum_name.name.clone();
+                            full_variant.push_str("::");
+                            full_variant.push_str(&variant.name);
+
+                            &full_variant == path
+                        }))
+                    .then(|| {
+                        Inference::Type(Type::Custom {
+                            path: enum_name.name.clone(),
+                            span: span.clone(),
+                        })
+                    })
+                },
+            )
+            .ok_or(err_potential_enums)
     }
 
     fn infer_storage_access(&self, name: &String, span: &Span) -> Result<Inference, Error> {
@@ -1052,54 +1164,63 @@ impl Contract {
 
     fn infer_external_storage_access(
         &self,
-        pred: &Predicate,
+        pred: Option<&Predicate>,
         interface_instance: &Path,
         name: &String,
         span: &Span,
     ) -> Result<Inference, Error> {
-        // Find the interface instance or emit an error
-        let Some(interface_instance) = pred
-            .interface_instances
-            .iter()
-            .find(|e| e.name.to_string() == *interface_instance)
-        else {
-            return Err(Error::Compile {
-                error: CompileError::MissingInterfaceInstance {
-                    name: interface_instance.clone(),
-                    span: span.clone(),
+        if let Some(pred) = pred {
+            // Find the interface instance or emit an error
+            let Some(interface_instance) = pred
+                .interface_instances
+                .iter()
+                .find(|e| e.name.to_string() == *interface_instance)
+            else {
+                return Err(Error::Compile {
+                    error: CompileError::MissingInterfaceInstance {
+                        name: interface_instance.clone(),
+                        span: span.clone(),
+                    },
+                });
+            };
+
+            // Find the interface declaration corresponding to the interface instance
+            let Some(interface) = self
+                .interfaces
+                .iter()
+                .find(|e| e.name.to_string() == *interface_instance.interface)
+            else {
+                // No need to emit an error here because a `MissingInterface` error should have already
+                // been emitted earlier when all interface instances were type checked. Instead, we
+                // just return an `Unknown` type knowing that the compilation will fail anyways.
+                return Ok(Inference::Type(Type::Unknown(empty_span())));
+            };
+
+            // Then, look for the storage variable that this access refers to
+            match interface.storage.as_ref() {
+                Some(storage) => match storage.0.iter().find(|s_var| s_var.name.name == *name) {
+                    Some(s_var) => Ok(Inference::Type(s_var.ty.clone())),
+                    None => Err(Error::Compile {
+                        error: CompileError::StorageSymbolNotFound {
+                            name: name.clone(),
+                            span: span.clone(),
+                        },
+                    }),
                 },
-            });
-        };
-
-        // Find the interface declaration corresponding to the interface instance
-        let Some(interface) = self
-            .interfaces
-            .iter()
-            .find(|e| e.name.to_string() == *interface_instance.interface)
-        else {
-            // No need to emit an error here because a `MissingInterface` error should have already
-            // been emitted earlier when all interface instances were type checked. Instead, we
-            // just return an `Unknown` type knowing that the compilation will fail anyways.
-            return Ok(Inference::Type(Type::Unknown(empty_span())));
-        };
-
-        // Then, look for the storage variable that this access refers to
-        match interface.storage.as_ref() {
-            Some(storage) => match storage.0.iter().find(|s_var| s_var.name.name == *name) {
-                Some(s_var) => Ok(Inference::Type(s_var.ty.clone())),
                 None => Err(Error::Compile {
-                    error: CompileError::StorageSymbolNotFound {
+                    error: CompileError::MissingStorageBlock {
                         name: name.clone(),
                         span: span.clone(),
                     },
                 }),
-            },
-            None => Err(Error::Compile {
-                error: CompileError::MissingStorageBlock {
-                    name: name.clone(),
+            }
+        } else {
+            Err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "attempting to infer item without required predicate ref",
                     span: span.clone(),
                 },
-            }),
+            })
         }
     }
 
@@ -1142,97 +1263,30 @@ impl Contract {
         None
     }
 
-    pub(super) fn infer_enum_variant_by_name(
-        &self,
-        path: &Path,
-        span: &Span,
-    ) -> Result<Inference, Error> {
-        // Check first if the path prefix matches a new type.
-        for NewTypeDecl { name, ty, .. } in &self.new_types {
-            if let Type::Custom {
-                path: enum_path,
-                span,
-            } = ty
-            {
-                // This new type is to an enum.  Does the new type path match the passed path?
-                if path.starts_with(&name.name) {
-                    // Yep, we might have an enum wrapped in a new type.
-                    let new_type_len = name.name.len();
-                    if path.chars().nth(new_type_len) == Some(':') {
-                        // Definitely worth trying.  Recurse.
-                        let new_path = enum_path.clone() + &path[new_type_len..];
-                        if let ty @ Ok(_) = self.infer_enum_variant_by_name(&new_path, span) {
-                            // We found an enum variant.
-                            return ty;
-                        }
-                    }
-                }
-            }
-        }
-
-        // If we're searching for an enum variant and it appears to be unqualified then we can
-        // report some hints.
-        let mut err_potential_enums = Vec::new();
-
-        if let Some(ty) = self.enums.iter().find_map(
-            |EnumDecl {
-                 name: enum_name,
-                 variants,
-                 span,
-             }| {
-                // The path might be to the enum itself, or to its variants, in which case the
-                // returned type is the enum.
-                (&enum_name.name == path
-                    || variants.iter().any(|variant| {
-                        if path[2..] == variant.name {
-                            err_potential_enums.push(enum_name.name.clone());
-                        }
-
-                        let mut full_variant = enum_name.name.clone();
-                        full_variant.push_str("::");
-                        full_variant.push_str(&variant.name);
-
-                        &full_variant == path
-                    }))
-                .then(|| Type::Custom {
-                    path: enum_name.name.clone(),
-                    span: span.clone(),
-                })
-            },
-        ) {
-            Ok(Inference::Type(ty.clone()))
-        } else {
-            Err(Error::Compile {
-                error: CompileError::SymbolNotFound {
-                    name: path.clone(),
-                    span: span.clone(),
-                    enum_names: err_potential_enums,
-                },
-            })
-        }
-    }
-
     fn infer_unary_op(
         &self,
-        pred: &Predicate,
+        pred: Option<&Predicate>,
         op: UnaryOp,
         rhs_expr_key: ExprKey,
         span: &Span,
     ) -> Result<Inference, Error> {
         fn drill_down_to_path(
             contract: &Contract,
-            pred: &Predicate,
+            pred: Option<&Predicate>,
             expr_key: &ExprKey,
             span: &Span,
         ) -> Result<(), Error> {
             match expr_key.try_get(contract) {
                 Some(Expr::Path(name, span)) => {
-                    if !pred.states().any(|(_, state)| state.name == *name) {
+                    if pred
+                        .map(|pred| pred.states().any(|(_, state)| state.name == *name))
+                        .unwrap_or(false)
+                    {
+                        Ok(())
+                    } else {
                         Err(Error::Compile {
                             error: CompileError::InvalidNextStateAccess { span: span.clone() },
                         })
-                    } else {
-                        Ok(())
                     }
                 }
 
@@ -1331,7 +1385,7 @@ impl Contract {
 
     fn infer_binary_op(
         &self,
-        pred: &Predicate,
+        pred: Option<&Predicate>,
         op: BinaryOp,
         lhs_expr_key: ExprKey,
         rhs_expr_key: ExprKey,
@@ -1386,7 +1440,11 @@ impl Contract {
         // Checks if a given `ExprKey` is a path to a state var or a "next state" expression. If
         // not, emit an error.
         let check_state_var_arg = |arg: ExprKey| match arg.try_get(self) {
-            Some(Expr::Path(name, _)) if pred.states().any(|(_, state)| state.name == *name) => {
+            Some(Expr::Path(name, _))
+                if pred
+                    .map(|pred| pred.states().any(|(_, state)| state.name == *name))
+                    .unwrap_or(false) =>
+            {
                 Ok(())
             }
             Some(Expr::UnaryOp {
@@ -1434,9 +1492,12 @@ impl Contract {
                         if !lhs_ty.eq(&self.new_types, rhs_ty)
                             && op == BinaryOp::Equal
                             && pred
-                                .var_inits
-                                .values()
-                                .any(|init_key| *init_key == rhs_expr_key)
+                                .map(|pred| {
+                                    pred.var_inits
+                                        .values()
+                                        .any(|init_key| *init_key == rhs_expr_key)
+                                })
+                                .unwrap_or(false)
                         {
                             is_init_constraint = true;
                         }

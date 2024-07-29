@@ -23,19 +23,6 @@ pub struct CompiledContract {
     pub predicates: Vec<CompiledPredicate>,
 }
 
-impl CompiledContract {
-    pub const ROOT_PRED_NAME: &'static str = "";
-
-    /// The root predicate is the one named `CompiledContract::ROOT_PRED_NAME`
-    pub fn root_predicate(&self) -> &CompiledPredicate {
-        &self.predicates[self
-            .names
-            .iter()
-            .position(|name| name == Self::ROOT_PRED_NAME)
-            .unwrap()]
-    }
-}
-
 /// Convert a `Contract` into `CompiledContract`
 pub fn compile_contract(
     handler: &Handler,
@@ -44,14 +31,10 @@ pub fn compile_contract(
     let mut names = Vec::new();
     let mut predicates = Vec::new();
 
-    for (pred_key, pred) in contract.preds.iter() {
-        if pred_key != contract.root_pred_key() {
-            if let Ok(predicate) =
-                handler.scope(|handler| predicate_to_asm(handler, contract, pred))
-            {
-                names.push(pred.name.clone());
-                predicates.push(predicate);
-            }
+    for (_, pred) in contract.preds.iter() {
+        if let Ok(predicate) = handler.scope(|handler| predicate_to_asm(handler, contract, pred)) {
+            names.push(pred.name.clone());
+            predicates.push(predicate);
         }
     }
 
@@ -244,8 +227,7 @@ impl AsmBuilder {
     /// Generates assembly for producing a storage key  where `expr` is stored.
     /// Returns a `StorageKey`. The `StorageKey` contains two values:
     /// - The length of the storage key.
-    /// - Whether the key is internal or external. External keys should be accessed using
-    /// `StateReadKeyRangeExtern`.
+    /// - Whether the key is internal or external. External keys should be accessed using `StateReadKeyRangeExtern`.
     fn compile_state_key(
         handler: &Handler,
         s_asm: &mut Vec<StateRead>,

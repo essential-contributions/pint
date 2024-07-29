@@ -10,7 +10,7 @@ use crate::{
 impl Contract {
     pub(super) fn infer_intrinsic_call_expr(
         &self,
-        pred: &Predicate,
+        pred: Option<&Predicate>,
         name: &Ident,
         args: &[ExprKey],
         span: &Span,
@@ -461,7 +461,7 @@ fn infer_intrinsic_recover_secp256k1(
 //
 fn infer_intrinsic_state_len(
     contract: &Contract,
-    pred: &Predicate,
+    pred: Option<&Predicate>,
     args: &[ExprKey],
     span: &Span,
 ) -> Result<Inference, Error> {
@@ -478,7 +478,13 @@ fn infer_intrinsic_state_len(
 
     // First argument must be a path to a state variable
     match args[0].try_get(contract) {
-        Some(Expr::Path(name, _)) if pred.states().any(|(_, state)| state.name == *name) => Ok(()),
+        Some(Expr::Path(name, _))
+            if pred
+                .map(|pred| pred.states().any(|(_, state)| state.name == *name))
+                .unwrap_or(false) =>
+        {
+            Ok(())
+        }
         Some(Expr::UnaryOp {
             op: UnaryOp::NextState,
             ..

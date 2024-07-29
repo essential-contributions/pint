@@ -50,7 +50,7 @@ macro_rules! parse_and_collect_errors {
 /// collects all use statements encountered by a parser.
 #[cfg(test)]
 macro_rules! context {
-    ($contract: expr, $root_pred: expr, $mod_path: expr, $use_paths: expr) => {{
+    ($contract: expr, $mod_path: expr, $use_paths: expr) => {{
         ParserContext {
             mod_path: &$mod_path,
             mod_prefix: &(!$mod_path.is_empty())
@@ -58,9 +58,9 @@ macro_rules! context {
                 .unwrap_or("::".to_string()),
             local_scope: None,
             contract: &mut $contract,
-            current_pred: $root_pred,
+            current_pred_key: None,
             macros: &mut vec![],
-            macro_calls: &mut BTreeMap::from([($root_pred, slotmap::SecondaryMap::new())]),
+            macro_calls: &mut BTreeMap::default(),
             span_from: &|l, r| Span::new(Rc::from(Path::new("")), l..r),
             use_paths: &mut $use_paths,
             next_paths: &mut vec![],
@@ -90,9 +90,8 @@ macro_rules! run_parser {
             "###".to_owned() + $parser.1 + "### " + $source
         };
         let mut contract = Contract::default();
-        let root_pred_key = contract.root_pred_key();
         let mut use_paths = Vec::new();
-        let mut context = context!(contract, root_pred_key, $mod_path, &mut use_paths);
+        let mut context = context!(contract, $mod_path, &mut use_paths);
         let result = parse_and_collect_errors!($parser.0, &source, context);
 
         let parser_output = match result {
@@ -2106,13 +2105,7 @@ fn macro_decl() {
       "#;
 
     let mut contract = Contract::default();
-    let root_pred_key = contract.root_pred_key();
-    let mut context = context!(
-        contract,
-        root_pred_key,
-        &Vec::<String>::new(),
-        &mut Vec::new()
-    );
+    let mut context = context!(contract, &Vec::<String>::new(), &mut Vec::new());
     let result = parse_and_collect_errors!(yp::PintParser::new(), src, context);
 
     assert!(result.is_ok());
@@ -2127,8 +2120,7 @@ fn macro_decl() {
 #[test]
 fn macro_decl_good_params() {
     let mut contract = Contract::default();
-    let root_pred_key = contract.root_pred_key();
-    let mut context = context!(contract, root_pred_key, Vec::<String>::new(), Vec::new());
+    let mut context = context!(contract, Vec::<String>::new(), Vec::new());
     let parser = yp::PintParser::new();
 
     assert!(parse_and_collect_errors!(parser, r#"macro @foo($a) { x }"#, context).is_ok());
@@ -2147,8 +2139,7 @@ fn macro_decl_good_params() {
 #[test]
 fn macro_decl_bad_params() {
     let mut contract = Contract::default();
-    let root_pred_key = contract.root_pred_key();
-    let mut context = context!(contract, root_pred_key, Vec::<String>::new(), Vec::new());
+    let mut context = context!(contract, Vec::<String>::new(), Vec::new());
     let parser = yp::PintParser::new();
 
     let result = parse_and_collect_errors!(parser, r#"macro @foo(&rest) { x }"#, context);
@@ -2194,24 +2185,22 @@ fn macro_decl_bad_params() {
 
 #[test]
 fn macro_call() {
-    let src = r#"###expr### @foo(a * 3; int; <= =>)"#;
+    let src = r#"predicate test { @foo(a * 3; int; <= =>); }"#;
     let mut contract = Contract::default();
-    let root_pred_key = contract.root_pred_key();
-    let mut context = context!(contract, root_pred_key, Vec::<String>::new(), Vec::new());
-    let result = parse_and_collect_errors!(yp::TestDelegateParser::new(), src, context);
+    let mut context = context!(contract, Vec::<String>::new(), Vec::new());
+    let result = parse_and_collect_errors!(yp::PintParser::new(), src, context);
 
     assert!(result.is_ok());
-    assert!(context.macro_calls.get(&root_pred_key).unwrap().len() == 1);
+    assert!(context.contract.preds.iter().count() == 1);
+    let (pred_key, pred) = context.contract.preds.iter().next().unwrap();
+    assert!(pred.name == "::test");
 
-    check(
-        &context.contract.with_ctrct(&result.unwrap()).to_string(),
-        expect_test::expect!["::@foo(...)"],
-    );
+    assert!(context.macro_calls.get(&pred_key).unwrap().len() == 1);
 
     check(
         &context
             .macro_calls
-            .get(&root_pred_key)
+            .get(&pred_key)
             .unwrap()
             .iter()
             .next()
@@ -2725,102 +2714,169 @@ fn in_expr() {
 
 #[test]
 fn forall_expr() {
-    let expr = (yp::TestDelegateParser::new(), "expr");
-    check(
-        &run_parser!(expr, r#"forall i in 0..3 { true }"#),
-        expect_test::expect!["forall i in 0..3, { true }"],
-    );
+    let pint = (yp::PintParser::new(), "");
 
     check(
-        &run_parser!(expr, r#"forall i in 0..3, j in i..k { true }"#),
-        expect_test::expect!["forall i in 0..3, j in ::i..::k, { true }"],
-    );
+        &run_parser!(
+            pint,
+            r#"predicate test { constraint forall i in 0..3 { true }; }"#
+        ),
+        expect_test::expect![[r#"
 
-    check(
-        &run_parser!(expr, r#"forall i in 0..3 where i > 4 { true }"#),
-        expect_test::expect!["forall i in 0..3, where (::i > 4) { true }"],
+            predicate ::test {
+                constraint forall i in 0..3, { true };
+            }"#]],
     );
 
     check(
         &run_parser!(
-            expr,
-            r#"forall i in 0..3, j in 0..3 where i > 2, j < 3, i != j && true { A[i] > A[j] }"#
+            pint,
+            r#"predicate test { constraint forall i in 0..3, j in i..k { true }; }"#
         ),
-        expect_test::expect!["forall i in 0..3, j in 0..3, where (::i > 2), (::j < 3), ((::i != ::j) && true) { (::A[::i] > ::A[::j]) }"],
+        expect_test::expect![[r#"
+
+            predicate ::test {
+                constraint forall i in 0..3, j in ::i..::k, { true };
+            }"#]],
     );
 
     check(
-        &run_parser!(expr, r#"forall { true }"#),
+        &run_parser!(
+            pint,
+            r#"predicate test { constraint forall i in 0..3 where i > 4 { true }; }"#
+        ),
+        expect_test::expect![[r#"
+
+            predicate ::test {
+                constraint forall i in 0..3, where (::i > 4) { true };
+            }"#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"predicate test {
+                constraint forall i in 0..3, j in 0..3 where i > 2, j < 3, i != j && true { A[i] > A[j] };
+            }"#
+        ),
+        expect_test::expect![[r#"
+
+            predicate ::test {
+                constraint forall i in 0..3, j in 0..3, where (::i > 2), (::j < 3), ((::i != ::j) && true) { (::A[::i] > ::A[::j]) };
+            }"#]],
+    );
+
+    check(
+        &run_parser!(pint, r#"predicate test { constraint forall { true }; }"#),
         expect_test::expect![[r#"
             expected `an identifier`, found `{`
-            @18..19: expected `an identifier`
+            @35..36: expected `an identifier`
         "#]],
     );
 
     check(
-        &run_parser!(expr, r#"forall range { true }"#),
+        &run_parser!(
+            pint,
+            r#"predicate test { constraint forall range { true }; }"#
+        ),
         expect_test::expect![[r#"
             expected `in`, found `{`
-            @24..25: expected `in`
+            @41..42: expected `in`
         "#]],
     );
 
     check(
-        &run_parser!(expr, r#"forall i in 0..3 { constraint x; true }"#),
+        &run_parser!(
+            pint,
+            r#"predicate test { constraint forall i in 0..3 { constraint x; true }; }"#
+        ),
         expect_test::expect![[r#"
             expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `constraint`
-            @30..40: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
+            @47..57: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
         "#]],
     );
 }
 
 #[test]
 fn exists_expr() {
-    let expr = (yp::TestDelegateParser::new(), "expr");
+    let pint = (yp::PintParser::new(), "");
     check(
-        &run_parser!(expr, r#"exists i in 0..3 { true }"#),
-        expect_test::expect!["exists i in 0..3, { true }"],
-    );
+        &run_parser!(
+            pint,
+            r#"predicate test { constraint exists i in 0..3 { true }; }"#
+        ),
+        expect_test::expect![[r#"
 
-    check(
-        &run_parser!(expr, r#"exists i in 0..3, j in i..k { true }"#),
-        expect_test::expect!["exists i in 0..3, j in ::i..::k, { true }"],
-    );
-
-    check(
-        &run_parser!(expr, r#"exists i in 0..3 where i > 4 { true }"#),
-        expect_test::expect!["exists i in 0..3, where (::i > 4) { true }"],
+            predicate ::test {
+                constraint exists i in 0..3, { true };
+            }"#]],
     );
 
     check(
         &run_parser!(
-            expr,
-            r#"exists i in 0..3, j in 0..3 where i > 2, j < 3, i != j && true { A[i] > A[j] }"#
+            pint,
+            r#"predicate test { constraint exists i in 0..3, j in i..k { true }; }"#
         ),
-        expect_test::expect!["exists i in 0..3, j in 0..3, where (::i > 2), (::j < 3), ((::i != ::j) && true) { (::A[::i] > ::A[::j]) }"],
+        expect_test::expect![[r#"
+
+            predicate ::test {
+                constraint exists i in 0..3, j in ::i..::k, { true };
+            }"#]],
     );
 
     check(
-        &run_parser!(expr, r#"exists { true }"#),
+        &run_parser!(
+            pint,
+            r#"predicate test { constraint exists i in 0..3 where i > 4 { true }; }"#
+        ),
+        expect_test::expect![[r#"
+
+            predicate ::test {
+                constraint exists i in 0..3, where (::i > 4) { true };
+            }"#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"predicate test {
+                constraint exists i in 0..3, j in 0..3 where i > 2, j < 3, i != j && true { A[i] > A[j] };
+            }"#
+        ),
+        expect_test::expect![[r#"
+
+            predicate ::test {
+                constraint exists i in 0..3, j in 0..3, where (::i > 2), (::j < 3), ((::i != ::j) && true) { (::A[::i] > ::A[::j]) };
+            }"#]],
+    );
+
+    check(
+        &run_parser!(pint, r#"predicate test { constraint exists { true }; }"#),
         expect_test::expect![[r#"
             expected `an identifier`, found `{`
-            @18..19: expected `an identifier`
+            @35..36: expected `an identifier`
         "#]],
     );
 
     check(
-        &run_parser!(expr, r#"exists range { true }"#),
+        &run_parser!(
+            pint,
+            r#"predicate test { constraint exists range { true }; }"#
+        ),
         expect_test::expect![[r#"
             expected `in`, found `{`
-            @24..25: expected `in`
+            @41..42: expected `in`
         "#]],
     );
 
     check(
-        &run_parser!(expr, r#"exists i in 0..3 { constraint x; true }"#),
+        &run_parser!(
+            pint,
+            r#"predicate test { constraint exists i in 0..3 { constraint x; true }; }"#
+        ),
         expect_test::expect![[r#"
             expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `constraint`
-            @30..40: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
+            @47..57: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
         "#]],
     );
 }

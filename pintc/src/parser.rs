@@ -88,8 +88,7 @@ impl<'a> ProjectParser<'a> {
             .map_or_else(|| PathBuf::from("/"), PathBuf::from);
 
         let contract = Contract::default();
-        let macro_calls =
-            BTreeMap::from([(contract.root_pred_key(), slotmap::SecondaryMap::default())]);
+        let macro_calls = BTreeMap::default();
 
         Self {
             contract,
@@ -230,17 +229,12 @@ impl<'a> ProjectParser<'a> {
 
     fn finalize(self) -> Result<Contract, ErrorEmitted> {
         // Check all predicate symbols against top level symbols for name clashes.
-        self.contract
-            .preds
-            .values()
-            .filter(|pred| pred.name != Contract::ROOT_PRED_NAME)
-            .for_each(|pred| {
-                let _ = self
-                    .contract
-                    .root_pred()
-                    .symbols
-                    .check_for_clash(self.handler, &pred.symbols);
-            });
+        self.contract.preds.values().for_each(|pred| {
+            let _ = self
+                .contract
+                .symbols
+                .check_for_clash(self.handler, &pred.symbols);
+        });
 
         if self.handler.has_errors() {
             Err(self.handler.cancel())
@@ -266,7 +260,7 @@ macro_rules! parse_with {
      $mod_path: ident,
      $local_scope: expr,
      $macro_ctx: expr,
-     $current_pred: expr,
+     $current_pred_key: expr,
      $handler: expr,
      ) => {{
         let span_from = |start, end| Span {
@@ -288,7 +282,7 @@ macro_rules! parse_with {
             mod_prefix: &mod_prefix,
             local_scope: $local_scope,
             contract: &mut $self.contract,
-            current_pred: $current_pred,
+            current_pred_key: $current_pred_key,
             macros: &mut $self.macros,
             macro_calls: &mut $self.macro_calls,
             span_from: &span_from,
@@ -343,8 +337,6 @@ impl<'a> ProjectParser<'a> {
             .concat();
         mod_prefix.push_str("");
 
-        let root_pred_key = self.contract.root_pred_key();
-
         parse_with!(
             self,
             lexer::Lexer::new(&src_str, src_path, mod_path),
@@ -353,7 +345,7 @@ impl<'a> ProjectParser<'a> {
             mod_path,
             None,                           // local_scope
             Option::<(String, Span)>::None, // macro_ctx
-            root_pred_key,                  // Always use root pred when we explore a new module.
+            None,                           // Always use root pred when we explore a new module.
             self.handler,
         )
     }
@@ -376,7 +368,7 @@ impl<'a> ProjectParser<'a> {
             mod_path,
             Some(&local_scope),
             Some((macro_call.name.clone(), macro_call.span.clone())),
-            current_pred,
+            Some(current_pred),
             self.handler,
         )
     }

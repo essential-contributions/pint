@@ -22,8 +22,6 @@ enum Inference {
 
 impl Contract {
     pub fn type_check(mut self, handler: &Handler) -> Result<Self, ErrorEmitted> {
-        self = handler.scope(|handler| self.check_contract(handler))?;
-
         // Evaluate all the constant decls to ensure they're all immediates. Each Const expr is
         // updated and has its type set.
         handler.scope(|handler| self.evaluate_all_consts(handler))?;
@@ -160,7 +158,7 @@ impl Contract {
                             // We have an unknown-typed const initialised with a path.  E.g.,
                             // const a = MyEnum::MyVariant;
                             if let Ok(Inference::Type(variant_ty)) =
-                                self.infer_enum_variant_by_name(path, &empty_span())
+                                self.infer_enum_variant_by_name(path)
                             {
                                 // It's definitely an enum.  Update the decl type below.
                                 preserved_enum_type = Some(variant_ty);

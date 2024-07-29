@@ -210,7 +210,6 @@ fn run_parser(src: &str, handler: &Handler) -> Contract {
     let parser = pint_parser::PintParser::new();
     let filepath = std::rc::Rc::from(std::path::Path::new("test"));
     let mut contract = Contract::default();
-    let current_pred = contract.root_pred_key();
 
     parser
         .parse(
@@ -219,9 +218,9 @@ fn run_parser(src: &str, handler: &Handler) -> Contract {
                 mod_prefix: "",
                 local_scope: None,
                 contract: &mut contract,
-                current_pred,
+                current_pred_key: None,
                 macros: &mut Vec::new(),
-                macro_calls: &mut BTreeMap::from([(current_pred, slotmap::SecondaryMap::new())]),
+                macro_calls: &mut BTreeMap::default(),
                 span_from: &|_, _| span::empty_span(),
                 use_paths: &mut Vec::new(),
                 next_paths: &mut Vec::new(),
@@ -342,10 +341,6 @@ fn states() {
             compiler internal error: Unknown expr type found invalid predicate expr_types slotmap key
             compiler internal error: unknown type present in final predicate expr_types slotmap
             compiler internal error: error expression present in final predicate exprs slotmap
-            compiler internal error: final predicate state_types slotmap is missing corresponding key from states slotmap
-            compiler internal error: Unknown expr type found invalid predicate expr_types slotmap key
-            compiler internal error: unknown type present in final predicate expr_types slotmap
-            compiler internal error: error expression present in final predicate exprs slotmap
             compiler internal error: final predicate state_types slotmap is missing corresponding key from states slotmap"#]],
     );
 }
@@ -371,7 +366,6 @@ fn vars() {
     check(
         &error::Errors(handler.consume()).to_string(),
         expect_test::expect![[r#"
-            compiler internal error: final predicate var_types slotmap is missing corresponding key from vars slotmap
             compiler internal error: final predicate var_types slotmap is missing corresponding key from vars slotmap"#]],
     );
 }
