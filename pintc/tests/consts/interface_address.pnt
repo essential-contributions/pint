@@ -20,11 +20,6 @@ predicate Foo {
 // }
 //
 // predicate ::Foo {
-//     interface ::Counter {
-//         storage {
-//             counter: int,
-//         }
-//     }
 //     interface ::CounterInstance = ::Counter(::ContractID)
 //     state ::counter = ::CounterInstance::storage::counter;
 // }
@@ -39,11 +34,6 @@ predicate Foo {
 // }
 //
 // predicate ::Foo {
-//     interface ::Counter {
-//         storage {
-//             counter: int,
-//         }
-//     }
 //     interface ::CounterInstance = ::Counter(0x0003000300030003000300030003000300030003000300030003000300030003)
 //     state ::counter: int = ::CounterInstance::storage::counter;
 // }

@@ -26,6 +26,6 @@ storage {
 // storage {
 //     m: ( int => int ),
 //     n: int,
-//     o: ( ::MyInt (int) => int ),
+//     o: ( int => int ),
 // }
 // >>>

@@ -19,7 +19,7 @@ predicate test {
 // a macro named `::@add` found with a different signature
 // spliced variable `::b` must be an array
 // @157..158: unable to splice non-array variable `::b`
-// expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `const`, `constraint`, `enum`, `exists`, `forall`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `state`, `storage`, `type`, `use`, `var`, `{`, or `}`, found `b`
-// @157..158: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `const`, `constraint`, `enum`, `exists`, `forall`, `if`, `interface`, `macro_name`, `predicate`, `pub`, `state`, `storage`, `type`, `use`, `var`, `{`, or `}`
+// expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `const`, `constraint`, `enum`, `exists`, `forall`, `if`, `interface`, `intrinsic_name`, `macro_name`, `predicate`, `pub`, `state`, `storage`, `type`, `use`, `var`, `{`, or `}`, found `b`
+// @157..158: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `const`, `constraint`, `enum`, `exists`, `forall`, `if`, `interface`, `intrinsic_name`, `macro_name`, `predicate`, `pub`, `state`, `storage`, `type`, `use`, `var`, `{`, or `}`
 // @151..163: when making macro call to '::@add'
 // >>>

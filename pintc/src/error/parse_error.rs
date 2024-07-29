@@ -26,8 +26,6 @@ pub enum ParseError {
     },
     #[error("expected identifier, found keyword `{keyword}`")]
     KeywordAsIdent { span: Span, keyword: String },
-    #[error("expected identifier, found intrinsic name `{name}`")]
-    LeadingUnderscoresInIdent { span: Span, name: String },
     #[error("type annotation or initializer needed for variable `{name}`")]
     UntypedVariable { span: Span, name: String },
     #[error("empty array expressions are not allowed")]
@@ -99,13 +97,6 @@ impl ReportableError for ParseError {
             KeywordAsIdent { span, .. } => {
                 vec![ErrorLabel {
                     message: "expected identifier, found keyword".to_string(),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
-            }
-            LeadingUnderscoresInIdent { span, .. } => {
-                vec![ErrorLabel {
-                    message: "expected identifier, found intrinsic name".to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -294,9 +285,6 @@ impl ReportableError for ParseError {
             IntLiteralTooLarge { .. } => {
                 Some("value exceeds limit of `9,223,372,036,854,775,807`".to_string())
             }
-            LeadingUnderscoresInIdent { .. } => {
-                Some("names that start with `__` are reserved for compiler intrinsics".to_string())
-            }
             PathTooShort { .. } => Some(
                 "a path to a predicate interface must contain a path to an interface \
                     instance followed by the name of the predicate, separated by a `::`"
@@ -373,7 +361,6 @@ impl Spanned for ParseError {
         match self {
             ExpectedFound { span, .. }
             | KeywordAsIdent { span, .. }
-            | LeadingUnderscoresInIdent { span, .. }
             | UntypedVariable { span, .. }
             | EmptyArrayExpr { span }
             | EmptyIndexAccess { span }

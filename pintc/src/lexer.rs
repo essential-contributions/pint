@@ -157,6 +157,8 @@ pub enum Token {
     // Ident has a flag indicating whether it's in a macro argument.  Is generally false.
     #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| {(lex.slice().to_string(), false)})]
     Ident((String, bool)),
+    #[regex(r"__[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice().to_string())]
+    IntrinsicName(String),
     #[regex(r"([0-9](_?[0-9])*)+\.([0-9]_?)+([Ee][-+]?([0-9](_?[0-9])*)+)?|([0-9](_?[0-9])*)+_?[Ee][-+]?([0-9](_?[0-9])*)+", |lex| lex.slice().to_string())]
     RealLiteral(String),
     #[regex(r"(0x([0-9A-Fa-f](_[0-9A-Fa-f])*)+|0b([0-1](_[0-1])*)+|([0-9](_[0-9])*)+)", |lex| lex.slice().to_string())]
@@ -328,6 +330,7 @@ impl fmt::Display for Token {
             Token::Exists => write!(f, "exists"),
             Token::Where => write!(f, "where"),
             Token::Ident((ident, _)) => write!(f, "{ident}"),
+            Token::IntrinsicName(ident) => write!(f, "{ident}"),
             Token::RealLiteral(ident) => write!(f, "{ident}"),
             Token::IntLiteral(ident) => write!(f, "{ident}"),
             Token::StringLiteral(contents) => write!(f, "{contents}"),

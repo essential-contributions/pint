@@ -73,12 +73,6 @@ predicate Bar {
 // }
 //
 // predicate ::Bar {
-//     interface ::Foo {
-//         storage {
-//             v: int[3][2],
-//             map_to_arrays: ( int => int[3] ),
-//         }
-//     }
 //     interface ::FooInstance = ::Foo(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE)
 //     state ::v = storage::v;
 //     state ::v1 = storage::v[1];
@@ -124,12 +118,6 @@ predicate Bar {
 // }
 //
 // predicate ::Bar {
-//     interface ::Foo {
-//         storage {
-//             v: int[3][2],
-//             map_to_arrays: ( int => int[3] ),
-//         }
-//     }
 //     interface ::FooInstance = ::Foo(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE)
 //     state ::v: int[3][2] = storage::v;
 //     state ::v1: int[3] = storage::v[1];

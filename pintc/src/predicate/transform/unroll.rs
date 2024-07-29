@@ -189,7 +189,7 @@ fn unroll_generator(
         // If all conditions are satisifed (or if none are present), then update the resulting
         // expression by joining it with the newly unrolled generator body.
         if satisfied {
-            let rhs = body.plug_in(contract, pred_key, &values_map);
+            let rhs = body.plug_in(contract, &values_map);
             unrolled = contract.exprs.insert(
                 Expr::BinaryOp {
                     op: match kind {

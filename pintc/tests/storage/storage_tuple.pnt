@@ -73,14 +73,6 @@ predicate Bar {
 // }
 //
 // predicate ::Bar {
-//     interface ::Foo {
-//         storage {
-//             u: {b256, int},
-//             t: {b256, {int, int}},
-//             w: {addr: b256, inner: {x: int, int}},
-//             map_to_tuples: ( int => {b256, {int, int}} ),
-//         }
-//     }
 //     interface ::FooInstance = ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111)
 //     state ::u = storage::u;
 //     state ::u0 = storage::u.0;
@@ -132,14 +124,6 @@ predicate Bar {
 // }
 //
 // predicate ::Bar {
-//     interface ::Foo {
-//         storage {
-//             u: {b256, int},
-//             t: {b256, {int, int}},
-//             w: {addr: b256, inner: {x: int, int}},
-//             map_to_tuples: ( int => {b256, {int, int}} ),
-//         }
-//     }
 //     interface ::FooInstance = ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111)
 //     state ::u: {b256, int} = storage::u;
 //     state ::u0: b256 = storage::u.0;

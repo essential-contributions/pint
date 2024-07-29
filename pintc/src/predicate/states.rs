@@ -104,9 +104,9 @@ impl DisplayWithPred for StateKey {
         write!(f, "state {}", state.name)?;
         let ty = self.get_ty(pred);
         if !ty.is_unknown() {
-            write!(f, ": {}", pred.with_pred(contract, ty))?;
+            write!(f, ": {}", contract.with_ctrct(ty))?;
         }
-        write!(f, " = {}", pred.with_pred(contract, &state.expr))
+        write!(f, " = {}", contract.with_ctrct(&state.expr))
     }
 }
 
@@ -120,7 +120,9 @@ impl Predicate {
         expr: ExprKey,
         span: Span,
     ) -> std::result::Result<StateKey, ErrorEmitted> {
-        let name = self.add_top_level_symbol(handler, mod_prefix, None, name, span.clone())?;
+        let name = self
+            .symbols
+            .add_symbol(handler, mod_prefix, None, name, span.clone())?;
         let state_key = self.states.insert(
             State {
                 name,

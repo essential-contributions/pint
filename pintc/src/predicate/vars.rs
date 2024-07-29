@@ -123,7 +123,7 @@ impl DisplayWithPred for VarKey {
         write!(f, "var {}", var.name)?;
         let ty = self.get_ty(pred);
         if !ty.is_unknown() {
-            write!(f, ": {}", pred.with_pred(contract, ty))?;
+            write!(f, ": {}", contract.with_ctrct(ty))?;
         }
         Ok(())
     }
@@ -138,12 +138,13 @@ impl Predicate {
         is_pub: bool,
         name: &Ident,
         ty: Option<Type>,
-    ) -> std::result::Result<VarKey, ErrorEmitted> {
+    ) -> std::result::Result<(VarKey, String), ErrorEmitted> {
         let full_name =
-            self.add_top_level_symbol(handler, mod_prefix, local_scope, name, name.span.clone())?;
+            self.symbols
+                .add_symbol(handler, mod_prefix, local_scope, name, name.span.clone())?;
         let var_key = self.vars.insert(
             Var {
-                name: full_name,
+                name: full_name.clone(),
                 is_pub,
                 span: name.span.clone(),
             },
@@ -154,7 +155,7 @@ impl Predicate {
             },
         );
 
-        Ok(var_key)
+        Ok((var_key, full_name))
     }
 
     pub(crate) fn vars(&self) -> impl Iterator<Item = (VarKey, &Var)> {

@@ -1,0 +1,82 @@
+type MyInt = int;
+type MyReal = real;
+type MyBool = bool;
+type MyTuple = { int, int };
+type MyArray = bool[5];
+type MyMap = (b256 => int);
+type MyB256 = b256;
+type MyNestedAlias = MyInt;
+type MyAliasedMap = (MyB256 => MyTuple);
+type MyComplexMap = (MyBool => MyMap);
+
+storage {
+    x: MyMap,
+    y: MyAliasedMap,
+    z: MyComplexMap,
+}
+
+predicate test {
+   var m: MyInt;
+   var n: MyReal;
+   var o: MyBool;
+   var p: MyTuple;
+   var q: MyArray;
+   var r: MyB256;
+   var s: MyNestedAlias;
+}
+
+// parsed <<<
+// type ::MyInt = int;
+// type ::MyReal = real;
+// type ::MyBool = bool;
+// type ::MyTuple = {int, int};
+// type ::MyArray = bool[5];
+// type ::MyMap = ( b256 => int );
+// type ::MyB256 = b256;
+// type ::MyNestedAlias = ::MyInt;
+// type ::MyAliasedMap = ( ::MyB256 => ::MyTuple );
+// type ::MyComplexMap = ( ::MyBool => ::MyMap );
+// storage {
+//     x: ::MyMap,
+//     y: ::MyAliasedMap,
+//     z: ::MyComplexMap,
+// }
+//
+// predicate ::test {
+//     var ::m: ::MyInt;
+//     var ::n: ::MyReal;
+//     var ::o: ::MyBool;
+//     var ::p: ::MyTuple;
+//     var ::q: ::MyArray;
+//     var ::r: ::MyB256;
+//     var ::s: ::MyNestedAlias;
+// }
+// >>>
+
+// flattened <<<
+// type ::MyInt = int;
+// type ::MyReal = real;
+// type ::MyBool = bool;
+// type ::MyTuple = {int, int};
+// type ::MyArray = bool[5];
+// type ::MyMap = ( b256 => int );
+// type ::MyB256 = b256;
+// type ::MyNestedAlias = ::MyInt (int);
+// type ::MyAliasedMap = ( ::MyB256 (b256) => ::MyTuple ({int, int}) );
+// type ::MyComplexMap = ( ::MyBool (bool) => ::MyMap (( b256 => int )) );
+// storage {
+//     x: ( b256 => int ),
+//     y: ( b256 => {int, int} ),
+//     z: ( bool => ( b256 => int ) ),
+// }
+//
+// predicate ::test {
+//     var ::m: int;
+//     var ::n: real;
+//     var ::o: bool;
+//     var ::p: {int, int};
+//     var ::q: bool[5];
+//     var ::r: b256;
+//     var ::s: int;
+// }
+// >>>

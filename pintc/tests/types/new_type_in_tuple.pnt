@@ -41,10 +41,10 @@ predicate test {
 //
 // predicate ::test {
 //     var ::a: int;
-//     var ::b: {x: ::A (int), y: ::A (int)};
+//     var ::b: {x: int, y: int};
 //     var ::c: int;
 //     var ::d: int;
-//     var ::e: ::A (int)[3];
+//     var ::e: int[3];
 //     var ::f: int;
 //     var ::g: int;
 //     constraint (::b == {::a, ::a});
