@@ -17,32 +17,6 @@ predicate test {
 }
 
 // parse_failure <<<
-// expected identifier, found intrinsic name `__x`
-// @12..15: expected identifier, found intrinsic name
-// names that start with `__` are reserved for compiler intrinsics
-// expected identifier, found intrinsic name `__y`
-// @32..35: expected identifier, found intrinsic name
-// names that start with `__` are reserved for compiler intrinsics
-// expected identifier, found intrinsic name `__MyInterface`
-// @54..67: expected identifier, found intrinsic name
-// names that start with `__` are reserved for compiler intrinsics
-// expected identifier, found intrinsic name `__x`
-// @98..101: expected identifier, found intrinsic name
-// names that start with `__` are reserved for compiler intrinsics
-// expected identifier, found intrinsic name `___E`
-// @125..129: expected identifier, found intrinsic name
-// names that start with `__` are reserved for compiler intrinsics
-// expected identifier, found intrinsic name `__MyType`
-// @144..152: expected identifier, found intrinsic name
-// names that start with `__` are reserved for compiler intrinsics
-// expected identifier, found intrinsic name `__x`
-// @186..189: expected identifier, found intrinsic name
-// names that start with `__` are reserved for compiler intrinsics
-// expected identifier, found intrinsic name `__x`
-// @210..213: expected identifier, found intrinsic name
-// names that start with `__` are reserved for compiler intrinsics
-// symbol `::__x` has already been declared
-// @12..15: previous declaration of the symbol `::__x` here
-// @186..189: `::__x` redeclared here
-// `::__x` must be declared or imported only once in this scope
+// expected `an identifier`, `macro_name`, `self`, or `{`, found `__x`
+// @12..15: expected `an identifier`, `macro_name`, `self`, or `{`
 // >>> 

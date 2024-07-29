@@ -343,20 +343,11 @@ impl<'a> ParserContext<'a> {
     /// (useful for macros). `l` and `r` are the code locations before and after the identifier
     pub fn parse_var_name(
         &mut self,
-        handler: &Handler,
         id: (String, bool),
         (l, r): (usize, usize),
     ) -> (Ident, Option<&'a str>) {
         let name = id.0.to_string();
         let span = (self.span_from)(l, r);
-        if name.starts_with("__") {
-            handler.emit_err(Error::Parse {
-                error: ParseError::LeadingUnderscoresInIdent {
-                    span: span.clone(),
-                    name: name.clone(),
-                },
-            });
-        }
 
         // We special case the let name here, as we're interested in the associated flag (and this
         // is the only place where we care).  The flag indicates that this identifier was

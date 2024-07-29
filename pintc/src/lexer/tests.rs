@@ -49,6 +49,18 @@ fn control_tokens() {
 }
 
 #[test]
+fn intrinsic_names() {
+    assert_eq!(
+        lex_one_success("__foo"),
+        Token::IntrinsicName("__foo".to_owned())
+    );
+    assert_eq!(
+        lex_one_success("__storage_get"),
+        Token::IntrinsicName("__storage_get".to_owned())
+    );
+}
+
+#[test]
 fn reals() {
     assert_eq!(
         lex_one_success("1.05"),
