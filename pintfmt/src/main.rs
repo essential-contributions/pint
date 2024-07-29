@@ -4,6 +4,7 @@ mod cli;
 mod error;
 mod formatter;
 mod lexer;
+mod new_parser;
 mod parser;
 
 use clap::Parser;
@@ -28,29 +29,30 @@ fn main() -> anyhow::Result<()> {
 
 fn format_file(filename: &str) -> anyhow::Result<()> {
     let src = read_to_string(Path::new(&filename))?;
-    let ast = parser::parse_str_to_ast(&src);
+    new_parser::parse_str_to_ast(&src);
+    // let ast = parser::parse_str_to_ast(&src);
 
-    let ast = match ast {
-        Ok(ast) => ast,
-        Err(errors) => {
-            if !cfg!(test) {
-                print_on_failure(filename, &src, &errors);
-            }
-            pintfmt_bail!(errors.len(), filename);
-        }
-    };
+    // let ast = match ast {
+    //     Ok(ast) => ast,
+    //     Err(errors) => {
+    //         if !cfg!(test) {
+    //             print_on_failure(filename, &src, &errors);
+    //         }
+    //         pintfmt_bail!(errors.len(), filename);
+    //     }
+    // };
 
-    // Write the ast back into `formatted_code`
-    let mut formatted_code = formatter::FormattedCode::new();
-    if let Err(error) = ast.format(&mut formatted_code) {
-        if !cfg!(test) {
-            print_on_failure(filename, &src, &vec![error]);
-        }
-        pintfmt_bail!(1, filename);
-    }
+    // // Write the ast back into `formatted_code`
+    // let mut formatted_code = formatter::FormattedCode::new();
+    // if let Err(error) = ast.format(&mut formatted_code) {
+    //     if !cfg!(test) {
+    //         print_on_failure(filename, &src, &vec![error]);
+    //     }
+    //     pintfmt_bail!(1, filename);
+    // }
 
-    // Write `formatted_code` back into the original file
-    write(Path::new(&filename), formatted_code.as_str())?;
+    // // Write `formatted_code` back into the original file
+    // write(Path::new(&filename), formatted_code.as_str())?;
 
     Ok(())
 }

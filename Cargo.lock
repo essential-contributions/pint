@@ -1282,6 +1282,8 @@ dependencies = [
  "clap",
  "expect-test",
  "itertools 0.12.1",
+ "lalrpop",
+ "lalrpop-util",
  "logos",
  "regex",
  "tempfile",

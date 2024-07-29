@@ -8,6 +8,9 @@ homepage.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[build-dependencies]
+lalrpop = "0.20"
+
 [dependencies]
 anyhow = { workspace = true }
 ariadne = { workspace = true }
@@ -15,6 +18,7 @@ chumsky = { workspace = true }
 clap = { workspace = true }
 expect-test = { workspace = true }
 itertools = { workspace = true }
+lalrpop-util = { version = "0.20", features = ["lexer", "unicode"] }
 logos = { workspace = true }
 thiserror = { workspace = true }
 yansi = { workspace = true }
