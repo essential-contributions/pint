@@ -1,10 +1,65 @@
 use std::str::FromStr;
 
-grammar;
-
-pub Term: i32 = {
-    <n:Num> => n,
-    "(" <t:Term> ")" => t,
+use crate::{
+    lexer,
+    new_ast::{Decl},
+    error::{LexError},
 };
 
-Num: i32 = <s:r"[0-9]+"> => i32::from_str(s).unwrap();
+grammar;
+
+pub Newline: Decl = "newline" => Decl::Newline;
+
+
+/////////////
+/// Lexer ///
+/////////////
+
+extern {
+    type Location = usize;
+    type Error = LexError;
+
+    enum lexer::Token {
+        ":" => lexer::Token::Colon,
+        "::" => lexer::Token::DoubleColon,
+        ";" => lexer::Token::Semi,
+        "," => lexer::Token::Comma,
+        "=" => lexer::Token::Eq,
+
+        "+" => lexer::Token::Plus,
+        "-" => lexer::Token::Minus,
+        "!" => lexer::Token::Bang,
+
+        "(" => lexer::Token::ParenOpen,
+        ")" => lexer::Token::ParenClose,
+        "{" => lexer::Token::BraceOpen,
+        "}" => lexer::Token::BraceClose,
+        "[" => lexer::Token::BracketOpen,
+        "]" => lexer::Token::BracketClose,
+        "->" => lexer::Token::Arrow,
+        "=>" => lexer::Token::HeavyArrow,
+        "." => lexer::Token::Dot,
+        ".." => lexer::Token::TwoDots,
+        "|" => lexer::Token::Pipe,
+
+        "if" => lexer::Token::If,
+        "else" => lexer::Token::Else,
+        "cond" => lexer::Token::Cond,
+
+        "use" => lexer::Token::Use,
+        "state" => lexer::Token::State,
+        "enum" => lexer::Token::Enum,
+        "type" => lexer::Token::Type,
+        "constraint" => lexer::Token::Constraint,
+        "as" => lexer::Token::As,
+        "in" => lexer::Token::In,
+
+        "binary_op" => lexer::Token::BinaryOp(<String>),
+        "primitive" => lexer::Token::Primitive(<String>),
+        "directive" => lexer::Token::Directive(<String>),
+        "ident" => lexer::Token::Ident(<String>),
+        "literal" => lexer::Token::Literal(<String>),
+        "comment" => lexer::Token::Comment(<String>),
+        "newline" => lexer::Token::Newline,
+    }
+}

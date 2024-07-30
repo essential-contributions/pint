@@ -2,13 +2,13 @@ mod tests;
 
 use crate::error::{FormatterError, LexError, Span};
 use itertools::{Either, Itertools};
-use logos::Logos;
+use logos::{Logos, SpannedIter};
 use std::fmt;
 
 #[derive(Clone, Debug, Eq, Hash, Logos, PartialEq)]
 #[logos(skip r"[ \t\r\f]+")]
 #[logos(error = LexError)]
-pub(super) enum Token<'sc> {
+pub enum Token {
     #[token("=")]
     Eq,
     #[token("|")]
@@ -47,10 +47,10 @@ pub(super) enum Token<'sc> {
     Dot,
     #[token("..")]
     TwoDots,
-    #[regex(r"/|%|\*|>|<|<=|>=|!=|==|&&|\|\|", |lex| lex.slice())]
-    BinaryOp(&'sc str),
-    #[regex(r"int|bool|string|real", |lex| lex.slice())]
-    Primitive(&'sc str),
+    #[regex(r"/|%|\*|>|<|<=|>=|!=|==|&&|\|\|", |lex| lex.slice().to_string())]
+    BinaryOp(String),
+    #[regex(r"int|bool|string|real", |lex| lex.slice().to_string())]
+    Primitive(String),
 
     #[token("let")]
     Let,
@@ -73,8 +73,8 @@ pub(super) enum Token<'sc> {
     #[token("state")]
     State,
 
-    #[regex(r"satisfy|minimize|maximize", |lex| lex.slice())]
-    Directive(&'sc str),
+    #[regex(r"satisfy|minimize|maximize", |lex| lex.slice().to_string())]
+    Directive(String),
     #[token("use")]
     Use,
     #[token("as")]
@@ -82,21 +82,21 @@ pub(super) enum Token<'sc> {
     #[token("solve")]
     Solve,
 
-    #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice(), priority = 1)]
-    Ident(&'sc str),
+    #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| lex.slice().to_string(), priority = 1)]
+    Ident(String),
     #[regex(
         r#"(?x)
         true|false
         |[0-9]+\.[0-9]+([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+|0x[0-9A-Fa-f]+|0b[0-1]+|[0-9]+
         |"([^"\\]|\\(x[0-9a-fA-F]{2}|[nt"]|\\|\n))*"
         "#,
-        |lex| lex.slice(),
+        |lex| lex.slice().to_string(),
         priority = 2
     )]
-    Literal(&'sc str),
+    Literal(String),
 
-    #[regex(r"//.*\n?", |lex| lex.slice())]
-    Comment(&'sc str),
+    #[regex(r"//.*\n?", |lex| lex.slice().to_string())]
+    Comment(String),
 
     #[regex(r"\n|\\n")]
     Newline,
@@ -111,7 +111,7 @@ pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<FormatterError>) {
         })
 }
 
-impl<'sc> fmt::Display for Token<'sc> {
+impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Token::Eq => write!(f, "="),
@@ -154,5 +154,29 @@ impl<'sc> fmt::Display for Token<'sc> {
             Token::Comment(contents) => write!(f, "{contents}"),
             Token::Newline => write!(f, r#"\n"#),
         }
+    }
+}
+
+pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
+
+pub struct Lexer<'sc> {
+    token_stream: SpannedIter<'sc, Token>,
+}
+
+impl<'sc> Lexer<'sc> {
+    pub fn new(input: &'sc str) -> Self {
+        Self {
+            token_stream: Token::lexer(input).spanned(),
+        }
+    }
+}
+
+impl<'sc> Iterator for Lexer<'sc> {
+    type Item = Spanned<Token, usize, LexError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.token_stream
+            .next()
+            .map(|(token, span)| Ok((span.start, token?, span.end)))
     }
 }

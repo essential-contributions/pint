@@ -9,7 +9,7 @@ pub(super) type Span = std::ops::Range<usize>;
 
 /// An error originating from the lexer
 #[derive(Error, Debug, Clone, PartialEq, Default)]
-pub(super) enum LexError {
+pub enum LexError {
     #[default]
     #[error("invalid token")]
     InvalidToken,
@@ -34,14 +34,14 @@ pub(super) enum FormatterError {
 }
 
 /// Implement the `Error` trait from Chumsky for `ParseError`
-impl<'a> chumsky::Error<Token<'a>> for ParseError {
+impl<'a> chumsky::Error<Token> for ParseError {
     type Span = Span;
     type Label = ();
 
-    fn expected_input_found<Iter: IntoIterator<Item = Option<Token<'a>>>>(
+    fn expected_input_found<Iter: IntoIterator<Item = Option<Token>>>(
         span: Span,
         _: Iter,
-        _: Option<Token<'a>>,
+        _: Option<Token>,
     ) -> Self {
         Self::InvalidParse { span }
     }

@@ -1,9 +1,11 @@
+#[allow(unused)] // TODO: Remove
 mod ast;
 mod cli;
 #[macro_use]
 mod error;
 mod formatter;
 mod lexer;
+mod new_ast;
 mod new_parser;
 mod parser;
 
