@@ -1,10 +1,8 @@
-use chumsky::Stream;
+mod tests;
+
 use lalrpop_util::lalrpop_mod;
 
-use crate::{
-    error::FormatterError,
-    lexer::{self, Token},
-};
+use crate::lexer;
 
 lalrpop_mod!(#[allow(clippy::ptr_arg, clippy::type_complexity)] pub pintfmt_parser);
 

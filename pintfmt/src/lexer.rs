@@ -165,6 +165,38 @@ pub struct Lexer<'sc> {
 
 impl<'sc> Lexer<'sc> {
     pub fn new(input: &'sc str) -> Self {
+        /* TODO: find a way to remove the newlines unless they're following semicolons
+        Maybe handle it via the ast instead of running a pass over it
+        Although it's simpler to just remove during this pass instead of having more
+        optional stuff in the ast
+
+        // Preserve only newlines following semicolons from token stream
+        let raw_token_stream = Token::lexer(input).spanned();
+        let mut tokens_iter = raw_token_stream.into_iter().peekable();
+        let mut new_token_stream = SpannedIter::;
+        let mut tokens_without_newlines = Vec::new();
+        let mut prev_token = None;
+
+        while let Some(token) = tokens_iter.next() {
+            let token_clone = token.clone();
+            match token {
+                (Ok(Token::Newline), _) if matches!(prev_token, Some((Ok(Token::Semi), _))) => {
+                    if matches!(tokens_iter.peek(), Some((Ok(Token::Newline), _))) {
+                        tokens_without_newlines.push(token);
+                    }
+                }
+                (Ok(Token::Newline), _) => {}
+                _ => tokens_without_newlines.push(token),
+            }
+            prev_token = Some(token_clone);
+        }
+
+        // Provide a token stream
+        // let eoi_span = source.len()..source.len();
+        // let token_stream = Stream::from_iter(eoi_span.clone(), tokens_without_newlines.into_iter());
+
+        let stream = SpannedIter::from(tokens_without_newlines); // need to convert back to token stream and it should run fine?
+        */
         Self {
             token_stream: Token::lexer(input).spanned(),
         }
