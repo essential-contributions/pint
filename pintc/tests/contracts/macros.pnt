@@ -84,12 +84,14 @@ predicate Sum {
 //     var ::anon@0::a: int;
 //     constraint (4 == 4);
 //     constraint (::anon@0::a == 3);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::Bar {
 //     var ::anon@1::a: int;
 //     constraint ([1e0, 2e0] == [1e0, 2e0]);
 //     constraint (::anon@1::a == 4);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::Baz {
@@ -98,6 +100,7 @@ predicate Sum {
 //     constraint (::v == 0);
 //     constraint (::v == 0);
 //     constraint (::v == 0);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::Sum {
@@ -105,5 +108,6 @@ predicate Sum {
 //     var ::b: int;
 //     constraint (::a == 4);
 //     constraint (::b == (((1 + 2) + 3) + ::a));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

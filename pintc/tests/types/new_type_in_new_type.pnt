@@ -35,5 +35,6 @@ predicate test {
 //     var ::y: {{int, int}, {int, int}};
 //     constraint (::x[1] == 11);
 //     constraint (::y.1.0 == 22);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

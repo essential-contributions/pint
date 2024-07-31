@@ -1,40 +1,5 @@
 [[data]]
 decision_variables = [
-  # ::mut_keys_len
-  [
-    4,
-  ],
-
-  # ::mut_keys_contains_0
-  [
-    1,
-  ],
-
-  # ::mut_keys_contains_1
-  [
-    1,
-  ],
-
-  # ::mut_keys_contains_2
-  [
-    1,
-  ],
-
-  # ::mut_keys_contains_3
-  [
-    1,
-  ],
-
-  # ::mut_keys_contains_4
-  [
-    0,
-  ],
-
-  # ::mut_keys_contains_5
-  [
-    0,
-  ],
-
   # ::this_address
   [
     0,

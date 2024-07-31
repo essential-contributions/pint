@@ -26,10 +26,6 @@ impl Contract {
         if deps.is_empty() {
             match &name.name[..] {
                 // Access ops
-                "__mut_keys_len" => Ok(infer_intrinsic_mut_keys_len(handler, args, span)),
-                "__mut_keys_contains" => Ok(infer_intrinsic_mut_keys_contains(
-                    self, handler, name, args, span,
-                )),
                 "__this_address" => Ok(infer_intrinsic_this_address(handler, args, span)),
                 "__this_set_address" => Ok(infer_intrinsic_this_set_address(handler, args, span)),
                 "__this_pathway" => Ok(infer_intrinsic_this_pathway(handler, args, span)),
@@ -46,13 +42,6 @@ impl Contract {
                 "__state_len" => Ok(infer_intrinsic_state_len(self, handler, pred, args, span)),
                 "__vec_len" => Ok(infer_intrinsic_vec_len(self, handler, pred, args, span)),
 
-                // State reads - these will likely change in the future as they don't directly
-                // match the underlying opcodes
-                "__storage_get" | "__storage_get_extern" => Ok(Inference::Type(Type::Primitive {
-                    kind: PrimitiveKind::Int,
-                    span: span.clone(),
-                })),
-
                 _ => Err(Error::Compile {
                     error: CompileError::MissingIntrinsic {
                         name: name.name.clone(),
@@ -66,101 +55,6 @@ impl Contract {
     }
 }
 
-//
-// Intrinsic `__mut_keys_len`
-//
-// - Arguments: none
-//
-// - Returns: `int`
-//
-// Description: Get the number of mutable keys being proposed for mutation.
-//
-fn infer_intrinsic_mut_keys_len(handler: &Handler, args: &[ExprKey], span: &Span) -> Inference {
-    // This intrinsic expects no arguments
-    if !args.is_empty() {
-        handler.emit_err(Error::Compile {
-            error: CompileError::UnexpectedIntrinsicArgCount {
-                expected: 0,
-                found: args.len(),
-                span: span.clone(),
-            },
-        });
-    }
-
-    // This intrinsic returns a `int`
-    Inference::Type(Type::Primitive {
-        kind: PrimitiveKind::Int,
-        span: span.clone(),
-    })
-}
-
-//
-// Intrinsic `__mut_keys_contains`
-//
-// - Arguments:
-//     * Key: `int[n]` for some `n`.
-//
-// - Returns: `bool`
-//
-// Description: Check if the mutable keys being proposed contain the given key
-//
-fn infer_intrinsic_mut_keys_contains(
-    contract: &Contract,
-    handler: &Handler,
-    name: &Ident,
-    args: &[ExprKey],
-    span: &Span,
-) -> Inference {
-    // This intrinsic expects exactly 3 arguments
-    if args.len() != 1 {
-        handler.emit_err(Error::Compile {
-            error: CompileError::UnexpectedIntrinsicArgCount {
-                expected: 1,
-                found: args.len(),
-                span: span.clone(),
-            },
-        });
-    } else {
-        // Helper lambda to emit arg type errors
-        let arg_type_error = |expected, found, intrinsic_span, arg_span| Error::Compile {
-            error: CompileError::MismatchedIntrinsicArgType {
-                expected,
-                found,
-                intrinsic_span,
-                arg_span,
-            },
-        };
-
-        // The only argument is the mutable key which must be an array of integers
-        let mut_key_span = args[0].get(contract).span();
-        let mut_key_type = &args[0].get_ty(contract);
-        if let Some(ty) = mut_key_type.get_array_el_type() {
-            if !ty.is_int() {
-                handler.emit_err(arg_type_error(
-                    "int[..]".to_string(),
-                    contract.with_ctrct(mut_key_type).to_string(),
-                    name.span.clone(),
-                    mut_key_span.clone(),
-                ));
-            }
-        } else {
-            handler.emit_err(arg_type_error(
-                "int[..]".to_string(),
-                contract.with_ctrct(mut_key_type).to_string(),
-                name.span.clone(),
-                mut_key_span.clone(),
-            ));
-        }
-    }
-
-    // This intrinsic returns a `bool`
-    Inference::Type(Type::Primitive {
-        kind: PrimitiveKind::Bool,
-        span: span.clone(),
-    })
-}
-
-//
 // Intrinsic `__this_set_address`
 //
 // - Arguments: none
@@ -538,7 +432,7 @@ fn infer_intrinsic_vec_len(
 
     // The only argument must be a storage access of type vector
     match args.first().and_then(|expr_key| expr_key.try_get(contract)) {
-        Some(Expr::StorageAccess(name, ..)) if contract.storage_var(name).1.ty.is_vector() => {}
+        Some(Expr::StorageAccess { name, .. }) if contract.storage_var(name).1.ty.is_vector() => {}
         Some(Expr::ExternalStorageAccess {
             interface_instance,
             name,

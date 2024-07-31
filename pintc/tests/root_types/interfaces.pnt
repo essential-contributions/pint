@@ -52,5 +52,6 @@ predicate test {
 // predicate ::test {
 //     interface ::inst = ::i(::addr1)
 //     var ::addr1: b256;
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -141,6 +141,7 @@ predicate Bar {
 //     constraint (::condition2 || (::xx > (::yy + 1)));
 //     constraint (::condition2 || ::z);
 //     constraint (!::condition2 || (::yy != ::xx));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::Bar {
@@ -158,5 +159,6 @@ predicate Bar {
 //     constraint ((::condition2 && ::condition) || (!::condition3 || ((::yy + ::xx) == (::yy * ::xx))));
 //     constraint ((::condition2 && ::condition) || (!::condition3 || ::z));
 //     constraint ((::condition2 && ::condition) || (::condition3 || (!::z || (::z && true))));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

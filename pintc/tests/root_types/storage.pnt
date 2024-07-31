@@ -32,7 +32,8 @@ predicate test {
 // }
 //
 // predicate ::test {
-//     state ::y: int = storage::x[1];
+//     state ::y: int = __storage_get({0, (0 + (1 * 1))});
 //     constraint (::y' == 11);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

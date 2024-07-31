@@ -43,5 +43,6 @@ predicate test {
 //     constraint (::d == {77, 88});
 //     constraint (::c.0 == ::d);
 //     constraint (::c.1 != ::d);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

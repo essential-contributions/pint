@@ -53,5 +53,6 @@ predicate test {
 //     constraint (::b2 == ((::b1 * (1e0 + ::i)) - ::r));
 //     constraint (::b3 == ((::b2 * (1e0 + ::i)) - ::r));
 //     constraint (::b4 == ((::b3 * (1e0 + ::i)) - ::r));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

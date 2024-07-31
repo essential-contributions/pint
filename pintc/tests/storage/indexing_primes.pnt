@@ -90,11 +90,11 @@ predicate test {
 // }
 //
 // predicate ::test {
-//     state ::a: int = storage::v;
-//     state ::b: int[2] = storage::w;
-//     state ::c: {int, int} = storage::x;
-//     state ::d: {int[2], int[2]} = storage::y;
-//     state ::e: {int, int}[2] = storage::z;
+//     state ::a: int = __storage_get({0});
+//     state ::b: int[2] = __storage_get({1, 0});
+//     state ::c: {int, int} = __storage_get({2, 0});
+//     state ::d: {int[2], int[2]} = __storage_get({3, 0});
+//     state ::e: {int, int}[2] = __storage_get({4, 0});
 //     constraint (::a' > ::a);
 //     constraint (::a' > ::a);
 //     constraint (::a' > ::a);
@@ -117,5 +117,6 @@ predicate test {
 //     constraint (::e'[0].0 > ::a);
 //     constraint (::e'[0].0 > ::a);
 //     constraint (::e'[0].0 > ::a);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -1,97 +1,6 @@
 use super::{check, compile};
 
 #[test]
-fn mut_keys_len() {
-    check(
-        &format!(
-            "{}",
-            compile(
-                r#"
-            predicate test {
-                var mut_keys_len = __mut_keys_len();
-            }
-            "#,
-            )
-        ),
-        expect_test::expect![[r#"
-            predicate ::test {
-                --- Constraints ---
-                constraint 0
-                  Stack(Push(0))
-                  Access(DecisionVar)
-                  Access(MutKeysLen)
-                  Pred(Eq)
-                --- State Reads ---
-            }
-
-        "#]],
-    );
-}
-
-#[test]
-fn mut_keys_contains() {
-    check(
-        &format!(
-            "{}",
-            compile(
-                r#"
-            predicate test {
-                var key: int[5];
-                var mut_keys_contains = __mut_keys_contains(key);
-            }
-            "#,
-            )
-        ),
-        expect_test::expect![[r#"
-            predicate ::test {
-                --- Constraints ---
-                constraint 0
-                  Stack(Push(1))
-                  Access(DecisionVar)
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(5))
-                  Access(DecisionVarRange)
-                  Stack(Push(5))
-                  Access(MutKeysContains)
-                  Pred(Eq)
-                --- State Reads ---
-            }
-
-        "#]],
-    );
-
-    check(
-        &format!(
-            "{}",
-            compile(
-                r#"
-            predicate test {
-                var mut_keys_contains = __mut_keys_contains([69, 70, 71]);
-            }
-            "#,
-            )
-        ),
-        expect_test::expect![[r#"
-            predicate ::test {
-                --- Constraints ---
-                constraint 0
-                  Stack(Push(0))
-                  Access(DecisionVar)
-                  Stack(Push(69))
-                  Stack(Push(70))
-                  Stack(Push(71))
-                  Stack(Push(3))
-                  Access(MutKeysContains)
-                  Pred(Eq)
-                --- State Reads ---
-            }
-
-        "#]],
-    );
-}
-
-#[test]
 fn this_address() {
     check(
         &format!(
@@ -115,6 +24,10 @@ fn this_address() {
                   Access(ThisAddress)
                   Stack(Push(4))
                   Pred(EqRange)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -146,6 +59,10 @@ fn this_set_address() {
                   Access(ThisContractAddress)
                   Stack(Push(4))
                   Pred(EqRange)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -174,6 +91,10 @@ fn this_pathway() {
                   Access(DecisionVar)
                   Access(ThisPathway)
                   Pred(Eq)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -207,6 +128,10 @@ fn sha256() {
                   Crypto(Sha256)
                   Stack(Push(4))
                   Pred(EqRange)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -239,6 +164,10 @@ fn sha256() {
                   Crypto(Sha256)
                   Stack(Push(4))
                   Pred(EqRange)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -281,6 +210,10 @@ fn sha256() {
                   Crypto(Sha256)
                   Stack(Push(4))
                   Pred(EqRange)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -315,6 +248,10 @@ fn sha256() {
                   Crypto(Sha256)
                   Stack(Push(4))
                   Pred(EqRange)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -356,6 +293,10 @@ fn sha256() {
                   Crypto(Sha256)
                   Stack(Push(4))
                   Pred(EqRange)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -390,6 +331,10 @@ fn sha256() {
                   Crypto(Sha256)
                   Stack(Push(4))
                   Pred(EqRange)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -428,6 +373,10 @@ fn sha256() {
                   Crypto(Sha256)
                   Stack(Push(4))
                   Pred(EqRange)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -496,6 +445,10 @@ fn sha256() {
                   Crypto(Sha256)
                   Stack(Push(4))
                   Pred(EqRange)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -553,6 +506,10 @@ fn verify_ed25519() {
                   Access(DecisionVarRange)
                   Crypto(VerifyEd25519)
                   Pred(Eq)
+                constraint 2
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -622,6 +579,10 @@ fn verify_ed25519() {
                   Access(DecisionVarRange)
                   Crypto(VerifyEd25519)
                   Pred(Eq)
+                constraint 3
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -681,6 +642,10 @@ fn recover_secp256k1() {
                   Crypto(RecoverSecp256k1)
                   Stack(Push(5))
                   Pred(EqRange)
+                constraint 2
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 

@@ -63,5 +63,6 @@ predicate Foo {
 //     pub var ::t0: bool;
 //     pub var ::t1: int;
 //     pub var ::t2: b256;
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -1,4 +1,4 @@
 [[data]]
 decision_variables = [[222]]
 predicate_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", predicate = "::Initialize" }
-state_mutations = [{ key = [14, 14, 14, 14], value = [222] }]
+state_mutations = [{ key = [0], value = [222] }]

@@ -45,7 +45,12 @@ impl DisplayWithContract for &super::Expr {
             }
 
             super::Expr::Path(p, _) => write!(f, "{p}"),
-            super::Expr::StorageAccess(p, _) => write!(f, "storage::{p}"),
+            super::Expr::StorageAccess { name, mutable, .. } => {
+                if *mutable {
+                    write!(f, "mut ")?;
+                }
+                write!(f, "storage::{name}")
+            }
             super::Expr::ExternalStorageAccess {
                 interface_instance,
                 name,

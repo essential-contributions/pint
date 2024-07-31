@@ -10,8 +10,8 @@ publish = false
 
 [dependencies]
 anyhow = { workspace = true }
-essential-constraint-vm = { version = "0.1.0", package = "essential-constraint-vm" }
-essential-state-read-vm = { version = "0.1.0", package = "essential-state-read-vm" }
+essential-constraint-vm = { workspace = true }
+essential-state-read-vm = { workspace = true }
 essential-types = { workspace = true }
 #pint-solve = { path = "../pint-solve", default-features = false }
 pintc = { path = "../pintc", default-features = false }

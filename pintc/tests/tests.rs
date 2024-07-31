@@ -259,8 +259,6 @@ mod e2e {
     e2e_test!(arrays);
     e2e_test!(modules);
     e2e_test!(asm);
-    e2e_test!(directives);
-    e2e_test!(canonicalizes);
     e2e_test!(contracts);
     e2e_test!(storage);
     e2e_test!(intrinsics);

@@ -29,10 +29,10 @@ predicate Bar {
     // Test external storage vectors
 
     // v0 starts empty
-    state v0_0 = storage::v0[0];
-    state v0_1 = storage::v0[1];
-    state v0_2 = storage::v0[2];
-    state v0_len = __vec_len(storage::v0);
+    state v0_0 = mut storage::v0[0];
+    state v0_1 = mut storage::v0[1];
+    state v0_2 = mut storage::v0[2];
+    state v0_len = __vec_len(mut storage::v0);
 
     constraint v0_len == nil || v0_len == 0;
     constraint v0_len' == 3;
@@ -44,15 +44,15 @@ predicate Bar {
     state v1_0 = storage::v1[0];
     state v1_1 = storage::v1[1];
     state v1_2 = storage::v1[2];
-    state v1_len = __vec_len(storage::v1);
+    state v1_len = __vec_len(mut storage::v1);
 
     constraint v1_len == 3;
     constraint v1_0 == 13;
     constraint v1_1 == 14;
     constraint v1_2 == 15;
 
-    state v1_3 = storage::v1[3];
-    state v1_4 = storage::v1[4];
+    state v1_3 = mut storage::v1[3];
+    state v1_4 = mut storage::v1[4];
 
     constraint v1_len' == 5;
     constraint v1_0' == 13; // did not change
@@ -62,10 +62,10 @@ predicate Bar {
     constraint v1_4' == 17; // newly added
 
     // v2 starts empty
-    state v2_0 = storage::v2[0];
-    state v2_1 = storage::v2[1];
-    state v2_2 = storage::v2[2];
-    state v2_len = __vec_len(storage::v2);
+    state v2_0 = mut storage::v2[0];
+    state v2_1 = mut storage::v2[1];
+    state v2_2 = mut storage::v2[2];
+    state v2_len = __vec_len(mut storage::v2);
    
     constraint v2_len == nil || v2_len == 0;
     constraint v2_len' == 3;

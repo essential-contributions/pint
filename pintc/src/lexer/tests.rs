@@ -55,8 +55,8 @@ fn intrinsic_names() {
         Token::IntrinsicName("__foo".to_owned())
     );
     assert_eq!(
-        lex_one_success("__storage_get"),
-        Token::IntrinsicName("__storage_get".to_owned())
+        lex_one_success("__vec_len"),
+        Token::IntrinsicName("__vec_len".to_owned())
     );
 }
 
@@ -260,6 +260,11 @@ fn r#use() {
 #[test]
 fn r#pub() {
     assert_eq!(lex_one_success("pub"), Token::Pub);
+}
+
+#[test]
+fn r#mut() {
+    assert_eq!(lex_one_success("mut"), Token::Mut);
 }
 
 #[test]
