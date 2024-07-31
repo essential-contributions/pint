@@ -75,6 +75,8 @@ impl Contract {
                     inspect_type_names(handler, new_types, seen_names, ty_to)
                 }
 
+                Type::Vector { ty, .. } => inspect_type_names(handler, new_types, seen_names, ty),
+
                 Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } => Ok(()),
             }
         }
@@ -111,6 +113,8 @@ impl Contract {
 
                 Type::Map { ty_from, ty_to, .. } => get_custom_type_mut_ref(custom_path, ty_from)
                     .or_else(|| get_custom_type_mut_ref(custom_path, ty_to)),
+
+                Type::Vector { ty, .. } => get_custom_type_mut_ref(custom_path, ty),
 
                 Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } => None,
             }
@@ -196,6 +200,10 @@ impl Contract {
                 Type::Map { ty_from, ty_to, .. } => {
                     replace_custom_type(new_types, ty_from);
                     replace_custom_type(new_types, ty_to);
+                }
+
+                Type::Vector { ty, .. } => {
+                    replace_custom_type(new_types, ty);
                 }
 
                 Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } => {}
@@ -340,6 +348,16 @@ impl Contract {
                                 },
                             });
                         }
+                    } else if let Type::Vector { ref ty, .. } = ty {
+                        if !(ty.is_bool() || ty.is_int() || ty.is_b256()) {
+                            // TODO: allow arbitrary types in storage vectors
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::Internal {
+                                    msg: "storage vector can only contain int, bool, or b256",
+                                    span: span.clone(),
+                                },
+                            });
+                        }
                     } else {
                         // TODO: allow arbitrary types in storage blocks
                         handler.emit_err(Error::Compile {
@@ -355,14 +373,15 @@ impl Contract {
         }
     }
 
-    pub(super) fn check_for_map_type_vars(&self, handler: &Handler) {
+    pub(super) fn check_for_storage_types_vars(&self, handler: &Handler) {
         for pred in self.preds.values() {
             // Ex. var x: ( int => int ); is disallowed
             pred.vars().for_each(|(var_key, var)| {
                 let ty = var_key.get_ty(pred);
-                if ty.is_map() {
+                if ty.is_map() || ty.is_vector() {
                     handler.emit_err(Error::Compile {
-                        error: CompileError::VarTypeIsMap {
+                        error: CompileError::VarHasStorageType {
+                            ty: self.with_ctrct(ty).to_string(),
                             span: var.span.clone(),
                         },
                     });
@@ -499,9 +518,10 @@ impl Contract {
                             });
                         }
                         // State variables of type `Map` are not allowed
-                        if state_ty.is_map() {
+                        if state_ty.is_map() || state_ty.is_vector() {
                             handler.emit_err(Error::Compile {
-                                error: CompileError::StateVarTypeIsMap {
+                                error: CompileError::StateVarHasStorageType {
+                                    ty: self.with_ctrct(state_ty).to_string(),
                                     span: state.span.clone(),
                                 },
                             });
@@ -518,9 +538,10 @@ impl Contract {
                     if !expr_ty.is_unknown() {
                         state_key_to_new_type.insert(state_key, expr_ty.clone());
                         // State variables of type `Map` are not allowed
-                        if expr_ty.is_map() {
+                        if expr_ty.is_map() || expr_ty.is_vector() {
                             handler.emit_err(Error::Compile {
-                                error: CompileError::StateVarTypeIsMap {
+                                error: CompileError::StateVarHasStorageType {
+                                    ty: self.with_ctrct(expr_ty).to_string(),
                                     span: state.span.clone(),
                                 },
                             });
@@ -1904,6 +1925,18 @@ impl Contract {
                         span: span.clone(),
                     },
                 })
+            }
+        } else if let Some(ty) = ary_ty.get_vector_element_ty() {
+            if !index_ty.is_int() {
+                Err(Error::Compile {
+                    error: CompileError::ArrayAccessWithWrongType {
+                        found_ty: self.with_ctrct(index_ty).to_string(),
+                        expected_ty: "int".to_string(),
+                        span: self.expr_key_to_span(index_expr_key),
+                    },
+                })
+            } else {
+                Ok(Inference::Type(ty.clone()))
             }
         } else {
             Err(Error::Compile {

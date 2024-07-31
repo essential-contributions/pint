@@ -172,8 +172,8 @@ pub enum CompileError {
     },
     #[error("invalid array range type {found_ty}")]
     InvalidArrayRangeType { found_ty: String, span: Span },
-    #[error("variables cannot have storage map type")]
-    VarTypeIsMap { span: Span },
+    #[error("variables cannot have storage types")]
+    VarHasStorageType { ty: String, span: Span },
     #[error("attempt to index a storage map with a mismatched value")]
     StorageMapAccessWithWrongType {
         found_ty: String,
@@ -215,8 +215,8 @@ pub enum CompileError {
     },
     #[error("state variable initialization type error")]
     StateVarInitTypeError { large_err: Box<LargeTypeError> },
-    #[error("state variables cannot have storage map type")]
-    StateVarTypeIsMap { span: Span },
+    #[error("state variables cannot have storage types")]
+    StateVarHasStorageType { ty: String, span: Span },
     #[error("expression has a recursive dependency")]
     ExprRecursion {
         dependant_span: Span,
@@ -276,6 +276,8 @@ pub enum CompileError {
     },
     #[error("intrinsic argument must be a state variable")]
     IntrinsicArgMustBeStateVar { span: Span },
+    #[error("intrinsic argument must be a storage access")]
+    IntrinsicArgMustBeStorageAccess { span: Span },
     #[error("binary operator type error")]
     CompareToNilError { op: &'static str, span: Span },
     #[error("type alias refers to itself")]
@@ -725,9 +727,9 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            VarTypeIsMap { span } => {
+            VarHasStorageType { ty, span } => {
                 vec![ErrorLabel {
-                    message: "found variable of type storage map here".to_string(),
+                    message: format!("found variable of storage type {ty} here"),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -795,8 +797,8 @@ impl ReportableError for CompileError {
                     color: Color::Red,
                 },
             ],
-            StateVarTypeIsMap { span } => vec![ErrorLabel {
-                message: "found state variable of type storage map here".to_string(),
+            StateVarHasStorageType { ty, span } => vec![ErrorLabel {
+                message: format!("found state variable of storage type {ty} here"),
                 span: span.clone(),
                 color: Color::Red,
             }],
@@ -990,6 +992,12 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            IntrinsicArgMustBeStorageAccess { span } => vec![ErrorLabel {
+                message: "intrinsic argument must be a storage access".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             CompareToNilError { op, span } => {
                 vec![ErrorLabel {
                     message: format!("unexpected argument for operator `{op}`"),
@@ -1170,9 +1178,9 @@ impl ReportableError for CompileError {
             | OperatorTypeError { .. }
             | InitTypeError { .. }
             | StateVarInitTypeError { .. }
-            | StateVarTypeIsMap { .. }
+            | StateVarHasStorageType { .. }
             | IndexExprNonIndexable { .. }
-            | VarTypeIsMap { .. }
+            | VarHasStorageType { .. }
             | TupleAccessNonTuple { .. }
             | EmptyArrayExpression { .. }
             | ExprRecursion { .. }
@@ -1188,6 +1196,7 @@ impl ReportableError for CompileError {
             | MissingIntrinsic { .. }
             | UnexpectedIntrinsicArgCount { .. }
             | IntrinsicArgMustBeStateVar { .. }
+            | IntrinsicArgMustBeStorageAccess { .. }
             | MismatchedIntrinsicArgType { .. }
             | CompareToNilError { .. }
             | RecursiveNewType { .. } => None,
@@ -1327,7 +1336,7 @@ impl Spanned for CompileError {
             | IndexExprNonIndexable { span, .. }
             | ArrayAccessWithWrongType { span, .. }
             | InvalidArrayRangeType { span, .. }
-            | VarTypeIsMap { span }
+            | VarHasStorageType { span, .. }
             | StorageMapAccessWithWrongType { span, .. }
             | MismatchedArrayComparisonSizes { span, .. }
             | TupleAccessNonTuple { span, .. }
@@ -1344,12 +1353,13 @@ impl Spanned for CompileError {
             | RangeTypesMismatch { span, .. }
             | RangeTypesNonNumeric { span, .. }
             | InExprTypesMismatch { span, .. }
-            | StateVarTypeIsMap { span }
+            | StateVarHasStorageType { span, .. }
             | InExprTypesArrayMismatch { span, .. }
             | MissingIntrinsic { span, .. }
             | UnexpectedIntrinsicArgCount { span, .. }
             | MismatchedIntrinsicArgType { arg_span: span, .. }
             | IntrinsicArgMustBeStateVar { span, .. }
+            | IntrinsicArgMustBeStorageAccess { span, .. }
             | CompareToNilError { span, .. }
             | RecursiveNewType { use_span: span, .. }
             | TemporaryNonPrimitiveConst { span, .. } => span,

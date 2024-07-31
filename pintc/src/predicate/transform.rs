@@ -1,8 +1,10 @@
+mod legalize;
 mod lower;
 mod unroll;
 mod validate;
 
 use crate::error::{ErrorEmitted, Handler};
+use legalize::legalize_vector_accesses;
 use lower::{
     coalesce_prime_ops, lower_aliases, lower_casts, lower_compares_to_nil, lower_enums, lower_ifs,
     lower_imm_accesses, lower_ins, replace_const_refs,
@@ -55,6 +57,9 @@ impl super::Contract {
         // Lower casts after aliases since we're leaving `int -> real` behind, but it's
         // much easier if the `real` isn't still an alias.
         let _ = lower_casts(handler, &mut self);
+
+        // Insert OOB checks for storage vector accesses
+        let _ = legalize_vector_accesses(handler, &mut self);
 
         // Ensure that the final contract is indeed final
         if !handler.has_errors() {

@@ -1,0 +1,63 @@
+storage {
+    x: int,
+    y: b256,
+    z: ( int => int ),
+    w: { int, int },
+}
+
+predicate test {
+    state x_len = __vec_len(storage::x);
+    state y_len = __vec_len(storage::y);
+    state z_len = __vec_len(storage::z);
+    state w_len = __vec_len(storage::w);
+
+    var p: int;
+    state p_len = __vec_len(p);
+    state imm_len = __vec_len(0);
+}
+
+// parsed <<<
+// storage {
+//     x: int,
+//     y: b256,
+//     z: ( int => int ),
+//     w: {int, int},
+// }
+// 
+// predicate ::test {
+//     var ::p: int;
+//     state ::x_len = __vec_len(storage::x);
+//     state ::y_len = __vec_len(storage::y);
+//     state ::z_len = __vec_len(storage::z);
+//     state ::w_len = __vec_len(storage::w);
+//     state ::p_len = __vec_len(::p);
+//     state ::imm_len = __vec_len(0);
+// }
+// >>>
+
+// typecheck_failure <<<
+// intrinsic argument must be a storage access
+// @117..138: intrinsic argument must be a storage access
+// intrinsic argument must be a storage access
+// @158..179: intrinsic argument must be a storage access
+// intrinsic argument must be a storage access
+// @199..220: intrinsic argument must be a storage access
+// intrinsic argument must be a storage access
+// @240..261: intrinsic argument must be a storage access
+// intrinsic argument must be a storage access
+// @298..310: intrinsic argument must be a storage access
+// intrinsic argument must be a storage access
+// @332..344: intrinsic argument must be a storage access
+// unable to determine expression type
+// @103..138: type of this expression is ambiguous
+// unable to determine expression type
+// @144..179: type of this expression is ambiguous
+// unable to determine expression type
+// @185..220: type of this expression is ambiguous
+// unable to determine expression type
+// @226..261: type of this expression is ambiguous
+// unable to determine expression type
+// @284..310: type of this expression is ambiguous
+// unable to determine expression type
+// @316..344: type of this expression is ambiguous
+// >>>

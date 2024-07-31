@@ -1,0 +1,15 @@
+storage {
+    v: int[],
+}
+
+predicate test {
+    var v_len = __vec_len(storage::v);
+    constraint __vec_len(storage::v) == 0;
+}
+
+// parse_failure <<<
+// intrinsic can only be used in a state initializer
+// @60..81: intrinsic can only be used in a state initializer
+// intrinsic can only be used in a state initializer
+// @98..119: intrinsic can only be used in a state initializer
+// >>>

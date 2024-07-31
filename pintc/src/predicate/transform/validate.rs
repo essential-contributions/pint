@@ -121,7 +121,11 @@ fn check_expr(
         Type::Alias { span, .. } => {
             emit_illegal_type_error!(handler, span, "type alias", "expr_types");
         }
-        Type::Array { .. } | Type::Tuple { .. } | Type::Primitive { .. } | Type::Map { .. } => {}
+        Type::Array { .. }
+        | Type::Tuple { .. }
+        | Type::Primitive { .. }
+        | Type::Map { .. }
+        | Type::Vector { .. } => {}
     }
 
     // then check the expr variant and make sure legal
