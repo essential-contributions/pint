@@ -9,7 +9,7 @@ use super::{
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::evaluate::Evaluator,
-    span::{empty_span, Span, Spanned},
+    span::{empty_span, Span},
     types::Type,
 };
 
@@ -25,10 +25,6 @@ impl Contract {
         // Evaluate all the constant decls to ensure they're all immediates. Each Const expr is
         // updated and has its type set.
         handler.scope(|handler| self.evaluate_all_consts(handler))?;
-
-        // We're temporarily blocking non-primitive consts until we refactor all expressions back
-        // into the Contract (Predicates will contain only their local vars, nothing more).
-        self.reject_non_primitive_consts(handler)?;
 
         for pred_key in self.preds.keys() {
             for expr_key in self.exprs(pred_key) {
@@ -219,26 +215,6 @@ impl Contract {
 
         for (path, new_ty) in type_replacements {
             self.consts.get_mut(&path).unwrap().decl_ty = new_ty;
-        }
-
-        if handler.has_errors() {
-            Err(handler.cancel())
-        } else {
-            Ok(())
-        }
-    }
-
-    fn reject_non_primitive_consts(&self, handler: &Handler) -> Result<(), ErrorEmitted> {
-        // Called after we've evaluated them all and resolved their types.
-        for (path, Const { expr, decl_ty }) in &self.consts {
-            if !decl_ty.is_any_primitive() && !decl_ty.is_enum(&self.enums) {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::TemporaryNonPrimitiveConst {
-                        name: path.to_string(),
-                        span: expr.get(self).span().clone(),
-                    },
-                });
-            }
         }
 
         if handler.has_errors() {
