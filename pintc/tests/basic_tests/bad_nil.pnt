@@ -26,8 +26,6 @@ predicate test {
 // @60..63: operator `+` argument has unexpected type `nil`
 // binary operator type error
 // @100..103: operator `<` argument has unexpected type `nil`
-// binary operator type error
-// @60..63: operator `+` argument has unexpected type `nil`
 // variable initialization type error
 // @34..37: variable initializer has unexpected type `nil`
 // @28..31: expecting type `int`

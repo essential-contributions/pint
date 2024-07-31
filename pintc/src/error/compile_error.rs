@@ -1263,7 +1263,7 @@ fn generate_type_error_labels(
     found_span: &Span,
     expected_span: &Option<Span>,
 ) -> Vec<ErrorLabel> {
-    let message = if found_ty == "Unknown" {
+    let message = if found_ty == "Unknown" || found_ty == "Error" {
         format!("{what} has unknown type")
     } else {
         format!("{what} has unexpected type `{found_ty}`")

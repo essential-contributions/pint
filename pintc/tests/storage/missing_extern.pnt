@@ -38,6 +38,4 @@ predicate Foo {
 // @365..397: cannot find interface instance `::ERC20InstanceMissing`
 // unable to determine expression type
 // @313..348: type of this expression is ambiguous
-// unable to determine expression type
-// @355..397: type of this expression is ambiguous
 // >>>
