@@ -167,7 +167,7 @@ fn check_expr(
         | Expr::Array { .. }
         | Expr::Tuple { .. }
         | Expr::Path(..)
-        | Expr::StorageAccess(..)
+        | Expr::StorageAccess { .. }
         | Expr::UnaryOp { .. }
         | Expr::BinaryOp { .. }
         | Expr::IntrinsicCall { .. }

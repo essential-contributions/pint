@@ -18,28 +18,28 @@ predicate Bar {
     interface FooInstance = Foo(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE);
 
     state u = storage::u;
-    state u0 = storage::u[0];
-    state u1 = storage::u[1];
+    state u0 = mut storage::u[0];
+    state u1 = mut storage::u[1];
 
-    state t = storage::t;
-    state t0 = storage::t[0];
-    state t1 = storage::t[1];
-    state t2 = storage::t[2];
+    state t = mut storage::t;
+    state t0 = mut storage::t[0];
+    state t1 = mut storage::t[1];
+    state t2 = mut storage::t[2];
 
     state v = storage::v;
     state v0 = storage::v[0];
     state v1 = storage::v[1];
-    state v00 = storage::v[0][0];
-    state v01 = storage::v[0][1];
-    state v02 = storage::v[0][2];
-    state v10 = storage::v[1][0];
-    state v11 = storage::v[1][1];
-    state v12 = storage::v[1][2];
+    state v00 = mut storage::v[0][0];
+    state v01 = mut storage::v[0][1];
+    state v02 = mut storage::v[0][2];
+    state v10 = mut storage::v[1][0];
+    state v11 = mut storage::v[1][1];
+    state v12 = mut storage::v[1][2];
 
     state map_to_arrays_69 = storage::map_to_arrays[69];
-    state map_to_arrays_69_0 = storage::map_to_arrays[69][0];
-    state map_to_arrays_69_1 = storage::map_to_arrays[69][1];
-    state map_to_arrays_69_2 = storage::map_to_arrays[69][2];
+    state map_to_arrays_69_0 = mut storage::map_to_arrays[69][0];
+    state map_to_arrays_69_1 = mut storage::map_to_arrays[69][1];
+    state map_to_arrays_69_2 = mut storage::map_to_arrays[69][2];
 
     constraint u' == [2, 3];
     constraint (u')[0] == 2;

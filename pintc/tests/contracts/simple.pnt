@@ -45,6 +45,7 @@ predicate Bar {
 //     constraint (::x == 3);
 //     constraint (::y >= 0);
 //     constraint (::y <= 1);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::Bar {
@@ -54,5 +55,6 @@ predicate Bar {
 //     constraint (::x < 2);
 //     constraint (::y >= 0);
 //     constraint (::y <= 1);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -53,5 +53,6 @@ predicate test {
 //     constraint (::a_variant <= 1);
 //     constraint (::b_variant >= 0);
 //     constraint (::b_variant <= 1);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -46,5 +46,6 @@ predicate test {
 //     constraint (::b == (::condition ? (::condition1 ? ::x : ::y) : (::condition2 ? (::x + 1) : (::x * ::y))));
 //     constraint (::c == (!::condition ? {1, 2, 3} : {3, 2, 1}));
 //     constraint (::d == (!::condition ? [1, 2, 3] : [3, 2, 1]));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

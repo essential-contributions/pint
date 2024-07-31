@@ -379,7 +379,7 @@ impl Evaluator {
             }
 
             Expr::Error(_)
-            | Expr::StorageAccess(_, _)
+            | Expr::StorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
             | Expr::IntrinsicCall { .. }
@@ -458,7 +458,7 @@ impl ExprKey {
                 }
             }
 
-            Expr::StorageAccess(..)
+            Expr::StorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
             | Expr::Error(_) => expr,

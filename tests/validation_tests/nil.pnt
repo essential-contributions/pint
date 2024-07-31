@@ -17,13 +17,13 @@ storage {
 
 // Constraint set with address `0x0000000000000000000000000000000000000000000000000000000000000000`
 predicate Foo {
-    state x = storage::x;
-    state y = storage::y;
-    state z = storage::z;
-    state w = storage::w;
-    state t = storage::t;
-    state a = storage::a;
-    state t2 = storage::t2;
+    state x = mut storage::x;
+    state y = mut storage::y;
+    state z = mut storage::z;
+    state w = mut storage::w;
+    state t = mut storage::t;
+    state a = mut storage::a;
+    state t2 = mut storage::t2;
 
     // `x` is set in the pre state db and in the solution
     constraint x != nil;

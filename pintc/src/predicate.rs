@@ -1,8 +1,8 @@
 use crate::{
     error::{Error, ErrorEmitted, Handler, ParseError},
-    expr::{Expr, Ident},
+    expr::{Expr, Ident, Immediate},
     span::{empty_span, Span, Spanned},
-    types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type},
+    types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
 use exprs::ExprsIter;
 use pint_abi_types::{ContractABI, PredicateABI, VarABI};
@@ -71,7 +71,7 @@ impl Contract {
         match expr {
             Expr::Error(_)
             | Expr::Path(_, _)
-            | Expr::StorageAccess(_, _)
+            | Expr::StorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
             | Expr::Immediate { .. } => {}
@@ -339,6 +339,21 @@ impl Contract {
                     .filter_map(|NewTypeDecl { ty, .. }| ty.get_array_range_expr()),
             )
     }
+
+    /// Inserts an integer expression with an empty span into the `exprs` map. Returns the
+    /// `ExprKey` of the expression.
+    pub fn insert_int(&mut self, i: i64) -> ExprKey {
+        self.exprs.insert(
+            Expr::Immediate {
+                value: Immediate::Int(i),
+                span: empty_span(),
+            },
+            Type::Primitive {
+                kind: PrimitiveKind::Int,
+                span: empty_span(),
+            },
+        )
+    }
 }
 
 /// An in-progress predicate, possibly malformed or containing redundant information.  Designed to
@@ -439,6 +454,12 @@ impl Predicate {
 
         self.states.update_types(|_state_key, state_ty| {
             state_ty.replace_type_expr(old_expr, new_expr);
+        });
+
+        self.states.update_states(|State { expr, .. }| {
+            if *expr == old_expr {
+                *expr = new_expr;
+            }
         });
 
         self.constraints

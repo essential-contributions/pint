@@ -48,6 +48,10 @@ fn local_transient() {
                   Access(ThisPathway)
                   Access(Transient)
                   Pred(Eq)
+                constraint 3
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -97,6 +101,10 @@ predicate Bar {
                   Access(Transient)
                   Stack(Push(4))
                   Pred(EqRange)
+                constraint 2
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 

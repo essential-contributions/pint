@@ -42,5 +42,6 @@ predicate Foo {
 //     var ::b: {y: {z: int[4]}};
 //     constraint (::a[2] == 11);
 //     constraint (::b.y.z[2] == 22);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

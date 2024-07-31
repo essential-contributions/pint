@@ -78,5 +78,6 @@ predicate test {
 //     var ::q: bool[5];
 //     var ::r: b256;
 //     var ::s: int;
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

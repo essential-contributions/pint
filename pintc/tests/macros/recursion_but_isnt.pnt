@@ -36,5 +36,6 @@ predicate test {
 //     constraint (::v == 0);
 //     constraint (::v == 0);
 //     constraint (::v == 0);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

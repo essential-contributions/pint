@@ -36,5 +36,6 @@ predicate test {
 // predicate ::test {
 //     var ::x: int;
 //     constraint ((::x < 33) && (::x > 11));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

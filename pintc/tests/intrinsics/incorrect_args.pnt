@@ -9,12 +9,6 @@ predicate test {
     // * Either an argument has the wrong type
     // * Or an incorrect number of arguments is supplied
 
-    var mut_keys_len = __mut_keys_len(42);
-
-    var mut_keys_contains_0: bool = __mut_keys_contains(5);
-    var mut_keys_contains_1: bool = __mut_keys_contains();
-    var mut_keys_contains_2: bool = __mut_keys_contains(hash0, hash0);
-
     var this_address = __this_address(42);
 
     var this_set_address = __this_set_address(42);
@@ -44,13 +38,9 @@ predicate test {
 // storage {
 //     x: int,
 // }
-//
+// 
 // predicate ::test {
 //     var ::hash0: b256;
-//     var ::mut_keys_len;
-//     var ::mut_keys_contains_0: bool;
-//     var ::mut_keys_contains_1: bool;
-//     var ::mut_keys_contains_2: bool;
 //     var ::this_address;
 //     var ::this_set_address;
 //     var ::this_pathway;
@@ -67,10 +57,6 @@ predicate test {
 //     var ::bad_state_len_1;
 //     var ::bad_state_len_2;
 //     state ::x = storage::x;
-//     constraint (::mut_keys_len == __mut_keys_len(42));
-//     constraint (::mut_keys_contains_0 == __mut_keys_contains(5));
-//     constraint (::mut_keys_contains_1 == __mut_keys_contains());
-//     constraint (::mut_keys_contains_2 == __mut_keys_contains(::hash0, ::hash0));
 //     constraint (::this_address == __this_address(42));
 //     constraint (::this_set_address == __this_set_address(42));
 //     constraint (::this_pathway == __this_pathway(42));
@@ -92,45 +78,36 @@ predicate test {
 // typecheck_failure <<<
 // this intrinsic takes 0 arguments but 1 argument was supplied
 // @256..274: unexpected number of arguments here
-// mismatched types
-// @333..334: expected `int[..]`, found `int`
-// @313..332: arguments to this intrinsic are incorrect`
+// this intrinsic takes 0 arguments but 1 argument was supplied
+// @304..326: unexpected number of arguments here
+// this intrinsic takes 0 arguments but 1 argument was supplied
+// @352..370: unexpected number of arguments here
 // this intrinsic takes 1 argument but 0 arguments were supplied
-// @373..394: unexpected number of arguments here
+// @392..402: unexpected number of arguments here
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @432..465: unexpected number of arguments here
-// this intrinsic takes 0 arguments but 1 argument was supplied
-// @491..509: unexpected number of arguments here
-// this intrinsic takes 0 arguments but 1 argument was supplied
-// @539..561: unexpected number of arguments here
-// this intrinsic takes 0 arguments but 1 argument was supplied
-// @587..605: unexpected number of arguments here
-// this intrinsic takes 1 argument but 0 arguments were supplied
-// @627..637: unexpected number of arguments here
-// this intrinsic takes 1 argument but 2 arguments were supplied
-// @658..672: unexpected number of arguments here
+// @423..437: unexpected number of arguments here
 // mismatched types
-// @747..748: expected `b256`, found `int`
-// @708..724: arguments to this intrinsic are incorrect`
+// @512..513: expected `b256`, found `int`
+// @473..489: arguments to this intrinsic are incorrect`
 // mismatched types
-// @805..810: expected `{ b256, b256 }`, found `b256`
-// @784..800: arguments to this intrinsic are incorrect`
+// @570..575: expected `{ b256, b256 }`, found `b256`
+// @549..565: arguments to this intrinsic are incorrect`
 // this intrinsic takes 3 arguments but 0 arguments were supplied
-// @853..871: unexpected number of arguments here
+// @618..636: unexpected number of arguments here
 // this intrinsic takes 3 arguments but 4 arguments were supplied
-// @906..955: unexpected number of arguments here
+// @671..720: unexpected number of arguments here
 // mismatched types
-// @1023..1025: expected `b256`, found `int`
-// @1003..1022: arguments to this intrinsic are incorrect`
+// @788..790: expected `b256`, found `int`
+// @768..787: arguments to this intrinsic are incorrect`
 // mismatched types
-// @1122..1138: expected `{ b256, b256, int }`, found `{b256, b256}`
-// @1095..1114: arguments to this intrinsic are incorrect`
+// @887..903: expected `{ b256, b256, int }`, found `{b256, b256}`
+// @860..879: arguments to this intrinsic are incorrect`
 // this intrinsic takes 2 arguments but 1 argument was supplied
-// @1186..1212: unexpected number of arguments here
+// @951..977: unexpected number of arguments here
 // this intrinsic takes 2 arguments but 3 arguments were supplied
-// @1259..1312: unexpected number of arguments here
+// @1024..1077: unexpected number of arguments here
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @1368..1385: unexpected number of arguments here
+// @1133..1150: unexpected number of arguments here
 // this intrinsic takes 1 argument but 0 arguments were supplied
-// @1413..1426: unexpected number of arguments here
+// @1178..1191: unexpected number of arguments here
 // >>>

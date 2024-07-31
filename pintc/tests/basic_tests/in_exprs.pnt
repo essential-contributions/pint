@@ -67,5 +67,6 @@ predicate test {
 //     constraint (::g == [-99, -99]);
 //     constraint (::e >= 0);
 //     constraint (::e <= 3);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

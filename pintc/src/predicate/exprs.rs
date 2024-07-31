@@ -80,7 +80,7 @@ impl ExprKey {
     /// Return whether this expression can panic (typically related to storage).
     pub fn can_panic(&self, contract: &Contract, pred: &Predicate) -> bool {
         contract.exprs.get(*self).map_or(false, |expr| match expr {
-            Expr::StorageAccess(_, _) | Expr::ExternalStorageAccess { .. } => true,
+            Expr::StorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
 
             Expr::Path(path, _) => pred.states().any(|(_, state)| &state.name == path),
 
@@ -322,7 +322,7 @@ impl<'a> Iterator for ExprsIter<'a> {
             }
 
             Expr::Error(_)
-            | Expr::StorageAccess(..)
+            | Expr::StorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::Path(_, _)
             | Expr::MacroCall { .. } => {}

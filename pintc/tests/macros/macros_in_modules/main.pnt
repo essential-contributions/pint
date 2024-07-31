@@ -42,5 +42,6 @@ predicate test {
 //     constraint ((::a % 3) == 0);
 //     constraint (55 != 66);
 //     constraint (66 != 77);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

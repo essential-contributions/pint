@@ -14,7 +14,7 @@ interface Foo {
 }
 
 predicate Bar {
-    state a = storage::a;
+    state a = mut storage::a;
 
     constraint (a')[0][0].0 == 1;
     constraint (a')[0][0].1.0 == 1;
@@ -48,14 +48,14 @@ predicate Bar {
         ],
     ];
 
-    state a_1_2_0 = storage::a[1][2].0;
-    state a_1_2_1_0 = storage::a[1][2].1.0;
-    state a_1_2_1_1 = storage::a[1][2].1.1;
+    state a_1_2_0 = mut storage::a[1][2].0;
+    state a_1_2_1_0 = mut storage::a[1][2].1.0;
+    state a_1_2_1_1 = mut storage::a[1][2].1.1;
     constraint a_1_2_0' == 6;
     constraint a_1_2_1_0' == 6;
     constraint a_1_2_1_1' == 0x0000000000000006000000000000000600000000000000060000000000000006;
 
-    state a_1_2 = storage::a[1][2];
+    state a_1_2 = mut storage::a[1][2];
     constraint a_1_2' == { 6, { 6, 0x0000000000000006000000000000000600000000000000060000000000000006
     }};
 

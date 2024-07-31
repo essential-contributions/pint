@@ -48,6 +48,10 @@ fn bool_literals() {
                   Stack(Push(1))
                 constraint 1
                   Stack(Push(0))
+                constraint 2
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -81,6 +85,10 @@ fn int_literals() {
                   Access(DecisionVar)
                   Stack(Push(819))
                   Pred(Eq)
+                constraint 2
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -118,6 +126,10 @@ fn unary_not() {
                   Stack(Push(0))
                   Access(DecisionVar)
                   Pred(Not)
+                constraint 2
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -149,6 +161,10 @@ fn select() {
                   Stack(Push(1))
                   Stack(Select)
                   Pred(Eq)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -181,6 +197,10 @@ fn select() {
                   Access(DecisionVar)
                   Stack(Select)
                   Pred(Eq)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -221,6 +241,10 @@ fn select() {
                   TotalControlFlow(JumpForwardIf)
                   Stack(Push(11))
                   Pred(Eq)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
                 state read 0
                   Constraint(Stack(Push(0)))
@@ -272,6 +296,10 @@ fn select_range() {
                   Stack(SelectRange)
                   Stack(Push(4))
                   Pred(EqRange)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -306,6 +334,10 @@ fn select_range() {
                   Stack(SelectRange)
                   Stack(Push(2))
                   Pred(EqRange)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -346,6 +378,10 @@ fn select_range() {
                   Stack(SelectRange)
                   Stack(Push(3))
                   Pred(EqRange)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -470,6 +506,10 @@ fn binary_ops() {
                   Stack(Push(1))
                   Access(DecisionVar)
                   Pred(Gt)
+                constraint 12
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -505,6 +545,10 @@ fn short_circuit_and() {
                   Stack(Pop)
                   Stack(Push(1))
                   Access(DecisionVar)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -539,170 +583,25 @@ fn short_circuit_or() {
                   Stack(Pop)
                   Stack(Push(1))
                   Access(DecisionVar)
-                --- State Reads ---
-            }
-
-        "#]],
-    );
-}
-
-#[test]
-fn state_read() {
-    let compiled_contract = compile(
-        r#"
-        predicate test {
-            state x: int = __storage_get([0, 0, 0, 1]);
-            state y: int = __storage_get([2, 2, 2, 2]);
-            constraint x == y;
-            constraint x' == y';
-        }
-        "#,
-    );
-
-    check(
-        &format!("{compiled_contract}"),
-        expect_test::expect![[r#"
-            predicate ::test {
-                --- Constraints ---
-                constraint 0
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Access(State)
-                  Stack(Push(1))
-                  Stack(Push(0))
-                  Access(State)
-                  Pred(Eq)
                 constraint 1
+                  Access(MutKeys)
                   Stack(Push(0))
-                  Stack(Push(1))
-                  Access(State)
-                  Stack(Push(1))
-                  Stack(Push(1))
-                  Access(State)
-                  Pred(Eq)
+                  Pred(EqSet)
                 --- State Reads ---
-                state read 0
-                  Constraint(Stack(Push(0)))
-                  Constraint(Stack(Push(0)))
-                  Constraint(Stack(Push(0)))
-                  Constraint(Stack(Push(1)))
-                  Constraint(Stack(Push(1)))
-                  StateSlots(AllocSlots)
-                  Constraint(Stack(Push(4)))
-                  Constraint(Stack(Push(1)))
-                  Constraint(Stack(Push(0)))
-                  KeyRange
-                  Constraint(TotalControlFlow(Halt))
-                state read 1
-                  Constraint(Stack(Push(2)))
-                  Constraint(Stack(Push(2)))
-                  Constraint(Stack(Push(2)))
-                  Constraint(Stack(Push(2)))
-                  Constraint(Stack(Push(1)))
-                  StateSlots(AllocSlots)
-                  Constraint(Stack(Push(4)))
-                  Constraint(Stack(Push(1)))
-                  Constraint(Stack(Push(0)))
-                  KeyRange
-                  Constraint(TotalControlFlow(Halt))
             }
 
         "#]],
     );
-
-    // Single top-level predicate named `CompiledContract::ROOT_PRED_NAME`
-    assert_eq!(compiled_contract.predicates.len(), 1);
-}
-
-#[test]
-fn state_read_extern() {
-    let compiled_contract = &compile(
-        r#"
-        predicate test {
-            state x: int = __storage_get_extern(
-                0x0000000000000001000000000000000200000000000000030000000000000004,
-                [11, 22, 33, 44],
-            );
-            state y: int = __storage_get_extern(
-                0x0000000000000005000000000000000600000000000000070000000000000008,
-                [55, 66, 77, 88],
-            );
-            constraint x == y;
-            constraint x' == y';
-        }
-        "#,
-    );
-
-    check(
-        &format!("{compiled_contract}"),
-        expect_test::expect![[r#"
-            predicate ::test {
-                --- Constraints ---
-                constraint 0
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Access(State)
-                  Stack(Push(1))
-                  Stack(Push(0))
-                  Access(State)
-                  Pred(Eq)
-                constraint 1
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Access(State)
-                  Stack(Push(1))
-                  Stack(Push(1))
-                  Access(State)
-                  Pred(Eq)
-                --- State Reads ---
-                state read 0
-                  Constraint(Stack(Push(1)))
-                  Constraint(Stack(Push(2)))
-                  Constraint(Stack(Push(3)))
-                  Constraint(Stack(Push(4)))
-                  Constraint(Stack(Push(11)))
-                  Constraint(Stack(Push(22)))
-                  Constraint(Stack(Push(33)))
-                  Constraint(Stack(Push(44)))
-                  Constraint(Stack(Push(1)))
-                  StateSlots(AllocSlots)
-                  Constraint(Stack(Push(4)))
-                  Constraint(Stack(Push(1)))
-                  Constraint(Stack(Push(0)))
-                  KeyRangeExtern
-                  Constraint(TotalControlFlow(Halt))
-                state read 1
-                  Constraint(Stack(Push(5)))
-                  Constraint(Stack(Push(6)))
-                  Constraint(Stack(Push(7)))
-                  Constraint(Stack(Push(8)))
-                  Constraint(Stack(Push(55)))
-                  Constraint(Stack(Push(66)))
-                  Constraint(Stack(Push(77)))
-                  Constraint(Stack(Push(88)))
-                  Constraint(Stack(Push(1)))
-                  StateSlots(AllocSlots)
-                  Constraint(Stack(Push(4)))
-                  Constraint(Stack(Push(1)))
-                  Constraint(Stack(Push(0)))
-                  KeyRangeExtern
-                  Constraint(TotalControlFlow(Halt))
-            }
-
-        "#]],
-    );
-
-    // Single top-level predicate named `CompiledContract::ROOT_PRED_NAME`
-    assert_eq!(compiled_contract.predicates.len(), 1);
 }
 
 #[test]
 fn next_state() {
     let compiled_contract = &compile(
         r#"
+        storage { x: int }
         predicate test {
             var diff: int = 5;
-            state x: int = __storage_get([0, 0, 0, 3]);
+            state x: int = storage::x;
             constraint x' - x == 5;
         }
         "#,
@@ -728,15 +627,16 @@ fn next_state() {
                   Alu(Sub)
                   Stack(Push(5))
                   Pred(Eq)
+                constraint 2
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
                 state read 0
                   Constraint(Stack(Push(0)))
-                  Constraint(Stack(Push(0)))
-                  Constraint(Stack(Push(0)))
-                  Constraint(Stack(Push(3)))
                   Constraint(Stack(Push(1)))
                   StateSlots(AllocSlots)
-                  Constraint(Stack(Push(4)))
+                  Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(1)))
                   Constraint(Stack(Push(0)))
                   KeyRange
@@ -788,6 +688,10 @@ fn b256() {
                   Stack(Push(8070450532247928832))
                   Stack(Push(4))
                   Pred(EqRange)
+                constraint 2
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
             }
 
@@ -840,6 +744,10 @@ predicate Simple {
                   Access(State)
                   Stack(Push(44))
                   Pred(Eq)
+                constraint 3
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
                 state read 0
                   Constraint(Stack(Push(0)))
@@ -949,6 +857,10 @@ predicate Simple {
                   Stack(Push(1160))
                   Stack(Push(4))
                   Pred(EqRange)
+                constraint 4
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
                 state read 0
                   Constraint(Stack(Push(0)))
@@ -1030,6 +942,10 @@ predicate Foo {
         expect_test::expect![[r#"
             predicate ::Foo {
                 --- Constraints ---
+                constraint 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
                 state read 0
                   Constraint(Stack(Push(0)))
@@ -1194,6 +1110,10 @@ predicate Foo {
         expect_test::expect![[r#"
             predicate ::Foo {
                 --- Constraints ---
+                constraint 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
                 state read 0
                   Constraint(Stack(Push(1)))
@@ -1292,6 +1212,10 @@ predicate Bar {
         expect_test::expect![[r#"
             predicate ::Bar {
                 --- Constraints ---
+                constraint 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
                 state read 0
                   Constraint(Stack(Push(1229782938247303441)))
@@ -1499,6 +1423,10 @@ predicate Foo {
         expect_test::expect![[r#"
             predicate ::Foo {
                 --- Constraints ---
+                constraint 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
                 state read 0
                   Constraint(Stack(Push(1)))
@@ -1569,6 +1497,10 @@ predicate Foo {
         expect_test::expect![[r#"
             predicate ::Foo {
                 --- Constraints ---
+                constraint 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
                 state read 0
                   Constraint(Stack(Push(1)))
@@ -1631,6 +1563,10 @@ predicate Bar {
         expect_test::expect![[r#"
             predicate ::Bar {
                 --- Constraints ---
+                constraint 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
                 state read 0
                   Constraint(Stack(Push(-1229782938247303442)))
@@ -1766,6 +1702,10 @@ predicate Simple {
                   Stack(Push(15))
                   Stack(Push(4))
                   Pred(EqRange)
+                constraint 2
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
                 state read 0
                   Constraint(Stack(Push(0)))
@@ -1878,6 +1818,10 @@ predicate Foo {
                   Access(State)
                   Stack(Push(0))
                   Pred(Eq)
+                constraint 4
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
                 state read 0
                   Constraint(Stack(Push(1311506517218527985)))
@@ -2055,6 +1999,10 @@ predicate Foo {
                   Stack(Push(0))
                   Pred(Eq)
                   Pred(Not)
+                constraint 8
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
                 --- State Reads ---
                 state read 0
                   Constraint(Stack(Push(0)))

@@ -125,35 +125,36 @@ predicate Bar {
 //
 // predicate ::Bar {
 //     interface ::FooInstance = ::Foo(0x1111111111111111111111111111111111111111111111111111111111111111)
-//     state ::u: {b256, int} = storage::u;
-//     state ::u0: b256 = storage::u.0;
-//     state ::u1: int = storage::u.1;
-//     state ::t: {b256, {int, int}} = storage::t;
-//     state ::t0: b256 = storage::t.0;
-//     state ::t10: int = storage::t.1.0;
-//     state ::t11: int = storage::t.1.1;
-//     state ::w: {addr: b256, inner: {x: int, int}} = storage::w;
-//     state ::w0: b256 = storage::w.addr;
-//     state ::w10: int = storage::w.inner.x;
-//     state ::w11: int = storage::w.inner.1;
-//     state ::map_to_tuples_69: {b256, {int, int}} = storage::map_to_tuples[69];
-//     state ::map_to_tuples_69_0: b256 = storage::map_to_tuples[69].0;
-//     state ::map_to_tuples_69_1_0: int = storage::map_to_tuples[69].1.0;
-//     state ::map_to_tuples_69_1_1: int = storage::map_to_tuples[69].1.1;
-//     state ::foo_u: {b256, int} = ::FooInstance::storage::u;
-//     state ::foo_u0: b256 = ::FooInstance::storage::u.0;
-//     state ::foo_u1: int = ::FooInstance::storage::u.1;
-//     state ::foo_t: {b256, {int, int}} = ::FooInstance::storage::t;
-//     state ::foo_t0: b256 = ::FooInstance::storage::t.0;
-//     state ::foo_t10: int = ::FooInstance::storage::t.1.0;
-//     state ::foo_t11: int = ::FooInstance::storage::t.1.1;
-//     state ::foo_w: {addr: b256, inner: {x: int, int}} = ::FooInstance::storage::w;
-//     state ::foo_w0: b256 = ::FooInstance::storage::w.addr;
-//     state ::foo_w10: int = ::FooInstance::storage::w.inner.x;
-//     state ::foo_w11: int = ::FooInstance::storage::w.inner.1;
-//     state ::foo_map_to_tuples_69: {b256, {int, int}} = ::FooInstance::storage::map_to_tuples[69];
-//     state ::foo_map_to_tuples_69_0: b256 = ::FooInstance::storage::map_to_tuples[69].0;
-//     state ::foo_map_to_tuples_69_1_0: int = ::FooInstance::storage::map_to_tuples[69].1.0;
-//     state ::foo_map_to_tuples_69_1_1: int = ::FooInstance::storage::map_to_tuples[69].1.1;
+//     state ::u: {b256, int} = __storage_get({0, 0});
+//     state ::u0: b256 = __storage_get({0, (0 + 0)});
+//     state ::u1: int = __storage_get({0, (0 + 1)});
+//     state ::t: {b256, {int, int}} = __storage_get({1, 0});
+//     state ::t0: b256 = __storage_get({1, (0 + 0)});
+//     state ::t10: int = __storage_get({1, ((0 + 1) + 0)});
+//     state ::t11: int = __storage_get({1, ((0 + 1) + 1)});
+//     state ::w: {addr: b256, inner: {x: int, int}} = __storage_get({2, 0});
+//     state ::w0: b256 = __storage_get({2, (0 + 0)});
+//     state ::w10: int = __storage_get({2, ((0 + 1) + 0)});
+//     state ::w11: int = __storage_get({2, ((0 + 1) + 1)});
+//     state ::map_to_tuples_69: {b256, {int, int}} = __storage_get({3, 69, 0});
+//     state ::map_to_tuples_69_0: b256 = __storage_get({3, 69, (0 + 0)});
+//     state ::map_to_tuples_69_1_0: int = __storage_get({3, 69, ((0 + 1) + 0)});
+//     state ::map_to_tuples_69_1_1: int = __storage_get({3, 69, ((0 + 1) + 1)});
+//     state ::foo_u: {b256, int} = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {0, 0});
+//     state ::foo_u0: b256 = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {0, (0 + 0)});
+//     state ::foo_u1: int = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {0, (0 + 1)});
+//     state ::foo_t: {b256, {int, int}} = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {1, 0});
+//     state ::foo_t0: b256 = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {1, (0 + 0)});
+//     state ::foo_t10: int = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {1, ((0 + 1) + 0)});
+//     state ::foo_t11: int = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {1, ((0 + 1) + 1)});
+//     state ::foo_w: {addr: b256, inner: {x: int, int}} = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {2, 0});
+//     state ::foo_w0: b256 = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {2, (0 + 0)});
+//     state ::foo_w10: int = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {2, ((0 + 1) + 0)});
+//     state ::foo_w11: int = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {2, ((0 + 1) + 1)});
+//     state ::foo_map_to_tuples_69: {b256, {int, int}} = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {3, 69, 0});
+//     state ::foo_map_to_tuples_69_0: b256 = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {3, 69, (0 + 0)});
+//     state ::foo_map_to_tuples_69_1_0: int = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {3, 69, ((0 + 1) + 0)});
+//     state ::foo_map_to_tuples_69_1_1: int = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {3, 69, ((0 + 1) + 1)});
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

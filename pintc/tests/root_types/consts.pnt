@@ -30,5 +30,6 @@ predicate test {
 // predicate ::test {
 //     var ::a: int;
 //     constraint (::a == 22);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

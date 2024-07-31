@@ -45,5 +45,6 @@ predicate Q {
 //     predicate ::PInstance = ::Iface::P(0x1111111111111111111111111111111111111111111111111111111111111111)
 //     var __::PInstance_pathway: int;
 //     constraint (::PInstance::x == 11);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
