@@ -41,18 +41,18 @@ predicate test {
 // value type and array element type in range differ
 // @0..123: array element type mismatch; expecting `int` type, found `::SupperGuest` type
 // constraint expression type error
-// @164..196: constraint expression has unexpected type `Error`
+// @164..196: constraint expression has unknown type
 // @164..196: expecting type `bool`
 // constraint expression type error
-// @202..228: constraint expression has unexpected type `Error`
+// @202..228: constraint expression has unknown type
 // @202..228: expecting type `bool`
 // constraint expression type error
 // @252..280: constraint expression has unknown type
 // @252..280: expecting type `bool`
 // constraint expression type error
-// @311..336: constraint expression has unexpected type `Error`
+// @311..336: constraint expression has unknown type
 // @311..336: expecting type `bool`
 // constraint expression type error
-// @342..400: constraint expression has unexpected type `Error`
+// @342..400: constraint expression has unknown type
 // @342..400: expecting type `bool`
 // >>>
