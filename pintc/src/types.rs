@@ -52,6 +52,10 @@ pub enum Type {
         ty_to: Box<Self>,
         span: Span,
     },
+    Vector {
+        ty: Box<Self>,
+        span: Span,
+    },
 }
 
 macro_rules! is_primitive {
@@ -118,6 +122,10 @@ impl Type {
 
     pub fn is_map(&self) -> bool {
         check_alias!(self, is_map, matches!(self, Type::Map { .. }))
+    }
+
+    pub fn is_vector(&self) -> bool {
+        check_alias!(self, is_vector, matches!(self, Type::Vector { .. }))
     }
 
     pub fn is_any_primitive(&self) -> bool {
@@ -251,6 +259,16 @@ impl Type {
         })
     }
 
+    pub fn get_vector_element_ty(&self) -> Option<&Type> {
+        check_alias!(self, get_vector_element_ty, {
+            if let Type::Vector { ty, .. } = self {
+                Some(ty)
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn get_tuple_fields(&self) -> Option<&[(Option<Ident>, Self)]> {
         check_alias!(self, get_tuple_fields, {
             if let Type::Tuple { fields, .. } = self {
@@ -320,6 +338,9 @@ impl Type {
             // actually store anything in it. The `Map` type is not really allowed anywhere else,
             // so we can't have a decision variable of type `Map` for example.
             Self::Map { .. } => Ok(1),
+
+            // `Vector` also takes up a single storage slot that stores the length of the vector
+            Self::Vector { .. } => Ok(1),
             _ => unimplemented!("Size of type is not yet specified"),
         }
     }
@@ -357,6 +378,9 @@ impl Type {
             // actually store anything in it. The `Map` type is not really allowed anywhere else,
             // so we can't have a decision variable of type `Map` for example.
             Self::Map { .. } => Ok(1),
+
+            // `Vector` also takes up a single storage slot that stores the length of the vector
+            Self::Vector { .. } => Ok(1),
             _ => unimplemented!("Size of type is not yet specified"),
         }
     }
@@ -400,6 +424,10 @@ impl Type {
                 ty_from: Box::new((*ty_from).abi(handler, contract)?),
                 ty_to: Box::new((*ty_to).abi(handler, contract)?),
             }),
+
+            // This, of course, is incorrect. It's just a placeholder until we can support ABI gen
+            // for storage vectors
+            Type::Vector { .. } => Ok(TypeABI::Int),
             _ => unimplemented!("other types are not yet supported"),
         }
     }
@@ -483,6 +511,10 @@ impl Type {
                 },
             ) => lhs_ty_from.eq(new_types, rhs_ty_from) && lhs_ty_to.eq(new_types, rhs_ty_to),
 
+            (Self::Vector { ty: lhs_ty, .. }, Self::Vector { ty: rhs_ty, .. }) => {
+                lhs_ty.eq(new_types, rhs_ty)
+            }
+
             (lhs_ty, rhs_ty) => {
                 // Custom types are tricky as they may be either aliases or enums.  Or, at this
                 // stage, we might just have two different types.
@@ -539,7 +571,8 @@ impl Spanned for Type {
             | Tuple { span, .. }
             | Custom { span, .. }
             | Alias { span, .. }
-            | Map { span, .. } => span,
+            | Map { span, .. }
+            | Vector { span, .. } => span,
         }
     }
 }

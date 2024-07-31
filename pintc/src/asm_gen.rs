@@ -280,28 +280,80 @@ impl AsmBuilder {
                         len: key_len as usize,
                         is_extern: true,
                     })
+                } else if name.name == "__vec_len" {
+                    assert_eq!(args.len(), 1);
+
+                    // `args[0]` must be a `StorageAccess` of type `Vector`. Also decide whether
+                    // this is an external access or an internal access
+                    let is_extern = match args[0].try_get(contract) {
+                        Some(Expr::StorageAccess(name, _)) => {
+                            if !contract.storage_var(name).1.ty.is_vector() {
+                                return Err(handler.emit_err(Error::Compile {
+                                    error: CompileError::Internal {
+                                        msg: "argument to __state_len must be a storage vector",
+                                        span: empty_span(),
+                                    },
+                                }));
+                            }
+                            false
+                        }
+                        Some(Expr::ExternalStorageAccess {
+                            interface_instance,
+                            name,
+                            ..
+                        }) => {
+                            let interface_instance = &pred
+                                .interface_instances
+                                .iter()
+                                .find(|e| e.name.to_string() == *interface_instance)
+                                .expect("missing interface instance");
+
+                            if !contract
+                                .external_storage_var(&interface_instance.interface, name)
+                                .1
+                                .ty
+                                .is_vector()
+                            {
+                                return Err(handler.emit_err(Error::Compile {
+                                    error: CompileError::Internal {
+                                        msg: "argument to __state_len must be a storage vector",
+                                        span: empty_span(),
+                                    },
+                                }));
+                            }
+                            true
+                        }
+                        _ => {
+                            return Err(handler.emit_err(Error::Compile {
+                                error: CompileError::Internal {
+                                    msg: "argument to __state_len must be a storage vector",
+                                    span: empty_span(),
+                                },
+                            }));
+                        }
+                    };
+
+                    Self::compile_state_key(handler, s_asm, &args[0], contract, pred)?;
+
+                    Ok(StorageKey {
+                        // Only supporting single dimensional vectors currently
+                        len: 1,
+                        is_extern,
+                    })
                 } else {
                     unimplemented!("Other calls are currently not supported")
                 }
             }
             Expr::StorageAccess(name, _) => {
-                let storage = &contract
-                    .storage
-                    .as_ref()
-                    .expect("a storage block must have been declared")
-                    .0;
-
-                // Get the index of the storage variable in the storage block declaration
-                let storage_index = storage
-                    .iter()
-                    .position(|var| var.name.name == *name)
-                    .expect("storage access should have been checked before");
+                let (storage_index, storage_var) = contract.storage_var(name);
 
                 // This is the key. It's either the `storage_index` if the storage type primitive
                 // or a map, or it's `[storage_index, 0]`. The `0` here is a placeholder for
                 // offsets.
-                let storage_var = &storage[storage_index];
-                let key = if storage_var.ty.is_any_primitive() || storage_var.ty.is_map() {
+                let key = if storage_var.ty.is_any_primitive()
+                    || storage_var.ty.is_map()
+                    || storage_var.ty.is_vector()
+                {
                     s_asm.push(Stack::Push(storage_index as i64).into());
                     vec![storage_index as i64]
                 } else {
@@ -338,30 +390,16 @@ impl AsmBuilder {
                 )?;
                 s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
 
-                // Get the `interface` declaration that the storage access refers to
-                let interface = &contract
-                    .interfaces
-                    .iter()
-                    .find(|e| e.name.to_string() == *interface_instance.interface)
-                    .expect("missing interface");
-
-                // Get the index of the storage variable in the storage block declaration
-                let storage = &interface
-                    .storage
-                    .as_ref()
-                    .expect("a storage block must have been declared")
-                    .0;
-
-                let storage_index = storage
-                    .iter()
-                    .position(|var| var.name.name == *name)
-                    .expect("storage access should have been checked before");
+                let (storage_index, storage_var) =
+                    contract.external_storage_var(&interface_instance.interface, name);
 
                 // This is the key. It's either the `storage_index` if the storage type primitive
                 // or a map, or it's `[storage_index, 0]`. The `0` here is a placeholder for
                 // offsets.
-                let storage_var = &storage[storage_index];
-                let key = if storage_var.ty.is_any_primitive() || storage_var.ty.is_map() {
+                let key = if storage_var.ty.is_any_primitive()
+                    || storage_var.ty.is_map()
+                    || storage_var.ty.is_vector()
+                {
                     s_asm.push(Stack::Push(storage_index as i64).into());
                     vec![storage_index as i64]
                 } else {
@@ -377,7 +415,7 @@ impl AsmBuilder {
                 })
             }
             Expr::Index { expr, index, .. } => {
-                if expr.get_ty(contract).is_map() {
+                if expr.get_ty(contract).is_map() || expr.get_ty(contract).is_vector() {
                     // Compile the key corresponding to `expr`
                     let storage_key =
                         Self::compile_state_key(handler, s_asm, expr, contract, pred)?;
@@ -388,7 +426,7 @@ impl AsmBuilder {
                     s_asm.extend(asm.iter().copied().map(StateRead::from));
                     let mut key_length =
                         storage_key.len + index.get_ty(contract).size(handler, contract)?;
-                    if !(expr_ty.is_any_primitive() || expr_ty.is_map()) {
+                    if !(expr_ty.is_any_primitive() || expr_ty.is_map() || expr_ty.is_vector()) {
                         s_asm.push(StateRead::from(Stack::Push(0)));
                         key_length += 1;
                     }

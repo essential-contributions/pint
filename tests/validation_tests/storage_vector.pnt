@@ -1,0 +1,124 @@
+// db <<<
+// 2, 3
+// 2 0, 13
+// 2 1, 14
+// 2 2, 15
+// 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE, 2, 3
+// 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE, 2 0, 13
+// 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE, 2 1, 14
+// 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE, 2 2, 15
+// >>>
+
+storage {
+    x: int,
+    v0: int[],
+    v1: int[],
+    v2: b256[],
+}
+
+interface Foo {
+    storage {
+        x: int,
+        v0: int[],
+        v1: int[],
+        v2: b256[],
+    }
+}
+
+predicate Bar {
+    // Test external storage vectors
+
+    // v0 starts empty
+    state v0_0 = storage::v0[0];
+    state v0_1 = storage::v0[1];
+    state v0_2 = storage::v0[2];
+    state v0_len = __vec_len(storage::v0);
+
+    constraint v0_len == nil || v0_len == 0;
+    constraint v0_len' == 3;
+    constraint v0_0' == 42;
+    constraint v0_1' == 43;
+    constraint v0_2' == 44;
+
+    // v1 starts with 3 elements and then expands to 5
+    state v1_0 = storage::v1[0];
+    state v1_1 = storage::v1[1];
+    state v1_2 = storage::v1[2];
+    state v1_len = __vec_len(storage::v1);
+
+    constraint v1_len == 3;
+    constraint v1_0 == 13;
+    constraint v1_1 == 14;
+    constraint v1_2 == 15;
+
+    state v1_3 = storage::v1[3];
+    state v1_4 = storage::v1[4];
+
+    constraint v1_len' == 5;
+    constraint v1_0' == 13; // did not change
+    constraint v1_1' == 14; // did not change
+    constraint v1_2' == 15; // did not change
+    constraint v1_3' == 16; // newly added
+    constraint v1_4' == 17; // newly added
+
+    // v2 starts empty
+    state v2_0 = storage::v2[0];
+    state v2_1 = storage::v2[1];
+    state v2_2 = storage::v2[2];
+    state v2_len = __vec_len(storage::v2);
+   
+    constraint v2_len == nil || v2_len == 0;
+    constraint v2_len' == 3;
+    constraint v2_0' == 0x0000000000000001000000000000000200000000000000030000000000000004;
+    constraint v2_1' == nil;
+    constraint v2_2' == 0x0000000000000009000000000000000A000000000000000B000000000000000C;
+
+
+    // Test external storage vectors
+    interface FooInstance = Foo(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE);
+
+    // v0 starts empty
+    state foo_v0_0 = FooInstance::storage::v0[0];
+    state foo_v0_1 = FooInstance::storage::v0[1];
+    state foo_v0_2 = FooInstance::storage::v0[2];
+    state foo_v0_len = __vec_len(FooInstance::storage::v0);
+
+    constraint foo_v0_len == nil || foo_v0_len == 0;
+    constraint foo_v0_len' == 3;
+    constraint foo_v0_0' == 42;
+    constraint foo_v0_1' == 43;
+    constraint foo_v0_2' == 44;
+
+    // v1 starts with 3 elements and then expands to 5
+    state foo_v1_0 = FooInstance::storage::v1[0];
+    state foo_v1_1 = FooInstance::storage::v1[1];
+    state foo_v1_2 = FooInstance::storage::v1[2];
+    state foo_v1_len = __vec_len(FooInstance::storage::v1);
+
+    constraint foo_v1_len == 3;
+    constraint foo_v1_0 == 13;
+    constraint foo_v1_1 == 14;
+    constraint foo_v1_2 == 15;
+
+    state foo_v1_3 = FooInstance::storage::v1[3];
+    state foo_v1_4 = FooInstance::storage::v1[4];
+
+    constraint foo_v1_len' == 5;
+    constraint foo_v1_0' == 13; // did not change
+    constraint foo_v1_1' == 14; // did not change
+    constraint foo_v1_2' == 15; // did not change
+    constraint foo_v1_3' == 16; // newly added
+    constraint foo_v1_4' == 17; // newly added
+
+    // v2 starts empty
+    state foo_v2_0 = FooInstance::storage::v2[0];
+    state foo_v2_1 = FooInstance::storage::v2[1];
+    state foo_v2_2 = FooInstance::storage::v2[2];
+    state foo_v2_len = __vec_len(FooInstance::storage::v2);
+   
+    constraint foo_v2_len == nil || foo_v2_len == 0;
+    constraint foo_v2_len' == 3;
+    constraint foo_v2_0' == 0x0000000000000001000000000000000200000000000000030000000000000004;
+    constraint foo_v2_1' == nil;
+    constraint foo_v2_2' == 0x0000000000000009000000000000000A000000000000000B000000000000000C;
+}

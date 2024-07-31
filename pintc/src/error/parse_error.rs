@@ -32,8 +32,6 @@ pub enum ParseError {
     EmptyArrayExpr { span: Span },
     #[error("missing array or map index")]
     EmptyIndexAccess { span: Span },
-    #[error("empty array types are not allowed")]
-    EmptyArrayType { span: Span },
     #[error("invalid integer `{}` as tuple index", index)]
     InvalidIntegerTupleIndex { span: Span, index: String },
     #[error("invalid value `{}` as tuple index", index)]
@@ -73,6 +71,8 @@ pub enum ParseError {
     PathTooShort { path: String, span: Span },
     #[error("bad argument splice")]
     BadSplice(Span),
+    #[error("intrinsic can only be used in a state initializer")]
+    BadStorageIntrinsic(Span),
 }
 
 impl ReportableError for ParseError {
@@ -118,13 +118,6 @@ impl ReportableError for ParseError {
             EmptyIndexAccess { span } => {
                 vec![ErrorLabel {
                     message: "missing array or map element index".to_string(),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
-            }
-            EmptyArrayType { span } => {
-                vec![ErrorLabel {
-                    message: "empty array type found".to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -267,6 +260,11 @@ impl ReportableError for ParseError {
                 span: span.clone(),
                 color: Color::Red,
             }],
+            BadStorageIntrinsic(span) => vec![ErrorLabel {
+                message: "intrinsic can only be used in a state initializer".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
         }
     }
 
@@ -364,7 +362,6 @@ impl Spanned for ParseError {
             | UntypedVariable { span, .. }
             | EmptyArrayExpr { span }
             | EmptyIndexAccess { span }
-            | EmptyArrayType { span }
             | InvalidIntegerTupleIndex { span, .. }
             | InvalidTupleIndex { span, .. }
             | EmptyTupleExpr { span, .. }
@@ -381,6 +378,7 @@ impl Spanned for ParseError {
             | StorageAccessMustBeTopLevel { span, .. }
             | PathTooShort { span, .. }
             | BadSplice(span)
+            | BadStorageIntrinsic(span)
             | Lex { span } => span,
 
             InvalidToken => unreachable!("The `InvalidToken` error is always wrapped in `Lex`."),

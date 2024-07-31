@@ -244,6 +244,45 @@ impl Contract {
     pub fn is_removed_macro_call(&self, expr_key: ExprKey) -> bool {
         self.removed_macro_calls.contains_key(expr_key)
     }
+
+    /// Returns a local `StorageVar` given a var name. Panics if anything goes wrong.
+    pub fn storage_var(&self, name: &String) -> (usize, &StorageVar) {
+        let storage = &self
+            .storage
+            .as_ref()
+            .expect("a storage block must have been declared")
+            .0;
+        let storage_index = storage
+            .iter()
+            .position(|var| var.name.name == *name)
+            .expect("storage access should have been checked before");
+        (storage_index, &storage[storage_index])
+    }
+
+    /// Returns an external `StorageVar` given an interface name and a var name. Panics if anything
+    /// goes wrong.
+    pub fn external_storage_var(&self, interface: &Path, name: &String) -> (usize, &StorageVar) {
+        // Get the `interface` declaration that the storage access refers to
+        let interface = &self
+            .interfaces
+            .iter()
+            .find(|e| e.name.to_string() == *interface)
+            .expect("missing interface");
+
+        // Get the index of the storage variable in the storage block declaration
+        let storage = &interface
+            .storage
+            .as_ref()
+            .expect("a storage block must have been declared")
+            .0;
+
+        let storage_index = storage
+            .iter()
+            .position(|var| var.name.name == *name)
+            .expect("storage access should have been checked before");
+
+        (storage_index, &storage[storage_index])
+    }
 }
 
 /// An in-progress predicate, possibly malformed or containing redundant information.  Designed to

@@ -49,7 +49,7 @@ impl Contract {
         self.check_undefined_types(handler);
         self.lower_newtypes(handler)?;
         self.check_storage_types(handler);
-        self.check_for_map_type_vars(handler);
+        self.check_for_storage_types_vars(handler);
         self.type_check_all_exprs(handler);
         self.check_inits(handler);
         self.check_constraint_types(handler);
