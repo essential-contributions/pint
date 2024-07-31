@@ -15,47 +15,11 @@ impl Contract {
         args: &[ExprKey],
         span: &Span,
     ) -> Result<Inference, Error> {
-        println!("running infer_intrinsic_call_expr: {:#?}", &name.name[..]);
-
-        /*
-        notes:
-        We're seeing the intrinsic for __state_len 3 times
-        The first time it does not infer_intrinsic_state_len
-        because deps is not empty
-
-        the deps are:
-
-        deps: ::x
-        deps: 0
-
-        for the code:
-
-        storage {
-            x: int,
-        }
-        predicate Test {
-            state x = storage::x;
-            var len = __state_len(x, 0);
-        }
-
-        aka the deps are the args inside the intrinsic call
-
-        so first pass -- deps are bundled into a vec and returned as deps
-
-        still have not figured out why its running the intrinsic inference 2 more times
-        Although I can confirm that it is not due to the amount of args, I added a 3rd arg
-        and got the same error results
-        */
-
         let mut deps = Vec::new();
 
         args.iter()
             .filter(|arg_key| arg_key.get_ty(self).is_unknown())
             .for_each(|arg_key| deps.push(*arg_key));
-
-        for dep in deps.iter() {
-            println!("deps: {}", self.with_ctrct(dep));
-        }
 
         if deps.is_empty() {
             match &name.name[..] {
@@ -103,8 +67,6 @@ impl Contract {
 // Description: Get the number of mutable keys being proposed for mutation.
 //
 fn infer_intrinsic_mut_keys_len(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
-    println!("running infer_intrinsic_mut_keys_len");
-
     // This intrinsic expects no arguments
     if !args.is_empty() {
         return Err(Error::Compile {
@@ -140,8 +102,6 @@ fn infer_intrinsic_mut_keys_contains(
     span: &Span,
 ) -> Result<Inference, Error> {
     // This intrinsic expects exactly 3 arguments
-    println!("running infer_intrinsic_mut_keys_contains");
-
     if args.len() != 1 {
         return Err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
@@ -203,8 +163,6 @@ fn infer_intrinsic_mut_keys_contains(
 //
 fn infer_intrinsic_this_set_address(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
     // This intrinsic expects no arguments
-    println!("running infer_intrinsic_this_set_address");
-
     if !args.is_empty() {
         return Err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
@@ -233,9 +191,6 @@ fn infer_intrinsic_this_set_address(args: &[ExprKey], span: &Span) -> Result<Inf
 //
 fn infer_intrinsic_this_address(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
     // This intrinsic expects no arguments
-
-    println!("running infer_intrinsic_this_address");
-
     if !args.is_empty() {
         return Err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
@@ -265,8 +220,6 @@ fn infer_intrinsic_this_address(args: &[ExprKey], span: &Span) -> Result<Inferen
 //
 fn infer_intrinsic_this_pathway(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
     // This intrinsic expects no arguments
-    println!("running infer_intrinsic_this_pathway");
-
     if !args.is_empty() {
         return Err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
@@ -296,8 +249,6 @@ fn infer_intrinsic_this_pathway(args: &[ExprKey], span: &Span) -> Result<Inferen
 //
 fn infer_intrinsic_sha256(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
     // This intrinsic expects exactly 1 argument
-    println!("running infer_intrinsic_sha256");
-
     if args.len() != 1 {
         return Err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
@@ -334,8 +285,6 @@ fn infer_intrinsic_verify_ed25519(
     span: &Span,
 ) -> Result<Inference, Error> {
     // This intrinsic expects exactly 3 arguments
-    println!("running infer_intrinsic_verify_ed25519");
-
     if args.len() != 3 {
         return Err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
@@ -418,8 +367,6 @@ fn infer_intrinsic_recover_secp256k1(
     span: &Span,
 ) -> Result<Inference, Error> {
     // This intrinsic expects exactly 2 arguments
-    println!("running infer_intrinsic_recover_secp256k1");
-
     if args.len() != 2 {
         return Err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
@@ -518,13 +465,8 @@ fn infer_intrinsic_state_len(
     args: &[ExprKey],
     span: &Span,
 ) -> Result<Inference, Error> {
-    println!("running infer_intrinsic_state_len");
-
-    // println!("{:#?}", contract);
-
     // This intrinsic expects exactly 1 argument
     if args.len() != 1 {
-        println!("Returning intrinsic arg error");
         return Err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 1,
