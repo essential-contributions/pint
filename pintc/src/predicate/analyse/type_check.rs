@@ -823,10 +823,6 @@ impl Contract {
                     // are best ignored.
                     Ok(Inference::Ignored) => {
                         queue.pop();
-                        println!(
-                            "inferred ignore, popping: {}\n-----",
-                            self.with_ctrct(next_key)
-                        );
                     }
 
                     // Some exprs may fail to be inferred. In that case we need to mark the
