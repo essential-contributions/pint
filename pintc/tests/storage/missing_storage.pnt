@@ -19,6 +19,4 @@ predicate Foo {
 // typecheck_failure <<<
 // cannot find storage variable `y`
 // @55..65: not found in storage declaration
-// unable to determine expression type
-// @45..65: type of this expression is ambiguous
 // >>>

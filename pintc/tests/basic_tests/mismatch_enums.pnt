@@ -23,6 +23,6 @@ predicate test {
 // @247..258: operator `==` argument has unexpected type `::Key`
 // @230..243: expecting type `::Chord`
 // constraint expression type error
-// @219..258: constraint expression has unknown type
+// @219..258: constraint expression has unexpected type `Error`
 // @219..258: expecting type `bool`
 // >>>

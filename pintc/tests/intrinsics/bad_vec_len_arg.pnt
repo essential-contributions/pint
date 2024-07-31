@@ -48,16 +48,4 @@ predicate test {
 // @298..310: intrinsic argument must be a storage access
 // intrinsic argument must be a storage access
 // @332..344: intrinsic argument must be a storage access
-// unable to determine expression type
-// @103..138: type of this expression is ambiguous
-// unable to determine expression type
-// @144..179: type of this expression is ambiguous
-// unable to determine expression type
-// @185..220: type of this expression is ambiguous
-// unable to determine expression type
-// @226..261: type of this expression is ambiguous
-// unable to determine expression type
-// @284..310: type of this expression is ambiguous
-// unable to determine expression type
-// @316..344: type of this expression is ambiguous
 // >>>

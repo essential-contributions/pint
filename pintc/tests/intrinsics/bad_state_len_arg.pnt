@@ -19,14 +19,6 @@ predicate test {
 // @45..59: intrinsic argument must be a state variable
 // intrinsic argument must be a state variable
 // @73..87: intrinsic argument must be a state variable
-// intrinsic argument must be a state variable
-// @45..59: intrinsic argument must be a state variable
-// intrinsic argument must be a state variable
-// @73..87: intrinsic argument must be a state variable
-// unable to determine expression type
-// @41..42: type of this expression is ambiguous
-// unable to determine expression type
-// @69..70: type of this expression is ambiguous
 // constraint expression type error
 // @37..59: constraint expression has unknown type
 // @37..59: expecting type `bool`

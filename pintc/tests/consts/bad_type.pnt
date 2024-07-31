@@ -30,6 +30,6 @@ predicate test {
 // @15..20: const initializer has unexpected type `bool`
 // @9..12: expecting type `int`
 // constraint expression type error
-// @101..118: constraint expression has unknown type
+// @101..118: constraint expression has unexpected type `Error`
 // @101..118: expecting type `bool`
 // >>>

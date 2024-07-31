@@ -133,97 +133,38 @@ predicate test {
 // @1368..1385: unexpected number of arguments here
 // this intrinsic takes 1 argument but 0 arguments were supplied
 // @1413..1426: unexpected number of arguments here
-// this intrinsic takes 0 arguments but 1 argument was supplied
-// @256..274: unexpected number of arguments here
-// mismatched types
-// @333..334: expected `int[..]`, found `int`
-// @313..332: arguments to this intrinsic are incorrect`
-// this intrinsic takes 1 argument but 0 arguments were supplied
-// @373..394: unexpected number of arguments here
-// this intrinsic takes 1 argument but 2 arguments were supplied
-// @432..465: unexpected number of arguments here
-// this intrinsic takes 0 arguments but 1 argument was supplied
-// @491..509: unexpected number of arguments here
-// this intrinsic takes 0 arguments but 1 argument was supplied
-// @539..561: unexpected number of arguments here
-// this intrinsic takes 0 arguments but 1 argument was supplied
-// @587..605: unexpected number of arguments here
-// this intrinsic takes 1 argument but 0 arguments were supplied
-// @627..637: unexpected number of arguments here
-// this intrinsic takes 1 argument but 2 arguments were supplied
-// @658..672: unexpected number of arguments here
-// mismatched types
-// @747..748: expected `b256`, found `int`
-// @708..724: arguments to this intrinsic are incorrect`
-// mismatched types
-// @805..810: expected `{ b256, b256 }`, found `b256`
-// @784..800: arguments to this intrinsic are incorrect`
-// this intrinsic takes 3 arguments but 0 arguments were supplied
-// @853..871: unexpected number of arguments here
-// this intrinsic takes 3 arguments but 4 arguments were supplied
-// @906..955: unexpected number of arguments here
-// mismatched types
-// @1023..1025: expected `b256`, found `int`
-// @1003..1022: arguments to this intrinsic are incorrect`
-// mismatched types
-// @1122..1138: expected `{ b256, b256, int }`, found `{b256, b256}`
-// @1095..1114: arguments to this intrinsic are incorrect`
-// this intrinsic takes 2 arguments but 1 argument was supplied
-// @1186..1212: unexpected number of arguments here
-// this intrinsic takes 2 arguments but 3 arguments were supplied
-// @1259..1312: unexpected number of arguments here
-// this intrinsic takes 1 argument but 2 arguments were supplied
-// @1368..1385: unexpected number of arguments here
-// this intrinsic takes 1 argument but 0 arguments were supplied
-// @1413..1426: unexpected number of arguments here
-// unable to determine expression type
-// @241..253: type of this expression is ambiguous
-// unable to determine expression type
-// @476..488: type of this expression is ambiguous
-// unable to determine expression type
-// @520..536: type of this expression is ambiguous
-// unable to determine expression type
-// @572..584: type of this expression is ambiguous
-// unable to determine expression type
-// @616..624: type of this expression is ambiguous
-// unable to determine expression type
-// @647..655: type of this expression is ambiguous
-// unable to determine expression type
-// @1350..1365: type of this expression is ambiguous
-// unable to determine expression type
-// @1395..1410: type of this expression is ambiguous
 // variable initialization type error
-// @313..335: variable initializer has unknown type
+// @313..335: variable initializer has unexpected type `Error`
 // @306..310: expecting type `bool`
 // variable initialization type error
-// @373..394: variable initializer has unknown type
+// @373..394: variable initializer has unexpected type `Error`
 // @366..370: expecting type `bool`
 // variable initialization type error
-// @432..465: variable initializer has unknown type
+// @432..465: variable initializer has unexpected type `Error`
 // @425..429: expecting type `bool`
 // variable initialization type error
-// @708..749: variable initializer has unknown type
+// @708..749: variable initializer has unexpected type `Error`
 // @701..705: expecting type `bool`
 // variable initialization type error
-// @784..818: variable initializer has unknown type
+// @784..818: variable initializer has unexpected type `Error`
 // @777..781: expecting type `bool`
 // variable initialization type error
-// @853..871: variable initializer has unknown type
+// @853..871: variable initializer has unexpected type `Error`
 // @846..850: expecting type `bool`
 // variable initialization type error
-// @906..955: variable initializer has unknown type
+// @906..955: variable initializer has unexpected type `Error`
 // @899..903: expecting type `bool`
 // variable initialization type error
-// @1003..1048: variable initializer has unknown type
+// @1003..1048: variable initializer has unexpected type `Error`
 // @987..1000: expecting type `{b256, int}`
 // variable initialization type error
-// @1095..1139: variable initializer has unknown type
+// @1095..1139: variable initializer has unexpected type `Error`
 // @1079..1092: expecting type `{b256, int}`
 // variable initialization type error
-// @1186..1212: variable initializer has unknown type
+// @1186..1212: variable initializer has unexpected type `Error`
 // @1170..1183: expecting type `{b256, int}`
 // variable initialization type error
-// @1259..1312: variable initializer has unknown type
+// @1259..1312: variable initializer has unexpected type `Error`
 // @1243..1256: expecting type `{b256, int}`
 // constraint expression type error
 // @237..274: constraint expression has unknown type
