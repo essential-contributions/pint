@@ -382,6 +382,7 @@ impl Contract {
             .map(|(_, Const { expr, .. })| *expr)
             .collect::<Vec<_>>();
         for expr_key in const_expr_keys {
+            println!("checking const expr types");
             if let Err(err) = self.type_check_single_expr(None, expr_key) {
                 handler.emit_err(err);
             }
@@ -398,7 +399,46 @@ impl Contract {
                 .chain(self.preds[pred_key].var_inits.iter().map(|(_, expr)| *expr))
                 .collect::<Vec<_>>();
 
+            /* We have an issue here
+            The intrinsic is checked, errors out and returns here
+            but then it runs again for the intrinsic, thus checking it twice.
+            Need to figure out why that is.
+
+            Here are all the expr keys to be type checked
+            all expr keys:
+                (::len == __state_len(::x, 0, 3))
+                storage::x
+                __state_len(::x, 0, 3)
+
+            in the case above, both __state_len(::x, 0, 3) refer to the same expr key (4v1)
+
+            perhaps returning the key with the error? Then removing from expr keys?
+            But what about nested keys? It would need to be removed from the entire contract
+
+            Realistically if we error on a type check we shouldn't be checking it again at this stage
+
+            Could store the keys that we fail on locally? And just ignore them as we go by?
+            But would that catch nested ones?
+
+            If we just removed it from the contract then we'd fail every check down the line
+            but also, does it matter? The compile is going to fail no matter what since we can't
+            infer the type
+            */
+
+            println!("{:#?}", &self);
+
+            println!("all expr keys:");
+            for expr_key in all_expr_keys.iter() {
+                println!("{}", self.with_ctrct(expr_key));
+                // println!("{:#?}", expr_key);
+            }
+            println!("------");
+
             for expr_key in all_expr_keys {
+                println!(
+                    "type checking for pred expr: {}\n-----",
+                    self.with_ctrct(expr_key)
+                );
                 if let Err(err) = self.type_check_single_expr(Some(pred_key), expr_key) {
                     handler.emit_err(err);
                 }
@@ -565,6 +605,7 @@ impl Contract {
                 .collect::<Vec<_>>()
                 .iter()
             {
+                println!("checking range expr types");
                 if let Err(err) = self.type_check_single_expr(Some(pred_key), *range_expr) {
                     handler.emit_err(err);
                 } else if !(range_expr.get_ty(self).is_int()
@@ -770,6 +811,8 @@ impl Contract {
         pred_key: Option<PredKey>,
         expr_key: ExprKey,
     ) -> Result<(), Error> {
+        // println!("contract: {:#?}", &self);
+
         // Attempt to infer all the types of each expr.
         let mut queue = Vec::new();
 
@@ -784,6 +827,10 @@ impl Contract {
                         },
                     })
                 } else {
+                    println!(
+                        "pushing to the queue: {}\n-----",
+                        self.with_ctrct($dependency_key)
+                    );
                     queue.push($dependency_key);
                     Ok(())
                 }
@@ -795,9 +842,20 @@ impl Contract {
 
         // Infer each expr type, or their dependencies.
         while let Some(next_key) = queue.last().cloned() {
+            println!("queue:");
+            for key in queue.iter() {
+                println!("{}", self.with_ctrct(key));
+            }
+            println!("\ngoing to check: {}", self.with_ctrct(next_key));
+            println!("-----");
+
             // We may already know this expr type, in which case we can pop it from the queue,
             // or we can infer it.
             if !next_key.get_ty(self).is_unknown() {
+                println!(
+                    "type is already known, popping: {}\n-----",
+                    self.with_ctrct(next_key)
+                );
                 queue.pop();
             } else {
                 match self
@@ -807,6 +865,10 @@ impl Contract {
                     Inference::Type(ty) => {
                         next_key.set_ty(ty, self);
                         queue.pop();
+                        println!(
+                            "inferred type, popping: {}\n-----",
+                            self.with_ctrct(next_key)
+                        );
                     }
 
                     // Some dependencies need to be inferred before we can get back to this
@@ -883,6 +945,7 @@ impl Contract {
             Expr::MacroCall { .. } => Ok(Inference::Ignored),
 
             Expr::IntrinsicCall { name, args, span } => {
+                println!("found an intrinsic call");
                 self.infer_intrinsic_call_expr(pred, name, args, span)
             }
 
