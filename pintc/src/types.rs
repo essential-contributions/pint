@@ -558,6 +558,38 @@ impl Type {
             }
         }
     }
+
+    pub fn replace_type_expr(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
+        match self {
+            Type::Array { ty, range, .. } => {
+                // Arrays are the only type which have an expr key.
+                if let Some(range) = range {
+                    if *range == old_expr {
+                        *range = new_expr;
+                    }
+                }
+
+                ty.replace_type_expr(old_expr, new_expr);
+            }
+
+            Type::Tuple { fields, .. } => {
+                fields
+                    .iter_mut()
+                    .for_each(|(_, field_ty)| field_ty.replace_type_expr(old_expr, new_expr));
+            }
+
+            Type::Alias { ty, .. } => ty.replace_type_expr(old_expr, new_expr),
+
+            Type::Map { ty_from, ty_to, .. } => {
+                ty_from.replace_type_expr(old_expr, new_expr);
+                ty_to.replace_type_expr(old_expr, new_expr);
+            }
+
+            Type::Vector { ty, .. } => ty.replace_type_expr(old_expr, new_expr),
+
+            Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } | Type::Custom { .. } => {}
+        }
+    }
 }
 
 impl Spanned for Type {

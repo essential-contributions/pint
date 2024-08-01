@@ -1018,10 +1018,9 @@ pub(super) fn replace_const_refs(contract: &mut Contract) {
             .collect::<Vec<_>>();
 
         // Replace all paths to consts with the consts themselves.
-        contract.replace_exprs_by_map(
-            pred_key,
-            &FxHashMap::from_iter(const_refs.into_iter().map(|refs| (refs.0, refs.1))),
-        );
+        for (old_expr_key, new_expr_key) in const_refs {
+            contract.replace_exprs(pred_key, old_expr_key, new_expr_key);
+        }
     }
 }
 

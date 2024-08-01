@@ -286,8 +286,8 @@ pub enum CompileError {
         decl_span: Span,
         use_span: Span,
     },
-    #[error("non-primitive const declaration")]
-    TemporaryNonPrimitiveConst { name: String, span: Span },
+    #[error("invalid range for `in` operator")]
+    InRangeInvalid { found_ty: String, span: Span },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -1023,9 +1023,9 @@ impl ReportableError for CompileError {
                 },
             ],
 
-            TemporaryNonPrimitiveConst { name, span } => vec![ErrorLabel {
+            InRangeInvalid { found_ty, span } => vec![ErrorLabel {
                 message: format!(
-                    "constant declaration `{name}` must not have a non-primitive type"
+                    "`in` operator range must be either an enum or an array, found `{found_ty}`"
                 ),
                 span: span.clone(),
                 color: Color::Red,
@@ -1141,11 +1141,6 @@ impl ReportableError for CompileError {
                 "only `enum` and `type` declarations are allowed outside a predicate".to_string(),
             ),
 
-            TemporaryNonPrimitiveConst { .. } => Some(
-                "constant immediate arrays and tuples will be supported in a future update"
-                    .to_string(),
-            ),
-
             Internal { .. }
             | FileIO { .. }
             | MacroNotFound { .. }
@@ -1199,7 +1194,8 @@ impl ReportableError for CompileError {
             | IntrinsicArgMustBeStorageAccess { .. }
             | MismatchedIntrinsicArgType { .. }
             | CompareToNilError { .. }
-            | RecursiveNewType { .. } => None,
+            | RecursiveNewType { .. }
+            | InRangeInvalid { .. } => None,
         }
     }
 
@@ -1362,7 +1358,7 @@ impl Spanned for CompileError {
             | IntrinsicArgMustBeStorageAccess { span, .. }
             | CompareToNilError { span, .. }
             | RecursiveNewType { use_span: span, .. }
-            | TemporaryNonPrimitiveConst { span, .. } => span,
+            | InRangeInvalid { span, .. } => span,
 
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }

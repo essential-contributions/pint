@@ -5,9 +5,26 @@ type myNestedBinaryOp = int[1 + 2];
 type myNestedSelect = int[ 1 > 0 ? 5 : 6 ];
 type myNestedTuple = int[{2, 1}.0];
 type myNestedArray = int[[2, 1][1]];
-type complexType = { myNestedCast, myNestedSelect }[(2 in {1, 2, 3}) as int];
+type complexType = { myNestedCast, myNestedSelect }[(2 in [1, 2, 3]) as int];
 
-predicate Foo {}
+predicate Foo {
+    var a: myNestedCast;
+    constraint a[2] == 11;
+
+    var b: myNestedUnaryOp;
+    var c: myNestedBinaryOp;
+
+    var d: myNestedSelect;
+    constraint d[3] == 22;
+
+    var e: myNestedTuple;
+    constraint e[0] != e[1];
+
+    var f: myNestedArray;
+
+    var g: complexType;
+    constraint g[0].1[3] != f[0];
+}
 
 // parsed <<<
 // type ::myAliasForCast = int;
@@ -17,22 +34,44 @@ predicate Foo {}
 // type ::myNestedSelect = int[((1 > 0) ? 5 : 6)];
 // type ::myNestedTuple = int[{2, 1}.0];
 // type ::myNestedArray = int[[2, 1][1]];
-// type ::complexType = {::myNestedCast, ::myNestedSelect}[2 in {1, 2, 3} as int];
+// type ::complexType = {::myNestedCast, ::myNestedSelect}[2 in [1, 2, 3] as int];
 //
 // predicate ::Foo {
+//     var ::a: ::myNestedCast;
+//     var ::b: ::myNestedUnaryOp;
+//     var ::c: ::myNestedBinaryOp;
+//     var ::d: ::myNestedSelect;
+//     var ::e: ::myNestedTuple;
+//     var ::f: ::myNestedArray;
+//     var ::g: ::complexType;
+//     constraint (::a[2] == 11);
+//     constraint (::d[3] == 22);
+//     constraint (::e[0] != ::e[1]);
+//     constraint (::g[0].1[3] != ::f[0]);
 // }
 // >>>
 
 // flattened <<<
 // type ::myAliasForCast = int;
-// type ::myNestedCast = int[4 as int];
-// type ::myNestedUnaryOp = int[--3];
-// type ::myNestedBinaryOp = int[(1 + 2)];
-// type ::myNestedSelect = int[((1 > 0) ? 5 : 6)];
-// type ::myNestedTuple = int[{2, 1}.0];
-// type ::myNestedArray = int[[2, 1][1]];
-// type ::complexType = {::myNestedCast (int[4 as int]), ::myNestedSelect (int[((1 > 0) ? 5 : 6)])}[2 in {1, 2, 3} as int];
+// type ::myNestedCast = int[4];
+// type ::myNestedUnaryOp = int[3];
+// type ::myNestedBinaryOp = int[3];
+// type ::myNestedSelect = int[5];
+// type ::myNestedTuple = int[2];
+// type ::myNestedArray = int[1];
+// type ::complexType = {::myNestedCast (int[4]), ::myNestedSelect (int[5])}[1];
 //
 // predicate ::Foo {
+//     var ::a: int[4];
+//     var ::b: int[3];
+//     var ::c: int[3];
+//     var ::d: int[5];
+//     var ::e: int[2];
+//     var ::f: int[1];
+//     var ::g: {int[4], int[5]}[1];
+//     constraint (::a[2] == 11);
+//     constraint (::d[3] == 22);
+//     constraint (::e[0] != ::e[1]);
+//     constraint (::g[0].1[3] != ::f[0]);
 // }
 // >>>
