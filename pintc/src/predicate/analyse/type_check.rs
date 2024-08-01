@@ -720,13 +720,13 @@ impl Contract {
         state: &State,
     ) {
         match state_ty {
-            Type::Array { ty, .. } => self.check_state_type_for_storage_types(handler, &ty, state),
+            Type::Array { ty, .. } => self.check_state_type_for_storage_types(handler, ty, state),
             Type::Tuple { fields, .. } => {
                 for field in fields {
                     self.check_state_type_for_storage_types(handler, &field.1, state)
                 }
             }
-            Type::Alias { ty, .. } => self.check_state_type_for_storage_types(handler, &ty, state),
+            Type::Alias { ty, .. } => self.check_state_type_for_storage_types(handler, ty, state),
             Type::Map { .. } | Type::Vector { .. } => {
                 handler.emit_err(Error::Compile {
                     error: CompileError::StateVarHasStorageType {
