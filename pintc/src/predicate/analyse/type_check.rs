@@ -498,9 +498,23 @@ impl Contract {
                     }
                 });
 
+            println!("Contract: {:#?}\n-----", self);
+
             // Confirm now that all state variables are typed.
             let mut state_key_to_new_type = FxHashMap::default();
             for (state_key, state) in self.preds[pred_key].states() {
+                println!("state expr: {}", self.with_ctrct(state.expr));
+                if let Expr::StorageAccess(..) = state.expr.get(self) {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::StateVarHasStorageType {
+                            ty: self.with_ctrct(state.expr.get_ty(self)).to_string(),
+                            span: state.span.clone(),
+                        },
+                    });
+                }
+                // let yeet_ty = state.expr.get_ty(self);
+                // println!("state expr ty: {:#?}", yeet);
+
                 let state_ty = state_key.get_ty(&self.preds[pred_key]);
                 if !state_ty.is_unknown() {
                     let expr_ty = state.expr.get_ty(self);
@@ -517,6 +531,19 @@ impl Contract {
                                 },
                             });
                         }
+                        // go through each expr type to make sure it's not a map or vector
+                        // or actually just check if it's a storage type and error
+                        // can that be done just by checking the storage slotmap?
+                        // let expr_ty = state.expr.get_ty(self);
+                        // if expr_ty.is_map() || expr_ty.is_vector() {
+                        //     handler.emit_err(Error::Compile {
+                        //         error: CompileError::StateVarHasStorageType {
+                        //             ty: self.with_ctrct(state_ty).to_string(),
+                        //             span: state.span.clone(),
+                        //         },
+                        //     });
+                        // }
+
                         // State variables of type `Map` are not allowed
                         if state_ty.is_map() || state_ty.is_vector() {
                             handler.emit_err(Error::Compile {
