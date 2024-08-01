@@ -5,7 +5,7 @@ use super::{
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     expr::{BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
-    predicate::{exprs::ExprsIter, PredKey, State, StateKey, StorageVar},
+    predicate::{PredKey, State, StorageVar},
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
