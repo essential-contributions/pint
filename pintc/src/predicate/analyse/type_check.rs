@@ -822,10 +822,10 @@ impl Contract {
                 queue.pop();
             } else {
                 match self
-                    .infer_expr_key_type(pred_key.map(|pred_key| &self.preds[pred_key]), next_key)?
+                    .infer_expr_key_type(pred_key.map(|pred_key| &self.preds[pred_key]), next_key)
                 {
                     // Successfully inferred its type.  Save it and pop it from the queue.
-                    Inference::Type(ty) => {
+                    Ok(Inference::Type(ty)) => {
                         next_key.set_ty(ty, self);
                         queue.pop();
                     }
@@ -833,15 +833,25 @@ impl Contract {
                     // Some dependencies need to be inferred before we can get back to this
                     // expr.  When pushing dependencies we need to check if they're already
                     // queued, in which case we have a recursive dependency and an error.
-                    Inference::Dependant(dep_expr_key) => push_to_queue!(next_key, dep_expr_key)?,
-                    Inference::Dependencies(mut dep_expr_keys) => dep_expr_keys
+                    Ok(Inference::Dependant(dep_expr_key)) => {
+                        push_to_queue!(next_key, dep_expr_key)?
+                    }
+                    Ok(Inference::Dependencies(mut dep_expr_keys)) => dep_expr_keys
                         .drain(..)
                         .try_for_each(|dep_expr_key| push_to_queue!(next_key, dep_expr_key))?,
 
                     // Some expressions (e.g., macro calls) just aren't valid any longer and
                     // are best ignored.
-                    Inference::Ignored => {
+                    Ok(Inference::Ignored) => {
                         queue.pop();
+                    }
+
+                    // Some exprs may fail to be inferred. In that case we need to mark the
+                    // expr_key as failing so that we don't check it again and report the
+                    // error more than once.
+                    Err(inference_error) => {
+                        next_key.set_ty(Type::Error(inference_error.span().clone()), self);
+                        return Err(inference_error);
                     }
                 }
             }

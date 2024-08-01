@@ -24,9 +24,9 @@ predicate test {
 // cannot find value `::Duck` in this scope
 // @157..161: not found in this scope
 // this symbol is a variant of enums `::AttackingBird` and `::AppropriateDefence` and may need a fully qualified path
-// cannot find value `::Duck` in this scope
-// @157..161: not found in this scope
-// this symbol is a variant of enums `::AttackingBird` and `::AppropriateDefence` and may need a fully qualified path
+// cannot find value `::Kick` in this scope
+// @164..168: not found in this scope
+// this symbol is a variant of enum `::AppropriateDefence` and may need a fully qualified path
 // unable to determine expression type
 // @304..322: type of this expression is ambiguous
 // constraint expression type error

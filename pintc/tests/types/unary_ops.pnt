@@ -28,22 +28,6 @@ predicate test {
 // @69..72: operator `!` argument has unexpected type `int`
 // unary operator type error
 // @86..93: operator `!` argument has unexpected type `string`
-// unary operator type error
-// @29..34: operator `-` argument has unexpected type `bool`
-// unary operator type error
-// @48..54: operator `-` argument has unexpected type `{int, int}`
-// unary operator type error
-// @69..72: operator `!` argument has unexpected type `int`
-// unary operator type error
-// @86..93: operator `!` argument has unexpected type `string`
-// unable to determine expression type
-// @25..26: type of this expression is ambiguous
-// unable to determine expression type
-// @44..45: type of this expression is ambiguous
-// unable to determine expression type
-// @65..66: type of this expression is ambiguous
-// unable to determine expression type
-// @82..83: type of this expression is ambiguous
 // constraint expression type error
 // @21..34: constraint expression has unknown type
 // @21..34: expecting type `bool`
