@@ -1,0 +1,31 @@
+type a = { ( bool => bool ), int };
+
+storage {
+    b: { ( int => int ), int },
+    c: { a, int },
+}
+
+predicate test {
+    state d = storage::b;
+    state e = storage::c;
+}
+
+// parsed <<<
+// type ::a = {( bool => bool ), int};
+// storage {
+//     b: {( int => int ), int},
+//     c: {::a, int},
+// }
+//
+// predicate ::test {
+//     state ::d = storage::b;
+//     state ::e = storage::c;
+// }
+// >>>
+
+// typecheck_failure <<<
+// state variables cannot have storage types
+// @122..142: found state variable of storage type ( int => int ) here
+// state variables cannot have storage types
+// @148..168: found state variable of storage type ( bool => bool ) here
+// >>>
