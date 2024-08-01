@@ -1,11 +1,13 @@
+const two: int = 2;
+
 type myAliasForCast = int;
 type myNestedCast = int[4 as myAliasForCast];
 type myNestedUnaryOp = int[--3];
-type myNestedBinaryOp = int[1 + 2];
+type myNestedBinaryOp = int[1 + two];
 type myNestedSelect = int[ 1 > 0 ? 5 : 6 ];
-type myNestedTuple = int[{2, 1}.0];
+type myNestedTuple = int[{two, 1}.0];
 type myNestedArray = int[[2, 1][1]];
-type complexType = { myNestedCast, myNestedSelect }[(2 in [1, 2, 3]) as int];
+type complexType = { myNestedCast, myNestedSelect }[(2 in [1, two, 3]) as int];
 
 predicate Foo {
     var a: myNestedCast;
@@ -27,14 +29,15 @@ predicate Foo {
 }
 
 // parsed <<<
+// const ::two: int = 2;
 // type ::myAliasForCast = int;
 // type ::myNestedCast = int[4 as ::myAliasForCast];
 // type ::myNestedUnaryOp = int[--3];
-// type ::myNestedBinaryOp = int[(1 + 2)];
+// type ::myNestedBinaryOp = int[(1 + ::two)];
 // type ::myNestedSelect = int[((1 > 0) ? 5 : 6)];
-// type ::myNestedTuple = int[{2, 1}.0];
+// type ::myNestedTuple = int[{::two, 1}.0];
 // type ::myNestedArray = int[[2, 1][1]];
-// type ::complexType = {::myNestedCast, ::myNestedSelect}[2 in [1, 2, 3] as int];
+// type ::complexType = {::myNestedCast, ::myNestedSelect}[2 in [1, ::two, 3] as int];
 //
 // predicate ::Foo {
 //     var ::a: ::myNestedCast;
@@ -52,6 +55,7 @@ predicate Foo {
 // >>>
 
 // flattened <<<
+// const ::two: int = 2;
 // type ::myAliasForCast = int;
 // type ::myNestedCast = int[4];
 // type ::myNestedUnaryOp = int[3];

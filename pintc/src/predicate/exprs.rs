@@ -175,6 +175,41 @@ impl<'a> ExprsIter<'a> {
             visited: HashSet::default(),
         }
     }
+
+    pub(super) fn new_by_expr_set(
+        contract: &'a Contract,
+        pred_key: Option<PredKey>,
+        with_consts: bool,
+        with_array_ranges: bool,
+    ) -> ExprsIter<'a> {
+        let mut queue = Vec::default();
+
+        // Add the predicate root set.
+        if let Some(pred_key) = pred_key {
+            queue.extend(contract.root_set(pred_key));
+        }
+
+        // Add the consts.
+        if with_consts {
+            queue.extend(
+                contract
+                    .consts
+                    .iter()
+                    .map(|(_, super::Const { expr, .. })| expr),
+            );
+        }
+
+        // Add the array range expressions from storage, interfaces and new-types.
+        if with_array_ranges {
+            queue.extend(contract.root_exprs());
+        }
+
+        ExprsIter {
+            contract,
+            queue,
+            visited: HashSet::default(),
+        }
+    }
 }
 
 impl<'a> Iterator for ExprsIter<'a> {

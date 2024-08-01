@@ -209,6 +209,7 @@ impl Type {
         range_expr: &Expr,
         contract: &Contract,
     ) -> Result<i64, ErrorEmitted> {
+        // TODO: REMOVE THIS.  WE'RE LOWERING IN A PASS.
         if let Expr::Path(path, _) = range_expr {
             // It's hopefully an enum for the range expression.
             if let Some(size) = contract.enums.iter().find_map(|enum_decl| {
@@ -322,17 +323,14 @@ impl Type {
             Self::Array {
                 ty, range, size, ..
             } => Ok(ty.size(handler, contract)?
-                * size.unwrap_or(
-                    Self::get_array_size_from_range_expr(
-                        handler,
-                        range
-                            .as_ref()
-                            .and_then(|e| e.try_get(contract))
-                            .expect("expr key guaranteed to exist"),
-                        contract,
-                    )
-                    .unwrap(),
-                ) as usize),
+                * size.unwrap_or(Self::get_array_size_from_range_expr(
+                    handler,
+                    range
+                        .as_ref()
+                        .and_then(|e| e.try_get(contract))
+                        .expect("expr key guaranteed to exist"),
+                    contract,
+                )?) as usize),
 
             // The point here is that a `Map` takes up a storage slot, even though it doesn't
             // actually store anything in it. The `Map` type is not really allowed anywhere else,
@@ -341,6 +339,7 @@ impl Type {
 
             // `Vector` also takes up a single storage slot that stores the length of the vector
             Self::Vector { .. } => Ok(1),
+
             _ => unimplemented!("Size of type is not yet specified"),
         }
     }

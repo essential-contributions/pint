@@ -177,7 +177,12 @@ impl Contract {
         self.preds.get(pred_key).unwrap().root_set()
     }
 
-    pub fn replace_exprs(&mut self, pred_key: PredKey, old_expr: ExprKey, new_expr: ExprKey) {
+    pub fn replace_exprs(
+        &mut self,
+        pred_key: Option<PredKey>,
+        old_expr: ExprKey,
+        new_expr: ExprKey,
+    ) {
         // Here we recursively replace any interior expr_keys.
         self.exprs
             .update_exprs(|_, expr| expr.replace_one_to_one(old_expr, new_expr));
@@ -195,14 +200,22 @@ impl Contract {
                 decl_ty.replace_type_expr(old_expr, new_expr);
             });
 
+        if let Some((storage_vars, _)) = &mut self.storage {
+            storage_vars
+                .iter_mut()
+                .for_each(|StorageVar { ty, .. }| ty.replace_type_expr(old_expr, new_expr));
+        }
+
         self.new_types
             .iter_mut()
             .for_each(|NewTypeDecl { ty, .. }| ty.replace_type_expr(old_expr, new_expr));
 
-        self.preds
-            .get_mut(pred_key)
-            .unwrap()
-            .replace_exprs(old_expr, new_expr);
+        if let Some(pred_key) = pred_key {
+            self.preds
+                .get_mut(pred_key)
+                .unwrap()
+                .replace_exprs(old_expr, new_expr);
+        }
     }
 
     /// Generates a `ContractABI` given a `Contract`
@@ -286,6 +299,45 @@ impl Contract {
             .expect("storage access should have been checked before");
 
         (storage_index, &storage[storage_index])
+    }
+
+    pub(crate) fn root_exprs(&self) -> impl Iterator<Item = ExprKey> + '_ {
+        // This currently only fetches array type range expressions and does not include consts.
+        self.storage
+            .iter()
+            .flat_map(|(storage_vars, _)| {
+                storage_vars
+                    .iter()
+                    .filter_map(|StorageVar { ty, .. }| ty.get_array_range_expr())
+            })
+            .chain(
+                self.interfaces
+                    .iter()
+                    .flat_map(
+                        |Interface {
+                             storage,
+                             predicate_interfaces,
+                             ..
+                         }| {
+                            storage
+                                .iter()
+                                .flat_map(|(storage_vars, _)| {
+                                    storage_vars.iter().map(|StorageVar { ty, .. }| ty)
+                                })
+                                .chain(predicate_interfaces.iter().flat_map(
+                                    |PredicateInterface { vars, .. }| {
+                                        vars.iter().map(|InterfaceVar { ty, .. }| ty)
+                                    },
+                                ))
+                        },
+                    )
+                    .filter_map(|ty| ty.get_array_range_expr()),
+            )
+            .chain(
+                self.new_types
+                    .iter()
+                    .filter_map(|NewTypeDecl { ty, .. }| ty.get_array_range_expr()),
+            )
     }
 }
 

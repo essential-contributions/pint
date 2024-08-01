@@ -1,0 +1,38 @@
+const two = 2;
+
+type ary = int[1 + [2, two, 2, 2][two]];
+
+storage {
+    x: ary,
+}
+
+predicate test {
+    state y = storage::x[1];
+    constraint y' == 11;
+}
+
+// parsed <<<
+// const ::two = 2;
+// type ::ary = int[(1 + [2, ::two, 2, 2][::two])];
+// storage {
+//     x: ::ary,
+// }
+//
+// predicate ::test {
+//     state ::y = storage::x[1];
+//     constraint (::y' == 11);
+// }
+// >>>
+
+// flattened <<<
+// const ::two: int = 2;
+// type ::ary = int[3];
+// storage {
+//     x: int[3],
+// }
+//
+// predicate ::test {
+//     state ::y: int = storage::x[1];
+//     constraint (::y' == 11);
+// }
+// >>>
