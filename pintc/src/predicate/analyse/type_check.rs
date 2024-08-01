@@ -5,7 +5,7 @@ use super::{
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     expr::{BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
-    predicate::{PredKey, StorageVar},
+    predicate::{exprs::ExprsIter, PredKey, State, StateKey, StorageVar},
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
@@ -498,23 +498,9 @@ impl Contract {
                     }
                 });
 
-            println!("Contract: {:#?}\n-----", self);
-
             // Confirm now that all state variables are typed.
             let mut state_key_to_new_type = FxHashMap::default();
             for (state_key, state) in self.preds[pred_key].states() {
-                println!("state expr: {}", self.with_ctrct(state.expr));
-                if let Expr::StorageAccess(..) = state.expr.get(self) {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::StateVarHasStorageType {
-                            ty: self.with_ctrct(state.expr.get_ty(self)).to_string(),
-                            span: state.span.clone(),
-                        },
-                    });
-                }
-                // let yeet_ty = state.expr.get_ty(self);
-                // println!("state expr ty: {:#?}", yeet);
-
                 let state_ty = state_key.get_ty(&self.preds[pred_key]);
                 if !state_ty.is_unknown() {
                     let expr_ty = state.expr.get_ty(self);
@@ -531,28 +517,7 @@ impl Contract {
                                 },
                             });
                         }
-                        // go through each expr type to make sure it's not a map or vector
-                        // or actually just check if it's a storage type and error
-                        // can that be done just by checking the storage slotmap?
-                        // let expr_ty = state.expr.get_ty(self);
-                        // if expr_ty.is_map() || expr_ty.is_vector() {
-                        //     handler.emit_err(Error::Compile {
-                        //         error: CompileError::StateVarHasStorageType {
-                        //             ty: self.with_ctrct(state_ty).to_string(),
-                        //             span: state.span.clone(),
-                        //         },
-                        //     });
-                        // }
-
-                        // State variables of type `Map` are not allowed
-                        if state_ty.is_map() || state_ty.is_vector() {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::StateVarHasStorageType {
-                                    ty: self.with_ctrct(state_ty).to_string(),
-                                    span: state.span.clone(),
-                                },
-                            });
-                        }
+                        self.check_state_type_for_storage_types(handler, state_ty, state);
                     } else {
                         handler.emit_err(Error::Compile {
                             error: CompileError::UnknownType {
@@ -564,15 +529,7 @@ impl Contract {
                     let expr_ty = state.expr.get_ty(self).clone();
                     if !expr_ty.is_unknown() {
                         state_key_to_new_type.insert(state_key, expr_ty.clone());
-                        // State variables of type `Map` are not allowed
-                        if expr_ty.is_map() || expr_ty.is_vector() {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::StateVarHasStorageType {
-                                    ty: self.with_ctrct(expr_ty).to_string(),
-                                    span: state.span.clone(),
-                                },
-                            });
-                        }
+                        self.check_state_type_for_storage_types(handler, &expr_ty, state);
                     } else {
                         handler.emit_err(Error::Compile {
                             error: CompileError::UnknownType {
@@ -752,6 +709,33 @@ impl Contract {
                     handler.emit_err(err);
                 }
             }
+        }
+    }
+
+    // State variables of type `Map` and `Vector`, whether nested or not, are not allowed.
+    fn check_state_type_for_storage_types(
+        &self,
+        handler: &Handler,
+        state_ty: &Type,
+        state: &State,
+    ) {
+        match state_ty {
+            Type::Array { ty, .. } => self.check_state_type_for_storage_types(handler, &ty, state),
+            Type::Tuple { fields, .. } => {
+                for field in fields {
+                    self.check_state_type_for_storage_types(handler, &field.1, state)
+                }
+            }
+            Type::Alias { ty, .. } => self.check_state_type_for_storage_types(handler, &ty, state),
+            Type::Map { .. } | Type::Vector { .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::StateVarHasStorageType {
+                        ty: self.with_ctrct(state_ty).to_string(),
+                        span: state.span.clone(),
+                    },
+                });
+            }
+            Type::Primitive { .. } | Type::Custom { .. } | Type::Error(_) | Type::Unknown(_) => {}
         }
     }
 
