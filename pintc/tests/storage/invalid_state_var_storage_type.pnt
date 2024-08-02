@@ -25,7 +25,7 @@ predicate test {
 
 // typecheck_failure <<<
 // state variables cannot have storage types
-// @122..142: found state variable of storage type ( int => int ) here
+// @122..142: found state variable of storage type {( int => int ), int} here
 // state variables cannot have storage types
-// @148..168: found state variable of storage type ( bool => bool ) here
+// @148..168: found state variable of storage type {::a ({( bool => bool ), int}), int} here
 // >>>
