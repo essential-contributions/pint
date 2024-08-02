@@ -481,25 +481,22 @@ fn infer_intrinsic_state_len(
     }
 
     // First argument must be a path to a state variable
-    match args[0].try_get(contract) {
+    match args.first().and_then(|expr_key| expr_key.try_get(contract)) {
         Some(Expr::Path(name, _))
             if pred
                 .map(|pred| pred.states().any(|(_, state)| state.name == *name))
-                .unwrap_or(false) =>
-        {
-            Ok(())
-        }
+                .unwrap_or(false) => {}
         Some(Expr::UnaryOp {
             op: UnaryOp::NextState,
             ..
-        }) => Ok(()),
+        }) => {}
+        None => {}
         _ => {
             handler.emit_err(Error::Compile {
                 error: CompileError::IntrinsicArgMustBeStateVar { span: span.clone() },
             });
-            Ok(())
         }
-    }?;
+    };
 
     // This intrinsic returns a `int`
     Ok(Inference::Type(Type::Primitive {

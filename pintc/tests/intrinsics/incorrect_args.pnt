@@ -217,10 +217,4 @@ predicate test {
 // constraint expression type error
 // @1218..1312: constraint expression has unknown type
 // @1218..1312: expecting type `bool`
-// constraint expression type error
-// @1346..1385: constraint expression has unknown type
-// @1346..1385: expecting type `bool`
-// constraint expression type error
-// @1391..1426: constraint expression has unknown type
-// @1391..1426: expecting type `bool`
 // >>>
