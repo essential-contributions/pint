@@ -5,7 +5,7 @@ use super::{
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     expr::{BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
-    predicate::{PredKey, StorageVar},
+    predicate::{PredKey, State, StorageVar},
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
@@ -517,15 +517,7 @@ impl Contract {
                                 },
                             });
                         }
-                        // State variables of type `Map` are not allowed
-                        if state_ty.is_map() || state_ty.is_vector() {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::StateVarHasStorageType {
-                                    ty: self.with_ctrct(state_ty).to_string(),
-                                    span: state.span.clone(),
-                                },
-                            });
-                        }
+                        self.check_state_type_for_storage_types(handler, state_ty, state_ty, state);
                     } else {
                         handler.emit_err(Error::Compile {
                             error: CompileError::UnknownType {
@@ -537,15 +529,7 @@ impl Contract {
                     let expr_ty = state.expr.get_ty(self).clone();
                     if !expr_ty.is_unknown() {
                         state_key_to_new_type.insert(state_key, expr_ty.clone());
-                        // State variables of type `Map` are not allowed
-                        if expr_ty.is_map() || expr_ty.is_vector() {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::StateVarHasStorageType {
-                                    ty: self.with_ctrct(expr_ty).to_string(),
-                                    span: state.span.clone(),
-                                },
-                            });
-                        }
+                        self.check_state_type_for_storage_types(handler, &expr_ty, &expr_ty, state);
                     } else {
                         handler.emit_err(Error::Compile {
                             error: CompileError::UnknownType {
@@ -725,6 +709,39 @@ impl Contract {
                     handler.emit_err(err);
                 }
             }
+        }
+    }
+
+    // State variables of type `Map` and `Vector`, whether nested or not, are not allowed.
+    fn check_state_type_for_storage_types(
+        &self,
+        handler: &Handler,
+        parent_ty: &Type,
+        state_ty: &Type,
+        state: &State,
+    ) {
+        match state_ty {
+            Type::Array { ty, .. } => {
+                self.check_state_type_for_storage_types(handler, parent_ty, ty, state)
+            }
+            Type::Tuple { fields, .. } => {
+                for field in fields {
+                    self.check_state_type_for_storage_types(handler, parent_ty, &field.1, state)
+                }
+            }
+            Type::Alias { ty, .. } => {
+                self.check_state_type_for_storage_types(handler, parent_ty, ty, state)
+            }
+            Type::Map { .. } | Type::Vector { .. } => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::StateVarHasStorageType {
+                        ty: self.with_ctrct(parent_ty).to_string(),
+                        nested_ty: self.with_ctrct(state_ty).to_string(),
+                        span: state.span.clone(),
+                    },
+                });
+            }
+            Type::Primitive { .. } | Type::Custom { .. } | Type::Error(_) | Type::Unknown(_) => {}
         }
     }
 
@@ -1786,9 +1803,9 @@ impl Contract {
                     }
                 } else {
                     Err(Error::Compile {
-                        error: CompileError::InRangeInvalid {
-                            found_ty: self.with_ctrct(collection_ty).to_string(),
-                            span: self.expr_key_to_span(collection_key),
+                        error: CompileError::Internal {
+                            msg: "range ty is not numeric or array?",
+                            span: span.clone(),
                         },
                     })
                 }
