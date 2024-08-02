@@ -216,7 +216,11 @@ pub enum CompileError {
     #[error("state variable initialization type error")]
     StateVarInitTypeError { large_err: Box<LargeTypeError> },
     #[error("state variables cannot have storage types")]
-    StateVarHasStorageType { ty: String, span: Span },
+    StateVarHasStorageType {
+        ty: String,
+        nested_ty: String,
+        span: Span,
+    },
     #[error("expression has a recursive dependency")]
     ExprRecursion {
         dependant_span: Span,
@@ -797,7 +801,11 @@ impl ReportableError for CompileError {
                     color: Color::Red,
                 },
             ],
-            StateVarHasStorageType { ty, span } => vec![ErrorLabel {
+            StateVarHasStorageType {
+                ty,
+                nested_ty,
+                span,
+            } => vec![ErrorLabel {
                 message: format!("found state variable of storage type {ty} here"),
                 span: span.clone(),
                 color: Color::Red,
@@ -1141,6 +1149,16 @@ impl ReportableError for CompileError {
                 "only `enum` and `type` declarations are allowed outside a predicate".to_string(),
             ),
 
+            StateVarHasStorageType { ty, nested_ty, .. } => {
+                if ty != nested_ty {
+                    Some(format!(
+                        "type of state variable depends on the storage type `{nested_ty}`"
+                    ))
+                } else {
+                    None
+                }
+            }
+
             Internal { .. }
             | FileIO { .. }
             | MacroNotFound { .. }
@@ -1173,7 +1191,6 @@ impl ReportableError for CompileError {
             | OperatorTypeError { .. }
             | InitTypeError { .. }
             | StateVarInitTypeError { .. }
-            | StateVarHasStorageType { .. }
             | IndexExprNonIndexable { .. }
             | VarHasStorageType { .. }
             | TupleAccessNonTuple { .. }

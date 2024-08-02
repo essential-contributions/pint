@@ -736,6 +736,7 @@ impl Contract {
                 handler.emit_err(Error::Compile {
                     error: CompileError::StateVarHasStorageType {
                         ty: self.with_ctrct(parent_ty).to_string(),
+                        nested_ty: self.with_ctrct(state_ty).to_string(),
                         span: state.span.clone(),
                     },
                 });
