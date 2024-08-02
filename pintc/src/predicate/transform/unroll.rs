@@ -243,7 +243,7 @@ pub(crate) fn unroll_generators(
             // On success, update the key of the generator to map to the new unrolled expression.
             let generator = old_generator_key.get(contract).clone();
             if let Ok(unrolled_generator_key) = unroll_generator(handler, contract, generator) {
-                contract.replace_exprs(pred_key, old_generator_key, unrolled_generator_key);
+                contract.replace_exprs(Some(pred_key), old_generator_key, unrolled_generator_key);
             }
         }
 

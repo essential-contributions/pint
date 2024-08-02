@@ -2,7 +2,8 @@ use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, Expr, Ident, Immediate, TupleAccess, UnaryOp},
     predicate::{
-        BlockStatement, Const, ConstraintDecl, Contract, ExprKey, IfDecl, PredKey, StorageVar, Var,
+        BlockStatement, Const, ConstraintDecl, Contract, ExprKey, ExprsIter, IfDecl, PredKey,
+        StorageVar, Var,
     },
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
@@ -105,7 +106,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
                 },
                 int_ty.clone(),
             );
-            contract.replace_exprs(pred_key, old_expr_key, new_expr_key);
+            contract.replace_exprs(Some(pred_key), old_expr_key, new_expr_key);
         }
 
         // Replace any var or state enum type with int.  Also add constraints to disallow vars or state
@@ -269,7 +270,7 @@ pub(crate) fn lower_casts(handler: &Handler, contract: &mut Contract) -> Result<
         }
 
         for (old_expr_key, new_expr_key) in replacements {
-            contract.replace_exprs(pred_key, old_expr_key, new_expr_key);
+            contract.replace_exprs(Some(pred_key), old_expr_key, new_expr_key);
         }
     }
 
@@ -340,6 +341,97 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
     }
 }
 
+pub(crate) fn lower_array_ranges(
+    handler: &Handler,
+    contract: &mut Contract,
+) -> Result<(), ErrorEmitted> {
+    // The type checker will have confirmed that every array range expression has an integer (or
+    // enum) _type_. Find every single array range expression which isn't already an int primitive.
+    // (One day we'll have `var` ranges, but we'll ignore them.)
+
+    // Check if an expr key is to an immediate.
+    let is_not_immediate = |contract: &Contract, expr_key: ExprKey| {
+        !matches!(expr_key.get(contract), Expr::Immediate { .. })
+    };
+
+    // Get an array range expression from a type iff it's not already an immediate.
+    let ty_non_int_range_expr = |contract: &Contract, pred_key: Option<PredKey>, ty: &Type| {
+        ty.get_array_range_expr().and_then(|range_expr_key| {
+            is_not_immediate(contract, range_expr_key).then_some((pred_key, range_expr_key))
+        })
+    };
+
+    // Get all the non-immediate array range exprs from the contract root exprs.
+    let mut array_range_expr_keys: Vec<(Option<PredKey>, ExprKey)> = contract
+        .root_exprs()
+        .filter_map(|range_expr_key| {
+            is_not_immediate(contract, range_expr_key).then_some((None, range_expr_key))
+        })
+        .collect();
+
+    for pred_key in contract.preds.keys() {
+        array_range_expr_keys.extend(contract.exprs(pred_key).filter_map(|expr_key| {
+            ty_non_int_range_expr(contract, Some(pred_key), expr_key.get_ty(contract))
+        }));
+
+        let pred = &contract.preds[pred_key];
+
+        array_range_expr_keys.extend(pred.vars.vars().filter_map(|(var_key, _var)| {
+            ty_non_int_range_expr(contract, Some(pred_key), var_key.get_ty(pred))
+        }));
+
+        array_range_expr_keys.extend(pred.states.states().filter_map(|(state_key, _state)| {
+            ty_non_int_range_expr(contract, Some(pred_key), state_key.get_ty(pred))
+        }));
+    }
+
+    // Now evaluate them all.  This pass should be after const decls have been resolved/replaced
+    // and enums have been lowered, so the evaluator should be fairly simple.
+    // TODO: It seems lower_enums() isn't lowering within array ranges, so we need to included them
+    // here.
+    let evaluator = Evaluator::new(&contract.enums);
+    let mut eval_memos: FxHashMap<ExprKey, ExprKey> = FxHashMap::default();
+
+    let int_ty = Type::Primitive {
+        kind: PrimitiveKind::Int,
+        span: empty_span(),
+    };
+
+    for (pred_key, old_range_expr_key) in array_range_expr_keys {
+        let new_range_expr_key = match eval_memos.get(&old_range_expr_key) {
+            Some(key) => *key,
+            None => {
+                // The type checker should already ensure that our immediate value returned is an int.
+                let value = evaluator.evaluate_key(&old_range_expr_key, handler, contract)?;
+                if !matches!(value, Immediate::Int(_)) {
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "array range expression evaluates to non int immediate",
+                            span: contract.expr_key_to_span(old_range_expr_key),
+                        },
+                    }));
+                }
+
+                // Create a new Primitive expr for the new range.
+                let new_expr_key = contract.exprs.insert(
+                    Expr::Immediate {
+                        value,
+                        span: contract.expr_key_to_span(old_range_expr_key),
+                    },
+                    int_ty.clone(),
+                );
+
+                eval_memos.insert(old_range_expr_key, new_expr_key);
+                new_expr_key
+            }
+        };
+
+        contract.replace_exprs(pred_key, old_range_expr_key, new_range_expr_key);
+    }
+
+    Ok(())
+}
+
 pub(crate) fn lower_imm_accesses(
     handler: &Handler,
     contract: &mut Contract,
@@ -347,8 +439,7 @@ pub(crate) fn lower_imm_accesses(
     let pred_keys = contract.preds.keys().collect::<Vec<_>>();
 
     let mut replace_direct_accesses = |pred_key: PredKey| {
-        let candidates = contract
-            .exprs(pred_key)
+        let candidates = ExprsIter::new_by_expr_set(contract, Some(pred_key), false, true)
             .filter_map(|expr_key| match expr_key.get(contract) {
                 Expr::Index { expr, index, .. } => expr.try_get(contract).and_then(|array_expr| {
                     let is_array_expr = matches!(array_expr, Expr::Array { .. });
@@ -530,7 +621,7 @@ pub(crate) fn lower_imm_accesses(
         // Iterate for each replacement without borrowing.
         while let Some((old_expr_key, new_expr_key)) = replacements.pop() {
             // Replace the old with the new throughout the Pred.
-            contract.replace_exprs(pred_key, old_expr_key, new_expr_key);
+            contract.replace_exprs(Some(pred_key), old_expr_key, new_expr_key);
             contract.exprs.remove(old_expr_key);
 
             // But _also_ replace the old within `replacements` in case any of our new keys is now
@@ -684,7 +775,7 @@ pub(crate) fn lower_ins(handler: &Handler, contract: &mut Contract) -> Result<()
                 bool_ty.clone(),
             );
 
-            contract.replace_exprs(pred_key, in_expr_key, and_key);
+            contract.replace_exprs(Some(pred_key), in_expr_key, and_key);
         }
 
         let int_ty = Type::Primitive {
@@ -741,7 +832,7 @@ pub(crate) fn lower_ins(handler: &Handler, contract: &mut Contract) -> Result<()
                 })
                 .expect("can't have empty array expressions");
 
-            contract.replace_exprs(pred_key, in_expr_key, or_key);
+            contract.replace_exprs(Some(pred_key), in_expr_key, or_key);
         }
     }
 
@@ -845,7 +936,7 @@ pub(crate) fn lower_compares_to_nil(contract: &mut Contract) {
                 _ => unreachable!("both operands cannot be non-nil simultaneously at this stage"),
             };
 
-            contract.replace_exprs(pred_key, *old_bin_op, new_bin_op);
+            contract.replace_exprs(Some(pred_key), *old_bin_op, new_bin_op);
         }
     }
 }
@@ -1003,9 +1094,9 @@ pub(super) fn replace_const_refs(contract: &mut Contract) {
         .collect::<Vec<_>>();
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
-        // Find all the paths which refer to a const and link them.
-        let const_refs = contract
-            .exprs(pred_key)
+        // Find all the paths which refer to a const and link them.  Iterate over all predicate
+        // exprs and array range expressions.
+        let const_refs = ExprsIter::new_by_expr_set(contract, Some(pred_key), false, true)
             .filter_map(|path_expr_key| {
                 if let Expr::Path(path, _span) = path_expr_key.get(contract) {
                     consts.iter().find_map(|(const_path, const_expr_key)| {
@@ -1018,10 +1109,9 @@ pub(super) fn replace_const_refs(contract: &mut Contract) {
             .collect::<Vec<_>>();
 
         // Replace all paths to consts with the consts themselves.
-        contract.replace_exprs_by_map(
-            pred_key,
-            &FxHashMap::from_iter(const_refs.into_iter().map(|refs| (refs.0, refs.1))),
-        );
+        for (old_expr_key, new_expr_key) in const_refs {
+            contract.replace_exprs(Some(pred_key), old_expr_key, new_expr_key);
+        }
     }
 }
 
@@ -1058,7 +1148,7 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
             old_key: ExprKey,
             new_key: ExprKey,
         ) {
-            contract.replace_exprs(pred_key, old_key, new_key);
+            contract.replace_exprs(Some(pred_key), old_key, new_key);
 
             for (ref mut op_key, ref mut arg_key) in work_list {
                 if *op_key == old_key {

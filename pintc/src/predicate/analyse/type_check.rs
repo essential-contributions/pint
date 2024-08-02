@@ -1797,9 +1797,9 @@ impl Contract {
                     }
                 } else {
                     Err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "range ty is not numeric or array?",
-                            span: span.clone(),
+                        error: CompileError::InRangeInvalid {
+                            found_ty: self.with_ctrct(collection_ty).to_string(),
+                            span: self.expr_key_to_span(collection_key),
                         },
                     })
                 }

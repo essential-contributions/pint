@@ -7,6 +7,7 @@ use crate::{
 };
 use fxhash::FxHashMap;
 
+#[derive(Default)]
 pub(crate) struct Evaluator {
     enum_values: FxHashMap<Path, Imm>,
     scope_values: FxHashMap<Path, Imm>,

@@ -214,7 +214,7 @@ impl<'a> ProjectParser<'a> {
         for (current_pred, call_expr_key, body_expr_key, span) in call_replacements {
             if let Some(body_expr_key) = body_expr_key {
                 self.contract
-                    .replace_exprs(current_pred, call_expr_key, body_expr_key);
+                    .replace_exprs(Some(current_pred), call_expr_key, body_expr_key);
             } else {
                 // Keep track of the removed macro for type-checking, in case the predicate
                 // erroneously expected the macro call to be an expression (and not just

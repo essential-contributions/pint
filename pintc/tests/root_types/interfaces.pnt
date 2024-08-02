@@ -1,0 +1,56 @@
+// <disabled>
+
+type num = int;
+type ary = num[2 + 1];
+
+interface i {
+    storage {
+        x: ary,
+    }
+
+    predicate p {
+        pub var x1: ary;
+    }
+}
+
+predicate test {
+    var addr1: b256;
+
+    interface inst = i(addr1);
+}
+
+// parsed <<<
+// type ::num = int;
+// type ::ary = ::num[(2 + 1)];
+// interface ::i {
+//     storage {
+//         x: ::ary,
+//     }
+//     predicate p {
+//         pub var x1: ::ary;
+//     }
+// }
+//
+// predicate ::test {
+//     interface ::inst = ::i(::addr1)
+//     var ::addr1: b256;
+// }
+// >>>
+
+// flattened <<<
+// type ::num = int;
+// type ::ary = int[3];
+// interface ::i {
+//     storage {
+//         x: int[3];
+//     }
+//     predicate p {
+//         pub var x1: int[3];
+//     }
+// }
+//
+// predicate ::test {
+//     interface ::inst = ::i(::addr1)
+//     var ::addr1: b256;
+// }
+// >>>

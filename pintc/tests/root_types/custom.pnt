@@ -1,20 +1,26 @@
 type myAlias = int;
 type myCustom = myAlias;
 
-predicate Foo {}
-
-// flattened <<<
-// type ::myAlias = int;
-// type ::myCustom = ::myAlias (int);
-//
-// predicate ::Foo {
-// }
-// >>>
+predicate Foo {
+    var a: myCustom = 11;
+}
 
 // parsed <<<
 // type ::myAlias = int;
 // type ::myCustom = ::myAlias;
 //
 // predicate ::Foo {
+//     var ::a: ::myCustom;
+//     constraint (::a == 11);
+// }
+// >>>
+
+// flattened <<<
+// type ::myAlias = int;
+// type ::myCustom = ::myAlias (int);
+//
+// predicate ::Foo {
+//     var ::a: int;
+//     constraint (::a == 11);
 // }
 // >>>

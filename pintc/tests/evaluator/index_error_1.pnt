@@ -15,15 +15,13 @@ predicate test {
 // }
 // >>>
 
-// typecheck_failure <<<
-// non-primitive const declaration
-// @10..22: constant declaration `::b` must not have a non-primitive type
-// constant immediate arrays and tuples will be supported in a future update
-// >>>
-
 // flattening_failure <<<
 // cannot find value `::a` in this scope
-// @50..51: not found in this scope
+// @76..77: not found in this scope
+// attempt to use a non-constant value as an array index
+// @76..77: this must be a constant
+// cannot find value `::a` in this scope
+// @76..77: not found in this scope
 // attempt to use a non-constant value as an array length
-// @50..51: this must be a constant
+// @76..77: this must be a constant
 // >>>
