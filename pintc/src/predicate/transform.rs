@@ -6,8 +6,8 @@ mod validate;
 use crate::error::{ErrorEmitted, Handler};
 use legalize::legalize_vector_accesses;
 use lower::{
-    coalesce_prime_ops, lower_aliases, lower_casts, lower_compares_to_nil, lower_enums, lower_ifs,
-    lower_imm_accesses, lower_ins, replace_const_refs,
+    coalesce_prime_ops, lower_aliases, lower_array_ranges, lower_casts, lower_compares_to_nil,
+    lower_enums, lower_ifs, lower_imm_accesses, lower_ins, replace_const_refs,
 };
 use unroll::unroll_generators;
 use validate::validate;
@@ -33,15 +33,32 @@ impl super::Contract {
         let _ = lower_ins(handler, &mut self);
 
         // Do some array checks now that generators have been unrolled (and ephemerals aren't
-        // going to cause problems).
-        for pred_key in self.preds.keys() {
-            self.check_array_lengths(handler, pred_key);
-            self.check_array_indexing(handler, pred_key);
-            self.check_array_compares(handler, pred_key);
-        }
+        // going to cause problems).  We're taking note of whether these fail to avoid superfluous
+        // array related errors later.  Once we can move these checks back into the type-checker it
+        // shouldn't be necessary.
+        let mut array_check_failed = false;
+        let _ = handler.scope(|handler| {
+            for pred_key in self.preds.keys() {
+                self.check_array_lengths(handler, pred_key);
+                self.check_array_indexing(handler, pred_key);
+                self.check_array_compares(handler, pred_key);
+            }
+
+            if handler.has_errors() {
+                array_check_failed = true;
+                Err(handler.cancel())
+            } else {
+                Ok(())
+            }
+        });
 
         // Transform each enum variant into its integer discriminant
         let _ = lower_enums(handler, &mut self);
+
+        // Lower array types to have simple integer ranges.
+        if !array_check_failed {
+            let _ = lower_array_ranges(handler, &mut self);
+        }
 
         // Lower indexing or field access into immediates to the actual element or field.
         let _ = lower_imm_accesses(handler, &mut self);

@@ -177,28 +177,45 @@ impl Contract {
         self.preds.get(pred_key).unwrap().root_set()
     }
 
-    pub fn replace_exprs(&mut self, pred_key: PredKey, old_expr: ExprKey, new_expr: ExprKey) {
+    pub fn replace_exprs(
+        &mut self,
+        pred_key: Option<PredKey>,
+        old_expr: ExprKey,
+        new_expr: ExprKey,
+    ) {
+        // Here we recursively replace any interior expr_keys.
         self.exprs
             .update_exprs(|_, expr| expr.replace_one_to_one(old_expr, new_expr));
-
-        self.preds
-            .get_mut(pred_key)
-            .unwrap()
-            .replace_exprs(old_expr, new_expr);
-    }
-
-    pub fn replace_exprs_by_map(
-        &mut self,
-        pred_key: PredKey,
-        expr_map: &FxHashMap<ExprKey, ExprKey>,
-    ) {
         self.exprs
-            .update_exprs(|_, expr| expr.replace_ref_by_map(expr_map));
+            .update_types(|_, expr_ty| expr_ty.replace_type_expr(old_expr, new_expr));
 
-        self.preds
-            .get_mut(pred_key)
-            .unwrap()
-            .replace_exprs_by_map(expr_map);
+        // But we need to replace any 'root' set exprs too, such as those in consts values and
+        // types, the new-type aliases and then any references in Predicates.
+        self.consts
+            .values_mut()
+            .for_each(|Const { expr, decl_ty }| {
+                if *expr == old_expr {
+                    *expr = new_expr;
+                }
+                decl_ty.replace_type_expr(old_expr, new_expr);
+            });
+
+        if let Some((storage_vars, _)) = &mut self.storage {
+            storage_vars
+                .iter_mut()
+                .for_each(|StorageVar { ty, .. }| ty.replace_type_expr(old_expr, new_expr));
+        }
+
+        self.new_types
+            .iter_mut()
+            .for_each(|NewTypeDecl { ty, .. }| ty.replace_type_expr(old_expr, new_expr));
+
+        if let Some(pred_key) = pred_key {
+            self.preds
+                .get_mut(pred_key)
+                .unwrap()
+                .replace_exprs(old_expr, new_expr);
+        }
     }
 
     /// Generates a `ContractABI` given a `Contract`
@@ -282,6 +299,45 @@ impl Contract {
             .expect("storage access should have been checked before");
 
         (storage_index, &storage[storage_index])
+    }
+
+    pub(crate) fn root_exprs(&self) -> impl Iterator<Item = ExprKey> + '_ {
+        // This currently only fetches array type range expressions and does not include consts.
+        self.storage
+            .iter()
+            .flat_map(|(storage_vars, _)| {
+                storage_vars
+                    .iter()
+                    .filter_map(|StorageVar { ty, .. }| ty.get_array_range_expr())
+            })
+            .chain(
+                self.interfaces
+                    .iter()
+                    .flat_map(
+                        |Interface {
+                             storage,
+                             predicate_interfaces,
+                             ..
+                         }| {
+                            storage
+                                .iter()
+                                .flat_map(|(storage_vars, _)| {
+                                    storage_vars.iter().map(|StorageVar { ty, .. }| ty)
+                                })
+                                .chain(predicate_interfaces.iter().flat_map(
+                                    |PredicateInterface { vars, .. }| {
+                                        vars.iter().map(|InterfaceVar { ty, .. }| ty)
+                                    },
+                                ))
+                        },
+                    )
+                    .filter_map(|ty| ty.get_array_range_expr()),
+            )
+            .chain(
+                self.new_types
+                    .iter()
+                    .filter_map(|NewTypeDecl { ty, .. }| ty.get_array_range_expr()),
+            )
     }
 }
 
@@ -377,6 +433,14 @@ impl Predicate {
     }
 
     pub fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
+        self.vars.update_types(|_var_key, var_ty| {
+            var_ty.replace_type_expr(old_expr, new_expr);
+        });
+
+        self.states.update_types(|_state_key, state_ty| {
+            state_ty.replace_type_expr(old_expr, new_expr);
+        });
+
         self.constraints
             .iter_mut()
             .for_each(|ConstraintDecl { expr, .. }| {
@@ -384,6 +448,10 @@ impl Predicate {
                     *expr = new_expr;
                 }
             });
+
+        self.if_decls.iter_mut().for_each(|if_decl| {
+            if_decl.replace_exprs(old_expr, new_expr);
+        });
 
         self.var_inits.iter_mut().for_each(|(_, expr)| {
             if *expr == old_expr {
@@ -404,38 +472,6 @@ impl Predicate {
             .for_each(|PredicateInstance { address, .. }| {
                 if *address == old_expr {
                     *address = new_expr;
-                }
-            });
-    }
-
-    pub fn replace_exprs_by_map(&mut self, expr_map: &FxHashMap<ExprKey, ExprKey>) {
-        self.constraints
-            .iter_mut()
-            .for_each(|ConstraintDecl { expr, .. }| {
-                if let Some(new_expr) = expr_map.get(expr) {
-                    *expr = *new_expr;
-                }
-            });
-
-        self.var_inits.iter_mut().for_each(|(_, expr)| {
-            if let Some(new_expr) = expr_map.get(expr) {
-                *expr = *new_expr;
-            }
-        });
-
-        self.interface_instances
-            .iter_mut()
-            .for_each(|InterfaceInstance { address, .. }| {
-                if let Some(new_expr) = expr_map.get(address) {
-                    *address = *new_expr;
-                }
-            });
-
-        self.predicate_instances
-            .iter_mut()
-            .for_each(|PredicateInstance { address, .. }| {
-                if let Some(new_expr) = expr_map.get(address) {
-                    *address = *new_expr;
                 }
             });
     }
@@ -477,6 +513,18 @@ pub enum BlockStatement {
 }
 
 impl BlockStatement {
+    fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
+        match self {
+            BlockStatement::Constraint(ConstraintDecl { expr, .. }) => {
+                if *expr == old_expr {
+                    *expr = new_expr;
+                }
+            }
+
+            BlockStatement::If(if_decl) => if_decl.replace_exprs(old_expr, new_expr),
+        }
+    }
+
     fn fmt_with_indent(
         &self,
         f: &mut Formatter,
@@ -507,6 +555,22 @@ pub struct IfDecl {
 }
 
 impl IfDecl {
+    fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
+        if self.condition == old_expr {
+            self.condition = new_expr;
+        }
+
+        self.then_block
+            .iter_mut()
+            .for_each(|stmt| stmt.replace_exprs(old_expr, new_expr));
+
+        if let Some(else_block) = &mut self.else_block {
+            else_block
+                .iter_mut()
+                .for_each(|stmt| stmt.replace_exprs(old_expr, new_expr));
+        }
+    }
+
     fn fmt_with_indent(
         &self,
         f: &mut Formatter,

@@ -5,10 +5,10 @@ const b = 0x2222222222222222222222222222222222222222222222222222222222222222;
 const c: int = 33;
 const d: b256 = 0x4444444444444444444444444444444444444444444444444444444444444444;
 const e = 0x5555555555555555555555555555555555555555555555555555555555555555 == 0x5555555555555555555555555555555555555555555555555555555555555555;
-//const f = {66, 77};
-//const g = [88, 99];
-//const h: { int, bool } = { 1010, false };
-//const i: bool[3] = [false, true, true];
+const f = {66, 77};
+const g = [88, 99];
+const h: { int, bool } = { 1010, false };
+const i: bool[3] = [false, true, true];
 
 enum JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
 const j = JacketColour::Beige; // Yes.
@@ -21,52 +21,72 @@ predicate test {
     var r: b256;
     constraint r != b && r != d;
 
-    //var s = f.1;
-    //var t = g[1];
+    var s = f.1;
+    var t = g[1];
 
-    //var u: bool;
-    //constraint u == h.1 && u != i[2];
+    var u: bool;
+    constraint u == h.1 && u != i[2];
 
     var v: JacketColour;
     constraint v != j && v != k;
 }
 
 // parsed <<<
-// const ::j = ::JacketColour::Beige;
+// const ::i: bool[3] = [false, true, true];
 // const ::b = 0x2222222222222222222222222222222222222222222222222222222222222222;
+// const ::h: {int, bool} = {1010, false};
 // const ::e = (0x5555555555555555555555555555555555555555555555555555555555555555 == 0x5555555555555555555555555555555555555555555555555555555555555555);
 // const ::k: ::JacketColour = ::JacketColour::Bone;
 // const ::d: b256 = 0x4444444444444444444444444444444444444444444444444444444444444444;
 // const ::a = 11;
+// const ::g = [88, 99];
+// const ::j = ::JacketColour::Beige;
+// const ::f = {66, 77};
 // const ::c: int = 33;
 // enum ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
 //
 // predicate ::test {
 //     var ::q: int;
 //     var ::r: b256;
+//     var ::s;
+//     var ::t;
+//     var ::u: bool;
 //     var ::v: ::JacketColour;
 //     constraint ((::q > ::a) && (::q < ::c));
 //     constraint ((::r != ::b) && (::r != ::d));
+//     constraint (::s == ::f.1);
+//     constraint (::t == ::g[1]);
+//     constraint ((::u == ::h.1) && (::u != ::i[2]));
 //     constraint ((::v != ::j) && (::v != ::k));
 // }
 // >>>
 
 // flattened <<<
-// const ::j: ::JacketColour = 5;
+// const ::i: bool[3] = [false, true, true];
 // const ::b: b256 = 0x2222222222222222222222222222222222222222222222222222222222222222;
+// const ::h: {int, bool} = {1010, false};
 // const ::e: bool = true;
 // const ::k: ::JacketColour = 1;
 // const ::d: b256 = 0x4444444444444444444444444444444444444444444444444444444444444444;
 // const ::a: int = 11;
+// const ::g: int[_] = [88, 99];
+// const ::j: ::JacketColour = 5;
+// const ::f: {int, int} = {66, 77};
 // const ::c: int = 33;
 // enum ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
 //
 // predicate ::test {
 //     var ::q: int;
 //     var ::r: b256;
+//     var ::s: int;
+//     var ::t: int;
+//     var ::u: bool;
 //     var ::v: int;
 //     constraint ((::q > 11) && (::q < 33));
 //     constraint ((::r != 0x2222222222222222222222222222222222222222222222222222222222222222) && (::r != 0x4444444444444444444444444444444444444444444444444444444444444444));
+//     constraint (::s == 77);
+//     constraint (::t == 99);
+//     constraint ((::u == false) && (::u != true));
 //     constraint ((::v != 5) && (::v != 1));
 //     constraint (::v >= 0);
 //     constraint (::v <= 5);
