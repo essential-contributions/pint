@@ -23,6 +23,9 @@ impl Contract {
             .filter(|arg_key| arg_key.get_ty(self).is_unknown())
             .for_each(|arg_key| deps.push(*arg_key));
 
+        // TODO: go one by one through the intrinsics to add the handler
+        // Eventually remove returning an error?
+
         if deps.is_empty() {
             match &name.name[..] {
                 // Access ops
@@ -38,7 +41,7 @@ impl Contract {
                 "__recover_secp256k1" => infer_intrinsic_recover_secp256k1(self, name, args, span),
 
                 "__state_len" => infer_intrinsic_state_len(self, handler, pred, args, span),
-                "__vec_len" => infer_intrinsic_vec_len(self, pred, args, span),
+                "__vec_len" => infer_intrinsic_vec_len(self, handler, pred, args, span),
 
                 // State reads - these will likely change in the future as they don't directly
                 // match the underlying opcodes
@@ -517,13 +520,14 @@ fn infer_intrinsic_state_len(
 //
 fn infer_intrinsic_vec_len(
     contract: &Contract,
+    handler: &Handler,
     pred: Option<&Predicate>,
     args: &[ExprKey],
     span: &Span,
 ) -> Result<Inference, Error> {
     // This intrinsic expects exactly 1 argument
     if args.len() != 1 {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 1,
                 found: args.len(),
@@ -533,10 +537,8 @@ fn infer_intrinsic_vec_len(
     }
 
     // The only argument must be a storage access of type vector
-    match args[0].try_get(contract) {
-        Some(Expr::StorageAccess(name, ..)) if contract.storage_var(name).1.ty.is_vector() => {
-            Ok(())
-        }
+    match args.first().and_then(|expr_key| expr_key.try_get(contract)) {
+        Some(Expr::StorageAccess(name, ..)) if contract.storage_var(name).1.ty.is_vector() => {}
         Some(Expr::ExternalStorageAccess {
             interface_instance,
             name,
@@ -557,14 +559,14 @@ fn infer_intrinsic_vec_len(
                     .ty
                     .is_vector()
             })
-            .unwrap_or(false) =>
-        {
-            Ok(())
+            .unwrap_or(false) => {}
+        None => {}
+        _ => {
+            handler.emit_err(Error::Compile {
+                error: CompileError::IntrinsicArgMustBeStorageAccess { span: span.clone() },
+            });
         }
-        _ => Err(Error::Compile {
-            error: CompileError::IntrinsicArgMustBeStorageAccess { span: span.clone() },
-        }),
-    }?;
+    };
 
     // This intrinsic returns a `int`
     Ok(Inference::Type(Type::Primitive {
