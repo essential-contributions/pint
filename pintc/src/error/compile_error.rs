@@ -801,11 +801,7 @@ impl ReportableError for CompileError {
                     color: Color::Red,
                 },
             ],
-            StateVarHasStorageType {
-                ty,
-                nested_ty,
-                span,
-            } => vec![ErrorLabel {
+            StateVarHasStorageType { ty, span, .. } => vec![ErrorLabel {
                 message: format!("found state variable of storage type {ty} here"),
                 span: span.clone(),
                 color: Color::Red,
