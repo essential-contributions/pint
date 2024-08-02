@@ -1,5 +1,6 @@
 use super::Inference;
 use super::{Contract, ExprKey, Ident, Predicate};
+use crate::error::Handler;
 use crate::{
     error::{CompileError, Error},
     expr::{Expr, UnaryOp},
@@ -10,6 +11,7 @@ use crate::{
 impl Contract {
     pub(super) fn infer_intrinsic_call_expr(
         &self,
+        handler: &Handler,
         pred: Option<&Predicate>,
         name: &Ident,
         args: &[ExprKey],
@@ -35,7 +37,7 @@ impl Contract {
                 "__verify_ed25519" => infer_intrinsic_verify_ed25519(self, name, args, span),
                 "__recover_secp256k1" => infer_intrinsic_recover_secp256k1(self, name, args, span),
 
-                "__state_len" => infer_intrinsic_state_len(self, pred, args, span),
+                "__state_len" => infer_intrinsic_state_len(self, handler, pred, args, span),
                 "__vec_len" => infer_intrinsic_vec_len(self, pred, args, span),
 
                 // State reads - these will likely change in the future as they don't directly
@@ -462,13 +464,14 @@ fn infer_intrinsic_recover_secp256k1(
 //
 fn infer_intrinsic_state_len(
     contract: &Contract,
+    handler: &Handler,
     pred: Option<&Predicate>,
     args: &[ExprKey],
     span: &Span,
 ) -> Result<Inference, Error> {
     // This intrinsic expects exactly 1 argument
     if args.len() != 1 {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 1,
                 found: args.len(),
@@ -490,9 +493,12 @@ fn infer_intrinsic_state_len(
             op: UnaryOp::NextState,
             ..
         }) => Ok(()),
-        _ => Err(Error::Compile {
-            error: CompileError::IntrinsicArgMustBeStateVar { span: span.clone() },
-        }),
+        _ => {
+            handler.emit_err(Error::Compile {
+                error: CompileError::IntrinsicArgMustBeStateVar { span: span.clone() },
+            });
+            Ok(())
+        }
     }?;
 
     // This intrinsic returns a `int`
