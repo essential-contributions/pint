@@ -37,7 +37,9 @@ impl Contract {
 
                 // Crypto ops
                 "__sha256" => infer_intrinsic_sha256(args, span),
-                "__verify_ed25519" => infer_intrinsic_verify_ed25519(self, name, args, span),
+                "__verify_ed25519" => {
+                    infer_intrinsic_verify_ed25519(self, handler, name, args, span)
+                }
                 "__recover_secp256k1" => {
                     infer_intrinsic_recover_secp256k1(self, handler, name, args, span)
                 }
@@ -288,66 +290,65 @@ fn infer_intrinsic_sha256(args: &[ExprKey], span: &Span) -> Result<Inference, Er
 //
 fn infer_intrinsic_verify_ed25519(
     contract: &Contract,
+    handler: &Handler,
     name: &Ident,
     args: &[ExprKey],
     span: &Span,
 ) -> Result<Inference, Error> {
     // This intrinsic expects exactly 3 arguments
     if args.len() != 3 {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 3,
                 found: args.len(),
                 span: span.clone(),
             },
         });
-    }
-
-    // Helper lambda to emit arg type errors
-    let arg_type_error = |expected, found, intrinsic_span, arg_span| {
-        Err(Error::Compile {
+    } else {
+        // Helper lambda to emit arg type errors
+        let arg_type_error = |expected, found, intrinsic_span, arg_span| Error::Compile {
             error: CompileError::MismatchedIntrinsicArgType {
                 expected,
                 found,
                 intrinsic_span,
                 arg_span,
             },
-        })
-    };
+        };
 
-    // First argument is the data which can be anything so nothing to check
+        // First argument is the data which can be anything so nothing to check
 
-    // Second argument is the signature and must be a `{ b256, b256 }`
-    let sig_span = args[1].get(contract).span();
-    let sig_type = &args[1].get_ty(contract);
-    if let Some(fields) = sig_type.get_tuple_fields() {
-        if fields.len() != 2 || !fields[0].1.is_b256() || !fields[1].1.is_b256() {
-            return arg_type_error(
+        // Second argument is the signature and must be a `{ b256, b256 }`
+        let sig_span = args[1].get(contract).span();
+        let sig_type = &args[1].get_ty(contract);
+        if let Some(fields) = sig_type.get_tuple_fields() {
+            if fields.len() != 2 || !fields[0].1.is_b256() || !fields[1].1.is_b256() {
+                handler.emit_err(arg_type_error(
+                    "{ b256, b256 }".to_string(),
+                    contract.with_ctrct(sig_type).to_string(),
+                    name.span.clone(),
+                    sig_span.clone(),
+                ));
+            }
+        } else {
+            handler.emit_err(arg_type_error(
                 "{ b256, b256 }".to_string(),
                 contract.with_ctrct(sig_type).to_string(),
                 name.span.clone(),
                 sig_span.clone(),
-            );
+            ));
         }
-    } else {
-        return arg_type_error(
-            "{ b256, b256 }".to_string(),
-            contract.with_ctrct(sig_type).to_string(),
-            name.span.clone(),
-            sig_span.clone(),
-        );
-    }
 
-    // Third argument is the public key and must be a `b256`
-    let pub_key_span = args[2].get(contract).span();
-    let pub_key_type = &args[2].get_ty(contract);
-    if !pub_key_type.is_b256() {
-        return arg_type_error(
-            "b256".to_string(),
-            contract.with_ctrct(pub_key_type).to_string(),
-            name.span.clone(),
-            pub_key_span.clone(),
-        );
+        // Third argument is the public key and must be a `b256`
+        let pub_key_span = args[2].get(contract).span();
+        let pub_key_type = &args[2].get_ty(contract);
+        if !pub_key_type.is_b256() {
+            handler.emit_err(arg_type_error(
+                "b256".to_string(),
+                contract.with_ctrct(pub_key_type).to_string(),
+                name.span.clone(),
+                pub_key_span.clone(),
+            ));
+        }
     }
 
     // This intrinsic returns a `bool`

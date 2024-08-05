@@ -142,18 +142,6 @@ predicate test {
 // variable initialization type error
 // @432..465: variable initializer has unknown type
 // @425..429: expecting type `bool`
-// variable initialization type error
-// @708..749: variable initializer has unknown type
-// @701..705: expecting type `bool`
-// variable initialization type error
-// @784..818: variable initializer has unknown type
-// @777..781: expecting type `bool`
-// variable initialization type error
-// @853..871: variable initializer has unknown type
-// @846..850: expecting type `bool`
-// variable initialization type error
-// @906..955: variable initializer has unknown type
-// @899..903: expecting type `bool`
 // constraint expression type error
 // @237..274: constraint expression has unknown type
 // @237..274: expecting type `bool`
@@ -181,16 +169,4 @@ predicate test {
 // constraint expression type error
 // @643..672: constraint expression has unknown type
 // @643..672: expecting type `bool`
-// constraint expression type error
-// @679..749: constraint expression has unknown type
-// @679..749: expecting type `bool`
-// constraint expression type error
-// @755..818: constraint expression has unknown type
-// @755..818: expecting type `bool`
-// constraint expression type error
-// @824..871: constraint expression has unknown type
-// @824..871: expecting type `bool`
-// constraint expression type error
-// @877..955: constraint expression has unknown type
-// @877..955: expecting type `bool`
 // >>>
