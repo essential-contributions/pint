@@ -38,7 +38,9 @@ impl Contract {
                 // Crypto ops
                 "__sha256" => infer_intrinsic_sha256(args, span),
                 "__verify_ed25519" => infer_intrinsic_verify_ed25519(self, name, args, span),
-                "__recover_secp256k1" => infer_intrinsic_recover_secp256k1(self, name, args, span),
+                "__recover_secp256k1" => {
+                    infer_intrinsic_recover_secp256k1(self, handler, name, args, span)
+                }
 
                 "__state_len" => infer_intrinsic_state_len(self, handler, pred, args, span),
                 "__vec_len" => infer_intrinsic_vec_len(self, handler, pred, args, span),
@@ -368,68 +370,67 @@ fn infer_intrinsic_verify_ed25519(
 //
 fn infer_intrinsic_recover_secp256k1(
     contract: &Contract,
+    handler: &Handler,
     name: &Ident,
     args: &[ExprKey],
     span: &Span,
 ) -> Result<Inference, Error> {
     // This intrinsic expects exactly 2 arguments
     if args.len() != 2 {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 2,
                 found: args.len(),
                 span: span.clone(),
             },
         });
-    }
-
-    // Helper lambda to emit arg type errors
-    let arg_type_error = |expected, found, intrinsic_span, arg_span| {
-        Err(Error::Compile {
+    } else {
+        // Helper lambda to emit arg type errors
+        let arg_type_error = |expected, found, intrinsic_span, arg_span| Error::Compile {
             error: CompileError::MismatchedIntrinsicArgType {
                 expected,
                 found,
                 intrinsic_span,
                 arg_span,
             },
-        })
-    };
+        };
 
-    // First argument is the hash of the data and must be a `b256`
-    let pub_key_span = args[0].get(contract).span();
-    let pub_key_type = &args[0].get_ty(contract);
-    if !pub_key_type.is_b256() {
-        return arg_type_error(
-            "b256".to_string(),
-            contract.with_ctrct(pub_key_type).to_string(),
-            name.span.clone(),
-            pub_key_span.clone(),
-        );
-    }
+        // First argument is the hash of the data and must be a `b256`
+        let pub_key_span = args[0].get(contract).span();
+        let pub_key_type = &args[0].get_ty(contract);
+        if !pub_key_type.is_b256() {
+            handler.emit_err(arg_type_error(
+                "b256".to_string(),
+                contract.with_ctrct(pub_key_type).to_string(),
+                name.span.clone(),
+                pub_key_span.clone(),
+            ));
+        }
 
-    // Second argument is the signature and must be a `{ b256, b256, int }`
-    let sig_span = args[1].get(contract).span();
-    let sig_type = &args[1].get_ty(contract);
-    if let Some(fields) = sig_type.get_tuple_fields() {
-        if fields.len() != 3
-            || !fields[0].1.is_b256()
-            || !fields[1].1.is_b256()
-            || !fields[2].1.is_int()
-        {
-            return arg_type_error(
+        // Second argument is the signature and must be a `{ b256, b256, int }`
+        let sig_span = args[1].get(contract).span();
+        let sig_type = &args[1].get_ty(contract);
+        if let Some(fields) = sig_type.get_tuple_fields() {
+            if fields.len() != 3
+                || !fields[0].1.is_b256()
+                || !fields[1].1.is_b256()
+                || !fields[2].1.is_int()
+            {
+                handler.emit_err(arg_type_error(
+                    "{ b256, b256, int }".to_string(),
+                    contract.with_ctrct(sig_type).to_string(),
+                    name.span.clone(),
+                    sig_span.clone(),
+                ));
+            }
+        } else {
+            handler.emit_err(arg_type_error(
                 "{ b256, b256, int }".to_string(),
                 contract.with_ctrct(sig_type).to_string(),
                 name.span.clone(),
                 sig_span.clone(),
-            );
+            ));
         }
-    } else {
-        return arg_type_error(
-            "{ b256, b256, int }".to_string(),
-            contract.with_ctrct(sig_type).to_string(),
-            name.span.clone(),
-            sig_span.clone(),
-        );
     }
 
     // This intrinsic returns the public key of type `{ b256, int }`
