@@ -1,0 +1,29 @@
+const FOO = [{ a: 1, b: 2}];
+
+macro @foo($i, &rest) {
+    @foo($i.a + $i.b; &rest)
+}
+
+macro @foo($i) {
+    $i.a + $i.b
+}
+
+predicate Foo {
+    constraint @foo(FOO) == 3;
+}
+
+// parsed <<<
+// const ::FOO = [{a: 1, b: 2}];
+//
+// predicate ::Foo {
+//     constraint ((::FOO.a + ::FOO.b) == 3);
+// }
+// >>>
+
+// typecheck_failure <<<
+// attempt to access tuple field from a non-tuple value
+// @107..111: value must be a tuple; found `{a: int, b: int}[_]`
+// constraint expression type error
+// @142..167: constraint expression has unknown type
+// @142..167: expecting type `bool`
+// >>>
