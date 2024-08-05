@@ -133,25 +133,4 @@ predicate test {
 // @1368..1385: unexpected number of arguments here
 // this intrinsic takes 1 argument but 0 arguments were supplied
 // @1413..1426: unexpected number of arguments here
-// variable initialization type error
-// @313..335: variable initializer has unknown type
-// @306..310: expecting type `bool`
-// variable initialization type error
-// @373..394: variable initializer has unknown type
-// @366..370: expecting type `bool`
-// variable initialization type error
-// @432..465: variable initializer has unknown type
-// @425..429: expecting type `bool`
-// constraint expression type error
-// @237..274: constraint expression has unknown type
-// @237..274: expecting type `bool`
-// constraint expression type error
-// @281..335: constraint expression has unknown type
-// @281..335: expecting type `bool`
-// constraint expression type error
-// @341..394: constraint expression has unknown type
-// @341..394: expecting type `bool`
-// constraint expression type error
-// @400..465: constraint expression has unknown type
-// @400..465: expecting type `bool`
 // >>>

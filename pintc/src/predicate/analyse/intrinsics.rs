@@ -29,8 +29,10 @@ impl Contract {
         if deps.is_empty() {
             match &name.name[..] {
                 // Access ops
-                "__mut_keys_len" => infer_intrinsic_mut_keys_len(args, span),
-                "__mut_keys_contains" => infer_intrinsic_mut_keys_contains(self, name, args, span),
+                "__mut_keys_len" => infer_intrinsic_mut_keys_len(handler, args, span),
+                "__mut_keys_contains" => {
+                    infer_intrinsic_mut_keys_contains(self, handler, name, args, span)
+                }
                 "__this_address" => infer_intrinsic_this_address(handler, args, span),
                 "__this_set_address" => infer_intrinsic_this_set_address(handler, args, span),
                 "__this_pathway" => infer_intrinsic_this_pathway(handler, args, span),
@@ -76,10 +78,14 @@ impl Contract {
 //
 // Description: Get the number of mutable keys being proposed for mutation.
 //
-fn infer_intrinsic_mut_keys_len(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
+fn infer_intrinsic_mut_keys_len(
+    handler: &Handler,
+    args: &[ExprKey],
+    span: &Span,
+) -> Result<Inference, Error> {
     // This intrinsic expects no arguments
     if !args.is_empty() {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 0,
                 found: args.len(),
@@ -107,52 +113,51 @@ fn infer_intrinsic_mut_keys_len(args: &[ExprKey], span: &Span) -> Result<Inferen
 //
 fn infer_intrinsic_mut_keys_contains(
     contract: &Contract,
+    handler: &Handler,
     name: &Ident,
     args: &[ExprKey],
     span: &Span,
 ) -> Result<Inference, Error> {
     // This intrinsic expects exactly 3 arguments
     if args.len() != 1 {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 1,
                 found: args.len(),
                 span: span.clone(),
             },
         });
-    }
-
-    // Helper lambda to emit arg type errors
-    let arg_type_error = |expected, found, intrinsic_span, arg_span| {
-        Err(Error::Compile {
+    } else {
+        // Helper lambda to emit arg type errors
+        let arg_type_error = |expected, found, intrinsic_span, arg_span| Error::Compile {
             error: CompileError::MismatchedIntrinsicArgType {
                 expected,
                 found,
                 intrinsic_span,
                 arg_span,
             },
-        })
-    };
+        };
 
-    // The only argument is the mutable key which must be an array of integers
-    let mut_key_span = args[0].get(contract).span();
-    let mut_key_type = &args[0].get_ty(contract);
-    if let Some(ty) = mut_key_type.get_array_el_type() {
-        if !ty.is_int() {
-            return arg_type_error(
+        // The only argument is the mutable key which must be an array of integers
+        let mut_key_span = args[0].get(contract).span();
+        let mut_key_type = &args[0].get_ty(contract);
+        if let Some(ty) = mut_key_type.get_array_el_type() {
+            if !ty.is_int() {
+                handler.emit_err(arg_type_error(
+                    "int[..]".to_string(),
+                    contract.with_ctrct(mut_key_type).to_string(),
+                    name.span.clone(),
+                    mut_key_span.clone(),
+                ));
+            }
+        } else {
+            handler.emit_err(arg_type_error(
                 "int[..]".to_string(),
                 contract.with_ctrct(mut_key_type).to_string(),
                 name.span.clone(),
                 mut_key_span.clone(),
-            );
+            ));
         }
-    } else {
-        return arg_type_error(
-            "int[..]".to_string(),
-            contract.with_ctrct(mut_key_type).to_string(),
-            name.span.clone(),
-            mut_key_span.clone(),
-        );
     }
 
     // This intrinsic returns a `bool`
