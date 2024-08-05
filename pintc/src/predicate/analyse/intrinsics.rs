@@ -31,9 +31,9 @@ impl Contract {
                 // Access ops
                 "__mut_keys_len" => infer_intrinsic_mut_keys_len(args, span),
                 "__mut_keys_contains" => infer_intrinsic_mut_keys_contains(self, name, args, span),
-                "__this_address" => infer_intrinsic_this_address(args, span),
-                "__this_set_address" => infer_intrinsic_this_set_address(args, span),
-                "__this_pathway" => infer_intrinsic_this_pathway(args, span),
+                "__this_address" => infer_intrinsic_this_address(handler, args, span),
+                "__this_set_address" => infer_intrinsic_this_set_address(handler, args, span),
+                "__this_pathway" => infer_intrinsic_this_pathway(handler, args, span),
 
                 // Crypto ops
                 "__sha256" => infer_intrinsic_sha256(handler, args, span),
@@ -171,10 +171,14 @@ fn infer_intrinsic_mut_keys_contains(
 //
 // Description: Get the content hash of the contract that this predicate belongs to.
 //
-fn infer_intrinsic_this_set_address(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
+fn infer_intrinsic_this_set_address(
+    handler: &Handler,
+    args: &[ExprKey],
+    span: &Span,
+) -> Result<Inference, Error> {
     // This intrinsic expects no arguments
     if !args.is_empty() {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 0,
                 found: args.len(),
@@ -199,10 +203,14 @@ fn infer_intrinsic_this_set_address(args: &[ExprKey], span: &Span) -> Result<Inf
 //
 // Description: Get the content hash of this predicate.
 //
-fn infer_intrinsic_this_address(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
+fn infer_intrinsic_this_address(
+    handler: &Handler,
+    args: &[ExprKey],
+    span: &Span,
+) -> Result<Inference, Error> {
     // This intrinsic expects no arguments
     if !args.is_empty() {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 0,
                 found: args.len(),
@@ -228,10 +236,14 @@ fn infer_intrinsic_this_address(args: &[ExprKey], span: &Span) -> Result<Inferen
 // Description: This operation returns the index of the solution data currently being used to check
 // this predicate.
 //
-fn infer_intrinsic_this_pathway(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
+fn infer_intrinsic_this_pathway(
+    handler: &Handler,
+    args: &[ExprKey],
+    span: &Span,
+) -> Result<Inference, Error> {
     // This intrinsic expects no arguments
     if !args.is_empty() {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 0,
                 found: args.len(),
