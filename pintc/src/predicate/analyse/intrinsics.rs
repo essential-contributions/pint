@@ -36,7 +36,7 @@ impl Contract {
                 "__this_pathway" => infer_intrinsic_this_pathway(args, span),
 
                 // Crypto ops
-                "__sha256" => infer_intrinsic_sha256(args, span),
+                "__sha256" => infer_intrinsic_sha256(handler, args, span),
                 "__verify_ed25519" => {
                     infer_intrinsic_verify_ed25519(self, handler, name, args, span)
                 }
@@ -257,10 +257,14 @@ fn infer_intrinsic_this_pathway(args: &[ExprKey], span: &Span) -> Result<Inferen
 //
 // Description: Produce a SHA 256 hash from the specified data.
 //
-fn infer_intrinsic_sha256(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
+fn infer_intrinsic_sha256(
+    handler: &Handler,
+    args: &[ExprKey],
+    span: &Span,
+) -> Result<Inference, Error> {
     // This intrinsic expects exactly 1 argument
     if args.len() != 1 {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 1,
                 found: args.len(),
