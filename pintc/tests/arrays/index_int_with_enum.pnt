@@ -19,6 +19,9 @@ predicate test {
 // attempt to index an array with a mismatched value
 // @96..104: array access must be with an int value
 // found access using type `::Num`
+// binary operator type error
+// @109..110: operator `==` argument has unexpected type `int`
+// @92..105: expecting type `::Num`
 // constraint expression type error
 // @81..110: constraint expression has unknown type
 // @81..110: expecting type `bool`

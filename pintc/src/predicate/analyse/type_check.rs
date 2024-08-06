@@ -946,7 +946,9 @@ impl Contract {
                 span,
             } => self.infer_select_expr(*condition, *then_expr, *else_expr, span),
 
-            Expr::Index { expr, index, span } => self.infer_index_expr(*expr, *index, span),
+            Expr::Index { expr, index, span } => {
+                Ok(self.infer_index_expr(handler, *expr, *index, span))
+            }
 
             Expr::TupleFieldAccess { tuple, field, span } => {
                 self.infer_tuple_access_expr(*tuple, field, span)
@@ -1882,91 +1884,100 @@ impl Contract {
 
     fn infer_index_expr(
         &self,
+        handler: &Handler,
         array_expr_key: ExprKey,
         index_expr_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         let index_ty = index_expr_key.get_ty(self);
         if index_ty.is_unknown() {
-            return Ok(Inference::Dependant(index_expr_key));
+            return Inference::Dependant(index_expr_key);
         }
 
         let ary_ty = array_expr_key.get_ty(self);
         if ary_ty.is_unknown() {
-            return Ok(Inference::Dependant(array_expr_key));
+            return Inference::Dependant(array_expr_key);
         }
 
+        // handle accessing a range of an array
+        // aka the index expr is a range
         if let Some(range_expr_key) = ary_ty.get_array_range_expr() {
             // Is this an array?
             let range_ty = range_expr_key.get_ty(self);
             if range_ty.is_unknown() {
-                return Ok(Inference::Dependant(range_expr_key));
+                return Inference::Dependant(range_expr_key);
             }
 
             if (!index_ty.is_int() && !index_ty.is_enum(&self.enums))
                 || !index_ty.eq(&self.new_types, range_ty)
             {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::ArrayAccessWithWrongType {
                         found_ty: self.with_ctrct(index_ty).to_string(),
                         expected_ty: self.with_ctrct(range_ty).to_string(),
                         span: self.expr_key_to_span(index_expr_key),
                     },
-                })
+                });
+                Inference::Type(index_ty.clone())
             } else if let Some(ty) = ary_ty.get_array_el_type() {
-                Ok(Inference::Type(ty.clone()))
+                Inference::Type(ty.clone())
             } else {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "failed to get array element type \
                           in infer_index_expr()",
                         span: span.clone(),
                     },
-                })
+                });
+                Inference::Type(index_ty.clone())
             }
         } else if let Some(ty) = ary_ty.get_array_el_type() {
             // Is it an array with an unknown range (probably a const immediate)?
-            Ok(Inference::Type(ty.clone()))
+            Inference::Type(ty.clone())
         } else if let Some(from_ty) = ary_ty.get_map_ty_from() {
             // Is this a storage map?
             if !from_ty.eq(&self.new_types, index_ty) {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::StorageMapAccessWithWrongType {
                         found_ty: self.with_ctrct(index_ty).to_string(),
                         expected_ty: self.with_ctrct(from_ty).to_string(),
                         span: self.expr_key_to_span(index_expr_key),
                     },
-                })
+                });
+                Inference::Type(index_ty.clone())
             } else if let Some(ty) = ary_ty.get_map_ty_to() {
-                Ok(Inference::Type(ty.clone()))
+                Inference::Type(ty.clone())
             } else {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "failed to get array element type \
                           in infer_index_expr()",
                         span: span.clone(),
                     },
-                })
+                });
+                Inference::Type(index_ty.clone())
             }
         } else if let Some(ty) = ary_ty.get_vector_element_ty() {
             if !index_ty.is_int() {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::ArrayAccessWithWrongType {
                         found_ty: self.with_ctrct(index_ty).to_string(),
                         expected_ty: "int".to_string(),
                         span: self.expr_key_to_span(index_expr_key),
                     },
-                })
+                });
+                Inference::Type(index_ty.clone())
             } else {
-                Ok(Inference::Type(ty.clone()))
+                Inference::Type(ty.clone())
             }
         } else {
-            Err(Error::Compile {
+            handler.emit_err(Error::Compile {
                 error: CompileError::IndexExprNonIndexable {
                     non_indexable_type: self.with_ctrct(ary_ty).to_string(),
                     span: span.clone(),
                 },
-            })
+            });
+            Inference::Type(ary_ty.clone())
         }
     }
 
