@@ -363,22 +363,24 @@ impl MacroExpander {
             match &tok.1 {
                 Token::MacroParam(param) => {
                     if let Some(&idx) = param_idcs.get(param) {
-                        let mut arg_toks = call.args[idx]
-                            .iter()
-                            .map(|tok| {
-                                if let (l, Token::Ident((id, _)), r) = tok {
-                                    // When identifiers are passed to a macro we set the special
-                                    // flag to true to indicate adding a local scope to it should
-                                    // _not_ be done.  We don't need/want hygiene for these
-                                    // identifiers.
-                                    (*l, Token::Ident((id.clone(), true)), *r)
-                                } else {
-                                    tok.clone()
-                                }
-                            })
-                            .collect();
+                        // Replace the parameter with the respective call arg tokens.  To avoid the
+                        // possibility of wacky spans -- one half being from the args and
+                        // essentially 'outside' the macro body and the other half being inside the
+                        // macro body -- we give every injected token the span of the param token.
+                        body.extend(call.args[idx].iter().map(|(_, arg_tok, _)| {
+                            let arg_tok = if let Token::Ident((id, _)) = arg_tok {
+                                // When identifiers are passed to a macro we set the special
+                                // flag to true to indicate adding a local scope to it should
+                                // _not_ be done.  We don't need/want hygiene for these
+                                // identifiers.
+                                Token::Ident((id.clone(), true))
+                            } else {
+                                arg_tok.clone()
+                            };
 
-                        body.append(&mut arg_toks);
+                            // Use the span from the MacroParam token.
+                            (tok.0, arg_tok, tok.2)
+                        }));
                     } else {
                         handler.emit_err(Error::Compile {
                             error: CompileError::MacroUndefinedParam {
