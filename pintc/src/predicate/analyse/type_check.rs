@@ -401,7 +401,7 @@ impl Contract {
             .map(|(_, Const { expr, .. })| *expr)
             .collect::<Vec<_>>();
         for expr_key in const_expr_keys {
-            if let Err(err) = self.type_check_single_expr(None, expr_key) {
+            if let Err(err) = self.type_check_single_expr(handler, None, expr_key) {
                 handler.emit_err(err);
             }
         }
@@ -418,7 +418,7 @@ impl Contract {
                 .collect::<Vec<_>>();
 
             for expr_key in all_expr_keys {
-                if let Err(err) = self.type_check_single_expr(Some(pred_key), expr_key) {
+                if let Err(err) = self.type_check_single_expr(handler, Some(pred_key), expr_key) {
                     handler.emit_err(err);
                 }
             }
@@ -570,7 +570,8 @@ impl Contract {
                 .collect::<Vec<_>>()
                 .iter()
             {
-                if let Err(err) = self.type_check_single_expr(Some(pred_key), *range_expr) {
+                if let Err(err) = self.type_check_single_expr(handler, Some(pred_key), *range_expr)
+                {
                     handler.emit_err(err);
                 } else if !(range_expr.get_ty(self).is_int()
                     || range_expr.get_ty(self).is_enum(&self.enums)
@@ -683,7 +684,7 @@ impl Contract {
         addr_keys: &[ExprKey],
     ) {
         for address in addr_keys {
-            match self.type_check_single_expr(pred_key, *address) {
+            match self.type_check_single_expr(handler, pred_key, *address) {
                 Ok(()) => {
                     let ty = address.get_ty(self);
                     if !ty.is_b256() {
@@ -761,7 +762,7 @@ impl Contract {
         } = if_decl;
 
         // Make sure the condition is a `bool`
-        if let Err(err) = self.type_check_single_expr(pred_key, *condition) {
+        if let Err(err) = self.type_check_single_expr(handler, pred_key, *condition) {
             handler.emit_err(err);
         } else {
             let cond_ty = condition.get_ty(self);
@@ -795,7 +796,7 @@ impl Contract {
     ) {
         match block_statement {
             BlockStatement::Constraint(ConstraintDecl { expr, .. }) => {
-                if let Err(err) = self.type_check_single_expr(pred_key, *expr) {
+                if let Err(err) = self.type_check_single_expr(handler, pred_key, *expr) {
                     handler.emit_err(err);
                 }
             }
@@ -805,6 +806,7 @@ impl Contract {
 
     fn type_check_single_expr(
         &mut self,
+        handler: &Handler,
         pred_key: Option<PredKey>,
         expr_key: ExprKey,
     ) -> Result<(), Error> {
@@ -838,9 +840,11 @@ impl Contract {
             if !next_key.get_ty(self).is_unknown() {
                 queue.pop();
             } else {
-                match self
-                    .infer_expr_key_type(pred_key.map(|pred_key| &self.preds[pred_key]), next_key)
-                {
+                match self.infer_expr_key_type(
+                    handler,
+                    pred_key.map(|pred_key| &self.preds[pred_key]),
+                    next_key,
+                ) {
                     // Successfully inferred its type.  Save it and pop it from the queue.
                     Ok(Inference::Type(ty)) => {
                         next_key.set_ty(ty, self);
@@ -879,6 +883,7 @@ impl Contract {
 
     fn infer_expr_key_type(
         &self,
+        handler: &Handler,
         pred: Option<&Predicate>,
         expr_key: ExprKey,
     ) -> Result<Inference, Error> {
@@ -931,7 +936,7 @@ impl Contract {
             Expr::MacroCall { .. } => Ok(Inference::Ignored),
 
             Expr::IntrinsicCall { name, args, span } => {
-                self.infer_intrinsic_call_expr(pred, name, args, span)
+                self.infer_intrinsic_call_expr(handler, pred, name, args, span)
             }
 
             Expr::Select {

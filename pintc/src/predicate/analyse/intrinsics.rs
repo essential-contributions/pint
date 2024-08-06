@@ -1,5 +1,6 @@
 use super::Inference;
 use super::{Contract, ExprKey, Ident, Predicate};
+use crate::error::Handler;
 use crate::{
     error::{CompileError, Error},
     expr::{Expr, UnaryOp},
@@ -10,6 +11,7 @@ use crate::{
 impl Contract {
     pub(super) fn infer_intrinsic_call_expr(
         &self,
+        handler: &Handler,
         pred: Option<&Predicate>,
         name: &Ident,
         args: &[ExprKey],
@@ -24,19 +26,25 @@ impl Contract {
         if deps.is_empty() {
             match &name.name[..] {
                 // Access ops
-                "__mut_keys_len" => infer_intrinsic_mut_keys_len(args, span),
-                "__mut_keys_contains" => infer_intrinsic_mut_keys_contains(self, name, args, span),
-                "__this_address" => infer_intrinsic_this_address(args, span),
-                "__this_set_address" => infer_intrinsic_this_set_address(args, span),
-                "__this_pathway" => infer_intrinsic_this_pathway(args, span),
+                "__mut_keys_len" => Ok(infer_intrinsic_mut_keys_len(handler, args, span)),
+                "__mut_keys_contains" => Ok(infer_intrinsic_mut_keys_contains(
+                    self, handler, name, args, span,
+                )),
+                "__this_address" => Ok(infer_intrinsic_this_address(handler, args, span)),
+                "__this_set_address" => Ok(infer_intrinsic_this_set_address(handler, args, span)),
+                "__this_pathway" => Ok(infer_intrinsic_this_pathway(handler, args, span)),
 
                 // Crypto ops
-                "__sha256" => infer_intrinsic_sha256(args, span),
-                "__verify_ed25519" => infer_intrinsic_verify_ed25519(self, name, args, span),
-                "__recover_secp256k1" => infer_intrinsic_recover_secp256k1(self, name, args, span),
+                "__sha256" => Ok(infer_intrinsic_sha256(handler, args, span)),
+                "__verify_ed25519" => Ok(infer_intrinsic_verify_ed25519(
+                    self, handler, name, args, span,
+                )),
+                "__recover_secp256k1" => Ok(infer_intrinsic_recover_secp256k1(
+                    self, handler, name, args, span,
+                )),
 
-                "__state_len" => infer_intrinsic_state_len(self, pred, args, span),
-                "__vec_len" => infer_intrinsic_vec_len(self, pred, args, span),
+                "__state_len" => Ok(infer_intrinsic_state_len(self, handler, pred, args, span)),
+                "__vec_len" => Ok(infer_intrinsic_vec_len(self, handler, pred, args, span)),
 
                 // State reads - these will likely change in the future as they don't directly
                 // match the underlying opcodes
@@ -67,10 +75,10 @@ impl Contract {
 //
 // Description: Get the number of mutable keys being proposed for mutation.
 //
-fn infer_intrinsic_mut_keys_len(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
+fn infer_intrinsic_mut_keys_len(handler: &Handler, args: &[ExprKey], span: &Span) -> Inference {
     // This intrinsic expects no arguments
     if !args.is_empty() {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 0,
                 found: args.len(),
@@ -80,10 +88,10 @@ fn infer_intrinsic_mut_keys_len(args: &[ExprKey], span: &Span) -> Result<Inferen
     }
 
     // This intrinsic returns a `int`
-    Ok(Inference::Type(Type::Primitive {
+    Inference::Type(Type::Primitive {
         kind: PrimitiveKind::Int,
         span: span.clone(),
-    }))
+    })
 }
 
 //
@@ -98,59 +106,58 @@ fn infer_intrinsic_mut_keys_len(args: &[ExprKey], span: &Span) -> Result<Inferen
 //
 fn infer_intrinsic_mut_keys_contains(
     contract: &Contract,
+    handler: &Handler,
     name: &Ident,
     args: &[ExprKey],
     span: &Span,
-) -> Result<Inference, Error> {
+) -> Inference {
     // This intrinsic expects exactly 3 arguments
     if args.len() != 1 {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 1,
                 found: args.len(),
                 span: span.clone(),
             },
         });
-    }
-
-    // Helper lambda to emit arg type errors
-    let arg_type_error = |expected, found, intrinsic_span, arg_span| {
-        Err(Error::Compile {
+    } else {
+        // Helper lambda to emit arg type errors
+        let arg_type_error = |expected, found, intrinsic_span, arg_span| Error::Compile {
             error: CompileError::MismatchedIntrinsicArgType {
                 expected,
                 found,
                 intrinsic_span,
                 arg_span,
             },
-        })
-    };
+        };
 
-    // The only argument is the mutable key which must be an array of integers
-    let mut_key_span = args[0].get(contract).span();
-    let mut_key_type = &args[0].get_ty(contract);
-    if let Some(ty) = mut_key_type.get_array_el_type() {
-        if !ty.is_int() {
-            return arg_type_error(
+        // The only argument is the mutable key which must be an array of integers
+        let mut_key_span = args[0].get(contract).span();
+        let mut_key_type = &args[0].get_ty(contract);
+        if let Some(ty) = mut_key_type.get_array_el_type() {
+            if !ty.is_int() {
+                handler.emit_err(arg_type_error(
+                    "int[..]".to_string(),
+                    contract.with_ctrct(mut_key_type).to_string(),
+                    name.span.clone(),
+                    mut_key_span.clone(),
+                ));
+            }
+        } else {
+            handler.emit_err(arg_type_error(
                 "int[..]".to_string(),
                 contract.with_ctrct(mut_key_type).to_string(),
                 name.span.clone(),
                 mut_key_span.clone(),
-            );
+            ));
         }
-    } else {
-        return arg_type_error(
-            "int[..]".to_string(),
-            contract.with_ctrct(mut_key_type).to_string(),
-            name.span.clone(),
-            mut_key_span.clone(),
-        );
     }
 
     // This intrinsic returns a `bool`
-    Ok(Inference::Type(Type::Primitive {
+    Inference::Type(Type::Primitive {
         kind: PrimitiveKind::Bool,
         span: span.clone(),
-    }))
+    })
 }
 
 //
@@ -162,10 +169,10 @@ fn infer_intrinsic_mut_keys_contains(
 //
 // Description: Get the content hash of the contract that this predicate belongs to.
 //
-fn infer_intrinsic_this_set_address(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
+fn infer_intrinsic_this_set_address(handler: &Handler, args: &[ExprKey], span: &Span) -> Inference {
     // This intrinsic expects no arguments
     if !args.is_empty() {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 0,
                 found: args.len(),
@@ -175,10 +182,10 @@ fn infer_intrinsic_this_set_address(args: &[ExprKey], span: &Span) -> Result<Inf
     }
 
     // This intrinsic returns a `b256`
-    Ok(Inference::Type(Type::Primitive {
+    Inference::Type(Type::Primitive {
         kind: PrimitiveKind::B256,
         span: span.clone(),
-    }))
+    })
 }
 
 //
@@ -190,10 +197,10 @@ fn infer_intrinsic_this_set_address(args: &[ExprKey], span: &Span) -> Result<Inf
 //
 // Description: Get the content hash of this predicate.
 //
-fn infer_intrinsic_this_address(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
+fn infer_intrinsic_this_address(handler: &Handler, args: &[ExprKey], span: &Span) -> Inference {
     // This intrinsic expects no arguments
     if !args.is_empty() {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 0,
                 found: args.len(),
@@ -203,10 +210,10 @@ fn infer_intrinsic_this_address(args: &[ExprKey], span: &Span) -> Result<Inferen
     }
 
     // This intrinsic returns a `b256`
-    Ok(Inference::Type(Type::Primitive {
+    Inference::Type(Type::Primitive {
         kind: PrimitiveKind::B256,
         span: span.clone(),
-    }))
+    })
 }
 
 //
@@ -219,10 +226,10 @@ fn infer_intrinsic_this_address(args: &[ExprKey], span: &Span) -> Result<Inferen
 // Description: This operation returns the index of the solution data currently being used to check
 // this predicate.
 //
-fn infer_intrinsic_this_pathway(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
+fn infer_intrinsic_this_pathway(handler: &Handler, args: &[ExprKey], span: &Span) -> Inference {
     // This intrinsic expects no arguments
     if !args.is_empty() {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 0,
                 found: args.len(),
@@ -232,10 +239,10 @@ fn infer_intrinsic_this_pathway(args: &[ExprKey], span: &Span) -> Result<Inferen
     }
 
     // This intrinsic returns a `b256`
-    Ok(Inference::Type(Type::Primitive {
+    Inference::Type(Type::Primitive {
         kind: PrimitiveKind::Int,
         span: span.clone(),
-    }))
+    })
 }
 
 //
@@ -248,10 +255,10 @@ fn infer_intrinsic_this_pathway(args: &[ExprKey], span: &Span) -> Result<Inferen
 //
 // Description: Produce a SHA 256 hash from the specified data.
 //
-fn infer_intrinsic_sha256(args: &[ExprKey], span: &Span) -> Result<Inference, Error> {
+fn infer_intrinsic_sha256(handler: &Handler, args: &[ExprKey], span: &Span) -> Inference {
     // This intrinsic expects exactly 1 argument
     if args.len() != 1 {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 1,
                 found: args.len(),
@@ -261,10 +268,10 @@ fn infer_intrinsic_sha256(args: &[ExprKey], span: &Span) -> Result<Inference, Er
     }
 
     // This intrinsic returns a `b256`
-    Ok(Inference::Type(Type::Primitive {
+    Inference::Type(Type::Primitive {
         kind: PrimitiveKind::B256,
         span: span.clone(),
-    }))
+    })
 }
 
 //
@@ -281,73 +288,72 @@ fn infer_intrinsic_sha256(args: &[ExprKey], span: &Span) -> Result<Inference, Er
 //
 fn infer_intrinsic_verify_ed25519(
     contract: &Contract,
+    handler: &Handler,
     name: &Ident,
     args: &[ExprKey],
     span: &Span,
-) -> Result<Inference, Error> {
+) -> Inference {
     // This intrinsic expects exactly 3 arguments
     if args.len() != 3 {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 3,
                 found: args.len(),
                 span: span.clone(),
             },
         });
-    }
-
-    // Helper lambda to emit arg type errors
-    let arg_type_error = |expected, found, intrinsic_span, arg_span| {
-        Err(Error::Compile {
+    } else {
+        // Helper lambda to emit arg type errors
+        let arg_type_error = |expected, found, intrinsic_span, arg_span| Error::Compile {
             error: CompileError::MismatchedIntrinsicArgType {
                 expected,
                 found,
                 intrinsic_span,
                 arg_span,
             },
-        })
-    };
+        };
 
-    // First argument is the data which can be anything so nothing to check
+        // First argument is the data which can be anything so nothing to check
 
-    // Second argument is the signature and must be a `{ b256, b256 }`
-    let sig_span = args[1].get(contract).span();
-    let sig_type = &args[1].get_ty(contract);
-    if let Some(fields) = sig_type.get_tuple_fields() {
-        if fields.len() != 2 || !fields[0].1.is_b256() || !fields[1].1.is_b256() {
-            return arg_type_error(
+        // Second argument is the signature and must be a `{ b256, b256 }`
+        let sig_span = args[1].get(contract).span();
+        let sig_type = &args[1].get_ty(contract);
+        if let Some(fields) = sig_type.get_tuple_fields() {
+            if fields.len() != 2 || !fields[0].1.is_b256() || !fields[1].1.is_b256() {
+                handler.emit_err(arg_type_error(
+                    "{ b256, b256 }".to_string(),
+                    contract.with_ctrct(sig_type).to_string(),
+                    name.span.clone(),
+                    sig_span.clone(),
+                ));
+            }
+        } else {
+            handler.emit_err(arg_type_error(
                 "{ b256, b256 }".to_string(),
                 contract.with_ctrct(sig_type).to_string(),
                 name.span.clone(),
                 sig_span.clone(),
-            );
+            ));
         }
-    } else {
-        return arg_type_error(
-            "{ b256, b256 }".to_string(),
-            contract.with_ctrct(sig_type).to_string(),
-            name.span.clone(),
-            sig_span.clone(),
-        );
-    }
 
-    // Third argument is the public key and must be a `b256`
-    let pub_key_span = args[2].get(contract).span();
-    let pub_key_type = &args[2].get_ty(contract);
-    if !pub_key_type.is_b256() {
-        return arg_type_error(
-            "b256".to_string(),
-            contract.with_ctrct(pub_key_type).to_string(),
-            name.span.clone(),
-            pub_key_span.clone(),
-        );
+        // Third argument is the public key and must be a `b256`
+        let pub_key_span = args[2].get(contract).span();
+        let pub_key_type = &args[2].get_ty(contract);
+        if !pub_key_type.is_b256() {
+            handler.emit_err(arg_type_error(
+                "b256".to_string(),
+                contract.with_ctrct(pub_key_type).to_string(),
+                name.span.clone(),
+                pub_key_span.clone(),
+            ));
+        }
     }
 
     // This intrinsic returns a `bool`
-    Ok(Inference::Type(Type::Primitive {
+    Inference::Type(Type::Primitive {
         kind: PrimitiveKind::Bool,
         span: span.clone(),
-    }))
+    })
 }
 
 //
@@ -363,72 +369,71 @@ fn infer_intrinsic_verify_ed25519(
 //
 fn infer_intrinsic_recover_secp256k1(
     contract: &Contract,
+    handler: &Handler,
     name: &Ident,
     args: &[ExprKey],
     span: &Span,
-) -> Result<Inference, Error> {
+) -> Inference {
     // This intrinsic expects exactly 2 arguments
     if args.len() != 2 {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 2,
                 found: args.len(),
                 span: span.clone(),
             },
         });
-    }
-
-    // Helper lambda to emit arg type errors
-    let arg_type_error = |expected, found, intrinsic_span, arg_span| {
-        Err(Error::Compile {
+    } else {
+        // Helper lambda to emit arg type errors
+        let arg_type_error = |expected, found, intrinsic_span, arg_span| Error::Compile {
             error: CompileError::MismatchedIntrinsicArgType {
                 expected,
                 found,
                 intrinsic_span,
                 arg_span,
             },
-        })
-    };
+        };
 
-    // First argument is the hash of the data and must be a `b256`
-    let pub_key_span = args[0].get(contract).span();
-    let pub_key_type = &args[0].get_ty(contract);
-    if !pub_key_type.is_b256() {
-        return arg_type_error(
-            "b256".to_string(),
-            contract.with_ctrct(pub_key_type).to_string(),
-            name.span.clone(),
-            pub_key_span.clone(),
-        );
-    }
+        // First argument is the hash of the data and must be a `b256`
+        let pub_key_span = args[0].get(contract).span();
+        let pub_key_type = &args[0].get_ty(contract);
+        if !pub_key_type.is_b256() {
+            handler.emit_err(arg_type_error(
+                "b256".to_string(),
+                contract.with_ctrct(pub_key_type).to_string(),
+                name.span.clone(),
+                pub_key_span.clone(),
+            ));
+        }
 
-    // Second argument is the signature and must be a `{ b256, b256, int }`
-    let sig_span = args[1].get(contract).span();
-    let sig_type = &args[1].get_ty(contract);
-    if let Some(fields) = sig_type.get_tuple_fields() {
-        if fields.len() != 3
-            || !fields[0].1.is_b256()
-            || !fields[1].1.is_b256()
-            || !fields[2].1.is_int()
-        {
-            return arg_type_error(
+        // Second argument is the signature and must be a `{ b256, b256, int }`
+        let sig_span = args[1].get(contract).span();
+        let sig_type = &args[1].get_ty(contract);
+        if let Some(fields) = sig_type.get_tuple_fields() {
+            if fields.len() != 3
+                || !fields[0].1.is_b256()
+                || !fields[1].1.is_b256()
+                || !fields[2].1.is_int()
+            {
+                handler.emit_err(arg_type_error(
+                    "{ b256, b256, int }".to_string(),
+                    contract.with_ctrct(sig_type).to_string(),
+                    name.span.clone(),
+                    sig_span.clone(),
+                ));
+            }
+        } else {
+            handler.emit_err(arg_type_error(
                 "{ b256, b256, int }".to_string(),
                 contract.with_ctrct(sig_type).to_string(),
                 name.span.clone(),
                 sig_span.clone(),
-            );
+            ));
         }
-    } else {
-        return arg_type_error(
-            "{ b256, b256, int }".to_string(),
-            contract.with_ctrct(sig_type).to_string(),
-            name.span.clone(),
-            sig_span.clone(),
-        );
     }
 
     // This intrinsic returns the public key of type `{ b256, int }`
-    Ok(Inference::Type(Type::Tuple {
+    Inference::Type(Type::Tuple {
         fields: vec![
             (
                 None,
@@ -446,7 +451,7 @@ fn infer_intrinsic_recover_secp256k1(
             ),
         ],
         span: empty_span(),
-    }))
+    })
 }
 
 //
@@ -462,13 +467,14 @@ fn infer_intrinsic_recover_secp256k1(
 //
 fn infer_intrinsic_state_len(
     contract: &Contract,
+    handler: &Handler,
     pred: Option<&Predicate>,
     args: &[ExprKey],
     span: &Span,
-) -> Result<Inference, Error> {
+) -> Inference {
     // This intrinsic expects exactly 1 argument
     if args.len() != 1 {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 1,
                 found: args.len(),
@@ -478,28 +484,28 @@ fn infer_intrinsic_state_len(
     }
 
     // First argument must be a path to a state variable
-    match args[0].try_get(contract) {
+    match args.first().and_then(|expr_key| expr_key.try_get(contract)) {
         Some(Expr::Path(name, _))
             if pred
                 .map(|pred| pred.states().any(|(_, state)| state.name == *name))
-                .unwrap_or(false) =>
-        {
-            Ok(())
-        }
+                .unwrap_or(false) => {}
         Some(Expr::UnaryOp {
             op: UnaryOp::NextState,
             ..
-        }) => Ok(()),
-        _ => Err(Error::Compile {
-            error: CompileError::IntrinsicArgMustBeStateVar { span: span.clone() },
-        }),
-    }?;
+        }) => {}
+        None => {}
+        _ => {
+            handler.emit_err(Error::Compile {
+                error: CompileError::IntrinsicArgMustBeStateVar { span: span.clone() },
+            });
+        }
+    };
 
     // This intrinsic returns a `int`
-    Ok(Inference::Type(Type::Primitive {
+    Inference::Type(Type::Primitive {
         kind: PrimitiveKind::Int,
         span: span.clone(),
-    }))
+    })
 }
 
 //
@@ -514,13 +520,14 @@ fn infer_intrinsic_state_len(
 //
 fn infer_intrinsic_vec_len(
     contract: &Contract,
+    handler: &Handler,
     pred: Option<&Predicate>,
     args: &[ExprKey],
     span: &Span,
-) -> Result<Inference, Error> {
+) -> Inference {
     // This intrinsic expects exactly 1 argument
     if args.len() != 1 {
-        return Err(Error::Compile {
+        handler.emit_err(Error::Compile {
             error: CompileError::UnexpectedIntrinsicArgCount {
                 expected: 1,
                 found: args.len(),
@@ -530,10 +537,8 @@ fn infer_intrinsic_vec_len(
     }
 
     // The only argument must be a storage access of type vector
-    match args[0].try_get(contract) {
-        Some(Expr::StorageAccess(name, ..)) if contract.storage_var(name).1.ty.is_vector() => {
-            Ok(())
-        }
+    match args.first().and_then(|expr_key| expr_key.try_get(contract)) {
+        Some(Expr::StorageAccess(name, ..)) if contract.storage_var(name).1.ty.is_vector() => {}
         Some(Expr::ExternalStorageAccess {
             interface_instance,
             name,
@@ -554,18 +559,18 @@ fn infer_intrinsic_vec_len(
                     .ty
                     .is_vector()
             })
-            .unwrap_or(false) =>
-        {
-            Ok(())
+            .unwrap_or(false) => {}
+        None => {}
+        _ => {
+            handler.emit_err(Error::Compile {
+                error: CompileError::IntrinsicArgMustBeStorageAccess { span: span.clone() },
+            });
         }
-        _ => Err(Error::Compile {
-            error: CompileError::IntrinsicArgMustBeStorageAccess { span: span.clone() },
-        }),
-    }?;
+    };
 
     // This intrinsic returns a `int`
-    Ok(Inference::Type(Type::Primitive {
+    Inference::Type(Type::Primitive {
         kind: PrimitiveKind::Int,
         span: span.clone(),
-    }))
+    })
 }
