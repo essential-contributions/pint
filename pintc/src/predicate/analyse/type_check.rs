@@ -902,7 +902,7 @@ impl Contract {
                 },
             }),
 
-            Expr::Immediate { value, span } => self.infer_immediate(value, span),
+            Expr::Immediate { value, span } => self.infer_immediate(handler, value, span),
 
             Expr::Array {
                 elements,
@@ -974,41 +974,49 @@ impl Contract {
         }
     }
 
-    pub(super) fn infer_immediate(&self, imm: &Immediate, span: &Span) -> Result<Inference, Error> {
+    pub(super) fn infer_immediate(
+        &self,
+        handler: &Handler,
+        imm: &Immediate,
+        span: &Span,
+    ) -> Result<Inference, Error> {
         if let Immediate::Array(el_imms) = imm {
-            // Immediate::get_ty() assumes the array is well formed.  We need to
+            // Immediate::get_ty() assumes the array is well formed. We need to
             // confirm here.
             if el_imms.is_empty() {
-                return Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::EmptyArrayExpression { span: span.clone() },
                 });
+                return Ok(Inference::Type(Type::Error(span.clone())));
             }
 
             // Get the assumed type.
             let ary_ty = imm.get_ty(Some(span));
             let Type::Array { ty: el0_ty, .. } = &ary_ty else {
-                return Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "array immediate does NOT have an array type?",
                         span: span.clone(),
                     },
                 });
+                return Ok(Inference::Type(Type::Error(span.clone())));
             };
 
-            el_imms.iter().try_for_each(|el_imm| {
+            let _ = el_imms.iter().try_for_each(|el_imm| {
                 let el_ty = el_imm.get_ty(None);
                 if !el_ty.eq(&self.new_types, el0_ty.as_ref()) {
-                    Err(Error::Compile {
+                    handler.emit_err(Error::Compile {
                         error: CompileError::NonHomogeneousArrayElement {
                             expected_ty: self.with_ctrct(el0_ty.as_ref()).to_string(),
                             ty: self.with_ctrct(el_ty).to_string(),
                             span: span.clone(),
                         },
-                    })
+                    });
+                    Err(())
                 } else {
                     Ok(())
                 }
-            })?;
+            });
 
             Ok(Inference::Type(ary_ty))
         } else {
@@ -1899,8 +1907,6 @@ impl Contract {
             return Inference::Dependant(array_expr_key);
         }
 
-        // handle accessing a range of an array
-        // aka the index expr is a range
         if let Some(range_expr_key) = ary_ty.get_array_range_expr() {
             // Is this an array?
             let range_ty = range_expr_key.get_ty(self);
