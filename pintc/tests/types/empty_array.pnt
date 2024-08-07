@@ -17,9 +17,12 @@ predicate test {
 // typecheck_failure <<<
 // variables cannot have storage types
 // @75..81: found variable of storage type int[] here
-//+illegal empty array value
-//+@62..64: empty array values are illegal
-//+constraint expression type error
-//+@44..64: constraint expression has unknown type
-//+@44..64: expecting type `bool`
+// illegal empty array value
+// @62..64: empty array values are illegal
+// binary operator type error
+// @62..64: operator `!=` argument has unexpected type `Error[0]`
+// @55..58: expecting type `int[10]`
+// constraint expression type error
+// @44..64: constraint expression has unknown type
+// @44..64: expecting type `bool`
 // >>>

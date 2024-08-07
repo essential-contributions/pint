@@ -908,7 +908,7 @@ impl Contract {
                 elements,
                 range_expr,
                 span,
-            } => self.infer_array_expr(*range_expr, elements, span),
+            } => Ok(self.infer_array_expr(handler, *range_expr, elements, span)),
 
             Expr::Tuple { fields, span } => self.infer_tuple_expr(fields, span),
 
@@ -1834,13 +1834,20 @@ impl Contract {
 
     fn infer_array_expr(
         &self,
+        handler: &Handler,
         range_expr_key: ExprKey,
         element_exprs: &[ExprKey],
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         if element_exprs.is_empty() {
-            return Err(Error::Compile {
+            handler.emit_err(Error::Compile {
                 error: CompileError::EmptyArrayExpression { span: span.clone() },
+            });
+            return Inference::Type(Type::Array {
+                ty: Box::new(Type::Error(span.clone())), // to deal with later. Should this be an `empty array` type? Specifically to deal with errors for constraints. ex. operator `!=` argument has unexpected type `Unknown[0]`
+                range: Some(range_expr_key),
+                size: Some(0),
+                span: span.clone(),
             });
         }
 
@@ -1853,17 +1860,20 @@ impl Contract {
         let mut deps = Vec::new();
         let el0_ty = el0.get_ty(self);
         if !el0_ty.is_unknown() {
+            // first element type is known
             for el_key in elements {
+                // check type of each element and make sure it matches
                 let el_ty = el_key.get_ty(self);
                 if !el_ty.is_unknown() {
                     if !el_ty.eq(&self.new_types, el0_ty) {
-                        return Err(Error::Compile {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::NonHomogeneousArrayElement {
                                 expected_ty: self.with_ctrct(&el0_ty).to_string(),
                                 ty: self.with_ctrct(el_ty).to_string(),
                                 span: self.expr_key_to_span(*el_key),
                             },
                         });
+                        // failure here should return type of first element and operate on that -- already does now
                     }
                 } else {
                     deps.push(*el_key);
@@ -1875,7 +1885,7 @@ impl Contract {
                 deps.push(range_expr_key);
             }
 
-            Ok(if deps.is_empty() {
+            if deps.is_empty() {
                 Inference::Type(Type::Array {
                     ty: Box::new(el0_ty.clone()),
                     range: Some(range_expr_key),
@@ -1884,9 +1894,9 @@ impl Contract {
                 })
             } else {
                 Inference::Dependencies(deps)
-            })
+            }
         } else {
-            Ok(Inference::Dependant(*el0))
+            Inference::Dependant(*el0)
         }
     }
 
