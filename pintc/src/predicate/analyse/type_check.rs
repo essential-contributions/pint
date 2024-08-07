@@ -911,9 +911,9 @@ impl Contract {
                 span,
             } => Ok(self.infer_array_expr(handler, *range_expr, elements, span)),
 
-            Expr::Tuple { fields, span } => self.infer_tuple_expr(fields, span),
+            Expr::Tuple { fields, span } => Ok(self.infer_tuple_expr(fields, span)),
 
-            Expr::Path(path, span) => self.infer_path_by_name(pred, path, span),
+            Expr::Path(path, span) => Ok(self.infer_path_by_name(handler, pred, path, span)),
 
             Expr::StorageAccess(name, span) => self.infer_storage_access(name, span),
 
@@ -1027,52 +1027,56 @@ impl Contract {
 
     fn infer_path_by_key(
         &self,
+        handler: &Handler,
         pred: &Predicate,
         var_key: VarKey,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         let ty = var_key.get_ty(pred);
         if !ty.is_unknown() {
-            Ok(Inference::Type(ty.clone()))
+            Inference::Type(ty.clone())
         } else if let Some(init_expr_key) = pred.var_inits.get(var_key) {
             let init_expr_ty = init_expr_key.get_ty(self);
             if !init_expr_ty.is_unknown() {
-                Ok(Inference::Type(init_expr_ty.clone()))
+                Inference::Type(init_expr_ty.clone())
             } else {
                 // We have a variable with an initialiser but don't know the initialiser type
                 // yet.
-                Ok(Inference::Dependant(*init_expr_key))
+                Inference::Dependant(*init_expr_key)
             }
         } else {
-            Err(Error::Compile {
+            handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "untyped variable doesn't have initialiser",
                     span: span.clone(),
                 },
-            })
+            });
+            Inference::Type(Type::Error(span.clone()))
         }
     }
 
     fn infer_path_by_name(
         &self,
+        handler: &Handler,
         pred: Option<&Predicate>,
         path: &Path,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         // If we're searching for an enum variant and it appears to be unqualified then we can
         // report some hints.
         let mut err_potential_enums = Vec::new();
 
         if let Some(Const { decl_ty, .. }) = self.consts.get(path) {
             if !decl_ty.is_unknown() {
-                Ok(Inference::Type(decl_ty.clone()))
+                Inference::Type(decl_ty.clone())
             } else {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "const decl has unknown type *after* evaluation",
                         span: span.clone(),
                     },
-                })
+                });
+                Inference::Type(Type::Error(span.clone()))
             }
         } else if let Some(ty) = self
             .new_types
@@ -1080,14 +1084,14 @@ impl Contract {
             .find_map(|NewTypeDecl { name, ty, .. }| (&name.name == path).then_some(ty))
         {
             // It's a fully matched newtype.
-            Ok(Inference::Type(ty.clone()))
+            Inference::Type(ty.clone())
         } else {
             // It might be an enum variant.  If it isn't we get a handy list of potential variant
             // names we can return in our error.
             let enum_res = self.infer_enum_variant_by_name(path);
             if let Ok(inf) = enum_res {
                 // Need to translate the type between Results.
-                Ok(inf)
+                inf
             } else {
                 // Save the enums variants list for the SymbolNotFound error if we need it.
                 let Err(enums_list) = enum_res else {
@@ -1102,47 +1106,49 @@ impl Contract {
                         .find_map(|(var_key, var)| (&var.name == path).then_some(var_key))
                     {
                         // It's a var.
-                        self.infer_path_by_key(pred, var_key, span)
+                        self.infer_path_by_key(handler, pred, var_key, span)
                     } else if let Some((state_key, state)) =
                         pred.states().find(|(_, state)| (&state.name == path))
                     {
                         // It's state.
                         let state_expr_ty = state.expr.get_ty(self);
                         let state_type = state_key.get_ty(pred);
-                        Ok(if !state_type.is_unknown() {
+                        if !state_type.is_unknown() {
                             Inference::Type(state_type.clone())
                         } else if !state_expr_ty.is_unknown() {
                             Inference::Type(state_expr_ty.clone())
                         } else {
                             Inference::Dependant(state.expr)
-                        })
+                        }
                     } else if let Some(EphemeralDecl { ty, .. }) = pred
                         .ephemerals
                         .iter()
                         .find(|eph_decl| &eph_decl.name == path)
                     {
                         // It's an ephemeral value.
-                        Ok(Inference::Type(ty.clone()))
+                        Inference::Type(ty.clone())
                     } else if let Some(ty) = self.infer_extern_var(pred, path) {
                         // It's an external var
-                        Ok(ty)
+                        ty
                     } else {
                         // None of the above.
-                        Err(Error::Compile {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::SymbolNotFound {
                                 name: path.clone(),
                                 span: span.clone(),
                                 enum_names: err_potential_enums,
                             },
-                        })
+                        });
+                        Inference::Type(Type::Error(span.clone()))
                     }
                 } else {
-                    Err(Error::Compile {
+                    handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
                             msg: "attempting to infer item without required predicate ref",
                             span: span.clone(),
                         },
-                    })
+                    });
+                    Inference::Type(Type::Error(span.clone()))
                 }
             }
         }
@@ -1998,11 +2004,7 @@ impl Contract {
         }
     }
 
-    fn infer_tuple_expr(
-        &self,
-        fields: &[(Option<Ident>, ExprKey)],
-        span: &Span,
-    ) -> Result<Inference, Error> {
+    fn infer_tuple_expr(&self, fields: &[(Option<Ident>, ExprKey)], span: &Span) -> Inference {
         let mut field_tys = Vec::with_capacity(fields.len());
 
         let mut deps = Vec::new();
@@ -2015,14 +2017,14 @@ impl Contract {
             }
         }
 
-        Ok(if deps.is_empty() {
+        if deps.is_empty() {
             Inference::Type(Type::Tuple {
                 fields: field_tys,
                 span: span.clone(),
             })
         } else {
             Inference::Dependencies(deps)
-        })
+        }
     }
 
     fn infer_tuple_access_expr(

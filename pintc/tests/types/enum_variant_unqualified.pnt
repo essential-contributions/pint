@@ -19,7 +19,4 @@ predicate test {
 // cannot find value `::Baz` in this scope
 // @76..79: not found in this scope
 // this symbol is a variant of enums `::Foo` and `::Bar` and may need a fully qualified path
-// constraint expression type error
-// @68..79: constraint expression has unknown type
-// @68..79: expecting type `bool`
 // >>>

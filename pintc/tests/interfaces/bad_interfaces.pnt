@@ -68,7 +68,4 @@ predicate Simple {
 // @466..522: cannot find predicate `MissingPredicate` in interface `::Foo`
 // cannot find value `::I1::missing_var` in this scope
 // @613..628: not found in this scope
-// constraint expression type error
-// @595..628: constraint expression has unknown type
-// @595..628: expecting type `bool`
 // >>>
