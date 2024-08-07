@@ -881,6 +881,7 @@ impl Contract {
         Ok(())
     }
 
+    // TODO: in refactor, make this return error emitted and not error
     fn infer_expr_key_type(
         &self,
         handler: &Handler,
@@ -902,7 +903,7 @@ impl Contract {
                 },
             }),
 
-            Expr::Immediate { value, span } => self.infer_immediate(handler, value, span),
+            Expr::Immediate { value, span } => Ok(self.infer_immediate(handler, value, span)),
 
             Expr::Array {
                 elements,
@@ -979,7 +980,7 @@ impl Contract {
         handler: &Handler,
         imm: &Immediate,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         if let Immediate::Array(el_imms) = imm {
             // Immediate::get_ty() assumes the array is well formed. We need to
             // confirm here.
@@ -987,7 +988,7 @@ impl Contract {
                 handler.emit_err(Error::Compile {
                     error: CompileError::EmptyArrayExpression { span: span.clone() },
                 });
-                return Ok(Inference::Type(Type::Error(span.clone())));
+                return Inference::Type(Type::Error(span.clone()));
             }
 
             // Get the assumed type.
@@ -999,7 +1000,7 @@ impl Contract {
                         span: span.clone(),
                     },
                 });
-                return Ok(Inference::Type(Type::Error(span.clone())));
+                return Inference::Type(Type::Error(span.clone()));
             };
 
             let _ = el_imms.iter().try_for_each(|el_imm| {
@@ -1018,9 +1019,9 @@ impl Contract {
                 }
             });
 
-            Ok(Inference::Type(ary_ty))
+            Inference::Type(ary_ty)
         } else {
-            Ok(Inference::Type(imm.get_ty(Some(span))))
+            Inference::Type(imm.get_ty(Some(span)))
         }
     }
 
