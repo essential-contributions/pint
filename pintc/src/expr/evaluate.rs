@@ -391,6 +391,7 @@ impl Evaluator {
                     span: empty_span(),
                 },
             })),
+            Expr::Match { .. } => todo!(),
         }
     }
 }
@@ -566,6 +567,7 @@ impl ExprKey {
                     span,
                 }
             }
+            Expr::Match { .. } => todo!(),
         };
 
         // Insert the new plugged expression and its type.

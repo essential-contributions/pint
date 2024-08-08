@@ -176,6 +176,8 @@ fn check_expr(
         | Expr::TupleFieldAccess { .. }
         | Expr::Index { .. }
         | Expr::ExternalStorageAccess { .. } => Ok(()),
+
+        Expr::Match { .. } => todo!(),
     }
 }
 

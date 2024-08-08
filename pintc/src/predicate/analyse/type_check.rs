@@ -969,6 +969,8 @@ impl Contract {
                 body,
                 span,
             } => self.infer_generator_expr(kind, gen_ranges, conditions, *body, span),
+
+            Expr::Match { .. } => todo!(),
         }
     }
 

@@ -144,6 +144,8 @@ impl ExprKey {
                     || conditions.iter().any(|cond| cond.can_panic(contract, pred))
                     || body.can_panic(contract, pred)
             }
+
+            Expr::Match { .. } => todo!(),
         })
     }
 }
@@ -326,6 +328,8 @@ impl<'a> Iterator for ExprsIter<'a> {
             | Expr::ExternalStorageAccess { .. }
             | Expr::Path(_, _)
             | Expr::MacroCall { .. } => {}
+
+            Expr::Match { .. } => todo!(),
         };
 
         // If it has an array type then it also has an associated expr in the range.

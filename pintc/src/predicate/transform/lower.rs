@@ -1199,6 +1199,8 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                 | Expr::In { .. }
                 | Expr::Range { .. }
                 | Expr::Generator { .. } => Coalescence::None,
+
+                Expr::Match { .. } => todo!(),
             };
 
             match coalescence {

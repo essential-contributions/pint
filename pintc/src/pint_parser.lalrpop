@@ -1,19 +1,18 @@
 use crate::{
     error::{CompileError, Error, Handler, ParseError},
     expr::*,
-    predicate::{
-        BlockStatement, Const, ConstraintDecl, ExprKey, IfDecl, PredicateInterface, InterfaceDecl,
-        InterfaceInstance, InterfaceVar, Predicate,
-        StorageVar,
-    },
     lexer,
     macros::{MacroCall, MacroDecl},
     parser::{
         ParserContext,
         UseTree::{self, Path as UseTreePath},
     },
-    span::{self, Spanned},
-    types::{EnumDecl, NewTypeDecl, Path, PrimitiveKind, Type},
+    predicate::{
+        BlockStatement, Const, ConstraintDecl, ExprKey, IfDecl, InterfaceDecl, InterfaceInstance,
+        InterfaceVar, Predicate, PredicateInterface, StorageVar,
+    },
+    span::{self, Span, Spanned},
+    types::{EnumDecl, NewTypeDecl, Path, PrimitiveKind, Type, UnionDecl},
 };
 
 grammar<'a>(
@@ -39,6 +38,7 @@ Decl: () = {
     NewTypeDecl ";",
     PredicateDecl,
     StorageDecl,
+    UnionDecl ";",
     UseStatement ";",
 };
 
@@ -68,6 +68,7 @@ DeclInnerMacroBody: () = {
     PredicateInstance ";",
     StateDecl ";",
     StorageDecl,
+    UnionDecl ";",
     UseStatement ";",
     VarDecl ";",
 };
@@ -356,6 +357,23 @@ NewTypeDecl: () = {
             span: (context.span_from)(l, r),
         };
         context.contract.new_types.push(new_type_decl);
+    }
+}
+
+UnionDecl: () = {
+    <l:@L> "union" <name:Ident> "=" <variants:Sep1ListNoTrail<UnionVariant, "|">> <r:@R> => {
+        let union_decl = UnionDecl {
+            name: context.add_top_level_symbol(handler, name, context.mod_prefix),
+            variants,
+            span: (context.span_from)(l, r),
+        };
+        context.contract.unions.push(union_decl);
+    }
+}
+
+UnionVariant: (Ident, Type, Span) = {
+    <l:@L> <name:Ident> "(" <ty:Type> ")" <r:@R> => {
+        (name, ty, (context.span_from)(l, r))
     }
 }
 
@@ -735,6 +753,7 @@ Term: ExprKey = {
     },
     <MacroCallExpr>,
     <CondExpr>,
+    <MatchExpr>,
     "(" <Expr> ")",
 };
 
@@ -840,6 +859,40 @@ CondExpr: ExprKey = {
             })
     }
 };
+
+MatchExpr: ExprKey = {
+    <l:@L> "match" <expr:Expr> "{" <match_branches:Sep1List<MatchBranch, ",">> "}" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context.contract.exprs.insert(
+            Expr::Match {
+                match_expr: expr,
+                match_branches,
+                else_expr: None,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
+    },
+
+    <l:@L> "match" <expr:Expr> "{" <match_branches:(<MatchBranch> ",")*> <else_branch:ElseBranch> "}" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context.contract.exprs.insert(
+            Expr::Match {
+                match_expr: expr,
+                match_branches,
+                else_expr: Some(else_branch),
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
+    },
+}
+
+MatchBranch: (Ident, Ident, ExprKey) = {
+    <name:Ident> "(" <binding:Ident> ")" "=>" <expr:Expr> => {
+        (name, binding, expr)
+    }
+}
 
 MacroCallExpr: ExprKey = {
     <l:@L> <name:MacroPath> <tag:"macro_tag"?> <args:"macro_call_args"> <r:@L> => {
@@ -1185,6 +1238,7 @@ extern {
         "if" => lexer::Token::If,
         "else" => lexer::Token::Else,
         "cond" => lexer::Token::Cond,
+        "match" => lexer::Token::Match,
 
         "pub" => lexer::Token::Pub,
         "use" => lexer::Token::Use,
@@ -1196,6 +1250,7 @@ extern {
         "interface" => lexer::Token::Interface,
         "enum" => lexer::Token::Enum,
         "type" => lexer::Token::Type,
+        "union" => lexer::Token::Union,
         "constraint" => lexer::Token::Constraint,
         "as" => lexer::Token::As,
         "predicate" => lexer::Token::Predicate,

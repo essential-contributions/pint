@@ -635,6 +635,19 @@ impl Spanned for NewTypeDecl {
 }
 
 #[derive(Clone, Debug)]
+pub struct UnionDecl {
+    pub(super) name: Ident,
+    pub(super) variants: Vec<(Ident, Type, Span)>,
+    pub(super) span: Span,
+}
+
+impl Spanned for UnionDecl {
+    fn span(&self) -> &Span {
+        &self.span
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct EphemeralDecl {
     pub(super) name: String,
     pub(super) ty: Type,

@@ -1,0 +1,30 @@
+union thing = a(bool) | b(int) | c({int, int});
+
+predicate test {
+    var x: thing;
+
+    constraint match x {
+        a(b) => b,
+        b(n) => n > 0,
+        c(t) => t.0 + t.1 == 11
+    };
+
+    constraint match x {
+        b(b) => b,
+        else => 22,
+    } > 0;
+}
+
+// parsed <<<
+// union ::thing = a(bool) | b(int) | c({int, int});
+//
+// predicate ::test {
+//     var ::x: ::thing;
+//     constraint match ::x { a(b) => ::b, b(n) => (::n > 0), c(t) => ((::t.0 + ::t.1) == 11), };
+//     constraint (match ::x { b(b) => ::b, else => 22, } > 0);
+// }
+// >>>
+
+// flattened <<<
+// flat
+// >>>

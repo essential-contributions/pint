@@ -93,3 +93,19 @@ impl DisplayWithContract for super::NewTypeDecl {
         write!(f, "type {} = {}", self.name, contract.with_ctrct(&self.ty))
     }
 }
+
+impl DisplayWithContract for super::UnionDecl {
+    fn fmt(&self, f: &mut Formatter, contract: &Contract) -> Result {
+        write!(f, "union {} = ", self.name)?;
+
+        let mut i = self.variants.iter();
+        if let Some((vnt, ty, _)) = i.next() {
+            write!(f, "{vnt}({})", contract.with_ctrct(ty))?;
+        }
+        for (vnt, ty, _) in i {
+            write!(f, " | {vnt}({})", contract.with_ctrct(ty))?;
+        }
+
+        Ok(())
+    }
+}

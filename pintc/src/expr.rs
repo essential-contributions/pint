@@ -59,6 +59,12 @@ pub enum Expr {
         else_expr: ExprKey,
         span: Span,
     },
+    Match {
+        match_expr: ExprKey,
+        match_branches: Vec<(Ident, Ident, ExprKey)>,
+        else_expr: Option<ExprKey>,
+        span: Span,
+    },
     Index {
         expr: ExprKey,
         index: ExprKey,
@@ -240,6 +246,7 @@ impl Spanned for Expr {
             | Expr::MacroCall { span, .. }
             | Expr::IntrinsicCall { span, .. }
             | Expr::Select { span, .. }
+            | Expr::Match { span, .. }
             | Expr::Index { span, .. }
             | Expr::TupleFieldAccess { span, .. }
             | Expr::Cast { span, .. }
@@ -288,6 +295,20 @@ impl Expr {
                 replace(condition);
                 replace(then_expr);
                 replace(else_expr);
+            }
+            Expr::Match {
+                match_expr,
+                match_branches,
+                else_expr,
+                ..
+            } => {
+                replace(match_expr);
+                match_branches
+                    .iter_mut()
+                    .for_each(|(_, _, expr_key)| replace(expr_key));
+                if let Some(else_expr) = else_expr {
+                    replace(else_expr);
+                }
             }
             Expr::Index { expr, index, .. } => {
                 replace(expr);

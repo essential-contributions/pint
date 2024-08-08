@@ -2,7 +2,7 @@ use crate::{
     error::{Error, ErrorEmitted, Handler, ParseError},
     expr::{Expr, Ident},
     span::{empty_span, Span, Spanned},
-    types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type},
+    types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type, UnionDecl},
 };
 use exprs::ExprsIter;
 use pint_abi_types::{ContractABI, PredicateABI, VarABI};
@@ -37,6 +37,7 @@ pub struct Contract {
     pub interfaces: Vec<Interface>,
 
     pub enums: Vec<EnumDecl>,
+    pub unions: Vec<UnionDecl>,
     pub new_types: Vec<NewTypeDecl>,
 
     removed_macro_calls: slotmap::SecondaryMap<ExprKey, Span>,
@@ -154,6 +155,8 @@ impl Contract {
                 }
                 self.visitor_from_key(kind, *body, f);
             }
+
+            Expr::Match { .. } => todo!(),
         }
 
         if kind == VisitorKind::DepthFirstChildrenBeforeParents {

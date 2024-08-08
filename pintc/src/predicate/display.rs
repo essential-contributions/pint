@@ -94,6 +94,10 @@ impl Display for Contract {
             writeln!(f, "{enum};")?;
         }
 
+        for r#union in &self.unions {
+            writeln!(f, "{};", self.with_ctrct(union))?;
+        }
+
         for new_type in &self.new_types {
             writeln!(f, "{};", self.with_ctrct(new_type))?;
         }

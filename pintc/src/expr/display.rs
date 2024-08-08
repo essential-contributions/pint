@@ -130,6 +130,28 @@ impl DisplayWithContract for &super::Expr {
                 contract.with_ctrct(else_expr)
             ),
 
+            super::Expr::Match {
+                match_expr,
+                match_branches,
+                else_expr,
+                ..
+            } => {
+                write!(f, "match {} {{ ", contract.with_ctrct(match_expr))?;
+                for (name, binding, body) in match_branches {
+                    write!(
+                        f,
+                        "{}({}) => {}, ",
+                        name,
+                        binding,
+                        contract.with_ctrct(body)
+                    )?;
+                }
+                if let Some(else_expr) = else_expr {
+                    write!(f, "else => {}, ", contract.with_ctrct(else_expr))?;
+                }
+                write!(f, "}}")
+            }
+
             super::Expr::Range { lb, ub, .. } => {
                 write!(
                     f,

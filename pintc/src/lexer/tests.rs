@@ -224,6 +224,7 @@ fn variables() {
 fn r#types() {
     assert_eq!(lex_one_success("enum"), Token::Enum);
     assert_eq!(lex_one_success("type"), Token::Type);
+    assert_eq!(lex_one_success("union"), Token::Union);
 }
 
 #[test]
@@ -250,6 +251,7 @@ fn if_else_cond() {
     assert_eq!(lex_one_success("if"), Token::If);
     assert_eq!(lex_one_success("else"), Token::Else);
     assert_eq!(lex_one_success("cond"), Token::Cond);
+    assert_eq!(lex_one_success("match"), Token::Match);
 }
 
 #[test]

@@ -90,7 +90,7 @@ impl AsmBuilder {
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        match &expr.get(contract) {
+        match expr.get(contract) {
             // All of these are just values
             Expr::Error(_)
             | Expr::Immediate { .. }
@@ -221,6 +221,7 @@ impl AsmBuilder {
                     }
                 }
             }
+            Expr::Match { .. } => todo!(),
         }
     }
 
@@ -628,7 +629,7 @@ impl AsmBuilder {
 
         let old_asm_len = asm.len();
 
-        match &expr.get(contract) {
+        match expr.get(contract) {
             Expr::Immediate { value, .. } => compile_immediate(asm, value),
             Expr::Array { elements, .. } => {
                 for element in elements {
@@ -994,6 +995,7 @@ impl AsmBuilder {
                     },
                 }));
             }
+            Expr::Match { .. } => todo!(),
         }
         Ok(asm.len() - old_asm_len)
     }

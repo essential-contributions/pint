@@ -270,4 +270,5 @@ mod e2e {
     e2e_test!(abi);
     e2e_test!(consts);
     e2e_test!(regression);
+    e2e_test!(unions);
 }
