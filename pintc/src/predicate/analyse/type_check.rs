@@ -915,14 +915,20 @@ impl Contract {
 
             Expr::Path(path, span) => Ok(self.infer_path_by_name(handler, pred, path, span)),
 
-            Expr::StorageAccess(name, span) => self.infer_storage_access(name, span),
+            Expr::StorageAccess(name, span) => Ok(self.infer_storage_access(handler, name, span)),
 
             Expr::ExternalStorageAccess {
                 interface_instance,
                 name,
                 span,
                 ..
-            } => self.infer_external_storage_access(pred, interface_instance, name, span),
+            } => Ok(self.infer_external_storage_access(
+                handler,
+                pred,
+                interface_instance,
+                name,
+                span,
+            )),
 
             Expr::UnaryOp {
                 op,
@@ -1212,33 +1218,40 @@ impl Contract {
             .ok_or(err_potential_enums)
     }
 
-    fn infer_storage_access(&self, name: &String, span: &Span) -> Result<Inference, Error> {
+    fn infer_storage_access(&self, handler: &Handler, name: &String, span: &Span) -> Inference {
         match self.storage.as_ref() {
             Some(storage) => match storage.0.iter().find(|s_var| s_var.name.name == *name) {
-                Some(s_var) => Ok(Inference::Type(s_var.ty.clone())),
-                None => Err(Error::Compile {
-                    error: CompileError::StorageSymbolNotFound {
+                Some(s_var) => Inference::Type(s_var.ty.clone()),
+                None => {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::StorageSymbolNotFound {
+                            name: name.clone(),
+                            span: span.clone(),
+                        },
+                    });
+                    Inference::Type(Type::Error(span.clone()))
+                }
+            },
+            None => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::MissingStorageBlock {
                         name: name.clone(),
                         span: span.clone(),
                     },
-                }),
-            },
-            None => Err(Error::Compile {
-                error: CompileError::MissingStorageBlock {
-                    name: name.clone(),
-                    span: span.clone(),
-                },
-            }),
+                });
+                Inference::Type(Type::Error(span.clone()))
+            }
         }
     }
 
     fn infer_external_storage_access(
         &self,
+        handler: &Handler,
         pred: Option<&Predicate>,
         interface_instance: &Path,
         name: &String,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         if let Some(pred) = pred {
             // Find the interface instance or emit an error
             let Some(interface_instance) = pred
@@ -1246,12 +1259,13 @@ impl Contract {
                 .iter()
                 .find(|e| e.name.to_string() == *interface_instance)
             else {
-                return Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::MissingInterfaceInstance {
                         name: interface_instance.clone(),
                         span: span.clone(),
                     },
                 });
+                return Inference::Type(Type::Unknown(empty_span()));
             };
 
             // Find the interface declaration corresponding to the interface instance
@@ -1263,34 +1277,41 @@ impl Contract {
                 // No need to emit an error here because a `MissingInterface` error should have already
                 // been emitted earlier when all interface instances were type checked. Instead, we
                 // just return an `Unknown` type knowing that the compilation will fail anyways.
-                return Ok(Inference::Type(Type::Unknown(empty_span())));
+                return Inference::Type(Type::Unknown(empty_span()));
             };
 
             // Then, look for the storage variable that this access refers to
             match interface.storage.as_ref() {
                 Some(storage) => match storage.0.iter().find(|s_var| s_var.name.name == *name) {
-                    Some(s_var) => Ok(Inference::Type(s_var.ty.clone())),
-                    None => Err(Error::Compile {
-                        error: CompileError::StorageSymbolNotFound {
+                    Some(s_var) => Inference::Type(s_var.ty.clone()),
+                    None => {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::StorageSymbolNotFound {
+                                name: name.clone(),
+                                span: span.clone(),
+                            },
+                        });
+                        Inference::Type(Type::Unknown(empty_span()))
+                    }
+                },
+                None => {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::MissingStorageBlock {
                             name: name.clone(),
                             span: span.clone(),
                         },
-                    }),
-                },
-                None => Err(Error::Compile {
-                    error: CompileError::MissingStorageBlock {
-                        name: name.clone(),
-                        span: span.clone(),
-                    },
-                }),
+                    });
+                    Inference::Type(Type::Unknown(empty_span()))
+                }
             }
         } else {
-            Err(Error::Compile {
+            handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "attempting to infer item without required predicate ref",
                     span: span.clone(),
                 },
-            })
+            });
+            Inference::Type(Type::Unknown(empty_span()))
         }
     }
 
