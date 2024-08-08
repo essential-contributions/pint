@@ -934,7 +934,7 @@ impl Contract {
                 op,
                 expr: op_expr_key,
                 span,
-            } => self.infer_unary_op(pred, *op, *op_expr_key, span),
+            } => Ok(self.infer_unary_op(handler, pred, *op, *op_expr_key, span)),
 
             Expr::BinaryOp { op, lhs, rhs, span } => {
                 self.infer_binary_op(pred, *op, *lhs, *rhs, span)
@@ -1356,11 +1356,12 @@ impl Contract {
 
     fn infer_unary_op(
         &self,
+        handler: &Handler,
         pred: Option<&Predicate>,
         op: UnaryOp,
         rhs_expr_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         fn drill_down_to_path(
             contract: &Contract,
             pred: Option<&Predicate>,
@@ -1402,34 +1403,41 @@ impl Contract {
         }
 
         match op {
-            UnaryOp::Error => Err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "unable to type check unary op error",
-                    span: span.clone(),
-                },
-            }),
+            UnaryOp::Error => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "unable to type check unary op error",
+                        span: span.clone(),
+                    },
+                });
+                Inference::Type(Type::Error(span.clone()))
+            }
 
             UnaryOp::NextState => {
                 // Next state access must be a path that resolves to a state variable.  It _may_ be
                 // via array indices or tuple fields or even other prime ops.
-                drill_down_to_path(self, pred, &rhs_expr_key, span)?;
-
-                let ty = rhs_expr_key.get_ty(self);
-                Ok(if !ty.is_unknown() {
-                    Inference::Type(ty.clone())
-                } else {
-                    Inference::Dependant(rhs_expr_key)
-                })
+                match drill_down_to_path(self, pred, &rhs_expr_key, span) {
+                    Ok(()) => {
+                        let ty = rhs_expr_key.get_ty(self);
+                        if !ty.is_unknown() {
+                            Inference::Type(ty.clone())
+                        } else {
+                            Inference::Dependant(rhs_expr_key)
+                        }
+                    }
+                    Err(err) => {
+                        handler.emit_err(err);
+                        Inference::Type(Type::Error(span.clone()))
+                    }
+                }
             }
 
             UnaryOp::Neg => {
                 // RHS must be an int or real.
                 let ty = rhs_expr_key.get_ty(self);
                 if !ty.is_unknown() {
-                    if ty.is_num() {
-                        Ok(Inference::Type(ty.clone()))
-                    } else {
-                        Err(Error::Compile {
+                    if !ty.is_num() {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::OperatorTypeError {
                                 arity: "unary",
                                 large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -1440,10 +1448,12 @@ impl Contract {
                                     expected_span: None,
                                 }),
                             },
-                        })
+                        });
                     }
+
+                    Inference::Type(ty.clone())
                 } else {
-                    Ok(Inference::Dependant(rhs_expr_key))
+                    Inference::Dependant(rhs_expr_key)
                 }
             }
 
@@ -1451,10 +1461,8 @@ impl Contract {
                 // RHS must be a bool.
                 let ty = rhs_expr_key.get_ty(self);
                 if !ty.is_unknown() {
-                    if ty.is_bool() {
-                        Ok(Inference::Type(ty.clone()))
-                    } else {
-                        Err(Error::Compile {
+                    if !ty.is_bool() {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::OperatorTypeError {
                                 arity: "unary",
                                 large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -1465,10 +1473,11 @@ impl Contract {
                                     expected_span: None,
                                 }),
                             },
-                        })
+                        });
                     }
+                    Inference::Type(ty.clone())
                 } else {
-                    Ok(Inference::Dependant(rhs_expr_key))
+                    Inference::Dependant(rhs_expr_key)
                 }
             }
         }
