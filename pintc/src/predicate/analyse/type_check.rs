@@ -958,7 +958,7 @@ impl Contract {
             }
 
             Expr::TupleFieldAccess { tuple, field, span } => {
-                self.infer_tuple_access_expr(*tuple, field, span)
+                Ok(self.infer_tuple_access_expr(handler, *tuple, field, span))
             }
 
             Expr::Cast { value, ty, span } => self.infer_cast_expr(*value, ty, span),
@@ -1693,7 +1693,6 @@ impl Contract {
         let else_ty = else_expr_key.get_ty(self);
         if !cond_ty.is_unknown() {
             if !cond_ty.is_bool() {
-                println!("non bool fam");
                 handler.emit_err(Error::Compile {
                     error: CompileError::NonBoolConditional {
                         ty: self.with_ctrct(cond_ty).to_string(),
@@ -2058,59 +2057,66 @@ impl Contract {
 
     fn infer_tuple_access_expr(
         &self,
+        handler: &Handler,
         tuple_expr_key: ExprKey,
         field: &TupleAccess,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         let tuple_ty = tuple_expr_key.get_ty(self);
         if !tuple_ty.is_unknown() {
             if tuple_ty.is_tuple() {
                 match field {
-                    TupleAccess::Error => Err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "unable to type check tuple field access error",
-                            span: span.clone(),
-                        },
-                    }),
+                    TupleAccess::Error => {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "unable to type check tuple field access error",
+                                span: span.clone(),
+                            },
+                        });
+                        Inference::Type(Type::Error(span.clone()))
+                    }
 
                     TupleAccess::Index(idx) => {
                         if let Some(field_ty) = tuple_ty.get_tuple_field_type_by_idx(*idx) {
-                            Ok(Inference::Type(field_ty.clone()))
+                            Inference::Type(field_ty.clone())
                         } else {
-                            Err(Error::Compile {
+                            handler.emit_err(Error::Compile {
                                 error: CompileError::InvalidTupleAccessor {
                                     accessor: idx.to_string(),
                                     tuple_type: self.with_ctrct(tuple_ty).to_string(),
                                     span: span.clone(),
                                 },
-                            })
+                            });
+                            Inference::Type(tuple_ty.clone())
                         }
                     }
 
                     TupleAccess::Name(name) => {
                         if let Some(field_ty) = tuple_ty.get_tuple_field_type_by_name(name) {
-                            Ok(Inference::Type(field_ty.clone()))
+                            Inference::Type(field_ty.clone())
                         } else {
-                            Err(Error::Compile {
+                            handler.emit_err(Error::Compile {
                                 error: CompileError::InvalidTupleAccessor {
                                     accessor: name.name.clone(),
                                     tuple_type: self.with_ctrct(&tuple_ty).to_string(),
                                     span: span.clone(),
                                 },
-                            })
+                            });
+                            Inference::Type(tuple_ty.clone())
                         }
                     }
                 }
             } else {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::TupleAccessNonTuple {
                         non_tuple_type: self.with_ctrct(tuple_ty).to_string(),
                         span: span.clone(),
                     },
-                })
+                });
+                Inference::Type(tuple_ty.clone())
             }
         } else {
-            Ok(Inference::Dependant(tuple_expr_key))
+            Inference::Dependant(tuple_expr_key)
         }
     }
 
