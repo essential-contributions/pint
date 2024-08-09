@@ -977,7 +977,7 @@ impl Contract {
                 conditions,
                 body,
                 span,
-            } => self.infer_generator_expr(kind, gen_ranges, conditions, *body, span),
+            } => Ok(self.infer_generator_expr(handler, kind, gen_ranges, conditions, *body, span)),
         }
     }
 
@@ -2133,19 +2133,20 @@ impl Contract {
 
     fn infer_generator_expr(
         &self,
+        handler: &Handler,
         kind: &GeneratorKind,
         ranges: &[(Ident, ExprKey)],
         conditions: &[ExprKey],
         body_expr_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         let mut deps = Vec::new();
 
         for (_, range_expr_key) in ranges {
             let range_ty = range_expr_key.get_ty(self);
             if !range_ty.is_unknown() {
                 if !range_ty.is_int() {
-                    return Err(Error::Compile {
+                    handler.emit_err(Error::Compile {
                         error: CompileError::NonIntGeneratorRange {
                             ty: self.with_ctrct(range_ty).to_string(),
                             gen_kind: kind.to_string(),
@@ -2162,7 +2163,7 @@ impl Contract {
             let cond_ty = cond_expr_key.get_ty(self);
             if !cond_ty.is_unknown() {
                 if !cond_ty.is_bool() {
-                    return Err(Error::Compile {
+                    handler.emit_err(Error::Compile {
                         error: CompileError::NonBoolGeneratorCondition {
                             ty: self.with_ctrct(cond_ty).to_string(),
                             gen_kind: kind.to_string(),
@@ -2178,7 +2179,7 @@ impl Contract {
         let body_ty = body_expr_key.get_ty(self);
         if !body_ty.is_unknown() {
             if !body_ty.is_bool() {
-                return Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::NonBoolGeneratorBody {
                         ty: self.with_ctrct(body_ty).to_string(),
                         gen_kind: kind.to_string(),
@@ -2190,14 +2191,14 @@ impl Contract {
             deps.push(body_expr_key);
         }
 
-        Ok(if deps.is_empty() {
+        if deps.is_empty() {
             Inference::Type(Type::Primitive {
                 kind: PrimitiveKind::Bool,
                 span: span.clone(),
             })
         } else {
             Inference::Dependencies(deps)
-        })
+        }
     }
 
     // Confirm that all var init exprs and const init exprs match their declared type, if they have

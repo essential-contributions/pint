@@ -49,28 +49,4 @@ predicate test {
 // @423..428: invalid type `int`, expecting `bool`
 // body for `exists` must be a `bool` expression
 // @466..471: invalid type `int`, expecting `bool`
-// constraint expression type error
-// @42..86: constraint expression has unknown type
-// @42..86: expecting type `bool`
-// constraint expression type error
-// @92..136: constraint expression has unknown type
-// @92..136: expecting type `bool`
-// constraint expression type error
-// @142..187: constraint expression has unknown type
-// @142..187: expecting type `bool`
-// constraint expression type error
-// @193..238: constraint expression has unknown type
-// @193..238: expecting type `bool`
-// constraint expression type error
-// @271..315: constraint expression has unknown type
-// @271..315: expecting type `bool`
-// constraint expression type error
-// @321..365: constraint expression has unknown type
-// @321..365: expecting type `bool`
-// constraint expression type error
-// @393..430: constraint expression has unknown type
-// @393..430: expecting type `bool`
-// constraint expression type error
-// @436..473: constraint expression has unknown type
-// @436..473: expecting type `bool`
 // >>>
