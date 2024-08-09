@@ -969,7 +969,7 @@ impl Contract {
                 span,
             } => Ok(self.infer_in_expr(handler, *value, *collection, span)),
 
-            Expr::Range { lb, ub, span } => self.infer_range_expr(*lb, *ub, span),
+            Expr::Range { lb, ub, span } => Ok(self.infer_range_expr(handler, *lb, *ub, span)),
 
             Expr::Generator {
                 kind,
@@ -1730,37 +1730,37 @@ impl Contract {
 
     fn infer_range_expr(
         &self,
+        handler: &Handler,
         lower_bound_key: ExprKey,
         upper_bound_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         let lb_ty = lower_bound_key.get_ty(self);
         let ub_ty = upper_bound_key.get_ty(self);
         if !lb_ty.is_unknown() {
             if !ub_ty.is_unknown() {
                 if !lb_ty.eq(&self.new_types, ub_ty) {
-                    Err(Error::Compile {
+                    handler.emit_err(Error::Compile {
                         error: CompileError::RangeTypesMismatch {
                             lb_ty: self.with_ctrct(lb_ty).to_string(),
                             ub_ty: self.with_ctrct(ub_ty).to_string(),
                             span: ub_ty.span().clone(),
                         },
-                    })
+                    });
                 } else if !lb_ty.is_num() {
-                    Err(Error::Compile {
+                    handler.emit_err(Error::Compile {
                         error: CompileError::RangeTypesNonNumeric {
                             ty: self.with_ctrct(lb_ty).to_string(),
                             span: span.clone(),
                         },
-                    })
-                } else {
-                    Ok(Inference::Type(lb_ty.clone()))
+                    });
                 }
+                Inference::Type(lb_ty.clone())
             } else {
-                Ok(Inference::Dependant(upper_bound_key))
+                Inference::Dependant(upper_bound_key)
             }
         } else {
-            Ok(Inference::Dependant(lower_bound_key))
+            Inference::Dependant(lower_bound_key)
         }
     }
 

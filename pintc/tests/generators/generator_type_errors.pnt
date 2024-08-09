@@ -31,8 +31,12 @@ predicate test {
 // typecheck_failure <<<
 // range type must be numeric
 // @65..76: ranges must have numeric bounds; found `bool`
+// range for `forall` must be an `int`
+// @65..76: invalid type `bool`, expecting `int`
 // range type must be numeric
 // @115..126: ranges must have numeric bounds; found `bool`
+// range for `exists` must be an `int`
+// @115..126: invalid type `bool`, expecting `int`
 // range for `forall` must be an `int`
 // @165..177: invalid type `real`, expecting `int`
 // range for `exists` must be an `int`
