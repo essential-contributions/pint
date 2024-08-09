@@ -937,7 +937,7 @@ impl Contract {
             } => Ok(self.infer_unary_op(handler, pred, *op, *op_expr_key, span)),
 
             Expr::BinaryOp { op, lhs, rhs, span } => {
-                self.infer_binary_op(pred, *op, *lhs, *rhs, span)
+                Ok(self.infer_binary_op(handler, pred, *op, *lhs, *rhs, span))
             }
 
             Expr::MacroCall { .. } => Ok(Inference::Ignored),
@@ -1485,15 +1485,16 @@ impl Contract {
 
     fn infer_binary_op(
         &self,
+        handler: &Handler,
         pred: Option<&Predicate>,
         op: BinaryOp,
         lhs_expr_key: ExprKey,
         rhs_expr_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         let check_numeric_args = |lhs_ty: &Type, rhs_ty: &Type, ty_str: &str| {
             if !lhs_ty.is_num() {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::OperatorTypeError {
                         arity: "binary",
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -1504,9 +1505,9 @@ impl Contract {
                             expected_span: None,
                         }),
                     },
-                })
+                });
             } else if !rhs_ty.is_num() {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::OperatorTypeError {
                         arity: "binary",
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -1517,10 +1518,10 @@ impl Contract {
                             expected_span: None,
                         }),
                     },
-                })
+                });
             } else if !lhs_ty.eq(&self.new_types, rhs_ty) {
                 // Here we assume the LHS is the 'correct' type.
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::OperatorTypeError {
                         arity: "binary",
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -1531,9 +1532,7 @@ impl Contract {
                             expected_span: Some(self.expr_key_to_span(lhs_expr_key)),
                         }),
                     },
-                })
-            } else {
-                Ok(())
+                });
             }
         };
 
@@ -1543,20 +1542,19 @@ impl Contract {
             Some(Expr::Path(name, _))
                 if pred
                     .map(|pred| pred.states().any(|(_, state)| state.name == *name))
-                    .unwrap_or(false) =>
-            {
-                Ok(())
-            }
+                    .unwrap_or(false) => {}
             Some(Expr::UnaryOp {
                 op: UnaryOp::NextState,
                 ..
-            }) => Ok(()),
-            _ => Err(Error::Compile {
-                error: CompileError::CompareToNilError {
-                    op: op.as_str(),
-                    span: self.expr_key_to_span(arg),
-                },
-            }),
+            }) => {}
+            _ => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::CompareToNilError {
+                        op: op.as_str(),
+                        span: self.expr_key_to_span(arg),
+                    },
+                });
+            }
         };
 
         let lhs_ty = lhs_expr_key.get_ty(self).clone();
@@ -1571,17 +1569,16 @@ impl Contract {
                     | BinaryOp::Mod => {
                         // Both args must be numeric, i.e., ints or reals; binary op type is same
                         // as arg types.
-                        check_numeric_args(&lhs_ty, rhs_ty, "numeric")
-                            .map(|_| Inference::Type(lhs_ty))
+                        check_numeric_args(&lhs_ty, rhs_ty, "numeric");
+                        Inference::Type(lhs_ty)
                     }
-
                     BinaryOp::Equal | BinaryOp::NotEqual => {
                         // If either operands is `nil`, then ensure that the other is a state var
                         // or a "next state" expression
                         if lhs_ty.is_nil() && !rhs_ty.is_nil() {
-                            check_state_var_arg(rhs_expr_key)?;
+                            check_state_var_arg(rhs_expr_key);
                         } else if !lhs_ty.is_nil() && rhs_ty.is_nil() {
-                            check_state_var_arg(lhs_expr_key)?;
+                            check_state_var_arg(lhs_expr_key);
                         }
 
                         // We can special case implicit constraints which are injected by variable
@@ -1609,7 +1606,7 @@ impl Contract {
                             && !rhs_ty.is_nil()
                             && !is_init_constraint
                         {
-                            Err(Error::Compile {
+                            handler.emit_err(Error::Compile {
                                 error: CompileError::OperatorTypeError {
                                     arity: "binary",
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -1620,13 +1617,12 @@ impl Contract {
                                         expected_span: Some(self.expr_key_to_span(lhs_expr_key)),
                                     }),
                                 },
-                            })
-                        } else {
-                            Ok(Inference::Type(Type::Primitive {
-                                kind: PrimitiveKind::Bool,
-                                span: span.clone(),
-                            }))
+                            });
                         }
+                        Inference::Type(Type::Primitive {
+                            kind: PrimitiveKind::Bool,
+                            span: span.clone(),
+                        })
                     }
 
                     BinaryOp::LessThanOrEqual
@@ -1634,18 +1630,17 @@ impl Contract {
                     | BinaryOp::GreaterThanOrEqual
                     | BinaryOp::GreaterThan => {
                         // Both args must be ordinal, i.e., ints, reals; binary op type is bool.
-                        check_numeric_args(&lhs_ty, rhs_ty, "numeric").map(|_| {
-                            Inference::Type(Type::Primitive {
-                                kind: PrimitiveKind::Bool,
-                                span: span.clone(),
-                            })
+                        check_numeric_args(&lhs_ty, rhs_ty, "numeric");
+                        Inference::Type(Type::Primitive {
+                            kind: PrimitiveKind::Bool,
+                            span: span.clone(),
                         })
                     }
 
                     BinaryOp::LogicalAnd | BinaryOp::LogicalOr => {
                         // Both arg types and binary op type are all bool.
                         if !lhs_ty.is_bool() {
-                            Err(Error::Compile {
+                            handler.emit_err(Error::Compile {
                                 error: CompileError::OperatorTypeError {
                                     arity: "binary",
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -1656,9 +1651,9 @@ impl Contract {
                                         expected_span: Some(span.clone()),
                                     }),
                                 },
-                            })
+                            });
                         } else if !rhs_ty.is_bool() {
-                            Err(Error::Compile {
+                            handler.emit_err(Error::Compile {
                                 error: CompileError::OperatorTypeError {
                                     arity: "binary",
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -1669,17 +1664,19 @@ impl Contract {
                                         expected_span: Some(span.clone()),
                                     }),
                                 },
-                            })
-                        } else {
-                            Ok(Inference::Type(lhs_ty.clone()))
+                            });
                         }
+                        Inference::Type(Type::Primitive {
+                            kind: PrimitiveKind::Bool,
+                            span: span.clone(),
+                        })
                     }
                 }
             } else {
-                Ok(Inference::Dependant(rhs_expr_key))
+                Inference::Dependant(rhs_expr_key)
             }
         } else {
-            Ok(Inference::Dependant(lhs_expr_key))
+            Inference::Dependant(lhs_expr_key)
         }
     }
 

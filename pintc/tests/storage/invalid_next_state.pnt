@@ -16,7 +16,4 @@ predicate test {
 // binary operator type error
 // @54..55: operator `==` argument has unexpected type `int`
 // @48..50: expecting type `Error`
-// constraint expression type error
-// @37..55: constraint expression has unknown type
-// @37..55: expecting type `bool`
 // >>>

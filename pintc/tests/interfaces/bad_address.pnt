@@ -48,10 +48,16 @@ predicate Simple {
 // binary operator type error
 // @202..206: operator `+` argument has unexpected type `bool`
 // address expression type error
+// @198..206: address expression has unexpected type `int`
+// @198..206: expecting type `b256`
+// address expression type error
 // @242..247: address expression has unexpected type `string`
 // @242..247: expecting type `b256`
 // binary operator type error
 // @358..362: operator `+` argument has unexpected type `bool`
+// address expression type error
+// @354..362: address expression has unexpected type `int`
+// @354..362: expecting type `b256`
 // address expression type error
 // @409..414: address expression has unexpected type `bool`
 // @409..414: expecting type `b256`
