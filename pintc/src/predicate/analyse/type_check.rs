@@ -967,7 +967,7 @@ impl Contract {
                 value,
                 collection,
                 span,
-            } => self.infer_in_expr(*value, *collection, span),
+            } => Ok(self.infer_in_expr(handler, *value, *collection, span)),
 
             Expr::Range { lb, ub, span } => self.infer_range_expr(*lb, *ub, span),
 
@@ -1810,10 +1810,11 @@ impl Contract {
 
     fn infer_in_expr(
         &self,
+        handler: &Handler,
         value_key: ExprKey,
         collection_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         // If the collection is a range, then it must be between ints or reals and the value must
         // match.  If it's an array it can be any type but still the value must match the array
         // element type.
@@ -1822,48 +1823,58 @@ impl Contract {
         if !value_ty.is_unknown() {
             if !collection_ty.is_unknown() {
                 if collection_ty.is_num() {
+                    // range - has to match range type too
                     if !value_ty.eq(&self.new_types, collection_ty) {
-                        Err(Error::Compile {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::InExprTypesMismatch {
                                 val_ty: self.with_ctrct(value_ty).to_string(),
                                 range_ty: self.with_ctrct(collection_ty).to_string(),
                                 span: collection_ty.span().clone(),
                             },
-                        })
-                    } else {
-                        Ok(Inference::Type(Type::Primitive {
+                        });
+                        Inference::Type(Type::Primitive {
                             kind: PrimitiveKind::Bool,
                             span: span.clone(),
-                        }))
+                        })
+                    } else {
+                        Inference::Type(Type::Primitive {
+                            kind: PrimitiveKind::Bool,
+                            span: span.clone(),
+                        })
                     }
                 } else if let Some(el_ty) = collection_ty.get_array_el_type() {
                     if !value_ty.eq(&self.new_types, el_ty) {
-                        Err(Error::Compile {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::InExprTypesArrayMismatch {
                                 val_ty: self.with_ctrct(value_ty).to_string(),
                                 el_ty: self.with_ctrct(el_ty).to_string(),
                                 span: el_ty.span().clone(),
                             },
-                        })
-                    } else {
-                        Ok(Inference::Type(Type::Primitive {
+                        });
+                        Inference::Type(Type::Primitive {
                             kind: PrimitiveKind::Bool,
                             span: span.clone(),
-                        }))
+                        })
+                    } else {
+                        Inference::Type(Type::Primitive {
+                            kind: PrimitiveKind::Bool,
+                            span: span.clone(),
+                        })
                     }
                 } else {
-                    Err(Error::Compile {
+                    handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
                             msg: "range ty is not numeric or array?",
                             span: span.clone(),
                         },
-                    })
+                    });
+                    Inference::Type(Type::Error(span.clone()))
                 }
             } else {
-                Ok(Inference::Dependant(collection_key))
+                Inference::Dependant(collection_key)
             }
         } else {
-            Ok(Inference::Dependant(value_key))
+            Inference::Dependant(value_key)
         }
     }
 
