@@ -951,7 +951,7 @@ impl Contract {
                 then_expr,
                 else_expr,
                 span,
-            } => self.infer_select_expr(*condition, *then_expr, *else_expr, span),
+            } => Ok(self.infer_select_expr(handler, *condition, *then_expr, *else_expr, span)),
 
             Expr::Index { expr, index, span } => {
                 Ok(self.infer_index_expr(handler, *expr, *index, span))
@@ -1682,29 +1682,30 @@ impl Contract {
 
     fn infer_select_expr(
         &self,
+        handler: &Handler,
         cond_expr_key: ExprKey,
         then_expr_key: ExprKey,
         else_expr_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         let cond_ty = cond_expr_key.get_ty(self);
         let then_ty = then_expr_key.get_ty(self);
         let else_ty = else_expr_key.get_ty(self);
         if !cond_ty.is_unknown() {
             if !cond_ty.is_bool() {
-                Err(Error::Compile {
+                println!("non bool fam");
+                handler.emit_err(Error::Compile {
                     error: CompileError::NonBoolConditional {
                         ty: self.with_ctrct(cond_ty).to_string(),
                         conditional: "select expression".to_string(),
                         span: self.expr_key_to_span(cond_expr_key),
                     },
-                })
+                });
+                Inference::Type(cond_ty.clone())
             } else if !then_ty.is_unknown() {
                 if !else_ty.is_unknown() {
-                    if then_ty.eq(&self.new_types, else_ty) {
-                        Ok(Inference::Type(then_ty.clone()))
-                    } else {
-                        Err(Error::Compile {
+                    if !then_ty.eq(&self.new_types, else_ty) {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::SelectBranchesTypeMismatch {
                                 large_err: Box::new(LargeTypeError::SelectBranchesTypeMismatch {
                                     then_type: self.with_ctrct(then_ty).to_string(),
@@ -1714,16 +1715,17 @@ impl Contract {
                                     span: span.clone(),
                                 }),
                             },
-                        })
+                        });
                     }
+                    Inference::Type(then_ty.clone())
                 } else {
-                    Ok(Inference::Dependant(else_expr_key))
+                    Inference::Dependant(else_expr_key)
                 }
             } else {
-                Ok(Inference::Dependant(then_expr_key))
+                Inference::Dependant(then_expr_key)
             }
         } else {
-            Ok(Inference::Dependant(cond_expr_key))
+            Inference::Dependant(cond_expr_key)
         }
     }
 

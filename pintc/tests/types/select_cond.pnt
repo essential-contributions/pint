@@ -22,7 +22,4 @@ predicate test {
 // typecheck_failure <<<
 // condition for select expression must be a `bool`
 // @123..124: invalid type `int`, expecting `bool`
-// constraint expression type error
-// @107..135: constraint expression has unknown type
-// @107..135: expecting type `bool`
 // >>>
