@@ -17,5 +17,6 @@ predicate Foo {
 //
 // predicate ::Foo {
 //     var ::a: int;
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

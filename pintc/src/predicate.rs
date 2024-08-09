@@ -71,7 +71,7 @@ impl Contract {
         match expr {
             Expr::Error(_)
             | Expr::Path(_, _)
-            | Expr::StorageAccess(_, _)
+            | Expr::StorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
             | Expr::Immediate { .. } => {}
@@ -439,6 +439,12 @@ impl Predicate {
 
         self.states.update_types(|_state_key, state_ty| {
             state_ty.replace_type_expr(old_expr, new_expr);
+        });
+
+        self.states.update_states(|State { expr, .. }| {
+            if *expr == old_expr {
+                *expr = new_expr;
+            }
         });
 
         self.constraints

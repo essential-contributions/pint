@@ -1,3 +1,5 @@
+pub(super) mod lower_storage_accesses;
+
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, Expr, Ident, Immediate, TupleAccess, UnaryOp},
@@ -1188,7 +1190,7 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                 | Expr::Array { .. }
                 | Expr::Tuple { .. }
                 | Expr::Path(..)
-                | Expr::StorageAccess(..)
+                | Expr::StorageAccess { .. }
                 | Expr::ExternalStorageAccess { .. }
                 | Expr::UnaryOp { .. }
                 | Expr::BinaryOp { .. }

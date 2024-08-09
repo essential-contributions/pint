@@ -34,10 +34,12 @@ predicate B {
 //     var ::c: int;
 //     constraint (::b == 11);
 //     constraint (::c > (11 * 2));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::B {
 //     var ::b: bool;
 //     constraint (::b == (11 < 22));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

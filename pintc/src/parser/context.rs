@@ -914,6 +914,7 @@ impl<'a> ParserContext<'a> {
         is_abs: bool,
         path: Option<(Vec<Ident>, Ident)>,
         name: Ident,
+        mutable: bool,
         (l, m, r): (usize, usize, usize),
     ) -> ExprKey {
         if let Some((els, last)) = path {
@@ -942,7 +943,11 @@ impl<'a> ParserContext<'a> {
                 });
                 Expr::Error(span.clone())
             } else {
-                Expr::StorageAccess(name.to_string(), span.clone())
+                Expr::StorageAccess {
+                    name: name.to_string(),
+                    mutable,
+                    span: span.clone(),
+                }
             };
             self.contract.exprs.insert(expr, Type::Unknown(span))
         }

@@ -293,5 +293,6 @@ predicate test {
 //     constraint (::t14_z_1 == ::t14.z.1);
 //     constraint (::t14_z_2 == ::t14.z.2);
 //     constraint (::t14_z_w == ::t14.z.w);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

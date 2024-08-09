@@ -19,5 +19,6 @@ predicate A {
 //
 // predicate ::A {
 //     constraint (true && !false);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

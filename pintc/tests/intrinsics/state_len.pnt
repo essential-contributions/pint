@@ -58,13 +58,14 @@ predicate test {
 //     var ::b_len: int;
 //     var ::c_len: int;
 //     var ::d_len: int;
-//     state ::a: int = storage::a;
-//     state ::b: bool = storage::b;
-//     state ::c: b256 = storage::c;
-//     state ::d: {int, bool} = storage::d;
+//     state ::a: int = __storage_get({0});
+//     state ::b: bool = __storage_get({1});
+//     state ::c: b256 = __storage_get({2});
+//     state ::d: {int, bool} = __storage_get({3, 0});
 //     constraint (::a_len == __state_len(::a));
 //     constraint (::b_len == __state_len(::b));
 //     constraint (::c_len == __state_len(::c));
 //     constraint (::d_len == __state_len(::d));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

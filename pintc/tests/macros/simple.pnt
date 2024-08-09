@@ -26,5 +26,6 @@ predicate test {
 //     constraint (::anon@0::b > 1);
 //     constraint (::id == 1234);
 //     constraint (::anon@0::b > ::id);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

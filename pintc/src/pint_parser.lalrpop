@@ -748,10 +748,7 @@ TermInner: Expr = {
     <GeneratorExpr>,
     <l:@L> <call:IntrinsicCallExpr> <r:@R> => {
         if let Expr::IntrinsicCall { ref name, .. } = call {
-            if name.name == "__vec_len"
-                || name.name == "__storage_get"
-                || name.name == "__storage_get_extern"
-            {
+            if name.name == "__vec_len" {
                 handler.emit_err(Error::Parse {
                     error: ParseError::BadStorageIntrinsic((context.span_from)(l, r)),
                 });
@@ -1068,12 +1065,19 @@ StorageIndexOp: ExprKey = {
 };
 
 StorageAccess: ExprKey = {
-    <l:@L> "storage" "::" <name:Ident> <r:@R> => {
-        context.parse_storage_access(handler, false, None, name, (l, l, r))
+    <l:@L> <mutable: "mut"?> "storage" "::" <name:Ident> <r:@R> => {
+        context.parse_storage_access(handler, false, None, name, mutable.is_some(), (l, l, r))
     },
     <l:@L> <abs:"::"?> <els:(<Ident> "::")*> <last:Ident> <m:@R> "::"
            "storage" "::" <name:Ident> <r:@R> => {
-        context.parse_storage_access(handler, abs.is_some(), Some((els, last)), name, (l, m, r))
+        context.parse_storage_access(
+            handler,
+            abs.is_some(),
+            Some((els, last)),
+            name,
+            false,
+            (l, m, r),
+        )
     },
 }
 
@@ -1187,6 +1191,7 @@ extern {
         "cond" => lexer::Token::Cond,
 
         "pub" => lexer::Token::Pub,
+        "mut" => lexer::Token::Mut,
         "use" => lexer::Token::Use,
         "self" => lexer::Token::SelfTok,
         "var" => lexer::Token::Var,

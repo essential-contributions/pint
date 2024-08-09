@@ -19,25 +19,6 @@ predicate Bar { }
 
 // Constraint set with address `0x0000000000000000000000000000000000000000000000000000000000000002`
 predicate Foo {
-    var mut_keys_len: int = __mut_keys_len();
-    constraint mut_keys_len == 4;
-
-    // Solution contains these 
-    var mut_keys_contains_0: bool = __mut_keys_contains([0]);
-    var mut_keys_contains_1: bool = __mut_keys_contains([1]);
-    var mut_keys_contains_2: bool = __mut_keys_contains([2]);
-    var mut_keys_contains_3: bool = __mut_keys_contains([3]);
-    constraint mut_keys_contains_0 == true;
-    constraint mut_keys_contains_1 == true;
-    constraint mut_keys_contains_2 == true;
-    constraint mut_keys_contains_3 == true;
-
-    // Solution does not contain these
-    var mut_keys_contains_4: bool = __mut_keys_contains([4]);
-    var mut_keys_contains_5: bool = __mut_keys_contains([5]);
-    constraint mut_keys_contains_4 == false;
-    constraint mut_keys_contains_5 == false;
-
     var this_address: b256 = __this_address();
     constraint this_address == 0x0000000000000000000000000000000000000000000000000000000000000002;
 
@@ -86,10 +67,10 @@ predicate Foo {
 
     constraint recover_secp256k1 == { 0x0308f06a2a35c484909a2480ce681b24967cfd55fca22fcd705769ac55db6279, 13 };
 
-    state x = storage::x;
-    state y = storage::y;
-    state z = storage::z;
-    state w = storage::w;
+    state x = mut storage::x;
+    state y = mut storage::y;
+    state z = mut storage::z;
+    state w = mut storage::w;
 
     // `x` is set in the pre state db and in the solution
     constraint __state_len(x) == 1;

@@ -46,5 +46,6 @@ predicate test {
 //     constraint (::pedro_skill <= 2);
 //     constraint (::kip_skill >= 0);
 //     constraint (::kip_skill <= 1);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

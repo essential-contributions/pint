@@ -49,11 +49,12 @@ predicate test {
 // }
 //
 // predicate ::test {
-//     state ::x: int = storage::m[true];
-//     state ::y: int = storage::n[false];
-//     state ::z: b256 = storage::o[false];
+//     state ::x: int = __storage_get({0, true});
+//     state ::y: int = __storage_get({1, false});
+//     state ::z: b256 = __storage_get({2, false});
 //     constraint (::x == 11);
 //     constraint (::y' < 22);
 //     constraint (::z != 0x3333333333333333333333333333333333333333333333333333333333333333);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

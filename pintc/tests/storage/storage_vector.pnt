@@ -86,15 +86,15 @@ predicate Foo {
 // 
 // predicate ::Foo {
 //     interface ::BarI = ::Bar(0x0000000000000000000000000000000000000000000000000000000000000000)
-//     state ::v0_0: int = storage::v0[0];
-//     state ::v0_1: int = storage::v0[1];
-//     state ::v1_1: bool = storage::v1[1];
-//     state ::v2_2: b256 = storage::v2[2];
-//     state ::u0_0: int = ::BarI::storage::u0[0];
-//     state ::u0_1: int = ::BarI::storage::u0[1];
-//     state ::u1_1: bool = ::BarI::storage::u1[1];
-//     state ::u2_2: b256 = ::BarI::storage::u2[2];
-//     state __v0_len: int = __vec_len(storage::v0);
+//     state ::v0_0: int = __storage_get({0, 0});
+//     state ::v0_1: int = __storage_get({0, 1});
+//     state ::v1_1: bool = __storage_get({1, 1});
+//     state ::v2_2: b256 = __storage_get({2, 2});
+//     state ::u0_0: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {0, 0});
+//     state ::u0_1: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {0, 1});
+//     state ::u1_1: bool = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {1, 1});
+//     state ::u2_2: b256 = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {2, 2});
+//     state __v0_len: int = __storage_get({0});
 //     constraint (::v0_0 == 0);
 //     constraint (::v0_1 == 0);
 //     constraint (::v0_0' == 1);
@@ -107,5 +107,6 @@ predicate Foo {
 //     constraint (0 < __v0_len);
 //     constraint (1 < __v0_len');
 //     constraint (0 < __v0_len');
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
