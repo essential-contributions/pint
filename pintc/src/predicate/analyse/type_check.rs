@@ -961,7 +961,7 @@ impl Contract {
                 Ok(self.infer_tuple_access_expr(handler, *tuple, field, span))
             }
 
-            Expr::Cast { value, ty, span } => self.infer_cast_expr(*value, ty, span),
+            Expr::Cast { value, ty, span } => Ok(self.infer_cast_expr(handler, *value, ty, span)),
 
             Expr::In {
                 value,
@@ -1766,10 +1766,11 @@ impl Contract {
 
     fn infer_cast_expr(
         &self,
+        handler: &Handler,
         value_key: ExprKey,
         to_ty: &Type,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         // FROM  TO    ACTION
         // int   int   No-op
         // int   real  Produce the closest possible real
@@ -1781,12 +1782,12 @@ impl Contract {
         if !from_ty.is_unknown() {
             if !to_ty.is_int() && !to_ty.is_real() {
                 // We can only cast to ints or reals.
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::BadCastTo {
                         ty: self.with_ctrct(to_ty).to_string(),
                         span: span.clone(),
                     },
-                })
+                });
             } else if (to_ty.is_int()
                 && !from_ty.is_int()
                 && !from_ty.is_enum(&self.enums)
@@ -1794,17 +1795,16 @@ impl Contract {
                 || (to_ty.is_real() && !from_ty.is_int() && !from_ty.is_real())
             {
                 // We can only cast to ints from ints, enums or bools and to reals from ints or reals.
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::BadCastFrom {
                         ty: self.with_ctrct(from_ty).to_string(),
                         span: span.clone(),
                     },
-                })
-            } else {
-                Ok(Inference::Type(to_ty.clone()))
+                });
             }
+            Inference::Type(to_ty.clone())
         } else {
-            Ok(Inference::Dependant(value_key))
+            Inference::Dependant(value_key)
         }
     }
 
