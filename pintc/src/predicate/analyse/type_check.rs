@@ -401,9 +401,7 @@ impl Contract {
             .map(|(_, Const { expr, .. })| *expr)
             .collect::<Vec<_>>();
         for expr_key in const_expr_keys {
-            if let Err(err) = self.type_check_single_expr(handler, None, expr_key) {
-                handler.emit_err(err);
-            }
+            let _ = self.type_check_single_expr(handler, None, expr_key);
         }
 
         for pred_key in self.preds.keys().collect::<Vec<_>>() {
@@ -418,9 +416,7 @@ impl Contract {
                 .collect::<Vec<_>>();
 
             for expr_key in all_expr_keys {
-                if let Err(err) = self.type_check_single_expr(handler, Some(pred_key), expr_key) {
-                    handler.emit_err(err);
-                }
+                let _ = self.type_check_single_expr(handler, Some(pred_key), expr_key);
             }
 
             // Now check all if declarations
@@ -570,12 +566,10 @@ impl Contract {
                 .collect::<Vec<_>>()
                 .iter()
             {
-                if let Err(err) = self.type_check_single_expr(handler, Some(pred_key), *range_expr)
-                {
-                    handler.emit_err(err);
-                } else if !(range_expr.get_ty(self).is_int()
-                    || range_expr.get_ty(self).is_enum(&self.enums)
-                    || checked_range_exprs.contains(range_expr))
+                if self.type_check_single_expr(handler, Some(pred_key), *range_expr) == Ok(())
+                    && !(range_expr.get_ty(self).is_int()
+                        || range_expr.get_ty(self).is_enum(&self.enums)
+                        || checked_range_exprs.contains(range_expr))
                 {
                     handler.emit_err(Error::Compile {
                         error: CompileError::InvalidArrayRangeType {
@@ -684,30 +678,24 @@ impl Contract {
         addr_keys: &[ExprKey],
     ) {
         for address in addr_keys {
-            match self.type_check_single_expr(handler, pred_key, *address) {
-                Ok(()) => {
-                    let ty = address.get_ty(self);
-                    if !ty.is_b256() {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::AddressExpressionTypeError {
-                                large_err: Box::new(LargeTypeError::AddressExpressionTypeError {
-                                    expected_ty: self
-                                        .with_ctrct(Type::Primitive {
-                                            kind: PrimitiveKind::B256,
-                                            span: empty_span(),
-                                        })
-                                        .to_string(),
-                                    found_ty: self.with_ctrct(ty).to_string(),
-                                    span: self.expr_key_to_span(*address),
-                                    expected_span: Some(self.expr_key_to_span(*address)),
-                                }),
-                            },
-                        });
-                    }
-                }
-
-                Err(err) => {
-                    handler.emit_err(err);
+            if let Ok(()) = self.type_check_single_expr(handler, pred_key, *address) {
+                let ty = address.get_ty(self);
+                if !ty.is_b256() {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::AddressExpressionTypeError {
+                            large_err: Box::new(LargeTypeError::AddressExpressionTypeError {
+                                expected_ty: self
+                                    .with_ctrct(Type::Primitive {
+                                        kind: PrimitiveKind::B256,
+                                        span: empty_span(),
+                                    })
+                                    .to_string(),
+                                found_ty: self.with_ctrct(ty).to_string(),
+                                span: self.expr_key_to_span(*address),
+                                expected_span: Some(self.expr_key_to_span(*address)),
+                            }),
+                        },
+                    });
                 }
             }
         }
@@ -762,9 +750,7 @@ impl Contract {
         } = if_decl;
 
         // Make sure the condition is a `bool`
-        if let Err(err) = self.type_check_single_expr(handler, pred_key, *condition) {
-            handler.emit_err(err);
-        } else {
+        if let Ok(()) = self.type_check_single_expr(handler, pred_key, *condition) {
             let cond_ty = condition.get_ty(self);
             if !cond_ty.is_bool() {
                 handler.emit_err(Error::Compile {
@@ -796,9 +782,7 @@ impl Contract {
     ) {
         match block_statement {
             BlockStatement::Constraint(ConstraintDecl { expr, .. }) => {
-                if let Err(err) = self.type_check_single_expr(handler, pred_key, *expr) {
-                    handler.emit_err(err);
-                }
+                let _ = self.type_check_single_expr(handler, pred_key, *expr);
             }
             BlockStatement::If(if_decl) => self.type_check_if_decl(handler, pred_key, if_decl),
         }
@@ -809,20 +793,20 @@ impl Contract {
         handler: &Handler,
         pred_key: Option<PredKey>,
         expr_key: ExprKey,
-    ) -> Result<(), Error> {
+    ) -> Result<(), ErrorEmitted> {
         // Attempt to infer all the types of each expr.
         let mut queue = Vec::new();
 
         // Utility to check for recursion in the queue.  A macro to avoid borrowing self.
         macro_rules! push_to_queue {
-            ($dependant_key: ident, $dependency_key: ident) => {
+            ($handler: expr, $dependant_key: ident, $dependency_key: ident) => {
                 if queue.contains(&$dependency_key) {
-                    Err(Error::Compile {
+                    Err($handler.emit_err(Error::Compile {
                         error: CompileError::ExprRecursion {
                             dependant_span: self.expr_key_to_span($dependant_key),
                             dependency_span: self.expr_key_to_span($dependency_key),
                         },
-                    })
+                    }))
                 } else {
                     queue.push($dependency_key);
                     Ok(())
@@ -855,11 +839,13 @@ impl Contract {
                     // expr.  When pushing dependencies we need to check if they're already
                     // queued, in which case we have a recursive dependency and an error.
                     Ok(Inference::Dependant(dep_expr_key)) => {
-                        push_to_queue!(next_key, dep_expr_key)?
+                        push_to_queue!(handler, next_key, dep_expr_key)?
                     }
-                    Ok(Inference::Dependencies(mut dep_expr_keys)) => dep_expr_keys
-                        .drain(..)
-                        .try_for_each(|dep_expr_key| push_to_queue!(next_key, dep_expr_key))?,
+                    Ok(Inference::Dependencies(mut dep_expr_keys)) => {
+                        dep_expr_keys.drain(..).try_for_each(|dep_expr_key| {
+                            push_to_queue!(handler, next_key, dep_expr_key)
+                        })?
+                    }
 
                     // Some expressions (e.g., macro calls) just aren't valid any longer and
                     // are best ignored.
@@ -871,7 +857,7 @@ impl Contract {
                     // expr_key as failing so that we don't check it again and report the
                     // error more than once.
                     Err(inference_error) => {
-                        next_key.set_ty(Type::Error(inference_error.span().clone()), self);
+                        next_key.set_ty(Type::Error(next_key.get(self).span().clone()), self);
                         return Err(inference_error);
                     }
                 }
@@ -887,21 +873,23 @@ impl Contract {
         handler: &Handler,
         pred: Option<&Predicate>,
         expr_key: ExprKey,
-    ) -> Result<Inference, Error> {
-        let expr: &Expr = expr_key.try_get(self).ok_or_else(|| Error::Compile {
-            error: CompileError::Internal {
-                msg: "orphaned expr key when type checking",
-                span: empty_span(),
-            },
+    ) -> Result<Inference, ErrorEmitted> {
+        let expr: &Expr = expr_key.try_get(self).ok_or_else(|| {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "orphaned expr key when type checking",
+                    span: empty_span(),
+                },
+            })
         })?;
 
         match expr {
-            Expr::Error(span) => Err(Error::Compile {
+            Expr::Error(span) => Err(handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "unable to type check from error expression",
                     span: span.clone(),
                 },
-            }),
+            })),
 
             Expr::Immediate { value, span } => Ok(self.infer_immediate(handler, value, span)),
 
