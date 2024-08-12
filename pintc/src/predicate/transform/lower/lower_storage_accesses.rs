@@ -112,7 +112,7 @@ fn lower_storage_accesses_in_predicate(
             // Push the key size and `Type::Int`
             keys_set_field_types.push((None, int_ty.clone()));
             let key_size = key_ty.size(handler, contract)?;
-            keys_set_fields.push((None, contract.insert_int(key_size as i64)));
+            keys_set_fields.push((None, contract.exprs.insert_int(key_size as i64)));
 
             // Total size of the set of keys so far
             keys_set_size += 1 + key_size;
@@ -129,7 +129,7 @@ fn lower_storage_accesses_in_predicate(
 
                 if let Some(last) = next_key.last_mut() {
                     // Now create the actual type expression that contains all the key elements.
-                    let idx = contract.insert_int(idx as i64);
+                    let idx = contract.exprs.insert_int(idx as i64);
                     let add = contract.exprs.insert(
                         Expr::BinaryOp {
                             op: BinaryOp::Add,
@@ -157,7 +157,7 @@ fn lower_storage_accesses_in_predicate(
                     // Push the next key size and `Type::Int`
                     keys_set_field_types.push((None, int_ty.clone()));
                     let key_size = next_key_ty.size(handler, contract)?;
-                    keys_set_fields.push((None, contract.insert_int(key_size as i64)));
+                    keys_set_fields.push((None, contract.exprs.insert_int(key_size as i64)));
 
                     // Total size of the set of keys so far
                     keys_set_size += 1 + key_size;
@@ -167,7 +167,7 @@ fn lower_storage_accesses_in_predicate(
     }
 
     keys_set_field_types.push((None, int_ty.clone()));
-    keys_set_fields.push((None, contract.insert_int(keys_set_size as i64)));
+    keys_set_fields.push((None, contract.exprs.insert_int(keys_set_size as i64)));
 
     let keys_set_ty = Type::Tuple {
         fields: keys_set_field_types,
@@ -317,11 +317,11 @@ fn get_base_storage_key(
                     || storage_var.ty.is_map()
                     || storage_var.ty.is_vector()
                 {
-                    vec![contract.insert_int(storage_index as i64)]
+                    vec![contract.exprs.insert_int(storage_index as i64)]
                 } else {
                     vec![
-                        contract.insert_int(storage_index as i64),
-                        contract.insert_int(0), // placeholder for offsets
+                        contract.exprs.insert_int(storage_index as i64),
+                        contract.exprs.insert_int(0), // placeholder for offsets
                     ]
                 },
             ))
@@ -355,11 +355,11 @@ fn get_base_storage_key(
                     || storage_var.ty.is_map()
                     || storage_var.ty.is_vector()
                 {
-                    vec![contract.insert_int(storage_index as i64)]
+                    vec![contract.exprs.insert_int(storage_index as i64)]
                 } else {
                     vec![
-                        contract.insert_int(storage_index as i64),
-                        contract.insert_int(0), // placeholder for offsets
+                        contract.exprs.insert_int(storage_index as i64),
+                        contract.exprs.insert_int(0), // placeholder for offsets
                     ]
                 },
             ))
@@ -372,7 +372,7 @@ fn get_base_storage_key(
                 // next key element is the index itself
                 key.push(*index);
                 if !(expr_ty.is_any_primitive() || expr_ty.is_map() || expr_ty.is_vector()) {
-                    key.push(contract.insert_int(0)); // placeholder for offsets
+                    key.push(contract.exprs.insert_int(0)); // placeholder for offsets
                 }
             } else {
                 let Type::Array { ty, .. } = expr.get_ty(contract) else {
@@ -387,7 +387,7 @@ fn get_base_storage_key(
                 // Increment the last element of the key by `index * array element size`
                 if let Some(last) = key.last_mut() {
                     let el_size = ty.storage_or_transient_slots(handler, contract)?;
-                    let el_size = contract.insert_int(el_size as i64);
+                    let el_size = contract.exprs.insert_int(el_size as i64);
                     let mul = contract.exprs.insert(
                         Expr::BinaryOp {
                             op: BinaryOp::Mul,
@@ -455,7 +455,7 @@ fn get_base_storage_key(
 
             // Increment the last element of the key by `offset`
             if let Some(last) = key.last_mut() {
-                let offset = contract.insert_int(offset as i64);
+                let offset = contract.exprs.insert_int(offset as i64);
                 let add = contract.exprs.insert(
                     Expr::BinaryOp {
                         op: BinaryOp::Add,
