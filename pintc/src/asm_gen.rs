@@ -584,6 +584,7 @@ impl AsmBuilder {
                     // Expecting a single argument of type int
                     assert_eq!(args.len(), 1);
                     assert!(args[0].get_ty(contract).is_int());
+
                     Self::compile_expr(handler, asm, &args[0], contract, pred)?;
                     asm.push(Constraint::Access(Access::PredicateAt));
                 }
