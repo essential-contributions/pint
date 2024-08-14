@@ -154,15 +154,6 @@ mostly useful for building libraries. Intrinsics are generally target-specific. 
 authors access to VM-specific instructions while preserving type safety. Below is a list of all
 available compiler intrinsics for the Essential VM:</p>
 <hr />
-<pre><code class="language-pint">__mut_keys_len() -&gt; int
-</code></pre>
-<p><strong>Description:</strong> Returns the number of mutable keys being proposed for mutation.</p>
-<hr />
-<pre><code class="language-pint">__mut_keys_contains(key: int[&lt;n&gt;]) -&gt; bool
-</code></pre>
-<p><strong>Description:</strong> Returns a <code>bool</code> indicating whether the mutable keys being proposed contain <code>key</code>.
-<code>&lt;n&gt;</code> is any positive integer.</p>
-<hr />
 <pre><code class="language-pint">__this_address() -&gt; b256
 </code></pre>
 <p><strong>Description:</strong> Returns the content hash of this predicate.</p>
