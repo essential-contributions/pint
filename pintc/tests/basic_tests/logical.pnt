@@ -115,5 +115,6 @@ predicate test {
 //     constraint !(!(::x != 10) && !(::y != 21));
 //     constraint ((::u >= 4e1) && (::w <= 5e1));
 //     constraint (((::u >= 4e1) && ((::u + ::w) == 9e1)) || (::w == 6e1));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

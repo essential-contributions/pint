@@ -38,5 +38,6 @@ predicate test {
 //     var ::x: int;
 //     var ::z: string;
 //     var ::e: {::MyEnum, bool};
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

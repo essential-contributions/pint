@@ -32,5 +32,6 @@ predicate test {
 //     constraint (::anon@0::a == 11);
 //     constraint (::anon@1::a == 22);
 //     constraint (::anon@2::a == ::a);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

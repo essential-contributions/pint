@@ -47,7 +47,8 @@ predicate test {
 // 
 // predicate ::test {
 //     interface ::FooI = ::Foo(0x0000000000000000000000000000000000000000000000000000000000000000)
-//     state ::l: int = __vec_len(storage::v);
-//     state ::l2: int = __vec_len(::FooI::storage::v);
+//     state ::l: int = __storage_get({0});
+//     state ::l2: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {0});
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

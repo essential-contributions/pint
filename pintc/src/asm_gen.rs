@@ -225,9 +225,11 @@ impl AsmBuilder {
     }
 
     /// Generates assembly for producing a storage key  where `expr` is stored.
+    ///
     /// Returns a `StorageKey`. The `StorageKey` contains two values:
     /// - The length of the storage key.
-    /// - Whether the key is internal or external. External keys should be accessed using `StateReadKeyRangeExtern`.
+    /// - Whether the key is internal or external. External keys should be accessed using
+    ///   `KeyRangeExtern`.
     fn compile_state_key(
         handler: &Handler,
         s_asm: &mut Vec<StateRead>,
@@ -235,13 +237,12 @@ impl AsmBuilder {
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<StorageKey, ErrorEmitted> {
-        let expr_ty = expr.get_ty(contract);
         match &expr.get(contract) {
             Expr::IntrinsicCall { name, args, .. } => {
-                if name.name.ends_with("__storage_get") {
+                if name.name == "__storage_get" {
                     // Expecting a single argument that is an array of integers representing a key
                     assert_eq!(args.len(), 1);
-                    let Some(key_len) = args[0].get_ty(contract).get_array_size() else {
+                    let Ok(key_len) = args[0].get_ty(contract).size(handler, contract) else {
                         return Err(handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
                                 msg: "unable to get key size",
@@ -254,15 +255,15 @@ impl AsmBuilder {
                     Self::compile_expr(handler, &mut asm, &args[0], contract, pred)?;
                     s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
                     Ok(StorageKey {
-                        len: key_len as usize,
+                        len: key_len,
                         is_extern: false,
                     })
-                } else if name.name.ends_with("__storage_get_extern") {
+                } else if name.name == "__storage_get_extern" {
                     // Expecting two arguments:
                     // 1. An address that is a `b256`
                     // 2. A key: an array of integers
                     assert_eq!(args.len(), 2);
-                    let Some(key_len) = args[1].get_ty(contract).get_array_size() else {
+                    let Ok(key_len) = args[1].get_ty(contract).size(handler, contract) else {
                         return Err(handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
                                 msg: "unable to get key size",
@@ -277,245 +278,12 @@ impl AsmBuilder {
                     Self::compile_expr(handler, &mut asm, &args[1], contract, pred)?;
                     s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
                     Ok(StorageKey {
-                        len: key_len as usize,
+                        len: key_len,
                         is_extern: true,
-                    })
-                } else if name.name == "__vec_len" {
-                    assert_eq!(args.len(), 1);
-
-                    // `args[0]` must be a `StorageAccess` of type `Vector`. Also decide whether
-                    // this is an external access or an internal access
-                    let is_extern = match args[0].try_get(contract) {
-                        Some(Expr::StorageAccess(name, _)) => {
-                            if !contract.storage_var(name).1.ty.is_vector() {
-                                return Err(handler.emit_err(Error::Compile {
-                                    error: CompileError::Internal {
-                                        msg: "argument to __state_len must be a storage vector",
-                                        span: empty_span(),
-                                    },
-                                }));
-                            }
-                            false
-                        }
-                        Some(Expr::ExternalStorageAccess {
-                            interface_instance,
-                            name,
-                            ..
-                        }) => {
-                            let interface_instance = &pred
-                                .interface_instances
-                                .iter()
-                                .find(|e| e.name.to_string() == *interface_instance)
-                                .expect("missing interface instance");
-
-                            if !contract
-                                .external_storage_var(&interface_instance.interface, name)
-                                .1
-                                .ty
-                                .is_vector()
-                            {
-                                return Err(handler.emit_err(Error::Compile {
-                                    error: CompileError::Internal {
-                                        msg: "argument to __state_len must be a storage vector",
-                                        span: empty_span(),
-                                    },
-                                }));
-                            }
-                            true
-                        }
-                        _ => {
-                            return Err(handler.emit_err(Error::Compile {
-                                error: CompileError::Internal {
-                                    msg: "argument to __state_len must be a storage vector",
-                                    span: empty_span(),
-                                },
-                            }));
-                        }
-                    };
-
-                    Self::compile_state_key(handler, s_asm, &args[0], contract, pred)?;
-
-                    Ok(StorageKey {
-                        // Only supporting single dimensional vectors currently
-                        len: 1,
-                        is_extern,
                     })
                 } else {
                     unimplemented!("Other calls are currently not supported")
                 }
-            }
-            Expr::StorageAccess(name, _) => {
-                let (storage_index, storage_var) = contract.storage_var(name);
-
-                // This is the key. It's either the `storage_index` if the storage type primitive
-                // or a map, or it's `[storage_index, 0]`. The `0` here is a placeholder for
-                // offsets.
-                let key = if storage_var.ty.is_any_primitive()
-                    || storage_var.ty.is_map()
-                    || storage_var.ty.is_vector()
-                {
-                    s_asm.push(Stack::Push(storage_index as i64).into());
-                    vec![storage_index as i64]
-                } else {
-                    s_asm.push(Stack::Push(storage_index as i64).into());
-                    s_asm.push(Stack::Push(0).into());
-                    vec![storage_index as i64, 0]
-                };
-
-                Ok(StorageKey {
-                    len: key.len(),
-                    is_extern: false,
-                })
-            }
-            Expr::ExternalStorageAccess {
-                interface_instance,
-                name,
-                ..
-            } => {
-                // Get the `interface_instance` declaration that the storage access refers to
-                let interface_instance = &pred
-                    .interface_instances
-                    .iter()
-                    .find(|e| e.name.to_string() == *interface_instance)
-                    .expect("missing interface instance");
-
-                // Compile the interface instance address
-                let mut asm = Vec::new();
-                Self::compile_expr(
-                    handler,
-                    &mut asm,
-                    &interface_instance.address,
-                    contract,
-                    pred,
-                )?;
-                s_asm.extend(asm.iter().map(|op| StateRead::Constraint(*op)));
-
-                let (storage_index, storage_var) =
-                    contract.external_storage_var(&interface_instance.interface, name);
-
-                // This is the key. It's either the `storage_index` if the storage type primitive
-                // or a map, or it's `[storage_index, 0]`. The `0` here is a placeholder for
-                // offsets.
-                let key = if storage_var.ty.is_any_primitive()
-                    || storage_var.ty.is_map()
-                    || storage_var.ty.is_vector()
-                {
-                    s_asm.push(Stack::Push(storage_index as i64).into());
-                    vec![storage_index as i64]
-                } else {
-                    s_asm.push(Stack::Push(storage_index as i64).into());
-                    s_asm.push(Stack::Push(0).into());
-                    vec![storage_index as i64, 0]
-                };
-
-                // This is external!
-                Ok(StorageKey {
-                    len: key.len(),
-                    is_extern: true,
-                })
-            }
-            Expr::Index { expr, index, .. } => {
-                if expr.get_ty(contract).is_map() || expr.get_ty(contract).is_vector() {
-                    // Compile the key corresponding to `expr`
-                    let storage_key =
-                        Self::compile_state_key(handler, s_asm, expr, contract, pred)?;
-
-                    // Compile the index
-                    let mut asm = vec![];
-                    Self::compile_expr(handler, &mut asm, index, contract, pred)?;
-                    s_asm.extend(asm.iter().copied().map(StateRead::from));
-                    let mut key_length =
-                        storage_key.len + index.get_ty(contract).size(handler, contract)?;
-                    if !(expr_ty.is_any_primitive() || expr_ty.is_map() || expr_ty.is_vector()) {
-                        s_asm.push(StateRead::from(Stack::Push(0)));
-                        key_length += 1;
-                    }
-                    Ok(StorageKey {
-                        len: key_length,
-                        is_extern: storage_key.is_extern,
-                    })
-                } else {
-                    let Type::Array { ty, .. } = expr.get_ty(contract) else {
-                        return Err(handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "type must exist and be an array type",
-                                span: empty_span(),
-                            },
-                        }));
-                    };
-
-                    // Compile the key corresponding to `expr`
-                    let storage_key =
-                        Self::compile_state_key(handler, s_asm, expr, contract, pred)?;
-
-                    // Compile the index
-                    let mut asm = vec![];
-                    Self::compile_expr(handler, &mut asm, index, contract, pred)?;
-                    s_asm.extend(asm.iter().copied().map(StateRead::from));
-
-                    // Multiply the index by the number of storage slots for `ty` to get the
-                    // offset, then add the result to the base key
-                    s_asm.push(
-                        Stack::Push(ty.storage_or_transient_slots(handler, contract)? as i64)
-                            .into(),
-                    );
-                    s_asm.push(Alu::Mul.into());
-                    s_asm.push(Alu::Add.into());
-
-                    Ok(storage_key)
-                }
-            }
-            Expr::TupleFieldAccess { tuple, field, .. } => {
-                // Compile the key corresponding to `tuple`
-                let storage_key = Self::compile_state_key(handler, s_asm, tuple, contract, pred)?;
-
-                // Grab the fields of the tuple
-                let Type::Tuple { ref fields, .. } = tuple.get_ty(contract) else {
-                    return Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "type must exist and be a tuple type",
-                            span: empty_span(),
-                        },
-                    }));
-                };
-
-                // The field index is based on the type definition
-                let field_idx = match field {
-                    TupleAccess::Index(idx) => *idx,
-                    TupleAccess::Name(ident) => fields
-                        .iter()
-                        .position(|(field_name, _)| {
-                            field_name
-                                .as_ref()
-                                .map_or(false, |name| name.name == ident.name)
-                        })
-                        .expect("field name must exist, this was checked in type checking"),
-                    TupleAccess::Error => {
-                        return Err(handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "unexpected TupleAccess::Error",
-                                span: empty_span(),
-                            },
-                        }));
-                    }
-                };
-
-                // This is the offset from the base key where the full tuple is stored.
-                let key_offset: usize =
-                    fields.iter().take(field_idx).try_fold(0, |acc, (_, ty)| {
-                        ty.storage_or_transient_slots(handler, contract)
-                            .map(|slots| acc + slots)
-                    })?;
-
-                // Increment the last word on the stack by `key_offset`. This works fine for the
-                // static case because all static keys start at zero (at least for now). For
-                // dynamic keys, this is not accurate due to a potential overflow. I'm going to
-                // keep this for now though so that we can keep things going, but we need a proper
-                // solution (`Add4` opcode, or storage reads with offset, or even a whole new
-                // storage design that uses b-trees.)
-                s_asm.push(Stack::Push(key_offset as i64).into());
-                s_asm.push(Alu::Add.into());
-                Ok(storage_key)
             }
             _ => unreachable!("there really shouldn't be anything else at this stage"),
         }
@@ -759,7 +527,7 @@ impl AsmBuilder {
                     UnaryOp::Error => unreachable!("unexpected Unary::Error"),
                 }
             }
-            Expr::StorageAccess(_, _) | Expr::ExternalStorageAccess { .. } => {
+            Expr::StorageAccess { .. } | Expr::ExternalStorageAccess { .. } => {
                 return Err(handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "unexpected storage access",
@@ -767,30 +535,12 @@ impl AsmBuilder {
                     },
                 }));
             }
-            Expr::IntrinsicCall { name, args, span } => match &name.name[..] {
-                // Access ops
-                "__mut_keys_len" => {
+            Expr::IntrinsicCall {
+                name, args, span, ..
+            } => match &name.name[..] {
+                "__mut_keys" => {
                     assert!(args.is_empty());
-                    asm.push(Constraint::Access(Access::MutKeysLen));
-                }
-
-                "__mut_keys_contains" => {
-                    assert_eq!(args.len(), 1);
-
-                    let mut_key = args[0];
-                    let mut_key_type = &mut_key.get_ty(contract);
-
-                    // Check that the mutable key is an array of integers
-                    let el_ty = mut_key_type.get_array_el_type().unwrap();
-                    assert!(el_ty.is_int());
-
-                    // Compile the mut key argument, insert its length, and then insert the
-                    // `Sha256` opcode
-                    Self::compile_expr(handler, asm, &mut_key, contract, pred)?;
-                    asm.push(Constraint::Stack(Stack::Push(
-                        mut_key_type.size(handler, contract)? as i64,
-                    )));
-                    asm.push(Constraint::Access(Access::MutKeysContains));
+                    asm.push(Constraint::Access(Access::MutKeys));
                 }
 
                 "__this_address" => {
@@ -918,6 +668,13 @@ impl AsmBuilder {
                             .storage_or_transient_slots(handler, contract)?;
                         (0..slots - 1).for_each(|_| asm.push(Alu::Add.into()));
                     }
+                }
+
+                "__eq_set" => {
+                    assert_eq!(args.len(), 2);
+                    Self::compile_expr(handler, asm, &args[0], contract, pred)?;
+                    Self::compile_expr(handler, asm, &args[1], contract, pred)?;
+                    asm.push(Constraint::Pred(Pred::EqSet));
                 }
 
                 _ => {

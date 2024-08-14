@@ -6,6 +6,10 @@ type A = TheLetterA;
 type I = int;
 type Real = real;
 
+storage {
+    x: int,
+}
+
 predicate test {
     var t: A = A::T;
     var u: TheLetterA = A::U;
@@ -25,7 +29,7 @@ predicate test {
 
     var q: real = i as Real;
 
-    state x: I = __storage_get(0);
+    state x: I = storage::x;
 }
 
 // parsed <<<
@@ -36,7 +40,10 @@ predicate test {
 // type ::A = ::TheLetterA;
 // type ::I = int;
 // type ::Real = real;
-//
+// storage {
+//     x: int,
+// }
+// 
 // predicate ::test {
 //     var ::t: ::A;
 //     var ::u: ::TheLetterA;
@@ -48,7 +55,7 @@ predicate test {
 //     var ::h: ::Hooray;
 //     var ::p: ::Point;
 //     var ::q: real;
-//     state ::x: ::I = __storage_get(0);
+//     state ::x: ::I = storage::x;
 //     constraint (::t == ::A::T);
 //     constraint (::u == ::A::U);
 //     constraint (::v == ::TheLetterA::V);
@@ -71,7 +78,10 @@ predicate test {
 // type ::A = ::TheLetterA;
 // type ::I = int;
 // type ::Real = real;
-//
+// storage {
+//     x: int,
+// }
+// 
 // predicate ::test {
 //     var ::t: int;
 //     var ::u: int;
@@ -83,7 +93,7 @@ predicate test {
 //     var ::h: int[3];
 //     var ::p: {x: real, y: real};
 //     var ::q: real;
-//     state ::x: int = __storage_get(0);
+//     state ::x: int = __storage_get({0});
 //     constraint (::t == 0);
 //     constraint (::u == 1);
 //     constraint (::v == 2);
@@ -103,5 +113,6 @@ predicate test {
 //     constraint (::v <= 2);
 //     constraint (::e >= 0);
 //     constraint (::e <= 1);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

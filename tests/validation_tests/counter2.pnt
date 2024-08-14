@@ -1,15 +1,19 @@
 // db <<<
-// 14 14 14 14, 42
+// 0, 42
 // >>>
+
+storage {
+    counter: int,
+}
 
 predicate Initialize {
     var value: int;
-    state counter: int = __storage_get([14, 14, 14, 14]);
+    state counter: int = mut storage::counter;
     constraint counter' == value;
 }
 
 predicate Increment {
     var amount: int;
-    state counter: int = __storage_get([14, 14, 14, 14]);
+    state counter: int = mut storage::counter;
     constraint counter' == counter + amount;
 }

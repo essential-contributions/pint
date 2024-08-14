@@ -90,5 +90,6 @@ predicate test {
 //     constraint ((::v != 5) && (::v != 1));
 //     constraint (::v >= 0);
 //     constraint (::v <= 5);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

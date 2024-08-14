@@ -57,8 +57,8 @@ predicate test {
 // }
 //
 // predicate ::test {
-//     state ::x: int = storage::x;
-//     state ::z: {int, int, int} = storage::z;
+//     state ::x: int = __storage_get({0});
+//     state ::z: {int, int, int} = __storage_get({1, 0});
 //     constraint false;
 //     constraint false;
 //     constraint (__state_len(::x) == 0);
@@ -71,5 +71,6 @@ predicate test {
 //     constraint (__state_len(::z) != 0);
 //     constraint ((__state_len(::z) == 0) && (__state_len(::x) != 0));
 //     constraint ((__state_len(::z) != 0) && (__state_len(::x) == 0));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
