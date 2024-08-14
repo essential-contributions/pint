@@ -566,7 +566,9 @@ impl Contract {
                 .collect::<Vec<_>>()
                 .iter()
             {
-                if self.type_check_single_expr(handler, Some(pred_key), *range_expr) == Ok(())
+                if self
+                    .type_check_single_expr(handler, Some(pred_key), *range_expr)
+                    .is_ok()
                     && !(range_expr.get_ty(self).is_int()
                         || range_expr.get_ty(self).is_enum(&self.enums)
                         || checked_range_exprs.contains(range_expr))
@@ -867,7 +869,6 @@ impl Contract {
         Ok(())
     }
 
-    // TODO: in refactor, make this return error emitted and not error
     fn infer_expr_key_type(
         &self,
         handler: &Handler,
@@ -1968,7 +1969,7 @@ impl Contract {
                         span: self.expr_key_to_span(index_expr_key),
                     },
                 });
-                Inference::Type(index_ty.clone())
+                Inference::Type(range_ty.clone())
             } else if let Some(ty) = ary_ty.get_array_el_type() {
                 Inference::Type(ty.clone())
             } else {
@@ -2016,10 +2017,8 @@ impl Contract {
                         span: self.expr_key_to_span(index_expr_key),
                     },
                 });
-                Inference::Type(index_ty.clone())
-            } else {
-                Inference::Type(ty.clone())
             }
+            Inference::Type(ty.clone())
         } else {
             handler.emit_err(Error::Compile {
                 error: CompileError::IndexExprNonIndexable {

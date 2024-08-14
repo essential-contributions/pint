@@ -19,4 +19,7 @@ predicate test {
 // attempt to index an array with a mismatched value
 // @98..99: array access must be with a `::Num` variant
 // found access using type `int`
+// binary operator type error
+// @104..105: operator `==` argument has unexpected type `int`
+// @94..100: expecting type `::Num`
 // >>>
