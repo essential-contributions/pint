@@ -1060,8 +1060,8 @@ fn storage_access() {
     );
 
     check(
-        &run_parser!(expr, r#"storage::foo.0.3"#),
-        expect_test::expect!["storage::foo.0.3"],
+        &run_parser!(expr, r#"mut storage::foo.0.3"#),
+        expect_test::expect!["mut storage::foo.0.3"],
     );
 
     check(
@@ -1070,8 +1070,8 @@ fn storage_access() {
     );
 
     check(
-        &run_parser!(expr, r#"storage::balances[0x111][__foo()][t[3].5].2"#),
-        expect_test::expect!["storage::balances[273][__foo()][::t[3].5].2"],
+        &run_parser!(expr, r#"mut storage::balances[0x111][__foo()][t[3].5].2"#),
+        expect_test::expect!["mut storage::balances[273][__foo()][::t[3].5].2"],
     );
 
     check(

@@ -48,5 +48,6 @@ predicate test {
 //     constraint (::c == [0, 1, 2, 3]);
 //     constraint (::c1 == [0, 1, 2, 4]);
 //     constraint (::cb == (::c != ::c1));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

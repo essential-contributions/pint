@@ -1,3 +1,0 @@
-type Count = int;
-
-var b: int = 10;

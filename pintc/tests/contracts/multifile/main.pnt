@@ -54,5 +54,6 @@ predicate Bar {
 //     constraint (::e2 <= 1);
 //     constraint (::f2 >= 0);
 //     constraint (::f2 <= 1);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

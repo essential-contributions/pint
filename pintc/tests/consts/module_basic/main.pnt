@@ -21,5 +21,6 @@ predicate test {
 // predicate ::test {
 //     var ::b: int;
 //     constraint (::b == (242 + 22));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

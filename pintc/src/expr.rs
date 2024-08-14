@@ -26,7 +26,11 @@ pub enum Expr {
         span: Span,
     },
     Path(Path, Span),
-    StorageAccess(String, Span),
+    StorageAccess {
+        name: String,
+        mutable: bool,
+        span: Span,
+    },
     ExternalStorageAccess {
         interface_instance: Path,
         name: String,
@@ -233,7 +237,7 @@ impl Spanned for Expr {
             | Expr::Array { span, .. }
             | Expr::Tuple { span, .. }
             | Expr::Path(_, span)
-            | Expr::StorageAccess(_, span)
+            | Expr::StorageAccess { span, .. }
             | Expr::ExternalStorageAccess { span, .. }
             | Expr::UnaryOp { span, .. }
             | Expr::BinaryOp { span, .. }
@@ -318,7 +322,7 @@ impl Expr {
 
             Expr::MacroCall { .. }
             | Expr::Path(_, _)
-            | Expr::StorageAccess(_, _)
+            | Expr::StorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::Error(_) => {}
         }

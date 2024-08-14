@@ -904,7 +904,9 @@ impl Contract {
 
             Expr::Path(path, span) => Ok(self.infer_path_by_name(handler, pred, path, span)),
 
-            Expr::StorageAccess(name, span) => Ok(self.infer_storage_access(handler, name, span)),
+            Expr::StorageAccess { name, span, .. } => {
+                Ok(self.infer_storage_access(handler, name, span))
+            }
 
             Expr::ExternalStorageAccess {
                 interface_instance,

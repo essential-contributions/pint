@@ -18,9 +18,9 @@ predicate Bar {
     interface FooInstance = Foo(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE);
 
     state w = storage::w;
-    state w0 = storage::w.addr;
-    state w10 = storage::w.inner.x;
-    state w11 = storage::w.inner.1;
+    state w0 = mut storage::w.addr;
+    state w10 = mut storage::w.inner.x;
+    state w11 = mut storage::w.inner.1;
 
     state foo_w = FooInstance::storage::w;
     state foo_w0 = FooInstance::storage::w.addr;
@@ -28,9 +28,9 @@ predicate Bar {
     state foo_w11 = FooInstance::storage::w.inner.1;
 
     state map_to_tuples_69 = storage::map_to_tuples[69];
-    state map_to_tuples_69_0 = storage::map_to_tuples[69].0;
-    state map_to_tuples_69_1_0 = storage::map_to_tuples[69].1.0;
-    state map_to_tuples_69_1_1 = storage::map_to_tuples[69].1.1;
+    state map_to_tuples_69_0 =  mut storage::map_to_tuples[69].0;
+    state map_to_tuples_69_1_0 = mut storage::map_to_tuples[69].1.0;
+    state map_to_tuples_69_1_1 = mut storage::map_to_tuples[69].1.1;
 
     state foo_map_to_tuples_69 = FooInstance::storage::map_to_tuples[69];
     state foo_map_to_tuples_69_0 = FooInstance::storage::map_to_tuples[69].0;

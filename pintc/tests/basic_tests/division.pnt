@@ -33,5 +33,6 @@ predicate test {
 //     constraint (::z >= 3);
 //     constraint (::z <= 10);
 //     constraint ((::x / ::y) > (::y / ::z));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

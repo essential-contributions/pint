@@ -8,23 +8,6 @@ available compiler intrinsics for the Essential VM:
 ---
 
 ```pint
-__mut_keys_len() -> int
-```
-
-**Description:** Returns the number of mutable keys being proposed for mutation.
-
----
-
-```pint
-__mut_keys_contains(key: int[<n>]) -> bool
-```
-
-**Description:** Returns a `bool` indicating whether the mutable keys being proposed contain `key`.
-`<n>` is any positive integer.
-
----
-
-```pint
 __this_address() -> b256
 ```
 

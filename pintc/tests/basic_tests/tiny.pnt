@@ -13,5 +13,6 @@ predicate test {
 // predicate ::test {
 //     var ::a: int;
 //     constraint (::a == 1);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -75,5 +75,6 @@ predicate test {
 //     constraint (::sha256_7 == __sha256(::a[1]));
 //     constraint (::sha256_8 == __sha256(::a[1][2]));
 //     constraint (::sha256_9 == __sha256(::a[1][2][3]));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

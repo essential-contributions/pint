@@ -27,7 +27,7 @@ anyhow = { workspace = true }
 ariadne = { workspace = true }
 clap = { workspace = true }
 constraint-asm = { workspace = true }
-essential-types = "0.1.0"
+essential-types = { workspace = true }
 expect-test = { workspace = true }
 fxhash = { workspace = true }
 itertools = { workspace = true }

@@ -70,5 +70,6 @@ predicate test {
 //     constraint (::s3 <= 2);
 //     constraint (::s4 >= 0);
 //     constraint (::s4 <= 2);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -174,5 +174,6 @@ predicate test {
 //     constraint (::condition || (!::condition2 || (::condition3 || (!::condition || (::x == 44)))));
 //     constraint (::condition || (::condition2 || (!false || (::x == 55))));
 //     constraint (::condition || (::condition2 || (false || (::x == 66))));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

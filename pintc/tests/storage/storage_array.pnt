@@ -119,16 +119,16 @@ predicate Bar {
 //
 // predicate ::Bar {
 //     interface ::FooInstance = ::Foo(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE)
-//     state ::v: int[3][2] = storage::v;
-//     state ::v1: int[3] = storage::v[1];
-//     state ::v10: int = storage::v[1][0];
-//     state ::map_to_arrays_69: int[3] = storage::map_to_arrays[69];
-//     state ::map_to_arrays_69_1: int = storage::map_to_arrays[69][1];
-//     state ::foo_v: int[3][2] = ::FooInstance::storage::v;
-//     state ::foo_v1: int[3] = ::FooInstance::storage::v[1];
-//     state ::foo_v10: int = ::FooInstance::storage::v[1][0];
-//     state ::foo_map_to_arrays_69: int[3] = ::FooInstance::storage::map_to_arrays[69];
-//     state ::foo_map_to_arrays_69_1: int = ::FooInstance::storage::map_to_arrays[69][1];
+//     state ::v: int[3][2] = __storage_get({0, 0});
+//     state ::v1: int[3] = __storage_get({0, (0 + (1 * 3))});
+//     state ::v10: int = __storage_get({0, ((0 + (1 * 3)) + (0 * 1))});
+//     state ::map_to_arrays_69: int[3] = __storage_get({1, 69, 0});
+//     state ::map_to_arrays_69_1: int = __storage_get({1, 69, (0 + (1 * 1))});
+//     state ::foo_v: int[3][2] = __storage_get_extern(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE, {0, 0});
+//     state ::foo_v1: int[3] = __storage_get_extern(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE, {0, (0 + (1 * 3))});
+//     state ::foo_v10: int = __storage_get_extern(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE, {0, ((0 + (1 * 3)) + (0 * 1))});
+//     state ::foo_map_to_arrays_69: int[3] = __storage_get_extern(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE, {1, 69, 0});
+//     state ::foo_map_to_arrays_69_1: int = __storage_get_extern(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE, {1, 69, (0 + (1 * 1))});
 //     constraint (::v' == [[42, 43, 44], [52, 53, 54]]);
 //     constraint (::v'[1] == [52, 53, 54]);
 //     constraint (::v'[0][2] == 44);
@@ -147,5 +147,6 @@ predicate Bar {
 //     constraint (::foo_map_to_arrays_69' == [199, 1100, 1101]);
 //     constraint (::foo_map_to_arrays_69'[2] == 1101);
 //     constraint (::foo_map_to_arrays_69_1' == 1100);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

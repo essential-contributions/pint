@@ -20,5 +20,6 @@ predicate test {
 //     var ::obj: int;
 //     constraint (::x >= -10);
 //     constraint (::obj == (((::x * ::x) + (2 * ::x)) - 8));
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

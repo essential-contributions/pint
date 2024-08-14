@@ -85,5 +85,6 @@ predicate test {
 //     constraint (::max_feeling >= ::counts[3]);
 //     constraint (::feeling >= 0);
 //     constraint (::feeling <= 3);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

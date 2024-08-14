@@ -75,5 +75,6 @@ predicate test {
 //     constraint (::b_ary[0] < ::b_ary[3]);
 //     constraint (::lt_a < ::a_ary[3]);
 //     constraint (::lt_a < ::a_ary[4]);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

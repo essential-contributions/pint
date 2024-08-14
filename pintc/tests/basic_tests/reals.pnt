@@ -26,5 +26,6 @@ predicate test {
 //     constraint (::y >= 1e0);
 //     constraint (::y <= 4e0);
 //     constraint ((::x + ::y) == 3.3e0);
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
