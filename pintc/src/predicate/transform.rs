@@ -1,9 +1,11 @@
+mod clean;
 mod legalize;
 mod lower;
 mod unroll;
 mod validate;
 
 use crate::error::{ErrorEmitted, Handler};
+use clean::clean_dead_state_decls;
 use legalize::legalize_vector_accesses;
 use lower::{
     coalesce_prime_ops, lower_aliases, lower_array_ranges, lower_casts, lower_compares_to_nil,
@@ -82,6 +84,9 @@ impl super::Contract {
         // Lower all storage accesses to __storage_get and __storage_get_extern intrinsics. Also
         // add constraints on mutable keys
         let _ = lower_storage_accesses(handler, &mut self);
+
+        // Remove dead state declarations
+        clean_dead_state_decls(&mut self);
 
         // Ensure that the final contract is indeed final
         if !handler.has_errors() {
