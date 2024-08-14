@@ -1887,7 +1887,7 @@ impl Contract {
                 error: CompileError::EmptyArrayExpression { span: span.clone() },
             });
             return Inference::Type(Type::Array {
-                ty: Box::new(Type::Error(span.clone())), // to deal with later. Should this be an `empty array` type? Specifically to deal with errors for constraints. ex. operator `!=` argument has unexpected type `Unknown[0]`
+                ty: Box::new(Type::Error(span.clone())),
                 range: Some(range_expr_key),
                 size: Some(0),
                 span: span.clone(),
@@ -1903,9 +1903,7 @@ impl Contract {
         let mut deps = Vec::new();
         let el0_ty = el0.get_ty(self);
         if !el0_ty.is_unknown() {
-            // first element type is known
             for el_key in elements {
-                // check type of each element and make sure it matches
                 let el_ty = el_key.get_ty(self);
                 if !el_ty.is_unknown() {
                     if !el_ty.eq(&self.new_types, el0_ty) {
@@ -1916,14 +1914,12 @@ impl Contract {
                                 span: self.expr_key_to_span(*el_key),
                             },
                         });
-                        // failure here should return type of first element and operate on that -- already does now
                     }
                 } else {
                     deps.push(*el_key);
                 }
             }
 
-            // Must also type check the range_expr
             if range_expr_key.get_ty(self).is_unknown() {
                 deps.push(range_expr_key);
             }
@@ -1977,8 +1973,8 @@ impl Contract {
                         span: self.expr_key_to_span(index_expr_key),
                     },
                 });
-                Inference::Type(range_ty.clone())
-            } else if let Some(ty) = ary_ty.get_array_el_type() {
+            }
+            if let Some(ty) = ary_ty.get_array_el_type() {
                 Inference::Type(ty.clone())
             } else {
                 handler.emit_err(Error::Compile {
