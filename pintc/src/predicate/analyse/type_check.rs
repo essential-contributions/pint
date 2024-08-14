@@ -680,7 +680,10 @@ impl Contract {
         addr_keys: &[ExprKey],
     ) {
         for address in addr_keys {
-            if let Ok(()) = self.type_check_single_expr(handler, pred_key, *address) {
+            if self
+                .type_check_single_expr(handler, pred_key, *address)
+                .is_ok()
+            {
                 let ty = address.get_ty(self);
                 if !ty.is_b256() {
                     handler.emit_err(Error::Compile {
@@ -752,7 +755,10 @@ impl Contract {
         } = if_decl;
 
         // Make sure the condition is a `bool`
-        if let Ok(()) = self.type_check_single_expr(handler, pred_key, *condition) {
+        if self
+            .type_check_single_expr(handler, pred_key, *condition)
+            .is_ok()
+        {
             let cond_ty = condition.get_ty(self);
             if !cond_ty.is_bool() {
                 handler.emit_err(Error::Compile {
