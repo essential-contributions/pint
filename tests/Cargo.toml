@@ -10,11 +10,13 @@ publish = false
 
 [dependencies]
 anyhow = { workspace = true }
+essential-check = { workspace = true }
 essential-constraint-vm = { workspace = true }
+essential-hash = { workspace = true }
 essential-state-read-vm = { workspace = true }
 essential-types = { workspace = true }
 #pint-solve = { path = "../pint-solve", default-features = false }
-pintc = { path = "../pintc", default-features = false }
+pintc = { workspace = true }
 test-util = { path = "../test-util" }
 thiserror = "1"
 tokio = { workspace = true }

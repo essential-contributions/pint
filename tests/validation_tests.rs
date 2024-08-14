@@ -1,20 +1,16 @@
 mod utils;
 
 use anyhow::anyhow;
-use essential_constraint_vm::mut_keys_set;
-use essential_state_read_vm::{
-    asm::{self, Op},
-    constraint,
-    types::{
-        solution::{Mutation, Solution, SolutionData},
-        ContentAddress, PredicateAddress,
-    },
-    Access, BytecodeMapped, GasLimit, SolutionAccess, StateSlots, Vm,
+use essential_state_read_vm::types::{
+    solution::{Mutation, Solution, SolutionData},
+    ContentAddress, PredicateAddress,
 };
 use std::{
+    collections::HashMap,
     fs::{read_dir, File},
     io::{BufRead, BufReader},
     path::PathBuf,
+    sync::Arc,
 };
 use test_util::{hex_to_bytes, parse_test_data, unwrap_or_continue};
 use utils::*;
@@ -83,34 +79,31 @@ async fn validation_e2e() -> anyhow::Result<()> {
             handler
         );
 
-        // Parse a solution file
-        let solution = parse_solution(&path.with_extension("toml"), &compiled_contract)?;
+        let contract_addr = essential_hash::contract_addr::from_predicate_addrs(
+            compiled_contract
+                .predicates
+                .iter()
+                .map(|predicate| essential_hash::content_addr(&predicate)),
+            &compiled_contract.salt,
+        );
 
-        // We're only going to verify the predicate in the first solution data, which we assume
-        // corresponds to one of the predicates in `compiled_contract` produce above. All other
-        // solution data correspond to external predicate that we're not going to verify here at
-        // this point.
-        let predicate_to_check_index = 0; // Only the first one!
-        let predicate_to_check = &solution.data[predicate_to_check_index].predicate_to_solve;
+        let solution = parse_solution(
+            &path.with_extension("toml"),
+            &compiled_contract,
+            &contract_addr,
+        )?;
+
+        // Predicates to check are the ones that belong to our main contract
+        let predicates_to_check = solution
+            .data
+            .iter()
+            .enumerate()
+            .filter(|&(_, data)| (data.predicate_to_solve.contract == contract_addr))
+            .map(|(idx, data)| (idx, data.predicate_to_solve.predicate.clone()))
+            .collect::<Vec<_>>();
+
+        // This is required to call `check_predicate` later
         let transient_data = essential_constraint_vm::transient_data(&solution);
-
-        // This is the access that contains an access to some solution data and will contain the
-        // pre and post states.
-        let mutable_keys = mut_keys_set(&solution, predicate_to_check_index as u16);
-        let mut access = Access {
-            solution: SolutionAccess::new(
-                &solution,
-                predicate_to_check_index as u16,
-                &mutable_keys,
-                &transient_data,
-            ),
-            state_slots: StateSlots::EMPTY,
-        };
-
-        // Find the individual predicate that corresponds to the predicate address specified in
-        // `predicate_to_verify`. Here, we assume that the last byte in the address matches the
-        // index of the predicate in in the BTreeMap `compiled_contract.predicates`.
-        let predicate = &compiled_contract.predicates[predicate_to_check.predicate.0[31] as usize];
 
         // Pre-populate the pre-state with all the db content, but first, every solution data
         // predicate set has to be inserted.
@@ -122,98 +115,39 @@ async fn validation_e2e() -> anyhow::Result<()> {
                 .collect(),
         );
 
-        // Parse the db section. This can include internal and external storage addresses.
-        if let Some(db) = &parse_test_data(&path)?.db {
-            for line in db.lines() {
-                // Collect key and value. Assume the key is a hex and the value is a u64
-                let split = line.split(',').collect::<Vec<_>>();
-                let (set_address, key, value) = if split.len() == 3 {
-                    (ContentAddress(hex_to_bytes(split[0])), split[1], split[2])
-                } else if split.len() == 2 {
-                    (predicate_to_check.contract.clone(), split[0], split[1])
-                } else {
-                    panic!("Error parsing db section");
-                };
-
-                pre_state.set(
-                    set_address,
-                    &key.split_ascii_whitespace()
-                        .map(|k| k.parse::<i64>().expect("value must be a i64"))
-                        .collect::<Vec<_>>(),
-                    value
-                        .split_ascii_whitespace()
-                        .map(|k| k.parse::<i64>().expect("value must be a i64"))
-                        .collect::<Vec<_>>(),
-                );
-            }
-        }
-
-        // Produce the pre state slots by running all the state read contracts
-        let mut pre_state_slots = vec![];
-        for idx in 0..predicate.state_read.len() {
-            let mut vm = Vm::default();
-            let state_read_ops: Vec<_> = asm::from_bytes(predicate.state_read[idx].iter().copied())
-                .collect::<Result<BytecodeMapped, _>>()
-                .expect("expecting valid state read bytecode")
-                .ops()
-                .collect();
-
-            vm.exec_ops(
-                &state_read_ops[..],
-                access,
-                &pre_state,
-                &|_: &Op| 1,
-                GasLimit::UNLIMITED,
-            )
-            .await
-            .unwrap_or_else(|_| {
-                failed_tests.push(path.clone());
-                0
-            });
-
-            pre_state_slots.extend(vm.into_state_slots());
-        }
+        // Parse the db section in `pre_state`. This can include internal and external storage
+        // addresses.
+        parse_db_section(&path, &mut pre_state, &contract_addr)?;
 
         // Apply the state mutations to the state to produce the post state.
         let mut post_state = pre_state.clone();
-        for data in &solution.data {
-            let set_addr = &data.predicate_to_solve.contract;
-            for Mutation { key, value } in &data.state_mutations {
-                post_state.set(set_addr.clone(), key, value.clone());
-            }
-        }
+        post_state.apply_mutations(&solution);
 
-        // Produce the post state slots by running all the state read contracts using `post_state`
-        let mut post_state_slots = vec![];
-        for idx in 0..predicate.state_read.len() {
-            let mut vm = Vm::default();
-            let ops: Vec<_> = asm::from_bytes(predicate.state_read[idx].iter().copied())
-                .collect::<Result<BytecodeMapped, _>>()
-                .unwrap()
-                .ops()
-                .collect();
+        // Now check each predicate in `predicates_to_check`
+        for (idx, addr) in predicates_to_check {
+            let predicate = compiled_contract
+                .predicates
+                .iter()
+                .find(|predicate| addr == essential_hash::content_addr(&predicate))
+                .expect("predicate must exist");
 
-            vm.exec_ops(&ops, access, &post_state, &|_: &Op| 1, GasLimit::UNLIMITED)
-                .await
-                .unwrap_or_else(|_| {
+            match essential_check::solution::check_predicate(
+                &pre_state,
+                &post_state,
+                Arc::new(solution.clone()),
+                Arc::new(predicate.clone()),
+                idx as u16, // solution data index
+                &Default::default(),
+                Arc::new(transient_data.clone()),
+            )
+            .await
+            {
+                Ok(_) => {}
+                Err(err) => {
+                    println!("{}", format!("    Error submitting solution: {err}").red());
                     failed_tests.push(path.clone());
-                    0
-                });
-
-            post_state_slots.extend(vm.into_state_slots());
-        }
-
-        // Now, set the state slots in `access` and verify them by running the constraints
-        access.state_slots = StateSlots {
-            pre: &pre_state_slots[..],
-            post: &post_state_slots[..],
-        };
-
-        match constraint::check_predicate(&predicate.constraints, access) {
-            Ok(_) => {}
-            Err(err) => {
-                println!("{}", format!("    Error submitting solution: {err}").red());
-                failed_tests.push(path)
+                    break;
+                }
             }
         }
     }
@@ -233,9 +167,17 @@ async fn validation_e2e() -> anyhow::Result<()> {
 fn parse_solution(
     path: &std::path::Path,
     compiled_contract: &pintc::asm_gen::CompiledContract,
+    contract_addr: &ContentAddress,
 ) -> anyhow::Result<Solution> {
     let toml_content_str = std::fs::read_to_string(path)?;
     let toml_content = toml_content_str.parse::<toml::Value>()?;
+
+    let names_to_predicates = compiled_contract
+        .names
+        .iter()
+        .zip(compiled_contract.predicates.iter())
+        .map(|(name, predicate)| (name.clone(), predicate))
+        .collect::<HashMap<_, _>>();
 
     let data = match toml_content.get("data") {
         Some(data) => data
@@ -265,24 +207,29 @@ fn parse_solution(
                 // The predicate to solve is either `Transient` or `Persistent`
                 let predicate_to_solve = match e.get("predicate_to_solve") {
                     Some(s) => PredicateAddress {
-                        contract: ContentAddress(hex_to_bytes(
-                            s.get("set").and_then(|set| set.as_str()).ok_or_else(|| {
-                                anyhow!("Invalid persistent predicate_to_solve set")
-                            })?,
-                        )),
+                        contract: {
+                            if let Some(contract) = s.get("set") {
+                                ContentAddress(hex_to_bytes(contract.as_str().ok_or_else(
+                                    || anyhow!("Invalid persistent predicate_to_solve set"),
+                                )?))
+                            } else {
+                                contract_addr.clone()
+                            }
+                        },
                         predicate: match s.get("predicate") {
                             // Here, we convert the predicate name into an address that is equal to
                             // the index of the predicate in the contract. This just a way to later
                             // figure out what constraints we have to check.
                             Some(predicate) => {
-                                let index = compiled_contract
-                                    .names
-                                    .iter()
-                                    .position(|name| name == predicate.as_str().unwrap())
-                                    .unwrap_or_default();
-                                let mut bytes: [u8; 32] = [0; 32];
-                                bytes[31] = index as u8;
-                                ContentAddress(bytes)
+                                if let Some(predicate) =
+                                    names_to_predicates.get(predicate.as_str().unwrap())
+                                {
+                                    essential_hash::content_addr(&predicate)
+                                } else {
+                                    ContentAddress(hex_to_bytes(predicate.as_str().ok_or_else(
+                                        || anyhow!("Invalid persistent predicate_to_solve set"),
+                                    )?))
+                                }
                             }
                             None => {
                                 return Err(anyhow!("Invalid persistent predicate_to_solve set"))
@@ -370,4 +317,40 @@ fn parse_solution(
     };
 
     Ok(Solution { data })
+}
+
+fn parse_db_section(
+    path: &std::path::Path,
+    pre_state: &mut State,
+    contract_addr: &ContentAddress,
+) -> anyhow::Result<()> {
+    // Parse the db section. This can include internal and external storage addresses.
+    if let Some(db) = &parse_test_data(path)?.db {
+        for line in db.lines() {
+            // Collect key and value. Assume the key is a hex and the value is a u64
+            let split = line.split(',').collect::<Vec<_>>();
+            let (contract_addr, key, value) = if split.len() == 3 {
+                // External key
+                (ContentAddress(hex_to_bytes(split[0])), split[1], split[2])
+            } else if split.len() == 2 {
+                // Internal key
+                (contract_addr.clone(), split[0], split[1])
+            } else {
+                panic!("Error parsing db section");
+            };
+
+            pre_state.set(
+                contract_addr,
+                &key.split_ascii_whitespace()
+                    .map(|k| k.parse::<i64>().expect("value must be a i64"))
+                    .collect::<Vec<_>>(),
+                value
+                    .split_ascii_whitespace()
+                    .map(|k| k.parse::<i64>().expect("value must be a i64"))
+                    .collect::<Vec<_>>(),
+            );
+        }
+    }
+
+    Ok(())
 }

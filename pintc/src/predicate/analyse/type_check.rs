@@ -630,42 +630,74 @@ impl Contract {
                 ..
             } in &self.preds[pred_key].predicate_instances
             {
-                // Make sure that an appropriate interface instance exists and an appropriate
-                // predicate interface exists.
-                if let Some(interface_instance) = self.preds[pred_key]
-                    .interface_instances
-                    .iter()
-                    .find(|e| e.name.to_string() == *interface_instance)
-                {
-                    if let Some(interface) = self
-                        .interfaces
+                if let Some(interface_instance) = interface_instance {
+                    // Make sure that an appropriate interface instance exists and an appropriate
+                    // predicate interface exists.
+                    if let Some(interface_instance) = self.preds[pred_key]
+                        .interface_instances
                         .iter()
-                        .find(|e| e.name.to_string() == *interface_instance.interface)
+                        .find(|e| e.name.to_string() == *interface_instance)
                     {
-                        if interface
-                            .predicate_interfaces
+                        if let Some(interface) = self
+                            .interfaces
                             .iter()
-                            .any(|e| e.name.to_string() == *predicate.to_string())
+                            .find(|e| e.name.to_string() == *interface_instance.interface)
                         {
-                            // OK. Type check this address below.
-                            addr_keys.push(*address);
-                        } else {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::MissingPredicateInterface {
-                                    pred_name: predicate.name.to_string(),
-                                    interface_name: interface.name.to_string(),
-                                    span: span.clone(),
-                                },
-                            });
+                            if interface
+                                .predicate_interfaces
+                                .iter()
+                                .any(|e| e.name.to_string() == *predicate.to_string())
+                            {
+                                // OK. Type check this address below.
+                                if let Some(address) = *address {
+                                    addr_keys.push(address);
+                                }
+                            } else {
+                                handler.emit_err(Error::Compile {
+                                    error: CompileError::MissingPredicate {
+                                        pred_name: predicate.name.to_string(),
+                                        interface_name: Some(interface.name.to_string()),
+                                        span: span.clone(),
+                                    },
+                                });
+                            }
                         }
+                    } else {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::MissingInterfaceInstance {
+                                name: interface_instance.clone(),
+                                span: span.clone(),
+                            },
+                        });
                     }
                 } else {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::MissingInterfaceInstance {
-                            name: interface_instance.clone(),
-                            span: span.clone(),
-                        },
-                    });
+                    // This predicate instance must reference a local predicate since
+                    // `interface_instance` is `None`. If not, emit an error.
+
+                    // Self referential predicates are not allowed.
+                    if "::".to_owned() + &predicate.name == self.preds[pred_key].name {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::SelfReferencialPredicate {
+                                pred_name: predicate.name.to_string(),
+                                span: span.clone(),
+                            },
+                        });
+                    }
+
+                    // If the predicate does not exist, emit an error
+                    if self
+                        .preds
+                        .iter()
+                        .all(|(_, pred)| pred.name != "::".to_owned() + &predicate.name)
+                    {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::MissingPredicate {
+                                pred_name: predicate.name.to_string(),
+                                interface_name: None,
+                                span: span.clone(),
+                            },
+                        });
+                    }
                 }
             }
 
@@ -1271,9 +1303,10 @@ impl Contract {
                 .iter()
                 .find(|e| e.name.to_string() == *interface_instance.interface)
             else {
-                // No need to emit an error here because a `MissingInterface` error should have already
-                // been emitted earlier when all interface instances were type checked. Instead, we
-                // just return an `Unknown` type knowing that the compilation will fail anyways.
+                // No need to emit an error here because a `MissingInterface` error should have
+                // already been emitted earlier when all interface instances were type checked.
+                // Instead, we just return an `Unknown` type knowing that the compilation will fail
+                // anyways.
                 return Inference::Type(Type::Unknown(empty_span()));
             };
 
@@ -1313,8 +1346,8 @@ impl Contract {
     }
 
     fn infer_extern_var(&self, pred: &Predicate, path: &Path) -> Option<Inference> {
-        // Look through all available predicate instances and their corresponding interfaces for a var
-        // with the same path as `path`
+        // Look through all available predicate instances and their corresponding interfaces for a
+        // var with the same path as `path`
         for PredicateInstance {
             name,
             interface_instance,
@@ -1322,24 +1355,43 @@ impl Contract {
             ..
         } in &pred.predicate_instances
         {
-            if let Some(interface_instance) = pred
-                .interface_instances
-                .iter()
-                .find(|e| e.name.to_string() == *interface_instance)
-            {
-                if let Some(interface) = self
-                    .interfaces
+            if let Some(interface_instance) = interface_instance {
+                if let Some(interface_instance) = pred
+                    .interface_instances
                     .iter()
-                    .find(|e| e.name.to_string() == *interface_instance.interface)
+                    .find(|e| e.name.to_string() == *interface_instance)
                 {
-                    if let Some(predicate) = interface
-                        .predicate_interfaces
+                    if let Some(interface) = self
+                        .interfaces
                         .iter()
-                        .find(|e| e.name.to_string() == *predicate.to_string())
+                        .find(|e| e.name.to_string() == *interface_instance.interface)
                     {
-                        for var in &predicate.vars {
-                            if name.to_string() + "::" + &var.name.name == *path {
-                                return Some(Inference::Type(var.ty.clone()));
+                        if let Some(predicate) = interface
+                            .predicate_interfaces
+                            .iter()
+                            .find(|e| e.name.to_string() == *predicate.to_string())
+                        {
+                            for var in &predicate.vars {
+                                if name.to_string() + "::" + &var.name.name == *path {
+                                    return Some(Inference::Type(var.ty.clone()));
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Search for a local predicate that matches the full name of `predicate`. Also,
+                // `predicate` must not reference `pred`.
+                let full_predicate_name = "::".to_owned() + &predicate.name;
+                if full_predicate_name != pred.name {
+                    if let Some((_, predicate)) = self
+                        .preds
+                        .iter()
+                        .find(|(_, e)| e.name == full_predicate_name)
+                    {
+                        for (var_key, var) in predicate.vars() {
+                            if var.is_pub && name.to_string() + &var.name == *path {
+                                return Some(Inference::Type(var_key.get_ty(predicate).clone()));
                             }
                         }
                     }

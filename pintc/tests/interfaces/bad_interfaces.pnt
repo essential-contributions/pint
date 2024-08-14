@@ -65,7 +65,7 @@ predicate Simple {
 // cannot find interface instance `::MissingInterfaceInstance`
 // @384..437: cannot find interface instance `::MissingInterfaceInstance`
 // cannot find predicate `MissingPredicate` in interface `::Foo`
-// @466..522: cannot find predicate `MissingPredicate` in interface `::Foo`
+// @466..522: this predicate instance references predicate `MissingPredicate` which does not exist in interface `::Foo`
 // cannot find value `::I1::missing_var` in this scope
 // @613..628: not found in this scope
 // >>>

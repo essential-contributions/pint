@@ -16,7 +16,7 @@ __this_address() -> b256
 ---
 
 ```pint
-__this_set_address() -> b256
+__this_contract_address() -> b256
 ```
 
 **Description:** Returns the content hash of the contract that this predicate belongs to.

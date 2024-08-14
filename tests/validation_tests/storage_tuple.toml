@@ -1,101 +1,21 @@
 [[data]]
-decision_variables = []
-predicate_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", predicate = "::Foo" }
+predicate_to_solve = { predicate = "::Bar" }
 state_mutations = [
-  { key = [
-    2,
-    0,
-  ], value = [
-    9,
-    9,
-    9,
-    9,
-  ] },
-  { key = [
-    2,
-    1,
-  ], value = [
-    2,
-  ] },
-  { key = [
-    2,
-    2,
-  ], value = [
-    3,
-  ] },
-  { key = [
-    3,
-    69,
-    0,
-  ], value = [
-    5,
-    5,
-    5,
-    5,
-  ] },
-  { key = [
-    3,
-    69,
-    1,
-  ], value = [
-    12345,
-  ] },
-  { key = [
-    3,
-    69,
-    2,
-  ], value = [
-    54321,
-  ] },
+  { key = [2, 0], value = [9, 9, 9, 9] },     # storage::w.addr
+  { key = [2, 1], value = [2] },              # storage::w.inner.x
+  { key = [2, 2], value = [3] },              # storage::w.inner.1
+  { key = [3, 69, 0], value = [5, 5, 5, 5] }, # storage::map_to_tuples[69].0
+  { key = [3, 69, 1], value = [12345] },      # storage::map_to_tuples[69].1.0
+  { key = [3, 69, 2], value = [54321] },      # storage::map_to_tuples[69].1.1
 ]
 
 [[data]]
-decision_variables = []
-predicate_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", predicate = "" }
+predicate_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", predicate = "0x0000000000000000000000000000000000000000000000000000000000000000" }
 state_mutations = [
-  { key = [
-    2,
-    0,
-  ], value = [
-    8,
-    8,
-    8,
-    8,
-  ] },
-  { key = [
-    2,
-    1,
-  ], value = [
-    4,
-  ] },
-  { key = [
-    2,
-    2,
-  ], value = [
-    5,
-  ] },
-  { key = [
-    3,
-    69,
-    0,
-  ], value = [
-    4,
-    4,
-    4,
-    4,
-  ] },
-  { key = [
-    3,
-    69,
-    1,
-  ], value = [
-    2345,
-  ] },
-  { key = [
-    3,
-    69,
-    2,
-  ], value = [
-    5432,
-  ] },
+  { key = [2, 0], value = [8, 8, 8, 8] },     # FooInstance::storage::w.addr
+  { key = [2, 1], value = [4] },              # FooInstance::storage::w.inner.x             
+  { key = [2, 2], value = [5] },              # FooInstance::storage::w.inner.1
+  { key = [3, 69, 0], value = [4, 4, 4, 4] }, # FooInstance::storage::map_to_tuples[69].0
+  { key = [3, 69, 1], value = [2345] },       # FooInstance::storage::map_to_tuples[69].1.0
+  { key = [3, 69, 2], value = [5432] },       # FooInstance::storage::map_to_tuples[69].1.1
 ]

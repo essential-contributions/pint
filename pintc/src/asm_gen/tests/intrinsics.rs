@@ -36,14 +36,14 @@ fn this_address() {
 }
 
 #[test]
-fn this_set_address() {
+fn this_contract_address() {
     check(
         &format!(
             "{}",
             compile(
                 r#"
             predicate test {
-                var this_set_address = __this_set_address();
+                var this_contract_address = __this_contract_address();
             }
             "#,
             )

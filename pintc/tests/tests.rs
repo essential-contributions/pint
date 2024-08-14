@@ -252,20 +252,20 @@ mod e2e {
         };
     }
 
-    e2e_test!(basic_tests);
-    e2e_test!(macros);
-    e2e_test!(types);
-    e2e_test!(generators);
-    e2e_test!(arrays);
-    e2e_test!(modules);
-    e2e_test!(asm);
-    e2e_test!(contracts);
-    e2e_test!(storage);
-    e2e_test!(intrinsics);
-    e2e_test!(root_types);
-    e2e_test!(interfaces);
-    e2e_test!(evaluator);
     e2e_test!(abi);
+    e2e_test!(arrays);
+    e2e_test!(asm);
+    e2e_test!(basic_tests);
     e2e_test!(consts);
+    e2e_test!(contracts);
+    e2e_test!(evaluator);
+    e2e_test!(generators);
+    e2e_test!(interfaces);
+    e2e_test!(intrinsics);
+    e2e_test!(macros);
+    e2e_test!(modules);
     e2e_test!(regression);
+    e2e_test!(root_types);
+    e2e_test!(storage);
+    e2e_test!(types);
 }

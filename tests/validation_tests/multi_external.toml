@@ -1,13 +1,16 @@
 [[data]]
-decision_variables = []
-predicate_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", predicate = "::Foo" }
+predicate_to_solve = { predicate = "::Foo" }
 
 [[data]]
-decision_variables = []
-predicate_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", predicate = "" }
-state_mutations = [{ key = [0], value = [43] }, { key = [1], value = [71] }]
+predicate_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", predicate = "0x0000000000000000000000000000000000000000000000000000000000000000" }
+state_mutations = [
+  { key = [0], value = [43] }, # BarInstance::storage::x
+  { key = [1], value = [71] }, # BarInstance::storage::y;
+]
 
 [[data]]
-decision_variables = []
-predicate_to_solve = { set = "0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD", predicate = "" }
-state_mutations = [{ key = [0], value = [102] }, { key = [1], value = [170] }]
+predicate_to_solve = { set = "0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD", predicate = "0x0000000000000000000000000000000000000000000000000000000000000000" }
+state_mutations = [
+  { key = [0], value = [102] }, # BazInstance::storage::x
+  { key = [1], value = [170] }, # BazInstance::storage::y
+]

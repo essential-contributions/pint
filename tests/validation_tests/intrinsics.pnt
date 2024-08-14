@@ -11,20 +11,11 @@ storage {
     w: b256,
 }
 
-// Constraint set with address `0x0000000000000000000000000000000000000000000000000000000000000000`
 predicate First { }
 
-// Constraint set with address `0x0000000000000000000000000000000000000000000000000000000000000001`
 predicate Bar { }
 
-// Constraint set with address `0x0000000000000000000000000000000000000000000000000000000000000002`
 predicate Foo {
-    var this_address: b256 = __this_address();
-    constraint this_address == 0x0000000000000000000000000000000000000000000000000000000000000002;
-
-    var this_set_address: b256 = __this_set_address();
-    constraint this_set_address == 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
-
     var this_pathway: int = __this_pathway();
     constraint this_pathway == 0;
 

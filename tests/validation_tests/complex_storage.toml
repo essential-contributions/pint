@@ -1,54 +1,9 @@
 [[data]]
-decision_variables = []
-predicate_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", predicate = "::Foo" }
+predicate_to_solve = { predicate = "::Foo" }
 state_mutations = [
-  { key = [
-    0,
-  ], value = [
-    1,
-    1,
-    1,
-    1,
-  ] },
-  { key = [
-    1,
-  ], value = [
-    2,
-    3,
-    4,
-    5,
-  ] },
-  { key = [
-    2,
-    69,
-  ], value = [
-    9,
-    9,
-    9,
-    9,
-  ] },
-  { key = [
-    3,
-    9,
-    1,
-    2,
-    3,
-    4,
-  ], value = [
-    42,
-  ] },
-  { key = [
-    4,
-    88,
-    8,
-    7,
-    6,
-    5,
-    999,
-  ], value = [
-    15,
-    15,
-    15,
-    15,
-  ] },
+  { key = [0], value = [1, 1, 1, 1] },                          # storage::address
+  { key = [1], value = [2, 3, 4, 5] },                          # storage::address2
+  { key = [2, 69], value = [9, 9, 9, 9] },                      # storage::map[69]
+  { key = [3, 9, 1, 2, 3, 4], value = [42] },                   # map_in_map[9][0x0000000000000001000000000000000200000000000000030000000000000004]
+  { key = [4, 88, 8, 7, 6, 5, 999], value = [15, 15, 15, 15] }, # storage::map_in_map_in_map[88][0x0000000000000008000000000000000700000000000000060000000000000005][999]
 ]

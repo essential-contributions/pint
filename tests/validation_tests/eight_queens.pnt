@@ -1,6 +1,6 @@
 // n-Queens problem:: Place n queens on an nxn chessboard so that none can attack another.
 
-predicate test {
+predicate Test {
     // Queen in column i is in row q[i]
     var q: int[8];
 

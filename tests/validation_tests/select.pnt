@@ -1,4 +1,4 @@
-predicate test {
+predicate Test {
     var x: int = 2;
     var y: int = 3;
     var z1: int = true ? x + y : x * y;

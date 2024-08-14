@@ -1,0 +1,67 @@
+predicate Foo {
+    predicate Bar = Bar();
+    constraint Bar::x == 0;
+}
+predicate Baz {
+    predicate Bar = Bar();
+}
+
+predicate P {
+    pub var x: int;
+    predicate PI = P();
+    constraint PI::x == 0;
+}
+
+predicate A {
+    var x: int;
+}
+
+predicate B {
+    predicate AI = A();
+    constraint AI::x == 0; // `x` is not `pub` in `A`
+}
+
+// parsed <<<
+// predicate ::Foo {
+//     predicate ::Bar = ::Bar()
+//     var __::Bar_pathway: int;
+//     constraint (::Bar::x == 0);
+// }
+// 
+// predicate ::Baz {
+//     predicate ::Bar = ::Bar()
+//     var __::Bar_pathway: int;
+// }
+//
+// predicate ::P {
+//     predicate ::PI = ::P()
+//     pub var ::x: int;
+//     var __::PI_pathway: int;
+//     constraint (::PI::x == 0);
+// }
+//
+// predicate ::A {
+//     var ::x: int;
+// }
+// 
+// predicate ::B {
+//     predicate ::AI = ::A()
+//     var __::AI_pathway: int;
+//     constraint (::AI::x == 0);
+// }
+// >>>
+
+// typecheck_failure <<<
+// cannot find predicate `Bar` in this contract
+// @20..41: this predicate instance references predicate `Bar` which does not exist in this contract
+// cannot find predicate `Bar` in this contract
+// @93..114: this predicate instance references predicate `Bar` which does not exist in this contract
+// self referential predicate `P`
+// @157..175: this predicate instance references the predicate it's declared in
+// cannot find value `::Bar::x` in this scope
+// @58..64: not found in this scope
+// cannot find value `::PI::x` in this scope
+// @192..197: not found in this scope
+// cannot find value `::AI::x` in this scope
+// @293..298: not found in this scope
+// >>>
