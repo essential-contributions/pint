@@ -28,16 +28,4 @@ predicate test {
 // @69..72: operator `!` argument has unexpected type `int`
 // unary operator type error
 // @86..93: operator `!` argument has unexpected type `string`
-// constraint expression type error
-// @21..34: constraint expression has unknown type
-// @21..34: expecting type `bool`
-// constraint expression type error
-// @40..54: constraint expression has unknown type
-// @40..54: expecting type `bool`
-// constraint expression type error
-// @61..72: constraint expression has unknown type
-// @61..72: expecting type `bool`
-// constraint expression type error
-// @78..93: constraint expression has unknown type
-// @78..93: expecting type `bool`
 // >>>

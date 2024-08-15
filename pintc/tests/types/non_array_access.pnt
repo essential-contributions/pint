@@ -14,7 +14,6 @@ predicate test {
 // typecheck_failure <<<
 // indexed expression invalid
 // @50..54: value must be an array or a storage map; found `real`
-// constraint expression type error
-// @39..62: constraint expression has unknown type
-// @39..62: expecting type `bool`
+// indexed expression invalid
+// @58..62: value must be an array or a storage map; found `real`
 // >>>

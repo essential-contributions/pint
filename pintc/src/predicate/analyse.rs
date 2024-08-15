@@ -190,21 +190,13 @@ impl Contract {
                 if let Some(imm_value) = all_const_immediates.get(path) {
                     // Check the type is valid.
                     let span = self.expr_key_to_span(*expr);
-                    match self.infer_immediate(imm_value, &span) {
-                        Ok(inferred) => match inferred {
-                            Inference::Type(new_ty) => {
-                                type_replacements.push((path.clone(), new_ty))
-                            }
+                    match self.infer_immediate(handler, imm_value, &span) {
+                        Inference::Type(new_ty) => type_replacements.push((path.clone(), new_ty)),
 
-                            Inference::Ignored
-                            | Inference::Dependant(_)
-                            | Inference::Dependencies(_) => {
-                                emit_internal("const inferred a dependant type");
-                            }
-                        },
-
-                        Err(err) => {
-                            handler.emit_err(err);
+                        Inference::Ignored
+                        | Inference::Dependant(_)
+                        | Inference::Dependencies(_) => {
+                            emit_internal("const inferred a dependant type");
                         }
                     }
                 } else {

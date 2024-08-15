@@ -1,6 +1,6 @@
 use super::Inference;
 use super::{Contract, ExprKey, Ident, Predicate};
-use crate::error::Handler;
+use crate::error::{ErrorEmitted, Handler};
 use crate::{
     error::{CompileError, Error},
     expr::{Expr, UnaryOp},
@@ -16,7 +16,7 @@ impl Contract {
         name: &Ident,
         args: &[ExprKey],
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Result<Inference, ErrorEmitted> {
         let mut deps = Vec::new();
 
         args.iter()
@@ -42,12 +42,12 @@ impl Contract {
                 "__state_len" => Ok(infer_intrinsic_state_len(self, handler, pred, args, span)),
                 "__vec_len" => Ok(infer_intrinsic_vec_len(self, handler, pred, args, span)),
 
-                _ => Err(Error::Compile {
+                _ => Err(handler.emit_err(Error::Compile {
                     error: CompileError::MissingIntrinsic {
                         name: name.name.clone(),
                         span: span.clone(),
                     },
-                }),
+                })),
             }
         } else {
             Ok(Inference::Dependencies(deps))

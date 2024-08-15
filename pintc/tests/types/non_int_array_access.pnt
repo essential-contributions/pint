@@ -15,7 +15,7 @@ predicate test {
 // attempt to index an array with a mismatched value
 // @58..63: array access must be with an int value
 // found access using type `bool`
-// constraint expression type error
-// @43..77: constraint expression has unknown type
-// @43..77: expecting type `bool`
+// attempt to index an array with a mismatched value
+// @72..76: array access must be with an int value
+// found access using type `real`
 // >>>

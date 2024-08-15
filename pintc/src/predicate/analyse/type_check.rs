@@ -401,9 +401,7 @@ impl Contract {
             .map(|(_, Const { expr, .. })| *expr)
             .collect::<Vec<_>>();
         for expr_key in const_expr_keys {
-            if let Err(err) = self.type_check_single_expr(handler, None, expr_key) {
-                handler.emit_err(err);
-            }
+            let _ = self.type_check_single_expr(handler, None, expr_key);
         }
 
         for pred_key in self.preds.keys().collect::<Vec<_>>() {
@@ -418,9 +416,7 @@ impl Contract {
                 .collect::<Vec<_>>();
 
             for expr_key in all_expr_keys {
-                if let Err(err) = self.type_check_single_expr(handler, Some(pred_key), expr_key) {
-                    handler.emit_err(err);
-                }
+                let _ = self.type_check_single_expr(handler, Some(pred_key), expr_key);
             }
 
             // Now check all if declarations
@@ -570,12 +566,12 @@ impl Contract {
                 .collect::<Vec<_>>()
                 .iter()
             {
-                if let Err(err) = self.type_check_single_expr(handler, Some(pred_key), *range_expr)
-                {
-                    handler.emit_err(err);
-                } else if !(range_expr.get_ty(self).is_int()
-                    || range_expr.get_ty(self).is_enum(&self.enums)
-                    || checked_range_exprs.contains(range_expr))
+                if self
+                    .type_check_single_expr(handler, Some(pred_key), *range_expr)
+                    .is_ok()
+                    && !(range_expr.get_ty(self).is_int()
+                        || range_expr.get_ty(self).is_enum(&self.enums)
+                        || checked_range_exprs.contains(range_expr))
                 {
                     handler.emit_err(Error::Compile {
                         error: CompileError::InvalidArrayRangeType {
@@ -684,30 +680,27 @@ impl Contract {
         addr_keys: &[ExprKey],
     ) {
         for address in addr_keys {
-            match self.type_check_single_expr(handler, pred_key, *address) {
-                Ok(()) => {
-                    let ty = address.get_ty(self);
-                    if !ty.is_b256() {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::AddressExpressionTypeError {
-                                large_err: Box::new(LargeTypeError::AddressExpressionTypeError {
-                                    expected_ty: self
-                                        .with_ctrct(Type::Primitive {
-                                            kind: PrimitiveKind::B256,
-                                            span: empty_span(),
-                                        })
-                                        .to_string(),
-                                    found_ty: self.with_ctrct(ty).to_string(),
-                                    span: self.expr_key_to_span(*address),
-                                    expected_span: Some(self.expr_key_to_span(*address)),
-                                }),
-                            },
-                        });
-                    }
-                }
-
-                Err(err) => {
-                    handler.emit_err(err);
+            if self
+                .type_check_single_expr(handler, pred_key, *address)
+                .is_ok()
+            {
+                let ty = address.get_ty(self);
+                if !ty.is_b256() {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::AddressExpressionTypeError {
+                            large_err: Box::new(LargeTypeError::AddressExpressionTypeError {
+                                expected_ty: self
+                                    .with_ctrct(Type::Primitive {
+                                        kind: PrimitiveKind::B256,
+                                        span: empty_span(),
+                                    })
+                                    .to_string(),
+                                found_ty: self.with_ctrct(ty).to_string(),
+                                span: self.expr_key_to_span(*address),
+                                expected_span: Some(self.expr_key_to_span(*address)),
+                            }),
+                        },
+                    });
                 }
             }
         }
@@ -762,9 +755,10 @@ impl Contract {
         } = if_decl;
 
         // Make sure the condition is a `bool`
-        if let Err(err) = self.type_check_single_expr(handler, pred_key, *condition) {
-            handler.emit_err(err);
-        } else {
+        if self
+            .type_check_single_expr(handler, pred_key, *condition)
+            .is_ok()
+        {
             let cond_ty = condition.get_ty(self);
             if !cond_ty.is_bool() {
                 handler.emit_err(Error::Compile {
@@ -796,9 +790,7 @@ impl Contract {
     ) {
         match block_statement {
             BlockStatement::Constraint(ConstraintDecl { expr, .. }) => {
-                if let Err(err) = self.type_check_single_expr(handler, pred_key, *expr) {
-                    handler.emit_err(err);
-                }
+                let _ = self.type_check_single_expr(handler, pred_key, *expr);
             }
             BlockStatement::If(if_decl) => self.type_check_if_decl(handler, pred_key, if_decl),
         }
@@ -809,20 +801,20 @@ impl Contract {
         handler: &Handler,
         pred_key: Option<PredKey>,
         expr_key: ExprKey,
-    ) -> Result<(), Error> {
+    ) -> Result<(), ErrorEmitted> {
         // Attempt to infer all the types of each expr.
         let mut queue = Vec::new();
 
         // Utility to check for recursion in the queue.  A macro to avoid borrowing self.
         macro_rules! push_to_queue {
-            ($dependant_key: ident, $dependency_key: ident) => {
+            ($handler: expr, $dependant_key: ident, $dependency_key: ident) => {
                 if queue.contains(&$dependency_key) {
-                    Err(Error::Compile {
+                    Err($handler.emit_err(Error::Compile {
                         error: CompileError::ExprRecursion {
                             dependant_span: self.expr_key_to_span($dependant_key),
                             dependency_span: self.expr_key_to_span($dependency_key),
                         },
-                    })
+                    }))
                 } else {
                     queue.push($dependency_key);
                     Ok(())
@@ -855,11 +847,13 @@ impl Contract {
                     // expr.  When pushing dependencies we need to check if they're already
                     // queued, in which case we have a recursive dependency and an error.
                     Ok(Inference::Dependant(dep_expr_key)) => {
-                        push_to_queue!(next_key, dep_expr_key)?
+                        push_to_queue!(handler, next_key, dep_expr_key)?
                     }
-                    Ok(Inference::Dependencies(mut dep_expr_keys)) => dep_expr_keys
-                        .drain(..)
-                        .try_for_each(|dep_expr_key| push_to_queue!(next_key, dep_expr_key))?,
+                    Ok(Inference::Dependencies(mut dep_expr_keys)) => {
+                        dep_expr_keys.drain(..).try_for_each(|dep_expr_key| {
+                            push_to_queue!(handler, next_key, dep_expr_key)
+                        })?
+                    }
 
                     // Some expressions (e.g., macro calls) just aren't valid any longer and
                     // are best ignored.
@@ -871,7 +865,7 @@ impl Contract {
                     // expr_key as failing so that we don't check it again and report the
                     // error more than once.
                     Err(inference_error) => {
-                        next_key.set_ty(Type::Error(inference_error.span().clone()), self);
+                        next_key.set_ty(Type::Error(next_key.get(self).span().clone()), self);
                         return Err(inference_error);
                     }
                 }
@@ -886,51 +880,61 @@ impl Contract {
         handler: &Handler,
         pred: Option<&Predicate>,
         expr_key: ExprKey,
-    ) -> Result<Inference, Error> {
-        let expr: &Expr = expr_key.try_get(self).ok_or_else(|| Error::Compile {
-            error: CompileError::Internal {
-                msg: "orphaned expr key when type checking",
-                span: empty_span(),
-            },
+    ) -> Result<Inference, ErrorEmitted> {
+        let expr: &Expr = expr_key.try_get(self).ok_or_else(|| {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "orphaned expr key when type checking",
+                    span: empty_span(),
+                },
+            })
         })?;
 
         match expr {
-            Expr::Error(span) => Err(Error::Compile {
+            Expr::Error(span) => Err(handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "unable to type check from error expression",
                     span: span.clone(),
                 },
-            }),
+            })),
 
-            Expr::Immediate { value, span } => self.infer_immediate(value, span),
+            Expr::Immediate { value, span } => Ok(self.infer_immediate(handler, value, span)),
 
             Expr::Array {
                 elements,
                 range_expr,
                 span,
-            } => self.infer_array_expr(*range_expr, elements, span),
+            } => Ok(self.infer_array_expr(handler, *range_expr, elements, span)),
 
-            Expr::Tuple { fields, span } => self.infer_tuple_expr(fields, span),
+            Expr::Tuple { fields, span } => Ok(self.infer_tuple_expr(fields, span)),
 
-            Expr::Path(path, span) => self.infer_path_by_name(pred, path, span),
+            Expr::Path(path, span) => Ok(self.infer_path_by_name(handler, pred, path, span)),
 
-            Expr::StorageAccess { name, span, .. } => self.infer_storage_access(name, span),
+            Expr::StorageAccess { name, span, .. } => {
+                Ok(self.infer_storage_access(handler, name, span))
+            }
 
             Expr::ExternalStorageAccess {
                 interface_instance,
                 name,
                 span,
                 ..
-            } => self.infer_external_storage_access(pred, interface_instance, name, span),
+            } => Ok(self.infer_external_storage_access(
+                handler,
+                pred,
+                interface_instance,
+                name,
+                span,
+            )),
 
             Expr::UnaryOp {
                 op,
                 expr: op_expr_key,
                 span,
-            } => self.infer_unary_op(pred, *op, *op_expr_key, span),
+            } => Ok(self.infer_unary_op(handler, pred, *op, *op_expr_key, span)),
 
             Expr::BinaryOp { op, lhs, rhs, span } => {
-                self.infer_binary_op(pred, *op, *lhs, *rhs, span)
+                Ok(self.infer_binary_op(handler, pred, *op, *lhs, *rhs, span))
             }
 
             Expr::MacroCall { .. } => Ok(Inference::Ignored),
@@ -944,23 +948,25 @@ impl Contract {
                 then_expr,
                 else_expr,
                 span,
-            } => self.infer_select_expr(*condition, *then_expr, *else_expr, span),
+            } => Ok(self.infer_select_expr(handler, *condition, *then_expr, *else_expr, span)),
 
-            Expr::Index { expr, index, span } => self.infer_index_expr(*expr, *index, span),
-
-            Expr::TupleFieldAccess { tuple, field, span } => {
-                self.infer_tuple_access_expr(*tuple, field, span)
+            Expr::Index { expr, index, span } => {
+                Ok(self.infer_index_expr(handler, *expr, *index, span))
             }
 
-            Expr::Cast { value, ty, span } => self.infer_cast_expr(*value, ty, span),
+            Expr::TupleFieldAccess { tuple, field, span } => {
+                Ok(self.infer_tuple_access_expr(handler, *tuple, field, span))
+            }
+
+            Expr::Cast { value, ty, span } => Ok(self.infer_cast_expr(handler, *value, ty, span)),
 
             Expr::In {
                 value,
                 collection,
                 span,
-            } => self.infer_in_expr(*value, *collection, span),
+            } => Ok(self.infer_in_expr(handler, *value, *collection, span)),
 
-            Expr::Range { lb, ub, span } => self.infer_range_expr(*lb, *ub, span),
+            Expr::Range { lb, ub, span } => Ok(self.infer_range_expr(handler, *lb, *ub, span)),
 
             Expr::Generator {
                 kind,
@@ -968,100 +974,112 @@ impl Contract {
                 conditions,
                 body,
                 span,
-            } => self.infer_generator_expr(kind, gen_ranges, conditions, *body, span),
+            } => Ok(self.infer_generator_expr(handler, kind, gen_ranges, conditions, *body, span)),
         }
     }
 
-    pub(super) fn infer_immediate(&self, imm: &Immediate, span: &Span) -> Result<Inference, Error> {
+    pub(super) fn infer_immediate(
+        &self,
+        handler: &Handler,
+        imm: &Immediate,
+        span: &Span,
+    ) -> Inference {
         if let Immediate::Array(el_imms) = imm {
-            // Immediate::get_ty() assumes the array is well formed.  We need to
+            // Immediate::get_ty() assumes the array is well formed. We need to
             // confirm here.
             if el_imms.is_empty() {
-                return Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::EmptyArrayExpression { span: span.clone() },
                 });
+                return Inference::Type(Type::Error(span.clone()));
             }
 
             // Get the assumed type.
             let ary_ty = imm.get_ty(Some(span));
             let Type::Array { ty: el0_ty, .. } = &ary_ty else {
-                return Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "array immediate does NOT have an array type?",
                         span: span.clone(),
                     },
                 });
+                return Inference::Type(Type::Error(span.clone()));
             };
 
-            el_imms.iter().try_for_each(|el_imm| {
+            let _ = el_imms.iter().try_for_each(|el_imm| {
                 let el_ty = el_imm.get_ty(None);
                 if !el_ty.eq(&self.new_types, el0_ty.as_ref()) {
-                    Err(Error::Compile {
+                    handler.emit_err(Error::Compile {
                         error: CompileError::NonHomogeneousArrayElement {
                             expected_ty: self.with_ctrct(el0_ty.as_ref()).to_string(),
                             ty: self.with_ctrct(el_ty).to_string(),
                             span: span.clone(),
                         },
-                    })
+                    });
+                    Err(())
                 } else {
                     Ok(())
                 }
-            })?;
+            });
 
-            Ok(Inference::Type(ary_ty))
+            Inference::Type(ary_ty)
         } else {
-            Ok(Inference::Type(imm.get_ty(Some(span))))
+            Inference::Type(imm.get_ty(Some(span)))
         }
     }
 
     fn infer_path_by_key(
         &self,
+        handler: &Handler,
         pred: &Predicate,
         var_key: VarKey,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         let ty = var_key.get_ty(pred);
         if !ty.is_unknown() {
-            Ok(Inference::Type(ty.clone()))
+            Inference::Type(ty.clone())
         } else if let Some(init_expr_key) = pred.var_inits.get(var_key) {
             let init_expr_ty = init_expr_key.get_ty(self);
             if !init_expr_ty.is_unknown() {
-                Ok(Inference::Type(init_expr_ty.clone()))
+                Inference::Type(init_expr_ty.clone())
             } else {
                 // We have a variable with an initialiser but don't know the initialiser type
                 // yet.
-                Ok(Inference::Dependant(*init_expr_key))
+                Inference::Dependant(*init_expr_key)
             }
         } else {
-            Err(Error::Compile {
+            handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "untyped variable doesn't have initialiser",
                     span: span.clone(),
                 },
-            })
+            });
+            Inference::Type(Type::Error(span.clone()))
         }
     }
 
     fn infer_path_by_name(
         &self,
+        handler: &Handler,
         pred: Option<&Predicate>,
         path: &Path,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         // If we're searching for an enum variant and it appears to be unqualified then we can
         // report some hints.
         let mut err_potential_enums = Vec::new();
 
         if let Some(Const { decl_ty, .. }) = self.consts.get(path) {
             if !decl_ty.is_unknown() {
-                Ok(Inference::Type(decl_ty.clone()))
+                Inference::Type(decl_ty.clone())
             } else {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "const decl has unknown type *after* evaluation",
                         span: span.clone(),
                     },
-                })
+                });
+                Inference::Type(Type::Error(span.clone()))
             }
         } else if let Some(ty) = self
             .new_types
@@ -1069,14 +1087,14 @@ impl Contract {
             .find_map(|NewTypeDecl { name, ty, .. }| (&name.name == path).then_some(ty))
         {
             // It's a fully matched newtype.
-            Ok(Inference::Type(ty.clone()))
+            Inference::Type(ty.clone())
         } else {
             // It might be an enum variant.  If it isn't we get a handy list of potential variant
             // names we can return in our error.
             let enum_res = self.infer_enum_variant_by_name(path);
             if let Ok(inf) = enum_res {
                 // Need to translate the type between Results.
-                Ok(inf)
+                inf
             } else {
                 // Save the enums variants list for the SymbolNotFound error if we need it.
                 let Err(enums_list) = enum_res else {
@@ -1091,47 +1109,49 @@ impl Contract {
                         .find_map(|(var_key, var)| (&var.name == path).then_some(var_key))
                     {
                         // It's a var.
-                        self.infer_path_by_key(pred, var_key, span)
+                        self.infer_path_by_key(handler, pred, var_key, span)
                     } else if let Some((state_key, state)) =
                         pred.states().find(|(_, state)| (&state.name == path))
                     {
                         // It's state.
                         let state_expr_ty = state.expr.get_ty(self);
                         let state_type = state_key.get_ty(pred);
-                        Ok(if !state_type.is_unknown() {
+                        if !state_type.is_unknown() {
                             Inference::Type(state_type.clone())
                         } else if !state_expr_ty.is_unknown() {
                             Inference::Type(state_expr_ty.clone())
                         } else {
                             Inference::Dependant(state.expr)
-                        })
+                        }
                     } else if let Some(EphemeralDecl { ty, .. }) = pred
                         .ephemerals
                         .iter()
                         .find(|eph_decl| &eph_decl.name == path)
                     {
                         // It's an ephemeral value.
-                        Ok(Inference::Type(ty.clone()))
+                        Inference::Type(ty.clone())
                     } else if let Some(ty) = self.infer_extern_var(pred, path) {
                         // It's an external var
-                        Ok(ty)
+                        ty
                     } else {
                         // None of the above.
-                        Err(Error::Compile {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::SymbolNotFound {
                                 name: path.clone(),
                                 span: span.clone(),
                                 enum_names: err_potential_enums,
                             },
-                        })
+                        });
+                        Inference::Type(Type::Error(span.clone()))
                     }
                 } else {
-                    Err(Error::Compile {
+                    handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
                             msg: "attempting to infer item without required predicate ref",
                             span: span.clone(),
                         },
-                    })
+                    });
+                    Inference::Type(Type::Error(span.clone()))
                 }
             }
         }
@@ -1195,33 +1215,40 @@ impl Contract {
             .ok_or(err_potential_enums)
     }
 
-    fn infer_storage_access(&self, name: &String, span: &Span) -> Result<Inference, Error> {
+    fn infer_storage_access(&self, handler: &Handler, name: &String, span: &Span) -> Inference {
         match self.storage.as_ref() {
             Some(storage) => match storage.0.iter().find(|s_var| s_var.name.name == *name) {
-                Some(s_var) => Ok(Inference::Type(s_var.ty.clone())),
-                None => Err(Error::Compile {
-                    error: CompileError::StorageSymbolNotFound {
+                Some(s_var) => Inference::Type(s_var.ty.clone()),
+                None => {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::StorageSymbolNotFound {
+                            name: name.clone(),
+                            span: span.clone(),
+                        },
+                    });
+                    Inference::Type(Type::Error(span.clone()))
+                }
+            },
+            None => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::MissingStorageBlock {
                         name: name.clone(),
                         span: span.clone(),
                     },
-                }),
-            },
-            None => Err(Error::Compile {
-                error: CompileError::MissingStorageBlock {
-                    name: name.clone(),
-                    span: span.clone(),
-                },
-            }),
+                });
+                Inference::Type(Type::Error(span.clone()))
+            }
         }
     }
 
     fn infer_external_storage_access(
         &self,
+        handler: &Handler,
         pred: Option<&Predicate>,
         interface_instance: &Path,
         name: &String,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         if let Some(pred) = pred {
             // Find the interface instance or emit an error
             let Some(interface_instance) = pred
@@ -1229,12 +1256,13 @@ impl Contract {
                 .iter()
                 .find(|e| e.name.to_string() == *interface_instance)
             else {
-                return Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::MissingInterfaceInstance {
                         name: interface_instance.clone(),
                         span: span.clone(),
                     },
                 });
+                return Inference::Type(Type::Unknown(empty_span()));
             };
 
             // Find the interface declaration corresponding to the interface instance
@@ -1246,34 +1274,41 @@ impl Contract {
                 // No need to emit an error here because a `MissingInterface` error should have already
                 // been emitted earlier when all interface instances were type checked. Instead, we
                 // just return an `Unknown` type knowing that the compilation will fail anyways.
-                return Ok(Inference::Type(Type::Unknown(empty_span())));
+                return Inference::Type(Type::Unknown(empty_span()));
             };
 
             // Then, look for the storage variable that this access refers to
             match interface.storage.as_ref() {
                 Some(storage) => match storage.0.iter().find(|s_var| s_var.name.name == *name) {
-                    Some(s_var) => Ok(Inference::Type(s_var.ty.clone())),
-                    None => Err(Error::Compile {
-                        error: CompileError::StorageSymbolNotFound {
+                    Some(s_var) => Inference::Type(s_var.ty.clone()),
+                    None => {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::StorageSymbolNotFound {
+                                name: name.clone(),
+                                span: span.clone(),
+                            },
+                        });
+                        Inference::Type(Type::Unknown(empty_span()))
+                    }
+                },
+                None => {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::MissingStorageBlock {
                             name: name.clone(),
                             span: span.clone(),
                         },
-                    }),
-                },
-                None => Err(Error::Compile {
-                    error: CompileError::MissingStorageBlock {
-                        name: name.clone(),
-                        span: span.clone(),
-                    },
-                }),
+                    });
+                    Inference::Type(Type::Unknown(empty_span()))
+                }
             }
         } else {
-            Err(Error::Compile {
+            handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "attempting to infer item without required predicate ref",
                     span: span.clone(),
                 },
-            })
+            });
+            Inference::Type(Type::Unknown(empty_span()))
         }
     }
 
@@ -1318,11 +1353,12 @@ impl Contract {
 
     fn infer_unary_op(
         &self,
+        handler: &Handler,
         pred: Option<&Predicate>,
         op: UnaryOp,
         rhs_expr_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         fn drill_down_to_path(
             contract: &Contract,
             pred: Option<&Predicate>,
@@ -1364,34 +1400,41 @@ impl Contract {
         }
 
         match op {
-            UnaryOp::Error => Err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "unable to type check unary op error",
-                    span: span.clone(),
-                },
-            }),
+            UnaryOp::Error => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "unable to type check unary op error",
+                        span: span.clone(),
+                    },
+                });
+                Inference::Type(Type::Error(span.clone()))
+            }
 
             UnaryOp::NextState => {
                 // Next state access must be a path that resolves to a state variable.  It _may_ be
                 // via array indices or tuple fields or even other prime ops.
-                drill_down_to_path(self, pred, &rhs_expr_key, span)?;
-
-                let ty = rhs_expr_key.get_ty(self);
-                Ok(if !ty.is_unknown() {
-                    Inference::Type(ty.clone())
-                } else {
-                    Inference::Dependant(rhs_expr_key)
-                })
+                match drill_down_to_path(self, pred, &rhs_expr_key, span) {
+                    Ok(()) => {
+                        let ty = rhs_expr_key.get_ty(self);
+                        if !ty.is_unknown() {
+                            Inference::Type(ty.clone())
+                        } else {
+                            Inference::Dependant(rhs_expr_key)
+                        }
+                    }
+                    Err(err) => {
+                        handler.emit_err(err);
+                        Inference::Type(Type::Error(span.clone()))
+                    }
+                }
             }
 
             UnaryOp::Neg => {
                 // RHS must be an int or real.
                 let ty = rhs_expr_key.get_ty(self);
                 if !ty.is_unknown() {
-                    if ty.is_num() {
-                        Ok(Inference::Type(ty.clone()))
-                    } else {
-                        Err(Error::Compile {
+                    if !ty.is_num() {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::OperatorTypeError {
                                 arity: "unary",
                                 large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -1402,10 +1445,12 @@ impl Contract {
                                     expected_span: None,
                                 }),
                             },
-                        })
+                        });
                     }
+
+                    Inference::Type(ty.clone())
                 } else {
-                    Ok(Inference::Dependant(rhs_expr_key))
+                    Inference::Dependant(rhs_expr_key)
                 }
             }
 
@@ -1413,10 +1458,8 @@ impl Contract {
                 // RHS must be a bool.
                 let ty = rhs_expr_key.get_ty(self);
                 if !ty.is_unknown() {
-                    if ty.is_bool() {
-                        Ok(Inference::Type(ty.clone()))
-                    } else {
-                        Err(Error::Compile {
+                    if !ty.is_bool() {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::OperatorTypeError {
                                 arity: "unary",
                                 large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -1427,10 +1470,11 @@ impl Contract {
                                     expected_span: None,
                                 }),
                             },
-                        })
+                        });
                     }
+                    Inference::Type(ty.clone())
                 } else {
-                    Ok(Inference::Dependant(rhs_expr_key))
+                    Inference::Dependant(rhs_expr_key)
                 }
             }
         }
@@ -1438,15 +1482,16 @@ impl Contract {
 
     fn infer_binary_op(
         &self,
+        handler: &Handler,
         pred: Option<&Predicate>,
         op: BinaryOp,
         lhs_expr_key: ExprKey,
         rhs_expr_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         let check_numeric_args = |lhs_ty: &Type, rhs_ty: &Type, ty_str: &str| {
             if !lhs_ty.is_num() {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::OperatorTypeError {
                         arity: "binary",
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -1457,9 +1502,9 @@ impl Contract {
                             expected_span: None,
                         }),
                     },
-                })
+                });
             } else if !rhs_ty.is_num() {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::OperatorTypeError {
                         arity: "binary",
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -1470,10 +1515,10 @@ impl Contract {
                             expected_span: None,
                         }),
                     },
-                })
+                });
             } else if !lhs_ty.eq(&self.new_types, rhs_ty) {
                 // Here we assume the LHS is the 'correct' type.
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::OperatorTypeError {
                         arity: "binary",
                         large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -1484,9 +1529,7 @@ impl Contract {
                             expected_span: Some(self.expr_key_to_span(lhs_expr_key)),
                         }),
                     },
-                })
-            } else {
-                Ok(())
+                });
             }
         };
 
@@ -1496,20 +1539,19 @@ impl Contract {
             Some(Expr::Path(name, _))
                 if pred
                     .map(|pred| pred.states().any(|(_, state)| state.name == *name))
-                    .unwrap_or(false) =>
-            {
-                Ok(())
-            }
+                    .unwrap_or(false) => {}
             Some(Expr::UnaryOp {
                 op: UnaryOp::NextState,
                 ..
-            }) => Ok(()),
-            _ => Err(Error::Compile {
-                error: CompileError::CompareToNilError {
-                    op: op.as_str(),
-                    span: self.expr_key_to_span(arg),
-                },
-            }),
+            }) => {}
+            _ => {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::CompareToNilError {
+                        op: op.as_str(),
+                        span: self.expr_key_to_span(arg),
+                    },
+                });
+            }
         };
 
         let lhs_ty = lhs_expr_key.get_ty(self).clone();
@@ -1524,17 +1566,16 @@ impl Contract {
                     | BinaryOp::Mod => {
                         // Both args must be numeric, i.e., ints or reals; binary op type is same
                         // as arg types.
-                        check_numeric_args(&lhs_ty, rhs_ty, "numeric")
-                            .map(|_| Inference::Type(lhs_ty))
+                        check_numeric_args(&lhs_ty, rhs_ty, "numeric");
+                        Inference::Type(lhs_ty)
                     }
-
                     BinaryOp::Equal | BinaryOp::NotEqual => {
                         // If either operands is `nil`, then ensure that the other is a state var
                         // or a "next state" expression
                         if lhs_ty.is_nil() && !rhs_ty.is_nil() {
-                            check_state_var_arg(rhs_expr_key)?;
+                            check_state_var_arg(rhs_expr_key);
                         } else if !lhs_ty.is_nil() && rhs_ty.is_nil() {
-                            check_state_var_arg(lhs_expr_key)?;
+                            check_state_var_arg(lhs_expr_key);
                         }
 
                         // We can special case implicit constraints which are injected by variable
@@ -1562,7 +1603,7 @@ impl Contract {
                             && !rhs_ty.is_nil()
                             && !is_init_constraint
                         {
-                            Err(Error::Compile {
+                            handler.emit_err(Error::Compile {
                                 error: CompileError::OperatorTypeError {
                                     arity: "binary",
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -1573,13 +1614,12 @@ impl Contract {
                                         expected_span: Some(self.expr_key_to_span(lhs_expr_key)),
                                     }),
                                 },
-                            })
-                        } else {
-                            Ok(Inference::Type(Type::Primitive {
-                                kind: PrimitiveKind::Bool,
-                                span: span.clone(),
-                            }))
+                            });
                         }
+                        Inference::Type(Type::Primitive {
+                            kind: PrimitiveKind::Bool,
+                            span: span.clone(),
+                        })
                     }
 
                     BinaryOp::LessThanOrEqual
@@ -1587,18 +1627,17 @@ impl Contract {
                     | BinaryOp::GreaterThanOrEqual
                     | BinaryOp::GreaterThan => {
                         // Both args must be ordinal, i.e., ints, reals; binary op type is bool.
-                        check_numeric_args(&lhs_ty, rhs_ty, "numeric").map(|_| {
-                            Inference::Type(Type::Primitive {
-                                kind: PrimitiveKind::Bool,
-                                span: span.clone(),
-                            })
+                        check_numeric_args(&lhs_ty, rhs_ty, "numeric");
+                        Inference::Type(Type::Primitive {
+                            kind: PrimitiveKind::Bool,
+                            span: span.clone(),
                         })
                     }
 
                     BinaryOp::LogicalAnd | BinaryOp::LogicalOr => {
                         // Both arg types and binary op type are all bool.
                         if !lhs_ty.is_bool() {
-                            Err(Error::Compile {
+                            handler.emit_err(Error::Compile {
                                 error: CompileError::OperatorTypeError {
                                     arity: "binary",
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -1609,9 +1648,9 @@ impl Contract {
                                         expected_span: Some(span.clone()),
                                     }),
                                 },
-                            })
+                            });
                         } else if !rhs_ty.is_bool() {
-                            Err(Error::Compile {
+                            handler.emit_err(Error::Compile {
                                 error: CompileError::OperatorTypeError {
                                     arity: "binary",
                                     large_err: Box::new(LargeTypeError::OperatorTypeError {
@@ -1622,45 +1661,47 @@ impl Contract {
                                         expected_span: Some(span.clone()),
                                     }),
                                 },
-                            })
-                        } else {
-                            Ok(Inference::Type(lhs_ty.clone()))
+                            });
                         }
+                        Inference::Type(Type::Primitive {
+                            kind: PrimitiveKind::Bool,
+                            span: span.clone(),
+                        })
                     }
                 }
             } else {
-                Ok(Inference::Dependant(rhs_expr_key))
+                Inference::Dependant(rhs_expr_key)
             }
         } else {
-            Ok(Inference::Dependant(lhs_expr_key))
+            Inference::Dependant(lhs_expr_key)
         }
     }
 
     fn infer_select_expr(
         &self,
+        handler: &Handler,
         cond_expr_key: ExprKey,
         then_expr_key: ExprKey,
         else_expr_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         let cond_ty = cond_expr_key.get_ty(self);
         let then_ty = then_expr_key.get_ty(self);
         let else_ty = else_expr_key.get_ty(self);
         if !cond_ty.is_unknown() {
             if !cond_ty.is_bool() {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::NonBoolConditional {
                         ty: self.with_ctrct(cond_ty).to_string(),
                         conditional: "select expression".to_string(),
                         span: self.expr_key_to_span(cond_expr_key),
                     },
-                })
+                });
+                Inference::Type(cond_ty.clone())
             } else if !then_ty.is_unknown() {
                 if !else_ty.is_unknown() {
-                    if then_ty.eq(&self.new_types, else_ty) {
-                        Ok(Inference::Type(then_ty.clone()))
-                    } else {
-                        Err(Error::Compile {
+                    if !then_ty.eq(&self.new_types, else_ty) {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::SelectBranchesTypeMismatch {
                                 large_err: Box::new(LargeTypeError::SelectBranchesTypeMismatch {
                                     then_type: self.with_ctrct(then_ty).to_string(),
@@ -1670,61 +1711,63 @@ impl Contract {
                                     span: span.clone(),
                                 }),
                             },
-                        })
+                        });
                     }
+                    Inference::Type(then_ty.clone())
                 } else {
-                    Ok(Inference::Dependant(else_expr_key))
+                    Inference::Dependant(else_expr_key)
                 }
             } else {
-                Ok(Inference::Dependant(then_expr_key))
+                Inference::Dependant(then_expr_key)
             }
         } else {
-            Ok(Inference::Dependant(cond_expr_key))
+            Inference::Dependant(cond_expr_key)
         }
     }
 
     fn infer_range_expr(
         &self,
+        handler: &Handler,
         lower_bound_key: ExprKey,
         upper_bound_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         let lb_ty = lower_bound_key.get_ty(self);
         let ub_ty = upper_bound_key.get_ty(self);
         if !lb_ty.is_unknown() {
             if !ub_ty.is_unknown() {
                 if !lb_ty.eq(&self.new_types, ub_ty) {
-                    Err(Error::Compile {
+                    handler.emit_err(Error::Compile {
                         error: CompileError::RangeTypesMismatch {
                             lb_ty: self.with_ctrct(lb_ty).to_string(),
                             ub_ty: self.with_ctrct(ub_ty).to_string(),
                             span: ub_ty.span().clone(),
                         },
-                    })
+                    });
                 } else if !lb_ty.is_num() {
-                    Err(Error::Compile {
+                    handler.emit_err(Error::Compile {
                         error: CompileError::RangeTypesNonNumeric {
                             ty: self.with_ctrct(lb_ty).to_string(),
                             span: span.clone(),
                         },
-                    })
-                } else {
-                    Ok(Inference::Type(lb_ty.clone()))
+                    });
                 }
+                Inference::Type(lb_ty.clone())
             } else {
-                Ok(Inference::Dependant(upper_bound_key))
+                Inference::Dependant(upper_bound_key)
             }
         } else {
-            Ok(Inference::Dependant(lower_bound_key))
+            Inference::Dependant(lower_bound_key)
         }
     }
 
     fn infer_cast_expr(
         &self,
+        handler: &Handler,
         value_key: ExprKey,
         to_ty: &Type,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         // FROM  TO    ACTION
         // int   int   No-op
         // int   real  Produce the closest possible real
@@ -1736,12 +1779,12 @@ impl Contract {
         if !from_ty.is_unknown() {
             if !to_ty.is_int() && !to_ty.is_real() {
                 // We can only cast to ints or reals.
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::BadCastTo {
                         ty: self.with_ctrct(to_ty).to_string(),
                         span: span.clone(),
                     },
-                })
+                });
             } else if (to_ty.is_int()
                 && !from_ty.is_int()
                 && !from_ty.is_enum(&self.enums)
@@ -1749,26 +1792,26 @@ impl Contract {
                 || (to_ty.is_real() && !from_ty.is_int() && !from_ty.is_real())
             {
                 // We can only cast to ints from ints, enums or bools and to reals from ints or reals.
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::BadCastFrom {
                         ty: self.with_ctrct(from_ty).to_string(),
                         span: span.clone(),
                     },
-                })
-            } else {
-                Ok(Inference::Type(to_ty.clone()))
+                });
             }
+            Inference::Type(to_ty.clone())
         } else {
-            Ok(Inference::Dependant(value_key))
+            Inference::Dependant(value_key)
         }
     }
 
     fn infer_in_expr(
         &self,
+        handler: &Handler,
         value_key: ExprKey,
         collection_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         // If the collection is a range, then it must be between ints or reals and the value must
         // match.  If it's an array it can be any type but still the value must match the array
         // element type.
@@ -1777,60 +1820,77 @@ impl Contract {
         if !value_ty.is_unknown() {
             if !collection_ty.is_unknown() {
                 if collection_ty.is_num() {
+                    // range - has to match range type too
                     if !value_ty.eq(&self.new_types, collection_ty) {
-                        Err(Error::Compile {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::InExprTypesMismatch {
                                 val_ty: self.with_ctrct(value_ty).to_string(),
                                 range_ty: self.with_ctrct(collection_ty).to_string(),
                                 span: collection_ty.span().clone(),
                             },
-                        })
-                    } else {
-                        Ok(Inference::Type(Type::Primitive {
+                        });
+                        Inference::Type(Type::Primitive {
                             kind: PrimitiveKind::Bool,
                             span: span.clone(),
-                        }))
+                        })
+                    } else {
+                        Inference::Type(Type::Primitive {
+                            kind: PrimitiveKind::Bool,
+                            span: span.clone(),
+                        })
                     }
                 } else if let Some(el_ty) = collection_ty.get_array_el_type() {
                     if !value_ty.eq(&self.new_types, el_ty) {
-                        Err(Error::Compile {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::InExprTypesArrayMismatch {
                                 val_ty: self.with_ctrct(value_ty).to_string(),
                                 el_ty: self.with_ctrct(el_ty).to_string(),
                                 span: el_ty.span().clone(),
                             },
-                        })
-                    } else {
-                        Ok(Inference::Type(Type::Primitive {
+                        });
+                        Inference::Type(Type::Primitive {
                             kind: PrimitiveKind::Bool,
                             span: span.clone(),
-                        }))
+                        })
+                    } else {
+                        Inference::Type(Type::Primitive {
+                            kind: PrimitiveKind::Bool,
+                            span: span.clone(),
+                        })
                     }
                 } else {
-                    Err(Error::Compile {
+                    handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
                             msg: "range ty is not numeric or array?",
                             span: span.clone(),
                         },
-                    })
+                    });
+                    Inference::Type(Type::Error(span.clone()))
                 }
             } else {
-                Ok(Inference::Dependant(collection_key))
+                Inference::Dependant(collection_key)
             }
         } else {
-            Ok(Inference::Dependant(value_key))
+            Inference::Dependant(value_key)
         }
     }
 
     fn infer_array_expr(
         &self,
+        handler: &Handler,
         range_expr_key: ExprKey,
         element_exprs: &[ExprKey],
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         if element_exprs.is_empty() {
-            return Err(Error::Compile {
+            handler.emit_err(Error::Compile {
                 error: CompileError::EmptyArrayExpression { span: span.clone() },
+            });
+            return Inference::Type(Type::Array {
+                ty: Box::new(Type::Error(span.clone())),
+                range: Some(range_expr_key),
+                size: Some(0),
+                span: span.clone(),
             });
         }
 
@@ -1847,7 +1907,7 @@ impl Contract {
                 let el_ty = el_key.get_ty(self);
                 if !el_ty.is_unknown() {
                     if !el_ty.eq(&self.new_types, el0_ty) {
-                        return Err(Error::Compile {
+                        handler.emit_err(Error::Compile {
                             error: CompileError::NonHomogeneousArrayElement {
                                 expected_ty: self.with_ctrct(&el0_ty).to_string(),
                                 ty: self.with_ctrct(el_ty).to_string(),
@@ -1860,12 +1920,11 @@ impl Contract {
                 }
             }
 
-            // Must also type check the range_expr
             if range_expr_key.get_ty(self).is_unknown() {
                 deps.push(range_expr_key);
             }
 
-            Ok(if deps.is_empty() {
+            if deps.is_empty() {
                 Inference::Type(Type::Array {
                     ty: Box::new(el0_ty.clone()),
                     range: Some(range_expr_key),
@@ -1874,107 +1933,108 @@ impl Contract {
                 })
             } else {
                 Inference::Dependencies(deps)
-            })
+            }
         } else {
-            Ok(Inference::Dependant(*el0))
+            Inference::Dependant(*el0)
         }
     }
 
     fn infer_index_expr(
         &self,
+        handler: &Handler,
         array_expr_key: ExprKey,
         index_expr_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         let index_ty = index_expr_key.get_ty(self);
         if index_ty.is_unknown() {
-            return Ok(Inference::Dependant(index_expr_key));
+            return Inference::Dependant(index_expr_key);
         }
 
         let ary_ty = array_expr_key.get_ty(self);
         if ary_ty.is_unknown() {
-            return Ok(Inference::Dependant(array_expr_key));
+            return Inference::Dependant(array_expr_key);
         }
 
         if let Some(range_expr_key) = ary_ty.get_array_range_expr() {
             // Is this an array?
             let range_ty = range_expr_key.get_ty(self);
             if range_ty.is_unknown() {
-                return Ok(Inference::Dependant(range_expr_key));
+                return Inference::Dependant(range_expr_key);
             }
 
             if (!index_ty.is_int() && !index_ty.is_enum(&self.enums))
                 || !index_ty.eq(&self.new_types, range_ty)
             {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::ArrayAccessWithWrongType {
                         found_ty: self.with_ctrct(index_ty).to_string(),
                         expected_ty: self.with_ctrct(range_ty).to_string(),
                         span: self.expr_key_to_span(index_expr_key),
                     },
-                })
-            } else if let Some(ty) = ary_ty.get_array_el_type() {
-                Ok(Inference::Type(ty.clone()))
+                });
+            }
+            if let Some(ty) = ary_ty.get_array_el_type() {
+                Inference::Type(ty.clone())
             } else {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "failed to get array element type \
                           in infer_index_expr()",
                         span: span.clone(),
                     },
-                })
+                });
+                Inference::Type(index_ty.clone())
             }
         } else if let Some(ty) = ary_ty.get_array_el_type() {
             // Is it an array with an unknown range (probably a const immediate)?
-            Ok(Inference::Type(ty.clone()))
+            Inference::Type(ty.clone())
         } else if let Some(from_ty) = ary_ty.get_map_ty_from() {
             // Is this a storage map?
             if !from_ty.eq(&self.new_types, index_ty) {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::StorageMapAccessWithWrongType {
                         found_ty: self.with_ctrct(index_ty).to_string(),
                         expected_ty: self.with_ctrct(from_ty).to_string(),
                         span: self.expr_key_to_span(index_expr_key),
                     },
-                })
+                });
+                Inference::Type(index_ty.clone())
             } else if let Some(ty) = ary_ty.get_map_ty_to() {
-                Ok(Inference::Type(ty.clone()))
+                Inference::Type(ty.clone())
             } else {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "failed to get array element type \
                           in infer_index_expr()",
                         span: span.clone(),
                     },
-                })
+                });
+                Inference::Type(index_ty.clone())
             }
         } else if let Some(ty) = ary_ty.get_vector_element_ty() {
             if !index_ty.is_int() {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::ArrayAccessWithWrongType {
                         found_ty: self.with_ctrct(index_ty).to_string(),
                         expected_ty: "int".to_string(),
                         span: self.expr_key_to_span(index_expr_key),
                     },
-                })
-            } else {
-                Ok(Inference::Type(ty.clone()))
+                });
             }
+            Inference::Type(ty.clone())
         } else {
-            Err(Error::Compile {
+            handler.emit_err(Error::Compile {
                 error: CompileError::IndexExprNonIndexable {
                     non_indexable_type: self.with_ctrct(ary_ty).to_string(),
                     span: span.clone(),
                 },
-            })
+            });
+            Inference::Type(ary_ty.clone())
         }
     }
 
-    fn infer_tuple_expr(
-        &self,
-        fields: &[(Option<Ident>, ExprKey)],
-        span: &Span,
-    ) -> Result<Inference, Error> {
+    fn infer_tuple_expr(&self, fields: &[(Option<Ident>, ExprKey)], span: &Span) -> Inference {
         let mut field_tys = Vec::with_capacity(fields.len());
 
         let mut deps = Vec::new();
@@ -1987,89 +2047,97 @@ impl Contract {
             }
         }
 
-        Ok(if deps.is_empty() {
+        if deps.is_empty() {
             Inference::Type(Type::Tuple {
                 fields: field_tys,
                 span: span.clone(),
             })
         } else {
             Inference::Dependencies(deps)
-        })
+        }
     }
 
     fn infer_tuple_access_expr(
         &self,
+        handler: &Handler,
         tuple_expr_key: ExprKey,
         field: &TupleAccess,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         let tuple_ty = tuple_expr_key.get_ty(self);
         if !tuple_ty.is_unknown() {
             if tuple_ty.is_tuple() {
                 match field {
-                    TupleAccess::Error => Err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "unable to type check tuple field access error",
-                            span: span.clone(),
-                        },
-                    }),
+                    TupleAccess::Error => {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "unable to type check tuple field access error",
+                                span: span.clone(),
+                            },
+                        });
+                        Inference::Type(Type::Error(span.clone()))
+                    }
 
                     TupleAccess::Index(idx) => {
                         if let Some(field_ty) = tuple_ty.get_tuple_field_type_by_idx(*idx) {
-                            Ok(Inference::Type(field_ty.clone()))
+                            Inference::Type(field_ty.clone())
                         } else {
-                            Err(Error::Compile {
+                            handler.emit_err(Error::Compile {
                                 error: CompileError::InvalidTupleAccessor {
                                     accessor: idx.to_string(),
                                     tuple_type: self.with_ctrct(tuple_ty).to_string(),
                                     span: span.clone(),
                                 },
-                            })
+                            });
+                            Inference::Type(tuple_ty.clone())
                         }
                     }
 
                     TupleAccess::Name(name) => {
                         if let Some(field_ty) = tuple_ty.get_tuple_field_type_by_name(name) {
-                            Ok(Inference::Type(field_ty.clone()))
+                            Inference::Type(field_ty.clone())
                         } else {
-                            Err(Error::Compile {
+                            handler.emit_err(Error::Compile {
                                 error: CompileError::InvalidTupleAccessor {
                                     accessor: name.name.clone(),
                                     tuple_type: self.with_ctrct(&tuple_ty).to_string(),
                                     span: span.clone(),
                                 },
-                            })
+                            });
+                            Inference::Type(tuple_ty.clone())
                         }
                     }
                 }
             } else {
-                Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::TupleAccessNonTuple {
                         non_tuple_type: self.with_ctrct(tuple_ty).to_string(),
                         span: span.clone(),
                     },
-                })
+                });
+                Inference::Type(tuple_ty.clone())
             }
         } else {
-            Ok(Inference::Dependant(tuple_expr_key))
+            Inference::Dependant(tuple_expr_key)
         }
     }
 
     fn infer_generator_expr(
         &self,
+        handler: &Handler,
         kind: &GeneratorKind,
         ranges: &[(Ident, ExprKey)],
         conditions: &[ExprKey],
         body_expr_key: ExprKey,
         span: &Span,
-    ) -> Result<Inference, Error> {
+    ) -> Inference {
         let mut deps = Vec::new();
 
         for (_, range_expr_key) in ranges {
             let range_ty = range_expr_key.get_ty(self);
             if !range_ty.is_unknown() {
                 if !range_ty.is_int() {
-                    return Err(Error::Compile {
+                    handler.emit_err(Error::Compile {
                         error: CompileError::NonIntGeneratorRange {
                             ty: self.with_ctrct(range_ty).to_string(),
                             gen_kind: kind.to_string(),
@@ -2086,7 +2154,7 @@ impl Contract {
             let cond_ty = cond_expr_key.get_ty(self);
             if !cond_ty.is_unknown() {
                 if !cond_ty.is_bool() {
-                    return Err(Error::Compile {
+                    handler.emit_err(Error::Compile {
                         error: CompileError::NonBoolGeneratorCondition {
                             ty: self.with_ctrct(cond_ty).to_string(),
                             gen_kind: kind.to_string(),
@@ -2102,7 +2170,7 @@ impl Contract {
         let body_ty = body_expr_key.get_ty(self);
         if !body_ty.is_unknown() {
             if !body_ty.is_bool() {
-                return Err(Error::Compile {
+                handler.emit_err(Error::Compile {
                     error: CompileError::NonBoolGeneratorBody {
                         ty: self.with_ctrct(body_ty).to_string(),
                         gen_kind: kind.to_string(),
@@ -2114,14 +2182,14 @@ impl Contract {
             deps.push(body_expr_key);
         }
 
-        Ok(if deps.is_empty() {
+        if deps.is_empty() {
             Inference::Type(Type::Primitive {
                 kind: PrimitiveKind::Bool,
                 span: span.clone(),
             })
         } else {
             Inference::Dependencies(deps)
-        })
+        }
     }
 
     // Confirm that all var init exprs and const init exprs match their declared type, if they have

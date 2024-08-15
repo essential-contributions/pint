@@ -16,7 +16,4 @@ predicate test {
 // typecheck_failure <<<
 // cannot find value `::Ambiguous::MissingVariant` in this scope
 // @64..89: not found in this scope
-// constraint expression type error
-// @56..89: constraint expression has unknown type
-// @56..89: expecting type `bool`
 // >>>
