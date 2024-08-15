@@ -26,17 +26,17 @@ predicate test {
 // typecheck_failure <<<
 // constraint expression type error
 // @74..90: constraint expression has unexpected type `int`
-// @74..90: expecting type `bool`
+// @85..90: expecting type `bool`
 // constraint expression type error
 // @96..108: constraint expression has unexpected type `b256`
-// @96..108: expecting type `bool`
+// @107..108: expecting type `bool`
 // constraint expression type error
 // @114..133: constraint expression has unexpected type `{int, int}`
-// @114..133: expecting type `bool`
+// @125..133: expecting type `bool`
 // constraint expression type error
 // @139..159: constraint expression has unexpected type `int[3]`
-// @139..159: expecting type `bool`
+// @150..159: expecting type `bool`
 // constraint expression type error
 // @165..187: constraint expression has unexpected type `::Colour`
-// @165..187: expecting type `bool`
+// @176..187: expecting type `bool`
 // >>>

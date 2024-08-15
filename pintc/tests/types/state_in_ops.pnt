@@ -28,7 +28,4 @@ predicate test {
 // binary operator type error
 // @134..136: operator `&&` argument has unexpected type `int`
 // @128..136: expecting type `bool`
-// constraint expression type error
-// @114..136: constraint expression has unknown type
-// @114..136: expecting type `bool`
 // >>>

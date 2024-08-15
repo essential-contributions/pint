@@ -29,19 +29,7 @@ predicate test {
 // variable initialization type error
 // @34..37: variable initializer has unexpected type `nil`
 // @28..31: expecting type `int`
-// variable initialization type error
-// @56..63: variable initializer has unknown type
-// @50..53: expecting type `int`
-// constraint expression type error
-// @21..37: constraint expression has unknown type
-// @21..37: expecting type `bool`
-// constraint expression type error
-// @43..63: constraint expression has unknown type
-// @43..63: expecting type `bool`
-// constraint expression type error
-// @85..103: constraint expression has unknown type
-// @85..103: expecting type `bool`
 // constraint expression type error
 // @109..123: constraint expression has unexpected type `nil`
-// @109..123: expecting type `bool`
+// @120..123: expecting type `bool`
 // >>>

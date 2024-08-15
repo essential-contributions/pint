@@ -16,7 +16,4 @@ predicate test {
 // invalid tuple accessor
 // @61..64: unable to get field from tuple using `4`
 // tuple has type `{int, int, int}`
-// constraint expression type error
-// @50..70: constraint expression has unknown type
-// @50..70: expecting type `bool`
 // >>>

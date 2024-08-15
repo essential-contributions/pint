@@ -15,6 +15,5 @@ predicate test {
 // no intrinsic named `__foo` is found
 // @49..56: intrinsic not found
 // constraint expression type error
-// @38..64: constraint expression has unknown type
-// @38..64: expecting type `bool`
+// @49..64: expecting type `bool`
 // >>>

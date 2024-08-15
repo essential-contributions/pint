@@ -2,7 +2,7 @@ use crate::{
     error::{Error, ErrorEmitted, Handler, ParseError},
     expr::{Expr, Ident, Immediate},
     span::{empty_span, Span, Spanned},
-    types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
+    types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type},
 };
 use exprs::ExprsIter;
 use pint_abi_types::{ContractABI, PredicateABI, VarABI};
@@ -338,21 +338,6 @@ impl Contract {
                     .iter()
                     .filter_map(|NewTypeDecl { ty, .. }| ty.get_array_range_expr()),
             )
-    }
-
-    /// Inserts an integer expression with an empty span into the `exprs` map. Returns the
-    /// `ExprKey` of the expression.
-    pub fn insert_int(&mut self, i: i64) -> ExprKey {
-        self.exprs.insert(
-            Expr::Immediate {
-                value: Immediate::Int(i),
-                span: empty_span(),
-            },
-            Type::Primitive {
-                kind: PrimitiveKind::Int,
-                span: empty_span(),
-            },
-        )
     }
 }
 

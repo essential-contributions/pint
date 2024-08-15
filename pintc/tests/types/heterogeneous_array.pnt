@@ -15,7 +15,10 @@ predicate test {
 // array element type mismatch
 // @65..69: array element has type `bool`
 // expecting array element type `int`
-// constraint expression type error
-// @43..83: constraint expression has unknown type
-// @43..83: expecting type `bool`
+// array element type mismatch
+// @71..75: array element has type `real`
+// expecting array element type `int`
+// array element type mismatch
+// @77..82: array element has type `string`
+// expecting array element type `int`
 // >>>

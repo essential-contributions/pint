@@ -1,5 +1,7 @@
 use super::{Contract, PredKey, Predicate};
-use crate::{expr::Expr, types::Type};
+use crate::{
+    expr::Expr, predicate::Immediate, span::empty_span, types::PrimitiveKind, types::Type,
+};
 use std::collections::HashSet;
 
 slotmap::new_key_type! { pub struct ExprKey; }
@@ -43,6 +45,21 @@ impl Exprs {
         for (key, ty) in self.expr_types.iter_mut() {
             f(key, ty)
         }
+    }
+
+    /// Inserts an integer expression with an empty span into the `exprs` map. Returns the
+    /// `ExprKey` of the expression.
+    pub fn insert_int(&mut self, i: i64) -> ExprKey {
+        self.insert(
+            Expr::Immediate {
+                value: Immediate::Int(i),
+                span: empty_span(),
+            },
+            Type::Primitive {
+                kind: PrimitiveKind::Int,
+                span: empty_span(),
+            },
+        )
     }
 }
 

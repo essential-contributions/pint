@@ -14,7 +14,6 @@ predicate test {
 // typecheck_failure <<<
 // attempt to access tuple field from a non-tuple value
 // @50..53: value must be a tuple; found `bool`
-// constraint expression type error
-// @39..62: constraint expression has unknown type
-// @39..62: expecting type `bool`
+// attempt to access tuple field from a non-tuple value
+// @57..62: value must be a tuple; found `bool`
 // >>>

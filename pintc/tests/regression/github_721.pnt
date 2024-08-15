@@ -23,7 +23,6 @@ predicate Foo {
 // typecheck_failure <<<
 // attempt to access tuple field from a non-tuple value
 // @107..111: value must be a tuple; found `{a: int, b: int}[_]`
-// constraint expression type error
-// @142..167: constraint expression has unknown type
-// @142..167: expecting type `bool`
+// attempt to access tuple field from a non-tuple value
+// @114..118: value must be a tuple; found `{a: int, b: int}[_]`
 // >>>
