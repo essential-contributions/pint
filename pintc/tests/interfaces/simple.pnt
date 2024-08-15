@@ -189,9 +189,14 @@ predicate Simple {
 //     state ::x: int = __storage_get_extern(::addr1, {0});
 //     state ::y: int = __storage_get_extern(::addr1, {1});
 //     state ::z: b256 = __storage_get_extern(::addr2, {1});
-//     constraint (::x1 == ::FooI1Instance1::x1);
-//     constraint (::x2 == ::BarI2Instance2::x2);
-//     constraint (::x3 == ::BarI2Instance3::x3);
+//     constraint (::x1 == __transient({0}, 1, __::FooI1Instance1_pathway));
+//     constraint (::x2 == __transient({1}, 1, __::BarI2Instance2_pathway));
+//     constraint (::x3 == __transient({2}, 1, __::BarI2Instance3_pathway));
 //     constraint __eq_set(__mut_keys(), {0});
+//     constraint (__predicate_at(__::FooI1Instance1_pathway) == {::addr1, ::addr3});
+//     constraint (__predicate_at(__::FooI1Instance2_pathway) == {::addr1, ::addr3});
+//     constraint (__predicate_at(__::BarI2Instance1_pathway) == {::addr2, ::addr4});
+//     constraint (__predicate_at(__::BarI2Instance2_pathway) == {::addr2, ::addr4});
+//     constraint (__predicate_at(__::BarI2Instance3_pathway) == {::addr2, ::addr4});
 // }
 // >>>

@@ -1,0 +1,89 @@
+enum MyEnum = A | B;
+type MyType = MyEnum;
+
+predicate Foo {
+    pub var x1: bool;
+    pub var x2: int;
+    pub var x3: b256;
+    pub var x5: { bool, int };
+    pub var x6: int[5];
+
+    pub var y1: bool = true;
+    pub var y2: int = 5;
+    pub var y3: b256 = 0x0000111100001111000011110000111100001111000011110000111100001111;
+    pub var y5: { bool, int } = { true, 2 };
+    pub var y6: int[5] = [ 1, 2, 3, 4, 5];
+
+    pub var z1 = true;
+    pub var z2 = 5;
+    pub var z3 = 0x0000111100001111000011110000111100001111000011110000111100001111;
+    pub var z5 = { true, 2 };
+    pub var z6 = [ 1, 2, 3, 4, 5];
+}
+
+// parsed <<<
+// enum ::MyEnum = A | B;
+// type ::MyType = ::MyEnum;
+// 
+// predicate ::Foo {
+//     pub var ::x1: bool;
+//     pub var ::x2: int;
+//     pub var ::x3: b256;
+//     pub var ::x5: {bool, int};
+//     pub var ::x6: int[5];
+//     pub var ::y1: bool;
+//     pub var ::y2: int;
+//     pub var ::y3: b256;
+//     pub var ::y5: {bool, int};
+//     pub var ::y6: int[5];
+//     pub var ::z1;
+//     pub var ::z2;
+//     pub var ::z3;
+//     pub var ::z5;
+//     pub var ::z6;
+//     constraint (::y1 == true);
+//     constraint (::y2 == 5);
+//     constraint (::y3 == 0x0000111100001111000011110000111100001111000011110000111100001111);
+//     constraint (::y5 == {true, 2});
+//     constraint (::y6 == [1, 2, 3, 4, 5]);
+//     constraint (::z1 == true);
+//     constraint (::z2 == 5);
+//     constraint (::z3 == 0x0000111100001111000011110000111100001111000011110000111100001111);
+//     constraint (::z5 == {true, 2});
+//     constraint (::z6 == [1, 2, 3, 4, 5]);
+// }
+// >>>
+
+// flattened <<<
+// enum ::MyEnum = A | B;
+// type ::MyType = ::MyEnum;
+// 
+// predicate ::Foo {
+//     pub var ::x1: bool;
+//     pub var ::x2: int;
+//     pub var ::x3: b256;
+//     pub var ::x5: {bool, int};
+//     pub var ::x6: int[5];
+//     pub var ::y1: bool;
+//     pub var ::y2: int;
+//     pub var ::y3: b256;
+//     pub var ::y5: {bool, int};
+//     pub var ::y6: int[5];
+//     pub var ::z1: bool;
+//     pub var ::z2: int;
+//     pub var ::z3: b256;
+//     pub var ::z5: {bool, int};
+//     pub var ::z6: int[5];
+//     constraint (__transient({5}, 1, __this_pathway()) == true);
+//     constraint (__transient({6}, 1, __this_pathway()) == 5);
+//     constraint (__transient({7}, 1, __this_pathway()) == 0x0000111100001111000011110000111100001111000011110000111100001111);
+//     constraint (__transient({8, 0}, 2, __this_pathway()) == {true, 2});
+//     constraint (__transient({9, 0}, 2, __this_pathway()) == [1, 2, 3, 4, 5]);
+//     constraint (__transient({10}, 1, __this_pathway()) == true);
+//     constraint (__transient({11}, 1, __this_pathway()) == 5);
+//     constraint (__transient({12}, 1, __this_pathway()) == 0x0000111100001111000011110000111100001111000011110000111100001111);
+//     constraint (__transient({13, 0}, 2, __this_pathway()) == {true, 2});
+//     constraint (__transient({14, 0}, 2, __this_pathway()) == [1, 2, 3, 4, 5]);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

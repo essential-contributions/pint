@@ -1,5 +1,3 @@
-pub(super) mod lower_storage_accesses;
-
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, BinaryOp, Expr, Ident, Immediate, TupleAccess, UnaryOp},
@@ -10,8 +8,12 @@ use crate::{
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
 };
-
 use fxhash::FxHashMap;
+
+mod lower_pub_var_accesses;
+mod lower_storage_accesses;
+pub(crate) use lower_pub_var_accesses::lower_pub_var_accesses;
+pub(crate) use lower_storage_accesses::lower_storage_accesses;
 
 pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
     // Each enum has its variants indexed from 0.  Gather all the enum declarations and create a

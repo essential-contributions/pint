@@ -1,9 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp, Expr, Immediate, TupleAccess, UnaryOp},
-    predicate::{
-        ConstraintDecl, Contract, ExprKey, Predicate, PredicateInstance, State as StateVar,
-    },
+    predicate::{ConstraintDecl, Contract, ExprKey, Predicate, State as StateVar},
     span::empty_span,
     types::Type,
 };
@@ -68,15 +66,15 @@ struct StorageKey {
 /// 1. `Value` expressions are just raw values such as immediates or the outputs of binary ops.
 /// 2. `DecisionVar` expressions refer to expressions that require the `DecisionVar` or
 ///    `DecisionVarRange` opcodes. The `usize` here is the index of the decision variable.
-/// 3. `Transient` expressions refer to expressions that require the `Transient` opcode. The
-///    `Option<String>` is the optional name of the pathway variable. If `None`, just use
-///    `ThisPathway`. The `usize` is the transient key length.
+/// 3. `Transient` expressions refer to expressions that require the `Transient` opcode. The first
+///    `ExprKey` is an expression that represents the transient key length. The second `ExprKey` is
+///    an expression that represents the pathway.
 /// 4. `State` expressions refer to expressions that require the `State` or `StateRange` opcodes.
 ///    The `bool` is the "delta": are we referring to the current or the next state?
 enum Location {
     Value,
     DecisionVar(usize),
-    Transient(Option<String>, usize),
+    Transient { key_len: ExprKey, pathway: ExprKey },
     State(bool),
 }
 
@@ -98,7 +96,6 @@ impl AsmBuilder {
             | Expr::Tuple { .. }
             | Expr::BinaryOp { .. }
             | Expr::MacroCall { .. }
-            | Expr::IntrinsicCall { .. }
             | Expr::Select { .. }
             | Expr::Cast { .. }
             | Expr::In { .. }
@@ -106,6 +103,37 @@ impl AsmBuilder {
             | Expr::Generator { .. }
             | Expr::StorageAccess { .. }
             | Expr::ExternalStorageAccess { .. } => Ok(Location::Value),
+            Expr::IntrinsicCall { name, args, .. } => {
+                if name.name == "__transient" {
+                    // This particular intrinsic returns a `Location::Transient`. All other
+                    // intrinsics are just values.
+
+                    // Expecting 3 arguments:
+                    assert_eq!(args.len(), 3);
+                    // First argument is a key. Let that be anything
+
+                    // Second argument is a key length. We want that to be an integer
+                    assert!(args[1].get_ty(contract).is_int());
+
+                    // Third argument is the "pathway". We want that to be a path expression (to a
+                    // pathway variable) or an intrinsic call (to `__this_pathway`). Not being too
+                    // exact here but that's fine since this is all internal anyways.
+                    assert!(matches!(
+                        args[2].try_get(contract),
+                        Some(Expr::Path(..) | Expr::IntrinsicCall { .. })
+                    ));
+
+                    // First, compile the key
+                    Self::compile_expr(handler, asm, &args[0], contract, pred)?;
+
+                    Ok(Location::Transient {
+                        key_len: args[1],
+                        pathway: args[2],
+                    })
+                } else {
+                    Ok(Location::Value)
+                }
+            }
             Expr::UnaryOp { op, expr, .. } => match op {
                 UnaryOp::NextState => {
                     // Next state expressions produce state expressions (i.e. ones that require
@@ -119,7 +147,7 @@ impl AsmBuilder {
             Expr::TupleFieldAccess { tuple, field, .. } => {
                 let location = Self::compile_expr_pointer(handler, asm, tuple, contract, pred)?;
                 match location {
-                    Location::State(_) | Location::Transient(..) | Location::DecisionVar(_) => {
+                    Location::State(_) | Location::Transient { .. } | Location::DecisionVar(_) => {
                         // Offset calculation is pretty much the same for all types of data
 
                         // Grab the fields of the tuple
@@ -181,7 +209,7 @@ impl AsmBuilder {
             Expr::Index { expr, index, .. } => {
                 let location = Self::compile_expr_pointer(handler, asm, expr, contract, pred)?;
                 match location {
-                    Location::State(_) | Location::Transient(..) | Location::DecisionVar(_) => {
+                    Location::State(_) | Location::Transient { .. } | Location::DecisionVar(_) => {
                         // Offset calculation is pretty much the same for all types of data
 
                         // Grab the element ty of the array
@@ -314,29 +342,24 @@ impl AsmBuilder {
                     asm.push(Access::DecisionVarRange.into());
                 }
             }
-            Location::Transient(pathway, len) => {
+            Location::Transient { key_len, pathway } => {
+                // We may need several `Transient` opcodes if the expression we're trying to read
+                // is stored in multiple slots (e.g. a tuple or an array).
                 for i in 0..expr_ty.storage_or_transient_slots(handler, contract)? {
-                    if i != 0 {
-                        // Recompute the key and offset. We do this manually here because we don't
-                        // have a `TransientRange` op that is similar to `StateRange`
+                    if i > 0 {
+                        // Re-compute the key and then offset with `+ i`. We do this manually here
+                        // because we don't have a `TransientRange` op that is similar to
+                        // `KeyRange`
                         Self::compile_expr_pointer(handler, asm, expr, contract, pred)?;
                         asm.push(Stack::Push(i as i64).into());
                         asm.push(Alu::Add.into());
                     }
-                    if let Some(ref pathway_var_name) = pathway {
-                        let var_index = pred
-                            .vars()
-                            .filter(|(_, var)| !var.is_pub)
-                            .position(|(_, var)| var.name == *pathway_var_name);
-                        asm.push(Stack::Push(len as i64).into()); // key length
-                        asm.push(Stack::Push(var_index.unwrap() as i64).into()); // slot
-                        asm.push(Access::DecisionVar.into());
-                        asm.push(Constraint::Access(Access::Transient));
-                    } else {
-                        asm.push(Stack::Push(len as i64).into()); // key length
-                        asm.push(Constraint::Access(Access::ThisPathway));
-                        asm.push(Constraint::Access(Access::Transient));
-                    }
+
+                    // Now just compile the key length and the pathway expression and follow with
+                    // the `Transient` opcode
+                    Self::compile_expr(handler, asm, &key_len, contract, pred)?;
+                    Self::compile_expr(handler, asm, &pathway, contract, pred)?;
+                    asm.push(Constraint::Access(Access::Transient));
                 }
             }
             Location::State(next_state) => {
@@ -557,6 +580,13 @@ impl AsmBuilder {
                     assert!(args.is_empty());
                     asm.push(Constraint::Access(Access::ThisPathway));
                 }
+                "__predicate_at" => {
+                    // Expecting a single argument of type int
+                    assert_eq!(args.len(), 1);
+                    assert!(args[0].get_ty(contract).is_int());
+                    Self::compile_expr(handler, asm, &args[0], contract, pred)?;
+                    asm.push(Constraint::Access(Access::PredicateAt));
+                }
 
                 // Crypto ops
                 "__sha256" => {
@@ -764,117 +794,44 @@ impl AsmBuilder {
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        let var_index = pred
+        // Handle (private) decision vars first
+        if let Some((var_index, (var_key, _))) = pred
             .vars()
             .filter(|(_, var)| !var.is_pub)
-            .position(|(_, var)| &var.name == path);
-
-        let pub_var_index = pred
-            .vars()
-            .filter(|(_, var)| var.is_pub)
-            .position(|(_, var)| &var.name == path);
-
-        let storage_index = pred.states().position(|(_, state)| &state.name == path);
-
-        if let Some(var_index) = var_index {
-            let var_key = pred.vars().find(|(_, var)| &var.name == path).unwrap().0;
+            .enumerate()
+            .find(|(_, (_, var))| &var.name == path)
+        {
             let var_ty_size = var_key.get_ty(pred).size(handler, contract)?;
             asm.push(Stack::Push(var_index as i64).into()); // slot
             if var_key.get_ty(pred).size(handler, contract)? > 1 {
                 asm.push(Stack::Push(0).into()); // placeholder for index computation
             }
             Ok(Location::DecisionVar(var_ty_size))
-        } else if let Some(pub_var_index) = pub_var_index {
-            let var_key = pred.vars().find(|(_, var)| &var.name == path).unwrap().0;
-            asm.push(Stack::Push(pub_var_index as i64).into());
-            if var_key.get_ty(pred).is_any_primitive() {
-                Ok(Location::Transient(None, 1))
-            } else {
-                asm.push(Stack::Push(0).into()); // placeholder for offsets
-                Ok(Location::Transient(None, 2))
-            }
-        } else if let Some(storage_index) = storage_index {
-            let slot_index: usize =
-                pred.states()
-                    .take(storage_index)
-                    .try_fold(0, |acc, (state_key, _)| {
-                        state_key
-                            .get_ty(pred)
-                            .storage_or_transient_slots(handler, contract)
-                            .map(|slots| acc + slots)
-                    })?;
-
-            asm.push(Stack::Push(slot_index as i64).into());
+        }
+        // Now handle state vars
+        else if let Some(state_index) = pred.states().position(|(_, state)| &state.name == path) {
+            asm.push(
+                Stack::Push(
+                    pred.states()
+                        .take(state_index)
+                        .try_fold(0, |acc, (state_key, _)| {
+                            state_key
+                                .get_ty(pred)
+                                .storage_or_transient_slots(handler, contract)
+                                .map(|slots| acc + slots)
+                        })? as i64,
+                )
+                .into(),
+            );
 
             Ok(Location::State(false))
-        } else {
-            // try external vars by looking through all available predicate instances and their
-            // corresponding interfaces
-            for PredicateInstance {
-                name,
-                interface_instance,
-                predicate: predicate_name,
-                ..
-            } in &pred.predicate_instances
-            {
-                let Some(interface_instance) = pred
-                    .interface_instances
-                    .iter()
-                    .find(|e| e.name.to_string() == *interface_instance)
-                else {
-                    continue;
-                };
-
-                let Some(interface) = contract
-                    .interfaces
-                    .iter()
-                    .find(|e| e.name.to_string() == *interface_instance.interface)
-                else {
-                    continue;
-                };
-
-                let Some(predicate_interface) = interface
-                    .predicate_interfaces
-                    .iter()
-                    .find(|e| e.name.to_string() == *predicate_name.to_string())
-                else {
-                    continue;
-                };
-
-                let Some(transient_index) = predicate_interface
-                    .vars
-                    .iter()
-                    .position(|var| name.to_string() + "::" + &var.name.name == *path)
-                else {
-                    continue;
-                };
-
-                let Some(var) = predicate_interface
-                    .vars
-                    .iter()
-                    .find(|var| name.to_string() + "::" + &var.name.name == *path)
-                else {
-                    continue;
-                };
-
-                asm.push(Stack::Push(transient_index as i64).into());
-
-                if !var.ty.is_any_primitive() {
-                    asm.push(Stack::Push(0).into()); // placeholder for offsets
-                    return Ok(Location::Transient(
-                        Some("__".to_owned() + &name.to_string() + "_pathway"),
-                        2,
-                    ));
-                } else {
-                    return Ok(Location::Transient(
-                        Some("__".to_owned() + &name.to_string() + "_pathway"),
-                        1,
-                    ));
-                }
-            }
+        }
+        // Must not have anything else at this point. All other path expressions should have been
+        // lowered to something else by now
+        else {
             return Err(handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
-                    msg: "unable to find external pub var",
+                    msg: "unexpected path expression",
                     span: empty_span(),
                 },
             }));
