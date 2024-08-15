@@ -310,7 +310,7 @@ impl Contract {
                                     .to_string(),
                                 found_ty: self.with_ctrct(expr_type).to_string(),
                                 span: constraint_decl.span.clone(),
-                                expected_span: Some(constraint_decl.span.clone()),
+                                expected_span: Some(self.expr_key_to_span(constraint_decl.expr)),
                             }),
                         },
                     });
@@ -1262,7 +1262,7 @@ impl Contract {
                         span: span.clone(),
                     },
                 });
-                return Inference::Type(Type::Unknown(empty_span()));
+                return Inference::Type(Type::Error(empty_span()));
             };
 
             // Find the interface declaration corresponding to the interface instance
@@ -1288,7 +1288,7 @@ impl Contract {
                                 span: span.clone(),
                             },
                         });
-                        Inference::Type(Type::Unknown(empty_span()))
+                        Inference::Type(Type::Error(empty_span()))
                     }
                 },
                 None => {
@@ -1298,7 +1298,7 @@ impl Contract {
                             span: span.clone(),
                         },
                     });
-                    Inference::Type(Type::Unknown(empty_span()))
+                    Inference::Type(Type::Error(empty_span()))
                 }
             }
         } else {
@@ -1308,7 +1308,7 @@ impl Contract {
                     span: span.clone(),
                 },
             });
-            Inference::Type(Type::Unknown(empty_span()))
+            Inference::Type(Type::Error(empty_span()))
         }
     }
 
@@ -1433,7 +1433,7 @@ impl Contract {
                 // RHS must be an int or real.
                 let ty = rhs_expr_key.get_ty(self);
                 if !ty.is_unknown() {
-                    if !ty.is_num() {
+                    if !ty.is_num() && !ty.is_error() {
                         handler.emit_err(Error::Compile {
                             error: CompileError::OperatorTypeError {
                                 arity: "unary",
@@ -1458,7 +1458,7 @@ impl Contract {
                 // RHS must be a bool.
                 let ty = rhs_expr_key.get_ty(self);
                 if !ty.is_unknown() {
-                    if !ty.is_bool() {
+                    if !ty.is_bool() && !ty.is_error() {
                         handler.emit_err(Error::Compile {
                             error: CompileError::OperatorTypeError {
                                 arity: "unary",
@@ -1472,6 +1472,7 @@ impl Contract {
                             },
                         });
                     }
+
                     Inference::Type(ty.clone())
                 } else {
                     Inference::Dependant(rhs_expr_key)
@@ -1491,31 +1492,35 @@ impl Contract {
     ) -> Inference {
         let check_numeric_args = |lhs_ty: &Type, rhs_ty: &Type, ty_str: &str| {
             if !lhs_ty.is_num() {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::OperatorTypeError {
-                        arity: "binary",
-                        large_err: Box::new(LargeTypeError::OperatorTypeError {
-                            op: op.as_str(),
-                            expected_ty: ty_str.to_string(),
-                            found_ty: self.with_ctrct(lhs_ty).to_string(),
-                            span: self.expr_key_to_span(lhs_expr_key),
-                            expected_span: None,
-                        }),
-                    },
-                });
+                if !lhs_ty.is_error() {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::OperatorTypeError {
+                            arity: "binary",
+                            large_err: Box::new(LargeTypeError::OperatorTypeError {
+                                op: op.as_str(),
+                                expected_ty: ty_str.to_string(),
+                                found_ty: self.with_ctrct(lhs_ty).to_string(),
+                                span: self.expr_key_to_span(lhs_expr_key),
+                                expected_span: None,
+                            }),
+                        },
+                    });
+                }
             } else if !rhs_ty.is_num() {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::OperatorTypeError {
-                        arity: "binary",
-                        large_err: Box::new(LargeTypeError::OperatorTypeError {
-                            op: op.as_str(),
-                            expected_ty: ty_str.to_string(),
-                            found_ty: self.with_ctrct(rhs_ty).to_string(),
-                            span: self.expr_key_to_span(rhs_expr_key),
-                            expected_span: None,
-                        }),
-                    },
-                });
+                if !rhs_ty.is_error() {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::OperatorTypeError {
+                            arity: "binary",
+                            large_err: Box::new(LargeTypeError::OperatorTypeError {
+                                op: op.as_str(),
+                                expected_ty: ty_str.to_string(),
+                                found_ty: self.with_ctrct(rhs_ty).to_string(),
+                                span: self.expr_key_to_span(rhs_expr_key),
+                                expected_span: None,
+                            }),
+                        },
+                    });
+                }
             } else if !lhs_ty.eq(&self.new_types, rhs_ty) {
                 // Here we assume the LHS is the 'correct' type.
                 handler.emit_err(Error::Compile {
@@ -1602,6 +1607,8 @@ impl Contract {
                             && !lhs_ty.is_nil()
                             && !rhs_ty.is_nil()
                             && !is_init_constraint
+                            && !lhs_ty.is_error()
+                            && !rhs_ty.is_error()
                         {
                             handler.emit_err(Error::Compile {
                                 error: CompileError::OperatorTypeError {
@@ -1616,6 +1623,7 @@ impl Contract {
                                 },
                             });
                         }
+
                         Inference::Type(Type::Primitive {
                             kind: PrimitiveKind::Bool,
                             span: span.clone(),
@@ -1637,19 +1645,21 @@ impl Contract {
                     BinaryOp::LogicalAnd | BinaryOp::LogicalOr => {
                         // Both arg types and binary op type are all bool.
                         if !lhs_ty.is_bool() {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::OperatorTypeError {
-                                    arity: "binary",
-                                    large_err: Box::new(LargeTypeError::OperatorTypeError {
-                                        op: op.as_str(),
-                                        expected_ty: "bool".to_string(),
-                                        found_ty: self.with_ctrct(lhs_ty).to_string(),
-                                        span: self.expr_key_to_span(lhs_expr_key),
-                                        expected_span: Some(span.clone()),
-                                    }),
-                                },
-                            });
-                        } else if !rhs_ty.is_bool() {
+                            if !lhs_ty.is_error() {
+                                handler.emit_err(Error::Compile {
+                                    error: CompileError::OperatorTypeError {
+                                        arity: "binary",
+                                        large_err: Box::new(LargeTypeError::OperatorTypeError {
+                                            op: op.as_str(),
+                                            expected_ty: "bool".to_string(),
+                                            found_ty: self.with_ctrct(lhs_ty).to_string(),
+                                            span: self.expr_key_to_span(lhs_expr_key),
+                                            expected_span: Some(span.clone()),
+                                        }),
+                                    },
+                                });
+                            }
+                        } else if !rhs_ty.is_bool() && !rhs_ty.is_error() {
                             handler.emit_err(Error::Compile {
                                 error: CompileError::OperatorTypeError {
                                     arity: "binary",
@@ -1663,6 +1673,7 @@ impl Contract {
                                 },
                             });
                         }
+
                         Inference::Type(Type::Primitive {
                             kind: PrimitiveKind::Bool,
                             span: span.clone(),
@@ -1697,7 +1708,7 @@ impl Contract {
                         span: self.expr_key_to_span(cond_expr_key),
                     },
                 });
-                Inference::Type(cond_ty.clone())
+                Inference::Type(Type::Error(span.clone()))
             } else if !then_ty.is_unknown() {
                 if !else_ty.is_unknown() {
                     if !then_ty.eq(&self.new_types, else_ty) {
@@ -1829,16 +1840,12 @@ impl Contract {
                                 span: collection_ty.span().clone(),
                             },
                         });
-                        Inference::Type(Type::Primitive {
-                            kind: PrimitiveKind::Bool,
-                            span: span.clone(),
-                        })
-                    } else {
-                        Inference::Type(Type::Primitive {
-                            kind: PrimitiveKind::Bool,
-                            span: span.clone(),
-                        })
                     }
+
+                    Inference::Type(Type::Primitive {
+                        kind: PrimitiveKind::Bool,
+                        span: span.clone(),
+                    })
                 } else if let Some(el_ty) = collection_ty.get_array_el_type() {
                     if !value_ty.eq(&self.new_types, el_ty) {
                         handler.emit_err(Error::Compile {
@@ -1848,16 +1855,12 @@ impl Contract {
                                 span: el_ty.span().clone(),
                             },
                         });
-                        Inference::Type(Type::Primitive {
-                            kind: PrimitiveKind::Bool,
-                            span: span.clone(),
-                        })
-                    } else {
-                        Inference::Type(Type::Primitive {
-                            kind: PrimitiveKind::Bool,
-                            span: span.clone(),
-                        })
                     }
+
+                    Inference::Type(Type::Primitive {
+                        kind: PrimitiveKind::Bool,
+                        span: span.clone(),
+                    })
                 } else {
                     handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
@@ -1886,6 +1889,8 @@ impl Contract {
             handler.emit_err(Error::Compile {
                 error: CompileError::EmptyArrayExpression { span: span.clone() },
             });
+
+            // Return an array of Error, which is still an array.
             return Inference::Type(Type::Array {
                 ty: Box::new(Type::Error(span.clone())),
                 range: Some(range_expr_key),
@@ -1974,21 +1979,21 @@ impl Contract {
                     },
                 });
             }
-            if let Some(ty) = ary_ty.get_array_el_type() {
-                Inference::Type(ty.clone())
+            if let Some(el_ty) = ary_ty.get_array_el_type() {
+                Inference::Type(el_ty.clone())
             } else {
                 handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
-                        msg: "failed to get array element type \
-                          in infer_index_expr()",
+                        msg: "failed to get array element type in infer_index_expr()",
                         span: span.clone(),
                     },
                 });
-                Inference::Type(index_ty.clone())
+
+                Inference::Type(Type::Error(span.clone()))
             }
-        } else if let Some(ty) = ary_ty.get_array_el_type() {
+        } else if let Some(el_ty) = ary_ty.get_array_el_type() {
             // Is it an array with an unknown range (probably a const immediate)?
-            Inference::Type(ty.clone())
+            Inference::Type(el_ty.clone())
         } else if let Some(from_ty) = ary_ty.get_map_ty_from() {
             // Is this a storage map?
             if !from_ty.eq(&self.new_types, index_ty) {
@@ -1999,9 +2004,10 @@ impl Contract {
                         span: self.expr_key_to_span(index_expr_key),
                     },
                 });
-                Inference::Type(index_ty.clone())
-            } else if let Some(ty) = ary_ty.get_map_ty_to() {
-                Inference::Type(ty.clone())
+
+                Inference::Type(Type::Error(span.clone()))
+            } else if let Some(to_ty) = ary_ty.get_map_ty_to() {
+                Inference::Type(to_ty.clone())
             } else {
                 handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
@@ -2010,9 +2016,10 @@ impl Contract {
                         span: span.clone(),
                     },
                 });
-                Inference::Type(index_ty.clone())
+
+                Inference::Type(Type::Error(span.clone()))
             }
-        } else if let Some(ty) = ary_ty.get_vector_element_ty() {
+        } else if let Some(el_ty) = ary_ty.get_vector_element_ty() {
             if !index_ty.is_int() {
                 handler.emit_err(Error::Compile {
                     error: CompileError::ArrayAccessWithWrongType {
@@ -2022,7 +2029,8 @@ impl Contract {
                     },
                 });
             }
-            Inference::Type(ty.clone())
+
+            Inference::Type(el_ty.clone())
         } else {
             handler.emit_err(Error::Compile {
                 error: CompileError::IndexExprNonIndexable {
@@ -2030,7 +2038,8 @@ impl Contract {
                     span: span.clone(),
                 },
             });
-            Inference::Type(ary_ty.clone())
+
+            Inference::Type(Type::Error(span.clone()))
         }
     }
 
@@ -2089,7 +2098,8 @@ impl Contract {
                                     span: span.clone(),
                                 },
                             });
-                            Inference::Type(tuple_ty.clone())
+
+                            Inference::Type(Type::Error(span.clone()))
                         }
                     }
 
@@ -2104,7 +2114,8 @@ impl Contract {
                                     span: span.clone(),
                                 },
                             });
-                            Inference::Type(tuple_ty.clone())
+
+                            Inference::Type(Type::Error(span.clone()))
                         }
                     }
                 }
@@ -2115,7 +2126,8 @@ impl Contract {
                         span: span.clone(),
                     },
                 });
-                Inference::Type(tuple_ty.clone())
+
+                Inference::Type(Type::Error(span.clone()))
             }
         } else {
             Inference::Dependant(tuple_expr_key)

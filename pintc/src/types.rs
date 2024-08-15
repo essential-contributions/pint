@@ -84,6 +84,10 @@ impl Type {
         matches!(self, Type::Unknown(_))
     }
 
+    pub fn is_error(&self) -> bool {
+        matches!(self, Type::Error(_))
+    }
+
     pub fn is_alias(&self) -> Option<&Type> {
         if let Type::Alias { ty, .. } = self {
             Some(ty)

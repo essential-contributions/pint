@@ -1272,24 +1272,28 @@ fn generate_type_error_labels(
     found_span: &Span,
     expected_span: &Option<Span>,
 ) -> Vec<ErrorLabel> {
-    let message = if found_ty == "Unknown" || found_ty == "Error" {
-        format!("{what} has unknown type")
-    } else {
-        format!("{what} has unexpected type `{found_ty}`")
+    let mut labels = Vec::default();
+    let mut expected_label_color = Color::Red;
+
+    if found_ty != "Unknown" && found_ty != "Error" {
+        labels.push(ErrorLabel {
+            message: format!("{what} has unexpected type `{found_ty}`"),
+            span: found_span.clone(),
+            color: Color::Red,
+        });
+
+        // Make this label red and the next one blue.
+        expected_label_color = Color::Blue;
     };
 
-    let mut labels = vec![ErrorLabel {
-        message,
-        span: found_span.clone(),
-        color: Color::Red,
-    }];
-
     if let Some(span) = expected_span {
-        labels.push(ErrorLabel {
-            message: format!("expecting type `{expected_ty}`"),
-            span: span.clone(),
-            color: Color::Blue,
-        });
+        if expected_ty != "Unknown" && expected_ty != "Error" {
+            labels.push(ErrorLabel {
+                message: format!("expecting type `{expected_ty}`"),
+                span: span.clone(),
+                color: expected_label_color,
+            });
+        }
     }
 
     labels

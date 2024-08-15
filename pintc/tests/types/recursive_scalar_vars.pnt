@@ -41,12 +41,9 @@ predicate test {
 // unable to determine expression type
 // @63..64: type of this expression is ambiguous
 // constraint expression type error
-// @21..34: constraint expression has unknown type
 // @21..34: expecting type `bool`
 // constraint expression type error
-// @40..53: constraint expression has unknown type
 // @40..53: expecting type `bool`
 // constraint expression type error
-// @59..72: constraint expression has unknown type
 // @59..72: expecting type `bool`
 // >>>
