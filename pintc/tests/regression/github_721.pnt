@@ -25,9 +25,4 @@ predicate Foo {
 // @107..111: value must be a tuple; found `{a: int, b: int}[_]`
 // attempt to access tuple field from a non-tuple value
 // @114..118: value must be a tuple; found `{a: int, b: int}[_]`
-// binary operator type error
-// @107..111: operator `+` argument has unexpected type `{a: int, b: int}[_]`
-// binary operator type error
-// @166..167: operator `==` argument has unexpected type `int`
-// @107..118: expecting type `{a: int, b: int}[_]`
 // >>>

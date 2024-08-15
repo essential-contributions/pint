@@ -13,7 +13,4 @@ predicate test {
 // typecheck_failure <<<
 // `next state` access must be bound to a state variable
 // @48..49: `next state` access must be bound to a state variable
-// binary operator type error
-// @54..55: operator `==` argument has unexpected type `int`
-// @48..50: expecting type `Error`
 // >>>

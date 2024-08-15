@@ -16,6 +16,4 @@ predicate test {
 // invalid tuple accessor
 // @65..68: unable to get field from tuple using `z`
 // tuple has type `{x: int, y: real}`
-// binary operator type error
-// @65..68: operator `>` argument has unexpected type `{x: int, y: real}`
 // >>>

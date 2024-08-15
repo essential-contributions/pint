@@ -16,7 +16,4 @@ predicate test {
 // invalid tuple accessor
 // @61..64: unable to get field from tuple using `4`
 // tuple has type `{int, int, int}`
-// binary operator type error
-// @68..70: operator `==` argument has unexpected type `int`
-// @61..64: expecting type `{int, int, int}`
 // >>>

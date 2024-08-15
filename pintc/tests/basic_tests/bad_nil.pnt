@@ -31,5 +31,5 @@ predicate test {
 // @28..31: expecting type `int`
 // constraint expression type error
 // @109..123: constraint expression has unexpected type `nil`
-// @109..123: expecting type `bool`
+// @120..123: expecting type `bool`
 // >>>

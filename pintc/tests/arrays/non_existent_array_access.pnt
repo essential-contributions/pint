@@ -13,7 +13,4 @@ predicate test {
 // @32..33: not found in this scope
 // indexed expression invalid
 // @32..36: value must be an array or a storage map; found `Error`
-// binary operator type error
-// @40..41: operator `==` argument has unexpected type `int`
-// @32..36: expecting type `Error`
 // >>>
