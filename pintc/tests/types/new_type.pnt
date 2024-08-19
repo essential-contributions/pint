@@ -93,7 +93,6 @@ predicate test {
 //     var ::h: int[3];
 //     var ::p: {x: real, y: real};
 //     var ::q: real;
-//     state ::x: int = __storage_get({0});
 //     constraint (::t == 0);
 //     constraint (::u == 1);
 //     constraint (::v == 2);

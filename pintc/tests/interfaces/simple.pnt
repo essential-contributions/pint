@@ -186,9 +186,6 @@ predicate Simple {
 //     var ::x1: int;
 //     var ::x2: b256;
 //     var ::x3: bool;
-//     state ::x: int = __storage_get_extern(::addr1, {0});
-//     state ::y: int = __storage_get_extern(::addr1, {1});
-//     state ::z: b256 = __storage_get_extern(::addr2, {1});
 //     constraint (::x1 == __transient({0}, 1, __::FooI1Instance1_pathway));
 //     constraint (::x2 == __transient({1}, 1, __::BarI2Instance2_pathway));
 //     constraint (::x3 == __transient({2}, 1, __::BarI2Instance3_pathway));
