@@ -54,6 +54,37 @@ predicate Bar {
     state foo_map_to_tuples_69_0 = FooInstance::storage::map_to_tuples[69].0;
     state foo_map_to_tuples_69_1_0 = FooInstance::storage::map_to_tuples[69].1.0;
     state foo_map_to_tuples_69_1_1 = FooInstance::storage::map_to_tuples[69].1.1;
+
+    constraint u == u;
+    constraint u0 == u0;
+    constraint u1 == u1;
+    constraint t == t;
+    constraint t0 == t0;
+    constraint t10 == t10;
+    constraint t11 == t11;
+    constraint w == w;
+    constraint w0 == w0;
+    constraint w10 == w10;
+    constraint w11 == w11;
+    constraint map_to_tuples_69 == map_to_tuples_69;
+    constraint map_to_tuples_69_0 == map_to_tuples_69_0;
+    constraint map_to_tuples_69_1_0 == map_to_tuples_69_1_0;
+    constraint map_to_tuples_69_1_1 == map_to_tuples_69_1_1;
+    constraint foo_u == foo_u;
+    constraint foo_u0 == foo_u0;
+    constraint foo_u1 == foo_u1;
+    constraint foo_t == foo_t;
+    constraint foo_t0 == foo_t0;
+    constraint foo_t10 == foo_t10;
+    constraint foo_t11 == foo_t11;
+    constraint foo_w == foo_w;
+    constraint foo_w0 == foo_w0;
+    constraint foo_w10 == foo_w10;
+    constraint foo_w11 == foo_w11;
+    constraint foo_map_to_tuples_69 == foo_map_to_tuples_69;
+    constraint foo_map_to_tuples_69_0 == foo_map_to_tuples_69_0;
+    constraint foo_map_to_tuples_69_1_0 == foo_map_to_tuples_69_1_0;
+    constraint foo_map_to_tuples_69_1_1 == foo_map_to_tuples_69_1_1;
 }
 
 // parsed <<<
@@ -104,6 +135,36 @@ predicate Bar {
 //     state ::foo_map_to_tuples_69_0 = ::FooInstance::storage::map_to_tuples[69].0;
 //     state ::foo_map_to_tuples_69_1_0 = ::FooInstance::storage::map_to_tuples[69].1.0;
 //     state ::foo_map_to_tuples_69_1_1 = ::FooInstance::storage::map_to_tuples[69].1.1;
+//     constraint (::u == ::u);
+//     constraint (::u0 == ::u0);
+//     constraint (::u1 == ::u1);
+//     constraint (::t == ::t);
+//     constraint (::t0 == ::t0);
+//     constraint (::t10 == ::t10);
+//     constraint (::t11 == ::t11);
+//     constraint (::w == ::w);
+//     constraint (::w0 == ::w0);
+//     constraint (::w10 == ::w10);
+//     constraint (::w11 == ::w11);
+//     constraint (::map_to_tuples_69 == ::map_to_tuples_69);
+//     constraint (::map_to_tuples_69_0 == ::map_to_tuples_69_0);
+//     constraint (::map_to_tuples_69_1_0 == ::map_to_tuples_69_1_0);
+//     constraint (::map_to_tuples_69_1_1 == ::map_to_tuples_69_1_1);
+//     constraint (::foo_u == ::foo_u);
+//     constraint (::foo_u0 == ::foo_u0);
+//     constraint (::foo_u1 == ::foo_u1);
+//     constraint (::foo_t == ::foo_t);
+//     constraint (::foo_t0 == ::foo_t0);
+//     constraint (::foo_t10 == ::foo_t10);
+//     constraint (::foo_t11 == ::foo_t11);
+//     constraint (::foo_w == ::foo_w);
+//     constraint (::foo_w0 == ::foo_w0);
+//     constraint (::foo_w10 == ::foo_w10);
+//     constraint (::foo_w11 == ::foo_w11);
+//     constraint (::foo_map_to_tuples_69 == ::foo_map_to_tuples_69);
+//     constraint (::foo_map_to_tuples_69_0 == ::foo_map_to_tuples_69_0);
+//     constraint (::foo_map_to_tuples_69_1_0 == ::foo_map_to_tuples_69_1_0);
+//     constraint (::foo_map_to_tuples_69_1_1 == ::foo_map_to_tuples_69_1_1);
 // }
 // >>>
 
@@ -155,6 +216,36 @@ predicate Bar {
 //     state ::foo_map_to_tuples_69_0: b256 = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {3, 69, (0 + 0)});
 //     state ::foo_map_to_tuples_69_1_0: int = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {3, 69, ((0 + 1) + 0)});
 //     state ::foo_map_to_tuples_69_1_1: int = __storage_get_extern(0x1111111111111111111111111111111111111111111111111111111111111111, {3, 69, ((0 + 1) + 1)});
+//     constraint (::u == ::u);
+//     constraint (::u0 == ::u0);
+//     constraint (::u1 == ::u1);
+//     constraint (::t == ::t);
+//     constraint (::t0 == ::t0);
+//     constraint (::t10 == ::t10);
+//     constraint (::t11 == ::t11);
+//     constraint (::w == ::w);
+//     constraint (::w0 == ::w0);
+//     constraint (::w10 == ::w10);
+//     constraint (::w11 == ::w11);
+//     constraint (::map_to_tuples_69 == ::map_to_tuples_69);
+//     constraint (::map_to_tuples_69_0 == ::map_to_tuples_69_0);
+//     constraint (::map_to_tuples_69_1_0 == ::map_to_tuples_69_1_0);
+//     constraint (::map_to_tuples_69_1_1 == ::map_to_tuples_69_1_1);
+//     constraint (::foo_u == ::foo_u);
+//     constraint (::foo_u0 == ::foo_u0);
+//     constraint (::foo_u1 == ::foo_u1);
+//     constraint (::foo_t == ::foo_t);
+//     constraint (::foo_t0 == ::foo_t0);
+//     constraint (::foo_t10 == ::foo_t10);
+//     constraint (::foo_t11 == ::foo_t11);
+//     constraint (::foo_w == ::foo_w);
+//     constraint (::foo_w0 == ::foo_w0);
+//     constraint (::foo_w10 == ::foo_w10);
+//     constraint (::foo_w11 == ::foo_w11);
+//     constraint (::foo_map_to_tuples_69 == ::foo_map_to_tuples_69);
+//     constraint (::foo_map_to_tuples_69_0 == ::foo_map_to_tuples_69_0);
+//     constraint (::foo_map_to_tuples_69_1_0 == ::foo_map_to_tuples_69_1_0);
+//     constraint (::foo_map_to_tuples_69_1_1 == ::foo_map_to_tuples_69_1_1);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

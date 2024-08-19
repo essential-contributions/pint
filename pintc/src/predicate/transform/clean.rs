@@ -1,6 +1,6 @@
 use crate::{
     expr::Expr,
-    predicate::{Contract, StateKey},
+    predicate::{Contract, ExprKey, StateKey},
 };
 
 // go through all the state exprs and see if they're used
@@ -8,6 +8,8 @@ use crate::{
 // remove the dead ones in a separate loop after (you can change items with a mutable iterator, but not remove elements of the vector)
 pub(crate) fn clean_dead_state_decls(contract: &mut Contract) {
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
+        println!("contract: {:#?}", contract);
+
         let mut live_paths: Vec<String> = Vec::new(); // TODO: consider a set
         for expr in contract.exprs(pred_key) {
             if let Expr::Path(name, _) = expr.get(contract) {
@@ -23,11 +25,20 @@ pub(crate) fn clean_dead_state_decls(contract: &mut Contract) {
             }
         }
 
+        let mut state_expr: Option<ExprKey> = None;
+
         if let Some(pred) = contract.preds.get_mut(pred_key) {
             for dead_state in dead_state_decls {
+                // if dead_state.get(pred)
+                state_expr = Some(dead_state.get(pred).expr);
+
                 pred.states.remove(dead_state);
             }
         }
+
+        if let Some(expr) = state_expr {
+            println!("expr: {}", contract.with_ctrct(expr));
+        } // TODO: Find a way to deal with the states being mut. For now we are not ignoring them and will remove them if they are unused
 
         // contract.exprs iterator will give you the accessible exprs from the root
         // no need to recurse, we get back all the exprs

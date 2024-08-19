@@ -933,6 +933,18 @@ predicate Foo {
     state w0 = storage::w .addr;
     state w10 = storage::w.inner.x;
     state w11 = storage::w.inner.1;
+
+    constraint u == u;
+    constraint u0 == u0;
+    constraint u1 == u1;
+    constraint t == t;
+    constraint t0 == t0;
+    constraint t10 == t10;
+    constraint t11 == t11;
+    constraint w == w;
+    constraint w0 == w0;
+    constraint w10 == w10;
+    constraint w11 == w11;
 }
         "#,
     );
@@ -943,6 +955,106 @@ predicate Foo {
             predicate ::Foo {
                 --- Constraints ---
                 constraint 0
+                  Stack(Push(0))
+                  Stack(Push(2))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(0))
+                  Stack(Push(2))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(5))
+                  Pred(EqRange)
+                constraint 1
+                  Stack(Push(2))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(2))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(4))
+                  Pred(EqRange)
+                constraint 2
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 3
+                  Stack(Push(4))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(4))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(6))
+                  Pred(EqRange)
+                constraint 4
+                  Stack(Push(7))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(7))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(4))
+                  Pred(EqRange)
+                constraint 5
+                  Stack(Push(8))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(8))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 6
+                  Stack(Push(9))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(9))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 7
+                  Stack(Push(10))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(10))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(6))
+                  Pred(EqRange)
+                constraint 8
+                  Stack(Push(13))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(13))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(4))
+                  Pred(EqRange)
+                constraint 9
+                  Stack(Push(14))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(14))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 10
+                  Stack(Push(15))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(15))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 11
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
@@ -1101,6 +1213,11 @@ predicate Foo {
     state map_to_tuples_69_0 = storage::map_to_tuples[69].0;
     state map_to_tuples_69_1_0 = storage::map_to_tuples[69].1.0;
     state map_to_tuples_69_1_1 = storage::map_to_tuples[69].1.1;
+
+    constraint map_to_tuples_69 == map_to_tuples_69;
+    constraint map_to_tuples_69_0 == map_to_tuples_69_0;
+    constraint map_to_tuples_69_1_0 == map_to_tuples_69_1_0;
+    constraint map_to_tuples_69_1_1 == map_to_tuples_69_1_1;
 }
         "#,
     );
@@ -1111,6 +1228,42 @@ predicate Foo {
             predicate ::Foo {
                 --- Constraints ---
                 constraint 0
+                  Stack(Push(0))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(0))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(6))
+                  Pred(EqRange)
+                constraint 1
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(4))
+                  Pred(EqRange)
+                constraint 2
+                  Stack(Push(4))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(4))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 3
+                  Stack(Push(5))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(5))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 4
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
@@ -1203,6 +1356,18 @@ predicate Bar {
     state foo_w0 = FooInstance::storage::w .addr;
     state foo_w10 = FooInstance::storage::w.inner.x;
     state foo_w11 = FooInstance::storage::w.inner.1;
+
+    constraint foo_u == foo_u;
+    constraint foo_u0 == foo_u0;
+    constraint foo_u1 == foo_u1;
+    constraint foo_t == foo_t;
+    constraint foo_t0 == foo_t0;
+    constraint foo_t10 == foo_t10;
+    constraint foo_t11 == foo_t11;
+    constraint foo_w == foo_w;
+    constraint foo_w0 == foo_w0;
+    constraint foo_w10 == foo_w10;
+    constraint foo_w11 == foo_w11;
 }
         "#,
     );
@@ -1213,6 +1378,106 @@ predicate Bar {
             predicate ::Bar {
                 --- Constraints ---
                 constraint 0
+                  Stack(Push(0))
+                  Stack(Push(2))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(0))
+                  Stack(Push(2))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(5))
+                  Pred(EqRange)
+                constraint 1
+                  Stack(Push(2))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(2))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(4))
+                  Pred(EqRange)
+                constraint 2
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 3
+                  Stack(Push(4))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(4))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(6))
+                  Pred(EqRange)
+                constraint 4
+                  Stack(Push(7))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(7))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(4))
+                  Pred(EqRange)
+                constraint 5
+                  Stack(Push(8))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(8))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 6
+                  Stack(Push(9))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(9))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 7
+                  Stack(Push(10))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(10))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(6))
+                  Pred(EqRange)
+                constraint 8
+                  Stack(Push(13))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(13))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(4))
+                  Pred(EqRange)
+                constraint 9
+                  Stack(Push(14))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(14))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 10
+                  Stack(Push(15))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(15))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 11
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
@@ -1414,6 +1679,10 @@ predicate Foo {
     state v = storage::v;
     state v1 = storage::v[1];
     state v12 = storage::v[1][2];
+
+    constraint v == v;
+    constraint v1 == v1;
+    constraint v12 == v12;
 }
         "#,
     );
@@ -1424,6 +1693,36 @@ predicate Foo {
             predicate ::Foo {
                 --- Constraints ---
                 constraint 0
+                  Stack(Push(0))
+                  Stack(Push(6))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(0))
+                  Stack(Push(6))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(6))
+                  Pred(EqRange)
+                constraint 1
+                  Stack(Push(6))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(6))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(3))
+                  Pred(EqRange)
+                constraint 2
+                  Stack(Push(9))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(9))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 3
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
@@ -1488,6 +1787,8 @@ storage {
 predicate Foo {
     state map_to_arrays_69 = storage::map_to_arrays[69];
     state map_to_arrays_69_2 = storage::map_to_arrays[69][2];
+    constraint map_to_arrays_69 == map_to_arrays_69;
+    constraint map_to_arrays_69_2 == map_to_arrays_69_2;
 }
         "#,
     );
@@ -1498,6 +1799,25 @@ predicate Foo {
             predicate ::Foo {
                 --- Constraints ---
                 constraint 0
+                  Stack(Push(0))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(0))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(3))
+                  Pred(EqRange)
+                constraint 1
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 2
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
@@ -1554,6 +1874,12 @@ predicate Bar {
 
     state foo_map_to_arrays_69 = FooInstance::storage::map_to_arrays[69];
     state foo_map_to_arrays_69_1 = FooInstance::storage::map_to_arrays[69][1];
+
+    constraint foo_v == foo_v;
+    constraint foo_v1 == foo_v1;
+    constraint foo_v12 == foo_v12;
+    constraint foo_map_to_arrays_69 == foo_map_to_arrays_69;
+    constraint foo_map_to_arrays_69_1 == foo_map_to_arrays_69_1;
 }
         "#,
     );
@@ -1564,6 +1890,55 @@ predicate Bar {
             predicate ::Bar {
                 --- Constraints ---
                 constraint 0
+                  Stack(Push(0))
+                  Stack(Push(6))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(0))
+                  Stack(Push(6))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(6))
+                  Pred(EqRange)
+                constraint 1
+                  Stack(Push(6))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(6))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(3))
+                  Pred(EqRange)
+                constraint 2
+                  Stack(Push(9))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(9))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 3
+                  Stack(Push(10))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(10))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  Access(StateRange)
+                  Stack(Push(3))
+                  Pred(EqRange)
+                constraint 4
+                  Stack(Push(13))
+                  Stack(Push(0))
+                  Access(State)
+                  Stack(Push(13))
+                  Stack(Push(0))
+                  Access(State)
+                  Pred(Eq)
+                constraint 5
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
