@@ -214,12 +214,12 @@ PredicateInstance: () = {
             (l, l1, r1, r),
         );
     },
-    <l:@L> "predicate" <name:Ident> "=" 
+    <l:@L> "predicate" <name:Ident> "="
         <l1:@L> /* no els here */ <r1:@R> <predicate:Ident> "(" ")" <r:@R> => {
         context.parse_predicate_instance(
             handler,
             name,
-            false, // not absolute
+            false,  // not absolute
             vec![], // no path needed for an interface instance
             predicate,
             None, // no address here
@@ -894,7 +894,21 @@ IntrinsicArg: ExprKey = {
 
 IntrinsicCallExpr: Expr = {
     <l:@L> <ident:IntrinsicName> "(" <args:SepList<IntrinsicArg, ",">> ")" <r:@R> => {
+        use ExternalIntrinsic::*;
+        use IntrinsicKind::External;
         Expr::IntrinsicCall {
+            kind: match &ident.name[..] {
+                "__predicate_at" => External(PredicateAt),
+                "__recover_secp256k1" => External(RecoverSECP256k1),
+                "__sha256" => External(Sha256),
+                "__state_len" => External(StateLen),
+                "__this_address" => External(ThisAddress),
+                "__this_contract_address" => External(ThisContractAddress),
+                "__this_pathway" => External(ThisPathway),
+                "__vec_len" => External(VecLen),
+                "__verify_ed25519" => External(VerifyEd25519),
+                _ => todo!(),
+            },
             name: ident,
             args,
             span: (context.span_from)(l, r),

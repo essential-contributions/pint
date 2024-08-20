@@ -279,7 +279,7 @@ pub enum CompileError {
         found: usize,
         span: Span,
     },
-    #[error("mismatched types")]
+    #[error("incorrect intrinsic argument")]
     MismatchedIntrinsicArgType {
         expected: String,
         found: String,
@@ -1006,12 +1006,12 @@ impl ReportableError for CompileError {
                 ErrorLabel {
                     message: format!("expected `{expected}`, found `{found}`"),
                     span: arg_span.clone(),
-                    color: Color::Red,
+                    color: Color::Blue,
                 },
                 ErrorLabel {
                     message: "arguments to this intrinsic are incorrect`".to_string(),
                     span: intrinsic_span.clone(),
-                    color: Color::Blue,
+                    color: Color::Red,
                 },
             ],
 

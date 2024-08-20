@@ -36,16 +36,22 @@ predicate test {
 // >>>
 
 // typecheck_failure <<<
-// intrinsic argument must be a storage access
-// @117..138: intrinsic argument must be a storage access
-// intrinsic argument must be a storage access
-// @158..179: intrinsic argument must be a storage access
-// intrinsic argument must be a storage access
-// @199..220: intrinsic argument must be a storage access
-// intrinsic argument must be a storage access
-// @240..261: intrinsic argument must be a storage access
-// intrinsic argument must be a storage access
-// @298..310: intrinsic argument must be a storage access
-// intrinsic argument must be a storage access
-// @332..344: intrinsic argument must be a storage access
+// incorrect intrinsic argument
+// @127..137: expected `_[]`, found `int`
+// @117..126: arguments to this intrinsic are incorrect`
+// incorrect intrinsic argument
+// @168..178: expected `_[]`, found `b256`
+// @158..167: arguments to this intrinsic are incorrect`
+// incorrect intrinsic argument
+// @209..219: expected `_[]`, found `( int => int )`
+// @199..208: arguments to this intrinsic are incorrect`
+// incorrect intrinsic argument
+// @250..260: expected `_[]`, found `{int, int}`
+// @240..249: arguments to this intrinsic are incorrect`
+// incorrect intrinsic argument
+// @308..309: expected `_[]`, found `int`
+// @298..307: arguments to this intrinsic are incorrect`
+// incorrect intrinsic argument
+// @342..343: expected `_[]`, found `int`
+// @332..341: arguments to this intrinsic are incorrect`
 // >>>

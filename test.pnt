@@ -1,0 +1,4 @@
+predicate test {
+    var t: bool = !true;
+    constraint !t;
+}

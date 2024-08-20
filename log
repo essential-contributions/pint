@@ -1,0 +1,298 @@
+   Compiling pint-solve v0.1.0 (/Users/mohammad/Desktop/essential/pint/pint-solve)
+   Compiling pintc v0.1.0 (/Users/mohammad/Desktop/essential/pint/pintc)
+   Compiling pint-manifest v0.1.0 (/Users/mohammad/Desktop/essential/pint/pint-manifest)
+   Compiling pint-abi-visit v0.0.1 (/Users/mohammad/Desktop/essential/pint/pint-abi-visit)
+    Checking pintfmt v0.1.0 (/Users/mohammad/Desktop/essential/pint/pintfmt)
+    Checking test-util v0.0.0 (/Users/mohammad/Desktop/essential/pint/test-util)
+error: docs for function which may panic missing `# Panics` section
+  --> test-util/src/lib.rs:49:1
+   |
+49 | pub fn hex_to_four_ints(num: &str) -> [i64; 4] {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: first possible panic found here
+  --> test-util/src/lib.rs:50:18
+   |
+50 |       let digits = num_bigint::BigInt::from_str_radix(&num[2..], 16)
+   |  __________________^
+51 | |         .expect("must be a hex")
+   | |________________________________^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#missing_panics_doc
+   = note: `-D clippy::missing-panics-doc` implied by `-D clippy::pedantic`
+   = help: to override `-D clippy::pedantic` add `#[allow(clippy::missing_panics_doc)]`
+
+error: this function could have a `#[must_use]` attribute
+  --> test-util/src/lib.rs:49:1
+   |
+49 | pub fn hex_to_four_ints(num: &str) -> [i64; 4] {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn hex_to_four_ints(num: &str) -> [i64; 4]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+   = note: `-D clippy::must-use-candidate` implied by `-D clippy::pedantic`
+   = help: to override `-D clippy::pedantic` add `#[allow(clippy::must_use_candidate)]`
+
+error: casting `u64` to `i64` may wrap around the value
+  --> test-util/src/lib.rs:55:18
+   |
+55 |         .map(|d| *d as i64)
+   |                  ^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#cast_possible_wrap
+   = note: `-D clippy::cast-possible-wrap` implied by `-D clippy::pedantic`
+   = help: to override `-D clippy::pedantic` add `#[allow(clippy::cast_possible_wrap)]`
+
+error: docs for function which may panic missing `# Panics` section
+  --> test-util/src/lib.rs:67:1
+   |
+67 | pub fn hex_to_bytes(num: &str) -> [u8; 32] {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: first possible panic found here
+  --> test-util/src/lib.rs:73:24
+   |
+73 |             acc[idx] = u8::from_str_radix(std::str::from_utf8(chunk).unwrap(), 16).unwrap();
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#missing_panics_doc
+
+error: this function could have a `#[must_use]` attribute
+  --> test-util/src/lib.rs:67:1
+   |
+67 | pub fn hex_to_bytes(num: &str) -> [u8; 32] {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn hex_to_bytes(num: &str) -> [u8; 32]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+error: this method could have a `#[must_use]` attribute
+  --> pint-abi-visit/src/lib.rs:89:5
+   |
+89 |     pub fn from_keyed_vars(vars: &'a [VarABI]) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn from_keyed_vars(vars: &'a [VarABI]) -> Self`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+   = note: `-D clippy::must-use-candidate` implied by `-D clippy::pedantic`
+   = help: to override `-D clippy::pedantic` add `#[allow(clippy::must_use_candidate)]`
+
+error: this function could have a `#[must_use]` attribute
+  --> test-util/src/lib.rs:80:1
+   |
+80 | pub fn four_ints_to_hex(arr: [i64; 4]) -> String {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn four_ints_to_hex(arr: [i64; 4]) -> String`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+error: struct constructor field order is inconsistent with struct definition field order
+  --> pint-abi-visit/src/lib.rs:99:24
+   |
+99 |             let node = Keyed { ty, name, nesting };
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `Keyed { name, ty, nesting }`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#inconsistent_struct_constructor
+   = note: `-D clippy::inconsistent-struct-constructor` implied by `-D clippy::pedantic`
+   = help: to override `-D clippy::pedantic` add `#[allow(clippy::inconsistent_struct_constructor)]`
+
+error: variables can be used directly in the `format!` string
+  --> test-util/src/lib.rs:82:52
+   |
+82 |         .fold("0x".to_string(), |acc, &num| acc + &format!("{:016X}", num))
+   |                                                    ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+   = note: `-D clippy::uninlined-format-args` implied by `-D clippy::pedantic`
+   = help: to override `-D clippy::pedantic` add `#[allow(clippy::uninlined_format_args)]`
+help: change this to
+   |
+82 -         .fold("0x".to_string(), |acc, &num| acc + &format!("{:016X}", num))
+82 +         .fold("0x".to_string(), |acc, &num| acc + &format!("{num:016X}"))
+   |
+
+error: this method could have a `#[must_use]` attribute
+   --> pint-abi-visit/src/lib.rs:119:5
+    |
+119 |     pub fn parent(&self, n: NodeIx) -> Option<NodeIx> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn parent(&self, n: NodeIx) -> Option<NodeIx>`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+error: this function could have a `#[must_use]` attribute
+  --> test-util/src/lib.rs:87:1
+   |
+87 | pub fn bytes_to_hex(arr: [u8; 32]) -> String {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn bytes_to_hex(arr: [u8; 32]) -> String`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+error: this method could have a `#[must_use]` attribute
+   --> pint-abi-visit/src/lib.rs:124:5
+    |
+124 |     pub fn children(&self, n: NodeIx) -> Vec<NodeIx> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn children(&self, n: NodeIx) -> Vec<NodeIx>`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+error: this method could have a `#[must_use]` attribute
+   --> pint-abi-visit/src/lib.rs:137:5
+    |
+137 |     pub fn nesting(&self, n: NodeIx) -> Vec<Nesting> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn nesting(&self, n: NodeIx) -> Vec<Nesting>`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+error: variables can be used directly in the `format!` string
+  --> test-util/src/lib.rs:89:16
+   |
+89 |         acc + &format!("{:02X}", byte)
+   |                ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+   |
+89 -         acc + &format!("{:02X}", byte)
+89 +         acc + &format!("{byte:02X}")
+   |
+
+error: this method could have a `#[must_use]` attribute
+   --> pint-abi-visit/src/lib.rs:142:5
+    |
+142 |     pub fn roots(&self) -> &[NodeIx] {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn roots(&self) -> &[NodeIx]`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+error: docs for function which may panic missing `# Panics` section
+   --> test-util/src/lib.rs:134:1
+    |
+134 | pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: first possible panic found here
+   --> test-util/src/lib.rs:168:13
+    |
+168 |             assert!(cur_section == Section::None && section_lines.is_empty());
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#missing_panics_doc
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> test-util/src/lib.rs:134:1
+    |
+134 | pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#missing_errors_doc
+    = note: `-D clippy::missing-errors-doc` implied by `-D clippy::pedantic`
+    = help: to override `-D clippy::pedantic` add `#[allow(clippy::missing_errors_doc)]`
+
+error: adding items after statements is confusing, since items exist from the start of the scope
+   --> test-util/src/lib.rs:138:5
+    |
+138 | /     enum Section {
+139 | |         None,
+140 | |         ParseFailure,
+141 | |         Predicate,
+...   |
+145 | |         Db,
+146 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#items_after_statements
+    = note: `-D clippy::items-after-statements` implied by `-D clippy::pedantic`
+    = help: to override `-D clippy::pedantic` add `#[allow(clippy::items_after_statements)]`
+
+error: docs for function which may panic missing `# Panics` section
+   --> pint-abi-visit/src/lib.rs:158:1
+    |
+158 | pub fn partial_key_from_nesting(nesting: &[Nesting]) -> Vec<Option<Word>> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: first possible panic found here
+   --> pint-abi-visit/src/lib.rs:165:28
+    |
+165 |                 let word = Word::try_from(*ix).expect("out of Word range");
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#missing_panics_doc
+    = note: `-D clippy::missing-panics-doc` implied by `-D clippy::pedantic`
+    = help: to override `-D clippy::pedantic` add `#[allow(clippy::missing_panics_doc)]`
+
+error: this function could have a `#[must_use]` attribute
+   --> pint-abi-visit/src/lib.rs:158:1
+    |
+158 | pub fn partial_key_from_nesting(nesting: &[Nesting]) -> Vec<Option<Word>> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn partial_key_from_nesting(nesting: &[Nesting]) -> Vec<Option<Word>>`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+error: docs for function which may panic missing `# Panics` section
+   --> pint-abi-visit/src/lib.rs:213:1
+    |
+213 | pub fn ty_size(ty: &TypeABI) -> usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: first possible panic found here
+   --> pint-abi-visit/src/lib.rs:217:28
+    |
+217 |         TypeABI::String => panic!("unknown size of type `string`"),
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#missing_panics_doc
+
+error: this function could have a `#[must_use]` attribute
+   --> pint-abi-visit/src/lib.rs:213:1
+    |
+213 | pub fn ty_size(ty: &TypeABI) -> usize {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn ty_size(ty: &TypeABI) -> usize`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+error: this match arm has an identical body to another arm
+   --> pint-abi-visit/src/lib.rs:222:9
+    |
+222 |         TypeABI::Map { .. } => 1,
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: try changing either arm body
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#match_same_arms
+    = note: `-D clippy::match-same-arms` implied by `-D clippy::pedantic`
+    = help: to override `-D clippy::pedantic` add `#[allow(clippy::match_same_arms)]`
+help: or try merging the arm patterns
+    |
+222 |         TypeABI::Map { .. } | TypeABI::Bool | TypeABI::Int | TypeABI::Real => 1,
+    |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+help: and remove this obsolete arm
+    |
+215 -         TypeABI::Bool | TypeABI::Int | TypeABI::Real => 1,
+    |
+
+error: empty String is being created manually
+   --> test-util/src/lib.rs:230:36
+    |
+230 |                 section_lines.push("".to_string());
+    |                                    ^^^^^^^^^^^^^^ help: consider using: `String::new()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_string_new
+    = note: `-D clippy::manual-string-new` implied by `-D clippy::pedantic`
+    = help: to override `-D clippy::pedantic` add `#[allow(clippy::manual_string_new)]`
+
+error: struct constructor field order is inconsistent with struct definition field order
+   --> pint-abi-visit/src/lib.rs:240:28
+    |
+240 |                 let node = Keyed { ty, name, nesting };
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `Keyed { name, ty, nesting }`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#inconsistent_struct_constructor
+
+error: struct constructor field order is inconsistent with struct definition field order
+   --> pint-abi-visit/src/lib.rs:256:24
+    |
+256 |             let node = Keyed { ty, name, nesting };
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `Keyed { name, ty, nesting }`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#inconsistent_struct_constructor
+
+error: struct constructor field order is inconsistent with struct definition field order
+   --> pint-abi-visit/src/lib.rs:268:24
+    |
+268 |             let node = Keyed { ty, name, nesting };
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `Keyed { name, ty, nesting }`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#inconsistent_struct_constructor
+
+error: could not compile `test-util` (lib) due to 13 previous errors
+warning: build failed, waiting for other jobs to finish...

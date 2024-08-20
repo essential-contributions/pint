@@ -1,6 +1,9 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{evaluate::Evaluator, BinaryOp, Expr, Ident, Immediate, TupleAccess, UnaryOp},
+    expr::{
+        evaluate::Evaluator, BinaryOp, Expr, ExternalIntrinsic, Ident, Immediate, IntrinsicKind,
+        TupleAccess, UnaryOp,
+    },
     predicate::{
         BlockStatement, Const, ConstraintDecl, Contract, ExprKey, ExprsIter, IfDecl, PredKey,
         StorageVar, Var,
@@ -314,7 +317,7 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
             }
             Type::Vector { ty, .. } => replace_alias(new_types_map, ty),
 
-            Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } => {}
+            Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => {}
         }
     }
 
@@ -881,6 +884,7 @@ pub(crate) fn lower_compares_to_nil(contract: &mut Contract) {
             |contract: &mut Contract, op: &BinaryOp, expr: &ExprKey, span: &crate::span::Span| {
                 let state_len = contract.exprs.insert(
                     Expr::IntrinsicCall {
+                        kind: IntrinsicKind::External(ExternalIntrinsic::StateLen),
                         name: Ident {
                             name: "__state_len".to_string(),
                             hygienic: false,

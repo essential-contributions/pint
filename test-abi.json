@@ -1,0 +1,15 @@
+{
+  "predicates": [
+    {
+      "name": "::test",
+      "vars": [
+        {
+          "name": "::t",
+          "ty": "Bool"
+        }
+      ],
+      "pub_vars": []
+    }
+  ],
+  "storage": []
+}

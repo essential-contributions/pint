@@ -1,5 +1,4 @@
 mod array_check;
-mod intrinsics;
 mod type_check;
 
 use super::{

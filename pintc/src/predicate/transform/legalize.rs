@@ -1,6 +1,6 @@
 use crate::{
     error::{ErrorEmitted, Handler},
-    expr::{BinaryOp, Expr, Ident, UnaryOp},
+    expr::{BinaryOp, Expr, ExternalIntrinsic, Ident, IntrinsicKind, UnaryOp},
     predicate::{ConstraintDecl, Contract, ExprKey, PredKey, State},
     span::empty_span,
     types::{PrimitiveKind, Type},
@@ -139,6 +139,7 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
         );
         let intrinsic = contract.exprs.insert(
             Expr::IntrinsicCall {
+                kind: IntrinsicKind::External(ExternalIntrinsic::VecLen),
                 name: Ident {
                     name: "__vec_len".to_string(),
                     hygienic: false,

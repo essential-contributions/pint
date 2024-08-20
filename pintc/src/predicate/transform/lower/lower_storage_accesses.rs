@@ -1,6 +1,6 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{BinaryOp, Expr, Ident, TupleAccess},
+    expr::{BinaryOp, Expr, Ident, InternalIntrinsic, IntrinsicKind, TupleAccess},
     predicate::{ConstraintDecl, Contract, ExprKey, PredKey},
     span::empty_span,
     types::{PrimitiveKind, Type},
@@ -76,6 +76,7 @@ fn lower_storage_accesses_in_predicate(
         let storage_get_intrinsic = contract.exprs.insert(
             if let Some(addr) = addr {
                 Expr::IntrinsicCall {
+                    kind: IntrinsicKind::Internal(InternalIntrinsic::StorageGetExtern),
                     name: Ident {
                         name: "__storage_get_extern".to_string(),
                         hygienic: false,
@@ -86,6 +87,7 @@ fn lower_storage_accesses_in_predicate(
                 }
             } else {
                 Expr::IntrinsicCall {
+                    kind: IntrinsicKind::Internal(InternalIntrinsic::StorageGet),
                     name: Ident {
                         name: "__storage_get".to_string(),
                         hygienic: false,
@@ -186,6 +188,7 @@ fn lower_storage_accesses_in_predicate(
     // Insert `__mut_keys` intrinsic to obtain the full set of mutable keys
     let mut_keys_intrinsic = contract.exprs.insert(
         Expr::IntrinsicCall {
+            kind: IntrinsicKind::Internal(InternalIntrinsic::MutKeys),
             name: Ident {
                 name: "__mut_keys".to_string(),
                 hygienic: false,
@@ -207,6 +210,7 @@ fn lower_storage_accesses_in_predicate(
     // of `__mut_keys`
     let eq_set_intrinsic = contract.exprs.insert(
         Expr::IntrinsicCall {
+            kind: IntrinsicKind::Internal(InternalIntrinsic::EqSet),
             name: Ident {
                 name: "__eq_set".to_string(),
                 hygienic: false,
@@ -255,7 +259,7 @@ fn get_base_storage_key(
                         if !contract.storage_var(name).1.ty.is_vector() {
                             return Err(handler.emit_err(Error::Compile {
                                 error: CompileError::Internal {
-                                    msg: "argument to __vec_len must be a local storage vector",
+                                    msg: "argument to __vec_len must be of type storage vector",
                                     span: empty_span(),
                                 },
                             }));
@@ -281,7 +285,7 @@ fn get_base_storage_key(
                         {
                             return Err(handler.emit_err(Error::Compile {
                                 error: CompileError::Internal {
-                                    msg: "argument to __vec_len must be a local storage vector",
+                                    msg: "argument to __vec_len must be of type storage vector",
                                     span: empty_span(),
                                 },
                             }));
@@ -290,7 +294,7 @@ fn get_base_storage_key(
                     _ => {
                         return Err(handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
-                                msg: "argument to __state_len must be a local storage vector",
+                                msg: "argument to __vec_len must be storage access",
                                 span: empty_span(),
                             },
                         }));

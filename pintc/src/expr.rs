@@ -3,11 +3,13 @@ use crate::{
     span::{empty_span, Span, Spanned},
     types::{Path, PrimitiveKind, Type},
 };
+pub(crate) use intrinsics::{ExternalIntrinsic, InternalIntrinsic, IntrinsicKind};
 
 use fxhash::FxHashMap;
 
 mod display;
 pub(crate) mod evaluate;
+pub(crate) mod intrinsics;
 
 #[derive(Clone, Debug)]
 pub enum Expr {
@@ -53,6 +55,7 @@ pub enum Expr {
         span: Span,
     },
     IntrinsicCall {
+        kind: IntrinsicKind,
         name: Ident,
         args: Vec<ExprKey>,
         span: Span,

@@ -14,6 +14,8 @@ impl DisplayWithContract for super::Type {
 
             super::Type::Unknown(..) => write!(f, "Unknown"),
 
+            super::Type::Any(..) => write!(f, "_"),
+
             super::Type::Primitive { kind, .. } => match kind {
                 super::PrimitiveKind::Nil => write!(f, "nil"),
                 super::PrimitiveKind::Bool => write!(f, "bool"),

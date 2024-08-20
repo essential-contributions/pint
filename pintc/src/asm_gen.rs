@@ -1,6 +1,9 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{BinaryOp, Expr, Immediate, TupleAccess, UnaryOp},
+    expr::{
+        BinaryOp, Expr, ExternalIntrinsic, Immediate, InternalIntrinsic, IntrinsicKind,
+        TupleAccess, UnaryOp,
+    },
     predicate::{ConstraintDecl, Contract, ExprKey, Predicate, State as StateVar},
     span::empty_span,
     types::Type,
@@ -456,7 +459,7 @@ impl AsmBuilder<'_> {
         expr: &ExprKey,
         contract: &Contract,
         pred: &Predicate,
-    ) -> Result<usize, ErrorEmitted> {
+    ) -> Result<(), ErrorEmitted> {
         fn compile_immediate(asm: &mut Vec<Constraint>, imm: &Immediate) {
             match imm {
                 Immediate::Int(val) => asm.push(Stack::Push(*val).into()),
@@ -487,8 +490,6 @@ impl AsmBuilder<'_> {
                 }
             }
         }
-
-        let old_asm_len = asm.len();
 
         match &expr.get(contract) {
             Expr::Immediate { value, .. } => compile_immediate(asm, value),
@@ -629,186 +630,9 @@ impl AsmBuilder<'_> {
                     },
                 }));
             }
-            Expr::IntrinsicCall {
-                name, args, span, ..
-            } => match &name.name[..] {
-                "__mut_keys" => {
-                    assert!(args.is_empty());
-                    asm.push(Constraint::Access(Access::MutKeys));
-                }
-
-                "__this_address" => {
-                    assert!(args.is_empty());
-                    asm.push(Constraint::Access(Access::ThisAddress));
-                }
-
-                "__this_contract_address" => {
-                    assert!(args.is_empty());
-                    asm.push(Constraint::Access(Access::ThisContractAddress));
-                }
-
-                "__sibling_predicate_address" => {
-                    assert_eq!(args.len(), 1);
-                    assert!(args[0].get_ty(contract).is_string());
-                    if let Some(Expr::Immediate {
-                        value: Immediate::String(s),
-                        ..
-                    }) = args[0].try_get(contract)
-                    {
-                        // Push the sibling predicate address on the stack, one word at a time.
-                        let predicate_address = self
-                            .predicate_addresses
-                            .get(s)
-                            .expect("predicate address should exist!");
-
-                        for word in essential_types::convert::word_4_from_u8_32(predicate_address.0)
-                        {
-                            asm.push(Constraint::Stack(Stack::Push(word)));
-                        }
-                    }
-                }
-
-                "__this_pathway" => {
-                    assert!(args.is_empty());
-                    asm.push(Constraint::Access(Access::ThisPathway));
-                }
-                "__predicate_at" => {
-                    // Expecting a single argument of type int
-                    assert_eq!(args.len(), 1);
-                    assert!(args[0].get_ty(contract).is_int());
-
-                    self.compile_expr(handler, asm, &args[0], contract, pred)?;
-                    asm.push(Constraint::Access(Access::PredicateAt));
-                }
-
-                // Crypto ops
-                "__sha256" => {
-                    assert_eq!(args.len(), 1);
-
-                    let data = args[0];
-                    let data_type = &data.get_ty(contract);
-
-                    // Compile the data argument, insert its length, and then insert the `Sha256`
-                    // opcode
-                    self.compile_expr(handler, asm, &data, contract, pred)?;
-                    asm.push(Constraint::Stack(Stack::Push(
-                        data_type.size(handler, contract)? as i64,
-                    )));
-                    asm.push(Constraint::Crypto(Crypto::Sha256));
-                }
-
-                "__verify_ed25519" => {
-                    assert_eq!(args.len(), 3);
-
-                    let data = args[0];
-                    let signature = args[1];
-                    let public_key = args[2];
-
-                    let data_type = &data.get_ty(contract);
-                    let signature_type = &signature.get_ty(contract);
-                    let public_key_type = &public_key.get_ty(contract);
-
-                    // Check argument types:
-                    // - `data_type` can be anything, so nothing to check
-                    // - `signature_type` must be a `{ b256, b256 }`
-                    // - `public_key_type` must be a `b256`
-                    let fields = signature_type
-                        .get_tuple_fields()
-                        .expect("expecting a tuple here");
-                    assert!(fields.len() == 2 && fields[0].1.is_b256() && fields[1].1.is_b256());
-                    assert!(public_key_type.is_b256());
-
-                    // Compile all arguments separately and then insert the `VerifyEd25519` opcode
-                    self.compile_expr(handler, asm, &data, contract, pred)?;
-                    asm.push(Constraint::Stack(Stack::Push(
-                        data_type.size(handler, contract)? as i64,
-                    )));
-                    self.compile_expr(handler, asm, &signature, contract, pred)?;
-                    self.compile_expr(handler, asm, &public_key, contract, pred)?;
-                    asm.push(Constraint::Crypto(Crypto::VerifyEd25519));
-                }
-
-                "__recover_secp256k1" => {
-                    assert_eq!(args.len(), 2);
-
-                    let data_hash = args[0];
-                    let signature = args[1];
-
-                    let data_hash_type = &data_hash.get_ty(contract);
-                    let signature_type = &signature.get_ty(contract);
-
-                    // Check argument types:
-                    // - `data_hash_type` must be a `b256`
-                    // - `signature_type` must be a `{ b256, b256, int }`
-                    assert!(data_hash_type.is_b256());
-                    let fields = signature_type
-                        .get_tuple_fields()
-                        .expect("expecting a tuple here");
-                    assert!(
-                        fields.len() == 3
-                            && fields[0].1.is_b256()
-                            && fields[1].1.is_b256()
-                            && fields[2].1.is_int()
-                    );
-
-                    // Compile all arguments separately and then insert the `VerifyEd25519` opcode
-                    self.compile_expr(handler, asm, &data_hash, contract, pred)?;
-                    self.compile_expr(handler, asm, &signature, contract, pred)?;
-                    asm.push(Constraint::Crypto(Crypto::RecoverSecp256k1));
-                }
-
-                "__state_len" => {
-                    assert_eq!(args.len(), 1);
-
-                    // Check argument:
-                    // - `state_var` must be a path to a state var or a "next state" expression
-                    assert!(match args[0].try_get(contract) {
-                        Some(Expr::Path(name, _)) =>
-                            pred.states().any(|(_, state)| state.name == *name),
-                        Some(Expr::UnaryOp {
-                            op: UnaryOp::NextState,
-                            ..
-                        }) => true,
-                        _ => false,
-                    });
-
-                    self.compile_expr(handler, asm, &args[0], contract, pred)?;
-
-                    // After compiling a path to a state var or a "next state" expression, we
-                    // expect that the last opcode is a `State` or a `StateRange`. Pop that and
-                    // replace it with `StateLen` or `StateLenRange` since we're after the state
-                    // length here and not the actual state.
-                    if let Some(Constraint::Access(Access::State)) = asm.last() {
-                        asm.pop();
-                        asm.push(Constraint::Access(Access::StateLen));
-                    } else if let Some(Constraint::Access(Access::StateRange)) = asm.last() {
-                        asm.pop();
-                        asm.push(Constraint::Access(Access::StateLenRange));
-                        // Now, add all the resulting state length. We should get back as many as
-                        // we have slots for `args[0]`.
-                        let slots = args[0]
-                            .get_ty(contract)
-                            .storage_or_transient_slots(handler, contract)?;
-                        (0..slots - 1).for_each(|_| asm.push(Alu::Add.into()));
-                    }
-                }
-
-                "__eq_set" => {
-                    assert_eq!(args.len(), 2);
-                    self.compile_expr(handler, asm, &args[0], contract, pred)?;
-                    self.compile_expr(handler, asm, &args[1], contract, pred)?;
-                    asm.push(Constraint::Pred(Pred::EqSet));
-                }
-
-                _ => {
-                    return Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "Unexpected intrinsic name",
-                            span: span.clone(),
-                        },
-                    }));
-                }
-            },
+            Expr::IntrinsicCall { kind, args, .. } => {
+                self.compile_intrinsic_call(handler, asm, kind, args, contract, pred)?;
+            }
             Expr::Select {
                 condition,
                 then_expr,
@@ -875,7 +699,7 @@ impl AsmBuilder<'_> {
                 }));
             }
         }
-        Ok(asm.len() - old_asm_len)
+        Ok(())
     }
 
     /// Compile a path expression. Assumes that each path expressions corresponds to a decision
@@ -928,6 +752,246 @@ impl AsmBuilder<'_> {
                     span: empty_span(),
                 },
             }));
+        }
+    }
+
+    fn compile_intrinsic_call(
+        &self,
+        handler: &Handler,
+        asm: &mut Vec<Constraint>,
+        kind: &IntrinsicKind,
+        args: &[ExprKey],
+        contract: &Contract,
+        pred: &Predicate,
+    ) -> Result<Location, ErrorEmitted> {
+        match kind {
+            IntrinsicKind::Internal(kind) => {
+                match kind {
+                    InternalIntrinsic::MutKeys => {
+                        assert!(args.is_empty());
+                        asm.push(Constraint::Access(Access::MutKeys));
+                        Ok(Location::Value)
+                    }
+
+                    InternalIntrinsic::SiblingPredicateAddress => {
+                        assert_eq!(args.len(), 1);
+                        assert!(args[0].get_ty(contract).is_string());
+                        if let Some(Expr::Immediate {
+                            value: Immediate::String(s),
+                            ..
+                        }) = args[0].try_get(contract)
+                        {
+                            // Push the sibling predicate address on the stack, one word at a time.
+                            let predicate_address = self
+                                .predicate_addresses
+                                .get(s)
+                                .expect("predicate address should exist!");
+
+                            for word in
+                                essential_types::convert::word_4_from_u8_32(predicate_address.0)
+                            {
+                                asm.push(Constraint::Stack(Stack::Push(word)));
+                            }
+                        }
+                        Ok(Location::Value)
+                    }
+
+                    InternalIntrinsic::EqSet => {
+                        assert_eq!(args.len(), 2);
+                        self.compile_expr(handler, asm, &args[0], contract, pred)?;
+                        self.compile_expr(handler, asm, &args[1], contract, pred)?;
+                        asm.push(Constraint::Pred(Pred::EqSet));
+                        Ok(Location::Value)
+                    }
+
+                    InternalIntrinsic::Transient => {
+                        // This particular intrinsic returns a `Location::Transient`. All other
+                        // intrinsics are just values.
+
+                        // Expecting 3 arguments:
+                        assert_eq!(args.len(), 3);
+                        // First argument is a key. Let that be anything
+
+                        // Second argument is a key length. We want that to be an integer
+                        assert!(args[1].get_ty(contract).is_int());
+
+                        // Third argument is the "pathway". We want that to be a path expression (to a
+                        // pathway variable) or an intrinsic call (to `__this_pathway`). Not being too
+                        // exact here but that's fine since this is all internal anyways.
+                        assert!(matches!(
+                            args[2].try_get(contract),
+                            Some(Expr::Path(..) | Expr::IntrinsicCall { .. })
+                        ));
+
+                        // First, compile the key
+                        self.compile_expr(handler, asm, &args[0], contract, pred)?;
+
+                        Ok(Location::Transient {
+                            key_len: args[1],
+                            pathway: args[2],
+                        })
+                    }
+
+                    InternalIntrinsic::StorageGet | InternalIntrinsic::StorageGetExtern => todo!(),
+                }
+            }
+            IntrinsicKind::External(kind) => {
+                match kind {
+                    ExternalIntrinsic::ThisAddress => {
+                        assert!(args.is_empty());
+                        asm.push(Constraint::Access(Access::ThisAddress));
+                        Ok(Location::Value)
+                    }
+
+                    ExternalIntrinsic::ThisContractAddress => {
+                        assert!(args.is_empty());
+                        asm.push(Constraint::Access(Access::ThisContractAddress));
+                        Ok(Location::Value)
+                    }
+
+                    ExternalIntrinsic::ThisPathway => {
+                        assert!(args.is_empty());
+                        asm.push(Constraint::Access(Access::ThisPathway));
+                        Ok(Location::Value)
+                    }
+
+                    ExternalIntrinsic::PredicateAt => {
+                        // Expecting a single argument of type int
+                        assert_eq!(args.len(), 1);
+                        assert!(args[0].get_ty(contract).is_int());
+
+                        self.compile_expr(handler, asm, &args[0], contract, pred)?;
+                        asm.push(Constraint::Access(Access::PredicateAt));
+                        Ok(Location::Value)
+                    }
+
+                    // Crypto ops
+                    ExternalIntrinsic::Sha256 => {
+                        assert_eq!(args.len(), 1);
+
+                        let data = args[0];
+                        let data_type = &data.get_ty(contract);
+
+                        // Compile the data argument, insert its length, and then insert the `Sha256`
+                        // opcode
+                        self.compile_expr(handler, asm, &data, contract, pred)?;
+                        asm.push(Constraint::Stack(Stack::Push(
+                            data_type.size(handler, contract)? as i64,
+                        )));
+                        asm.push(Constraint::Crypto(Crypto::Sha256));
+                        Ok(Location::Value)
+                    }
+
+                    ExternalIntrinsic::VerifyEd25519 => {
+                        assert_eq!(args.len(), 3);
+
+                        let data = args[0];
+                        let signature = args[1];
+                        let public_key = args[2];
+
+                        let data_type = &data.get_ty(contract);
+                        let signature_type = &signature.get_ty(contract);
+                        let public_key_type = &public_key.get_ty(contract);
+
+                        // Check argument types:
+                        // - `data_type` can be anything, so nothing to check
+                        // - `signature_type` must be a `{ b256, b256 }`
+                        // - `public_key_type` must be a `b256`
+                        let fields = signature_type
+                            .get_tuple_fields()
+                            .expect("expecting a tuple here");
+                        assert!(
+                            fields.len() == 2 && fields[0].1.is_b256() && fields[1].1.is_b256()
+                        );
+                        assert!(public_key_type.is_b256());
+
+                        // Compile all arguments separately and then insert the `VerifyEd25519` opcode
+                        self.compile_expr(handler, asm, &data, contract, pred)?;
+                        asm.push(Constraint::Stack(Stack::Push(
+                            data_type.size(handler, contract)? as i64,
+                        )));
+                        self.compile_expr(handler, asm, &signature, contract, pred)?;
+                        self.compile_expr(handler, asm, &public_key, contract, pred)?;
+                        asm.push(Constraint::Crypto(Crypto::VerifyEd25519));
+                        Ok(Location::Value)
+                    }
+
+                    ExternalIntrinsic::RecoverSECP256k1 => {
+                        assert_eq!(args.len(), 2);
+
+                        let data_hash = args[0];
+                        let signature = args[1];
+
+                        let data_hash_type = &data_hash.get_ty(contract);
+                        let signature_type = &signature.get_ty(contract);
+
+                        // Check argument types:
+                        // - `data_hash_type` must be a `b256`
+                        // - `signature_type` must be a `{ b256, b256, int }`
+                        assert!(data_hash_type.is_b256());
+                        let fields = signature_type
+                            .get_tuple_fields()
+                            .expect("expecting a tuple here");
+                        assert!(
+                            fields.len() == 3
+                                && fields[0].1.is_b256()
+                                && fields[1].1.is_b256()
+                                && fields[2].1.is_int()
+                        );
+
+                        // Compile all arguments separately and then insert the `VerifyEd25519` opcode
+                        self.compile_expr(handler, asm, &data_hash, contract, pred)?;
+                        self.compile_expr(handler, asm, &signature, contract, pred)?;
+                        asm.push(Constraint::Crypto(Crypto::RecoverSecp256k1));
+                        Ok(Location::Value)
+                    }
+
+                    ExternalIntrinsic::StateLen => {
+                        assert_eq!(args.len(), 1);
+
+                        // Check argument:
+                        // - `state_var` must be a path to a state var or a "next state" expression
+                        let is_state = match args[0].try_get(contract) {
+                            Some(Expr::Path(name, _)) => {
+                                pred.states().any(|(_, state)| state.name == *name)
+                            }
+                            Some(Expr::UnaryOp {
+                                op: UnaryOp::NextState,
+                                ..
+                            }) => true,
+                            _ => false,
+                        };
+
+                        if !is_state {
+                            asm.push(Constraint::Stack(Stack::Push(0)));
+                        } else {
+                            self.compile_expr(handler, asm, &args[0], contract, pred)?;
+
+                            // After compiling a path to a state var or a "next state" expression, we
+                            // expect that the last opcode is a `State` or a `StateRange`. Pop that and
+                            // replace it with `StateLen` or `StateLenRange` since we're after the state
+                            // length here and not the actual state.
+                            if let Some(Constraint::Access(Access::State)) = asm.last() {
+                                asm.pop();
+                                asm.push(Constraint::Access(Access::StateLen));
+                            } else if let Some(Constraint::Access(Access::StateRange)) = asm.last()
+                            {
+                                asm.pop();
+                                asm.push(Constraint::Access(Access::StateLenRange));
+                                // Now, add all the resulting state length. We should get back as many as
+                                // we have slots for `args[0]`.
+                                let slots = args[0]
+                                    .get_ty(contract)
+                                    .storage_or_transient_slots(handler, contract)?;
+                                (0..slots - 1).for_each(|_| asm.push(Alu::Add.into()));
+                            }
+                        }
+                        Ok(Location::Value)
+                    }
+
+                    ExternalIntrinsic::VecLen => todo!(),
+                }
+            }
         }
     }
 

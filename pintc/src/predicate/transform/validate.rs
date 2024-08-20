@@ -115,6 +115,9 @@ fn check_expr(
         Type::Unknown(span) => {
             emit_illegal_type_error!(handler, span, "unknown type", "expr_types");
         }
+        Type::Any(span) => {
+            emit_illegal_type_error!(handler, span, "any type", "expr_types");
+        }
         Type::Custom { span, .. } => {
             emit_illegal_type_error!(handler, span, "custom type", "expr_types");
         }

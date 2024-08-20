@@ -86,21 +86,21 @@ predicate test {
 // @402..412: unexpected number of arguments here
 // this intrinsic takes 1 argument but 2 arguments were supplied
 // @433..447: unexpected number of arguments here
-// mismatched types
+// incorrect intrinsic argument
 // @522..523: expected `b256`, found `int`
 // @483..499: arguments to this intrinsic are incorrect`
-// mismatched types
-// @580..585: expected `{ b256, b256 }`, found `b256`
+// incorrect intrinsic argument
+// @580..585: expected `{b256, b256}`, found `b256`
 // @559..575: arguments to this intrinsic are incorrect`
 // this intrinsic takes 3 arguments but 0 arguments were supplied
 // @628..646: unexpected number of arguments here
 // this intrinsic takes 3 arguments but 4 arguments were supplied
 // @681..730: unexpected number of arguments here
-// mismatched types
+// incorrect intrinsic argument
 // @798..800: expected `b256`, found `int`
 // @778..797: arguments to this intrinsic are incorrect`
-// mismatched types
-// @897..913: expected `{ b256, b256, int }`, found `{b256, b256}`
+// incorrect intrinsic argument
+// @897..913: expected `{b256, b256, int}`, found `{b256, b256}`
 // @870..889: arguments to this intrinsic are incorrect`
 // this intrinsic takes 2 arguments but 1 argument was supplied
 // @961..987: unexpected number of arguments here
