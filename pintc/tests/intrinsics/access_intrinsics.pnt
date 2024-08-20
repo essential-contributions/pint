@@ -1,7 +1,7 @@
 predicate test {
     var this_address: b256 = __this_address();
 
-    var this_set_address: b256 = __this_set_address();
+    var this_contract_address: b256 = __this_contract_address();
 
     var this_pathway: int = __this_pathway();
 }
@@ -9,10 +9,10 @@ predicate test {
 // parsed <<<,
 // predicate ::test {
 //     var ::this_address: b256;
-//     var ::this_set_address: b256;
+//     var ::this_contract_address: b256;
 //     var ::this_pathway: int;
 //     constraint (::this_address == __this_address());
-//     constraint (::this_set_address == __this_set_address());
+//     constraint (::this_contract_address == __this_contract_address());
 //     constraint (::this_pathway == __this_pathway());
 // }
 // >>>
@@ -20,10 +20,10 @@ predicate test {
 // flattened <<<,
 // predicate ::test {
 //     var ::this_address: b256;
-//     var ::this_set_address: b256;
+//     var ::this_contract_address: b256;
 //     var ::this_pathway: int;
 //     constraint (::this_address == __this_address());
-//     constraint (::this_set_address == __this_set_address());
+//     constraint (::this_contract_address == __this_contract_address());
 //     constraint (::this_pathway == __this_pathway());
 //     constraint __eq_set(__mut_keys(), {0});
 // }

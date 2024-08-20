@@ -1,4 +1,5 @@
 [[data]]
+predicate_to_solve = { predicate = "::Simple" }
 decision_variables = [
   [141],            # ::w
   [129],            # ::u
@@ -7,26 +8,14 @@ decision_variables = [
   [70],             # ::e_new
   [0, 1, 4, 9, 16], # ::a
 ]
-predicate_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", predicate = "::Simple" }
 state_mutations = [
-  { key = [
-    0,
-  ], value = [
-    43,
-  ] },
-  { key = [
-    1,
-  ], value = [
-    47,
-  ] },
-  { key = [
-    2,
-  ], value = [
-    44,
-  ] },
+  { key = [0], value = [43] }, # storage::x
+  { key = [1], value = [47] }, # storage::y
+  { key = [2], value = [44] }, # storage::z
 ]
 
 [[data]]
-decision_variables = []
-predicate_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", predicate = "" }
-state_mutations = [{ key = [1], value = [70] }]
+predicate_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", predicate = "0x0000000000000000000000000000000000000000000000000000000000000000" }
+state_mutations = [
+  { key = [1], value = [70] }, # FooInstance::storage::y
+]

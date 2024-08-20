@@ -1,36 +1,32 @@
 [[data]]
+predicate_to_solve = { predicate = "::Test" }
 decision_variables = [
-  # First if statement
-  [1],
-  [42],
-  [69],
-  [99],
-  [1],
-  [1],
-  [0],
-  # Second if statement
-  [42],
-  [2],
-  [69],
-  [99],
-  [1],
-  [0],
-  [0],
-  # Third if statement
-  [69],
-  [42],
-  [3],
-  [99],
-  [0],
-  [0],
-  [1],
-  # Fourt if statement
-  [99],
-  [42],
-  [69],
-  [4],
-  [0],
-  [0],
-  [0],
+  [1],  # ::x_1
+  [42], # ::y_1
+  [69], # ::z_1
+  [99], # ::w_1
+  [1],  # ::condition_1_a
+  [1],  # ::condition_1_b
+  [0],  # ::condition_1_a
+  [42], # ::x_2
+  [2],  # ::y_2
+  [69], # ::z_2
+  [99], # ::w_2
+  [1],  # ::condition_2_a
+  [0],  # ::condition_2_b
+  [0],  # ::condition_2_c
+  [69], # ::x_3
+  [42], # ::y_3
+  [3],  # ::z_3
+  [99], # ::w_3
+  [0],  # ::condition_3_a
+  [0],  # ::condition_3_b
+  [1],  # ::condition_3_c
+  [99], # ::x_4
+  [42], # ::y_4
+  [69], # ::z_4
+  [4],  # ::w_4
+  [0],  # ::condition_4_a
+  [0],  # ::condition_4_b
+  [0],  # ::condition_4_c
 ]
-predicate_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", predicate = "" }

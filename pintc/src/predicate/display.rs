@@ -193,8 +193,15 @@ impl Predicate {
         {
             writeln!(
                 f,
-                "{indentation}predicate {name} = {interface_instance}::{predicate}({})",
-                contract.with_ctrct(address)
+                "{indentation}predicate {name} = {}::{predicate}({})",
+                interface_instance
+                    .as_ref()
+                    .map(|instance| instance.to_string())
+                    .unwrap_or(String::new()),
+                address
+                    .as_ref()
+                    .map(|address| format!("{}", contract.with_ctrct(address)))
+                    .unwrap_or(String::new()),
             )?;
         }
 

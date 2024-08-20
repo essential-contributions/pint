@@ -476,8 +476,10 @@ impl Predicate {
         self.predicate_instances
             .iter_mut()
             .for_each(|PredicateInstance { address, .. }| {
-                if *address == old_expr {
-                    *address = new_expr;
+                if let Some(ref mut address) = address {
+                    if *address == old_expr {
+                        *address = new_expr;
+                    }
                 }
             });
     }
@@ -490,7 +492,7 @@ impl Predicate {
             .map(|c| c.expr)
             .chain(self.states().map(|(_, state)| state.expr))
             .chain(self.interface_instances.iter().map(|ii| ii.address))
-            .chain(self.predicate_instances.iter().map(|pi| pi.address))
+            .chain(self.predicate_instances.iter().filter_map(|pi| pi.address))
     }
 }
 
@@ -657,9 +659,9 @@ pub struct InterfaceInstance {
 #[derive(Clone, Debug)]
 pub struct PredicateInstance {
     pub name: Ident,
-    pub interface_instance: Path,
+    pub interface_instance: Option<Path>,
     pub predicate: Ident,
-    pub address: ExprKey,
+    pub address: Option<ExprKey>,
     pub span: Span,
 }
 

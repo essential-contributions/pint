@@ -1,4 +1,8 @@
 [[data]]
-decision_variables = [[222]]
-predicate_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", predicate = "::Initialize" }
-state_mutations = [{ key = [0], value = [222] }]
+decision_variables = [
+  [222], # ::value
+]
+predicate_to_solve = { predicate = "::Initialize" }
+state_mutations = [
+  { key = [0], value = [222] }, # stoarge::int
+]

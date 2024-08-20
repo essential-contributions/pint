@@ -2,7 +2,7 @@ storage {
     x: int,
 }
 
-predicate test {
+predicate Test {
     constraint (false && false) == false;
     constraint (false && true) == false;
     constraint (true && false) == false;

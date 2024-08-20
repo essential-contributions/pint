@@ -121,12 +121,20 @@ pub enum CompileError {
     InvalidNextStateAccess { span: Span },
     #[error("cannot find interface declaration `{name}`")]
     MissingInterface { name: String, span: Span },
-    #[error("cannot find predicate `{pred_name}` in interface `{interface_name}`")]
-    MissingPredicateInterface {
+    #[error("cannot find predicate `{pred_name}` in {}",
+        if let Some(interface_name) = interface_name {
+            format!("interface `{interface_name}`")
+        } else {
+            "this contract".to_string()
+        }
+    )]
+    MissingPredicate {
         pred_name: String,
-        interface_name: String,
+        interface_name: Option<String>,
         span: Span,
     },
+    #[error("self referential predicate `{pred_name}`")]
+    SelfReferencialPredicate { pred_name: String, span: Span },
     #[error("cannot find interface instance `{name}`")]
     MissingInterfaceInstance { name: String, span: Span },
     #[error("cannot find predicate instance `{name}`")]
@@ -292,6 +300,8 @@ pub enum CompileError {
     },
     #[error("invalid range for `in` operator")]
     InRangeInvalid { found_ty: String, span: Span },
+    #[error("dependency cycle detected between predicates")]
+    DependencyCycle { spans: Vec<Span> },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -607,15 +617,30 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            MissingPredicateInterface {
+            MissingPredicate {
                 pred_name,
                 interface_name,
                 span,
             } => {
                 vec![ErrorLabel {
                     message: format!(
-                        "cannot find predicate `{pred_name}` in interface `{interface_name}`"
+                        "this predicate instance references predicate `{pred_name}` \
+                         which does not exist in {}",
+                        if let Some(interface_name) = interface_name {
+                            format!("interface `{interface_name}`")
+                        } else {
+                            "this contract".to_string()
+                        }
                     ),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            SelfReferencialPredicate { span, .. } => {
+                vec![ErrorLabel {
+                    message: "this predicate instance references the predicate it's declared in"
+                        .to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -1035,6 +1060,15 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            DependencyCycle { spans } => spans
+                .iter()
+                .map(|span| ErrorLabel {
+                    message: "this predicate is on the dependency cycle".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                })
+                .collect::<Vec<_>>(),
+
             Internal { msg, span } => {
                 if span == &empty_span() {
                     Vec::new()
@@ -1155,6 +1189,12 @@ impl ReportableError for CompileError {
                 }
             }
 
+            DependencyCycle { .. } => Some(
+                "dependency between predicates is typically created via \
+                     predicate instances"
+                    .to_string(),
+            ),
+
             Internal { .. }
             | FileIO { .. }
             | MacroNotFound { .. }
@@ -1164,7 +1204,8 @@ impl ReportableError for CompileError {
             | MissingStorageBlock { .. }
             | InvalidNextStateAccess { .. }
             | MissingInterface { .. }
-            | MissingPredicateInterface { .. }
+            | MissingPredicate { .. }
+            | SelfReferencialPredicate { .. }
             | MissingInterfaceInstance { .. }
             | MissingPredicateInstance { .. }
             | AddressExpressionTypeError { .. }
@@ -1334,7 +1375,8 @@ impl Spanned for CompileError {
             | InvalidNextStateAccess { span, .. }
             | MissingStorageBlock { span, .. }
             | MissingInterface { span, .. }
-            | MissingPredicateInterface { span, .. }
+            | MissingPredicate { span, .. }
+            | SelfReferencialPredicate { span, .. }
             | MissingInterfaceInstance { span, .. }
             | MissingPredicateInstance { span, .. }
             | NonConstArrayIndex { span }
@@ -1376,6 +1418,8 @@ impl Spanned for CompileError {
             | CompareToNilError { span, .. }
             | RecursiveNewType { use_span: span, .. }
             | InRangeInvalid { span, .. } => span,
+
+            DependencyCycle { spans } => &spans[0],
 
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }

@@ -14,7 +14,7 @@ essential-types = { workspace = true }
 petgraph = { workspace = true }
 pint-abi-types = { workspace = true }
 pint-manifest = { workspace = true }
-pintc = { path = "../pintc", version = "0.1.0", default-features = false }
+pintc = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

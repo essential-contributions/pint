@@ -139,3 +139,62 @@ predicate Bar {
         "#]],
     );
 }
+
+#[test]
+fn sibling_predicates() {
+    check(
+        &format!(
+            "{}",
+            compile(
+                r#"
+            predicate Foo {
+                pub var x: int;
+            }
+            predicate Bar {
+                predicate FooI = Foo();
+                constraint FooI::x == 0;
+            }
+            "#,
+            )
+        ),
+        expect_test::expect![[r#"
+            predicate ::Foo {
+                --- Constraints ---
+                constraint 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                --- State Reads ---
+            }
+
+            predicate ::Bar {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Access(Transient)
+                  Stack(Push(0))
+                  Pred(Eq)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                constraint 2
+                  Stack(Push(0))
+                  Access(DecisionVar)
+                  Access(PredicateAt)
+                  Access(ThisContractAddress)
+                  Stack(Push(4276813116036094451))
+                  Stack(Push(-532024731742872239))
+                  Stack(Push(5138777131991909664))
+                  Stack(Push(-6622441995027729991))
+                  Stack(Push(8))
+                  Pred(EqRange)
+                --- State Reads ---
+            }
+
+        "#]],
+    );
+}

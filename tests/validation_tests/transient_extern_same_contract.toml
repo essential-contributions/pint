@@ -1,0 +1,71 @@
+[[data]]
+predicate_to_solve = { predicate = "::Simple" }
+decision_variables = [
+  [42], # ::z
+  [69], # ::q
+  [1],  # __::FooI_pathway:
+  [2],  # __::BarI_pathway:
+]
+transient_data = []
+
+[[data]]
+predicate_to_solve = { predicate = "::Foo" }
+decision_variables = [
+  [0], # nonce
+]
+transient_data = [
+  { key = [0], value = [58] },            # ::x
+  { key = [1], value = [31] },            # ::y
+  { key = [2], value = [9, 9, 9, 9] },    # ::w
+  { key = [3], value = [1] },             # ::b
+  { key = [4, 0], value = [42] },         # ::c.0
+  { key = [4, 1], value = [43] },         # ::c.1.0
+  { key = [4, 2], value = [8, 8, 8, 8] }, # ::c.1.1
+  { key = [4, 3], value = [1] },          # ::c.2
+  { key = [5, 0], value = [91] },         # ::d[0]
+  { key = [5, 1], value = [92] },         # ::d[1]
+  { key = [5, 2], value = [93] },         # ::d[2]
+  { key = [6, 0], value = [0] },          # ::e[0][0].0
+  { key = [6, 1], value = [1] },          # ::e[0][0].1
+  { key = [6, 2], value = [2] },          # ::e[0][1].0
+  { key = [6, 3], value = [3] },          # ::e[0][1].1
+  { key = [6, 4], value = [4] },          # ::e[0][2].0
+  { key = [6, 5], value = [5] },          # ::e[0][2].1
+  { key = [6, 6], value = [6] },          # ::e[1][0].0
+  { key = [6, 7], value = [7] },          # ::e[1][0].1
+  { key = [6, 8], value = [8] },          # ::e[1][1].0
+  { key = [6, 9], value = [9] },          # ::e[1][1].1
+  { key = [6, 10], value = [10] },        # ::e[1][2].0
+  { key = [6, 11], value = [11] },        # ::e[1][2].1
+]
+
+[[data]]
+predicate_to_solve = { predicate = "::Bar" }
+decision_variables = [
+  [1], # nonce
+]
+transient_data = [
+  { key = [0], value = [158] },            # ::x
+  { key = [1], value = [131] },            # ::y
+  { key = [2], value = [10, 10, 10, 10] }, # ::w
+  { key = [3], value = [0] },              # ::b
+  { key = [4, 0], value = [142] },         # ::c.0
+  { key = [4, 1], value = [143] },         # ::c.1.0
+  { key = [4, 2], value = [9, 9, 9, 9] },  # ::c.1.1
+  { key = [4, 3], value = [0] },           # ::c.2
+  { key = [5, 0], value = [191] },         # ::d[0]
+  { key = [5, 1], value = [192] },         # ::d[1]
+  { key = [5, 2], value = [193] },         # ::d[2]
+  { key = [6, 0], value = [10] },          # ::e[0][0].0
+  { key = [6, 1], value = [11] },          # ::e[0][0].1
+  { key = [6, 2], value = [12] },          # ::e[0][1].0
+  { key = [6, 3], value = [13] },          # ::e[0][1].1
+  { key = [6, 4], value = [14] },          # ::e[0][2].0
+  { key = [6, 5], value = [15] },          # ::e[0][2].1
+  { key = [6, 6], value = [16] },          # ::e[1][0].0
+  { key = [6, 7], value = [17] },          # ::e[1][0].1
+  { key = [6, 8], value = [18] },          # ::e[1][1].0
+  { key = [6, 9], value = [19] },          # ::e[1][1].1
+  { key = [6, 10], value = [110] },        # ::e[1][2].0
+  { key = [6, 11], value = [111] },        # ::e[1][2].1
+]

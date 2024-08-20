@@ -11,7 +11,7 @@ predicate test {
 
     var this_address = __this_address(42);
 
-    var this_set_address = __this_set_address(42);
+    var this_contract_address = __this_contract_address(42);
 
     var this_pathway = __this_pathway(42);
 
@@ -42,7 +42,7 @@ predicate test {
 // predicate ::test {
 //     var ::hash0: b256;
 //     var ::this_address;
-//     var ::this_set_address;
+//     var ::this_contract_address;
 //     var ::this_pathway;
 //     var ::sha256_0;
 //     var ::sha256_1;
@@ -58,7 +58,7 @@ predicate test {
 //     var ::bad_state_len_2;
 //     state ::x = storage::x;
 //     constraint (::this_address == __this_address(42));
-//     constraint (::this_set_address == __this_set_address(42));
+//     constraint (::this_contract_address == __this_contract_address(42));
 //     constraint (::this_pathway == __this_pathway(42));
 //     constraint (::sha256_0 == __sha256());
 //     constraint (::sha256_1 == __sha256(1, 1));
@@ -79,35 +79,35 @@ predicate test {
 // this intrinsic takes 0 arguments but 1 argument was supplied
 // @256..274: unexpected number of arguments here
 // this intrinsic takes 0 arguments but 1 argument was supplied
-// @304..326: unexpected number of arguments here
+// @309..336: unexpected number of arguments here
 // this intrinsic takes 0 arguments but 1 argument was supplied
-// @352..370: unexpected number of arguments here
+// @362..380: unexpected number of arguments here
 // this intrinsic takes 1 argument but 0 arguments were supplied
-// @392..402: unexpected number of arguments here
+// @402..412: unexpected number of arguments here
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @423..437: unexpected number of arguments here
+// @433..447: unexpected number of arguments here
 // mismatched types
-// @512..513: expected `b256`, found `int`
-// @473..489: arguments to this intrinsic are incorrect`
+// @522..523: expected `b256`, found `int`
+// @483..499: arguments to this intrinsic are incorrect`
 // mismatched types
-// @570..575: expected `{ b256, b256 }`, found `b256`
-// @549..565: arguments to this intrinsic are incorrect`
+// @580..585: expected `{ b256, b256 }`, found `b256`
+// @559..575: arguments to this intrinsic are incorrect`
 // this intrinsic takes 3 arguments but 0 arguments were supplied
-// @618..636: unexpected number of arguments here
+// @628..646: unexpected number of arguments here
 // this intrinsic takes 3 arguments but 4 arguments were supplied
-// @671..720: unexpected number of arguments here
+// @681..730: unexpected number of arguments here
 // mismatched types
-// @788..790: expected `b256`, found `int`
-// @768..787: arguments to this intrinsic are incorrect`
+// @798..800: expected `b256`, found `int`
+// @778..797: arguments to this intrinsic are incorrect`
 // mismatched types
-// @887..903: expected `{ b256, b256, int }`, found `{b256, b256}`
-// @860..879: arguments to this intrinsic are incorrect`
+// @897..913: expected `{ b256, b256, int }`, found `{b256, b256}`
+// @870..889: arguments to this intrinsic are incorrect`
 // this intrinsic takes 2 arguments but 1 argument was supplied
-// @951..977: unexpected number of arguments here
+// @961..987: unexpected number of arguments here
 // this intrinsic takes 2 arguments but 3 arguments were supplied
-// @1024..1077: unexpected number of arguments here
+// @1034..1087: unexpected number of arguments here
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @1133..1150: unexpected number of arguments here
+// @1143..1160: unexpected number of arguments here
 // this intrinsic takes 1 argument but 0 arguments were supplied
-// @1178..1191: unexpected number of arguments here
+// @1188..1201: unexpected number of arguments here
 // >>>

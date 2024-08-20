@@ -27,7 +27,9 @@ impl Contract {
             match &name.name[..] {
                 // Access ops
                 "__this_address" => Ok(infer_intrinsic_this_address(handler, args, span)),
-                "__this_set_address" => Ok(infer_intrinsic_this_set_address(handler, args, span)),
+                "__this_contract_address" => {
+                    Ok(infer_intrinsic_this_contract_address(handler, args, span))
+                }
                 "__this_pathway" => Ok(infer_intrinsic_this_pathway(handler, args, span)),
 
                 // Crypto ops
@@ -55,7 +57,7 @@ impl Contract {
     }
 }
 
-// Intrinsic `__this_set_address`
+// Intrinsic `__this_contract_address`
 //
 // - Arguments: none
 //
@@ -63,7 +65,11 @@ impl Contract {
 //
 // Description: Get the content hash of the contract that this predicate belongs to.
 //
-fn infer_intrinsic_this_set_address(handler: &Handler, args: &[ExprKey], span: &Span) -> Inference {
+fn infer_intrinsic_this_contract_address(
+    handler: &Handler,
+    args: &[ExprKey],
+    span: &Span,
+) -> Inference {
     // This intrinsic expects no arguments
     if !args.is_empty() {
         handler.emit_err(Error::Compile {

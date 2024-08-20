@@ -85,7 +85,7 @@ impl super::Contract {
 
         // Lower accesses to pub vars to `__transient` intrinsics. Also insert any relevant
         // constraints on contract and predicate addresses.
-        let _ = lower_pub_var_accesses(handler, &mut self);
+        let _ = handler.scope(|handler| lower_pub_var_accesses(handler, &mut self));
 
         // Ensure that the final contract is indeed final
         if !handler.has_errors() {
