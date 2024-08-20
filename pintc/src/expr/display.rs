@@ -116,8 +116,8 @@ impl DisplayWithContract for &super::Expr {
                 write!(f, "{path}(...)",)
             }
 
-            super::Expr::IntrinsicCall { name, args, .. } => {
-                write!(f, "{name}(")?;
+            super::Expr::IntrinsicCall { kind, args, .. } => {
+                write!(f, "{}(", kind.0)?;
                 write_many_with_ctrct!(f, args, ", ", contract);
                 write!(f, ")")
             }

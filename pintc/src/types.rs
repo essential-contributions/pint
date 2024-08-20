@@ -445,6 +445,7 @@ impl Type {
             (Self::Error(_), Self::Error(_)) => true,
             (Self::Unknown(_), Self::Unknown(_)) => true,
 
+            // Type::Any is equal to anything!
             (Self::Any(_), _) => true,
             (_, Self::Any(_)) => true,
 
@@ -664,6 +665,18 @@ impl Spanned for EphemeralDecl {
     }
 }
 
+////////////////////////////////////////////////////////////////
+// Helper functions that produce specific types without spans //
+////////////////////////////////////////////////////////////////
+
+pub fn unknown() -> Type {
+    Type::Unknown(empty_span())
+}
+
+pub fn any() -> Type {
+    Type::Any(empty_span())
+}
+
 pub fn r#bool() -> Type {
     Type::Primitive {
         kind: PrimitiveKind::Bool,
@@ -697,8 +710,4 @@ pub fn vector(ty: Type) -> Type {
         ty: Box::new(ty),
         span: empty_span(),
     }
-}
-
-pub fn any() -> Type {
-    Type::Any(empty_span())
 }

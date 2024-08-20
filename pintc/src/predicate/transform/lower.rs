@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{
-        evaluate::Evaluator, BinaryOp, Expr, ExternalIntrinsic, Ident, Immediate, IntrinsicKind,
+        evaluate::Evaluator, BinaryOp, Expr, ExternalIntrinsic, Immediate, IntrinsicKind,
         TupleAccess, UnaryOp,
     },
     predicate::{
@@ -884,12 +884,10 @@ pub(crate) fn lower_compares_to_nil(contract: &mut Contract) {
             |contract: &mut Contract, op: &BinaryOp, expr: &ExprKey, span: &crate::span::Span| {
                 let state_len = contract.exprs.insert(
                     Expr::IntrinsicCall {
-                        kind: IntrinsicKind::External(ExternalIntrinsic::StateLen),
-                        name: Ident {
-                            name: "__state_len".to_string(),
-                            hygienic: false,
-                            span: span.clone(),
-                        },
+                        kind: (
+                            IntrinsicKind::External(ExternalIntrinsic::StateLen),
+                            empty_span(),
+                        ),
                         args: vec![*expr],
                         span: span.clone(),
                     },

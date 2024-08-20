@@ -15,6 +15,10 @@ predicate test {
 
     var this_pathway = __this_pathway(42);
 
+    // This should emit a type checking error for the first argument as well as an "incorrect number
+    // of arguments" error.
+    var predicate_at = __predicate_at(false, 42);
+
     var sha256_0 = __sha256();
     var sha256_1 = __sha256(1, 1);
 
@@ -44,6 +48,7 @@ predicate test {
 //     var ::this_address;
 //     var ::this_contract_address;
 //     var ::this_pathway;
+//     var ::predicate_at;
 //     var ::sha256_0;
 //     var ::sha256_1;
 //     var ::verify_ed25519_0: bool;
@@ -60,6 +65,7 @@ predicate test {
 //     constraint (::this_address == __this_address(42));
 //     constraint (::this_contract_address == __this_contract_address(42));
 //     constraint (::this_pathway == __this_pathway(42));
+//     constraint (::predicate_at == __predicate_at(false, 42));
 //     constraint (::sha256_0 == __sha256());
 //     constraint (::sha256_1 == __sha256(1, 1));
 //     constraint (::verify_ed25519_0 == __verify_ed25519(69, {::hash0, ::hash0}, 5));
@@ -82,32 +88,37 @@ predicate test {
 // @309..336: unexpected number of arguments here
 // this intrinsic takes 0 arguments but 1 argument was supplied
 // @362..380: unexpected number of arguments here
-// this intrinsic takes 1 argument but 0 arguments were supplied
-// @402..412: unexpected number of arguments here
+// incorrect intrinsic argument
+// @550..555: expected `int`, found `bool`
+// @535..549: arguments to this intrinsic are incorrect`
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @433..447: unexpected number of arguments here
+// @535..560: unexpected number of arguments here
+// this intrinsic takes 1 argument but 0 arguments were supplied
+// @582..592: unexpected number of arguments here
+// this intrinsic takes 1 argument but 2 arguments were supplied
+// @613..627: unexpected number of arguments here
 // incorrect intrinsic argument
-// @522..523: expected `b256`, found `int`
-// @483..499: arguments to this intrinsic are incorrect`
+// @702..703: expected `b256`, found `int`
+// @663..679: arguments to this intrinsic are incorrect`
 // incorrect intrinsic argument
-// @580..585: expected `{b256, b256}`, found `b256`
-// @559..575: arguments to this intrinsic are incorrect`
+// @760..765: expected `{b256, b256}`, found `b256`
+// @739..755: arguments to this intrinsic are incorrect`
 // this intrinsic takes 3 arguments but 0 arguments were supplied
-// @628..646: unexpected number of arguments here
+// @808..826: unexpected number of arguments here
 // this intrinsic takes 3 arguments but 4 arguments were supplied
-// @681..730: unexpected number of arguments here
+// @861..910: unexpected number of arguments here
 // incorrect intrinsic argument
-// @798..800: expected `b256`, found `int`
-// @778..797: arguments to this intrinsic are incorrect`
+// @978..980: expected `b256`, found `int`
+// @958..977: arguments to this intrinsic are incorrect`
 // incorrect intrinsic argument
-// @897..913: expected `{b256, b256, int}`, found `{b256, b256}`
-// @870..889: arguments to this intrinsic are incorrect`
+// @1077..1093: expected `{b256, b256, int}`, found `{b256, b256}`
+// @1050..1069: arguments to this intrinsic are incorrect`
 // this intrinsic takes 2 arguments but 1 argument was supplied
-// @961..987: unexpected number of arguments here
+// @1141..1167: unexpected number of arguments here
 // this intrinsic takes 2 arguments but 3 arguments were supplied
-// @1034..1087: unexpected number of arguments here
+// @1214..1267: unexpected number of arguments here
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @1143..1160: unexpected number of arguments here
+// @1323..1340: unexpected number of arguments here
 // this intrinsic takes 1 argument but 0 arguments were supplied
-// @1188..1201: unexpected number of arguments here
+// @1368..1381: unexpected number of arguments here
 // >>>

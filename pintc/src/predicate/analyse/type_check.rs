@@ -975,12 +975,9 @@ impl Contract {
 
             Expr::MacroCall { .. } => Ok(Inference::Ignored),
 
-            Expr::IntrinsicCall {
-                kind,
-                name,
-                args,
-                span,
-            } => self.infer_intrinsic_call_expr(handler, kind, name, args, span),
+            Expr::IntrinsicCall { kind, args, span } => {
+                self.infer_intrinsic_call_expr(handler, kind, args, span)
+            }
 
             Expr::Select {
                 condition,
@@ -1750,8 +1747,7 @@ impl Contract {
     pub(super) fn infer_intrinsic_call_expr(
         &self,
         handler: &Handler,
-        kind: &IntrinsicKind,
-        name: &Ident,
+        (kind, name_span): &(IntrinsicKind, Span),
         args: &[ExprKey],
         span: &Span,
     ) -> Result<Inference, ErrorEmitted> {
@@ -1762,7 +1758,25 @@ impl Contract {
             .for_each(|arg_key| deps.push(*arg_key));
 
         if deps.is_empty() {
-            if args.len() != kind.args().len() {
+            let expected_args = kind.args();
+            // Check the type of each argument. The type of arguments must match what
+            // `kind.args()` produces.
+            for (expected, arg) in expected_args.iter().zip(args.iter()) {
+                let found = arg.get_ty(self);
+                if !expected.eq(&self.new_types, found) {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::MismatchedIntrinsicArgType {
+                            expected: format!("{}", self.with_ctrct(expected)),
+                            found: format!("{}", self.with_ctrct(found)),
+                            intrinsic_span: name_span.clone(),
+                            arg_span: arg.get(self).span().clone(),
+                        },
+                    });
+                }
+            }
+
+            // Also, ensure that the number of arguments is correct
+            if args.len() != expected_args.len() {
                 handler.emit_err(Error::Compile {
                     error: CompileError::UnexpectedIntrinsicArgCount {
                         expected: kind.args().len(),
@@ -1770,21 +1784,6 @@ impl Contract {
                         span: span.clone(),
                     },
                 });
-            } else {
-                for (i, arg) in args.iter().enumerate() {
-                    let expected = &kind.args()[i];
-                    let found = arg.get_ty(self);
-                    if !expected.eq(&self.new_types, found) {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::MismatchedIntrinsicArgType {
-                                expected: format!("{}", self.with_ctrct(expected)),
-                                found: format!("{}", self.with_ctrct(found)),
-                                intrinsic_span: name.span.clone(),
-                                arg_span: arg.get(self).span().clone(),
-                            },
-                        });
-                    }
-                }
             }
 
             Ok(Inference::Type(kind.ty()))

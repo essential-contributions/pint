@@ -55,8 +55,7 @@ pub enum Expr {
         span: Span,
     },
     IntrinsicCall {
-        kind: IntrinsicKind,
-        name: Ident,
+        kind: (IntrinsicKind, Span),
         args: Vec<ExprKey>,
         span: Span,
     },

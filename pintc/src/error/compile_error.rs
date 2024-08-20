@@ -260,8 +260,6 @@ pub enum CompileError {
         el_ty: String,
         span: Span,
     },
-    #[error("no intrinsic named `{name}` is found")]
-    MissingIntrinsic { name: String, span: Span },
     #[error("this intrinsic takes {} but {}",
         if *expected == 1 {
             format!("{expected} argument")
@@ -985,12 +983,6 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
-            MissingIntrinsic { span, .. } => vec![ErrorLabel {
-                message: "intrinsic not found".to_string(),
-                span: span.clone(),
-                color: Color::Red,
-            }],
-
             UnexpectedIntrinsicArgCount { span, .. } => vec![ErrorLabel {
                 message: "unexpected number of arguments here".to_string(),
                 span: span.clone(),
@@ -1242,7 +1234,6 @@ impl ReportableError for CompileError {
             | NonIntGeneratorRange { .. }
             | NonBoolGeneratorCondition { .. }
             | NonBoolGeneratorBody { .. }
-            | MissingIntrinsic { .. }
             | UnexpectedIntrinsicArgCount { .. }
             | IntrinsicArgMustBeStateVar { .. }
             | IntrinsicArgMustBeStorageAccess { .. }
@@ -1410,7 +1401,6 @@ impl Spanned for CompileError {
             | InExprTypesMismatch { span, .. }
             | StateVarHasStorageType { span, .. }
             | InExprTypesArrayMismatch { span, .. }
-            | MissingIntrinsic { span, .. }
             | UnexpectedIntrinsicArgCount { span, .. }
             | MismatchedIntrinsicArgType { arg_span: span, .. }
             | IntrinsicArgMustBeStateVar { span, .. }

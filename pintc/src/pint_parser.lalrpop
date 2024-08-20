@@ -760,12 +760,14 @@ TermInner: Expr = {
     },
     <GeneratorExpr>,
     <l:@L> <call:IntrinsicCallExpr> <r:@R> => {
-        if let Expr::IntrinsicCall { ref name, .. } = call {
-            if name.name == "__vec_len" {
-                handler.emit_err(Error::Parse {
-                    error: ParseError::BadStorageIntrinsic((context.span_from)(l, r)),
-                });
-            }
+        if let Expr::IntrinsicCall {
+            kind: (IntrinsicKind::External(ExternalIntrinsic::VecLen), _),
+            ..
+        } = call
+        {
+            handler.emit_err(Error::Parse {
+                error: ParseError::BadStorageIntrinsic((context.span_from)(l, r)),
+            });
         }
         call
     },
@@ -893,26 +895,8 @@ IntrinsicArg: ExprKey = {
 }
 
 IntrinsicCallExpr: Expr = {
-    <l:@L> <ident:IntrinsicName> "(" <args:SepList<IntrinsicArg, ",">> ")" <r:@R> => {
-        use ExternalIntrinsic::*;
-        use IntrinsicKind::External;
-        Expr::IntrinsicCall {
-            kind: match &ident.name[..] {
-                "__predicate_at" => External(PredicateAt),
-                "__recover_secp256k1" => External(RecoverSECP256k1),
-                "__sha256" => External(Sha256),
-                "__state_len" => External(StateLen),
-                "__this_address" => External(ThisAddress),
-                "__this_contract_address" => External(ThisContractAddress),
-                "__this_pathway" => External(ThisPathway),
-                "__vec_len" => External(VecLen),
-                "__verify_ed25519" => External(VerifyEd25519),
-                _ => todo!(),
-            },
-            name: ident,
-            args,
-            span: (context.span_from)(l, r),
-        }
+    <l:@L> <name:IntrinsicName> "(" <args:SepList<IntrinsicArg, ",">> ")" <r:@R> => {
+        context.parse_intrinsic_call(handler, name, args, (l, r))
     },
 };
 
