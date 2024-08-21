@@ -1,11 +1,11 @@
-mod clean;
+mod dead_code_elimination;
 mod legalize;
 mod lower;
 mod unroll;
 mod validate;
 
 use crate::error::{ErrorEmitted, Handler};
-use clean::clean_dead_state_decls;
+use dead_code_elimination::dead_code_elimination;
 use legalize::legalize_vector_accesses;
 use lower::{
     coalesce_prime_ops, lower_aliases, lower_array_ranges, lower_casts, lower_compares_to_nil,
@@ -89,8 +89,11 @@ impl super::Contract {
         // constraints on contract and predicate addresses.
         let _ = lower_pub_var_accesses(handler, &mut self);
 
+        // Optimization Passes
+        // TODO: Move into it's own phase of the compiler
+
         // Remove dead state declarations
-        clean_dead_state_decls(&mut self);
+        dead_code_elimination(&mut self);
 
         // Ensure that the final contract is indeed final
         if !handler.has_errors() {
