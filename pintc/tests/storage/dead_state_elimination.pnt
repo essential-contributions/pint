@@ -1,0 +1,103 @@
+storage {
+    x: int,
+    arr: int[2],
+    tup: { int, int },
+    map: ( int => bool ),
+}
+
+predicate Test {
+    // live states that should remain when flattened
+    state a = storage::x;
+    constraint a' >= a + 42;
+
+    state b: int = storage::x;
+    constraint (b == nil && b' == 1) || b' == b + 1;
+
+    state c: int[2] = mut storage::arr;
+    constraint c'[0] == 42;
+
+    state d = storage::tup;
+    state d_0 = storage::tup.0;
+
+    state e_0 = storage::map[0];
+    state e_1 = storage::map[1];
+
+    var f = b + c[0];
+    var g = d.1 + d_0;
+    var h = (e_1 == e_0);
+
+    // dead state that should be eliminated
+    state x1 = storage::x;
+    state x2 = storage::arr;
+    state x3 = storage::tup;
+    state x4 = storage::tup.0;
+    state x5 = storage::map[0];
+    state x6 = storage::map[1];
+
+    // mutable key remains, state is eliminated
+    state z = mut storage::x;
+}
+
+// parsed <<<
+// storage {
+//     x: int,
+//     arr: int[2],
+//     tup: {int, int},
+//     map: ( int => bool ),
+// }
+//
+// predicate ::Test {
+//     var ::f;
+//     var ::g;
+//     var ::h;
+//     state ::a = storage::x;
+//     state ::b: int = storage::x;
+//     state ::c: int[2] = mut storage::arr;
+//     state ::d = storage::tup;
+//     state ::d_0 = storage::tup.0;
+//     state ::e_0 = storage::map[0];
+//     state ::e_1 = storage::map[1];
+//     state ::x1 = storage::x;
+//     state ::x2 = storage::arr;
+//     state ::x3 = storage::tup;
+//     state ::x4 = storage::tup.0;
+//     state ::x5 = storage::map[0];
+//     state ::x6 = storage::map[1];
+//     state ::z = mut storage::x;
+//     constraint (::a' >= (::a + 42));
+//     constraint (((::b == nil) && (::b' == 1)) || (::b' == (::b + 1)));
+//     constraint (::c'[0] == 42);
+//     constraint (::f == (::b + ::c[0]));
+//     constraint (::g == (::d.1 + ::d_0));
+//     constraint (::h == (::e_1 == ::e_0));
+// }
+// >>>
+
+// flattened <<<
+// storage {
+//     x: int,
+//     arr: int[2],
+//     tup: {int, int},
+//     map: ( int => bool ),
+// }
+//
+// predicate ::Test {
+//     var ::f: int;
+//     var ::g: int;
+//     var ::h: bool;
+//     state ::a: int = __storage_get({0});
+//     state ::b: int = __storage_get({0});
+//     state ::c: int[2] = __storage_get({1, 0});
+//     state ::d: {int, int} = __storage_get({2, 0});
+//     state ::d_0: int = __storage_get({2, (0 + 0)});
+//     state ::e_0: bool = __storage_get({3, 0});
+//     state ::e_1: bool = __storage_get({3, 1});
+//     constraint (::a' >= (::a + 42));
+//     constraint (((__state_len(::b) == 0) && (::b' == 1)) || (::b' == (::b + 1)));
+//     constraint (::c'[0] == 42);
+//     constraint (::f == (::b + ::c[0]));
+//     constraint (::g == (::d.1 + ::d_0));
+//     constraint (::h == (::e_1 == ::e_0));
+//     constraint __eq_set(__mut_keys(), {{1, 0}, 2, {1, (0 + 1)}, 2, {0}, 1, 8});
+// }
+// >>>
