@@ -34,10 +34,10 @@ predicate Foo {
     constraint u0_0' == 1;
     constraint u0_1' == 1;
 
-    constraint u1_1 == u1_1;
-    constraint u2_2 == u2_2;
-    constraint v1_1 == v1_1;
-    constraint v2_2 == u2_2;
+    constraint u1_1 == (1 == 1);
+    constraint u2_2 == 0x0000000000000000000000000000000000000000000000000000000000000000;
+    constraint v1_1 == (1 == 1);
+    constraint v2_2 == 0x0000000000000000000000000000000000000000000000000000000000000000;
 }
 
 // parsed <<<
@@ -72,10 +72,10 @@ predicate Foo {
 //     constraint (::u0_1 == 0);
 //     constraint (::u0_0' == 1);
 //     constraint (::u0_1' == 1);
-//     constraint (::u1_1 == ::u1_1);
-//     constraint (::u2_2 == ::u2_2);
-//     constraint (::v1_1 == ::v1_1);
-//     constraint (::v2_2 == ::u2_2);
+//     constraint (::u1_1 == (1 == 1));
+//     constraint (::u2_2 == 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::v1_1 == (1 == 1));
+//     constraint (::v2_2 == 0x0000000000000000000000000000000000000000000000000000000000000000);
 // }
 // >>>
 
@@ -114,10 +114,10 @@ predicate Foo {
 //     constraint (::u0_1 == 0);
 //     constraint (::u0_0' == 1);
 //     constraint (::u0_1' == 1);
-//     constraint (::u1_1 == ::u1_1);
-//     constraint (::u2_2 == ::u2_2);
-//     constraint (::v1_1 == ::v1_1);
-//     constraint (::v2_2 == ::u2_2);
+//     constraint (::u1_1 == (1 == 1));
+//     constraint (::u2_2 == 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::v1_1 == (1 == 1));
+//     constraint (::v2_2 == 0x0000000000000000000000000000000000000000000000000000000000000000);
 //     constraint (0 < __v0_len);
 //     constraint (1 < __v1_len);
 //     constraint (2 < __v2_len);
