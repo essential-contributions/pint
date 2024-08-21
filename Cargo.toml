@@ -24,23 +24,23 @@ ariadne = "0.4"
 chumsky = "0.9"
 clap = { version = "4.5", features = ["derive"] }
 constraint-asm = { version = "0.3", package = "essential-constraint-asm" }
-essential-check = { version = "0.3", features = ["tracing"] }
+essential-check = { version = "0.4", features = ["tracing"] }
 essential-constraint-vm = "0.3"
 essential-state-read-vm = "0.3"
 essential-hash = "0.2"
 essential-types = "0.2"
 expect-test = "1.4"
 fxhash = "0.2"
-itertools = "0.12"
+itertools = "0.13"
 logos = "0.14"
 petgraph = "0.6"
-pint-abi = { path = "pint-abi", version = "0.1.0" }
-pint-abi-gen = { path = "pint-abi-gen", version = "0.1.0" }
-pint-abi-types = { path = "pint-abi-types", version = "0.1.0" }
-pint-abi-visit = { path = "pint-abi-visit", version = "0.0.1" }
+pint-abi = { path = "pint-abi", version = "0.2.0" }
+pint-abi-gen = { path = "pint-abi-gen", version = "0.2.0" }
+pint-abi-types = { path = "pint-abi-types", version = "0.2.0" }
+pint-abi-visit = { path = "pint-abi-visit", version = "0.2.0" }
 pint-manifest = { path = "pint-manifest", version = "0.1.0" }
-pint-pkg = { path = "pint-pkg", version = "0.1.0" }
-pintc = { path = "pintc", version = "0.1.0" }
+pint-pkg = { path = "pint-pkg", version = "0.2.0" }
+pintc = { path = "pintc", version = "0.2.0" }
 proc-macro2 = "1.0"
 quote = "1.0"
 serde = { version = "1.0", features = ["derive"] }
