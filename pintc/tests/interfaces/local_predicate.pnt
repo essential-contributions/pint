@@ -1,0 +1,241 @@
+predicate Simple {
+    var z: int;
+    var q: int;
+
+    predicate FooI = Foo();
+
+    constraint FooI::x + z == FooI::y + q;
+    constraint FooI::w == 0x0000000000000009000000000000000900000000000000090000000000000009;
+    constraint FooI::b == true;
+    constraint !FooI::b == false;
+
+    constraint FooI::c == 
+        { 42, { 43, 0x0000000000000008000000000000000800000000000000080000000000000008}, true };
+    constraint FooI::c.0 == 42;
+    constraint FooI::c.1 == { 43, 0x0000000000000008000000000000000800000000000000080000000000000008};
+    constraint FooI::c.1.0 == 43;
+    constraint FooI::c.1.1 == 0x0000000000000008000000000000000800000000000000080000000000000008;
+    constraint FooI::c.2 == true;
+
+    constraint FooI::d == [91, 92, 93];
+    constraint FooI::d[0] == 91;
+    constraint FooI::d[1] == 92;
+    constraint FooI::d[2] == 93;
+
+    constraint FooI::e == [
+        [ 
+            { 0, 1 },
+            { 2, 3 },
+            { 4, 5 },
+        ],
+        [
+            { 6, 7 },
+            { 8, 9 },
+            { 10, 11 },
+        ]
+    ];
+
+    constraint FooI::e[0][0] == { 0, 1 };
+    constraint FooI::e[1] == [{ 6, 7 }, { 8, 9 }, { 10, 11 }];
+
+    predicate BarI = Bar();
+
+    constraint BarI::x + z == BarI::y + q;
+    constraint BarI::w == 0x000000000000000A000000000000000A000000000000000A000000000000000A;
+    constraint BarI::b == false;
+    constraint !BarI::b == true;
+
+    constraint BarI::c == 
+        { 142, { 143, 0x0000000000000009000000000000000900000000000000090000000000000009}, false };
+    constraint BarI::c.0 == 142;
+    constraint BarI::c.1 == { 143, 0x0000000000000009000000000000000900000000000000090000000000000009};
+    constraint BarI::c.1.0 == 143;
+    constraint BarI::c.1.1 == 0x0000000000000009000000000000000900000000000000090000000000000009;
+    constraint BarI::c.2 == false;
+
+    constraint BarI::d == [191, 192, 193];
+    constraint BarI::d[0] == 191;
+    constraint BarI::d[1] == 192;
+    constraint BarI::d[2] == 193;
+
+    constraint BarI::e == [
+        [ 
+            { 10, 11 },
+            { 12, 13 },
+            { 14, 15 },
+        ],
+        [
+            { 16, 17 },
+            { 18, 19 },
+            { 110, 111 },
+        ]
+    ];
+
+    constraint BarI::e[0][0] == { 10, 11 };
+    constraint BarI::e[1] == [{ 16, 17 }, { 18, 19 }, { 110, 111 }];
+}
+
+predicate Foo {
+    pub var x: int;
+    pub var y: int;
+    pub var w: b256;
+    pub var b: bool;
+    pub var c: { int, { int, b256 }, bool };
+    pub var d: int[3]; 
+    pub var e: { int, int }[2][3];
+    var nonce = 0;
+}
+
+predicate Bar {
+    pub var x: int;
+    pub var y: int;
+    pub var w: b256;
+    pub var b: bool;
+    pub var c: { int, { int, b256 }, bool };
+    pub var d: int[3]; 
+    pub var e: { int, int }[2][3]; 
+    var nonce = 1;
+}
+
+// parsed <<<
+// predicate ::Simple {
+//     predicate ::FooI = ::Foo()
+//     predicate ::BarI = ::Bar()
+//     var ::z: int;
+//     var ::q: int;
+//     var __::FooI_pathway: int;
+//     var __::BarI_pathway: int;
+//     constraint ((::FooI::x + ::z) == (::FooI::y + ::q));
+//     constraint (::FooI::w == 0x0000000000000009000000000000000900000000000000090000000000000009);
+//     constraint (::FooI::b == true);
+//     constraint (!::FooI::b == false);
+//     constraint (::FooI::c == {42, {43, 0x0000000000000008000000000000000800000000000000080000000000000008}, true});
+//     constraint (::FooI::c.0 == 42);
+//     constraint (::FooI::c.1 == {43, 0x0000000000000008000000000000000800000000000000080000000000000008});
+//     constraint (::FooI::c.1.0 == 43);
+//     constraint (::FooI::c.1.1 == 0x0000000000000008000000000000000800000000000000080000000000000008);
+//     constraint (::FooI::c.2 == true);
+//     constraint (::FooI::d == [91, 92, 93]);
+//     constraint (::FooI::d[0] == 91);
+//     constraint (::FooI::d[1] == 92);
+//     constraint (::FooI::d[2] == 93);
+//     constraint (::FooI::e == [[{0, 1}, {2, 3}, {4, 5}], [{6, 7}, {8, 9}, {10, 11}]]);
+//     constraint (::FooI::e[0][0] == {0, 1});
+//     constraint (::FooI::e[1] == [{6, 7}, {8, 9}, {10, 11}]);
+//     constraint ((::BarI::x + ::z) == (::BarI::y + ::q));
+//     constraint (::BarI::w == 0x000000000000000A000000000000000A000000000000000A000000000000000A);
+//     constraint (::BarI::b == false);
+//     constraint (!::BarI::b == true);
+//     constraint (::BarI::c == {142, {143, 0x0000000000000009000000000000000900000000000000090000000000000009}, false});
+//     constraint (::BarI::c.0 == 142);
+//     constraint (::BarI::c.1 == {143, 0x0000000000000009000000000000000900000000000000090000000000000009});
+//     constraint (::BarI::c.1.0 == 143);
+//     constraint (::BarI::c.1.1 == 0x0000000000000009000000000000000900000000000000090000000000000009);
+//     constraint (::BarI::c.2 == false);
+//     constraint (::BarI::d == [191, 192, 193]);
+//     constraint (::BarI::d[0] == 191);
+//     constraint (::BarI::d[1] == 192);
+//     constraint (::BarI::d[2] == 193);
+//     constraint (::BarI::e == [[{10, 11}, {12, 13}, {14, 15}], [{16, 17}, {18, 19}, {110, 111}]]);
+//     constraint (::BarI::e[0][0] == {10, 11});
+//     constraint (::BarI::e[1] == [{16, 17}, {18, 19}, {110, 111}]);
+// }
+// 
+// predicate ::Foo {
+//     pub var ::x: int;
+//     pub var ::y: int;
+//     pub var ::w: b256;
+//     pub var ::b: bool;
+//     pub var ::c: {int, {int, b256}, bool};
+//     pub var ::d: int[3];
+//     pub var ::e: {int, int}[3][2];
+//     var ::nonce;
+//     constraint (::nonce == 0);
+// }
+// 
+// predicate ::Bar {
+//     pub var ::x: int;
+//     pub var ::y: int;
+//     pub var ::w: b256;
+//     pub var ::b: bool;
+//     pub var ::c: {int, {int, b256}, bool};
+//     pub var ::d: int[3];
+//     pub var ::e: {int, int}[3][2];
+//     var ::nonce;
+//     constraint (::nonce == 1);
+// }
+// >>>
+
+// flattened <<<
+// predicate ::Simple {
+//     predicate ::FooI = ::Foo()
+//     predicate ::BarI = ::Bar()
+//     var ::z: int;
+//     var ::q: int;
+//     var __::FooI_pathway: int;
+//     var __::BarI_pathway: int;
+//     constraint ((__transient({0}, 1, __::FooI_pathway) + ::z) == (__transient({1}, 1, __::FooI_pathway) + ::q));
+//     constraint (__transient({2}, 1, __::FooI_pathway) == 0x0000000000000009000000000000000900000000000000090000000000000009);
+//     constraint (__transient({3}, 1, __::FooI_pathway) == true);
+//     constraint (!__transient({3}, 1, __::FooI_pathway) == false);
+//     constraint (__transient({4, 0}, 2, __::FooI_pathway) == {42, {43, 0x0000000000000008000000000000000800000000000000080000000000000008}, true});
+//     constraint (__transient({4, 0}, 2, __::FooI_pathway).0 == 42);
+//     constraint (__transient({4, 0}, 2, __::FooI_pathway).1 == {43, 0x0000000000000008000000000000000800000000000000080000000000000008});
+//     constraint (__transient({4, 0}, 2, __::FooI_pathway).1.0 == 43);
+//     constraint (__transient({4, 0}, 2, __::FooI_pathway).1.1 == 0x0000000000000008000000000000000800000000000000080000000000000008);
+//     constraint (__transient({4, 0}, 2, __::FooI_pathway).2 == true);
+//     constraint (__transient({5, 0}, 2, __::FooI_pathway) == [91, 92, 93]);
+//     constraint (__transient({5, 0}, 2, __::FooI_pathway)[0] == 91);
+//     constraint (__transient({5, 0}, 2, __::FooI_pathway)[1] == 92);
+//     constraint (__transient({5, 0}, 2, __::FooI_pathway)[2] == 93);
+//     constraint (__transient({6, 0}, 2, __::FooI_pathway) == [[{0, 1}, {2, 3}, {4, 5}], [{6, 7}, {8, 9}, {10, 11}]]);
+//     constraint (__transient({6, 0}, 2, __::FooI_pathway)[0][0] == {0, 1});
+//     constraint (__transient({6, 0}, 2, __::FooI_pathway)[1] == [{6, 7}, {8, 9}, {10, 11}]);
+//     constraint ((__transient({0}, 1, __::BarI_pathway) + ::z) == (__transient({1}, 1, __::BarI_pathway) + ::q));
+//     constraint (__transient({2}, 1, __::BarI_pathway) == 0x000000000000000A000000000000000A000000000000000A000000000000000A);
+//     constraint (__transient({3}, 1, __::BarI_pathway) == false);
+//     constraint (!__transient({3}, 1, __::BarI_pathway) == true);
+//     constraint (__transient({4, 0}, 2, __::BarI_pathway) == {142, {143, 0x0000000000000009000000000000000900000000000000090000000000000009}, false});
+//     constraint (__transient({4, 0}, 2, __::BarI_pathway).0 == 142);
+//     constraint (__transient({4, 0}, 2, __::BarI_pathway).1 == {143, 0x0000000000000009000000000000000900000000000000090000000000000009});
+//     constraint (__transient({4, 0}, 2, __::BarI_pathway).1.0 == 143);
+//     constraint (__transient({4, 0}, 2, __::BarI_pathway).1.1 == 0x0000000000000009000000000000000900000000000000090000000000000009);
+//     constraint (__transient({4, 0}, 2, __::BarI_pathway).2 == false);
+//     constraint (__transient({5, 0}, 2, __::BarI_pathway) == [191, 192, 193]);
+//     constraint (__transient({5, 0}, 2, __::BarI_pathway)[0] == 191);
+//     constraint (__transient({5, 0}, 2, __::BarI_pathway)[1] == 192);
+//     constraint (__transient({5, 0}, 2, __::BarI_pathway)[2] == 193);
+//     constraint (__transient({6, 0}, 2, __::BarI_pathway) == [[{10, 11}, {12, 13}, {14, 15}], [{16, 17}, {18, 19}, {110, 111}]]);
+//     constraint (__transient({6, 0}, 2, __::BarI_pathway)[0][0] == {10, 11});
+//     constraint (__transient({6, 0}, 2, __::BarI_pathway)[1] == [{16, 17}, {18, 19}, {110, 111}]);
+//     constraint __eq_set(__mut_keys(), {0});
+//     constraint (__predicate_at(__::FooI_pathway) == {__this_contract_address(), __sibling_predicate_address("::Foo")});
+//     constraint (__predicate_at(__::BarI_pathway) == {__this_contract_address(), __sibling_predicate_address("::Bar")});
+// }
+// 
+// predicate ::Foo {
+//     pub var ::x: int;
+//     pub var ::y: int;
+//     pub var ::w: b256;
+//     pub var ::b: bool;
+//     pub var ::c: {int, {int, b256}, bool};
+//     pub var ::d: int[3];
+//     pub var ::e: {int, int}[3][2];
+//     var ::nonce: int;
+//     constraint (::nonce == 0);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// 
+// predicate ::Bar {
+//     pub var ::x: int;
+//     pub var ::y: int;
+//     pub var ::w: b256;
+//     pub var ::b: bool;
+//     pub var ::c: {int, {int, b256}, bool};
+//     pub var ::d: int[3];
+//     pub var ::e: {int, int}[3][2];
+//     var ::nonce: int;
+//     constraint (::nonce == 1);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

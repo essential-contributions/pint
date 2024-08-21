@@ -201,7 +201,8 @@ InterfaceInstance: () = {
 }
 
 PredicateInstance: () = {
-    <l:@L> "predicate" <name:Ident> "=" <l1:@L> <abs:"::"?> <els:(<Ident> "::")*> <r1:@R> <predicate:Ident>
+    <l:@L> "predicate" <name:Ident> "="
+        <l1:@L> <abs:"::"?> <els:(<Ident> "::")*> <r1:@R> <predicate:Ident>
             "(" <address:Expr> ")" <r:@R> => {
         context.parse_predicate_instance(
             handler,
@@ -209,7 +210,19 @@ PredicateInstance: () = {
             abs.is_some(),
             els,
             predicate,
-            address,
+            Some(address),
+            (l, l1, r1, r),
+        );
+    },
+    <l:@L> "predicate" <name:Ident> "=" 
+        <l1:@L> /* no els here */ <r1:@R> <predicate:Ident> "(" ")" <r:@R> => {
+        context.parse_predicate_instance(
+            handler,
+            name,
+            false, // not absolute
+            vec![], // no path needed for an interface instance
+            predicate,
+            None, // no address here
             (l, l1, r1, r),
         );
     }

@@ -1,6 +1,6 @@
 [package]
 name = "pintc"
-version = "0.1.0"
+version = "0.2.0"
 description = "Compiler for the Pint language"
 edition.workspace = true
 authors.workspace = true
@@ -27,12 +27,14 @@ anyhow = { workspace = true }
 ariadne = { workspace = true }
 clap = { workspace = true }
 constraint-asm = { workspace = true }
+essential-hash = { workspace = true }
 essential-types = { workspace = true }
 expect-test = { workspace = true }
 fxhash = { workspace = true }
 itertools = { workspace = true }
 lalrpop-util = "0.20"
 logos = { workspace = true }
+petgraph = "0.6"
 pint-abi-types = { workspace = true }
 pint-solve = { path = "../pint-solve", version = "0.1.0", default-features = false }
 regex = "1.10"
@@ -45,7 +47,7 @@ thiserror = { workspace = true }
 yansi = { workspace = true }
 
 [dev-dependencies]
-tempfile = { version = "3.10.0" }
+tempfile = "3.10"
 test-util = { path = "../test-util" }
 test_bin = "0.4"
 

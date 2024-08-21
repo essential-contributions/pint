@@ -7,7 +7,7 @@ storage {
     y: int,
 }
 
-predicate test {
+predicate Test {
     state x = storage::x;
 
     // `x` here is set in the pre state db.  Selecting it should still work.

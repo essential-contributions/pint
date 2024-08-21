@@ -1,3 +1,5 @@
 [[data]]
-decision_variables = [[-3, -2, -1]]
-predicate_to_solve = { set = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", predicate = "" }
+decision_variables = [
+  [-3, -2, -1], # ::x
+]
+predicate_to_solve = { predicate = "::Test" }

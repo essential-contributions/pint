@@ -184,11 +184,12 @@ impl<'a> ParserContext<'a> {
         self.contract.interfaces.push(interface);
     }
 
-    /// Given a predicate instance name as an `Predicate`, a list `els` of `Ident`s forming a path, an
-    /// predicate name as an `Predicate` and an address as an `ExprKey`, produce an `PredicateInstance`
-    /// object and insert it into the current Pred. `l` and `r` are the code locations before and
-    /// after the interface declaration. `l1` and `r1` are the code locations before and after the
-    /// path represented by `els`. Uses `is_abs` to decide how to handle the path `els`.
+    /// Given a predicate instance name as an `Predicate`, a list `els` of `Ident`s forming a path,
+    /// an predicate name as an `Predicate` and an address as an `ExprKey`, produce an
+    /// `PredicateInstance` object and insert it into the current Pred. `l` and `r` are the code
+    /// locations before and after the predicate instance declaration. `l1` and `r1` are the code
+    /// locations before and after the path represented by `els`. Uses `is_abs` to decide how to
+    /// handle the path `els`.
     #[allow(clippy::too_many_arguments)]
     pub fn parse_predicate_instance(
         &mut self,
@@ -197,25 +198,29 @@ impl<'a> ParserContext<'a> {
         is_abs: bool,
         els: Vec<Ident>,
         predicate: Ident,
-        address: ExprKey,
+        address: Option<ExprKey>,
         (l, l1, r1, r): (usize, usize, usize, usize),
     ) {
         let interface_instance = if els.is_empty() {
-            handler.emit_err(Error::Parse {
-                error: ParseError::PathTooShort {
-                    path: if is_abs {
-                        "::".to_owned() + &predicate.name
-                    } else {
-                        predicate.name.clone()
+            if address.is_some() {
+                // Path is too short if an address is provided. That's because we're expecting an
+                // interface instance to show up before the name of the predicate
+                handler.emit_err(Error::Parse {
+                    error: ParseError::PathTooShort {
+                        path: if is_abs {
+                            "::".to_owned() + &predicate.name
+                        } else {
+                            predicate.name.clone()
+                        },
+                        span: (self.span_from)(l, r),
                     },
-                    span: (self.span_from)(l, r),
-                },
-            });
-            "".to_string()
+                });
+            }
+            None
         } else {
             let els_len = els.len();
             let path_span = (self.span_from)(l1, r1);
-            if is_abs {
+            Some(if is_abs {
                 self.parse_absolute_path(
                     els[..els_len - 1].to_vec(),
                     els[els_len - 1].clone(),
@@ -229,7 +234,7 @@ impl<'a> ParserContext<'a> {
                     false,
                     path_span,
                 )
-            }
+            })
         };
 
         let span = (self.span_from)(l, r);

@@ -12,9 +12,9 @@ publish = false
 anyhow = { workspace = true }
 num-bigint = "0.4"
 num-traits = "0.2"
-pintc = { path = "../pintc", default-features = false }
+pintc = { workspace = true }
 regex = "1.10"
-serde = "1.0"
+serde = { workspace = true }
 test-util = { path = "../test-util" }
 yansi = { workspace = true }
 

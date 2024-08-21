@@ -1,5 +1,5 @@
 // Find three consecutive integers such that their product is equal to their sum.
-predicate test {
+predicate Test {
     var x: int[3];
 
     constraint forall i in 1..2 {

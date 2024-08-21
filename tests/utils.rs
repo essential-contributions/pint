@@ -1,5 +1,5 @@
 use essential_state_read_vm::{
-    types::{ContentAddress, Key, Word},
+    types::{solution::Solution, ContentAddress, Key, Word},
     StateRead,
 };
 use std::{
@@ -74,6 +74,19 @@ impl State {
             key = next_key(key).ok_or(InvalidStateRead)?;
         }
         Ok(words)
+    }
+
+    /// Apply all mutations proposed by the given solution.
+    pub fn apply_mutations(&mut self, solution: &Solution) {
+        for data in &solution.data {
+            for mutation in data.state_mutations.iter() {
+                self.set(
+                    data.predicate_to_solve.contract.clone(),
+                    &mutation.key,
+                    mutation.value.clone(),
+                );
+            }
+        }
     }
 }
 

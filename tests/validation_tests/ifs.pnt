@@ -1,4 +1,4 @@
-predicate test {
+predicate Test {
     var x_1: int;
     var y_1: int;
     var z_1: int;
