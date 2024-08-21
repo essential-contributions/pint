@@ -14,6 +14,7 @@ use fxhash::FxHashMap;
 mod analyse;
 mod display;
 mod exprs;
+mod optimise;
 mod states;
 mod transform;
 mod vars;

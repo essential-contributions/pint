@@ -16,4 +16,10 @@ pub struct Args {
 
     #[arg(long = "print-asm")]
     pub print_asm: bool,
+
+    #[arg(long = "print-optimised")]
+    pub print_optimised: bool,
+
+    #[arg(long = "skip-optimise")]
+    pub skip_optimise: bool,
 }

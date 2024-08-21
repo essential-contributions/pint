@@ -47,7 +47,18 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    match handler.scope(|handler| compile_contract(handler, &flattened)) {
+    // Optimise
+    let contract = if args.skip_optimise {
+        flattened
+    } else {
+        let optimised = flattened.optimise();
+        if args.print_optimised {
+            println!("{optimised}");
+        }
+        optimised
+    };
+
+    match handler.scope(|handler| compile_contract(handler, &contract)) {
         Ok(compiled_contract) => {
             if args.print_asm {
                 println!("{compiled_contract}");
@@ -76,7 +87,7 @@ fn main() -> anyhow::Result<()> {
             json_abi_path = output_directory_path.join(json_abi_path);
 
             // Compute the JSON ABI
-            let abi = match handler.scope(|handler| flattened.abi(handler)) {
+            let abi = match handler.scope(|handler| contract.abi(handler)) {
                 Ok(abi) => abi,
                 Err(_) => {
                     let errors = handler.consume();

@@ -53,8 +53,11 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
                 // Type check the parsed intent.
                 type_check(pred, &test_data, &mut failed_tests, &path))
             .and_then(|pred|
-                // Flatten the parsed intent check the result.
-                flatten_and_check(pred, &test_data, &mut failed_tests, &path));
+                // Flatten the parsed intent and check the result.
+                flatten_and_check(pred, &test_data, &mut failed_tests, &path))
+            .and_then(|pred| 
+                // Optimise the flattened intent
+                optimise(pred, &test_data, &mut failed_tests, &path));
 
         // Check the `json` ABI if a reference file exists.
         if let Some(program) = program {
@@ -235,6 +238,31 @@ fn flatten_and_check(
             }
         })
         .ok()
+}
+
+fn optimise(
+    pred: Contract,
+    test_data: &TestData,
+    failed_tests: &mut Vec<String>,
+    path: &Path,
+) -> Option<Contract> {
+    let optimised = pred.optimise();
+    if let Some(expected_optimised_str) = &test_data.optimised {
+        similar_asserts::assert_eq!(
+            expected_optimised_str.trim(),
+            format!("{optimised}").trim()
+        );
+        Some(optimised)
+    } else {
+        failed_tests.push(path.display().to_string());
+        println!(
+            "{} {}.",
+            "MISSING 'optimised' DIRECTIVE".red(),
+            path.display().to_string().cyan(),
+        );
+        None
+    }
+      
 }
 
 #[cfg(test)]
