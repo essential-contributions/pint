@@ -3,16 +3,12 @@ use crate::{
     predicate::{Contract, StateKey},
 };
 
+/// In a given contract, remove any code that is not reachable or used.
 pub(crate) fn dead_code_elimination(contract: &mut Contract) {
     dead_state_elimination(contract);
 }
 
-// TODO: Tests
-// TODO: Documentation for function
-
-// go through all the state exprs and see if they're used
-// mark dead ones
-// remove the dead ones in a separate loop after (you can change items with a mutable iterator, but not remove elements of the vector)
+/// Remove all unused States in their respective predicates.
 pub(crate) fn dead_state_elimination(contract: &mut Contract) {
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         let mut live_paths: Vec<String> = Vec::new();

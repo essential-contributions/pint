@@ -89,10 +89,10 @@ impl super::Contract {
         // constraints on contract and predicate addresses.
         let _ = lower_pub_var_accesses(handler, &mut self);
 
-        // Optimization Passes
-        // TODO: Move into it's own phase of the compiler
+        // ---- Optimization Passes ----
+        // TODO: Move into own phase of the compiler
 
-        // Remove dead state declarations
+        // Remove dead code
         dead_code_elimination(&mut self);
 
         // Ensure that the final contract is indeed final
