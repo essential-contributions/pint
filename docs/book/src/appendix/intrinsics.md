@@ -33,7 +33,28 @@ the solution data currently being used to check the predicate.
 ---
 
 ```pint
-__sha256(data: <any>) -> b256
+__predicate_at(pathway: int) -> { b256, b256 }
+```
+
+**Description:** Returns the full address of predicate at pathway `<pathway>`. The pathway of a
+predicate is the index of the solution data currently being used to check the predicate. The full
+address contains both the content hash of the contract to which the predicate belongs and the
+content hash of the predicate itself
+
+---
+
+```pint
+__address_of(name: string) -> b256
+```
+
+**Description:** Returns the content hash of predicate named `name` in the same contract. The name
+must be the full absolute path to the predicate, such as `::Foo`, and cannot be the name of the
+predicate it's used in.
+
+---
+
+```pint
+__sha256(data: _) -> b256
 ```
 
 **Description:** Returns a SHA 256 hash from the specified data.
@@ -41,7 +62,7 @@ __sha256(data: <any>) -> b256
 ---
 
 ```pint
-__state_len(data: <state>) -> int
+__state_len(data: _) -> int
 ```
 
 **Description:** Returns the length of a state variable. the argument `data` must be a state
@@ -50,7 +71,7 @@ variable or a "next state" expression but can have any type.
 ---
 
 ```pint
-__vec_len(<storage access>) -> int
+__vec_len(vec: _[]) -> int
 ```
 
 **Description:** Returns the length of a storage vector.
@@ -58,7 +79,7 @@ __vec_len(<storage access>) -> int
 ---
 
 ```pint
-__verify_ed25519(data: <any>, sig: { b256, b256 }, pub_key: b256) -> bool
+__verify_ed25519(data: _, sig: { b256, b256 }, pub_key: b256) -> bool
 ```
 
 **Description:** Validate an Ed25519 signature against a public key.

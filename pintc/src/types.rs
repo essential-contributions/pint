@@ -698,6 +698,13 @@ pub fn b256() -> Type {
     }
 }
 
+pub fn string() -> Type {
+    Type::Primitive {
+        kind: PrimitiveKind::String,
+        span: empty_span(),
+    }
+}
+
 pub fn tuple(fields: Vec<Type>) -> Type {
     Type::Tuple {
         fields: fields.into_iter().map(|ty| (None, ty)).collect::<Vec<_>>(),

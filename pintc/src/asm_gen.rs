@@ -1,6 +1,6 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{Expr, Immediate, InternalIntrinsic, IntrinsicKind},
+    expr::{Expr, ExternalIntrinsic, Immediate, IntrinsicKind},
     predicate::{ConstraintDecl, Contract, Predicate},
     span::empty_span,
 };
@@ -48,21 +48,21 @@ pub fn compile_contract(
     }
 
     for (pred_key, pred) in contract.preds.iter() {
-        // If this predicate references another predicate (via a `SiblingPredicateAddress`
-        // intrinsic), then create a dependency edge from the other pedicate to this one.
+        // If this predicate references another predicate (via a `AddressOf` intrinsic), then
+        // create a dependency edge from the other pedicate to this one.
         for expr in contract.exprs(pred_key) {
             if let Some(Expr::IntrinsicCall {
-                kind: (IntrinsicKind::Internal(InternalIntrinsic::SiblingPredicateAddress), _),
+                kind: (IntrinsicKind::External(ExternalIntrinsic::AddressOf), _),
                 args,
                 ..
             }) = expr.try_get(contract)
             {
                 if let Some(Expr::Immediate {
-                    value: Immediate::String(s),
+                    value: Immediate::String(name),
                     ..
                 }) = args.first().and_then(|name| name.try_get(contract))
                 {
-                    let from = names_to_indices[s];
+                    let from = names_to_indices[name];
                     let to = names_to_indices[&pred.name];
                     dep_graph.add_edge(from, to, ());
                 }

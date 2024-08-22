@@ -209,8 +209,8 @@ predicate Bar {
 //     constraint (__transient({6, 0}, 2, __::BarI_pathway)[0][0] == {10, 11});
 //     constraint (__transient({6, 0}, 2, __::BarI_pathway)[1] == [{16, 17}, {18, 19}, {110, 111}]);
 //     constraint __eq_set(__mut_keys(), {0});
-//     constraint (__predicate_at(__::FooI_pathway) == {__this_contract_address(), __sibling_predicate_address("::Foo")});
-//     constraint (__predicate_at(__::BarI_pathway) == {__this_contract_address(), __sibling_predicate_address("::Bar")});
+//     constraint (__predicate_at(__::FooI_pathway) == {__this_contract_address(), __address_of("::Foo")});
+//     constraint (__predicate_at(__::BarI_pathway) == {__this_contract_address(), __address_of("::Bar")});
 // }
 // 
 // predicate ::Foo {

@@ -11,11 +11,32 @@ storage {
     w: b256,
 }
 
-predicate First { }
+predicate First { 
+    constraint false;
+}
 
-predicate Bar { }
+predicate Bar { 
+    constraint true;
+}
 
 predicate Foo {
+    // These addresses can be verified by compiling this contract using the `pint` CLI tool which
+    // produces the address of every predicate.
+    constraint __address_of("::First") ==
+        0x4421B7CBBD660DFFA8C354D44AF5E1AC8AEDED0369B529C77CC4CF89674A976D;
+    constraint __address_of("::Bar") ==
+        0x0E11D7F24657555E3D25E78E927C76D5B328F02D5F1E64F985F5F6CD319CB643;
+
+    constraint __predicate_at(1) == {
+        0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE,
+        0x1111111111111111111111111111111111111111111111111111111111111111,
+    };
+
+    constraint __predicate_at(2) == {
+        0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF,
+        0x2222222222222222222222222222222222222222222222222222222222222222,
+    };
+
     var this_pathway: int = __this_pathway();
     constraint this_pathway == 0;
 

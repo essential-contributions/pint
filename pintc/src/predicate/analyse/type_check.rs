@@ -4,7 +4,9 @@ use super::{
 };
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
-    expr::{BinaryOp, GeneratorKind, Immediate, IntrinsicKind, TupleAccess, UnaryOp},
+    expr::{
+        BinaryOp, ExternalIntrinsic, GeneratorKind, Immediate, IntrinsicKind, TupleAccess, UnaryOp,
+    },
     predicate::{PredKey, State, StorageVar},
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
@@ -976,7 +978,7 @@ impl Contract {
             Expr::MacroCall { .. } => Ok(Inference::Ignored),
 
             Expr::IntrinsicCall { kind, args, span } => {
-                self.infer_intrinsic_call_expr(handler, kind, args, span)
+                self.infer_intrinsic_call_expr(handler, pred, kind, args, span)
             }
 
             Expr::Select {
@@ -1747,6 +1749,7 @@ impl Contract {
     pub(super) fn infer_intrinsic_call_expr(
         &self,
         handler: &Handler,
+        pred: Option<&Predicate>,
         (kind, name_span): &(IntrinsicKind, Span),
         args: &[ExprKey],
         span: &Span,
@@ -1784,6 +1787,40 @@ impl Contract {
                         span: span.clone(),
                     },
                 });
+            }
+
+            // Some intrinsic needs additional semantic checks
+            if let IntrinsicKind::External(ExternalIntrinsic::AddressOf) = kind {
+                if let Some(arg) = args.first() {
+                    if let Some(Expr::Immediate {
+                        value: Immediate::String(name),
+                        ..
+                    }) = arg.try_get(self)
+                    {
+                        // Ensure that we're not referring to the same predicate that the intrinsic
+                        // is used in
+                        if let Some(pred) = pred {
+                            if pred.name == *name {
+                                handler.emit_err(Error::Compile {
+                                    error: CompileError::AddressOfSelf {
+                                        name: name.to_string(),
+                                        span: arg.get(self).span().clone(),
+                                    },
+                                });
+                            }
+                        }
+
+                        // Ensure that the intrinsic refers to a predicate in the same contract
+                        if self.preds.iter().all(|(_, pred)| pred.name != *name) {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::PredicateNameNotFound {
+                                    name: name.to_string(),
+                                    span: arg.get(self).span().clone(),
+                                },
+                            });
+                        }
+                    }
+                }
             }
 
             Ok(Inference::Type(kind.ty()))
