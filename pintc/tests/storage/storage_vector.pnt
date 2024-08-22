@@ -33,6 +33,11 @@ predicate Foo {
     constraint u0_1 == 0;
     constraint u0_0' == 1;
     constraint u0_1' == 1;
+
+    constraint u1_1 == (1 == 1);
+    constraint u2_2 == 0x0000000000000000000000000000000000000000000000000000000000000000;
+    constraint v1_1 == (1 == 1);
+    constraint v2_2 == 0x0000000000000000000000000000000000000000000000000000000000000000;
 }
 
 // parsed <<<
@@ -67,6 +72,10 @@ predicate Foo {
 //     constraint (::u0_1 == 0);
 //     constraint (::u0_0' == 1);
 //     constraint (::u0_1' == 1);
+//     constraint (::u1_1 == (1 == 1));
+//     constraint (::u2_2 == 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::v1_1 == (1 == 1));
+//     constraint (::v2_2 == 0x0000000000000000000000000000000000000000000000000000000000000000);
 // }
 // >>>
 
@@ -95,6 +104,8 @@ predicate Foo {
 //     state ::u1_1: bool = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {1, 1});
 //     state ::u2_2: b256 = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {2, 2});
 //     state __v0_len: int = __storage_get({0});
+//     state __v1_len: int = __storage_get({1});
+//     state __v2_len: int = __storage_get({2});
 //     constraint (::v0_0 == 0);
 //     constraint (::v0_1 == 0);
 //     constraint (::v0_0' == 1);
@@ -103,8 +114,14 @@ predicate Foo {
 //     constraint (::u0_1 == 0);
 //     constraint (::u0_0' == 1);
 //     constraint (::u0_1' == 1);
-//     constraint (1 < __v0_len);
+//     constraint (::u1_1 == (1 == 1));
+//     constraint (::u2_2 == 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::v1_1 == (1 == 1));
+//     constraint (::v2_2 == 0x0000000000000000000000000000000000000000000000000000000000000000);
 //     constraint (0 < __v0_len);
+//     constraint (1 < __v1_len);
+//     constraint (2 < __v2_len);
+//     constraint (1 < __v0_len);
 //     constraint (1 < __v0_len');
 //     constraint (0 < __v0_len');
 //     constraint __eq_set(__mut_keys(), {0});

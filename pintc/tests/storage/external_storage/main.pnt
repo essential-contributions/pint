@@ -38,6 +38,19 @@ predicate Foo {
     state external_x_2 = ERC20_2_instance::storage::x;
     state external_y_2 = ERC20_2_instance::storage::y;
     state external_map_2 = ERC20_2_instance::storage::map[3][4];
+
+    constraint internal_x == 0;
+    constraint internal_y == (1 == 1);
+    constraint internal_map == 0x0000000000000000000000000000000000000000000000000000000000000000;
+    constraint external_x_0 == 0;
+    constraint external_y_0 == (1 == 1);
+    constraint external_map_0 == 0x0000000000000000000000000000000000000000000000000000000000000000;
+    constraint external_x_1 == 0;
+    constraint external_y_1 == (1 == 1);
+    constraint external_map_1 == 0x0000000000000000000000000000000000000000000000000000000000000000;
+    constraint external_x_2 == 0;
+    constraint external_y_2 == (1 == 1);
+    constraint external_map_2 == 0x0000000000000000000000000000000000000000000000000000000000000000;
 }
 
 predicate Bar {
@@ -63,6 +76,19 @@ predicate Bar {
     state external_x_2 = ERC20_2_instance::storage::x;
     state external_y_2 = ERC20_2_instance::storage::y;
     state external_map_2 = ERC20_2_instance::storage::map[3][4];
+
+    constraint internal_x == 0;
+    constraint internal_y == (1 == 1);
+    constraint internal_map == 0x0000000000000000000000000000000000000000000000000000000000000000;
+    constraint external_x_0 == 0;
+    constraint external_y_0 == (1 == 1);
+    constraint external_map_0 == 0x0000000000000000000000000000000000000000000000000000000000000000;
+    constraint external_x_1 == 0;
+    constraint external_y_1 == (1 == 1);
+    constraint external_map_1 == 0x0000000000000000000000000000000000000000000000000000000000000000;
+    constraint external_x_2 == 0;
+    constraint external_y_2 == (1 == 1);
+    constraint external_map_2 == 0x0000000000000000000000000000000000000000000000000000000000000000;
 }
 
 // parsed <<<
@@ -109,6 +135,18 @@ predicate Bar {
 //     state ::external_x_2 = ::ERC20_2_instance::storage::x;
 //     state ::external_y_2 = ::ERC20_2_instance::storage::y;
 //     state ::external_map_2 = ::ERC20_2_instance::storage::map[3][4];
+//     constraint (::internal_x == 0);
+//     constraint (::internal_y == (1 == 1));
+//     constraint (::internal_map == 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::external_x_0 == 0);
+//     constraint (::external_y_0 == (1 == 1));
+//     constraint (::external_map_0 == 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::external_x_1 == 0);
+//     constraint (::external_y_1 == (1 == 1));
+//     constraint (::external_map_1 == 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::external_x_2 == 0);
+//     constraint (::external_y_2 == (1 == 1));
+//     constraint (::external_map_2 == 0x0000000000000000000000000000000000000000000000000000000000000000);
 // }
 //
 // predicate ::Bar {
@@ -127,6 +165,18 @@ predicate Bar {
 //     state ::external_x_2 = ::ERC20_2_instance::storage::x;
 //     state ::external_y_2 = ::ERC20_2_instance::storage::y;
 //     state ::external_map_2 = ::ERC20_2_instance::storage::map[3][4];
+//     constraint (::internal_x == 0);
+//     constraint (::internal_y == (1 == 1));
+//     constraint (::internal_map == 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::external_x_0 == 0);
+//     constraint (::external_y_0 == (1 == 1));
+//     constraint (::external_map_0 == 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::external_x_1 == 0);
+//     constraint (::external_y_1 == (1 == 1));
+//     constraint (::external_map_1 == 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::external_x_2 == 0);
+//     constraint (::external_y_2 == (1 == 1));
+//     constraint (::external_map_2 == 0x0000000000000000000000000000000000000000000000000000000000000000);
 // }
 // >>>
 
@@ -174,6 +224,18 @@ predicate Bar {
 //     state ::external_x_2: int = __storage_get_extern(0x2222222222222222222222222222222222222222222222222222222222222222, {0});
 //     state ::external_y_2: bool = __storage_get_extern(0x2222222222222222222222222222222222222222222222222222222222222222, {1});
 //     state ::external_map_2: b256 = __storage_get_extern(0x2222222222222222222222222222222222222222222222222222222222222222, {2, 3, 4});
+//     constraint (::internal_x == 0);
+//     constraint (::internal_y == (1 == 1));
+//     constraint (::internal_map == 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::external_x_0 == 0);
+//     constraint (::external_y_0 == (1 == 1));
+//     constraint (::external_map_0 == 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::external_x_1 == 0);
+//     constraint (::external_y_1 == (1 == 1));
+//     constraint (::external_map_1 == 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::external_x_2 == 0);
+//     constraint (::external_y_2 == (1 == 1));
+//     constraint (::external_map_2 == 0x0000000000000000000000000000000000000000000000000000000000000000);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 //
@@ -193,6 +255,18 @@ predicate Bar {
 //     state ::external_x_2: int = __storage_get_extern(0x2222222222222222222222222222222222222222222222222222222222222222, {0});
 //     state ::external_y_2: bool = __storage_get_extern(0x2222222222222222222222222222222222222222222222222222222222222222, {1});
 //     state ::external_map_2: b256 = __storage_get_extern(0x2222222222222222222222222222222222222222222222222222222222222222, {2, 3, 4});
+//     constraint (::internal_x == 0);
+//     constraint (::internal_y == (1 == 1));
+//     constraint (::internal_map == 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::external_x_0 == 0);
+//     constraint (::external_y_0 == (1 == 1));
+//     constraint (::external_map_0 == 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::external_x_1 == 0);
+//     constraint (::external_y_1 == (1 == 1));
+//     constraint (::external_map_1 == 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint (::external_x_2 == 0);
+//     constraint (::external_y_2 == (1 == 1));
+//     constraint (::external_map_2 == 0x0000000000000000000000000000000000000000000000000000000000000000);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

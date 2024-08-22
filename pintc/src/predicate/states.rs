@@ -50,10 +50,11 @@ impl States {
         key
     }
 
-    /// Removes a state variable and its type given an `StateKey`
+    /// Removes a state variable and its type given a `StateKey`
     pub fn remove(&mut self, key: StateKey) {
         self.states.remove(key);
         self.state_types.remove(key);
+        self.order.retain(|el| *el != key);
     }
 
     /// Apply function `f` on every state
