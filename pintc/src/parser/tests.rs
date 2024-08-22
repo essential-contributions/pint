@@ -1070,13 +1070,16 @@ fn storage_access() {
     );
 
     check(
-        &run_parser!(expr, r#"mut storage::balances[0x111][__foo()][t[3].5].2"#),
-        expect_test::expect!["mut storage::balances[273][__foo()][::t[3].5].2"],
+        &run_parser!(
+            expr,
+            r#"mut storage::balances[0x111][__this_address()][t[3].5].2"#
+        ),
+        expect_test::expect!["mut storage::balances[273][__this_address()][::t[3].5].2"],
     );
 
     check(
-        &run_parser!(expr, r#"__foo()"#),
-        expect_test::expect!["__foo()"],
+        &run_parser!(expr, r#"__this_address()"#),
+        expect_test::expect!["__this_address()"],
     );
 
     let pint = (yp::PintParser::new(), "");
@@ -1121,8 +1124,11 @@ fn external_storage_access() {
     );
 
     check(
-        &run_parser!(expr, r#"::Foo::storage::balances[0x111][__foo()][t[3].5]"#),
-        expect_test::expect!["::Foo::storage::balances[273][__foo()][::t[3].5]"],
+        &run_parser!(
+            expr,
+            r#"::Foo::storage::balances[0x111][__this_address()][t[3].5]"#
+        ),
+        expect_test::expect!["::Foo::storage::balances[273][__this_address()][::t[3].5]"],
     );
 
     let pint = (yp::PintParser::new(), "");
@@ -1422,19 +1428,19 @@ fn state_decls() {
     let pint = (yp::PintParser::new(), "");
 
     check(
-        &run_parser!(pint, "predicate test { state x: int = __foo(); }"),
+        &run_parser!(pint, "predicate test { state x: int = __this_address(); }"),
         expect_test::expect![[r#"
 
             predicate ::test {
-                state ::x: int = __foo();
+                state ::x: int = __this_address();
             }"#]],
     );
     check(
-        &run_parser!(pint, "predicate test { state y = __bar(); }"),
+        &run_parser!(pint, "predicate test { state y = __vec_len(); }"),
         expect_test::expect![[r#"
 
             predicate ::test {
-                state ::y = __bar();
+                state ::y = __vec_len();
             }"#]],
     );
 }
@@ -1550,7 +1556,7 @@ fn if_decls() {
             pint,
             r#"predicate test {
                 if true { if false { constraint x; } else { constraint y; } }
-                else { if __foo() { if boo && y { constraint true; constraint false; } } }
+                else { if __this_address() { if boo && y { constraint true; constraint false; } } }
             }"#
         ),
         expect_test::expect![[r#"
@@ -1563,7 +1569,7 @@ fn if_decls() {
                         constraint ::y
                     }
                 } else {
-                    if __foo() {
+                    if __this_address() {
                         if (::boo && ::y) {
                             constraint true
                             constraint false
@@ -2038,10 +2044,10 @@ fn idents() {
     );
     check(&run_parser!(ident, "_"), expect_test::expect!["_"]);
     check(
-        &run_parser!(ident, "__FOO"),
+        &run_parser!(ident, "__this_address"),
         expect_test::expect![[r#"
-            expected `an identifier`, found `__FOO`
-            @12..17: expected `an identifier`
+            expected `an identifier`, found `__this_address`
+            @12..26: expected `an identifier`
         "#]],
     );
     check(
@@ -2067,8 +2073,8 @@ fn intrinsic_name() {
     let intrinsic_name = (yp::TestDelegateParser::new(), "intrinsic");
 
     check(
-        &run_parser!(intrinsic_name, "__foobar"),
-        expect_test::expect!["__foobar"],
+        &run_parser!(intrinsic_name, "__this_addressbar"),
+        expect_test::expect!["__this_addressbar"],
     );
 
     check(
@@ -2252,10 +2258,10 @@ fn select_exprs() {
     check(
         &run_parser!(
             expr,
-            "c ? x ? { 1, 1 }.0 : a in b as int : a[5] ? b && 5 : __foo()"
+            "c ? x ? { 1, 1 }.0 : a in b as int : a[5] ? b && 5 : __this_address()"
         ),
         expect_test::expect![
-            "(::c ? (::x ? {1, 1}.0 : ::a in ::b as int) : (::a[5] ? (::b && 5) : __foo()))"
+            "(::c ? (::x ? {1, 1}.0 : ::a in ::b as int) : (::a[5] ? (::b && 5) : __this_address()))"
         ],
     );
 }
@@ -2280,8 +2286,8 @@ fn array_type() {
     );
 
     check(
-        &run_parser!(type_, r#"string[__foo()][ 7 ][true ?  1 : 2]"#),
-        expect_test::expect!["string[(true ? 1 : 2)][7][__foo()]"],
+        &run_parser!(type_, r#"string[__this_address()][ 7 ][true ?  1 : 2]"#),
+        expect_test::expect!["string[(true ? 1 : 2)][7][__this_address()]"],
     );
 
     check(
@@ -2337,8 +2343,8 @@ fn array_expressions() {
     );
 
     check(
-        &run_parser!(expr, r#"[[__foo(), 2], [ true ? 1 : 2, t.0]]"#),
-        expect_test::expect!["[[__foo(), 2], [(true ? 1 : 2), ::t.0]]"],
+        &run_parser!(expr, r#"[[__this_address(), 2], [ true ? 1 : 2, t.0]]"#),
+        expect_test::expect!["[[__this_address(), 2], [(true ? 1 : 2), ::t.0]]"],
     );
 }
 
@@ -2357,13 +2363,13 @@ fn array_element_accesses() {
     );
 
     check(
-        &run_parser!(expr, r#"{ a, b }[N][__foo()][M][4]"#),
-        expect_test::expect!["{::a, ::b}[::N][__foo()][::M][4]"],
+        &run_parser!(expr, r#"{ a, b }[N][__this_address()][M][4]"#),
+        expect_test::expect!["{::a, ::b}[::N][__this_address()][::M][4]"],
     );
 
     check(
-        &run_parser!(expr, r#"__foo()[ M ][true ? 1 : 3]"#),
-        expect_test::expect!["__foo()[::M][(true ? 1 : 3)]"],
+        &run_parser!(expr, r#"__this_address()[ M ][true ? 1 : 3]"#),
+        expect_test::expect!["__this_address()[::M][(true ? 1 : 3)]"],
     );
 
     check(
@@ -2425,13 +2431,13 @@ fn tuple_expressions() {
     );
 
     check(
-        &run_parser!(expr, r#"{ 42, c ?  2 : 3, __foo() }"#),
-        expect_test::expect!["{42, (::c ? 2 : 3), __foo()}"],
+        &run_parser!(expr, r#"{ 42, c ?  2 : 3, __this_address() }"#),
+        expect_test::expect!["{42, (::c ? 2 : 3), __this_address()}"],
     );
 
     check(
-        &run_parser!(expr, r#"{ x:  42 , y: c ?  2 : 3, z: __foo() }"#),
-        expect_test::expect!["{x: 42, y: (::c ? 2 : 3), z: __foo()}"],
+        &run_parser!(expr, r#"{ x:  42 , y: c ?  2 : 3, z: __this_address() }"#),
+        expect_test::expect!["{x: 42, y: (::c ? 2 : 3), z: __this_address()}"],
     );
 }
 
@@ -2480,13 +2486,13 @@ fn tuple_field_accesses() {
     );
 
     check(
-        &run_parser!(expr, r#"__foo().0.1"#),
-        expect_test::expect!["__foo().0.1"],
+        &run_parser!(expr, r#"__this_address().0.1"#),
+        expect_test::expect!["__this_address().0.1"],
     );
 
     check(
-        &run_parser!(expr, r#"__foo().a.b.0.1"#),
-        expect_test::expect!["__foo().a.b.0.1"],
+        &run_parser!(expr, r#"__this_address().a.b.0.1"#),
+        expect_test::expect!["__this_address().a.b.0.1"],
     );
 
     check(
@@ -2678,13 +2684,13 @@ fn casting() {
     check(
         &run_parser!(
             pint,
-            r#"predicate test { var x = __foo() as real as { int, real }; }"#
+            r#"predicate test { var x = __this_address() as real as { int, real }; }"#
         ),
         expect_test::expect![[r#"
 
             predicate ::test {
                 var ::x;
-                constraint (::x == __foo() as real as {int, real});
+                constraint (::x == __this_address() as real as {int, real});
             }"#]],
     );
 
@@ -2722,8 +2728,8 @@ fn in_expr() {
     );
 
     check(
-        &run_parser!(expr, r#"[1] in __foo() in [[1]]"#),
-        expect_test::expect!["[1] in __foo() in [[1]]"],
+        &run_parser!(expr, r#"[1] in __this_address() in [[1]]"#),
+        expect_test::expect!["[1] in __this_address() in [[1]]"],
     );
 
     check(
@@ -2912,8 +2918,8 @@ fn intrinsic_call() {
     let expr = (yp::TestDelegateParser::new(), "expr");
 
     check(
-        &run_parser!(expr, r#"__foo()"#),
-        expect_test::expect!["__foo()"],
+        &run_parser!(expr, r#"__this_address()"#),
+        expect_test::expect!["__this_address()"],
     );
 
     check(
@@ -2941,7 +2947,7 @@ fn intrinsic_call() {
     );
 
     check(
-        &run_parser!(expr, r#"foo(1, 2, { 3, x }.1, [y, __bar()])"#),
+        &run_parser!(expr, r#"foo(1, 2, { 3, x }.1, [y, __vec_len()])"#),
         expect_test::expect![[r#"
             expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`, found `(`
             @14..15: expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`
@@ -2960,8 +2966,11 @@ fn intrinsic_call() {
     );
 
     check(
-        &run_parser!((yp::TestDelegateParser::new(), "expr"), "__foo(-a, b+c)"),
-        expect_test::expect!["__foo(-::a, (::b + ::c))"],
+        &run_parser!(
+            (yp::TestDelegateParser::new(), "expr"),
+            "__this_address(-a, b+c)"
+        ),
+        expect_test::expect!["__this_address(-::a, (::b + ::c))"],
     );
 }
 

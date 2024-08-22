@@ -1,19 +1,17 @@
 predicate test {
     var n: int;
 
-    constraint __foo()[0] == 3;
+    constraint __this_address()[0] == 3;
 }
 
 // parsed <<<
 // predicate ::test {
 //     var ::n: int;
-//     constraint (__foo()[0] == 3);
+//     constraint (__this_address()[0] == 3);
 // }
 // >>>
 
 // typecheck_failure <<<
-// no intrinsic named `__foo` is found
-// @49..56: intrinsic not found
-// constraint expression type error
-// @49..64: expecting type `bool`
+// indexed expression invalid
+// @49..68: value must be an array or a storage map; found `b256`
 // >>>
