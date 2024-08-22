@@ -11,7 +11,7 @@ type E = string;
 predicate test {
     var E = 4;
 
-    state E = __foo();
+    state E = __vec_len();
 }
 
 // parse_failure <<<

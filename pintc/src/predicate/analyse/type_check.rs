@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
-    expr::{BinaryOp, GeneratorKind, Immediate, TupleAccess, UnaryOp},
+    expr::{BinaryOp, GeneratorKind, Immediate, IntrinsicKind, TupleAccess, UnaryOp},
     predicate::{PredKey, State, StorageVar},
     span::{empty_span, Span, Spanned},
     types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
@@ -77,7 +77,7 @@ impl Contract {
 
                 Type::Vector { ty, .. } => inspect_type_names(handler, new_types, seen_names, ty),
 
-                Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } => Ok(()),
+                Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => Ok(()),
             }
         }
 
@@ -116,7 +116,7 @@ impl Contract {
 
                 Type::Vector { ty, .. } => get_custom_type_mut_ref(custom_path, ty),
 
-                Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } => None,
+                Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => None,
             }
         }
 
@@ -206,7 +206,7 @@ impl Contract {
                     replace_custom_type(new_types, ty);
                 }
 
-                Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } => {}
+                Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => {}
             }
         }
 
@@ -767,7 +767,11 @@ impl Contract {
                     },
                 });
             }
-            Type::Primitive { .. } | Type::Custom { .. } | Type::Error(_) | Type::Unknown(_) => {}
+            Type::Primitive { .. }
+            | Type::Custom { .. }
+            | Type::Error(_)
+            | Type::Unknown(_)
+            | Type::Any(_) => {}
         }
     }
 
@@ -971,8 +975,8 @@ impl Contract {
 
             Expr::MacroCall { .. } => Ok(Inference::Ignored),
 
-            Expr::IntrinsicCall { name, args, span } => {
-                self.infer_intrinsic_call_expr(handler, pred, name, args, span)
+            Expr::IntrinsicCall { kind, args, span } => {
+                self.infer_intrinsic_call_expr(handler, kind, args, span)
             }
 
             Expr::Select {
@@ -1737,6 +1741,54 @@ impl Contract {
             }
         } else {
             Inference::Dependant(lhs_expr_key)
+        }
+    }
+
+    pub(super) fn infer_intrinsic_call_expr(
+        &self,
+        handler: &Handler,
+        (kind, name_span): &(IntrinsicKind, Span),
+        args: &[ExprKey],
+        span: &Span,
+    ) -> Result<Inference, ErrorEmitted> {
+        let mut deps = Vec::new();
+
+        args.iter()
+            .filter(|arg_key| arg_key.get_ty(self).is_unknown())
+            .for_each(|arg_key| deps.push(*arg_key));
+
+        if deps.is_empty() {
+            let expected_args = kind.args();
+            // Check the type of each argument. The type of arguments must match what
+            // `kind.args()` produces.
+            for (expected, arg) in expected_args.iter().zip(args.iter()) {
+                let found = arg.get_ty(self);
+                if !expected.eq(&self.new_types, found) {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::MismatchedIntrinsicArgType {
+                            expected: format!("{}", self.with_ctrct(expected)),
+                            found: format!("{}", self.with_ctrct(found)),
+                            intrinsic_span: name_span.clone(),
+                            arg_span: arg.get(self).span().clone(),
+                        },
+                    });
+                }
+            }
+
+            // Also, ensure that the number of arguments is correct
+            if args.len() != expected_args.len() {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::UnexpectedIntrinsicArgCount {
+                        expected: kind.args().len(),
+                        found: args.len(),
+                        span: span.clone(),
+                    },
+                });
+            }
+
+            Ok(Inference::Type(kind.ty()))
+        } else {
+            Ok(Inference::Dependencies(deps))
         }
     }
 

@@ -214,12 +214,12 @@ PredicateInstance: () = {
             (l, l1, r1, r),
         );
     },
-    <l:@L> "predicate" <name:Ident> "=" 
+    <l:@L> "predicate" <name:Ident> "="
         <l1:@L> /* no els here */ <r1:@R> <predicate:Ident> "(" ")" <r:@R> => {
         context.parse_predicate_instance(
             handler,
             name,
-            false, // not absolute
+            false,  // not absolute
             vec![], // no path needed for an interface instance
             predicate,
             None, // no address here
@@ -760,12 +760,14 @@ TermInner: Expr = {
     },
     <GeneratorExpr>,
     <l:@L> <call:IntrinsicCallExpr> <r:@R> => {
-        if let Expr::IntrinsicCall { ref name, .. } = call {
-            if name.name == "__vec_len" {
-                handler.emit_err(Error::Parse {
-                    error: ParseError::BadStorageIntrinsic((context.span_from)(l, r)),
-                });
-            }
+        if let Expr::IntrinsicCall {
+            kind: (IntrinsicKind::External(ExternalIntrinsic::VecLen), _),
+            ..
+        } = call
+        {
+            handler.emit_err(Error::Parse {
+                error: ParseError::BadStorageIntrinsic((context.span_from)(l, r)),
+            });
         }
         call
     },
@@ -893,12 +895,8 @@ IntrinsicArg: ExprKey = {
 }
 
 IntrinsicCallExpr: Expr = {
-    <l:@L> <ident:IntrinsicName> "(" <args:SepList<IntrinsicArg, ",">> ")" <r:@R> => {
-        Expr::IntrinsicCall {
-            name: ident,
-            args,
-            span: (context.span_from)(l, r),
-        }
+    <l:@L> <name:IntrinsicName> "(" <args:SepList<IntrinsicArg, ",">> ")" <r:@R> => {
+        context.parse_intrinsic_call(handler, name, args, (l, r))
     },
 };
 
