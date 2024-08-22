@@ -1,3 +1,5 @@
+use fxhash::FxHashSet;
+
 use crate::{
     expr::Expr,
     predicate::{Contract, StateKey},
@@ -11,10 +13,10 @@ pub(crate) fn dead_code_elimination(contract: &mut Contract) {
 /// Remove all unused States in their respective predicates.
 pub(crate) fn dead_state_elimination(contract: &mut Contract) {
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
-        let mut live_paths: Vec<String> = Vec::new();
+        let mut live_paths: FxHashSet<String> = FxHashSet::default();
         for expr in contract.exprs(pred_key) {
             if let Expr::Path(name, _) = expr.get(contract) {
-                live_paths.push(name.to_string());
+                live_paths.insert(name.to_string());
             }
         }
 
@@ -23,10 +25,10 @@ pub(crate) fn dead_state_elimination(contract: &mut Contract) {
             .get(pred_key)
             .expect("pred guaranteed to exist")
             .states();
-        let mut dead_state_decls: Vec<StateKey> = Vec::new();
-        for state in pred_states {
-            if !live_paths.contains(&state.1.name) {
-                dead_state_decls.push(state.0);
+        let mut dead_state_decls: FxHashSet<StateKey> = FxHashSet::default();
+        for (state_key, state) in pred_states {
+            if !live_paths.contains(&state.name) {
+                dead_state_decls.insert(state_key);
             }
         }
 
