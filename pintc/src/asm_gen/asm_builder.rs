@@ -8,11 +8,11 @@ use crate::{
     span::empty_span,
     types::Type,
 };
-use essential_types::ContentAddress;
+use essential_types::{predicate::Predicate as CompiledPredicate, ContentAddress};
 use state_asm::{
     Access, Alu, Constraint, Crypto, Op as StateRead, Pred, Stack, StateSlots, TotalControlFlow,
 };
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 /// This object keeps track of the various assembly blocks that are being generated throughout
 /// assembly generation. It also keeps track of predicate addresses as they become available. Those
@@ -23,7 +23,7 @@ pub struct AsmBuilder<'a> {
     // Opcodes to specify constraints
     pub c_asm: Vec<Vec<Constraint>>,
     // A reference to a list of the predicate addresses which are known so far
-    pub predicate_addresses: &'a BTreeMap<String, ContentAddress>,
+    pub compiled_predicates: &'a HashMap<String, (CompiledPredicate, ContentAddress)>,
 }
 
 /// "Location" of an expression:
@@ -615,10 +615,11 @@ impl AsmBuilder<'_> {
                 }) = args[0].try_get(contract)
                 {
                     // Push the sibling predicate address on the stack, one word at a time.
-                    let predicate_address = self
-                        .predicate_addresses
+                    let predicate_address = &self
+                        .compiled_predicates
                         .get(s)
-                        .expect("predicate address should exist!");
+                        .expect("predicate address should exist!")
+                        .1;
 
                     for word in essential_types::convert::word_4_from_u8_32(predicate_address.0) {
                         c_asm.push(Constraint::Stack(Stack::Push(word)));

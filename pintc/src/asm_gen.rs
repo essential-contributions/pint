@@ -10,7 +10,7 @@ use essential_types::{
     ContentAddress,
 };
 use petgraph::{graph::NodeIndex, Graph};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 mod asm_builder;
 mod display;
@@ -29,25 +29,22 @@ pub fn compile_contract(
     handler: &Handler,
     contract: &Contract,
 ) -> Result<CompiledContract, ErrorEmitted> {
-    let mut predicate_names = Vec::new();
-    let mut compiled_predicates = Vec::new();
-
     // This is a dependnecy graph between predicates. Predicates may depend on other predicates via
     // predicate instances that reference other predicates in the same contract
     let mut dep_graph = Graph::<String, ()>::new();
 
     // This map keeps track of what node indices (in the dependency graph) are assigned to what
     // predicates (identified by names)
-    let mut dep_graph_indices = HashMap::<String, NodeIndex>::new();
+    let mut names_to_indices = HashMap::<String, NodeIndex>::new();
 
     // This is a map between node indices in the dependency graph and references to the
     // corresponding predicates.
-    let mut predicates = HashMap::<NodeIndex, &Predicate>::new();
+    let mut indices_to_predicates = HashMap::<NodeIndex, &Predicate>::new();
 
     for (_, pred) in contract.preds.iter() {
         let new_node = dep_graph.add_node(pred.name.clone());
-        dep_graph_indices.insert(pred.name.clone(), new_node);
-        predicates.insert(new_node, pred);
+        names_to_indices.insert(pred.name.clone(), new_node);
+        indices_to_predicates.insert(new_node, pred);
     }
 
     for (pred_key, pred) in contract.preds.iter() {
@@ -65,8 +62,8 @@ pub fn compile_contract(
                     ..
                 }) = args.first().and_then(|name| name.try_get(contract))
                 {
-                    let from = dep_graph_indices[s];
-                    let to = dep_graph_indices[&pred.name];
+                    let from = names_to_indices[s];
+                    let to = names_to_indices[&pred.name];
                     dep_graph.add_edge(from, to, ());
                 }
             }
@@ -75,7 +72,7 @@ pub fn compile_contract(
 
     // Predicates should be sorted topologically based on the dependency graph. That way, predicate
     // addresses that are required by other predicates are known in time.
-    let Ok(sorted_predicates) = petgraph::algo::toposort(&dep_graph, None) else {
+    let Ok(sorted_nodes) = petgraph::algo::toposort(&dep_graph, None) else {
         return Err(handler.emit_err(Error::Compile {
             error: CompileError::Internal {
                 msg: "dependency cycles between predicates should have been caught before",
@@ -84,31 +81,55 @@ pub fn compile_contract(
         }));
     };
 
+    // This map keeps track of the compiled predicates and their addresses. We will use this later
+    // when producing the final compiled contract. It is also useful when compiling predicates that
+    // require the addresses of other predicates.
+    let mut compiled_predicates: HashMap<String, (CompiledPredicate, ContentAddress)> =
+        HashMap::new();
+
     // Now compile all predicates in topological order
-    let mut predicate_addresses: BTreeMap<String, ContentAddress> = Default::default();
-    for idx in &sorted_predicates {
-        let predicate = predicates[idx];
+    for idx in &sorted_nodes {
+        let predicate = indices_to_predicates[idx];
 
         if let Ok(compiled_predicate) = handler
-            .scope(|handler| compile_predicate(handler, contract, &predicate_addresses, predicate))
+            .scope(|handler| compile_predicate(handler, contract, &compiled_predicates, predicate))
         {
-            predicate_names.push(predicate.name.clone());
-            predicate_addresses.insert(
+            let compiled_predicate_address = essential_hash::content_addr(&compiled_predicate);
+            compiled_predicates.insert(
                 predicate.name.clone(),
-                essential_hash::content_addr(&compiled_predicate),
+                (compiled_predicate, compiled_predicate_address),
             );
-            compiled_predicates.push(compiled_predicate);
         }
     }
+
+    // Now, produce the two vectors needed for `CompiledContract`: A vector of all the predicate
+    // names and a vector of all the compiled predicates. Note that the order here must match the
+    // original order in `contract.preds`.
+    let (names, predicates) = contract
+        .preds
+        .iter()
+        .map(|(_, pred)| {
+            compiled_predicates
+                .remove(&pred.name)
+                .map(|(compiled_predicate, _)| (pred.name.clone(), compiled_predicate))
+                .ok_or_else(|| {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "predicate must exist in the compiled_predicates map",
+                            span: empty_span(),
+                        },
+                    })
+                })
+        })
+        .collect::<Result<_, _>>()?;
 
     if handler.has_errors() {
         Err(handler.cancel())
     } else {
         Ok(CompiledContract {
-            names: predicate_names,
-            // Salt is not used by pint yet.
-            salt: Default::default(),
-            predicates: compiled_predicates,
+            names,
+            salt: Default::default(), // Salt is not used by pint yet.
+            predicates,
         })
     }
 }
@@ -118,13 +139,13 @@ pub fn compile_contract(
 pub fn compile_predicate(
     handler: &Handler,
     contract: &Contract,
-    predicate_addresses: &BTreeMap<String, ContentAddress>,
+    compiled_predicates: &HashMap<String, (CompiledPredicate, ContentAddress)>,
     pred: &Predicate,
 ) -> Result<CompiledPredicate, ErrorEmitted> {
     let mut builder = AsmBuilder {
         s_asm: Vec::new(),
         c_asm: Vec::new(),
-        predicate_addresses,
+        compiled_predicates,
     };
 
     // Compile all state declarations into state programs
