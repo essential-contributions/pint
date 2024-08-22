@@ -505,7 +505,7 @@ pub(crate) fn enforce_pathway_addresses_in_predicate(
             let sibling_predicate_address_intrinsic = contract.exprs.insert(
                 Expr::IntrinsicCall {
                     kind: (
-                        IntrinsicKind::Internal(InternalIntrinsic::SiblingPredicateAddress),
+                        IntrinsicKind::External(ExternalIntrinsic::SiblingPredicateAddress),
                         empty_span(),
                     ),
                     args: vec![sibling_predicate_name],

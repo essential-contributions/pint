@@ -681,6 +681,9 @@ impl<'a> ParserContext<'a> {
                         IntrinsicKind::External(ExternalIntrinsic::RecoverSECP256k1)
                     }
                     "__sha256" => IntrinsicKind::External(ExternalIntrinsic::Sha256),
+                    "__sibling_predicate_address" => {
+                        IntrinsicKind::External(ExternalIntrinsic::SiblingPredicateAddress)
+                    }
                     "__state_len" => IntrinsicKind::External(ExternalIntrinsic::StateLen),
                     "__this_address" => IntrinsicKind::External(ExternalIntrinsic::ThisAddress),
                     "__this_contract_address" => {

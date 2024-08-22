@@ -1,4 +1,4 @@
-use crate::types::{any, b256, int, r#bool, tuple, unknown, vector, Type};
+use crate::types::{any, b256, int, r#bool, string, tuple, unknown, vector, Type};
 use std::fmt::{Display, Formatter, Result};
 
 ///////////////////
@@ -30,6 +30,7 @@ impl IntrinsicKind {
                 PredicateAt => tuple(vec![b256(), b256()]),
                 RecoverSECP256k1 => tuple(vec![b256(), int()]),
                 Sha256 => b256(),
+                SiblingPredicateAddress => b256(),
                 StateLen => int(),
                 ThisAddress => b256(),
                 ThisContractAddress => b256(),
@@ -64,6 +65,7 @@ pub enum ExternalIntrinsic {
     PredicateAt,
     RecoverSECP256k1,
     Sha256,
+    SiblingPredicateAddress,
     StateLen,
     ThisAddress,
     ThisContractAddress,
@@ -78,6 +80,7 @@ impl Display for ExternalIntrinsic {
             Self::PredicateAt => write!(f, "__predicate_at"),
             Self::RecoverSECP256k1 => write!(f, "__recover_secp256k1"),
             Self::Sha256 => write!(f, "__sha256"),
+            Self::SiblingPredicateAddress => write!(f, "__sibling_predicate_address"),
             Self::StateLen => write!(f, "__state_len"),
             Self::ThisAddress => write!(f, "__this_address"),
             Self::ThisContractAddress => write!(f, "__this_contract_address"),
@@ -95,6 +98,7 @@ impl ExternalIntrinsic {
             Self::RecoverSECP256k1 => vec![b256(), tuple(vec![b256(), b256(), int()])],
             Self::Sha256 => vec![any()],
             Self::StateLen => vec![any()], // slightly problematic
+            Self::SiblingPredicateAddress => vec![string()], // slightly problematic
             Self::ThisAddress => vec![],
             Self::ThisContractAddress => vec![],
             Self::ThisPathway => vec![],
@@ -112,7 +116,6 @@ impl ExternalIntrinsic {
 pub enum InternalIntrinsic {
     EqSet,
     MutKeys,
-    SiblingPredicateAddress,
     StorageGet,
     StorageGetExtern,
     Transient,
@@ -123,7 +126,6 @@ impl Display for InternalIntrinsic {
         match self {
             Self::EqSet => write!(f, "__eq_set"),
             Self::MutKeys => write!(f, "__mut_keys"),
-            Self::SiblingPredicateAddress => write!(f, "__sibling_predicate_address"),
             Self::StorageGet => write!(f, "__storage_get"),
             Self::StorageGetExtern => write!(f, "__storage_get_extern"),
             Self::Transient => write!(f, "__transient"),

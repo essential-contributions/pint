@@ -1,6 +1,6 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{Expr, Immediate, InternalIntrinsic, IntrinsicKind},
+    expr::{Expr, ExternalIntrinsic, Immediate, IntrinsicKind},
     predicate::{ConstraintDecl, Contract, Predicate},
     span::empty_span,
 };
@@ -55,7 +55,7 @@ pub fn compile_contract(
         // intrinsic), then create a dependency edge from the other pedicate to this one.
         for expr in contract.exprs(pred_key) {
             if let Some(Expr::IntrinsicCall {
-                kind: (IntrinsicKind::Internal(InternalIntrinsic::SiblingPredicateAddress), _),
+                kind: (IntrinsicKind::External(ExternalIntrinsic::SiblingPredicateAddress), _),
                 args,
                 ..
             }) = expr.try_get(contract)

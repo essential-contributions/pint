@@ -4,6 +4,12 @@ predicate test {
     var this_contract_address: b256 = __this_contract_address();
 
     var this_pathway: int = __this_pathway();
+
+    var sibling_predicate_address: b256 = __sibling_predicate_address("::Foo");
+}
+
+predicate Foo {
+
 }
 
 // parsed <<<,
@@ -11,9 +17,14 @@ predicate test {
 //     var ::this_address: b256;
 //     var ::this_contract_address: b256;
 //     var ::this_pathway: int;
+//     var ::sibling_predicate_address: b256;
 //     constraint (::this_address == __this_address());
 //     constraint (::this_contract_address == __this_contract_address());
 //     constraint (::this_pathway == __this_pathway());
+//     constraint (::sibling_predicate_address == __sibling_predicate_address("::Foo"));
+// }
+// 
+// predicate ::Foo {
 // }
 // >>>
 
@@ -22,9 +33,15 @@ predicate test {
 //     var ::this_address: b256;
 //     var ::this_contract_address: b256;
 //     var ::this_pathway: int;
+//     var ::sibling_predicate_address: b256;
 //     constraint (::this_address == __this_address());
 //     constraint (::this_contract_address == __this_contract_address());
 //     constraint (::this_pathway == __this_pathway());
+//     constraint (::sibling_predicate_address == __sibling_predicate_address("::Foo"));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// 
+// predicate ::Foo {
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
