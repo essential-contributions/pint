@@ -73,6 +73,8 @@ pub enum ParseError {
     BadSplice(Span),
     #[error("intrinsic can only be used in a state initializer")]
     BadStorageIntrinsic(Span),
+    #[error("no intrinsic named `{name}` is found")]
+    MissingIntrinsic { name: String, span: Span },
 }
 
 impl ReportableError for ParseError {
@@ -265,6 +267,11 @@ impl ReportableError for ParseError {
                 span: span.clone(),
                 color: Color::Red,
             }],
+            MissingIntrinsic { span, .. } => vec![ErrorLabel {
+                message: "intrinsic not found".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
         }
     }
 
@@ -379,6 +386,7 @@ impl Spanned for ParseError {
             | PathTooShort { span, .. }
             | BadSplice(span)
             | BadStorageIntrinsic(span)
+            | MissingIntrinsic { span, .. }
             | Lex { span } => span,
 
             InvalidToken => unreachable!("The `InvalidToken` error is always wrapped in `Lex`."),

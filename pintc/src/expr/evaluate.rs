@@ -480,13 +480,13 @@ impl ExprKey {
 
                 Expr::BinaryOp { op, lhs, rhs, span }
             }
-            Expr::IntrinsicCall { name, args, span } => {
+            Expr::IntrinsicCall { kind, args, span } => {
                 let args = args
                     .iter()
                     .map(|arg| arg.plug_in(contract, values_map))
                     .collect::<Vec<_>>();
 
-                Expr::IntrinsicCall { name, args, span }
+                Expr::IntrinsicCall { kind, args, span }
             }
             Expr::Select {
                 condition,

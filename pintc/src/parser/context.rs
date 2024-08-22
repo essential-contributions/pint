@@ -1,6 +1,6 @@
 use crate::{
     error::{Error, Handler, ParseError},
-    expr::{BinaryOp, Expr, Immediate, TupleAccess},
+    expr::{BinaryOp, Expr, ExternalIntrinsic, Immediate, IntrinsicKind, TupleAccess},
     macros::{MacroCall, MacroDecl},
     parser::{Ident, NextModPath, UsePath, UseTree},
     predicate::{
@@ -656,6 +656,54 @@ impl<'a> ParserContext<'a> {
 
         handler.append(local_handler);
         self.use_paths.append(&mut new_use_paths);
+    }
+
+    /// Parses an intrinsic call expression.
+    ///
+    /// Given an `Ident` and a `Vec<ExprKey>` creates an `IntrinsicCall` expression with a kind
+    /// that depends on the `Ident` and with the `Vec<ExprKey>` as its list of arguments. This
+    /// function also takes two integers `l` and `r`:
+    /// - `l` is the source code location before the intrinsic call
+    /// - `r` is the source code location after the intrinsic call
+    pub fn parse_intrinsic_call(
+        &mut self,
+        handler: &Handler,
+        name: Ident,
+        args: Vec<ExprKey>,
+        (l, r): (usize, usize),
+    ) -> Expr {
+        let name_span = name.span.clone();
+        Expr::IntrinsicCall {
+            kind: (
+                match &name.name[..] {
+                    "__predicate_at" => IntrinsicKind::External(ExternalIntrinsic::PredicateAt),
+                    "__recover_secp256k1" => {
+                        IntrinsicKind::External(ExternalIntrinsic::RecoverSECP256k1)
+                    }
+                    "__sha256" => IntrinsicKind::External(ExternalIntrinsic::Sha256),
+                    "__state_len" => IntrinsicKind::External(ExternalIntrinsic::StateLen),
+                    "__this_address" => IntrinsicKind::External(ExternalIntrinsic::ThisAddress),
+                    "__this_contract_address" => {
+                        IntrinsicKind::External(ExternalIntrinsic::ThisContractAddress)
+                    }
+                    "__this_pathway" => IntrinsicKind::External(ExternalIntrinsic::ThisPathway),
+                    "__vec_len" => IntrinsicKind::External(ExternalIntrinsic::VecLen),
+                    "__verify_ed25519" => IntrinsicKind::External(ExternalIntrinsic::VerifyEd25519),
+                    _ => {
+                        handler.emit_err(Error::Parse {
+                            error: ParseError::MissingIntrinsic {
+                                name: name.name,
+                                span: name.span,
+                            },
+                        });
+                        IntrinsicKind::Error
+                    }
+                },
+                name_span,
+            ),
+            args,
+            span: (self.span_from)(l, r),
+        }
     }
 
     /// Parses a tuple access expression with an identifier.

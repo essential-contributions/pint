@@ -1,6 +1,6 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{BinaryOp, Expr, Ident, Immediate},
+    expr::{BinaryOp, Expr, ExternalIntrinsic, Immediate, InternalIntrinsic, IntrinsicKind},
     predicate::{ConstraintDecl, Contract, ExprKey, PredKey, PredicateInstance},
     span::{empty_span, Span},
     types::{PrimitiveKind, Type},
@@ -145,11 +145,10 @@ pub(crate) fn lower_pub_var_accesses_in_predicate(
         // local `pub var`s
         let pathway = contract.exprs.insert(
             Expr::IntrinsicCall {
-                name: Ident {
-                    name: "__this_pathway".to_string(),
-                    hygienic: false,
-                    span: empty_span(),
-                },
+                kind: (
+                    IntrinsicKind::External(ExternalIntrinsic::ThisPathway),
+                    empty_span(),
+                ),
                 args: vec![],
                 span: empty_span(),
             },
@@ -159,11 +158,10 @@ pub(crate) fn lower_pub_var_accesses_in_predicate(
         // This is the `__transient` intrinsic we want to replace the `pub var` access with
         let transient_intrinsic = contract.exprs.insert(
             Expr::IntrinsicCall {
-                name: Ident {
-                    name: "__transient".to_string(),
-                    hygienic: false,
-                    span: empty_span(),
-                },
+                kind: (
+                    IntrinsicKind::Internal(InternalIntrinsic::Transient),
+                    empty_span(),
+                ),
                 args: vec![key, key_len, pathway],
                 span: empty_span(),
             },
@@ -316,11 +314,10 @@ pub(crate) fn lower_pub_var_accesses_in_predicate(
             // This is the `__transient` intrinsic we want to replace the `pub var` access with
             let transient_intrinsic = contract.exprs.insert(
                 Expr::IntrinsicCall {
-                    name: Ident {
-                        name: "__transient".to_string(),
-                        hygienic: false,
-                        span: empty_span(),
-                    },
+                    kind: (
+                        IntrinsicKind::Internal(InternalIntrinsic::Transient),
+                        empty_span(),
+                    ),
                     args: vec![key, key_len, pathway],
                     span: empty_span(),
                 },
@@ -420,11 +417,10 @@ pub(crate) fn enforce_pathway_addresses_in_predicate(
             // Insert the `__predicate_at` intrinsic which takes the pathway as an argument
             let predicate_at_intrinsic = contract.exprs.insert(
                 Expr::IntrinsicCall {
-                    name: Ident {
-                        name: "__predicate_at".to_string(),
-                        hygienic: false,
-                        span: empty_span(),
-                    },
+                    kind: (
+                        IntrinsicKind::External(ExternalIntrinsic::PredicateAt),
+                        empty_span(),
+                    ),
                     args: vec![pathway],
                     span: empty_span(),
                 },
@@ -482,11 +478,10 @@ pub(crate) fn enforce_pathway_addresses_in_predicate(
 
             let this_contract_address_intrinsic = contract.exprs.insert(
                 Expr::IntrinsicCall {
-                    name: Ident {
-                        name: "__this_contract_address".to_string(),
-                        hygienic: false,
-                        span: empty_span(),
-                    },
+                    kind: (
+                        IntrinsicKind::External(ExternalIntrinsic::ThisContractAddress),
+                        empty_span(),
+                    ),
                     args: vec![],
                     span: empty_span(),
                 },
@@ -509,11 +504,10 @@ pub(crate) fn enforce_pathway_addresses_in_predicate(
             // Now insert the intrinsic `__sibling_predicate_address`
             let sibling_predicate_address_intrinsic = contract.exprs.insert(
                 Expr::IntrinsicCall {
-                    name: Ident {
-                        name: "__sibling_predicate_address".to_string(),
-                        hygienic: false,
-                        span: empty_span(),
-                    },
+                    kind: (
+                        IntrinsicKind::Internal(InternalIntrinsic::SiblingPredicateAddress),
+                        empty_span(),
+                    ),
                     args: vec![sibling_predicate_name],
                     span: empty_span(),
                 },
@@ -536,11 +530,10 @@ pub(crate) fn enforce_pathway_addresses_in_predicate(
             // Insert the `__predicate_at` intrinsic which takes the pathway as an argument
             let predicate_at_intrinsic = contract.exprs.insert(
                 Expr::IntrinsicCall {
-                    name: Ident {
-                        name: "__predicate_at".to_string(),
-                        hygienic: false,
-                        span: empty_span(),
-                    },
+                    kind: (
+                        IntrinsicKind::External(ExternalIntrinsic::PredicateAt),
+                        empty_span(),
+                    ),
                     args: vec![pathway],
                     span: empty_span(),
                 },

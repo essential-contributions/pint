@@ -78,4 +78,9 @@ predicate Foo {
     // `w` is set in the pre state db but unset in the solution
     constraint __state_len(w) == 4;
     constraint __state_len(w') == 0;
+
+    // `__state_len` called on non-state var expressions always returns 0.
+    constraint __state_len(1) == 0;
+    constraint __state_len(this_pathway) == 0;
+    constraint __state_len(__state_len(w')) == 0;
 }

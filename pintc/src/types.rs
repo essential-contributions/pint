@@ -2,7 +2,7 @@ use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, Expr, Ident, Immediate},
     predicate::{Contract, ExprKey},
-    span::{Span, Spanned},
+    span::{empty_span, Span, Spanned},
 };
 use pint_abi_types::{TupleField, TypeABI};
 
@@ -24,6 +24,7 @@ pub enum PrimitiveKind {
 pub enum Type {
     Error(Span),
     Unknown(Span),
+    Any(Span),
     Primitive {
         kind: PrimitiveKind,
         span: Span,
@@ -80,6 +81,10 @@ macro_rules! check_alias {
 }
 
 impl Type {
+    pub fn is_any(&self) -> bool {
+        matches!(self, Type::Any(_))
+    }
+
     pub fn is_unknown(&self) -> bool {
         matches!(self, Type::Unknown(_))
     }
@@ -440,6 +445,10 @@ impl Type {
             (Self::Error(_), Self::Error(_)) => true,
             (Self::Unknown(_), Self::Unknown(_)) => true,
 
+            // Type::Any is equal to anything!
+            (Self::Any(_), _) => true,
+            (_, Self::Any(_)) => true,
+
             (Self::Alias { ty: lhs_ty, .. }, rhs) => lhs_ty.eq(new_types, rhs),
             (lhs, Self::Alias { ty: rhs_ty, .. }) => lhs.eq(new_types, rhs_ty.as_ref()),
 
@@ -590,7 +599,11 @@ impl Type {
 
             Type::Vector { ty, .. } => ty.replace_type_expr(old_expr, new_expr),
 
-            Type::Error(_) | Type::Unknown(_) | Type::Primitive { .. } | Type::Custom { .. } => {}
+            Type::Error(_)
+            | Type::Unknown(_)
+            | Type::Any(_)
+            | Type::Primitive { .. }
+            | Type::Custom { .. } => {}
         }
     }
 }
@@ -601,6 +614,7 @@ impl Spanned for Type {
         match &self {
             Error(span)
             | Unknown(span)
+            | Any(span)
             | Primitive { span, .. }
             | Array { span, .. }
             | Tuple { span, .. }
@@ -648,5 +662,52 @@ pub struct EphemeralDecl {
 impl Spanned for EphemeralDecl {
     fn span(&self) -> &Span {
         &self.span
+    }
+}
+
+////////////////////////////////////////////////////////////////
+// Helper functions that produce specific types without spans //
+////////////////////////////////////////////////////////////////
+
+pub fn unknown() -> Type {
+    Type::Unknown(empty_span())
+}
+
+pub fn any() -> Type {
+    Type::Any(empty_span())
+}
+
+pub fn r#bool() -> Type {
+    Type::Primitive {
+        kind: PrimitiveKind::Bool,
+        span: empty_span(),
+    }
+}
+
+pub fn int() -> Type {
+    Type::Primitive {
+        kind: PrimitiveKind::Int,
+        span: empty_span(),
+    }
+}
+
+pub fn b256() -> Type {
+    Type::Primitive {
+        kind: PrimitiveKind::B256,
+        span: empty_span(),
+    }
+}
+
+pub fn tuple(fields: Vec<Type>) -> Type {
+    Type::Tuple {
+        fields: fields.into_iter().map(|ty| (None, ty)).collect::<Vec<_>>(),
+        span: empty_span(),
+    }
+}
+
+pub fn vector(ty: Type) -> Type {
+    Type::Vector {
+        ty: Box::new(ty),
+        span: empty_span(),
     }
 }
