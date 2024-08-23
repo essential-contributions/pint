@@ -27,13 +27,6 @@ predicate Foo {
 
     var and = b1 && map_2_access_1 && map_2_access_2;
     var sum = x + i0 + map_1_access_1 + map_1_access_2;
-
-    constraint i0 == 0;
-    constraint i1 == 0;
-    constraint b0 == (1 == 1);
-    constraint b1 == (1 == 1);
-    constraint map_3_access_1 == 0x0000000000000000000000000000000000000000000000000000000000000000;
-    constraint map_3_access_2 == 0x0000000000000000000000000000000000000000000000000000000000000000;
 }
 
 predicate Bar {
@@ -57,13 +50,6 @@ predicate Bar {
 
     var and = b1 && map_2_access_1 && map_2_access_2;
     var sum = x + i0 + map_1_access_1 + map_1_access_2;
-
-    constraint i0 == 0;
-    constraint i1 == 0;
-    constraint b0 == (1 == 1);
-    constraint b1 == (1 == 1);
-    constraint map_3_access_1 == 0x0000000000000000000000000000000000000000000000000000000000000000;
-    constraint map_3_access_2 == 0x0000000000000000000000000000000000000000000000000000000000000000;
 }
 
 // parsed <<<
@@ -94,12 +80,6 @@ predicate Bar {
 //     constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
 //     constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));
 //     constraint (::sum == (((::x + ::i0) + ::map_1_access_1) + ::map_1_access_2));
-//     constraint (::i0 == 0);
-//     constraint (::i1 == 0);
-//     constraint (::b0 == (1 == 1));
-//     constraint (::b1 == (1 == 1));
-//     constraint (::map_3_access_1 == 0x0000000000000000000000000000000000000000000000000000000000000000);
-//     constraint (::map_3_access_2 == 0x0000000000000000000000000000000000000000000000000000000000000000);
 // }
 //
 // predicate ::Bar {
@@ -121,12 +101,6 @@ predicate Bar {
 //     constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
 //     constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));
 //     constraint (::sum == (((::x + ::i0) + ::map_1_access_1) + ::map_1_access_2));
-//     constraint (::i0 == 0);
-//     constraint (::i1 == 0);
-//     constraint (::b0 == (1 == 1));
-//     constraint (::b1 == (1 == 1));
-//     constraint (::map_3_access_1 == 0x0000000000000000000000000000000000000000000000000000000000000000);
-//     constraint (::map_3_access_2 == 0x0000000000000000000000000000000000000000000000000000000000000000);
 // }
 // >>>
 
@@ -158,12 +132,6 @@ predicate Bar {
 //     constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
 //     constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));
 //     constraint (::sum == (((::x + ::i0) + ::map_1_access_1) + ::map_1_access_2));
-//     constraint (::i0 == 0);
-//     constraint (::i1 == 0);
-//     constraint (::b0 == (1 == 1));
-//     constraint (::b1 == (1 == 1));
-//     constraint (::map_3_access_1 == 0x0000000000000000000000000000000000000000000000000000000000000000);
-//     constraint (::map_3_access_2 == 0x0000000000000000000000000000000000000000000000000000000000000000);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 //
@@ -186,12 +154,6 @@ predicate Bar {
 //     constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
 //     constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));
 //     constraint (::sum == (((::x + ::i0) + ::map_1_access_1) + ::map_1_access_2));
-//     constraint (::i0 == 0);
-//     constraint (::i1 == 0);
-//     constraint (::b0 == (1 == 1));
-//     constraint (::b1 == (1 == 1));
-//     constraint (::map_3_access_1 == 0x0000000000000000000000000000000000000000000000000000000000000000);
-//     constraint (::map_3_access_2 == 0x0000000000000000000000000000000000000000000000000000000000000000);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

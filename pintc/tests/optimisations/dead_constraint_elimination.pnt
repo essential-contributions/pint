@@ -1,0 +1,62 @@
+const t = true;
+
+predicate Test {
+    var x = 1;
+    var y: int;
+
+    // trivial and should be removed
+    constraint true;
+    constraint false;
+    constraint 1 + 2 == 3;
+    constraint t;
+
+    // non-trivial that should be kept for now
+    constraint x < y;
+    constraint x == x;
+}
+
+// parsed <<<
+// const ::t = true;
+// 
+// predicate ::Test {
+//     var ::x;
+//     var ::y: int;
+//     constraint (::x == 1);
+//     constraint true;
+//     constraint false;
+//     constraint ((1 + 2) == 3);
+//     constraint ::t;
+//     constraint (::x < ::y);
+//     constraint (::x == ::x);
+// }
+// >>>
+
+// flattened <<<
+// const ::t: bool = true;
+// 
+// predicate ::Test {
+//     var ::x: int;
+//     var ::y: int;
+//     constraint (::x == 1);
+//     constraint true;
+//     constraint false;
+//     constraint ((1 + 2) == 3);
+//     constraint true;
+//     constraint (::x < ::y);
+//     constraint (::x == ::x);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
+
+// optimised <<<
+// const ::t: bool = true;
+// 
+// predicate ::Test {
+//     var ::x: int;
+//     var ::y: int;
+//     constraint (::x == 1);
+//     constraint (::x < ::y);
+//     constraint (::x == ::x);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

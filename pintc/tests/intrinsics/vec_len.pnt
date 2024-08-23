@@ -14,9 +14,6 @@ predicate test {
 
     interface FooI = Foo(0x0000000000000000000000000000000000000000000000000000000000000000);
     state l2 = __vec_len(FooI::storage::v);
-
-    constraint l == 0;
-    constraint l2 == 0;
 }
 
 // parsed <<<
@@ -34,8 +31,6 @@ predicate test {
 //     interface ::FooI = ::Foo(0x0000000000000000000000000000000000000000000000000000000000000000)
 //     state ::l = __vec_len(storage::v);
 //     state ::l2 = __vec_len(::FooI::storage::v);
-//     constraint (::l == 0);
-//     constraint (::l2 == 0);
 // }
 // >>>
 
@@ -54,8 +49,6 @@ predicate test {
 //     interface ::FooI = ::Foo(0x0000000000000000000000000000000000000000000000000000000000000000)
 //     state ::l: int = __storage_get({0});
 //     state ::l2: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {0});
-//     constraint (::l == 0);
-//     constraint (::l2 == 0);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
