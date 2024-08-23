@@ -1,4 +1,4 @@
-use crate::types::{any, b256, int, r#bool, tuple, unknown, vector, Type};
+use crate::types::{any, b256, int, r#bool, string, tuple, unknown, vector, Type};
 use std::fmt::{Display, Formatter, Result};
 
 ///////////////////
@@ -27,6 +27,7 @@ impl IntrinsicKind {
         use ExternalIntrinsic::*;
         match self {
             IntrinsicKind::External(kind) => match kind {
+                AddressOf => b256(),
                 PredicateAt => tuple(vec![b256(), b256()]),
                 RecoverSECP256k1 => tuple(vec![b256(), int()]),
                 Sha256 => b256(),
@@ -61,6 +62,7 @@ impl IntrinsicKind {
 
 #[derive(Clone, Debug)]
 pub enum ExternalIntrinsic {
+    AddressOf,
     PredicateAt,
     RecoverSECP256k1,
     Sha256,
@@ -75,6 +77,7 @@ pub enum ExternalIntrinsic {
 impl Display for ExternalIntrinsic {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match self {
+            Self::AddressOf => write!(f, "__address_of"),
             Self::PredicateAt => write!(f, "__predicate_at"),
             Self::RecoverSECP256k1 => write!(f, "__recover_secp256k1"),
             Self::Sha256 => write!(f, "__sha256"),
@@ -91,6 +94,7 @@ impl Display for ExternalIntrinsic {
 impl ExternalIntrinsic {
     pub fn args(&self) -> Vec<Type> {
         match self {
+            Self::AddressOf => vec![string()],
             Self::PredicateAt => vec![int()],
             Self::RecoverSECP256k1 => vec![b256(), tuple(vec![b256(), b256(), int()])],
             Self::Sha256 => vec![any()],
@@ -112,7 +116,6 @@ impl ExternalIntrinsic {
 pub enum InternalIntrinsic {
     EqSet,
     MutKeys,
-    SiblingPredicateAddress,
     StorageGet,
     StorageGetExtern,
     Transient,
@@ -123,7 +126,6 @@ impl Display for InternalIntrinsic {
         match self {
             Self::EqSet => write!(f, "__eq_set"),
             Self::MutKeys => write!(f, "__mut_keys"),
-            Self::SiblingPredicateAddress => write!(f, "__sibling_predicate_address"),
             Self::StorageGet => write!(f, "__storage_get"),
             Self::StorageGetExtern => write!(f, "__storage_get_extern"),
             Self::Transient => write!(f, "__transient"),

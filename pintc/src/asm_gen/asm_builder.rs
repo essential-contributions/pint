@@ -501,7 +501,26 @@ impl AsmBuilder<'_> {
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        if let ExternalIntrinsic::StateLen = kind {
+        if let ExternalIntrinsic::AddressOf = kind {
+            assert_eq!(args.len(), 1);
+            assert!(args[0].get_ty(contract).is_string());
+            if let Some(Expr::Immediate {
+                value: Immediate::String(s),
+                ..
+            }) = args[0].try_get(contract)
+            {
+                // Push the predicate address on the stack, one word at a time.
+                let predicate_address = &self
+                    .compiled_predicates
+                    .get(s)
+                    .expect("predicate address should exist!")
+                    .1;
+
+                for word in essential_types::convert::word_4_from_u8_32(predicate_address.0) {
+                    c_asm.push(Constraint::Stack(Stack::Push(word)));
+                }
+            }
+        } else if let ExternalIntrinsic::StateLen = kind {
             // StateLen is handled separately from other intrinsics, for now. This tells me that
             // its design is flawed somehow. Therefore, we should redesign it properly in the
             // future so that this function is simplified.
@@ -562,7 +581,9 @@ impl AsmBuilder<'_> {
                 }
                 ExternalIntrinsic::ThisPathway => Constraint::Access(Access::ThisPathway),
                 ExternalIntrinsic::VerifyEd25519 => Constraint::Crypto(Crypto::VerifyEd25519),
-                ExternalIntrinsic::StateLen => unreachable!("StateLen is handled above"),
+                ExternalIntrinsic::StateLen | ExternalIntrinsic::AddressOf => {
+                    unreachable!("StateLen and AddressOf are handled above")
+                }
                 ExternalIntrinsic::VecLen => {
                     return Err(handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
@@ -603,28 +624,6 @@ impl AsmBuilder<'_> {
             InternalIntrinsic::MutKeys => {
                 assert!(args.is_empty());
                 c_asm.push(Constraint::Access(Access::MutKeys));
-                Ok(Location::Value)
-            }
-
-            InternalIntrinsic::SiblingPredicateAddress => {
-                assert_eq!(args.len(), 1);
-                assert!(args[0].get_ty(contract).is_string());
-                if let Some(Expr::Immediate {
-                    value: Immediate::String(s),
-                    ..
-                }) = args[0].try_get(contract)
-                {
-                    // Push the sibling predicate address on the stack, one word at a time.
-                    let predicate_address = &self
-                        .compiled_predicates
-                        .get(s)
-                        .expect("predicate address should exist!")
-                        .1;
-
-                    for word in essential_types::convert::word_4_from_u8_32(predicate_address.0) {
-                        c_asm.push(Constraint::Stack(Stack::Push(word)));
-                    }
-                }
                 Ok(Location::Value)
             }
 
