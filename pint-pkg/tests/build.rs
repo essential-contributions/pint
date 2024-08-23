@@ -186,12 +186,12 @@ fn build_contract_one_contract_dep() {
 
 predicate Init {
     var value: int;
-    state counter: int = storage::counter;
+    state counter: int = mut storage::counter;
     constraint counter' == value;
 }
 
 predicate Increment {
-    state counter: int = storage::counter;
+    state counter: int = mut storage::counter;
     constraint counter' == counter + 1;
 }
 "#;

@@ -24,9 +24,9 @@ The `Mint` predicate is fairly simple:
 1. It declares two decision variables `receiver: b256` and `amount: int`. The goal of this predicate
    to mint `amount` coins and send them to `receiver`.
 1. It initializes a `state` variable called `receiver_balance` using the storage access expression
-   `storage::balances[receiver]`. This syntax returns the value in `balances` that `receiver` maps
-   to. The predicate also initializes another state variable called `total_supply` to
-   `storage::total_supply`.
+   `mut storage::balances[receiver]`. This syntax returns the value in `balances` that `receiver`
+   maps to and makes it "mutable". The predicate also initializes another state variable called
+   `total_supply` to `mut storage::total_supply`.
 1. It enforces two constraints:
    1. the first constraint requires the total supply to be incremented by `amount`.
    1. The second constraint requires the balance of `receiver` to be incremented by `amount`.
@@ -36,7 +36,8 @@ The `Send` predicate has the following structure:
 1. It declares three decision variables `from: b256`, `receiver: b256`, and `amount: int`. The goal
    of this predicate to send `amount` coins from address `from` to address `receiver`.
 1. It initializes a `state` variable called `from_balance` to the balance of `from` and another
-   variable called `receiver_balance` to the balance of `receiver`.
+   variable called `receiver_balance` to the balance of `receiver`. It also makes both balances
+   "mutable".
 1. It enforces three constraints
    1. the first constraint requires `from_balance` to be larger than `amount`. That is, the address
       `from` must currently actually have enough coins to send to `receiver`.

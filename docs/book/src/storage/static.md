@@ -112,8 +112,26 @@ example, the value of `bal` was read to be `100` at solve-time, a solver might p
 value of `bal` should be `150` (i.e. `bal' = 150`) which would be a valid solution because `150 >=
 100 + 42` (assuming all other constraints in the predicate are also satisfied).
 
-This concludes our overview on storage which only focused on statically-sized storage types. In the
-next chapter, we will cover dynamically-sized storage types which offer a lot more flexibility.
+#### "Mutable" Storage Accesses
+
+In the previous section, you may have noticed that we added the `mut` keyword before `storage::x` in
+the `state` declaration. In Pint, storage locations are **non-mutable by default**. That is, solvers
+cannot propose new values for a storage location _unless_ they are solving a predicate that allows
+the storage location to be mutable. This is accomplished using the `mut` keyword added before a
+storage access. In the example of the previous section, because `mut` was added before `storage::x`,
+a solver can now propose a _state mutation_ that updates the value of `x`.
+
+When the `mut` keyword as added before a storage access into a compound type, mutability applies
+**only** to the portion of the compound type that is being accessed. For example, in the example
+below:
+
+```pint
+{{#include ../../../../examples/ch_5_1.pnt:mut}}
+```
+
+`v.1` is a storage access into nested tuple `v` defined in the `storage` block declared earlier.
+Here, both `v.1.0` ( a `bool`) and `v.1.1` (a `b256`) are both allowed to be mutated, but `v.0` is
+not allowed to be.
 
 #### "Empty" State
 
@@ -138,3 +156,6 @@ It is also possible to update a `state` variable to `nil` using the "next state"
 ```
 
 Here, if `w` currently has a value, then we constrain the next value of `w` to be `nil`.
+
+This concludes our overview on storage which only focused on statically-sized storage types. In the
+next chapter, we will cover dynamically-sized storage types which offer a lot more flexibility.
