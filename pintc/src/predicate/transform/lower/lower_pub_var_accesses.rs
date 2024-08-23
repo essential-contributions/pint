@@ -445,13 +445,13 @@ pub(crate) fn enforce_pathway_addresses_in_predicate(
             });
         } else {
             // `interface_instance` is `None` here so expecting a local predicate
-            let full_predicate_name = "::".to_owned() + &predicate.name;
+            let predicate_name = "::".to_owned() + &predicate.name;
 
             // Make sure the local predicate does exist
             if contract
                 .preds
                 .iter()
-                .all(|(_, pred)| pred.name != full_predicate_name)
+                .all(|(_, pred)| pred.name != predicate_name)
             {
                 return Err(handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
@@ -489,10 +489,10 @@ pub(crate) fn enforce_pathway_addresses_in_predicate(
             );
 
             // This is a `String` that contains the name of the predicate that should be passed to
-            // `__sibling_predicate_address`
-            let sibling_predicate_name = contract.exprs.insert(
+            // `__address_of`
+            let predicate_name_expr = contract.exprs.insert(
                 Expr::Immediate {
-                    value: Immediate::String(full_predicate_name.clone()),
+                    value: Immediate::String(predicate_name.clone()),
                     span: empty_span(),
                 },
                 Type::Primitive {
@@ -501,26 +501,26 @@ pub(crate) fn enforce_pathway_addresses_in_predicate(
                 },
             );
 
-            // Now insert the intrinsic `__sibling_predicate_address`
-            let sibling_predicate_address_intrinsic = contract.exprs.insert(
+            // Now insert the intrinsic `__address_of`
+            let address_of_intrinsic = contract.exprs.insert(
                 Expr::IntrinsicCall {
                     kind: (
-                        IntrinsicKind::Internal(InternalIntrinsic::SiblingPredicateAddress),
+                        IntrinsicKind::External(ExternalIntrinsic::AddressOf),
                         empty_span(),
                     ),
-                    args: vec![sibling_predicate_name],
+                    args: vec![predicate_name_expr],
                     span: empty_span(),
                 },
                 b256_ty.clone(),
             );
 
-            // The full address is a combination of the current contract address and the sibling
-            // predicate address
+            // The full address is a combination of the current contract address and the predicate
+            // address
             let addresses = contract.exprs.insert(
                 Expr::Tuple {
                     fields: vec![
                         (None, this_contract_address_intrinsic),
-                        (None, sibling_predicate_address_intrinsic),
+                        (None, address_of_intrinsic),
                     ],
                     span: empty_span(),
                 },
@@ -562,7 +562,7 @@ pub(crate) fn enforce_pathway_addresses_in_predicate(
             //
             // We assume that the predicate names are valid and have been inserted into
             // `dep_graph_indices`. If not, we would have caught that in type checking.
-            let from = dep_graph_indices[&full_predicate_name];
+            let from = dep_graph_indices[&predicate_name];
             let to = dep_graph_indices[&pred.name];
             dep_graph.add_edge(from, to, ());
         }

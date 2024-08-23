@@ -6,6 +6,7 @@ use crate::{
 use std::io::Write;
 
 mod intrinsics;
+mod multi_predicates;
 mod transient;
 
 #[cfg(test)]

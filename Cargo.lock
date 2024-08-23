@@ -1201,7 +1201,7 @@ dependencies = [
 
 [[package]]
 name = "pint-cli"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -1222,7 +1222,7 @@ dependencies = [
 
 [[package]]
 name = "pint-pkg"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "essential-hash",
  "essential-types",
@@ -1253,7 +1253,7 @@ dependencies = [
 
 [[package]]
 name = "pintc"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "ariadne",

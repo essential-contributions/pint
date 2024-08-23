@@ -1,0 +1,4 @@
+const t = __address_of("::Foo");
+
+predicate Foo {
+}

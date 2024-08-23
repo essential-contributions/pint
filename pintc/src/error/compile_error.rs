@@ -300,6 +300,10 @@ pub enum CompileError {
     InRangeInvalid { found_ty: String, span: Span },
     #[error("dependency cycle detected between predicates")]
     DependencyCycle { spans: Vec<Span> },
+    #[error("intrinsic `__address_of` cannot refer to the predicate it's used in")]
+    AddressOfSelf { name: String, span: Span },
+    #[error("predicate `{name}` not found")]
+    PredicateNameNotFound { name: String, span: Span },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -1061,6 +1065,20 @@ impl ReportableError for CompileError {
                 })
                 .collect::<Vec<_>>(),
 
+            AddressOfSelf { name, span } => vec![ErrorLabel {
+                message: format!(
+                    "this argument refers to prediate `{name}` in which this intrinsic is used"
+                ),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            PredicateNameNotFound { span, .. } => vec![ErrorLabel {
+                message: "argument to `__address_of` must be a valid predicate name".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             Internal { msg, span } => {
                 if span == &empty_span() {
                     Vec::new()
@@ -1240,7 +1258,9 @@ impl ReportableError for CompileError {
             | MismatchedIntrinsicArgType { .. }
             | CompareToNilError { .. }
             | RecursiveNewType { .. }
-            | InRangeInvalid { .. } => None,
+            | InRangeInvalid { .. }
+            | AddressOfSelf { .. }
+            | PredicateNameNotFound { .. } => None,
         }
     }
 
@@ -1407,7 +1427,9 @@ impl Spanned for CompileError {
             | IntrinsicArgMustBeStorageAccess { span, .. }
             | CompareToNilError { span, .. }
             | RecursiveNewType { use_span: span, .. }
-            | InRangeInvalid { span, .. } => span,
+            | InRangeInvalid { span, .. }
+            | AddressOfSelf { span, .. }
+            | PredicateNameNotFound { span, .. } => span,
 
             DependencyCycle { spans } => &spans[0],
 
