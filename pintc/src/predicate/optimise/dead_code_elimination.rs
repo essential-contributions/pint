@@ -35,7 +35,8 @@ pub(crate) fn dead_state_elimination(contract: &mut Contract) {
             .states();
 
         let dead_state_decls = pred_states
-            .filter_map(|(state_key, state)| (!live_paths.contains(&state.name)).then(|| state_key))
+            .filter(|&(_, state)| (!live_paths.contains(&state.name)))
+            .map(|(state_key, _)| state_key)
             .collect::<FxHashSet<StateKey>>();
 
         if let Some(pred) = contract.preds.get_mut(pred_key) {
@@ -58,7 +59,7 @@ pub(crate) fn dead_constraint_elimination(contract: &mut Contract) {
                 .iter()
                 .filter_map(|constraint| {
                     evaluator
-                        .evaluate_key(&constraint.expr, &handler, &contract)
+                        .evaluate_key(&constraint.expr, &handler, contract)
                         .is_err()
                         .then_some(constraint.clone())
                 })
