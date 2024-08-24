@@ -53,18 +53,16 @@ pub(crate) fn dead_constraint_elimination(contract: &mut Contract) {
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         if let Some(pred) = contract.preds.get(pred_key) {
-            let constraints = &pred.constraints;
-            let mut live_constraints: Vec<ConstraintDecl> = Vec::new();
-
-            for constraint in constraints {
-                let imm = evaluator.evaluate_key(&constraint.expr, &handler, &contract);
-                match imm {
-                    Ok(_) => {}
-                    Err(_) => {
-                        live_constraints.push(constraint.clone());
-                    }
-                }
-            }
+            let live_constraints = pred
+                .constraints
+                .iter()
+                .filter_map(|constraint| {
+                    evaluator
+                        .evaluate_key(&constraint.expr, &handler, &contract)
+                        .is_err()
+                        .then_some(constraint.clone())
+                })
+                .collect::<Vec<ConstraintDecl>>();
 
             if let Some(pred) = contract.preds.get_mut(pred_key) {
                 pred.constraints = live_constraints;
