@@ -4,12 +4,12 @@ cli:
 plugins:
   sources:
     - id: trunk
-      ref: v1.6.1
+      ref: v1.6.2
       uri: https://github.com/trunk-io/plugins
 lint:
   enabled:
-    - checkov@3.2.228
-    - osv-scanner@1.8.3
+    - checkov@3.2.235
+    - osv-scanner@1.8.4
     - oxipng@9.1.2
     - trivy@0.54.1
     - trufflehog@3.81.9
