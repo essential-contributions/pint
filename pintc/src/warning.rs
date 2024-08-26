@@ -14,6 +14,8 @@ pub struct WarningLabel {
 /// A general compile warning
 #[derive(Error, Debug)]
 pub enum Warning {
+    #[error("unneeded else branch")]
+    MatchUnneededElse { span: Span },
     #[error("constraint is always `true`")]
     TrivialConstraint { span: Span },
     #[error("constraint is always `false`")]
@@ -24,29 +26,33 @@ impl ReportableWarning for Warning {
     fn labels(&self) -> Vec<WarningLabel> {
         use Warning::*;
         match self {
-            TrivialConstraint { span } => {
-                vec![WarningLabel {
-                    message: "this constraint always evaluates to `true`".to_string(),
-                    span: span.clone(),
-                    color: Color::Yellow,
-                }]
-            }
-            AlwaysFalseConstraint { span } => {
-                vec![WarningLabel {
-                    message:
-                        "this constraint always evaluates to `false` and can never be satisfied"
-                            .to_string(),
-                    span: span.clone(),
-                    color: Color::Yellow,
-                }]
-            }
+            MatchUnneededElse { span } => vec![WarningLabel {
+                message: "`else` branch in match will never be evaluated".to_string(),
+                span: span.clone(),
+                color: Color::Yellow,
+            }],
+
+            TrivialConstraint { span } => vec![WarningLabel {
+                message: "this constraint always evaluates to `true`".to_string(),
+                span: span.clone(),
+                color: Color::Yellow,
+            }],
+
+            AlwaysFalseConstraint { span } => vec![WarningLabel {
+                message: "this constraint always evaluates to `false` and can never be satisfied"
+                    .to_string(),
+                span: span.clone(),
+                color: Color::Yellow,
+            }],
         }
     }
 
     fn note(&self) -> Option<String> {
         use Warning::*;
         match self {
-            TrivialConstraint { .. } | AlwaysFalseConstraint { .. } => None,
+            MatchUnneededElse { .. } | TrivialConstraint { .. } | AlwaysFalseConstraint { .. } => {
+                None
+            }
         }
     }
 
@@ -63,6 +69,8 @@ impl ReportableWarning for Warning {
             AlwaysFalseConstraint { .. } => {
                 Some("if this is intentional, consider removing the containing predicate because its constraints can never be satisfied".to_string())
             }
+
+            MatchUnneededElse { .. } => None,
         }
     }
 }
@@ -71,7 +79,9 @@ impl Spanned for Warning {
     fn span(&self) -> &Span {
         use Warning::*;
         match self {
-            TrivialConstraint { span } | AlwaysFalseConstraint { span } => span,
+            MatchUnneededElse { span }
+            | TrivialConstraint { span }
+            | AlwaysFalseConstraint { span } => span,
         }
     }
 }

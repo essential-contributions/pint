@@ -9,7 +9,7 @@ use fxhash::FxHashMap;
 use itertools::Itertools;
 use std::collections::HashSet;
 
-/// Given an `Predicate`, and a generator expression containing a list of indices with
+/// Given a `Predicate`, and a generator expression containing a list of indices with
 /// their ranges `gen_ranges`, an optional list of `conditions`, and a body, return a new
 /// expression that is the conjunction or disjunction of all the possible valid generator bodies.
 ///
@@ -207,7 +207,7 @@ fn unroll_generator(
     Ok(unrolled)
 }
 
-/// Given an `Predicate`, unroll all generator expressions and replace them in the
+/// Given a `Predicate`, unroll all generator expressions and replace them in the
 /// expressions map with their unrolled version
 pub(crate) fn unroll_generators(
     handler: &Handler,

@@ -87,13 +87,13 @@ impl VarKey {
         pred.vars.vars.get(*self).unwrap()
     }
 
-    /// Returns the type of key `self` given an `Predicate`. Panics if the type can't be
+    /// Returns the type of key `self` given a `Predicate`. Panics if the type can't be
     /// found in the `var_types` map.
     pub fn get_ty<'a>(&'a self, pred: &'a Predicate) -> &Type {
         pred.vars.var_types.get(*self).unwrap()
     }
 
-    /// Set the type of key `self` in an `Predicate`. Panics if the type can't be found in
+    /// Set the type of key `self` in a `Predicate`. Panics if the type can't be found in
     /// the `var_types` map.
     pub fn set_ty<'a>(&'a self, ty: Type, pred: &'a mut Predicate) {
         pred.vars.var_types.insert(*self, ty);

@@ -1,0 +1,133 @@
+type number = int;
+
+union thing = a(bool) | b(number) | c({int, number});
+union maybe_addr = no_addr | addr(b256);
+
+type maydr = maybe_addr;
+
+predicate test {
+    var x: thing;
+
+    // Boolean match expression.
+    constraint match x {
+        thing::a(b) => b,
+        thing::b(n) => n > 0,
+        thing::c(t) => t.0 + t.1 == 11
+    };
+
+    // Integer match expression in a constraint with `else`.
+    constraint match x {
+        thing::b(b) => b,
+        else => 22,
+    } > 0;
+
+    // Boolean match expression with blocks & constraints.
+    constraint match x {
+        thing::a(b) => b,
+        thing::b(n) => {
+            constraint n > 0;
+            n * 2 < 10
+        },
+        thing::c(t) => {
+            constraint t.0 == 33;
+            constraint t.1 != 44;
+            true
+        }
+    };
+
+    // Non-expression match.  Also refers to other var `d`.
+    var d: int;
+    match x {
+        thing::a(b) => {},
+        thing::c(t) => {
+            constraint t.0 * t.1 == 66;
+            constraint d == t.0 - t.1;
+        }
+        else => {
+            constraint d == 55;
+        }
+    }
+
+    // Constraining an address to either zero or something.
+    var no_base_addr: maydr = maybe_addr::no_addr;
+    var a_base_addr: maydr = maybe_addr::addr(0x1111111111111111111111111111111111111111111111111111111111111111);
+
+    var actual_addr = match no_base_addr {
+        maybe_addr::no_addr => 0x0000000000000000000000000000000000000000000000000000000000000000,
+        maybe_addr::addr(a) => a,
+    };
+
+    // Direct comparisons.
+    constraint no_base_addr != a_base_addr;
+    constraint no_base_addr == maybe_addr::no_addr;
+    constraint thing::b(77) == thing::b(77);
+    constraint thing::b(88) != thing::b(99);
+}
+
+// parsed <<<
+// union ::thing = a(bool) | b(::number) | c({int, ::number});
+// union ::maybe_addr = no_addr | addr(b256);
+// type ::number = int;
+// type ::maydr = ::maybe_addr;
+//
+// predicate ::test {
+//     var ::x: ::thing;
+//     var ::d: int;
+//     var ::no_base_addr: ::maydr;
+//     var ::a_base_addr: ::maydr;
+//     var ::actual_addr;
+//     constraint match ::x { ::thing::a(b) => ::b, ::thing::b(n) => (::n > 0), ::thing::c(t) => ((::t.0 + ::t.1) == 11) };
+//     constraint (match ::x { ::thing::b(b) => ::b, else => 22 } > 0);
+//     constraint match ::x { ::thing::a(b) => ::b, ::thing::b(n) => constraint (::n > 0); ((::n * 2) < 10), ::thing::c(t) => constraint (::t.0 == 33); constraint (::t.1 != 44); true };
+//     constraint (::no_base_addr == ::maybe_addr::no_addr);
+//     constraint (::a_base_addr == ::maybe_addr::addr(0x1111111111111111111111111111111111111111111111111111111111111111));
+//     constraint (::actual_addr == match ::no_base_addr { ::maybe_addr::no_addr => 0x0000000000000000000000000000000000000000000000000000000000000000, ::maybe_addr::addr(a) => ::a });
+//     constraint (::no_base_addr != ::a_base_addr);
+//     constraint (::no_base_addr == ::maybe_addr::no_addr);
+//     constraint (::thing::b(77) == ::thing::b(77));
+//     constraint (::thing::b(88) != ::thing::b(99));
+//     match ::x {
+//         ::thing::a(b) => {
+//         }
+//         ::thing::c(t) => {
+//             constraint ((::t.0 * ::t.1) == 66)
+//             constraint (::d == (::t.0 - ::t.1))
+//         }
+//         else => {
+//             constraint (::d == 55)
+//         }
+//     }
+// }
+// >>>
+
+// flattened <<<
+// union ::thing = a(bool) | b(int) | c({int, int});
+// union ::maybe_addr = no_addr | addr(b256);
+// type ::number = int;
+// type ::maydr = ::maybe_addr;
+//
+// predicate ::test {
+//     var ::x: ::thing;
+//     var ::d: int;
+//     var ::no_base_addr: ::maybe_addr;
+//     var ::a_base_addr: ::maybe_addr;
+//     var ::actual_addr: b256;
+//     constraint (UnTag(::x) == ::thing::a ? UnVal(::x, bool) : (UnTag(::x) == ::thing::b ? (UnVal(::x, int) > 0) : ((UnVal(::x, {int, int}).0 + UnVal(::x, {int, int}).1) == 11)));
+//     constraint ((UnTag(::x) == ::thing::b ? UnVal(::x, int) : 22) > 0);
+//     constraint (UnTag(::x) == ::thing::a ? UnVal(::x, bool) : (UnTag(::x) == ::thing::b ? ((UnVal(::x, int) * 2) < 10) : true));
+//     constraint (::no_base_addr == ::maybe_addr::no_addr);
+//     constraint (::a_base_addr == ::maybe_addr::addr(0x1111111111111111111111111111111111111111111111111111111111111111));
+//     constraint (::actual_addr == (UnTag(::no_base_addr) == ::maybe_addr::no_addr ? 0x0000000000000000000000000000000000000000000000000000000000000000 : UnVal(::no_base_addr, b256)));
+//     constraint (::no_base_addr != ::a_base_addr);
+//     constraint (::no_base_addr == ::maybe_addr::no_addr);
+//     constraint (::thing::b(77) == ::thing::b(77));
+//     constraint (::thing::b(88) != ::thing::b(99));
+//     constraint (UnTag(::x) == ::thing::a || (!UnTag(::x) == ::thing::c || ((UnVal(::x, {int, int}).0 * UnVal(::x, {int, int}).1) == 66)));
+//     constraint (UnTag(::x) == ::thing::a || (!UnTag(::x) == ::thing::c || (::d == (UnVal(::x, {int, int}).0 - UnVal(::x, {int, int}).1))));
+//     constraint (UnTag(::x) == ::thing::a || (UnTag(::x) == ::thing::c || (::d == 55)));
+//     constraint (UnTag(::x) == ::thing::a || (!UnTag(::x) == ::thing::b || (UnVal(::x, int) > 0)));
+//     constraint (UnTag(::x) == ::thing::a || (UnTag(::x) == ::thing::b || (!UnTag(::x) == ::thing::c || (UnVal(::x, {int, int}).0 == 33))));
+//     constraint (UnTag(::x) == ::thing::a || (UnTag(::x) == ::thing::b || (!UnTag(::x) == ::thing::c || (UnVal(::x, {int, int}).1 != 44))));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

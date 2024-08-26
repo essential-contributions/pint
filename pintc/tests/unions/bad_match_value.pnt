@@ -1,0 +1,62 @@
+union number = zero | one(int) | more(bool);
+
+predicate test {
+    var n: number;
+    constraint match n {
+        number::zero(x) => x == 0,
+        number::one => true,
+        else => false,
+    };
+}
+
+predicate decl_test {
+    var n: number;
+    match n {
+        number::zero(x) => {
+            constraint x == 0;
+        }
+        number::one => {
+            constraint true;
+        }
+        else => {
+            constraint false;
+        }
+    }
+}
+
+// parsed <<<
+// union ::number = zero | one(int) | more(bool);
+//
+// predicate ::test {
+//     var ::n: ::number;
+//     constraint match ::n { ::number::zero(x) => (::x == 0), ::number::one => true, else => false };
+// }
+//
+// predicate ::decl_test {
+//     var ::n: ::number;
+//     match ::n {
+//         ::number::zero(x) => {
+//             constraint (::x == 0)
+//         }
+//         ::number::one => {
+//             constraint true
+//         }
+//         else => {
+//             constraint false
+//         }
+//     }
+// }
+// >>>
+
+// typecheck_failure <<<
+// union variant does not have a value
+// @115..127: union variant `::number::zero` should not bind a value
+// missing union variant value
+// @150..161: union variant `::number::one` requires a value of type `int`
+// union variant does not have a value
+// @267..279: union variant `::number::zero` should not bind a value
+// missing union variant value
+// @337..348: union variant `::number::one` requires a value of type `int`
+// constraint expression type error
+// @97..199: expecting type `bool`
+// >>>

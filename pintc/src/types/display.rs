@@ -66,7 +66,9 @@ impl DisplayWithContract for super::Type {
                 write!(f, "}}")
             }
 
-            super::Type::Custom { path, .. } => write!(f, "{path}"),
+            super::Type::Custom { path, .. } | super::Type::Union { path, .. } => {
+                write!(f, "{path}")
+            }
 
             super::Type::Alias { path, ty, .. } => {
                 write!(f, "{path} ({})", contract.with_ctrct(ty.as_ref()))
@@ -99,5 +101,41 @@ impl Display for super::EnumDecl {
 impl DisplayWithContract for super::NewTypeDecl {
     fn fmt(&self, f: &mut Formatter, contract: &Contract) -> Result {
         write!(f, "type {} = {}", self.name, contract.with_ctrct(&self.ty))
+    }
+}
+
+impl DisplayWithContract for super::UnionDecl {
+    fn fmt(&self, f: &mut Formatter, contract: &Contract) -> Result {
+        write!(f, "union {} = ", self.name)?;
+
+        fn write_variant(
+            f: &mut Formatter,
+            contract: &Contract,
+            vnt: &super::Ident,
+            ty: &Option<super::Type>,
+        ) -> Result {
+            write!(f, "{vnt}")?;
+            if let Some(ty) = ty {
+                write!(f, "({})", contract.with_ctrct(ty))?;
+            }
+            Ok(())
+        }
+
+        let mut i = self.variants.iter();
+        if let Some(super::UnionVariant {
+            variant_name, ty, ..
+        }) = i.next()
+        {
+            write_variant(f, contract, variant_name, ty)?;
+        }
+        for super::UnionVariant {
+            variant_name, ty, ..
+        } in i
+        {
+            write!(f, " | ")?;
+            write_variant(f, contract, variant_name, ty)?;
+        }
+
+        Ok(())
     }
 }

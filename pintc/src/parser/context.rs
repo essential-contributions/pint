@@ -185,8 +185,8 @@ impl<'a> ParserContext<'a> {
         self.contract.interfaces.push(interface);
     }
 
-    /// Given a predicate instance name as an `Predicate`, a list `els` of `Ident`s forming a path,
-    /// an predicate name as an `Predicate` and an address as an `ExprKey`, produce an
+    /// Given a predicate instance name as a `Predicate`, a list `els` of `Ident`s forming a path,
+    /// an predicate name as a `Predicate` and an address as an `ExprKey`, produce an
     /// `PredicateInstance` object and insert it into the current Pred. `l` and `r` are the code
     /// locations before and after the predicate instance declaration. `l1` and `r1` are the code
     /// locations before and after the path represented by `els`. Uses `is_abs` to decide how to
