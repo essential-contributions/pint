@@ -6,6 +6,7 @@ storage {
     y: bool,
     w: int,
     arr: { int, int }[3],
+    v: { int, { bool, b256 } },
 }
 // ANCHOR_END: storage_block
 
@@ -30,12 +31,16 @@ constraint y && t_0 >= 42;
 // ANCHOR_END: constraint
 
 // ANCHOR: next_state
-state bal = storage::x;
+state bal = mut storage::x;
 constraint bal' >= bal + 42;
 // ANCHOR_END: next_state 
 
+// ANCHOR: mut 
+state inner: { bool, b256 } = mut storage::v.1;
+// ANCHOR_END: mut 
+
 // ANCHOR: nil 
-state w = storage::w;
+state w = mut storage::w;
 var value: int = (w == nil ? 0 : w);
 // ANCHOR_END: nil 
 

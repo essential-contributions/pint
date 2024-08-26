@@ -1,10 +1,31 @@
 ## Installation
 
-### Dependencies
+### Using Nix (Recommended)
 
-A prerequisite for installing and using `Pint` is the Rust toolchain. Platform-specific instructions
-for installing `rustup` can be found [here](https://www.rust-lang.org/tools/install). Then, install
-the Rust toolchain with:
+The easiest way to get started with Pint and the Essential ecosystem is to use
+[Nix](https://nixos.org/). You first need to install Nix using:
+
+```console
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+```
+
+or using one of [these other alternatives](https://nixos.org/download/).
+
+Then, enter a Nix shell as follows:
+
+```console
+nix develop github:essential-contributions/essential-integration#dev
+```
+
+This will make all the tools you need available in your terminal.
+
+### Installing from `Cargo`
+
+#### Dependencies
+
+A prerequisite for installing `Pint` from `Cargo` is the Rust toolchain. Platform-specific
+instructions for installing `rustup` can be found [here](https://www.rust-lang.org/tools/install).
+Then, install the Rust toolchain with:
 
 ```console
 $ rustup install stable
@@ -18,7 +39,7 @@ version](https://github.com/rust-lang/rust/releases/latest). Ensure you are usin
 $ rustup update && rustup default stable
 ```
 
-### Installing from `Cargo`
+#### Installation Steps
 
 The Pint toolchain can be installed using `Cargo` with:
 
@@ -34,8 +55,11 @@ $ cargo update pint-cli
 
 ### Syntax Highlighting
 
-Currently there is only syntax highlighting support for VScode however, we are working on adding support for other editors.
+Currently, Pint only has syntax highlighting support in Visual Studio Code. We are, however, in the
+process of adding support for other editors.
 
-#### VScode
+#### Visual Studio Code
 
-Search the market place for `pint syntax` or use this [link](https://marketplace.visualstudio.com/items?itemName=essential-contributions.pint-lang)
+To install the Pint plugin, Search the Visual Studio Code market place for `pint syntax`.
+Alternatively, use [this
+link](https://marketplace.visualstudio.com/items?itemName=essential-contributions.pint-lang).

@@ -101,3 +101,66 @@ added for each predicate instance declaration. Therefore, in the example below:
 
 the variables `x1` and `x2` may not be the same since they may refer to two different values of `x`
 in the solution (if `Foo` is solved multiple times).
+
+### Accessing Public Decision Variables From a Sibling Contract
+
+Public decision variables, being _public_, are also visible from predicates in the _same_ contract
+as the predicate that declares them. While working within a single contract, you may want one
+predicate to access another predicate's public decision variables. This can be done, again, using
+predicate instances. The difference here is that, because we're working in the same contract, there
+is no need to declare an interface for that contract and an interface instance. There is also no
+need to specify an address for the predicate instance because the compiler can figure that out on
+its own! Here's an example:
+
+```pint
+{{#include ../../../../examples/ch_7_1.pnt:siblings}}
+```
+
+Here, `AI1` and `AI2` are two instances of predicate `A` which exposes a single public decision
+variable called `x`. We are then requiring that the value of `x` in the first instance is double the
+value of `x` in the second instance.
+
+One important caveat of the above is that you are not allowed to have _cyclical dependencies_
+between predicates. For example:
+
+```pint
+{{#include ../../../../examples/ch_7_1_b.pnt:cycle}}
+```
+
+Here, predicate `A` requires predicate `B` and predicate `B` requires predicate `A`. This causes a
+cycle where the addresses of a predicate cannot be determined and used by the other. The compiler
+will emit the following error to prevent you from proceeding:
+
+```console
+Error: dependency cycle detected between predicates
+   ╭─[ch_7_1_b.pnt:3:1]
+   │
+ 3 │ predicate A {
+   │ ─────┬─────
+   │      ╰─────── this predicate is on the dependency cycle
+   │
+10 │ predicate B {
+   │ ─────┬─────
+   │      ╰─────── this predicate is on the dependency cycle
+   │
+   │ Note: dependency between predicates is typically created via predicate instances
+───╯
+```
+
+Another caveat is that a predicate cannot reference itself:
+
+```pint
+{{#include ../../../../examples/ch_7_1_c.pnt:self_ref}}
+```
+
+The compiler will complain as follows:
+
+```console
+Error: self referential predicate `C`
+   ╭─[ch_7_1_c.pnt:6:5]
+   │
+ 6 │     predicate CI = C();
+   │     ─────────┬────────
+   │              ╰────────── this predicate instance references the predicate it's declared in
+───╯
+```

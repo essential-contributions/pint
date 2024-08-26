@@ -16,7 +16,7 @@ state receiver_balance = storage::balances[receiver_address];
 
 // ANCHOR: next_state
 var my_address: b256;
-state my_bal = storage::balances[my_address];
+state my_bal = mut storage::balances[my_address];
 constraint my_bal' == my_bal + 1000000;
 // ANCHOR_END: next_state 
 
