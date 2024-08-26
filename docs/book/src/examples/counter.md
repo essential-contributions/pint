@@ -1,7 +1,9 @@
 ## Counter
 
 The "counter" is one of the simplest smart contracts that can be written in Pint. It showcases how a
-contract can have multiple predicates and how it can declare and use _storage_.
+contract can have multiple predicates and how it can declare and use _storage_. This particular
+implementation of the "counter" contract is different from the one we encountered in the [Quickstart
+Guide](../getting_started/quickstart.md#writing-a-pint-program)
 
 ```pint
 {{#include ../../../../examples/counter.pnt}}
@@ -17,10 +19,13 @@ declaring three statements. Let's walk through the first predicate named `Initia
    as "arguments" that the solver has to set such that _every_ `constraint` in the predicate
    evaluates to `true`. In `Initialize`, we are declaring a single decision variable called `value`
    of type `int`. This is the value that we want our counter to get initialized to.
-1. The second statement declares a `state` variable and initializes it to `storage::counter`. State
-   variables are special variables that always need to be initialized to a _storage_ access
-   expression. The statement `state counter: int = storage::counter` creates a state variable called
-   `counter` and initializes it to the current value of `counter` declared in the `storage` block.
+1. The second statement declares a `state` variable and initializes it to `mut storage::counter`.
+   State variables are special variables that always need to be initialized to a _storage_ access
+   expression. The statement `state counter: int = mut storage::counter` creates a state variable
+   called `counter` and initializes it to the current value of `counter` declared in the `storage`
+   block. The `mut` keyword simply indicates that the solver is allowed to propose a new value for
+   `counter`. If `mut` is not present, then the storage variable `counter` cannot be modified by
+   anyone attempting to solve predicate `Initialize`.
 1. The third statement contains the core logic of this predicate. It **declares** that the "next
    value" of `state counter` **must** be equal to `value`. Note the `'` notation here which can be
    only applied to a `state` variable, and means "the next value of the state variable after a valid
@@ -51,8 +56,11 @@ value: 42
 ```
 
 This solution proposes a value of `42` for the decision variable `value` and a new value of `42` for
-the storage key `0` where `counter` is stored (we will go over the storage data layout later!). A
-solution must also indicate which predicate is being solved using its address but we're omitting
+the storage key `0` where `counter` is stored (we will go over the storage data layout later!). Note
+that the storage key `0` where `counter` is stored _can_ be modified by the solution because of the
+`mut` keyword added before `storage::counter`.
+
+A solution must also indicate which predicate is being solved using its address but we're omitting
 that here for simplicity.
 
 Alternatively, a solution to `Increment` can be proposed to satisfy the user requirement `counter =

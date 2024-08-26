@@ -1,4 +1,3 @@
-// <disabled>
 // ANCHOR: predicate_foo 
 predicate Foo {
     pub var x: int;
@@ -61,3 +60,15 @@ predicate Baz {
     var x2 = FooInstance2::x;
     // ANCHOR_END: multiple_instances
 }
+
+// ANCHOR: siblings 
+predicate A {
+    pub var x: int;    
+}
+
+predicate B {
+    predicate AI1 = A();
+    predicate AI2 = A();
+    constraint AI1::x == AI2::x * 2;
+}
+// ANCHOR_END: siblings 

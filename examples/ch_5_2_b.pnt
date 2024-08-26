@@ -1,4 +1,5 @@
 // <disabled>
+// Disabled because tuple keys are not yet supported
 // ANCHOR: storage_block
 storage {
     // ...
@@ -8,11 +9,11 @@ storage {
 }
 // ANCHOR_END: storage_block
 
+predicate Foo {
 // ANCHOR: storage_access
 state complex_read: b256 = storage::complex_map[{42, 69}].1;
 
-var addr: b256;
+var addr1: b256;
 state nested_read: bool = storage::nested_map[addr1][100];
 // ANCHOR_END: storage_access
-
-solve satisfy;
+}

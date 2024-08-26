@@ -62,3 +62,7 @@ variable as we usually do.
 
 Similarly to local storage access expressions, the expression `CounterInstance::storage::counter`
 can only be used on the right-hand side of a `state` declaration.
+
+> **Note**: The `mut` keyword cannot be added to external storage accesses. External storage
+> locations belong to the external contract that owns and it's up to the predicates in that contract
+> to control their mutability.
