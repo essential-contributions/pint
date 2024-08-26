@@ -149,10 +149,21 @@
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
-<h3 id="dependencies"><a class="header" href="#dependencies">Dependencies</a></h3>
-<p>A prerequisite for installing and using <code>Pint</code> is the Rust toolchain. Platform-specific instructions
-for installing <code>rustup</code> can be found <a href="https://www.rust-lang.org/tools/install">here</a>. Then, install
-the Rust toolchain with:</p>
+<h3 id="using-nix-recommended"><a class="header" href="#using-nix-recommended">Using Nix (Recommended)</a></h3>
+<p>The easiest way to get started with Pint and the Essential ecosystem is to use
+<a href="https://nixos.org/">Nix</a>. You first need to install Nix using:</p>
+<pre><code class="language-console">curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+</code></pre>
+<p>or using one of <a href="https://nixos.org/download/">these other alternatives</a>.</p>
+<p>Then, enter a Nix shell as follows:</p>
+<pre><code class="language-console">nix develop github:essential-contributions/essential-integration#dev
+</code></pre>
+<p>This will make all the tools you need available in your terminal.</p>
+<h3 id="installing-from-cargo"><a class="header" href="#installing-from-cargo">Installing from <code>Cargo</code></a></h3>
+<h4 id="dependencies"><a class="header" href="#dependencies">Dependencies</a></h4>
+<p>A prerequisite for installing <code>Pint</code> from <code>Cargo</code> is the Rust toolchain. Platform-specific
+instructions for installing <code>rustup</code> can be found <a href="https://www.rust-lang.org/tools/install">here</a>.
+Then, install the Rust toolchain with:</p>
 <pre><code class="language-console">$ rustup install stable
 </code></pre>
 <p>The Pint toolchain is built and tested against the latest <a href="https://github.com/rust-lang/rust/releases/latest"><code>stable</code> Rust toolchain
@@ -160,7 +171,7 @@ version</a>. Ensure you are using the latest
 <code>stable</code> version of Rust with:</p>
 <pre><code class="language-console">$ rustup update &amp;&amp; rustup default stable
 </code></pre>
-<h3 id="installing-from-cargo"><a class="header" href="#installing-from-cargo">Installing from <code>Cargo</code></a></h3>
+<h4 id="installation-steps"><a class="header" href="#installation-steps">Installation Steps</a></h4>
 <p>The Pint toolchain can be installed using <code>Cargo</code> with:</p>
 <pre><code class="language-console">$ cargo install pint-cli
 </code></pre>
@@ -168,9 +179,12 @@ version</a>. Ensure you are using the latest
 <pre><code class="language-console">$ cargo update pint-cli
 </code></pre>
 <h3 id="syntax-highlighting"><a class="header" href="#syntax-highlighting">Syntax Highlighting</a></h3>
-<p>Currently there is only syntax highlighting support for VScode however, we are working on adding support for other editors.</p>
-<h4 id="vscode"><a class="header" href="#vscode">VScode</a></h4>
-<p>Search the market place for <code>pint syntax</code> or use this <a href="https://marketplace.visualstudio.com/items?itemName=essential-contributions.pint-lang">link</a></p>
+<p>Currently, Pint only has syntax highlighting support in Visual Studio Code. We are, however, in the
+process of adding support for other editors.</p>
+<h4 id="visual-studio-code"><a class="header" href="#visual-studio-code">Visual Studio Code</a></h4>
+<p>To install the Pint plugin, Search the Visual Studio Code market place for <code>pint syntax</code>.
+Alternatively, use <a href="https://marketplace.visualstudio.com/items?itemName=essential-contributions.pint-lang">this
+link</a>.</p>
 
                     </main>
 

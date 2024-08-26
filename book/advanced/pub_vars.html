@@ -250,6 +250,77 @@ added for each predicate instance declaration. Therefore, in the example below:<
 </code></pre>
 <p>the variables <code>x1</code> and <code>x2</code> may not be the same since they may refer to two different values of <code>x</code>
 in the solution (if <code>Foo</code> is solved multiple times).</p>
+<h3 id="accessing-public-decision-variables-from-a-sibling-contract"><a class="header" href="#accessing-public-decision-variables-from-a-sibling-contract">Accessing Public Decision Variables From a Sibling Contract</a></h3>
+<p>Public decision variables, being <em>public</em>, are also visible from predicates in the <em>same</em> contract
+as the predicate that declares them. While working within a single contract, you may want one
+predicate to access another predicate's public decision variables. This can be done, again, using
+predicate instances. The difference here is that, because we're working in the same contract, there
+is no need to declare an interface for that contract and an interface instance. There is also no
+need to specify an address for the predicate instance because the compiler can figure that out on
+its own! Here's an example:</p>
+<pre><code class="language-pint">predicate A {
+    pub var x: int;    
+}
+
+predicate B {
+    predicate AI1 = A();
+    predicate AI2 = A();
+    constraint AI1::x == AI2::x * 2;
+}
+</code></pre>
+<p>Here, <code>AI1</code> and <code>AI2</code> are two instances of predicate <code>A</code> which exposes a single public decision
+variable called <code>x</code>. We are then requiring that the value of <code>x</code> in the first instance is double the
+value of <code>x</code> in the second instance.</p>
+<p>One important caveat of the above is that you are not allowed to have <em>cyclical dependencies</em>
+between predicates. For example:</p>
+<pre><code class="language-pint">predicate A {
+    pub var x: int;    
+
+    predicate BI = B();
+    constraint BI::y == 69;
+}
+
+predicate B {
+    pub var y: int;    
+
+    predicate AI = A();
+    constraint AI::x == 42;
+}
+</code></pre>
+<p>Here, predicate <code>A</code> requires predicate <code>B</code> and predicate <code>B</code> requires predicate <code>A</code>. This causes a
+cycle where the addresses of a predicate cannot be determined and used by the other. The compiler
+will emit the following error to prevent you from proceeding:</p>
+<pre><code class="language-console">Error: dependency cycle detected between predicates
+   ╭─[ch_7_1_b.pnt:3:1]
+   │
+ 3 │ predicate A {
+   │ ─────┬─────
+   │      ╰─────── this predicate is on the dependency cycle
+   │
+10 │ predicate B {
+   │ ─────┬─────
+   │      ╰─────── this predicate is on the dependency cycle
+   │
+   │ Note: dependency between predicates is typically created via predicate instances
+───╯
+</code></pre>
+<p>Another caveat is that a predicate cannot reference itself:</p>
+<pre><code class="language-pint">predicate C {
+    pub var x: int;    
+
+    predicate CI = C();
+    constraint CI::x == 69;
+}
+</code></pre>
+<p>The compiler will complain as follows:</p>
+<pre><code class="language-console">Error: self referential predicate `C`
+   ╭─[ch_7_1_c.pnt:6:5]
+   │
+ 6 │     predicate CI = C();
+   │     ─────────┬────────
+   │              ╰────────── this predicate instance references the predicate it's declared in
+───╯
+</code></pre>
 
                     </main>
 

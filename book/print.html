@@ -174,10 +174,21 @@ reference, though it is not entirely comprehensive.</p>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
-<h3 id="dependencies"><a class="header" href="#dependencies">Dependencies</a></h3>
-<p>A prerequisite for installing and using <code>Pint</code> is the Rust toolchain. Platform-specific instructions
-for installing <code>rustup</code> can be found <a href="https://www.rust-lang.org/tools/install">here</a>. Then, install
-the Rust toolchain with:</p>
+<h3 id="using-nix-recommended"><a class="header" href="#using-nix-recommended">Using Nix (Recommended)</a></h3>
+<p>The easiest way to get started with Pint and the Essential ecosystem is to use
+<a href="https://nixos.org/">Nix</a>. You first need to install Nix using:</p>
+<pre><code class="language-console">curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+</code></pre>
+<p>or using one of <a href="https://nixos.org/download/">these other alternatives</a>.</p>
+<p>Then, enter a Nix shell as follows:</p>
+<pre><code class="language-console">nix develop github:essential-contributions/essential-integration#dev
+</code></pre>
+<p>This will make all the tools you need available in your terminal.</p>
+<h3 id="installing-from-cargo"><a class="header" href="#installing-from-cargo">Installing from <code>Cargo</code></a></h3>
+<h4 id="dependencies"><a class="header" href="#dependencies">Dependencies</a></h4>
+<p>A prerequisite for installing <code>Pint</code> from <code>Cargo</code> is the Rust toolchain. Platform-specific
+instructions for installing <code>rustup</code> can be found <a href="https://www.rust-lang.org/tools/install">here</a>.
+Then, install the Rust toolchain with:</p>
 <pre><code class="language-console">$ rustup install stable
 </code></pre>
 <p>The Pint toolchain is built and tested against the latest <a href="https://github.com/rust-lang/rust/releases/latest"><code>stable</code> Rust toolchain
@@ -185,7 +196,7 @@ version</a>. Ensure you are using the latest
 <code>stable</code> version of Rust with:</p>
 <pre><code class="language-console">$ rustup update &amp;&amp; rustup default stable
 </code></pre>
-<h3 id="installing-from-cargo"><a class="header" href="#installing-from-cargo">Installing from <code>Cargo</code></a></h3>
+<h4 id="installation-steps"><a class="header" href="#installation-steps">Installation Steps</a></h4>
 <p>The Pint toolchain can be installed using <code>Cargo</code> with:</p>
 <pre><code class="language-console">$ cargo install pint-cli
 </code></pre>
@@ -193,9 +204,12 @@ version</a>. Ensure you are using the latest
 <pre><code class="language-console">$ cargo update pint-cli
 </code></pre>
 <h3 id="syntax-highlighting"><a class="header" href="#syntax-highlighting">Syntax Highlighting</a></h3>
-<p>Currently there is only syntax highlighting support for VScode however, we are working on adding support for other editors.</p>
-<h4 id="vscode"><a class="header" href="#vscode">VScode</a></h4>
-<p>Search the market place for <code>pint syntax</code> or use this <a href="https://marketplace.visualstudio.com/items?itemName=essential-contributions.pint-lang">link</a></p>
+<p>Currently, Pint only has syntax highlighting support in Visual Studio Code. We are, however, in the
+process of adding support for other editors.</p>
+<h4 id="visual-studio-code"><a class="header" href="#visual-studio-code">Visual Studio Code</a></h4>
+<p>To install the Pint plugin, Search the Visual Studio Code market place for <code>pint syntax</code>.
+Alternatively, use <a href="https://marketplace.visualstudio.com/items?itemName=essential-contributions.pint-lang">this
+link</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="quickstart-guide"><a class="header" href="#quickstart-guide">Quickstart Guide</a></h2>
 <p>Now that you’ve installed Pint, it’s time to write your first Pint contract. The first contract we
@@ -242,7 +256,7 @@ default project kind. Alternatively, <code>kind</code> can be a <em>library</em>
 }
 
 predicate Increment {
-    state counter: int = storage::counter;
+    state counter: int = mut storage::counter;
 
     constraint (counter == nil &amp;&amp; counter' == 1) || counter' == counter + 1;
 }
@@ -264,9 +278,9 @@ separately.</p>
 </code></pre>
 <p>You should get something like this:</p>
 <pre><code class="language-console">   Compiling counter [contract] (/path/to/counter)
-    Finished build [debug] in 7.727125ms
-    contract counter            6B81816FAF32033F860130547AB53F5BB61FB7820B17E3363D794D78C654283D
-         └── counter::Increment 865DFE8E296A1E0F94EBB627EA89E7608F83C442D3A01BC5C2F271A972164904
+    Finished build [debug] in 4.157208ms
+    contract counter            C276E4E5EAF789F82B671E53F0B202AE357C511F2B711E4921310946ACE63B7C
+         └── counter::Increment 3D7ABBA5C62DF177EFD61CA9D74ED055B29267404112583FA2E4C0D98B828149
 </code></pre>
 <p>Note the two 256-bit numbers in the output. These represent the <em>content hash</em> (i.e. the <code>sha256</code> of
 the bytecode) of the <code>counter</code> contract (as a whole) and the <code>Increment</code> predicate, respectively.
@@ -308,20 +322,22 @@ off.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="counter"><a class="header" href="#counter">Counter</a></h2>
 <p>The &quot;counter&quot; is one of the simplest smart contracts that can be written in Pint. It showcases how a
-contract can have multiple predicates and how it can declare and use <em>storage</em>.</p>
+contract can have multiple predicates and how it can declare and use <em>storage</em>. This particular
+implementation of the &quot;counter&quot; contract is different from the one we encountered in the <a href="examples/../getting_started/quickstart.html#writing-a-pint-program">Quickstart
+Guide</a></p>
 <pre><code class="language-pint">storage {
     counter: int,
 }
 
 predicate Initialize {
     var value: int;
-    state counter: int = storage::counter;
+    state counter: int = mut storage::counter;
     constraint counter' == value;
 }
 
 predicate Increment {
     var amount: int;
-    state counter: int = storage::counter;
+    state counter: int = mut storage::counter;
     constraint counter' == counter + amount;
 }
 </code></pre>
@@ -335,10 +351,13 @@ variables are variables that the <em>solver</em> is required to <em>find</em> va
 as &quot;arguments&quot; that the solver has to set such that <em>every</em> <code>constraint</code> in the predicate
 evaluates to <code>true</code>. In <code>Initialize</code>, we are declaring a single decision variable called <code>value</code>
 of type <code>int</code>. This is the value that we want our counter to get initialized to.</li>
-<li>The second statement declares a <code>state</code> variable and initializes it to <code>storage::counter</code>. State
-variables are special variables that always need to be initialized to a <em>storage</em> access
-expression. The statement <code>state counter: int = storage::counter</code> creates a state variable called
-<code>counter</code> and initializes it to the current value of <code>counter</code> declared in the <code>storage</code> block.</li>
+<li>The second statement declares a <code>state</code> variable and initializes it to <code>mut storage::counter</code>.
+State variables are special variables that always need to be initialized to a <em>storage</em> access
+expression. The statement <code>state counter: int = mut storage::counter</code> creates a state variable
+called <code>counter</code> and initializes it to the current value of <code>counter</code> declared in the <code>storage</code>
+block. The <code>mut</code> keyword simply indicates that the solver is allowed to propose a new value for
+<code>counter</code>. If <code>mut</code> is not present, then the storage variable <code>counter</code> cannot be modified by
+anyone attempting to solve predicate <code>Initialize</code>.</li>
 <li>The third statement contains the core logic of this predicate. It <strong>declares</strong> that the &quot;next
 value&quot; of <code>state counter</code> <strong>must</strong> be equal to <code>value</code>. Note the <code>'</code> notation here which can be
 only applied to a <code>state</code> variable, and means &quot;the next value of the state variable after a valid
@@ -364,8 +383,10 @@ value: 42
 0: 42
 </code></pre>
 <p>This solution proposes a value of <code>42</code> for the decision variable <code>value</code> and a new value of <code>42</code> for
-the storage key <code>0</code> where <code>counter</code> is stored (we will go over the storage data layout later!). A
-solution must also indicate which predicate is being solved using its address but we're omitting
+the storage key <code>0</code> where <code>counter</code> is stored (we will go over the storage data layout later!). Note
+that the storage key <code>0</code> where <code>counter</code> is stored <em>can</em> be modified by the solution because of the
+<code>mut</code> keyword added before <code>storage::counter</code>.</p>
+<p>A solution must also indicate which predicate is being solved using its address but we're omitting
 that here for simplicity.</p>
 <p>Alternatively, a solution to <code>Increment</code> can be proposed to satisfy the user requirement <code>counter = 42</code>. For example, if the current value of <code>counter</code> happens to be <code>35</code>, then the following solution
 to <code>Increment</code> can be proposed:</p>
@@ -390,8 +411,8 @@ predicate Mint {
     var receiver: b256;
     var amount: int;
 
-    state receiver_balance = storage::balances[receiver];
-    state total_supply = storage::total_supply;
+    state receiver_balance = mut storage::balances[receiver];
+    state total_supply = mut storage::total_supply;
 
     constraint total_supply' == total_supply + amount;
     constraint receiver_balance' == receiver_balance + amount;
@@ -403,8 +424,8 @@ predicate Send {
     var receiver: b256;
     var amount: int;
 
-    state from_balance = storage::balances[from];
-    state receiver_balance = storage::balances[receiver];
+    state from_balance = mut storage::balances[from];
+    state receiver_balance = mut storage::balances[receiver];
 
     constraint amount &lt; from_balance;
     constraint from_balance' == from_balance - amount;
@@ -426,9 +447,9 @@ address.</li>
 <li>It declares two decision variables <code>receiver: b256</code> and <code>amount: int</code>. The goal of this predicate
 to mint <code>amount</code> coins and send them to <code>receiver</code>.</li>
 <li>It initializes a <code>state</code> variable called <code>receiver_balance</code> using the storage access expression
-<code>storage::balances[receiver]</code>. This syntax returns the value in <code>balances</code> that <code>receiver</code> maps
-to. The predicate also initializes another state variable called <code>total_supply</code> to
-<code>storage::total_supply</code>.</li>
+<code>mut storage::balances[receiver]</code>. This syntax returns the value in <code>balances</code> that <code>receiver</code>
+maps to and makes it &quot;mutable&quot;. The predicate also initializes another state variable called
+<code>total_supply</code> to <code>mut storage::total_supply</code>.</li>
 <li>It enforces two constraints:
 <ol>
 <li>the first constraint requires the total supply to be incremented by <code>amount</code>.</li>
@@ -441,7 +462,8 @@ to. The predicate also initializes another state variable called <code>total_sup
 <li>It declares three decision variables <code>from: b256</code>, <code>receiver: b256</code>, and <code>amount: int</code>. The goal
 of this predicate to send <code>amount</code> coins from address <code>from</code> to address <code>receiver</code>.</li>
 <li>It initializes a <code>state</code> variable called <code>from_balance</code> to the balance of <code>from</code> and another
-variable called <code>receiver_balance</code> to the balance of <code>receiver</code>.</li>
+variable called <code>receiver_balance</code> to the balance of <code>receiver</code>. It also makes both balances
+&quot;mutable&quot;.</li>
 <li>It enforces three constraints
 <ol>
 <li>the first constraint requires <code>from_balance</code> to be larger than <code>amount</code>. That is, the address
@@ -950,35 +972,37 @@ initializer.</p>
 <pre><code class="language-pint">const minimum: int = 10;
 const maximum: int = 20;
 
-predicate test {
+predicate Foo {
     var foo: int;
 
     var size: int;
     constraint size &gt;= minimum &amp;&amp; foo &lt;= maximum;
 }
+
 </code></pre>
-<p>Like <code>var</code> declarations the type may be ommitted and will be inferred by the Pint compiler, but the
+<p>Like <code>var</code> declarations the type may be omitted and will be inferred by the Pint compiler, but the
 <code>const</code> initializer is required and must a constant expression which does not refer to decision
 variables nor other non-constant values such as state.</p>
-<!--- Temporarily disabled.
+<h3 id="constants-of-compound-types"><a class="header" href="#constants-of-compound-types">Constants of Compound Types</a></h3>
+<p><code>const</code> declarations may refer to values with compound types as long as every element within is a
+constant value. Constant value initializers may also dereference other array or tuple <code>const</code>
+declarations or even array or tuple literals.</p>
+<pre><code class="language-pint">const counts = [20, 30, 40];
 
-### Constants of Compound Types
+const default_idx = 1;
+const next_count = counts[default_idx + 1];
 
-`const` declarations may refer to values with compound types as long as every element within is a
-constant value. Constant value initializers may also dereference other array or tuple `const`
-declarations or even array or tuple immediates.
+const min_size = { valid: true, size: 10 };
 
-```pint
-
-```
-
-In the above example `next_count` is evaluated at compile time to be fixed as 40.
-
-The `min_size` tuple is adding a flag to a value to mark whether it should be used or not in a
-constraint. This may be convenient during development for turning the `min_size.size` constraint on
-or off.
-
---->
+predicate Bar {
+    var my_size: int;
+    constraint !min_size.valid || my_size &gt;= min_size.size;
+}
+</code></pre>
+<p>In the above example <code>next_count</code> is evaluated <strong>at compile time</strong> to be fixed as 40.</p>
+<p>The <code>min_size</code> tuple is adding a flag to a value to mark whether it should be used or not in a
+constraint. This may be convenient during development for turning the <code>min_size.size</code> constraint on
+or off.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="smart-contracts"><a class="header" href="#smart-contracts">Smart Contracts</a></h2>
 <p>Pint is a language for writing &quot;smart contracts&quot;. If you're familiar with smart contract languages
@@ -1055,13 +1079,13 @@ have made all decision variables <code>pub</code>, which marks them as public:</
 
 predicate Initialize {
     pub var value: int;
-    state counter: int = storage::counter;
+    state counter: int = mut storage::counter;
     constraint counter' == value;
 }
 
 predicate Increment {
     pub var amount: int;
-    state counter: int = storage::counter;
+    state counter: int = mut storage::counter;
     constraint counter' == counter + amount;
 }
 </code></pre>
@@ -1114,6 +1138,7 @@ useful.</p>
     y: bool,
     w: int,
     arr: { int, int }[3],
+    v: { int, { bool, b256 } },
 }
 </code></pre>
 <p>A <code>storage</code> starts with the keyword <code>storage</code> and followed by a comma-separated list of variable
@@ -1193,21 +1218,34 @@ value of <code>x</code> to be equal to the <em>current</em> value of <code>x</co
 declarative language where the order of statements does not matter and there is no sequential
 execution, statements like <code>x = x + 1</code> cannot be written and are not logical. Instead, Pint offers a
 special syntax, reserved for <code>state</code> variables, that means &quot;the future value of&quot;. Here's an example:</p>
-<pre><code class="language-pint">state bal = storage::x;
+<pre><code class="language-pint">state bal = mut storage::x;
 constraint bal' &gt;= bal + 42;
 </code></pre>
 <p>Here, <code>bal'</code>, unlike <code>bal</code>, is actually unknown at solve-time. That is, <code>bal'</code> must be solved for as
 if it were a decision variable and every solution must include a proposed value for <code>bal'</code>. If, for
 example, the value of <code>bal</code> was read to be <code>100</code> at solve-time, a solver might propose that the next
 value of <code>bal</code> should be <code>150</code> (i.e. <code>bal' = 150</code>) which would be a valid solution because <code>150 &gt;= 100 + 42</code> (assuming all other constraints in the predicate are also satisfied).</p>
-<p>This concludes our overview on storage which only focused on statically-sized storage types. In the
-next chapter, we will cover dynamically-sized storage types which offer a lot more flexibility.</p>
+<h4 id="mutable-storage-accesses"><a class="header" href="#mutable-storage-accesses">&quot;Mutable&quot; Storage Accesses</a></h4>
+<p>In the previous section, you may have noticed that we added the <code>mut</code> keyword before <code>storage::x</code> in
+the <code>state</code> declaration. In Pint, storage locations are <strong>non-mutable by default</strong>. That is, solvers
+cannot propose new values for a storage location <em>unless</em> they are solving a predicate that allows
+the storage location to be mutable. This is accomplished using the <code>mut</code> keyword added before a
+storage access. In the example of the previous section, because <code>mut</code> was added before <code>storage::x</code>,
+a solver can now propose a <em>state mutation</em> that updates the value of <code>x</code>.</p>
+<p>When the <code>mut</code> keyword as added before a storage access into a compound type, mutability applies
+<strong>only</strong> to the portion of the compound type that is being accessed. For example, in the example
+below:</p>
+<pre><code class="language-pint">state inner: { bool, b256 } = mut storage::v.1;
+</code></pre>
+<p><code>v.1</code> is a storage access into nested tuple <code>v</code> defined in the <code>storage</code> block declared earlier.
+Here, both <code>v.1.0</code> ( a <code>bool</code>) and <code>v.1.1</code> (a <code>b256</code>) are both allowed to be mutated, but <code>v.0</code> is
+not allowed to be.</p>
 <h4 id="empty-state"><a class="header" href="#empty-state">&quot;Empty&quot; State</a></h4>
 <p>You may be wondering what happens if a storage variable was never previously updated but was read
 anyways. In this case, there is no value stored at that storage variable and nothing can be read.
 To help you reason about this, Pint provides the literal <code>nil</code> to represent the <em>absence of a
 value</em>. For example,</p>
-<pre><code class="language-pint">state w = storage::w;
+<pre><code class="language-pint">state w = mut storage::w;
 var value: int = (w == nil ? 0 : w);
 </code></pre>
 <p>In the example above, we first check if <code>w</code> is <code>nil</code> before attempting to read it. If it is <code>nil</code>
@@ -1220,6 +1258,8 @@ has a value or not, then it is possible that the state read operation will panic
 }
 </code></pre>
 <p>Here, if <code>w</code> currently has a value, then we constrain the next value of <code>w</code> to be <code>nil</code>.</p>
+<p>This concludes our overview on storage which only focused on statically-sized storage types. In the
+next chapter, we will cover dynamically-sized storage types which offer a lot more flexibility.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="dynamically-sized-storage-types"><a class="header" href="#dynamically-sized-storage-types">Dynamically-sized Storage Types</a></h2>
 <p>Pint includes a number of very useful data structures called <em>storage collections</em>. Most other data
@@ -1272,7 +1312,7 @@ operation because Pint has no sequential execution. However, as in the case with
 storage types, we can <em>require</em> that the next value of a specific entry in a storage map satisfy
 some constraint(s):</p>
 <pre><code class="language-pint">var my_address: b256;
-state my_bal = storage::balances[my_address];
+state my_bal = mut storage::balances[my_address];
 constraint my_bal' == my_bal + 1000000;
 </code></pre>
 <p>Here, we're requiring that our balance go up by 1 million, by applying the &quot;prime&quot; operator on the
@@ -1308,7 +1348,7 @@ maps a <code>b256</code> to another map! The way to access entries in these maps
 is exactly what you'd expect:</p>
 <pre><code class="language-pint">state complex_read: b256 = storage::complex_map[{42, 69}].1;
 
-var addr: b256;
+var addr1: b256;
 state nested_read: bool = storage::nested_map[addr1][100];
 </code></pre>
 <p>The first storage access reads a tuple value using a key that itself is a tuple, and then accesses
@@ -1408,6 +1448,11 @@ and not the name of interface itself.</li>
 variable as we usually do.</p>
 <p>Similarly to local storage access expressions, the expression <code>CounterInstance::storage::counter</code>
 can only be used on the right-hand side of a <code>state</code> declaration.</p>
+<blockquote>
+<p><strong>Note</strong>: The <code>mut</code> keyword cannot be added to external storage accesses. External storage
+locations belong to the external contract that owns and it's up to the predicates in that contract
+to control their mutability.</p>
+</blockquote>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="managine-growing-projects"><a class="header" href="#managine-growing-projects">Managine Growing Projects</a></h1>
 <p>As you write large programs, organizing your code will become increasingly important. By grouping
@@ -1758,6 +1803,77 @@ added for each predicate instance declaration. Therefore, in the example below:<
 </code></pre>
 <p>the variables <code>x1</code> and <code>x2</code> may not be the same since they may refer to two different values of <code>x</code>
 in the solution (if <code>Foo</code> is solved multiple times).</p>
+<h3 id="accessing-public-decision-variables-from-a-sibling-contract"><a class="header" href="#accessing-public-decision-variables-from-a-sibling-contract">Accessing Public Decision Variables From a Sibling Contract</a></h3>
+<p>Public decision variables, being <em>public</em>, are also visible from predicates in the <em>same</em> contract
+as the predicate that declares them. While working within a single contract, you may want one
+predicate to access another predicate's public decision variables. This can be done, again, using
+predicate instances. The difference here is that, because we're working in the same contract, there
+is no need to declare an interface for that contract and an interface instance. There is also no
+need to specify an address for the predicate instance because the compiler can figure that out on
+its own! Here's an example:</p>
+<pre><code class="language-pint">predicate A {
+    pub var x: int;    
+}
+
+predicate B {
+    predicate AI1 = A();
+    predicate AI2 = A();
+    constraint AI1::x == AI2::x * 2;
+}
+</code></pre>
+<p>Here, <code>AI1</code> and <code>AI2</code> are two instances of predicate <code>A</code> which exposes a single public decision
+variable called <code>x</code>. We are then requiring that the value of <code>x</code> in the first instance is double the
+value of <code>x</code> in the second instance.</p>
+<p>One important caveat of the above is that you are not allowed to have <em>cyclical dependencies</em>
+between predicates. For example:</p>
+<pre><code class="language-pint">predicate A {
+    pub var x: int;    
+
+    predicate BI = B();
+    constraint BI::y == 69;
+}
+
+predicate B {
+    pub var y: int;    
+
+    predicate AI = A();
+    constraint AI::x == 42;
+}
+</code></pre>
+<p>Here, predicate <code>A</code> requires predicate <code>B</code> and predicate <code>B</code> requires predicate <code>A</code>. This causes a
+cycle where the addresses of a predicate cannot be determined and used by the other. The compiler
+will emit the following error to prevent you from proceeding:</p>
+<pre><code class="language-console">Error: dependency cycle detected between predicates
+   ╭─[ch_7_1_b.pnt:3:1]
+   │
+ 3 │ predicate A {
+   │ ─────┬─────
+   │      ╰─────── this predicate is on the dependency cycle
+   │
+10 │ predicate B {
+   │ ─────┬─────
+   │      ╰─────── this predicate is on the dependency cycle
+   │
+   │ Note: dependency between predicates is typically created via predicate instances
+───╯
+</code></pre>
+<p>Another caveat is that a predicate cannot reference itself:</p>
+<pre><code class="language-pint">predicate C {
+    pub var x: int;    
+
+    predicate CI = C();
+    constraint CI::x == 69;
+}
+</code></pre>
+<p>The compiler will complain as follows:</p>
+<pre><code class="language-console">Error: self referential predicate `C`
+   ╭─[ch_7_1_c.pnt:6:5]
+   │
+ 6 │     predicate CI = C();
+   │     ─────────┬────────
+   │              ╰────────── this predicate instance references the predicate it's declared in
+───╯
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="macros"><a class="header" href="#macros">Macros</a></h2>
 <p>Macros are a way of writing code that writes other code, which is known as <em>metaprogramming</em>.
@@ -2242,7 +2358,8 @@ domain</li>
 <li><code>int</code> - basic integer type</li>
 <li><code>interface</code> - declare an external interface</li>
 <li><code>macro</code> - define a macro</li>
-<li><code>nil</code> -</li>
+<li><code>mut</code> - allows a storage location to be mutable</li>
+<li><code>nil</code> - an <em>empty</em> storage value</li>
 <li><code>predicate</code> - define a predicate</li>
 <li><code>pub</code> -</li>
 <li><code>self</code> - used in <code>use</code> statements</li>

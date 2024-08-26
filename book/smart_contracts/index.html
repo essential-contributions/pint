@@ -223,13 +223,13 @@ have made all decision variables <code>pub</code>, which marks them as public:</
 
 predicate Initialize {
     pub var value: int;
-    state counter: int = storage::counter;
+    state counter: int = mut storage::counter;
     constraint counter' == value;
 }
 
 predicate Increment {
     pub var amount: int;
-    state counter: int = storage::counter;
+    state counter: int = mut storage::counter;
     constraint counter' == counter + amount;
 }
 </code></pre>

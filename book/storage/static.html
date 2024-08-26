@@ -161,6 +161,7 @@ useful.</p>
     y: bool,
     w: int,
     arr: { int, int }[3],
+    v: { int, { bool, b256 } },
 }
 </code></pre>
 <p>A <code>storage</code> starts with the keyword <code>storage</code> and followed by a comma-separated list of variable
@@ -240,21 +241,34 @@ value of <code>x</code> to be equal to the <em>current</em> value of <code>x</co
 declarative language where the order of statements does not matter and there is no sequential
 execution, statements like <code>x = x + 1</code> cannot be written and are not logical. Instead, Pint offers a
 special syntax, reserved for <code>state</code> variables, that means &quot;the future value of&quot;. Here's an example:</p>
-<pre><code class="language-pint">state bal = storage::x;
+<pre><code class="language-pint">state bal = mut storage::x;
 constraint bal' &gt;= bal + 42;
 </code></pre>
 <p>Here, <code>bal'</code>, unlike <code>bal</code>, is actually unknown at solve-time. That is, <code>bal'</code> must be solved for as
 if it were a decision variable and every solution must include a proposed value for <code>bal'</code>. If, for
 example, the value of <code>bal</code> was read to be <code>100</code> at solve-time, a solver might propose that the next
 value of <code>bal</code> should be <code>150</code> (i.e. <code>bal' = 150</code>) which would be a valid solution because <code>150 &gt;= 100 + 42</code> (assuming all other constraints in the predicate are also satisfied).</p>
-<p>This concludes our overview on storage which only focused on statically-sized storage types. In the
-next chapter, we will cover dynamically-sized storage types which offer a lot more flexibility.</p>
+<h4 id="mutable-storage-accesses"><a class="header" href="#mutable-storage-accesses">&quot;Mutable&quot; Storage Accesses</a></h4>
+<p>In the previous section, you may have noticed that we added the <code>mut</code> keyword before <code>storage::x</code> in
+the <code>state</code> declaration. In Pint, storage locations are <strong>non-mutable by default</strong>. That is, solvers
+cannot propose new values for a storage location <em>unless</em> they are solving a predicate that allows
+the storage location to be mutable. This is accomplished using the <code>mut</code> keyword added before a
+storage access. In the example of the previous section, because <code>mut</code> was added before <code>storage::x</code>,
+a solver can now propose a <em>state mutation</em> that updates the value of <code>x</code>.</p>
+<p>When the <code>mut</code> keyword as added before a storage access into a compound type, mutability applies
+<strong>only</strong> to the portion of the compound type that is being accessed. For example, in the example
+below:</p>
+<pre><code class="language-pint">state inner: { bool, b256 } = mut storage::v.1;
+</code></pre>
+<p><code>v.1</code> is a storage access into nested tuple <code>v</code> defined in the <code>storage</code> block declared earlier.
+Here, both <code>v.1.0</code> ( a <code>bool</code>) and <code>v.1.1</code> (a <code>b256</code>) are both allowed to be mutated, but <code>v.0</code> is
+not allowed to be.</p>
 <h4 id="empty-state"><a class="header" href="#empty-state">&quot;Empty&quot; State</a></h4>
 <p>You may be wondering what happens if a storage variable was never previously updated but was read
 anyways. In this case, there is no value stored at that storage variable and nothing can be read.
 To help you reason about this, Pint provides the literal <code>nil</code> to represent the <em>absence of a
 value</em>. For example,</p>
-<pre><code class="language-pint">state w = storage::w;
+<pre><code class="language-pint">state w = mut storage::w;
 var value: int = (w == nil ? 0 : w);
 </code></pre>
 <p>In the example above, we first check if <code>w</code> is <code>nil</code> before attempting to read it. If it is <code>nil</code>
@@ -267,6 +281,8 @@ has a value or not, then it is possible that the state read operation will panic
 }
 </code></pre>
 <p>Here, if <code>w</code> currently has a value, then we constrain the next value of <code>w</code> to be <code>nil</code>.</p>
+<p>This concludes our overview on storage which only focused on statically-sized storage types. In the
+next chapter, we will cover dynamically-sized storage types which offer a lot more flexibility.</p>
 
                     </main>
 

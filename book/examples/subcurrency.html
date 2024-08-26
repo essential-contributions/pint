@@ -161,8 +161,8 @@ predicate Mint {
     var receiver: b256;
     var amount: int;
 
-    state receiver_balance = storage::balances[receiver];
-    state total_supply = storage::total_supply;
+    state receiver_balance = mut storage::balances[receiver];
+    state total_supply = mut storage::total_supply;
 
     constraint total_supply' == total_supply + amount;
     constraint receiver_balance' == receiver_balance + amount;
@@ -174,8 +174,8 @@ predicate Send {
     var receiver: b256;
     var amount: int;
 
-    state from_balance = storage::balances[from];
-    state receiver_balance = storage::balances[receiver];
+    state from_balance = mut storage::balances[from];
+    state receiver_balance = mut storage::balances[receiver];
 
     constraint amount &lt; from_balance;
     constraint from_balance' == from_balance - amount;
@@ -197,9 +197,9 @@ address.</li>
 <li>It declares two decision variables <code>receiver: b256</code> and <code>amount: int</code>. The goal of this predicate
 to mint <code>amount</code> coins and send them to <code>receiver</code>.</li>
 <li>It initializes a <code>state</code> variable called <code>receiver_balance</code> using the storage access expression
-<code>storage::balances[receiver]</code>. This syntax returns the value in <code>balances</code> that <code>receiver</code> maps
-to. The predicate also initializes another state variable called <code>total_supply</code> to
-<code>storage::total_supply</code>.</li>
+<code>mut storage::balances[receiver]</code>. This syntax returns the value in <code>balances</code> that <code>receiver</code>
+maps to and makes it &quot;mutable&quot;. The predicate also initializes another state variable called
+<code>total_supply</code> to <code>mut storage::total_supply</code>.</li>
 <li>It enforces two constraints:
 <ol>
 <li>the first constraint requires the total supply to be incremented by <code>amount</code>.</li>
@@ -212,7 +212,8 @@ to. The predicate also initializes another state variable called <code>total_sup
 <li>It declares three decision variables <code>from: b256</code>, <code>receiver: b256</code>, and <code>amount: int</code>. The goal
 of this predicate to send <code>amount</code> coins from address <code>from</code> to address <code>receiver</code>.</li>
 <li>It initializes a <code>state</code> variable called <code>from_balance</code> to the balance of <code>from</code> and another
-variable called <code>receiver_balance</code> to the balance of <code>receiver</code>.</li>
+variable called <code>receiver_balance</code> to the balance of <code>receiver</code>. It also makes both balances
+&quot;mutable&quot;.</li>
 <li>It enforces three constraints
 <ol>
 <li>the first constraint requires <code>from_balance</code> to be larger than <code>amount</code>. That is, the address

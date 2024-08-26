@@ -199,7 +199,7 @@ operation because Pint has no sequential execution. However, as in the case with
 storage types, we can <em>require</em> that the next value of a specific entry in a storage map satisfy
 some constraint(s):</p>
 <pre><code class="language-pint">var my_address: b256;
-state my_bal = storage::balances[my_address];
+state my_bal = mut storage::balances[my_address];
 constraint my_bal' == my_bal + 1000000;
 </code></pre>
 <p>Here, we're requiring that our balance go up by 1 million, by applying the &quot;prime&quot; operator on the
@@ -235,7 +235,7 @@ maps a <code>b256</code> to another map! The way to access entries in these maps
 is exactly what you'd expect:</p>
 <pre><code class="language-pint">state complex_read: b256 = storage::complex_map[{42, 69}].1;
 
-var addr: b256;
+var addr1: b256;
 state nested_read: bool = storage::nested_map[addr1][100];
 </code></pre>
 <p>The first storage access reads a tuple value using a key that itself is a tuple, and then accesses

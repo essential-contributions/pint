@@ -150,20 +150,22 @@
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="counter"><a class="header" href="#counter">Counter</a></h2>
 <p>The &quot;counter&quot; is one of the simplest smart contracts that can be written in Pint. It showcases how a
-contract can have multiple predicates and how it can declare and use <em>storage</em>.</p>
+contract can have multiple predicates and how it can declare and use <em>storage</em>. This particular
+implementation of the &quot;counter&quot; contract is different from the one we encountered in the <a href="../getting_started/quickstart.html#writing-a-pint-program">Quickstart
+Guide</a></p>
 <pre><code class="language-pint">storage {
     counter: int,
 }
 
 predicate Initialize {
     var value: int;
-    state counter: int = storage::counter;
+    state counter: int = mut storage::counter;
     constraint counter' == value;
 }
 
 predicate Increment {
     var amount: int;
-    state counter: int = storage::counter;
+    state counter: int = mut storage::counter;
     constraint counter' == counter + amount;
 }
 </code></pre>
@@ -177,10 +179,13 @@ variables are variables that the <em>solver</em> is required to <em>find</em> va
 as &quot;arguments&quot; that the solver has to set such that <em>every</em> <code>constraint</code> in the predicate
 evaluates to <code>true</code>. In <code>Initialize</code>, we are declaring a single decision variable called <code>value</code>
 of type <code>int</code>. This is the value that we want our counter to get initialized to.</li>
-<li>The second statement declares a <code>state</code> variable and initializes it to <code>storage::counter</code>. State
-variables are special variables that always need to be initialized to a <em>storage</em> access
-expression. The statement <code>state counter: int = storage::counter</code> creates a state variable called
-<code>counter</code> and initializes it to the current value of <code>counter</code> declared in the <code>storage</code> block.</li>
+<li>The second statement declares a <code>state</code> variable and initializes it to <code>mut storage::counter</code>.
+State variables are special variables that always need to be initialized to a <em>storage</em> access
+expression. The statement <code>state counter: int = mut storage::counter</code> creates a state variable
+called <code>counter</code> and initializes it to the current value of <code>counter</code> declared in the <code>storage</code>
+block. The <code>mut</code> keyword simply indicates that the solver is allowed to propose a new value for
+<code>counter</code>. If <code>mut</code> is not present, then the storage variable <code>counter</code> cannot be modified by
+anyone attempting to solve predicate <code>Initialize</code>.</li>
 <li>The third statement contains the core logic of this predicate. It <strong>declares</strong> that the &quot;next
 value&quot; of <code>state counter</code> <strong>must</strong> be equal to <code>value</code>. Note the <code>'</code> notation here which can be
 only applied to a <code>state</code> variable, and means &quot;the next value of the state variable after a valid
@@ -206,8 +211,10 @@ value: 42
 0: 42
 </code></pre>
 <p>This solution proposes a value of <code>42</code> for the decision variable <code>value</code> and a new value of <code>42</code> for
-the storage key <code>0</code> where <code>counter</code> is stored (we will go over the storage data layout later!). A
-solution must also indicate which predicate is being solved using its address but we're omitting
+the storage key <code>0</code> where <code>counter</code> is stored (we will go over the storage data layout later!). Note
+that the storage key <code>0</code> where <code>counter</code> is stored <em>can</em> be modified by the solution because of the
+<code>mut</code> keyword added before <code>storage::counter</code>.</p>
+<p>A solution must also indicate which predicate is being solved using its address but we're omitting
 that here for simplicity.</p>
 <p>Alternatively, a solution to <code>Increment</code> can be proposed to satisfy the user requirement <code>counter = 42</code>. For example, if the current value of <code>counter</code> happens to be <code>35</code>, then the following solution
 to <code>Increment</code> can be proposed:</p>
