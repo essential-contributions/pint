@@ -127,7 +127,7 @@ between predicates. For example:
 {{#include ../../../../examples/ch_7_1_b.pnt:cycle}}
 ```
 
-Here, predicate `A` requires predicate `B` and predate `B` requires predicate `A`. This causes a
+Here, predicate `A` requires predicate `B` and predicate `B` requires predicate `A`. This causes a
 cycle where the addresses of a predicate cannot be determined and used by the other. The compiler
 will emit the following error to prevent you from proceeding:
 
