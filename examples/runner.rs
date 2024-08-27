@@ -50,7 +50,7 @@ fn examples_runner() -> anyhow::Result<()> {
 
         // Parsed program -> Flattened program
         let _flattened = unwrap_or_continue!(
-            parsed.compile(&handler),
+            parsed.compile(&handler, false, false),
             "compile",
             failed_tests,
             path,

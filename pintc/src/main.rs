@@ -29,13 +29,15 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    // Type check and flatten
-    let flattened = match handler.scope(|handler| parsed.compile(handler)) {
-        Ok(flattened) => {
-            if args.print_flat {
-                println!("{flattened}");
+    // Type check, flatten and optimise
+    let contract = match handler
+        .scope(|handler| parsed.compile(handler, args.skip_optimise, args.print_flat))
+    {
+        Ok(optimised) => {
+            if args.print_optimised && !args.skip_optimise {
+                println!("{optimised}");
             }
-            flattened
+            optimised
         }
         Err(_) => {
             let errors = handler.consume();
@@ -45,17 +47,6 @@ fn main() -> anyhow::Result<()> {
             }
             pintc::pintc_bail!(errors_len, filepath)
         }
-    };
-
-    // Optimise
-    let contract = if args.skip_optimise {
-        flattened
-    } else {
-        let optimised = flattened.optimise();
-        if args.print_optimised {
-            println!("{optimised}");
-        }
-        optimised
     };
 
     match handler.scope(|handler| compile_contract(handler, &contract)) {

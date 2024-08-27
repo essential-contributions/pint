@@ -23,7 +23,7 @@ pub(super) fn compile(code: &str) -> CompiledContract {
     let deps = Default::default();
     let contract = parse_project(&handler, &deps, tmpfile.path())
         .unwrap()
-        .compile(&handler)
+        .compile(&handler, false, false)
         .unwrap();
     compile_contract(&handler, &contract).unwrap()
 }
@@ -46,10 +46,6 @@ fn bool_literals() {
             predicate ::test {
                 --- Constraints ---
                 constraint 0
-                  Stack(Push(1))
-                constraint 1
-                  Stack(Push(0))
-                constraint 2
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
