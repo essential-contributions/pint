@@ -182,7 +182,7 @@ pub enum CompileError {
     InvalidArrayRangeType { found_ty: String, span: Span },
     #[error("variables cannot have storage types")]
     VarHasStorageType { ty: String, span: Span },
-    #[error("attempt to index a storage map with a mismatched value")]
+    #[error("attempt to access a storage map with incorrect key type")]
     StorageMapAccessWithWrongType {
         found_ty: String,
         expected_ty: String,
@@ -770,7 +770,7 @@ impl ReportableError for CompileError {
                 expected_ty, span, ..
             } => {
                 vec![ErrorLabel {
-                    message: format!("storage map access must be with a `{expected_ty}` variant"),
+                    message: format!("storage map access key must be of type `{expected_ty}`"),
                     span: span.clone(),
                     color: Color::Red,
                 }]

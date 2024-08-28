@@ -9,7 +9,7 @@ use crate::{
     },
     predicate::{PredKey, State, StorageVar},
     span::{empty_span, Span, Spanned},
-    types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
+    types::{b256, r#bool, EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
 use fxhash::{FxHashMap, FxHashSet};
 
@@ -296,76 +296,54 @@ impl Contract {
     }
 
     pub(super) fn check_constraint_types(&self, handler: &Handler) {
-        for pred in self.preds.values() {
-            // After all expression types are inferred, then all constraint expressions must be of type bool
-            pred.constraints.iter().for_each(|constraint_decl| {
+        for predicate in self.preds.values() {
+            predicate.constraints.iter().for_each(|constraint_decl| {
                 let expr_type = constraint_decl.expr.get_ty(self);
-                if !expr_type.is_bool() {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::ConstraintExpressionTypeError {
-                            large_err: Box::new(LargeTypeError::ConstraintExpressionTypeError {
-                                expected_ty: self
-                                    .with_ctrct(Type::Primitive {
-                                        kind: PrimitiveKind::Bool,
-                                        span: empty_span(),
-                                    })
-                                    .to_string(),
-                                found_ty: self.with_ctrct(expr_type).to_string(),
-                                span: constraint_decl.span.clone(),
-                                expected_span: Some(self.expr_key_to_span(constraint_decl.expr)),
-                            }),
-                        },
-                    });
+
+                // Ensure all constraint expressions are of type bool
+                if expr_type.is_bool() {
+                    return;
                 }
-            })
+
+                handler.emit_err(Error::Compile {
+                    error: CompileError::ConstraintExpressionTypeError {
+                        large_err: Box::new(LargeTypeError::ConstraintExpressionTypeError {
+                            expected_ty: self.with_ctrct(r#bool()).to_string(),
+                            found_ty: self.with_ctrct(expr_type).to_string(),
+                            span: constraint_decl.span.clone(),
+                            expected_span: Some(self.expr_key_to_span(constraint_decl.expr)),
+                        }),
+                    },
+                });
+            });
         }
     }
 
     pub(super) fn check_storage_types(&self, handler: &Handler) {
         if let Some((storage_vars, _)) = &self.storage {
             for StorageVar { ty, span, .. } in storage_vars {
-                if !(ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() || ty.is_array())
-                {
-                    let ty = ty.is_alias().unwrap_or(ty);
-                    if let Type::Map {
-                        ref ty_from,
-                        ref ty_to,
-                        ..
-                    } = ty
-                    {
-                        if !((ty_from.is_bool() || ty_from.is_int() || ty_from.is_b256())
-                            && (ty_to.is_bool()
-                                || ty_to.is_int()
-                                || ty_to.is_b256()
-                                || ty_to.is_map()
-                                || ty_to.is_tuple()
-                                || ty_to.is_array()))
-                        {
-                            // TODO: allow arbitrary types in storage maps
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::Internal {
-                                    msg: "currently in storage maps, keys must be int, bool, or b256 \
-                                            and values must be int or bool",
-                                    span: span.clone(),
-                                },
-                            });
-                        }
-                    } else if let Type::Vector { ref ty, .. } = ty {
-                        if !(ty.is_bool() || ty.is_int() || ty.is_b256()) {
-                            // TODO: allow arbitrary types in storage vectors
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::Internal {
-                                    msg: "storage vector can only contain int, bool, or b256",
-                                    span: span.clone(),
-                                },
-                            });
-                        }
-                    } else {
-                        // TODO: allow arbitrary types in storage blocks
+                if !ty.is_allowed_in_storage() {
+                    // Some types are not allowed in storage
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "booo",
+                            span: span.clone(),
+                        },
+                    });
+                } else if let Some(ty_from) = ty.get_map_ty_from() {
+                    if ty_from.is_storage_only_type() {
                         handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
-                                msg: "only ints, bools, and maps are currently allowed in a \
-                                        storage block",
+                                msg: "booo",
+                                span: span.clone(),
+                            },
+                        });
+                    }
+                } else if let Some(ty) = ty.get_vector_element_ty() {
+                    if !(ty.is_bool() || ty.is_int() || ty.is_b256()) {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "storage vector can only contain int, bool, or b256",
                                 span: span.clone(),
                             },
                         });
@@ -723,12 +701,7 @@ impl Contract {
                     handler.emit_err(Error::Compile {
                         error: CompileError::AddressExpressionTypeError {
                             large_err: Box::new(LargeTypeError::AddressExpressionTypeError {
-                                expected_ty: self
-                                    .with_ctrct(Type::Primitive {
-                                        kind: PrimitiveKind::B256,
-                                        span: empty_span(),
-                                    })
-                                    .to_string(),
+                                expected_ty: self.with_ctrct(b256()).to_string(),
                                 found_ty: self.with_ctrct(ty).to_string(),
                                 span: self.expr_key_to_span(*address),
                                 expected_span: Some(self.expr_key_to_span(*address)),

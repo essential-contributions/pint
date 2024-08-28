@@ -313,6 +313,33 @@ impl Type {
         })
     }
 
+    pub fn is_storage_only_type(&self) -> bool {
+        self.is_map() || self.is_vector()
+    }
+
+    pub fn is_allowed_in_storage(&self) -> bool {
+        match self {
+            Type::Error(_) | Type::Unknown(_) | Type::Any(_) => false,
+            Type::Primitive { kind, .. } => match kind {
+                PrimitiveKind::Bool | PrimitiveKind::Int | PrimitiveKind::B256 => true,
+                PrimitiveKind::Nil | PrimitiveKind::Real | PrimitiveKind::String => false,
+            },
+            Type::Array { ty, .. } => ty.is_allowed_in_storage(),
+            Type::Tuple { fields, .. } => fields
+                .iter()
+                .all(|(_, field)| field.is_allowed_in_storage()),
+            Type::Custom { .. } => {
+                // Custom types *may* refer to types that are allowed in storage. However, we don't
+                // know until we inspect what they actually are. We hope that, by the time this
+                // function is called, custom types that are not enums have been lowered to
+                // `Type::Alias`, and so, we will return `true` to allow enums in storage.
+                true
+            }
+            Type::Alias { ty, .. } => ty.is_allowed_in_storage(),
+            Type::Map { .. } | Type::Vector { .. } => true,
+        }
+    }
+
     pub fn size(&self, handler: &Handler, contract: &Contract) -> Result<usize, ErrorEmitted> {
         match self {
             Self::Primitive {
