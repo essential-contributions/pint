@@ -48,10 +48,19 @@ fn solver_e2e() {
             handler
         );
 
-        // Flattened predicate -> Flatpint
+        // Flattened predicate -> Optimised predicate
+        let optimised = unwrap_or_continue!(
+            type_checked.optimise(),
+            "flatten",
+            failed_tests,
+            path,
+            handler
+        );
+
+        // Optimised predicate -> Flatpint
         #[allow(unused)]
         let flatpint = unwrap_or_continue!(
-            pint_solve::parse_flatpint(&format!("{flattened}",)[..]),
+            pint_solve::parse_flatpint(&format!("{optimised}",)[..]),
             "parse Flatpint",
             failed_tests,
             path
