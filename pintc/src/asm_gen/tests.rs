@@ -17,13 +17,21 @@ pub(super) fn check(actual: &str, expect: expect_test::Expect) {
 /// Compile some code into `CompiledContract`. Panics if anything fails.
 #[cfg(test)]
 pub(super) fn compile(code: &str) -> CompiledContract {
+    use crate::predicate::CompileOptions;
+
     let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
     write!(tmpfile.as_file_mut(), "{}", code).unwrap();
     let handler = Handler::default();
     let deps = Default::default();
     let contract = parse_project(&handler, &deps, tmpfile.path())
         .unwrap()
-        .compile(&handler, false, false)
+        .compile(
+            &handler,
+            CompileOptions {
+                skip_optimise: false,
+                print_flat: false,
+            },
+        )
         .unwrap();
     compile_contract(&handler, &contract).unwrap()
 }

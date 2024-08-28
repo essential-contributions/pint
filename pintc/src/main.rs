@@ -1,5 +1,5 @@
 use clap::Parser;
-use pintc::{asm_gen::compile_contract, cli::Args, error, parser};
+use pintc::{asm_gen::compile_contract, cli::Args, error, parser, predicate::CompileOptions};
 use std::{
     fs::{create_dir_all, File},
     path::{Path, PathBuf},
@@ -30,9 +30,15 @@ fn main() -> anyhow::Result<()> {
     };
 
     // Type check, flatten and optimise
-    let contract = match handler
-        .scope(|handler| parsed.compile(handler, args.skip_optimise, args.print_flat))
-    {
+    let contract = match handler.scope(|handler| {
+        parsed.compile(
+            handler,
+            CompileOptions {
+                skip_optimise: args.skip_optimise,
+                print_flat: args.print_flat,
+            },
+        )
+    }) {
         Ok(optimised) => {
             if args.print_optimised && !args.skip_optimise {
                 println!("{optimised}");

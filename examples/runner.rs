@@ -1,3 +1,4 @@
+use pintc::predicate::CompileOptions;
 use std::{
     fs::{read_dir, File},
     io::{BufRead, BufReader},
@@ -50,7 +51,13 @@ fn examples_runner() -> anyhow::Result<()> {
 
         // Parsed program -> Flattened program
         let _flattened = unwrap_or_continue!(
-            parsed.compile(&handler, false, false),
+            parsed.compile(
+                &handler,
+                CompileOptions {
+                    skip_optimise: false,
+                    print_flat: false,
+                }
+            ),
             "compile",
             failed_tests,
             path,

@@ -5,6 +5,7 @@ use essential_state_read_vm::types::{
     solution::{Mutation, Solution, SolutionData},
     ContentAddress, PredicateAddress,
 };
+use pintc::predicate::CompileOptions;
 use std::{
     collections::HashMap,
     fs::{read_dir, File},
@@ -63,7 +64,13 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
         // Parsed contract -> Flattened contract
         let flattened = unwrap_or_continue!(
-            parsed.compile(&handler, false, false),
+            parsed.compile(
+                &handler,
+                CompileOptions {
+                    skip_optimise: false,
+                    print_flat: false,
+                }
+            ),
             "compile",
             failed_tests,
             path,

@@ -44,21 +44,21 @@ pub struct Contract {
     pub(crate) symbols: SymbolTable,
 }
 
+pub struct CompileOptions {
+    pub skip_optimise: bool,
+    pub print_flat: bool,
+}
+
 impl Contract {
-    pub fn compile(
-        self,
-        handler: &Handler,
-        skip_optimise: bool,
-        print_flat: bool,
-    ) -> Result<Self, ErrorEmitted> {
+    pub fn compile(self, handler: &Handler, options: CompileOptions) -> Result<Self, ErrorEmitted> {
         let type_checked = handler.scope(|handler| self.type_check(handler))?;
         let flattened = handler.scope(|handler| type_checked.flatten(handler))?;
 
-        if print_flat {
+        if options.print_flat {
             println!("{flattened}");
         }
 
-        if skip_optimise {
+        if options.skip_optimise {
             Ok(flattened)
         } else {
             Ok(flattened.optimise())
