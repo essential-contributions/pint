@@ -63,7 +63,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
         // Parsed contract -> Flattened contract
         let flattened = unwrap_or_continue!(
-            parsed.compile(&handler, true, false),
+            parsed.compile(&handler, false, false),
             "compile",
             failed_tests,
             path,
