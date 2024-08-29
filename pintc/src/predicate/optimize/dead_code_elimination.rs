@@ -73,7 +73,7 @@ pub(crate) fn dead_constraint_elimination(contract: &mut Contract) {
                 })
                 .collect::<Vec<(usize, bool)>>();
 
-            if dead_constraints.iter().any(|(_, b)| *b == false) {
+            if dead_constraints.iter().any(|(_, b)| !(*b)) {
                 // replace all constraints with one `constraint false`
                 if let Some(pred) = contract.preds.get_mut(pred_key) {
                     pred.constraints = vec![ConstraintDecl {
