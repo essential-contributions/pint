@@ -5,12 +5,6 @@ use clap::{builder::styling::Style, Parser};
 use pint_pkg::{build::BuiltPkg, manifest::ManifestFile};
 use std::path::{Path, PathBuf};
 
-// arg.print_final (or better name)
-// if skip_optimize is called, then it will print the flattened version
-// otherwise flattened
-// can't print both at the same time which is fine
-// either optimizing or not
-
 /// Build a package, writing the generated artifacts to `out/`.
 #[derive(Parser, Debug)]
 pub(crate) struct Args {
