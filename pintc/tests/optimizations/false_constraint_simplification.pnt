@@ -1,0 +1,42 @@
+predicate Test {
+    var x = 1;
+    var y: int;
+
+    // non-trivial that should be simplified when a constraint resolves to false
+    constraint x < y;
+    constraint x == x;
+
+    // resolves to false
+    constraint 1 + 2 < 3;
+}
+
+// parsed <<<
+// predicate ::Test {
+//     var ::x;
+//     var ::y: int;
+//     constraint (::x == 1);
+//     constraint (::x < ::y);
+//     constraint (::x == ::x);
+//     constraint ((1 + 2) < 3);
+// }
+// >>>
+
+// flattened <<<
+// predicate ::Test {
+//     var ::x: int;
+//     var ::y: int;
+//     constraint (::x == 1);
+//     constraint (::x < ::y);
+//     constraint (::x == ::x);
+//     constraint ((1 + 2) < 3);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
+
+// optimized <<<
+// predicate ::Test {
+//     var ::x: int;
+//     var ::y: int;
+//     constraint false;
+// }
+// >>>

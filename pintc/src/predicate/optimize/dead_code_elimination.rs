@@ -2,8 +2,10 @@ use fxhash::FxHashSet;
 
 use crate::{
     error::Handler,
-    expr::{evaluate::Evaluator, Expr},
+    expr::{evaluate::Evaluator, Expr, Immediate},
     predicate::{ConstraintDecl, Contract, StateKey},
+    span::empty_span,
+    types::Type,
 };
 
 /// In a given contract, remove any code that is not reachable or used.
@@ -48,25 +50,58 @@ pub(crate) fn dead_state_elimination(contract: &mut Contract) {
 }
 
 /// Remove all trivial Constraints in their respective predicates.
+///
+/// If any constraint evaluates to false, all constraints are removed and replaced with a single instance of `constraint false`
 pub(crate) fn dead_constraint_elimination(contract: &mut Contract) {
     let evaluator = Evaluator::new(&contract.enums);
     let handler = Handler::default();
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         if let Some(pred) = contract.preds.get(pred_key) {
-            let live_constraints = pred
+            let dead_constraints = pred
                 .constraints
                 .iter()
                 .filter_map(|constraint| {
-                    evaluator
-                        .evaluate_key(&constraint.expr, &handler, contract)
-                        .is_err()
-                        .then_some(constraint.clone())
+                    let evaluation = evaluator.evaluate_key(&constraint.expr, &handler, contract);
+                    match evaluation {
+                        Ok(imm) => Some((constraint.clone(), imm)),
+                        Err(_) => None,
+                    }
                 })
-                .collect::<Vec<ConstraintDecl>>();
+                .collect::<Vec<(ConstraintDecl, Immediate)>>();
 
-            if let Some(pred) = contract.preds.get_mut(pred_key) {
-                pred.constraints = live_constraints;
+            if dead_constraints
+                .iter()
+                .find(|(_, imm)| *imm == Immediate::Bool(false))
+                .is_some()
+            {
+                // replace all constraints with one `constraint false`
+                if let Some(pred) = contract.preds.get_mut(pred_key) {
+                    let false_expr_key = contract.exprs.insert(
+                        Expr::Immediate {
+                            value: Immediate::Bool(false),
+                            span: empty_span(),
+                        },
+                        Type::Primitive {
+                            kind: crate::types::PrimitiveKind::Bool,
+                            span: empty_span(),
+                        },
+                    );
+                    pred.constraints = vec![ConstraintDecl {
+                        expr: false_expr_key,
+                        span: empty_span(),
+                    }]
+                }
+            } else {
+                // retain only useful constraints
+                if let Some(pred) = contract.preds.get_mut(pred_key) {
+                    pred.constraints.retain(|constraint| {
+                        dead_constraints
+                            .iter()
+                            .find(|(dead_constraint, _)| dead_constraint == constraint)
+                            .is_none()
+                    })
+                }
             }
         }
     }

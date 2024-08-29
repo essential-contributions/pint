@@ -9,11 +9,11 @@ predicate Test {
 
     // trivial and should be removed
     constraint true;
-    constraint false;
+    constraint !false;
     constraint 1 + 2 == 3;
     constraint a;
     constraint b;
-    constraint c.0 > d[1];
+    constraint c.0 > d[0];
     constraint d[0] < c.1;
 
     // non-trivial that should be kept for now
@@ -32,11 +32,11 @@ predicate Test {
 //     var ::y: int;
 //     constraint (::x == 1);
 //     constraint true;
-//     constraint false;
+//     constraint !false;
 //     constraint ((1 + 2) == 3);
 //     constraint ::a;
 //     constraint ::b;
-//     constraint (::c.0 > ::d[1]);
+//     constraint (::c.0 > ::d[0]);
 //     constraint (::d[0] < ::c.1);
 //     constraint (::x < ::y);
 //     constraint (::x == ::x);
@@ -54,11 +54,11 @@ predicate Test {
 //     var ::y: int;
 //     constraint (::x == 1);
 //     constraint true;
-//     constraint false;
+//     constraint !false;
 //     constraint ((1 + 2) == 3);
 //     constraint true;
 //     constraint true;
-//     constraint (1 > 1);
+//     constraint (1 > 0);
 //     constraint (0 < 2);
 //     constraint (::x < ::y);
 //     constraint (::x == ::x);
