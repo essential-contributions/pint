@@ -524,7 +524,7 @@ pub struct Const {
     pub(crate) decl_ty: Type,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct ConstraintDecl {
     pub expr: ExprKey,
     pub span: Span,

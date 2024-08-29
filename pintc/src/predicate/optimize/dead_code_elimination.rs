@@ -5,7 +5,6 @@ use crate::{
     expr::{evaluate::Evaluator, Expr, Immediate},
     predicate::{ConstraintDecl, Contract, StateKey},
     span::empty_span,
-    types::Type,
 };
 
 /// In a given contract, remove any code that is not reachable or used.
@@ -54,53 +53,42 @@ pub(crate) fn dead_state_elimination(contract: &mut Contract) {
 /// If any constraint evaluates to false, all constraints are removed and replaced with a single instance of `constraint false`
 pub(crate) fn dead_constraint_elimination(contract: &mut Contract) {
     let evaluator = Evaluator::new(&contract.enums);
-    let handler = Handler::default();
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         if let Some(pred) = contract.preds.get(pred_key) {
             let dead_constraints = pred
                 .constraints
                 .iter()
-                .filter_map(|constraint| {
-                    let evaluation = evaluator.evaluate_key(&constraint.expr, &handler, contract);
+                .enumerate()
+                .filter_map(|(i, constraint)| {
+                    let evaluation =
+                        evaluator.evaluate_key(&constraint.expr, &Handler::default(), contract);
                     match evaluation {
-                        Ok(imm) => Some((constraint.clone(), imm)),
-                        Err(_) => None,
+                        // If the evaluator succeeds, we're only expecting true or false. If it doesn't then we don't care about the constraint.
+                        // We also don't care about the errors emitted by the evaluator
+                        Ok(Immediate::Bool(b)) => Some((i, b)),
+                        _ => None,
                     }
                 })
-                .collect::<Vec<(ConstraintDecl, Immediate)>>();
+                .collect::<Vec<(usize, bool)>>();
 
-            if dead_constraints
-                .iter()
-                .find(|(_, imm)| *imm == Immediate::Bool(false))
-                .is_some()
-            {
+            if dead_constraints.iter().any(|(_, b)| *b == false) {
                 // replace all constraints with one `constraint false`
                 if let Some(pred) = contract.preds.get_mut(pred_key) {
-                    let false_expr_key = contract.exprs.insert(
-                        Expr::Immediate {
-                            value: Immediate::Bool(false),
-                            span: empty_span(),
-                        },
-                        Type::Primitive {
-                            kind: crate::types::PrimitiveKind::Bool,
-                            span: empty_span(),
-                        },
-                    );
                     pred.constraints = vec![ConstraintDecl {
-                        expr: false_expr_key,
+                        expr: contract.exprs.insert_bool(false),
+                        // ideally we would collect the spans of all the constraints, but we don't have the ability to do that right now
                         span: empty_span(),
                     }]
                 }
             } else {
                 // retain only useful constraints
                 if let Some(pred) = contract.preds.get_mut(pred_key) {
-                    pred.constraints.retain(|constraint| {
-                        dead_constraints
-                            .iter()
-                            .find(|(dead_constraint, _)| dead_constraint == constraint)
-                            .is_none()
-                    })
+                    // Remove dead constraints in reverse to avoid removing the wrong indices from shifting elements
+                    // This assumes dead_constraints is sort, which it based on how it is collected above
+                    dead_constraints.iter().rev().for_each(|(i, _)| {
+                        let _ = pred.constraints.remove(*i);
+                    });
                 }
             }
         }
