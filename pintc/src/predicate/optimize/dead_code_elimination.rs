@@ -61,13 +61,14 @@ pub(crate) fn dead_constraint_elimination(contract: &mut Contract) {
                 .iter()
                 .enumerate()
                 .filter_map(|(i, constraint)| {
-                    let evaluation =
-                        evaluator.evaluate_key(&constraint.expr, &Handler::default(), contract);
-                    match evaluation {
-                        // If the evaluator succeeds, we're only expecting true or false. If it doesn't then we don't care about the constraint.
-                        // We also don't care about the errors emitted by the evaluator
-                        Ok(Immediate::Bool(b)) => Some((i, b)),
-                        _ => None,
+                    // If the evaluator succeeds, we're only expecting true or false. If it doesn't then we don't care about the constraint.
+                    // We also don't care about the errors emitted by the evaluator
+                    if let Ok(Immediate::Bool(b)) =
+                        evaluator.evaluate_key(&constraint.expr, &Handler::default(), contract)
+                    {
+                        Some((i, b))
+                    } else {
+                        None
                     }
                 })
                 .collect::<Vec<(usize, bool)>>();
@@ -85,9 +86,9 @@ pub(crate) fn dead_constraint_elimination(contract: &mut Contract) {
                 // retain only useful constraints
                 if let Some(pred) = contract.preds.get_mut(pred_key) {
                     // Remove dead constraints in reverse to avoid removing the wrong indices from shifting elements
-                    // This assumes dead_constraints is sort, which it based on how it is collected above
+                    // This assumes dead_constraints is sorted, which it is based on how it is collected above
                     dead_constraints.iter().rev().for_each(|(i, _)| {
-                        let _ = pred.constraints.remove(*i);
+                        pred.constraints.remove(*i);
                     });
                 }
             }
