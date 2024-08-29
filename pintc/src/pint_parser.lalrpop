@@ -1,5 +1,5 @@
 use crate::{
-    error::{CompileError, Error, Handler, ParseError},
+    error::{Error, Handler, ParseError},
     expr::*,
     predicate::{
         BlockStatement, Const, ConstraintDecl, ExprKey, IfDecl, PredicateInterface, InterfaceDecl,
@@ -12,7 +12,7 @@ use crate::{
         ParserContext,
         UseTree::{self, Path as UseTreePath},
     },
-    span::{self, Spanned},
+    span::Spanned,
     types::{EnumDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
 
@@ -134,16 +134,6 @@ StorageDecl: () = {
 
 InterfaceVar: InterfaceVar = {
     <l:@L> "pub" "var" <name:VarName> ":" <ty:Type> ";" <r:@R> => {
-        // This is temporary until we support other types
-        if !(ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() || ty.is_array()) {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "only `bool`, `int`, `b256`, tuples, and arrays are currently \
-                         support in interface vars",
-                    span: span::empty_span(),
-                },
-            });
-        }
         InterfaceVar {
             name: name.0,
             ty,

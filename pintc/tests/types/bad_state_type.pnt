@@ -28,8 +28,8 @@ predicate Foo {
 // >>>
 
 // typecheck_failure <<<
-// state variables cannot have storage types
-// @104..130: found state variable of storage type ( int => bool ) here
-// state variables cannot have storage types
-// @136..172: found state variable of storage type ( bool => b256 ) here
+// variables cannot have storage types
+// @104..130: found variable of storage type ( int => bool ) here
+// variables cannot have storage types
+// @136..172: found variable of storage type ( bool => b256 ) here
 // >>>

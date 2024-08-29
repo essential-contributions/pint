@@ -30,6 +30,16 @@ impl Handler {
         ErrorEmitted { _priv: () }
     }
 
+    /// Produce a `Result::Ok(value)` if the handler has no errors. Otherwise, produce
+    /// `Result::Err(_)`
+    pub fn result<T>(&self, value: T) -> Result<T, ErrorEmitted> {
+        if self.has_errors() {
+            Err(self.cancel())
+        } else {
+            Ok(value)
+        }
+    }
+
     pub fn has_errors(&self) -> bool {
         !self.inner.borrow().errors.is_empty()
     }

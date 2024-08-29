@@ -1,7 +1,44 @@
+storage {
+    a: Undefined,
+    b: Undefined,
+}
+
+const a0: Undefined = 0;
+const b0: Undefined = 0;
+
+interface Foo {
+    storage {
+        a: Undefined,
+        b: Undefined,
+    }
+
+    predicate P {
+        pub var a: Undefined;
+        pub var b: Undefined;
+    }
+
+    predicate Q {
+        pub var a: Undefined;
+        pub var b: Undefined;
+    }
+}
+
+type A = Undefined;
+type B = Undefined;
+
 enum Baz = X | Y;
 type Xyzzy = int;
 
 predicate test {
+    state a1: Undefined = storage::a;
+    state b1: Undefined = storage::b;
+
+    var a2: Undefined;
+    var b2: Undefined;
+
+    var c1 = a1 as Undefined;
+    var c2 = b1 as Undefined;
+
     var a: int;
     var b: Foo;
     var c = a as Bar;
@@ -11,15 +48,45 @@ predicate test {
 }
 
 // parsed <<<
+// const ::b0: ::Undefined = 0;
+// const ::a0: ::Undefined = 0;
 // enum ::Baz = X | Y;
+// type ::A = ::Undefined;
+// type ::B = ::Undefined;
 // type ::Xyzzy = int;
-//
+// storage {
+//     a: ::Undefined,
+//     b: ::Undefined,
+// }
+// interface ::Foo {
+//     storage {
+//         a: ::Undefined,
+//         b: ::Undefined,
+//     }
+//     predicate P {
+//         pub var a: ::Undefined;
+//         pub var b: ::Undefined;
+//     }
+//     predicate Q {
+//         pub var a: ::Undefined;
+//         pub var b: ::Undefined;
+//     }
+// }
+// 
 // predicate ::test {
+//     var ::a2: ::Undefined;
+//     var ::b2: ::Undefined;
+//     var ::c1;
+//     var ::c2;
 //     var ::a: int;
 //     var ::b: ::Foo;
 //     var ::c;
 //     var ::d: ::Baz;
 //     var ::e;
+//     state ::a1: ::Undefined = storage::a;
+//     state ::b1: ::Undefined = storage::b;
+//     constraint (::c1 == ::a1 as ::Undefined);
+//     constraint (::c2 == ::b1 as ::Undefined);
 //     constraint (::c == ::a as ::Bar);
 //     constraint (::e == ::a as ::Xyzzy);
 // }
@@ -27,7 +94,58 @@ predicate test {
 
 // typecheck_failure <<<
 // undefined type
-// @81..84: type is undefined
+// @462..471: type is undefined
 // undefined type
-// @103..106: type is undefined
+// @500..509: type is undefined
+// undefined type
+// @537..546: type is undefined
+// undefined type
+// @560..569: type is undefined
+// undefined type
+// @660..663: type is undefined
+// undefined type
+// @682..685: type is undefined
+// undefined type
+// @621..630: type is undefined
+// undefined type
+// @591..600: type is undefined
+// undefined type
+// @84..93: type is undefined
+// undefined type
+// @59..68: type is undefined
+// undefined type
+// @17..26: type is undefined
+// undefined type
+// @35..44: type is undefined
+// undefined type
+// @141..150: type is undefined
+// undefined type
+// @163..172: type is undefined
+// undefined type
+// @218..227: type is undefined
+// undefined type
+// @248..257: type is undefined
+// undefined type
+// @303..312: type is undefined
+// undefined type
+// @333..342: type is undefined
+// undefined type
+// @362..371: type is undefined
+// undefined type
+// @382..391: type is undefined
+// invalid cast
+// @585..600: illegal cast to a `::Undefined`
+// casts may only be made to an int or a real
+// invalid cast
+// @615..630: illegal cast to a `::Undefined`
+// casts may only be made to an int or a real
+// invalid cast
+// @677..685: illegal cast to a `::Bar`
+// casts may only be made to an int or a real
+// const initialization type error
+// @96..97: const initializer has unexpected type `int`
+// @84..93: expecting type `::Undefined`
+// const initialization type error
+// @71..72: const initializer has unexpected type `int`
+// @59..68: expecting type `::Undefined`
 // >>>

@@ -313,10 +313,29 @@ impl Type {
         })
     }
 
+    // If `self` contains a storage only type `ty`, return `Some(ty)`. Otherwise, return `None`
+    pub fn get_storage_only_ty(&self) -> Option<&Self> {
+        match self {
+            Type::Map { .. } | Type::Vector { .. } => Some(self),
+            Type::Array { ty, .. } => ty.get_storage_only_ty(),
+            Type::Tuple { fields, .. } => {
+                for (_, field) in fields {
+                    let ty = field.get_storage_only_ty();
+                    if let Some(ty) = ty {
+                        return Some(ty);
+                    }
+                }
+                None
+            }
+            Type::Alias { ty, .. } => ty.get_storage_only_ty(),
+            _ => None,
+        }
+    }
+
     pub fn size(&self, handler: &Handler, contract: &Contract) -> Result<usize, ErrorEmitted> {
         match self {
             Self::Primitive {
-                kind: PrimitiveKind::Bool | PrimitiveKind::Int | PrimitiveKind::Real,
+                kind: PrimitiveKind::Bool | PrimitiveKind::Int,
                 ..
             } => Ok(1),
 
@@ -324,6 +343,14 @@ impl Type {
                 kind: PrimitiveKind::B256,
                 ..
             } => Ok(4),
+
+            // Other primitve types (namely `String` and `Real) are not currently supported
+            Self::Primitive { kind, span } => Err(handler.emit_err(Error::Compile {
+                error: CompileError::TypeNotSupported {
+                    ty: kind.to_string(),
+                    span: span.clone(),
+                },
+            })),
 
             Self::Tuple { fields, .. } => fields.iter().try_fold(0, |acc, (_, field_ty)| {
                 field_ty.size(handler, contract).map(|size| acc + size)
@@ -362,7 +389,18 @@ impl Type {
         contract: &Contract,
     ) -> Result<usize, ErrorEmitted> {
         match self {
-            Self::Primitive { .. } => Ok(1),
+            Self::Primitive {
+                kind: PrimitiveKind::Bool | PrimitiveKind::Int | PrimitiveKind::B256,
+                ..
+            } => Ok(1),
+
+            // Other primitve types (namely `String` and `Real) are not currently supported
+            Self::Primitive { kind, span } => Err(handler.emit_err(Error::Compile {
+                error: CompileError::TypeNotSupported {
+                    ty: kind.to_string(),
+                    span: span.clone(),
+                },
+            })),
 
             Self::Tuple { fields, .. } => fields.iter().try_fold(0, |acc, (_, field_ty)| {
                 field_ty

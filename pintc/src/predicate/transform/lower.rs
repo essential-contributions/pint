@@ -5,8 +5,8 @@ use crate::{
         TupleAccess, UnaryOp,
     },
     predicate::{
-        BlockStatement, Const, ConstraintDecl, Contract, ExprKey, ExprsIter, IfDecl, PredKey,
-        StorageVar, Var,
+        BlockStatement, Const, ConstraintDecl, Contract, ExprKey, ExprsIter, IfDecl, Interface,
+        InterfaceVar, PredKey, StorageVar, Var,
     },
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
@@ -284,10 +284,11 @@ pub(crate) fn lower_casts(handler: &Handler, contract: &mut Contract) -> Result<
     Ok(())
 }
 
+/// Lowers every `Type::Alias` to a concrete type
 pub(crate) fn lower_aliases(contract: &mut Contract) {
     use std::borrow::BorrowMut;
 
-    let new_types = FxHashMap::from_iter(
+    let new_types_map = FxHashMap::from_iter(
         contract
             .new_types
             .iter()
@@ -321,31 +322,71 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
         }
     }
 
+    // Replace `Type::Alias` in every var and state decl type in the contract
+    contract
+        .preds
+        .keys()
+        .collect::<Vec<_>>()
+        .iter()
+        .for_each(|pred_key| {
+            if let Some(pred) = contract.preds.get_mut(*pred_key) {
+                pred.vars
+                    .update_types(|_, var_ty| replace_alias(&new_types_map, var_ty));
+                pred.states
+                    .update_types(|_, state_ty| replace_alias(&new_types_map, state_ty));
+            }
+        });
+
+    // Replace `Type::Alias` in every expression type in the contract
     contract
         .exprs
-        .update_types(|_, expr_ty| replace_alias(&new_types, expr_ty));
+        .update_types(|_, expr_ty| replace_alias(&new_types_map, expr_ty));
 
+    // Replace `Type::Alias` in every cast expression in the contract
     contract.exprs.update_exprs(|_, expr| {
         if let Expr::Cast { ty, .. } = expr {
-            replace_alias(&new_types, ty.borrow_mut());
+            replace_alias(&new_types_map, ty.borrow_mut());
         }
     });
 
-    if let Some((storage_vars, _)) = &mut contract.storage {
-        for StorageVar { ty, .. } in storage_vars {
-            replace_alias(&new_types, ty);
-        }
+    // Replace `Type::Alias` in every storage variable in the contract
+    if let Some((storage_vars, _)) = contract.storage.as_mut() {
+        storage_vars.iter_mut().for_each(|StorageVar { ty, .. }| {
+            replace_alias(&new_types_map, ty);
+        })
     }
 
-    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
-        // Replace aliases with the actual type.
-        if let Some(pred) = contract.preds.get_mut(pred_key) {
-            pred.vars
-                .update_types(|_, var_ty| replace_alias(&new_types, var_ty));
-            pred.states
-                .update_types(|_, state_ty| replace_alias(&new_types, state_ty));
-        };
-    }
+    // Replace `Type::Alias` in every constant declaration in the contract
+    contract
+        .consts
+        .values_mut()
+        .for_each(|Const { decl_ty, .. }| replace_alias(&new_types_map, decl_ty));
+
+    // Replace `Type::Alias` in every interface in the contract
+    contract.interfaces.iter_mut().for_each(
+        |Interface {
+             storage,
+             predicate_interfaces,
+             ..
+         }| {
+            // Replace `Type::Alias` in every storage variable in the interface
+            if let Some((storage_vars, _)) = storage.as_mut() {
+                storage_vars
+                    .iter_mut()
+                    .for_each(|StorageVar { ty, .. }| replace_alias(&new_types_map, ty))
+            }
+
+            // Replace `Type::Alias` in every decision variable in the interface
+            predicate_interfaces
+                .iter_mut()
+                .for_each(|predicate_interface| {
+                    predicate_interface
+                        .vars
+                        .iter_mut()
+                        .for_each(|InterfaceVar { ty, .. }| replace_alias(&new_types_map, ty));
+                });
+        },
+    );
 }
 
 pub(crate) fn lower_array_ranges(

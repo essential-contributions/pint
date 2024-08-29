@@ -41,19 +41,14 @@ impl Contract {
             return Err(handler.cancel());
         }
 
-        self.check_undefined_types(handler);
-        self.lower_newtypes(handler)?;
-        self.check_storage_types(handler);
-        self.check_for_storage_types_vars(handler);
-        self.type_check_all_exprs(handler);
-        self.check_inits(handler);
-        self.check_constraint_types(handler);
+        let _ = handler.scope(|handler| self.check_undefined_types(handler));
+        let _ = handler.scope(|handler| self.lower_custom_types(handler));
+        let _ = handler.scope(|handler| self.type_check_all_exprs(handler));
+        let _ = handler.scope(|handler| self.check_types_of_variables(handler));
+        let _ = handler.scope(|handler| self.check_inits(handler));
+        let _ = handler.scope(|handler| self.check_constraint_types(handler));
 
-        if handler.has_errors() {
-            Err(handler.cancel())
-        } else {
-            Ok(self)
-        }
+        handler.result(self)
     }
 
     pub fn array_check(self, handler: &Handler) -> Result<Self, ErrorEmitted> {
@@ -63,11 +58,7 @@ impl Contract {
             self.check_array_compares(handler, pred_key);
         }
 
-        if handler.has_errors() {
-            Err(handler.cancel())
-        } else {
-            Ok(self)
-        }
+        handler.result(self)
     }
 
     fn evaluate_all_consts(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
@@ -208,10 +199,6 @@ impl Contract {
             self.consts.get_mut(&path).unwrap().decl_ty = new_ty;
         }
 
-        if handler.has_errors() {
-            Err(handler.cancel())
-        } else {
-            Ok(())
-        }
+        handler.result(())
     }
 }
