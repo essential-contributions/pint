@@ -28,7 +28,7 @@ pub(super) fn compile(code: &str) -> CompiledContract {
         .compile(
             &handler,
             CompileOptions {
-                skip_optimise: false,
+                skip_optimize: false,
                 print_flat: false,
             },
         )

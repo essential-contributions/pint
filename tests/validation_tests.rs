@@ -67,7 +67,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
             parsed.compile(
                 &handler,
                 CompileOptions {
-                    skip_optimise: false,
+                    skip_optimize: false,
                     print_flat: false,
                 }
             ),

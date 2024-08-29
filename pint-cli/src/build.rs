@@ -6,7 +6,7 @@ use pint_pkg::{build::BuiltPkg, manifest::ManifestFile};
 use std::path::{Path, PathBuf};
 
 // arg.print_final (or better name)
-// if skip_optimise is called, then it will print the flattened version
+// if skip_optimize is called, then it will print the flattened version
 // otherwise flattened
 // can't print both at the same time which is fine
 // either optimizing or not
@@ -22,10 +22,10 @@ pub(crate) struct Args {
     manifest_path: Option<PathBuf>,
     /// Print the flattened pint program.
     #[arg(long)]
-    print_optimised: bool,
+    print_optimized: bool,
     /// Skip optimising the pint program.
     #[arg(long)]
-    skip_optimise: bool,
+    skip_optimize: bool,
     /// Don't print anything that wasn't explicitly requested.
     #[arg(long)]
     silent: bool,
@@ -88,7 +88,7 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
         }
 
         // Build the package.
-        let _built = match prebuilt.build(args.skip_optimise) {
+        let _built = match prebuilt.build(args.skip_optimize) {
             Ok(built) => built,
             Err(err) => {
                 let msg = format!("{}", err.kind);
@@ -161,8 +161,8 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
         }
     }
 
-    // Print all optimised contract packages if the flag is set.
-    if args.print_optimised {
+    // Print all optimized contract packages if the flag is set.
+    if args.print_optimized {
         for &n in plan.compilation_order() {
             let built = &builder.built_pkgs()[&n];
             let pinned = &plan.graph()[n];
@@ -176,7 +176,7 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
                     bold.render_reset(),
                     source_str,
                 );
-                println!("{}", built.optimised);
+                println!("{}", built.optimized);
             }
         }
     }

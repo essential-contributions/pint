@@ -14,7 +14,7 @@ use fxhash::FxHashMap;
 mod analyse;
 mod display;
 mod exprs;
-mod optimise;
+mod optimize;
 mod states;
 mod transform;
 mod vars;
@@ -45,7 +45,7 @@ pub struct Contract {
 }
 
 pub struct CompileOptions {
-    pub skip_optimise: bool,
+    pub skip_optimize: bool,
     pub print_flat: bool,
 }
 
@@ -58,10 +58,10 @@ impl Contract {
             println!("{flattened}");
         }
 
-        if options.skip_optimise {
+        if options.skip_optimize {
             Ok(flattened)
         } else {
-            Ok(flattened.optimise())
+            Ok(flattened.optimize())
         }
     }
 

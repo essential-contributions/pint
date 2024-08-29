@@ -56,8 +56,8 @@ pub struct BuiltContract {
     pub lib_entry_point: PathBuf,
     /// The ABI for the contract.
     pub abi: ContractABI,
-    /// The optimised contract.
-    pub optimised: pintc::predicate::Contract,
+    /// The optimized contract.
+    pub optimized: pintc::predicate::Contract,
 }
 
 /// An predicate built as a part of a contract.
@@ -180,13 +180,13 @@ impl<'p, 'b> PrebuiltPkg<'p, 'b> {
     }
 
     /// Build this package.
-    pub fn build(self, skip_optimise: bool) -> Result<&'b BuiltPkg, BuildPkgError> {
+    pub fn build(self, skip_optimize: bool) -> Result<&'b BuiltPkg, BuildPkgError> {
         let Self {
             plan,
             built_pkgs,
             n,
         } = self;
-        let built = build_pkg(plan, built_pkgs, n, skip_optimise)?;
+        let built = build_pkg(plan, built_pkgs, n, skip_optimize)?;
         built_pkgs.insert(n, built);
         Ok(&built_pkgs[&n])
     }
@@ -288,7 +288,7 @@ fn build_pkg(
     plan: &Plan,
     built_pkgs: &BuiltPkgs,
     n: NodeIx,
-    skip_optimise: bool,
+    skip_optimize: bool,
 ) -> Result<BuiltPkg, BuildPkgError> {
     let graph = plan.graph();
     let pinned = &graph[n];
@@ -328,20 +328,20 @@ fn build_pkg(
             };
 
             // Perform optimisations on the flattened contract.
-            let optimised = if skip_optimise {
+            let optimized = if skip_optimize {
                 flattened
             } else {
-                flattened.optimise()
+                flattened.optimize()
             };
 
             // Produce the ABI for the flattened contract.
-            let Ok(abi) = optimised.abi(&handler) else {
+            let Ok(abi) = optimized.abi(&handler) else {
                 let kind = BuildPkgErrorKind::from(PintcError::ABIGen);
                 return Err(BuildPkgError { handler, kind });
             };
 
             // Generate the assembly and the predicates.
-            let Ok(contract) = handler.scope(|h| compile_contract(h, &optimised)) else {
+            let Ok(contract) = handler.scope(|h| compile_contract(h, &optimized)) else {
                 let kind = BuildPkgErrorKind::from(PintcError::AsmGen);
                 return Err(BuildPkgError { handler, kind });
             };
@@ -396,7 +396,7 @@ fn build_pkg(
                 },
                 lib_entry_point,
                 abi,
-                optimised,
+                optimized,
             };
             BuiltPkg::Contract(contract)
         }

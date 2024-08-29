@@ -109,7 +109,7 @@ predicate Test {
 // }
 // >>>
 
-// optimised <<<
+// optimized <<<
 // storage {
 //     x: int,
 //     arr: int[2],

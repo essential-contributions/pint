@@ -56,8 +56,8 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
                 // Flatten the parsed intent and check the result.
                 flatten_and_check(pred, &test_data, &mut failed_tests, &path))
             .and_then(|pred|
-                // Optimise the flattened intent
-                optimise(pred, &test_data));
+                // optimize the flattened intent
+                optimize(pred, &test_data));
 
         // Check the `json` ABI if a reference file exists.
         if let Some(program) = program {
@@ -240,11 +240,11 @@ fn flatten_and_check(
         .ok()
 }
 
-fn optimise(pred: Contract, test_data: &TestData) -> Option<Contract> {
-    let optimised = pred.optimise();
-    if let Some(expected_optimised_str) = &test_data.optimised {
-        similar_asserts::assert_eq!(expected_optimised_str.trim(), format!("{optimised}").trim());
-        Some(optimised)
+fn optimize(pred: Contract, test_data: &TestData) -> Option<Contract> {
+    let optimized = pred.optimize();
+    if let Some(expected_optimized_str) = &test_data.optimized {
+        similar_asserts::assert_eq!(expected_optimized_str.trim(), format!("{optimized}").trim());
+        Some(optimized)
     } else {
         None
     }

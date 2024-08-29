@@ -29,21 +29,21 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    // Type check, flatten and optimise
+    // Type check, flatten and optimize
     let contract = match handler.scope(|handler| {
         parsed.compile(
             handler,
             CompileOptions {
-                skip_optimise: args.skip_optimise,
+                skip_optimize: args.skip_optimize,
                 print_flat: args.print_flat,
             },
         )
     }) {
-        Ok(optimised) => {
-            if args.print_optimised && !args.skip_optimise {
-                println!("{optimised}");
+        Ok(optimized) => {
+            if args.print_optimized && !args.skip_optimize {
+                println!("{optimized}");
             }
-            optimised
+            optimized
         }
         Err(_) => {
             let errors = handler.consume();
