@@ -281,5 +281,5 @@ mod e2e {
     e2e_test!(root_types);
     e2e_test!(storage);
     e2e_test!(types);
-    e2e_test!(optimisations);
+    e2e_test!(optimizations);
 }

@@ -327,7 +327,7 @@ fn build_pkg(
                 return Err(BuildPkgError { handler, kind });
             };
 
-            // Perform optimisations on the flattened contract.
+            // Perform optimizations on the flattened contract.
             let optimized = if skip_optimize {
                 flattened
             } else {
