@@ -20,6 +20,6 @@ pub struct Args {
     #[arg(long = "print-optimized")]
     pub print_optimized: bool,
 
-    #[arg(long = "skip-optimize")]
+    #[arg(long = "skip-optimize", hide = true)]
     pub skip_optimize: bool,
 }

@@ -24,7 +24,7 @@ pub(crate) struct Args {
     #[arg(long)]
     print_optimized: bool,
     /// Skip optimising the pint program.
-    #[arg(long)]
+    #[arg(long, hide = true)]
     skip_optimize: bool,
     /// Don't print anything that wasn't explicitly requested.
     #[arg(long)]

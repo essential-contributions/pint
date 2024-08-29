@@ -17,7 +17,7 @@ fn build_default_contract() {
         let foo = new_pkg(&dir.join("foo"), PackageKind::Contract);
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let _built = build_plan(&plan).build_all().unwrap();
+        let _built = build_plan(&plan).build_all(false).unwrap();
     });
 }
 
@@ -27,7 +27,7 @@ fn build_default_library() {
         let foo = new_pkg(&dir.join("foo"), PackageKind::Library);
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let _built = build_plan(&plan).build_all().unwrap();
+        let _built = build_plan(&plan).build_all(false).unwrap();
     });
 }
 
@@ -57,7 +57,7 @@ predicate test {
 
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let built_pkgs = match build_plan(&plan).build_all() {
+        let built_pkgs = match build_plan(&plan).build_all(false) {
             Ok(built) => built,
             Err(err) => {
                 err.pkg_err.eprint();
@@ -132,7 +132,7 @@ predicate test {
 
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let built_pkgs = match build_plan(&plan).build_all() {
+        let built_pkgs = match build_plan(&plan).build_all(false) {
             Ok(built) => built,
             Err(err) => {
                 err.pkg_err.eprint();
@@ -221,7 +221,9 @@ predicate test {
 
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let built_pkgs = match build_plan(&plan).build_all() {
+
+        // disable optimizing to ensure that the constraints containing the contract addresses are retained in the bytecode
+        let built_pkgs = match build_plan(&plan).build_all(true) {
             Ok(built) => built,
             Err(err) => {
                 err.pkg_err.eprint();

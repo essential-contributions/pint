@@ -154,9 +154,9 @@ impl<'p> PlanBuilder<'p> {
     }
 
     /// Build all remaining packages.
-    pub fn build_all(mut self) -> Result<BuiltPkgs, BuildError> {
+    pub fn build_all(mut self, skip_optimize: bool) -> Result<BuiltPkgs, BuildError> {
         while let Some(prebuilt) = self.next_pkg() {
-            if let Err(pkg_err) = prebuilt.build(true) {
+            if let Err(pkg_err) = prebuilt.build(skip_optimize) {
                 let built_pkgs = self.built_pkgs;
                 return Err(BuildError {
                     built_pkgs,
