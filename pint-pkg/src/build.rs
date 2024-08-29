@@ -56,8 +56,8 @@ pub struct BuiltContract {
     pub lib_entry_point: PathBuf,
     /// The ABI for the contract.
     pub abi: ContractABI,
-    /// The flattened contract.
-    pub flattened: pintc::predicate::Contract,
+    /// The optimized contract.
+    pub optimized: pintc::predicate::Contract,
 }
 
 /// An predicate built as a part of a contract.
@@ -154,9 +154,9 @@ impl<'p> PlanBuilder<'p> {
     }
 
     /// Build all remaining packages.
-    pub fn build_all(mut self) -> Result<BuiltPkgs, BuildError> {
+    pub fn build_all(mut self, skip_optimize: bool) -> Result<BuiltPkgs, BuildError> {
         while let Some(prebuilt) = self.next_pkg() {
-            if let Err(pkg_err) = prebuilt.build() {
+            if let Err(pkg_err) = prebuilt.build(skip_optimize) {
                 let built_pkgs = self.built_pkgs;
                 return Err(BuildError {
                     built_pkgs,
@@ -180,13 +180,13 @@ impl<'p, 'b> PrebuiltPkg<'p, 'b> {
     }
 
     /// Build this package.
-    pub fn build(self) -> Result<&'b BuiltPkg, BuildPkgError> {
+    pub fn build(self, skip_optimize: bool) -> Result<&'b BuiltPkg, BuildPkgError> {
         let Self {
             plan,
             built_pkgs,
             n,
         } = self;
-        let built = build_pkg(plan, built_pkgs, n)?;
+        let built = build_pkg(plan, built_pkgs, n, skip_optimize)?;
         built_pkgs.insert(n, built);
         Ok(&built_pkgs[&n])
     }
@@ -284,7 +284,12 @@ fn contract_dep_lib(
 }
 
 /// Build the package at the given index, assuming all dependencies are already built.
-fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg, BuildPkgError> {
+fn build_pkg(
+    plan: &Plan,
+    built_pkgs: &BuiltPkgs,
+    n: NodeIx,
+    skip_optimize: bool,
+) -> Result<BuiltPkg, BuildPkgError> {
     let graph = plan.graph();
     let pinned = &graph[n];
     let manifest = &plan.manifests()[&pinned.id()];
@@ -322,14 +327,21 @@ fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg,
                 return Err(BuildPkgError { handler, kind });
             };
 
+            // Perform optimizations on the flattened contract.
+            let optimized = if skip_optimize {
+                flattened
+            } else {
+                flattened.optimize()
+            };
+
             // Produce the ABI for the flattened contract.
-            let Ok(abi) = flattened.abi(&handler) else {
+            let Ok(abi) = optimized.abi(&handler) else {
                 let kind = BuildPkgErrorKind::from(PintcError::ABIGen);
                 return Err(BuildPkgError { handler, kind });
             };
 
             // Generate the assembly and the predicates.
-            let Ok(contract) = handler.scope(|h| compile_contract(h, &flattened)) else {
+            let Ok(contract) = handler.scope(|h| compile_contract(h, &optimized)) else {
                 let kind = BuildPkgErrorKind::from(PintcError::AsmGen);
                 return Err(BuildPkgError { handler, kind });
             };
@@ -384,7 +396,7 @@ fn build_pkg(plan: &Plan, built_pkgs: &BuiltPkgs, n: NodeIx) -> Result<BuiltPkg,
                 },
                 lib_entry_point,
                 abi,
-                flattened,
+                optimized,
             };
             BuiltPkg::Contract(contract)
         }

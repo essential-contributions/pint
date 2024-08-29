@@ -9,7 +9,6 @@ const ContractID: b256 = 0x00030003000300030003000300030003000300030003000300030
 predicate Foo {
     interface CounterInstance = Counter(ContractID);
     state counter = CounterInstance::storage::counter;
-    constraint counter == 0;
 }
 
 // parsed <<<
@@ -23,7 +22,6 @@ predicate Foo {
 // predicate ::Foo {
 //     interface ::CounterInstance = ::Counter(::ContractID)
 //     state ::counter = ::CounterInstance::storage::counter;
-//     constraint (::counter == 0);
 // }
 // >>>
 
@@ -38,7 +36,6 @@ predicate Foo {
 // predicate ::Foo {
 //     interface ::CounterInstance = ::Counter(0x0003000300030003000300030003000300030003000300030003000300030003)
 //     state ::counter: int = __storage_get_extern(0x0003000300030003000300030003000300030003000300030003000300030003, {0});
-//     constraint (::counter == 0);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

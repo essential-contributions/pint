@@ -14,6 +14,7 @@ use fxhash::FxHashMap;
 mod analyse;
 mod display;
 mod exprs;
+mod optimize;
 mod states;
 mod transform;
 mod vars;
@@ -27,7 +28,7 @@ slotmap::new_key_type! { pub struct PredKey; }
 slotmap::new_key_type! { pub struct CallKey; }
 
 /// A Contract is a collection of predicates and some global consts.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Contract {
     pub preds: slotmap::SlotMap<PredKey, Predicate>,
 
@@ -43,10 +44,25 @@ pub struct Contract {
     pub(crate) symbols: SymbolTable,
 }
 
+pub struct CompileOptions {
+    pub skip_optimize: bool,
+    pub print_flat: bool,
+}
+
 impl Contract {
-    pub fn compile(self, handler: &Handler) -> Result<Self, ErrorEmitted> {
+    pub fn compile(self, handler: &Handler, options: CompileOptions) -> Result<Self, ErrorEmitted> {
         let type_checked = handler.scope(|handler| self.type_check(handler))?;
-        handler.scope(|handler| type_checked.flatten(handler))
+        let flattened = handler.scope(|handler| type_checked.flatten(handler))?;
+
+        if options.print_flat {
+            println!("{flattened}");
+        }
+
+        if options.skip_optimize {
+            Ok(flattened)
+        } else {
+            Ok(flattened.optimize())
+        }
     }
 
     /// An iterator for all expressions in a predicate.
@@ -343,7 +359,7 @@ impl Contract {
 
 /// An in-progress predicate, possibly malformed or containing redundant information.  Designed to
 /// be iterated upon and to be reduced to a [Predicate].
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Predicate {
     pub name: String,
 

@@ -1,5 +1,5 @@
 use clap::Parser;
-use pintc::{asm_gen::compile_contract, cli::Args, error, parser};
+use pintc::{asm_gen::compile_contract, cli::Args, error, parser, predicate::CompileOptions};
 use std::{
     fs::{create_dir_all, File},
     path::{Path, PathBuf},
@@ -29,13 +29,21 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    // Type check and flatten
-    let flattened = match handler.scope(|handler| parsed.compile(handler)) {
-        Ok(flattened) => {
-            if args.print_flat {
-                println!("{flattened}");
+    // Type check, flatten and optimize
+    let contract = match handler.scope(|handler| {
+        parsed.compile(
+            handler,
+            CompileOptions {
+                skip_optimize: args.skip_optimize,
+                print_flat: args.print_flat,
+            },
+        )
+    }) {
+        Ok(optimized) => {
+            if args.print_optimized && !args.skip_optimize {
+                println!("{optimized}");
             }
-            flattened
+            optimized
         }
         Err(_) => {
             let errors = handler.consume();
@@ -47,7 +55,7 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    match handler.scope(|handler| compile_contract(handler, &flattened)) {
+    match handler.scope(|handler| compile_contract(handler, &contract)) {
         Ok(compiled_contract) => {
             if args.print_asm {
                 println!("{compiled_contract}");
@@ -76,7 +84,7 @@ fn main() -> anyhow::Result<()> {
             json_abi_path = output_directory_path.join(json_abi_path);
 
             // Compute the JSON ABI
-            let abi = match handler.scope(|handler| flattened.abi(handler)) {
+            let abi = match handler.scope(|handler| contract.abi(handler)) {
                 Ok(abi) => abi,
                 Err(_) => {
                     let errors = handler.consume();

@@ -12,7 +12,7 @@ fn build_test_pkg(manifest: ManifestFile) {
     let members = [(name, manifest)].into_iter().collect();
     let plan = pint_pkg::plan::from_members(&members).expect("failed to plan compilation");
     let built_pkgs = pint_pkg::build::build_plan(&plan)
-        .build_all()
+        .build_all(false /* skip_optimize */)
         .expect("failed to build package");
 
     // Retrieve the built target package.

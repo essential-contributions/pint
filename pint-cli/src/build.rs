@@ -15,8 +15,11 @@ pub(crate) struct Args {
     #[arg(long = "manifest-path")]
     manifest_path: Option<PathBuf>,
     /// Print the flattened pint program.
-    #[arg(long)]
-    print_flat: bool,
+    #[arg(long = "print-optimized")]
+    print_optimized: bool,
+    /// Skip optimizing the pint program.
+    #[arg(long = "skip-optimize", hide = true)]
+    skip_optimize: bool,
     /// Don't print anything that wasn't explicitly requested.
     #[arg(long)]
     silent: bool,
@@ -79,7 +82,7 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
         }
 
         // Build the package.
-        let _built = match prebuilt.build() {
+        let _built = match prebuilt.build(args.skip_optimize) {
             Ok(built) => built,
             Err(err) => {
                 let msg = format!("{}", err.kind);
@@ -152,8 +155,8 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
         }
     }
 
-    // Print all flattened contract packages if the flag is set.
-    if args.print_flat {
+    // Print all optimized contract packages if the flag is set.
+    if args.print_optimized {
         for &n in plan.compilation_order() {
             let built = &builder.built_pkgs()[&n];
             let pinned = &plan.graph()[n];
@@ -167,7 +170,7 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
                     bold.render_reset(),
                     source_str,
                 );
-                println!("{}", built.flattened);
+                println!("{}", built.optimized);
             }
         }
     }

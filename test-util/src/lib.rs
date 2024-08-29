@@ -97,6 +97,7 @@ pub struct TestData {
     pub typecheck_failure: Option<String>,
     pub flattened: Option<String>,
     pub flattening_failure: Option<String>,
+    pub optimized: Option<String>,
     pub db: Option<String>,
 }
 
@@ -111,6 +112,7 @@ pub struct TestData {
 //   * typecheck_failure
 //   * flattened
 //   * flattening_failure
+//   * optimized
 //   * db
 //
 // e.g. A simple test file may be:
@@ -142,6 +144,7 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
         TypeCheckFailure,
         Flattened,
         FlatteningFailure,
+        Optimized,
         Db,
     }
     let mut cur_section = Section::None;
@@ -149,7 +152,7 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
 
     let comment_re = regex::Regex::new(r"^\s*//")?;
     let open_sect_re = regex::Regex::new(
-        r"^\s*//\s*(parsed|parse_failure|typecheck_failure|flattened|flattening_failure|db)\s*<<<",
+        r"^\s*//\s*(parsed|parse_failure|typecheck_failure|flattened|flattening_failure|optimized|db)\s*<<<",
     )?;
     let close_sect_re = regex::Regex::new(r"^\s*//\s*>>>")?;
 
@@ -173,6 +176,7 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
                 "flattened" => cur_section = Section::Flattened,
                 "flattening_failure" => cur_section = Section::FlatteningFailure,
                 "typecheck_failure" => cur_section = Section::TypeCheckFailure,
+                "optimized" => cur_section = Section::Optimized,
                 "db" => cur_section = Section::Db,
                 _ => unreachable!("We can't capture strings not in the regex."),
             }
@@ -208,6 +212,9 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
                 }
                 Section::FlatteningFailure => {
                     test_data.flattening_failure = Some(section_str);
+                }
+                Section::Optimized => {
+                    test_data.optimized = Some(section_str);
                 }
                 Section::Db => {
                     test_data.db = Some(section_str);

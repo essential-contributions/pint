@@ -61,6 +61,21 @@ impl Exprs {
             },
         )
     }
+
+    /// Inserts a Boolean expression with an empty span into the `exprs` map. Returns the
+    /// `ExprKey` of the expression.
+    pub fn insert_bool(&mut self, b: bool) -> ExprKey {
+        self.insert(
+            Expr::Immediate {
+                value: Immediate::Bool(b),
+                span: empty_span(),
+            },
+            Type::Primitive {
+                kind: PrimitiveKind::Bool,
+                span: empty_span(),
+            },
+        )
+    }
 }
 
 impl ExprKey {

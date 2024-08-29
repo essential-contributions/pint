@@ -17,13 +17,21 @@ pub(super) fn check(actual: &str, expect: expect_test::Expect) {
 /// Compile some code into `CompiledContract`. Panics if anything fails.
 #[cfg(test)]
 pub(super) fn compile(code: &str) -> CompiledContract {
+    use crate::predicate::CompileOptions;
+
     let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
     write!(tmpfile.as_file_mut(), "{}", code).unwrap();
     let handler = Handler::default();
     let deps = Default::default();
     let contract = parse_project(&handler, &deps, tmpfile.path())
         .unwrap()
-        .compile(&handler)
+        .compile(
+            &handler,
+            CompileOptions {
+                skip_optimize: false,
+                print_flat: false,
+            },
+        )
         .unwrap();
     compile_contract(&handler, &contract).unwrap()
 }
@@ -36,8 +44,7 @@ fn bool_literals() {
             compile(
                 r#"
             predicate test {
-                constraint true;
-                constraint false;
+              var a = [true, false];
             }
             "#,
             )
@@ -46,10 +53,15 @@ fn bool_literals() {
             predicate ::test {
                 --- Constraints ---
                 constraint 0
-                  Stack(Push(1))
-                constraint 1
                   Stack(Push(0))
-                constraint 2
+                  Stack(Push(0))
+                  Stack(Push(2))
+                  Access(DecisionVarRange)
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(2))
+                  Pred(EqRange)
+                constraint 1
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)

@@ -30,7 +30,6 @@ predicate test {
     var q: real = i as Real;
 
     state x: I = storage::x;
-    constraint x == 0;
 }
 
 // parsed <<<
@@ -68,7 +67,6 @@ predicate test {
 //     constraint (::p == {6.66e1, 7.77e1});
 //     constraint (::r < ::p.y);
 //     constraint (::q == ::i as ::Real);
-//     constraint (::x == 0);
 // }
 // >>>
 
@@ -107,7 +105,6 @@ predicate test {
 //     constraint (::p == {6.66e1, 7.77e1});
 //     constraint (::r < ::p.y);
 //     constraint (::q == ::i as real);
-//     constraint (::x == 0);
 //     constraint (::t >= 0);
 //     constraint (::t <= 2);
 //     constraint (::u >= 0);

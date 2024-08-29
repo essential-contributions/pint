@@ -1,11 +1,9 @@
-mod dead_code_elimination;
 mod legalize;
 mod lower;
 mod unroll;
 mod validate;
 
 use crate::error::{ErrorEmitted, Handler};
-use dead_code_elimination::dead_code_elimination;
 use legalize::legalize_vector_accesses;
 use lower::{
     coalesce_prime_ops, lower_aliases, lower_array_ranges, lower_casts, lower_compares_to_nil,
@@ -88,12 +86,6 @@ impl super::Contract {
         // Lower accesses to pub vars to `__transient` intrinsics. Also insert any relevant
         // constraints on contract and predicate addresses.
         let _ = handler.scope(|handler| lower_pub_var_accesses(handler, &mut self));
-
-        // ---- Optimization Passes ----
-        // TODO: Move into own phase of the compiler
-
-        // Remove dead code
-        dead_code_elimination(&mut self);
 
         // Ensure that the final contract is indeed final
         if !handler.has_errors() {

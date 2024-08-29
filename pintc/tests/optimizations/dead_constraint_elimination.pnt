@@ -1,0 +1,83 @@
+const a = true;
+const b = 3.14 < 4.23;
+const c = { 1, 2 };
+const d: int[5] = [0, 1, 2, 3, 4];
+
+predicate Test {
+    var x = 1;
+    var y: int;
+
+    // trivial and should be removed
+    constraint true;
+    constraint !false;
+    constraint 1 + 2 == 3;
+    constraint a;
+    constraint b;
+    constraint c.0 > d[0];
+    constraint d[0] < c.1;
+
+    // non-trivial that should be kept for now
+    constraint x < y;
+    constraint x == x;
+}
+
+// parsed <<<
+// const ::b = (3.14e0 < 4.23e0);
+// const ::d: int[5] = [0, 1, 2, 3, 4];
+// const ::a = true;
+// const ::c = {1, 2};
+// 
+// predicate ::Test {
+//     var ::x;
+//     var ::y: int;
+//     constraint (::x == 1);
+//     constraint true;
+//     constraint !false;
+//     constraint ((1 + 2) == 3);
+//     constraint ::a;
+//     constraint ::b;
+//     constraint (::c.0 > ::d[0]);
+//     constraint (::d[0] < ::c.1);
+//     constraint (::x < ::y);
+//     constraint (::x == ::x);
+// }
+// >>>
+
+// flattened <<<
+// const ::b: bool = true;
+// const ::d: int[5] = [0, 1, 2, 3, 4];
+// const ::a: bool = true;
+// const ::c: {int, int} = {1, 2};
+// 
+// predicate ::Test {
+//     var ::x: int;
+//     var ::y: int;
+//     constraint (::x == 1);
+//     constraint true;
+//     constraint !false;
+//     constraint ((1 + 2) == 3);
+//     constraint true;
+//     constraint true;
+//     constraint (1 > 0);
+//     constraint (0 < 2);
+//     constraint (::x < ::y);
+//     constraint (::x == ::x);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
+
+// optimized <<<
+// const ::b: bool = true;
+// const ::d: int[5] = [0, 1, 2, 3, 4];
+// const ::a: bool = true;
+// const ::c: {int, int} = {1, 2};
+// 
+// predicate ::Test {
+//     var ::x: int;
+//     var ::y: int;
+//     constraint (::x == 1);
+//     constraint (::x < ::y);
+//     constraint (::x == ::x);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

@@ -12,20 +12,20 @@ storage {
 }
 
 predicate First { 
-    constraint false;
+    var x = 1;
 }
 
 predicate Bar { 
-    constraint true;
+    var x = 2;
 }
 
 predicate Foo {
     // These addresses can be verified by compiling this contract using the `pint` CLI tool which
     // produces the address of every predicate.
     constraint __address_of("::First") ==
-        0x4421B7CBBD660DFFA8C354D44AF5E1AC8AEDED0369B529C77CC4CF89674A976D;
+        0x34081185F7453877C9D420A42A1460DE3E971A5BA84BEC7BAE822B0E8A820C1F;
     constraint __address_of("::Bar") ==
-        0x0E11D7F24657555E3D25E78E927C76D5B328F02D5F1E64F985F5F6CD319CB643;
+        0xEACCE859BF44DFE07A8E189C213B9B6E66E3A802EED8A73F0D2AF0E40A6A2B98;
 
     constraint __predicate_at(1) == {
         0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE,

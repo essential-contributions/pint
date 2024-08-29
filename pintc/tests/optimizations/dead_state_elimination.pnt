@@ -92,6 +92,42 @@ predicate Test {
 //     state ::d_0: int = __storage_get({2, (0 + 0)});
 //     state ::e_0: bool = __storage_get({3, 0});
 //     state ::e_1: bool = __storage_get({3, 1});
+//     state ::x1: int = __storage_get({0});
+//     state ::x2: int[2] = __storage_get({1, 0});
+//     state ::x3: {int, int} = __storage_get({2, 0});
+//     state ::x4: int = __storage_get({2, (0 + 0)});
+//     state ::x5: bool = __storage_get({3, 0});
+//     state ::x6: bool = __storage_get({3, 1});
+//     state ::z: int = __storage_get({0});
+//     constraint (::a' >= (::a + 42));
+//     constraint (((__state_len(::b) == 0) && (::b' == 1)) || (::b' == (::b + 1)));
+//     constraint (::c'[0] == 42);
+//     constraint (::f == (::b + ::c[0]));
+//     constraint (::g == (::d.1 + ::d_0));
+//     constraint (::h == (::e_1 == ::e_0));
+//     constraint __eq_set(__mut_keys(), {{1, 0}, 2, {1, (0 + 1)}, 2, {0}, 1, 8});
+// }
+// >>>
+
+// optimized <<<
+// storage {
+//     x: int,
+//     arr: int[2],
+//     tup: {int, int},
+//     map: ( int => bool ),
+// }
+//
+// predicate ::Test {
+//     var ::f: int;
+//     var ::g: int;
+//     var ::h: bool;
+//     state ::a: int = __storage_get({0});
+//     state ::b: int = __storage_get({0});
+//     state ::c: int[2] = __storage_get({1, 0});
+//     state ::d: {int, int} = __storage_get({2, 0});
+//     state ::d_0: int = __storage_get({2, (0 + 0)});
+//     state ::e_0: bool = __storage_get({3, 0});
+//     state ::e_1: bool = __storage_get({3, 1});
 //     constraint (::a' >= (::a + 42));
 //     constraint (((__state_len(::b) == 0) && (::b' == 1)) || (::b' == (::b + 1)));
 //     constraint (::c'[0] == 42);
