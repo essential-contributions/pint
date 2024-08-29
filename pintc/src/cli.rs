@@ -14,11 +14,11 @@ pub struct Args {
     #[arg(long = "print-flat")]
     pub print_flat: bool,
 
-    #[arg(long = "print-asm")]
-    pub print_asm: bool,
-
     #[arg(long = "print-optimized")]
     pub print_optimized: bool,
+
+    #[arg(long = "print-asm")]
+    pub print_asm: bool,
 
     #[arg(long = "skip-optimize", hide = true)]
     pub skip_optimize: bool,

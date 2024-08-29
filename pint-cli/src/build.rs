@@ -15,10 +15,10 @@ pub(crate) struct Args {
     #[arg(long = "manifest-path")]
     manifest_path: Option<PathBuf>,
     /// Print the flattened pint program.
-    #[arg(long)]
+    #[arg(long = "print-optimized")]
     print_optimized: bool,
     /// Skip optimizing the pint program.
-    #[arg(long, hide = true)]
+    #[arg(long = "skip-optimize", hide = true)]
     skip_optimize: bool,
     /// Don't print anything that wasn't explicitly requested.
     #[arg(long)]
