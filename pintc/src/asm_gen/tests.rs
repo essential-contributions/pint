@@ -44,8 +44,7 @@ fn bool_literals() {
             compile(
                 r#"
             predicate test {
-                constraint true;
-                constraint false;
+              var a = [true, false];
             }
             "#,
             )
@@ -54,6 +53,15 @@ fn bool_literals() {
             predicate ::test {
                 --- Constraints ---
                 constraint 0
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(2))
+                  Access(DecisionVarRange)
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(2))
+                  Pred(EqRange)
+                constraint 1
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
