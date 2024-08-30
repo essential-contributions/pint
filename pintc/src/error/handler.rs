@@ -13,9 +13,9 @@ pub struct Handler {
 /// Modelled this way to afford an API using interior mutability.
 #[derive(Default, Debug)]
 struct HandlerInner {
-    /// The sink through which errors will be emitted.
+    /// The sink through which errors and warnings will be emitted.
     errors: Vec<Error>,
-    // TODO: add warnings here
+    warnings: Vec<Error>,
 }
 
 impl Handler {
@@ -25,17 +25,37 @@ impl Handler {
         ErrorEmitted { _priv: () }
     }
 
+    /// Emit the warning `warn`.
+    pub fn emit_warn(&self, warn: Error) -> WarningEmitted {
+        self.inner.borrow_mut().warnings.push(warn);
+        WarningEmitted { _priv: () }
+    }
+
     /// Compilation should be cancelled.
     pub fn cancel(&self) -> ErrorEmitted {
         ErrorEmitted { _priv: () }
     }
+    // TODO determine if we need cancel to involve warnings
 
     pub fn has_errors(&self) -> bool {
         !self.inner.borrow().errors.is_empty()
     }
 
+    pub fn has_warnings(&self) -> bool {
+        !self.inner.borrow().warnings.is_empty()
+    }
+
     pub fn clear(&self) {
+        self.clear_errors();
+        self.clear_warnings();
+    }
+
+    pub fn clear_errors(&self) {
         self.inner.borrow_mut().errors.clear();
+    }
+
+    pub fn clear_warnings(&self) {
+        self.inner.borrow_mut().warnings.clear();
     }
 
     pub fn scope<T>(
@@ -55,6 +75,8 @@ impl Handler {
         }
     }
 
+    // TODO: Figure out below. Do we want to receive all warnings and errors? or just get each individually?
+
     /// Extract all the warnings and errors from this handler.
     pub fn consume(self) -> Vec<Error> {
         let inner = self.inner.into_inner();
@@ -72,5 +94,11 @@ impl Handler {
 /// Proof that an error was emitted through a `Handler`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ErrorEmitted {
+    _priv: (),
+}
+
+/// Proof that a warning was emitted through a `Handler`.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct WarningEmitted {
     _priv: (),
 }
