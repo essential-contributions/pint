@@ -111,6 +111,7 @@ fn parse_test_and_check(
         Err(_) => {
             let errs_str = handler
                 .consume()
+                .0
                 .iter()
                 .map(|err| err.display_raw())
                 .collect::<String>()
@@ -174,7 +175,7 @@ fn type_check(
             checked
         })
         .map_err(|_| {
-            let err = Errors(handler.consume());
+            let err = Errors(handler.consume().0);
             if let Some(typecheck_error_str) = &test_data.typecheck_failure {
                 similar_asserts::assert_eq!(typecheck_error_str.trim_end(), format!("{err}"));
             } else {
@@ -223,7 +224,7 @@ fn flatten_and_check(
             flattened
         })
         .map_err(|_| {
-            let err = Errors(handler.consume());
+            let err = Errors(handler.consume().0);
             if let Some(flattening_error_str) = &test_data.flattening_failure {
                 similar_asserts::assert_eq!(flattening_error_str.trim_end(), format!("{err}"));
             } else {
@@ -241,7 +242,11 @@ fn flatten_and_check(
 }
 
 fn optimize(pred: Contract, test_data: &TestData) -> Option<Contract> {
-    let optimized = pred.optimize();
+    let handler = Handler::default();
+    let optimized = pred.optimize(&handler); // TODO: Determine if we should have a warnings printout to accompany the optimization test.
+                                             // ideally we do test warnings are working
+                                             // at the same time, the optimization coming out proper does mean its working alright
+                                             // probably to output before pushing PR
     if let Some(expected_optimized_str) = &test_data.optimized {
         similar_asserts::assert_eq!(expected_optimized_str.trim(), format!("{optimized}").trim());
         Some(optimized)

@@ -195,7 +195,7 @@ impl<'p, 'b> PrebuiltPkg<'p, 'b> {
 impl BuildPkgError {
     /// Consume `self` and print the errors.
     pub fn eprint(self) {
-        let errors = self.handler.consume();
+        let errors = self.handler.consume().0;
         pintc::error::print_errors(&pintc::error::Errors(errors));
     }
 }
@@ -331,7 +331,7 @@ fn build_pkg(
             let optimized = if skip_optimize {
                 flattened
             } else {
-                flattened.optimize()
+                flattened.optimize(&handler)
             };
 
             // Produce the ABI for the flattened contract.

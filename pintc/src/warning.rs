@@ -16,10 +16,10 @@ pub struct WarningLabel {
 pub enum Warning {
     #[error("state is unused")]
     DeadState { span: Span }, // TODO: This is tough and can be confusing depending on if mut is kept or not
-    // TODO: dead constraint after constraint is false
+    #[error("constraint is trivial")]
+    TrivialConstraint { span: Span },
     #[error("constraint is always false")]
-    FalseConstraint { span: Span },
-    // TODO: Just have this be everything? We want to simplify this to one type of warning and a enum isn't need for one type
+    AlwaysFalseConstraint { span: Span },
 }
 
 impl ReportableWarning for Warning {
@@ -33,7 +33,14 @@ impl ReportableWarning for Warning {
                     color: Color::Yellow,
                 }]
             }
-            FalseConstraint { span } => {
+            TrivialConstraint { span } => {
+                vec![WarningLabel {
+                    message: format!("constraint is trivial"),
+                    span: span.clone(),
+                    color: Color::Yellow,
+                }]
+            }
+            AlwaysFalseConstraint { span } => {
                 vec![WarningLabel {
                     message: format!("constraint is always false"),
                     span: span.clone(),
@@ -46,7 +53,7 @@ impl ReportableWarning for Warning {
     fn note(&self) -> Option<String> {
         use Warning::*;
         match self {
-            DeadState { .. } | FalseConstraint { .. } => None,
+            DeadState { .. } | TrivialConstraint { .. } | AlwaysFalseConstraint { .. } => None,
         }
     }
 
@@ -57,7 +64,12 @@ impl ReportableWarning for Warning {
     fn help(&self) -> Option<String> {
         use Warning::*;
         match self {
-            FalseConstraint { .. } => Some("false constraints are useless".to_string()),
+            TrivialConstraint { .. } => {
+                Some("constraint is unnecessary and can be removed or revised".to_string())
+            }
+            AlwaysFalseConstraint { .. } => {
+                Some("constraint is always false and can be removed or revised".to_string())
+            }
             _ => None,
         }
     }
@@ -67,7 +79,9 @@ impl Spanned for Warning {
     fn span(&self) -> &Span {
         use Warning::*;
         match self {
-            DeadState { span } | FalseConstraint { span } => span,
+            DeadState { span } | TrivialConstraint { span } | AlwaysFalseConstraint { span } => {
+                span
+            }
         }
     }
 }
@@ -196,23 +210,23 @@ pub fn print_warnings(warnings: &Warnings) {
     }
 }
 
-/// A simple wrapper around `anyhow::bail!` that prints a different message based on a the number
-/// of compile warnings.
-#[macro_export]
-macro_rules! pintc_bail {
-    // TODO: Decide how we bail
-    ($number_of_warnings: expr, $filepath: expr) => {
-        if $number_of_warnings == 1 {
-            anyhow::bail!(
-                "could not compile `{}` due to previous warning",
-                format!("{}", $filepath.display())
-            )
-        } else {
-            anyhow::bail!(
-                "could not compile `{}` due to {} previous warnings",
-                format!("{}", $filepath.display()),
-                $number_of_warnings
-            )
-        }
-    };
-}
+// /// A simple wrapper around `anyhow::bail!` that prints a different message based on a the number
+// /// of compile warnings.
+// #[macro_export]
+// macro_rules! pintc_bail {
+//     // TODO: Decide how we bail
+//     ($number_of_warnings: expr, $filepath: expr) => {
+//         if $number_of_warnings == 1 {
+//             anyhow::bail!(
+//                 "could not compile `{}` due to previous warning",
+//                 format!("{}", $filepath.display())
+//             )
+//         } else {
+//             anyhow::bail!(
+//                 "could not compile `{}` due to {} previous warnings",
+//                 format!("{}", $filepath.display()),
+//                 $number_of_warnings
+//             )
+//         }
+//     };
+// }

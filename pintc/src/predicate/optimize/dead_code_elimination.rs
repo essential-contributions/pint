@@ -1,18 +1,28 @@
 use fxhash::FxHashSet;
 
 use crate::{
-    error::Handler,
+    error::{Handler, WarningEmitted},
     expr::{evaluate::Evaluator, Expr, Immediate},
     predicate::{ConstraintDecl, Contract, StateKey},
     span::empty_span,
+    warning::Warning,
 };
 
 /// In a given contract, remove any code that is not reachable or used.
 ///
 /// If an error occurs, the specific optimization process is aborted to ensure the contract remains functional.
-pub(crate) fn dead_code_elimination(contract: &mut Contract) {
+pub(crate) fn dead_code_elimination(
+    contract: &mut Contract,
+    handler: &Handler,
+) -> Result<(), WarningEmitted> {
     dead_state_elimination(contract);
-    dead_constraint_elimination(contract);
+    dead_constraint_elimination(contract, handler);
+
+    if handler.has_warnings() {
+        Err(handler.continue_with_warning())
+    } else {
+        Ok(())
+    }
 }
 
 /// Remove all unused States in their respective predicates.
@@ -51,7 +61,7 @@ pub(crate) fn dead_state_elimination(contract: &mut Contract) {
 /// Remove all trivial Constraints in their respective predicates.
 ///
 /// If any constraint evaluates to false, all constraints are removed and replaced with a single instance of `constraint false`
-pub(crate) fn dead_constraint_elimination(contract: &mut Contract) {
+pub(crate) fn dead_constraint_elimination(contract: &mut Contract, handler: &Handler) {
     let evaluator = Evaluator::new(&contract.enums);
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
@@ -66,6 +76,14 @@ pub(crate) fn dead_constraint_elimination(contract: &mut Contract) {
                     if let Ok(Immediate::Bool(b)) =
                         evaluator.evaluate_key(&constraint.expr, &Handler::default(), contract)
                     {
+                        // TODO: Refactor, this is just to test ----
+                        if !b {
+                            println!("false found");
+                            handler.emit_warn(Warning::AlwaysFalseConstraint {
+                                span: constraint.span.clone(),
+                            });
+                        }
+                        // ---
                         Some((i, b))
                     } else {
                         None

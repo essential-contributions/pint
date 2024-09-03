@@ -51,6 +51,7 @@ pub struct CompileOptions {
 
 impl Contract {
     pub fn compile(self, handler: &Handler, options: CompileOptions) -> Result<Self, ErrorEmitted> {
+        // TODO: Determine if we should output WarningEmitted or if we care?
         let type_checked = handler.scope(|handler| self.type_check(handler))?;
         let flattened = handler.scope(|handler| type_checked.flatten(handler))?;
 
@@ -61,7 +62,7 @@ impl Contract {
         if options.skip_optimize {
             Ok(flattened)
         } else {
-            Ok(flattened.optimize())
+            Ok(flattened.optimize(&handler))
         }
     }
 
