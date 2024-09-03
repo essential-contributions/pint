@@ -139,4 +139,18 @@ predicate Test {
 // >>>
 
 // warnings <<<
+// state is unused
+// @619..640: state is unused
+// state is unused
+// @646..669: state is unused
+// state is unused
+// @675..698: state is unused
+// state is unused
+// @704..729: state is unused
+// state is unused
+// @735..761: state is unused
+// state is unused
+// @767..793: state is unused
+// state is unused
+// @848..872: state is unused
 // >>>

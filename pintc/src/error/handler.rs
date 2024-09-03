@@ -38,7 +38,7 @@ impl Handler {
     // TODO determine if we need cancel to involve warnings -- doubt it?
 
     /// Prove warnings were emitted without cancelling compilation
-    pub fn continue_with_warning(&self) -> WarningEmitted {
+    pub fn continue_with_warnings(&self) -> WarningEmitted {
         WarningEmitted { _priv: () }
     }
 

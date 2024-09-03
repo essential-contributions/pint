@@ -15,18 +15,18 @@ pub(crate) fn dead_code_elimination(
     contract: &mut Contract,
     handler: &Handler,
 ) -> Result<(), WarningEmitted> {
-    dead_state_elimination(contract);
+    dead_state_elimination(contract, handler);
     dead_constraint_elimination(contract, handler);
 
     if handler.has_warnings() {
-        Err(handler.continue_with_warning())
+        Err(handler.continue_with_warnings())
     } else {
         Ok(())
     }
 }
 
 /// Remove all unused States in their respective predicates.
-pub(crate) fn dead_state_elimination(contract: &mut Contract) {
+pub(crate) fn dead_state_elimination(contract: &mut Contract, handler: &Handler) {
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         let live_paths = contract
             .exprs(pred_key)
@@ -47,7 +47,12 @@ pub(crate) fn dead_state_elimination(contract: &mut Contract) {
 
         let dead_state_decls = pred_states
             .filter(|&(_, state)| (!live_paths.contains(&state.name)))
-            .map(|(state_key, _)| state_key)
+            .map(|(state_key, state)| {
+                handler.emit_warn(Warning::DeadState {
+                    span: state.span.clone(),
+                });
+                state_key
+            })
             .collect::<FxHashSet<StateKey>>();
 
         if let Some(pred) = contract.preds.get_mut(pred_key) {
@@ -66,6 +71,8 @@ pub(crate) fn dead_constraint_elimination(contract: &mut Contract, handler: &Han
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         if let Some(pred) = contract.preds.get(pred_key) {
+            let mut has_false_constraint = false;
+
             let dead_constraints = pred
                 .constraints
                 .iter()
@@ -76,8 +83,8 @@ pub(crate) fn dead_constraint_elimination(contract: &mut Contract, handler: &Han
                     if let Ok(Immediate::Bool(b)) =
                         evaluator.evaluate_key(&constraint.expr, &Handler::default(), contract)
                     {
-                        // TODO: Refactor, this is just to test ----
                         if !b {
+                            has_false_constraint = true;
                             handler.emit_warn(Warning::AlwaysFalseConstraint {
                                 span: constraint.span.clone(),
                             });
@@ -86,7 +93,7 @@ pub(crate) fn dead_constraint_elimination(contract: &mut Contract, handler: &Han
                                 span: constraint.span.clone(),
                             });
                         }
-                        // ---
+
                         Some((i, b))
                     } else {
                         None
@@ -94,7 +101,7 @@ pub(crate) fn dead_constraint_elimination(contract: &mut Contract, handler: &Han
                 })
                 .collect::<Vec<(usize, bool)>>();
 
-            if dead_constraints.iter().any(|(_, b)| !(*b)) {
+            if has_false_constraint {
                 // replace all constraints with one `constraint false`
                 if let Some(pred) = contract.preds.get_mut(pred_key) {
                     pred.constraints = vec![ConstraintDecl {
