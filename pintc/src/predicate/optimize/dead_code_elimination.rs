@@ -78,8 +78,11 @@ pub(crate) fn dead_constraint_elimination(contract: &mut Contract, handler: &Han
                     {
                         // TODO: Refactor, this is just to test ----
                         if !b {
-                            println!("false found");
                             handler.emit_warn(Warning::AlwaysFalseConstraint {
+                                span: constraint.span.clone(),
+                            });
+                        } else {
+                            handler.emit_warn(Warning::TrivialConstraint {
                                 span: constraint.span.clone(),
                             });
                         }

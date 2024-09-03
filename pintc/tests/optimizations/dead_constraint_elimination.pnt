@@ -81,3 +81,27 @@ predicate Test {
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
+
+// warnings <<<
+// constraint is trivial
+// @185..200: constraint is trivial
+// constraint is unnecessary and can be removed or revised
+// constraint is trivial
+// @206..223: constraint is trivial
+// constraint is unnecessary and can be removed or revised
+// constraint is trivial
+// @229..250: constraint is trivial
+// constraint is unnecessary and can be removed or revised
+// constraint is trivial
+// @256..268: constraint is trivial
+// constraint is unnecessary and can be removed or revised
+// constraint is trivial
+// @274..286: constraint is trivial
+// constraint is unnecessary and can be removed or revised
+// constraint is trivial
+// @292..313: constraint is trivial
+// constraint is unnecessary and can be removed or revised
+// constraint is trivial
+// @319..340: constraint is trivial
+// constraint is unnecessary and can be removed or revised
+// >>>

@@ -40,3 +40,9 @@ predicate Test {
 //     constraint false;
 // }
 // >>>
+
+// warnings <<<
+// constraint is always false
+// @205..225: constraint is always false
+// constraint is always false and can be removed or revised
+// >>>

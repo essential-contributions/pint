@@ -13,6 +13,9 @@ use std::{
 /// Otherwise, print the error inside the `Result`.
 #[macro_export]
 macro_rules! unwrap_or_continue {
+    // TODO: @mohammad, do we want to print warnings on our validation_e2e tests?
+    // what about for runner.rs aka our examples runner? My best guess is that we don't want to output warnings
+    // for either scenario
     ($step: expr, $step_name: expr, $failed: expr, $path: expr) => {{
         match $step {
             Ok(output) => output,
@@ -98,6 +101,7 @@ pub struct TestData {
     pub flattened: Option<String>,
     pub flattening_failure: Option<String>,
     pub optimized: Option<String>,
+    pub warnings: Option<String>,
     pub db: Option<String>,
 }
 
@@ -145,6 +149,7 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
         Flattened,
         FlatteningFailure,
         Optimized,
+        Warnings,
         Db,
     }
     let mut cur_section = Section::None;
@@ -152,7 +157,7 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
 
     let comment_re = regex::Regex::new(r"^\s*//")?;
     let open_sect_re = regex::Regex::new(
-        r"^\s*//\s*(parsed|parse_failure|typecheck_failure|flattened|flattening_failure|optimized|db)\s*<<<",
+        r"^\s*//\s*(parsed|parse_failure|typecheck_failure|flattened|flattening_failure|optimized|warnings|db)\s*<<<",
     )?;
     let close_sect_re = regex::Regex::new(r"^\s*//\s*>>>")?;
 
@@ -177,6 +182,7 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
                 "flattening_failure" => cur_section = Section::FlatteningFailure,
                 "typecheck_failure" => cur_section = Section::TypeCheckFailure,
                 "optimized" => cur_section = Section::Optimized,
+                "warnings" => cur_section = Section::Warnings,
                 "db" => cur_section = Section::Db,
                 _ => unreachable!("We can't capture strings not in the regex."),
             }
@@ -215,6 +221,9 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
                 }
                 Section::Optimized => {
                     test_data.optimized = Some(section_str);
+                }
+                Section::Warnings => {
+                    test_data.warnings = Some(section_str);
                 }
                 Section::Db => {
                     test_data.db = Some(section_str);

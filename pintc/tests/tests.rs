@@ -1,6 +1,7 @@
 use pintc::{
     error::{Errors, Handler, ReportableError},
     predicate::Contract,
+    warning::Warnings,
 };
 use std::{
     fs::{read_dir, File},
@@ -57,7 +58,7 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
                 flatten_and_check(pred, &test_data, &mut failed_tests, &path))
             .and_then(|pred|
                 // optimize the flattened intent
-                optimize(pred, &test_data));
+                optimize(pred, &test_data, &mut failed_tests, &path));
 
         // Check the `json` ABI if a reference file exists.
         if let Some(program) = program {
@@ -241,15 +242,36 @@ fn flatten_and_check(
         .ok()
 }
 
-fn optimize(pred: Contract, test_data: &TestData) -> Option<Contract> {
+fn optimize(
+    pred: Contract,
+    test_data: &TestData,
+    failed_tests: &mut Vec<String>,
+    path: &Path,
+) -> Option<Contract> {
     let handler = Handler::default();
-    let optimized = pred.optimize(&handler); // TODO: Determine if we should have a warnings printout to accompany the optimization test.
-                                             // ideally we do test warnings are working
-                                             // at the same time, the optimization coming out proper does mean its working alright
-                                             // probably to output before pushing PR
+    let optimized = pred.optimize(&handler);
+    // TODO: Determine if we should have a warnings printout to accompany the optimization test.
+    // ideally we do test warnings are working
+    // at the same time, the optimization coming out proper does mean its working alright
+    // probably to output before pushing PR
     if let Some(expected_optimized_str) = &test_data.optimized {
         similar_asserts::assert_eq!(expected_optimized_str.trim(), format!("{optimized}").trim());
+
+        if let Some(expected_warnings_str) = &test_data.warnings {
+            let warnings = Warnings(handler.consume().1);
+            similar_asserts::assert_eq!(expected_warnings_str.trim(), format!("{warnings}").trim());
+        } else {
+            failed_tests.push(path.display().to_string()); // TODO: Figure out if we need this?
+            println!(
+                "{} {}.",
+                "MISSING 'warnings' DIRECTIVE".red(),
+                path.display().to_string().cyan(),
+            );
+        }
+
         Some(optimized)
+        // assert again warnings
+        // have error saying missing warnings directive -- this works for now because we only have warnings when optimizing
     } else {
         None
     }
