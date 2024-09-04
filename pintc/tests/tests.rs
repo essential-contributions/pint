@@ -257,7 +257,7 @@ fn optimize(
             let warnings = Warnings(handler.consume().1);
             similar_asserts::assert_eq!(expected_warnings_str.trim(), format!("{warnings}").trim());
         } else {
-            failed_tests.push(path.display().to_string()); // TODO: Figure out if we need this?
+            failed_tests.push(path.display().to_string());
             println!(
                 "{} {}.",
                 "MISSING 'warnings' DIRECTIVE".red(),
@@ -266,8 +266,6 @@ fn optimize(
         }
 
         Some(optimized)
-        // assert again warnings
-        // have error saying missing warnings directive -- this works for now because we only have warnings when optimizing
     } else {
         None
     }

@@ -203,30 +203,9 @@ where
     }
 }
 
-/// Print a list of [`Error`] using the `ariadne` crate
+/// Print a list of warnings ([`Error`]) using the `ariadne` crate
 pub fn print_warnings(warnings: &Warnings) {
     for warning in &warnings.0 {
         warning.print();
     }
 }
-
-// /// A simple wrapper around `anyhow::bail!` that prints a different message based on a the number
-// /// of compile warnings.
-// #[macro_export]
-// macro_rules! pintc_bail {
-//     // TODO: Decide how we bail
-//     ($number_of_warnings: expr, $filepath: expr) => {
-//         if $number_of_warnings == 1 {
-//             anyhow::bail!(
-//                 "could not compile `{}` due to previous warning",
-//                 format!("{}", $filepath.display())
-//             )
-//         } else {
-//             anyhow::bail!(
-//                 "could not compile `{}` due to {} previous warnings",
-//                 format!("{}", $filepath.display()),
-//                 $number_of_warnings
-//             )
-//         }
-//     };
-// }

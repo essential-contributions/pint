@@ -63,8 +63,6 @@ impl Handler {
         self.inner.borrow_mut().warnings.clear();
     }
 
-    // TODO: Do we need to scope a handler for warnings? They come from the optimizing step for now
-    // If so, we need to figure out how we want to handle potentially emitting both
     pub fn scope<T>(
         &self,
         f: impl FnOnce(&Handler) -> Result<T, ErrorEmitted>,
@@ -82,11 +80,8 @@ impl Handler {
         }
     }
 
-    // TODO: Figure out below. Do we want to receive all warnings and errors? or just get each individually?
-
-    /// Extract all the warnings and errors from this handler.
-    // TODO: Don't return tuple, return custom struct
     pub fn consume(self) -> (Vec<Error>, Vec<Warning>) {
+        // TODO: Make struct not tuple
         let inner = self.inner.into_inner();
         (inner.errors, inner.warnings)
     }
