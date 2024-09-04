@@ -28,21 +28,21 @@ impl ReportableWarning for Warning {
         match self {
             DeadState { span } => {
                 vec![WarningLabel {
-                    message: format!("state is unused"),
+                    message: "state is unused".to_string(),
                     span: span.clone(),
                     color: Color::Yellow,
                 }]
             }
             TrivialConstraint { span } => {
                 vec![WarningLabel {
-                    message: format!("constraint is trivial"),
+                    message: "constraint is trivial".to_string(),
                     span: span.clone(),
                     color: Color::Yellow,
                 }]
             }
             AlwaysFalseConstraint { span } => {
                 vec![WarningLabel {
-                    message: format!("constraint is always false"),
+                    message: "constraint is always false".to_string(),
                     span: span.clone(),
                     color: Color::Yellow,
                 }]
