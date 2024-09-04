@@ -29,7 +29,6 @@ modules, or types.
 - `self` - used in `use` statements
 - `state` - bind a state variable
 - `storage` - declare a storage block
-- `string` - basic string type
 - `true` -
 - `type` - define a new type
 - `use` - bring symbols into scope

@@ -84,6 +84,9 @@ jobs:
       - name: Run Workspace Tests
         run: cargo nextest run --release --locked
 
+      - name: Run Experimental Workspace Tests
+        run: cargo nextest run --release --locked --features experimental-types -- experimental
+
   build_with_solver:
     name: Cargo Build and Test Workspace With Solver
     runs-on: ubuntu-latest

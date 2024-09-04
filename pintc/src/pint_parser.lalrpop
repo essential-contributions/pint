@@ -21,9 +21,7 @@ grammar<'a>(
     handler: &Handler,
 );
 
-pub Pint: () = {
-    Decl*,
-};
+pub Pint: () = Decl*;
 
 ////////////////////
 /// Declarations ///
@@ -413,9 +411,19 @@ Type: Type = {
 };
 
 TypeAtom: Type = {
-    <l:@L> <kind:PrimitiveType> <r:@R> => Type::Primitive {
-        kind,
-        span: (context.span_from)(l, r),
+    <l:@L> <kind:PrimitiveType> <r:@R> => {
+        let span = (context.span_from)(l, r);
+        if !context.experimental_types {
+            if let PrimitiveKind::Real = kind {
+                handler.emit_err(Error::Parse {
+                    error: ParseError::TypeNotSupported {
+                        ty: kind.to_string(),
+                        span: span.clone(),
+                    },
+                });
+            }
+        }
+        Type::Primitive { kind, span }
     },
     <l:@L> "{" <fields:TupleFields> "}" <r:@R> => {
         Type::Tuple {
@@ -458,7 +466,6 @@ PrimitiveType: PrimitiveKind = {
     "int_ty" => PrimitiveKind::Int,
     "real_ty" => PrimitiveKind::Real,
     "bool_ty" => PrimitiveKind::Bool,
-    "string_ty" => PrimitiveKind::String,
     "b256_ty" => PrimitiveKind::B256,
 }
 
@@ -495,9 +502,7 @@ VectorType: Type = {
 /// Expressions ///
 ///////////////////
 
-Expr: ExprKey = {
-    <SelectExpr>,
-};
+Expr: ExprKey = SelectExpr;
 
 SelectExpr: ExprKey = {
     <l:@L> <condition:LogicalOrOp> "?" <then_expr:SelectExpr> ":" <else_expr:SelectExpr> <r:@R> => {
@@ -736,19 +741,27 @@ Term: ExprKey = {
         let span = e.span().clone();
         context.contract.exprs.insert(e, Type::Unknown(span))
     },
-    <MacroCallExpr>,
-    <CondExpr>,
+    MacroCallExpr,
+    CondExpr,
     "(" <Expr> ")",
 };
 
 TermInner: Expr = {
     <l:@L> <imm:Immediate> <r:@R> => {
-        Expr::Immediate {
-            value: imm,
-            span: (context.span_from)(l, r),
+        let span = (context.span_from)(l, r);
+        if !context.experimental_types {
+            if let Immediate::Real(_) = imm {
+                handler.emit_err(Error::Parse {
+                    error: ParseError::LiteralNotSupported {
+                        kind: "real".to_string(),
+                        span: span.clone(),
+                    },
+                });
+            }
         }
+        Expr::Immediate { value: imm, span }
     },
-    <GeneratorExpr>,
+    GeneratorExpr,
     <l:@L> <call:IntrinsicCallExpr> <r:@R> => {
         if let Expr::IntrinsicCall {
             kind: (IntrinsicKind::External(ExternalIntrinsic::VecLen), _),
@@ -761,8 +774,8 @@ TermInner: Expr = {
         }
         call
     },
-    <ArrayExpr>,
-    <TupleExpr>,
+    ArrayExpr,
+    TupleExpr,
     <l:@L> <path:Path> <r:@R> => Expr::Path(path, (context.span_from)(l, r)),
 };
 
@@ -880,8 +893,20 @@ MacroCallExpr: ExprKey = {
 };
 
 IntrinsicArg: ExprKey = {
-    <Expr>,
-    <StorageTupleFieldOp>,
+    Expr,
+    <l:@L> <s:"str_lit"> <r:@R> => {
+        // Only intrinsic args are allowed to be string literals. This is a bit hacky but probably
+        // fine for now.
+        let span = (context.span_from)(l, r);
+        context.contract.exprs.insert(
+            Expr::Immediate {
+                value: Immediate::String(s),
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
+    },
+    StorageTupleFieldOp,
 }
 
 IntrinsicCallExpr: Expr = {
@@ -957,13 +982,9 @@ Range: ExprKey = {
     }
 }
 
-Path: Path = {
-    <PathWithLast<Ident>>,
-};
+Path: Path = PathWithLast<Ident>;
 
-MacroPath: Path = {
-    <PathWithLast<IdentFromToken<"macro_name">>>,
-};
+MacroPath: Path = PathWithLast<IdentFromToken<"macro_name">>;
 
 PathWithLast<Last>: Path = {
     <l:@L> "::" <els:(<Ident> "::")*> <last:Last> <r:@R> => {
@@ -982,7 +1003,6 @@ Immediate: Immediate = {
     "true" => Immediate::Bool(true),
     "false" => Immediate::Bool(false),
     "nil" => Immediate::Nil,
-    <s:"str_lit"> => Immediate::String(s),
 };
 
 Ident: Ident = {

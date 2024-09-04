@@ -1,0 +1,67 @@
+enum T = FortyTwo | FleventyFive;
+
+predicate test {
+    // Numerics are allowed, but they must match.
+    var f = 66 + 77.7;
+    var g = 88 - 99.9;
+    var h = 10.10 * 11;
+    var i = 12 / 13.13;
+    var j = 14.14 % 15;
+
+    var n = 18 >= 19.19;
+
+    var r = 25.25 || false;
+
+    // Tuples can compare with `==` or `!=` too.
+    var t = {28.28, 29} != {30, 31};
+}
+
+// parsed <<<
+// enum ::T = FortyTwo | FleventyFive;
+// 
+// predicate ::test {
+//     var ::f;
+//     var ::g;
+//     var ::h;
+//     var ::i;
+//     var ::j;
+//     var ::n;
+//     var ::r;
+//     var ::t;
+//     constraint (::f == (66 + 7.77e1));
+//     constraint (::g == (88 - 9.99e1));
+//     constraint (::h == (1.01e1 * 11));
+//     constraint (::i == (12 / 1.313e1));
+//     constraint (::j == (1.414e1 % 15));
+//     constraint (::n == (18 >= 1.919e1));
+//     constraint (::r == (2.525e1 || false));
+//     constraint (::t == ({2.828e1, 29} != {30, 31}));
+// }
+// >>>
+
+// typecheck_failure <<<
+// binary operator type error
+// @119..123: operator `+` argument has unexpected type `real`
+// @114..116: expecting type `int`
+// binary operator type error
+// @142..146: operator `-` argument has unexpected type `real`
+// @137..139: expecting type `int`
+// binary operator type error
+// @168..170: operator `*` argument has unexpected type `int`
+// @160..165: expecting type `real`
+// binary operator type error
+// @189..194: operator `/` argument has unexpected type `real`
+// @184..186: expecting type `int`
+// binary operator type error
+// @216..218: operator `%` argument has unexpected type `int`
+// @208..213: expecting type `real`
+// binary operator type error
+// @239..244: operator `>=` argument has unexpected type `real`
+// @233..235: expecting type `int`
+// binary operator type error
+// @259..264: operator `||` argument has unexpected type `real`
+// @259..273: expecting type `bool`
+// binary operator type error
+// @352..360: operator `!=` argument has unexpected type `{int, int}`
+// @337..348: expecting type `{real, int}`
+// >>>

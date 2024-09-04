@@ -121,6 +121,7 @@ fn gather_use_paths() {
                     span_from: &|_, _| span::empty_span(),
                     use_paths: &mut Vec::default(),
                     next_paths: &mut Vec::default(),
+                    experimental_types: cfg!(feature = "experimental-types"),
                 },
                 &Handler::default(),
                 crate::lexer::Lexer::new(src, &filepath, &[]),

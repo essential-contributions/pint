@@ -386,6 +386,27 @@ impl Contract {
         handler.result(())
     }
 
+    /// Check that all types used in storage are allowed. This should be removed as soon as all
+    /// types are supported in storage.
+    pub(super) fn check_storage_types(&self, handler: &Handler) -> Result<(), ErrorEmitted> {
+        if let Some((storage_vars, _)) = self.storage.as_ref() {
+            storage_vars.iter().for_each(|StorageVar { ty, .. }| {
+                if !ty.is_allowed_in_storage() {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::TypeNotAllowedInStorage {
+                            ty: self.with_ctrct(ty).to_string(),
+                            span: ty.span().clone(),
+                        },
+                    });
+                }
+            })
+        }
+
+        handler.result(())
+    }
+
+    /// Check that all decision variables and state variables do not have storage only types like
+    /// storage maps and storage vectors
     pub(super) fn check_types_of_variables(&self, handler: &Handler) -> Result<(), ErrorEmitted> {
         for pred in self.preds.values() {
             // Disallow decision variables from having storage only types

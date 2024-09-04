@@ -2,6 +2,6 @@ const F = 1;
 
 enum F = A | B;
 
-type F = string;
+type F = b256;
 
 const F = 4;

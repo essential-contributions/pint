@@ -231,6 +231,7 @@ fn run_parser(src: &str, handler: &Handler) -> Contract {
                 span_from: &|_, _| span::empty_span(),
                 use_paths: &mut Vec::new(),
                 next_paths: &mut Vec::new(),
+                experimental_types: true,
             },
             handler,
             lexer::Lexer::new(src, &filepath, &[]),

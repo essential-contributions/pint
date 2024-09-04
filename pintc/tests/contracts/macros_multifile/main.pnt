@@ -9,7 +9,7 @@ predicate Foo {
 
 predicate Bar {
    @foo(4);
-   constraint lib::@equal([ 1.0, 2.0 ]; [ 1.0, 2.0 ]);
+   constraint lib::@equal([ 1, 2 ]; [ 1, 2 ]);
 }
 
 // This does not work yet. See ##504
@@ -36,7 +36,7 @@ predicate Bar {
 //
 // predicate ::Bar {
 //     var ::anon@1::a: int;
-//     constraint ([1e0, 2e0] == [1e0, 2e0]);
+//     constraint ([1, 2] == [1, 2]);
 //     constraint (::anon@1::a == 4);
 // }
 // >>>
@@ -51,7 +51,7 @@ predicate Bar {
 //
 // predicate ::Bar {
 //     var ::anon@1::a: int;
-//     constraint ([1e0, 2e0] == [1e0, 2e0]);
+//     constraint ([1, 2] == [1, 2]);
 //     constraint (::anon@1::a == 4);
 //     constraint __eq_set(__mut_keys(), {0});
 // }

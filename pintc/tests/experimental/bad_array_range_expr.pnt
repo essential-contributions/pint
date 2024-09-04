@@ -1,0 +1,19 @@
+enum MyEnum = A | B;
+
+predicate test {
+    var h: int[10.0];
+}
+
+// parsed <<<
+// enum ::MyEnum = A | B;
+// 
+// predicate ::test {
+//     var ::h: int[1e1];
+// }
+// >>>
+
+// typecheck_failure <<<
+// invalid array range type real
+// @54..58: array access must be of type `int` or `enum`
+// found range type `real`
+// >>>

@@ -1,5 +1,5 @@
 const a = true;
-const b = 3.14 < 4.23;
+const b = 3 < 4;
 const c = { 1, 2 };
 const d: int[5] = [0, 1, 2, 3, 4];
 
@@ -22,7 +22,7 @@ predicate Test {
 }
 
 // parsed <<<
-// const ::b = (3.14e0 < 4.23e0);
+// const ::b = (3 < 4);
 // const ::d: int[5] = [0, 1, 2, 3, 4];
 // const ::a = true;
 // const ::c = {1, 2};

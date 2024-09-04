@@ -1,7 +1,6 @@
 predicate test {
     var k: int;
     var l: int;
-    var r: real;
     var A: int[4];
     var B: int[4];
 
@@ -12,7 +11,6 @@ predicate test {
     constraint exists i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { A[i] != A[j] + k };
     constraint exists i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { {i, j, k}.0 != {i, j, k}.1 };
     constraint exists i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { {i, j, k}.0 != {i, j, k}.1 };
-    constraint exists i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { i as real / j as real >= r };
     constraint exists i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { i in j..k };
     constraint exists i in 0..3 {
         exists j in 0..3 {
@@ -27,7 +25,6 @@ predicate test {
 // predicate ::test {
 //     var ::k: int;
 //     var ::l: int;
-//     var ::r: real;
 //     var ::A: int[4];
 //     var ::B: int[4];
 //     constraint exists i in 0..3, j in 0..3, where !(::i >= ::j), (((::i - 1) >= 0) && (::j > 0)) { ((::k > (::i + ::j)) || (::j > ::k)) };
@@ -37,7 +34,6 @@ predicate test {
 //     constraint exists i in 0..3, j in 0..3, where !(::i >= ::j), (((::i - 1) >= 0) && (::j > 0)) { (::A[::i] != (::A[::j] + ::k)) };
 //     constraint exists i in 0..3, j in 0..3, where !(::i >= ::j), (((::i - 1) >= 0) && (::j > 0)) { ({::i, ::j, ::k}.0 != {::i, ::j, ::k}.1) };
 //     constraint exists i in 0..3, j in 0..3, where !(::i >= ::j), (((::i - 1) >= 0) && (::j > 0)) { ({::i, ::j, ::k}.0 != {::i, ::j, ::k}.1) };
-//     constraint exists i in 0..3, j in 0..3, where !(::i >= ::j), (((::i - 1) >= 0) && (::j > 0)) { ((::i as real / ::j as real) >= ::r) };
 //     constraint exists i in 0..3, j in 0..3, where !(::i >= ::j), (((::i - 1) >= 0) && (::j > 0)) { ::i in ::j..::k };
 //     constraint exists i in 0..3, { exists j in 0..3, { (::A[::i] < ::B[::j]) } };
 //     constraint (exists i in 0..3, { (::A[::i] != 0) } && exists j in 0..3, { (::A[::j] != 0) });
@@ -48,7 +44,6 @@ predicate test {
 // predicate ::test {
 //     var ::k: int;
 //     var ::l: int;
-//     var ::r: real;
 //     var ::A: int[4];
 //     var ::B: int[4];
 //     constraint (((false || ((::k > (1 + 2)) || (2 > ::k))) || ((::k > (1 + 3)) || (3 > ::k))) || ((::k > (2 + 3)) || (3 > ::k)));
@@ -58,7 +53,6 @@ predicate test {
 //     constraint (((false || (::A[1] != (::A[2] + ::k))) || (::A[1] != (::A[3] + ::k))) || (::A[2] != (::A[3] + ::k)));
 //     constraint (((false || (1 != 2)) || (1 != 3)) || (2 != 3));
 //     constraint (((false || (1 != 2)) || (1 != 3)) || (2 != 3));
-//     constraint (((false || ((1 as real / 2 as real) >= ::r)) || ((1 as real / 3 as real) >= ::r)) || ((2 as real / 3 as real) >= ::r));
 //     constraint (((false || ((1 >= 2) && (1 <= ::k))) || ((1 >= 3) && (1 <= ::k))) || ((2 >= 3) && (2 <= ::k)));
 //     constraint ((((false || ((((false || (::A[0] < ::B[0])) || (::A[0] < ::B[1])) || (::A[0] < ::B[2])) || (::A[0] < ::B[3]))) || ((((false || (::A[1] < ::B[0])) || (::A[1] < ::B[1])) || (::A[1] < ::B[2])) || (::A[1] < ::B[3]))) || ((((false || (::A[2] < ::B[0])) || (::A[2] < ::B[1])) || (::A[2] < ::B[2])) || (::A[2] < ::B[3]))) || ((((false || (::A[3] < ::B[0])) || (::A[3] < ::B[1])) || (::A[3] < ::B[2])) || (::A[3] < ::B[3])));
 //     constraint (((((false || (::A[0] != 0)) || (::A[1] != 0)) || (::A[2] != 0)) || (::A[3] != 0)) && ((((false || (::A[0] != 0)) || (::A[1] != 0)) || (::A[2] != 0)) || (::A[3] != 0)));

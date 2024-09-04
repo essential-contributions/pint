@@ -1,0 +1,80 @@
+type I = int;
+type Point = { x: real, y: real };
+enum Experience = Real | Unreal;
+type Real = real;
+
+storage {
+    x: Real,
+}
+
+predicate test {
+    var i: I = 11;
+    var j: {I, real} = {22, 33.3};
+
+    var r: Real = 44.4;
+    var e: Experience = Experience::Real;
+
+    var p: Point = { 66.6, 77.7 };
+    constraint r < p.y;
+
+    var q: real = i as Real;
+
+    state x: Real = storage::x;
+}
+
+// parsed <<<
+// enum ::Experience = Real | Unreal;
+// type ::I = int;
+// type ::Point = {x: real, y: real};
+// type ::Real = real;
+// storage {
+//     x: ::Real,
+// }
+// 
+// predicate ::test {
+//     var ::i: ::I;
+//     var ::j: {::I, real};
+//     var ::r: ::Real;
+//     var ::e: ::Experience;
+//     var ::p: ::Point;
+//     var ::q: real;
+//     state ::x: ::Real = storage::x;
+//     constraint (::i == 11);
+//     constraint (::j == {22, 3.33e1});
+//     constraint (::r == 4.44e1);
+//     constraint (::e == ::Experience::Real);
+//     constraint (::p == {6.66e1, 7.77e1});
+//     constraint (::r < ::p.y);
+//     constraint (::q == ::i as ::Real);
+// }
+// >>>
+
+// flattened <<<
+// enum ::Experience = Real | Unreal;
+// type ::I = int;
+// type ::Point = {x: real, y: real};
+// type ::Real = real;
+// storage {
+//     x: real,
+// }
+// 
+// predicate ::test {
+//     var ::i: int;
+//     var ::j: {int, real};
+//     var ::r: real;
+//     var ::e: int;
+//     var ::p: {x: real, y: real};
+//     var ::q: real;
+//     state ::x: real = __storage_get({0});
+//     constraint (::i == 11);
+//     constraint (::j == {22, 3.33e1});
+//     constraint (::r == 4.44e1);
+//     constraint (::e == 0);
+//     constraint (::p == {6.66e1, 7.77e1});
+//     constraint (::r < ::p.y);
+//     constraint (::q == ::i as real);
+//     constraint (::e >= 0);
+//     constraint (::e <= 1);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

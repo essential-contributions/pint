@@ -43,6 +43,7 @@ impl Contract {
 
         let _ = handler.scope(|handler| self.check_undefined_types(handler));
         let _ = handler.scope(|handler| self.lower_custom_types(handler));
+        let _ = handler.scope(|handler| self.check_storage_types(handler));
         let _ = handler.scope(|handler| self.type_check_all_exprs(handler));
         let _ = handler.scope(|handler| self.check_types_of_variables(handler));
         let _ = handler.scope(|handler| self.check_inits(handler));

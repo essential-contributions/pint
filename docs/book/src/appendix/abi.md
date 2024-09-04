@@ -61,12 +61,6 @@ the type. Below is a list of the JSON objects for each possible type:
 "Bool"
 ```
 
-#### `string`
-
-```json
-"String"
-```
-
 #### `b256`
 
 ```json

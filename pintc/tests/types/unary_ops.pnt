@@ -3,7 +3,7 @@ predicate test {
     var b = -{1,2};
 
     var c = !11;
-    var d = !"sure";
+    var d = !0x0000111100001111000011110000111100001111000011110000111100001111;
 }
 
 // parsed <<<
@@ -15,7 +15,7 @@ predicate test {
 //     constraint (::a == -true);
 //     constraint (::b == -{1, 2});
 //     constraint (::c == !11);
-//     constraint (::d == !"sure");
+//     constraint (::d == !0x0000111100001111000011110000111100001111000011110000111100001111);
 // }
 // >>>
 
@@ -27,5 +27,5 @@ predicate test {
 // unary operator type error
 // @69..72: operator `!` argument has unexpected type `int`
 // unary operator type error
-// @86..93: operator `!` argument has unexpected type `string`
+// @86..153: operator `!` argument has unexpected type `b256`
 // >>>

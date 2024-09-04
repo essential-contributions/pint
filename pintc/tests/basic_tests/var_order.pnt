@@ -7,7 +7,7 @@ predicate test {
     var u: { int, bool };
     var b: int[2][2][2];
     var x: int;
-    var z: string;
+    var z: b256;
     var e: { MyEnum, bool };
 }
 
@@ -21,7 +21,7 @@ predicate test {
 //     var ::u: {int, bool};
 //     var ::b: int[2][2][2];
 //     var ::x: int;
-//     var ::z: string;
+//     var ::z: b256;
 //     var ::e: {::MyEnum, bool};
 // }
 // >>>
@@ -36,7 +36,7 @@ predicate test {
 //     var ::u: {int, bool};
 //     var ::b: int[2][2][2];
 //     var ::x: int;
-//     var ::z: string;
+//     var ::z: b256;
 //     var ::e: {::MyEnum, bool};
 //     constraint __eq_set(__mut_keys(), {0});
 // }

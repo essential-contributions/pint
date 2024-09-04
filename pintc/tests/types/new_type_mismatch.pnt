@@ -2,7 +2,7 @@ type I = int;
 
 predicate test {
     var i: I = 11;
-    var j: I = 22.2;
+    var j: I = true;
 }
 
 // parsed <<<
@@ -12,12 +12,12 @@ predicate test {
 //     var ::i: ::I;
 //     var ::j: ::I;
 //     constraint (::i == 11);
-//     constraint (::j == 2.22e1);
+//     constraint (::j == true);
 // }
 // >>>
 
 // typecheck_failure <<<
 // variable initialization type error
-// @66..70: variable initializer has unexpected type `real`
+// @66..70: variable initializer has unexpected type `bool`
 // @0..12: expecting type `::I (int)`
 // >>>

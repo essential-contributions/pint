@@ -1,13 +1,13 @@
 predicate test {
     var ary: int[4];
 
-    constraint ary == [1, true, 22.2, "foo"];
+    constraint ary == [1, true, { 22, 2 }, 0x0000111100001111000011110000111100001111000011110000111100001111];
 }
 
 // parsed <<<
 // predicate ::test {
 //     var ::ary: int[4];
-//     constraint (::ary == [1, true, 2.22e1, "foo"]);
+//     constraint (::ary == [1, true, {22, 2}, 0x0000111100001111000011110000111100001111000011110000111100001111]);
 // }
 // >>>
 
@@ -16,9 +16,9 @@ predicate test {
 // @65..69: array element has type `bool`
 // expecting array element type `int`
 // array element type mismatch
-// @71..75: array element has type `real`
+// @71..80: array element has type `{int, int}`
 // expecting array element type `int`
 // array element type mismatch
-// @77..82: array element has type `string`
+// @82..148: array element has type `b256`
 // expecting array element type `int`
 // >>>

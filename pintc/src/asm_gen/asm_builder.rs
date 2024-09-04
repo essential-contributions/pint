@@ -5,7 +5,7 @@ use crate::{
         TupleAccess, UnaryOp,
     },
     predicate::{Contract, ExprKey, Predicate, State as StateVar},
-    span::{empty_span, Span},
+    span::empty_span,
     types::Type,
 };
 use essential_types::{predicate::Predicate as CompiledPredicate, ContentAddress};
@@ -188,61 +188,35 @@ impl AsmBuilder<'_> {
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        fn compile_immediate(
-            handler: &Handler,
-            c_asm: &mut Vec<Constraint>,
-            imm: &Immediate,
-            span: &Span,
-        ) -> Result<(), ErrorEmitted> {
+        fn compile_immediate(c_asm: &mut Vec<Constraint>, imm: &Immediate) {
             match imm {
-                Immediate::Int(val) => {
-                    c_asm.push(Stack::Push(*val).into());
-                    Ok(())
-                }
-                Immediate::Bool(val) => {
-                    c_asm.push(Stack::Push(*val as i64).into());
-                    Ok(())
-                }
+                Immediate::Int(val) => c_asm.push(Stack::Push(*val).into()),
+                Immediate::Bool(val) => c_asm.push(Stack::Push(*val as i64).into()),
                 Immediate::B256(val) => {
                     c_asm.push(Stack::Push(val[0] as i64).into());
                     c_asm.push(Stack::Push(val[1] as i64).into());
                     c_asm.push(Stack::Push(val[2] as i64).into());
                     c_asm.push(Stack::Push(val[3] as i64).into());
-                    Ok(())
                 }
                 Immediate::Array(elements) => {
                     for element in elements {
-                        compile_immediate(handler, c_asm, element, span)?;
+                        compile_immediate(c_asm, element);
                     }
-                    Ok(())
                 }
                 Immediate::Tuple(fields) => {
                     for (_, field) in fields {
-                        compile_immediate(handler, c_asm, field, span)?;
+                        compile_immediate(c_asm, field);
                     }
-                    Ok(())
                 }
-                Immediate::Real(_) => Err(handler.emit_err(Error::Compile {
-                    error: CompileError::LiteralNotSupported {
-                        kind: "real".to_string(),
-                        span: span.clone(),
-                    },
-                })),
-                Immediate::String(_) => Err(handler.emit_err(Error::Compile {
-                    error: CompileError::LiteralNotSupported {
-                        kind: "string".to_string(),
-                        span: span.clone(),
-                    },
-                })),
-                Immediate::Error | Immediate::Nil => {
+                Immediate::Error | Immediate::Nil | Immediate::Real(_) | Immediate::String(_) => {
                     unreachable!("Unexpected literal")
                 }
             }
         }
 
         match &expr.get(contract) {
-            Expr::Immediate { value, span } => {
-                compile_immediate(handler, c_asm, value, span)?;
+            Expr::Immediate { value, .. } => {
+                compile_immediate(c_asm, value);
                 Ok(Location::Value)
             }
             Expr::Array { elements, .. } => {

@@ -1,5 +1,4 @@
 type MyInt = int;
-type MyReal = real;
 type MyBool = bool;
 type MyTuple = { int, int };
 type MyArray = bool[5];
@@ -17,7 +16,6 @@ storage {
 
 predicate test {
    var m: MyInt;
-   var n: MyReal;
    var o: MyBool;
    var p: MyTuple;
    var q: MyArray;
@@ -27,7 +25,6 @@ predicate test {
 
 // parsed <<<
 // type ::MyInt = int;
-// type ::MyReal = real;
 // type ::MyBool = bool;
 // type ::MyTuple = {int, int};
 // type ::MyArray = bool[5];
@@ -44,7 +41,6 @@ predicate test {
 //
 // predicate ::test {
 //     var ::m: ::MyInt;
-//     var ::n: ::MyReal;
 //     var ::o: ::MyBool;
 //     var ::p: ::MyTuple;
 //     var ::q: ::MyArray;
@@ -55,7 +51,6 @@ predicate test {
 
 // flattened <<<
 // type ::MyInt = int;
-// type ::MyReal = real;
 // type ::MyBool = bool;
 // type ::MyTuple = {int, int};
 // type ::MyArray = bool[5];
@@ -72,7 +67,6 @@ predicate test {
 //
 // predicate ::test {
 //     var ::m: int;
-//     var ::n: real;
 //     var ::o: bool;
 //     var ::p: {int, int};
 //     var ::q: bool[5];

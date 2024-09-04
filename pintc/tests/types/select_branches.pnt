@@ -1,16 +1,16 @@
 predicate test {
-    var a: int = true ? 11 : 22.2;
+    var a: int = true ? 11 : 0x0000000000000000000000000000000000000000000000000000000000000000;
 }
 
 // parsed <<<
 // predicate ::test {
 //     var ::a: int;
-//     constraint (::a == (true ? 11 : 2.22e1));
+//     constraint (::a == (true ? 11 : 0x0000000000000000000000000000000000000000000000000000000000000000));
 // }
 // >>>
 
 // typecheck_failure <<<
 // branches of a select expression must have the same type
 // @41..43: 'then' branch has the type `int`
-// @46..50: 'else' branch has the type `real`
+// @46..112: 'else' branch has the type `b256`
 // >>>
