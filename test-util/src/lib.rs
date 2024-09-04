@@ -13,9 +13,6 @@ use std::{
 /// Otherwise, print the error inside the `Result`.
 #[macro_export]
 macro_rules! unwrap_or_continue {
-    // TODO: @mohammad, do we want to print warnings on our validation_e2e tests?
-    // what about for runner.rs aka our examples runner? My best guess is that we don't want to output warnings
-    // for either scenario
     ($step: expr, $step_name: expr, $failed: expr, $path: expr) => {{
         match $step {
             Ok(output) => output,

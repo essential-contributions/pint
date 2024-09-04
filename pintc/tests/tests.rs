@@ -250,10 +250,6 @@ fn optimize(
 ) -> Option<Contract> {
     let handler = Handler::default();
     let optimized = pred.optimize(&handler);
-    // TODO: Determine if we should have a warnings printout to accompany the optimization test.
-    // ideally we do test warnings are working
-    // at the same time, the optimization coming out proper does mean its working alright
-    // probably to output before pushing PR
     if let Some(expected_optimized_str) = &test_data.optimized {
         similar_asserts::assert_eq!(expected_optimized_str.trim(), format!("{optimized}").trim());
 

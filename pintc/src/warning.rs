@@ -15,7 +15,7 @@ pub struct WarningLabel {
 #[derive(Error, Debug)]
 pub enum Warning {
     #[error("state is unused")]
-    DeadState { span: Span }, // TODO: This is tough and can be confusing depending on if mut is kept or not
+    DeadState { span: Span }, // TODO: This is tough and can be confusing because of mut. Currently you will get the error on a mut storage, although you should not (I think?)
     #[error("constraint is trivial")]
     TrivialConstraint { span: Span },
     #[error("constraint is always false")]
