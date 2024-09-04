@@ -22,7 +22,7 @@ fn main() -> anyhow::Result<()> {
             parsed
         }
         Err(_) => {
-            let errors = handler.consume().0;
+            let errors = handler.consume().errors;
             let errors_len = errors.len();
             if !cfg!(test) {
                 error::print_errors(&error::Errors(errors));
@@ -48,7 +48,7 @@ fn main() -> anyhow::Result<()> {
             optimized
         }
         Err(_) => {
-            let errors = handler.consume().0;
+            let errors = handler.consume().errors;
             let errors_len = errors.len();
             if !cfg!(test) {
                 error::print_errors(&error::Errors(errors));
@@ -89,7 +89,7 @@ fn main() -> anyhow::Result<()> {
             let abi = match handler.scope(|handler| contract.abi(handler)) {
                 Ok(abi) => abi,
                 Err(_) => {
-                    let errors = handler.consume().0;
+                    let errors = handler.consume().errors;
                     let errors_len = errors.len();
                     if !cfg!(test) {
                         error::print_errors(&error::Errors(errors));
@@ -110,15 +110,15 @@ fn main() -> anyhow::Result<()> {
 
             // Report any warnings
             if handler.has_warnings() && !cfg!(test) {
-                warning::print_warnings(&warning::Warnings(handler.consume().1));
+                warning::print_warnings(&warning::Warnings(handler.consume().warnings));
             }
         }
         Err(_) => {
-            let (errors, warnings) = handler.consume();
-            let errors_len = errors.len();
+            let handler_inner = handler.consume();
+            let errors_len = handler_inner.errors.len();
             if !cfg!(test) {
-                error::print_errors(&error::Errors(errors));
-                warning::print_warnings(&warning::Warnings(warnings));
+                error::print_errors(&error::Errors(handler_inner.errors));
+                warning::print_warnings(&warning::Warnings(handler_inner.warnings));
             }
             pintc::pintc_bail!(errors_len, filepath)
         }

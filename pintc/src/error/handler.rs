@@ -12,10 +12,10 @@ pub struct Handler {
 /// Contains the actual data for `Handler`.
 /// Modelled this way to afford an API using interior mutability.
 #[derive(Default, Debug)]
-struct HandlerInner {
+pub struct HandlerInner {
     /// The sink through which errors and warnings will be emitted.
-    errors: Vec<Error>,
-    warnings: Vec<Warning>,
+    pub errors: Vec<Error>,
+    pub warnings: Vec<Warning>,
 }
 
 impl Handler {
@@ -80,18 +80,16 @@ impl Handler {
         }
     }
 
-    pub fn consume(self) -> (Vec<Error>, Vec<Warning>) {
-        // TODO: Make struct not tuple
-        let inner = self.inner.into_inner();
-        (inner.errors, inner.warnings)
+    pub fn consume(self) -> HandlerInner {
+        self.inner.into_inner()
     }
 
     pub fn append(&self, other: Handler) {
-        let (errors, warnings) = other.consume();
-        for err in errors {
+        let other_inner = other.consume();
+        for err in other_inner.errors {
             self.emit_err(err);
         }
-        for warn in warnings {
+        for warn in other_inner.warnings {
             self.emit_warn(warn);
         }
     }

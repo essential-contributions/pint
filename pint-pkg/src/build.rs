@@ -195,9 +195,9 @@ impl<'p, 'b> PrebuiltPkg<'p, 'b> {
 impl BuildPkgError {
     /// Consume `self` and print the errors.
     pub fn eprint(self) {
-        let (errors, warnings) = self.handler.consume();
-        pintc::error::print_errors(&pintc::error::Errors(errors));
-        pintc::warning::print_warnings(&pintc::warning::Warnings(warnings));
+        let handler_inner = self.handler.consume();
+        pintc::error::print_errors(&pintc::error::Errors(handler_inner.errors));
+        pintc::warning::print_warnings(&pintc::warning::Warnings(handler_inner.warnings));
     }
 }
 
@@ -379,8 +379,9 @@ fn build_pkg(
 
             // Print any warnings
             if handler.has_warnings() {
-                let (_, warnings) = handler.consume();
-                pintc::warning::print_warnings(&pintc::warning::Warnings(warnings));
+                pintc::warning::print_warnings(&pintc::warning::Warnings(
+                    handler.consume().warnings,
+                ));
             }
 
             let (predicate_metadata, predicates) = predicates
