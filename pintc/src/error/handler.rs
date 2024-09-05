@@ -91,11 +91,11 @@ impl Handler {
 
     pub fn append(&self, other: Handler) {
         let (errors, warnings) = other.consume();
-        for err in errors {
-            self.emit_err(err);
-        }
         for warn in warnings {
             self.emit_warn(warn);
+        }
+        for err in errors {
+            self.emit_err(err);
         }
     }
 }
