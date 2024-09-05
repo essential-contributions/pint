@@ -1,5 +1,7 @@
 use clap::Parser;
-use pintc::{asm_gen::compile_contract, cli::Args, error, parser, predicate::CompileOptions};
+use pintc::{
+    asm_gen::compile_contract, cli::Args, error, parser, predicate::CompileOptions, warning,
+};
 use std::{
     fs::{create_dir_all, File},
     path::{Path, PathBuf},
@@ -20,10 +22,11 @@ fn main() -> anyhow::Result<()> {
             parsed
         }
         Err(_) => {
-            let errors = handler.consume();
+            let (errors, warnings) = handler.consume();
             let errors_len = errors.len();
             if !cfg!(test) {
                 error::print_errors(&error::Errors(errors));
+                warning::print_warnings(&warning::Warnings(warnings));
             }
             pintc::pintc_bail!(errors_len, filepath)
         }
@@ -46,10 +49,11 @@ fn main() -> anyhow::Result<()> {
             optimized
         }
         Err(_) => {
-            let errors = handler.consume();
+            let (errors, warnings) = handler.consume();
             let errors_len = errors.len();
             if !cfg!(test) {
                 error::print_errors(&error::Errors(errors));
+                warning::print_warnings(&warning::Warnings(warnings));
             }
             pintc::pintc_bail!(errors_len, filepath)
         }
@@ -87,10 +91,11 @@ fn main() -> anyhow::Result<()> {
             let abi = match handler.scope(|handler| contract.abi(handler)) {
                 Ok(abi) => abi,
                 Err(_) => {
-                    let errors = handler.consume();
+                    let (errors, warnings) = handler.consume();
                     let errors_len = errors.len();
                     if !cfg!(test) {
                         error::print_errors(&error::Errors(errors));
+                        warning::print_warnings(&warning::Warnings(warnings));
                     }
                     pintc::pintc_bail!(errors_len, filepath)
                 }
@@ -105,12 +110,18 @@ fn main() -> anyhow::Result<()> {
                     salt: compiled_contract.salt,
                 },
             )?;
+
+            // Report any warnings
+            if handler.has_warnings() && !cfg!(test) {
+                warning::print_warnings(&warning::Warnings(handler.consume().1));
+            }
         }
         Err(_) => {
-            let errors = handler.consume();
+            let (errors, warnings) = handler.consume();
             let errors_len = errors.len();
             if !cfg!(test) {
                 error::print_errors(&error::Errors(errors));
+                warning::print_warnings(&warning::Warnings(warnings));
             }
             pintc::pintc_bail!(errors_len, filepath)
         }

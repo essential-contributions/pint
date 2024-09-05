@@ -5,14 +5,15 @@ use crate::{
     expr::{evaluate::Evaluator, Expr, Immediate},
     predicate::{ConstraintDecl, Contract, StateKey},
     span::empty_span,
+    warning::Warning,
 };
 
 /// In a given contract, remove any code that is not reachable or used.
 ///
 /// If an error occurs, the specific optimization process is aborted to ensure the contract remains functional.
-pub(crate) fn dead_code_elimination(contract: &mut Contract) {
+pub(crate) fn dead_code_elimination(handler: &Handler, contract: &mut Contract) {
     dead_state_elimination(contract);
-    dead_constraint_elimination(contract);
+    dead_constraint_elimination(handler, contract);
 }
 
 /// Remove all unused States in their respective predicates.
@@ -51,11 +52,13 @@ pub(crate) fn dead_state_elimination(contract: &mut Contract) {
 /// Remove all trivial Constraints in their respective predicates.
 ///
 /// If any constraint evaluates to false, all constraints are removed and replaced with a single instance of `constraint false`
-pub(crate) fn dead_constraint_elimination(contract: &mut Contract) {
+pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Contract) {
     let evaluator = Evaluator::new(&contract.enums);
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         if let Some(pred) = contract.preds.get(pred_key) {
+            let mut has_false_constraint = false;
+
             let dead_constraints = pred
                 .constraints
                 .iter()
@@ -66,14 +69,25 @@ pub(crate) fn dead_constraint_elimination(contract: &mut Contract) {
                     if let Ok(Immediate::Bool(b)) =
                         evaluator.evaluate_key(&constraint.expr, &Handler::default(), contract)
                     {
-                        Some((i, b))
+                        if !b {
+                            has_false_constraint = true;
+                            handler.emit_warn(Warning::AlwaysFalseConstraint {
+                                span: constraint.span.clone(),
+                            });
+                        } else {
+                            handler.emit_warn(Warning::TrivialConstraint {
+                                span: constraint.span.clone(),
+                            });
+                        }
+
+                        Some(i)
                     } else {
                         None
                     }
                 })
-                .collect::<Vec<(usize, bool)>>();
+                .collect::<Vec<usize>>();
 
-            if dead_constraints.iter().any(|(_, b)| !(*b)) {
+            if has_false_constraint {
                 // replace all constraints with one `constraint false`
                 if let Some(pred) = contract.preds.get_mut(pred_key) {
                     pred.constraints = vec![ConstraintDecl {
@@ -87,7 +101,7 @@ pub(crate) fn dead_constraint_elimination(contract: &mut Contract) {
                 if let Some(pred) = contract.preds.get_mut(pred_key) {
                     // Remove dead constraints in reverse to avoid removing the wrong indices from shifting elements
                     // This assumes dead_constraints is sorted, which it is based on how it is collected above
-                    dead_constraints.iter().rev().for_each(|(i, _)| {
+                    dead_constraints.iter().rev().for_each(|i| {
                         pred.constraints.remove(*i);
                     });
                 }

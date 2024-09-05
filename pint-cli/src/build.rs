@@ -83,10 +83,13 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
 
         // Build the package.
         let _built = match prebuilt.build(args.skip_optimize) {
-            Ok(built) => built,
+            Ok(built) => {
+                built.print_warnings();
+                built
+            }
             Err(err) => {
                 let msg = format!("{}", err.kind);
-                err.eprint();
+                err.print_diagnostics();
                 anyhow::bail!("{msg}");
             }
         };

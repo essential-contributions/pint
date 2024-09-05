@@ -81,3 +81,27 @@ predicate Test {
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
+
+// warnings <<<
+// constraint is always `true`
+// @179..194: this constraint always evaluates to `true`
+// if this is intentional, consider removing this constraint
+// constraint is always `true`
+// @200..217: this constraint always evaluates to `true`
+// if this is intentional, consider removing this constraint
+// constraint is always `true`
+// @223..244: this constraint always evaluates to `true`
+// if this is intentional, consider removing this constraint
+// constraint is always `true`
+// @250..262: this constraint always evaluates to `true`
+// if this is intentional, consider removing this constraint
+// constraint is always `true`
+// @268..280: this constraint always evaluates to `true`
+// if this is intentional, consider removing this constraint
+// constraint is always `true`
+// @286..307: this constraint always evaluates to `true`
+// if this is intentional, consider removing this constraint
+// constraint is always `true`
+// @313..334: this constraint always evaluates to `true`
+// if this is intentional, consider removing this constraint
+// >>>

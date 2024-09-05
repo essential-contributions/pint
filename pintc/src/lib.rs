@@ -1,5 +1,6 @@
 #[macro_use]
 pub mod error;
+pub mod warning;
 
 pub mod asm_gen;
 pub mod cli;

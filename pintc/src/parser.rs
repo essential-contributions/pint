@@ -303,7 +303,7 @@ macro_rules! parse_with {
             .unwrap_or_default();
 
         if let Some((macro_name, macro_span)) = $macro_ctx {
-            for err in local_handler.consume() {
+            for err in local_handler.consume().0 {
                 $handler.emit_err(Error::MacroBodyWrapper {
                     child: Box::new(err),
                     macro_name: macro_name.clone(),

@@ -61,7 +61,7 @@ impl Contract {
         if options.skip_optimize {
             Ok(flattened)
         } else {
-            Ok(flattened.optimize())
+            Ok(flattened.optimize(handler))
         }
     }
 

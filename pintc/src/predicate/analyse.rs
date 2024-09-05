@@ -105,7 +105,7 @@ impl Contract {
 
             if loop_idx != (const_count - 1) {
                 // This isn't the last iteration.  Clear the temporary errors.
-                tmp_handler.clear();
+                tmp_handler.clear_errors();
             }
         }
 
