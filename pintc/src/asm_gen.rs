@@ -5,10 +5,7 @@ use crate::{
     span::empty_span,
 };
 use asm_builder::AsmBuilder;
-use essential_types::{
-    predicate::{Directive, Predicate as CompiledPredicate},
-    ContentAddress,
-};
+use essential_types::{predicate::Predicate as CompiledPredicate, ContentAddress};
 use petgraph::{graph::NodeIndex, Graph};
 use std::collections::HashMap;
 
@@ -146,12 +143,18 @@ pub fn compile_predicate(
         state_programs: Vec::new(),
         constraint_programs: Vec::new(),
         compiled_predicates,
+        slot_indices: HashMap::new(),
+        total_slots: 0,
+        current_state_var: None,
     };
 
     // Compile all state declarations into state programs
     for (_, state) in pred.states() {
+        builder.current_state_var = Some(state.name.clone());
         builder.compile_state(handler, state, contract, pred)?;
     }
+
+    builder.current_state_var = None;
 
     // Compile all constraint declarations into constraint programs
     for ConstraintDecl {
@@ -178,6 +181,5 @@ pub fn compile_predicate(
                 constraint_asm::to_bytes(constraint_programs.iter().copied()).collect()
             })
             .collect(),
-        directive: Directive::Satisfy,
     })
 }

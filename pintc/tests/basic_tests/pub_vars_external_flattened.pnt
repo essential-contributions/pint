@@ -108,13 +108,13 @@ predicate Foo {
 //     constraint (__pub_var(__::FooI_pathway, {0}) == true);
 //     constraint (__pub_var(__::FooI_pathway, {1}) == 5);
 //     constraint (__pub_var(__::FooI_pathway, {2}) == 0x0000111100001111000011110000111100001111000011110000111100001111);
-//     constraint (__pub_var(__::FooI_pathway, {3, 0}) == {true, 2});
-//     constraint (__pub_var(__::FooI_pathway, {4, 0}) == [1, 2, 3, 4, 5]);
+//     constraint (__pub_var(__::FooI_pathway, {3}) == {true, 2});
+//     constraint (__pub_var(__::FooI_pathway, {4}) == [1, 2, 3, 4, 5]);
 //     constraint (__pub_var(__::FooI2_pathway, {5}) == true);
 //     constraint (__pub_var(__::FooI2_pathway, {6}) == 5);
 //     constraint (__pub_var(__::FooI2_pathway, {7}) == 0x0000111100001111000011110000111100001111000011110000111100001111);
-//     constraint (__pub_var(__::FooI2_pathway, {8, 0}) == {true, 2});
-//     constraint (__pub_var(__::FooI2_pathway, {9, 0}) == [1, 2, 3, 4, 5]);
+//     constraint (__pub_var(__::FooI2_pathway, {8}) == {true, 2});
+//     constraint (__pub_var(__::FooI2_pathway, {9}) == [1, 2, 3, 4, 5]);
 //     constraint __eq_set(__mut_keys(), {0});
 //     constraint (__predicate_at(__::FooI_pathway) == {::addr1, ::addr2});
 //     constraint (__predicate_at(__::FooI2_pathway) == {::addr1, ::addr3});

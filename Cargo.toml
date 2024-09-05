@@ -23,12 +23,12 @@ anyhow = "1.0"
 ariadne = "0.4"
 chumsky = "0.9"
 clap = { version = "4.5", features = ["derive"] }
-constraint-asm = { version = "0.3", package = "essential-constraint-asm" }
-essential-check = { version = "0.4", features = ["tracing"] }
-essential-constraint-vm = "0.3"
-essential-state-read-vm = "0.3"
-essential-hash = "0.2"
-essential-types = "0.2"
+constraint-asm = { path = "../essential-base/crates/constraint-asm", package = "essential-constraint-asm" }
+essential-check = { path = "../essential-base/crates/check", package = "essential-check" }
+essential-constraint-vm = { path = "../essential-base/crates/constraint-vm", package = "essential-constraint-vm" }
+essential-state-read-vm = { path = "../essential-base/crates/state-read-vm", package = "essential-state-read-vm" }
+essential-hash = { path = "../essential-base/crates/hash", package = "essential-hash" }
+essential-types = { path = "../essential-base/crates/types", package = "essential-types" }
 expect-test = "1.4"
 fxhash = "0.2"
 itertools = "0.13"
@@ -46,7 +46,7 @@ quote = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_ignored = "0.1"
 serde_json = "1.0"
-state-asm = { version = "0.3", package = "essential-state-asm" }
+state-asm = { path = "../essential-base/crates/state-asm", package = "essential-state-asm" }
 syn = { version = "2.0", features = ["extra-traits", "full", "printing"] }
 thiserror = "1.0"
 tokio = { version = "1.36", default-features = false, features = ["macros", "test-util"] }

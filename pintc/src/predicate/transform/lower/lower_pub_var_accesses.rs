@@ -80,7 +80,6 @@ pub(crate) fn lower_pub_var_accesses_in_predicate(
         kind: PrimitiveKind::Int,
         span: empty_span(),
     };
-    let zero = contract.exprs.insert_int(0);
 
     let pred = contract
         .preds
@@ -98,7 +97,7 @@ pub(crate) fn lower_pub_var_accesses_in_predicate(
                     .filter(|(_, var)| var.is_pub)
                     .enumerate()
                     .find(|(_, (_, var))| &var.name == name)
-                    .map(|(pub_var_index, (var_key, _))| (var_key, expr_key, pub_var_index))
+                    .map(|(pub_var_index, (..))| (expr_key, pub_var_index))
             } else {
                 None
             }
@@ -111,27 +110,17 @@ pub(crate) fn lower_pub_var_accesses_in_predicate(
         ExprKey, /* `__pub_var` intrinsic call */
     )> = Vec::new();
 
-    for (var_key, expr_key, pub_var_index) in &local_pub_vars {
-        let var_ty = var_key.get_ty(pred);
-
+    for (expr_key, pub_var_index) in &local_pub_vars {
         // First argument is the key which depends on whether the type of the `pub var` is
         // primitive or not
         let pub_var_index = contract.exprs.insert_int(*pub_var_index as i64);
         let key = contract.exprs.insert(
             Expr::Tuple {
-                fields: if var_ty.is_any_primitive() {
-                    vec![(None, pub_var_index)]
-                } else {
-                    vec![(None, pub_var_index), (None, zero)]
-                },
+                fields: vec![(None, pub_var_index)],
                 span: empty_span(),
             },
             Type::Tuple {
-                fields: if var_ty.is_any_primitive() {
-                    vec![(None, int_ty.clone())]
-                } else {
-                    vec![(None, int_ty.clone()), (None, int_ty.clone())]
-                },
+                fields: vec![(None, int_ty.clone())],
                 span: empty_span(),
             },
         );
@@ -273,19 +262,11 @@ pub(crate) fn lower_pub_var_accesses_in_predicate(
             let pub_var_index = contract.exprs.insert_int(pub_var_index as i64);
             let key = contract.exprs.insert(
                 Expr::Tuple {
-                    fields: if var_ty.is_any_primitive() {
-                        vec![(None, pub_var_index)]
-                    } else {
-                        vec![(None, pub_var_index), (None, zero)]
-                    },
+                    fields: vec![(None, pub_var_index)],
                     span: empty_span(),
                 },
                 Type::Tuple {
-                    fields: if var_ty.is_any_primitive() {
-                        vec![(None, int_ty.clone())]
-                    } else {
-                        vec![(None, int_ty.clone()), (None, int_ty.clone())]
-                    },
+                    fields: vec![(None, int_ty.clone())],
                     span: empty_span(),
                 },
             );
