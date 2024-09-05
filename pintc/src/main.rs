@@ -22,10 +22,11 @@ fn main() -> anyhow::Result<()> {
             parsed
         }
         Err(_) => {
-            let errors = handler.consume().0;
+            let (errors, warnings) = handler.consume();
             let errors_len = errors.len();
             if !cfg!(test) {
                 error::print_errors(&error::Errors(errors));
+                warning::print_warnings(&warning::Warnings(warnings));
             }
             pintc::pintc_bail!(errors_len, filepath)
         }
@@ -48,10 +49,11 @@ fn main() -> anyhow::Result<()> {
             optimized
         }
         Err(_) => {
-            let errors = handler.consume().0;
+            let (errors, warnings) = handler.consume();
             let errors_len = errors.len();
             if !cfg!(test) {
                 error::print_errors(&error::Errors(errors));
+                warning::print_warnings(&warning::Warnings(warnings));
             }
             pintc::pintc_bail!(errors_len, filepath)
         }
@@ -89,10 +91,11 @@ fn main() -> anyhow::Result<()> {
             let abi = match handler.scope(|handler| contract.abi(handler)) {
                 Ok(abi) => abi,
                 Err(_) => {
-                    let errors = handler.consume().0;
+                    let (errors, warnings) = handler.consume();
                     let errors_len = errors.len();
                     if !cfg!(test) {
                         error::print_errors(&error::Errors(errors));
+                        warning::print_warnings(&warning::Warnings(warnings));
                     }
                     pintc::pintc_bail!(errors_len, filepath)
                 }
