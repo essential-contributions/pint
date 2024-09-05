@@ -31,7 +31,7 @@ macro_rules! parse_and_collect_errors {
         ) {
             Ok(result) => {
                 if handler.has_errors() {
-                    Err(handler.consume().errors)
+                    Err(handler.consume().0)
                 } else {
                     Ok(result)
                 }
@@ -40,7 +40,7 @@ macro_rules! parse_and_collect_errors {
                 handler.emit_err(Error::Parse {
                     error: (lalrpop_err, &filepath).into(),
                 });
-                Err(handler.consume().errors)
+                Err(handler.consume().0)
             }
         }
     }};

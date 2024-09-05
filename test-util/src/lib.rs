@@ -31,7 +31,7 @@ macro_rules! unwrap_or_continue {
         match $step {
             Ok(output) => output,
             Err(_) => {
-                let errs = pintc::error::Errors($handler.consume().errors);
+                let errs = pintc::error::Errors($handler.consume().0);
                 $failed.push($path.clone());
                 eprintln!(
                     "{}",

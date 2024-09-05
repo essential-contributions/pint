@@ -192,7 +192,7 @@ fn run_test(src: &str) -> String {
     use crate::error;
     let (mut contract, handler) = run_without_transforms(src);
     let _ = validate(&handler, &mut contract);
-    error::Errors(handler.consume().errors).to_string()
+    error::Errors(handler.consume().0).to_string()
 }
 
 #[cfg(test)]
@@ -263,7 +263,7 @@ predicate test { var x = MyEnum::Variant2; }
         .expect("Failed to type check");
     let _ = validate(&handler, &mut contract);
     check(
-        &crate::error::Errors(handler.consume().errors).to_string(),
+        &crate::error::Errors(handler.consume().0).to_string(),
         expect_test::expect![[r#"
         compiler internal error: custom type present in final predicate expr_types slotmap
         compiler internal error: custom type present in final predicate expr_types slotmap"#]],
@@ -283,7 +283,7 @@ predicate test { var x: MyAliasInt = 3; }
     let _ = validate(&handler, &mut contract);
 
     check(
-        &crate::error::Errors(handler.consume().errors).to_string(),
+        &crate::error::Errors(handler.consume().0).to_string(),
         expect_test::expect![[
             r#"compiler internal error: type alias present in final predicate expr_types slotmap"#
         ]],
@@ -344,7 +344,7 @@ fn states() {
     });
     let _ = validate(&handler, &mut contract);
     check(
-        &error::Errors(handler.consume().errors).to_string(),
+        &error::Errors(handler.consume().0).to_string(),
         expect_test::expect![[r#"
             compiler internal error: Unknown expr type found invalid predicate expr_types slotmap key
             compiler internal error: unknown type present in final predicate expr_types slotmap
@@ -372,7 +372,7 @@ fn vars() {
     });
     let _ = validate(&handler, &mut contract);
     check(
-        &error::Errors(handler.consume().errors).to_string(),
+        &error::Errors(handler.consume().0).to_string(),
         expect_test::expect![[r#"
             compiler internal error: final predicate var_types slotmap is missing corresponding key from vars slotmap"#]],
     );
@@ -386,7 +386,7 @@ fn if_decls() {
     let (mut contract, handler) = run_without_transforms(src);
     let _ = validate(&handler, &mut contract);
     check(
-        &error::Errors(handler.consume().errors).to_string(),
+        &error::Errors(handler.consume().0).to_string(),
         expect_test::expect!["compiler internal error: final predicate contains if declarations"],
     );
 }
