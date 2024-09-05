@@ -51,6 +51,7 @@ To run all unit tests using `cargo-nextest`:
 
 ```sh
 cargo nextest run
+cargo nestest run --all-features
 ```
 
 ### Updating Unit Tests
@@ -59,6 +60,7 @@ Most unit tests are written with the help of the [`expect_test`](https://docs.rs
 
 ```sh
 env UPDATE_EXPECT=1 cargo nextest run
+env UPDATE_EXPECT=1 cargo nestest run --all-features
 ```
 
 For compiler changes that affect many unit tests, the command above allows updating all affected tests in one go. The command also helps with writing new tests: simply write your test by passing an empty string argument to the `expect!` macro (i.e. `expect![""]`) and then run the command above.
