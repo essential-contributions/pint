@@ -30,7 +30,7 @@ predicate Test {
 // >>>
 
 // warnings <<<
-// constraint is trivial
-// @45..57: constraint is trivial
-// constraint is unnecessary and can be removed or revised
+// constraint is always `true`
+// @45..57: this constraint always evaluates to `true`
+// if this is intentional, consider removing this constraint
 // >>>

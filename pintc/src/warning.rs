@@ -14,9 +14,9 @@ pub struct WarningLabel {
 /// A general compile warning
 #[derive(Error, Debug)]
 pub enum Warning {
-    #[error("constraint is trivial")]
+    #[error("constraint is always `true`")]
     TrivialConstraint { span: Span },
-    #[error("constraint is always false")]
+    #[error("constraint is always `false`")]
     AlwaysFalseConstraint { span: Span },
 }
 
@@ -26,14 +26,16 @@ impl ReportableWarning for Warning {
         match self {
             TrivialConstraint { span } => {
                 vec![WarningLabel {
-                    message: "constraint is trivial".to_string(),
+                    message: "this constraint always evaluates to `true`".to_string(),
                     span: span.clone(),
                     color: Color::Yellow,
                 }]
             }
             AlwaysFalseConstraint { span } => {
                 vec![WarningLabel {
-                    message: "constraint is always false".to_string(),
+                    message:
+                        "this constraint always evaluates to `false` and can never be satisfied"
+                            .to_string(),
                     span: span.clone(),
                     color: Color::Yellow,
                 }]
@@ -56,10 +58,10 @@ impl ReportableWarning for Warning {
         use Warning::*;
         match self {
             TrivialConstraint { .. } => {
-                Some("constraint is unnecessary and can be removed or revised".to_string())
+                Some("if this is intentional, consider removing this constraint".to_string())
             }
             AlwaysFalseConstraint { .. } => {
-                Some("constraint is always false and can be removed or revised".to_string())
+                Some("if this is intentional, consider removing the containing predicate because its constraints can never be satisfied".to_string())
             }
         }
     }
@@ -191,7 +193,7 @@ where
     }
 }
 
-/// Print a list of warnings ([`Error`]) using the `ariadne` crate
+/// Print a list of ([`Warning`]) using the `ariadne` crate
 pub fn print_warnings(warnings: &Warnings) {
     for warning in &warnings.0 {
         warning.print();
