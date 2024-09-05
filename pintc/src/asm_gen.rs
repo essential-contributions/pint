@@ -143,8 +143,8 @@ pub fn compile_predicate(
     pred: &Predicate,
 ) -> Result<CompiledPredicate, ErrorEmitted> {
     let mut builder = AsmBuilder {
-        s_asm: Vec::new(),
-        c_asm: Vec::new(),
+        state_programs: Vec::new(),
+        constraint_programs: Vec::new(),
         compiled_predicates,
     };
 
@@ -167,14 +167,16 @@ pub fn compile_predicate(
 
     Ok(CompiledPredicate {
         state_read: builder
-            .s_asm
+            .state_programs
             .iter()
-            .map(|s_asm| state_asm::to_bytes(s_asm.iter().copied()).collect())
+            .map(|state_programs| state_asm::to_bytes(state_programs.iter().copied()).collect())
             .collect(),
         constraints: builder
-            .c_asm
+            .constraint_programs
             .iter()
-            .map(|c_asm| constraint_asm::to_bytes(c_asm.iter().copied()).collect())
+            .map(|constraint_programs| {
+                constraint_asm::to_bytes(constraint_programs.iter().copied()).collect()
+            })
             .collect(),
         directive: Directive::Satisfy,
     })

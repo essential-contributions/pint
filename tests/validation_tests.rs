@@ -90,7 +90,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
             compiled_contract
                 .predicates
                 .iter()
-                .map(|predicate| essential_hash::content_addr(&predicate)),
+                .map(essential_hash::content_addr),
             &compiled_contract.salt,
         );
 
@@ -135,7 +135,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
             let predicate = compiled_contract
                 .predicates
                 .iter()
-                .find(|predicate| addr == essential_hash::content_addr(&predicate))
+                .find(|predicate| addr == essential_hash::content_addr(*predicate))
                 .expect("predicate must exist");
 
             match essential_check::solution::check_predicate(
@@ -211,7 +211,6 @@ fn parse_solution(
                     })
                     .collect::<anyhow::Result<Vec<_>, _>>()?;
 
-                // The predicate to solve is either `Transient` or `Persistent`
                 let predicate_to_solve = match e.get("predicate_to_solve") {
                     Some(s) => PredicateAddress {
                         contract: {
@@ -231,7 +230,7 @@ fn parse_solution(
                                 if let Some(predicate) =
                                     names_to_predicates.get(predicate.as_str().unwrap())
                                 {
-                                    essential_hash::content_addr(&predicate)
+                                    essential_hash::content_addr(*predicate)
                                 } else {
                                     ContentAddress(hex_to_bytes(predicate.as_str().ok_or_else(
                                         || anyhow!("Invalid persistent predicate_to_solve set"),

@@ -74,16 +74,16 @@ predicate Foo {
 //     pub var ::z3: b256;
 //     pub var ::z5: {bool, int};
 //     pub var ::z6: int[5];
-//     constraint (__transient({5}, 1, __this_pathway()) == true);
-//     constraint (__transient({6}, 1, __this_pathway()) == 5);
-//     constraint (__transient({7}, 1, __this_pathway()) == 0x0000111100001111000011110000111100001111000011110000111100001111);
-//     constraint (__transient({8, 0}, 2, __this_pathway()) == {true, 2});
-//     constraint (__transient({9, 0}, 2, __this_pathway()) == [1, 2, 3, 4, 5]);
-//     constraint (__transient({10}, 1, __this_pathway()) == true);
-//     constraint (__transient({11}, 1, __this_pathway()) == 5);
-//     constraint (__transient({12}, 1, __this_pathway()) == 0x0000111100001111000011110000111100001111000011110000111100001111);
-//     constraint (__transient({13, 0}, 2, __this_pathway()) == {true, 2});
-//     constraint (__transient({14, 0}, 2, __this_pathway()) == [1, 2, 3, 4, 5]);
+//     constraint (__pub_var(__this_pathway(), {5}) == true);
+//     constraint (__pub_var(__this_pathway(), {6}) == 5);
+//     constraint (__pub_var(__this_pathway(), {7}) == 0x0000111100001111000011110000111100001111000011110000111100001111);
+//     constraint (__pub_var(__this_pathway(), {8, 0}) == {true, 2});
+//     constraint (__pub_var(__this_pathway(), {9, 0}) == [1, 2, 3, 4, 5]);
+//     constraint (__pub_var(__this_pathway(), {10}) == true);
+//     constraint (__pub_var(__this_pathway(), {11}) == 5);
+//     constraint (__pub_var(__this_pathway(), {12}) == 0x0000111100001111000011110000111100001111000011110000111100001111);
+//     constraint (__pub_var(__this_pathway(), {13, 0}) == {true, 2});
+//     constraint (__pub_var(__this_pathway(), {14, 0}) == [1, 2, 3, 4, 5]);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

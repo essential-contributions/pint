@@ -164,7 +164,7 @@ fn type_check(
 ) -> Option<Contract> {
     let handler = Handler::default();
     pred.type_check(&handler)
-        .map(|checked| {
+        .inspect(|_| {
             if test_data.typecheck_failure.is_some() {
                 failed_tests.push(path.display().to_string());
                 println!(
@@ -173,7 +173,6 @@ fn type_check(
                     path.display().to_string().cyan(),
                 );
             }
-            checked
         })
         .map_err(|_| {
             let err = Errors(handler.consume().0);
