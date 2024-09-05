@@ -1,13 +1,13 @@
 predicate test {
     var ary: int[2];
 
-    constraint ary[false] == ary[11.1];
+    constraint ary[false] == ary[0x0000111100001111000011110000111100001111000011110000111100001111];
 }
 
 // parsed <<<
 // predicate ::test {
 //     var ::ary: int[2];
-//     constraint (::ary[false] == ::ary[1.11e1]);
+//     constraint (::ary[false] == ::ary[0x0000111100001111000011110000111100001111000011110000111100001111]);
 // }
 // >>>
 
@@ -16,6 +16,6 @@ predicate test {
 // @58..63: array access must be with an int value
 // found access using type `bool`
 // attempt to index an array with a mismatched value
-// @72..76: array access must be with an int value
-// found access using type `real`
+// @72..138: array access must be with an int value
+// found access using type `b256`
 // >>>

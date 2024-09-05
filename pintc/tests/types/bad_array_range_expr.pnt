@@ -7,8 +7,6 @@ predicate test {
     var d: int[0x0000000000000000000000000000000000000000000000000000000000000000];
     var e: int[{1, 2}];
     var f: int[[1, 2]];
-    var g: int["str"];
-    var h: int[10.0];
 
     // Ok
     var i: int[10];
@@ -24,8 +22,6 @@ predicate test {
 //     var ::d: int[0x0000000000000000000000000000000000000000000000000000000000000000];
 //     var ::e: int[{1, 2}];
 //     var ::f: int[[1, 2]];
-//     var ::g: int["str"];
-//     var ::h: int[1e1];
 //     var ::i: int[10];
 //     var ::j: int[::MyEnum];
 // }
@@ -47,10 +43,4 @@ predicate test {
 // invalid array range type int[2]
 // @218..224: array access must be of type `int` or `enum`
 // found range type `int[2]`
-// invalid array range type string
-// @242..247: array access must be of type `int` or `enum`
-// found range type `string`
-// invalid array range type real
-// @265..269: array access must be of type `int` or `enum`
-// found range type `real`
 // >>>

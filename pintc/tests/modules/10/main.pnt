@@ -6,7 +6,7 @@ const b = F;
 
 enum E = A | B;
 
-type E = string;
+type E = b256;
 
 predicate test {
     var E = 4;
@@ -24,8 +24,8 @@ predicate test {
 // @58..59: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `E` has already been declared
-// @96..97: previous declaration of the symbol `E` here
-// @114..115: `E` redeclared here
+// @94..95: previous declaration of the symbol `E` here
+// @112..113: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `F` has already been declared
 // @6..7: previous declaration of the symbol `F` here
@@ -37,10 +37,10 @@ predicate test {
 // `F` must be declared or imported only once in this scope
 // symbol `F` has already been declared
 // @6..7: previous declaration of the symbol `F` here
-// @55..56: `F` redeclared here
+// @53..54: `F` redeclared here
 // `F` must be declared or imported only once in this scope
 // symbol `::E` has already been declared
 // @7..8: previous declaration of the symbol `::E` here
-// @96..97: `::E` redeclared here
+// @94..95: `::E` redeclared here
 // `::E` must be declared or imported only once in this scope
 // >>>

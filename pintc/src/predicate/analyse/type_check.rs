@@ -7,17 +7,20 @@ use crate::{
     expr::{
         BinaryOp, ExternalIntrinsic, GeneratorKind, Immediate, IntrinsicKind, TupleAccess, UnaryOp,
     },
-    predicate::{PredKey, State, StorageVar},
+    predicate::{Interface, InterfaceVar, PredKey, StorageVar},
     span::{empty_span, Span, Spanned},
-    types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
+    types::{b256, EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
 };
 use fxhash::{FxHashMap, FxHashSet};
 
 impl Contract {
-    pub(super) fn lower_newtypes(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
+    /// Lower every `Type::Custom` type in a contract to a `Type::Alias` type if the custom type
+    /// actually matches one of the new type declarations in the contract. All remaining custom
+    /// types after this method runs should refer to enums.
+    pub(super) fn lower_custom_types(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
         self.check_recursive_newtypes(handler)?;
-        self.lower_newtypes_in_newtypes(handler)?;
-        self.lower_newtypes_in_contract();
+        self.lower_custom_types_in_newtypes(handler)?;
+        self.lower_custom_types_in_contract();
 
         Ok(())
     }
@@ -30,6 +33,12 @@ impl Contract {
             ty: &'a Type,
         ) -> Result<(), ErrorEmitted> {
             match ty {
+                Type::Array { ty, .. } => inspect_type_names(handler, new_types, seen_names, ty),
+
+                Type::Tuple { fields, .. } => fields
+                    .iter()
+                    .try_for_each(|(_, ty)| inspect_type_names(handler, new_types, seen_names, ty)),
+
                 Type::Custom {
                     path,
                     span: custom_ty_span,
@@ -64,12 +73,6 @@ impl Contract {
                     }
                 }
 
-                Type::Array { ty, .. } => inspect_type_names(handler, new_types, seen_names, ty),
-
-                Type::Tuple { fields, .. } => fields
-                    .iter()
-                    .try_for_each(|(_, ty)| inspect_type_names(handler, new_types, seen_names, ty)),
-
                 Type::Alias { ty, .. } => inspect_type_names(handler, new_types, seen_names, ty),
 
                 Type::Map { ty_from, ty_to, .. } => {
@@ -89,35 +92,28 @@ impl Contract {
             let _ = inspect_type_names(handler, &self.new_types, &mut seen_names, ty);
         }
 
-        if handler.has_errors() {
-            Err(handler.cancel())
-        } else {
-            Ok(())
-        }
+        handler.result(())
     }
 
-    fn lower_newtypes_in_newtypes(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
+    /// Lower every `Type::Custom` type in a new type declarations to a `Type::Alias` type if the
+    /// custom type actually matches one of the new type declarations in the contract. All
+    /// remaining custom types after this method runs should refer to enums.
+    fn lower_custom_types_in_newtypes(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
         // Search for a custom type with a specific name and return a mut ref to it.
         fn get_custom_type_mut_ref<'a>(
             custom_path: &str,
             ty: &'a mut Type,
         ) -> Option<&'a mut Type> {
             match ty {
-                Type::Custom { path, .. } => (path == custom_path).then_some(ty),
-
                 Type::Array { ty, .. } => get_custom_type_mut_ref(custom_path, ty),
-
                 Type::Tuple { fields, .. } => fields
                     .iter_mut()
                     .find_map(|(_, fld_ty)| get_custom_type_mut_ref(custom_path, fld_ty)),
-
+                Type::Custom { path, .. } => (path == custom_path).then_some(ty),
                 Type::Alias { ty, .. } => get_custom_type_mut_ref(custom_path, ty),
-
                 Type::Map { ty_from, ty_to, .. } => get_custom_type_mut_ref(custom_path, ty_from)
                     .or_else(|| get_custom_type_mut_ref(custom_path, ty_to)),
-
                 Type::Vector { ty, .. } => get_custom_type_mut_ref(custom_path, ty),
-
                 Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => None,
             }
         }
@@ -157,7 +153,7 @@ impl Contract {
                 if loop_check > 10_000 {
                     return Err(handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
-                            msg: "infinite loop in lower_newtypes_in_newtypes()",
+                            msg: "infinite loop in lower_custom_types_in_newtypes()",
                             span: empty_span(),
                         },
                     }));
@@ -168,83 +164,129 @@ impl Contract {
         Ok(())
     }
 
-    fn lower_newtypes_in_contract(&mut self) {
+    /// Lower every `Type::Custom` type in a contract to a `Type::Alias` type if the custom type
+    /// actually matches one of the new type declarations in the contract. All remaining custom
+    /// types after this method runs should refer to enums.
+    fn lower_custom_types_in_contract(&mut self) {
         use std::borrow::BorrowMut;
 
+        // Given a mutable reference to a `Type` and a list of new type declarations `new_types`,
+        // replace it or its subtypes with a `Type::Alias` when a `Type::Custom` is encountered
+        // that matches the name of a declaration in `new_types`.
         fn replace_custom_type(new_types: &[NewTypeDecl], ty: &mut Type) {
             match ty {
+                Type::Array { ty, .. } => replace_custom_type(new_types, ty.borrow_mut()),
+                Type::Tuple { fields, .. } => fields
+                    .iter_mut()
+                    .for_each(|(_, ty)| replace_custom_type(new_types, ty)),
                 Type::Custom { path, .. } => {
+                    let path = path.clone();
                     if let Some((new_ty, new_span)) =
                         new_types.iter().find_map(|NewTypeDecl { name, ty, span }| {
-                            (&name.name == path).then_some((ty, span))
+                            (name.name == path).then_some((ty, span))
                         })
                     {
                         *ty = Type::Alias {
-                            path: path.clone(),
+                            path,
                             ty: Box::new(new_ty.clone()),
                             span: new_span.clone(),
                         };
                     }
                 }
-
                 Type::Alias { ty, .. } => replace_custom_type(new_types, ty),
-
-                Type::Array { ty, .. } => {
-                    replace_custom_type(new_types, ty.borrow_mut());
-                }
-
-                Type::Tuple { fields, .. } => {
-                    for (_, ty) in fields.iter_mut() {
-                        replace_custom_type(new_types, ty);
-                    }
-                }
-
                 Type::Map { ty_from, ty_to, .. } => {
                     replace_custom_type(new_types, ty_from);
                     replace_custom_type(new_types, ty_to);
                 }
-
-                Type::Vector { ty, .. } => {
-                    replace_custom_type(new_types, ty);
-                }
-
+                Type::Vector { ty, .. } => replace_custom_type(new_types, ty),
                 Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => {}
             }
         }
 
-        for pred in self.preds.values_mut() {
-            // Then, loop for every known var or state type, or any `as` cast expr, or any storage
-            // type, and replace any custom types which match with the type alias.
+        // Replace custom types in predicates
+        self.preds.values_mut().for_each(|pred| {
+            // Replace custom types in vars and states
             pred.vars
                 .update_types(|_, ty| replace_custom_type(&self.new_types, ty));
-
             pred.states
                 .update_types(|_, ty| replace_custom_type(&self.new_types, ty));
 
+            // Replace custom types in any `as` cast expression
             self.exprs.update_exprs(|_, expr| {
                 if let Expr::Cast { ty, .. } = expr {
                     replace_custom_type(&self.new_types, ty.borrow_mut());
                 }
             });
+        });
+
+        // Replace custom types in `const` declarations
+        self.consts
+            .values_mut()
+            .for_each(|Const { decl_ty, .. }| replace_custom_type(&self.new_types, decl_ty));
+
+        // Replace custom types in every storage variable in the contract
+        if let Some((storage_vars, _)) = self.storage.as_mut() {
+            storage_vars.iter_mut().for_each(|StorageVar { ty, .. }| {
+                replace_custom_type(&self.new_types, ty);
+            })
         }
 
-        // We have to (?) clone the new_types here else the borrow checker will complain about it
-        // being borrowed immutably from `self` while `storage` is borrowed mutably from `self`.
-        // OK, fair enough, except why does it allow the `pred` in the for-loop above to be
-        // borrowed mutably and then `pred.new_types` immutably?  It's the same code but... what...
-        // because it's `self` it's different rules?  IDK.  Perhaps the lifetimes are slightly
-        // different, but then there's no way to fix that anyway.  Lifetimes can only be annotated
-        // and controlled in functions.  Hopefully when `new_types` moves to `Contract` it'll work
-        // again.
-        let new_types = self.new_types.clone();
-        if let Some((storage_vars, _)) = &mut self.storage {
-            for StorageVar { ty, .. } in storage_vars {
-                replace_custom_type(&new_types, ty);
-            }
-        }
+        // Replace custom types in interfaces
+        self.interfaces.iter_mut().for_each(
+            |Interface {
+                 storage,
+                 predicate_interfaces,
+                 ..
+             }| {
+                // Replace custom types in every storage variable in the interface
+                if let Some((storage_vars, _)) = storage.as_mut() {
+                    storage_vars.iter_mut().for_each(|StorageVar { ty, .. }| {
+                        replace_custom_type(&self.new_types, ty);
+                    });
+                }
+
+                // Replace custom types in every decision variable in the interface. These belong
+                // to the various predicate interfaces
+                predicate_interfaces
+                    .iter_mut()
+                    .for_each(|predicate_interface| {
+                        predicate_interface.vars.iter_mut().for_each(
+                            |InterfaceVar { ty, .. }| replace_custom_type(&self.new_types, ty),
+                        );
+                    });
+            },
+        );
     }
 
-    pub(super) fn check_undefined_types(&mut self, handler: &Handler) {
+    // Ensure that every `Type::Custom` in the program is actually defined as an enum or as a type
+    // alias. Otherwise, collect an error for every violation.
+    pub(super) fn check_undefined_types(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
+        // Helper function that searches for nested undefined type in a given type. It relies on
+        // `valid_custom_tys`, which is a set of all custom types that are defined in the contract.
+        fn check_custom_type(ty: &Type, handler: &Handler, valid_custom_tys: &FxHashSet<&String>) {
+            match ty {
+                Type::Array { ty, .. } => check_custom_type(ty, handler, valid_custom_tys),
+                Type::Tuple { fields, .. } => fields
+                    .iter()
+                    .for_each(|(_, field)| check_custom_type(field, handler, valid_custom_tys)),
+                Type::Custom { path, span, .. } => {
+                    if !valid_custom_tys.contains(&path) {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::UndefinedType { span: span.clone() },
+                        });
+                    }
+                }
+                Type::Alias { ty, .. } => check_custom_type(ty, handler, valid_custom_tys),
+                Type::Map { ty_from, ty_to, .. } => {
+                    check_custom_type(ty_from, handler, valid_custom_tys);
+                    check_custom_type(ty_to, handler, valid_custom_tys);
+                }
+                Type::Vector { ty, .. } => check_custom_type(ty, handler, valid_custom_tys),
+                Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => {}
+            }
+        }
+
+        // The set of all available custom types. These are either enums or type aliases.
         let valid_custom_tys: FxHashSet<&String> = FxHashSet::from_iter(
             self.enums
                 .iter()
@@ -252,52 +294,73 @@ impl Contract {
                 .chain(self.new_types.iter().map(|ntd| &ntd.name.name)),
         );
 
+        // Now, check decision variables, state variables, and cast expressions, in every predicate
         for (pred_key, pred) in self.preds.iter() {
-            for (state_key, _) in pred.states() {
-                if let Type::Custom { path, span, .. } = state_key.get_ty(pred) {
-                    if !valid_custom_tys.contains(path) {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::UndefinedType { span: span.clone() },
-                        });
-                    }
-                }
-            }
+            pred.states().for_each(|(state_key, _)| {
+                check_custom_type(state_key.get_ty(pred), handler, &valid_custom_tys)
+            });
 
-            for (var_key, _) in pred.vars() {
-                if let Type::Custom { path, span, .. } = var_key.get_ty(pred) {
-                    if !valid_custom_tys.contains(path) {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::UndefinedType { span: span.clone() },
-                        });
-                    }
-                }
-            }
+            pred.vars().for_each(|(var_key, _)| {
+                check_custom_type(var_key.get_ty(pred), handler, &valid_custom_tys)
+            });
 
-            for expr_key in self.exprs(pred_key) {
-                if let Type::Custom { path, span, .. } = expr_key.get_ty(self) {
-                    if !valid_custom_tys.contains(path) {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::UndefinedType { span: span.clone() },
-                        });
-                    }
-                }
+            self.exprs(pred_key).for_each(|expr_key| {
+                check_custom_type(expr_key.get_ty(self), handler, &valid_custom_tys);
 
                 if let Some(Expr::Cast { ty, .. }) = expr_key.try_get(self) {
-                    if let Type::Custom { path, span, .. } = ty.as_ref() {
-                        if !valid_custom_tys.contains(path) {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::UndefinedType { span: span.clone() },
-                            });
-                        }
-                    }
+                    check_custom_type(ty.as_ref(), handler, &valid_custom_tys);
                 }
-            }
+            });
         }
+
+        // Check all constants
+        self.consts.values().for_each(|Const { decl_ty, .. }| {
+            check_custom_type(decl_ty, handler, &valid_custom_tys)
+        });
+
+        // Check all storage variables in the contract
+        if let Some((storage_vars, _)) = self.storage.as_ref() {
+            storage_vars
+                .iter()
+                .for_each(|StorageVar { ty, .. }| check_custom_type(ty, handler, &valid_custom_tys))
+        }
+
+        // Check storage variables and public decision variables in every interface
+        self.interfaces.iter().for_each(
+            |Interface {
+                 storage,
+                 predicate_interfaces,
+                 ..
+             }| {
+                if let Some((storage_vars, _)) = &storage {
+                    storage_vars.iter().for_each(|StorageVar { ty, .. }| {
+                        check_custom_type(ty, handler, &valid_custom_tys)
+                    });
+                }
+
+                predicate_interfaces.iter().for_each(|predicate_interface| {
+                    predicate_interface
+                        .vars
+                        .iter()
+                        .for_each(|InterfaceVar { ty, .. }| {
+                            check_custom_type(ty, handler, &valid_custom_tys)
+                        });
+                });
+            },
+        );
+
+        // Check every type alias declaration
+        self.new_types
+            .iter()
+            .for_each(|NewTypeDecl { ty, .. }| check_custom_type(ty, handler, &valid_custom_tys));
+
+        handler.result(())
     }
 
-    pub(super) fn check_constraint_types(&self, handler: &Handler) {
+    pub(super) fn check_constraint_types(&self, handler: &Handler) -> Result<(), ErrorEmitted> {
         for pred in self.preds.values() {
-            // After all expression types are inferred, then all constraint expressions must be of type bool
+            // After all expression types are inferred, then all constraint expressions must be of
+            // type bool
             pred.constraints.iter().for_each(|constraint_decl| {
                 let expr_type = constraint_decl.expr.get_ty(self);
                 if !expr_type.is_bool() {
@@ -319,80 +382,66 @@ impl Contract {
                 }
             })
         }
+
+        handler.result(())
     }
 
-    pub(super) fn check_storage_types(&self, handler: &Handler) {
-        if let Some((storage_vars, _)) = &self.storage {
-            for StorageVar { ty, span, .. } in storage_vars {
-                if !(ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_tuple() || ty.is_array())
-                {
-                    let ty = ty.is_alias().unwrap_or(ty);
-                    if let Type::Map {
-                        ref ty_from,
-                        ref ty_to,
-                        ..
-                    } = ty
-                    {
-                        if !((ty_from.is_bool() || ty_from.is_int() || ty_from.is_b256())
-                            && (ty_to.is_bool()
-                                || ty_to.is_int()
-                                || ty_to.is_b256()
-                                || ty_to.is_map()
-                                || ty_to.is_tuple()
-                                || ty_to.is_array()))
-                        {
-                            // TODO: allow arbitrary types in storage maps
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::Internal {
-                                    msg: "currently in storage maps, keys must be int, bool, or b256 \
-                                            and values must be int or bool",
-                                    span: span.clone(),
-                                },
-                            });
-                        }
-                    } else if let Type::Vector { ref ty, .. } = ty {
-                        if !(ty.is_bool() || ty.is_int() || ty.is_b256()) {
-                            // TODO: allow arbitrary types in storage vectors
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::Internal {
-                                    msg: "storage vector can only contain int, bool, or b256",
-                                    span: span.clone(),
-                                },
-                            });
-                        }
-                    } else {
-                        // TODO: allow arbitrary types in storage blocks
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "only ints, bools, and maps are currently allowed in a \
-                                        storage block",
-                                span: span.clone(),
-                            },
-                        });
-                    }
-                }
-            }
-        }
-    }
-
-    pub(super) fn check_for_storage_types_vars(&self, handler: &Handler) {
-        for pred in self.preds.values() {
-            // Ex. var x: ( int => int ); is disallowed
-            pred.vars().for_each(|(var_key, var)| {
-                let ty = var_key.get_ty(pred);
-                if ty.is_map() || ty.is_vector() {
+    /// Check that all types used in storage are allowed. This should be removed as soon as all
+    /// types are supported in storage.
+    pub(super) fn check_storage_types(&self, handler: &Handler) -> Result<(), ErrorEmitted> {
+        if let Some((storage_vars, _)) = self.storage.as_ref() {
+            storage_vars.iter().for_each(|StorageVar { ty, .. }| {
+                if !ty.is_allowed_in_storage() {
                     handler.emit_err(Error::Compile {
-                        error: CompileError::VarHasStorageType {
+                        error: CompileError::TypeNotAllowedInStorage {
                             ty: self.with_ctrct(ty).to_string(),
-                            span: var.span.clone(),
+                            span: ty.span().clone(),
                         },
                     });
                 }
             })
         }
+
+        handler.result(())
     }
 
-    pub(super) fn type_check_all_exprs(&mut self, handler: &Handler) {
+    /// Check that all decision variables and state variables do not have storage only types like
+    /// storage maps and storage vectors
+    pub(super) fn check_types_of_variables(&self, handler: &Handler) -> Result<(), ErrorEmitted> {
+        for pred in self.preds.values() {
+            // Disallow decision variables from having storage only types
+            pred.vars().for_each(|(var_key, var)| {
+                let ty = var_key.get_ty(pred);
+                if let Some(nested_ty) = ty.get_storage_only_ty() {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::VarHasStorageType {
+                            ty: self.with_ctrct(ty).to_string(),
+                            nested_ty: self.with_ctrct(nested_ty).to_string(),
+                            span: var.span.clone(),
+                        },
+                    });
+                }
+            });
+
+            // Disallow state variables from having storage only types
+            pred.states().for_each(|(state_key, state)| {
+                let ty = state_key.get_ty(pred);
+                if let Some(nested_ty) = ty.get_storage_only_ty() {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::VarHasStorageType {
+                            ty: self.with_ctrct(ty).to_string(),
+                            nested_ty: self.with_ctrct(nested_ty).to_string(),
+                            span: state.span.clone(),
+                        },
+                    });
+                }
+            });
+        }
+
+        handler.result(())
+    }
+
+    pub(super) fn type_check_all_exprs(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
         self.check_iface_inst_addrs(handler);
         self.check_pred_inst_addrs(handler);
 
@@ -436,24 +485,7 @@ impl Contract {
                     if let Some(init_expr_key) = self.preds[pred_key].var_inits.get(var_key) {
                         let ty = init_expr_key.get_ty(self);
                         if !ty.is_unknown() {
-                            if var.is_pub
-                                && !(ty.is_bool()
-                                    || ty.is_b256()
-                                    || ty.is_int()
-                                    || ty.is_tuple()
-                                    || ty.is_array())
-                            {
-                                handler.emit_err(Error::Compile {
-                                    error: CompileError::Internal {
-                                        msg:
-                                            "only `bool`, b256`, `int`, tuple, and array pub vars \
-                                          are currently supported",
-                                        span: var.span.clone(),
-                                    },
-                                });
-                            } else {
-                                var_key_to_new_type.insert(var_key, ty.clone());
-                            }
+                            var_key_to_new_type.insert(var_key, ty.clone());
                         } else {
                             handler.emit_err(Error::Compile {
                                 error: CompileError::UnknownType {
@@ -469,20 +501,6 @@ impl Contract {
                             },
                         });
                     }
-                } else if var.is_pub
-                    && !(ty.is_bool()
-                        || ty.is_b256()
-                        || ty.is_int()
-                        || ty.is_tuple()
-                        || ty.is_array())
-                {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "only `bool`, b256`, `int`, tuple, and array pub vars \
-                            are currently supported",
-                            span: var.span.clone(),
-                        },
-                    });
                 }
             }
 
@@ -515,7 +533,6 @@ impl Contract {
                                 },
                             });
                         }
-                        self.check_state_type_for_storage_types(handler, state_ty, state_ty, state);
                     } else {
                         handler.emit_err(Error::Compile {
                             error: CompileError::UnknownType {
@@ -527,7 +544,6 @@ impl Contract {
                     let expr_ty = state.expr.get_ty(self).clone();
                     if !expr_ty.is_unknown() {
                         state_key_to_new_type.insert(state_key, expr_ty.clone());
-                        self.check_state_type_for_storage_types(handler, &expr_ty, &expr_ty, state);
                     } else {
                         handler.emit_err(Error::Compile {
                             error: CompileError::UnknownType {
@@ -586,6 +602,8 @@ impl Contract {
                 }
             }
         }
+
+        handler.result(())
     }
 
     fn check_iface_inst_addrs(&mut self, handler: &Handler) {
@@ -723,12 +741,7 @@ impl Contract {
                     handler.emit_err(Error::Compile {
                         error: CompileError::AddressExpressionTypeError {
                             large_err: Box::new(LargeTypeError::AddressExpressionTypeError {
-                                expected_ty: self
-                                    .with_ctrct(Type::Primitive {
-                                        kind: PrimitiveKind::B256,
-                                        span: empty_span(),
-                                    })
-                                    .to_string(),
+                                expected_ty: self.with_ctrct(b256()).to_string(),
                                 found_ty: self.with_ctrct(ty).to_string(),
                                 span: self.expr_key_to_span(*address),
                                 expected_span: Some(self.expr_key_to_span(*address)),
@@ -737,43 +750,6 @@ impl Contract {
                     });
                 }
             }
-        }
-    }
-
-    // State variables of type `Map` and `Vector`, whether nested or not, are not allowed.
-    fn check_state_type_for_storage_types(
-        &self,
-        handler: &Handler,
-        parent_ty: &Type,
-        state_ty: &Type,
-        state: &State,
-    ) {
-        match state_ty {
-            Type::Array { ty, .. } => {
-                self.check_state_type_for_storage_types(handler, parent_ty, ty, state)
-            }
-            Type::Tuple { fields, .. } => {
-                for field in fields {
-                    self.check_state_type_for_storage_types(handler, parent_ty, &field.1, state)
-                }
-            }
-            Type::Alias { ty, .. } => {
-                self.check_state_type_for_storage_types(handler, parent_ty, ty, state)
-            }
-            Type::Map { .. } | Type::Vector { .. } => {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::StateVarHasStorageType {
-                        ty: self.with_ctrct(parent_ty).to_string(),
-                        nested_ty: self.with_ctrct(state_ty).to_string(),
-                        span: state.span.clone(),
-                    },
-                });
-            }
-            Type::Primitive { .. }
-            | Type::Custom { .. }
-            | Type::Error(_)
-            | Type::Unknown(_)
-            | Type::Any(_) => {}
         }
     }
 
@@ -2347,7 +2323,7 @@ impl Contract {
 
     // Confirm that all var init exprs and const init exprs match their declared type, if they have
     // one.
-    pub(super) fn check_inits(&self, handler: &Handler) {
+    pub(super) fn check_inits(&self, handler: &Handler) -> Result<(), ErrorEmitted> {
         for pred in self.preds.values() {
             // Confirm types for all the variable initialisers first.
             for (var_key, init_expr_key) in &pred.var_inits {
@@ -2403,5 +2379,7 @@ impl Contract {
                 });
             }
         }
+
+        handler.result(())
     }
 }

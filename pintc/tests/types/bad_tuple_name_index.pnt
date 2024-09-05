@@ -1,5 +1,5 @@
 predicate test {
-    var a = { x: 11, y: 22.2 };
+    var a = { x: 11, y: true };
 
     constraint a.z > 33;
 }
@@ -7,7 +7,7 @@ predicate test {
 // parsed <<<
 // predicate ::test {
 //     var ::a;
-//     constraint (::a == {x: 11, y: 2.22e1});
+//     constraint (::a == {x: 11, y: true});
 //     constraint (::a.z > 33);
 // }
 // >>>
@@ -15,5 +15,5 @@ predicate test {
 // typecheck_failure <<<
 // invalid tuple accessor
 // @65..68: unable to get field from tuple using `z`
-// tuple has type `{x: int, y: real}`
+// tuple has type `{x: int, y: bool}`
 // >>>

@@ -288,6 +288,7 @@ macro_rules! parse_with {
             span_from: &span_from,
             use_paths: &mut Vec::new(),
             next_paths: &mut next_paths,
+            experimental_types: cfg!(feature = "experimental-types"),
         };
 
         let local_handler = Handler::default();

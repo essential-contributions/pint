@@ -1,0 +1,32 @@
+predicate test {
+    var x = 1_100e3;
+    var y = 1_100.500_123e0_000_00;
+    var z = 1.2E5;
+
+    constraint x / y > z;
+}
+
+// parsed <<<
+// predicate ::test {
+//     var ::x;
+//     var ::y;
+//     var ::z;
+//     constraint (::x == 1.1e6);
+//     constraint (::y == 1.100500123e3);
+//     constraint (::z == 1.2e5);
+//     constraint ((::x / ::y) > ::z);
+// }
+// >>>
+
+// flattened <<<
+// predicate ::test {
+//     var ::x: real;
+//     var ::y: real;
+//     var ::z: real;
+//     constraint (::x == 1.1e6);
+//     constraint (::y == 1.100500123e3);
+//     constraint (::z == 1.2e5);
+//     constraint ((::x / ::y) > ::z);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

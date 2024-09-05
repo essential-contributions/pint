@@ -1,10 +1,10 @@
-type Point = { x: real, y: real };
+type Point = { x: int, y: int };
 
 type Point = int;
 
 // parse_failure <<<
 // symbol `Point` has already been declared
 // @5..10: previous declaration of the symbol `Point` here
-// @41..46: `Point` redeclared here
+// @39..44: `Point` redeclared here
 // `Point` must be declared or imported only once in this scope
 // >>>

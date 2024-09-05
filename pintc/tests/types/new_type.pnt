@@ -1,112 +1,153 @@
 enum TheLetterA = T | U | V;
 type Hooray = int[3];
-type Point = { x: real, y: real };
-enum Experience = Real | Unreal;
+type Point = { x: int, y: int };
+enum Experience = Int | Unint;
 type A = TheLetterA;
 type I = int;
-type Real = real;
+type Int = int;
+
+const cc: I = 4;
 
 storage {
     x: int,
+    c: I,
+}
+
+interface Boo {
+    storage {
+        c: I,
+    }
+
+    predicate Foo {
+        pub var x: A;
+    }
 }
 
 predicate test {
     var t: A = A::T;
+    pub var pt: A = A::T;
+
     var u: TheLetterA = A::U;
     var v: A = TheLetterA::V;
 
     var i: I = 11;
-    var j: {I, real} = {22, 33.3};
+    var j: {I, int} = {22, 33};
 
-    var r: Real = 44.4;
-    var e: Experience = Experience::Real;
+    var r: Int = 44;
+    var e: Experience = Experience::Int;
 
     var h: Hooray;
     constraint h[1] == 55;
 
-    var p: Point = { 66.6, 77.7 };
+    var p: Point = { 66, 77 };
     constraint r < p.y;
 
-    var q: real = i as Real;
+    var q: int = i as Int;
 
     state x: I = storage::x;
 }
 
 // parsed <<<
+// const ::cc: ::I = 4;
 // enum ::TheLetterA = T | U | V;
-// enum ::Experience = Real | Unreal;
+// enum ::Experience = Int | Unint;
 // type ::Hooray = int[3];
-// type ::Point = {x: real, y: real};
+// type ::Point = {x: int, y: int};
 // type ::A = ::TheLetterA;
 // type ::I = int;
-// type ::Real = real;
+// type ::Int = int;
 // storage {
 //     x: int,
+//     c: ::I,
+// }
+// interface ::Boo {
+//     storage {
+//         c: ::I,
+//     }
+//     predicate Foo {
+//         pub var x: ::A;
+//     }
 // }
 // 
 // predicate ::test {
 //     var ::t: ::A;
+//     pub var ::pt: ::A;
 //     var ::u: ::TheLetterA;
 //     var ::v: ::A;
 //     var ::i: ::I;
-//     var ::j: {::I, real};
-//     var ::r: ::Real;
+//     var ::j: {::I, int};
+//     var ::r: ::Int;
 //     var ::e: ::Experience;
 //     var ::h: ::Hooray;
 //     var ::p: ::Point;
-//     var ::q: real;
+//     var ::q: int;
 //     state ::x: ::I = storage::x;
 //     constraint (::t == ::A::T);
+//     constraint (::pt == ::A::T);
 //     constraint (::u == ::A::U);
 //     constraint (::v == ::TheLetterA::V);
 //     constraint (::i == 11);
-//     constraint (::j == {22, 3.33e1});
-//     constraint (::r == 4.44e1);
-//     constraint (::e == ::Experience::Real);
+//     constraint (::j == {22, 33});
+//     constraint (::r == 44);
+//     constraint (::e == ::Experience::Int);
 //     constraint (::h[1] == 55);
-//     constraint (::p == {6.66e1, 7.77e1});
+//     constraint (::p == {66, 77});
 //     constraint (::r < ::p.y);
-//     constraint (::q == ::i as ::Real);
+//     constraint (::q == ::i as ::Int);
 // }
 // >>>
 
 // flattened <<<
+// const ::cc: int = 4;
 // enum ::TheLetterA = T | U | V;
-// enum ::Experience = Real | Unreal;
+// enum ::Experience = Int | Unint;
 // type ::Hooray = int[3];
-// type ::Point = {x: real, y: real};
+// type ::Point = {x: int, y: int};
 // type ::A = ::TheLetterA;
 // type ::I = int;
-// type ::Real = real;
+// type ::Int = int;
 // storage {
 //     x: int,
+//     c: int,
+// }
+// interface ::Boo {
+//     storage {
+//         c: int,
+//     }
+//     predicate Foo {
+//         pub var x: ::TheLetterA;
+//     }
 // }
 // 
 // predicate ::test {
 //     var ::t: int;
+//     pub var ::pt: int;
 //     var ::u: int;
 //     var ::v: int;
 //     var ::i: int;
-//     var ::j: {int, real};
-//     var ::r: real;
+//     var ::j: {int, int};
+//     var ::r: int;
 //     var ::e: int;
 //     var ::h: int[3];
-//     var ::p: {x: real, y: real};
-//     var ::q: real;
+//     var ::p: {x: int, y: int};
+//     var ::q: int;
 //     state ::x: int = __storage_get({0});
 //     constraint (::t == 0);
+//     constraint (__transient({0}, 1, __this_pathway()) == 0);
 //     constraint (::u == 1);
 //     constraint (::v == 2);
 //     constraint (::i == 11);
-//     constraint (::j == {22, 3.33e1});
-//     constraint (::r == 4.44e1);
+//     constraint (::j == {22, 33});
+//     constraint (::r == 44);
 //     constraint (::e == 0);
 //     constraint (::h[1] == 55);
-//     constraint (::p == {6.66e1, 7.77e1});
+//     constraint (::p == {66, 77});
 //     constraint (::r < ::p.y);
-//     constraint (::q == ::i as real);
+//     constraint (::q == ::i);
 //     constraint (::t >= 0);
 //     constraint (::t <= 2);
+//     constraint (__transient({0}, 1, __this_pathway()) >= 0);
+//     constraint (__transient({0}, 1, __this_pathway()) <= 2);
 //     constraint (::u >= 0);
 //     constraint (::u <= 2);
 //     constraint (::v >= 0);
