@@ -5,7 +5,7 @@ predicate test {
     var xx: int;
     var yy: int;
 
-    if 1.0 {
+    if 0x0000000000000000000000000000000000000000000000000000000000000000 {
         if false {
         } else {
             constraint z && !z;
@@ -37,7 +37,7 @@ predicate test {
 //     var ::y: int;
 //     var ::xx: int;
 //     var ::yy: int;
-//     if 1e0 {
+//     if 0x0000000000000000000000000000000000000000000000000000000000000000 {
 //         if false {
 //         } else {
 //             constraint (::z && !::z)
@@ -63,9 +63,9 @@ predicate test {
 
 // typecheck_failure <<<
 // condition for `if` statement must be a `bool`
-// @108..111: invalid type `real`, expecting `bool`
+// @108..174: invalid type `b256`, expecting `bool`
 // condition for `if` statement must be a `bool`
-// @234..239: invalid type `int`, expecting `bool`
+// @297..302: invalid type `int`, expecting `bool`
 // condition for `if` statement must be a `bool`
-// @349..357: invalid type `{int, int}`, expecting `bool`
+// @412..420: invalid type `{int, int}`, expecting `bool`
 // >>>

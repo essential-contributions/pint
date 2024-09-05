@@ -303,4 +303,7 @@ mod e2e {
     e2e_test!(storage);
     e2e_test!(types);
     e2e_test!(optimizations);
+
+    #[cfg(feature = "experimental-types")]
+    e2e_test!(experimental);
 }

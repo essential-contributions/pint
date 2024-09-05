@@ -5,7 +5,6 @@ predicate Foo {
     pub var x1: bool;
     pub var x2: int;
     pub var x3: b256;
-    pub var x4: string;
     pub var x5: { bool, int };
     pub var x6: int[5];
     pub var x7: MyEnum;
@@ -14,7 +13,6 @@ predicate Foo {
     pub var y1: bool = true;
     pub var y2: int = 5;
     pub var y3: b256 = 0x0000111100001111000011110000111100001111000011110000111100001111;
-    pub var y4: string = "foo";
     pub var y5: { bool, int } = { true, 2 };
     pub var y6: int[5] = [ 1, 2, 3, 4, 5];
     pub var y7: MyEnum = MyEnum::A;
@@ -23,7 +21,6 @@ predicate Foo {
     pub var z1 = true;
     pub var z2 = 5;
     pub var z3 = 0x0000111100001111000011110000111100001111000011110000111100001111;
-    pub var z4 = "foo";
     pub var z5 = { true, 2 };
     pub var z6 = [ 1, 2, 3, 4, 5];
     pub var z7 = MyEnum::A;
@@ -38,7 +35,6 @@ predicate Foo {
 //     pub var ::x1: bool;
 //     pub var ::x2: int;
 //     pub var ::x3: b256;
-//     pub var ::x4: string;
 //     pub var ::x5: {bool, int};
 //     pub var ::x6: int[5];
 //     pub var ::x7: ::MyEnum;
@@ -46,7 +42,6 @@ predicate Foo {
 //     pub var ::y1: bool;
 //     pub var ::y2: int;
 //     pub var ::y3: b256;
-//     pub var ::y4: string;
 //     pub var ::y5: {bool, int};
 //     pub var ::y6: int[5];
 //     pub var ::y7: ::MyEnum;
@@ -54,7 +49,6 @@ predicate Foo {
 //     pub var ::z1;
 //     pub var ::z2;
 //     pub var ::z3;
-//     pub var ::z4;
 //     pub var ::z5;
 //     pub var ::z6;
 //     pub var ::z7;
@@ -62,7 +56,6 @@ predicate Foo {
 //     constraint (::y1 == true);
 //     constraint (::y2 == 5);
 //     constraint (::y3 == 0x0000111100001111000011110000111100001111000011110000111100001111);
-//     constraint (::y4 == "foo");
 //     constraint (::y5 == {true, 2});
 //     constraint (::y6 == [1, 2, 3, 4, 5]);
 //     constraint (::y7 == ::MyEnum::A);
@@ -70,7 +63,6 @@ predicate Foo {
 //     constraint (::z1 == true);
 //     constraint (::z2 == 5);
 //     constraint (::z3 == 0x0000111100001111000011110000111100001111000011110000111100001111);
-//     constraint (::z4 == "foo");
 //     constraint (::z5 == {true, 2});
 //     constraint (::z6 == [1, 2, 3, 4, 5]);
 //     constraint (::z7 == ::MyEnum::A);
@@ -78,25 +70,58 @@ predicate Foo {
 // }
 // >>>
 
-// These type check failures are temporary until we support other types for `pub var`
-//
-// typecheck_failure <<<
-// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @137..139: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @216..218: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @240..242: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @410..412: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @530..532: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @566..568: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @731..733: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @820..822: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// compiler internal error: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
-// @848..850: only `bool`, b256`, `int`, tuple, and array pub vars are currently supported
+// flattened <<<
+// enum ::MyEnum = A | B;
+// type ::MyType = ::MyEnum;
+// 
+// predicate ::Foo {
+//     pub var ::x1: bool;
+//     pub var ::x2: int;
+//     pub var ::x3: b256;
+//     pub var ::x5: {bool, int};
+//     pub var ::x6: int[5];
+//     pub var ::x7: int;
+//     pub var ::x8: int;
+//     pub var ::y1: bool;
+//     pub var ::y2: int;
+//     pub var ::y3: b256;
+//     pub var ::y5: {bool, int};
+//     pub var ::y6: int[5];
+//     pub var ::y7: int;
+//     pub var ::y8: int;
+//     pub var ::z1: bool;
+//     pub var ::z2: int;
+//     pub var ::z3: b256;
+//     pub var ::z5: {bool, int};
+//     pub var ::z6: int[5];
+//     pub var ::z7: int;
+//     pub var ::z8: int;
+//     constraint (__transient({7}, 1, __this_pathway()) == true);
+//     constraint (__transient({8}, 1, __this_pathway()) == 5);
+//     constraint (__transient({9}, 1, __this_pathway()) == 0x0000111100001111000011110000111100001111000011110000111100001111);
+//     constraint (__transient({10, 0}, 2, __this_pathway()) == {true, 2});
+//     constraint (__transient({11, 0}, 2, __this_pathway()) == [1, 2, 3, 4, 5]);
+//     constraint (__transient({12}, 1, __this_pathway()) == 0);
+//     constraint (__transient({13}, 1, __this_pathway()) == 1);
+//     constraint (__transient({14}, 1, __this_pathway()) == true);
+//     constraint (__transient({15}, 1, __this_pathway()) == 5);
+//     constraint (__transient({16}, 1, __this_pathway()) == 0x0000111100001111000011110000111100001111000011110000111100001111);
+//     constraint (__transient({17, 0}, 2, __this_pathway()) == {true, 2});
+//     constraint (__transient({18, 0}, 2, __this_pathway()) == [1, 2, 3, 4, 5]);
+//     constraint (__transient({19}, 1, __this_pathway()) == 0);
+//     constraint (__transient({20}, 1, __this_pathway()) == 1);
+//     constraint (__transient({5}, 1, __this_pathway()) >= 0);
+//     constraint (__transient({5}, 1, __this_pathway()) <= 1);
+//     constraint (__transient({6}, 1, __this_pathway()) >= 0);
+//     constraint (__transient({6}, 1, __this_pathway()) <= 1);
+//     constraint (__transient({12}, 1, __this_pathway()) >= 0);
+//     constraint (__transient({12}, 1, __this_pathway()) <= 1);
+//     constraint (__transient({13}, 1, __this_pathway()) >= 0);
+//     constraint (__transient({13}, 1, __this_pathway()) <= 1);
+//     constraint (__transient({19}, 1, __this_pathway()) >= 0);
+//     constraint (__transient({19}, 1, __this_pathway()) <= 1);
+//     constraint (__transient({20}, 1, __this_pathway()) >= 0);
+//     constraint (__transient({20}, 1, __this_pathway()) <= 1);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
 // >>>

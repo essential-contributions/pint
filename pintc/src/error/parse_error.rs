@@ -75,6 +75,10 @@ pub enum ParseError {
     BadStorageIntrinsic(Span),
     #[error("no intrinsic named `{name}` is found")]
     MissingIntrinsic { name: String, span: Span },
+    #[error("Unsupported type")]
+    TypeNotSupported { ty: String, span: Span },
+    #[error("Unsupported literal")]
+    LiteralNotSupported { kind: String, span: Span },
 }
 
 impl ReportableError for ParseError {
@@ -272,6 +276,16 @@ impl ReportableError for ParseError {
                 span: span.clone(),
                 color: Color::Red,
             }],
+            TypeNotSupported { ty, span } => vec![ErrorLabel {
+                message: format!("type `{ty}` is not currently supported in Pint"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+            LiteralNotSupported { kind, span } => vec![ErrorLabel {
+                message: format!("\"{kind}\" literals are not currently supported in Pint"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
         }
     }
 
@@ -387,6 +401,8 @@ impl Spanned for ParseError {
             | BadSplice(span)
             | BadStorageIntrinsic(span)
             | MissingIntrinsic { span, .. }
+            | TypeNotSupported { span, .. }
+            | LiteralNotSupported { span, .. }
             | Lex { span } => span,
 
             InvalidToken => unreachable!("The `InvalidToken` error is always wrapped in `Lex`."),

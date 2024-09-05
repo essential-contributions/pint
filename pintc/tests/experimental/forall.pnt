@@ -1,0 +1,20 @@
+predicate test {
+    var r: real;
+
+    constraint forall i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { i as real / j as real >= r };
+}
+
+// parsed <<<
+// predicate ::test {
+//     var ::r: real;
+//     constraint forall i in 0..3, j in 0..3, where !(::i >= ::j), (((::i - 1) >= 0) && (::j > 0)) { ((::i as real / ::j as real) >= ::r) };
+// }
+// >>>
+
+// flattened <<<
+// predicate ::test {
+//     var ::r: real;
+//     constraint (((true && ((1 as real / 2 as real) >= ::r)) && ((1 as real / 3 as real) >= ::r)) && ((2 as real / 3 as real) >= ::r));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

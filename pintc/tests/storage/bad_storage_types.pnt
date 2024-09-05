@@ -1,0 +1,43 @@
+enum MyEnum = A | B;
+type MyAlias = MyEnum;
+
+storage {
+    a: ({ int, int } => int),
+    b: (int[5] => int),
+    c: (int[]  => int),
+    d: {int, int}[],
+    e: (int => int)[],
+    f: MyAlias,
+    g: MyEnum,
+}
+
+// parsed <<<
+// enum ::MyEnum = A | B;
+// type ::MyAlias = ::MyEnum;
+// storage {
+//     a: ( {int, int} => int ),
+//     b: ( int[5] => int ),
+//     c: ( int[] => int ),
+//     d: {int, int}[],
+//     e: ( int => int )[],
+//     f: ::MyAlias,
+//     g: ::MyEnum,
+// }
+// >>>
+
+// typecheck_failure <<<
+// type not allowed in storage
+// @62..83: found type ( {int, int} => int ) in storage
+// type not allowed in storage
+// @92..107: found type ( int[5] => int ) in storage
+// type not allowed in storage
+// @116..131: found type ( int[] => int ) in storage
+// type not allowed in storage
+// @140..152: found type {int, int}[] in storage
+// type not allowed in storage
+// @161..175: found type ( int => int )[] in storage
+// type not allowed in storage
+// @21..42: found type ::MyAlias (::MyEnum) in storage
+// type not allowed in storage
+// @200..206: found type ::MyEnum in storage
+// >>>

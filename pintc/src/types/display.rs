@@ -7,6 +7,19 @@ impl DisplayWithContract for super::Path {
     }
 }
 
+impl Display for super::PrimitiveKind {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        match self {
+            super::PrimitiveKind::Nil => write!(f, "nil"),
+            super::PrimitiveKind::Bool => write!(f, "bool"),
+            super::PrimitiveKind::Int => write!(f, "int"),
+            super::PrimitiveKind::Real => write!(f, "real"),
+            super::PrimitiveKind::String => write!(f, "string"),
+            super::PrimitiveKind::B256 => write!(f, "b256"),
+        }
+    }
+}
+
 impl DisplayWithContract for super::Type {
     fn fmt(&self, f: &mut Formatter, contract: &Contract) -> Result {
         match self {
@@ -16,14 +29,7 @@ impl DisplayWithContract for super::Type {
 
             super::Type::Any(..) => write!(f, "_"),
 
-            super::Type::Primitive { kind, .. } => match kind {
-                super::PrimitiveKind::Nil => write!(f, "nil"),
-                super::PrimitiveKind::Bool => write!(f, "bool"),
-                super::PrimitiveKind::Int => write!(f, "int"),
-                super::PrimitiveKind::Real => write!(f, "real"),
-                super::PrimitiveKind::String => write!(f, "string"),
-                super::PrimitiveKind::B256 => write!(f, "b256"),
-            },
+            super::Type::Primitive { kind, .. } => write!(f, "{kind}"),
 
             super::Type::Array { ty, range, .. } => {
                 write!(

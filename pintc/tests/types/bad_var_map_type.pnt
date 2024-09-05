@@ -17,6 +17,7 @@ predicate test {
 // typecheck_failure <<<
 // variables cannot have storage types
 // @53..54: found variable of storage type ::MyMap (( int => int )) here
+// type of variable depends on the storage type `( int => int )`
 // variables cannot have storage types
 // @71..72: found variable of storage type ( int => int ) here
 // >>>

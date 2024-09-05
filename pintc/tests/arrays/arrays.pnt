@@ -1,10 +1,10 @@
 enum Colour = Red | Green | Blue;
 
 predicate test {
-    var a: real[5];
+    var a: int[5];
     var a1 = a[1];
 
-    var b: real[Colour][3];
+    var b: int[Colour][3];
     var b_r_2 = b[Colour::Red][2];
 
     var c: int[4] = [0, 1, 2, 3];
@@ -17,9 +17,9 @@ predicate test {
 // enum ::Colour = Red | Green | Blue;
 //
 // predicate ::test {
-//     var ::a: real[5];
+//     var ::a: int[5];
 //     var ::a1;
-//     var ::b: real[3][::Colour];
+//     var ::b: int[3][::Colour];
 //     var ::b_r_2;
 //     var ::c: int[4];
 //     var ::c1;
@@ -36,10 +36,10 @@ predicate test {
 // enum ::Colour = Red | Green | Blue;
 //
 // predicate ::test {
-//     var ::a: real[5];
-//     var ::a1: real;
-//     var ::b: real[3][3];
-//     var ::b_r_2: real;
+//     var ::a: int[5];
+//     var ::a1: int;
+//     var ::b: int[3][3];
+//     var ::b_r_2: int;
 //     var ::c: int[4];
 //     var ::c1: int[4];
 //     var ::cb: bool;

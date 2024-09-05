@@ -24,6 +24,7 @@ pub struct ParserContext<'a> {
     pub(crate) span_from: &'a dyn Fn(usize, usize) -> Span,
     pub(crate) use_paths: &'a mut Vec<UsePath>,
     pub(crate) next_paths: &'a mut Vec<NextModPath>,
+    pub(crate) experimental_types: bool,
 }
 
 impl<'a> ParserContext<'a> {

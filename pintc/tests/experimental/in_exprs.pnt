@@ -1,0 +1,29 @@
+enum Cake = Crab | Mud | Uranium | Urinal;
+
+predicate test {
+    var b: real;
+
+    constraint b in 12.3..67.8;
+    constraint b in [25.0, 29.97, 59.94];
+}
+
+// parsed <<<
+// enum ::Cake = Crab | Mud | Uranium | Urinal;
+// 
+// predicate ::test {
+//     var ::b: real;
+//     constraint ::b in 1.23e1..6.78e1;
+//     constraint ::b in [2.5e1, 2.997e1, 5.994e1];
+// }
+// >>>
+
+// flattened <<<
+// enum ::Cake = Crab | Mud | Uranium | Urinal;
+// 
+// predicate ::test {
+//     var ::b: real;
+//     constraint ((::b >= 1.23e1) && (::b <= 6.78e1));
+//     constraint (((::b == 2.5e1) || (::b == 2.997e1)) || (::b == 5.994e1));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

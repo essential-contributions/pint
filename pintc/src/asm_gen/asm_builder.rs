@@ -209,7 +209,7 @@ impl AsmBuilder<'_> {
                     }
                 }
                 Immediate::Error | Immediate::Nil | Immediate::Real(_) | Immediate::String(_) => {
-                    unimplemented!("other literal types are not yet supported")
+                    unreachable!("Unexpected literal")
                 }
             }
         }

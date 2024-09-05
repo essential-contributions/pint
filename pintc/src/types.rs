@@ -313,10 +313,58 @@ impl Type {
         })
     }
 
+    // If `self` contains a storage only type `ty`, return `Some(ty)`. Otherwise, return `None`
+    pub fn get_storage_only_ty(&self) -> Option<&Self> {
+        match self {
+            Type::Map { .. } | Type::Vector { .. } => Some(self),
+            Type::Array { ty, .. } => ty.get_storage_only_ty(),
+            Type::Tuple { fields, .. } => {
+                for (_, field) in fields {
+                    let ty = field.get_storage_only_ty();
+                    if let Some(ty) = ty {
+                        return Some(ty);
+                    }
+                }
+                None
+            }
+            Type::Alias { ty, .. } => ty.get_storage_only_ty(),
+            _ => None,
+        }
+    }
+
+    // Checks if type `self` is allowed in storage. For now, all types are allowed except for:
+    // - Storage maps where the "from" type is not bool, int, nor b256
+    // - Storage vectors where the element type is not bool, int, nor b256
+    // - Enums
+    pub fn is_allowed_in_storage(&self) -> bool {
+        match self {
+            Type::Map { ty_from, ty_to, .. } => {
+                // We only support maps from these types for now
+                (ty_from.is_bool() || ty_from.is_int() || ty_from.is_b256())
+                    && ty_to.is_allowed_in_storage()
+            }
+            Type::Vector { ty, .. } => {
+                // We only support vectors of these types for now
+                ty.is_bool() || ty.is_int() || ty.is_b256()
+            }
+            Type::Array { ty, .. } => ty.is_allowed_in_storage(),
+            Type::Tuple { fields, .. } => fields
+                .iter()
+                .fold(true, |acc, (_, field)| acc && field.is_allowed_in_storage()),
+            Type::Alias { ty, .. } => ty.is_allowed_in_storage(),
+            Type::Custom { .. } => {
+                // Do not allow enums just yet. This assumes that custom types that refer to type
+                // aliases have been lowered by now
+                false
+            }
+            _ => true,
+        }
+    }
+
     pub fn size(&self, handler: &Handler, contract: &Contract) -> Result<usize, ErrorEmitted> {
         match self {
             Self::Primitive {
-                kind: PrimitiveKind::Bool | PrimitiveKind::Int | PrimitiveKind::Real,
+                kind: PrimitiveKind::Bool | PrimitiveKind::Int,
                 ..
             } => Ok(1),
 
@@ -349,7 +397,23 @@ impl Type {
             // `Vector` also takes up a single storage slot that stores the length of the vector
             Self::Vector { .. } => Ok(1),
 
-            _ => unimplemented!("Size of type is not yet specified"),
+            // Not expecting any of these types at this stage. These are either unsupported types
+            // (like `String` and `Real`) or types that should have been resolved by the time we
+            // need their size (like `Custom` and `Alias`)
+            Self::Primitive {
+                kind: PrimitiveKind::String | PrimitiveKind::Real | PrimitiveKind::Nil,
+                span,
+            }
+            | Self::Error(span)
+            | Self::Unknown(span)
+            | Self::Any(span)
+            | Self::Custom { span, .. }
+            | Self::Alias { span, .. } => Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "unexpected type",
+                    span: span.clone(),
+                },
+            })),
         }
     }
 
@@ -362,7 +426,10 @@ impl Type {
         contract: &Contract,
     ) -> Result<usize, ErrorEmitted> {
         match self {
-            Self::Primitive { .. } => Ok(1),
+            Self::Primitive {
+                kind: PrimitiveKind::Bool | PrimitiveKind::Int | PrimitiveKind::B256,
+                ..
+            } => Ok(1),
 
             Self::Tuple { fields, .. } => fields.iter().try_fold(0, |acc, (_, field_ty)| {
                 field_ty
@@ -389,7 +456,24 @@ impl Type {
 
             // `Vector` also takes up a single storage slot that stores the length of the vector
             Self::Vector { .. } => Ok(1),
-            _ => unimplemented!("Size of type is not yet specified"),
+
+            // Not expecting any of these types at this stage. These are either unsupported types
+            // (like `String` and `Real`) or types that should have been resolved by the time we
+            // need their size (like `Custom` and `Alias`)
+            Self::Primitive {
+                kind: PrimitiveKind::String | PrimitiveKind::Real | PrimitiveKind::Nil,
+                span,
+            }
+            | Self::Error(span)
+            | Self::Unknown(span)
+            | Self::Any(span)
+            | Self::Custom { span, .. }
+            | Self::Alias { span, .. } => Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "unexpected type",
+                    span: span.clone(),
+                },
+            })),
         }
     }
 

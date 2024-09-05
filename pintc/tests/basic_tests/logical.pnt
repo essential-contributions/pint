@@ -7,9 +7,6 @@ predicate test {
     var y: int = 20;
     var z: int = 30;
 
-    var u: real = 40.0;
-    var w: real = 50.0;
-
     var t: bool = true;
     var f: bool = false;
 
@@ -33,9 +30,6 @@ predicate test {
     constraint !!!!(x == 10);
     constraint !(!(x != 11) || !(y != 21));
     constraint !(!(x != 10) && !(y != 21));
-
-    constraint u >= 40.0 && w <= 50.0;
-    constraint (u >= 40.0 && u + w == 90.0) || w == 60.0;
 }
 
 // parsed <<<
@@ -43,15 +37,11 @@ predicate test {
 //     var ::x: int;
 //     var ::y: int;
 //     var ::z: int;
-//     var ::u: real;
-//     var ::w: real;
 //     var ::t: bool;
 //     var ::f: bool;
 //     constraint (::x == 10);
 //     constraint (::y == 20);
 //     constraint (::z == 30);
-//     constraint (::u == 4e1);
-//     constraint (::w == 5e1);
 //     constraint (::t == true);
 //     constraint (::f == false);
 //     constraint true;
@@ -73,8 +63,6 @@ predicate test {
 //     constraint !!!!(::x == 10);
 //     constraint !(!(::x != 11) || !(::y != 21));
 //     constraint !(!(::x != 10) && !(::y != 21));
-//     constraint ((::u >= 4e1) && (::w <= 5e1));
-//     constraint (((::u >= 4e1) && ((::u + ::w) == 9e1)) || (::w == 6e1));
 // }
 // >>>
 
@@ -83,15 +71,11 @@ predicate test {
 //     var ::x: int;
 //     var ::y: int;
 //     var ::z: int;
-//     var ::u: real;
-//     var ::w: real;
 //     var ::t: bool;
 //     var ::f: bool;
 //     constraint (::x == 10);
 //     constraint (::y == 20);
 //     constraint (::z == 30);
-//     constraint (::u == 4e1);
-//     constraint (::w == 5e1);
 //     constraint (::t == true);
 //     constraint (::f == false);
 //     constraint true;
@@ -113,8 +97,6 @@ predicate test {
 //     constraint !!!!(::x == 10);
 //     constraint !(!(::x != 11) || !(::y != 21));
 //     constraint !(!(::x != 10) && !(::y != 21));
-//     constraint ((::u >= 4e1) && (::w <= 5e1));
-//     constraint (((::u >= 4e1) && ((::u + ::w) == 9e1)) || (::w == 6e1));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

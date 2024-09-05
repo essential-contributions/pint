@@ -4,10 +4,9 @@ predicate test {
     var x: int;
 
     constraint x in 11..22 in 13..20;
-    constraint x in 15.5..18.3;
 
     var y: bool;
-    constraint y in "foo"..false;
+    constraint y in 0x0000111100001111000011110000111100001111000011110000111100001111..false;
 
     var z: SupperGuest;
     constraint z in [1, 4, 7];
@@ -22,8 +21,7 @@ predicate test {
 //     var ::y: bool;
 //     var ::z: ::SupperGuest;
 //     constraint ::x in 11..22 in 13..20;
-//     constraint ::x in 1.55e1..1.83e1;
-//     constraint ::y in "foo"..false;
+//     constraint ::y in 0x0000111100001111000011110000111100001111000011110000111100001111..false;
 //     constraint ::z in [1, 4, 7];
 //     constraint ::x in [::SupperGuest::Andrew, ::SupperGuest::Philip];
 // }
@@ -32,16 +30,14 @@ predicate test {
 // typecheck_failure <<<
 // value type and range type differ
 // @190..192: range type mismatch; expecting `bool` type, found `int` type
-// value type and range type differ
-// @218..222: range type mismatch; expecting `int` type, found `real` type
 // left and right types in range differ
-// @275..280: expecting `string` type , found `bool` type
+// @304..309: expecting `b256` type , found `bool` type
 // compiler internal error: range ty is not numeric or array?
-// @263..280: range ty is not numeric or array?
+// @231..309: range ty is not numeric or array?
 // value type and array element type in range differ
-// @328..329: array element type mismatch; expecting `::SupperGuest` type, found `int` type
+// @357..358: array element type mismatch; expecting `::SupperGuest` type, found `int` type
 // value type and array element type in range differ
 // @0..123: array element type mismatch; expecting `int` type, found `::SupperGuest` type
 // constraint expression type error
-// @263..280: expecting type `bool`
+// @231..309: expecting type `bool`
 // >>>

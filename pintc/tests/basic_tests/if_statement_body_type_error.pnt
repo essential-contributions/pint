@@ -14,7 +14,7 @@ predicate test {
         constraint yy != xx;
 
         if z {
-            constraint x + 1.0;
+            constraint x + true;
         } else {
             constraint z;
         }
@@ -25,7 +25,7 @@ predicate test {
         } else {
             if z {
                 constraint z && true;
-                constraint yy + { 1, 2.0 };
+                constraint yy + { 1, true };
             }
         }
     }
@@ -45,7 +45,7 @@ predicate test {
 //         }
 //         constraint (::yy != ::xx)
 //         if ::z {
-//             constraint (::x + 1e0)
+//             constraint (::x + true)
 //         } else {
 //             constraint ::z
 //         }
@@ -56,7 +56,7 @@ predicate test {
 //         } else {
 //             if ::z {
 //                 constraint (::z && true)
-//                 constraint (::yy + {1, 2e0})
+//                 constraint (::yy + {1, true})
 //             }
 //         }
 //     }
@@ -68,8 +68,7 @@ predicate test {
 // @185..186: operator `&&` argument has unexpected type `int`
 // @174..186: expecting type `bool`
 // binary operator type error
-// @271..274: operator `+` argument has unexpected type `real`
-// @267..268: expecting type `int`
+// @271..275: operator `+` argument has unexpected type `bool`
 // binary operator type error
-// @532..542: operator `+` argument has unexpected type `{int, real}`
+// @533..544: operator `+` argument has unexpected type `{int, bool}`
 // >>>

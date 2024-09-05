@@ -181,7 +181,13 @@ pub enum CompileError {
     #[error("invalid array range type {found_ty}")]
     InvalidArrayRangeType { found_ty: String, span: Span },
     #[error("variables cannot have storage types")]
-    VarHasStorageType { ty: String, span: Span },
+    VarHasStorageType {
+        ty: String,
+        nested_ty: String,
+        span: Span,
+    },
+    #[error("type not allowed in storage")]
+    TypeNotAllowedInStorage { ty: String, span: Span },
     #[error("attempt to index a storage map with a mismatched value")]
     StorageMapAccessWithWrongType {
         found_ty: String,
@@ -223,12 +229,6 @@ pub enum CompileError {
     },
     #[error("state variable initialization type error")]
     StateVarInitTypeError { large_err: Box<LargeTypeError> },
-    #[error("state variables cannot have storage types")]
-    StateVarHasStorageType {
-        ty: String,
-        nested_ty: String,
-        span: Span,
-    },
     #[error("expression has a recursive dependency")]
     ExprRecursion {
         dependant_span: Span,
@@ -758,9 +758,17 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            VarHasStorageType { ty, span } => {
+            VarHasStorageType { ty, span, .. } => {
                 vec![ErrorLabel {
                     message: format!("found variable of storage type {ty} here"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            TypeNotAllowedInStorage { ty, span, .. } => {
+                vec![ErrorLabel {
+                    message: format!("found type {ty} in storage"),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -828,11 +836,6 @@ impl ReportableError for CompileError {
                     color: Color::Red,
                 },
             ],
-            StateVarHasStorageType { ty, span, .. } => vec![ErrorLabel {
-                message: format!("found state variable of storage type {ty} here"),
-                span: span.clone(),
-                color: Color::Red,
-            }],
 
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }
@@ -1189,10 +1192,10 @@ impl ReportableError for CompileError {
                 "only `enum` and `type` declarations are allowed outside a predicate".to_string(),
             ),
 
-            StateVarHasStorageType { ty, nested_ty, .. } => {
+            VarHasStorageType { ty, nested_ty, .. } => {
                 if ty != nested_ty {
                     Some(format!(
-                        "type of state variable depends on the storage type `{nested_ty}`"
+                        "type of variable depends on the storage type `{nested_ty}`"
                     ))
                 } else {
                     None
@@ -1239,7 +1242,6 @@ impl ReportableError for CompileError {
             | InitTypeError { .. }
             | StateVarInitTypeError { .. }
             | IndexExprNonIndexable { .. }
-            | VarHasStorageType { .. }
             | TupleAccessNonTuple { .. }
             | EmptyArrayExpression { .. }
             | ExprRecursion { .. }
@@ -1260,6 +1262,7 @@ impl ReportableError for CompileError {
             | RecursiveNewType { .. }
             | InRangeInvalid { .. }
             | AddressOfSelf { .. }
+            | TypeNotAllowedInStorage { .. }
             | PredicateNameNotFound { .. } => None,
         }
     }
@@ -1403,6 +1406,7 @@ impl Spanned for CompileError {
             | ArrayAccessWithWrongType { span, .. }
             | InvalidArrayRangeType { span, .. }
             | VarHasStorageType { span, .. }
+            | TypeNotAllowedInStorage { span, .. }
             | StorageMapAccessWithWrongType { span, .. }
             | MismatchedArrayComparisonSizes { span, .. }
             | TupleAccessNonTuple { span, .. }
@@ -1419,7 +1423,6 @@ impl Spanned for CompileError {
             | RangeTypesMismatch { span, .. }
             | RangeTypesNonNumeric { span, .. }
             | InExprTypesMismatch { span, .. }
-            | StateVarHasStorageType { span, .. }
             | InExprTypesArrayMismatch { span, .. }
             | UnexpectedIntrinsicArgCount { span, .. }
             | MismatchedIntrinsicArgType { arg_span: span, .. }
