@@ -61,7 +61,6 @@ impl ReportableWarning for Warning {
             AlwaysFalseConstraint { .. } => {
                 Some("constraint is always false and can be removed or revised".to_string())
             }
-            _ => None,
         }
     }
 }
@@ -85,7 +84,7 @@ impl Display for Warnings {
             "{}",
             self.0
                 .iter()
-                .map(|err| err.display_raw())
+                .map(|warning| warning.display_raw())
                 .collect::<String>()
                 .trim_end()
         )

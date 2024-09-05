@@ -11,7 +11,7 @@ use yansi::{Color, Paint, Style};
 
 pub(super) use compile_error::CompileError;
 pub(super) use compile_error::LargeTypeError;
-pub use handler::{ErrorEmitted, Handler, WarningEmitted};
+pub use handler::{ErrorEmitted, Handler};
 pub(super) use lex_error::LexError;
 pub(super) use parse_error::ParseError;
 

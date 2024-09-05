@@ -26,20 +26,13 @@ impl Handler {
     }
 
     /// Emit the warning `warn`.
-    pub fn emit_warn(&self, warning: Warning) -> WarningEmitted {
+    pub fn emit_warn(&self, warning: Warning) {
         self.inner.borrow_mut().warnings.push(warning);
-        WarningEmitted { _priv: () }
     }
 
     /// Compilation should be cancelled.
     pub fn cancel(&self) -> ErrorEmitted {
         ErrorEmitted { _priv: () }
-    }
-    // TODO determine if we need cancel to involve warnings -- doubt it?
-
-    /// Prove warnings were emitted without cancelling compilation
-    pub fn continue_with_warnings(&self) -> WarningEmitted {
-        WarningEmitted { _priv: () }
     }
 
     /// Produce a `Result::Ok(value)` if the handler has no errors. Otherwise, produce
@@ -110,11 +103,5 @@ impl Handler {
 /// Proof that an error was emitted through a `Handler`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ErrorEmitted {
-    _priv: (),
-}
-
-/// Proof that a warning was emitted through a `Handler`.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct WarningEmitted {
     _priv: (),
 }
