@@ -46,6 +46,8 @@ pub enum BuiltPkg {
 /// A successfully built contract package.
 #[derive(Debug)]
 pub struct BuiltContract {
+    /// All the emitted warnings.
+    pub warnings: pintc::warning::Warnings,
     /// All built predicates.
     pub predicate_metadata: Vec<PredicateMetadata>,
     /// The salt of this contract.
@@ -82,6 +84,8 @@ pub struct PredicateMetadata {
 /// A successfully built library package.
 #[derive(Debug)]
 pub struct BuiltLibrary {
+    /// All the emitted warnings.
+    pub warnings: pintc::warning::Warnings,
     /// The compiled contract.
     pub contract: pintc::predicate::Contract,
 }
@@ -193,8 +197,8 @@ impl<'p, 'b> PrebuiltPkg<'p, 'b> {
 }
 
 impl BuildPkgError {
-    /// Consume `self` and print the errors.
-    pub fn eprint(self) {
+    /// Consume `self` and print the errors and the warnings.
+    pub fn print_diagnostics(self) {
         let (errors, warnings) = self.handler.consume();
         pintc::error::print_errors(&pintc::error::Errors(errors));
         pintc::warning::print_warnings(&pintc::warning::Warnings(warnings));
@@ -220,6 +224,14 @@ impl BuiltPkg {
             }
         }
         Ok(())
+    }
+
+    /// Print all emitted warnings.
+    pub fn print_warnings(&self) {
+        let (Self::Contract(BuiltContract { warnings, .. })
+        | Self::Library(BuiltLibrary { warnings, .. })) = self;
+
+        pintc::warning::print_warnings(warnings);
     }
 }
 
@@ -318,7 +330,10 @@ fn build_pkg(
         manifest::PackageKind::Library => {
             // TODO: Add checks here to make sure the library is sane.. E.g., the library is
             // stateless, etc.
-            let lib = BuiltLibrary { contract };
+            let lib = BuiltLibrary {
+                warnings: pintc::warning::Warnings(handler.consume().1),
+                contract,
+            };
             BuiltPkg::Library(lib)
         }
         manifest::PackageKind::Contract => {
@@ -377,12 +392,6 @@ fn build_pkg(
                 }
             };
 
-            // Print any warnings
-            if handler.has_warnings() {
-                let (_, warnings) = handler.consume();
-                pintc::warning::print_warnings(&pintc::warning::Warnings(warnings));
-            }
-
             let (predicate_metadata, predicates) = predicates
                 .into_iter()
                 .map(
@@ -395,6 +404,7 @@ fn build_pkg(
                 .unzip();
 
             let contract = BuiltContract {
+                warnings: pintc::warning::Warnings(handler.consume().1),
                 ca,
                 predicate_metadata,
                 contract: Contract {

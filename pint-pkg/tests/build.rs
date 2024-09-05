@@ -64,7 +64,7 @@ predicate test {
         let built_pkgs = match build_plan(&plan).build_all(false /* skip_optimize */) {
             Ok(built) => built,
             Err(err) => {
-                err.pkg_err.eprint();
+                err.pkg_err.print_diagnostics();
                 panic!()
             }
         };
@@ -139,7 +139,7 @@ predicate test {
         let built_pkgs = match build_plan(&plan).build_all(false /* skip_optimize */) {
             Ok(built) => built,
             Err(err) => {
-                err.pkg_err.eprint();
+                err.pkg_err.print_diagnostics();
                 panic!()
             }
         };
@@ -230,7 +230,7 @@ predicate test {
         let built_pkgs = match build_plan(&plan).build_all(true /* skip_optimize */) {
             Ok(built) => built,
             Err(err) => {
-                err.pkg_err.eprint();
+                err.pkg_err.print_diagnostics();
                 panic!()
             }
         };
