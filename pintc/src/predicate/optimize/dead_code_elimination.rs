@@ -11,7 +11,7 @@ use crate::{
 /// In a given contract, remove any code that is not reachable or used.
 ///
 /// If an error occurs, the specific optimization process is aborted to ensure the contract remains functional.
-pub(crate) fn dead_code_elimination(contract: &mut Contract, handler: &Handler) {
+pub(crate) fn dead_code_elimination(handler: &Handler, contract: &mut Contract) {
     dead_state_elimination(contract);
     dead_constraint_elimination(handler, contract);
 }
