@@ -61,8 +61,6 @@ predicate Foo {
         ]
     };
 
-
-
     // Read some state.
     state s0: bool = mut storage::s0;
     state s1: int = mut storage::s1;
