@@ -80,12 +80,12 @@ pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Cont
                             });
                         }
 
-                        Some((i, b))
+                        Some(i)
                     } else {
                         None
                     }
                 })
-                .collect::<Vec<(usize, bool)>>();
+                .collect::<Vec<usize>>();
 
             if has_false_constraint {
                 // replace all constraints with one `constraint false`
@@ -101,7 +101,7 @@ pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Cont
                 if let Some(pred) = contract.preds.get_mut(pred_key) {
                     // Remove dead constraints in reverse to avoid removing the wrong indices from shifting elements
                     // This assumes dead_constraints is sorted, which it is based on how it is collected above
-                    dead_constraints.iter().rev().for_each(|(i, _)| {
+                    dead_constraints.iter().rev().for_each(|i| {
                         pred.constraints.remove(*i);
                     });
                 }
