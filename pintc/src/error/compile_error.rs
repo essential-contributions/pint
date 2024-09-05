@@ -356,6 +356,8 @@ pub enum CompileError {
         expected_ty: String,
         span: Span,
     },
+    #[error("invalid position for accessing storage")]
+    InvalidStorageAccess { span: Span },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -1224,6 +1226,12 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            InvalidStorageAccess { span } => vec![ErrorLabel {
+                message: "storage cannot be accessed in this position".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             Internal { msg, span } => {
                 if span == &empty_span() {
                     Vec::new()
@@ -1347,6 +1355,11 @@ impl ReportableError for CompileError {
             DependencyCycle { .. } => Some(
                 "dependency between predicates is typically created via \
                      predicate instances"
+                    .to_string(),
+            ),
+
+            InvalidStorageAccess { .. } => Some(
+                "storage can only be accessed in the initializer of `state` declaration"
                     .to_string(),
             ),
 
@@ -1634,7 +1647,8 @@ impl Spanned for CompileError {
             | SuperfluousUnionExprValue { span, .. }
             | MissingUnionExprValue { span, .. }
             | UnionVariantTypeMismatch { span, .. }
-            | OperatorInvalidType { span, .. } => span,
+            | OperatorInvalidType { span, .. }
+            | InvalidStorageAccess { span, .. } => span,
 
             DependencyCycle { spans } => &spans[0],
 

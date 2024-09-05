@@ -198,8 +198,6 @@ pub enum Token {
     TestMarkerIntrinsic,
     #[token("###usetree###")]
     TestMarkerUseTree,
-    #[token("###state###")]
-    TestMarkerStateInit,
 }
 
 pub type MacroCallArgs = Vec<Vec<(usize, Token, usize)>>;
@@ -354,7 +352,6 @@ impl fmt::Display for Token {
             Token::TestMarkerIdent => write!(f, "### ident test ###"),
             Token::TestMarkerIntrinsic => write!(f, "### intrinsic ident test ###"),
             Token::TestMarkerUseTree => write!(f, "### use tree test ###"),
-            Token::TestMarkerStateInit => write!(f, "### state init test ###"),
         }
     }
 }

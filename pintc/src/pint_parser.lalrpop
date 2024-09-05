@@ -260,7 +260,7 @@ VarInit: ExprKey = {
 }
 
 StateDecl: () = {
-    <l:@L> "state" <name:Ident> <ty:(":" <Type>)?> "=" <init:StateInit> <r:@R> => {
+    <l:@L> "state" <name:Ident> <ty:(":" <Type>)?> "=" <init:Expr> <r:@R> => {
         // Return the index to the new state in the Predicate::states Vec.
         let span = (context.span_from)(l, r);
         let mod_prefix = context.mod_prefix;
@@ -827,22 +827,12 @@ TermInner: Expr = {
         Expr::Immediate { value: imm, span }
     },
     GeneratorExpr,
-    <l:@L> <call:IntrinsicCallExpr> <r:@R> => {
-        if let Expr::IntrinsicCall {
-            kind: (IntrinsicKind::External(ExternalIntrinsic::VecLen), _),
-            ..
-        } = call
-        {
-            handler.emit_err(Error::Parse {
-                error: ParseError::BadStorageIntrinsic((context.span_from)(l, r)),
-            });
-        }
-        call
-    },
+    IntrinsicCallExpr,
     ArrayExpr,
     TupleExpr,
     UnionExpr,
     <l:@L> <path:Path> <r:@R> => Expr::Path(path, (context.span_from)(l, r)),
+    StoragePath,
 }
 
 GeneratorRange: (Ident, ExprKey) = {
@@ -1045,7 +1035,6 @@ IntrinsicArg: ExprKey = {
             Type::Unknown(span),
         )
     },
-    StorageTupleFieldOp,
 }
 
 IntrinsicCallExpr: Expr = {
@@ -1144,7 +1133,24 @@ PathWithLast<Last>: Path = {
     <l:@L> <els:(<Ident> "::")*> <last:Last> <r:@R> => {
         let span = (context.span_from)(l, r);
         context.parse_relative_path(els, last, true, span)
-    }
+    },
+}
+
+StoragePath: Expr = {
+    <l:@L> <mutable: "mut"?> "storage" "::" <name:Ident> <r:@R> => {
+        context.parse_storage_access(handler, false, None, name, mutable.is_some(), (l, l, r))
+    },
+    <l:@L> <abs:"::"?> <els:(<Ident> "::")*> <last:Ident> <m:@R> "::"
+           "storage" "::" <name:Ident> <r:@R> => {
+        context.parse_storage_access(
+            handler,
+            abs.is_some(),
+            Some((els, last)),
+            name,
+            false,
+            (l, m, r),
+        )
+    },
 }
 
 Immediate: Immediate = {
@@ -1181,75 +1187,6 @@ IdentFromToken<Tok>: Ident = {
         hygienic: false,
         span: (context.span_from)(l, r),
     }
-}
-
-//////////////////////////////////
-/// Storage Access Expressions ///
-//////////////////////////////////
-
-StateInit: ExprKey = {
-    <StorageTupleFieldOp>,
-    <call:IntrinsicCallExpr> => {
-        let span = call.span().clone();
-        context.contract.exprs.insert(call, Type::Unknown(span))
-    },
-}
-
-StorageTupleFieldOp: ExprKey = {
-    <l:@L> <tuple:StorageTupleFieldOp> "." <name:Ident> <r:@R> => {
-        context.parse_tuple_field_op_with_ident(tuple, name, (l, r))
-    },
-    <l:@L> <tuple:StorageTupleFieldOp> "." <m:@L> <num_str:"int_lit"> <r:@R> => {
-        context.parse_tuple_field_op_with_int(handler, tuple, num_str, (l, m, r))
-    },
-    <l:@L> <tuple:StorageTupleFieldOp> "." <m:@L> <num_str:"real_lit"> <r:@R> => {
-        context.parse_tuple_field_op_with_real(handler, tuple, num_str, (l, m, r))
-    },
-    <StorageIndexOp>
-}
-
-StorageIndexOp: ExprKey = {
-    <l:@L> <expr:StorageIndexOp> "[" <index:Expr> "]" <r:@R> => {
-        let span = (context.span_from)(l, r);
-        context.contract.exprs.insert(
-            Expr::Index {
-                expr,
-                index,
-                span: span.clone(),
-            },
-            Type::Unknown(span),
-        )
-    },
-    <l:@L> <expr:StorageIndexOp> "[" "]" <r:@R> => {
-        let span = (context.span_from)(l, r);
-        handler.emit_err(Error::Parse {
-            error: ParseError::EmptyIndexAccess { span: span.clone() },
-        });
-
-        // Recover with a malformed expression
-        context
-            .contract
-            .exprs
-            .insert(Expr::Error(span.clone()), Type::Unknown(span))
-    },
-    <StorageAccess>,
-}
-
-StorageAccess: ExprKey = {
-    <l:@L> <mutable: "mut"?> "storage" "::" <name:Ident> <r:@R> => {
-        context.parse_storage_access(handler, false, None, name, mutable.is_some(), (l, l, r))
-    },
-    <l:@L> <abs:"::"?> <els:(<Ident> "::")*> <last:Ident> <m:@R> "::"
-           "storage" "::" <name:Ident> <r:@R> => {
-        context.parse_storage_access(
-            handler,
-            abs.is_some(),
-            Some((els, last)),
-            name,
-            false,
-            (l, m, r),
-        )
-    },
 }
 
 /////////////
@@ -1293,7 +1230,6 @@ pub(crate) TestDelegate: crate::parser::TestWrapper = {
     "test_ident" <Ident> => crate::parser::TestWrapper::Ident(<>),
     "test_intrinsic" <IntrinsicName> => crate::parser::TestWrapper::Ident(<>),
     "test_usetree" <UseTree> => crate::parser::TestWrapper::UseTree(<>),
-    "test_state" <StateInit> => crate::parser::TestWrapper::Expr(<>),
 }
 
 /////////////
@@ -1402,6 +1338,5 @@ extern {
         "test_ident" => lexer::Token::TestMarkerIdent,
         "test_intrinsic" => lexer::Token::TestMarkerIntrinsic,
         "test_usetree" => lexer::Token::TestMarkerUseTree,
-        "test_state" => lexer::Token::TestMarkerStateInit,
     }
 }

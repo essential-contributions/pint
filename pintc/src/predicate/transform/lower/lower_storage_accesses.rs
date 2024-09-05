@@ -5,6 +5,7 @@ use crate::{
     span::empty_span,
     types::{PrimitiveKind, Type},
 };
+use fxhash::FxHashSet;
 
 /// Lower all storage accesses in a contract into `__storage_get` and `__storage_get_extern`
 /// intrinsics. Also insert constraints on mutable keys.
@@ -46,11 +47,16 @@ fn lower_storage_accesses_in_predicate(
         })
         .unwrap_or_default();
 
+    let storage_accesses: FxHashSet<_> = state_exprs
+        .iter()
+        .flat_map(|expr| expr.collect_storage_accesses(contract))
+        .collect();
+
     let mut keys_set_field_types = vec![];
     let mut keys_set_fields = vec![];
     let mut keys_set_size = 0;
 
-    for expr in state_exprs {
+    for expr in storage_accesses {
         let expr_ty = expr.get_ty(contract).clone();
         let (addr, mutable, key) = get_base_storage_key(handler, &expr, contract, pred_key)?;
 
@@ -467,7 +473,7 @@ fn get_base_storage_key(
 
         _ => Err(handler.emit_err(Error::Compile {
             error: CompileError::Internal {
-                msg: "unexpected expression",
+                msg: "unexpected expression in a storage access expression",
                 span: empty_span(),
             },
         })),

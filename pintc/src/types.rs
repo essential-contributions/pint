@@ -326,6 +326,39 @@ impl Type {
         })
     }
 
+    /// Returns all array range expressions in given type. For example, given the following
+    /// expression `{ int, int[3 + 3], int[a][b] }`, this method a vector of `ExprKey` that point
+    /// to the following expressions `3 + 3`, `a`, `b`.
+    pub fn get_all_array_range_exprs(&self) -> Vec<ExprKey> {
+        let mut range_exprs = Vec::new();
+        match self {
+            Self::Array { ty, range, .. } => {
+                range_exprs.extend(ty.get_all_array_range_exprs());
+                if let Some(range) = range {
+                    range_exprs.push(*range);
+                }
+            }
+            Self::Tuple { fields, .. } => {
+                for field in fields {
+                    range_exprs.extend(field.1.get_all_array_range_exprs());
+                }
+            }
+            Self::Alias { ty, .. } => {
+                range_exprs.extend(ty.get_all_array_range_exprs());
+            }
+            Self::Map { ty_from, ty_to, .. } => {
+                range_exprs.extend(ty_from.get_all_array_range_exprs());
+                range_exprs.extend(ty_to.get_all_array_range_exprs());
+            }
+            Self::Vector { ty, .. } => {
+                range_exprs.extend(ty.get_all_array_range_exprs());
+            }
+            _ => {}
+        }
+
+        range_exprs
+    }
+
     pub fn get_array_size(&self) -> Option<i64> {
         check_alias!(self, get_array_size, {
             if let Type::Array { size, .. } = self {

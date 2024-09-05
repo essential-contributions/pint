@@ -62,11 +62,13 @@ __sha256(data: _) -> b256
 ---
 
 ```pint
-__state_len(data: _) -> int
+__size_of(data: _) -> int
 ```
 
-**Description:** Returns the length of a state variable. the argument `data` must be a state
-variable or a "next state" expression but can have any type.
+**Description:** Returns the size, in words, of an expression. This is often the same as the size of
+the type of the expression (e.g. 1 word for `int`, 4 words for `b256`, 3 words for `{int, int,
+bool}`, and so on). However, it can also be different, namely for expressions that can be `nil` such
+as storage accesses and paths to state variables.
 
 ---
 

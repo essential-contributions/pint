@@ -13,10 +13,10 @@ predicate test {
     state c = storage::c;
     state d = storage::d;
 
-    var a_len = __state_len(a);
-    var b_len = __state_len(b);
-    var c_len = __state_len(c);
-    var d_len = __state_len(d);
+    var a_len = __size_of(a);
+    var b_len = __size_of(b);
+    var c_len = __size_of(c);
+    var d_len = __size_of(d);
 }
 
 // parsed <<<,
@@ -37,10 +37,10 @@ predicate test {
 //     state ::b = storage::b;
 //     state ::c = storage::c;
 //     state ::d = storage::d;
-//     constraint (::a_len == __state_len(::a));
-//     constraint (::b_len == __state_len(::b));
-//     constraint (::c_len == __state_len(::c));
-//     constraint (::d_len == __state_len(::d));
+//     constraint (::a_len == __size_of(::a));
+//     constraint (::b_len == __size_of(::b));
+//     constraint (::c_len == __size_of(::c));
+//     constraint (::d_len == __size_of(::d));
 // }
 // >>>
 
@@ -62,10 +62,10 @@ predicate test {
 //     state ::b: bool = __storage_get({1});
 //     state ::c: b256 = __storage_get({2});
 //     state ::d: {int, bool} = __storage_get({3, 0});
-//     constraint (::a_len == __state_len(::a));
-//     constraint (::b_len == __state_len(::b));
-//     constraint (::c_len == __state_len(::c));
-//     constraint (::d_len == __state_len(::d));
+//     constraint (::a_len == __size_of(::a));
+//     constraint (::b_len == __size_of(::b));
+//     constraint (::c_len == __size_of(::c));
+//     constraint (::d_len == __size_of(::d));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
