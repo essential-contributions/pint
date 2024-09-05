@@ -28,3 +28,6 @@ predicate Test {
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
+
+// warnings <<<
+// >>>
