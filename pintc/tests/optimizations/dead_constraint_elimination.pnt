@@ -84,24 +84,24 @@ predicate Test {
 
 // warnings <<<
 // constraint is trivial
-// @185..200: constraint is trivial
+// @179..194: constraint is trivial
 // constraint is unnecessary and can be removed or revised
 // constraint is trivial
-// @206..223: constraint is trivial
+// @200..217: constraint is trivial
 // constraint is unnecessary and can be removed or revised
 // constraint is trivial
-// @229..250: constraint is trivial
+// @223..244: constraint is trivial
 // constraint is unnecessary and can be removed or revised
 // constraint is trivial
-// @256..268: constraint is trivial
+// @250..262: constraint is trivial
 // constraint is unnecessary and can be removed or revised
 // constraint is trivial
-// @274..286: constraint is trivial
+// @268..280: constraint is trivial
 // constraint is unnecessary and can be removed or revised
 // constraint is trivial
-// @292..313: constraint is trivial
+// @286..307: constraint is trivial
 // constraint is unnecessary and can be removed or revised
 // constraint is trivial
-// @319..340: constraint is trivial
+// @313..334: constraint is trivial
 // constraint is unnecessary and can be removed or revised
 // >>>

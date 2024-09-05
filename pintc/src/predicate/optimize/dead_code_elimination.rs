@@ -47,12 +47,7 @@ pub(crate) fn dead_state_elimination(contract: &mut Contract, handler: &Handler)
 
         let dead_state_decls = pred_states
             .filter(|&(_, state)| (!live_paths.contains(&state.name)))
-            .map(|(state_key, state)| {
-                handler.emit_warn(Warning::DeadState {
-                    span: state.span.clone(),
-                });
-                state_key
-            })
+            .map(|(state_key, _)| state_key)
             .collect::<FxHashSet<StateKey>>();
 
         if let Some(pred) = contract.preds.get_mut(pred_key) {

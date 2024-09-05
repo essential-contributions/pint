@@ -14,8 +14,6 @@ pub struct WarningLabel {
 /// A general compile warning
 #[derive(Error, Debug)]
 pub enum Warning {
-    #[error("state is unused")]
-    DeadState { span: Span }, // TODO: This is tough and can be confusing because of mut. Currently you will get the error on a mut storage, although you should not (I think?)
     #[error("constraint is trivial")]
     TrivialConstraint { span: Span },
     #[error("constraint is always false")]
@@ -26,13 +24,6 @@ impl ReportableWarning for Warning {
     fn labels(&self) -> Vec<WarningLabel> {
         use Warning::*;
         match self {
-            DeadState { span } => {
-                vec![WarningLabel {
-                    message: "state is unused".to_string(),
-                    span: span.clone(),
-                    color: Color::Yellow,
-                }]
-            }
             TrivialConstraint { span } => {
                 vec![WarningLabel {
                     message: "constraint is trivial".to_string(),
@@ -53,7 +44,7 @@ impl ReportableWarning for Warning {
     fn note(&self) -> Option<String> {
         use Warning::*;
         match self {
-            DeadState { .. } | TrivialConstraint { .. } | AlwaysFalseConstraint { .. } => None,
+            TrivialConstraint { .. } | AlwaysFalseConstraint { .. } => None,
         }
     }
 
@@ -79,9 +70,7 @@ impl Spanned for Warning {
     fn span(&self) -> &Span {
         use Warning::*;
         match self {
-            DeadState { span } | TrivialConstraint { span } | AlwaysFalseConstraint { span } => {
-                span
-            }
+            TrivialConstraint { span } | AlwaysFalseConstraint { span } => span,
         }
     }
 }
