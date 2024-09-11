@@ -8,7 +8,7 @@ use crate::{
 use petgraph::{graph::NodeIndex, Graph};
 use std::collections::HashMap;
 
-/// In a given contract, lower all accesses to pub vars into `__transient` intrinsic call. Also,
+/// In a given contract, lower all accesses to pub vars into `__pub_var` intrinsic call. Also,
 /// ensure that the addresses used in interface and predicate instances are correct (i.e. match
 /// what's in the solution)
 pub(crate) fn lower_pub_var_accesses(
@@ -68,7 +68,7 @@ pub(crate) fn lower_pub_var_accesses(
     }
 }
 
-/// In a given predicate, lower all accesses to pub vars into `__transient` intrinsic call. Also,
+/// In a given predicate, lower all accesses to pub vars into `__pub_var` intrinsic call. Also,
 /// ensure that the addresses used in interface and predicate instances are correct (i.e. match
 /// what's in the solution)
 pub(crate) fn lower_pub_var_accesses_in_predicate(
@@ -105,10 +105,10 @@ pub(crate) fn lower_pub_var_accesses_in_predicate(
         })
         .collect::<Vec<_>>();
 
-    // A list of pub var access expressions to replace with `__transient` intrinsic calls.
+    // A list of pub var access expressions to replace with `__pub_var` intrinsic calls.
     let mut replacements: Vec<(
         ExprKey, /* `pub var` access expr */
-        ExprKey, /* `__transient` intrinsic call */
+        ExprKey, /* `__pub_var` intrinsic call */
     )> = Vec::new();
 
     for (var_key, expr_key, pub_var_index) in &local_pub_vars {
@@ -136,11 +136,6 @@ pub(crate) fn lower_pub_var_accesses_in_predicate(
             },
         );
 
-        // Second argument is the key length which is either 1 or 2
-        let key_len = contract
-            .exprs
-            .insert_int(if var_ty.is_any_primitive() { 1 } else { 2 });
-
         // Third argument is the pathway, which is just a call to `__this_pathway` when accessing
         // local `pub var`s
         let pathway = contract.exprs.insert(
@@ -155,20 +150,20 @@ pub(crate) fn lower_pub_var_accesses_in_predicate(
             int_ty.clone(),
         );
 
-        // This is the `__transient` intrinsic we want to replace the `pub var` access with
-        let transient_intrinsic = contract.exprs.insert(
+        // This is the `__pub_var` intrinsic we want to replace the `pub var` access with
+        let pub_var_intrinsic = contract.exprs.insert(
             Expr::IntrinsicCall {
                 kind: (
-                    IntrinsicKind::Internal(InternalIntrinsic::Transient),
+                    IntrinsicKind::Internal(InternalIntrinsic::PubVar),
                     empty_span(),
                 ),
-                args: vec![key, key_len, pathway],
+                args: vec![pathway, key],
                 span: empty_span(),
             },
             expr_key.get_ty(contract).clone(),
         );
 
-        replacements.push((*expr_key, transient_intrinsic));
+        replacements.push((*expr_key, pub_var_intrinsic));
     }
 
     // Collect the names and `ExprKey`s for path expressions that correspond to external pub vars.
@@ -295,11 +290,6 @@ pub(crate) fn lower_pub_var_accesses_in_predicate(
                 },
             );
 
-            // Second argument is the key length which is either 1 or 2
-            let key_len = contract
-                .exprs
-                .insert_int(if var_ty.is_any_primitive() { 1 } else { 2 });
-
             // Third argument is the pathway, which is unique to the particular predicate
             // instance we found above and refers to a decision variable that have the name
             // `__<pred_instance_name>_pathway`. This variable is added in the parser.
@@ -311,20 +301,20 @@ pub(crate) fn lower_pub_var_accesses_in_predicate(
                 int_ty.clone(),
             );
 
-            // This is the `__transient` intrinsic we want to replace the `pub var` access with
-            let transient_intrinsic = contract.exprs.insert(
+            // This is the `__pub_var` intrinsic we want to replace the `pub var` access with
+            let pub_var_intrinsic = contract.exprs.insert(
                 Expr::IntrinsicCall {
                     kind: (
-                        IntrinsicKind::Internal(InternalIntrinsic::Transient),
+                        IntrinsicKind::Internal(InternalIntrinsic::PubVar),
                         empty_span(),
                     ),
-                    args: vec![key, key_len, pathway],
+                    args: vec![pathway, key],
                     span: empty_span(),
                 },
                 var_ty.clone(),
             );
 
-            replacements.push((expr_key, transient_intrinsic));
+            replacements.push((expr_key, pub_var_intrinsic));
         }
     }
 

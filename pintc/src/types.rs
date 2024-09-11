@@ -417,10 +417,10 @@ impl Type {
         }
     }
 
-    /// Calculate the number of storage or transient slots required for this type. All primitive
+    /// Calculate the number of storage or pub var slots required for this type. All primitive
     /// types fit in a single slot even if their size is > 1. The math is the same for storage and
-    /// transient data
-    pub fn storage_or_transient_slots(
+    /// pub var data
+    pub fn storage_or_pub_var_slots(
         &self,
         handler: &Handler,
         contract: &Contract,
@@ -433,13 +433,13 @@ impl Type {
 
             Self::Tuple { fields, .. } => fields.iter().try_fold(0, |acc, (_, field_ty)| {
                 field_ty
-                    .storage_or_transient_slots(handler, contract)
+                    .storage_or_pub_var_slots(handler, contract)
                     .map(|slots| acc + slots)
             }),
 
             Self::Array {
                 ty, range, size, ..
-            } => Ok(ty.storage_or_transient_slots(handler, contract)?
+            } => Ok(ty.storage_or_pub_var_slots(handler, contract)?
                 * size.unwrap_or(Self::get_array_size_from_range_expr(
                     handler,
                     range
@@ -469,6 +469,72 @@ impl Type {
             | Self::Any(span)
             | Self::Custom { span, .. }
             | Self::Alias { span, .. } => Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "unexpected type",
+                    span: span.clone(),
+                },
+            })),
+        }
+    }
+
+    /// Compute the sizes of all primitive elements in `self`, in order, and collect the results in
+    /// the vector `primitive_elements`. For example if `self` is `{ int, { int, b256[3] } }`,
+    /// then, `primitive_elements` will be equal to `[ 1, 1, 4, 4, 4 ]`.
+    pub fn primitive_elements(
+        &self,
+        handler: &Handler,
+        contract: &Contract,
+        primitive_elements: &mut Vec<usize>,
+    ) -> Result<(), ErrorEmitted> {
+        match self {
+            Self::Primitive {
+                kind: PrimitiveKind::Bool | PrimitiveKind::Int,
+                ..
+            } => {
+                primitive_elements.push(1);
+                Ok(())
+            }
+
+            Self::Primitive {
+                kind: PrimitiveKind::B256,
+                ..
+            } => {
+                primitive_elements.push(4);
+                Ok(())
+            }
+
+            Self::Tuple { fields, .. } => Ok(fields.iter().try_for_each(|(_, field_ty)| {
+                field_ty.primitive_elements(handler, contract, primitive_elements)
+            })?),
+
+            Self::Array {
+                ty, range, size, ..
+            } => {
+                let array_size = size.unwrap_or(Self::get_array_size_from_range_expr(
+                    handler,
+                    range
+                        .as_ref()
+                        .and_then(|e| e.try_get(contract))
+                        .expect("expr key guaranteed to exist"),
+                    contract,
+                )?);
+
+                Ok((0..array_size).try_for_each(|_| {
+                    ty.primitive_elements(handler, contract, primitive_elements)
+                })?)
+            }
+
+            Self::Primitive {
+                kind: PrimitiveKind::String | PrimitiveKind::Real | PrimitiveKind::Nil,
+                span,
+            }
+            | Self::Error(span)
+            | Self::Unknown(span)
+            | Self::Any(span)
+            | Self::Custom { span, .. }
+            | Self::Alias { span, .. }
+            | Self::Map { span, .. }
+            | Self::Vector { span, .. } => Err(handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "unexpected type",
                     span: span.clone(),
@@ -753,8 +819,8 @@ impl Spanned for EphemeralDecl {
 // Helper functions that produce specific types without spans //
 ////////////////////////////////////////////////////////////////
 
-pub fn unknown() -> Type {
-    Type::Unknown(empty_span())
+pub fn error() -> Type {
+    Type::Error(empty_span())
 }
 
 pub fn any() -> Type {
