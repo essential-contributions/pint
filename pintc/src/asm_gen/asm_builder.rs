@@ -23,14 +23,15 @@ pub struct AsmBuilder<'a> {
     pub state_programs: Vec<Vec<StateOp>>,
     // Opcodes to specify constraints
     pub constraint_programs: Vec<Vec<ConstraintOp>>,
-    // A reference to a list of the predicate addresses which are known so far
-    pub compiled_predicates: &'a HashMap<String, (CompiledPredicate, ContentAddress)>,
+    // A reference to a `HahsMap` from predicate names to the compiled predicates and their
+    // addresses
+    compiled_predicates: &'a HashMap<String, (CompiledPredicate, ContentAddress)>,
     // A reference to a map from names of state variables to the chosen state slot index.
-    pub slot_indices: HashMap<String, usize>,
+    state_var_to_slot_indices: HashMap<String, usize>,
     // This keeps track of the total number of slots allocated so far, globally
-    pub total_slots: usize,
-    // This keeps track of which state var we're currently compiling, if any
-    pub current_state_var: Option<String>,
+    global_state_slots: usize,
+    // This keeps track of the total number of slots allocated so far, locally
+    local_state_slots: usize,
 }
 
 /// A single assembly program which may be a "constraint program" or a "state program"
@@ -109,7 +110,21 @@ enum Location {
     Value,
 }
 
-impl AsmBuilder<'_> {
+impl<'a> AsmBuilder<'a> {
+    /// Creates a new `AsmBuilder`
+    pub fn new(
+        compiled_predicates: &'a HashMap<String, (CompiledPredicate, ContentAddress)>,
+    ) -> Self {
+        Self {
+            state_programs: Vec::new(),
+            constraint_programs: Vec::new(),
+            compiled_predicates,
+            state_var_to_slot_indices: HashMap::new(),
+            global_state_slots: 0,
+            local_state_slots: 0,
+        }
+    }
+
     /// Given an asm program `asm`, push it to the appropridate vector of programs in `self`. This
     /// may be a "constraint program" or a "state program"
     fn push_asm_program(&mut self, asm: Asm) {
@@ -128,8 +143,57 @@ impl AsmBuilder<'_> {
         pred: &Predicate,
     ) -> Result<(), ErrorEmitted> {
         let mut asm: Asm = Asm::State(Vec::new());
-        self.compile_expr(handler, &mut asm, &state.expr, contract, pred)?;
+
+        // Allocate a single slot for the result
+        let (state_var_local_slot_index, state_var_global_slot_index) =
+            self.alloc(handler, &mut asm, 1)?;
+
+        asm.push(Stack::Push(state_var_local_slot_index as i64).into()); // slot to store to
+        asm.push(Stack::Push(0).into()); // slot to store to
+
+        if let Some(state_slots) =
+            self.compile_expr_pointer_deref(handler, &mut asm, &state.expr, contract, pred)?
+        {
+            // If the result is stored state slots, then load those slots to the stack
+            for i in state_slots.start..state_slots.end {
+                asm.push(Stack::Push(i as i64).into()); // slot_ix
+
+                asm.push(Stack::Push(0 as i64).into()); // value_ix
+
+                asm.push(Stack::Push(i as i64).into());
+                asm.try_push(handler, StateMemory::ValueLen.into())?; // len
+
+                asm.try_push(handler, StateMemory::Load.into())?;
+            }
+
+            // Then, find the _total_ number of words loaded
+            asm.push(Stack::Push(0).into());
+            for i in state_slots.start..state_slots.end {
+                asm.push(Stack::Push(i as i64).into());
+                asm.try_push(handler, StateMemory::ValueLen.into())?;
+                asm.push(Alu::Add.into());
+            }
+        } else {
+            // Otherwise, the data is already on the stack. Just follow with the size of the data
+            // according to the state expr type.
+            asm.push(
+                Stack::Push(state.expr.get_ty(contract).size(handler, contract)? as i64).into(),
+            );
+        }
+
+        // Now, store the result into the slot allocated for the state var
+        asm.try_push(handler, StateMemory::Store.into())?;
+        asm.try_push(handler, TotalControlFlow::Halt.into())?;
+
+        // Keep track of the global index of the state slot where this state variable lives
+        self.state_var_to_slot_indices
+            .insert(state.name.clone(), state_var_global_slot_index);
+
+        // Reset the local slots counter
+        self.reset_local_slots();
+
         self.push_asm_program(asm);
+
         Ok(())
     }
 
@@ -147,6 +211,32 @@ impl AsmBuilder<'_> {
         Ok(())
     }
 
+    /// Allocates `num_slots` number of state slots. Returns the local and global indices of the
+    /// first slot allocated. The local index is the index in a given state program, which starts
+    /// at 0 for every state program. The global index is a unique index across all the state
+    /// programs.
+    fn alloc(
+        &mut self,
+        handler: &Handler,
+        asm: &mut Asm,
+        num_slots: usize,
+    ) -> Result<(usize, usize), ErrorEmitted> {
+        asm.push(Stack::Push(num_slots as i64).into());
+        asm.try_push(handler, StateMemory::AllocSlots.into())?;
+        self.global_state_slots += num_slots;
+        self.local_state_slots += num_slots;
+
+        Ok((
+            self.local_state_slots - num_slots,
+            self.global_state_slots - num_slots,
+        ))
+    }
+
+    /// Resets the local state slot index counter
+    fn reset_local_slots(&mut self) {
+        self.local_state_slots = 0;
+    }
+
     /// Generates assembly for an `ExprKey` and insert it into `asm`. Returns the number of opcodes
     /// used to express `expr`.
     fn compile_expr(
@@ -158,41 +248,58 @@ impl AsmBuilder<'_> {
         pred: &Predicate,
     ) -> Result<usize, ErrorEmitted> {
         let old_asm_len = asm.len();
+        if let Some(state_slots) =
+            self.compile_expr_pointer_deref(handler, asm, expr, contract, pred)?
+        {
+            for i in state_slots.start..state_slots.end {
+                asm.push(Stack::Push(i as i64).into());
 
+                asm.push(Stack::Push(0 as i64).into()); // value_ix
+
+                asm.push(Stack::Push(i as i64).into());
+                asm.try_push(handler, StateMemory::ValueLen.into())?; // len
+
+                asm.try_push(handler, StateMemory::Load.into())?;
+            }
+        }
+        Ok(asm.len() - old_asm_len)
+    }
+
+    /// Dereferences a pointer using the appropridate opcode depending on the location of the
+    /// pointer. If the pointer is a "storage" pointer, then the data is read in state slots (not
+    /// pushed on the stack) and the (local) range of those slots is returned.
+    fn compile_expr_pointer_deref(
+        &mut self,
+        handler: &Handler,
+        asm: &mut Asm,
+        expr: &ExprKey,
+        contract: &Contract,
+        pred: &Predicate,
+    ) -> Result<Option<std::ops::Range<usize>>, ErrorEmitted> {
         let expr_ty = expr.get_ty(contract);
         match self.compile_expr_pointer(handler, asm, expr, contract, pred)? {
             Location::DecisionVar => {
                 asm.push(Stack::Push(expr_ty.size(handler, contract)? as i64).into()); // len
                 asm.push(Access::DecisionVar.into());
-                Ok(asm.len() - old_asm_len)
+                Ok(None)
             }
 
             Location::State(next_state) => {
                 asm.push(Stack::Push(expr_ty.size(handler, contract)? as i64).into()); // value_len
                 asm.push(Stack::Push(next_state as i64).into()); // delta
                 asm.push(Access::State.into());
-                Ok(asm.len() - old_asm_len)
+                Ok(None)
             }
-
-            Location::PubVar => {
-                asm.push(Stack::Push(expr_ty.size(handler, contract)? as i64).into()); // value_len
-                asm.push(ConstraintOp::Access(Access::PubVar));
-                Ok(asm.len() - old_asm_len)
-            }
-
-            Location::Value => Ok(asm.len() - old_asm_len),
 
             Location::Storage(is_extern) => {
                 let num_keys_to_read = expr_ty.storage_or_pub_var_slots(handler, contract)?;
 
                 // Allocate as many slots as we have keys
-                asm.push(Stack::Push(num_keys_to_read as i64).into());
-                asm.try_push(handler, StateMemory::AllocSlots.into())?;
-                self.total_slots += num_keys_to_read;
+                let base_slot_index = self.alloc(handler, asm, num_keys_to_read)?.0;
 
-                // Read the storage keys into the slots, starting with local index 0
+                // Read the storage keys into the slots, starting with `base_slot_index`
                 asm.push(Stack::Push(num_keys_to_read as i64).into()); // num_keys_to_read
-                asm.push(Stack::Push(0).into()); // slot_index
+                asm.push(Stack::Push(base_slot_index as i64).into()); // slot_index
                 asm.try_push(
                     handler,
                     if is_extern {
@@ -202,60 +309,16 @@ impl AsmBuilder<'_> {
                     },
                 )?;
 
-                // If the number of keys we're reading is 2 or more, then we need to consolidate
-                // the data into a single slot.
-                if num_keys_to_read > 1 {
-                    // Allocate a new slot for the consolidated data
-                    asm.push(Stack::Push(1).into());
-                    asm.try_push(handler, StateMemory::AllocSlots.into())?;
-                    self.total_slots += 1;
-
-                    // Find the _total_ number of data loaded
-                    asm.push(Stack::Push(num_keys_to_read as i64).into()); // slot to store to
-                    asm.push(Stack::Push(0).into());
-
-                    // Load all the values read earlier
-                    for i in 0..num_keys_to_read {
-                        asm.push(Stack::Push(i as i64).into()); // slot_ix
-
-                        asm.push(Stack::Push(0).into()); // value_ix
-
-                        asm.push(Stack::Push(i as i64).into());
-                        asm.try_push(handler, StateMemory::ValueLen.into())?; // len
-
-                        asm.try_push(handler, StateMemory::Load.into())?;
-                    }
-
-                    asm.push(Stack::Push(0 as i64).into());
-                    for i in 0..num_keys_to_read {
-                        asm.push(Stack::Push(i as i64).into());
-                        asm.try_push(handler, StateMemory::ValueLen.into())?;
-                        asm.push(Alu::Add.into());
-                    }
-
-                    // Now store the consolidated data into the last slot
-                    asm.try_push(handler, StateMemory::Store.into())?;
-                }
-
-                // Grab the state var that is currently being compiled
-                let Some(ref state_var) = self.current_state_var else {
-                    return Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "compiling a storage access without a state var",
-                            span: empty_span(),
-                        },
-                    }));
-                };
-
-                // Keep track of the _global_ slot index for the state variable that we're
-                // currently compiling. This is always going to be the last slot allocated so far.
-                self.slot_indices
-                    .insert(state_var.clone(), self.total_slots - 1);
-
-                asm.try_push(handler, TotalControlFlow::Halt.into())?;
-
-                Ok(asm.len() - old_asm_len)
+                Ok(Some(base_slot_index..num_keys_to_read + base_slot_index))
             }
+
+            Location::PubVar => {
+                asm.push(Stack::Push(expr_ty.size(handler, contract)? as i64).into()); // value_len
+                asm.push(ConstraintOp::Access(Access::PubVar));
+                Ok(None)
+            }
+
+            Location::Value => Ok(None),
         }
     }
 
@@ -384,7 +447,7 @@ impl AsmBuilder<'_> {
             asm.push(Stack::Push(0).into()); // placeholder for index computation
             Ok(Location::DecisionVar)
         } else if pred.states().any(|(_, state)| &state.name == path) {
-            asm.push(Stack::Push(self.slot_indices[path] as i64).into()); // slot
+            asm.push(Stack::Push(self.state_var_to_slot_indices[path] as i64).into()); // slot
             asm.push(Stack::Push(0).into()); // placeholder for index computation
             Ok(Location::State(false))
         } else {

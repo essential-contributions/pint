@@ -1,0 +1,19 @@
+// db <<<
+// 0, 1
+// 1, 2
+// 2 0, 3
+// 2 1, 4
+// >>>
+
+storage {
+    x: int,
+    y: int,
+    t: { int, int },
+}
+
+predicate Simple {
+    state sum = mut storage::x + mut storage::y + mut storage::t.0 + mut storage::t.1;
+
+    constraint sum == 1 + 2 + 3 + 4;
+    constraint sum' == 7 + 8 + 42 + 43;
+}

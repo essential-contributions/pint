@@ -1,0 +1,9 @@
+[[data]]
+predicate_to_solve = { predicate = "::Simple" }
+decision_variables = []
+state_mutations = [
+  { key = [0], value = [7] },     # storage::x
+  { key = [1], value = [8] },     # storage::y
+  { key = [2, 0], value = [42] }, # storage::t.0
+  { key = [2, 1], value = [43] }, # storage::t.1
+]

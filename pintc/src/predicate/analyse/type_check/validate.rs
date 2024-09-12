@@ -177,6 +177,61 @@ impl Contract {
         handler.result(())
     }
 
+    /// Collect all storage accesses that are *not* in a state var initializer. For each of those
+    /// accesses, emit an error. These accesses are not legal.
+    pub(in crate::predicate::analyse) fn check_storage_accesses(&self, handler: &Handler) -> Result<(), ErrorEmitted> {
+        let mut bad_storage_accesses = FxHashSet::default();
+        for expr in self.root_exprs() {
+            bad_storage_accesses.extend(expr.collect_storage_accesses(self));
+        }
+
+        for Const { expr, .. } in self.consts.values() {
+            bad_storage_accesses.extend(expr.collect_storage_accesses(self));
+        }
+
+        for pred in self.preds.values() {
+            for constraint in &pred.constraints {
+                bad_storage_accesses.extend(constraint.expr.collect_storage_accesses(self));
+            }
+
+            for if_decl in &pred.if_decls {
+                for constraint in &if_decl.get_constraints() {
+                    bad_storage_accesses.extend(constraint.expr.collect_storage_accesses(self));
+                }
+            }
+
+            for match_decl in &pred.match_decls {
+                for constraint in &match_decl.get_constraints() {
+                    bad_storage_accesses.extend(constraint.expr.collect_storage_accesses(self));
+                }
+            }
+
+            for interface_instance in &pred.interface_instances {
+                bad_storage_accesses
+                    .extend(interface_instance.address.collect_storage_accesses(self));
+            }
+
+            for predicate_instance in &pred.predicate_instances {
+                if let Some(address) = predicate_instance.address {
+                    bad_storage_accesses.extend(address.collect_storage_accesses(self));
+                }
+            }
+        }
+
+        for expr in bad_storage_accesses {
+            handler.emit_err(Error::Compile {
+                error: CompileError::InvalidStorageAccess {
+                    span: expr
+                        .try_get(self)
+                        .map(|expr| expr.span().clone())
+                        .unwrap_or(empty_span()),
+                },
+            });
+        }
+
+        handler.result(())
+    }
+
     /// Check that all decision variables and state variables do not have storage only types like
     /// storage maps and storage vectors
     pub(in crate::predicate::analyse) fn check_types_of_variables(

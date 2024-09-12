@@ -971,7 +971,7 @@ impl<'a> ParserContext<'a> {
         name: Ident,
         mutable: bool,
         (l, m, r): (usize, usize, usize),
-    ) -> ExprKey {
+    ) -> Expr {
         if let Some((els, last)) = path {
             let path_span = (self.span_from)(l, m);
             let interface_instance = if is_abs {
@@ -981,17 +981,14 @@ impl<'a> ParserContext<'a> {
             };
 
             let span = (self.span_from)(l, r);
-            self.contract.exprs.insert(
-                Expr::ExternalStorageAccess {
-                    interface_instance,
-                    name: name.to_string(),
-                    span: span.clone(),
-                },
-                Type::Unknown(span),
-            )
+            Expr::ExternalStorageAccess {
+                interface_instance,
+                name: name.to_string(),
+                span: span.clone(),
+            }
         } else {
             let span = (self.span_from)(l, r);
-            let expr = if !self.mod_path.is_empty() {
+            if !self.mod_path.is_empty() {
                 // `storage` blocks in sub-modules are not allowed
                 handler.emit_err(Error::Parse {
                     error: ParseError::StorageAccessMustBeTopLevel { span: span.clone() },
@@ -1003,8 +1000,7 @@ impl<'a> ParserContext<'a> {
                     mutable,
                     span: span.clone(),
                 }
-            };
-            self.contract.exprs.insert(expr, Type::Unknown(span))
+            }
         }
     }
 }
