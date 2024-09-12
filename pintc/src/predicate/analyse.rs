@@ -73,7 +73,7 @@ impl Contract {
         // performing N-1 evaluation passes for N consts should resolve all dependencies and in
         // most cases will be done in only 1 or 2 passes.
 
-        let mut evaluator = Evaluator::new(&self.enums);
+        let mut evaluator = Evaluator::new(&self.enums); // TODO: Start here. Looks like the issue is coming from not properly putting enums into new types. Although I'm not sure if that should happen or not.
         let mut new_immediates = Vec::default();
 
         // Use a temporary error handler to manage in-progress errors.

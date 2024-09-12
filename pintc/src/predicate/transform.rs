@@ -15,28 +15,42 @@ use validate::validate;
 
 impl super::Contract {
     pub fn flatten(mut self, handler: &Handler) -> Result<Self, ErrorEmitted> {
-        // Transform each `if` declaration into a collection of constraints. We do this early so
-        // that we don't have to worry about `if` declarations in any of the later passes. All
-        // other passes are safe to assume that `if` declarations and their content have
-        // already been converted to raw constraints.
+        // Transform each `if` declaration into a collection of constraints.
         lower_ifs(&mut self);
+        if handler.has_errors() {
+            println!("Error after lower_ifs");
+            return Err(handler.cancel());
+        }
 
         // Plug const decls in everywhere so they maybe lowered below.
         replace_const_refs(&mut self);
+        if handler.has_errors() {
+            println!("Error after replace_const_refs");
+            return Err(handler.cancel());
+        }
 
         // Convert comparisons to `nil` into comparisons between __state_len() and 0.
         lower_compares_to_nil(&mut self);
+        if handler.has_errors() {
+            println!("Error after lower_compares_to_nil");
+            return Err(handler.cancel());
+        }
 
-        // Unroll each generator into one large conjuction
+        // Unroll each generator into one large conjunction
         let _ = handler.scope(|handler| unroll_generators(handler, &mut self));
+        if handler.has_errors() {
+            println!("Error after unroll_generators");
+            return Err(handler.cancel());
+        }
 
         // Lower `in` expressions into more explicit comparisons.
         let _ = lower_ins(handler, &mut self);
+        if handler.has_errors() {
+            println!("Error after lower_ins");
+            return Err(handler.cancel());
+        }
 
-        // Do some array checks now that generators have been unrolled (and ephemerals aren't
-        // going to cause problems).  We're taking note of whether these fail to avoid superfluous
-        // array related errors later.  Once we can move these checks back into the type-checker it
-        // shouldn't be necessary.
+        // Do some array checks now that generators have been unrolled
         let mut array_check_failed = false;
         let _ = handler.scope(|handler| {
             for pred_key in self.preds.keys() {
@@ -52,47 +66,87 @@ impl super::Contract {
                 Ok(())
             }
         });
+        if handler.has_errors() {
+            println!("Error during array checks");
+            return Err(handler.cancel());
+        }
 
         // Transform each enum variant into its integer discriminant
         let _ = lower_enums(handler, &mut self);
+        if handler.has_errors() {
+            println!("Error after lower_enums");
+            return Err(handler.cancel());
+        }
 
         // Lower array types to have simple integer ranges.
         if !array_check_failed {
             let _ = lower_array_ranges(handler, &mut self);
+            if handler.has_errors() {
+                println!("Error after lower_array_ranges");
+                return Err(handler.cancel());
+            }
         }
 
         // Lower indexing or field access into immediates to the actual element or field.
         let _ = lower_imm_accesses(handler, &mut self);
+        if handler.has_errors() {
+            println!("Error after lower_imm_accesses");
+            return Err(handler.cancel());
+        }
 
         // Coalesce all prime ops back down to the lowest path expression.
         coalesce_prime_ops(&mut self);
+        if handler.has_errors() {
+            println!("Error after coalesce_prime_ops");
+            return Err(handler.cancel());
+        }
 
-        // This could be done straight after type checking but any error which prints the
-        // type until now will have the more informative aliased description.  e.g.,
-        // `Height (int)` rather than just `int`.
+        // Lower aliases
         lower_aliases(&mut self);
+        if handler.has_errors() {
+            println!("Error after lower_aliases");
+            return Err(handler.cancel());
+        }
 
-        // Lower casts after aliases since we're leaving `int -> real` behind, but it's
-        // much easier if the `real` isn't still an alias.
+        // Lower casts after aliases
         let _ = lower_casts(handler, &mut self);
+        if handler.has_errors() {
+            println!("Error after lower_casts");
+            return Err(handler.cancel());
+        }
 
         // Insert OOB checks for storage vector accesses
         let _ = legalize_vector_accesses(handler, &mut self);
+        if handler.has_errors() {
+            println!("Error after legalize_vector_accesses");
+            return Err(handler.cancel());
+        }
 
-        // Lower all storage accesses to __storage_get and __storage_get_extern intrinsics. Also
-        // add constraints on mutable keys
+        // Lower all storage accesses
         let _ = lower_storage_accesses(handler, &mut self);
+        if handler.has_errors() {
+            println!("Error after lower_storage_accesses");
+            return Err(handler.cancel());
+        }
 
-        // Lower accesses to pub vars to `__transient` intrinsics. Also insert any relevant
-        // constraints on contract and predicate addresses.
+        // Lower accesses to pub vars
         let _ = handler.scope(|handler| lower_pub_var_accesses(handler, &mut self));
+        if handler.has_errors() {
+            println!("Error after lower_pub_var_accesses");
+            return Err(handler.cancel());
+        }
 
         // Ensure that the final contract is indeed final
         if !handler.has_errors() {
-            let _ = validate(handler, &mut self);
+            // let _ = validate(handler, &mut self);
+            if handler.has_errors() {
+                println!("Error after validate");
+                return Err(handler.cancel());
+            }
         }
 
         if handler.has_errors() {
+            println!("Error during flatten");
             return Err(handler.cancel());
         }
 

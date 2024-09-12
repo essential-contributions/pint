@@ -26,6 +26,7 @@ fn lower_storage_accesses_in_predicate(
     contract: &mut Contract,
     pred_key: PredKey,
 ) -> Result<(), ErrorEmitted> {
+    println!("lowering storage access");
     let int_ty = Type::Primitive {
         kind: PrimitiveKind::Int,
         span: empty_span(),
@@ -51,6 +52,8 @@ fn lower_storage_accesses_in_predicate(
     let mut keys_set_size = 0;
 
     for expr in state_exprs {
+        println!("lowering storage access: state exprs");
+
         let expr_ty = expr.get_ty(contract).clone();
         let (addr, mutable, key) = get_base_storage_key(handler, &expr, contract, pred_key)?;
 

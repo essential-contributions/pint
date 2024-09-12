@@ -19,7 +19,7 @@ pub(crate) use lower_pub_var_accesses::lower_pub_var_accesses;
 pub(crate) use lower_storage_accesses::lower_storage_accesses;
 
 pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
-    // Each enum has its variants indexed from 0.  Gather all the enum declarations and create a
+    // Each enum has its variants indexed from 0. Gather all the enum declarations and create a
     // map from path to integer index.
     let mut variant_map = FxHashMap::default();
     let mut variant_count_map = FxHashMap::default();
@@ -69,6 +69,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
         // Find all the expressions referring to the variants and save them in a list.
         for old_expr_key in contract.exprs(pred_key) {
             if let Some(Expr::Path(path, _span)) = old_expr_key.try_get(contract) {
+                println!("path: {}", path);
                 if let Some(idx) = variant_map.get(path) {
                     variant_replacements.push((old_expr_key, idx));
                 }
@@ -82,7 +83,9 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
         // count.  Clippy says .filter(..).map(..) is cleaner than .filter_map(.. bool.then(..)).
         enum_var_keys.extend(
             pred.vars()
-                .filter(|(var_key, _)| var_key.get_ty(pred).is_enum(&contract.enums))
+                .filter(|(var_key, _)| var_key.get_ty(pred).is_enum(&contract.enums)) // TODO: not an enum, is tuple
+                // Should be if the var type contains and enum (aka recursion) -- could add a function for this in types.rs
+                // var ::bob: {age: int, pet: ::Animal}; should be var ::bob: {age: int, pet: int};
                 .map(|(var_key, Var { name, .. })| {
                     let enum_ty = var_key.get_ty(pred).clone();
                     let variant_count = variant_count_map
@@ -104,8 +107,11 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
             }
         }
 
+        println!("enum_var_keys{:#?}", enum_var_keys);
+
         // Replace the variant expressions with literal int equivalents.
         for (old_expr_key, idx) in variant_replacements {
+            println!("old_expr_key {}", contract.with_ctrct(old_expr_key));
             let new_expr_key = contract.exprs.insert(
                 Expr::Immediate {
                     value: Immediate::Int(*idx as i64),
@@ -196,6 +202,8 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
         }
 
         // Now do the actual type update from enum to int
+        // TODO - ian -- this is where we update ::Animal to int
+        // var ::bob: {age: int, pet: int}; -- change below to update the field in the tuple not the entire var
         for (enum_var_key, _, _, _) in enum_var_keys {
             enum_var_key.set_ty(int_ty.clone(), contract.preds.get_mut(pred_key).unwrap());
         }
@@ -286,6 +294,7 @@ pub(crate) fn lower_casts(handler: &Handler, contract: &mut Contract) -> Result<
 
 /// Lowers every `Type::Alias` to a concrete type
 pub(crate) fn lower_aliases(contract: &mut Contract) {
+    println!("contract: {:#?}", contract);
     use std::borrow::BorrowMut;
 
     let new_types_map = FxHashMap::from_iter(
@@ -303,19 +312,25 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
             }
 
             Type::Custom { path, .. } => {
+                println!("this is the custom path: {}", path);
+                println!("This is the new_types_map: {:#?}", new_types_map);
                 if let Some(ty) = new_types_map.get(path) {
+                    println!("this is the new type: {:#?}", ty);
                     *old_ty = ty.clone();
                 }
             }
 
             Type::Array { ty, .. } => replace_alias(new_types_map, ty),
+
             Type::Tuple { fields, .. } => fields
                 .iter_mut()
                 .for_each(|(_, ty)| replace_alias(new_types_map, ty)),
+
             Type::Map { ty_from, ty_to, .. } => {
                 replace_alias(new_types_map, ty_from);
                 replace_alias(new_types_map, ty_to);
             }
+
             Type::Vector { ty, .. } => replace_alias(new_types_map, ty),
 
             Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => {}

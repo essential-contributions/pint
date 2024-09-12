@@ -7,12 +7,33 @@ use crate::{
 };
 
 pub(crate) fn validate(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
-    contract.preds.iter().for_each(|(pred_key, pred)| {
-        check_constraints(contract, pred_key, handler);
-        check_vars(pred, handler);
-        check_states(pred, handler);
-        check_ifs(pred, handler);
-    });
+    contract
+        .preds
+        .iter()
+        .try_for_each(|(pred_key, pred)| {
+            check_constraints(contract, pred_key, handler);
+            if handler.has_errors() {
+                println!("Error after constraints");
+                return Err(());
+            }
+            check_vars(pred, handler);
+            if handler.has_errors() {
+                println!("Error after vars");
+                return Err(());
+            }
+            check_states(pred, handler);
+            if handler.has_errors() {
+                println!("Error after states");
+                return Err(());
+            }
+            check_ifs(pred, handler);
+            if handler.has_errors() {
+                println!("Error after ifs");
+                return Err(());
+            }
+            Ok(())
+        })
+        .map_err(|_| handler.cancel())?;
 
     Ok(())
 }

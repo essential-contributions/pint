@@ -404,16 +404,51 @@ impl Type {
                 kind: PrimitiveKind::String | PrimitiveKind::Real | PrimitiveKind::Nil,
                 span,
             }
-            | Self::Error(span)
-            | Self::Unknown(span)
-            | Self::Any(span)
-            | Self::Custom { span, .. }
-            | Self::Alias { span, .. } => Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "unexpected type",
-                    span: span.clone(),
-                },
-            })),
+            | Self::Error(span) => {
+                println!("issue with error");
+                Err(handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "unexpected type",
+                        span: span.clone(),
+                    },
+                }))
+            }
+            Self::Unknown(span) => {
+                println!("issue with unknown");
+                Err(handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "unexpected type",
+                        span: span.clone(),
+                    },
+                }))
+            }
+            Self::Any(span) => {
+                println!("issue with any");
+                Err(handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "unexpected type",
+                        span: span.clone(),
+                    },
+                }))
+            }
+            Self::Custom { span, .. } => {
+                println!("issue with custom");
+                Err(handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "unexpected type",
+                        span: span.clone(),
+                    },
+                }))
+            }
+            Self::Alias { span, .. } => {
+                println!("issue with alias");
+                Err(handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "unexpected type",
+                        span: span.clone(),
+                    },
+                }))
+            }
         }
     }
 
@@ -468,12 +503,15 @@ impl Type {
             | Self::Unknown(span)
             | Self::Any(span)
             | Self::Custom { span, .. }
-            | Self::Alias { span, .. } => Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "unexpected type",
-                    span: span.clone(),
-                },
-            })),
+            | Self::Alias { span, .. } => {
+                println!("issue with storage");
+                Err(handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "unexpected type",
+                        span: span.clone(),
+                    },
+                }))
+            }
         }
     }
 
