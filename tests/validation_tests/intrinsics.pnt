@@ -23,9 +23,9 @@ predicate Foo {
     // These addresses can be verified by compiling this contract using the `pint` CLI tool which
     // produces the address of every predicate.
     constraint __address_of("::First") ==
-        0x34081185F7453877C9D420A42A1460DE3E971A5BA84BEC7BAE822B0E8A820C1F;
+        0x79B9312465481501ADBE4B94B2B6060CB04772D165A4C498437AF96E5B0756C4;
     constraint __address_of("::Bar") ==
-        0xEACCE859BF44DFE07A8E189C213B9B6E66E3A802EED8A73F0D2AF0E40A6A2B98;
+        0x451582FD4A2B072219EE5FA985A5E1C66B543B6ADE3E5F2109CB83DAA293E3EB;
 
     constraint __predicate_at(1) == {
         0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE,

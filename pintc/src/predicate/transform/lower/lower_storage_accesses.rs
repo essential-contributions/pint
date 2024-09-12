@@ -104,7 +104,7 @@ fn lower_storage_accesses_in_predicate(
         // of the keys to collect here is equal to the number of stoage slots that `expr_ty`
         // requires.
         if mutable {
-            let num_keys = expr_ty.storage_or_transient_slots(handler, contract)?;
+            let num_keys = expr_ty.storage_or_pub_var_slots(handler, contract)?;
 
             // Push the base key and its type
             keys_set_field_types.push((None, key_ty.clone()));
@@ -385,7 +385,7 @@ fn get_base_storage_key(
 
                 // Increment the last element of the key by `index * array element size`
                 if let Some(last) = key.last_mut() {
-                    let el_size = ty.storage_or_transient_slots(handler, contract)?;
+                    let el_size = ty.storage_or_pub_var_slots(handler, contract)?;
                     let el_size = contract.exprs.insert_int(el_size as i64);
                     let mul = contract.exprs.insert(
                         Expr::BinaryOp {
@@ -448,7 +448,7 @@ fn get_base_storage_key(
 
             // This is the offset from the base key where the full tuple is stored.
             let offset: usize = fields.iter().take(field_idx).try_fold(0, |acc, (_, ty)| {
-                ty.storage_or_transient_slots(handler, contract)
+                ty.storage_or_pub_var_slots(handler, contract)
                     .map(|slots| acc + slots)
             })?;
 

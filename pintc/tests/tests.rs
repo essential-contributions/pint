@@ -1,6 +1,7 @@
 use pintc::{
     error::{Errors, Handler, ReportableError},
     predicate::Contract,
+    warning::Warnings,
 };
 use std::{
     fs::{read_dir, File},
@@ -57,7 +58,7 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
                 flatten_and_check(pred, &test_data, &mut failed_tests, &path))
             .and_then(|pred|
                 // optimize the flattened intent
-                optimize(pred, &test_data));
+                optimize(pred, &test_data, &mut failed_tests, &path));
 
         // Check the `json` ABI if a reference file exists.
         if let Some(program) = program {
@@ -111,6 +112,7 @@ fn parse_test_and_check(
         Err(_) => {
             let errs_str = handler
                 .consume()
+                .0
                 .iter()
                 .map(|err| err.display_raw())
                 .collect::<String>()
@@ -162,7 +164,7 @@ fn type_check(
 ) -> Option<Contract> {
     let handler = Handler::default();
     pred.type_check(&handler)
-        .map(|checked| {
+        .inspect(|_| {
             if test_data.typecheck_failure.is_some() {
                 failed_tests.push(path.display().to_string());
                 println!(
@@ -171,10 +173,9 @@ fn type_check(
                     path.display().to_string().cyan(),
                 );
             }
-            checked
         })
         .map_err(|_| {
-            let err = Errors(handler.consume());
+            let err = Errors(handler.consume().0);
             if let Some(typecheck_error_str) = &test_data.typecheck_failure {
                 similar_asserts::assert_eq!(typecheck_error_str.trim_end(), format!("{err}"));
             } else {
@@ -223,7 +224,7 @@ fn flatten_and_check(
             flattened
         })
         .map_err(|_| {
-            let err = Errors(handler.consume());
+            let err = Errors(handler.consume().0);
             if let Some(flattening_error_str) = &test_data.flattening_failure {
                 similar_asserts::assert_eq!(flattening_error_str.trim_end(), format!("{err}"));
             } else {
@@ -240,10 +241,29 @@ fn flatten_and_check(
         .ok()
 }
 
-fn optimize(pred: Contract, test_data: &TestData) -> Option<Contract> {
-    let optimized = pred.optimize();
+fn optimize(
+    pred: Contract,
+    test_data: &TestData,
+    failed_tests: &mut Vec<String>,
+    path: &Path,
+) -> Option<Contract> {
+    let handler = Handler::default();
+    let optimized = pred.optimize(&handler);
     if let Some(expected_optimized_str) = &test_data.optimized {
         similar_asserts::assert_eq!(expected_optimized_str.trim(), format!("{optimized}").trim());
+
+        if let Some(expected_warnings_str) = &test_data.warnings {
+            let warnings = Warnings(handler.consume().1);
+            similar_asserts::assert_eq!(expected_warnings_str.trim(), format!("{warnings}").trim());
+        } else {
+            failed_tests.push(path.display().to_string());
+            println!(
+                "{} {}.",
+                "MISSING 'warnings' DIRECTIVE".red(),
+                path.display().to_string().cyan(),
+            );
+        }
+
         Some(optimized)
     } else {
         None

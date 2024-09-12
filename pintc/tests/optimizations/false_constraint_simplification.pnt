@@ -40,3 +40,9 @@ predicate Test {
 //     constraint false;
 // }
 // >>>
+
+// warnings <<<
+// constraint is always `false`
+// @205..225: this constraint always evaluates to `false` and can never be satisfied
+// if this is intentional, consider removing the containing predicate because its constraints can never be satisfied
+// >>>

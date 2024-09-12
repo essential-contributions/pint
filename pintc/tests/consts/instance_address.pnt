@@ -44,7 +44,7 @@ predicate Q {
 //     interface ::Iface = ::I(0x0000000000000000000000000000000000000000000000000000000000000000)
 //     predicate ::PInstance = ::Iface::P(0x1111111111111111111111111111111111111111111111111111111111111111)
 //     var __::PInstance_pathway: int;
-//     constraint (__transient({0}, 1, __::PInstance_pathway) == 11);
+//     constraint (__pub_var(__::PInstance_pathway, {0}) == 11);
 //     constraint __eq_set(__mut_keys(), {0});
 //     constraint (__predicate_at(__::PInstance_pathway) == {0x0000000000000000000000000000000000000000000000000000000000000000, 0x1111111111111111111111111111111111111111111111111111111111111111});
 // }

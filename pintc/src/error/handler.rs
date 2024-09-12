@@ -1,4 +1,4 @@
-use crate::error::Error;
+use crate::{error::Error, warning::Warning};
 use core::cell::RefCell;
 
 /// A handler with which you can emit diagnostics.
@@ -13,9 +13,9 @@ pub struct Handler {
 /// Modelled this way to afford an API using interior mutability.
 #[derive(Default, Debug)]
 struct HandlerInner {
-    /// The sink through which errors will be emitted.
+    /// The sink through which errors and warnings will be emitted.
     errors: Vec<Error>,
-    // TODO: add warnings here
+    warnings: Vec<Warning>,
 }
 
 impl Handler {
@@ -23,6 +23,11 @@ impl Handler {
     pub fn emit_err(&self, err: Error) -> ErrorEmitted {
         self.inner.borrow_mut().errors.push(err);
         ErrorEmitted { _priv: () }
+    }
+
+    /// Emit the warning `warn`.
+    pub fn emit_warn(&self, warning: Warning) {
+        self.inner.borrow_mut().warnings.push(warning);
     }
 
     /// Compilation should be cancelled.
@@ -44,8 +49,21 @@ impl Handler {
         !self.inner.borrow().errors.is_empty()
     }
 
+    pub fn has_warnings(&self) -> bool {
+        !self.inner.borrow().warnings.is_empty()
+    }
+
     pub fn clear(&self) {
+        self.clear_errors();
+        self.clear_warnings();
+    }
+
+    pub fn clear_errors(&self) {
         self.inner.borrow_mut().errors.clear();
+    }
+
+    pub fn clear_warnings(&self) {
+        self.inner.borrow_mut().warnings.clear();
     }
 
     pub fn scope<T>(
@@ -65,14 +83,17 @@ impl Handler {
         }
     }
 
-    /// Extract all the warnings and errors from this handler.
-    pub fn consume(self) -> Vec<Error> {
+    pub fn consume(self) -> (Vec<Error>, Vec<Warning>) {
+        // TODO: Make struct not tuple
         let inner = self.inner.into_inner();
-        inner.errors
+        (inner.errors, inner.warnings)
     }
 
     pub fn append(&self, other: Handler) {
-        let errors = other.consume();
+        let (errors, warnings) = other.consume();
+        for warn in warnings {
+            self.emit_warn(warn);
+        }
         for err in errors {
             self.emit_err(err);
         }

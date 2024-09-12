@@ -1,7 +1,7 @@
 use super::{check, compile};
 
 #[test]
-fn local_transient() {
+fn local_pub_var() {
     check(
         &format!(
             "{}",
@@ -23,7 +23,9 @@ fn local_transient() {
                 --- Constraints ---
                 constraint 0
                   Stack(Push(0))
-                  Access(DecisionVar)
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVarRange)
                   Stack(Push(0))
                   Stack(Push(1))
                   Access(ThisPathway)
@@ -42,7 +44,9 @@ fn local_transient() {
                   Pred(EqRange)
                 constraint 2
                   Stack(Push(2))
-                  Access(DecisionVar)
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVarRange)
                   Stack(Push(2))
                   Stack(Push(1))
                   Access(ThisPathway)
@@ -60,7 +64,7 @@ fn local_transient() {
 }
 
 #[test]
-fn extern_transient() {
+fn extern_pub_var() {
     check(
         &format!(
             "{}",
@@ -82,11 +86,15 @@ predicate Bar {
                 --- Constraints ---
                 constraint 0
                   Stack(Push(2))
-                  Access(DecisionVar)
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVarRange)
                   Stack(Push(0))
                   Stack(Push(1))
                   Stack(Push(0))
-                  Access(DecisionVar)
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVarRange)
                   Access(Transient)
                   Pred(Eq)
                 constraint 1
@@ -97,7 +105,9 @@ predicate Bar {
                   Stack(Push(1))
                   Stack(Push(1))
                   Stack(Push(1))
-                  Access(DecisionVar)
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVarRange)
                   Access(Transient)
                   Stack(Push(4))
                   Pred(EqRange)
@@ -107,7 +117,9 @@ predicate Bar {
                   Pred(EqSet)
                 constraint 3
                   Stack(Push(0))
-                  Access(DecisionVar)
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVarRange)
                   Access(PredicateAt)
                   Stack(Push(0))
                   Stack(Push(0))
@@ -121,7 +133,9 @@ predicate Bar {
                   Pred(EqRange)
                 constraint 4
                   Stack(Push(1))
-                  Access(DecisionVar)
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVarRange)
                   Access(PredicateAt)
                   Stack(Push(0))
                   Stack(Push(0))
@@ -173,7 +187,9 @@ fn sibling_predicates() {
                   Stack(Push(0))
                   Stack(Push(1))
                   Stack(Push(0))
-                  Access(DecisionVar)
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVarRange)
                   Access(Transient)
                   Stack(Push(0))
                   Pred(Eq)
@@ -183,7 +199,9 @@ fn sibling_predicates() {
                   Pred(EqSet)
                 constraint 2
                   Stack(Push(0))
-                  Access(DecisionVar)
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVarRange)
                   Access(PredicateAt)
                   Access(ThisContractAddress)
                   Stack(Push(4276813116036094451))

@@ -129,7 +129,8 @@ impl super::Contract {
             return Err(handler.cancel());
         }
 
-        // Lower accesses to pub vars
+        // Lower accesses to pub vars to `__pub_var` intrinsics. Also insert any relevant
+        // constraints on contract and predicate addresses.
         let _ = handler.scope(|handler| lower_pub_var_accesses(handler, &mut self));
         if handler.has_errors() {
             println!("Error after lower_pub_var_accesses");

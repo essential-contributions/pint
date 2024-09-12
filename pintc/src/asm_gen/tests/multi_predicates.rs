@@ -31,7 +31,9 @@ fn check_order() {
                   Pred(EqSet)
                 constraint 1
                   Stack(Push(0))
-                  Access(DecisionVar)
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVarRange)
                   Access(PredicateAt)
                   Access(ThisContractAddress)
                   Stack(Push(4276813116036094451))
@@ -42,7 +44,9 @@ fn check_order() {
                   Pred(EqRange)
                 constraint 2
                   Stack(Push(1))
-                  Access(DecisionVar)
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVarRange)
                   Access(PredicateAt)
                   Access(ThisContractAddress)
                   Stack(Push(4276813116036094451))

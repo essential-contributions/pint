@@ -28,3 +28,9 @@ predicate Test {
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
+
+// warnings <<<
+// constraint is always `true`
+// @45..57: this constraint always evaluates to `true`
+// if this is intentional, consider removing this constraint
+// >>>

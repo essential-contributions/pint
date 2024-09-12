@@ -133,7 +133,7 @@ predicate test {
 //     var ::q: int;
 //     state ::x: int = __storage_get({0});
 //     constraint (::t == 0);
-//     constraint (__transient({0}, 1, __this_pathway()) == 0);
+//     constraint (__pub_var(__this_pathway(), {0}) == 0);
 //     constraint (::u == 1);
 //     constraint (::v == 2);
 //     constraint (::i == 11);
@@ -146,8 +146,8 @@ predicate test {
 //     constraint (::q == ::i);
 //     constraint (::t >= 0);
 //     constraint (::t <= 2);
-//     constraint (__transient({0}, 1, __this_pathway()) >= 0);
-//     constraint (__transient({0}, 1, __this_pathway()) <= 2);
+//     constraint (__pub_var(__this_pathway(), {0}) >= 0);
+//     constraint (__pub_var(__this_pathway(), {0}) <= 2);
 //     constraint (::u >= 0);
 //     constraint (::u <= 2);
 //     constraint (::v >= 0);
