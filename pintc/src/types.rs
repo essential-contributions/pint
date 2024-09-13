@@ -205,6 +205,26 @@ impl Type {
         }
     }
 
+    pub fn has_nested_enum(&self) -> bool {
+        match self {
+            Type::Array { ty, .. } => ty.has_nested_enum(),
+
+            Type::Tuple { fields, .. } => fields.iter().any(|field| field.1.has_nested_enum()),
+
+            Type::Custom { .. } => true,
+
+            Type::Alias { ty, .. } => ty.has_nested_enum(),
+
+            Type::Map { ty_from, ty_to, .. } => {
+                ty_from.has_nested_enum() || ty_to.has_nested_enum()
+            }
+
+            Type::Vector { ty, .. } => ty.has_nested_enum(),
+
+            Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => false,
+        }
+    }
+
     pub fn is_tuple(&self) -> bool {
         check_alias!(self, is_tuple, matches!(self, Type::Tuple { .. }))
     }

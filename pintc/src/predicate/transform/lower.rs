@@ -94,8 +94,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
 
         // Not sure at this stage if we'll ever allow state to be an enum.
         for (state_key, _) in pred.states() {
-            if state_key.get_ty(pred).is_enum(&contract.enums) {
-                // TODO - ian: should we do the same as above here too?
+            if state_key.get_ty(pred).has_nested_enum() {
                 return Err(handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "found state with an enum type",
@@ -119,7 +118,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
 
         // Replace any var or state enum type with int.  Also add constraints to disallow vars or state
         // to have values outside of the enum.
-        for (_, var_name, enum_ty, variant_count) in &enum_var_keys {
+        for (_, var_name, _, variant_count) in &enum_var_keys {
             // Add the constraint.  Get the variant max for this enum first.
             let variant_max = match variant_count {
                 Some(c) => *c as i64 - 1,
@@ -184,40 +183,17 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
                     span: empty_span(),
                 });
             };
-
-            // Replace the type.
-            let exprs_with_enum_ty = contract
-                .exprs(pred_key)
-                .filter(|expr_key| expr_key.get_ty(contract).eq(&contract.new_types, enum_ty))
-                .collect::<Vec<_>>();
-            // TODO - Ian: this is causing an error
-            // need to do the same thing we did for vars, for exprs because of nested types
-
-            for enum_expr_key in exprs_with_enum_ty {
-                enum_expr_key.set_ty(int_ty.clone(), contract);
-            }
         }
 
         // Now do the actual type update from enum to int
-        // TODO - ian -- this is where we update ::Animal to int
-        // var ::bob: {age: int, pet: int}; -- change below to update the field in the tuple not the entire var
-        // for (enum_var_key, _, _, _) in enum_var_keys {
-        //     enum_var_key.set_ty(int_ty.clone(), contract.preds.get_mut(pred_key).unwrap());
-        // }
-
         let pred = contract.preds.get_mut(pred_key).unwrap();
 
-        // Collect the variable keys first because they don't need to be mutable
         let var_keys: Vec<_> = pred.vars().map(|(var_key, _)| var_key).collect();
-
-        // Perform the mutable operations in a separate loop
         for var_key in var_keys {
             var_key.get_ty_mut(pred).replace_nested_enum_with_int();
         }
 
-        // Collect the variable keys first because they don't need to be mutable
         let expr_keys: Vec<_> = contract.exprs(pred_key).map(|expr_key| expr_key).collect();
-
         for expr_key in expr_keys {
             expr_key.get_ty_mut(contract).replace_nested_enum_with_int();
         }
@@ -460,8 +436,6 @@ pub(crate) fn lower_array_ranges(
 
     // Now evaluate them all.  This pass should be after const decls have been resolved/replaced
     // and enums have been lowered, so the evaluator should be fairly simple.
-    // TODO - ian: It seems lower_enums() isn't lowering within array ranges, so we need to included them
-    // here.
     let evaluator = Evaluator::new(&contract.enums);
     let mut eval_memos: FxHashMap<ExprKey, ExprKey> = FxHashMap::default();
 
