@@ -64,6 +64,8 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
             span: empty_span(),
         };
 
+        let pred = contract.preds.get(pred_key).unwrap();
+
         // Find all the expressions referring to the variants and save them in a list.
         for old_expr_key in contract.exprs(pred_key) {
             if let Some(Expr::Path(path, _span)) = old_expr_key.try_get(contract) {
@@ -75,8 +77,6 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
                 }
             }
         }
-
-        let pred = contract.preds.get(pred_key).unwrap();
 
         // Gather all vars which have an enum type, along with that enum type and the variant
         // count.  Clippy says .filter(..).map(..) is cleaner than .filter_map(.. bool.then(..)).
@@ -436,6 +436,8 @@ pub(crate) fn lower_array_ranges(
 
     // Now evaluate them all.  This pass should be after const decls have been resolved/replaced
     // and enums have been lowered, so the evaluator should be fairly simple.
+    // TODO: It seems lower_enums() isn't lowering within array ranges, so we need to included them
+    // here.
     let evaluator = Evaluator::new(&contract.enums);
     let mut eval_memos: FxHashMap<ExprKey, ExprKey> = FxHashMap::default();
 

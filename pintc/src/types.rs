@@ -454,31 +454,11 @@ impl Type {
                 kind: PrimitiveKind::String | PrimitiveKind::Real | PrimitiveKind::Nil,
                 span,
             }
-            | Self::Error(span) => Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "unexpected type",
-                    span: span.clone(),
-                },
-            })),
-            Self::Unknown(span) => Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "unexpected type",
-                    span: span.clone(),
-                },
-            })),
-            Self::Any(span) => Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "unexpected type",
-                    span: span.clone(),
-                },
-            })),
-            Self::Custom { span, .. } => Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "unexpected type",
-                    span: span.clone(),
-                },
-            })),
-            Self::Alias { span, .. } => Err(handler.emit_err(Error::Compile {
+            | Self::Error(span)
+            | Self::Unknown(span)
+            | Self::Any(span)
+            | Self::Custom { span, .. }
+            | Self::Alias { span, .. } => Err(handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "unexpected type",
                     span: span.clone(),

@@ -7,33 +7,12 @@ use crate::{
 };
 
 pub(crate) fn validate(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
-    contract
-        .preds
-        .iter()
-        .try_for_each(|(pred_key, pred)| {
-            check_constraints(contract, pred_key, handler);
-            if handler.has_errors() {
-                println!("Error after constraints");
-                return Err(());
-            }
-            check_vars(pred, handler);
-            if handler.has_errors() {
-                println!("Error after vars");
-                return Err(());
-            }
-            check_states(pred, handler);
-            if handler.has_errors() {
-                println!("Error after states");
-                return Err(());
-            }
-            check_ifs(pred, handler);
-            if handler.has_errors() {
-                println!("Error after ifs");
-                return Err(());
-            }
-            Ok(())
-        })
-        .map_err(|_| handler.cancel())?;
+    contract.preds.iter().for_each(|(pred_key, pred)| {
+        check_constraints(contract, pred_key, handler);
+        check_vars(pred, handler);
+        check_states(pred, handler);
+        check_ifs(pred, handler);
+    });
 
     Ok(())
 }
@@ -369,7 +348,8 @@ fn states() {
         expect_test::expect![[r#"
             compiler internal error: Unknown expr type found invalid predicate expr_types slotmap key
             compiler internal error: unknown type present in final predicate expr_types slotmap
-            compiler internal error: error expression present in final predicate exprs slotmap"#]],
+            compiler internal error: error expression present in final predicate exprs slotmap
+            compiler internal error: final predicate state_types slotmap is missing corresponding key from states slotmap"#]],
     );
 }
 

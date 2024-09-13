@@ -83,7 +83,6 @@ impl super::Contract {
         // add constraints on mutable keys
         let _ = lower_storage_accesses(handler, &mut self);
 
-        // Lower accesses to pub vars to `__transient` intrinsics. Also insert any relevant
         // Lower accesses to pub vars to `__pub_var` intrinsics. Also insert any relevant
         // constraints on contract and predicate addresses.
         let _ = handler.scope(|handler| lower_pub_var_accesses(handler, &mut self));
