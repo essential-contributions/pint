@@ -1,0 +1,50 @@
+enum Animal = Cat | Dog;
+
+type Father = {
+    child: {
+        age: int,
+        pet: Animal,
+    },
+    pet: Animal,
+};
+
+predicate Foo {
+    var bob = {
+        child: {
+            age: 23,
+            pet: Animal::Dog
+        },
+        pet: Animal::Cat,
+    };
+
+    var friends_pets: Animal[3] = [Animal::Dog, Animal::Cat, Animal::Cat];
+
+    constraint bob.pet != Animal::Dog;
+}
+
+// parsed <<<
+// enum ::Animal = Cat | Dog;
+// type ::Father = {child: {age: int, pet: ::Animal}, pet: ::Animal};
+//
+// predicate ::Foo {
+//     var ::bob;
+//     var ::friends_pets: ::Animal[3];
+//     constraint (::bob == {child: {age: 23, pet: ::Animal::Dog}, pet: ::Animal::Cat});
+//     constraint (::friends_pets == [::Animal::Dog, ::Animal::Cat, ::Animal::Cat]);
+//     constraint (::bob.pet != ::Animal::Dog);
+// }
+// >>>
+
+// flattened <<<
+// enum ::Animal = Cat | Dog;
+// type ::Father = {child: {age: int, pet: ::Animal}, pet: ::Animal};
+//
+// predicate ::Foo {
+//     var ::bob: {child: {age: int, pet: int}, pet: int};
+//     var ::friends_pets: int[3];
+//     constraint (::bob == {child: {age: 23, pet: 1}, pet: 0});
+//     constraint (::friends_pets == [1, 0, 0]);
+//     constraint (::bob.pet != 1);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

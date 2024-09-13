@@ -369,8 +369,7 @@ fn states() {
         expect_test::expect![[r#"
             compiler internal error: Unknown expr type found invalid predicate expr_types slotmap key
             compiler internal error: unknown type present in final predicate expr_types slotmap
-            compiler internal error: error expression present in final predicate exprs slotmap
-            compiler internal error: final predicate state_types slotmap is missing corresponding key from states slotmap"#]],
+            compiler internal error: error expression present in final predicate exprs slotmap"#]],
     );
 }
 

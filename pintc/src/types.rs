@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, Expr, Ident, Immediate},
-    predicate::{Contract, ExprKey, VarKey},
+    predicate::{Contract, ExprKey},
     span::{empty_span, Span, Spanned},
 };
 use pint_abi_types::{TupleField, TypeABI};
@@ -177,43 +177,31 @@ impl Type {
 
     pub fn replace_nested_enum_with_int(&mut self) {
         match self {
-            Type::Error(_) => todo!(),
+            Type::Array { ty, .. } => ty.replace_nested_enum_with_int(),
 
-            Type::Unknown(_) => todo!(),
-
-            Type::Any(_) => todo!(),
-
-            Type::Primitive { kind, span } => {}
-
-            Type::Array {
-                ty,
-                range,
-                size,
-                span,
-            } => todo!(),
-
-            Type::Tuple { fields, span } => {
+            Type::Tuple { fields, .. } => {
                 for field in fields {
                     field.1.replace_nested_enum_with_int();
                 }
             }
 
-            Type::Custom { path, span } => {
+            Type::Custom { span, .. } => {
                 *self = Type::Primitive {
                     kind: PrimitiveKind::Int,
                     span: span.clone(),
                 }
             }
 
-            Type::Alias { path, ty, span } => todo!(),
+            Type::Alias { ty, .. } => ty.replace_nested_enum_with_int(),
 
-            Type::Map {
-                ty_from,
-                ty_to,
-                span,
-            } => todo!(),
+            Type::Map { ty_from, ty_to, .. } => {
+                ty_from.replace_nested_enum_with_int();
+                ty_to.replace_nested_enum_with_int();
+            }
 
-            Type::Vector { ty, span } => todo!(),
+            Type::Vector { ty, .. } => ty.replace_nested_enum_with_int(),
+
+            Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => {}
         }
     }
 
@@ -446,51 +434,36 @@ impl Type {
                 kind: PrimitiveKind::String | PrimitiveKind::Real | PrimitiveKind::Nil,
                 span,
             }
-            | Self::Error(span) => {
-                println!("issue with error");
-                Err(handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "unexpected type",
-                        span: span.clone(),
-                    },
-                }))
-            }
-            Self::Unknown(span) => {
-                println!("issue with unknown");
-                Err(handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "unexpected type",
-                        span: span.clone(),
-                    },
-                }))
-            }
-            Self::Any(span) => {
-                println!("issue with any");
-                Err(handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "unexpected type",
-                        span: span.clone(),
-                    },
-                }))
-            }
-            Self::Custom { span, .. } => {
-                println!("issue with custom");
-                Err(handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "unexpected type",
-                        span: span.clone(),
-                    },
-                }))
-            }
-            Self::Alias { span, .. } => {
-                println!("issue with alias");
-                Err(handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "unexpected type",
-                        span: span.clone(),
-                    },
-                }))
-            }
+            | Self::Error(span) => Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "unexpected type",
+                    span: span.clone(),
+                },
+            })),
+            Self::Unknown(span) => Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "unexpected type",
+                    span: span.clone(),
+                },
+            })),
+            Self::Any(span) => Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "unexpected type",
+                    span: span.clone(),
+                },
+            })),
+            Self::Custom { span, .. } => Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "unexpected type",
+                    span: span.clone(),
+                },
+            })),
+            Self::Alias { span, .. } => Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "unexpected type",
+                    span: span.clone(),
+                },
+            })),
         }
     }
 
@@ -545,15 +518,12 @@ impl Type {
             | Self::Unknown(span)
             | Self::Any(span)
             | Self::Custom { span, .. }
-            | Self::Alias { span, .. } => {
-                println!("issue with storage");
-                Err(handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "unexpected type",
-                        span: span.clone(),
-                    },
-                }))
-            }
+            | Self::Alias { span, .. } => Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "unexpected type",
+                    span: span.clone(),
+                },
+            })),
         }
     }
 
