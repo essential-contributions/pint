@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, Expr, Ident, Immediate},
-    predicate::{Contract, ExprKey},
+    predicate::{Contract, ExprKey, VarKey},
     span::{empty_span, Span, Spanned},
 };
 use pint_abi_types::{TupleField, TypeABI};
@@ -173,6 +173,48 @@ impl Type {
                 None
             }
         })
+    }
+
+    pub fn replace_nested_enum_with_int(&mut self) {
+        match self {
+            Type::Error(_) => todo!(),
+
+            Type::Unknown(_) => todo!(),
+
+            Type::Any(_) => todo!(),
+
+            Type::Primitive { kind, span } => {}
+
+            Type::Array {
+                ty,
+                range,
+                size,
+                span,
+            } => todo!(),
+
+            Type::Tuple { fields, span } => {
+                for field in fields {
+                    field.1.replace_nested_enum_with_int();
+                }
+            }
+
+            Type::Custom { path, span } => {
+                *self = Type::Primitive {
+                    kind: PrimitiveKind::Int,
+                    span: span.clone(),
+                }
+            }
+
+            Type::Alias { path, ty, span } => todo!(),
+
+            Type::Map {
+                ty_from,
+                ty_to,
+                span,
+            } => todo!(),
+
+            Type::Vector { ty, span } => todo!(),
+        }
     }
 
     pub fn is_tuple(&self) -> bool {

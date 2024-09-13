@@ -6,7 +6,7 @@ use crate::{
     },
     predicate::{
         BlockStatement, Const, ConstraintDecl, Contract, ExprKey, ExprsIter, IfDecl, Interface,
-        InterfaceVar, PredKey, StorageVar, Var,
+        InterfaceVar, PredKey, StorageVar, Var, VarKey,
     },
     span::{empty_span, Spanned},
     types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
@@ -64,12 +64,10 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
             span: empty_span(),
         };
 
-        let pred = contract.preds.get(pred_key).unwrap();
-
         // Find all the expressions referring to the variants and save them in a list.
         for old_expr_key in contract.exprs(pred_key) {
             if let Some(Expr::Path(path, _span)) = old_expr_key.try_get(contract) {
-                println!("path: {}", path);
+                // println!("path: {}", path);
                 if let Some(idx) = variant_map.get(path) {
                     variant_replacements.push((old_expr_key, idx));
                 }
@@ -79,11 +77,30 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
             }
         }
 
+        // println!("contract: {:#?}", contract);
+
+        // after call with mohammad:
+        // just keep the old behavior of how we add var_keys to enum_var_keys
+        // just replace the nested enum/custom type found with int in place for now
+
+        // issue is that we can't traverse via var_keys
+        // that being said, var_keys, in our case, are guaranteed to have unique vars
+        // and var names (full path) are unique
+        // so I could find the vars themselves then use that to lookup in the var slotmap
+        // and get the var key then use that in the rest of the chain by adding it
+        // to enum_var_keys
+
+        let pred = contract.preds.get(pred_key).unwrap();
+
         // Gather all vars which have an enum type, along with that enum type and the variant
         // count.  Clippy says .filter(..).map(..) is cleaner than .filter_map(.. bool.then(..)).
         enum_var_keys.extend(
             pred.vars()
-                .filter(|(var_key, _)| var_key.get_ty(pred).is_enum(&contract.enums)) // TODO: not an enum, is tuple
+                .filter(|(var_key, _)| {
+                    println!("searching for varkey: {:#?}", var_key);
+
+                    var_key.get_ty(pred).is_enum(&contract.enums)
+                }) // TODO - ian: not an enum, is tuple
                 // Should be if the var type contains and enum (aka recursion) -- could add a function for this in types.rs
                 // var ::bob: {age: int, pet: ::Animal}; should be var ::bob: {age: int, pet: int};
                 .map(|(var_key, Var { name, .. })| {
@@ -95,9 +112,24 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
                 }),
         );
 
+        // enum_var_keys.extend(
+        //     pred.vars()
+        //         .filter(|(var_key, _)| var_key.get_ty(pred).is_enum(&contract.enums)) // TODO - ian: not an enum, is tuple
+        //         // Should be if the var type contains and enum (aka recursion) -- could add a function for this in types.rs
+        //         // var ::bob: {age: int, pet: ::Animal}; should be var ::bob: {age: int, pet: int};
+        //         .map(|(var_key, Var { name, .. })| {
+        //             let enum_ty = var_key.get_ty(pred).clone();
+        //             let variant_count = variant_count_map
+        //                 .get(enum_ty.get_enum_name(&contract.enums).unwrap())
+        //                 .copied();
+        //             (var_key, name.clone(), enum_ty, variant_count)
+        //         }),
+        // );
+
         // Not sure at this stage if we'll ever allow state to be an enum.
         for (state_key, _) in pred.states() {
             if state_key.get_ty(pred).is_enum(&contract.enums) {
+                // TODO - ian: should we do the same as above here too?
                 return Err(handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "found state with an enum type",
@@ -195,6 +227,8 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
                 .exprs(pred_key)
                 .filter(|expr_key| expr_key.get_ty(contract).eq(&contract.new_types, enum_ty))
                 .collect::<Vec<_>>();
+            // TODO - Ian: this is causing an error
+            // need to do the same thing we did for vars, for exprs because of nested types
 
             for enum_expr_key in exprs_with_enum_ty {
                 enum_expr_key.set_ty(int_ty.clone(), contract);
@@ -204,9 +238,36 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
         // Now do the actual type update from enum to int
         // TODO - ian -- this is where we update ::Animal to int
         // var ::bob: {age: int, pet: int}; -- change below to update the field in the tuple not the entire var
-        for (enum_var_key, _, _, _) in enum_var_keys {
-            enum_var_key.set_ty(int_ty.clone(), contract.preds.get_mut(pred_key).unwrap());
+        // for (enum_var_key, _, _, _) in enum_var_keys {
+        //     enum_var_key.set_ty(int_ty.clone(), contract.preds.get_mut(pred_key).unwrap());
+        // }
+
+        let pred = contract.preds.get_mut(pred_key).unwrap();
+
+        // Collect the variable keys first because they don't need to be mutable
+        let var_keys: Vec<_> = pred.vars().map(|(var_key, _)| var_key).collect();
+
+        // Perform the mutable operations in a separate loop
+        for var_key in var_keys {
+            println!("var before: {:#?}", var_key.get_ty(pred));
+
+            var_key.get_ty_mut(pred).replace_nested_enum_with_int();
+
+            println!("var after: {:#?}", var_key.get_ty(pred));
         }
+
+        // Collect the variable keys first because they don't need to be mutable
+        let expr_keys: Vec<_> = contract.exprs(pred_key).map(|expr_key| expr_key).collect();
+
+        for expr_key in expr_keys {
+            println!("expr before: {:#?}", expr_key.get_ty(contract));
+
+            expr_key.get_ty_mut(contract).replace_nested_enum_with_int();
+
+            println!("expr after: {:#?}", expr_key.get_ty(contract));
+        }
+
+        // should be a dupe of the above
 
         // Array types can use enums as the range.  Recursively replace a range known to be an enum
         // with an immediate integer equivalent.
@@ -294,7 +355,6 @@ pub(crate) fn lower_casts(handler: &Handler, contract: &mut Contract) -> Result<
 
 /// Lowers every `Type::Alias` to a concrete type
 pub(crate) fn lower_aliases(contract: &mut Contract) {
-    println!("contract: {:#?}", contract);
     use std::borrow::BorrowMut;
 
     let new_types_map = FxHashMap::from_iter(
@@ -450,7 +510,7 @@ pub(crate) fn lower_array_ranges(
 
     // Now evaluate them all.  This pass should be after const decls have been resolved/replaced
     // and enums have been lowered, so the evaluator should be fairly simple.
-    // TODO: It seems lower_enums() isn't lowering within array ranges, so we need to included them
+    // TODO - ian: It seems lower_enums() isn't lowering within array ranges, so we need to included them
     // here.
     let evaluator = Evaluator::new(&contract.enums);
     let mut eval_memos: FxHashMap<ExprKey, ExprKey> = FxHashMap::default();
