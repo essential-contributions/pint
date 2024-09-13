@@ -193,7 +193,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
             var_key.get_ty_mut(pred).replace_nested_enum_with_int();
         }
 
-        let expr_keys: Vec<_> = contract.exprs(pred_key).map(|expr_key| expr_key).collect();
+        let expr_keys: Vec<_> = contract.exprs(pred_key).collect();
         for expr_key in expr_keys {
             expr_key.get_ty_mut(contract).replace_nested_enum_with_int();
         }
