@@ -103,7 +103,7 @@ impl ExprKey {
         contract.exprs.expr_types.get(*self).unwrap()
     }
 
-    /// Returns the mutable type of key `self` given a `mu Contract`. Panics if the type can't be
+    /// Returns a mutable reference to the type of key `self` given a `Contract`. Panics if the type can't be
     /// found in the `expr_types` map.
     pub fn get_ty_mut<'a>(&'a self, contract: &'a mut Contract) -> &mut Type {
         contract.exprs.expr_types.get_mut(*self).unwrap()
