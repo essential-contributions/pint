@@ -94,6 +94,10 @@ impl Display for Contract {
             writeln!(f, "{enum};")?;
         }
 
+        for r#union in &self.unions {
+            writeln!(f, "{};", self.with_ctrct(union))?;
+        }
+
         for new_type in &self.new_types {
             writeln!(f, "{};", self.with_ctrct(new_type))?;
         }
@@ -221,6 +225,10 @@ impl Predicate {
             if_decl.fmt_with_indent(f, contract, self, indent)?;
         }
 
+        for match_decl in &self.match_decls {
+            match_decl.fmt_with_indent(f, contract, self, indent)?;
+        }
+
         Ok(())
     }
 }
@@ -244,5 +252,17 @@ impl DisplayWithContract for ConstraintDecl {
 impl DisplayWithContract for StorageVar {
     fn fmt(&self, f: &mut Formatter, contract: &Contract) -> Result {
         write!(f, "{}: {},", self.name.name, contract.with_ctrct(&self.ty))
+    }
+}
+
+impl DisplayWithPred for IfDecl {
+    fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> Result {
+        self.fmt_with_indent(f, contract, pred, 0)
+    }
+}
+
+impl DisplayWithPred for MatchDecl {
+    fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> Result {
+        self.fmt_with_indent(f, contract, pred, 0)
     }
 }

@@ -113,6 +113,8 @@ pub enum Token {
     Else,
     #[token("cond")]
     Cond,
+    #[token("match")]
+    Match,
 
     #[token("var")]
     Var,
@@ -128,6 +130,8 @@ pub enum Token {
     Enum,
     #[token("type")]
     Type,
+    #[token("union")]
+    Union,
     #[token("constraint")]
     Constraint,
 
@@ -219,6 +223,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Int,
     Token::Interface,
     Token::Macro,
+    Token::Match,
     Token::Nil,
     Token::Predicate,
     Token::Pub,
@@ -230,6 +235,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::String,
     Token::True,
     Token::Type,
+    Token::Union,
     Token::Use,
     Token::Var,
     Token::Where,
@@ -315,6 +321,7 @@ impl fmt::Display for Token {
             Token::If => write!(f, "if"),
             Token::Else => write!(f, "else"),
             Token::Cond => write!(f, "cond"),
+            Token::Match => write!(f, "match"),
             Token::Var => write!(f, "var"),
             Token::State => write!(f, "state"),
             Token::Const => write!(f, "const"),
@@ -322,6 +329,7 @@ impl fmt::Display for Token {
             Token::Interface => write!(f, "interface"),
             Token::Enum => write!(f, "enum"),
             Token::Type => write!(f, "type"),
+            Token::Union => write!(f, "union"),
             Token::Constraint => write!(f, "constraint"),
             Token::Pub => write!(f, "pub"),
             Token::Mut => write!(f, "mut"),

@@ -6,15 +6,13 @@ use crate::{
     types::Type,
 };
 
-pub(crate) fn validate(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
-    contract.preds.iter().for_each(|(pred_key, pred)| {
+pub(crate) fn validate(handler: &Handler, contract: &mut Contract) {
+    for (pred_key, pred) in contract.preds.iter() {
         check_constraints(contract, pred_key, handler);
         check_vars(pred, handler);
         check_states(pred, handler);
-        check_ifs(pred, handler);
-    });
-
-    Ok(())
+        check_ifs_and_matches(pred, handler);
+    }
 }
 
 fn check_vars(pred: &Predicate, handler: &Handler) {
@@ -45,19 +43,28 @@ fn check_states(pred: &Predicate, handler: &Handler) {
     }
 }
 
-fn check_ifs(pred: &Predicate, handler: &Handler) {
-    if !pred.if_decls.is_empty() {
+fn check_ifs_and_matches(pred: &Predicate, handler: &Handler) {
+    let emit_internal_err = |msg, span: &crate::span::Span| {
         handler.emit_err(Error::Compile {
             error: CompileError::Internal {
-                msg: "final predicate contains if declarations",
-                span: pred
-                    .if_decls
-                    .last()
-                    .expect("guaranteed to exist")
-                    .span
-                    .clone(),
+                msg,
+                span: span.clone(),
             },
         });
+    };
+
+    if !pred.if_decls.is_empty() {
+        emit_internal_err(
+            "final predicate contains if declarations",
+            &pred.if_decls[0].span,
+        );
+    }
+
+    if !pred.match_decls.is_empty() {
+        emit_internal_err(
+            "final predicate contains match declarations",
+            &pred.match_decls[0].span,
+        );
     }
 }
 
@@ -118,17 +125,19 @@ fn check_expr(
         Type::Any(span) => {
             emit_illegal_type_error!(handler, span, "any type", "expr_types");
         }
-        Type::Custom { span, .. } => {
+        Type::Custom { span, .. } if !expr_type.is_union(&contract.unions) => {
             emit_illegal_type_error!(handler, span, "custom type", "expr_types");
         }
         Type::Alias { span, .. } => {
             emit_illegal_type_error!(handler, span, "type alias", "expr_types");
         }
         Type::Array { .. }
+        | Type::Custom { .. }
         | Type::Tuple { .. }
         | Type::Primitive { .. }
         | Type::Map { .. }
-        | Type::Vector { .. } => {}
+        | Type::Vector { .. }
+        | Type::Union { .. } => {}
     }
 
     // then check the expr variant and make sure legal
@@ -139,19 +148,23 @@ fn check_expr(
             "error expression",
             "exprs"
         )),
+
         Expr::MacroCall { span, .. } => Err(emit_illegal_type_error!(
             handler,
             span,
             "macro call",
             "exprs"
         )),
+
         Expr::In { span, .. } => Err(emit_illegal_type_error!(
             handler,
             span,
             "in expression",
             "exprs"
         )),
+
         Expr::Range { span, .. } => Err(emit_illegal_type_error!(handler, span, "range", "exprs")),
+
         Expr::Generator { kind, span, .. } => match kind {
             GeneratorKind::ForAll => Err(emit_illegal_type_error!(
                 handler,
@@ -166,9 +179,18 @@ fn check_expr(
                 "exprs"
             )),
         },
+
+        Expr::Match { span, .. } => Err(emit_illegal_type_error!(
+            handler,
+            span,
+            "match expression",
+            "exprs"
+        )),
+
         Expr::Immediate { .. }
         | Expr::Array { .. }
         | Expr::Tuple { .. }
+        | Expr::UnionVariant { .. }
         | Expr::Path(..)
         | Expr::StorageAccess { .. }
         | Expr::UnaryOp { .. }
@@ -178,7 +200,9 @@ fn check_expr(
         | Expr::Cast { .. }
         | Expr::TupleFieldAccess { .. }
         | Expr::Index { .. }
-        | Expr::ExternalStorageAccess { .. } => Ok(()),
+        | Expr::ExternalStorageAccess { .. }
+        | Expr::UnionTagIs { .. }
+        | Expr::UnionValue { .. } => Ok(()),
     }
 }
 
@@ -191,7 +215,7 @@ fn check(actual: &str, expect: expect_test::Expect) {
 fn run_test(src: &str) -> String {
     use crate::error;
     let (mut contract, handler) = run_without_transforms(src);
-    let _ = validate(&handler, &mut contract);
+    validate(&handler, &mut contract);
     error::Errors(handler.consume().0).to_string()
 }
 
@@ -261,7 +285,7 @@ predicate test { var x = MyEnum::Variant2; }
     let mut contract = run_parser(src, &handler)
         .type_check(&handler)
         .expect("Failed to type check");
-    let _ = validate(&handler, &mut contract);
+    validate(&handler, &mut contract);
     check(
         &crate::error::Errors(handler.consume().0).to_string(),
         expect_test::expect![[r#"
@@ -280,7 +304,7 @@ predicate test { var x: MyAliasInt = 3; }
     let mut contract = run_parser(src, &handler)
         .type_check(&handler)
         .expect("Failed to type check");
-    let _ = validate(&handler, &mut contract);
+    validate(&handler, &mut contract);
 
     check(
         &crate::error::Errors(handler.consume().0).to_string(),
@@ -342,7 +366,7 @@ fn states() {
         };
         pred.states.insert(dummy_state, Type::Unknown(empty_span()));
     });
-    let _ = validate(&handler, &mut contract);
+    validate(&handler, &mut contract);
     check(
         &error::Errors(handler.consume().0).to_string(),
         expect_test::expect![[r#"
@@ -370,7 +394,7 @@ fn vars() {
             Type::Unknown(empty_span()),
         );
     });
-    let _ = validate(&handler, &mut contract);
+    validate(&handler, &mut contract);
     check(
         &error::Errors(handler.consume().0).to_string(),
         expect_test::expect![[r#"
@@ -384,7 +408,7 @@ fn if_decls() {
 
     let src = "predicate test { if true { constraint true; } }";
     let (mut contract, handler) = run_without_transforms(src);
-    let _ = validate(&handler, &mut contract);
+    validate(&handler, &mut contract);
     check(
         &error::Errors(handler.consume().0).to_string(),
         expect_test::expect!["compiler internal error: final predicate contains if declarations"],

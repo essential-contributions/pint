@@ -27,6 +27,12 @@ pub enum Expr {
         fields: Vec<(Option<Ident>, ExprKey)>,
         span: Span,
     },
+    UnionVariant {
+        path: Path,
+        path_span: Span,
+        value: Option<ExprKey>,
+        span: Span,
+    },
     Path(Path, Span),
     StorageAccess {
         name: String,
@@ -65,6 +71,12 @@ pub enum Expr {
         else_expr: ExprKey,
         span: Span,
     },
+    Match {
+        match_expr: ExprKey,
+        match_branches: Vec<MatchBranch>,
+        else_branch: Option<MatchElse>,
+        span: Span,
+    },
     Index {
         expr: ExprKey,
         index: ExprKey,
@@ -77,7 +89,7 @@ pub enum Expr {
     },
     Cast {
         value: ExprKey,
-        ty: Box<Type>,
+        ty: Type,
         span: Span,
     },
     In {
@@ -97,6 +109,16 @@ pub enum Expr {
         body: ExprKey,
         span: Span,
     },
+    UnionTagIs {
+        union_expr: ExprKey,
+        tag: Path,
+        span: Span,
+    },
+    UnionValue {
+        union_expr: ExprKey,
+        variant_ty: Type,
+        span: Span,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -111,6 +133,21 @@ pub enum TupleAccess {
     Error,
     Index(usize),
     Name(Ident),
+}
+
+#[derive(Clone, Debug)]
+pub struct MatchBranch {
+    pub(super) name: Path,
+    pub(super) name_span: Span,
+    pub(super) binding: Option<Ident>,
+    pub(super) constraints: Vec<ExprKey>,
+    pub(super) expr: ExprKey,
+}
+
+#[derive(Clone, Debug)]
+pub struct MatchElse {
+    pub(super) constraints: Vec<ExprKey>,
+    pub(super) expr: ExprKey,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -238,6 +275,7 @@ impl Spanned for Expr {
             | Expr::Immediate { span, .. }
             | Expr::Array { span, .. }
             | Expr::Tuple { span, .. }
+            | Expr::UnionVariant { span, .. }
             | Expr::Path(_, span)
             | Expr::StorageAccess { span, .. }
             | Expr::ExternalStorageAccess { span, .. }
@@ -246,12 +284,15 @@ impl Spanned for Expr {
             | Expr::MacroCall { span, .. }
             | Expr::IntrinsicCall { span, .. }
             | Expr::Select { span, .. }
+            | Expr::Match { span, .. }
             | Expr::Index { span, .. }
             | Expr::TupleFieldAccess { span, .. }
             | Expr::Cast { span, .. }
             | Expr::In { span, .. }
             | Expr::Generator { span, .. }
-            | Expr::Range { span, .. } => span,
+            | Expr::Range { span, .. }
+            | Expr::UnionTagIs { span, .. }
+            | Expr::UnionValue { span, .. } => span,
         }
     }
 }
@@ -279,6 +320,11 @@ impl Expr {
                 elements.iter_mut().for_each(replace);
             }
             Expr::Tuple { fields, .. } => fields.iter_mut().for_each(|(_, expr)| replace(expr)),
+            Expr::UnionVariant { value, .. } => {
+                if let Some(value) = value {
+                    replace(value)
+                }
+            }
             Expr::UnaryOp { expr, .. } => replace(expr),
             Expr::BinaryOp { lhs, rhs, .. } => {
                 replace(lhs);
@@ -294,6 +340,26 @@ impl Expr {
                 replace(condition);
                 replace(then_expr);
                 replace(else_expr);
+            }
+            Expr::Match {
+                match_expr,
+                match_branches,
+                else_branch: else_expr,
+                ..
+            } => {
+                replace(match_expr);
+                match_branches.iter_mut().for_each(
+                    |MatchBranch {
+                         constraints, expr, ..
+                     }| {
+                        constraints.iter_mut().for_each(&mut replace);
+                        replace(expr);
+                    },
+                );
+                if let Some(MatchElse { constraints, expr }) = else_expr {
+                    constraints.iter_mut().for_each(&mut replace);
+                    replace(expr);
+                }
             }
             Expr::Index { expr, index, .. } => {
                 replace(expr);
@@ -320,6 +386,10 @@ impl Expr {
                 gen_ranges.iter_mut().for_each(|(_, expr)| replace(expr));
                 conditions.iter_mut().for_each(&mut replace);
                 replace(body);
+            }
+
+            Expr::UnionTagIs { union_expr, .. } | Expr::UnionValue { union_expr, .. } => {
+                replace(union_expr)
             }
 
             Expr::MacroCall { .. }

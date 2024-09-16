@@ -1,8 +1,8 @@
 use crate::{
     error::{Error, ErrorEmitted, Handler, ParseError},
-    expr::{Expr, Ident, Immediate},
+    expr::{Expr, Ident, Immediate, MatchBranch, MatchElse},
     span::{empty_span, Span, Spanned},
-    types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type},
+    types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type, UnionDecl},
 };
 use exprs::ExprsIter;
 use pint_abi_types::{ContractABI, PredicateABI, VarABI};
@@ -38,6 +38,7 @@ pub struct Contract {
     pub interfaces: Vec<Interface>,
 
     pub enums: Vec<EnumDecl>,
+    pub unions: Vec<UnionDecl>,
     pub new_types: Vec<NewTypeDecl>,
 
     removed_macro_calls: slotmap::SecondaryMap<ExprKey, Span>,
@@ -109,6 +110,12 @@ impl Contract {
                 }
             }
 
+            Expr::UnionVariant { value, .. } => {
+                if let Some(value) = value {
+                    self.visitor_from_key(kind, *value, f);
+                }
+            }
+
             Expr::UnaryOp { expr, .. } => self.visitor_from_key(kind, *expr, f),
 
             Expr::BinaryOp { lhs, rhs, .. } => {
@@ -131,6 +138,30 @@ impl Contract {
                 self.visitor_from_key(kind, *condition, f);
                 self.visitor_from_key(kind, *then_expr, f);
                 self.visitor_from_key(kind, *else_expr, f);
+            }
+
+            Expr::Match {
+                match_expr,
+                match_branches,
+                else_branch,
+                ..
+            } => {
+                self.visitor_from_key(kind, *match_expr, f);
+                for MatchBranch {
+                    constraints, expr, ..
+                } in match_branches
+                {
+                    for c_expr in constraints {
+                        self.visitor_from_key(kind, *c_expr, f);
+                    }
+                    self.visitor_from_key(kind, *expr, f);
+                }
+                if let Some(MatchElse { constraints, expr }) = else_branch {
+                    for c_expr in constraints {
+                        self.visitor_from_key(kind, *c_expr, f);
+                    }
+                    self.visitor_from_key(kind, *expr, f);
+                }
             }
 
             Expr::Index { expr, index, .. } => {
@@ -169,6 +200,10 @@ impl Contract {
                     self.visitor_from_key(kind, *condition, f);
                 }
                 self.visitor_from_key(kind, *body, f);
+            }
+
+            Expr::UnionTagIs { union_expr, .. } | Expr::UnionValue { union_expr, .. } => {
+                self.visitor_from_key(kind, *union_expr, f)
             }
         }
 
@@ -368,6 +403,7 @@ pub struct Predicate {
 
     pub constraints: Vec<ConstraintDecl>,
     pub if_decls: Vec<IfDecl>,
+    pub match_decls: Vec<MatchDecl>,
 
     pub ephemerals: Vec<EphemeralDecl>,
 
@@ -394,7 +430,7 @@ impl Predicate {
         }
     }
 
-    /// Generate a `PredicateABI` given an `Predicate`
+    /// Generate a `PredicateABI` given a `Predicate`
     pub fn abi(
         &self,
         handler: &Handler,
@@ -534,6 +570,7 @@ pub struct ConstraintDecl {
 pub enum BlockStatement {
     Constraint(ConstraintDecl),
     If(IfDecl),
+    Match(MatchDecl),
 }
 
 impl BlockStatement {
@@ -546,6 +583,8 @@ impl BlockStatement {
             }
 
             BlockStatement::If(if_decl) => if_decl.replace_exprs(old_expr, new_expr),
+
+            BlockStatement::Match(match_decl) => match_decl.replace_exprs(old_expr, new_expr),
         }
     }
 
@@ -565,7 +604,10 @@ impl BlockStatement {
                     contract.with_ctrct(constraint.expr)
                 )
             }
+
             Self::If(if_decl) => if_decl.fmt_with_indent(f, contract, pred, indent),
+
+            Self::Match(match_decl) => match_decl.fmt_with_indent(f, contract, pred, indent),
         }
     }
 }
@@ -608,15 +650,106 @@ impl IfDecl {
             "{indentation}if {} {{",
             contract.with_ctrct(self.condition)
         )?;
-        for block_statament in &self.then_block {
-            block_statament.fmt_with_indent(f, contract, pred, indent + 1)?;
+        for block_statement in &self.then_block {
+            block_statement.fmt_with_indent(f, contract, pred, indent + 1)?;
         }
         if let Some(else_block) = &self.else_block {
             writeln!(f, "{indentation}}} else {{")?;
-            for block_statament in else_block {
-                block_statament.fmt_with_indent(f, contract, pred, indent + 1)?;
+            for block_statement in else_block {
+                block_statement.fmt_with_indent(f, contract, pred, indent + 1)?;
             }
         }
+        writeln!(f, "{indentation}}}")
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct MatchDecl {
+    pub match_expr: ExprKey,
+    pub match_branches: Vec<MatchDeclBranch>,
+    pub else_branch: Option<Vec<BlockStatement>>,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct MatchDeclBranch {
+    pub name: Path,
+    pub name_span: Span,
+    pub binding: Option<Ident>,
+    pub block: Vec<BlockStatement>,
+}
+
+impl MatchDecl {
+    fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
+        if self.match_expr == old_expr {
+            self.match_expr = new_expr;
+        }
+
+        for MatchDeclBranch { block, .. } in &mut self.match_branches {
+            for stmt in block {
+                stmt.replace_exprs(old_expr, new_expr);
+            }
+        }
+
+        if let Some(else_block) = &mut self.else_branch {
+            for stmt in else_block {
+                stmt.replace_exprs(old_expr, new_expr);
+            }
+        }
+    }
+
+    fn fmt_with_indent(
+        &self,
+        f: &mut Formatter,
+        contract: &Contract,
+        pred: &Predicate,
+        indent: usize,
+    ) -> fmt::Result {
+        let indentation = " ".repeat(4 * indent);
+        let else_indentation = " ".repeat(4 * (indent + 1));
+
+        writeln!(
+            f,
+            "{indentation}match {} {{",
+            contract.with_ctrct(self.match_expr)
+        )?;
+
+        for match_branch in &self.match_branches {
+            match_branch.fmt_with_indent(f, contract, pred, indent + 1)?;
+        }
+
+        if let Some(else_block_stmts) = &self.else_branch {
+            writeln!(f, "{else_indentation}else => {{")?;
+            for block_statement in else_block_stmts {
+                block_statement.fmt_with_indent(f, contract, pred, indent + 2)?;
+            }
+            writeln!(f, "{else_indentation}}}")?;
+        }
+
+        writeln!(f, "{indentation}}}")
+    }
+}
+
+impl MatchDeclBranch {
+    fn fmt_with_indent(
+        &self,
+        f: &mut Formatter,
+        contract: &Contract,
+        pred: &Predicate,
+        indent: usize,
+    ) -> fmt::Result {
+        let indentation = " ".repeat(4 * indent);
+
+        write!(f, "{indentation}{}", self.name)?;
+        if let Some(id) = &self.binding {
+            write!(f, "({})", id)?;
+        }
+        writeln!(f, " => {{")?;
+
+        for block_statement in &self.block {
+            block_statement.fmt_with_indent(f, contract, pred, indent + 1)?;
+        }
+
         writeln!(f, "{indentation}}}")
     }
 }

@@ -277,7 +277,7 @@ impl AsmBuilder<'_> {
             }
         }
 
-        match &expr.get(contract) {
+        match expr.get(contract) {
             Expr::Immediate { value, .. } => {
                 compile_immediate(asm, value);
                 Ok(Location::Value)
@@ -295,6 +295,9 @@ impl AsmBuilder<'_> {
                 Ok(Location::Value)
             }
             Expr::Path(path, _) => Self::compile_path(handler, asm, path, contract, pred),
+            Expr::UnionVariant { path, value, .. } => {
+                self.compile_union_expr(handler, asm, expr, path, value, contract, pred)
+            }
             Expr::UnaryOp { op, expr, .. } => {
                 self.compile_unary_op(handler, asm, op, expr, contract, pred)
             }
@@ -318,6 +321,12 @@ impl AsmBuilder<'_> {
             Expr::TupleFieldAccess { tuple, field, .. } => {
                 self.compile_tuple_field_access(handler, asm, tuple, field, contract, pred)
             }
+            Expr::UnionTagIs {
+                union_expr, tag, ..
+            } => self.compile_union_tag_is(handler, asm, union_expr, tag, contract, pred),
+            Expr::UnionValue { union_expr, .. } => {
+                self.compile_union_get_value(handler, asm, union_expr, contract, pred)
+            }
             Expr::Error(_)
             | Expr::StorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
@@ -325,7 +334,8 @@ impl AsmBuilder<'_> {
             | Expr::Cast { .. }
             | Expr::In { .. }
             | Expr::Range { .. }
-            | Expr::Generator { .. } => Err(handler.emit_err(Error::Compile {
+            | Expr::Generator { .. }
+            | Expr::Match { .. } => Err(handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "These expressions should have been lowered by now",
                     span: empty_span(),
@@ -935,5 +945,111 @@ impl AsmBuilder<'_> {
         }
 
         Ok(location)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn compile_union_expr(
+        &self,
+        handler: &Handler,
+        asm: &mut Asm,
+        union_expr_key: &ExprKey,
+        tag: &crate::types::Path,
+        value: &Option<ExprKey>,
+        contract: &Contract,
+        pred: &Predicate,
+    ) -> Result<Location, ErrorEmitted> {
+        // Find the tag string in the union decl and convert to an index.
+        let tag_num = union_expr_key
+            .get_ty(contract)
+            .get_union_variant_names(&contract.unions)
+            .into_iter()
+            .enumerate()
+            .find_map(|(idx, variant_name)| (variant_name == tag[2..]).then_some(idx))
+            .ok_or_else(|| {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "Union tag not found in union decl",
+                        span: contract.expr_key_to_span(*union_expr_key),
+                    },
+                })
+            })?;
+
+        // Push the tag and then compile the value if necessary.
+        asm.push(Stack::Push(tag_num as i64).into());
+        if let Some(value_key) = value {
+            self.compile_expr(handler, asm, value_key, contract, pred)?;
+        }
+
+        Ok(Location::Value)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn compile_union_tag_is(
+        &self,
+        handler: &Handler,
+        asm: &mut Asm,
+        union_expr_key: &ExprKey,
+        tag: &str,
+        contract: &Contract,
+        pred: &Predicate,
+    ) -> Result<Location, ErrorEmitted> {
+        // Find the tag string in the union decl and convert to an index.
+        let tag_num = union_expr_key
+            .get_ty(contract)
+            .get_union_variant_names(&contract.unions)
+            .into_iter()
+            .enumerate()
+            .find_map(|(idx, variant_name)| (variant_name == tag[2..]).then_some(idx))
+            .ok_or_else(|| {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "Union tag not found in union decl",
+                        span: contract.expr_key_to_span(*union_expr_key),
+                    },
+                })
+            })?;
+
+        // Get the location of the union but read just a single word, as we only want the tag at
+        // the front.
+        match self.compile_expr_pointer(handler, asm, union_expr_key, contract, pred)? {
+            Location::DecisionVar => {
+                asm.push(Access::DecisionVar.into());
+            }
+
+            // Are these supported?
+            Location::State(_)
+            | Location::Storage { .. }
+            | Location::PubVar { .. }
+            | Location::Value => todo!("support union matches in non- decision variables?"),
+        }
+
+        // Now compare with our tag number.
+        asm.push(Stack::Push(tag_num as i64).into());
+        asm.push(Pred::Eq.into());
+
+        Ok(Location::Value)
+    }
+
+    fn compile_union_get_value(
+        &self,
+        handler: &Handler,
+        asm: &mut Asm,
+        union_expr_key: &ExprKey,
+        contract: &Contract,
+        pred: &Predicate,
+    ) -> Result<Location, ErrorEmitted> {
+        let location = self.compile_expr_pointer(handler, asm, union_expr_key, contract, pred)?;
+        match location {
+            Location::State(_) | Location::PubVar { .. } | Location::DecisionVar => {
+                // Skip the tag.
+                asm.push(Stack::Push(1).into());
+                asm.push(Alu::Add.into());
+                Ok(location)
+            }
+
+            Location::Value | Location::Storage { .. } => {
+                unimplemented!("union value or unions in storage")
+            }
+        }
     }
 }

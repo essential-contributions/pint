@@ -1,0 +1,59 @@
+union blah = blergh(int) | ungh(bool);
+
+predicate test {
+    var mood: blah;
+    constraint match mood {
+        blergh(n) => true,
+        ungh(b) => false,
+    };
+}
+
+predicate decl_test {
+    var mood: blah;
+    match mood {
+        blergh(n) => {
+            constraint true;
+        }
+        ungh(b) => {
+            constraint false;
+        }
+    }
+}
+
+// parsed <<<
+// union ::blah = blergh(int) | ungh(bool);
+//
+// predicate ::test {
+//     var ::mood: ::blah;
+//     constraint match ::mood { ::blergh(n) => true, ::ungh(b) => false };
+// }
+//
+// predicate ::decl_test {
+//     var ::mood: ::blah;
+//     match ::mood {
+//         ::blergh(n) => {
+//             constraint true
+//         }
+//         ::ungh(b) => {
+//             constraint false
+//         }
+//     }
+// }
+// >>>
+//
+// typecheck_failure <<<
+// unknown union variant name
+// @113..119: invalid variant name `::blergh` for union `::blah`
+// valid variant names are `blah::blergh` and `blah::ungh`
+// unknown union variant name
+// @140..144: invalid variant name `::ungh` for union `::blah`
+// valid variant names are `blah::blergh` and `blah::ungh`
+// unknown union variant name
+// @235..241: invalid variant name `::blergh` for union `::blah`
+// valid variant names are `blah::blergh` and `blah::ungh`
+// unknown union variant name
+// @297..301: invalid variant name `::ungh` for union `::blah`
+// valid variant names are `blah::blergh` and `blah::ungh`
+// constraint expression type error
+// @92..163: expecting type `bool`
+// >>>

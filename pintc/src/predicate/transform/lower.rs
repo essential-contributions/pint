@@ -2,16 +2,19 @@ use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{
         evaluate::Evaluator, BinaryOp, Expr, ExternalIntrinsic, Immediate, IntrinsicKind,
-        TupleAccess, UnaryOp,
+        MatchBranch, TupleAccess, UnaryOp,
     },
     predicate::{
-        BlockStatement, Const, ConstraintDecl, Contract, ExprKey, ExprsIter, IfDecl, Interface,
-        InterfaceVar, PredKey, StorageVar, Var,
+        BlockStatement, Const, ConstraintDecl, Contract, ExprKey, ExprsIter, Ident, IfDecl,
+        Interface, InterfaceVar, MatchDecl, MatchDeclBranch, PredKey, StorageVar, Var, VisitorKind,
     },
-    span::{empty_span, Spanned},
-    types::{EnumDecl, NewTypeDecl, PrimitiveKind, Type},
+    span::{empty_span, Span, Spanned},
+    types::{self, EnumDecl, NewTypeDecl, Path, PrimitiveKind, Type, UnionDecl},
 };
+
 use fxhash::FxHashMap;
+
+use std::collections::VecDeque;
 
 mod lower_pub_var_accesses;
 mod lower_storage_accesses;
@@ -318,7 +321,11 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
             }
             Type::Vector { ty, .. } => replace_alias(new_types_map, ty),
 
-            Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => {}
+            Type::Error(_)
+            | Type::Unknown(_)
+            | Type::Any(_)
+            | Type::Primitive { .. }
+            | Type::Union { .. } => {}
         }
     }
 
@@ -347,6 +354,10 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
         if let Expr::Cast { ty, .. } = expr {
             replace_alias(&new_types_map, ty.borrow_mut());
         }
+
+        if let Expr::UnionValue { variant_ty, .. } = expr {
+            replace_alias(&new_types_map, variant_ty);
+        }
     });
 
     // Replace `Type::Alias` in every storage variable in the contract
@@ -361,6 +372,15 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
         .consts
         .values_mut()
         .for_each(|Const { decl_ty, .. }| replace_alias(&new_types_map, decl_ty));
+
+    // Replace `Type::Alias` in every union declaration in the contract.
+    for UnionDecl { variants, .. } in &mut contract.unions {
+        for variant in variants {
+            if let Some(variant_ty) = &mut variant.ty {
+                replace_alias(&new_types_map, variant_ty);
+            }
+        }
+    }
 
     // Replace `Type::Alias` in every interface in the contract
     contract.interfaces.iter_mut().for_each(
@@ -1015,7 +1035,7 @@ pub(crate) fn lower_ifs(contract: &mut Contract) {
         let mut all_exprs = Vec::default();
 
         // Ideally we'd refactor this to not require cloning the IfDecl.
-        for if_decl in &contract.preds.get(pred_key).unwrap().if_decls.clone() {
+        for if_decl in &contract.preds[pred_key].if_decls.clone() {
             all_exprs.extend(&convert_if(contract, pred_key, if_decl));
         }
 
@@ -1115,6 +1135,7 @@ fn convert_if_block_statement(
                 bool_ty.clone(),
             ));
         }
+
         BlockStatement::If(if_decl) => {
             for inner_expr in convert_if(contract, pred_key, if_decl) {
                 converted_exprs.push(contract.exprs.insert(
@@ -1127,6 +1148,10 @@ fn convert_if_block_statement(
                     bool_ty.clone(),
                 ));
             }
+        }
+
+        BlockStatement::Match(_match_decl) => {
+            unreachable!("`match` declarations have already been lowered")
         }
     }
 
@@ -1234,6 +1259,7 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                 | Expr::Immediate { .. }
                 | Expr::Array { .. }
                 | Expr::Tuple { .. }
+                | Expr::UnionVariant { .. }
                 | Expr::Path(..)
                 | Expr::StorageAccess { .. }
                 | Expr::ExternalStorageAccess { .. }
@@ -1242,10 +1268,13 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                 | Expr::MacroCall { .. }
                 | Expr::IntrinsicCall { .. }
                 | Expr::Select { .. }
+                | Expr::Match { .. }
                 | Expr::Cast { .. }
                 | Expr::In { .. }
                 | Expr::Range { .. }
-                | Expr::Generator { .. } => Coalescence::None,
+                | Expr::Generator { .. }
+                | Expr::UnionTagIs { .. }
+                | Expr::UnionValue { .. } => Coalescence::None,
             };
 
             match coalescence {
@@ -1319,5 +1348,670 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                 }
             }
         }
+    }
+}
+
+pub(super) fn lower_matches(
+    handler: &Handler,
+    contract: &mut Contract,
+) -> Result<(), ErrorEmitted> {
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
+        // Remove each match decl one at a time and convert to equivalent if decls.
+        while let Some(match_decl) = contract.preds[pred_key].match_decls.pop() {
+            let if_decl = convert_match_to_if_decl(handler, contract, pred_key, match_decl)?;
+            contract.preds[pred_key].if_decls.push(if_decl);
+        }
+
+        // Convert any match expressions in this predicate too.
+        convert_match_exprs(handler, contract, pred_key);
+    }
+
+    Ok(())
+}
+
+// Convert `match` declarations into similar `if` declarations by casting the union to the variant
+// required explicitly for each match branch.
+//
+// E.g.,
+//
+// union u = var1 | var2(bool) | var3(int);
+// var x: u;
+// match x {
+//     u::var1 => {
+//         constraint expr1;
+//     },
+//     u::var2(var2_expr) => {
+//         constraint var2_expr;
+//     },
+//     else => {
+//         constraint expr2;
+//     },
+// }
+//
+// becomes
+//
+// if union_tag_is(x, u::var1) {
+//     constraint expr1;
+// } else if union_tag_is(x, u::var2) {
+//     constraint union_val(x, bool);
+// } else {
+//     constraint expr2;
+// }
+//
+// `Contract::match_decls` is cleared when done.
+
+fn convert_match_to_if_decl(
+    handler: &Handler,
+    contract: &mut Contract,
+    pred_key: PredKey,
+    match_decl: MatchDecl,
+) -> Result<IfDecl, ErrorEmitted> {
+    let MatchDecl {
+        match_expr,
+        match_branches,
+        else_branch,
+        span,
+    } = match_decl;
+
+    let union_ty = match_expr.get_ty(contract).clone();
+    let bool_ty = types::r#bool();
+
+    // For each branch replace any references to the binding with union value accessors.
+    let mut if_branches: VecDeque<(ExprKey, Vec<BlockStatement>)> = match_branches
+        .into_iter()
+        .map(
+            |MatchDeclBranch {
+                 name,
+                 name_span,
+                 binding,
+                 block,
+             }| {
+                // The binding type is the type we're matching for this variant.  It should be
+                // valid as it passed type checking.  It _could_ be None as not all variants have a
+                // binding.  In that case the `binding` above should also be None.
+                union_ty
+                    .get_union_variant_ty(&contract.unions, &name)
+                    .map_err(|_| {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "match can't be converted to if -- missing union type",
+                                span: name_span.clone(),
+                            },
+                        });
+                        handler.cancel()
+                    })
+                    .and_then(|binding_ty| match (binding, binding_ty) {
+                        // Both are bound.
+                        (Some(id), Some(ty)) => Ok(Some((id, ty.clone()))),
+
+                        // Both are unbound.
+                        (None, None) => Ok(None),
+
+                        // There's a mismatch.
+                        _ => {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::Internal {
+                                    msg: "match can't be converted to if -- bindings mismatch",
+                                    span: span.clone(),
+                                },
+                            });
+                            Err(handler.cancel())
+                        }
+                    })
+                    .and_then(|full_binding| {
+                        // The condition expression is a 'union_tag_is' expression.
+                        let cond_expr = contract.exprs.insert(
+                            Expr::UnionTagIs {
+                                union_expr: match_expr,
+                                tag: name,
+                                span: empty_span(),
+                            },
+                            bool_ty.clone(),
+                        );
+
+                        block
+                            .into_iter()
+                            .map(|block| {
+                                convert_match_block_statement(
+                                    handler,
+                                    contract,
+                                    pred_key,
+                                    match_expr,
+                                    &full_binding,
+                                    block,
+                                )
+                            })
+                            .collect::<Result<Vec<_>, _>>()
+                            .map(|then_branch| (cond_expr, then_branch))
+                    })
+            },
+        )
+        .collect::<Result<_, _>>()?;
+
+    let else_block = else_branch
+        .map(|block| {
+            block
+                .into_iter()
+                .map(|block| {
+                    convert_match_block_statement(
+                        handler, contract, pred_key, match_expr, &None, block,
+                    )
+                })
+                .collect::<Result<_, _>>()
+        })
+        .transpose()?;
+
+    fn build_if_decl(
+        then_branch: (ExprKey, Vec<BlockStatement>),
+        mut rest_branches: VecDeque<(ExprKey, Vec<BlockStatement>)>,
+        else_block: Option<Vec<BlockStatement>>,
+        span: &Span,
+    ) -> IfDecl {
+        IfDecl {
+            condition: then_branch.0,
+            then_block: then_branch.1,
+            else_block: if let Some(next_then_branch) = rest_branches.pop_front() {
+                // There are branches; recurse.
+                let else_if_decl = build_if_decl(next_then_branch, rest_branches, else_block, span);
+
+                Some(vec![BlockStatement::If(else_if_decl)])
+            } else {
+                // There are no more branches.  Use the else block
+                else_block
+            },
+            span: span.clone(),
+        }
+    }
+
+    if let Some(then_branch) = if_branches.pop_front() {
+        Ok(build_if_decl(then_branch, if_branches, else_block, &span))
+    } else {
+        // There are no match branches.  Just make an `if false {} else <else_block>`.
+        let false_imm_key = contract.exprs.insert(
+            Expr::Immediate {
+                value: Immediate::Bool(false),
+                span: empty_span(),
+            },
+            bool_ty.clone(),
+        );
+
+        Ok(IfDecl {
+            condition: false_imm_key,
+            then_block: Vec::default(),
+            else_block,
+            span: span.clone(),
+        })
+    }
+}
+
+fn convert_match_block_statement(
+    handler: &Handler,
+    contract: &mut Contract,
+    pred_key: PredKey,
+    union_expr: ExprKey,
+    binding: &Option<(Ident, Type)>,
+    block_stmt: BlockStatement,
+) -> Result<BlockStatement, ErrorEmitted> {
+    match block_stmt {
+        BlockStatement::Constraint(ConstraintDecl { expr, ref span }) => {
+            if let Some((id, ty)) = binding {
+                // Replace any bindings.
+                let mut constraint_expr = expr;
+                replace_binding(contract, pred_key, union_expr, id, ty, &mut constraint_expr);
+
+                Ok(BlockStatement::Constraint(ConstraintDecl {
+                    expr: constraint_expr,
+                    span: span.clone(),
+                }))
+            } else {
+                // No binding, return same statement.
+                Ok(block_stmt)
+            }
+        }
+
+        BlockStatement::If(IfDecl {
+            mut condition,
+            then_block,
+            else_block,
+            span,
+        }) => {
+            // Replace any bindings, recurse for the sub-blocks and just return the same statement.
+            if let Some((id, ty)) = binding {
+                replace_binding(contract, pred_key, union_expr, id, ty, &mut condition);
+            }
+
+            let then_block = then_block
+                .into_iter()
+                .map(|stmt| {
+                    convert_match_block_statement(
+                        handler, contract, pred_key, union_expr, binding, stmt,
+                    )
+                })
+                .collect::<Result<_, _>>()?;
+
+            let else_block = else_block
+                .map(|else_block| {
+                    else_block
+                        .into_iter()
+                        .map(|stmt| {
+                            convert_match_block_statement(
+                                handler, contract, pred_key, union_expr, binding, stmt,
+                            )
+                        })
+                        .collect::<Result<_, _>>()
+                })
+                .transpose()?;
+
+            Ok(BlockStatement::If(IfDecl {
+                condition,
+                then_block,
+                else_block,
+                span,
+            }))
+        }
+
+        BlockStatement::Match(match_decl) => {
+            // This is a nested match decl and has its own scope.
+            convert_match_to_if_decl(handler, contract, pred_key, match_decl)
+                .map(BlockStatement::If)
+        }
+    }
+}
+
+fn replace_binding(
+    contract: &mut Contract,
+    pred_key: PredKey,
+    union_expr: ExprKey,
+    binding: &Ident,
+    bound_ty: &Type,
+    expr_key: &mut ExprKey,
+) {
+    let mut path_exprs = Vec::default();
+
+    let expr_is_bound = |path_expr: &Expr| {
+        if let Expr::Path(path, _span) = path_expr {
+            path.len() > 2 && binding.name == path[2..]
+        } else {
+            false
+        }
+    };
+
+    let passed_expr_is_bound = expr_is_bound(expr_key.get(contract));
+
+    contract.visitor_from_key(
+        VisitorKind::DepthFirstParentsBeforeChildren,
+        *expr_key,
+        &mut |path_expr_key, path_expr| {
+            if expr_is_bound(path_expr) {
+                path_exprs.push(path_expr_key);
+            }
+        },
+    );
+
+    if passed_expr_is_bound || !path_exprs.is_empty() {
+        let union_val_expr_key = contract.exprs.insert(
+            Expr::UnionValue {
+                union_expr,
+                variant_ty: bound_ty.clone(),
+                span: empty_span(),
+            },
+            bound_ty.clone(),
+        );
+
+        if passed_expr_is_bound {
+            *expr_key = union_val_expr_key;
+        }
+
+        for path_expr in path_exprs {
+            contract.replace_exprs(Some(pred_key), path_expr, union_val_expr_key);
+        }
+    }
+}
+
+// Convert `match` expressions into similar `select` expressions by casting the union to the
+// variant required explicitly for each match branch.  Any constraints within the expression are
+// extracted into an `if` declaration.
+//
+// E.g.,
+//
+// union u = var1 | var2(bool) | var3(int);
+// var x: u;
+// constraint match x {
+//     u::var1 => {
+//         constraint var1_expr;
+//         0
+//     }
+//     u::var2(var2_expr) => {
+//         constraint var2_expr;
+//         1
+//     }
+//     u::var3(var3_expr) => var3_expr,
+// }
+//
+// becomes
+//
+// if union_tag_is(x, u::var1) {
+//     constraint var1_expr;
+// } else if union_tag_is(x, u::var2) {
+//     constraint union_val(x, bool);
+// }
+// constraint union_tag_is(x, u::var1) ? 0 : union_tag_is(x, u::var2) ? 1 : union_val(x, int);
+
+fn convert_match_exprs(handler: &Handler, contract: &mut Contract, pred_key: PredKey) {
+    let match_expr_keys = contract
+        .exprs(pred_key)
+        .filter(|expr_key| {
+            expr_key
+                .try_get(contract)
+                .map(|expr| matches!(expr, Expr::Match { .. }))
+                .unwrap_or(false)
+        })
+        .collect::<Vec<_>>();
+
+    for match_expr_key in match_expr_keys {
+        let _ = convert_match_expr(handler, contract, pred_key, match_expr_key);
+    }
+}
+
+fn convert_match_expr(
+    handler: &Handler,
+    contract: &mut Contract,
+    pred_key: PredKey,
+    match_expr_key: ExprKey,
+) -> Result<(), ErrorEmitted> {
+    struct BranchInfo {
+        union_expr: ExprKey,
+        name: Path,
+        binding: Option<(Ident, Type)>,
+        constraints: Vec<ExprKey>,
+        expr: ExprKey,
+    }
+
+    let mut if_then_branches = VecDeque::default();
+    let mut if_else_branch = None;
+    let mut if_decl_span = None;
+
+    if let Expr::Match {
+        match_expr,
+        match_branches,
+        else_branch,
+        span,
+    } = match_expr_key.get(contract)
+    {
+        if_decl_span = Some(span.clone());
+
+        let union_ty = match_expr.get_ty(contract);
+
+        for MatchBranch {
+            name,
+            name_span,
+            binding,
+            constraints,
+            expr,
+        } in match_branches
+        {
+            // Replace the bound values within the constraint exprs, if there is a binding.
+            let bound_ty = union_ty
+                .get_union_variant_ty(&contract.unions, name)
+                .map_err(|_| {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "match can't be converted to if -- missing union type",
+                            span: name_span.clone(),
+                        },
+                    });
+                    handler.cancel()
+                })?;
+
+            let full_binding = binding
+                .as_ref()
+                .and_then(|binding| bound_ty.map(|bound_ty| (binding.clone(), bound_ty.clone())));
+
+            if_then_branches.push_back(BranchInfo {
+                union_expr: *match_expr,
+                name: name.clone(),
+                binding: full_binding,
+                constraints: constraints.clone(),
+                expr: *expr,
+            });
+        }
+
+        if_else_branch = else_branch
+            .as_ref()
+            .map(|else_branch| (else_branch.constraints.clone(), else_branch.expr));
+    }
+
+    if if_then_branches.is_empty() && if_else_branch.is_none() {
+        // There were no constraints in any of the match branches.  No need for an `if` decl.
+        return Ok(());
+    }
+
+    let else_block = if_else_branch.map(|(else_constraint_exprs, else_expr)| {
+        let constraint_decls = else_constraint_exprs
+            .into_iter()
+            .map(|constraint_expr| {
+                BlockStatement::Constraint(ConstraintDecl {
+                    expr: constraint_expr,
+                    span: contract.expr_key_to_span(constraint_expr),
+                })
+            })
+            .collect();
+
+        (constraint_decls, else_expr)
+    });
+
+    fn build_if_decl_and_select(
+        contract: &mut Contract,
+        pred_key: PredKey,
+        mut then_branch: BranchInfo,
+        mut rest_branches: VecDeque<BranchInfo>,
+        else_branch: Option<(Vec<BlockStatement>, ExprKey)>,
+        span: &Span,
+    ) -> (IfDecl, ExprKey) {
+        // The condition expression is used by both the `if` and `select`.
+        let condition = contract.exprs.insert(
+            Expr::UnionTagIs {
+                union_expr: then_branch.union_expr,
+                tag: then_branch.name,
+                span: empty_span(),
+            },
+            types::r#bool(),
+        );
+
+        if let Some((binding, bound_ty)) = then_branch.binding {
+            for constraint_expr in &mut then_branch.constraints {
+                replace_binding(
+                    contract,
+                    pred_key,
+                    then_branch.union_expr,
+                    &binding,
+                    &bound_ty,
+                    constraint_expr,
+                );
+            }
+
+            replace_binding(
+                contract,
+                pred_key,
+                then_branch.union_expr,
+                &binding,
+                &bound_ty,
+                &mut then_branch.expr,
+            );
+
+            if let Some((_, mut else_expr)) = else_branch {
+                replace_binding(
+                    contract,
+                    pred_key,
+                    then_branch.union_expr,
+                    &binding,
+                    &bound_ty,
+                    &mut else_expr,
+                );
+            }
+        }
+
+        let then_block = then_branch
+            .constraints
+            .into_iter()
+            .map(|constraint_expr| {
+                BlockStatement::Constraint(ConstraintDecl {
+                    expr: constraint_expr,
+                    span: contract.expr_key_to_span(constraint_expr),
+                })
+            })
+            .collect();
+
+        let (else_block, select_expr) = if let Some(next_then_branch) = rest_branches.pop_front() {
+            // There are branches; recurse.
+            let (else_if_decl, else_expr) = build_if_decl_and_select(
+                contract,
+                pred_key,
+                next_then_branch,
+                rest_branches,
+                else_branch,
+                span,
+            );
+
+            let else_block = Some(vec![BlockStatement::If(else_if_decl)]);
+
+            let select_expr_ty = else_expr.get_ty(contract).clone();
+            let select_expr = contract.exprs.insert(
+                Expr::Select {
+                    condition,
+                    then_expr: then_branch.expr,
+                    else_expr,
+                    span: span.clone(),
+                },
+                select_expr_ty,
+            );
+
+            (else_block, select_expr)
+        } else {
+            // There are no more branches.  Use the passed optional else block.
+            let (else_block, else_expr) = match else_branch {
+                Some((else_block, else_expr)) => (Some(else_block), Some(else_expr)),
+                None => (None, None),
+            };
+
+            // If we have no else branch then we don't need to build a full 'select' expr, we can
+            // just use the 'then' expr as a default/implied 'else'.
+            let select_expr = else_expr
+                .map(|else_expr| {
+                    let select_expr_ty = else_expr.get_ty(contract).clone();
+                    contract.exprs.insert(
+                        Expr::Select {
+                            condition,
+                            then_expr: then_branch.expr,
+                            else_expr,
+                            span: span.clone(),
+                        },
+                        select_expr_ty,
+                    )
+                })
+                .unwrap_or(then_branch.expr);
+
+            (else_block, select_expr)
+        };
+
+        let if_decl = IfDecl {
+            condition,
+            then_block,
+            else_block,
+            span: span.clone(),
+        };
+
+        (if_decl, select_expr)
+    }
+
+    let (if_decl, select_expr_key) = if let Some(then_branch) = if_then_branches.pop_front() {
+        build_if_decl_and_select(
+            contract,
+            pred_key,
+            then_branch,
+            if_then_branches,
+            else_block,
+            &if_decl_span.unwrap(),
+        )
+    } else {
+        // There are no match branches.  Just make an `if false {} else <else_block>` and use the
+        // else expression as the 'select'.
+        let else_expr = else_block.as_ref().map(|eb| Ok(eb.1)).unwrap_or_else(|| {
+            // There are no then branches and no else branch which makes it impossible to create an
+            // expression. (NOTE: Currently the parser makes this impossible.)
+            Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "Unable to convert a completely empty match expression.",
+                    span: contract.expr_key_to_span(match_expr_key),
+                },
+            }))
+        })?;
+
+        let false_imm_key = contract.exprs.insert(
+            Expr::Immediate {
+                value: Immediate::Bool(false),
+                span: empty_span(),
+            },
+            types::r#bool(),
+        );
+
+        let if_decl = IfDecl {
+            condition: false_imm_key,
+            then_block: Vec::default(),
+            else_block: else_block.map(|eb| eb.0),
+            span: if_decl_span.unwrap(),
+        };
+
+        (if_decl, else_expr)
+    };
+
+    contract.preds[pred_key].if_decls.push(if_decl);
+    contract.replace_exprs(Some(pred_key), match_expr_key, select_expr_key);
+
+    Ok(())
+}
+
+pub(super) fn lower_union_variant_paths(contract: &mut Contract) {
+    let mut replacements: Vec<(PredKey, ExprKey, Type, Path, Span)> = Vec::default();
+
+    for pred_key in contract.preds.keys() {
+        for expr_key in contract.exprs(pred_key) {
+            if let Expr::Path(path, span) = expr_key.get(contract) {
+                let expr_ty = expr_key.get_ty(contract);
+                if expr_ty.is_union(&contract.unions) {
+                    // We have *some* path expression whose type is a union.  Could be a variable
+                    // or constant, could be a path to the union (maybe?) or to a non-value
+                    // variant.
+                    if let Some(union_name) = expr_ty.get_union_name(&contract.unions) {
+                        if path.starts_with(union_name) && path != union_name {
+                            // The name of the union is at the start of the path, but it isn't the
+                            // whole path.  So it must be a union variant path.
+                            replacements.push((
+                                pred_key,
+                                expr_key,
+                                expr_ty.clone(),
+                                path.clone(),
+                                span.clone(),
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // For every found union variant path, replace it with an equivalent union variant expression.
+    for (pred_key, old_expr_key, union_ty, path, span) in replacements {
+        let new_expr_key = contract.exprs.insert(
+            Expr::UnionVariant {
+                path,
+                path_span: span.clone(),
+                value: None,
+                span,
+            },
+            union_ty,
+        );
+
+        contract.replace_exprs(Some(pred_key), old_expr_key, new_expr_key);
     }
 }

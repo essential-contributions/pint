@@ -3,7 +3,7 @@ mod type_check;
 
 use super::{
     BlockStatement, Const, ConstraintDecl, Contract, Expr, ExprKey, Ident, IfDecl,
-    InterfaceInstance, Predicate, PredicateInstance, VarKey,
+    InterfaceInstance, MatchDecl, Predicate, PredicateInstance, VarKey,
 };
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
@@ -12,11 +12,16 @@ use crate::{
     types::Type,
 };
 
+#[derive(Debug)]
 enum Inference {
     Ignored,
     Type(Type),
     Dependant(ExprKey),
     Dependencies(Vec<ExprKey>),
+    BoundDependencies {
+        deps: Vec<ExprKey>,
+        bound_deps: Vec<(Ident, Type, Vec<ExprKey>)>,
+    },
 }
 
 impl Contract {
@@ -186,7 +191,8 @@ impl Contract {
 
                         Inference::Ignored
                         | Inference::Dependant(_)
-                        | Inference::Dependencies(_) => {
+                        | Inference::Dependencies(_)
+                        | Inference::BoundDependencies { .. } => {
                             emit_internal("const inferred a dependant type");
                         }
                     }

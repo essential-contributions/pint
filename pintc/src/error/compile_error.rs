@@ -304,6 +304,51 @@ pub enum CompileError {
     AddressOfSelf { name: String, span: Span },
     #[error("predicate `{name}` not found")]
     PredicateNameNotFound { name: String, span: Span },
+    #[error("match expression not a union")]
+    MatchExprNotUnion { found_ty: String, span: Span },
+    #[error("unknown union variant name")]
+    MatchVariantUnknown {
+        variant: String,
+        union_name: String,
+        actual_variants: Vec<String>,
+        span: Span,
+    },
+    #[error("match branch type mismatch")]
+    MatchBranchTypeMismatch {
+        expected_ty: String,
+        found_ty: String,
+        span: Span,
+    },
+    #[error("re-used match variant")]
+    MatchBranchReused { name: String, span: Span },
+    #[error("not all match variants are covered")]
+    MatchBranchMissing {
+        union_name: String,
+        missing_variants: Vec<String>,
+        span: Span,
+    },
+    #[error("unknown union")]
+    UnknownUnion { name: String, span: Span },
+    #[error("unknown union variant")]
+    UnknownUnionVariant {
+        name: String,
+        valid_variants: Vec<String>,
+        span: Span,
+    },
+    #[error("union variant does not have a value")]
+    SuperfluousUnionExprValue { name: String, span: Span },
+    #[error("missing union variant value")]
+    MissingUnionExprValue {
+        name: String,
+        variant_ty: String,
+        span: Span,
+    },
+    #[error("union variant type mismatch")]
+    UnionVariantTypeMismatch {
+        found_ty: String,
+        expected_ty: String,
+        span: Span,
+    },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -1082,6 +1127,85 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            MatchExprNotUnion { found_ty, span } => vec![ErrorLabel {
+                message: format!("matched expression must be a union, found `{found_ty}`"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            MatchVariantUnknown {
+                variant,
+                union_name,
+                span,
+                ..
+            } => vec![ErrorLabel {
+                message: format!("invalid variant name `{variant}` for union `{union_name}`"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            MatchBranchTypeMismatch {
+                expected_ty,
+                found_ty,
+                span,
+            } => vec![ErrorLabel {
+                message: format!("expecting type `{expected_ty}`, found `{found_ty}`"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            MatchBranchReused { name, span } => vec![ErrorLabel {
+                message: format!("match variant `{name}` has previously been bound"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            MatchBranchMissing {
+                union_name, span, ..
+            } => vec![ErrorLabel {
+                message: format!("not all variants for union `{union_name}` are covered by match"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            UnknownUnion { name, span } => vec![ErrorLabel {
+                message: format!("union declaration for `{name}` not found"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            UnknownUnionVariant { name, span, .. } => vec![ErrorLabel {
+                message: format!("union variant `{name}` not found"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            SuperfluousUnionExprValue { name, span } => vec![ErrorLabel {
+                message: format!("union variant `{name}` should not bind a value"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            MissingUnionExprValue {
+                name,
+                variant_ty,
+                span,
+            } => vec![ErrorLabel {
+                message: format!("union variant `{name}` requires a value of type `{variant_ty}`"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            UnionVariantTypeMismatch {
+                found_ty,
+                expected_ty,
+                span,
+            } => vec![ErrorLabel {
+                message: format!("expecting type `{expected_ty}`, found `{found_ty}`"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             Internal { msg, span } => {
                 if span == &empty_span() {
                     Vec::new()
@@ -1263,7 +1387,17 @@ impl ReportableError for CompileError {
             | InRangeInvalid { .. }
             | AddressOfSelf { .. }
             | TypeNotAllowedInStorage { .. }
-            | PredicateNameNotFound { .. } => None,
+            | PredicateNameNotFound { .. }
+            | MatchExprNotUnion { .. }
+            | MatchVariantUnknown { .. }
+            | MatchBranchTypeMismatch { .. }
+            | MatchBranchReused { .. }
+            | MatchBranchMissing { .. }
+            | UnknownUnion { .. }
+            | UnknownUnionVariant { .. }
+            | SuperfluousUnionExprValue { .. }
+            | MissingUnionExprValue { .. }
+            | UnionVariantTypeMismatch { .. } => None,
         }
     }
 
@@ -1274,29 +1408,24 @@ impl ReportableError for CompileError {
     fn help(&self) -> Option<String> {
         use CompileError::*;
         match self {
-            SymbolNotFound { enum_names, .. } if !enum_names.is_empty() => {
-                Some(format!(
-                    "this symbol is a variant of enum{} {} and may need a fully qualified path",
-                    if enum_names.len() > 1 { "s" } else { "" },
-                    enum_names
-                        .iter()
-                        .enumerate()
-                        .map(|(idx, enum_name)| {
-                            if idx + 2 == enum_names.len() {
-                                // 2nd last
-                                format!("`{enum_name}` and ")
-                            } else if idx + 1 == enum_names.len() {
-                                // last
-                                format!("`{enum_name}`")
-                            } else {
-                                // otherwise...
-                                format!("`{enum_name}`, ")
-                            }
-                        })
-                        .collect::<Vec<_>>()
-                        .join("")
-                ))
-            }
+            SymbolNotFound { enum_names, .. } if !enum_names.is_empty() => Some(format!(
+                "this symbol is a variant of enum{} {} and may need a fully qualified path",
+                if enum_names.len() > 1 { "s" } else { "" },
+                pretty_join_strings(enum_names),
+            )),
+
+            MatchVariantUnknown {
+                actual_variants, ..
+            } if !actual_variants.is_empty() => Some(format!(
+                "valid variant name{} {} {}",
+                if actual_variants.len() > 1 { "s" } else { "" },
+                if actual_variants.len() > 1 {
+                    "are"
+                } else {
+                    "is"
+                },
+                pretty_join_strings(actual_variants),
+            )),
 
             MacroCallMismatch {
                 name, suggestion, ..
@@ -1305,19 +1434,62 @@ impl ReportableError for CompileError {
             ))),
 
             BadCastTo { .. } => Some("casts may only be made to an int or a real".to_string()),
+
             BadCastFrom { .. } => Some(
                 "casts may only be made from an int to a real, from a bool to an int or \
                 from an enum to an int"
                     .to_string(),
             ),
+
             CompareToNilError { .. } => Some(
                 "only state variables and next state expressions can be compared to `nil`"
                     .to_string(),
             ),
 
+            UnknownUnionVariant { valid_variants, .. } if !valid_variants.is_empty() => {
+                Some(format!(
+                    "valid variant name{} {} {}",
+                    if valid_variants.len() > 1 { "s" } else { "" },
+                    if valid_variants.len() > 1 {
+                        "are"
+                    } else {
+                        "is"
+                    },
+                    pretty_join_strings(valid_variants),
+                ))
+            }
+
+            MatchBranchMissing {
+                missing_variants, ..
+            } if !missing_variants.is_empty() => Some(format!(
+                "branches and/or bindings are required for variant{} {}",
+                if missing_variants.len() > 1 { "s" } else { "" },
+                pretty_join_strings(missing_variants),
+            )),
+
             _ => None,
         }
     }
+}
+
+fn pretty_join_strings(labels: &[String]) -> String {
+    labels
+        .iter()
+        .enumerate()
+        .map(|(idx, label)| {
+            if idx + 2 == labels.len() {
+                // 2nd last
+                format!("`{label}` and ")
+            } else if idx + 1 == labels.len() {
+                // last
+                format!("`{label}`")
+            } else {
+                // otherwise...
+                format!("`{label}`, ")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("")
 }
 
 fn generate_type_error_labels(
@@ -1432,7 +1604,17 @@ impl Spanned for CompileError {
             | RecursiveNewType { use_span: span, .. }
             | InRangeInvalid { span, .. }
             | AddressOfSelf { span, .. }
-            | PredicateNameNotFound { span, .. } => span,
+            | PredicateNameNotFound { span, .. }
+            | MatchExprNotUnion { span, .. }
+            | MatchVariantUnknown { span, .. }
+            | MatchBranchTypeMismatch { span, .. }
+            | MatchBranchReused { span, .. }
+            | MatchBranchMissing { span, .. }
+            | UnknownUnion { span, .. }
+            | UnknownUnionVariant { span, .. }
+            | SuperfluousUnionExprValue { span, .. }
+            | MissingUnionExprValue { span, .. }
+            | UnionVariantTypeMismatch { span, .. } => span,
 
             DependencyCycle { spans } => &spans[0],
 
