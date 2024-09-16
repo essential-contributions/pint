@@ -1,22 +1,26 @@
 use super::{
     BlockStatement, Const, ConstraintDecl, Contract, Expr, ExprKey, Ident, IfDecl, Inference,
-    InterfaceInstance, Predicate, PredicateInstance, VarKey,
+    InterfaceInstance, MatchDecl, Predicate, PredicateInstance, VarKey,
 };
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     expr::{
-        BinaryOp, ExternalIntrinsic, GeneratorKind, Immediate, IntrinsicKind, TupleAccess, UnaryOp,
+        BinaryOp, ExternalIntrinsic, GeneratorKind, Immediate, IntrinsicKind, MatchBranch,
+        MatchElse, TupleAccess, UnaryOp,
     },
-    predicate::{Interface, InterfaceVar, PredKey, StorageVar},
+    predicate::{Interface, InterfaceVar, MatchDeclBranch, PredKey, StorageVar, VisitorKind},
     span::{empty_span, Span, Spanned},
-    types::{b256, EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type},
+    types::{
+        b256, EnumDecl, EphemeralDecl, NewTypeDecl, Path, PrimitiveKind, Type, UnionDecl,
+        UnionVariant,
+    },
+    warning::Warning,
 };
 use fxhash::{FxHashMap, FxHashSet};
 
 impl Contract {
     /// Lower every `Type::Custom` type in a contract to a `Type::Alias` type if the custom type
-    /// actually matches one of the new type declarations in the contract. All remaining custom
-    /// types after this method runs should refer to enums.
+    /// actually matches one of the new type declarations in the contract.
     pub(super) fn lower_custom_types(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
         self.check_recursive_newtypes(handler)?;
         self.lower_custom_types_in_newtypes(handler)?;
@@ -28,16 +32,32 @@ impl Contract {
     fn check_recursive_newtypes(&self, handler: &Handler) -> Result<(), ErrorEmitted> {
         fn inspect_type_names<'a>(
             handler: &Handler,
-            new_types: &'a [NewTypeDecl],
+            contract: &'a Contract,
             seen_names: &mut FxHashMap<&'a str, &'a Span>,
             ty: &'a Type,
         ) -> Result<(), ErrorEmitted> {
             match ty {
-                Type::Array { ty, .. } => inspect_type_names(handler, new_types, seen_names, ty),
+                Type::Array { ty, .. } => inspect_type_names(handler, contract, seen_names, ty),
 
                 Type::Tuple { fields, .. } => fields
                     .iter()
-                    .try_for_each(|(_, ty)| inspect_type_names(handler, new_types, seen_names, ty)),
+                    .try_for_each(|(_, ty)| inspect_type_names(handler, contract, seen_names, ty)),
+
+                Type::Union { path, .. } => {
+                    // This was a custom type which has been confirmed to be a union.
+                    let Some(union_decl) = contract.unions.iter().find(|ud| &ud.name.name == path)
+                    else {
+                        unreachable!("union type with unknown path");
+                    };
+
+                    for variant in &union_decl.variants {
+                        if let Some(ty) = &variant.ty {
+                            inspect_type_names(handler, contract, seen_names, ty)?;
+                        }
+                    }
+
+                    Ok(())
+                }
 
                 Type::Custom {
                     path,
@@ -45,9 +65,12 @@ impl Contract {
                 } => {
                     // Look-up the name to confirm it's a new-type.
                     if let Some((new_ty, new_ty_span)) =
-                        new_types.iter().find_map(|NewTypeDecl { name, ty, span }| {
-                            (path == &name.name).then_some((ty, span))
-                        })
+                        contract
+                            .new_types
+                            .iter()
+                            .find_map(|NewTypeDecl { name, ty, span }| {
+                                (path == &name.name).then_some((ty, span))
+                            })
                     {
                         // This is a new-type; have we seen it before?
                         if let Some(seen_span) = seen_names.get(path.as_str()) {
@@ -63,7 +86,7 @@ impl Contract {
                             // We need to add then remove the new path to the 'seen' list; if we
                             // don't remove it we'll get false positives.
                             seen_names.insert(path.as_str(), new_ty_span);
-                            let res = inspect_type_names(handler, new_types, seen_names, new_ty);
+                            let res = inspect_type_names(handler, contract, seen_names, new_ty);
                             seen_names.remove(path.as_str());
                             res
                         }
@@ -73,14 +96,14 @@ impl Contract {
                     }
                 }
 
-                Type::Alias { ty, .. } => inspect_type_names(handler, new_types, seen_names, ty),
+                Type::Alias { ty, .. } => inspect_type_names(handler, contract, seen_names, ty),
 
                 Type::Map { ty_from, ty_to, .. } => {
-                    inspect_type_names(handler, new_types, seen_names, ty_from)?;
-                    inspect_type_names(handler, new_types, seen_names, ty_to)
+                    inspect_type_names(handler, contract, seen_names, ty_from)?;
+                    inspect_type_names(handler, contract, seen_names, ty_to)
                 }
 
-                Type::Vector { ty, .. } => inspect_type_names(handler, new_types, seen_names, ty),
+                Type::Vector { ty, .. } => inspect_type_names(handler, contract, seen_names, ty),
 
                 Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => Ok(()),
             }
@@ -89,7 +112,7 @@ impl Contract {
         for NewTypeDecl { name, ty, span } in &self.new_types {
             let mut seen_names = FxHashMap::from_iter(std::iter::once((name.name.as_str(), span)));
 
-            let _ = inspect_type_names(handler, &self.new_types, &mut seen_names, ty);
+            let _ = inspect_type_names(handler, self, &mut seen_names, ty);
         }
 
         handler.result(())
@@ -114,7 +137,11 @@ impl Contract {
                 Type::Map { ty_from, ty_to, .. } => get_custom_type_mut_ref(custom_path, ty_from)
                     .or_else(|| get_custom_type_mut_ref(custom_path, ty_to)),
                 Type::Vector { ty, .. } => get_custom_type_mut_ref(custom_path, ty),
-                Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => None,
+                Type::Error(_)
+                | Type::Unknown(_)
+                | Type::Any(_)
+                | Type::Primitive { .. }
+                | Type::Union { .. } => None,
             }
         }
 
@@ -173,13 +200,15 @@ impl Contract {
         // Given a mutable reference to a `Type` and a list of new type declarations `new_types`,
         // replace it or its subtypes with a `Type::Alias` when a `Type::Custom` is encountered
         // that matches the name of a declaration in `new_types`.
-        fn replace_custom_type(new_types: &[NewTypeDecl], ty: &mut Type) {
+        fn replace_custom_type(new_types: &[NewTypeDecl], union_names: &[String], ty: &mut Type) {
             match ty {
-                Type::Array { ty, .. } => replace_custom_type(new_types, ty.borrow_mut()),
+                Type::Array { ty, .. } => {
+                    replace_custom_type(new_types, union_names, ty.borrow_mut())
+                }
                 Type::Tuple { fields, .. } => fields
                     .iter_mut()
-                    .for_each(|(_, ty)| replace_custom_type(new_types, ty)),
-                Type::Custom { path, .. } => {
+                    .for_each(|(_, ty)| replace_custom_type(new_types, union_names, ty)),
+                Type::Custom { path, span } => {
                     let path = path.clone();
                     if let Some((new_ty, new_span)) =
                         new_types.iter().find_map(|NewTypeDecl { name, ty, span }| {
@@ -191,15 +220,38 @@ impl Contract {
                             ty: Box::new(new_ty.clone()),
                             span: new_span.clone(),
                         };
+                    } else if union_names.iter().any(|name| name == &path) {
+                        *ty = Type::Union {
+                            path,
+                            span: span.clone(),
+                        }
                     }
                 }
-                Type::Alias { ty, .. } => replace_custom_type(new_types, ty),
+                Type::Alias { ty, .. } => replace_custom_type(new_types, union_names, ty),
                 Type::Map { ty_from, ty_to, .. } => {
-                    replace_custom_type(new_types, ty_from);
-                    replace_custom_type(new_types, ty_to);
+                    replace_custom_type(new_types, union_names, ty_from);
+                    replace_custom_type(new_types, union_names, ty_to);
                 }
-                Type::Vector { ty, .. } => replace_custom_type(new_types, ty),
-                Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => {}
+                Type::Vector { ty, .. } => replace_custom_type(new_types, union_names, ty),
+                Type::Error(_)
+                | Type::Unknown(_)
+                | Type::Any(_)
+                | Type::Primitive { .. }
+                | Type::Union { .. } => {}
+            }
+        }
+
+        let union_names = self
+            .unions
+            .iter()
+            .map(|UnionDecl { name, .. }| name.name.clone())
+            .collect::<Vec<_>>();
+
+        for UnionDecl { variants, .. } in &mut self.unions {
+            for variant in variants {
+                if let Some(variant_ty) = &mut variant.ty {
+                    replace_custom_type(&self.new_types, &union_names, variant_ty);
+                }
             }
         }
 
@@ -207,27 +259,27 @@ impl Contract {
         self.preds.values_mut().for_each(|pred| {
             // Replace custom types in vars and states
             pred.vars
-                .update_types(|_, ty| replace_custom_type(&self.new_types, ty));
+                .update_types(|_, ty| replace_custom_type(&self.new_types, &union_names, ty));
             pred.states
-                .update_types(|_, ty| replace_custom_type(&self.new_types, ty));
+                .update_types(|_, ty| replace_custom_type(&self.new_types, &union_names, ty));
 
             // Replace custom types in any `as` cast expression
             self.exprs.update_exprs(|_, expr| {
                 if let Expr::Cast { ty, .. } = expr {
-                    replace_custom_type(&self.new_types, ty.borrow_mut());
+                    replace_custom_type(&self.new_types, &union_names, ty.borrow_mut());
                 }
             });
         });
 
         // Replace custom types in `const` declarations
-        self.consts
-            .values_mut()
-            .for_each(|Const { decl_ty, .. }| replace_custom_type(&self.new_types, decl_ty));
+        self.consts.values_mut().for_each(|Const { decl_ty, .. }| {
+            replace_custom_type(&self.new_types, &union_names, decl_ty)
+        });
 
         // Replace custom types in every storage variable in the contract
         if let Some((storage_vars, _)) = self.storage.as_mut() {
             storage_vars.iter_mut().for_each(|StorageVar { ty, .. }| {
-                replace_custom_type(&self.new_types, ty);
+                replace_custom_type(&self.new_types, &union_names, ty);
             })
         }
 
@@ -241,7 +293,7 @@ impl Contract {
                 // Replace custom types in every storage variable in the interface
                 if let Some((storage_vars, _)) = storage.as_mut() {
                     storage_vars.iter_mut().for_each(|StorageVar { ty, .. }| {
-                        replace_custom_type(&self.new_types, ty);
+                        replace_custom_type(&self.new_types, &union_names, ty);
                     });
                 }
 
@@ -251,7 +303,9 @@ impl Contract {
                     .iter_mut()
                     .for_each(|predicate_interface| {
                         predicate_interface.vars.iter_mut().for_each(
-                            |InterfaceVar { ty, .. }| replace_custom_type(&self.new_types, ty),
+                            |InterfaceVar { ty, .. }| {
+                                replace_custom_type(&self.new_types, &union_names, ty)
+                            },
                         );
                     });
             },
@@ -282,15 +336,20 @@ impl Contract {
                     check_custom_type(ty_to, handler, valid_custom_tys);
                 }
                 Type::Vector { ty, .. } => check_custom_type(ty, handler, valid_custom_tys),
-                Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => {}
+                Type::Error(_)
+                | Type::Unknown(_)
+                | Type::Any(_)
+                | Type::Primitive { .. }
+                | Type::Union { .. } => {}
             }
         }
 
-        // The set of all available custom types. These are either enums or type aliases.
+        // The set of all available custom types. These are either enums, unions or type aliases.
         let valid_custom_tys: FxHashSet<&String> = FxHashSet::from_iter(
             self.enums
                 .iter()
                 .map(|ed| &ed.name.name)
+                .chain(self.unions.iter().map(|un| &un.name.name))
                 .chain(self.new_types.iter().map(|ntd| &ntd.name.name)),
         );
 
@@ -308,7 +367,7 @@ impl Contract {
                 check_custom_type(expr_key.get_ty(self), handler, &valid_custom_tys);
 
                 if let Some(Expr::Cast { ty, .. }) = expr_key.try_get(self) {
-                    check_custom_type(ty.as_ref(), handler, &valid_custom_tys);
+                    check_custom_type(ty, handler, &valid_custom_tys);
                 }
             });
         }
@@ -317,6 +376,15 @@ impl Contract {
         self.consts.values().for_each(|Const { decl_ty, .. }| {
             check_custom_type(decl_ty, handler, &valid_custom_tys)
         });
+
+        // Check all unions.
+        for UnionDecl { variants, .. } in &self.unions {
+            for variant in variants {
+                if let Some(ty) = &variant.ty {
+                    check_custom_type(ty, handler, &valid_custom_tys);
+                }
+            }
+        }
 
         // Check all storage variables in the contract
         if let Some((storage_vars, _)) = self.storage.as_ref() {
@@ -441,11 +509,85 @@ impl Contract {
         handler.result(())
     }
 
+    fn set_path_exprs_to_type(&mut self, name: &Ident, ty: &Type, expr_key: ExprKey) {
+        let mut path_exprs = Vec::default();
+
+        self.visitor_from_key(
+            VisitorKind::DepthFirstParentsBeforeChildren,
+            expr_key,
+            &mut |path_expr_key, expr| {
+                if let Expr::Path(path, _span) = expr {
+                    // Paths have the `::` prefix.
+                    if path.len() > 2 && path[2..] == name.name {
+                        path_exprs.push(path_expr_key);
+                    }
+                }
+            },
+        );
+
+        for path_expr_key in path_exprs {
+            path_expr_key.set_ty(ty.clone(), self);
+        }
+    }
+
+    fn set_path_exprs_in_block_to_type(&mut self, name: &Ident, ty: &Type, block: &BlockStatement) {
+        match block {
+            BlockStatement::Constraint(ConstraintDecl { expr, .. }) => {
+                self.set_path_exprs_to_type(name, ty, *expr)
+            }
+
+            BlockStatement::If(IfDecl {
+                condition,
+                then_block,
+                else_block,
+                ..
+            }) => {
+                self.set_path_exprs_to_type(name, ty, *condition);
+
+                for stmt in then_block {
+                    self.set_path_exprs_in_block_to_type(name, ty, stmt);
+                }
+
+                if let Some(else_block) = else_block {
+                    for stmt in else_block {
+                        self.set_path_exprs_in_block_to_type(name, ty, stmt);
+                    }
+                }
+            }
+
+            BlockStatement::Match(MatchDecl {
+                match_expr,
+                match_branches,
+                else_branch,
+                ..
+            }) => {
+                self.set_path_exprs_to_type(name, ty, *match_expr);
+
+                for MatchDeclBranch {
+                    binding: _, block, ..
+                } in match_branches
+                {
+                    // TODO: don't set type if binding shadows this one?  Do we allow it?
+                    for stmt in block {
+                        self.set_path_exprs_in_block_to_type(name, ty, stmt);
+                    }
+                }
+
+                if let Some(else_block) = else_branch {
+                    for stmt in else_block {
+                        self.set_path_exprs_in_block_to_type(name, ty, stmt);
+                    }
+                }
+            }
+        }
+    }
+
     pub(super) fn type_check_all_exprs(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
+        // Check all address expressions in instances.
         self.check_iface_inst_addrs(handler);
         self.check_pred_inst_addrs(handler);
 
-        // Check all the const expr decls first.
+        // Check all the const expr decls before predicates.
         let const_expr_keys = self
             .consts
             .iter()
@@ -470,12 +612,22 @@ impl Contract {
                 let _ = self.type_check_single_expr(handler, Some(pred_key), expr_key);
             }
 
-            // Now check all if declarations
+            // Now check all `if` declarations.  NOTE: to avoid cloning we could put all IfDecls
+            // and MatchDecls into the Contract and use a slotmap to refer to them.
             self.preds[pred_key]
                 .if_decls
                 .clone()
                 .iter()
                 .for_each(|if_decl| self.type_check_if_decl(handler, Some(pred_key), if_decl));
+
+            // And all `match` declarations.
+            self.preds[pred_key]
+                .match_decls
+                .clone()
+                .iter()
+                .for_each(|match_decl| {
+                    self.type_check_match_decl(handler, Some(pred_key), match_decl)
+                });
 
             // Confirm now that all decision variables are typed.
             let mut var_key_to_new_type = FxHashMap::default();
@@ -796,6 +948,151 @@ impl Contract {
         });
     }
 
+    fn type_check_match_decl(
+        &mut self,
+        handler: &Handler,
+        pred_key: Option<PredKey>,
+        match_decl: &MatchDecl,
+    ) {
+        let MatchDecl {
+            match_expr,
+            match_branches,
+            else_branch,
+            span,
+        } = match_decl;
+
+        if self
+            .type_check_single_expr(handler, pred_key, *match_expr)
+            .is_ok()
+        {
+            let union_ty = match_expr.get_ty(self).clone();
+
+            if !union_ty.is_union(&self.unions) {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::MatchExprNotUnion {
+                        found_ty: self.with_ctrct(union_ty).to_string(),
+                        span: self.expr_key_to_span(*match_expr),
+                    },
+                });
+            } else {
+                let mut variants_set = FxHashSet::default();
+
+                for MatchDeclBranch {
+                    name,
+                    name_span,
+                    binding,
+                    block,
+                } in match_branches
+                {
+                    if let Ok(binding_ty) =
+                        self.type_check_match_binding(handler, &union_ty, name, name_span, binding)
+                    {
+                        // Set all sub-exprs to the bound type.
+                        if let (Some(binding_id), Some(binding_ty)) = (binding, binding_ty) {
+                            for stmt in block {
+                                self.set_path_exprs_in_block_to_type(binding_id, &binding_ty, stmt);
+                            }
+                        }
+
+                        // Then recurse for the block.
+                        for stmt in block {
+                            self.type_check_block_statement(handler, pred_key, stmt)
+                        }
+                    }
+
+                    if !variants_set.insert(name[2..].to_string()) {
+                        // Variant is already used.
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::MatchBranchReused {
+                                name: name.clone(),
+                                span: name_span.clone(),
+                            },
+                        });
+                    }
+                }
+
+                if let Some(else_branch) = else_branch {
+                    for else_block in else_branch {
+                        self.type_check_block_statement(handler, pred_key, else_block);
+                    }
+                }
+
+                let variant_count = variants_set.len();
+                if let Some(union_variant_count) = union_ty.get_union_variant_count(&self.unions) {
+                    if variant_count < union_variant_count && else_branch.is_none() {
+                        // We don't have all variants covered.
+                        let mut missing_variants = union_ty.get_union_variant_names(&self.unions);
+                        missing_variants.retain(|var_name| !variants_set.contains(var_name));
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::MatchBranchMissing {
+                                union_name: self.with_ctrct(union_ty).to_string(),
+                                missing_variants,
+                                span: span.clone(),
+                            },
+                        });
+                    }
+                    if variant_count == union_variant_count
+                        && else_branch.is_some()
+                        && !handler.has_errors()
+                    {
+                        // We have all variants accounted for and a superfluous else.
+                        // NOTE: It can get confused so we only emit a warning when there are no
+                        // other errors.
+                        handler.emit_warn(Warning::MatchUnneededElse { span: span.clone() });
+                    }
+                }
+            }
+        }
+    }
+
+    fn type_check_match_binding(
+        &self,
+        handler: &Handler,
+        union_ty: &Type,
+        variant_name: &Path,
+        name_span: &Span,
+        binding: &Option<Ident>,
+    ) -> Result<Option<Type>, ErrorEmitted> {
+        // If the binding exists find the type in the union.
+        if let Ok(binding_ty) = union_ty.get_union_variant_ty(&self.unions, variant_name) {
+            if binding_ty.is_some() && binding.is_none() {
+                #[allow(clippy::unnecessary_unwrap)]
+                handler.emit_err(Error::Compile {
+                    error: CompileError::MissingUnionExprValue {
+                        name: variant_name.to_string(),
+                        variant_ty: self.with_ctrct(binding_ty.unwrap()).to_string(),
+                        span: name_span.clone(),
+                    },
+                });
+            } else if binding_ty.is_none() && binding.is_some() {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::SuperfluousUnionExprValue {
+                        name: variant_name.to_string(),
+                        span: name_span.clone(),
+                    },
+                });
+            } else {
+                // Everything seems OK.
+                return Ok(binding_ty.cloned());
+            }
+        } else {
+            handler.emit_err(Error::Compile {
+                error: CompileError::MatchVariantUnknown {
+                    variant: variant_name.clone(),
+                    union_name: union_ty
+                        .get_union_name(&self.unions)
+                        .cloned()
+                        .unwrap_or("<unknown union>".to_string()),
+                    actual_variants: union_ty.get_union_variant_names(&self.unions),
+                    span: name_span.clone(),
+                },
+            });
+        }
+
+        // If we get this far then there was an error.
+        Err(handler.cancel())
+    }
+
     fn type_check_block_statement(
         &mut self,
         handler: &Handler,
@@ -806,7 +1103,12 @@ impl Contract {
             BlockStatement::Constraint(ConstraintDecl { expr, .. }) => {
                 let _ = self.type_check_single_expr(handler, pred_key, *expr);
             }
+
             BlockStatement::If(if_decl) => self.type_check_if_decl(handler, pred_key, if_decl),
+
+            BlockStatement::Match(match_decl) => {
+                self.type_check_match_decl(handler, pred_key, match_decl)
+            }
         }
     }
 
@@ -869,6 +1171,28 @@ impl Contract {
                         })?
                     }
 
+                    // Dependencies in `match` expressions may have bindings.  We need to prime
+                    // those bindings before queuing the expressions.
+                    Ok(Inference::BoundDependencies {
+                        mut deps,
+                        mut bound_deps,
+                    }) => {
+                        deps.drain(..).try_for_each(|dep_expr_key| {
+                            push_to_queue!(handler, next_key, dep_expr_key)
+                        })?;
+
+                        bound_deps
+                            .drain(..)
+                            .try_for_each(|(id, ty, mut bound_expr_keys)| {
+                                // Set the type for the binding for each expr first.
+                                bound_expr_keys.drain(..).try_for_each(|bound_expr_key| {
+                                    self.set_path_exprs_to_type(&id, &ty, bound_expr_key);
+
+                                    push_to_queue!(handler, next_key, bound_expr_key)
+                                })
+                            })?;
+                    }
+
                     // Some expressions (e.g., macro calls) just aren't valid any longer and
                     // are best ignored.
                     Ok(Inference::Ignored) => {
@@ -922,6 +1246,13 @@ impl Contract {
 
             Expr::Tuple { fields, span } => Ok(self.infer_tuple_expr(fields, span)),
 
+            Expr::UnionVariant {
+                path,
+                path_span,
+                value,
+                span,
+            } => Ok(self.infer_union_expr(handler, path, path_span, *value, span)),
+
             Expr::Path(path, span) => Ok(self.infer_path_by_name(handler, pred, path, span)),
 
             Expr::StorageAccess { name, span, .. } => {
@@ -964,6 +1295,13 @@ impl Contract {
                 span,
             } => Ok(self.infer_select_expr(handler, *condition, *then_expr, *else_expr, span)),
 
+            Expr::Match {
+                match_expr,
+                match_branches,
+                else_branch,
+                span,
+            } => Ok(self.infer_match_expr(handler, *match_expr, match_branches, else_branch, span)),
+
             Expr::Index { expr, index, span } => {
                 Ok(self.infer_index_expr(handler, *expr, *index, span))
             }
@@ -989,7 +1327,18 @@ impl Contract {
                 body,
                 span,
             } => Ok(self.infer_generator_expr(handler, kind, gen_ranges, conditions, *body, span)),
+
+            Expr::UnionTagIs { .. } | Expr::UnionValue { .. } => {
+                Err(handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "union utility expressions should not exist during type checking",
+                        span: empty_span(),
+                    },
+                }))
+            }
         }
+
+        // TODO return err if handler is non-empty?
     }
 
     pub(super) fn infer_immediate(
@@ -1081,7 +1430,7 @@ impl Contract {
     ) -> Inference {
         // If we're searching for an enum variant and it appears to be unqualified then we can
         // report some hints.
-        let mut err_potential_enums = Vec::new();
+        let mut hints = Vec::new();
 
         if let Some(Const { decl_ty, .. }) = self.consts.get(path) {
             if !decl_ty.is_unknown() {
@@ -1103,18 +1452,17 @@ impl Contract {
             // It's a fully matched newtype.
             Inference::Type(ty.clone())
         } else {
-            // It might be an enum variant.  If it isn't we get a handy list of potential variant
-            // names we can return in our error.
-            let enum_res = self.infer_enum_variant_by_name(path);
-            if let Ok(inf) = enum_res {
+            // It might be an enum or union variant.  If it isn't we get a handy list of potential
+            // variant names we can return in our error.
+            let enum_res = self.infer_variant_by_name(handler, path, span);
+            if let Ok(inference) = enum_res {
                 // Need to translate the type between Results.
-                inf
+                inference
             } else {
                 // Save the enums variants list for the SymbolNotFound error if we need it.
-                let Err(enums_list) = enum_res else {
-                    unreachable!("it's not Ok(), must be Err()")
-                };
-                err_potential_enums.extend(enums_list);
+                if let Ok(enums_list) = enum_res.unwrap_err() {
+                    hints.extend(enums_list);
+                }
 
                 // For all other paths we need a predicate.
                 if let Some(pred) = pred {
@@ -1153,7 +1501,7 @@ impl Contract {
                             error: CompileError::SymbolNotFound {
                                 name: path.clone(),
                                 span: span.clone(),
-                                enum_names: err_potential_enums,
+                                enum_names: hints,
                             },
                         });
                         Inference::Type(Type::Error(span.clone()))
@@ -1171,22 +1519,33 @@ impl Contract {
         }
     }
 
-    pub(super) fn infer_enum_variant_by_name(&self, path: &Path) -> Result<Inference, Vec<String>> {
+    // This has a wacky return type of Result<_, Result<_, _>>.  It's because it wants to return 3
+    // different outcomes - an inference, a type error or some hints to use in a different error.
+    // An alternative might be to use Result<Result<_, _>, _> or probably better would be
+    // Result<Either<_, _>, _>.
+    pub(super) fn infer_variant_by_name(
+        &self,
+        handler: &Handler,
+        path: &Path,
+        span: &Span,
+    ) -> Result<Inference, Result<Vec<String>, ErrorEmitted>> {
         // Check first if the path prefix matches a new type.
         for NewTypeDecl { name, ty, .. } in &self.new_types {
             if let Type::Custom {
-                path: enum_path, ..
+                path: enum_or_union_path,
+                ..
             } = ty
             {
-                // This new type is to an enum.  Does the new type path match the passed path?
+                // This new type is to an enum or union.  Does the new type path match the passed
+                // path?
                 if path.starts_with(&name.name) {
-                    // Yep, we might have an enum wrapped in a new type.
+                    // Yep, we might have an enum or union wrapped in a new type.
                     let new_type_len = name.name.len();
                     if path.chars().nth(new_type_len) == Some(':') {
                         // Definitely worth trying.  Recurse.
-                        let new_path = enum_path.clone() + &path[new_type_len..];
-                        if let ty @ Ok(_) = self.infer_enum_variant_by_name(&new_path) {
-                            // We found an enum variant.
+                        let new_path = enum_or_union_path.clone() + &path[new_type_len..];
+                        if let ty @ Ok(_) = self.infer_variant_by_name(handler, &new_path, span) {
+                            // We found an enum or union variant.
                             return ty;
                         }
                     }
@@ -1194,8 +1553,19 @@ impl Contract {
             }
         }
 
-        let mut err_potential_enums = Vec::default();
+        match self.infer_enum_variant_by_name(path) {
+            // No dice.  Try unions, passing the hints along.
+            Err(hints) => self.infer_union_variant_by_name(handler, path, span, hints),
 
+            // Wrap the hints in a Result.
+            inference => inference.map_err(Ok),
+        }
+    }
+
+    pub(super) fn infer_enum_variant_by_name(&self, path: &Path) -> Result<Inference, Vec<String>> {
+        let mut hints = Vec::default();
+
+        // Find a match in the enums.
         self.enums
             .iter()
             .find_map(
@@ -1204,19 +1574,9 @@ impl Contract {
                      variants,
                      span,
                  }| {
-                    // The path might be to the enum itself, or to its variants, in which case the
-                    // returned type is the enum.
                     (&enum_name.name == path
                         || variants.iter().any(|variant| {
-                            if path.len() > 2 && path[2..] == variant.name {
-                                err_potential_enums.push(enum_name.name.clone());
-                            }
-
-                            let mut full_variant = enum_name.name.clone();
-                            full_variant.push_str("::");
-                            full_variant.push_str(&variant.name);
-
-                            &full_variant == path
+                            Self::variant_name_matches(path, enum_name, &variant.name, &mut hints)
                         }))
                     .then(|| {
                         Inference::Type(Type::Custom {
@@ -1226,7 +1586,86 @@ impl Contract {
                     })
                 },
             )
-            .ok_or(err_potential_enums)
+            .ok_or(hints)
+    }
+
+    // This has the same tricky Result<_, Result<_, _>> return type -- see infer_variant_by_name()
+    // above.
+    fn infer_union_variant_by_name(
+        &self,
+        handler: &Handler,
+        path: &Path,
+        path_span: &Span,
+        mut hints: Vec<String>,
+    ) -> Result<Inference, Result<Vec<String>, ErrorEmitted>> {
+        // Try to find a match in the unions.
+        let variant_match: Option<Result<Inference, ErrorEmitted>> = self.unions.iter().find_map(
+            |UnionDecl {
+                 name: union_name,
+                 variants,
+                 span,
+             }| {
+                if &union_name.name == path {
+                    Some(Ok(Inference::Type(Type::Union {
+                        path: union_name.name.clone(),
+                        span: span.clone(),
+                    })))
+                } else {
+                    // Return None if not found or Some(Result<..>) depending on if it's valid.
+                    variants.iter().find_map(|variant| {
+                        Self::variant_name_matches(
+                            path,
+                            union_name,
+                            &variant.variant_name.name,
+                            &mut hints,
+                        )
+                        .then(|| {
+                            // A variant was found.  Was it supposed to have a value?  (To get to
+                            // this point we have received only a Path with no value.)
+                            if variant.ty.is_some() {
+                                // This variant *does* require a value.
+                                Err(handler.emit_err(Error::Compile {
+                                    error: CompileError::MissingUnionExprValue {
+                                        name: variant.variant_name.name.to_string(),
+                                        variant_ty: self
+                                            .with_ctrct(variant.ty.as_ref().unwrap())
+                                            .to_string(),
+                                        span: path_span.clone(),
+                                    },
+                                }))
+                            } else {
+                                Ok(Inference::Type(Type::Union {
+                                    path: union_name.name.clone(),
+                                    span: span.clone(),
+                                }))
+                            }
+                        })
+                    })
+                }
+            },
+        );
+
+        // Translate the result from an Option to Result.
+        variant_match
+            .map(|res| res.map_err(Err))
+            .unwrap_or(Err(Ok(hints)))
+    }
+
+    fn variant_name_matches(
+        path: &Path,
+        type_name: &Ident,
+        variant_name: &str,
+        hints: &mut Vec<String>,
+    ) -> bool {
+        if path.len() > 2 && &path[2..] == variant_name {
+            hints.push(type_name.name.clone());
+        }
+
+        let mut full_variant = type_name.name.clone();
+        full_variant.push_str("::");
+        full_variant.push_str(variant_name);
+
+        &full_variant == path
     }
 
     fn infer_storage_access(&self, handler: &Handler, name: &String, span: &Span) -> Inference {
@@ -1853,6 +2292,178 @@ impl Contract {
         }
     }
 
+    fn infer_match_expr(
+        &self,
+        handler: &Handler,
+        match_expr_key: ExprKey,
+        match_branches: &[MatchBranch],
+        else_branch: &Option<MatchElse>,
+        span: &Span,
+    ) -> Inference {
+        let union_ty = match_expr_key.get_ty(self);
+        if union_ty.is_unknown() {
+            Inference::Dependant(match_expr_key)
+        } else if !union_ty.is_union(&self.unions) {
+            handler.emit_err(Error::Compile {
+                error: CompileError::MatchExprNotUnion {
+                    found_ty: self.with_ctrct(union_ty).to_string(),
+                    span: self.expr_key_to_span(match_expr_key),
+                },
+            });
+
+            Inference::Type(Type::Error(span.clone()))
+        } else {
+            let mut deps = Vec::default();
+            let mut bound_deps = Vec::default();
+            let mut branch_tys = Vec::default();
+
+            let mut type_check_branch_exprs =
+                |constraints: &[ExprKey], expr: ExprKey| -> Vec<ExprKey> {
+                    let mut branch_deps = Vec::default();
+                    for constr_key in constraints {
+                        let constr_ty = constr_key.get_ty(self);
+                        if constr_ty.is_unknown() {
+                            branch_deps.push(*constr_key);
+                        } else if !constr_ty.is_bool() {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::ConstraintExpressionTypeError {
+                                    large_err: Box::new(
+                                        LargeTypeError::ConstraintExpressionTypeError {
+                                            expected_ty: self
+                                                .with_ctrct(Type::Primitive {
+                                                    kind: PrimitiveKind::Bool,
+                                                    span: empty_span(),
+                                                })
+                                                .to_string(),
+                                            found_ty: self.with_ctrct(constr_ty).to_string(),
+                                            span: self.expr_key_to_span(*constr_key),
+                                            expected_span: None,
+                                        },
+                                    ),
+                                },
+                            });
+                        }
+                    }
+
+                    let branch_ty = expr.get_ty(self);
+
+                    if branch_ty.is_unknown() {
+                        branch_deps.push(expr);
+                    } else {
+                        branch_tys.push((expr, branch_ty.clone()));
+                    }
+
+                    branch_deps
+                };
+
+            let branches_check = handler.scope(|handler| {
+                for MatchBranch {
+                    name,
+                    name_span,
+                    binding,
+                    constraints,
+                    expr,
+                } in match_branches
+                {
+                    if let Ok(binding_ty) =
+                        self.type_check_match_binding(handler, union_ty, name, name_span, binding)
+                    {
+                        let mut branch_deps = type_check_branch_exprs(constraints, *expr);
+
+                        if !branch_deps.is_empty() {
+                            if let (Some(binding_ty), Some(binding)) = (binding_ty, binding) {
+                                // Variant has a binding; return bound deps.
+                                bound_deps.push((binding.clone(), binding_ty.clone(), branch_deps));
+                            } else {
+                                // Variant has no binding; return regular deps.
+                                deps.append(&mut branch_deps);
+                            }
+                        }
+                    }
+                }
+
+                if let Some(MatchElse { constraints, expr }) = else_branch {
+                    let mut branch_deps = type_check_branch_exprs(constraints, *expr);
+                    deps.append(&mut branch_deps);
+                }
+
+                let mut variants_set = FxHashSet::default();
+                for MatchBranch {
+                    name, name_span, ..
+                } in match_branches
+                {
+                    if !variants_set.insert(name[2..].to_string()) {
+                        // Variant is already used.
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::MatchBranchReused {
+                                name: name.clone(),
+                                span: name_span.clone(),
+                            },
+                        });
+                    }
+                }
+
+                let variant_count = variants_set.len();
+                if let Some(union_variant_count) = union_ty.get_union_variant_count(&self.unions) {
+                    if variant_count < union_variant_count && else_branch.is_none() {
+                        // We don't have all variants covered.
+                        let mut missing_variants = union_ty.get_union_variant_names(&self.unions);
+                        missing_variants.retain(|var_name| !variants_set.contains(var_name));
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::MatchBranchMissing {
+                                union_name: self.with_ctrct(union_ty).to_string(),
+                                missing_variants,
+                                span: span.clone(),
+                            },
+                        });
+                    }
+                    if variant_count == union_variant_count && else_branch.is_some() {
+                        // We have all variants accounted for and a superfluous else.
+                        // NOTE: To avoid putting this warning in multiple times it's only done
+                        // when there are no pending dependencies (i.e., the final time this
+                        // method is called).
+                        // ALSO: It can get confused, so we only emit the warning if there are
+                        // no other errors.
+                        if deps.is_empty() && bound_deps.is_empty() && !handler.has_errors() {
+                            handler.emit_warn(Warning::MatchUnneededElse { span: span.clone() });
+                        }
+                    }
+                }
+
+                Ok(())
+            });
+
+            if branches_check.is_err() {
+                Inference::Type(Type::Error(span.clone()))
+            } else if branch_tys.len() >= match_branches.len() {
+                // We were able to get types for each branch; now confirm they're consistent.
+                // NOTE: `branch_tys` might be longer if we have a superfluous `else`.  In that
+                // case a warning is emitted but not an error which means we could still land here.
+                let (_, match_ty) = &branch_tys[0];
+
+                for (branch_expr, branch_ty) in &branch_tys[1..] {
+                    if !branch_ty.eq(&self.new_types, match_ty) {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::MatchBranchTypeMismatch {
+                                expected_ty: self.with_ctrct(match_ty).to_string(),
+                                found_ty: self.with_ctrct(branch_ty).to_string(),
+                                span: self.expr_key_to_span(*branch_expr),
+                            },
+                        });
+                    }
+                }
+
+                Inference::Type(match_ty.clone())
+            } else if bound_deps.is_empty() && !deps.is_empty() {
+                Inference::Dependencies(deps)
+            } else if !bound_deps.is_empty() {
+                Inference::BoundDependencies { deps, bound_deps }
+            } else {
+                Inference::Type(Type::Error(span.clone()))
+            }
+        }
+    }
+
     fn infer_range_expr(
         &self,
         handler: &Handler,
@@ -2248,6 +2859,134 @@ impl Contract {
             }
         } else {
             Inference::Dependant(tuple_expr_key)
+        }
+    }
+
+    fn infer_union_expr(
+        &self,
+        handler: &Handler,
+        name: &str,
+        name_span: &Span,
+        value: Option<ExprKey>,
+        span: &Span,
+    ) -> Inference {
+        // Re-split the path into pre :: union_name :: variant_name.  This is a bit
+        // unfortunate, and perhaps we need to revisit how we do paths and idents.
+        if let Some(sep_idx) = name.rfind("::") {
+            let union_name = &name[0..sep_idx];
+            let variant_name = &name[(sep_idx + 2)..];
+
+            // Find the union.
+            if let Some(union_decl) = self.unions.iter().find(|ud| ud.name.name == union_name) {
+                // Find the variant.
+                if let Some(opt_var_ty) = union_decl.variants.iter().find_map(
+                    |UnionVariant {
+                         variant_name: ud_nm,
+                         ty: ud_ty,
+                         ..
+                     }| { (ud_nm.name == variant_name).then_some(ud_ty) },
+                ) {
+                    match (value, opt_var_ty) {
+                        (None, None) => {
+                            // The union variant doesn't have a binding and no value was given.
+                            Inference::Type(Type::Union {
+                                path: union_name.to_string(),
+                                span: union_decl.span.clone(),
+                            })
+                        }
+
+                        (Some(value), Some(ud_var_ty)) => {
+                            // Confirm variant type is value type.
+                            let value_ty = value.get_ty(self);
+                            if value_ty.is_unknown() {
+                                Inference::Dependant(value)
+                            } else if !value_ty.eq(&self.new_types, ud_var_ty) {
+                                // Type mismatch for variant value.
+                                handler.emit_err(Error::Compile {
+                                    error: CompileError::UnionVariantTypeMismatch {
+                                        found_ty: self.with_ctrct(value_ty).to_string(),
+                                        expected_ty: self.with_ctrct(ud_var_ty).to_string(),
+                                        span: self.expr_key_to_span(value),
+                                    },
+                                });
+
+                                Inference::Type(Type::Error(span.clone()))
+                            } else {
+                                // Provided value has the correct type for the variant.
+                                Inference::Type(Type::Union {
+                                    path: union_name.to_string(),
+                                    span: union_decl.span.clone(),
+                                })
+                            }
+                        }
+
+                        (Some(_), None) => {
+                            // A value was provided for a variant which doesn't have a binding.
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::SuperfluousUnionExprValue {
+                                    name: name.to_string(),
+                                    span: span.clone(),
+                                },
+                            });
+
+                            Inference::Type(Type::Error(span.clone()))
+                        }
+
+                        (None, Some(ud_var_ty)) => {
+                            // A value is required by the variant but was no provided.
+                            //
+                            // NOTE: This currently can't really occur since an Expr::Union is only
+                            // generated by the parser when there *is* a passed value.
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::MissingUnionExprValue {
+                                    name: name.to_string(),
+                                    variant_ty: self.with_ctrct(ud_var_ty).to_string(),
+                                    span: span.clone(),
+                                },
+                            });
+
+                            Inference::Type(Type::Error(span.clone()))
+                        }
+                    }
+                } else {
+                    // Unable to find the union variant.
+                    let valid_variants = union_decl
+                        .variants
+                        .iter()
+                        .map(|v| v.variant_name.to_string())
+                        .collect::<Vec<_>>();
+
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::UnknownUnionVariant {
+                            name: name.to_string(),
+                            valid_variants,
+                            span: name_span.clone(),
+                        },
+                    });
+
+                    Inference::Type(Type::Error(span.clone()))
+                }
+            } else {
+                // Unable to find the union declaration.
+                handler.emit_err(Error::Compile {
+                    error: CompileError::UnknownUnion {
+                        name: name.to_string(),
+                        span: name_span.clone(),
+                    },
+                });
+
+                Inference::Type(Type::Error(span.clone()))
+            }
+        } else {
+            // Unable to split the name.
+            handler.emit_err(Error::Compile {
+                error: CompileError::UnknownUnion {
+                    name: name.to_string(),
+                    span: name_span.clone(),
+                },
+            });
+
+            Inference::Type(Type::Error(span.clone()))
         }
     }
 

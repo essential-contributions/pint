@@ -1,6 +1,8 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{BinaryOp as BinOp, Expr, Immediate as Imm, TupleAccess, UnaryOp},
+    expr::{
+        BinaryOp as BinOp, Expr, Immediate as Imm, MatchBranch, MatchElse, TupleAccess, UnaryOp,
+    },
     predicate::{Contract, ExprKey},
     span::{empty_span, Spanned},
     types::{EnumDecl, Path},
@@ -385,18 +387,24 @@ impl Evaluator {
             | Expr::IntrinsicCall { .. }
             | Expr::In { .. }
             | Expr::Range { .. }
-            | Expr::Generator { .. } => Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "unexpected expression during compile-time evaluation",
-                    span: empty_span(),
-                },
-            })),
+            | Expr::Generator { .. }
+            | Expr::Match { .. }
+            | Expr::UnionVariant { .. }
+            // These union exprs can unpack if their expression is a UnionVariant literal.
+            | Expr::UnionTagIs { .. } | Expr::UnionValue { .. } => {
+                Err(handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "unexpected expression during compile-time evaluation",
+                        span: empty_span(),
+                    },
+                }))
+            }
         }
     }
 }
 
 impl ExprKey {
-    /// Given an `ExprKey` `self`, an `Predicate`, and a map between some symbols and
+    /// Given an `ExprKey` `self`, a `Predicate`, and a map between some symbols and
     /// their values as `Immediate`s, create a deep clone of `self` (i.e. clone the `Expr` it
     /// points to and all of its sub-expressions) while replacing each symbol by its immediate
     /// value as per `values_map`.
@@ -434,7 +442,7 @@ impl ExprKey {
                 span,
             } => {
                 let elements = elements
-                    .iter()
+                    .into_iter()
                     .map(|element| element.plug_in(contract, values_map))
                     .collect::<Vec<_>>();
                 let range_expr = range_expr.plug_in(contract, values_map);
@@ -442,19 +450,32 @@ impl ExprKey {
                 Expr::Array {
                     elements,
                     range_expr,
-                    span: span.clone(),
+                    span,
                 }
             }
 
             Expr::Tuple { fields, span } => {
                 let fields = fields
-                    .iter()
-                    .map(|(name, value)| (name.clone(), value.plug_in(contract, values_map)))
+                    .into_iter()
+                    .map(|(name, value)| (name, value.plug_in(contract, values_map)))
                     .collect::<Vec<_>>();
 
-                Expr::Tuple {
-                    fields,
-                    span: span.clone(),
+                Expr::Tuple { fields, span }
+            }
+
+            Expr::UnionVariant {
+                path,
+                path_span,
+                value,
+                span,
+            } => {
+                let value = value.map(|value| value.plug_in(contract, values_map));
+
+                Expr::UnionVariant {
+                    path,
+                    path_span,
+                    value,
+                    span,
                 }
             }
 
@@ -482,7 +503,7 @@ impl ExprKey {
             }
             Expr::IntrinsicCall { kind, args, span } => {
                 let args = args
-                    .iter()
+                    .into_iter()
                     .map(|arg| arg.plug_in(contract, values_map))
                     .collect::<Vec<_>>();
 
@@ -549,11 +570,11 @@ impl ExprKey {
                 span,
             } => {
                 let gen_ranges = gen_ranges
-                    .iter()
-                    .map(|(index, range)| (index.clone(), range.plug_in(contract, values_map)))
+                    .into_iter()
+                    .map(|(index, range)| (index, range.plug_in(contract, values_map)))
                     .collect::<Vec<_>>();
                 let conditions = conditions
-                    .iter()
+                    .into_iter()
                     .map(|condition| condition.plug_in(contract, values_map))
                     .collect::<Vec<_>>();
                 let body = body.plug_in(contract, values_map);
@@ -563,6 +584,75 @@ impl ExprKey {
                     gen_ranges,
                     conditions,
                     body,
+                    span,
+                }
+            }
+            Expr::Match {
+                match_expr,
+                match_branches,
+                else_branch,
+                span,
+            } => {
+                let match_expr = match_expr.plug_in(contract, values_map);
+                let match_branches = match_branches
+                    .into_iter()
+                    .map(|match_branch| {
+                        let constraints = match_branch
+                            .constraints
+                            .into_iter()
+                            .map(|expr_key| expr_key.plug_in(contract, values_map))
+                            .collect();
+                        let expr = match_branch.expr.plug_in(contract, values_map);
+
+                        MatchBranch {
+                            constraints,
+                            expr,
+                            ..match_branch
+                        }
+                    })
+                    .collect();
+                let else_branch = else_branch.map(|else_branch| {
+                    let constraints = else_branch
+                        .constraints
+                        .into_iter()
+                        .map(|expr_key| expr_key.plug_in(contract, values_map))
+                        .collect();
+                    let expr = else_branch.expr.plug_in(contract, values_map);
+
+                    MatchElse { constraints, expr }
+                });
+
+                Expr::Match {
+                    match_expr,
+                    match_branches,
+                    else_branch,
+                    span,
+                }
+            }
+
+            Expr::UnionTagIs {
+                union_expr,
+                tag,
+                span,
+            } => {
+                let union_expr = union_expr.plug_in(contract, values_map);
+
+                Expr::UnionTagIs {
+                    union_expr,
+                    tag,
+                    span,
+                }
+            }
+            Expr::UnionValue {
+                union_expr,
+                variant_ty,
+                span,
+            } => {
+                let union_expr = union_expr.plug_in(contract, values_map);
+
+                Expr::UnionValue {
+                    union_expr,
+                    variant_ty,
                     span,
                 }
             }

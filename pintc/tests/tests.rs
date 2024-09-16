@@ -163,33 +163,50 @@ fn type_check(
     path: &Path,
 ) -> Option<Contract> {
     let handler = Handler::default();
-    pred.type_check(&handler)
-        .inspect(|_| {
-            if test_data.typecheck_failure.is_some() {
-                failed_tests.push(path.display().to_string());
-                println!(
-                    "{} {}.",
-                    "UNEXPECTED SUCCESSFUL TYPE CHECK".red(),
-                    path.display().to_string().cyan(),
-                );
-            }
-        })
-        .map_err(|_| {
-            let err = Errors(handler.consume().0);
-            if let Some(typecheck_error_str) = &test_data.typecheck_failure {
-                similar_asserts::assert_eq!(typecheck_error_str.trim_end(), format!("{err}"));
-            } else {
-                failed_tests.push(path.display().to_string());
-                println!(
-                    "{} {}. {}\n{}",
-                    "FAILED TO TYPE CHECK INTERMEDIATE INTENT".red(),
-                    path.display().to_string().cyan(),
-                    "Reported errors:".red(),
-                    format!("{err}").yellow(),
-                );
-            }
-        })
-        .ok()
+    let res = pred.type_check(&handler);
+
+    let (e, w) = handler.consume();
+
+    let mut err_output = String::default();
+    if !e.is_empty() {
+        err_output.push_str(&format!("{}", Errors(e)));
+    }
+    if !w.is_empty() {
+        if !err_output.is_empty() {
+            err_output.push('\n');
+        }
+        err_output.push_str(&format!("{}", Warnings(w)));
+    }
+
+    // For testing a warning is treated as an error, so *any* output from the handler is a
+    // 'failure'.
+    if err_output.is_empty() {
+        if test_data.typecheck_failure.is_some() {
+            failed_tests.push(path.display().to_string());
+            println!(
+                "{} {}.",
+                "UNEXPECTED SUCCESSFUL TYPE CHECK".red(),
+                path.display().to_string().cyan(),
+            );
+        }
+
+        res.ok()
+    } else {
+        if let Some(typecheck_error_str) = &test_data.typecheck_failure {
+            similar_asserts::assert_eq!(typecheck_error_str.trim_end(), err_output);
+        } else {
+            failed_tests.push(path.display().to_string());
+            println!(
+                "{} {}. {}\n{}",
+                "FAILED TO TYPE CHECK INTERMEDIATE INTENT".red(),
+                path.display().to_string().cyan(),
+                "Reported errors:".red(),
+                err_output.yellow(),
+            );
+        }
+
+        None
+    }
 }
 
 fn flatten_and_check(
@@ -297,11 +314,12 @@ mod e2e {
     e2e_test!(intrinsics);
     e2e_test!(macros);
     e2e_test!(modules);
+    e2e_test!(optimizations);
     e2e_test!(regression);
     e2e_test!(root_types);
     e2e_test!(storage);
     e2e_test!(types);
-    e2e_test!(optimizations);
+    e2e_test!(unions);
 
     #[cfg(feature = "experimental-types")]
     e2e_test!(experimental);

@@ -86,13 +86,13 @@ impl StateKey {
         pred.states.states.get(*self).unwrap()
     }
 
-    /// Returns the type of key `self` given an `Predicate`. Panics if the type can't be
+    /// Returns the type of key `self` given a `Predicate`. Panics if the type can't be
     /// found in the `state_types` map.
     pub fn get_ty<'a>(&'a self, pred: &'a Predicate) -> &Type {
         pred.states.state_types.get(*self).unwrap()
     }
 
-    /// Set the type of key `self` in an `Predicate`. Panics if the type can't be found in
+    /// Set the type of key `self` in a `Predicate`. Panics if the type can't be found in
     /// the `state_types` map.
     pub fn set_ty<'a>(&'a self, ty: Type, pred: &'a mut Predicate) {
         pred.states.state_types.insert(*self, ty);

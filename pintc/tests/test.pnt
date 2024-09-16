@@ -1,4 +1,3 @@
-const t = __address_of("::Foo");
-
-predicate Foo {
+predicate test {
+    constraint 0 < true ? 11 : 22;
 }

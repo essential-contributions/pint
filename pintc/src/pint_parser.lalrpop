@@ -1,19 +1,18 @@
 use crate::{
     error::{Error, Handler, ParseError},
     expr::*,
-    predicate::{
-        BlockStatement, Const, ConstraintDecl, ExprKey, IfDecl, PredicateInterface, InterfaceDecl,
-        InterfaceInstance, InterfaceVar, Predicate,
-        StorageVar,
-    },
     lexer,
     macros::{MacroCall, MacroDecl},
     parser::{
         ParserContext,
         UseTree::{self, Path as UseTreePath},
     },
+    predicate::{
+        BlockStatement, Const, ConstraintDecl, ExprKey, IfDecl, InterfaceDecl, InterfaceInstance,
+        InterfaceVar, MatchDecl, MatchDeclBranch, Predicate, PredicateInterface, StorageVar,
+    },
     span::Spanned,
-    types::{EnumDecl, NewTypeDecl, Path, PrimitiveKind, Type},
+    types::{EnumDecl, NewTypeDecl, Path, PrimitiveKind, Type, UnionDecl, UnionVariant},
 };
 
 grammar<'a>(
@@ -37,20 +36,22 @@ Decl: () = {
     NewTypeDecl ";",
     PredicateDecl,
     StorageDecl,
+    UnionDecl ";",
     UseStatement ";",
-};
+}
 
 // Decls allowed inside predicates.
 PredicateInnerDecl: () = {
     ConstraintDecl ";",
     IfDecl,
+    MatchDecl,
     InterfaceInstance ";",
     MacroCallDecl ";",
     PredicateInstance ";",
     StateDecl ";",
     UseStatement ";",
     VarDecl ";",
-};
+}
 
 // Decls allowed inside macro bodies, which is ALL of them except `MacroDecl`.
 DeclInnerMacroBody: () = {
@@ -58,6 +59,7 @@ DeclInnerMacroBody: () = {
     ConstraintDecl ";",
     EnumDecl ";",
     IfDecl,
+    //MatchDecl,        We can't have match decls _and_ match expressions in bodies, there's a conflict.  Needs special casing.
     Interface,
     InterfaceInstance ";",
     MacroCallDecl ";",
@@ -66,9 +68,10 @@ DeclInnerMacroBody: () = {
     PredicateInstance ";",
     StateDecl ";",
     StorageDecl,
+    UnionDecl ";",
     UseStatement ";",
     VarDecl ";",
-};
+}
 
 PredicateDecl: () = {
     PredicateOpen PredicateInnerDecl* PredicateClose,
@@ -220,7 +223,7 @@ UseStatement: () = {
     "use" <l:@L> <abs:"::"?> <ut:UseTree> <r:@R> => {
         context.parse_use_statement(handler, abs.is_some(), ut, (l, r))
     }
-};
+}
 
 UsePathIdent: Ident = {
     Ident,
@@ -233,7 +236,7 @@ UseTree: UseTree = {
     <prefix:UsePathIdent> "::" <suffix:UseTree> => UseTreePath { prefix, suffix: Box::new(suffix) },
     "{" <imports:SepList<UseTree, ",">> "}" => UseTree::Group { imports },
     <name:UsePathIdent> "as" <alias:Ident> => UseTree::Alias { name, alias },
-};
+}
 
 VarDecl: () = {
     <l:@L> <r#pub:"pub"?> "var" <name:VarName> ":" <ty:Type> <init:VarInit?> <r:@R> => {
@@ -245,16 +248,16 @@ VarDecl: () = {
     <l:@L> <r#pub:"pub"?> "var" <name:VarName> <r:@R> => {
         context.parse_var_decl(handler, r#pub.is_some(), name, None, None, (l, r));
     }
-};
+}
 
 VarName: (Ident, Option<&'a str>) = {
     <l:@L> <id:"ident"> <r:@R> => context.parse_var_name(id, (l, r)),
-};
+}
 
 VarInit: ExprKey = {
     "=" <Range>,
     "=" <Expr>,
-};
+}
 
 StateDecl: () = {
     <l:@L> "state" <name:Ident> <ty:(":" <Type>)?> "=" <init:StateInit> <r:@R> => {
@@ -267,7 +270,7 @@ StateDecl: () = {
             .insert_state(handler, mod_prefix, &name, ty, init, span)
             .map(|_| ());
     },
-};
+}
 
 ConstDecl: () = {
     <l:@L> "const" <name:Ident> <ty:(":" <Type>)?> "=" <init:Expr> <r:@R> => {
@@ -290,13 +293,13 @@ ConstDecl: () = {
             );
         }
     }
-};
+}
 
 ConstraintDecl: () = {
     <constraint: Constraint> => context.current_pred()
             .expect("adding a contraint to the predicate")
     .constraints.push(constraint),
-};
+}
 
 Constraint: ConstraintDecl = {
     <l:@L> "constraint" <expr:Expr> <r:@R> => {
@@ -305,24 +308,25 @@ Constraint: ConstraintDecl = {
             span: (context.span_from)(l, r),
         }
     }
-};
+}
 
 BlockStatement: BlockStatement = {
     <constraint: Constraint> ";" => BlockStatement::Constraint(constraint),
     <if_decl: If> => BlockStatement::If(if_decl),
+    <match_decl: Match> => BlockStatement::Match(match_decl),
 }
 
-ThenBlock: Vec<BlockStatement> = {
+BlockStmts: Vec<BlockStatement> = {
     "{" <block_statements:BlockStatement*> "}" => block_statements
-};
+}
 
-ElseBlock: Vec<BlockStatement> = {
+IfBlockElse: Vec<BlockStatement> = {
     "else" "{" <block_statements:BlockStatement*> "}" => block_statements,
     "else" <if_decl:If> => vec![BlockStatement::If(if_decl)],
-};
+}
 
 If: IfDecl = {
-    <l:@L> "if" <condition:Expr> <then_block:ThenBlock> <else_block:ElseBlock?> <r:@R> => {
+    <l:@L> "if" <condition:Expr> <then_block:BlockStmts> <else_block:IfBlockElse?> <r:@R> => {
         IfDecl {
             condition,
             then_block,
@@ -330,13 +334,53 @@ If: IfDecl = {
             span: (context.span_from)(l, r),
         }
     }
-};
+}
 
 IfDecl: () = {
-    <if_decl: If> => context.current_pred()
+    <if_decl: If> => {
+        context
+            .current_pred()
             .expect("adding an if-decl to the predicate")
-    .if_decls.push(if_decl)
-};
+            .if_decls
+            .push(if_decl)
+    }
+}
+
+MatchBlock: MatchDeclBranch = {
+    <l:@L> <name:Path> <r:@R> <binding:("(" <Ident> ")")?> "=>" <block:BlockStmts> ","? => {
+        MatchDeclBranch {
+            name,
+            name_span: (context.span_from)(l, r),
+            binding,
+            block,
+        }
+    }
+}
+
+MatchBlockElse: Vec<BlockStatement> = {
+    "else" "=>" <BlockStmts> ","?,
+}
+
+Match: MatchDecl = {
+    <l:@L> "match" <match_expr:Expr> "{" <match_branches:MatchBlock+> <else_branch:MatchBlockElse?> "}" <r:@R> => {
+        MatchDecl {
+            match_expr,
+            match_branches,
+            else_branch,
+            span: (context.span_from)(l, r),
+        }
+    }
+}
+
+MatchDecl: () = {
+    <match_decl: Match> => {
+        context
+            .current_pred()
+            .expect("adding a match-decl to the predicate")
+            .match_decls
+            .push(match_decl)
+    }
+}
 
 EnumDecl: () = {
     <l:@L> "enum" <name:Ident> "=" <variants:Sep1ListNoTrail<Ident, "|">> <r:@R> => {
@@ -357,6 +401,26 @@ NewTypeDecl: () = {
             span: (context.span_from)(l, r),
         };
         context.contract.new_types.push(new_type_decl);
+    }
+}
+
+UnionDecl: () = {
+    <l:@L> "union" <name:Ident> "=" <variants:Sep1ListNoTrail<UnionVariant, "|">> <r:@R> => {
+        let union_decl = UnionDecl {
+            name: context.add_top_level_symbol(handler, name, context.mod_prefix),
+            variants,
+            span: (context.span_from)(l, r),
+        };
+        context.contract.unions.push(union_decl);
+    }
+}
+
+UnionVariant: UnionVariant = {
+    <variant_name:Ident> <ty:("(" <Type> ")")?> => {
+        UnionVariant {
+            variant_name,
+            ty,
+        }
     }
 }
 
@@ -408,7 +472,7 @@ Type: Type = {
     <ArrayType>,
     <VectorType>,
     <TypeAtom>,
-};
+}
 
 TypeAtom: Type = {
     <l:@L> <kind:PrimitiveType> <r:@R> => {
@@ -445,7 +509,7 @@ TypeAtom: Type = {
         path,
         span: (context.span_from)(l, r),
     },
-};
+}
 
 ArrayType: Type = {
     <l:@L> <ty:TypeAtom> <ranges: ("[" <Expr> "]")+ > <r:@R> => {
@@ -460,7 +524,7 @@ ArrayType: Type = {
             span: (context.span_from)(l, r),
         })
     },
-};
+}
 
 PrimitiveType: PrimitiveKind = {
     "int_ty" => PrimitiveKind::Int,
@@ -472,11 +536,11 @@ PrimitiveType: PrimitiveKind = {
 TupleFields: Vec<(Option<Ident>, Type)> = {
     <field:TupleField> => vec![field],
     <Sep1List<TupleField, ",">>,
-};
+}
 
 TupleField: (Option<Ident>, Type) = {
     <id:(<Ident> ":")?> <ty:Type> => (id, ty),
-};
+}
 
 /////////////////////
 /// Storage Types ///
@@ -534,7 +598,7 @@ LogicalOrOp: ExprKey = {
         )
     },
     <LogicalAndOp>,
-};
+}
 
 LogicalAndOp: ExprKey = {
     <l:@L> <lhs:LogicalAndOp> "&&" <rhs:Comparison> <r:@R> => {
@@ -550,7 +614,7 @@ LogicalAndOp: ExprKey = {
         )
     },
     <Comparison>,
-};
+}
 
 Comparison: ExprKey = {
     <l:@L> <lhs:Comparison> <op:RelOpOp> <rhs:InOp> <r:@R> => {
@@ -566,7 +630,7 @@ Comparison: ExprKey = {
         )
     },
     <InOp>,
-};
+}
 
 RelOpOp: BinaryOp = {
     "==" => BinaryOp::Equal,
@@ -575,7 +639,7 @@ RelOpOp: BinaryOp = {
     "<=" => BinaryOp::LessThanOrEqual,
     ">" => BinaryOp::GreaterThan,
     ">=" => BinaryOp::GreaterThanOrEqual,
-};
+}
 
 InOp: ExprKey = {
      <l:@L> <value:InOp> "in" <collection:Additive> <r:@R> => {
@@ -601,7 +665,7 @@ InOp: ExprKey = {
         )
      },
     <Additive>,
-};
+}
 
 Additive: ExprKey = {
     <l:@L> <lhs:Additive> <op:AddOpOp> <rhs:Multiplicative> <r:@R> => {
@@ -617,12 +681,12 @@ Additive: ExprKey = {
         )
     },
     <Multiplicative>,
-};
+}
 
 AddOpOp: BinaryOp = {
     "+" => BinaryOp::Add,
     "-" => BinaryOp::Sub,
-};
+}
 
 Multiplicative: ExprKey = {
     <l:@L> <lhs:Multiplicative> <op:MultOpOp> <rhs:AsOp> <r:@R> => {
@@ -638,13 +702,13 @@ Multiplicative: ExprKey = {
         )
     },
     <AsOp>,
-};
+}
 
 MultOpOp: BinaryOp = {
     "*" => BinaryOp::Mul,
     "/" => BinaryOp::Div,
     "%" => BinaryOp::Mod,
-};
+}
 
 AsOp: ExprKey = {
      <l:@L> <value:AsOp> "as" <ty:Type> <r:@R> => {
@@ -652,14 +716,14 @@ AsOp: ExprKey = {
         context.contract.exprs.insert(
             Expr::Cast {
                 value,
-                ty: Box::new(ty),
+                ty,
                 span: span.clone(),
             },
             Type::Unknown(span),
         )
      },
     <UnaryOp>,
-};
+}
 
 UnaryOpOp: UnaryOp = {
     <l:@L> "+" <r:@R> => {
@@ -672,7 +736,7 @@ UnaryOpOp: UnaryOp = {
     },
     "-" => UnaryOp::Neg,
     "!" => UnaryOp::Not,
-};
+}
 
 UnaryOp: ExprKey = {
     <l:@L> <op:UnaryOpOp> <expr:UnaryOp> <r:@R> => {
@@ -687,7 +751,7 @@ UnaryOp: ExprKey = {
         )
     },
     <PostfixOp>,
-};
+}
 
 PostfixOp: ExprKey = {
     <l:@L> <expr:PostfixOp> "[" <index:Expr> "]" <r:@R> => {
@@ -734,7 +798,7 @@ PostfixOp: ExprKey = {
         )
     },
     <Term>,
-};
+}
 
 Term: ExprKey = {
     <e:TermInner> => {
@@ -743,8 +807,9 @@ Term: ExprKey = {
     },
     MacroCallExpr,
     CondExpr,
+    MatchExpr,
     "(" <Expr> ")",
-};
+}
 
 TermInner: Expr = {
     <l:@L> <imm:Immediate> <r:@R> => {
@@ -776,8 +841,9 @@ TermInner: Expr = {
     },
     ArrayExpr,
     TupleExpr,
+    UnionExpr,
     <l:@L> <path:Path> <r:@R> => Expr::Path(path, (context.span_from)(l, r)),
-};
+}
 
 GeneratorRange: (Ident, ExprKey) = {
     <index:Ident> "in" <range:Range> => {
@@ -826,11 +892,11 @@ GeneratorExpr: Expr = {
 
 CondBranch: (ExprKey, ExprKey) = {
     <condition:Expr> "=>" <result:Expr> "," => (condition, result)
-};
+}
 
 ElseBranch: ExprKey = {
     "else" "=>" <else_result:Expr> ","? => else_result
-};
+}
 
 CondExpr: ExprKey = {
     <l:@L> "cond" "{" <cond_branches: (<CondBranch>)*> <else_branch: ElseBranch> "}" <r:@R> => {
@@ -854,7 +920,80 @@ CondExpr: ExprKey = {
                 )
             })
     }
-};
+}
+
+MatchExpr: ExprKey = {
+    <l:@L> "match" <expr:Expr> "{" <match_branches:Sep1List<MatchBranch, ",">> "}" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context.contract.exprs.insert(
+            Expr::Match {
+                match_expr: expr,
+                match_branches,
+                else_branch: None,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
+    },
+
+    <l:@L> "match" <expr:Expr> "{" <match_branches:(<MatchBranch> ",")*> <else_branch:MatchElse> "}" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context.contract.exprs.insert(
+            Expr::Match {
+                match_expr: expr,
+                match_branches,
+                else_branch: Some(else_branch),
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
+    },
+}
+
+MatchBranch: MatchBranch = {
+    <l:@L> <name:Path> <r:@R> <binding:("(" <Ident> ")")?> "=>" <expr:Expr> => {
+        MatchBranch {
+            name,
+            name_span: (context.span_from)(l, r),
+            binding,
+            constraints: Vec::default(),
+            expr,
+        }
+    },
+
+    // The block must contain a constraint, otherwise there's an ambiguity between a single
+    // expression in block `{ expr }` or a tuple literal `{ field_expr }`.
+    <l:@L> <name:Path> <r:@R> <binding:("(" <Ident> ")")?> "=>" "{"
+        <cdecls:(<Constraint> ";")+>
+        <expr:Expr>
+    "}" => {
+        let constraints = cdecls.into_iter().map(|ConstraintDecl { expr, .. }| expr).collect();
+        MatchBranch {
+            name,
+            name_span: (context.span_from)(l, r),
+            binding,
+            constraints,
+            expr
+        }
+    }
+}
+
+MatchElse: MatchElse = {
+    "else" "=>" <else_expr:Expr> ","? => {
+        MatchElse {
+            constraints: Vec::default(),
+            expr: else_expr,
+        }
+    },
+
+    "else" "=>" "{"
+        <cdecls:(<Constraint> ";")+>
+        <expr:Expr>
+    "}" => {
+        let constraints = cdecls.into_iter().map(|ConstraintDecl { expr, .. }| expr).collect();
+        MatchElse { constraints, expr }
+    }
+}
 
 MacroCallExpr: ExprKey = {
     <l:@L> <name:MacroPath> <tag:"macro_tag"?> <args:"macro_call_args"> <r:@L> => {
@@ -890,7 +1029,7 @@ MacroCallExpr: ExprKey = {
             .insert(call_key, (call_expr_key, call_data));
         call_expr_key
     },
-};
+}
 
 IntrinsicArg: ExprKey = {
     Expr,
@@ -913,7 +1052,7 @@ IntrinsicCallExpr: Expr = {
     <l:@L> <name:IntrinsicName> "(" <args:SepList<IntrinsicArg, ",">> ")" <r:@R> => {
         context.parse_intrinsic_call(handler, name, args, (l, r))
     },
-};
+}
 
 ArrayExpr: Expr = {
     <l:@L> "[" <il:@L> <elements:SepList<Expr, ",">> <ir:@R> "]" <r:@R> => {
@@ -931,7 +1070,7 @@ ArrayExpr: Expr = {
             span: (context.span_from)(l, r),
         }
     },
-};
+}
 
 TupleExpr: Expr = {
     <l:@L> "{" <fields:TupleExprFields> "}" <r:@R> => {
@@ -948,7 +1087,7 @@ TupleExpr: Expr = {
 
         Expr::Error(span)
     },
-};
+}
 
 TupleExprFields: Vec<(Option<Ident>, ExprKey)> = {
     <id:Ident> ":" <expr:Expr> => {
@@ -962,11 +1101,22 @@ TupleExprFields: Vec<(Option<Ident>, ExprKey)> = {
         vec![(None, expr)]
     },
     <Sep1List<TupleExprField, ",">>,
-};
+}
 
 TupleExprField: (Option<Ident>, ExprKey) = {
     <id:(<Ident> ":")?> <expr:Expr> => (id, expr),
-};
+}
+
+UnionExpr: Expr = {
+    <l:@L> <path:Path> <m:@R> "(" <value:Expr> ")" <r:@R> => {
+        Expr::UnionVariant {
+            path,
+            path_span: (context.span_from)(l, m),
+            value: Some(value),
+            span: (context.span_from)(l, r),
+        }
+    }
+}
 
 Range: ExprKey = {
     <l:@L> <lb:Additive> ".." <ub:Additive> <r:@R> => {
@@ -995,10 +1145,10 @@ PathWithLast<Last>: Path = {
         let span = (context.span_from)(l, r);
         context.parse_relative_path(els, last, true, span)
     }
-};
+}
 
 Immediate: Immediate = {
-    <l:@L> <s:"int_lit"> <r:@R>=> context.parse_int_immediate(handler, s, (l, r)),
+    <l:@L> <s:"int_lit"> <r:@R> => context.parse_int_immediate(handler, s, (l, r)),
     <s:"real_lit"> => Immediate::Real(s.replace('_', "").parse().unwrap()),
     "true" => Immediate::Bool(true),
     "false" => Immediate::Bool(false),
@@ -1083,7 +1233,7 @@ StorageIndexOp: ExprKey = {
             .insert(Expr::Error(span.clone()), Type::Unknown(span))
     },
     <StorageAccess>,
-};
+}
 
 StorageAccess: ExprKey = {
     <l:@L> <mutable: "mut"?> "storage" "::" <name:Ident> <r:@R> => {
@@ -1114,7 +1264,7 @@ SepList<Ty, Sep>: Vec<Ty> = {
         }
         v
     }
-};
+}
 
 // List of one or more Ty separated by Sep, allowing a trailing Sep.  The separator is required in
 // the single element case.
@@ -1125,7 +1275,7 @@ Sep1List<Ty, Sep>: Vec<Ty> = {
         }
         v
     }
-};
+}
 
 // List of one or more Ty separated by Sep, disallowing a trailing Sep.
 Sep1ListNoTrail<Ty, Sep>: Vec<Ty> = {
@@ -1133,7 +1283,7 @@ Sep1ListNoTrail<Ty, Sep>: Vec<Ty> = {
         v.push(e);
         v
     }
-};
+}
 
 pub(crate) TestDelegate: crate::parser::TestWrapper = {
     "test_expr" <Expr> => crate::parser::TestWrapper::Expr(<>),
@@ -1144,7 +1294,7 @@ pub(crate) TestDelegate: crate::parser::TestWrapper = {
     "test_intrinsic" <IntrinsicName> => crate::parser::TestWrapper::Ident(<>),
     "test_usetree" <UseTree> => crate::parser::TestWrapper::UseTree(<>),
     "test_state" <StateInit> => crate::parser::TestWrapper::Expr(<>),
-};
+}
 
 /////////////
 /// Lexer ///
@@ -1210,6 +1360,7 @@ extern {
         "if" => lexer::Token::If,
         "else" => lexer::Token::Else,
         "cond" => lexer::Token::Cond,
+        "match" => lexer::Token::Match,
 
         "pub" => lexer::Token::Pub,
         "mut" => lexer::Token::Mut,
@@ -1222,6 +1373,7 @@ extern {
         "interface" => lexer::Token::Interface,
         "enum" => lexer::Token::Enum,
         "type" => lexer::Token::Type,
+        "union" => lexer::Token::Union,
         "constraint" => lexer::Token::Constraint,
         "as" => lexer::Token::As,
         "predicate" => lexer::Token::Predicate,

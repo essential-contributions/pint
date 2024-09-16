@@ -39,6 +39,10 @@ pub enum Type {
         fields: Vec<(Option<Ident>, Self)>,
         span: Span,
     },
+    Union {
+        path: Path,
+        span: Span,
+    },
     Custom {
         path: Path,
         span: Span,
@@ -76,6 +80,12 @@ macro_rules! check_alias {
         $self
             .is_alias()
             .map(|ty| ty.$recurse($recurse_arg))
+            .unwrap_or_else(|| $otherwise)
+    };
+    ($self: ident, $recurse: ident, $recurse_arg0: expr, $recurse_arg1: expr, $otherwise: expr) => {
+        $self
+            .is_alias()
+            .map(|ty| ty.$recurse($recurse_arg0, $recurse_arg1))
             .unwrap_or_else(|| $otherwise)
     };
 }
@@ -201,7 +211,11 @@ impl Type {
 
             Type::Vector { ty, .. } => ty.replace_nested_enum_with_int(),
 
-            Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => {}
+            Type::Error(_)
+            | Type::Unknown(_)
+            | Type::Any(_)
+            | Type::Primitive { .. }
+            | Type::Union { .. } => {}
         }
     }
 
@@ -221,8 +235,118 @@ impl Type {
 
             Type::Vector { ty, .. } => ty.has_nested_enum(),
 
-            Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => false,
+            Type::Error(_)
+            | Type::Unknown(_)
+            | Type::Any(_)
+            | Type::Primitive { .. }
+            | Type::Union { .. } => false,
         }
+    }
+
+    pub fn is_union(&self, unions: &[UnionDecl]) -> bool {
+        self.get_union_name(unions).is_some()
+            || check_alias!(self, is_union, unions, matches!(self, Type::Union { .. }))
+    }
+
+    pub fn get_union_name<'a>(&self, unions: &'a [UnionDecl]) -> Option<&'a Path> {
+        check_alias!(self, get_union_name, unions, {
+            self.get_union_decl(unions).map(|ud| &ud.name.name)
+        })
+    }
+
+    fn get_union_decl<'a>(&self, unions: &'a [UnionDecl]) -> Option<&'a UnionDecl> {
+        match self {
+            Type::Custom { path, .. } | Type::Union { path, .. } => unions
+                .iter()
+                .find(|UnionDecl { name, .. }| (&name.name == path)),
+
+            _ => None,
+        }
+    }
+
+    // This is a little wacky.  It returns Err if the union or variant is unknown, and returns
+    // Ok(Some(ty)) if the union variant has a binding, else Ok(None).
+    pub fn get_union_variant_ty<'a>(
+        &self,
+        unions: &'a [UnionDecl],
+        variant_name: &Path,
+    ) -> Result<Option<&'a Type>, ()> {
+        check_alias!(self, get_union_variant_ty, unions, variant_name, {
+            self.get_union_decl(unions).ok_or(()).and_then(
+                |UnionDecl {
+                     name: union_name,
+                     variants,
+                     ..
+                 }| {
+                    // The name prefix has to match the union name first, and it has to have the
+                    // '::' separator.
+                    let ul = union_name.name.len();
+                    if variant_name.len() > ul + 2
+                        && variant_name.starts_with(&union_name.name)
+                        && &variant_name[ul..(ul + 2)] == "::"
+                    {
+                        // Then we compare each variant with the rest of the variant name.
+                        variants
+                            .iter()
+                            .find_map(
+                                |UnionVariant {
+                                     variant_name: union_variant_name,
+                                     ty,
+                                     ..
+                                 }| {
+                                    (union_variant_name.name == variant_name[(ul + 2)..])
+                                        .then_some(ty.as_ref())
+                                },
+                            )
+                            .ok_or(())
+                    } else {
+                        // Variant not found.
+                        Err(())
+                    }
+                },
+            )
+        })
+    }
+
+    pub fn get_union_variant_names(&self, unions: &[UnionDecl]) -> Vec<String> {
+        check_alias!(self, get_union_variant_names, unions, {
+            self.get_union_decl(unions)
+                .map(
+                    |UnionDecl {
+                         name: union_name,
+                         variants,
+                         ..
+                     }| {
+                        variants
+                            .iter()
+                            .map(|UnionVariant { variant_name, .. }| {
+                                union_name.name[2..].to_string() + "::" + variant_name.name.as_str()
+                            })
+                            .collect()
+                    },
+                )
+                .unwrap_or_default()
+        })
+    }
+
+    pub fn get_union_variant_types(&self, unions: &[UnionDecl]) -> Vec<Option<Type>> {
+        check_alias!(self, get_union_variant_types, unions, {
+            self.get_union_decl(unions)
+                .map(|UnionDecl { variants, .. }| {
+                    variants
+                        .iter()
+                        .map(|UnionVariant { ty, .. }| ty.clone())
+                        .collect()
+                })
+                .unwrap_or_default()
+        })
+    }
+
+    pub fn get_union_variant_count(&self, unions: &[UnionDecl]) -> Option<usize> {
+        check_alias!(self, get_union_variant_count, unions, {
+            self.get_union_decl(unions)
+                .map(|UnionDecl { variants, .. }| variants.len())
+        })
     }
 
     pub fn is_tuple(&self) -> bool {
@@ -407,6 +531,10 @@ impl Type {
                 // aliases have been lowered by now
                 false
             }
+            Type::Union { .. } => {
+                // Also disallow unions for now.
+                false
+            }
             _ => true,
         }
     }
@@ -439,6 +567,27 @@ impl Type {
                     contract,
                 )?) as usize),
 
+            Self::Union { path, .. } => {
+                let Some(UnionDecl { variants, .. }) = contract
+                    .unions
+                    .iter()
+                    .find(|union_decl| &union_decl.name.name == path)
+                else {
+                    unreachable!("unknown path in union type")
+                };
+
+                let mut max_variant_size = 0;
+                for variant in variants {
+                    if let Some(ty) = &variant.ty {
+                        max_variant_size =
+                            std::cmp::max(max_variant_size, ty.size(handler, contract)?);
+                    }
+                }
+
+                // Add 1 for the tag.
+                Ok(max_variant_size + 1)
+            }
+
             // The point here is that a `Map` takes up a storage slot, even though it doesn't
             // actually store anything in it. The `Map` type is not really allowed anywhere else,
             // so we can't have a decision variable of type `Map` for example.
@@ -460,7 +609,7 @@ impl Type {
             | Self::Custom { span, .. }
             | Self::Alias { span, .. } => Err(handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
-                    msg: "unexpected type",
+                    msg: "unexpected type when getting size",
                     span: span.clone(),
                 },
             })),
@@ -518,9 +667,10 @@ impl Type {
             | Self::Unknown(span)
             | Self::Any(span)
             | Self::Custom { span, .. }
+            | Self::Union { span, .. }
             | Self::Alias { span, .. } => Err(handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
-                    msg: "unexpected type",
+                    msg: "unexpected type when calculating storage slots",
                     span: span.clone(),
                 },
             })),
@@ -590,6 +740,8 @@ impl Type {
                     span: span.clone(),
                 },
             })),
+
+            Type::Union { .. } => todo!("put Union into Type::primitive_elements() for storage??"),
         }
     }
 
@@ -727,17 +879,21 @@ impl Type {
                 lhs_ty.eq(new_types, rhs_ty)
             }
 
+            (Self::Union { path: lhs_path, .. }, Self::Union { path: rhs_path, .. }) => {
+                lhs_path == rhs_path
+            }
+
             (lhs_ty, rhs_ty) => {
-                // Custom types are tricky as they may be either aliases or enums.  Or, at this
-                // stage, we might just have two different types.
+                // Custom types are tricky as they may be either aliases, enums or unions.  Or, at
+                // this stage, we might just have two different types.
                 let mut lhs_alias_ty = None;
-                let mut lhs_enum_path = None;
+                let mut lhs_custom_path = None;
 
                 if let Self::Custom { path: lhs_path, .. } = lhs_ty {
                     lhs_alias_ty = new_types.iter().find_map(|NewTypeDecl { name, ty, .. }| {
                         (lhs_path == &name.name).then_some(ty)
                     });
-                    lhs_enum_path = Some(lhs_path);
+                    lhs_custom_path = Some(lhs_path);
                 }
 
                 if let Some(lhs_alias_ty) = lhs_alias_ty {
@@ -746,13 +902,13 @@ impl Type {
                 }
 
                 let mut rhs_alias_ty = None;
-                let mut rhs_enum_path = None;
+                let mut rhs_custom_path = None;
 
                 if let Self::Custom { path: rhs_path, .. } = rhs_ty {
                     rhs_alias_ty = new_types.iter().find_map(|NewTypeDecl { name, ty, .. }| {
                         (rhs_path == &name.name).then_some(ty)
                     });
-                    rhs_enum_path = Some(rhs_path);
+                    rhs_custom_path = Some(rhs_path);
                 }
 
                 if let Some(rhs_alias_ty) = rhs_alias_ty {
@@ -760,12 +916,32 @@ impl Type {
                     return rhs_alias_ty.eq(new_types, lhs_ty);
                 }
 
-                if let (Some(lhs_enum_path), Some(rhs_enum_path)) = (lhs_enum_path, rhs_enum_path) {
-                    // Neither are aliases but both are custom types; assume they're both enums.
-                    lhs_enum_path == rhs_enum_path
-                } else {
+                match (lhs_custom_path, rhs_custom_path) {
+                    (Some(lhs_custom_path), Some(rhs_custom_path)) => {
+                        // Neither are aliases but both are custom types; assume they're both enums.
+                        lhs_custom_path == rhs_custom_path
+                    }
+
+                    (Some(lhs_custom_path), None) => {
+                        if let Type::Union { path, .. } = rhs_ty {
+                            // The LHS is a Custom and the RHS is a Union.  Same path?
+                            lhs_custom_path == path
+                        } else {
+                            false
+                        }
+                    }
+
+                    (None, Some(rhs_custom_path)) => {
+                        if let Type::Union { path, .. } = lhs_ty {
+                            // The LHS is a Union and the RHS is a Custom.  Same path?
+                            rhs_custom_path == path
+                        } else {
+                            false
+                        }
+                    }
+
                     // OK, they must just be different types.
-                    false
+                    _ => false,
                 }
             }
         }
@@ -803,7 +979,8 @@ impl Type {
             | Type::Unknown(_)
             | Type::Any(_)
             | Type::Primitive { .. }
-            | Type::Custom { .. } => {}
+            | Type::Custom { .. }
+            | Type::Union { .. } => {}
         }
     }
 }
@@ -818,6 +995,7 @@ impl Spanned for Type {
             | Primitive { span, .. }
             | Array { span, .. }
             | Tuple { span, .. }
+            | Union { span, .. }
             | Custom { span, .. }
             | Alias { span, .. }
             | Map { span, .. }
@@ -847,6 +1025,25 @@ pub struct NewTypeDecl {
 }
 
 impl Spanned for NewTypeDecl {
+    fn span(&self) -> &Span {
+        &self.span
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct UnionDecl {
+    pub(super) name: Ident,
+    pub(super) variants: Vec<UnionVariant>,
+    pub(super) span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct UnionVariant {
+    pub(super) variant_name: Ident,
+    pub(super) ty: Option<Type>,
+}
+
+impl Spanned for UnionDecl {
     fn span(&self) -> &Span {
         &self.span
     }

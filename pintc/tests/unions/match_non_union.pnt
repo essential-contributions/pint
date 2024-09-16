@@ -1,0 +1,58 @@
+enum Enum = Zero | One | Two;
+
+predicate test {
+    var e: Enum;
+
+    constraint 0 == match e {
+        Enum::Zero => 0,
+        Enum::One => 1,
+        Enum::Two => 2,
+    };
+}
+
+predicate decl_test {
+    var e: Enum;
+
+    match e {
+        Enum::Zero => {
+            constraint 0 == 0;
+        }
+        Enum::One => {
+            constraint 0 == 1;
+        }
+        Enum::Two => {
+            constraint 0 == 2;
+        }
+    }
+}
+
+// parsed <<<
+// enum ::Enum = Zero | One | Two;
+//
+// predicate ::test {
+//     var ::e: ::Enum;
+//     constraint (0 == match ::e { ::Enum::Zero => 0, ::Enum::One => 1, ::Enum::Two => 2 });
+// }
+//
+// predicate ::decl_test {
+//     var ::e: ::Enum;
+//     match ::e {
+//         ::Enum::Zero => {
+//             constraint (0 == 0)
+//         }
+//         ::Enum::One => {
+//             constraint (0 == 1)
+//         }
+//         ::Enum::Two => {
+//             constraint (0 == 2)
+//         }
+//     }
+// }
+// >>>
+
+// typecheck_failure <<<
+// match expression not a union
+// @92..93: matched expression must be a union, found `::Enum`
+// match expression not a union
+// @229..230: matched expression must be a union, found `::Enum`
+// >>>

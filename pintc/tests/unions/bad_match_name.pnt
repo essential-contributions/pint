@@ -1,0 +1,60 @@
+union number = one(bool) | two(int);
+
+predicate test {
+    var n: number;
+    constraint match n {
+        number::one(b) => b ? 11 : 22,
+        number::two(i) => i * i,
+        number::three(a) => a[0],
+    };
+}
+
+predicate decl_test {
+    var n: number;
+    match n {
+        number::one(b) => {
+            constraint b ? 11 : 22;
+        }
+        number::two(i) => {
+            constraint i * i;
+        }
+        number::three(a) => {
+            constraint a[0];
+        }
+    }
+}
+
+// parsed <<<
+// union ::number = one(bool) | two(int);
+//
+// predicate ::test {
+//     var ::n: ::number;
+//     constraint match ::n { ::number::one(b) => (::b ? 11 : 22), ::number::two(i) => (::i * ::i), ::number::three(a) => ::a[0] };
+// }
+//
+// predicate ::decl_test {
+//     var ::n: ::number;
+//     match ::n {
+//         ::number::one(b) => {
+//             constraint (::b ? 11 : 22)
+//         }
+//         ::number::two(i) => {
+//             constraint (::i * ::i)
+//         }
+//         ::number::three(a) => {
+//             constraint ::a[0]
+//         }
+//     }
+// }
+// >>>
+
+// typecheck_failure <<<
+// unknown union variant name
+// @179..192: invalid variant name `::number::three` for union `::number`
+// valid variant names are `number::one` and `number::two`
+// unknown union variant name
+// @420..433: invalid variant name `::number::three` for union `::number`
+// valid variant names are `number::one` and `number::two`
+// constraint expression type error
+// @89..210: expecting type `bool`
+// >>>

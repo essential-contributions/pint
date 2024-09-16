@@ -7,14 +7,20 @@ use crate::error::{ErrorEmitted, Handler};
 use legalize::legalize_vector_accesses;
 use lower::{
     coalesce_prime_ops, lower_aliases, lower_array_ranges, lower_casts, lower_compares_to_nil,
-    lower_enums, lower_ifs, lower_imm_accesses, lower_ins, lower_pub_var_accesses,
-    lower_storage_accesses, replace_const_refs,
+    lower_enums, lower_ifs, lower_imm_accesses, lower_ins, lower_matches, lower_pub_var_accesses,
+    lower_storage_accesses, lower_union_variant_paths, replace_const_refs,
 };
 use unroll::unroll_generators;
 use validate::validate;
 
 impl super::Contract {
     pub fn flatten(mut self, handler: &Handler) -> Result<Self, ErrorEmitted> {
+        // Transform each `match` declaration into equivalent `if` declarations, which are then
+        // lowered along with user defined `if` declarations next.  Also transform `match`
+        // expressions into equivalent `select` expressions, with any inner constraints
+        // externalised.
+        let _ = lower_matches(handler, &mut self);
+
         // Transform each `if` declaration into a collection of constraints. We do this early so
         // that we don't have to worry about `if` declarations in any of the later passes. All
         // other passes are safe to assume that `if` declarations and their content have
@@ -76,6 +82,10 @@ impl super::Contract {
         // much easier if the `real` isn't still an alias.
         let _ = lower_casts(handler, &mut self);
 
+        // Convert all paths which are still just references to union variants without a value
+        // (e.g., `option::none`) from Expr::Path to Expr::UnionVariant.
+        lower_union_variant_paths(&mut self);
+
         // Insert OOB checks for storage vector accesses
         let _ = legalize_vector_accesses(handler, &mut self);
 
@@ -89,7 +99,7 @@ impl super::Contract {
 
         // Ensure that the final contract is indeed final
         if !handler.has_errors() {
-            let _ = validate(handler, &mut self);
+            validate(handler, &mut self);
         }
 
         if handler.has_errors() {

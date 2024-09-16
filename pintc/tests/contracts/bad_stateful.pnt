@@ -20,6 +20,6 @@ predicate Baz {}
 // first `var`.
 //
 // parse_failure <<<
-// expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, or `use`, found `var`
-// @22..25: expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, or `use`
+// expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `var`
+// @22..25: expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
 // >>>

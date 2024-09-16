@@ -1,0 +1,63 @@
+union either = left | right;
+
+predicate test {
+    var x: either = either::right;
+    constraint match x {
+        either::left => true,
+        either::right => false,
+    };
+}
+
+predicate decl_test {
+    var x: either = either::right;
+    match x {
+        either::left => {
+            constraint true;
+        }
+        either::right => {
+            constraint false;
+        }
+    }
+}
+
+// parsed <<<
+// union ::either = left | right;
+//
+// predicate ::test {
+//     var ::x: ::either;
+//     constraint (::x == ::either::right);
+//     constraint match ::x { ::either::left => true, ::either::right => false };
+// }
+//
+// predicate ::decl_test {
+//     var ::x: ::either;
+//     constraint (::x == ::either::right);
+//     match ::x {
+//         ::either::left => {
+//             constraint true
+//         }
+//         ::either::right => {
+//             constraint false
+//         }
+//     }
+// }
+// >>>
+
+// flattened <<<
+// union ::either = left | right;
+//
+// predicate ::test {
+//     var ::x: ::either;
+//     constraint (::x == ::either::right);
+//     constraint (UnTag(::x) == ::either::left ? true : false);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+//
+// predicate ::decl_test {
+//     var ::x: ::either;
+//     constraint (::x == ::either::right);
+//     constraint (!UnTag(::x) == ::either::left || true);
+//     constraint (UnTag(::x) == ::either::left || (!UnTag(::x) == ::either::right || false));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

@@ -1028,24 +1028,24 @@ fn storage_access() {
     check(
         &run_parser!(pint, r#"predicate test { var x = storage::foo; }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `storage`
-            @25..32: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, or `{`, found `storage`
+            @25..32: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(pint, r#"predicate test { var x = storage::map[4][3]; }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `storage`
-            @25..32: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, or `{`, found `storage`
+            @25..32: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, or `{`
         "#]],
     );
 
     check(
         &run_parser!(pint, r#"constraint storage::map[69] == 0;"#),
         expect_test::expect![[r#"
-            expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, or `use`, found `constraint`
-            @0..10: expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, or `use`
+            expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `constraint`
+            @0..10: expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
         "#]],
     );
 }
@@ -1096,8 +1096,8 @@ fn external_storage_access() {
     check(
         &run_parser!(pint, r#"constraint ::Foo::storage::map[69] == 0;"#),
         expect_test::expect![[r#"
-            expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, or `use`, found `constraint`
-            @0..10: expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, or `use`
+            expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `constraint`
+            @0..10: expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
         "#]],
     );
 }
@@ -1761,8 +1761,8 @@ fn parens_exprs() {
     check(
         &run_parser!(expr, "()"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `)`
-            @12..13: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, or `{`, found `)`
+            @12..13: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, or `{`
         "#]],
     );
 
@@ -1773,8 +1773,8 @@ fn parens_exprs() {
     check(
         &run_parser!(expr, "(foo(a, b, c))"),
         expect_test::expect![[r#"
-            expected `!=`, `%`, `&&`, `'`, `)`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`, found `(`
-            @15..16: expected `!=`, `%`, `&&`, `'`, `)`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`
+            expected `)`, found `,`
+            @17..18: expected `)`
         "#]],
     );
 }
@@ -1883,8 +1883,8 @@ fn ranges() {
     check(
         &run_parser!(range, "1...2"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `.`
-            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, or `{`, found `.`
+            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, or `{`
         "#]],
     );
 
@@ -2328,8 +2328,8 @@ fn tuple_expressions() {
     check(
         &run_parser!(
             expr,
-            r#"{0, 
-            {true, 0x0000222200002222000022220000222200002222000022220000222200002222}, 
+            r#"{0,
+            {true, 0x0000222200002222000022220000222200002222000022220000222200002222},
             0x0000111100001111000011110000111100001111000011110000111100001111}"#
         ),
         expect_test::expect!["{0, {true, 0x0000222200002222000022220000222200002222000022220000222200002222}, 0x0000111100001111000011110000111100001111000011110000111100001111}"],
@@ -2338,8 +2338,8 @@ fn tuple_expressions() {
     check(
         &run_parser!(
             expr,
-            r#"{x: 0, {y: true, 
-            0x0000222200002222000022220000222200002222000022220000222200002222}, z: 
+            r#"{x: 0, {y: true,
+            0x0000222200002222000022220000222200002222000022220000222200002222}, z:
             0x0000111100001111000011110000111100001111000011110000111100001111}"#
         ),
         expect_test::expect!["{x: 0, {y: true, 0x0000222200002222000022220000222200002222000022220000222200002222}, z: 0x0000111100001111000011110000111100001111000011110000111100001111}"],
@@ -2506,8 +2506,8 @@ fn tuple_field_accesses() {
             "var x = t.222222222222222222222.111111111111111111111111111;"
         ),
         expect_test::expect![[r#"
-            expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, or `use`, found `var`
-            @0..3: expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, or `use`
+            expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `var`
+            @0..3: expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
         "#]],
     );
 
@@ -2526,6 +2526,51 @@ fn tuple_field_accesses() {
             @31..33: empty tuple type found
             empty tuple expressions are not allowed
             @36..38: empty tuple expression found
+        "#]],
+    );
+}
+
+#[test]
+fn union_expression() {
+    let expr = (yp::TestDelegateParser::new(), "expr");
+
+    check(
+        &run_parser!(expr, r#"foo(x)"#),
+        expect_test::expect!["::foo(::x)"],
+    );
+
+    check(
+        &run_parser!(expr, r#"foo(1,)"#),
+        expect_test::expect![[r#"
+            expected `)`, found `,`
+            @16..17: expected `)`
+        "#]],
+    );
+
+    check(
+        &run_parser!(expr, r#"foo(1, 2,)"#),
+        expect_test::expect![[r#"
+            expected `)`, found `,`
+            @16..17: expected `)`
+        "#]],
+    );
+
+    check(
+        &run_parser!(expr, r#"foo(1, 2, { 3, x }.1, [y, __vec_len()])"#),
+        expect_test::expect![[r#"
+            expected `)`, found `,`
+            @16..17: expected `)`
+        "#]],
+    );
+
+    check(
+        &run_parser!(
+            (yp::PintParser::new(), ""),
+            r#"predicate test { var x = foo(a*3, c); }"#
+        ),
+        expect_test::expect![[r#"
+            expected `)`, found `,`
+            @32..33: expected `)`
         "#]],
     );
 }
@@ -2562,8 +2607,8 @@ fn cond_exprs() {
     check(
         &run_parser!(expr, r#"cond { a => b, }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `else`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `}`
-            @26..27: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `else`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `else`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, or `{`, found `}`
+            @26..27: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `else`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, or `{`
         "#]],
     );
 
@@ -2648,8 +2693,8 @@ fn in_expr() {
             r#"predicate test { var x = 5 in"#
         ),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `end of file`
-            @29..29: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, or `{`, found `end of file`
+            @29..29: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, or `{`
         "#]],
     );
 }
@@ -2733,8 +2778,8 @@ fn forall_expr() {
             r#"predicate test { constraint forall i in 0..3 { constraint x; true }; }"#
         ),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `constraint`
-            @47..57: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, or `{`, found `constraint`
+            @47..57: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, or `{`
         "#]],
     );
 }
@@ -2817,8 +2862,8 @@ fn exists_expr() {
             r#"predicate test { constraint exists i in 0..3 { constraint x; true }; }"#
         ),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`, found `constraint`
-            @47..57: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, or `{`, found `constraint`
+            @47..57: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, or `{`
         "#]],
     );
 }
@@ -2833,53 +2878,7 @@ fn intrinsic_call() {
     );
 
     check(
-        &run_parser!(expr, r#"foo(x)"#),
-        expect_test::expect![[r#"
-            expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`, found `(`
-            @14..15: expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`
-        "#]],
-    );
-
-    check(
-        &run_parser!(expr, r#"foo(1,)"#),
-        expect_test::expect![[r#"
-            expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`, found `(`
-            @14..15: expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`
-        "#]],
-    );
-
-    check(
-        &run_parser!(expr, r#"foo(1, 2,)"#),
-        expect_test::expect![[r#"
-            expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`, found `(`
-            @14..15: expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`
-        "#]],
-    );
-
-    check(
-        &run_parser!(expr, r#"foo(1, 2, { 3, x }.1, [y, __vec_len()])"#),
-        expect_test::expect![[r#"
-            expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`, found `(`
-            @14..15: expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `/`, `::`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`
-        "#]],
-    );
-
-    check(
-        &run_parser!(
-            (yp::PintParser::new(), ""),
-            r#"predicate test { var x = foo(a*3, c); }"#
-        ),
-        expect_test::expect![[r#"
-            expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `..`, `/`, `;`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`, found `(`
-            @28..29: expected `!=`, `%`, `&&`, `'`, `*`, `+`, `-`, `.`, `..`, `/`, `;`, `<`, `<=`, `==`, `>`, `>=`, `?`, `[`, `as`, `in`, or `||`
-        "#]],
-    );
-
-    check(
-        &run_parser!(
-            (yp::TestDelegateParser::new(), "expr"),
-            "__this_address(-a, b+c)"
-        ),
+        &run_parser!(expr, "__this_address(-a, b+c)"),
         expect_test::expect!["__this_address(-::a, (::b + ::c))"],
     );
 }
@@ -3018,8 +3017,8 @@ fn big_ints() {
             "var blah = 0xfeedbadfd2adeadcafed00dbabefacefeedbadf00d2adeadcafed00dbabeface;"
         ),
         expect_test::expect![[r#"
-            expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, or `use`, found `var`
-            @0..3: expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, or `use`
+            expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `var`
+            @0..3: expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
         "#]],
     );
 
@@ -3412,8 +3411,8 @@ fn experimental() {
     check(
         &run_parser!(
             expr,
-            r#"{0, 
-            {1.0, 0x0000222200002222000022220000222200002222000022220000222200002222}, 
+            r#"{0,
+            {1.0, 0x0000222200002222000022220000222200002222000022220000222200002222},
             0x0000111100001111000011110000111100001111000011110000111100001111}"#
         ),
         expect_test::expect!["{0, {1e0, 0x0000222200002222000022220000222200002222000022220000222200002222}, 0x0000111100001111000011110000111100001111000011110000111100001111}"],
@@ -3422,8 +3421,8 @@ fn experimental() {
     check(
         &run_parser!(
             expr,
-            r#"{x: 0, {y: 1.0, 
-            0x0000222200002222000022220000222200002222000022220000222200002222}, z: 
+            r#"{x: 0, {y: 1.0,
+            0x0000222200002222000022220000222200002222000022220000222200002222}, z:
             0x0000111100001111000011110000111100001111000011110000111100001111}"#
         ),
         expect_test::expect!["{x: 0, {y: 1e0, 0x0000222200002222000022220000222200002222000022220000222200002222}, z: 0x0000111100001111000011110000111100001111000011110000111100001111}"],

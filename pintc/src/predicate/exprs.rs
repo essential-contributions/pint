@@ -1,6 +1,9 @@
 use super::{Contract, PredKey, Predicate};
 use crate::{
-    expr::Expr, predicate::Immediate, span::empty_span, types::PrimitiveKind, types::Type,
+    expr::{Expr, MatchBranch, MatchElse},
+    predicate::Immediate,
+    span::empty_span,
+    types::{PrimitiveKind, Type},
 };
 use std::collections::HashSet;
 
@@ -109,7 +112,7 @@ impl ExprKey {
         contract.exprs.expr_types.get_mut(*self).unwrap()
     }
 
-    /// Set the type of key `self` in an `Predicate`. Panics if the type can't be found in
+    /// Set the type of key `self` in a `Contract`. Panics if the type can't be found in
     /// the `expr_types` map.
     pub fn set_ty<'a>(&'a self, ty: Type, contract: &'a mut Contract) {
         contract.exprs.expr_types.insert(*self, ty);
@@ -135,6 +138,10 @@ impl ExprKey {
 
             Expr::Tuple { fields, .. } => fields.iter().any(|fld| fld.1.can_panic(contract, pred)),
 
+            Expr::UnionVariant { value, .. } => value
+                .map(|value| value.can_panic(contract, pred))
+                .unwrap_or(false),
+
             Expr::UnaryOp { expr, .. } => expr.can_panic(contract, pred),
 
             Expr::BinaryOp { lhs, rhs, .. } => {
@@ -154,6 +161,34 @@ impl ExprKey {
                 condition.can_panic(contract, pred)
                     || then_expr.can_panic(contract, pred)
                     || else_expr.can_panic(contract, pred)
+            }
+
+            Expr::Match {
+                match_expr,
+                match_branches,
+                else_branch,
+                ..
+            } => {
+                match_expr.can_panic(contract, pred)
+                    || match_branches.iter().any(
+                        |MatchBranch {
+                             constraints, expr, ..
+                         }| {
+                            constraints
+                                .iter()
+                                .any(|c_expr| c_expr.can_panic(contract, pred))
+                                || expr.can_panic(contract, pred)
+                        },
+                    )
+                    || else_branch
+                        .as_ref()
+                        .map(|MatchElse { constraints, expr }| {
+                            constraints
+                                .iter()
+                                .any(|c_expr| c_expr.can_panic(contract, pred))
+                                || expr.can_panic(contract, pred)
+                        })
+                        .unwrap_or(false)
             }
 
             Expr::Index { expr, index, .. } => {
@@ -181,6 +216,10 @@ impl ExprKey {
                 gen_ranges.iter().any(|rng| rng.1.can_panic(contract, pred))
                     || conditions.iter().any(|cond| cond.can_panic(contract, pred))
                     || body.can_panic(contract, pred)
+            }
+
+            Expr::UnionTagIs { union_expr, .. } | Expr::UnionValue { union_expr, .. } => {
+                union_expr.can_panic(contract, pred)
             }
         })
     }
@@ -297,6 +336,12 @@ impl<'a> Iterator for ExprsIter<'a> {
                 }
             }
 
+            Expr::UnionVariant { value, .. } => {
+                if let Some(value) = value {
+                    queue_if_new!(self, value);
+                }
+            }
+
             Expr::UnaryOp { expr, .. } => queue_if_new!(self, expr),
 
             Expr::BinaryOp { lhs, rhs, .. } => {
@@ -319,6 +364,35 @@ impl<'a> Iterator for ExprsIter<'a> {
                 queue_if_new!(self, condition);
                 queue_if_new!(self, then_expr);
                 queue_if_new!(self, else_expr);
+            }
+
+            Expr::Match {
+                match_expr,
+                match_branches,
+                else_branch,
+                ..
+            } => {
+                queue_if_new!(self, match_expr);
+
+                for MatchBranch {
+                    constraints, expr, ..
+                } in match_branches
+                {
+                    for c_expr in constraints {
+                        queue_if_new!(self, c_expr);
+                    }
+                    queue_if_new!(self, expr);
+                }
+
+                if let Some(MatchElse {
+                    constraints, expr, ..
+                }) = else_branch
+                {
+                    for c_expr in constraints {
+                        queue_if_new!(self, c_expr);
+                    }
+                    queue_if_new!(self, expr);
+                }
             }
 
             Expr::Index { expr, index, .. } => {
@@ -357,6 +431,10 @@ impl<'a> Iterator for ExprsIter<'a> {
                 }
 
                 queue_if_new!(self, body);
+            }
+
+            Expr::UnionTagIs { union_expr, .. } | Expr::UnionValue { union_expr, .. } => {
+                queue_if_new!(self, union_expr)
             }
 
             Expr::Error(_)

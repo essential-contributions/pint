@@ -1,0 +1,82 @@
+union group = empty | one(int) | couple({int, int});
+
+predicate test {
+    var x: group;
+    var y: group;
+    match x {
+        group::empty => {}
+        group::one(n) => {
+            if n > 11 {
+                constraint n < 22;
+            } else {
+                constraint n > 0;
+            }
+        },                                      // lonely comma
+        group::couple(c) => {
+            constraint c.0 > 0;
+            if c.1 > 33 {
+                match y {
+                    group::one(n) => {
+                        if n > 44 {
+                            constraint c.1 < 111;
+                        } else {
+                            constraint c.1 < 222;
+                        }
+                    }
+                    else => {}
+                }
+            }
+        }
+    }
+}
+
+// parsed <<<
+// union ::group = empty | one(int) | couple({int, int});
+//
+// predicate ::test {
+//     var ::x: ::group;
+//     var ::y: ::group;
+//     match ::x {
+//         ::group::empty => {
+//         }
+//         ::group::one(n) => {
+//             if (::n > 11) {
+//                 constraint (::n < 22)
+//             } else {
+//                 constraint (::n > 0)
+//             }
+//         }
+//         ::group::couple(c) => {
+//             constraint (::c.0 > 0)
+//             if (::c.1 > 33) {
+//                 match ::y {
+//                     ::group::one(n) => {
+//                         if (::n > 44) {
+//                             constraint (::c.1 < 111)
+//                         } else {
+//                             constraint (::c.1 < 222)
+//                         }
+//                     }
+//                     else => {
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
+// >>>
+
+// flattened <<<
+// union ::group = empty | one(int) | couple({int, int});
+//
+// predicate ::test {
+//     var ::x: ::group;
+//     var ::y: ::group;
+//     constraint (UnTag(::x) == ::group::empty || (!UnTag(::x) == ::group::one || (!(UnVal(::x, int) > 11) || (UnVal(::x, int) < 22))));
+//     constraint (UnTag(::x) == ::group::empty || (!UnTag(::x) == ::group::one || ((UnVal(::x, int) > 11) || (UnVal(::x, int) > 0))));
+//     constraint (UnTag(::x) == ::group::empty || (UnTag(::x) == ::group::one || (!UnTag(::x) == ::group::couple || (UnVal(::x, {int, int}).0 > 0))));
+//     constraint (UnTag(::x) == ::group::empty || (UnTag(::x) == ::group::one || (!UnTag(::x) == ::group::couple || (!(UnVal(::x, {int, int}).1 > 33) || (!UnTag(::y) == ::group::one || (!(UnVal(::y, int) > 44) || (::c.1 < 111)))))));
+//     constraint (UnTag(::x) == ::group::empty || (UnTag(::x) == ::group::one || (!UnTag(::x) == ::group::couple || (!(UnVal(::x, {int, int}).1 > 33) || (!UnTag(::y) == ::group::one || ((UnVal(::y, int) > 44) || (::c.1 < 222)))))));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

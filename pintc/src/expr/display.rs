@@ -44,6 +44,14 @@ impl DisplayWithContract for &super::Expr {
                 write!(f, "}}")
             }
 
+            super::Expr::UnionVariant { path, value, .. } => {
+                write!(f, "{path}")?;
+                if let Some(value) = value {
+                    write!(f, "({})", contract.with_ctrct(value))?;
+                }
+                Ok(())
+            }
+
             super::Expr::Path(p, _) => write!(f, "{p}"),
             super::Expr::StorageAccess { name, mutable, .. } => {
                 if *mutable {
@@ -95,7 +103,7 @@ impl DisplayWithContract for &super::Expr {
                     f,
                     "{} as {}",
                     contract.with_ctrct(value),
-                    contract.with_ctrct(ty.as_ref())
+                    contract.with_ctrct(ty)
                 )
             }
 
@@ -135,6 +143,44 @@ impl DisplayWithContract for &super::Expr {
                 contract.with_ctrct(else_expr)
             ),
 
+            super::Expr::Match {
+                match_expr,
+                match_branches,
+                else_branch: else_expr,
+                ..
+            } => {
+                write!(f, "match {} {{ ", contract.with_ctrct(match_expr))?;
+                for (
+                    idx,
+                    super::MatchBranch {
+                        name,
+                        binding,
+                        constraints,
+                        expr,
+                        ..
+                    },
+                ) in match_branches.iter().enumerate()
+                {
+                    write!(f, "{}{name}", if idx > 0 { ", " } else { "" })?;
+                    if let Some(binding) = binding {
+                        write!(f, "({binding})")?;
+                    }
+                    write!(f, " =>")?;
+                    for c_expr in constraints {
+                        write!(f, " constraint {};", contract.with_ctrct(c_expr))?;
+                    }
+                    write!(f, " {}", contract.with_ctrct(expr))?;
+                }
+                if let Some(super::MatchElse { constraints, expr }) = else_expr {
+                    write!(f, ", else =>")?;
+                    for c_expr in constraints {
+                        write!(f, " constraint {};", contract.with_ctrct(c_expr))?;
+                    }
+                    write!(f, " {}", contract.with_ctrct(expr))?;
+                }
+                write!(f, " }}")
+            }
+
             super::Expr::Range { lb, ub, .. } => {
                 write!(
                     f,
@@ -160,6 +206,25 @@ impl DisplayWithContract for &super::Expr {
                     write_many_with_ctrct!(f, conditions, ", ", contract);
                 }
                 write!(f, " {{ {} }}", contract.with_ctrct(body))
+            }
+
+            expr::Expr::UnionTagIs {
+                union_expr, tag, ..
+            } => {
+                write!(f, "UnTag({}) == {tag}", contract.with_ctrct(union_expr))
+            }
+
+            expr::Expr::UnionValue {
+                union_expr,
+                variant_ty,
+                ..
+            } => {
+                write!(
+                    f,
+                    "UnVal({}, {})",
+                    contract.with_ctrct(union_expr),
+                    contract.with_ctrct(variant_ty)
+                )
             }
         }
     }
