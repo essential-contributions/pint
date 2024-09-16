@@ -93,7 +93,7 @@ impl VarKey {
         pred.vars.var_types.get(*self).unwrap()
     }
 
-    /// Returns the mutable type of key `self` given a `mut Predicate`. Panics if the type can't be
+    /// Returns a mutable reference to the type of key `self` given a `Predicate`. Panics if the type can't be
     /// found in the `var_types` map.
     pub fn get_ty_mut<'a>(&'a self, pred: &'a mut Predicate) -> &mut Type {
         pred.vars.var_types.get_mut(*self).unwrap()
