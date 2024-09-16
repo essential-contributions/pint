@@ -84,7 +84,6 @@ impl Handler {
     }
 
     pub fn consume(self) -> (Vec<Error>, Vec<Warning>) {
-        // TODO: Make struct not tuple
         let inner = self.inner.into_inner();
         (inner.errors, inner.warnings)
     }

@@ -22,7 +22,7 @@ pub(crate) use lower_pub_var_accesses::lower_pub_var_accesses;
 pub(crate) use lower_storage_accesses::lower_storage_accesses;
 
 pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
-    // Each enum has its variants indexed from 0.  Gather all the enum declarations and create a
+    // Each enum has its variants indexed from 0. Gather all the enum declarations and create a
     // map from path to integer index.
     let mut variant_map = FxHashMap::default();
     let mut variant_count_map = FxHashMap::default();
@@ -97,7 +97,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
 
         // Not sure at this stage if we'll ever allow state to be an enum.
         for (state_key, _) in pred.states() {
-            if state_key.get_ty(pred).is_enum(&contract.enums) {
+            if state_key.get_ty(pred).has_nested_enum() {
                 return Err(handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "found state with an enum type",
@@ -121,7 +121,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
 
         // Replace any var or state enum type with int.  Also add constraints to disallow vars or state
         // to have values outside of the enum.
-        for (_, var_name, enum_ty, variant_count) in &enum_var_keys {
+        for (_, var_name, _, variant_count) in &enum_var_keys {
             // Add the constraint.  Get the variant max for this enum first.
             let variant_max = match variant_count {
                 Some(c) => *c as i64 - 1,
@@ -186,21 +186,19 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
                     span: empty_span(),
                 });
             };
-
-            // Replace the type.
-            let exprs_with_enum_ty = contract
-                .exprs(pred_key)
-                .filter(|expr_key| expr_key.get_ty(contract).eq(&contract.new_types, enum_ty))
-                .collect::<Vec<_>>();
-
-            for enum_expr_key in exprs_with_enum_ty {
-                enum_expr_key.set_ty(int_ty.clone(), contract);
-            }
         }
 
         // Now do the actual type update from enum to int
-        for (enum_var_key, _, _, _) in enum_var_keys {
-            enum_var_key.set_ty(int_ty.clone(), contract.preds.get_mut(pred_key).unwrap());
+        let pred = contract.preds.get_mut(pred_key).unwrap();
+
+        let var_keys: Vec<_> = pred.vars().map(|(var_key, _)| var_key).collect();
+        for var_key in var_keys {
+            var_key.get_ty_mut(pred).replace_nested_enum_with_int();
+        }
+
+        let expr_keys: Vec<_> = contract.exprs(pred_key).collect();
+        for expr_key in expr_keys {
+            expr_key.get_ty_mut(contract).replace_nested_enum_with_int();
         }
 
         // Array types can use enums as the range.  Recursively replace a range known to be an enum
@@ -312,13 +310,16 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
             }
 
             Type::Array { ty, .. } => replace_alias(new_types_map, ty),
+
             Type::Tuple { fields, .. } => fields
                 .iter_mut()
                 .for_each(|(_, ty)| replace_alias(new_types_map, ty)),
+
             Type::Map { ty_from, ty_to, .. } => {
                 replace_alias(new_types_map, ty_from);
                 replace_alias(new_types_map, ty_to);
             }
+
             Type::Vector { ty, .. } => replace_alias(new_types_map, ty),
 
             Type::Error(_)

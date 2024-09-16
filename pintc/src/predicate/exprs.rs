@@ -100,13 +100,19 @@ impl ExprKey {
         contract.exprs.exprs.get_mut(*self).unwrap()
     }
 
-    /// Returns the type of key `self` given a `Predicate`. Panics if the type can't be
+    /// Returns the type of key `self` given a `Contract`. Panics if the type can't be
     /// found in the `expr_types` map.
     pub fn get_ty<'a>(&'a self, contract: &'a Contract) -> &Type {
         contract.exprs.expr_types.get(*self).unwrap()
     }
 
-    /// Set the type of key `self` in a `Predicate`. Panics if the type can't be found in
+    /// Returns a mutable reference to the type of key `self` given a `Contract`. Panics if the type can't be
+    /// found in the `expr_types` map.
+    pub fn get_ty_mut<'a>(&'a self, contract: &'a mut Contract) -> &mut Type {
+        contract.exprs.expr_types.get_mut(*self).unwrap()
+    }
+
+    /// Set the type of key `self` in a `Contract`. Panics if the type can't be found in
     /// the `expr_types` map.
     pub fn set_ty<'a>(&'a self, ty: Type, contract: &'a mut Contract) {
         contract.exprs.expr_types.insert(*self, ty);

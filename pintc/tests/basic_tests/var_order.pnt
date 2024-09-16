@@ -37,7 +37,7 @@ predicate test {
 //     var ::b: int[2][2][2];
 //     var ::x: int;
 //     var ::z: b256;
-//     var ::e: {::MyEnum, bool};
+//     var ::e: {int, bool};
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
