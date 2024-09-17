@@ -1,0 +1,92 @@
+predicate test {
+    // select exprs that should be optimized out
+    var a = true ? 1 : 2;
+    var b = false ? 1 : 2;
+    var c = (1 + 2 == 3) ? 1 : 2;
+    var d = (1 < 2) ? 1 : 2;
+
+    // should this be removed? The evaluator can't handle this right now
+    var e = 2 < 1;
+    var f = e ? 1 : 2;
+
+    // select exprs that should be kept in
+    var y: int;
+    var z = y > 0 ? 3 : 4;
+}
+
+// parsed <<<
+// predicate ::test {
+//     var ::a;
+//     var ::b;
+//     var ::c;
+//     var ::d;
+//     var ::e;
+//     var ::f;
+//     var ::y: int;
+//     var ::z;
+//     constraint (::a == (true ? 1 : 2));
+//     constraint (::b == (false ? 1 : 2));
+//     constraint (::c == (((1 + 2) == 3) ? 1 : 2));
+//     constraint (::d == ((1 < 2) ? 1 : 2));
+//     constraint (::e == (2 < 1));
+//     constraint (::f == (::e ? 1 : 2));
+//     constraint (::z == ((::y > 0) ? 3 : 4));
+// }
+// >>>
+
+// flattened <<<
+// predicate ::test {
+//     var ::a: int;
+//     var ::b: int;
+//     var ::c: int;
+//     var ::d: int;
+//     var ::e: bool;
+//     var ::f: int;
+//     var ::y: int;
+//     var ::z: int;
+//     constraint (::a == (true ? 1 : 2));
+//     constraint (::b == (false ? 1 : 2));
+//     constraint (::c == (((1 + 2) == 3) ? 1 : 2));
+//     constraint (::d == ((1 < 2) ? 1 : 2));
+//     constraint (::e == (2 < 1));
+//     constraint (::f == (::e ? 1 : 2));
+//     constraint (::z == ((::y > 0) ? 3 : 4));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
+
+// optimized <<<
+// predicate ::test {
+//     var ::a: int;
+//     var ::b: int;
+//     var ::c: int;
+//     var ::d: int;
+//     var ::e: bool;
+//     var ::f: int;
+//     var ::y: int;
+//     var ::z: int;
+//     constraint (::a == 1);
+//     constraint (::b == 2);
+//     constraint (::c == 1);
+//     constraint (::d == 1);
+//     constraint (::e == (2 < 1));
+//     constraint (::f == (::e ? 1 : 2));
+//     constraint (::z == ((::y > 0) ? 3 : 4));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
+
+// warnings <<<
+// select expression is always `true`
+// @165..180: this select expression always evaluates to `true`
+// if this is intentional, consider replacing this select expression with its `true` branch
+// select expression is always `true`
+// @131..151: this select expression always evaluates to `true`
+// if this is intentional, consider replacing this select expression with its `true` branch
+// select expression is always `false`
+// @104..117: this select expression always evaluates to `false`
+// if this is intentional, consider replacing this select expression with its `else` branch
+// select expression is always `true`
+// @78..90: this select expression always evaluates to `true`
+// if this is intentional, consider replacing this select expression with its `true` branch
+// >>>
