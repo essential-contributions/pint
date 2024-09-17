@@ -14,7 +14,7 @@ use crate::{
 pub(crate) fn dead_code_elimination(handler: &Handler, contract: &mut Contract) {
     dead_state_elimination(contract);
     dead_constraint_elimination(handler, contract);
-    dead_select_elimination(handler, contract);
+    dead_select_elimination(contract);
 }
 
 /// Remove all unused States in their respective predicates.
@@ -114,7 +114,7 @@ pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Cont
 /// Remove all trivial Select expressions in their respective predicates.
 ///
 /// If any select condition is a const the appropriate branch replaces the select expression
-pub(crate) fn dead_select_elimination(handler: &Handler, contract: &mut Contract) {
+pub(crate) fn dead_select_elimination(contract: &mut Contract) {
     let evaluator = Evaluator::new(&contract.enums);
     let mut replace_map: FxHashMap<ExprKey, ExprKey> = FxHashMap::default(); // <select_expr, branch_expr>
 
@@ -124,7 +124,7 @@ pub(crate) fn dead_select_elimination(handler: &Handler, contract: &mut Contract
                 condition,
                 then_expr,
                 else_expr,
-                span,
+                ..
             } = expr_key.get(contract)
             {
                 if let Ok(Immediate::Bool(b)) =
@@ -132,10 +132,8 @@ pub(crate) fn dead_select_elimination(handler: &Handler, contract: &mut Contract
                 {
                     if b {
                         replace_map.insert(expr_key, *then_expr);
-                        handler.emit_warn(Warning::AlwaysTrueSelectExpr { span: span.clone() });
                     } else {
                         replace_map.insert(expr_key, *else_expr);
-                        handler.emit_warn(Warning::AlwaysFalseSelectExpr { span: span.clone() });
                     }
                 }
             }

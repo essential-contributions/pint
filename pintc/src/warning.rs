@@ -20,10 +20,6 @@ pub enum Warning {
     TrivialConstraint { span: Span },
     #[error("constraint is always `false`")]
     AlwaysFalseConstraint { span: Span },
-    #[error("select expression is always `true`")]
-    AlwaysTrueSelectExpr { span: Span },
-    #[error("select expression is always `false`")]
-    AlwaysFalseSelectExpr { span: Span },
 }
 
 impl ReportableWarning for Warning {
@@ -48,29 +44,15 @@ impl ReportableWarning for Warning {
                 span: span.clone(),
                 color: Color::Yellow,
             }],
-
-            AlwaysTrueSelectExpr { span } => vec![WarningLabel {
-                message: "this select expression always evaluates to `true`".to_string(),
-                span: span.clone(),
-                color: Color::Yellow,
-            }],
-
-            AlwaysFalseSelectExpr { span } => vec![WarningLabel {
-                message: "this select expression always evaluates to `false`".to_string(),
-                span: span.clone(),
-                color: Color::Yellow,
-            }],
         }
     }
 
     fn note(&self) -> Option<String> {
         use Warning::*;
         match self {
-            MatchUnneededElse { .. }
-            | TrivialConstraint { .. }
-            | AlwaysFalseConstraint { .. }
-            | AlwaysTrueSelectExpr { .. }
-            | AlwaysFalseSelectExpr { .. } => None,
+            MatchUnneededElse { .. } | TrivialConstraint { .. } | AlwaysFalseConstraint { .. } => {
+                None
+            }
         }
     }
 
@@ -89,13 +71,13 @@ impl ReportableWarning for Warning {
                 Some("if this is intentional, consider removing the containing predicate because its constraints can never be satisfied".to_string())
             }
 
-            AlwaysTrueSelectExpr { .. } => {
-                Some("if this is intentional, consider replacing this select expression with its `true` branch".to_string())
-            }
 
-            AlwaysFalseSelectExpr { .. } => {
-                Some("if this is intentional, consider replacing this select expression with its `else` branch".to_string())
-            }
+
+
+
+
+
+
 
             MatchUnneededElse { .. } => None,
         }
@@ -108,9 +90,7 @@ impl Spanned for Warning {
         match self {
             MatchUnneededElse { span }
             | TrivialConstraint { span }
-            | AlwaysFalseConstraint { span }
-            | AlwaysTrueSelectExpr { span }
-            | AlwaysFalseSelectExpr { span } => span,
+            | AlwaysFalseConstraint { span } => span,
         }
     }
 }

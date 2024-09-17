@@ -77,16 +77,4 @@ predicate test {
 // >>>
 
 // warnings <<<
-// select expression is always `true`
-// @165..180: this select expression always evaluates to `true`
-// if this is intentional, consider replacing this select expression with its `true` branch
-// select expression is always `true`
-// @131..151: this select expression always evaluates to `true`
-// if this is intentional, consider replacing this select expression with its `true` branch
-// select expression is always `false`
-// @104..117: this select expression always evaluates to `false`
-// if this is intentional, consider replacing this select expression with its `else` branch
-// select expression is always `true`
-// @78..90: this select expression always evaluates to `true`
-// if this is intentional, consider replacing this select expression with its `true` branch
 // >>>
