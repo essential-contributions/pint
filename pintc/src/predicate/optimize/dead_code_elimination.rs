@@ -128,7 +128,7 @@ pub(crate) fn dead_select_elimination(handler: &Handler, contract: &mut Contract
             } = expr_key.get(contract)
             {
                 if let Ok(Immediate::Bool(b)) =
-                    evaluator.evaluate_key(&condition, &Handler::default(), contract)
+                    evaluator.evaluate_key(condition, &Handler::default(), contract)
                 {
                     if b {
                         replace_map.insert(expr_key, *then_expr);
