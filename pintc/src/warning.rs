@@ -71,14 +71,6 @@ impl ReportableWarning for Warning {
                 Some("if this is intentional, consider removing the containing predicate because its constraints can never be satisfied".to_string())
             }
 
-
-
-
-
-
-
-
-
             MatchUnneededElse { .. } => None,
         }
     }
