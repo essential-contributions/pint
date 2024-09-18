@@ -166,27 +166,34 @@ fn select() {
             compile(
                 r#"
             predicate test {
-                var z = true ? 42 : 69;
+                var y: bool;
+                var z = y ? 42 : 69;
             }
             "#,
             )
         ),
         expect_test::expect![[r#"
-            predicate ::test {
-                --- Constraints ---
-                constraint 0
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Access(DecisionVarRange)
-                  Stack(Push(42))
-                  Pred(Eq)
-                constraint 1
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
-            }
+          predicate ::test {
+              --- Constraints ---
+              constraint 0
+                Stack(Push(1))
+                Stack(Push(0))
+                Stack(Push(1))
+                Access(DecisionVarRange)
+                Stack(Push(69))
+                Stack(Push(42))
+                Stack(Push(0))
+                Stack(Push(0))
+                Stack(Push(1))
+                Access(DecisionVarRange)
+                Stack(Select)
+                Pred(Eq)
+              constraint 1
+                Access(MutKeys)
+                Stack(Push(0))
+                Pred(EqSet)
+              --- State Reads ---
+          }
 
         "#]],
     );
@@ -301,32 +308,43 @@ fn select_range() {
             compile(
                 r#"
             predicate test {
-                var z = true ? 0x0000000000000001000000000000000200000000000000030000000000000004
+                var y: bool;
+                var z = y ? 0x0000000000000001000000000000000200000000000000030000000000000004
                              : 0x0000000000000005000000000000000600000000000000070000000000000008;
             }
             "#,
             )
         ),
         expect_test::expect![[r#"
-            predicate ::test {
-                --- Constraints ---
-                constraint 0
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(4))
-                  Access(DecisionVarRange)
-                  Stack(Push(1))
-                  Stack(Push(2))
-                  Stack(Push(3))
-                  Stack(Push(4))
-                  Stack(Push(4))
-                  Pred(EqRange)
-                constraint 1
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
-            }
+          predicate ::test {
+              --- Constraints ---
+              constraint 0
+                Stack(Push(1))
+                Stack(Push(0))
+                Stack(Push(4))
+                Access(DecisionVarRange)
+                Stack(Push(5))
+                Stack(Push(6))
+                Stack(Push(7))
+                Stack(Push(8))
+                Stack(Push(1))
+                Stack(Push(2))
+                Stack(Push(3))
+                Stack(Push(4))
+                Stack(Push(4))
+                Stack(Push(0))
+                Stack(Push(0))
+                Stack(Push(1))
+                Access(DecisionVarRange)
+                Stack(SelectRange)
+                Stack(Push(4))
+                Pred(EqRange)
+              constraint 1
+                Access(MutKeys)
+                Stack(Push(0))
+                Pred(EqSet)
+              --- State Reads ---
+          }
 
         "#]],
     );
@@ -337,29 +355,38 @@ fn select_range() {
             compile(
                 r#"
             predicate test {
-                var z = true ? { 0, 1 } : { 2, 3 };
+                var y: bool;
+                var z = y ? { 0, 1 } : { 2, 3 };
             }
             "#,
             )
         ),
         expect_test::expect![[r#"
-            predicate ::test {
-                --- Constraints ---
-                constraint 0
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(2))
-                  Access(DecisionVarRange)
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Stack(Push(2))
-                  Pred(EqRange)
-                constraint 1
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
-            }
+          predicate ::test {
+              --- Constraints ---
+              constraint 0
+                Stack(Push(1))
+                Stack(Push(0))
+                Stack(Push(2))
+                Access(DecisionVarRange)
+                Stack(Push(2))
+                Stack(Push(3))
+                Stack(Push(0))
+                Stack(Push(1))
+                Stack(Push(2))
+                Stack(Push(0))
+                Stack(Push(0))
+                Stack(Push(1))
+                Access(DecisionVarRange)
+                Stack(SelectRange)
+                Stack(Push(2))
+                Pred(EqRange)
+              constraint 1
+                Access(MutKeys)
+                Stack(Push(0))
+                Pred(EqSet)
+              --- State Reads ---
+          }
 
         "#]],
     );
