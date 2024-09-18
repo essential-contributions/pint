@@ -1,9 +1,9 @@
-use fxhash::FxHashSet;
+use fxhash::{FxHashMap, FxHashSet};
 
 use crate::{
     error::Handler,
     expr::{evaluate::Evaluator, Expr, Immediate},
-    predicate::{ConstraintDecl, Contract, StateKey},
+    predicate::{ConstraintDecl, Contract, ExprKey, StateKey},
     span::empty_span,
     warning::Warning,
 };
@@ -14,6 +14,7 @@ use crate::{
 pub(crate) fn dead_code_elimination(handler: &Handler, contract: &mut Contract) {
     dead_state_elimination(contract);
     dead_constraint_elimination(handler, contract);
+    dead_select_elimination(contract);
 }
 
 /// Remove all unused States in their respective predicates.
@@ -106,6 +107,40 @@ pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Cont
                     });
                 }
             }
+        }
+    }
+}
+
+/// Remove all trivial Select expressions in their respective predicates.
+///
+/// If any select condition is a const the appropriate branch replaces the select expression
+pub(crate) fn dead_select_elimination(contract: &mut Contract) {
+    let evaluator = Evaluator::new(&contract.enums);
+    let mut replace_map: FxHashMap<ExprKey, ExprKey> = FxHashMap::default(); // <select_expr, branch_expr>
+
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
+        for expr_key in contract.exprs(pred_key) {
+            if let Expr::Select {
+                condition,
+                then_expr,
+                else_expr,
+                ..
+            } = expr_key.get(contract)
+            {
+                if let Ok(Immediate::Bool(b)) =
+                    evaluator.evaluate_key(condition, &Handler::default(), contract)
+                {
+                    if b {
+                        replace_map.insert(expr_key, *then_expr);
+                    } else {
+                        replace_map.insert(expr_key, *else_expr);
+                    }
+                }
+            }
+        }
+
+        for (select_expr, branch_expr) in &replace_map {
+            contract.replace_exprs(Some(pred_key), *select_expr, *branch_expr);
         }
     }
 }

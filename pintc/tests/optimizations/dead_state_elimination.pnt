@@ -6,7 +6,7 @@ storage {
 }
 
 predicate Test {
-    // live states that should remain when flattened
+    // live states that should remain when optimized
     state a = storage::x;
     constraint a' >= a + 42;
 
