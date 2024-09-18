@@ -66,6 +66,7 @@ impl ReportableWarning for Warning {
             TrivialConstraint { .. } => {
                 Some("if this is intentional, consider removing this constraint".to_string())
             }
+
             AlwaysFalseConstraint { .. } => {
                 Some("if this is intentional, consider removing the containing predicate because its constraints can never be satisfied".to_string())
             }
