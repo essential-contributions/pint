@@ -1070,7 +1070,7 @@ fn convert_if(
         Expr::UnaryOp {
             op: UnaryOp::Not,
             expr: *condition,
-            span: condition.get(&contract).span().clone(),
+            span: condition.get(contract).span().clone(),
         },
         Type::Primitive {
             kind: PrimitiveKind::Bool,
