@@ -80,7 +80,7 @@ impl Contract {
                 // Get the size of the accessed array.
                 if let Ok(array_size) = get_array_size_from_type(self, handler, &array_ty) {
                     // Check for OOB.
-                    if let Immediate::Int(imm_val) = index_value {
+                    if let Immediate::Int(imm_val) | Immediate::Enum(imm_val, _) = index_value {
                         if imm_val < 0 || imm_val >= array_size {
                             handler.emit_err(Error::Compile {
                                 error: CompileError::ArrayIndexOutOfBounds { span: index_span },

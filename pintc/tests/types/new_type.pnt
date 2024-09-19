@@ -68,7 +68,7 @@ predicate test {
 //         pub var x: ::A;
 //     }
 // }
-// 
+//
 // predicate ::test {
 //     var ::t: ::A;
 //     pub var ::pt: ::A;
@@ -115,10 +115,10 @@ predicate test {
 //         c: int,
 //     }
 //     predicate Foo {
-//         pub var x: ::TheLetterA;
+//         pub var x: int;
 //     }
 // }
-// 
+//
 // predicate ::test {
 //     var ::t: int;
 //     pub var ::pt: int;

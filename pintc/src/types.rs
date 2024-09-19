@@ -185,64 +185,6 @@ impl Type {
         })
     }
 
-    pub fn replace_nested_enum_with_int(&mut self) {
-        match self {
-            Type::Array { ty, .. } => ty.replace_nested_enum_with_int(),
-
-            Type::Tuple { fields, .. } => {
-                for field in fields {
-                    field.1.replace_nested_enum_with_int();
-                }
-            }
-
-            Type::Custom { span, .. } => {
-                *self = Type::Primitive {
-                    kind: PrimitiveKind::Int,
-                    span: span.clone(),
-                }
-            }
-
-            Type::Alias { ty, .. } => ty.replace_nested_enum_with_int(),
-
-            Type::Map { ty_from, ty_to, .. } => {
-                ty_from.replace_nested_enum_with_int();
-                ty_to.replace_nested_enum_with_int();
-            }
-
-            Type::Vector { ty, .. } => ty.replace_nested_enum_with_int(),
-
-            Type::Error(_)
-            | Type::Unknown(_)
-            | Type::Any(_)
-            | Type::Primitive { .. }
-            | Type::Union { .. } => {}
-        }
-    }
-
-    pub fn has_nested_enum(&self) -> bool {
-        match self {
-            Type::Array { ty, .. } => ty.has_nested_enum(),
-
-            Type::Tuple { fields, .. } => fields.iter().any(|field| field.1.has_nested_enum()),
-
-            Type::Custom { .. } => true,
-
-            Type::Alias { ty, .. } => ty.has_nested_enum(),
-
-            Type::Map { ty_from, ty_to, .. } => {
-                ty_from.has_nested_enum() || ty_to.has_nested_enum()
-            }
-
-            Type::Vector { ty, .. } => ty.has_nested_enum(),
-
-            Type::Error(_)
-            | Type::Unknown(_)
-            | Type::Any(_)
-            | Type::Primitive { .. }
-            | Type::Union { .. } => false,
-        }
-    }
-
     pub fn is_union(&self, unions: &[UnionDecl]) -> bool {
         self.get_union_name(unions).is_some()
             || check_alias!(self, is_union, unions, matches!(self, Type::Union { .. }))
@@ -415,7 +357,7 @@ impl Type {
             }
         } else {
             match Evaluator::new(&contract.enums).evaluate(range_expr, handler, contract) {
-                Ok(Immediate::Int(size)) if size > 0 => Ok(size),
+                Ok(Immediate::Int(size) | Immediate::Enum(size, _)) if size > 0 => Ok(size),
                 Ok(_) => Err(handler.emit_err(Error::Compile {
                     error: CompileError::InvalidConstArrayLength {
                         span: range_expr.span().clone(),

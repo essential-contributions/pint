@@ -109,8 +109,8 @@ predicate test {
 // predicate ::test {
 //     var ::x: ::thing;
 //     var ::d: int;
-//     var ::no_base_addr: int;
-//     var ::a_base_addr: int;
+//     var ::no_base_addr: ::maybe_addr;
+//     var ::a_base_addr: ::maybe_addr;
 //     var ::actual_addr: b256;
 //     constraint ((UnTag(::x) == 0) ? UnVal(::x, bool) : ((UnTag(::x) == 1) ? (UnVal(::x, int) > 0) : ((UnVal(::x, {int, int}).0 + UnVal(::x, {int, int}).1) == 11)));
 //     constraint (((UnTag(::x) == 1) ? UnVal(::x, int) : 22) > 0);

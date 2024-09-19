@@ -8,6 +8,16 @@ type Father = {
     pet: Animal,
 };
 
+union Parent = Mum | Dad(Father);
+
+const papa: Father = { child: { age: 33, pet: Animal::Cat }, pet: Animal::Dog };
+
+interface InTheFace {
+    predicate Who {
+        pub var left: Father;
+    }
+}
+
 predicate Foo {
     var bob = {
         child: {
@@ -19,32 +29,64 @@ predicate Foo {
 
     var friends_pets: Animal[3] = [Animal::Dog, Animal::Cat, Animal::Cat];
 
+    var barb: Parent;
+    match barb {
+        Parent::Mum => {}
+        Parent::Dad(d) => {
+            constraint d.pet == Animal::Cat;
+        }
+    }
+
     constraint bob.pet != Animal::Dog;
 }
 
 // parsed <<<
+// const ::papa: ::Father = {child: {age: 33, pet: ::Animal::Cat}, pet: ::Animal::Dog};
 // enum ::Animal = Cat | Dog;
+// union ::Parent = Mum | Dad(::Father);
 // type ::Father = {child: {age: int, pet: ::Animal}, pet: ::Animal};
+// interface ::InTheFace {
+//     predicate Who {
+//         pub var left: ::Father;
+//     }
+// }
 //
 // predicate ::Foo {
 //     var ::bob;
 //     var ::friends_pets: ::Animal[3];
+//     var ::barb: ::Parent;
 //     constraint (::bob == {child: {age: 23, pet: ::Animal::Dog}, pet: ::Animal::Cat});
 //     constraint (::friends_pets == [::Animal::Dog, ::Animal::Cat, ::Animal::Cat]);
 //     constraint (::bob.pet != ::Animal::Dog);
+//     match ::barb {
+//         ::Parent::Mum => {
+//         }
+//         ::Parent::Dad(d) => {
+//             constraint (::d.pet == ::Animal::Cat)
+//         }
+//     }
 // }
 // >>>
 
 // flattened <<<
+// const ::papa: {child: {age: int, pet: int}, pet: int} = {child: {age: 33, pet: 0}, pet: 1};
 // enum ::Animal = Cat | Dog;
+// union ::Parent = Mum | Dad({child: {age: int, pet: ::Animal}, pet: ::Animal});
 // type ::Father = {child: {age: int, pet: ::Animal}, pet: ::Animal};
+// interface ::InTheFace {
+//     predicate Who {
+//         pub var left: {child: {age: int, pet: int}, pet: int};
+//     }
+// }
 //
 // predicate ::Foo {
 //     var ::bob: {child: {age: int, pet: int}, pet: int};
 //     var ::friends_pets: int[3];
+//     var ::barb: ::Parent;
 //     constraint (::bob == {child: {age: 23, pet: 1}, pet: 0});
 //     constraint (::friends_pets == [1, 0, 0]);
 //     constraint (::bob.pet != 1);
+//     constraint ((UnTag(::barb) == 0) || (!(UnTag(::barb) == 1) || (UnVal(::barb, {child: {age: int, pet: int}, pet: int}).pet == 0)));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

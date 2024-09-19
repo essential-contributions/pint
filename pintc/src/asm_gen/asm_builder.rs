@@ -253,7 +253,7 @@ impl AsmBuilder<'_> {
     ) -> Result<Location, ErrorEmitted> {
         fn compile_immediate(asm: &mut Asm, imm: &Immediate) {
             match imm {
-                Immediate::Int(val) => asm.push(Stack::Push(*val).into()),
+                Immediate::Int(val) | Immediate::Enum(val, _) => asm.push(Stack::Push(*val).into()),
                 Immediate::Bool(val) => asm.push(Stack::Push(*val as i64).into()),
                 Immediate::B256(val) => {
                     asm.push(Stack::Push(val[0] as i64).into());
