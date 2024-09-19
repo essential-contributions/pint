@@ -55,15 +55,15 @@ predicate decl_test {
 //
 // predicate ::test {
 //     var ::n: ::number;
-//     constraint (0 <= (UnTag(::n) == ::number::one ? (UnVal(::n, bool) ? 11 : 22) : (UnTag(::n) == ::number::two ? (UnVal(::n, int) * UnVal(::n, int)) : UnVal(::n, int[3])[0])));
+//     constraint (0 <= ((UnTag(::n) == 0) ? (UnVal(::n, bool) ? 11 : 22) : ((UnTag(::n) == 1) ? (UnVal(::n, int) * UnVal(::n, int)) : UnVal(::n, int[3])[0])));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::decl_test {
 //     var ::n: ::number;
-//     constraint (!UnTag(::n) == ::number::one || (0 <= (UnVal(::n, bool) ? 11 : 22)));
-//     constraint (UnTag(::n) == ::number::one || (!UnTag(::n) == ::number::two || (0 <= (UnVal(::n, int) * UnVal(::n, int)))));
-//     constraint (UnTag(::n) == ::number::one || (UnTag(::n) == ::number::two || (!UnTag(::n) == ::number::three || (0 <= UnVal(::n, int[3])[0]))));
+//     constraint (!(UnTag(::n) == 0) || (0 <= (UnVal(::n, bool) ? 11 : 22)));
+//     constraint ((UnTag(::n) == 0) || (!(UnTag(::n) == 1) || (0 <= (UnVal(::n, int) * UnVal(::n, int)))));
+//     constraint ((UnTag(::n) == 0) || ((UnTag(::n) == 1) || (!(UnTag(::n) == 2) || (0 <= UnVal(::n, int[3])[0]))));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

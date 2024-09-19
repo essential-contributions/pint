@@ -218,7 +218,7 @@ impl ExprKey {
                     || body.can_panic(contract, pred)
             }
 
-            Expr::UnionTagIs { union_expr, .. } | Expr::UnionValue { union_expr, .. } => {
+            Expr::UnionTag { union_expr, .. } | Expr::UnionValue { union_expr, .. } => {
                 union_expr.can_panic(contract, pred)
             }
         })
@@ -433,7 +433,7 @@ impl<'a> Iterator for ExprsIter<'a> {
                 queue_if_new!(self, body);
             }
 
-            Expr::UnionTagIs { union_expr, .. } | Expr::UnionValue { union_expr, .. } => {
+            Expr::UnionTag { union_expr, .. } | Expr::UnionValue { union_expr, .. } => {
                 queue_if_new!(self, union_expr)
             }
 
