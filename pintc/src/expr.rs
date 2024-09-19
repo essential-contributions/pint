@@ -109,9 +109,8 @@ pub enum Expr {
         body: ExprKey,
         span: Span,
     },
-    UnionTagIs {
+    UnionTag {
         union_expr: ExprKey,
-        tag: Path,
         span: Span,
     },
     UnionValue {
@@ -291,7 +290,7 @@ impl Spanned for Expr {
             | Expr::In { span, .. }
             | Expr::Generator { span, .. }
             | Expr::Range { span, .. }
-            | Expr::UnionTagIs { span, .. }
+            | Expr::UnionTag { span, .. }
             | Expr::UnionValue { span, .. } => span,
         }
     }
@@ -388,7 +387,7 @@ impl Expr {
                 replace(body);
             }
 
-            Expr::UnionTagIs { union_expr, .. } | Expr::UnionValue { union_expr, .. } => {
+            Expr::UnionTag { union_expr, .. } | Expr::UnionValue { union_expr, .. } => {
                 replace(union_expr)
             }
 

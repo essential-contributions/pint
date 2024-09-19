@@ -1328,7 +1328,7 @@ impl Contract {
                 span,
             } => Ok(self.infer_generator_expr(handler, kind, gen_ranges, conditions, *body, span)),
 
-            Expr::UnionTagIs { .. } | Expr::UnionValue { .. } => {
+            Expr::UnionTag { .. } | Expr::UnionValue { .. } => {
                 Err(handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "union utility expressions should not exist during type checking",

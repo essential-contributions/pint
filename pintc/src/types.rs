@@ -349,6 +349,13 @@ impl Type {
         })
     }
 
+    pub fn get_union_variant_as_num(&self, unions: &[UnionDecl], tag: &Path) -> Option<usize> {
+        self.get_union_variant_names(unions)
+            .into_iter()
+            .enumerate()
+            .find_map(|(idx, variant_name)| (variant_name == tag[2..]).then_some(idx))
+    }
+
     pub fn is_tuple(&self) -> bool {
         check_alias!(self, is_tuple, matches!(self, Type::Tuple { .. }))
     }

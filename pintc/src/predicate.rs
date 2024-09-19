@@ -202,7 +202,7 @@ impl Contract {
                 self.visitor_from_key(kind, *body, f);
             }
 
-            Expr::UnionTagIs { union_expr, .. } | Expr::UnionValue { union_expr, .. } => {
+            Expr::UnionTag { union_expr, .. } | Expr::UnionValue { union_expr, .. } => {
                 self.visitor_from_key(kind, *union_expr, f)
             }
         }

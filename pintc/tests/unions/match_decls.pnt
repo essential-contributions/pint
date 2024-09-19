@@ -72,11 +72,11 @@ predicate test {
 // predicate ::test {
 //     var ::x: ::group;
 //     var ::y: ::group;
-//     constraint (UnTag(::x) == ::group::empty || (!UnTag(::x) == ::group::one || (!(UnVal(::x, int) > 11) || (UnVal(::x, int) < 22))));
-//     constraint (UnTag(::x) == ::group::empty || (!UnTag(::x) == ::group::one || ((UnVal(::x, int) > 11) || (UnVal(::x, int) > 0))));
-//     constraint (UnTag(::x) == ::group::empty || (UnTag(::x) == ::group::one || (!UnTag(::x) == ::group::couple || (UnVal(::x, {int, int}).0 > 0))));
-//     constraint (UnTag(::x) == ::group::empty || (UnTag(::x) == ::group::one || (!UnTag(::x) == ::group::couple || (!(UnVal(::x, {int, int}).1 > 33) || (!UnTag(::y) == ::group::one || (!(UnVal(::y, int) > 44) || (::c.1 < 111)))))));
-//     constraint (UnTag(::x) == ::group::empty || (UnTag(::x) == ::group::one || (!UnTag(::x) == ::group::couple || (!(UnVal(::x, {int, int}).1 > 33) || (!UnTag(::y) == ::group::one || ((UnVal(::y, int) > 44) || (::c.1 < 222)))))));
+//     constraint ((UnTag(::x) == 0) || (!(UnTag(::x) == 1) || (!(UnVal(::x, int) > 11) || (UnVal(::x, int) < 22))));
+//     constraint ((UnTag(::x) == 0) || (!(UnTag(::x) == 1) || ((UnVal(::x, int) > 11) || (UnVal(::x, int) > 0))));
+//     constraint ((UnTag(::x) == 0) || ((UnTag(::x) == 1) || (!(UnTag(::x) == 2) || (UnVal(::x, {int, int}).0 > 0))));
+//     constraint ((UnTag(::x) == 0) || ((UnTag(::x) == 1) || (!(UnTag(::x) == 2) || (!(UnVal(::x, {int, int}).1 > 33) || (!(UnTag(::y) == 1) || (!(UnVal(::y, int) > 44) || (::c.1 < 111)))))));
+//     constraint ((UnTag(::x) == 0) || ((UnTag(::x) == 1) || (!(UnTag(::x) == 2) || (!(UnVal(::x, {int, int}).1 > 33) || (!(UnTag(::y) == 1) || ((UnVal(::y, int) > 44) || (::c.1 < 222)))))));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

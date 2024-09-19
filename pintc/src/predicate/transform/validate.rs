@@ -201,7 +201,7 @@ fn check_expr(
         | Expr::TupleFieldAccess { .. }
         | Expr::Index { .. }
         | Expr::ExternalStorageAccess { .. }
-        | Expr::UnionTagIs { .. }
+        | Expr::UnionTag { .. }
         | Expr::UnionValue { .. } => Ok(()),
     }
 }
