@@ -16,8 +16,6 @@ pub struct WarningLabel {
 pub enum Warning {
     #[error("unneeded else branch")]
     MatchUnneededElse { span: Span },
-    #[error("constraint is always `true`")]
-    TrivialConstraint { span: Span },
     #[error("constraint is always `false`")]
     AlwaysFalseConstraint { span: Span },
 }
@@ -28,12 +26,6 @@ impl ReportableWarning for Warning {
         match self {
             MatchUnneededElse { span } => vec![WarningLabel {
                 message: "`else` branch in match will never be evaluated".to_string(),
-                span: span.clone(),
-                color: Color::Yellow,
-            }],
-
-            TrivialConstraint { span } => vec![WarningLabel {
-                message: "this constraint always evaluates to `true`".to_string(),
                 span: span.clone(),
                 color: Color::Yellow,
             }],
@@ -50,9 +42,7 @@ impl ReportableWarning for Warning {
     fn note(&self) -> Option<String> {
         use Warning::*;
         match self {
-            MatchUnneededElse { .. } | TrivialConstraint { .. } | AlwaysFalseConstraint { .. } => {
-                None
-            }
+            MatchUnneededElse { .. } | AlwaysFalseConstraint { .. } => None,
         }
     }
 
@@ -63,9 +53,6 @@ impl ReportableWarning for Warning {
     fn help(&self) -> Option<String> {
         use Warning::*;
         match self {
-            TrivialConstraint { .. } => {
-                Some("if this is intentional, consider removing this constraint".to_string())
-            }
 
             AlwaysFalseConstraint { .. } => {
                 Some("if this is intentional, consider removing the containing predicate because its constraints can never be satisfied".to_string())
@@ -80,9 +67,7 @@ impl Spanned for Warning {
     fn span(&self) -> &Span {
         use Warning::*;
         match self {
-            MatchUnneededElse { span }
-            | TrivialConstraint { span }
-            | AlwaysFalseConstraint { span } => span,
+            MatchUnneededElse { span } | AlwaysFalseConstraint { span } => span,
         }
     }
 }

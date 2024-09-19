@@ -75,10 +75,6 @@ pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Cont
                             handler.emit_warn(Warning::AlwaysFalseConstraint {
                                 span: constraint.span.clone(),
                             });
-                        } else {
-                            handler.emit_warn(Warning::TrivialConstraint {
-                                span: constraint.span.clone(),
-                            });
                         }
 
                         Some(i)
