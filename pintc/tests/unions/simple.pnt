@@ -112,22 +112,22 @@ predicate test {
 //     var ::no_base_addr: int;
 //     var ::a_base_addr: int;
 //     var ::actual_addr: b256;
-//     constraint (UnTag(::x) == ::thing::a ? UnVal(::x, bool) : (UnTag(::x) == ::thing::b ? (UnVal(::x, int) > 0) : ((UnVal(::x, {int, int}).0 + UnVal(::x, {int, int}).1) == 11)));
-//     constraint ((UnTag(::x) == ::thing::b ? UnVal(::x, int) : 22) > 0);
-//     constraint (UnTag(::x) == ::thing::a ? UnVal(::x, bool) : (UnTag(::x) == ::thing::b ? ((UnVal(::x, int) * 2) < 10) : true));
+//     constraint ((UnTag(::x) == 0) ? UnVal(::x, bool) : ((UnTag(::x) == 1) ? (UnVal(::x, int) > 0) : ((UnVal(::x, {int, int}).0 + UnVal(::x, {int, int}).1) == 11)));
+//     constraint (((UnTag(::x) == 1) ? UnVal(::x, int) : 22) > 0);
+//     constraint ((UnTag(::x) == 0) ? UnVal(::x, bool) : ((UnTag(::x) == 1) ? ((UnVal(::x, int) * 2) < 10) : true));
 //     constraint (::no_base_addr == ::maybe_addr::no_addr);
 //     constraint (::a_base_addr == ::maybe_addr::addr(0x1111111111111111111111111111111111111111111111111111111111111111));
-//     constraint (::actual_addr == (UnTag(::no_base_addr) == ::maybe_addr::no_addr ? 0x0000000000000000000000000000000000000000000000000000000000000000 : UnVal(::no_base_addr, b256)));
+//     constraint (::actual_addr == ((UnTag(::no_base_addr) == 0) ? 0x0000000000000000000000000000000000000000000000000000000000000000 : UnVal(::no_base_addr, b256)));
 //     constraint (::no_base_addr != ::a_base_addr);
 //     constraint (::no_base_addr == ::maybe_addr::no_addr);
 //     constraint (::thing::b(77) == ::thing::b(77));
 //     constraint (::thing::b(88) != ::thing::b(99));
-//     constraint (UnTag(::x) == ::thing::a || (!UnTag(::x) == ::thing::c || ((UnVal(::x, {int, int}).0 * UnVal(::x, {int, int}).1) == 66)));
-//     constraint (UnTag(::x) == ::thing::a || (!UnTag(::x) == ::thing::c || (::d == (UnVal(::x, {int, int}).0 - UnVal(::x, {int, int}).1))));
-//     constraint (UnTag(::x) == ::thing::a || (UnTag(::x) == ::thing::c || (::d == 55)));
-//     constraint (UnTag(::x) == ::thing::a || (!UnTag(::x) == ::thing::b || (UnVal(::x, int) > 0)));
-//     constraint (UnTag(::x) == ::thing::a || (UnTag(::x) == ::thing::b || (!UnTag(::x) == ::thing::c || (UnVal(::x, {int, int}).0 == 33))));
-//     constraint (UnTag(::x) == ::thing::a || (UnTag(::x) == ::thing::b || (!UnTag(::x) == ::thing::c || (UnVal(::x, {int, int}).1 != 44))));
+//     constraint ((UnTag(::x) == 0) || (!(UnTag(::x) == 2) || ((UnVal(::x, {int, int}).0 * UnVal(::x, {int, int}).1) == 66)));
+//     constraint ((UnTag(::x) == 0) || (!(UnTag(::x) == 2) || (::d == (UnVal(::x, {int, int}).0 - UnVal(::x, {int, int}).1))));
+//     constraint ((UnTag(::x) == 0) || ((UnTag(::x) == 2) || (::d == 55)));
+//     constraint ((UnTag(::x) == 0) || (!(UnTag(::x) == 1) || (UnVal(::x, int) > 0)));
+//     constraint ((UnTag(::x) == 0) || ((UnTag(::x) == 1) || (!(UnTag(::x) == 2) || (UnVal(::x, {int, int}).0 == 33))));
+//     constraint ((UnTag(::x) == 0) || ((UnTag(::x) == 1) || (!(UnTag(::x) == 2) || (UnVal(::x, {int, int}).1 != 44))));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

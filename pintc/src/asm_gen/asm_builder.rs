@@ -321,9 +321,9 @@ impl AsmBuilder<'_> {
             Expr::TupleFieldAccess { tuple, field, .. } => {
                 self.compile_tuple_field_access(handler, asm, tuple, field, contract, pred)
             }
-            Expr::UnionTagIs {
-                union_expr, tag, ..
-            } => self.compile_union_tag_is(handler, asm, union_expr, tag, contract, pred),
+            Expr::UnionTag { union_expr, .. } => {
+                self.compile_union_tag_is(handler, asm, union_expr, contract, pred)
+            }
             Expr::UnionValue { union_expr, .. } => {
                 self.compile_union_get_value(handler, asm, union_expr, contract, pred)
             }
@@ -989,26 +989,9 @@ impl AsmBuilder<'_> {
         handler: &Handler,
         asm: &mut Asm,
         union_expr_key: &ExprKey,
-        tag: &str,
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        // Find the tag string in the union decl and convert to an index.
-        let tag_num = union_expr_key
-            .get_ty(contract)
-            .get_union_variant_names(&contract.unions)
-            .into_iter()
-            .enumerate()
-            .find_map(|(idx, variant_name)| (variant_name == tag[2..]).then_some(idx))
-            .ok_or_else(|| {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "Union tag not found in union decl",
-                        span: contract.expr_key_to_span(*union_expr_key),
-                    },
-                })
-            })?;
-
         // Get the location of the union but read just a single word, as we only want the tag at
         // the front.
         match self.compile_expr_pointer(handler, asm, union_expr_key, contract, pred)? {
@@ -1022,10 +1005,6 @@ impl AsmBuilder<'_> {
             | Location::PubVar { .. }
             | Location::Value => todo!("support union matches in non- decision variables?"),
         }
-
-        // Now compare with our tag number.
-        asm.push(Stack::Push(tag_num as i64).into());
-        asm.push(Pred::Eq.into());
 
         Ok(Location::Value)
     }

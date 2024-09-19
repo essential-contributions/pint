@@ -1280,7 +1280,7 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                 | Expr::In { .. }
                 | Expr::Range { .. }
                 | Expr::Generator { .. }
-                | Expr::UnionTagIs { .. }
+                | Expr::UnionTag { .. }
                 | Expr::UnionValue { .. } => Coalescence::None,
             };
 
@@ -1466,15 +1466,10 @@ fn convert_match_to_if_decl(
                         }
                     })
                     .and_then(|full_binding| {
-                        // The condition expression is a 'union_tag_is' expression.
-                        let cond_expr = contract.exprs.insert(
-                            Expr::UnionTagIs {
-                                union_expr: match_expr,
-                                tag: name,
-                                span: empty_span(),
-                            },
-                            bool_ty.clone(),
-                        );
+                        // The condition expression is a 'union_tag == ...' expression.
+                        let cond_expr = build_compare_tag_expr(
+                            handler, contract, match_expr, &name, &name_span,
+                        )?;
 
                         block
                             .into_iter()
@@ -1729,6 +1724,7 @@ fn convert_match_expr(
     struct BranchInfo {
         union_expr: ExprKey,
         name: Path,
+        name_span: Span,
         binding: Option<(Ident, Type)>,
         constraints: Vec<ExprKey>,
         expr: ExprKey,
@@ -1777,6 +1773,7 @@ fn convert_match_expr(
             if_then_branches.push_back(BranchInfo {
                 union_expr: *match_expr,
                 name: name.clone(),
+                name_span: name_span.clone(),
                 binding: full_binding,
                 constraints: constraints.clone(),
                 expr: *expr,
@@ -1808,22 +1805,22 @@ fn convert_match_expr(
     });
 
     fn build_if_decl_and_select(
+        handler: &Handler,
         contract: &mut Contract,
         pred_key: PredKey,
         mut then_branch: BranchInfo,
         mut rest_branches: VecDeque<BranchInfo>,
         else_branch: Option<(Vec<BlockStatement>, ExprKey)>,
         span: &Span,
-    ) -> (IfDecl, ExprKey) {
+    ) -> Result<(IfDecl, ExprKey), ErrorEmitted> {
         // The condition expression is used by both the `if` and `select`.
-        let condition = contract.exprs.insert(
-            Expr::UnionTagIs {
-                union_expr: then_branch.union_expr,
-                tag: then_branch.name,
-                span: empty_span(),
-            },
-            types::r#bool(),
-        );
+        let condition = build_compare_tag_expr(
+            handler,
+            contract,
+            then_branch.union_expr,
+            &then_branch.name,
+            &then_branch.name_span,
+        )?;
 
         if let Some((binding, bound_ty)) = then_branch.binding {
             for constraint_expr in &mut then_branch.constraints {
@@ -1872,13 +1869,14 @@ fn convert_match_expr(
         let (else_block, select_expr) = if let Some(next_then_branch) = rest_branches.pop_front() {
             // There are branches; recurse.
             let (else_if_decl, else_expr) = build_if_decl_and_select(
+                handler,
                 contract,
                 pred_key,
                 next_then_branch,
                 rest_branches,
                 else_branch,
                 span,
-            );
+            )?;
 
             let else_block = Some(vec![BlockStatement::If(else_if_decl)]);
 
@@ -1928,18 +1926,19 @@ fn convert_match_expr(
             span: span.clone(),
         };
 
-        (if_decl, select_expr)
+        Ok((if_decl, select_expr))
     }
 
     let (if_decl, select_expr_key) = if let Some(then_branch) = if_then_branches.pop_front() {
         build_if_decl_and_select(
+            handler,
             contract,
             pred_key,
             then_branch,
             if_then_branches,
             else_block,
             &if_decl_span.unwrap(),
-        )
+        )?
     } else {
         // There are no match branches.  Just make an `if false {} else <else_block>` and use the
         // else expression as the 'select'.
@@ -1976,6 +1975,52 @@ fn convert_match_expr(
     contract.replace_exprs(Some(pred_key), match_expr_key, select_expr_key);
 
     Ok(())
+}
+
+fn build_compare_tag_expr(
+    handler: &Handler,
+    contract: &mut Contract,
+    union_expr: ExprKey,
+    tag: &Path,
+    span: &Span,
+) -> Result<ExprKey, ErrorEmitted> {
+    let tag_num = union_expr
+        .get_ty(contract)
+        .get_union_variant_as_num(&contract.unions, tag)
+        .ok_or_else(|| {
+            handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "Union tag not found in union decl",
+                    span: contract.expr_key_to_span(union_expr),
+                },
+            })
+        })?;
+
+    let get_tag_expr = contract.exprs.insert(
+        Expr::UnionTag {
+            union_expr,
+            span: span.clone(),
+        },
+        types::r#int(),
+    );
+
+    let tag_num_expr = contract.exprs.insert(
+        Expr::Immediate {
+            value: Immediate::Int(tag_num as i64),
+            span: span.clone(),
+        },
+        types::r#int(),
+    );
+
+    Ok(contract.exprs.insert(
+        Expr::BinaryOp {
+            op: BinaryOp::Equal,
+            lhs: get_tag_expr,
+            rhs: tag_num_expr,
+            span: span.clone(),
+        },
+        types::r#bool(),
+    ))
 }
 
 pub(super) fn lower_union_variant_paths(contract: &mut Contract) {

@@ -208,10 +208,8 @@ impl DisplayWithContract for &super::Expr {
                 write!(f, " {{ {} }}", contract.with_ctrct(body))
             }
 
-            expr::Expr::UnionTagIs {
-                union_expr, tag, ..
-            } => {
-                write!(f, "UnTag({}) == {tag}", contract.with_ctrct(union_expr))
+            expr::Expr::UnionTag { union_expr, .. } => {
+                write!(f, "UnTag({})", contract.with_ctrct(union_expr))
             }
 
             expr::Expr::UnionValue {

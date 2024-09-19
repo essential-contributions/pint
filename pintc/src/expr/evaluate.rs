@@ -391,7 +391,7 @@ impl Evaluator {
             | Expr::Match { .. }
             | Expr::UnionVariant { .. }
             // These union exprs can unpack if their expression is a UnionVariant literal.
-            | Expr::UnionTagIs { .. } | Expr::UnionValue { .. } => {
+            | Expr::UnionTag { .. } | Expr::UnionValue { .. } => {
                 Err(handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "unexpected expression during compile-time evaluation",
@@ -630,18 +630,10 @@ impl ExprKey {
                 }
             }
 
-            Expr::UnionTagIs {
-                union_expr,
-                tag,
-                span,
-            } => {
+            Expr::UnionTag { union_expr, span } => {
                 let union_expr = union_expr.plug_in(contract, values_map);
 
-                Expr::UnionTagIs {
-                    union_expr,
-                    tag,
-                    span,
-                }
+                Expr::UnionTag { union_expr, span }
             }
             Expr::UnionValue {
                 union_expr,
