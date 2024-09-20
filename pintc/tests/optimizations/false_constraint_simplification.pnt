@@ -8,6 +8,14 @@ predicate Test {
 
     // resolves to false
     constraint 1 + 2 < 3;
+
+    if true {
+        // non-trivial
+        constraint y == 3;
+
+        // resolves to false
+        constraint 3 < 2;
+    }
 }
 
 // parsed <<<
@@ -18,6 +26,10 @@ predicate Test {
 //     constraint (::x < ::y);
 //     constraint (::x == ::x);
 //     constraint ((1 + 2) < 3);
+//     if true {
+//         constraint (::y == 3)
+//         constraint (3 < 2)
+//     }
 // }
 // >>>
 
@@ -29,6 +41,8 @@ predicate Test {
 //     constraint (::x < ::y);
 //     constraint (::x == ::x);
 //     constraint ((1 + 2) < 3);
+//     constraint (!true || (::y == 3));
+//     constraint (!true || (3 < 2));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
@@ -44,5 +58,8 @@ predicate Test {
 // warnings <<<
 // constraint is always `false`
 // @205..225: this constraint always evaluates to `false` and can never be satisfied
+// if this is intentional, consider removing the containing predicate because its constraints can never be satisfied
+// constraint is always `false`
+// @330..346: this constraint always evaluates to `false` and can never be satisfied
 // if this is intentional, consider removing the containing predicate because its constraints can never be satisfied
 // >>>

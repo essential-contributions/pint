@@ -1037,15 +1037,15 @@ pub(crate) fn lower_ifs(contract: &mut Contract) {
 
         // Ideally we'd refactor this to not require cloning the IfDecl.
         for if_decl in &contract.preds[pred_key].if_decls.clone() {
-            all_exprs.extend(&convert_if(contract, pred_key, if_decl));
+            all_exprs.extend(convert_if(contract, pred_key, if_decl));
         }
 
         let mut_pred = contract.preds.get_mut(pred_key).unwrap();
 
-        for expr in all_exprs {
+        for (expr, original_expr_span) in all_exprs {
             mut_pred.constraints.push(ConstraintDecl {
                 expr,
-                span: empty_span(),
+                span: original_expr_span,
             });
         }
 
@@ -1065,12 +1065,12 @@ fn convert_if(
         else_block,
         ..
     }: &IfDecl,
-) -> Vec<ExprKey> {
+) -> Vec<(ExprKey, Span)> {
     let condition_inverse = contract.exprs.insert(
         Expr::UnaryOp {
             op: UnaryOp::Not,
             expr: *condition,
-            span: empty_span(),
+            span: condition.get(contract).span().clone(),
         },
         Type::Primitive {
             kind: PrimitiveKind::Bool,
@@ -1117,7 +1117,7 @@ fn convert_if_block_statement(
     pred_key: PredKey,
     statement: &BlockStatement,
     condition_inverse: ExprKey,
-) -> Vec<ExprKey> {
+) -> Vec<(ExprKey, Span)> {
     let bool_ty = Type::Primitive {
         kind: PrimitiveKind::Bool,
         span: empty_span(),
@@ -1126,27 +1126,33 @@ fn convert_if_block_statement(
     let mut converted_exprs = vec![];
     match statement {
         BlockStatement::Constraint(constraint_decl) => {
-            converted_exprs.push(contract.exprs.insert(
-                Expr::BinaryOp {
-                    op: BinaryOp::LogicalOr,
-                    lhs: condition_inverse,
-                    rhs: constraint_decl.expr,
-                    span: empty_span(),
-                },
-                bool_ty.clone(),
+            converted_exprs.push((
+                contract.exprs.insert(
+                    Expr::BinaryOp {
+                        op: BinaryOp::LogicalOr,
+                        lhs: condition_inverse,
+                        rhs: constraint_decl.expr,
+                        span: constraint_decl.span.clone(),
+                    },
+                    bool_ty.clone(),
+                ),
+                constraint_decl.span.clone(),
             ));
         }
 
         BlockStatement::If(if_decl) => {
             for inner_expr in convert_if(contract, pred_key, if_decl) {
-                converted_exprs.push(contract.exprs.insert(
-                    Expr::BinaryOp {
-                        op: BinaryOp::LogicalOr,
-                        lhs: condition_inverse,
-                        rhs: inner_expr,
-                        span: empty_span(),
-                    },
-                    bool_ty.clone(),
+                converted_exprs.push((
+                    contract.exprs.insert(
+                        Expr::BinaryOp {
+                            op: BinaryOp::LogicalOr,
+                            lhs: condition_inverse,
+                            rhs: inner_expr.0,
+                            span: if_decl.span.clone(),
+                        },
+                        bool_ty.clone(),
+                    ),
+                    if_decl.span.clone(),
                 ));
             }
         }
