@@ -8,11 +8,11 @@ plugins:
       uri: https://github.com/trunk-io/plugins
 lint:
   enabled:
-    - checkov@3.2.253
+    - checkov@3.2.255
     - osv-scanner@1.8.5
     - oxipng@9.1.2
-    - trivy@0.55.1
-    - trufflehog@3.82.1
+    - trivy@0.55.2
+    - trufflehog@3.82.2
     - actionlint@1.7.1
     - git-diff-check
     - markdownlint@0.41.0
