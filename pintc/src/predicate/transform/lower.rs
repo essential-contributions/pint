@@ -6,10 +6,11 @@ use crate::{
     },
     predicate::{
         BlockStatement, Const, ConstraintDecl, Contract, ExprKey, ExprsIter, Ident, IfDecl,
-        Interface, InterfaceVar, MatchDecl, MatchDeclBranch, PredKey, StorageVar, Var, VisitorKind,
+        Interface, InterfaceVar, MatchDecl, MatchDeclBranch, PredKey, PredicateInterface,
+        StorageVar, Var, VisitorKind,
     },
     span::{empty_span, Span, Spanned},
-    types::{self, EnumDecl, NewTypeDecl, Path, PrimitiveKind, Type, UnionDecl},
+    types::{self, EnumDecl, NewTypeDecl, Path, PrimitiveKind, Type, UnionDecl, UnionVariant},
 };
 
 use fxhash::FxHashMap;
@@ -51,6 +52,14 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
             add_variants(e, alias_name);
         }
     }
+
+    // In many places below we need a copy of all the enum names.  This sucks until we fix
+    // `Type::Custom` as we need to copy the enum names out to avoid borrowing conflicts.
+    let enum_names = contract
+        .enums
+        .iter()
+        .map(|EnumDecl { name, .. }| name.name.to_string())
+        .collect::<Vec<String>>();
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         let mut enum_replacements = Vec::default();
@@ -97,7 +106,7 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
 
         // Not sure at this stage if we'll ever allow state to be an enum.
         for (state_key, _) in pred.states() {
-            if state_key.get_ty(pred).has_nested_enum() {
+            if type_has_nested_enum(state_key.get_ty(pred), contract) {
                 return Err(handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "found state with an enum type",
@@ -188,17 +197,21 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
             };
         }
 
-        // Now do the actual type update from enum to int
-        let pred = contract.preds.get_mut(pred_key).unwrap();
+        // Now do the actual type update from enum to int.
+        let pred = &mut contract.preds[pred_key];
 
         let var_keys: Vec<_> = pred.vars().map(|(var_key, _)| var_key).collect();
         for var_key in var_keys {
-            var_key.get_ty_mut(pred).replace_nested_enum_with_int();
+            replace_nested_enum_with_int(var_key.get_ty_mut(pred), &enum_names);
         }
 
         let expr_keys: Vec<_> = contract.exprs(pred_key).collect();
         for expr_key in expr_keys {
-            expr_key.get_ty_mut(contract).replace_nested_enum_with_int();
+            replace_nested_enum_with_int(expr_key.get_ty_mut(contract), &enum_names);
+
+            if let Expr::UnionValue { variant_ty, .. } = expr_key.get_mut(contract) {
+                replace_nested_enum_with_int(variant_ty, &enum_names);
+            }
         }
 
         // Array types can use enums as the range.  Recursively replace a range known to be an enum
@@ -246,7 +259,101 @@ pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<
             .update_types(|_expr_key, ty| replace_array_range(&enum_count_exprs, ty));
     }
 
+    // Constant declaration types may still have enums though their values will have been lowered
+    // to immediates at type checking.
+    for Const { decl_ty, .. } in contract.consts.values_mut() {
+        replace_nested_enum_with_int(decl_ty, &enum_names);
+    }
+
+    // Ditto for interfaces.
+    for Interface {
+        predicate_interfaces,
+        ..
+    } in &mut contract.interfaces
+    {
+        for PredicateInterface { vars, .. } in predicate_interfaces {
+            for InterfaceVar { ty, .. } in vars {
+                replace_nested_enum_with_int(ty, &enum_names);
+            }
+        }
+    }
+
     Ok(())
+}
+
+fn type_has_nested_enum(ty: &Type, contract: &Contract) -> bool {
+    match ty {
+        Type::Array { ty, .. } => type_has_nested_enum(ty, contract),
+
+        Type::Tuple { fields, .. } => fields
+            .iter()
+            .any(|field| type_has_nested_enum(&field.1, contract)),
+
+        Type::Custom { path, .. } => contract
+            .enums
+            .iter()
+            .any(|EnumDecl { name, .. }| &name.name == path),
+
+        Type::Alias { ty, .. } => type_has_nested_enum(ty.as_ref(), contract),
+
+        Type::Map { ty_from, ty_to, .. } => {
+            type_has_nested_enum(ty_from, contract) || type_has_nested_enum(ty_to, contract)
+        }
+
+        Type::Vector { ty, .. } => type_has_nested_enum(ty, contract),
+
+        Type::Union { path, .. } => contract
+            .unions
+            .iter()
+            .find_map(|UnionDecl { name, variants, .. }| {
+                (&name.name == path).then(|| {
+                    variants.iter().any(|UnionVariant { ty, .. }| {
+                        ty.as_ref()
+                            .map(|ty| type_has_nested_enum(ty, contract))
+                            .unwrap_or(false)
+                    })
+                })
+            })
+            .unwrap_or(false),
+
+        Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => false,
+    }
+}
+
+fn replace_nested_enum_with_int(ty: &mut Type, enum_names: &[String]) {
+    match ty {
+        Type::Array { ty, .. } => replace_nested_enum_with_int(ty, enum_names),
+
+        Type::Tuple { fields, .. } => {
+            for field in fields {
+                replace_nested_enum_with_int(&mut field.1, enum_names);
+            }
+        }
+
+        Type::Custom { path, span } => {
+            if enum_names.iter().any(|enum_name| enum_name == path) {
+                *ty = Type::Primitive {
+                    kind: PrimitiveKind::Int,
+                    span: span.clone(),
+                }
+            }
+        }
+
+        Type::Alias { ty, .. } => replace_nested_enum_with_int(ty, enum_names),
+
+        Type::Map { ty_from, ty_to, .. } => {
+            replace_nested_enum_with_int(ty_from, enum_names);
+            replace_nested_enum_with_int(ty_to, enum_names);
+        }
+
+        Type::Vector { ty, .. } => replace_nested_enum_with_int(ty, enum_names),
+
+        Type::Error(_)
+        | Type::Unknown(_)
+        | Type::Any(_)
+        | Type::Primitive { .. }
+        | Type::Union { .. } => {}
+    }
 }
 
 pub(crate) fn lower_casts(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
@@ -472,7 +579,7 @@ pub(crate) fn lower_array_ranges(
             None => {
                 // The type checker should already ensure that our immediate value returned is an int.
                 let value = evaluator.evaluate_key(&old_range_expr_key, handler, contract)?;
-                if !matches!(value, Immediate::Int(_)) {
+                if !matches!(value, Immediate::Int(_) | Immediate::Enum(..)) {
                     return Err(handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
                             msg: "array range expression evaluates to non int immediate",
@@ -567,7 +674,7 @@ pub(crate) fn lower_imm_accesses(
                 };
 
                 match evaluator.evaluate(idx_expr, handler, contract) {
-                    Ok(Immediate::Int(idx_val)) if idx_val >= 0 => {
+                    Ok(Immediate::Int(idx_val) | Immediate::Enum(idx_val, _)) if idx_val >= 0 => {
                         match array_key.try_get(contract) {
                             Some(Expr::Array { elements, .. }) => {
                                 // Simply replace the index with the element expr.

@@ -235,6 +235,7 @@ impl DisplayWithContract for super::Immediate {
             super::Immediate::Nil => write!(f, "nil"),
             super::Immediate::Real(n) => write!(f, "{n:e}"),
             super::Immediate::Int(n) => write!(f, "{n}"),
+            super::Immediate::Enum(n, _) => write!(f, "{n}"),
             super::Immediate::Bool(b) => write!(f, "{b}"),
             super::Immediate::String(s) => write!(f, "{s:?}"),
             super::Immediate::B256(val) => {

@@ -155,6 +155,7 @@ pub enum Immediate {
     Nil,
     Real(f64),
     Int(i64),
+    Enum(i64, Path),
     Bool(bool),
     String(String),
     B256([u64; 4]),
@@ -192,6 +193,11 @@ impl Immediate {
                 span,
             },
 
+            Immediate::Enum(_, path) => Type::Custom {
+                path: path.to_string(),
+                span,
+            },
+
             _ => Type::Primitive {
                 kind: match self {
                     Immediate::Nil => PrimitiveKind::Nil,
@@ -201,7 +207,10 @@ impl Immediate {
                     Immediate::String(_) => PrimitiveKind::String,
                     Immediate::B256(_) => PrimitiveKind::B256,
 
-                    Immediate::Error | Immediate::Array { .. } | Immediate::Tuple(_) => {
+                    Immediate::Error
+                    | Immediate::Array { .. }
+                    | Immediate::Tuple(_)
+                    | Immediate::Enum(..) => {
                         unreachable!()
                     }
                 },

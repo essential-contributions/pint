@@ -66,11 +66,11 @@ predicate test {
 // const ::b: b256 = 0x2222222222222222222222222222222222222222222222222222222222222222;
 // const ::h: {int, bool} = {1010, false};
 // const ::e: bool = true;
-// const ::k: ::JacketColour = 1;
+// const ::k: int = 1;
 // const ::d: b256 = 0x4444444444444444444444444444444444444444444444444444444444444444;
 // const ::a: int = 11;
 // const ::g: int[_] = [88, 99];
-// const ::j: ::JacketColour = 5;
+// const ::j: int = 5;
 // const ::f: {int, int} = {66, 77};
 // const ::c: int = 33;
 // enum ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;

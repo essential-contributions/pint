@@ -52,7 +52,7 @@ impl Evaluator {
                 variants.iter().enumerate().map(|(idx, variant)| {
                     (
                         enum_name.name.clone() + "::" + &variant.name,
-                        Imm::Int(idx as i64),
+                        Imm::Enum(idx as i64, enum_name.name.clone()),
                     )
                 })
             },
@@ -235,7 +235,7 @@ impl Evaluator {
                 if let Imm::Array(elements) = ary {
                     // And the index is an int...
                     let idx = self.evaluate_key(index, handler, contract)?;
-                    if let Imm::Int(n) = idx {
+                    if let Imm::Int(n) | Imm::Enum(n, _) = idx {
                         // And it's not out of bounds...
                         elements.get(n as usize).cloned().ok_or_else(|| {
                             handler.emit_err(Error::Compile {
@@ -350,7 +350,7 @@ impl Evaluator {
                         }
                     }
 
-                    Imm::Int(i) => {
+                    Imm::Int(i) | Imm::Enum(i, _) => {
                         if ty.is_int() {
                             Ok(imm)
                         } else if ty.is_real() {
