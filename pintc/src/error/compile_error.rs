@@ -222,6 +222,13 @@ pub enum CompileError {
         arity: &'static str,
         large_err: Box<LargeTypeError>,
     },
+    #[error("operator invalid type error")]
+    OperatorInvalidType {
+        op: &'static str,
+        ty_kind: &'static str,
+        bad_ty: String,
+        span: Span,
+    },
     #[error("{init_kind} initialization type error")]
     InitTypeError {
         init_kind: &'static str,
@@ -981,6 +988,17 @@ impl ReportableError for CompileError {
                 }
             },
 
+            OperatorInvalidType {
+                op,
+                ty_kind,
+                bad_ty,
+                span,
+            } => vec![ErrorLabel {
+                message: format!("invalid {ty_kind} type `{bad_ty}` for operator `{op}`"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             BadCastTo { ty, span } => vec![ErrorLabel {
                 message: format!("illegal cast to a `{ty}`"),
                 span: span.clone(),
@@ -1363,6 +1381,7 @@ impl ReportableError for CompileError {
             | SelectBranchesTypeMismatch { .. }
             | ConstraintExpressionTypeError { .. }
             | OperatorTypeError { .. }
+            | OperatorInvalidType { .. }
             | InitTypeError { .. }
             | StateVarInitTypeError { .. }
             | IndexExprNonIndexable { .. }
@@ -1614,7 +1633,8 @@ impl Spanned for CompileError {
             | UnknownUnionVariant { span, .. }
             | SuperfluousUnionExprValue { span, .. }
             | MissingUnionExprValue { span, .. }
-            | UnionVariantTypeMismatch { span, .. } => span,
+            | UnionVariantTypeMismatch { span, .. }
+            | OperatorInvalidType { span, .. } => span,
 
             DependencyCycle { spans } => &spans[0],
 

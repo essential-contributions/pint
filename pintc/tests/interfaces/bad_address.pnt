@@ -45,16 +45,16 @@ predicate Simple {
 // >>>
 
 // typecheck_failure <<<
-// binary operator type error
-// @202..206: operator `+` argument has unexpected type `bool`
+// operator invalid type error
+// @198..206: invalid non-numeric type `bool` for operator `+`
 // address expression type error
 // @198..206: address expression has unexpected type `int`
 // @198..206: expecting type `b256`
 // address expression type error
 // @242..248: address expression has unexpected type `{int, int}`
 // @242..248: expecting type `b256`
-// binary operator type error
-// @359..363: operator `+` argument has unexpected type `bool`
+// operator invalid type error
+// @355..363: invalid non-numeric type `bool` for operator `+`
 // address expression type error
 // @355..363: address expression has unexpected type `int`
 // @355..363: expecting type `b256`
