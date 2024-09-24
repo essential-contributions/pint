@@ -67,8 +67,8 @@ predicate test {
 // binary operator type error
 // @185..186: operator `&&` argument has unexpected type `int`
 // @174..186: expecting type `bool`
-// binary operator type error
-// @271..275: operator `+` argument has unexpected type `bool`
-// binary operator type error
-// @533..544: operator `+` argument has unexpected type `{int, bool}`
+// operator invalid type error
+// @267..275: invalid non-numeric type `bool` for operator `+`
+// operator invalid type error
+// @528..544: invalid non-numeric type `{int, bool}` for operator `+`
 // >>>

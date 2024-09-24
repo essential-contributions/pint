@@ -1,0 +1,29 @@
+union pet = cats(int) | dogs(int) | emu;
+
+predicate test {
+    var a: pet;
+
+    constraint pet::cats(11) == a;
+    constraint a > pet::cats(11);
+    constraint pet::dogs(22) <= pet::emu;
+}
+
+// parsed <<<
+// union ::pet = cats(int) | dogs(int) | emu;
+//
+// predicate ::test {
+//     var ::a: ::pet;
+//     constraint (::pet::cats(11) == ::a);
+//     constraint (::a > ::pet::cats(11));
+//     constraint (::pet::dogs(22) <= ::pet::emu);
+// }
+// >>>
+
+// typecheck_failure <<<
+// operator invalid type error
+// @91..109: invalid union type `::pet` for operator `==`
+// operator invalid type error
+// @126..143: invalid non-numeric type `::pet` for operator `>`
+// operator invalid type error
+// @160..185: invalid non-numeric type `::pet` for operator `<=`
+// >>>

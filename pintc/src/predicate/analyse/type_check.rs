@@ -1963,34 +1963,26 @@ impl Contract {
         rhs_expr_key: ExprKey,
         span: &Span,
     ) -> Inference {
-        let check_numeric_args = |lhs_ty: &Type, rhs_ty: &Type, ty_str: &str| {
+        let check_numeric_args = |lhs_ty: &Type, rhs_ty: &Type| {
             if !lhs_ty.is_num() {
                 if !lhs_ty.is_error() {
                     handler.emit_err(Error::Compile {
-                        error: CompileError::OperatorTypeError {
-                            arity: "binary",
-                            large_err: Box::new(LargeTypeError::OperatorTypeError {
-                                op: op.as_str(),
-                                expected_ty: ty_str.to_string(),
-                                found_ty: self.with_ctrct(lhs_ty).to_string(),
-                                span: self.expr_key_to_span(lhs_expr_key),
-                                expected_span: None,
-                            }),
+                        error: CompileError::OperatorInvalidType {
+                            op: op.as_str(),
+                            ty_kind: "non-numeric",
+                            bad_ty: self.with_ctrct(lhs_ty).to_string(),
+                            span: span.clone(),
                         },
                     });
                 }
             } else if !rhs_ty.is_num() {
                 if !rhs_ty.is_error() {
                     handler.emit_err(Error::Compile {
-                        error: CompileError::OperatorTypeError {
-                            arity: "binary",
-                            large_err: Box::new(LargeTypeError::OperatorTypeError {
-                                op: op.as_str(),
-                                expected_ty: ty_str.to_string(),
-                                found_ty: self.with_ctrct(rhs_ty).to_string(),
-                                span: self.expr_key_to_span(rhs_expr_key),
-                                expected_span: None,
-                            }),
+                        error: CompileError::OperatorInvalidType {
+                            op: op.as_str(),
+                            ty_kind: "non-numeric",
+                            bad_ty: self.with_ctrct(rhs_ty).to_string(),
+                            span: span.clone(),
                         },
                     });
                 }
@@ -2044,7 +2036,7 @@ impl Contract {
                     | BinaryOp::Mod => {
                         // Both args must be numeric, i.e., ints or reals; binary op type is same
                         // as arg types.
-                        check_numeric_args(&lhs_ty, rhs_ty, "numeric");
+                        check_numeric_args(&lhs_ty, rhs_ty);
                         Inference::Type(lhs_ty)
                     }
                     BinaryOp::Equal | BinaryOp::NotEqual => {
@@ -2074,27 +2066,44 @@ impl Contract {
                             is_init_constraint = true;
                         }
 
-                        // Both args must be equatable, which at this stage is any type; binary op
-                        // type is bool.
-                        if !lhs_ty.eq(&self.new_types, rhs_ty)
-                            && !lhs_ty.is_nil()
-                            && !rhs_ty.is_nil()
-                            && !is_init_constraint
-                            && !lhs_ty.is_error()
-                            && !rhs_ty.is_error()
-                        {
+                        // Both args must be equatable, which at this stage is any type *except*
+                        // unions; binary op type is bool.
+                        let lhs_ty_is_union = lhs_ty.is_union(&self.unions);
+                        if lhs_ty_is_union || rhs_ty.is_union(&self.unions) {
                             handler.emit_err(Error::Compile {
-                                error: CompileError::OperatorTypeError {
-                                    arity: "binary",
-                                    large_err: Box::new(LargeTypeError::OperatorTypeError {
-                                        op: op.as_str(),
-                                        expected_ty: self.with_ctrct(lhs_ty).to_string(),
-                                        found_ty: self.with_ctrct(rhs_ty).to_string(),
-                                        span: self.expr_key_to_span(rhs_expr_key),
-                                        expected_span: Some(self.expr_key_to_span(lhs_expr_key)),
-                                    }),
+                                error: CompileError::OperatorInvalidType {
+                                    op: op.as_str(),
+                                    ty_kind: "union",
+                                    bad_ty: self
+                                        .with_ctrct(if lhs_ty_is_union { &lhs_ty } else { rhs_ty })
+                                        .to_string(),
+                                    span: span.clone(),
                                 },
                             });
+                        } else if !lhs_ty.eq(&self.new_types, rhs_ty) {
+                            // Only emit an error if neither side is nil nor error, nor an
+                            // initialiser constraint as per above.
+                            if !lhs_ty.is_nil()
+                                && !rhs_ty.is_nil()
+                                && !lhs_ty.is_error()
+                                && !rhs_ty.is_error()
+                                && !is_init_constraint
+                            {
+                                handler.emit_err(Error::Compile {
+                                    error: CompileError::OperatorTypeError {
+                                        arity: "binary",
+                                        large_err: Box::new(LargeTypeError::OperatorTypeError {
+                                            op: op.as_str(),
+                                            expected_ty: self.with_ctrct(lhs_ty).to_string(),
+                                            found_ty: self.with_ctrct(rhs_ty).to_string(),
+                                            span: self.expr_key_to_span(rhs_expr_key),
+                                            expected_span: Some(
+                                                self.expr_key_to_span(lhs_expr_key),
+                                            ),
+                                        }),
+                                    },
+                                });
+                            }
                         }
 
                         Inference::Type(Type::Primitive {
@@ -2108,7 +2117,7 @@ impl Contract {
                     | BinaryOp::GreaterThanOrEqual
                     | BinaryOp::GreaterThan => {
                         // Both args must be ordinal, i.e., ints, reals; binary op type is bool.
-                        check_numeric_args(&lhs_ty, rhs_ty, "numeric");
+                        check_numeric_args(&lhs_ty, rhs_ty);
                         Inference::Type(Type::Primitive {
                             kind: PrimitiveKind::Bool,
                             span: span.clone(),
