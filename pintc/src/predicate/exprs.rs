@@ -1,6 +1,6 @@
 use super::{Contract, PredKey, Predicate};
 use crate::{
-    expr::{Expr, ExternalIntrinsic, IntrinsicKind, MatchBranch, MatchElse},
+    expr::{Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, MatchBranch, MatchElse},
     predicate::Immediate,
     span::empty_span,
     types::{PrimitiveKind, Type},
@@ -149,8 +149,13 @@ impl ExprKey {
                 lhs.can_panic(contract, pred) || rhs.can_panic(contract, pred)
             }
 
-            Expr::IntrinsicCall { args, .. } => {
-                args.iter().any(|arg| arg.can_panic(contract, pred))
+            Expr::IntrinsicCall { kind, args, .. } => {
+                matches!(
+                    kind.0,
+                    IntrinsicKind::Internal(
+                        InternalIntrinsic::StorageGet | InternalIntrinsic::StorageGetExtern
+                    )
+                ) | args.iter().any(|arg| arg.can_panic(contract, pred))
             }
 
             Expr::Select {
@@ -354,6 +359,15 @@ impl ExprKey {
         }
 
         storage_accesses
+    }
+
+    pub fn is_storage_access(&self, contract: &Contract) -> bool {
+        match self.get(&contract) {
+            Expr::StorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
+            Expr::TupleFieldAccess { tuple, .. } => tuple.is_storage_access(contract),
+            Expr::Index { expr, .. } => expr.is_storage_access(contract),
+            _ => false,
+        }
     }
 }
 

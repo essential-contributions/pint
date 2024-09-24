@@ -629,16 +629,8 @@ impl Contract {
 
         // Checks if a given `ExprKey` is a path to a state var or a "next state" expression. If
         // not, emit an error.
-        let check_state_var_arg = |arg: ExprKey| match arg.try_get(self) {
-            Some(Expr::Path(name, _))
-                if pred
-                    .map(|pred| pred.states().any(|(_, state)| state.name == *name))
-                    .unwrap_or(false) => {}
-            Some(Expr::UnaryOp {
-                op: UnaryOp::NextState,
-                ..
-            }) => {}
-            _ => {
+        let check_state_var_arg = |arg: ExprKey| {
+            if !arg.is_storage_access(self) {
                 handler.emit_err(Error::Compile {
                     error: CompileError::CompareToNilError {
                         op: op.as_str(),

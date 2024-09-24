@@ -165,21 +165,9 @@ impl<'a> AsmBuilder<'a> {
 
                 asm.try_push(handler, StateMemory::Load.into())?;
             }
-
-            // Then, find the _total_ number of words loaded
-            asm.push(Stack::Push(0).into());
-            for i in state_slots.start..state_slots.end {
-                asm.push(Stack::Push(i as i64).into());
-                asm.try_push(handler, StateMemory::ValueLen.into())?;
-                asm.push(Alu::Add.into());
-            }
-        } else {
-            // Otherwise, the data is already on the stack. Just follow with the size of the data
-            // according to the state expr type.
-            asm.push(
-                Stack::Push(state.expr.get_ty(contract).size(handler, contract)? as i64).into(),
-            );
         }
+
+        asm.push(Stack::Push(state.expr.get_ty(contract).size(handler, contract)? as i64).into());
 
         // Now, store the result into the slot allocated for the state var
         asm.try_push(handler, StateMemory::Store.into())?;
@@ -680,34 +668,18 @@ impl<'a> AsmBuilder<'a> {
                 }
             }
 
-            ExternalIntrinsic::StateLen => {
-                // StateLen is handled separately from other intrinsics, for now. This tells me that
-                // its design is flawed somehow. Therefore, we should redesign it properly in the
-                // future so that this function is simplified.
-
-                let is_state = match args[0].try_get(contract) {
-                    Some(Expr::Path(name, _)) => {
-                        pred.states().any(|(_, state)| state.name == *name)
-                    }
-                    Some(Expr::UnaryOp {
-                        op: UnaryOp::NextState,
-                        ..
-                    }) => true,
-                    _ => false,
-                };
-
-                if !is_state {
-                    // the "state length" of non-state expressions is 0
-                    asm.push(ConstraintOp::Stack(Stack::Push(0)));
-                } else if let Location::State(next_state) =
-                    self.compile_expr_pointer(handler, asm, &args[0], contract, pred)?
+            ExternalIntrinsic::StorageLen => {
+                // StorageLen is handled separately from other intrinsics, for now.
+                if let Some(state_slots) =
+                    self.compile_expr_pointer_deref(handler, asm, &args[0], contract, pred)?
                 {
-                    // Remove the placeholder for index computation since it is not needed for
-                    // the `StateLen` opcode.
-                    asm.push(Stack::Pop.into());
-
-                    asm.push(Stack::Push(next_state as i64).into()); // delta
-                    asm.push(Access::StateLen.into()); // Range length for State
+                    // Then, find the _total_ number of words loaded
+                    asm.push(Stack::Push(0).into());
+                    for i in state_slots.start..state_slots.end {
+                        asm.push(Stack::Push(i as i64).into());
+                        asm.try_push(handler, StateMemory::ValueLen.into())?;
+                        asm.push(Alu::Add.into());
+                    }
                 }
             }
 
@@ -762,9 +734,9 @@ impl<'a> AsmBuilder<'a> {
                     }
 
                     ExternalIntrinsic::AddressOf
-                    | ExternalIntrinsic::StateLen
+                    | ExternalIntrinsic::StorageLen
                     | ExternalIntrinsic::VerifyEd25519 => {
-                        unreachable!("StateLen and AddressOf are handled above")
+                        unreachable!("AddressOf, StorageLen, and VerifyEd25519 are handled above")
                     }
 
                     ExternalIntrinsic::VecLen => {
@@ -835,7 +807,7 @@ impl<'a> AsmBuilder<'a> {
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        if then_expr.can_panic(contract, pred) || else_expr.can_panic(contract, pred) {
+        /*if then_expr.can_panic(contract, pred) || else_expr.can_panic(contract, pred) {
             // We need to short circuit these with control flow to avoid potential panics.  The
             // 'else' is put before the 'then' since it's easier to jump-if-true.
             //
@@ -871,20 +843,20 @@ impl<'a> AsmBuilder<'a> {
                 to_end_jump_idx,
                 ConstraintOp::Stack(Stack::Push(then_size as i64 + 1)),
             );
+        } else {*/
+        // Alternatively, evaluate both options and use ASM `select` to choose one.
+        let type_size = then_expr.get_ty(contract).size(handler, contract)?;
+        self.compile_expr(handler, asm, else_expr, contract, pred)?;
+        self.compile_expr(handler, asm, then_expr, contract, pred)?;
+        if type_size == 1 {
+            self.compile_expr(handler, asm, condition, contract, pred)?;
+            asm.push(ConstraintOp::Stack(Stack::Select));
         } else {
-            // Alternatively, evaluate both options and use ASM `select` to choose one.
-            let type_size = then_expr.get_ty(contract).size(handler, contract)?;
-            self.compile_expr(handler, asm, else_expr, contract, pred)?;
-            self.compile_expr(handler, asm, then_expr, contract, pred)?;
-            if type_size == 1 {
-                self.compile_expr(handler, asm, condition, contract, pred)?;
-                asm.push(ConstraintOp::Stack(Stack::Select));
-            } else {
-                asm.push(ConstraintOp::Stack(Stack::Push(type_size as i64)));
-                self.compile_expr(handler, asm, condition, contract, pred)?;
-                asm.push(ConstraintOp::Stack(Stack::SelectRange));
-            }
+            asm.push(ConstraintOp::Stack(Stack::Push(type_size as i64)));
+            self.compile_expr(handler, asm, condition, contract, pred)?;
+            asm.push(ConstraintOp::Stack(Stack::SelectRange));
         }
+        // }
         Ok(Location::Value)
     }
 

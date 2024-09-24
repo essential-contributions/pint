@@ -1,8 +1,8 @@
 // db <<<
 // 0, 1
 // 1, 2
-// 2 0, 3
-// 2 1, 4
+// 2 0, 3 
+// 2 1, 4 
 // >>>
 
 storage {
@@ -16,4 +16,8 @@ predicate Simple {
 
     constraint sum == 1 + 2 + 3 + 4;
     constraint sum' == 7 + 8 + 42 + 43;
+//    state t = storage::t; // == nil) ? { 69, 69 }: storage::t;
+
+//    constraint t == { 69, 70 };
+//    constraint t' == { 42, 43 };
 }

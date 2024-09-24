@@ -60,7 +60,7 @@ pub enum ExternalIntrinsic {
     Sha256,
 
     // Returns the length of a state variable.
-    StateLen,
+    StorageLen,
 
     // Returns the content hash of this predicate.
     ThisAddress,
@@ -86,7 +86,7 @@ impl Display for ExternalIntrinsic {
             Self::PredicateAt => write!(f, "__predicate_at"),
             Self::RecoverSECP256k1 => write!(f, "__recover_secp256k1"),
             Self::Sha256 => write!(f, "__sha256"),
-            Self::StateLen => write!(f, "__state_len"),
+            Self::StorageLen => write!(f, "__storage_len"),
             Self::ThisAddress => write!(f, "__this_address"),
             Self::ThisContractAddress => write!(f, "__this_contract_address"),
             Self::ThisPathway => write!(f, "__this_pathway"),
@@ -112,7 +112,7 @@ impl ExternalIntrinsic {
             Self::Sha256 => vec![
                 any(), // data to hash
             ],
-            Self::StateLen => vec![
+            Self::StorageLen => vec![
                 any(), // path to a state var
             ],
             Self::ThisAddress => vec![],
@@ -135,7 +135,7 @@ impl ExternalIntrinsic {
             Self::PredicateAt => tuple(vec![b256(), b256()]),
             Self::RecoverSECP256k1 => tuple(vec![b256(), int()]),
             Self::Sha256 => b256(),
-            Self::StateLen => int(),
+            Self::StorageLen => int(),
             Self::ThisAddress => b256(),
             Self::ThisContractAddress => b256(),
             Self::ThisPathway => int(),

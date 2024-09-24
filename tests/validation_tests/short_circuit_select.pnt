@@ -8,18 +8,23 @@ storage {
 }
 
 predicate Test {
-    state x = storage::x;
+//    state c1 = true ? storage::x == 42 : true;
+//    state c2 = storage::x == nil ? true : storage::x == 42;
 
     // `x` here is set in the pre state db.  Selecting it should still work.
 
-    constraint true ? x == 42 : true;
-    constraint x == nil ? true : x == 42;
+//    constraint c1; 
+//    constraint c1';
+//    constraint c2; 
+//    constraint c2';
 
-    state y = storage::y;
+    state c3 = storage::y == nil ? true : storage::y == 42;
+    state c4 = true; //false ? storage::y != 42 : true;
 
     // `y` here is `nil` because it's not set in the pre state db, so comparing it to 42 should panic.
     // However, the constraint should still pass due to the short-circuit.
 
-    constraint y == nil ? true : y == 42;
-    constraint false ? y != 42 : true;
+    constraint c3;
+//    constraint c3';
+    constraint c4;
 }

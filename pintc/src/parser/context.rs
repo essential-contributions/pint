@@ -683,7 +683,7 @@ impl<'a> ParserContext<'a> {
                     }
                     "__sha256" => IntrinsicKind::External(ExternalIntrinsic::Sha256),
                     "__address_of" => IntrinsicKind::External(ExternalIntrinsic::AddressOf),
-                    "__state_len" => IntrinsicKind::External(ExternalIntrinsic::StateLen),
+                    "__storage_len" => IntrinsicKind::External(ExternalIntrinsic::StorageLen),
                     "__this_address" => IntrinsicKind::External(ExternalIntrinsic::ThisAddress),
                     "__this_contract_address" => {
                         IntrinsicKind::External(ExternalIntrinsic::ThisContractAddress)
