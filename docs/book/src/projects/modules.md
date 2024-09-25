@@ -22,10 +22,10 @@ throughout this chapter, but this is a great place to refer to as a reminder of 
 - **Declaring submodules**: In any directory other than the package root directory, you can create
   new _submodules_. For example, say you want to declare a submodule of `garden` named `vegetables`.
   You have two options:
-  - You can create the file `src/garden/vegetables.rs` if you want the `vegetables` submodule to be
+  - You can create the file `src/garden/vegetables.pnt` if you want the `vegetables` submodule to be
     a _single file_ submodule. That is, if you don't want the submodule `vegetables` to have its own
     submodules.
-  - You can create the file `src/garden/vegetables/vegetables.rs` if you want the `vegetables`
+  - You can create the file `src/garden/vegetables/vegetables.pnt` if you want the `vegetables`
     submodules to be a _multi-file submodule_. That is, if you want the submodule `vegetables` to
     have its own submodules.
 - **Paths to code in modules**: Once a module is part of your package, you can refer to code in that
