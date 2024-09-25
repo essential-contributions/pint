@@ -1,10 +1,7 @@
 mod array_check;
 mod type_check;
 
-use super::{
-    BlockStatement, Const, ConstraintDecl, Contract, Expr, ExprKey, Ident, IfDecl,
-    InterfaceInstance, MatchDecl, Predicate, PredicateInstance, VarKey,
-};
+use super::{Const, Contract, Expr, ExprKey, Ident};
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::evaluate::Evaluator,
@@ -49,7 +46,7 @@ impl Contract {
         let _ = handler.scope(|handler| self.check_undefined_types(handler));
         let _ = handler.scope(|handler| self.lower_custom_types(handler));
         let _ = handler.scope(|handler| self.check_storage_types(handler));
-        let _ = handler.scope(|handler| self.type_check_all_exprs(handler));
+        let _ = handler.scope(|handler| self.type_check_all(handler));
         let _ = handler.scope(|handler| self.check_types_of_variables(handler));
         let _ = handler.scope(|handler| self.check_inits(handler));
         let _ = handler.scope(|handler| self.check_constraint_types(handler));
