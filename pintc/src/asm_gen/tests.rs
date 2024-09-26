@@ -138,8 +138,7 @@ fn unary_not() {
                   Stack(Push(0))
                   Stack(Push(1))
                   Access(DecisionVarRange)
-                  Stack(Push(1))
-                  Pred(Not)
+                  Stack(Push(0))
                   Pred(Eq)
                 constraint 1
                   Stack(Push(0))
