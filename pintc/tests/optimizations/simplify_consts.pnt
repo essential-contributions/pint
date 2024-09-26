@@ -1,9 +1,7 @@
 predicate Test {
     var a = 1 + 2;
     var b = 1 - 2;
-
-    var x: int;
-    constraint x + 1 + 2 == 4;  // should be simplified to constraint x + 3 == 4;
+    var c = (1 + 2) - 3 + 4 - (2 - 5);
 }
 
 // parsed <<<
