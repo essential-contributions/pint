@@ -1,17 +1,16 @@
+mod const_folding;
 mod dead_code_elimination;
-mod expr_simplification;
 
+use const_folding::const_folding;
 use dead_code_elimination::dead_code_elimination;
-use expr_simplification::simplify_exprs;
 
 use crate::error::Handler;
 
 impl super::Contract {
     pub fn optimize(mut self, handler: &Handler) -> Self {
-        // Remove dead code
         dead_code_elimination(handler, &mut self);
 
-        simplify_exprs(&mut self);
+        const_folding(&mut self);
 
         self
     }
