@@ -1,5 +1,3 @@
-// <disabled>
-
 type num = int;
 type ary = num[2 + 1];
 
@@ -39,10 +37,10 @@ predicate test {
 
 // flattened <<<
 // type ::num = int;
-// type ::ary = int[3];
+// type ::ary = ::num (int)[3];
 // interface ::i {
 //     storage {
-//         x: int[3];
+//         x: int[3],
 //     }
 //     predicate p {
 //         pub var x1: int[3];
