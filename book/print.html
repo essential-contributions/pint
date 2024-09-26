@@ -1510,7 +1510,7 @@ throughout this chapter, but this is a great place to refer to as a reminder of 
 <ul>
 <li><strong>Start from the package root</strong>: When compiling a package, the compiler first looks for code to
 compile in the package root file, which is <code> src/lib.pnt</code> for a library package or
-<code>src/contract.rs</code> for a contract package.</li>
+<code>src/contract.pnt</code> for a contract package.</li>
 <li><strong>Declaring modules</strong>: You can declare new modules by creating files for them in the appropriate
 directories. Say you want to declare a new <code>garden</code> module. You have two options:
 <ul>
@@ -1525,10 +1525,10 @@ would then live in the <code>src/garden</code> directory.</li>
 new <em>submodules</em>. For example, say you want to declare a submodule of <code>garden</code> named <code>vegetables</code>.
 You have two options:
 <ul>
-<li>You can create the file <code>src/garden/vegetables.rs</code> if you want the <code>vegetables</code> submodule to be
+<li>You can create the file <code>src/garden/vegetables.pnt</code> if you want the <code>vegetables</code> submodule to be
 a <em>single file</em> submodule. That is, if you don't want the submodule <code>vegetables</code> to have its own
 submodules.</li>
-<li>You can create the file <code>src/garden/vegetables/vegetables.rs</code> if you want the <code>vegetables</code>
+<li>You can create the file <code>src/garden/vegetables/vegetables.pnt</code> if you want the <code>vegetables</code>
 submodules to be a <em>multi-file submodule</em>. That is, if you want the submodule <code>vegetables</code> to
 have its own submodules.</li>
 </ul>
@@ -1549,10 +1549,10 @@ directory, also named <code>backyard</code>, contains these files and directorie
 └── src
     ├── contract.pnt
     └── garden
-        ├── garden.rs
-        └── vegetables.rs
+        ├── garden.pnt
+        └── vegetables.pnt
 </code></pre>
-<p>The package root file is <code>src/contract.rs</code> since this is a contract package. It contains:</p>
+<p>The package root file is <code>src/contract.pnt</code> since this is a contract package. It contains:</p>
 <pre><code class="language-pint">use garden::vegetables::Asparagus;
 
 predicate Foo {
