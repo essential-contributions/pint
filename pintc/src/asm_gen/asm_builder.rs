@@ -959,8 +959,8 @@ impl AsmBuilder<'_> {
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
         // Find the tag string in the union decl and convert to an index.
-        let tag_num = union_expr_key
-            .get_ty(contract)
+        let union_ty = union_expr_key.get_ty(contract);
+        let tag_num = union_ty
             .get_union_variant_names(&contract.unions)
             .into_iter()
             .enumerate()
@@ -974,10 +974,22 @@ impl AsmBuilder<'_> {
                 })
             })?;
 
+        // Track the actual value size in words.
+        let mut actual_value_size = 0;
+
         // Push the tag and then compile the value if necessary.
         asm.push(Stack::Push(tag_num as i64).into());
         if let Some(value_key) = value {
             self.compile_expr(handler, asm, value_key, contract, pred)?;
+            actual_value_size = value_key.get_ty(contract).size(handler, contract)?;
+        }
+
+        // Get the total union (max) size MINUS one since .size() includes the tag word.
+        let union_value_size = union_ty.size(handler, contract)? - 1;
+        while union_value_size > actual_value_size {
+            // Pad out the value with zeros.
+            asm.push(Stack::Push(0).into());
+            actual_value_size += 1;
         }
 
         Ok(Location::Value)
@@ -996,7 +1008,8 @@ impl AsmBuilder<'_> {
         // the front.
         match self.compile_expr_pointer(handler, asm, union_expr_key, contract, pred)? {
             Location::DecisionVar => {
-                asm.push(Access::DecisionVar.into());
+                asm.push(Stack::Push(1).into()); // len
+                asm.push(Access::DecisionVarRange.into());
             }
 
             // Are these supported?

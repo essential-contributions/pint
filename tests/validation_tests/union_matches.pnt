@@ -1,0 +1,45 @@
+union thing = a(bool) | b(int) | c({int, int});
+
+predicate test {
+    var x: thing;
+
+    // Boolean match expression.
+    constraint match x {
+        thing::a(b) => b,
+        thing::b(n) => n > 0,
+        thing::c(t) => t.0 + t.1 == 11
+    };
+
+    // Integer match expression in a constraint with `else`.
+    constraint match x {
+        thing::b(b) => b,
+        else => 22,
+    } > 0;
+
+    // Boolean match expression with blocks & constraints.
+    constraint match x {
+        thing::a(b) => b,
+        thing::b(n) => {
+            constraint n > 0;
+            n * 2 < 10
+        },
+        thing::c(t) => {
+            constraint t.0 == 33;
+            constraint t.1 != 44;
+            true
+        }
+    };
+
+    // Non-expression match.  Also refers to other var `d`.
+    var d: int;
+    match x {
+        thing::a(b) => {},
+        thing::c(t) => {
+            constraint t.0 * t.1 == 66;
+            constraint d == t.0 - t.1;
+        }
+        else => {
+            constraint d == 55;
+        }
+    }
+}

@@ -261,6 +261,27 @@ impl Contract {
             .iter_mut()
             .for_each(|NewTypeDecl { ty, .. }| ty.replace_type_expr(old_expr, new_expr));
 
+        self.interfaces.iter_mut().for_each(
+            |Interface {
+                 storage,
+                 predicate_interfaces,
+                 ..
+             }| {
+                if let Some((storage_vars, _)) = storage {
+                    storage_vars
+                        .iter_mut()
+                        .for_each(|StorageVar { ty, .. }| ty.replace_type_expr(old_expr, new_expr))
+                }
+                predicate_interfaces
+                    .iter_mut()
+                    .for_each(|PredicateInterface { vars, .. }| {
+                        vars.iter_mut().for_each(|InterfaceVar { ty, .. }| {
+                            ty.replace_type_expr(old_expr, new_expr)
+                        });
+                    });
+            },
+        );
+
         if let Some(pred_key) = pred_key {
             self.preds
                 .get_mut(pred_key)

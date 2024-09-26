@@ -545,6 +545,29 @@ pub(crate) fn lower_array_ranges(
         })
         .collect();
 
+    for Interface {
+        storage,
+        predicate_interfaces,
+        ..
+    } in &contract.interfaces
+    {
+        if let Some((storage_vars, _)) = storage {
+            array_range_expr_keys.extend(storage_vars.iter().filter_map(
+                |StorageVar { ty, .. }| {
+                    dbg!(ty.get_array_range_expr());
+                    ty_non_int_range_expr(contract, None, ty)
+                },
+            ));
+        }
+
+        array_range_expr_keys.extend(predicate_interfaces.iter().flat_map(
+            |PredicateInterface { vars, .. }| {
+                vars.iter()
+                    .filter_map(|InterfaceVar { ty, .. }| ty_non_int_range_expr(contract, None, ty))
+            },
+        ));
+    }
+
     for pred_key in contract.preds.keys() {
         array_range_expr_keys.extend(contract.exprs(pred_key).filter_map(|expr_key| {
             ty_non_int_range_expr(contract, Some(pred_key), expr_key.get_ty(contract))
