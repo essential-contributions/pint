@@ -1,0 +1,45 @@
+predicate Test {
+    var a = 1 + 2;
+    var b = 1 - 2;
+
+    var x: int;
+    constraint x + 1 + 2 == 4;  // should be simplified to constraint x + 3 == 4;
+}
+
+// parsed <<<
+// predicate ::Test {
+//     var ::a;
+//     var ::b;
+//     var ::x: int;
+//     constraint (::a == (1 + 2));
+//     constraint (::b == (1 - 2));
+//     constraint (((::x + 1) + 2) == 4);
+// }
+// >>>
+
+// flattened <<<
+// predicate ::Test {
+//     var ::a: int;
+//     var ::b: int;
+//     var ::x: int;
+//     constraint (::a == (1 + 2));
+//     constraint (::b == (1 - 2));
+//     constraint (((::x + 1) + 2) == 4);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
+
+// optimized <<<
+// predicate ::Test {
+//     var ::a: int;
+//     var ::b: int;
+//     var ::x: int;
+//     constraint (::a == 3); -- this is working
+//     constraint (::b == -1); -- this is working
+//     constraint (((::x + 1) + 2) == 4); -- ideally becomes constraint ((::x + 3) == 4);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
+
+// warnings >>>
+// <<<
