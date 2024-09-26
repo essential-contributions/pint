@@ -21,8 +21,6 @@ predicate test {
 
 // typecheck_failure <<<
 // operator invalid type error
-// @91..109: invalid union type `::pet` for operator `==`
-// operator invalid type error
 // @126..143: invalid non-numeric type `::pet` for operator `>`
 // operator invalid type error
 // @160..185: invalid non-numeric type `::pet` for operator `<=`
