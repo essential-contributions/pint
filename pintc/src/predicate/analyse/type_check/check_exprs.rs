@@ -692,19 +692,7 @@ impl Contract {
 
                         // Both args must be equatable, which at this stage is any type *except*
                         // unions; binary op type is bool.
-                        let lhs_ty_is_union = lhs_ty.is_union(&self.unions);
-                        if lhs_ty_is_union || rhs_ty.is_union(&self.unions) {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::OperatorInvalidType {
-                                    op: op.as_str(),
-                                    ty_kind: "union",
-                                    bad_ty: self
-                                        .with_ctrct(if lhs_ty_is_union { &lhs_ty } else { rhs_ty })
-                                        .to_string(),
-                                    span: span.clone(),
-                                },
-                            });
-                        } else if !lhs_ty.eq(&self.new_types, rhs_ty) {
+                        if !lhs_ty.eq(&self.new_types, rhs_ty) {
                             // Only emit an error if neither side is nil nor error, nor an
                             // initialiser constraint as per above.
                             if !lhs_ty.is_nil()
