@@ -734,9 +734,11 @@ impl Type {
                 ty_to: Box::new((*ty_to).abi(handler, contract)?),
             }),
 
-            // This, of course, is incorrect. It's just a placeholder until we can support ABI gen
-            // for storage vectors
+            // These, of course, are incorrect. It's just a placeholder until we can support ABI gen
+            // for them, which is non-trivial.
             Type::Vector { .. } => Ok(TypeABI::Int),
+            Type::Union { .. } => Ok(TypeABI::Int),
+
             _ => unimplemented!("other types are not yet supported"),
         }
     }
