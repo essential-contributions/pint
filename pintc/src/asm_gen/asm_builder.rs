@@ -996,7 +996,8 @@ impl AsmBuilder<'_> {
         // the front.
         match self.compile_expr_pointer(handler, asm, union_expr_key, contract, pred)? {
             Location::DecisionVar => {
-                asm.push(Access::DecisionVar.into());
+                asm.push(Stack::Push(1).into()); // len
+                asm.push(Access::DecisionVarRange.into());
             }
 
             // Are these supported?
