@@ -10,10 +10,10 @@ predicate Test {
 // predicate ::Test {
 //     var ::a;
 //     var ::b;
-//     var ::x: int;
+//     var ::c;
 //     constraint (::a == (1 + 2));
 //     constraint (::b == (1 - 2));
-//     constraint (((::x + 1) + 2) == 4);
+//     constraint (::c == ((((1 + 2) - 3) + 4) - (2 - 5)));
 // }
 // >>>
 
@@ -21,10 +21,10 @@ predicate Test {
 // predicate ::Test {
 //     var ::a: int;
 //     var ::b: int;
-//     var ::x: int;
+//     var ::c: int;
 //     constraint (::a == (1 + 2));
 //     constraint (::b == (1 - 2));
-//     constraint (((::x + 1) + 2) == 4);
+//     constraint (::c == ((((1 + 2) - 3) + 4) - (2 - 5)));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
@@ -33,10 +33,10 @@ predicate Test {
 // predicate ::Test {
 //     var ::a: int;
 //     var ::b: int;
-//     var ::x: int;
-//     constraint (::a == 3); -- this is working
-//     constraint (::b == -1); -- this is working
-//     constraint (((::x + 1) + 2) == 4); -- ideally becomes constraint ((::x + 3) == 4);
+//     var ::c: int;
+//     constraint (::a == 3);
+//     constraint (::b == -1);
+//     constraint (::c == 7);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
