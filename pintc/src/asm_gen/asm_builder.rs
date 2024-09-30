@@ -351,25 +351,54 @@ impl<'a> AsmBuilder<'a> {
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        fn compile_immediate(asm: &mut Asm, imm: &Immediate) {
+        fn compile_immediate(asm: &mut Asm, imm: &Immediate) -> usize {
             match imm {
-                Immediate::Int(val) | Immediate::Enum(val, _) => asm.push(Stack::Push(*val).into()),
-                Immediate::Bool(val) => asm.push(Stack::Push(*val as i64).into()),
+                Immediate::Int(val) | Immediate::Enum(val, _) => {
+                    asm.push(Stack::Push(*val).into());
+                    1
+                }
+                Immediate::Bool(val) => {
+                    asm.push(Stack::Push(*val as i64).into());
+                    1
+                }
                 Immediate::B256(val) => {
                     asm.push(Stack::Push(val[0] as i64).into());
                     asm.push(Stack::Push(val[1] as i64).into());
                     asm.push(Stack::Push(val[2] as i64).into());
                     asm.push(Stack::Push(val[3] as i64).into());
+                    4
                 }
                 Immediate::Array(elements) => {
+                    let mut value_size = 0;
                     for element in elements {
-                        compile_immediate(asm, element);
+                        value_size += compile_immediate(asm, element);
                     }
+                    value_size
                 }
                 Immediate::Tuple(fields) => {
+                    let mut value_size = 0;
                     for (_, field) in fields {
-                        compile_immediate(asm, field);
+                        value_size += compile_immediate(asm, field);
                     }
+                    value_size
+                }
+                Immediate::UnionVariant {
+                    tag_num,
+                    value_size: max_size,
+                    value,
+                    ..
+                } => {
+                    asm.push(Stack::Push(*tag_num).into());
+
+                    let mut value_size = 0;
+                    if let Some(value) = value {
+                        value_size = compile_immediate(asm, value);
+                    }
+                    while value_size < *max_size {
+                        asm.push(Stack::Push(0).into());
+                        value_size += 1;
+                    }
+                    value_size
                 }
                 Immediate::Error | Immediate::Nil | Immediate::Real(_) | Immediate::String(_) => {
                     unreachable!("Unexpected literal")

@@ -161,6 +161,12 @@ pub enum Immediate {
     B256([u64; 4]),
     Array(Vec<Immediate>),
     Tuple(Vec<(Option<Ident>, Immediate)>),
+    UnionVariant {
+        tag_num: i64,
+        value_size: usize,
+        value: Option<Box<Immediate>>,
+        ty_path: Path,
+    },
 }
 
 impl Immediate {
@@ -198,6 +204,11 @@ impl Immediate {
                 span,
             },
 
+            Immediate::UnionVariant { ty_path, .. } => Type::Union {
+                path: ty_path.to_string(),
+                span,
+            },
+
             _ => Type::Primitive {
                 kind: match self {
                     Immediate::Nil => PrimitiveKind::Nil,
@@ -210,7 +221,8 @@ impl Immediate {
                     Immediate::Error
                     | Immediate::Array { .. }
                     | Immediate::Tuple(_)
-                    | Immediate::Enum(..) => {
+                    | Immediate::Enum(..)
+                    | Immediate::UnionVariant { .. } => {
                         unreachable!()
                     }
                 },

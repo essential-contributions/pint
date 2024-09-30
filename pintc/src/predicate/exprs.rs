@@ -431,7 +431,7 @@ impl<'a> ExprsIter<'a> {
 
         // Add the array range expressions from storage, interfaces and new-types.
         if with_array_ranges {
-            queue.extend(contract.root_exprs());
+            queue.extend(contract.root_array_range_exprs());
         }
 
         ExprsIter {

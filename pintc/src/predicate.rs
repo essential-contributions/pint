@@ -373,8 +373,8 @@ impl Contract {
         (storage_index, &storage[storage_index])
     }
 
-    pub(crate) fn root_exprs(&self) -> impl Iterator<Item = ExprKey> + '_ {
-        // This currently only fetches array type range expressions and does not include consts.
+    pub(crate) fn root_array_range_exprs(&self) -> impl Iterator<Item = ExprKey> + '_ {
+        // This currently only fetches array type range expressions.
         self.storage
             .iter()
             .flat_map(|(storage_vars, _)| {
@@ -417,6 +417,11 @@ impl Contract {
                         variants.iter().flat_map(|UnionVariant { ty, .. }| ty)
                     })
                     .flat_map(|ty| ty.get_all_array_range_exprs()),
+            )
+            .chain(
+                self.consts
+                    .values()
+                    .filter_map(|Const { decl_ty, .. }| decl_ty.get_array_range_expr()),
             )
     }
 }

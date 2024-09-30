@@ -526,22 +526,28 @@ pub(crate) fn lower_array_ranges(
     // (One day we'll have `var` ranges, but we'll ignore them.)
 
     // Check if an expr key is to an immediate.
-    let is_not_immediate = |contract: &Contract, expr_key: ExprKey| {
-        !matches!(expr_key.get(contract), Expr::Immediate { .. })
+    let expr_is_not_int_nor_enum = |contract: &Contract, expr_key: ExprKey| {
+        !matches!(
+            expr_key.get(contract),
+            Expr::Immediate {
+                value: Immediate::Int(_) | Immediate::Enum(..),
+                ..
+            }
+        )
     };
 
     // Get an array range expression from a type iff it's not already an immediate.
     let ty_non_int_range_expr = |contract: &Contract, pred_key: Option<PredKey>, ty: &Type| {
         ty.get_array_range_expr().and_then(|range_expr_key| {
-            is_not_immediate(contract, range_expr_key).then_some((pred_key, range_expr_key))
+            expr_is_not_int_nor_enum(contract, range_expr_key).then_some((pred_key, range_expr_key))
         })
     };
 
     // Get all the non-immediate array range exprs from the contract root exprs.
     let mut array_range_expr_keys: Vec<(Option<PredKey>, ExprKey)> = contract
-        .root_exprs()
+        .root_array_range_exprs()
         .filter_map(|range_expr_key| {
-            is_not_immediate(contract, range_expr_key).then_some((None, range_expr_key))
+            expr_is_not_int_nor_enum(contract, range_expr_key).then_some((None, range_expr_key))
         })
         .collect();
 
@@ -552,12 +558,11 @@ pub(crate) fn lower_array_ranges(
     } in &contract.interfaces
     {
         if let Some((storage_vars, _)) = storage {
-            array_range_expr_keys.extend(storage_vars.iter().filter_map(
-                |StorageVar { ty, .. }| {
-                    ty.get_array_range_expr();
-                    ty_non_int_range_expr(contract, None, ty)
-                },
-            ));
+            array_range_expr_keys.extend(
+                storage_vars
+                    .iter()
+                    .filter_map(|StorageVar { ty, .. }| ty_non_int_range_expr(contract, None, ty)),
+            );
         }
 
         array_range_expr_keys.extend(predicate_interfaces.iter().flat_map(
