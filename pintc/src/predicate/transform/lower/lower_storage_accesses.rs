@@ -316,6 +316,7 @@ fn get_base_storage_key(
                 None, // local storage
                 *mutable,
                 if storage_var.ty.is_any_primitive()
+                    || storage_var.ty.is_union(&contract.unions)
                     || storage_var.ty.is_map()
                     || storage_var.ty.is_vector()
                 {
@@ -354,6 +355,7 @@ fn get_base_storage_key(
                 // constrained by their own contracts.
                 false,
                 if storage_var.ty.is_any_primitive()
+                    || storage_var.ty.is_union(&contract.unions)
                     || storage_var.ty.is_map()
                     || storage_var.ty.is_vector()
                 {

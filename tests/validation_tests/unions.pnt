@@ -1,0 +1,14 @@
+union U = A(int) | B(b256);
+
+storage {
+    u: U,
+    v: U,
+}
+
+predicate Foo {
+    state u = mut storage::u;
+    state v = mut storage::v;
+
+    constraint u' == U::A(5);
+    constraint v' == U::B(0x0000000000000002000000000000000200000000000000020000000000000002);
+}

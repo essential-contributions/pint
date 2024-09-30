@@ -1,0 +1,7 @@
+[[data]]
+predicate_to_solve = { predicate = "::Foo" }
+decision_variables = []
+state_mutations = [
+  { key = [0], value = [0, 5, 0, 0, 0] }, # storage::x
+  { key = [1], value = [1, 2, 2, 2, 2] }, # storage::x
+]

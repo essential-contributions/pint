@@ -513,10 +513,10 @@ impl Type {
                 // aliases have been lowered by now
                 false
             }
-            Type::Union { .. } => {
+            /*Type::Union { .. } => {
                 // Also disallow unions for now.
                 false
-            }
+            }*/
             _ => true,
         }
     }
@@ -638,6 +638,10 @@ impl Type {
             // `Vector` also takes up a single storage slot that stores the length of the vector
             Self::Vector { .. } => Ok(1),
 
+            // Unions fit in a single slot since we can't access within a union without a `match`
+            // first. So, might as well store the whole thing in a single key
+            Self::Union { .. } => Ok(1),
+
             // Not expecting any of these types at this stage. These are either unsupported types
             // (like `String` and `Real`) or types that should have been resolved by the time we
             // need their size (like `Custom` and `Alias`)
@@ -649,7 +653,6 @@ impl Type {
             | Self::Unknown(span)
             | Self::Any(span)
             | Self::Custom { span, .. }
-            | Self::Union { span, .. }
             | Self::Alias { span, .. } => Err(handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "unexpected type when calculating storage slots",
@@ -771,6 +774,7 @@ impl Type {
             // for them, which is non-trivial.
             Type::Vector { .. } => Ok(TypeABI::Int),
             Type::Union { .. } => Ok(TypeABI::Int),
+            Type::Custom { .. } => Ok(TypeABI::Int),
 
             _ => unimplemented!("other types are not yet supported"),
         }
