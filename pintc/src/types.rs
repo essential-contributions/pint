@@ -568,7 +568,7 @@ impl Type {
     /// Calculate the number of storage or pub var slots required for this type. All primitive
     /// types fit in a single slot even if their size is > 1. The math is the same for storage and
     /// pub var data
-    pub fn storage_or_pub_var_slots(
+    pub fn storage_slots(
         &self,
         handler: &Handler,
         contract: &Contract,
@@ -581,13 +581,13 @@ impl Type {
 
             Self::Tuple { fields, .. } => fields.iter().try_fold(0, |acc, (_, field_ty)| {
                 field_ty
-                    .storage_or_pub_var_slots(handler, contract)
+                    .storage_slots(handler, contract)
                     .map(|slots| acc + slots)
             }),
 
             Self::Array {
                 ty, range, size, ..
-            } => Ok(ty.storage_or_pub_var_slots(handler, contract)?
+            } => Ok(ty.storage_slots(handler, contract)?
                 * size.unwrap_or(Self::get_array_size_from_range_expr(
                     handler,
                     range

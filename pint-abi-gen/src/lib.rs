@@ -10,7 +10,7 @@
 //! - A `mod` representing `storage`.
 //! - For each `predicate`, a module with the following:
 //!     - A `Vars` struct for the predicate's decision variables.
-//!     - A `pub_vars` mod for the predicate's public decision variables.
+//!     - A `PubVars` struct for the predicate's public decision variables.
 //!
 //! The aim for the generated items is to ease the construction of solutions
 //! including the encoding of keys, values and mutations from higher-level types.
@@ -30,7 +30,9 @@ mod array;
 mod keys;
 mod map;
 mod mutations;
+mod pub_vars;
 mod tuple;
+mod utils;
 mod vars;
 
 /// The name of the root module within the predicate set produced by the compiler.
@@ -130,7 +132,7 @@ fn items_from_predicate(
         items.extend(vars::items(&predicate.vars));
     }
     if !predicate.pub_vars.is_empty() {
-        items.push(mod_from_keyed_vars("pub_vars", &predicate.pub_vars).into());
+        items.extend(pub_vars::items(&predicate.pub_vars));
     }
     items
 }
@@ -330,7 +332,7 @@ fn items_from_keyed_vars(vars: &[VarABI]) -> Vec<syn::Item> {
 
 /// Create a module with `mutations` and `keys` fns for the given keyed vars.
 ///
-/// This is used for both `storage` and `pub_vars` mod generation.
+/// This is used for `storage` mod generation.
 fn mod_from_keyed_vars(mod_name: &str, vars: &[VarABI]) -> syn::ItemMod {
     let items = items_from_keyed_vars(vars);
     let mod_ident = syn::Ident::new(mod_name, Span::call_site());

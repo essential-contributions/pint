@@ -10,7 +10,7 @@ use crate::{
 };
 use essential_types::{predicate::Predicate as CompiledPredicate, ContentAddress};
 use state_asm::{
-    Access, Alu, Constraint as ConstraintOp, Crypto, Op as StateOp, Pred, Stack, StateSlots,
+    Access, Alu, Constraint as ConstraintOp, Crypto, Op as StateOp, Pred, Stack, StateMemory,
     TotalControlFlow,
 };
 use std::collections::HashMap;
@@ -25,6 +25,12 @@ pub struct AsmBuilder<'a> {
     pub constraint_programs: Vec<Vec<ConstraintOp>>,
     // A reference to a list of the predicate addresses which are known so far
     pub compiled_predicates: &'a HashMap<String, (CompiledPredicate, ContentAddress)>,
+    // A reference to a map from names of state variables to the chosen state slot index.
+    pub slot_indices: HashMap<String, usize>,
+    // This keeps track of the total number of slots allocated so far, globally
+    pub total_slots: usize,
+    // This keeps track of which state var we're currently compiling, if any
+    pub current_state_var: Option<String>,
 }
 
 /// A single assembly program which may be a "constraint program" or a "state program"
@@ -93,14 +99,13 @@ impl Asm {
 /// 3. `Storage` expressions refer to expressions that are storage keys and need to be read from
 ///    using `KeyRange` or `KeyRangeExtern`. The `bool` is `true` if the storage access is external
 ///    (i.e. requires `KeyRangeExtern`) and `false` otherwise.
-/// 4. `PubVar` expressions refer to expressions that require the `PubVar` opcode. The `ExprKey` is
-///    the pathway.
+/// 4. `PubVar` expressions refer to expressions that require the `PubVar` opcode.
 /// 5. `Value` expressions are just raw values such as immediates or the outputs of binary ops.
 enum Location {
     DecisionVar,
     State(bool),
     Storage(bool),
-    PubVar(ExprKey),
+    PubVar,
     Value,
 }
 
@@ -145,7 +150,7 @@ impl AsmBuilder<'_> {
     /// Generates assembly for an `ExprKey` and insert it into `asm`. Returns the number of opcodes
     /// used to express `expr`.
     fn compile_expr(
-        &self,
+        &mut self,
         handler: &Handler,
         asm: &mut Asm,
         expr: &ExprKey,
@@ -158,70 +163,34 @@ impl AsmBuilder<'_> {
         match self.compile_expr_pointer(handler, asm, expr, contract, pred)? {
             Location::DecisionVar => {
                 asm.push(Stack::Push(expr_ty.size(handler, contract)? as i64).into()); // len
-                asm.push(Access::DecisionVarRange.into());
+                asm.push(Access::DecisionVar.into());
                 Ok(asm.len() - old_asm_len)
             }
 
             Location::State(next_state) => {
-                let mut primitive_elements: Vec<usize> = Vec::new();
-                expr_ty.primitive_elements(handler, contract, &mut primitive_elements)?;
-
-                // Each primitive element in the type lives in its own slot. Go over each primitive
-                // element and read it separately.
-                for (i, _size) in primitive_elements.iter().enumerate() {
-                    // _size will be used when we switch to the new access opcodes
-                    //
-                    // if `i == 0`, the state slot is already computed. Otherwise, compile
-                    // again and offset
-                    if i > 0 {
-                        self.compile_expr_pointer(handler, asm, expr, contract, pred)?;
-                        asm.push(Stack::Push(i as i64).into());
-                        asm.push(Alu::Add.into()); // slot_ix
-                    }
-
-                    asm.push(Stack::Push(next_state as i64).into()); // delta
-                    asm.push(Access::State.into());
-                }
-
+                asm.push(Stack::Push(expr_ty.size(handler, contract)? as i64).into()); // value_len
+                asm.push(Stack::Push(next_state as i64).into()); // delta
+                asm.push(Access::State.into());
                 Ok(asm.len() - old_asm_len)
             }
 
-            Location::PubVar(pathway) => {
-                let mut primitive_elements: Vec<usize> = Vec::new();
-                expr_ty.primitive_elements(handler, contract, &mut primitive_elements)?;
-
-                // Each primitive element in the type gets its own key. Go over each primitive
-                // element and read it separately.
-                for (i, _size) in primitive_elements.iter().enumerate() {
-                    // _size will be used when we switch to the new access opcodes
-                    //
-                    // if `i == 0`, the pub var key is already computed. Otherwise, compile again
-                    // and offset. We need to swap first because the computed key also includes the
-                    // key length at the end
-                    if i > 0 {
-                        self.compile_expr_pointer(handler, asm, expr, contract, pred)?;
-                        asm.push(Stack::Swap.into());
-                        asm.push(Stack::Push(i as i64).into());
-                        asm.push(Alu::Add.into());
-                        asm.push(Stack::Swap.into());
-                    }
-
-                    self.compile_expr(handler, asm, &pathway, contract, pred)?;
-                    asm.push(ConstraintOp::Access(Access::Transient));
-                }
+            Location::PubVar => {
+                asm.push(Stack::Push(expr_ty.size(handler, contract)? as i64).into()); // value_len
+                asm.push(ConstraintOp::Access(Access::PubVar));
                 Ok(asm.len() - old_asm_len)
             }
 
             Location::Value => Ok(asm.len() - old_asm_len),
 
             Location::Storage(is_extern) => {
-                let num_keys_to_read = expr_ty.storage_or_pub_var_slots(handler, contract)?;
+                let num_keys_to_read = expr_ty.storage_slots(handler, contract)?;
 
-                // Allocate slots
+                // Allocate as many slots as we have keys
                 asm.push(Stack::Push(num_keys_to_read as i64).into());
-                asm.try_push(handler, StateSlots::AllocSlots.into())?;
+                asm.try_push(handler, StateMemory::AllocSlots.into())?;
+                self.total_slots += num_keys_to_read;
 
-                // Read the storage keys into the slots
+                // Read the storage keys into the slots, starting with local index 0
                 asm.push(Stack::Push(num_keys_to_read as i64).into()); // num_keys_to_read
                 asm.push(Stack::Push(0).into()); // slot_index
                 asm.try_push(
@@ -232,6 +201,57 @@ impl AsmBuilder<'_> {
                         StateOp::KeyRange
                     },
                 )?;
+
+                // If the number of keys we're reading is 2 or more, then we need to consolidate
+                // the data into a single slot.
+                if num_keys_to_read > 1 {
+                    // Allocate a new slot for the consolidated data
+                    asm.push(Stack::Push(1).into());
+                    asm.try_push(handler, StateMemory::AllocSlots.into())?;
+                    self.total_slots += 1;
+
+                    // Find the _total_ number of data loaded
+                    asm.push(Stack::Push(num_keys_to_read as i64).into()); // slot to store to
+                    asm.push(Stack::Push(0).into());
+
+                    // Load all the values read earlier
+                    for i in 0..num_keys_to_read {
+                        asm.push(Stack::Push(i as i64).into()); // slot_ix
+
+                        asm.push(Stack::Push(0).into()); // value_ix
+
+                        asm.push(Stack::Push(i as i64).into());
+                        asm.try_push(handler, StateMemory::ValueLen.into())?; // len
+
+                        asm.try_push(handler, StateMemory::Load.into())?;
+                    }
+
+                    asm.push(Stack::Push(0).into());
+                    for i in 0..num_keys_to_read {
+                        asm.push(Stack::Push(i as i64).into());
+                        asm.try_push(handler, StateMemory::ValueLen.into())?;
+                        asm.push(Alu::Add.into());
+                    }
+
+                    // Now store the consolidated data into the last slot
+                    asm.try_push(handler, StateMemory::Store.into())?;
+                }
+
+                // Grab the state var that is currently being compiled
+                let Some(ref state_var) = self.current_state_var else {
+                    return Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "compiling a storage access without a state var",
+                            span: empty_span(),
+                        },
+                    }));
+                };
+
+                // Keep track of the _global_ slot index for the state variable that we're
+                // currently compiling. This is always going to be the last slot allocated so far.
+                self.slot_indices
+                    .insert(state_var.clone(), self.total_slots - 1);
+
                 asm.try_push(handler, TotalControlFlow::Halt.into())?;
 
                 Ok(asm.len() - old_asm_len)
@@ -244,7 +264,7 @@ impl AsmBuilder<'_> {
     /// pointer (i.e. `Location`) only. A "pointer" may be a state slot or a  pub var data key for
     /// example.
     fn compile_expr_pointer(
-        &self,
+        &mut self,
         handler: &Handler,
         asm: &mut Asm,
         expr: &ExprKey,
@@ -294,7 +314,7 @@ impl AsmBuilder<'_> {
                 }
                 Ok(Location::Value)
             }
-            Expr::Path(path, _) => Self::compile_path(handler, asm, path, contract, pred),
+            Expr::Path(path, _) => self.compile_path(handler, asm, path, pred),
             Expr::UnionVariant { path, value, .. } => {
                 self.compile_union_expr(handler, asm, expr, path, value, contract, pred)
             }
@@ -348,10 +368,10 @@ impl AsmBuilder<'_> {
     /// variable or a state variable. All other paths should have been lowered to something else by
     /// now.
     fn compile_path(
+        &mut self,
         handler: &Handler,
         asm: &mut Asm,
         path: &String,
-        contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
         if let Some((var_index, _)) = pred
@@ -363,22 +383,9 @@ impl AsmBuilder<'_> {
             asm.push(Stack::Push(var_index as i64).into()); // slot
             asm.push(Stack::Push(0).into()); // placeholder for index computation
             Ok(Location::DecisionVar)
-        } else if let Some(state_index) = pred.states().position(|(_, state)| &state.name == path) {
-            // Now handle state vars
-            asm.push(
-                Stack::Push(
-                    pred.states()
-                        .take(state_index)
-                        .try_fold(0, |acc, (state_key, _)| {
-                            state_key
-                                .get_ty(pred)
-                                .storage_or_pub_var_slots(handler, contract)
-                                .map(|slots| acc + slots)
-                        })? as i64,
-                )
-                .into(),
-            );
-
+        } else if pred.states().any(|(_, state)| &state.name == path) {
+            asm.push(Stack::Push(self.slot_indices[path] as i64).into()); // slot
+            asm.push(Stack::Push(0).into()); // placeholder for index computation
             Ok(Location::State(false))
         } else {
             // Must not have anything else at this point. All other path expressions should have
@@ -393,7 +400,7 @@ impl AsmBuilder<'_> {
     }
 
     fn compile_unary_op(
-        &self,
+        &mut self,
         handler: &Handler,
         asm: &mut Asm,
         op: &UnaryOp,
@@ -427,7 +434,7 @@ impl AsmBuilder<'_> {
 
     #[allow(clippy::too_many_arguments)]
     fn compile_binary_op(
-        &self,
+        &mut self,
         handler: &Handler,
         asm: &mut Asm,
         op: &BinaryOp,
@@ -532,7 +539,7 @@ impl AsmBuilder<'_> {
     }
 
     fn compile_intrinsic_call(
-        &self,
+        &mut self,
         handler: &Handler,
         asm: &mut Asm,
         kind: &IntrinsicKind,
@@ -582,7 +589,7 @@ impl AsmBuilder<'_> {
     }
 
     fn compile_external_intrinsic_call(
-        &self,
+        &mut self,
         handler: &Handler,
         asm: &mut Asm,
         kind: &ExternalIntrinsic,
@@ -632,22 +639,23 @@ impl AsmBuilder<'_> {
                 } else if let Location::State(next_state) =
                     self.compile_expr_pointer(handler, asm, &args[0], contract, pred)?
                 {
-                    let num_slots = args[0]
-                        .get_ty(contract)
-                        .storage_or_pub_var_slots(handler, contract)?;
+                    // Remove the placeholder for index computation since it is not needed for
+                    // the `StateLen` opcode.
+                    asm.push(Stack::Pop.into());
 
-                    for i in 0..num_slots {
-                        if i > 0 {
-                            self.compile_expr_pointer(handler, asm, &args[0], contract, pred)?;
-                        }
-                        asm.push(Stack::Push(i as i64).into());
-                        asm.push(Alu::Add.into()); // slot_ix
-                        asm.push(Stack::Push(next_state as i64).into()); // delta
-                        asm.push(Access::StateLen.into()); // Range length for State
-                    }
-
-                    (0..num_slots - 1).for_each(|_| asm.push(Alu::Add.into()));
+                    asm.push(Stack::Push(next_state as i64).into()); // delta
+                    asm.push(Access::StateLen.into()); // Range length for State
                 }
+            }
+
+            ExternalIntrinsic::VerifyEd25519 => {
+                self.compile_expr(handler, asm, &args[0], contract, pred)?;
+                asm.push(ConstraintOp::Stack(Stack::Push(
+                    8 * args[0].get_ty(contract).size(handler, contract)? as i64,
+                )));
+                self.compile_expr(handler, asm, &args[1], contract, pred)?;
+                self.compile_expr(handler, asm, &args[2], contract, pred)?;
+                asm.push(ConstraintOp::Crypto(Crypto::VerifyEd25519))
             }
 
             // All other external intrinsics can be handled generically
@@ -663,21 +671,39 @@ impl AsmBuilder<'_> {
                     }
                 }
 
-                asm.push(match kind {
-                    ExternalIntrinsic::PredicateAt => ConstraintOp::Access(Access::PredicateAt),
+                match kind {
+                    ExternalIntrinsic::PredicateAt => {
+                        asm.push(ConstraintOp::Access(Access::PredicateAt))
+                    }
+
                     ExternalIntrinsic::RecoverSECP256k1 => {
-                        ConstraintOp::Crypto(Crypto::RecoverSecp256k1)
+                        asm.push(ConstraintOp::Crypto(Crypto::RecoverSecp256k1))
                     }
-                    ExternalIntrinsic::Sha256 => ConstraintOp::Crypto(Crypto::Sha256),
-                    ExternalIntrinsic::ThisAddress => ConstraintOp::Access(Access::ThisAddress),
+
+                    ExternalIntrinsic::Sha256 => {
+                        asm.push(ConstraintOp::Stack(Stack::Push(8))); // placeholder for index
+                        asm.push(Alu::Mul.into());
+                        asm.push(ConstraintOp::Crypto(Crypto::Sha256))
+                    }
+
+                    ExternalIntrinsic::ThisAddress => {
+                        asm.push(ConstraintOp::Access(Access::ThisAddress))
+                    }
+
                     ExternalIntrinsic::ThisContractAddress => {
-                        ConstraintOp::Access(Access::ThisContractAddress)
+                        asm.push(ConstraintOp::Access(Access::ThisContractAddress))
                     }
-                    ExternalIntrinsic::ThisPathway => ConstraintOp::Access(Access::ThisPathway),
-                    ExternalIntrinsic::VerifyEd25519 => ConstraintOp::Crypto(Crypto::VerifyEd25519),
-                    ExternalIntrinsic::StateLen | ExternalIntrinsic::AddressOf => {
+
+                    ExternalIntrinsic::ThisPathway => {
+                        asm.push(ConstraintOp::Access(Access::ThisPathway))
+                    }
+
+                    ExternalIntrinsic::AddressOf
+                    | ExternalIntrinsic::StateLen
+                    | ExternalIntrinsic::VerifyEd25519 => {
                         unreachable!("StateLen and AddressOf are handled above")
                     }
+
                     ExternalIntrinsic::VecLen => {
                         return Err(handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
@@ -686,7 +712,7 @@ impl AsmBuilder<'_> {
                             },
                         }))
                     }
-                })
+                }
             }
         }
 
@@ -694,7 +720,7 @@ impl AsmBuilder<'_> {
     }
 
     fn compile_internal_intrinsic_call(
-        &self,
+        &mut self,
         handler: &Handler,
         asm: &mut Asm,
         kind: &InternalIntrinsic,
@@ -703,12 +729,6 @@ impl AsmBuilder<'_> {
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
         for (i, arg) in args.iter().enumerate() {
-            if matches!(kind, InternalIntrinsic::PubVar) && i == 0 {
-                // Do not compile the pathway here because the opcode `Transient` expects it after
-                // the key and we still need to offset the key, if needed.
-                continue;
-            }
-
             self.compile_expr(handler, asm, arg, contract, pred)?;
 
             // if the type of the arg is `Any`, then follow with its size
@@ -733,13 +753,17 @@ impl AsmBuilder<'_> {
             }
             InternalIntrinsic::StorageGet => Ok(Location::Storage(false)),
             InternalIntrinsic::StorageGetExtern => Ok(Location::Storage(true)),
-            InternalIntrinsic::PubVar => Ok(Location::PubVar(args[0] /* pathway */)),
+            InternalIntrinsic::PubVar => {
+                asm.push(ConstraintOp::Stack(Stack::Push(0))); // placeholder for index
+                                                               // computations
+                Ok(Location::PubVar)
+            }
         }
     }
 
     #[allow(clippy::too_many_arguments)]
     fn compile_select(
-        &self,
+        &mut self,
         handler: &Handler,
         asm: &mut Asm,
         condition: &ExprKey,
@@ -802,7 +826,7 @@ impl AsmBuilder<'_> {
     }
 
     fn compile_index(
-        &self,
+        &mut self,
         handler: &Handler,
         asm: &mut Asm,
         expr: &ExprKey,
@@ -812,61 +836,39 @@ impl AsmBuilder<'_> {
     ) -> Result<Location, ErrorEmitted> {
         let location = self.compile_expr_pointer(handler, asm, expr, contract, pred)?;
 
-        let compile_offset = |asm: &mut Asm| {
-            // Grab the element ty of the array
-            let Type::Array { ty, .. } = expr.get_ty(contract) else {
-                return Err(handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "type must exist and be an array type",
-                        span: empty_span(),
-                    },
-                }));
-            };
+        if let Location::Value | Location::Storage(_) = location {
+            return Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "unexpected index operator for `Location::Value` and `Location::Storage`",
+                    span: empty_span(),
+                },
+            }));
+        }
 
-            // Compile the index
-            self.compile_expr(handler, asm, index, contract, pred)?;
-
-            // Multiply the index by the number of storage slots for `ty` to get the offset,
-            // then add the result to the base key
-            asm.push(
-                // Decision vars are flattened in a given slots, so we look at the raw size in
-                // words. For pub var and storage variables, we look at the "storage size"
-                // which may yield different results (e.g. a `b256` is 4 words but its storage
-                // size is 1
-                Stack::Push(if let Location::DecisionVar = location {
-                    ty.size(handler, contract)?
-                } else {
-                    ty.storage_or_pub_var_slots(handler, contract)?
-                } as i64)
-                .into(),
-            );
-            asm.push(Alu::Mul.into());
-            asm.push(Alu::Add.into());
-
-            Ok(())
+        // Grab the element ty of the array
+        let Type::Array { ty, .. } = expr.get_ty(contract) else {
+            return Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "type must exist and be an array type",
+                    span: empty_span(),
+                },
+            }));
         };
 
-        match location {
-            Location::PubVar(_) => {
-                // For pub vars, and before computing the offset, we need to swap first because the
-                // computed key also includes the key length at the end
-                asm.push(Stack::Swap.into());
-                compile_offset(asm)?;
-                asm.push(Stack::Swap.into());
-            }
-            Location::State(_) | Location::DecisionVar => {
-                compile_offset(asm)?;
-            }
-            Location::Value | Location::Storage(_) => {
-                unimplemented!("we'll handle these eventually as a fallback option")
-            }
-        }
+        // Compile the index
+        self.compile_expr(handler, asm, index, contract, pred)?;
+
+        // Multiply the index by the size of `ty` to get the offset, then add the result to the
+        // base key
+        asm.push(Stack::Push(ty.size(handler, contract)? as i64).into());
+        asm.push(Alu::Mul.into());
+        asm.push(Alu::Add.into());
 
         Ok(location)
     }
 
     fn compile_tuple_field_access(
-        &self,
+        &mut self,
         handler: &Handler,
         asm: &mut Asm,
         tuple: &ExprKey,
@@ -876,80 +878,61 @@ impl AsmBuilder<'_> {
     ) -> Result<Location, ErrorEmitted> {
         let location = self.compile_expr_pointer(handler, asm, tuple, contract, pred)?;
 
-        let compile_offset = |asm: &mut Asm| {
-            // Grab the fields of the tuple
-            let Type::Tuple { ref fields, .. } = tuple.get_ty(contract) else {
+        if let Location::Value | Location::Storage(_) = location {
+            return Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "unexpected tuple access for `Location::Value` and `Location::Storage`",
+                    span: empty_span(),
+                },
+            }));
+        }
+
+        // Grab the fields of the tuple
+        let Type::Tuple { ref fields, .. } = tuple.get_ty(contract) else {
+            return Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "type must exist and be a tuple type",
+                    span: empty_span(),
+                },
+            }));
+        };
+
+        // The field index is based on the type definition
+        let field_idx = match field {
+            TupleAccess::Index(idx) => *idx,
+            TupleAccess::Name(ident) => fields
+                .iter()
+                .position(|(field_name, _)| {
+                    field_name
+                        .as_ref()
+                        .map_or(false, |name| name.name == ident.name)
+                })
+                .expect("field name must exist, this was checked in type checking"),
+            TupleAccess::Error => {
                 return Err(handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
-                        msg: "type must exist and be a tuple type",
+                        msg: "unexpected TupleAccess::Error",
                         span: empty_span(),
                     },
                 }));
-            };
-
-            // The field index is based on the type definition
-            let field_idx = match field {
-                TupleAccess::Index(idx) => *idx,
-                TupleAccess::Name(ident) => fields
-                    .iter()
-                    .position(|(field_name, _)| {
-                        field_name
-                            .as_ref()
-                            .map_or(false, |name| name.name == ident.name)
-                    })
-                    .expect("field name must exist, this was checked in type checking"),
-                TupleAccess::Error => {
-                    return Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "unexpected TupleAccess::Error",
-                            span: empty_span(),
-                        },
-                    }));
-                }
-            };
-
-            // This is the offset from the base key where the full tuple is stored.
-            let key_offset: usize = fields.iter().take(field_idx).try_fold(0, |acc, (_, ty)| {
-                // Decision vars are flattened in a given slots, so we look at the raw size
-                // in words. For pub var and storage variables, we look at the "storage
-                // size" which may yield different results (e.g. a `b256` is 4 words but
-                // its storage size is 1
-                if let Location::DecisionVar = location {
-                    ty.size(handler, contract)
-                } else {
-                    ty.storage_or_pub_var_slots(handler, contract)
-                }
-                .map(|slots| acc + slots)
-            })?;
-
-            // Now offset using `Add`
-            asm.push(Stack::Push(key_offset as i64).into());
-            asm.push(Alu::Add.into());
-            Ok(())
+            }
         };
 
-        match location {
-            Location::PubVar(_) => {
-                // For pub vars, and before computing the offset, we need to swap first because the
-                // computed key also includes the key length at the end
-                asm.push(Stack::Swap.into());
-                compile_offset(asm)?;
-                asm.push(Stack::Swap.into());
-            }
-            Location::State(_) | Location::DecisionVar => {
-                compile_offset(asm)?;
-            }
-            Location::Value | Location::Storage(_) => {
-                unimplemented!("we'll handle these eventually as a fallback option")
-            }
-        }
+        // Use `Add` to compute the offset from the base key where the full tuple is stored.
+        asm.push(
+            Stack::Push(fields.iter().take(field_idx).try_fold(0, |acc, (_, ty)| {
+                ty.size(handler, contract).map(|slots| acc + slots)
+            })? as i64)
+            .into(),
+        );
+        asm.push(Alu::Add.into());
 
         Ok(location)
     }
 
     #[allow(clippy::too_many_arguments)]
     fn compile_union_expr(
-        &self,
+        &mut self,
         handler: &Handler,
         asm: &mut Asm,
         union_expr_key: &ExprKey,
@@ -997,7 +980,7 @@ impl AsmBuilder<'_> {
 
     #[allow(clippy::too_many_arguments)]
     fn compile_union_tag_is(
-        &self,
+        &mut self,
         handler: &Handler,
         asm: &mut Asm,
         union_expr_key: &ExprKey,
@@ -1009,7 +992,7 @@ impl AsmBuilder<'_> {
         match self.compile_expr_pointer(handler, asm, union_expr_key, contract, pred)? {
             Location::DecisionVar => {
                 asm.push(Stack::Push(1).into()); // len
-                asm.push(Access::DecisionVarRange.into());
+                asm.push(Access::DecisionVar.into());
             }
 
             // Are these supported?
@@ -1023,7 +1006,7 @@ impl AsmBuilder<'_> {
     }
 
     fn compile_union_get_value(
-        &self,
+        &mut self,
         handler: &Handler,
         asm: &mut Asm,
         union_expr_key: &ExprKey,
