@@ -2408,10 +2408,11 @@ predicate it's used in.</p>
 </code></pre>
 <p><strong>Description:</strong> Returns a SHA 256 hash from the specified data.</p>
 <hr />
-<pre><code class="language-pint">__state_len(data: _) -&gt; int
+<pre><code class="language-pint">__size_of(data: _) -&gt; int
 </code></pre>
-<p><strong>Description:</strong> Returns the length of a state variable. the argument <code>data</code> must be a state
-variable or a &quot;next state&quot; expression but can have any type.</p>
+<p><strong>Description:</strong> Returns the size, in words, of an expression. This is often the same as the size of
+the type of the expression (e.g. 1 word for <code>int</code>, 4 words for <code>b256</code>, 3 words for <code>{int, int, bool}</code>, and so on). However, it can also be different, namely for expressions that can be <code>nil</code> such
+as storage accesses and paths to state variables.</p>
 <hr />
 <pre><code class="language-pint">__vec_len(vec: _[]) -&gt; int
 </code></pre>
