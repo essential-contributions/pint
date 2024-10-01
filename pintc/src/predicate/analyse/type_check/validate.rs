@@ -184,7 +184,7 @@ impl Contract {
         handler: &Handler,
     ) -> Result<(), ErrorEmitted> {
         let mut bad_storage_accesses = FxHashSet::default();
-        for expr in self.root_exprs() {
+        for expr in self.root_array_range_exprs() {
             bad_storage_accesses.extend(expr.collect_storage_accesses(self));
         }
 
