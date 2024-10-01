@@ -554,7 +554,7 @@ pub(crate) fn lower_array_ranges(
         if let Some((storage_vars, _)) = storage {
             array_range_expr_keys.extend(storage_vars.iter().filter_map(
                 |StorageVar { ty, .. }| {
-                    dbg!(ty.get_array_range_expr());
+                    ty.get_array_range_expr();
                     ty_non_int_range_expr(contract, None, ty)
                 },
             ));
@@ -1042,7 +1042,7 @@ pub(crate) fn lower_ins(handler: &Handler, contract: &mut Contract) -> Result<()
     }
 }
 
-/// Convert all comparisons to `nil` to comparisons between the intrinsic `__state_len` and 0.
+/// Convert all comparisons to `nil` to comparisons between the intrinsic `__size_of` and 0.
 /// For example:
 ///
 /// state x = storage::x;
@@ -1054,8 +1054,8 @@ pub(crate) fn lower_ins(handler: &Handler, contract: &mut Contract) -> Result<()
 ///
 /// state x = storage::x;
 /// state y = storage::x;
-/// constraint __state_len(x) == 0;
-/// constraint __state_len(y) != 0;
+/// constraint __size_of(x) == 0;
+/// constraint __size_of(y) != 0;
 ///
 pub(crate) fn lower_compares_to_nil(contract: &mut Contract) {
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
@@ -1072,12 +1072,12 @@ pub(crate) fn lower_compares_to_nil(contract: &mut Contract) {
             })
             .collect::<Vec<_>>();
 
-        let convert_to_state_len_compare =
+        let convert_to_size_of_compare =
             |contract: &mut Contract, op: &BinaryOp, expr: &ExprKey, span: &crate::span::Span| {
-                let state_len = contract.exprs.insert(
+                let size_of = contract.exprs.insert(
                     Expr::IntrinsicCall {
                         kind: (
-                            IntrinsicKind::External(ExternalIntrinsic::StateLen),
+                            IntrinsicKind::External(ExternalIntrinsic::SizeOf),
                             empty_span(),
                         ),
                         args: vec![*expr],
@@ -1100,11 +1100,11 @@ pub(crate) fn lower_compares_to_nil(contract: &mut Contract) {
                     },
                 );
 
-                // New binary op: `__state_len(expr) == 0`
+                // New binary op: `__size_of(expr) == 0`
                 contract.exprs.insert(
                     Expr::BinaryOp {
                         op: *op,
-                        lhs: state_len,
+                        lhs: size_of,
                         rhs: zero,
                         span: span.clone(),
                     },
@@ -1117,8 +1117,8 @@ pub(crate) fn lower_compares_to_nil(contract: &mut Contract) {
 
         for (old_bin_op, op, lhs, rhs, span) in compares_to_nil.iter() {
             let new_bin_op = match (lhs.get(contract).is_nil(), rhs.get(contract).is_nil()) {
-                (false, true) => convert_to_state_len_compare(contract, op, lhs, span),
-                (true, false) => convert_to_state_len_compare(contract, op, rhs, span),
+                (false, true) => convert_to_size_of_compare(contract, op, lhs, span),
+                (true, false) => convert_to_size_of_compare(contract, op, rhs, span),
                 (true, true) => contract.exprs.insert(
                     // Comparing two `nil`s should always return `false` regardless of whether this is
                     // an `Equal` or a `NotEqual`.

@@ -627,27 +627,6 @@ impl Contract {
             }
         };
 
-        // Checks if a given `ExprKey` is a path to a state var or a "next state" expression. If
-        // not, emit an error.
-        let check_state_var_arg = |arg: ExprKey| match arg.try_get(self) {
-            Some(Expr::Path(name, _))
-                if pred
-                    .map(|pred| pred.states().any(|(_, state)| state.name == *name))
-                    .unwrap_or(false) => {}
-            Some(Expr::UnaryOp {
-                op: UnaryOp::NextState,
-                ..
-            }) => {}
-            _ => {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::CompareToNilError {
-                        op: op.as_str(),
-                        span: self.expr_key_to_span(arg),
-                    },
-                });
-            }
-        };
-
         let lhs_ty = lhs_expr_key.get_ty(self).clone();
         let rhs_ty = rhs_expr_key.get_ty(self);
         if !lhs_ty.is_unknown() {
@@ -664,14 +643,6 @@ impl Contract {
                         Inference::Type(lhs_ty)
                     }
                     BinaryOp::Equal | BinaryOp::NotEqual => {
-                        // If either operands is `nil`, then ensure that the other is a state var
-                        // or a "next state" expression
-                        if lhs_ty.is_nil() && !rhs_ty.is_nil() {
-                            check_state_var_arg(rhs_expr_key);
-                        } else if !lhs_ty.is_nil() && rhs_ty.is_nil() {
-                            check_state_var_arg(lhs_expr_key);
-                        }
-
                         // We can special case implicit constraints which are injected by variable
                         // initialiser handling.  Each `var a = b` gets a magic `constraint a == b`
                         // which we check for type mismatches elsewhere, and emit a much better

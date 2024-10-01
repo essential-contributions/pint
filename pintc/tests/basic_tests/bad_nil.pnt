@@ -19,9 +19,6 @@ predicate test {
 // >>>
 
 // typecheck_failure <<<
-// binary operator type error
-// @25..26: unexpected argument for operator `==`
-// only state variables and next state expressions can be compared to `nil`
 // operator invalid type error
 // @56..63: invalid non-numeric type `nil` for operator `+`
 // operator invalid type error

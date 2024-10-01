@@ -85,23 +85,23 @@ predicate Foo {
     state w = mut storage::w;
 
     // `x` is set in the pre state db and in the solution
-    constraint __state_len(x) == 1;
-    constraint __state_len(x) == 1;
+    constraint __size_of(x) == 1;
+    constraint __size_of(x) == 1;
 
     // `y` is set in the pre state db and in the solution
-    constraint __state_len(y) == 1;
-    constraint __state_len(y') == 1;
+    constraint __size_of(y) == 1;
+    constraint __size_of(y') == 1;
 
     // `z` is not set in the pre state db but is set in the solution
-    constraint __state_len(z) == 0;
-    constraint __state_len(z') == 1;
+    constraint __size_of(z) == 0;
+    constraint __size_of(z') == 1;
 
     // `w` is set in the pre state db but unset in the solution
-    constraint __state_len(w) == 4;
-    constraint __state_len(w') == 0;
+    constraint __size_of(w) == 4;
+    constraint __size_of(w') == 0;
 
-    // `__state_len` called on non-state var expressions always returns 0.
-    constraint __state_len(1) == 0;
-    constraint __state_len(this_pathway) == 0;
-    constraint __state_len(__state_len(w')) == 0;
+    // `__size_of` called on non-state vars.
+    constraint __size_of(1) == 1;
+    constraint __size_of(this_pathway) == 1;
+    constraint __size_of(__size_of(w')) == 1;
 }

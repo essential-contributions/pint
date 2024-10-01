@@ -139,22 +139,12 @@ pub fn compile_predicate(
     compiled_predicates: &HashMap<String, (CompiledPredicate, ContentAddress)>,
     pred: &Predicate,
 ) -> Result<CompiledPredicate, ErrorEmitted> {
-    let mut builder = AsmBuilder {
-        state_programs: Vec::new(),
-        constraint_programs: Vec::new(),
-        compiled_predicates,
-        slot_indices: HashMap::new(),
-        total_slots: 0,
-        current_state_var: None,
-    };
+    let mut builder = AsmBuilder::new(compiled_predicates);
 
     // Compile all state declarations into state programs
     for (_, state) in pred.states() {
-        builder.current_state_var = Some(state.name.clone());
         builder.compile_state(handler, state, contract, pred)?;
     }
-
-    builder.current_state_var = None;
 
     // Compile all constraint declarations into constraint programs
     for ConstraintDecl {

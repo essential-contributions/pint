@@ -2,7 +2,7 @@ use crate::{
     error::{Error, ErrorEmitted, Handler, ParseError},
     expr::{Expr, Ident, Immediate, MatchBranch, MatchElse},
     span::{empty_span, Span, Spanned},
-    types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type, UnionDecl},
+    types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type, UnionDecl, UnionVariant},
 };
 use exprs::ExprsIter;
 use pint_abi_types::{ContractABI, PredicateABI, VarABI};
@@ -380,7 +380,7 @@ impl Contract {
             .flat_map(|(storage_vars, _)| {
                 storage_vars
                     .iter()
-                    .filter_map(|StorageVar { ty, .. }| ty.get_array_range_expr())
+                    .flat_map(|StorageVar { ty, .. }| ty.get_all_array_range_exprs())
             })
             .chain(
                 self.interfaces
@@ -403,12 +403,20 @@ impl Contract {
                                 ))
                         },
                     )
-                    .filter_map(|ty| ty.get_array_range_expr()),
+                    .flat_map(|ty| ty.get_all_array_range_exprs()),
             )
             .chain(
                 self.new_types
                     .iter()
-                    .filter_map(|NewTypeDecl { ty, .. }| ty.get_array_range_expr()),
+                    .flat_map(|NewTypeDecl { ty, .. }| ty.get_all_array_range_exprs()),
+            )
+            .chain(
+                self.unions
+                    .iter()
+                    .flat_map(|UnionDecl { variants, .. }| {
+                        variants.iter().flat_map(|UnionVariant { ty, .. }| ty)
+                    })
+                    .flat_map(|ty| ty.get_all_array_range_exprs()),
             )
     }
 }
@@ -631,6 +639,17 @@ impl BlockStatement {
             Self::Match(match_decl) => match_decl.fmt_with_indent(f, contract, pred, indent),
         }
     }
+
+    /// Returns all the constraints in the `BlockStatement`
+    fn get_constraints(&self) -> Vec<&ConstraintDecl> {
+        let mut constraints = Vec::new();
+        match self {
+            BlockStatement::Constraint(constraint) => constraints.push(constraint),
+            BlockStatement::If(if_decl) => constraints.extend(if_decl.get_constraints()),
+            BlockStatement::Match(match_decl) => constraints.extend(match_decl.get_constraints()),
+        }
+        constraints
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -681,6 +700,20 @@ impl IfDecl {
             }
         }
         writeln!(f, "{indentation}}}")
+    }
+
+    /// Returns all the constraints in the `IfDecl`
+    fn get_constraints(&self) -> Vec<&ConstraintDecl> {
+        let mut constraints = Vec::new();
+        for block_statement in &self.then_block {
+            constraints.extend(block_statement.get_constraints());
+        }
+        if let Some(else_block) = self.else_block.as_ref() {
+            for block_statement in else_block {
+                constraints.extend(block_statement.get_constraints());
+            }
+        }
+        constraints
     }
 }
 
@@ -748,6 +781,17 @@ impl MatchDecl {
         }
 
         writeln!(f, "{indentation}}}")
+    }
+
+    /// Returns all the constraints in the `MatchDecl`
+    fn get_constraints(&self) -> Vec<&ConstraintDecl> {
+        let mut constraints = Vec::new();
+        for match_branch in &self.match_branches {
+            for block_statement in &match_branch.block {
+                constraints.extend(block_statement.get_constraints());
+            }
+        }
+        constraints
     }
 }
 

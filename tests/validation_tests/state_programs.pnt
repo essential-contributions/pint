@@ -1,0 +1,46 @@
+// db <<<
+// 0, 1
+// 1, 2
+// 2 0, 3
+// 3 0, 5
+// 3 1, 6
+// >>>
+
+storage {
+    x: int,
+    y: int,
+    t: { int, int },
+    a: int[3],
+}
+
+macro @unwrap_or_1($a, $b) {
+    $a == nil ? $b : $a
+}
+
+macro @unwrap_or_2($a, $b) {
+    __size_of($a) == 0 ? $b : $a
+}
+
+predicate Simple {
+    var p: int;
+    constraint p == 69;
+    var q: { int, b256[2] };
+    
+    state e1 = p / (- mut storage::x * mut storage::y + mut storage::t.0 + mut storage::a[0]);
+    constraint e1 == p / (-1 * 2 + 3 + 5);
+    constraint e1' == p / (-11 * 12 + 13 + 15);
+
+    state e2 = @unwrap_or_1(mut storage::t.1; 69) * @unwrap_or_2(mut storage::a[1]; 70);
+
+    // t.1 is nil then becomes non-nil
+    // a[1] is non-nil then becomes nil
+    constraint e2 == 69 * 6; 
+    constraint e2' == 14 * 70; 
+
+    state e3 = (true as int + 3) in -5..(3*3 + p); // no storage accesses
+    constraint e3;
+    constraint e3';
+
+    state e4 = q.1[1];
+    constraint e4 == 0x0000000000000001000000000000000100000000000000010000000000000001;
+}

@@ -7,9 +7,23 @@ predicate test {
     constraint __vec_len(storage::v) == 0;
 }
 
-// parse_failure <<<
-// intrinsic can only be used in a state initializer
-// @60..81: intrinsic can only be used in a state initializer
-// intrinsic can only be used in a state initializer
-// @98..119: intrinsic can only be used in a state initializer
+// parsed <<<
+// storage {
+//     v: int[],
+// }
+// 
+// predicate ::test {
+//     var ::v_len;
+//     constraint (::v_len == __vec_len(storage::v));
+//     constraint (__vec_len(storage::v) == 0);
+// }
+// >>>
+
+// typecheck_failure <<<
+// invalid position for accessing storage
+// @60..81: storage cannot be accessed in this position
+// storage can only be accessed in the initializer of `state` declaration
+// invalid position for accessing storage
+// @98..119: storage cannot be accessed in this position
+// storage can only be accessed in the initializer of `state` declaration
 // >>>
