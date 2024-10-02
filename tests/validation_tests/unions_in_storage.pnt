@@ -1,0 +1,25 @@
+union U = A(int) | B(b256);
+
+union V = C({ int, int }) | D(int[2][3]);
+
+storage {
+    u0: U,
+    u1: U,
+    m: (int => { U, int }),
+    v0: V, 
+    v1: V, 
+}
+
+predicate Foo {
+    state u0 = mut storage::u0;
+    state u1 = mut storage::u1;
+    state m = mut storage::m[5];
+    state v0 = mut storage::v0;
+    state v1 = mut storage::v1;
+
+    constraint u0' == U::A(5);
+    constraint u1' == U::B(0x0000000000000002000000000000000200000000000000020000000000000002);
+    constraint m' == { U::A(3), 69 };
+    constraint v0' == V::C({10, 12});
+    constraint v1' == V::D([[1, 2], [3, 4], [5, 6]]);
+}

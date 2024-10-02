@@ -1,4 +1,4 @@
-enum Colour = Red | Green | Blue;
+union Colour = Red | Green | Blue;
 
 predicate test {
     // Colouring Australia using 3 colours
@@ -24,7 +24,7 @@ predicate test {
 }
 
 // parsed <<<
-// enum ::Colour = Red | Green | Blue;
+// union ::Colour = Red | Green | Blue;
 //
 // predicate ::test {
 //     var ::wa: ::Colour;
@@ -47,16 +47,16 @@ predicate test {
 // >>>
 
 // flattened <<<
-// enum ::Colour = Red | Green | Blue;
-//
+// union ::Colour = Red | Green | Blue;
+// 
 // predicate ::test {
-//     var ::wa: int;
-//     var ::nt: int;
-//     var ::sa: int;
-//     var ::q: int;
-//     var ::nsw: int;
-//     var ::v: int;
-//     var ::t: int;
+//     var ::wa: ::Colour;
+//     var ::nt: ::Colour;
+//     var ::sa: ::Colour;
+//     var ::q: ::Colour;
+//     var ::nsw: ::Colour;
+//     var ::v: ::Colour;
+//     var ::t: ::Colour;
 //     constraint (::wa != ::nt);
 //     constraint (::wa != ::sa);
 //     constraint (::nt != ::sa);
@@ -66,20 +66,6 @@ predicate test {
 //     constraint (::sa != ::v);
 //     constraint (::q != ::nsw);
 //     constraint (::nsw != ::v);
-//     constraint (::wa >= 0);
-//     constraint (::wa <= 2);
-//     constraint (::nt >= 0);
-//     constraint (::nt <= 2);
-//     constraint (::sa >= 0);
-//     constraint (::sa <= 2);
-//     constraint (::q >= 0);
-//     constraint (::q <= 2);
-//     constraint (::nsw >= 0);
-//     constraint (::nsw <= 2);
-//     constraint (::v >= 0);
-//     constraint (::v <= 2);
-//     constraint (::t >= 0);
-//     constraint (::t <= 2);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

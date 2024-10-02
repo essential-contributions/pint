@@ -1,6 +1,6 @@
 const F = 1;
 
-enum F = A | B;
+union F = A | B;
 
 type F = b256;
 

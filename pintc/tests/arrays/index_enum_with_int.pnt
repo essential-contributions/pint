@@ -1,4 +1,4 @@
-enum Num = Zero | One | Two | Three;
+union Num = Zero | One | Two | Three;
 
 predicate test {
     var ary: int[Num];
@@ -7,7 +7,7 @@ predicate test {
 }
 
 // parsed <<<
-// enum ::Num = Zero | One | Two | Three;
+// union ::Num = Zero | One | Two | Three;
 //
 // predicate ::test {
 //     var ::ary: int[::Num];
@@ -17,6 +17,6 @@ predicate test {
 
 // typecheck_failure <<<
 // attempt to index an array with a mismatched value
-// @98..99: array access must be with a `::Num` variant
+// @99..100: array access must be with a `::Num` variant
 // found access using type `int`
 // >>>

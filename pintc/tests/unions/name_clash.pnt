@@ -1,4 +1,4 @@
-enum choice = is_an | illusion;
+union choice = is_an | illusion;
 
 union choice = one(int) | the_other(int);
 
@@ -6,7 +6,7 @@ predicate test {}
 
 // parse_failure <<<
 // symbol `choice` has already been declared
-// @5..11: previous declaration of the symbol `choice` here
-// @39..45: `choice` redeclared here
+// @6..12: previous declaration of the symbol `choice` here
+// @40..46: `choice` redeclared here
 // `choice` must be declared or imported only once in this scope
 // >>>

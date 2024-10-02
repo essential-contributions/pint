@@ -1,4 +1,4 @@
-enum Animal = Cat | Dog;
+union Animal = Cat | Dog;
 
 type Father = {
     child: {
@@ -42,7 +42,7 @@ predicate Foo {
 
 // parsed <<<
 // const ::papa: ::Father = {child: {age: 33, pet: ::Animal::Cat}, pet: ::Animal::Dog};
-// enum ::Animal = Cat | Dog;
+// union ::Animal = Cat | Dog;
 // union ::Parent = Mum | Dad(::Father);
 // type ::Father = {child: {age: int, pet: ::Animal}, pet: ::Animal};
 // interface ::InTheFace {
@@ -69,24 +69,24 @@ predicate Foo {
 // >>>
 
 // flattened <<<
-// const ::papa: {child: {age: int, pet: int}, pet: int} = {child: {age: 33, pet: 0}, pet: 1};
-// enum ::Animal = Cat | Dog;
+// const ::papa: {child: {age: int, pet: ::Animal}, pet: ::Animal} = {child: {age: 33, pet: ::Animal::<0>}, pet: ::Animal::<1>};
+// union ::Animal = Cat | Dog;
 // union ::Parent = Mum | Dad({child: {age: int, pet: ::Animal}, pet: ::Animal});
 // type ::Father = {child: {age: int, pet: ::Animal}, pet: ::Animal};
 // interface ::InTheFace {
 //     predicate Who {
-//         pub var left: {child: {age: int, pet: int}, pet: int};
+//         pub var left: {child: {age: int, pet: ::Animal}, pet: ::Animal};
 //     }
 // }
-//
+// 
 // predicate ::Foo {
-//     var ::bob: {child: {age: int, pet: int}, pet: int};
-//     var ::friends_pets: int[3];
+//     var ::bob: {child: {age: int, pet: ::Animal}, pet: ::Animal};
+//     var ::friends_pets: ::Animal[3];
 //     var ::barb: ::Parent;
-//     constraint (::bob == {child: {age: 23, pet: 1}, pet: 0});
-//     constraint (::friends_pets == [1, 0, 0]);
-//     constraint (::bob.pet != 1);
-//     constraint ((UnTag(::barb) == 0) || (!(UnTag(::barb) == 1) || (UnVal(::barb, {child: {age: int, pet: int}, pet: int}).pet == 0)));
+//     constraint (::bob == {child: {age: 23, pet: ::Animal::Dog}, pet: ::Animal::Cat});
+//     constraint (::friends_pets == [::Animal::Dog, ::Animal::Cat, ::Animal::Cat]);
+//     constraint (::bob.pet != ::Animal::Dog);
+//     constraint ((UnTag(::barb) == 0) || (!(UnTag(::barb) == 1) || (UnVal(::barb, {child: {age: int, pet: ::Animal}, pet: ::Animal}).pet == ::Animal::Cat)));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

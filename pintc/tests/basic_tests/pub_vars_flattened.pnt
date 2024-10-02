@@ -1,5 +1,5 @@
-enum MyEnum = A | B;
-type MyType = MyEnum;
+union MyUnion = A | B;
+type MyType = MyUnion;
 
 predicate Foo {
     pub var x1: bool;
@@ -22,8 +22,8 @@ predicate Foo {
 }
 
 // parsed <<<
-// enum ::MyEnum = A | B;
-// type ::MyType = ::MyEnum;
+// union ::MyUnion = A | B;
+// type ::MyType = ::MyUnion;
 // 
 // predicate ::Foo {
 //     pub var ::x1: bool;
@@ -55,8 +55,8 @@ predicate Foo {
 // >>>
 
 // flattened <<<
-// enum ::MyEnum = A | B;
-// type ::MyType = ::MyEnum;
+// union ::MyUnion = A | B;
+// type ::MyType = ::MyUnion;
 // 
 // predicate ::Foo {
 //     pub var ::x1: bool;

@@ -169,25 +169,17 @@ impl Type {
         })
     }
 
-    pub fn is_enum(&self, enums: &[EnumDecl]) -> bool {
-        self.get_enum_name(enums).is_some()
-    }
-
-    pub fn get_enum_name(&self, enums: &[EnumDecl]) -> Option<&Path> {
-        check_alias!(self, get_enum_name, enums, {
-            if let Type::Custom { path, .. } = self {
-                enums
-                    .iter()
-                    .find_map(|EnumDecl { name, .. }| (&name.name == path).then_some(path))
-            } else {
-                None
-            }
-        })
-    }
-
     pub fn is_union(&self, unions: &[UnionDecl]) -> bool {
         self.get_union_name(unions).is_some()
             || check_alias!(self, is_union, unions, matches!(self, Type::Union { .. }))
+    }
+
+    /// Check if `self` is an "enumeration" union, meaning none of its variants hold values.
+    pub fn is_enumeration_union(&self, unions: &[UnionDecl]) -> bool {
+        check_alias!(self, is_enumeration_union, unions, {
+            self.get_union_decl(unions)
+                .map_or(false, |union| union.is_enumeration_union())
+        })
     }
 
     pub fn get_union_name<'a>(&self, unions: &'a [UnionDecl]) -> Option<&'a Path> {
@@ -376,9 +368,10 @@ impl Type {
     ) -> Result<i64, ErrorEmitted> {
         // TODO: REMOVE THIS.  WE'RE LOWERING IN A PASS.
         if let Expr::Path(path, _) = range_expr {
-            // It's hopefully an enum for the range expression.
-            if let Some(size) = contract.enums.iter().find_map(|enum_decl| {
-                (&enum_decl.name.name == path).then_some(enum_decl.variants.len() as i64)
+            // It's hopefully an enumeration union for the range expression.
+            if let Some(size) = contract.unions.iter().find_map(|union_decl| {
+                (union_decl.is_enumeration_union() && &union_decl.name.name == path)
+                    .then_some(union_decl.variants.len() as i64)
             }) {
                 Ok(size)
             } else {
@@ -389,8 +382,8 @@ impl Type {
                 }))
             }
         } else {
-            match Evaluator::new(&contract.enums).evaluate(range_expr, handler, contract) {
-                Ok(Immediate::Int(size) | Immediate::Enum(size, _)) if size > 0 => Ok(size),
+            match Evaluator::new(&contract.unions).evaluate(range_expr, handler, contract) {
+                Ok(Immediate::Int(size)) if size > 0 => Ok(size),
                 Ok(_) => Err(handler.emit_err(Error::Compile {
                     error: CompileError::InvalidConstArrayLength {
                         span: range_expr.span().clone(),
@@ -491,7 +484,6 @@ impl Type {
     // Checks if type `self` is allowed in storage. For now, all types are allowed except for:
     // - Storage maps where the "from" type is not bool, int, nor b256
     // - Storage vectors where the element type is not bool, int, nor b256
-    // - Enums
     pub fn is_allowed_in_storage(&self) -> bool {
         match self {
             Type::Map { ty_from, ty_to, .. } => {
@@ -509,12 +501,8 @@ impl Type {
                 .fold(true, |acc, (_, field)| acc && field.is_allowed_in_storage()),
             Type::Alias { ty, .. } => ty.is_allowed_in_storage(),
             Type::Custom { .. } => {
-                // Do not allow enums just yet. This assumes that custom types that refer to type
-                // aliases have been lowered by now
-                false
-            }
-            Type::Union { .. } => {
-                // Also disallow unions for now.
+                // Disallow custom types since they're ambiguous. Hopefully, by the time we need
+                // this method, all custom types are gone.
                 false
             }
             _ => true,
@@ -630,6 +618,10 @@ impl Type {
                     contract,
                 )?) as usize),
 
+            // Unions fit in a single slot since we can't access within a union without a `match`
+            // first. So, might as well store the whole thing in a single key
+            Self::Union { .. } => Ok(1),
+
             // The point here is that a `Map` takes up a storage slot, even though it doesn't
             // actually store anything in it. The `Map` type is not really allowed anywhere else,
             // so we can't have a decision variable of type `Map` for example.
@@ -649,81 +641,12 @@ impl Type {
             | Self::Unknown(span)
             | Self::Any(span)
             | Self::Custom { span, .. }
-            | Self::Union { span, .. }
             | Self::Alias { span, .. } => Err(handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "unexpected type when calculating storage slots",
                     span: span.clone(),
                 },
             })),
-        }
-    }
-
-    /// Compute the sizes of all primitive elements in `self`, in order, and collect the results in
-    /// the vector `primitive_elements`. For example if `self` is `{ int, { int, b256[3] } }`,
-    /// then, `primitive_elements` will be equal to `[ 1, 1, 4, 4, 4 ]`.
-    pub fn primitive_elements(
-        &self,
-        handler: &Handler,
-        contract: &Contract,
-        primitive_elements: &mut Vec<usize>,
-    ) -> Result<(), ErrorEmitted> {
-        match self {
-            Self::Primitive {
-                kind: PrimitiveKind::Bool | PrimitiveKind::Int,
-                ..
-            } => {
-                primitive_elements.push(1);
-                Ok(())
-            }
-
-            Self::Primitive {
-                kind: PrimitiveKind::B256,
-                ..
-            } => {
-                primitive_elements.push(4);
-                Ok(())
-            }
-
-            Self::Tuple { fields, .. } => Ok(fields.iter().try_for_each(|(_, field_ty)| {
-                field_ty.primitive_elements(handler, contract, primitive_elements)
-            })?),
-
-            Self::Array {
-                ty, range, size, ..
-            } => {
-                let array_size = size.unwrap_or(Self::get_array_size_from_range_expr(
-                    handler,
-                    range
-                        .as_ref()
-                        .and_then(|e| e.try_get(contract))
-                        .expect("expr key guaranteed to exist"),
-                    contract,
-                )?);
-
-                Ok((0..array_size).try_for_each(|_| {
-                    ty.primitive_elements(handler, contract, primitive_elements)
-                })?)
-            }
-
-            Self::Primitive {
-                kind: PrimitiveKind::String | PrimitiveKind::Real | PrimitiveKind::Nil,
-                span,
-            }
-            | Self::Error(span)
-            | Self::Unknown(span)
-            | Self::Any(span)
-            | Self::Custom { span, .. }
-            | Self::Alias { span, .. }
-            | Self::Map { span, .. }
-            | Self::Vector { span, .. } => Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "unexpected type",
-                    span: span.clone(),
-                },
-            })),
-
-            Type::Union { .. } => todo!("put Union into Type::primitive_elements() for storage??"),
         }
     }
 
@@ -868,8 +791,8 @@ impl Type {
             }
 
             (lhs_ty, rhs_ty) => {
-                // Custom types are tricky as they may be either aliases, enums or unions.  Or, at
-                // this stage, we might just have two different types.
+                // Custom types are tricky as they may be either aliases or unions. Or, at this
+                // stage, we might just have two different types.
                 let mut lhs_alias_ty = None;
                 let mut lhs_custom_path = None;
 
@@ -902,7 +825,7 @@ impl Type {
 
                 match (lhs_custom_path, rhs_custom_path) {
                     (Some(lhs_custom_path), Some(rhs_custom_path)) => {
-                        // Neither are aliases but both are custom types; assume they're both enums.
+                        // Neither are aliases but both are custom types
                         lhs_custom_path == rhs_custom_path
                     }
 
@@ -988,19 +911,6 @@ impl Spanned for Type {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct EnumDecl {
-    pub(super) name: Ident,
-    pub(super) variants: Vec<Ident>,
-    pub(super) span: Span,
-}
-
-impl Spanned for EnumDecl {
-    fn span(&self) -> &Span {
-        &self.span
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct NewTypeDecl {
     pub(super) name: Ident,
@@ -1019,6 +929,13 @@ pub struct UnionDecl {
     pub(super) name: Ident,
     pub(super) variants: Vec<UnionVariant>,
     pub(super) span: Span,
+}
+
+impl UnionDecl {
+    /// Check if `self` is an "enumeration" union, meaning none of its variants hold values.
+    pub fn is_enumeration_union(&self) -> bool {
+        self.variants.iter().all(|v| v.ty.is_none())
+    }
 }
 
 #[derive(Clone, Debug)]

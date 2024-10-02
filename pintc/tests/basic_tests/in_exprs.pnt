@@ -1,4 +1,4 @@
-enum Cake = Crab | Mud | Uranium | Urinal;
+union Cake = Crab | Mud | Uranium | Urinal;
 
 predicate test {
     var a: int;
@@ -21,7 +21,7 @@ predicate test {
 }
 
 // parsed <<<
-// enum ::Cake = Crab | Mud | Uranium | Urinal;
+// union ::Cake = Crab | Mud | Uranium | Urinal;
 //
 // predicate ::test {
 //     var ::a: int;
@@ -41,24 +41,22 @@ predicate test {
 // >>>
 
 // flattened <<<
-// enum ::Cake = Crab | Mud | Uranium | Urinal;
-//
+// union ::Cake = Crab | Mud | Uranium | Urinal;
+// 
 // predicate ::test {
 //     var ::a: int;
 //     var ::c: bool;
 //     var ::d: b256;
-//     var ::e: int;
+//     var ::e: ::Cake;
 //     var ::f: {bool, int};
 //     var ::g: int[2];
 //     constraint ((::a >= 11) && (::a <= 22));
 //     constraint ((((::a == 11) || (::a == 13)) || (::a == 17)) || (::a == 19));
 //     constraint ((::c == true) || (::c == true));
 //     constraint ((::d == 0x0000000000000000000000000000000000000000000000000000000000000000) || (::d == 0x1111111111111111111111111111111111111111111111111111111111111111));
-//     constraint ((::e == 1) || (::e == 0));
+//     constraint ((::e == ::Cake::Mud) || (::e == ::Cake::Crab));
 //     constraint (((::f == {false, 66}) || (::f == {true, 77})) || (::f == {true, 88}));
 //     constraint (::g == [-99, -99]);
-//     constraint (::e >= 0);
-//     constraint (::e <= 3);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

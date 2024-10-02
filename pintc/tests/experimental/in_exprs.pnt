@@ -1,4 +1,4 @@
-enum Cake = Crab | Mud | Uranium | Urinal;
+union Cake = Crab | Mud | Uranium | Urinal;
 
 predicate test {
     var b: real;
@@ -8,7 +8,7 @@ predicate test {
 }
 
 // parsed <<<
-// enum ::Cake = Crab | Mud | Uranium | Urinal;
+// union ::Cake = Crab | Mud | Uranium | Urinal;
 // 
 // predicate ::test {
 //     var ::b: real;
@@ -18,7 +18,7 @@ predicate test {
 // >>>
 
 // flattened <<<
-// enum ::Cake = Crab | Mud | Uranium | Urinal;
+// union ::Cake = Crab | Mud | Uranium | Urinal;
 // 
 // predicate ::test {
 //     var ::b: real;

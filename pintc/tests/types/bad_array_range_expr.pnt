@@ -1,4 +1,4 @@
-enum MyEnum = A | B;
+union MyUnion = A | B;
 
 predicate test {
     // Bad
@@ -10,11 +10,11 @@ predicate test {
 
     // Ok
     var i: int[10];
-    var j: int[MyEnum];
+    var j: int[MyUnion];
 }
 
 // parsed <<<
-// enum ::MyEnum = A | B;
+// union ::MyUnion = A | B;
 //
 // predicate ::test {
 //     var ::a: int[true];
@@ -23,24 +23,24 @@ predicate test {
 //     var ::e: int[{1, 2}];
 //     var ::f: int[[1, 2]];
 //     var ::i: int[10];
-//     var ::j: int[::MyEnum];
+//     var ::j: int[::MyUnion];
 // }
 // >>>
 
 // typecheck_failure <<<
 // invalid array range type bool
-// @65..69: array access must be of type `int` or `enum`
+// @67..71: array access must be of type `int` or enumeration `union`
 // found range type `bool`
 // invalid array range type bool
-// @87..92: array access must be of type `int` or `enum`
+// @89..94: array access must be of type `int` or enumeration `union`
 // found range type `bool`
 // invalid array range type b256
-// @110..176: array access must be of type `int` or `enum`
+// @112..178: array access must be of type `int` or enumeration `union`
 // found range type `b256`
 // invalid array range type {int, int}
-// @194..200: array access must be of type `int` or `enum`
+// @196..202: array access must be of type `int` or enumeration `union`
 // found range type `{int, int}`
 // invalid array range type int[2]
-// @218..224: array access must be of type `int` or `enum`
+// @220..226: array access must be of type `int` or enumeration `union`
 // found range type `int[2]`
 // >>>

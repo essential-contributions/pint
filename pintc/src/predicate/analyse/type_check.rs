@@ -172,7 +172,7 @@ impl Contract {
                     .type_check_single_expr(handler, Some(pred_key), *range_expr)
                     .is_ok()
                     && !(range_expr.get_ty(self).is_int()
-                        || range_expr.get_ty(self).is_enum(&self.enums)
+                        || range_expr.get_ty(self).is_enumeration_union(&self.unions)
                         || checked_range_exprs.contains(range_expr))
                 {
                     handler.emit_err(Error::Compile {

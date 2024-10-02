@@ -2,7 +2,7 @@ use crate::{
     error::{Error, ErrorEmitted, Handler, ParseError},
     expr::{Expr, Ident, Immediate, MatchBranch, MatchElse},
     span::{empty_span, Span, Spanned},
-    types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type, UnionDecl, UnionVariant},
+    types::{EphemeralDecl, NewTypeDecl, Path, Type, UnionDecl, UnionVariant},
 };
 use exprs::ExprsIter;
 use pint_abi_types::{ContractABI, PredicateABI, VarABI};
@@ -37,7 +37,6 @@ pub struct Contract {
     pub storage: Option<(Vec<StorageVar>, Span)>,
     pub interfaces: Vec<Interface>,
 
-    pub enums: Vec<EnumDecl>,
     pub unions: Vec<UnionDecl>,
     pub new_types: Vec<NewTypeDecl>,
 

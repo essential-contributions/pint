@@ -1,4 +1,4 @@
-enum MyEnum = A | B;
+union MyUnion = A | B;
 
 storage {
     a: int,
@@ -20,7 +20,7 @@ predicate test {
 }
 
 // parsed <<<,
-// enum ::MyEnum = A | B;
+// union ::MyUnion = A | B;
 // storage {
 //     a: int,
 //     b: bool,
@@ -45,7 +45,7 @@ predicate test {
 // >>>
 
 // flattened <<<,
-// enum ::MyEnum = A | B;
+// union ::MyUnion = A | B;
 // storage {
 //     a: int,
 //     b: bool,

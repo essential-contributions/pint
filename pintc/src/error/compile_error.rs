@@ -27,7 +27,7 @@ pub enum CompileError {
     NoFileFoundForPath {
         path_full: String,
         path_mod: String,
-        path_enum: String,
+        path_union: String,
         span: Span,
     },
     #[error("macro {name} is declared multiple times")]
@@ -111,7 +111,7 @@ pub enum CompileError {
     SymbolNotFound {
         name: String,
         span: Span,
-        enum_names: Vec<String>,
+        union_names: Vec<String>,
     },
     #[error("cannot find storage variable `{name}`")]
     StorageSymbolNotFound { name: String, span: Span },
@@ -245,8 +245,6 @@ pub enum CompileError {
     BadCastTo { ty: String, span: Span },
     #[error("invalid cast")]
     BadCastFrom { ty: String, span: Span },
-    #[error("invalid declaration outside a predicate")]
-    InvalidDeclOutsidePredicateDecl { kind: String, span: Span },
     #[error("left and right types in range differ")]
     RangeTypesMismatch {
         lb_ty: String,
@@ -806,7 +804,8 @@ impl ReportableError for CompileError {
 
             InvalidArrayRangeType { span, .. } => {
                 vec![ErrorLabel {
-                    message: "array access must be of type `int` or `enum`".to_string(),
+                    message: "array access must be of type `int` or enumeration `union`"
+                        .to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -1002,19 +1001,13 @@ impl ReportableError for CompileError {
             }],
 
             BadCastTo { ty, span } => vec![ErrorLabel {
-                message: format!("illegal cast to a `{ty}`"),
+                message: format!("illegal cast to `{ty}`"),
                 span: span.clone(),
                 color: Color::Red,
             }],
 
             BadCastFrom { ty, span } => vec![ErrorLabel {
-                message: format!("illegal cast from a `{ty}`"),
-                span: span.clone(),
-                color: Color::Red,
-            }],
-
-            InvalidDeclOutsidePredicateDecl { kind, span } => vec![ErrorLabel {
-                message: format!("invalid {kind} declaration outside a predicate"),
+                message: format!("illegal cast from `{ty}`"),
                 span: span.clone(),
                 color: Color::Red,
             }],
@@ -1118,7 +1111,8 @@ impl ReportableError for CompileError {
 
             InRangeInvalid { found_ty, span } => vec![ErrorLabel {
                 message: format!(
-                    "`in` operator range must be either an enum or an array, found `{found_ty}`"
+                    "`in` operator range must be either an enumeration union or an array, \
+                    found `{found_ty}`"
                 ),
                 span: span.clone(),
                 color: Color::Red,
@@ -1263,10 +1257,10 @@ impl ReportableError for CompileError {
 
             NoFileFoundForPath {
                 path_mod,
-                path_enum,
+                path_union,
                 ..
             } => Some(format!(
-                "one of the modules `{path_mod}` or `{path_enum}` must exist",
+                "one of the modules `{path_mod}` or `{path_union}` must exist",
             )),
 
             MacroDeclClash { name, .. } => Some(format!(
@@ -1290,7 +1284,8 @@ impl ReportableError for CompileError {
             ),
 
             MacroSpliceArrayUnknownSize { .. } => Some(
-                "macro array splicing is currently limited to immediate integer sizes or enums"
+                "macro array splicing is currently limited to immediate integer sizes or \
+                enumeration unions"
                     .to_string(),
             ),
 
@@ -1337,10 +1332,6 @@ impl ReportableError for CompileError {
             StorageMapAccessWithWrongType { found_ty, .. } => {
                 Some(format!("found access using type `{found_ty}`"))
             }
-
-            InvalidDeclOutsidePredicateDecl { .. } => Some(
-                "only `enum` and `type` declarations are allowed outside a predicate".to_string(),
-            ),
 
             VarHasStorageType { ty, nested_ty, .. } => {
                 if ty != nested_ty {
@@ -1440,10 +1431,10 @@ impl ReportableError for CompileError {
     fn help(&self) -> Option<String> {
         use CompileError::*;
         match self {
-            SymbolNotFound { enum_names, .. } if !enum_names.is_empty() => Some(format!(
-                "this symbol is a variant of enum{} {} and may need a fully qualified path",
-                if enum_names.len() > 1 { "s" } else { "" },
-                pretty_join_strings(enum_names),
+            SymbolNotFound { union_names, .. } if !union_names.is_empty() => Some(format!(
+                "this symbol is a variant of union{} {} and may need a fully qualified path",
+                if union_names.len() > 1 { "s" } else { "" },
+                pretty_join_strings(union_names),
             )),
 
             MatchVariantUnknown {
@@ -1465,13 +1456,28 @@ impl ReportableError for CompileError {
                 "a macro named `{name}` found with a different signature"
             ))),
 
-            BadCastTo { .. } => Some("casts may only be made to an int or a real".to_string()),
+            BadCastTo { .. } => {
+                if cfg!(feature = "experimental-types") {
+                    Some("casts may only be made to `int` or `real`".to_string())
+                } else {
+                    Some("casts may only be made to `int`".to_string())
+                }
+            }
 
-            BadCastFrom { .. } => Some(
-                "casts may only be made from an int to a real, from a bool to an int or \
-                from an enum to an int"
-                    .to_string(),
-            ),
+            BadCastFrom { .. } => {
+                if cfg!(feature = "experimental-types") {
+                    Some(
+                    "casts may only be made from `bool`s,`int`s, and enuemration unions to `int`, \
+                    or from `int`s, `real`s, and enumeration unions to `real`"
+                        .to_string()
+                    )
+                } else {
+                    Some(
+                    "casts may only be made from `bool`s,`int`s, and enuemration unions to `int`"
+                        .to_string()
+                    )
+                }
+            }
 
             CompareToNilError { .. } => Some(
                 "only state variables and next state expressions can be compared to `nil`"
@@ -1623,7 +1629,6 @@ impl Spanned for CompileError {
             }
             | BadCastTo { span, .. }
             | BadCastFrom { span, .. }
-            | InvalidDeclOutsidePredicateDecl { span, .. }
             | RangeTypesMismatch { span, .. }
             | RangeTypesNonNumeric { span, .. }
             | InExprTypesMismatch { span, .. }

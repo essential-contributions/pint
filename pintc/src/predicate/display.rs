@@ -90,10 +90,6 @@ impl Display for Contract {
             writeln!(f, "const {path}{};", self.with_ctrct(cnst))?;
         }
 
-        for r#enum in &self.enums {
-            writeln!(f, "{enum};")?;
-        }
-
         for r#union in &self.unions {
             writeln!(f, "{};", self.with_ctrct(union))?;
         }

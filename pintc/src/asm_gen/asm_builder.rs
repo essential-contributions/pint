@@ -353,7 +353,7 @@ impl<'a> AsmBuilder<'a> {
     ) -> Result<Location, ErrorEmitted> {
         fn compile_immediate(asm: &mut Asm, imm: &Immediate) -> usize {
             match imm {
-                Immediate::Int(val) | Immediate::Enum(val, _) => {
+                Immediate::Int(val) => {
                     asm.push(Stack::Push(*val).into());
                     1
                 }
@@ -730,7 +730,6 @@ impl<'a> AsmBuilder<'a> {
                 // SizeOf is handled separately from other intrinsics, for now.
                 match self.compile_expr_pointer(handler, asm, &args[0], contract, pred)? {
                     Location::State(next_state) => {
-                        println!("{}", contract.with_ctrct(&args[0]));
                         // Remove the placeholder for index computation since it is not needed for
                         // the `SizeOf` opcode.
                         asm.push(Stack::Pop.into());

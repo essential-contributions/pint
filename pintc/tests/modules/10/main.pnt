@@ -4,7 +4,7 @@ use a::F;
 
 const b = F;
 
-enum E = A | B;
+union E = A | B;
 
 type E = b256;
 
@@ -17,30 +17,30 @@ predicate test {
 // parse_failure <<<
 // symbol `E` has already been declared
 // @7..8: previous declaration of the symbol `E` here
-// @41..42: `E` redeclared here
+// @42..43: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `E` has already been declared
 // @7..8: previous declaration of the symbol `E` here
-// @58..59: `E` redeclared here
+// @59..60: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `E` has already been declared
-// @94..95: previous declaration of the symbol `E` here
-// @112..113: `E` redeclared here
+// @95..96: previous declaration of the symbol `E` here
+// @113..114: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `F` has already been declared
 // @6..7: previous declaration of the symbol `F` here
-// @19..20: `F` redeclared here
+// @20..21: `F` redeclared here
 // `F` must be declared or imported only once in this scope
 // symbol `F` has already been declared
 // @6..7: previous declaration of the symbol `F` here
-// @36..37: `F` redeclared here
+// @37..38: `F` redeclared here
 // `F` must be declared or imported only once in this scope
 // symbol `F` has already been declared
 // @6..7: previous declaration of the symbol `F` here
-// @53..54: `F` redeclared here
+// @54..55: `F` redeclared here
 // `F` must be declared or imported only once in this scope
 // symbol `::E` has already been declared
 // @7..8: previous declaration of the symbol `::E` here
-// @94..95: `::E` redeclared here
+// @95..96: `::E` redeclared here
 // `::E` must be declared or imported only once in this scope
 // >>>

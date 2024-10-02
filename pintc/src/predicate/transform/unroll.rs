@@ -163,7 +163,7 @@ fn unroll_generator(
 
         let mut satisfied = true;
         {
-            let evaluator = Evaluator::from_values(&contract.enums, values_map.clone());
+            let evaluator = Evaluator::from_values(&contract.unions, values_map.clone());
 
             // Check each condition, if available, against the values map above
             for condition in &conditions {

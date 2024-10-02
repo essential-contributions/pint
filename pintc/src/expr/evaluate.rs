@@ -5,27 +5,30 @@ use crate::{
     },
     predicate::{Contract, ExprKey},
     span::{empty_span, Spanned},
-    types::{EnumDecl, Path, Type},
+    types::{Path, Type, UnionDecl},
 };
 use fxhash::FxHashMap;
 
 #[derive(Default)]
 pub(crate) struct Evaluator {
-    enum_values: FxHashMap<Path, Imm>,
+    enumeration_union_values: FxHashMap<Path, Imm>,
     scope_values: FxHashMap<Path, Imm>,
 }
 
 impl Evaluator {
-    pub(crate) fn new(enums: &[EnumDecl]) -> Evaluator {
+    pub(crate) fn new(unions: &[UnionDecl]) -> Evaluator {
         Evaluator {
-            enum_values: Self::create_enum_map(enums),
+            enumeration_union_values: Self::create_enumeration_union_map(unions),
             scope_values: FxHashMap::default(),
         }
     }
 
-    pub(crate) fn from_values(enums: &[EnumDecl], scope_values: FxHashMap<Path, Imm>) -> Evaluator {
+    pub(crate) fn from_values(
+        unions: &[UnionDecl],
+        scope_values: FxHashMap<Path, Imm>,
+    ) -> Evaluator {
         Evaluator {
-            enum_values: Self::create_enum_map(enums),
+            enumeration_union_values: Self::create_enumeration_union_map(unions),
             scope_values,
         }
     }
@@ -42,21 +45,28 @@ impl Evaluator {
         self.scope_values
     }
 
-    fn create_enum_map(enums: &[EnumDecl]) -> FxHashMap<Path, Imm> {
-        FxHashMap::from_iter(enums.iter().flat_map(
-            |EnumDecl {
-                 name: enum_name,
-                 variants,
-                 ..
-             }| {
-                variants.iter().enumerate().map(|(idx, variant)| {
-                    (
-                        enum_name.name.clone() + "::" + &variant.name,
-                        Imm::Enum(idx as i64, enum_name.name.clone()),
-                    )
-                })
-            },
-        ))
+    /// Given a list of `UnionDecl`s, create an `FxHashMap` from union variant paths to
+    /// corresponding `Imm::UnionVariant`s. Only consider unions that are enumerations, i.e.,
+    /// unions with only valueless variants.
+    fn create_enumeration_union_map(unions: &[UnionDecl]) -> FxHashMap<Path, Imm> {
+        FxHashMap::from_iter(
+            unions
+                .iter()
+                .filter(|union| union.is_enumeration_union())
+                .flat_map(|u| {
+                    u.variants.iter().enumerate().map(move |(idx, v)| {
+                        (
+                            format!("{}::{}", u.name.name, v.variant_name.name),
+                            Imm::UnionVariant {
+                                tag_num: idx as i64,
+                                value_size: 0,
+                                value: None,
+                                ty_path: u.name.name.clone(),
+                            },
+                        )
+                    })
+                }),
+        )
     }
 
     pub(crate) fn evaluate_key(
@@ -101,14 +111,14 @@ impl Evaluator {
             Expr::Path(path, span) => self
                 .scope_values
                 .get(path)
-                .or_else(|| self.enum_values.get(path))
+                .or_else(|| self.enumeration_union_values.get(path))
                 .cloned()
                 .ok_or_else(|| {
                     handler.emit_err(Error::Compile {
                         error: CompileError::SymbolNotFound {
                             name: path.to_string(),
                             span: span.clone(),
-                            enum_names: Vec::new(),
+                            union_names: Vec::new(),
                         },
                     })
                 }),
@@ -230,18 +240,33 @@ impl Evaluator {
                 let ary = self.evaluate_key(expr, handler, contract)?;
                 if let Imm::Array(elements) = ary {
                     // And the index is an int...
-                    let idx = self.evaluate_key(index, handler, contract)?;
-                    if let Imm::Int(n) | Imm::Enum(n, _) = idx {
-                        // And it's not out of bounds...
-                        elements.get(n as usize).cloned().ok_or_else(|| {
+                    match self.evaluate_key(index, handler, contract)? {
+                        Imm::Int(n) => elements.get(n as usize).cloned().ok_or_else(|| {
                             handler.emit_err(Error::Compile {
                                 error: CompileError::ArrayIndexOutOfBounds { span: span.clone() },
                             })
-                        })
-                    } else {
-                        Err(handler.emit_err(Error::Compile {
+                        }),
+
+                        Imm::UnionVariant {
+                            tag_num, ty_path, ..
+                        } if Type::Union {
+                            path: ty_path.clone(),
+                            span: empty_span(),
+                        }
+                        .is_enumeration_union(&contract.unions) =>
+                        {
+                            elements.get(tag_num as usize).cloned().ok_or_else(|| {
+                                handler.emit_err(Error::Compile {
+                                    error: CompileError::ArrayIndexOutOfBounds {
+                                        span: span.clone(),
+                                    },
+                                })
+                            })
+                        }
+
+                        _ => Err(handler.emit_err(Error::Compile {
                             error: CompileError::InvalidConstArrayIndex { span: span.clone() },
-                        }))
+                        })),
                     }
                 } else {
                     Err(handler.emit_err(Error::Compile {
@@ -335,7 +360,7 @@ impl Evaluator {
                 };
 
                 // All casts are either redundant (e.g., bool as bool) or are to ints, except int
-                // as real.  They'll be rejected by the type checker if not.
+                // as real. They'll be rejected by the type checker if not.
                 let imm = self.evaluate_key(value, handler, contract)?;
                 match imm {
                     Imm::Real(_) => {
@@ -346,7 +371,7 @@ impl Evaluator {
                         }
                     }
 
-                    Imm::Int(i) | Imm::Enum(i, _) => {
+                    Imm::Int(i) => {
                         if ty.is_int() {
                             Ok(imm)
                         } else if ty.is_real() {
@@ -366,13 +391,34 @@ impl Evaluator {
                         }
                     }
 
+                    // Union variants can be cast to `int` or `real` but only if the union is an
+                    // enumeration
+                    Imm::UnionVariant {
+                        tag_num,
+                        ref ty_path,
+                        ..
+                    } => {
+                        let is_enumeration_union = Type::Union {
+                            path: ty_path.clone(),
+                            span: empty_span(),
+                        }
+                        .is_enumeration_union(&contract.unions);
+
+                        if is_enumeration_union && ty.is_int() {
+                            Ok(Imm::Int(tag_num))
+                        } else if is_enumeration_union && ty.is_real() {
+                            Ok(Imm::Real(tag_num as f64))
+                        } else {
+                            cast_error(imm)
+                        }
+                    }
+
                     // Invalid to cast from these values.
                     Imm::Nil
                     | Imm::String(_)
                     | Imm::B256(_)
                     | Imm::Array { .. }
                     | Imm::Tuple(_)
-                    | Imm::UnionVariant { .. }
                     | Imm::Error => cast_error(imm),
                 }
             }
@@ -382,7 +428,6 @@ impl Evaluator {
                 // values/types which use them need to be refactored.  Or we get the type passed in
                 // from evaluate_key().  This whole method is pretty sucky -- e.g, getting the tag
                 // num and union size.
-
                 let mut path_segs = path.split("::").collect::<Vec<_>>();
                 path_segs.pop();
                 let ty_path = path_segs.join("::");

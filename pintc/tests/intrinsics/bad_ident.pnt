@@ -8,7 +8,7 @@ interface __MyInterface {
 }
 type T = { __x: int, y: bool };
 
-enum ___E = A | B;
+union ___E = A | B;
 type __MyType = int;
 
 predicate test {

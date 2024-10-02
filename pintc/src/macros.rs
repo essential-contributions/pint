@@ -4,7 +4,7 @@ use crate::{
     lexer::Token,
     predicate::{Contract, ExprKey, Predicate, Var},
     span::Span,
-    types::{EnumDecl, Path},
+    types::{Path, UnionDecl},
 };
 
 use fxhash::FxHashMap;
@@ -147,13 +147,13 @@ pub(crate) fn splice_args(
             let var_ty = var_key.get_ty(pred);
             if !var_ty.is_unknown() {
                 if let Some(range_expr_key) = var_ty.get_array_range_expr() {
-                    if let Some((size, opt_enum)) =
+                    if let Some((size, opt_enumeration_union)) =
                         splice_get_array_range_size(contract, range_expr_key)
                     {
                         // Store where and what to replace in the new spliced args.
                         replacements.insert(
                             (arg_idx, tok_idx),
-                            (array_name.to_string(), size, opt_enum, range),
+                            (array_name.to_string(), size, opt_enumeration_union, range),
                         );
                     } else {
                         handler.emit_err(Error::Compile {
@@ -173,13 +173,13 @@ pub(crate) fn splice_args(
                 }
             } else if let Some(var_init_key) = pred.var_inits.get(var_key) {
                 if let Some(Expr::Array { range_expr, .. }) = var_init_key.try_get(contract) {
-                    if let Some((size, opt_enum)) =
+                    if let Some((size, opt_enumeration_union)) =
                         splice_get_array_range_size(contract, *range_expr)
                     {
                         // Store where and what to replace in the new spliced args.
                         replacements.insert(
                             (arg_idx, tok_idx),
-                            (array_name.to_string(), size, opt_enum, range),
+                            (array_name.to_string(), size, opt_enumeration_union, range),
                         );
                     } else {
                         handler.emit_err(Error::Compile {
@@ -228,7 +228,9 @@ pub(crate) fn splice_args(
         new_args.push(Vec::new());
 
         for (tok_idx, tok) in arg_tokens.into_iter().enumerate() {
-            if let Some((name, size, opt_enum, range)) = replacements.get(&(arg_idx, tok_idx)) {
+            if let Some((name, size, opt_enumeration_union, range)) =
+                replacements.get(&(arg_idx, tok_idx))
+            {
                 // Push an array accessor for every element in the array.  Each token will share
                 // the span with the original spliced arg.
                 let l = range.start;
@@ -245,11 +247,11 @@ pub(crate) fn splice_args(
 
                     new_arg_tokens.push((l, Token::Ident((name.clone(), true)), r));
                     new_arg_tokens.push((l, Token::BracketOpen, r));
-                    if let Some((enum_name, variants)) = opt_enum {
-                        // Argh, the enum_name already is parsed into a path.
+                    if let Some((union_name, variants)) = opt_enumeration_union {
+                        // Argh, the union_name already is parsed into a path.
                         new_arg_tokens.push((
                             l,
-                            Token::Ident((enum_name.name[2..].to_string(), true)),
+                            Token::Ident((union_name.name[2..].to_string(), true)),
                             r,
                         ));
                         new_arg_tokens.push((l, Token::DoubleColon, r));
@@ -273,12 +275,12 @@ pub(crate) fn splice_args(
     call.args = new_args;
 }
 
-type OptEnumDecl = Option<(Ident, Vec<Ident>)>;
+type OptEnumerationUnionDecl = Option<(Ident, Vec<Ident>)>;
 
 fn splice_get_array_range_size(
     contract: &Contract,
     range_expr_key: ExprKey,
-) -> Option<(usize, OptEnumDecl)> {
+) -> Option<(usize, OptEnumerationUnionDecl)> {
     range_expr_key
         .try_get(contract)
         .and_then(|range_expr| match range_expr {
@@ -286,15 +288,24 @@ fn splice_get_array_range_size(
                 value: Immediate::Int(size),
                 ..
             } => Some((*size as usize, None)),
-            Expr::Path(path, _) => {
-                contract
-                    .enums
-                    .iter()
-                    .find_map(|EnumDecl { name, variants, .. }| {
-                        (&name.name == path)
-                            .then(|| (variants.len(), Some((name.clone(), variants.clone()))))
+            Expr::Path(path, _) => contract
+                .unions
+                .iter()
+                .filter(|union| union.is_enumeration_union())
+                .find_map(|UnionDecl { name, variants, .. }| {
+                    (&name.name == path).then(|| {
+                        (
+                            variants.len(),
+                            Some((
+                                name.clone(),
+                                variants
+                                    .iter()
+                                    .map(|variant| variant.variant_name.clone())
+                                    .collect(),
+                            )),
+                        )
                     })
-            }
+                }),
 
             _ => None,
         })

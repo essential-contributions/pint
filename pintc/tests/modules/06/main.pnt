@@ -1,7 +1,7 @@
 use b_mod::c_mod::A::{C, D};
 use ::b_mod::c_mod::{A, A::B};
 
-enum U = V | W;
+union U = V | W;
 
 predicate test {
     var s0 = B;
@@ -18,8 +18,8 @@ predicate test {
 }
 
 // parsed <<<
-// enum ::U = V | W;
-// enum ::b_mod::c_mod::A = B | C | D;
+// union ::U = V | W;
+// union ::b_mod::c_mod::A = B | C | D;
 //
 // predicate ::test {
 //     var ::s0;
@@ -41,35 +41,25 @@ predicate test {
 // >>>
 
 // flattened <<<
-// enum ::U = V | W;
-// enum ::b_mod::c_mod::A = B | C | D;
-//
+// union ::U = V | W;
+// union ::b_mod::c_mod::A = B | C | D;
+// 
 // predicate ::test {
-//     var ::s0: int;
-//     var ::s1: int;
-//     var ::s2: int;
-//     var ::s3: int;
-//     var ::s4: int;
-//     constraint (::s0 == 0);
-//     constraint (::s1 == 1);
-//     constraint (::s2 == 0);
-//     constraint (::s3 == 1);
-//     constraint (::s4 == 0);
-//     constraint (::s0 == 0);
-//     constraint (::s1 == 1);
-//     constraint (::s2 == 0);
-//     constraint (::s3 == 1);
-//     constraint (::s4 == 0);
-//     constraint (::s0 >= 0);
-//     constraint (::s0 <= 2);
-//     constraint (::s1 >= 0);
-//     constraint (::s1 <= 2);
-//     constraint (::s2 >= 0);
-//     constraint (::s2 <= 2);
-//     constraint (::s3 >= 0);
-//     constraint (::s3 <= 2);
-//     constraint (::s4 >= 0);
-//     constraint (::s4 <= 2);
+//     var ::s0: ::b_mod::c_mod::A;
+//     var ::s1: ::b_mod::c_mod::A;
+//     var ::s2: ::b_mod::c_mod::A;
+//     var ::s3: ::b_mod::c_mod::A;
+//     var ::s4: ::b_mod::c_mod::A;
+//     constraint (::s0 == ::b_mod::c_mod::A::B);
+//     constraint (::s1 == ::b_mod::c_mod::A::C);
+//     constraint (::s2 == ::b_mod::c_mod::A::B);
+//     constraint (::s3 == ::b_mod::c_mod::A::C);
+//     constraint (::s4 == ::b_mod::c_mod::A::B);
+//     constraint (::s0 == ::b_mod::c_mod::A::B);
+//     constraint (::s1 == ::b_mod::c_mod::A::C);
+//     constraint (::s2 == ::b_mod::c_mod::A::B);
+//     constraint (::s3 == ::b_mod::c_mod::A::C);
+//     constraint (::s4 == ::b_mod::c_mod::A::B);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

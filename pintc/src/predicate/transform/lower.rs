@@ -7,10 +7,10 @@ use crate::{
     predicate::{
         BlockStatement, Const, ConstraintDecl, Contract, ExprKey, ExprsIter, Ident, IfDecl,
         Interface, InterfaceVar, MatchDecl, MatchDeclBranch, PredKey, PredicateInterface,
-        StorageVar, Var, VisitorKind,
+        StorageVar, VisitorKind,
     },
     span::{empty_span, Span, Spanned},
-    types::{self, EnumDecl, NewTypeDecl, Path, PrimitiveKind, Type, UnionDecl, UnionVariant},
+    types::{self, NewTypeDecl, Path, PrimitiveKind, Type, UnionDecl},
 };
 
 use fxhash::FxHashMap;
@@ -21,340 +21,6 @@ mod lower_pub_var_accesses;
 mod lower_storage_accesses;
 pub(crate) use lower_pub_var_accesses::lower_pub_var_accesses;
 pub(crate) use lower_storage_accesses::lower_storage_accesses;
-
-pub(crate) fn lower_enums(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
-    // Each enum has its variants indexed from 0. Gather all the enum declarations and create a
-    // map from path to integer index.
-    let mut variant_map = FxHashMap::default();
-    let mut variant_count_map = FxHashMap::default();
-
-    let mut add_variants = |e: &EnumDecl, name: &String| {
-        for (i, v) in e.variants.iter().enumerate() {
-            let full_path = name.clone() + "::" + v.name.as_str();
-            variant_map.insert(full_path, i);
-        }
-        variant_count_map.insert(e.name.name.clone(), e.variants.len());
-    };
-
-    for e in &contract.enums {
-        // Add all variants for the enum.
-        add_variants(e, &e.name.name);
-
-        // We need to do exactly the same for any newtypes which are aliasing this enum.
-        if let Some(alias_name) =
-            contract
-                .new_types
-                .iter()
-                .find_map(|NewTypeDecl { name, ty, .. }| {
-                    (ty.get_enum_name(&contract.enums) == Some(&e.name.name)).then_some(&name.name)
-                })
-        {
-            add_variants(e, alias_name);
-        }
-    }
-
-    // In many places below we need a copy of all the enum names.  This sucks until we fix
-    // `Type::Custom` as we need to copy the enum names out to avoid borrowing conflicts.
-    let enum_names = contract
-        .enums
-        .iter()
-        .map(|EnumDecl { name, .. }| name.name.to_string())
-        .collect::<Vec<String>>();
-
-    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
-        let mut enum_replacements = Vec::default();
-        let mut variant_replacements = Vec::default();
-        let mut enum_var_keys = Vec::default();
-
-        let int_ty = Type::Primitive {
-            kind: PrimitiveKind::Int,
-            span: empty_span(),
-        };
-
-        let bool_ty = Type::Primitive {
-            kind: PrimitiveKind::Bool,
-            span: empty_span(),
-        };
-
-        let pred = contract.preds.get(pred_key).unwrap();
-
-        // Find all the expressions referring to the variants and save them in a list.
-        for old_expr_key in contract.exprs(pred_key) {
-            if let Some(Expr::Path(path, _span)) = old_expr_key.try_get(contract) {
-                if let Some(idx) = variant_map.get(path) {
-                    variant_replacements.push((old_expr_key, idx));
-                }
-                if let Some(count) = variant_count_map.get(path) {
-                    enum_replacements.push((old_expr_key, *count));
-                }
-            }
-        }
-
-        // Gather all vars which have an enum type, along with that enum type and the variant
-        // count.  Clippy says .filter(..).map(..) is cleaner than .filter_map(.. bool.then(..)).
-        enum_var_keys.extend(
-            pred.vars()
-                .filter(|(var_key, _)| var_key.get_ty(pred).is_enum(&contract.enums))
-                .map(|(var_key, Var { name, .. })| {
-                    let enum_ty = var_key.get_ty(pred).clone();
-                    let variant_count = variant_count_map
-                        .get(enum_ty.get_enum_name(&contract.enums).unwrap())
-                        .copied();
-                    (var_key, name.clone(), enum_ty, variant_count)
-                }),
-        );
-
-        // Not sure at this stage if we'll ever allow state to be an enum.
-        for (state_key, _) in pred.states() {
-            if type_has_nested_enum(state_key.get_ty(pred), contract) {
-                return Err(handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "found state with an enum type",
-                        span: empty_span(),
-                    },
-                }));
-            }
-        }
-
-        // Replace the variant expressions with literal int equivalents.
-        for (old_expr_key, idx) in variant_replacements {
-            let new_expr_key = contract.exprs.insert(
-                Expr::Immediate {
-                    value: Immediate::Int(*idx as i64),
-                    span: empty_span(),
-                },
-                int_ty.clone(),
-            );
-            contract.replace_exprs(Some(pred_key), old_expr_key, new_expr_key);
-        }
-
-        // Replace any var or state enum type with int.  Also add constraints to disallow vars or state
-        // to have values outside of the enum.
-        for (_, var_name, _, variant_count) in &enum_var_keys {
-            // Add the constraint.  Get the variant max for this enum first.
-            let variant_max = match variant_count {
-                Some(c) => *c as i64 - 1,
-                None => {
-                    return Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "unable to get enum variant count",
-                            span: empty_span(),
-                        },
-                    }))
-                }
-            };
-
-            let var_expr_key = contract.exprs.insert(
-                Expr::Path(var_name.to_string(), empty_span()),
-                int_ty.clone(),
-            );
-
-            let lower_bound_key = contract.exprs.insert(
-                Expr::Immediate {
-                    value: Immediate::Int(0),
-                    span: empty_span(),
-                },
-                int_ty.clone(),
-            );
-
-            let upper_bound_key = contract.exprs.insert(
-                Expr::Immediate {
-                    value: Immediate::Int(variant_max),
-                    span: empty_span(),
-                },
-                int_ty.clone(),
-            );
-
-            let lower_bound_cmp_key = contract.exprs.insert(
-                Expr::BinaryOp {
-                    op: BinaryOp::GreaterThanOrEqual,
-                    lhs: var_expr_key,
-                    rhs: lower_bound_key,
-                    span: empty_span(),
-                },
-                bool_ty.clone(),
-            );
-
-            let upper_bound_cmp_key = contract.exprs.insert(
-                Expr::BinaryOp {
-                    op: BinaryOp::LessThanOrEqual,
-                    lhs: var_expr_key,
-                    rhs: upper_bound_key,
-                    span: empty_span(),
-                },
-                bool_ty.clone(),
-            );
-
-            if let Some(pred) = contract.preds.get_mut(pred_key) {
-                pred.constraints.push(ConstraintDecl {
-                    expr: lower_bound_cmp_key,
-                    span: empty_span(),
-                });
-                pred.constraints.push(ConstraintDecl {
-                    expr: upper_bound_cmp_key,
-                    span: empty_span(),
-                });
-            };
-        }
-
-        // Now do the actual type update from enum to int.
-        let pred = &mut contract.preds[pred_key];
-
-        let var_keys: Vec<_> = pred.vars().map(|(var_key, _)| var_key).collect();
-        for var_key in var_keys {
-            replace_nested_enum_with_int(var_key.get_ty_mut(pred), &enum_names);
-        }
-
-        let expr_keys: Vec<_> = contract.exprs(pred_key).collect();
-        for expr_key in expr_keys {
-            replace_nested_enum_with_int(expr_key.get_ty_mut(contract), &enum_names);
-
-            if let Expr::UnionValue { variant_ty, .. } = expr_key.get_mut(contract) {
-                replace_nested_enum_with_int(variant_ty, &enum_names);
-            }
-        }
-
-        // Array types can use enums as the range.  Recursively replace a range known to be an enum
-        // with an immediate integer equivalent.
-        fn replace_array_range(enum_expr_map: &FxHashMap<ExprKey, ExprKey>, ty: &mut Type) {
-            if let Type::Array {
-                ty: el_ty,
-                range: Some(range_key),
-                ..
-            } = ty
-            {
-                // If the range for this array is an enum (i.e., we found it in our map) then replace
-                // it with an immediate int.
-                if let Some(count_expr_key) = enum_expr_map.get(range_key) {
-                    *range_key = *count_expr_key;
-                }
-
-                // Recurse for multi-dimensional arrays.
-                replace_array_range(enum_expr_map, el_ty);
-            }
-        }
-
-        // Build a map from expr-key-of-path-to-enum to immediate-int-of-variant-count.
-        let enum_count_exprs =
-            FxHashMap::from_iter(enum_replacements.into_iter().map(|(expr_key, count)| {
-                let imm_expr_key = contract.exprs.insert(
-                    Expr::Immediate {
-                        value: Immediate::Int(count as i64),
-                        span: empty_span(),
-                    },
-                    int_ty.clone(),
-                );
-                (expr_key, imm_expr_key)
-            }));
-
-        // Update all the array types.
-        contract
-            .preds
-            .get_mut(pred_key)
-            .unwrap()
-            .vars
-            .update_types(|_var_key, ty| replace_array_range(&enum_count_exprs, ty));
-        contract
-            .exprs
-            .update_types(|_expr_key, ty| replace_array_range(&enum_count_exprs, ty));
-    }
-
-    // Constant declaration types may still have enums though their values will have been lowered
-    // to immediates at type checking.
-    for Const { decl_ty, .. } in contract.consts.values_mut() {
-        replace_nested_enum_with_int(decl_ty, &enum_names);
-    }
-
-    // Ditto for interfaces.
-    for Interface {
-        predicate_interfaces,
-        ..
-    } in &mut contract.interfaces
-    {
-        for PredicateInterface { vars, .. } in predicate_interfaces {
-            for InterfaceVar { ty, .. } in vars {
-                replace_nested_enum_with_int(ty, &enum_names);
-            }
-        }
-    }
-
-    Ok(())
-}
-
-fn type_has_nested_enum(ty: &Type, contract: &Contract) -> bool {
-    match ty {
-        Type::Array { ty, .. } => type_has_nested_enum(ty, contract),
-
-        Type::Tuple { fields, .. } => fields
-            .iter()
-            .any(|field| type_has_nested_enum(&field.1, contract)),
-
-        Type::Custom { path, .. } => contract
-            .enums
-            .iter()
-            .any(|EnumDecl { name, .. }| &name.name == path),
-
-        Type::Alias { ty, .. } => type_has_nested_enum(ty.as_ref(), contract),
-
-        Type::Map { ty_from, ty_to, .. } => {
-            type_has_nested_enum(ty_from, contract) || type_has_nested_enum(ty_to, contract)
-        }
-
-        Type::Vector { ty, .. } => type_has_nested_enum(ty, contract),
-
-        Type::Union { path, .. } => contract
-            .unions
-            .iter()
-            .find_map(|UnionDecl { name, variants, .. }| {
-                (&name.name == path).then(|| {
-                    variants.iter().any(|UnionVariant { ty, .. }| {
-                        ty.as_ref()
-                            .map(|ty| type_has_nested_enum(ty, contract))
-                            .unwrap_or(false)
-                    })
-                })
-            })
-            .unwrap_or(false),
-
-        Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => false,
-    }
-}
-
-fn replace_nested_enum_with_int(ty: &mut Type, enum_names: &[String]) {
-    match ty {
-        Type::Array { ty, .. } => replace_nested_enum_with_int(ty, enum_names),
-
-        Type::Tuple { fields, .. } => {
-            for field in fields {
-                replace_nested_enum_with_int(&mut field.1, enum_names);
-            }
-        }
-
-        Type::Custom { path, span } => {
-            if enum_names.iter().any(|enum_name| enum_name == path) {
-                *ty = Type::Primitive {
-                    kind: PrimitiveKind::Int,
-                    span: span.clone(),
-                }
-            }
-        }
-
-        Type::Alias { ty, .. } => replace_nested_enum_with_int(ty, enum_names),
-
-        Type::Map { ty_from, ty_to, .. } => {
-            replace_nested_enum_with_int(ty_from, enum_names);
-            replace_nested_enum_with_int(ty_to, enum_names);
-        }
-
-        Type::Vector { ty, .. } => replace_nested_enum_with_int(ty, enum_names),
-
-        Type::Error(_)
-        | Type::Unknown(_)
-        | Type::Any(_)
-        | Type::Primitive { .. }
-        | Type::Union { .. } => {}
-    }
-}
 
 pub(crate) fn lower_casts(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
@@ -530,7 +196,7 @@ pub(crate) fn lower_array_ranges(
         !matches!(
             expr_key.get(contract),
             Expr::Immediate {
-                value: Immediate::Int(_) | Immediate::Enum(..),
+                value: Immediate::Int(_),
                 ..
             }
         )
@@ -593,7 +259,7 @@ pub(crate) fn lower_array_ranges(
     // and enums have been lowered, so the evaluator should be fairly simple.
     // TODO: It seems lower_enums() isn't lowering within array ranges, so we need to included them
     // here.
-    let evaluator = Evaluator::new(&contract.enums);
+    let evaluator = Evaluator::new(&contract.unions);
     let mut eval_memos: FxHashMap<ExprKey, ExprKey> = FxHashMap::default();
 
     let int_ty = Type::Primitive {
@@ -606,27 +272,58 @@ pub(crate) fn lower_array_ranges(
             Some(key) => *key,
             None => {
                 // The type checker should already ensure that our immediate value returned is an int.
-                let value = evaluator.evaluate_key(&old_range_expr_key, handler, contract)?;
-                if !matches!(value, Immediate::Int(_) | Immediate::Enum(..)) {
-                    return Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "array range expression evaluates to non int immediate",
+                if let Expr::Path(name, _) = old_range_expr_key.get(contract) {
+                    if contract.unions.iter().any(|union| union.name.name == *name) {
+                        let new_expr_key = old_range_expr_key;
+                        eval_memos.insert(old_range_expr_key, new_expr_key);
+                        new_expr_key
+                    } else {
+                        let value =
+                            evaluator.evaluate_key(&old_range_expr_key, handler, contract)?;
+                        if !matches!(value, Immediate::Int(_) | Immediate::UnionVariant { .. }) {
+                            return Err(handler.emit_err(Error::Compile {
+                                error: CompileError::Internal {
+                                    msg: "array range expression evaluates to non int immediate",
+                                    span: contract.expr_key_to_span(old_range_expr_key),
+                                },
+                            }));
+                        }
+
+                        // Create a new Primitive expr for the new range.
+                        let new_expr_key = contract.exprs.insert(
+                            Expr::Immediate {
+                                value,
+                                span: contract.expr_key_to_span(old_range_expr_key),
+                            },
+                            int_ty.clone(),
+                        );
+
+                        eval_memos.insert(old_range_expr_key, new_expr_key);
+                        new_expr_key
+                    }
+                } else {
+                    let value = evaluator.evaluate_key(&old_range_expr_key, handler, contract)?;
+                    if !matches!(value, Immediate::Int(_) | Immediate::UnionVariant { .. }) {
+                        return Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "array range expression evaluates to non int immediate",
+                                span: contract.expr_key_to_span(old_range_expr_key),
+                            },
+                        }));
+                    }
+
+                    // Create a new Primitive expr for the new range.
+                    let new_expr_key = contract.exprs.insert(
+                        Expr::Immediate {
+                            value,
                             span: contract.expr_key_to_span(old_range_expr_key),
                         },
-                    }));
+                        int_ty.clone(),
+                    );
+
+                    eval_memos.insert(old_range_expr_key, new_expr_key);
+                    new_expr_key
                 }
-
-                // Create a new Primitive expr for the new range.
-                let new_expr_key = contract.exprs.insert(
-                    Expr::Immediate {
-                        value,
-                        span: contract.expr_key_to_span(old_range_expr_key),
-                    },
-                    int_ty.clone(),
-                );
-
-                eval_memos.insert(old_range_expr_key, new_expr_key);
-                new_expr_key
             }
         };
 
@@ -682,7 +379,7 @@ pub(crate) fn lower_imm_accesses(
             })
             .collect::<Vec<_>>();
 
-        let evaluator = Evaluator::new(&contract.enums);
+        let evaluator = Evaluator::new(&contract.unions);
         let mut replacements = Vec::new();
         for (old_expr_key, array_idx, field_idx) in candidates {
             assert!(
@@ -702,7 +399,12 @@ pub(crate) fn lower_imm_accesses(
                 };
 
                 match evaluator.evaluate(idx_expr, handler, contract) {
-                    Ok(Immediate::Int(idx_val) | Immediate::Enum(idx_val, _)) if idx_val >= 0 => {
+                    Ok(
+                        Immediate::Int(idx_val)
+                        | Immediate::UnionVariant {
+                            tag_num: idx_val, ..
+                        },
+                    ) if idx_val >= 0 => {
                         match array_key.try_get(contract) {
                             Some(Expr::Array { elements, .. }) => {
                                 // Simply replace the index with the element expr.

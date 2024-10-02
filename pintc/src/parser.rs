@@ -426,14 +426,14 @@ impl<'a> ProjectParser<'a> {
                 }
 
                 let path_mod = mod_path_strs.join("::");
-                let path_enum = enum_path_strs.join("::");
+                let path_union = enum_path_strs.join("::");
                 let path_full = format!("{path_mod}::{suffix}");
 
                 self.handler.emit_err(Error::Compile {
                     error: CompileError::NoFileFoundForPath {
                         path_full: path_full.clone(),
                         path_mod,
-                        path_enum,
+                        path_union,
                         span: span.clone(),
                     },
                 });

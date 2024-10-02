@@ -1,5 +1,5 @@
-enum MyEnum = A | B;
-type MyAlias = MyEnum;
+union MyUnion = A | B;
+type MyAlias = MyUnion;
 
 storage {
     a: ({ int, int } => int),
@@ -8,12 +8,12 @@ storage {
     d: {int, int}[],
     e: (int => int)[],
     f: MyAlias,
-    g: MyEnum,
+    g: MyUnion,
 }
 
 // parsed <<<
-// enum ::MyEnum = A | B;
-// type ::MyAlias = ::MyEnum;
+// union ::MyUnion = A | B;
+// type ::MyAlias = ::MyUnion;
 // storage {
 //     a: ( {int, int} => int ),
 //     b: ( int[5] => int ),
@@ -21,23 +21,21 @@ storage {
 //     d: {int, int}[],
 //     e: ( int => int )[],
 //     f: ::MyAlias,
-//     g: ::MyEnum,
+//     g: ::MyUnion,
 // }
 // >>>
 
 // typecheck_failure <<<
 // type not allowed in storage
-// @62..83: found type ( {int, int} => int ) in storage
+// @65..86: found type ( {int, int} => int ) in storage
 // type not allowed in storage
-// @92..107: found type ( int[5] => int ) in storage
+// @95..110: found type ( int[5] => int ) in storage
 // type not allowed in storage
-// @116..131: found type ( int[] => int ) in storage
+// @119..134: found type ( int[] => int ) in storage
 // type not allowed in storage
-// @140..152: found type {int, int}[] in storage
+// @143..155: found type {int, int}[] in storage
 // type not allowed in storage
-// @161..175: found type ( int => int )[] in storage
+// @164..178: found type ( int => int )[] in storage
 // type not allowed in storage
-// @21..42: found type ::MyAlias (::MyEnum) in storage
-// type not allowed in storage
-// @200..206: found type ::MyEnum in storage
+// @23..45: found type ::MyAlias (::MyUnion) in storage
 // >>>

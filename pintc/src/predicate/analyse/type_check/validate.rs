@@ -42,12 +42,11 @@ impl Contract {
             }
         }
 
-        // The set of all available custom types. These are either enums, unions or type aliases.
+        // The set of all available custom types. These are either unions or type aliases.
         let valid_custom_tys: FxHashSet<&String> = FxHashSet::from_iter(
-            self.enums
+            self.unions
                 .iter()
-                .map(|ed| &ed.name.name)
-                .chain(self.unions.iter().map(|un| &un.name.name))
+                .map(|un| &un.name.name)
                 .chain(self.new_types.iter().map(|ntd| &ntd.name.name)),
         );
 
@@ -316,11 +315,7 @@ impl Contract {
         {
             let init_ty = init_expr_key.get_ty(self);
 
-            // Special case for enum variants -- they'll have an init_ty of `int`.  So we have
-            // an error if the types mismatch and they're _not_ an enum/int combo exception.
-            if !(init_ty.eq(&self.new_types, decl_ty)
-                || decl_ty.is_enum(&self.enums) && init_ty.is_int())
-            {
+            if !init_ty.eq(&self.new_types, decl_ty) {
                 handler.emit_err(Error::Compile {
                     error: CompileError::InitTypeError {
                         init_kind: "const",

@@ -15,8 +15,8 @@ predicate test {
 // parse_failure <<<
 // unable to determine spliced array size
 // @137..140: unable to determine spliced array size for `::ary` while parsing
-// macro array splicing is currently limited to immediate integer sizes or enums
-// expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `const`, `constraint`, `enum`, `exists`, `forall`, `if`, `interface`, `intrinsic_name`, `macro_name`, `match`, `mut`, `predicate`, `pub`, `state`, `storage`, `type`, `union`, `use`, `var`, `{`, or `}`, found `ary`
-// @69..71: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `const`, `constraint`, `enum`, `exists`, `forall`, `if`, `interface`, `intrinsic_name`, `macro_name`, `match`, `mut`, `predicate`, `pub`, `state`, `storage`, `type`, `union`, `use`, `var`, `{`, or `}`
+// macro array splicing is currently limited to immediate integer sizes or enumeration unions
+// expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `const`, `constraint`, `exists`, `forall`, `if`, `interface`, `intrinsic_name`, `macro_name`, `match`, `mut`, `predicate`, `pub`, `state`, `storage`, `type`, `union`, `use`, `var`, `{`, or `}`, found `ary`
+// @69..71: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `const`, `constraint`, `exists`, `forall`, `if`, `interface`, `intrinsic_name`, `macro_name`, `match`, `mut`, `predicate`, `pub`, `state`, `storage`, `type`, `union`, `use`, `var`, `{`, or `}`
 // @131..141: when making macro call to '::@sum'
 // >>>

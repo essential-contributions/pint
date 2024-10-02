@@ -90,14 +90,6 @@ impl DisplayWithContract for super::Type {
     }
 }
 
-impl Display for super::EnumDecl {
-    fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "enum {} = ", self.name)?;
-        crate::util::write_many!(f, self.variants, " | ");
-        Ok(())
-    }
-}
-
 impl DisplayWithContract for super::NewTypeDecl {
     fn fmt(&self, f: &mut Formatter, contract: &Contract) -> Result {
         write!(f, "type {} = {}", self.name, contract.with_ctrct(&self.ty))

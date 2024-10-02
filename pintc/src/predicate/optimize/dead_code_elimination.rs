@@ -10,7 +10,8 @@ use crate::{
 
 /// In a given contract, remove any code that is not reachable or used.
 ///
-/// If an error occurs, the specific optimization process is aborted to ensure the contract remains functional.
+/// If an error occurs, the specific optimization process is aborted to ensure the contract remains
+/// functional.
 pub(crate) fn dead_code_elimination(handler: &Handler, contract: &mut Contract) {
     dead_state_elimination(contract);
     dead_constraint_elimination(handler, contract);
@@ -52,9 +53,10 @@ pub(crate) fn dead_state_elimination(contract: &mut Contract) {
 
 /// Remove all trivial Constraints in their respective predicates.
 ///
-/// If any constraint evaluates to false, all constraints are removed and replaced with a single instance of `constraint false`
+/// If any constraint evaluates to false, all constraints are removed and replaced with a single
+/// instance of `constraint false`
 pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Contract) {
-    let evaluator = Evaluator::new(&contract.enums);
+    let evaluator = Evaluator::new(&contract.unions);
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         if let Some(pred) = contract.preds.get(pred_key) {
@@ -65,7 +67,9 @@ pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Cont
                 .iter()
                 .enumerate()
                 .filter_map(|(i, constraint)| {
-                    // If the evaluator succeeds, we're only expecting true or false. If it doesn't then we don't care about the constraint.
+                    // If the evaluator succeeds, we're only expecting true or false. If it doesn't
+                    // then we don't care about the constraint.
+                    //
                     // We also don't care about the errors emitted by the evaluator
                     if let Ok(Immediate::Bool(b)) =
                         evaluator.evaluate_key(&constraint.expr, &Handler::default(), contract)
@@ -89,15 +93,17 @@ pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Cont
                 if let Some(pred) = contract.preds.get_mut(pred_key) {
                     pred.constraints = vec![ConstraintDecl {
                         expr: contract.exprs.insert_bool(false),
-                        // ideally we would collect the spans of all the constraints, but we don't have the ability to do that right now
+                        // ideally we would collect the spans of all the constraints, but we don't
+                        // have the ability to do that right now
                         span: empty_span(),
                     }]
                 }
             } else {
                 // retain only useful constraints
                 if let Some(pred) = contract.preds.get_mut(pred_key) {
-                    // Remove dead constraints in reverse to avoid removing the wrong indices from shifting elements
-                    // This assumes dead_constraints is sorted, which it is based on how it is collected above
+                    // Remove dead constraints in reverse to avoid removing the wrong indices from
+                    // shifting elements. This assumes dead_constraints is sorted, which it is based
+                    // on how it is collected above
                     dead_constraints.iter().rev().for_each(|i| {
                         pred.constraints.remove(*i);
                     });
@@ -111,8 +117,9 @@ pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Cont
 ///
 /// If any select condition is a const the appropriate branch replaces the select expression
 pub(crate) fn dead_select_elimination(contract: &mut Contract) {
-    let evaluator = Evaluator::new(&contract.enums);
-    let mut replace_map: FxHashMap<ExprKey, ExprKey> = FxHashMap::default(); // <select_expr, branch_expr>
+    let evaluator = Evaluator::new(&contract.unions);
+    let mut replace_map: FxHashMap<ExprKey /* select */, ExprKey /* branch */> =
+        FxHashMap::default();
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         for expr_key in contract.exprs(pred_key) {

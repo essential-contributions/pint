@@ -126,8 +126,6 @@ pub enum Token {
     Storage,
     #[token("interface")]
     Interface,
-    #[token("enum")]
-    Enum,
     #[token("type")]
     Type,
     #[token("union")]
@@ -212,7 +210,6 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Const,
     Token::Constraint,
     Token::Else,
-    Token::Enum,
     Token::Exists,
     Token::False,
     Token::ForAll,
@@ -325,7 +322,6 @@ impl fmt::Display for Token {
             Token::Const => write!(f, "const"),
             Token::Storage => write!(f, "storage"),
             Token::Interface => write!(f, "interface"),
-            Token::Enum => write!(f, "enum"),
             Token::Type => write!(f, "type"),
             Token::Union => write!(f, "union"),
             Token::Constraint => write!(f, "constraint"),
