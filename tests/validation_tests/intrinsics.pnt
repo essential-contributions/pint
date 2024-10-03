@@ -23,9 +23,9 @@ predicate Foo {
     // These addresses can be verified by compiling this contract using the `pint` CLI tool which
     // produces the address of every predicate.
     constraint __address_of("::First") ==
-        0x79B9312465481501ADBE4B94B2B6060CB04772D165A4C498437AF96E5B0756C4;
+        0x9C765AEC92FC1F9D6F712ED04AFBC00AB67FD549EBA12878610D05C86F549350;
     constraint __address_of("::Bar") ==
-        0x451582FD4A2B072219EE5FA985A5E1C66B543B6ADE3E5F2109CB83DAA293E3EB;
+        0xCF9B52686DD22EFF2217FD8739AFC47ABFFCC55AC1F0A5745F9EFFF8443CF5CC;
 
     constraint __predicate_at(1) == {
         0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE,
@@ -85,23 +85,23 @@ predicate Foo {
     state w = mut storage::w;
 
     // `x` is set in the pre state db and in the solution
-    constraint __state_len(x) == 1;
-    constraint __state_len(x) == 1;
+    constraint __size_of(x) == 1;
+    constraint __size_of(x) == 1;
 
     // `y` is set in the pre state db and in the solution
-    constraint __state_len(y) == 1;
-    constraint __state_len(y') == 1;
+    constraint __size_of(y) == 1;
+    constraint __size_of(y') == 1;
 
     // `z` is not set in the pre state db but is set in the solution
-    constraint __state_len(z) == 0;
-    constraint __state_len(z') == 1;
+    constraint __size_of(z) == 0;
+    constraint __size_of(z') == 1;
 
     // `w` is set in the pre state db but unset in the solution
-    constraint __state_len(w) == 4;
-    constraint __state_len(w') == 0;
+    constraint __size_of(w) == 4;
+    constraint __size_of(w') == 0;
 
-    // `__state_len` called on non-state var expressions always returns 0.
-    constraint __state_len(1) == 0;
-    constraint __state_len(this_pathway) == 0;
-    constraint __state_len(__state_len(w')) == 0;
+    // `__size_of` called on non-state vars.
+    constraint __size_of(1) == 1;
+    constraint __size_of(this_pathway) == 1;
+    constraint __size_of(__size_of(w')) == 1;
 }

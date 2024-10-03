@@ -34,8 +34,8 @@ predicate test {
 
     state x = storage::x;
 
-    var bad_state_len_1 = __state_len(x, 0);
-    var bad_state_len_2 = __state_len();
+    var bad_size_of_1 = __size_of(x, 0);
+    var bad_size_of_2 = __size_of();
 }
 
 // parsed <<<
@@ -59,8 +59,8 @@ predicate test {
 //     var ::recover_secp256k1_1: {b256, int};
 //     var ::recover_secp256k1_2: {b256, int};
 //     var ::recover_secp256k1_3: {b256, int};
-//     var ::bad_state_len_1;
-//     var ::bad_state_len_2;
+//     var ::bad_size_of_1;
+//     var ::bad_size_of_2;
 //     state ::x = storage::x;
 //     constraint (::this_address == __this_address(42));
 //     constraint (::this_contract_address == __this_contract_address(42));
@@ -76,8 +76,8 @@ predicate test {
 //     constraint (::recover_secp256k1_1 == __recover_secp256k1(::hash0, {::hash0, ::hash0}));
 //     constraint (::recover_secp256k1_2 == __recover_secp256k1(::hash0));
 //     constraint (::recover_secp256k1_3 == __recover_secp256k1(::hash0, {::hash0, ::hash0, 69}, ::hash0));
-//     constraint (::bad_state_len_1 == __state_len(::x, 0));
-//     constraint (::bad_state_len_2 == __state_len());
+//     constraint (::bad_size_of_1 == __size_of(::x, 0));
+//     constraint (::bad_size_of_2 == __size_of());
 // }
 // >>>
 
@@ -118,7 +118,7 @@ predicate test {
 // this intrinsic takes 2 arguments but 3 arguments were supplied
 // @1214..1267: unexpected number of arguments here
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @1323..1340: unexpected number of arguments here
+// @1321..1336: unexpected number of arguments here
 // this intrinsic takes 1 argument but 0 arguments were supplied
-// @1368..1381: unexpected number of arguments here
+// @1362..1373: unexpected number of arguments here
 // >>>

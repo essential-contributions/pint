@@ -1,10 +1,11 @@
 use super::{Contract, PredKey, Predicate};
 use crate::{
-    expr::{Expr, MatchBranch, MatchElse},
+    expr::{Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, MatchBranch, MatchElse},
     predicate::Immediate,
     span::empty_span,
     types::{PrimitiveKind, Type},
 };
+use fxhash::FxHashSet;
 use std::collections::HashSet;
 
 slotmap::new_key_type! { pub struct ExprKey; }
@@ -148,8 +149,13 @@ impl ExprKey {
                 lhs.can_panic(contract, pred) || rhs.can_panic(contract, pred)
             }
 
-            Expr::IntrinsicCall { args, .. } => {
-                args.iter().any(|arg| arg.can_panic(contract, pred))
+            Expr::IntrinsicCall { kind, args, .. } => {
+                matches!(
+                    kind.0,
+                    IntrinsicKind::Internal(
+                        InternalIntrinsic::StorageGet | InternalIntrinsic::StorageGetExtern
+                    ) | IntrinsicKind::External(ExternalIntrinsic::VecLen)
+                ) | args.iter().any(|arg| arg.can_panic(contract, pred))
             }
 
             Expr::Select {
@@ -223,6 +229,153 @@ impl ExprKey {
             }
         })
     }
+
+    /// Collect all storage accesses in an expression. For example, given the following expression:
+    /// `{ storage::map[3].2, storage::y, [storage::z.2] }`, the method `collect_storage_accesses`
+    /// returns the following storage accesses:
+    ///
+    /// - `storage::map[3].2`
+    /// - `storage::y`
+    /// - `storage::z.2`
+    ///
+    pub fn collect_storage_accesses(&self, contract: &Contract) -> FxHashSet<ExprKey> {
+        let mut storage_accesses = FxHashSet::default();
+
+        if let Some(expr) = self.try_get(contract) {
+            match expr {
+                Expr::Array { elements, .. } => {
+                    elements.iter().for_each(|e| {
+                        storage_accesses.extend(e.collect_storage_accesses(contract));
+                    });
+                }
+
+                Expr::Tuple { fields, .. } => {
+                    fields.iter().for_each(|(_, f)| {
+                        storage_accesses.extend(f.collect_storage_accesses(contract));
+                    });
+                }
+
+                Expr::UnionVariant { value, .. } => {
+                    if let Some(value) = value {
+                        storage_accesses.extend(value.collect_storage_accesses(contract));
+                    }
+                }
+
+                Expr::StorageAccess { .. } | Expr::ExternalStorageAccess { .. } => {
+                    storage_accesses.insert(*self);
+                }
+
+                Expr::UnaryOp { expr, .. } => {
+                    storage_accesses.extend(expr.collect_storage_accesses(contract));
+                }
+
+                Expr::BinaryOp { lhs, rhs, .. } => {
+                    storage_accesses.extend(lhs.collect_storage_accesses(contract));
+                    storage_accesses.extend(rhs.collect_storage_accesses(contract));
+                }
+
+                Expr::IntrinsicCall { kind, args, .. } => {
+                    if let (
+                        IntrinsicKind::External(ExternalIntrinsic::VecLen)
+                        | IntrinsicKind::Internal(
+                            InternalIntrinsic::StorageGet | InternalIntrinsic::StorageGetExtern,
+                        ),
+                        _,
+                    ) = kind
+                    {
+                        storage_accesses.insert(*self);
+                    } else {
+                        args.iter().for_each(|arg| {
+                            storage_accesses.extend(arg.collect_storage_accesses(contract));
+                        });
+                    }
+                }
+
+                Expr::Select {
+                    condition,
+                    then_expr,
+                    else_expr,
+                    ..
+                } => {
+                    storage_accesses.extend(condition.collect_storage_accesses(contract));
+                    storage_accesses.extend(then_expr.collect_storage_accesses(contract));
+                    storage_accesses.extend(else_expr.collect_storage_accesses(contract));
+                }
+
+                Expr::Index {
+                    expr: expr_inner, ..
+                } => {
+                    storage_accesses.extend(expr_inner.collect_storage_accesses(contract));
+                    if storage_accesses.remove(expr_inner) {
+                        storage_accesses.insert(*self);
+                    }
+                }
+
+                Expr::TupleFieldAccess { tuple, .. } => {
+                    storage_accesses.extend(tuple.collect_storage_accesses(contract));
+                    if storage_accesses.remove(tuple) {
+                        storage_accesses.insert(*self);
+                    }
+                }
+
+                Expr::Cast { value, .. } => {
+                    storage_accesses.extend(value.collect_storage_accesses(contract));
+                }
+
+                Expr::In {
+                    value, collection, ..
+                } => {
+                    storage_accesses.extend(value.collect_storage_accesses(contract));
+                    storage_accesses.extend(collection.collect_storage_accesses(contract));
+                }
+
+                Expr::Range { lb, ub, .. } => {
+                    storage_accesses.extend(lb.collect_storage_accesses(contract));
+                    storage_accesses.extend(ub.collect_storage_accesses(contract));
+                }
+
+                Expr::Generator {
+                    gen_ranges,
+                    conditions,
+                    body,
+                    ..
+                } => {
+                    gen_ranges.iter().for_each(|(_, range)| {
+                        storage_accesses.extend(range.collect_storage_accesses(contract));
+                    });
+                    conditions.iter().for_each(|condition| {
+                        storage_accesses.extend(condition.collect_storage_accesses(contract));
+                    });
+                    storage_accesses.extend(body.collect_storage_accesses(contract));
+                }
+
+                Expr::UnionTag { union_expr, .. } => {
+                    storage_accesses.extend(union_expr.collect_storage_accesses(contract));
+                }
+
+                Expr::UnionValue { union_expr, .. } => {
+                    storage_accesses.extend(union_expr.collect_storage_accesses(contract));
+                }
+
+                Expr::Error(_)
+                | Expr::Immediate { .. }
+                | Expr::Path(..)
+                | Expr::MacroCall { .. }
+                | Expr::Match { .. } => {}
+            }
+        }
+
+        storage_accesses
+    }
+
+    pub fn is_storage_access(&self, contract: &Contract) -> bool {
+        match self.get(contract) {
+            Expr::StorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
+            Expr::TupleFieldAccess { tuple, .. } => tuple.is_storage_access(contract),
+            Expr::Index { expr, .. } => expr.is_storage_access(contract),
+            _ => false,
+        }
+    }
 }
 
 /// [`ExprsIter`] is an iterator for all the _reachable_ expressions in the Predicate.
@@ -278,7 +431,7 @@ impl<'a> ExprsIter<'a> {
 
         // Add the array range expressions from storage, interfaces and new-types.
         if with_array_ranges {
-            queue.extend(contract.root_exprs());
+            queue.extend(contract.root_array_range_exprs());
         }
 
         ExprsIter {

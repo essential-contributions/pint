@@ -61,16 +61,16 @@ predicate test {
 //     state ::z: {int, int, int} = __storage_get({1, 0});
 //     constraint false;
 //     constraint false;
-//     constraint (__state_len(::x) == 0);
-//     constraint (__state_len(::x) == 0);
-//     constraint (__state_len(::z) == 0);
-//     constraint (__state_len(::z) == 0);
-//     constraint (__state_len(::x) != 0);
-//     constraint (__state_len(::x) != 0);
-//     constraint (__state_len(::z) != 0);
-//     constraint (__state_len(::z) != 0);
-//     constraint ((__state_len(::z) == 0) && (__state_len(::x) != 0));
-//     constraint ((__state_len(::z) != 0) && (__state_len(::x) == 0));
+//     constraint (__size_of(::x) == 0);
+//     constraint (__size_of(::x) == 0);
+//     constraint (__size_of(::z) == 0);
+//     constraint (__size_of(::z) == 0);
+//     constraint (__size_of(::x) != 0);
+//     constraint (__size_of(::x) != 0);
+//     constraint (__size_of(::z) != 0);
+//     constraint (__size_of(::z) != 0);
+//     constraint ((__size_of(::z) == 0) && (__size_of(::x) != 0));
+//     constraint ((__size_of(::z) != 0) && (__size_of(::x) == 0));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

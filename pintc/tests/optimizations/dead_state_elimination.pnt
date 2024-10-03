@@ -100,7 +100,7 @@ predicate Test {
 //     state ::x6: bool = __storage_get({3, 1});
 //     state ::z: int = __storage_get({0});
 //     constraint (::a' >= (::a + 42));
-//     constraint (((__state_len(::b) == 0) && (::b' == 1)) || (::b' == (::b + 1)));
+//     constraint (((__size_of(::b) == 0) && (::b' == 1)) || (::b' == (::b + 1)));
 //     constraint (::c'[0] == 42);
 //     constraint (::f == (::b + ::c[0]));
 //     constraint (::g == (::d.1 + ::d_0));
@@ -129,7 +129,7 @@ predicate Test {
 //     state ::e_0: bool = __storage_get({3, 0});
 //     state ::e_1: bool = __storage_get({3, 1});
 //     constraint (::a' >= (::a + 42));
-//     constraint (((__state_len(::b) == 0) && (::b' == 1)) || (::b' == (::b + 1)));
+//     constraint (((__size_of(::b) == 0) && (::b' == 1)) || (::b' == (::b + 1)));
 //     constraint (::c'[0] == 42);
 //     constraint (::f == (::b + ::c[0]));
 //     constraint (::g == (::d.1 + ::d_0));

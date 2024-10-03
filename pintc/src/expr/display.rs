@@ -263,6 +263,18 @@ impl DisplayWithContract for super::Immediate {
                 write_many_iter!(f, i, ", ");
                 write!(f, "}}")
             }
+            super::Immediate::UnionVariant {
+                tag_num,
+                ty_path,
+                value,
+                ..
+            } => {
+                write!(f, "{ty_path}::<{tag_num}>")?;
+                if let Some(value) = value {
+                    write!(f, "({})", contract.with_ctrct(value.as_ref()))?;
+                }
+                Ok(())
+            }
         }
     }
 }

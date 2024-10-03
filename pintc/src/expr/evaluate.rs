@@ -5,7 +5,7 @@ use crate::{
     },
     predicate::{Contract, ExprKey},
     span::{empty_span, Spanned},
-    types::{EnumDecl, Path},
+    types::{EnumDecl, Path, Type},
 };
 use fxhash::FxHashMap;
 
@@ -215,17 +215,13 @@ impl Evaluator {
                         })),
                     },
 
-                    (l, r) => {
-                        println!("op {op:?} for {l:?} and {r:?}");
-
-                        Err(handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "compile-time evaluation for \"big ints\" and \"strings\" \
+                    _ => Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "compile-time evaluation binary op between some types \
                               not currently supported",
-                                span: empty_span(),
-                            },
-                        }))
-                    }
+                            span: empty_span(),
+                        },
+                    })),
                 }
             }
 
@@ -376,9 +372,91 @@ impl Evaluator {
                     | Imm::B256(_)
                     | Imm::Array { .. }
                     | Imm::Tuple(_)
+                    | Imm::UnionVariant { .. }
                     | Imm::Error => cast_error(imm),
                 }
             }
+
+            Expr::UnionVariant { path, value, .. } => {
+                // Ugh, this isn't a great way to be getting the union type. :( Paths and all the
+                // values/types which use them need to be refactored.  Or we get the type passed in
+                // from evaluate_key().  This whole method is pretty sucky -- e.g, getting the tag
+                // num and union size.
+
+                let mut path_segs = path.split("::").collect::<Vec<_>>();
+                path_segs.pop();
+                let ty_path = path_segs.join("::");
+
+                let union_ty = Type::Union {
+                    path: ty_path.clone(),
+                    span: empty_span(),
+                };
+
+                let tag_num = union_ty
+                    .get_union_variant_names(&contract.unions)
+                    .into_iter()
+                    .enumerate()
+                    .find_map(|(idx, variant_name)| (variant_name == path[2..]).then_some(idx))
+                    .ok_or_else(|| {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "Union tag not found in union decl",
+                                span: empty_span(),
+                            },
+                        })
+                    })? as i64;
+
+                let value = value
+                    .as_ref()
+                    .map(|value_key| self.evaluate_key(value_key, handler, contract))
+                    .transpose()?
+                    .map(Box::new);
+
+                Ok(Imm::UnionVariant {
+                    tag_num,
+                    value_size: union_ty.size(handler, contract)? - 1,
+                    value,
+                    ty_path,
+                })
+            }
+
+            Expr::UnionTag { union_expr, span } => self
+                .evaluate_key(union_expr, handler, contract)
+                .and_then(|imm| {
+                    if let Imm::UnionVariant { tag_num, .. } = imm {
+                        Ok(Imm::Int(tag_num))
+                    } else {
+                        Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "unexpected expression during compile-time \
+                                    evaluation of union expr (tag)",
+                                span: span.clone(),
+                            },
+                        }))
+                    }
+                }),
+
+            Expr::UnionValue {
+                union_expr, span, ..
+            } => self
+                .evaluate_key(union_expr, handler, contract)
+                .and_then(|imm| {
+                    if let Imm::UnionVariant {
+                        value: Some(imm_val),
+                        ..
+                    } = imm
+                    {
+                        Ok(imm_val.as_ref().clone())
+                    } else {
+                        Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "unexpected expression during compile-time \
+                                    evaluation of union expr (value)",
+                                span: span.clone(),
+                            },
+                        }))
+                    }
+                }),
 
             Expr::Error(_)
             | Expr::StorageAccess { .. }
@@ -388,17 +466,12 @@ impl Evaluator {
             | Expr::In { .. }
             | Expr::Range { .. }
             | Expr::Generator { .. }
-            | Expr::Match { .. }
-            | Expr::UnionVariant { .. }
-            // These union exprs can unpack if their expression is a UnionVariant literal.
-            | Expr::UnionTag { .. } | Expr::UnionValue { .. } => {
-                Err(handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "unexpected expression during compile-time evaluation",
-                        span: empty_span(),
-                    },
-                }))
-            }
+            | Expr::Match { .. } => Err(handler.emit_err(Error::Compile {
+                error: CompileError::Internal {
+                    msg: "unexpected expression during compile-time evaluation",
+                    span: empty_span(),
+                },
+            })),
         }
     }
 }

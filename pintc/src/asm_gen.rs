@@ -5,10 +5,7 @@ use crate::{
     span::empty_span,
 };
 use asm_builder::AsmBuilder;
-use essential_types::{
-    predicate::{Directive, Predicate as CompiledPredicate},
-    ContentAddress,
-};
+use essential_types::{predicate::Predicate as CompiledPredicate, ContentAddress};
 use petgraph::{graph::NodeIndex, Graph};
 use std::collections::HashMap;
 
@@ -142,11 +139,7 @@ pub fn compile_predicate(
     compiled_predicates: &HashMap<String, (CompiledPredicate, ContentAddress)>,
     pred: &Predicate,
 ) -> Result<CompiledPredicate, ErrorEmitted> {
-    let mut builder = AsmBuilder {
-        state_programs: Vec::new(),
-        constraint_programs: Vec::new(),
-        compiled_predicates,
-    };
+    let mut builder = AsmBuilder::new(compiled_predicates);
 
     // Compile all state declarations into state programs
     for (_, state) in pred.states() {
@@ -178,6 +171,5 @@ pub fn compile_predicate(
                 constraint_asm::to_bytes(constraint_programs.iter().copied()).collect()
             })
             .collect(),
-        directive: Directive::Satisfy,
     })
 }
