@@ -16,7 +16,7 @@ macro @chain_next($prev, $last) {
 }
 
 predicate test {
-    @chain(x; y; z);
+    constraint @chain(x; y; z) < 100;
 }
 
 // parsed <<<
@@ -24,6 +24,7 @@ predicate test {
 //     var ::x: int;
 //     var ::y: int;
 //     var ::z: int;
+//     constraint (::z < 100);
 //     constraint (::y > (::x + 10));
 //     constraint (::z > (::y + 10));
 // }
@@ -34,6 +35,7 @@ predicate test {
 //     var ::x: int;
 //     var ::y: int;
 //     var ::z: int;
+//     constraint (::z < 100);
 //     constraint (::y > (::x + 10));
 //     constraint (::z > (::y + 10));
 //     constraint __eq_set(__mut_keys(), {0});

@@ -52,6 +52,7 @@ pub(crate) struct MacroCall {
     pub(crate) args: Vec<Vec<(usize, Token, usize)>>,
     pub(crate) span: Span,
     pub(crate) parent_tag: Option<usize>,
+    pub(crate) is_at_decl: bool,
 }
 
 impl fmt::Display for MacroCall {

@@ -8,8 +8,9 @@ use crate::{
         UseTree::{self, Path as UseTreePath},
     },
     predicate::{
-        BlockStatement, Const, ConstraintDecl, ExprKey, IfDecl, InterfaceDecl, InterfaceInstance,
-        InterfaceVar, MatchDecl, MatchDeclBranch, Predicate, PredicateInterface, StorageVar,
+        BlockStatement, CallKey, Const, ConstraintDecl, ExprKey, IfDecl, InterfaceDecl,
+        InterfaceInstance, InterfaceVar, MatchDecl, MatchDeclBranch, Predicate, PredicateInterface,
+        StorageVar,
     },
     span::Spanned,
     types::{EnumDecl, NewTypeDecl, Path, PrimitiveKind, Type, UnionDecl, UnionVariant},
@@ -53,13 +54,14 @@ PredicateInnerDecl: () = {
     VarDecl ";",
 }
 
-// Decls allowed inside macro bodies, which is ALL of them except `MacroDecl`.
+// Decls allowed inside macro bodies, which is ALL of them except `MacroDecl`, since we don't want
+// nested macros (yet?), and `MatchDecl`.  We have a conflict between match decls and match exprs in
+// macros, so we special case them.  See MacroBodyAtDecl and MacroBodyAtExpr below.
 DeclInnerMacroBody: () = {
     ConstDecl ";",
     ConstraintDecl ";",
     EnumDecl ";",
     IfDecl,
-    //MatchDecl,        We can't have match decls _and_ match expressions in bodies, there's a conflict.  Needs special casing.
     Interface,
     InterfaceInstance ";",
     MacroCallDecl ";",
@@ -417,10 +419,7 @@ UnionDecl: () = {
 
 UnionVariant: UnionVariant = {
     <variant_name:Ident> <ty:("(" <Type> ")")?> => {
-        UnionVariant {
-            variant_name,
-            ty,
-        }
+        UnionVariant { variant_name, ty }
     }
 }
 
@@ -457,11 +456,45 @@ MacroParamList: (Vec<Ident>, Option<Ident>) = {
 MacroParam: Ident = IdentFromToken<"macro_param">;
 
 MacroCallDecl: () = {
-    MacroCallExpr => (),
+    <keys:MacroCallExpr> => {
+        // Update the call data to tag it as a decl rather than an expr.
+        if let Some((_, call_data)) = context
+            .macro_calls
+            .get_mut(
+                &context
+                    .current_pred_key
+                    .expect("updating macro call as decl should have a predicate key"),
+            )
+            .unwrap()
+            .get_mut(keys.0)
+        {
+            call_data.is_at_decl = true;
+        }
+    }
 }
 
-pub MacroBody: Option<ExprKey> = {
+// We have two separate macro body parsers here.  One is for macros called as decls and the other
+// for macros called as exprs.  This is because we have `match` decl and `match` expr rules and
+// they'll conflict if placed in the same context (i.e., the macro body).
+//
+// So `MacroBodyAtExpr` will parse all the `DeclInnerMacroBody` decls (like `constraint`) and then a
+// final expr and return it.  It must be used to parse macro calls which are made as expressions.
+// `MacroBodyAtDecl` will parse the same decls *plus* `match` decls and doesn't return an
+// expression.  And so it must be used to parse macro calls which are 'top-level' decls.
+
+// We keep the expr as optional though to help quash *parser* error messages about the missing expr
+// if it's not there, and report it as missing later on.
+pub MacroBodyAtExpr: Option<ExprKey> = {
     "{" DeclInnerMacroBody* <Expr?> "}"
+}
+
+pub MacroBodyAtDecl: Option<ExprKey> = {
+    "{" MacroBodyInnerDecls* "}" => None,
+}
+
+MacroBodyInnerDecls: () = {
+    DeclInnerMacroBody,
+    MatchDecl,
 }
 
 /////////////
@@ -805,7 +838,7 @@ Term: ExprKey = {
         let span = e.span().clone();
         context.contract.exprs.insert(e, Type::Unknown(span))
     },
-    MacroCallExpr,
+    <keys:MacroCallExpr> => keys.1,
     CondExpr,
     MatchExpr,
     "(" <Expr> ")",
@@ -985,7 +1018,7 @@ MatchElse: MatchElse = {
     }
 }
 
-MacroCallExpr: ExprKey = {
+MacroCallExpr: (CallKey, ExprKey) = {
     <l:@L> <name:MacroPath> <tag:"macro_tag"?> <args:"macro_call_args"> <r:@L> => {
         let call_key = context
             .current_pred()
@@ -999,6 +1032,7 @@ MacroCallExpr: ExprKey = {
             args,
             span: span.clone(),
             parent_tag: tag.flatten(),
+            is_at_decl: false,
         };
         let call_expr_key = context.contract.exprs.insert(
             Expr::MacroCall {
@@ -1017,7 +1051,7 @@ MacroCallExpr: ExprKey = {
             )
             .unwrap()
             .insert(call_key, (call_expr_key, call_data));
-        call_expr_key
+        (call_key, call_expr_key)
     },
 }
 
