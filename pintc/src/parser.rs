@@ -361,17 +361,31 @@ impl<'a> ProjectParser<'a> {
     ) -> (Option<ExprKey>, Vec<NextModPath>) {
         let local_scope = format!("anon@{}", self.unique_idx);
         self.unique_idx += 1;
-        parse_with!(
-            self,
-            lexer::Lexer::from_tokens(tokens, src_path, mod_path),
-            pint_parser::MacroBodyParser::new(),
-            src_path,
-            mod_path,
-            Some(&local_scope),
-            Some((macro_call.name.clone(), macro_call.span.clone())),
-            Some(current_pred),
-            self.handler,
-        )
+        if macro_call.is_at_decl {
+            parse_with!(
+                self,
+                lexer::Lexer::from_tokens(tokens, src_path, mod_path),
+                pint_parser::MacroBodyAtDeclParser::new(),
+                src_path,
+                mod_path,
+                Some(&local_scope),
+                Some((macro_call.name.clone(), macro_call.span.clone())),
+                Some(current_pred),
+                self.handler,
+            )
+        } else {
+            parse_with!(
+                self,
+                lexer::Lexer::from_tokens(tokens, src_path, mod_path),
+                pint_parser::MacroBodyAtExprParser::new(),
+                src_path,
+                mod_path,
+                Some(&local_scope),
+                Some((macro_call.name.clone(), macro_call.span.clone())),
+                Some(current_pred),
+                self.handler,
+            )
+        }
     }
 
     fn analyse_and_add_paths(
