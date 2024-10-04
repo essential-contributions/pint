@@ -328,6 +328,10 @@ impl Expr {
         )
     }
 
+    pub fn is_immediate(&self) -> bool {
+        matches!(self, Expr::Immediate { .. })
+    }
+
     pub fn replace_ref<F: FnMut(&mut ExprKey)>(&mut self, mut replace: F) {
         match self {
             Expr::Immediate { .. } => {}

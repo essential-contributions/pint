@@ -20,6 +20,10 @@ pub(crate) fn fold_consts(contract: &mut Contract) {
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         for expr_key in contract.exprs(pred_key) {
+            if expr_key.get(contract).is_immediate() {
+                continue;
+            }
+
             if let Ok(imm) = evaluator.evaluate_key(&expr_key, &Handler::default(), contract) {
                 let simplified_expr = Expr::Immediate {
                     value: imm.clone(),
