@@ -1,0 +1,52 @@
+union value = nuh | uhuh(int);
+
+macro @match_decl($val, $max) {
+    match $val {
+        value::uhuh(n) => {
+            constraint n < $max;
+        }
+        else => {}
+    }
+}
+
+macro @match_expr($val, $inc) {
+    match $val {
+        value::uhuh(n) => n + $inc,
+        else => 1
+    }
+}
+
+predicate test {
+    var thing: value;
+
+    @match_decl(thing; 11);
+
+    constraint @match_expr(thing; 22) < 33;
+}
+
+// parsed <<<
+// union ::value = nuh | uhuh(int);
+//
+// predicate ::test {
+//     var ::thing: ::value;
+//     constraint (match ::thing { ::value::uhuh(n) => (::n + 22), else => 1 } < 33);
+//     match ::thing {
+//         ::value::uhuh(n) => {
+//             constraint (::n < 11)
+//         }
+//         else => {
+//         }
+//     }
+// }
+// >>>
+
+// flattened <<<
+// union ::value = nuh | uhuh(int);
+//
+// predicate ::test {
+//     var ::thing: ::value;
+//     constraint (((UnTag(::thing) == 1) ? (UnVal(::thing, int) + 22) : 1) < 33);
+//     constraint (!(UnTag(::thing) == 1) || (UnVal(::thing, int) < 11));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
