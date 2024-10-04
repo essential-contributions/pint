@@ -125,7 +125,7 @@ predicate Test {
 //     state ::b: int = __storage_get({0});
 //     state ::c: int[2] = __storage_get({1, 0});
 //     state ::d: {int, int} = __storage_get({2, 0});
-//     state ::d_0: int = __storage_get({2, (0 + 0)});
+//     state ::d_0: int = __storage_get({2, 0});
 //     state ::e_0: bool = __storage_get({3, 0});
 //     state ::e_1: bool = __storage_get({3, 1});
 //     constraint (::a' >= (::a + 42));
@@ -134,7 +134,7 @@ predicate Test {
 //     constraint (::f == (::b + ::c[0]));
 //     constraint (::g == (::d.1 + ::d_0));
 //     constraint (::h == (::e_1 == ::e_0));
-//     constraint __eq_set(__mut_keys(), {{1, 0}, 2, {1, (0 + 1)}, 2, {0}, 1, 8});
+//     constraint __eq_set(__mut_keys(), {{1, 0}, 2, {1, 1}, 2, {0}, 1, 8});
 // }
 // >>>
 
