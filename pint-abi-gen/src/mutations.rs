@@ -21,7 +21,12 @@ fn nested_items_from_node(tree: &KeyedVarTree, n: NodeIx) -> Vec<syn::Item> {
         TypeABI::Tuple(_fields) => {
             items.extend(tuple::mutations_items(tree, n));
         }
-        TypeABI::Bool | TypeABI::Int | TypeABI::Real | TypeABI::String | TypeABI::B256 => (),
+        TypeABI::Bool
+        | TypeABI::Int
+        | TypeABI::Real
+        | TypeABI::String
+        | TypeABI::B256
+        | TypeABI::Union { .. } => (),
     }
     items
 }
@@ -106,7 +111,7 @@ fn method_for_single_key(name: &str, arg_ty: &SingleKeyTy, nesting: &[Nesting]) 
     let method_ident = syn::Ident::new(name, Span::call_site());
     let nesting_key_doc_str = crate::nesting_key_doc_str(nesting);
     let doc_str = format!("{}\n\nKey: `{nesting_key_doc_str}`", method_doc_str(name));
-    let arg_ty = arg_ty.syn_ty();
+    let arg_ty = arg_ty.syn_ty(2);
     let nesting_expr: syn::ExprArray = crate::nesting_expr(nesting);
     let construct_key_expr: syn::Expr = crate::construct_key_expr();
     syn::parse_quote! {
@@ -142,6 +147,7 @@ pub(crate) fn method_from_node(tree: &KeyedVarTree, n: NodeIx, name: &str) -> sy
         TypeABI::Tuple(_) => {
             return method_for_tuple(name, &nesting);
         }
+        TypeABI::Union { name, .. } => SingleKeyTy::Union(name.clone()),
         TypeABI::Map { .. } => {
             return method_for_map(name, &nesting);
         }
@@ -243,6 +249,7 @@ fn items(vars: &[VarABI]) -> Vec<syn::Item> {
 /// A `mutations` module for all `Mutations`-related items.
 pub(crate) fn module(vars: &[VarABI]) -> syn::ItemMod {
     let items = items(vars);
+
     syn::parse_quote! {
         pub mod mutations {
             //! All items related to building a set of [`Mutations`].
