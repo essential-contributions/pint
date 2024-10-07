@@ -1467,13 +1467,13 @@ impl ReportableError for CompileError {
             BadCastFrom { .. } => {
                 if cfg!(feature = "experimental-types") {
                     Some(
-                    "casts may only be made from `bool`s,`int`s, and enuemration unions to `int`, \
+                    "casts may only be made from `bool`s,`int`s, and enumeration unions to `int`, \
                     or from `int`s, `real`s, and enumeration unions to `real`"
                         .to_string()
                     )
                 } else {
                     Some(
-                    "casts may only be made from `bool`s,`int`s, and enuemration unions to `int`"
+                    "casts may only be made from `bool`s,`int`s, and enumeration unions to `int`"
                         .to_string()
                     )
                 }
