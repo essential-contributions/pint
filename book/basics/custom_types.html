@@ -205,7 +205,7 @@ we may want to say that <code>User</code> is one of a set of possible account ty
 <p>Let’s look at a situation we might want to express in code and see why enums are useful. Say we need
 to work with three possible tokens: DAI, USDC, and USDT. Because these are the only tokens we want
 to work with, we can enumerate all possible variants, which is where enumeration gets its name:</p>
-<pre><code class="language-pint">enum Token = DAI | USDC | USDT;
+<pre><code class="language-pint">union Token = DAI | USDC | USDT;
 </code></pre>
 <p>Note how the possible variants of <code>Token</code> are separated by a <code>|</code>. <code>Token</code> is now a custom data type
 that we can use elsewhere in our code. Also, we can now create an instance of each of the three

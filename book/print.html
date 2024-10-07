@@ -882,7 +882,7 @@ we may want to say that <code>User</code> is one of a set of possible account ty
 <p>Let’s look at a situation we might want to express in code and see why enums are useful. Say we need
 to work with three possible tokens: DAI, USDC, and USDT. Because these are the only tokens we want
 to work with, we can enumerate all possible variants, which is where enumeration gets its name:</p>
-<pre><code class="language-pint">enum Token = DAI | USDC | USDT;
+<pre><code class="language-pint">union Token = DAI | USDC | USDT;
 </code></pre>
 <p>Note how the possible variants of <code>Token</code> are separated by a <code>|</code>. <code>Token</code> is now a custom data type
 that we can use elsewhere in our code. Also, we can now create an instance of each of the three
@@ -1560,7 +1560,7 @@ predicate Foo {
 }
 </code></pre>
 <p>The submodule <code>vegetables</code> which is defined in <code>src/garden/vegetables.pnt</code>, contains:</p>
-<pre><code class="language-pint">enum Asparagus = Green | White | Purple;
+<pre><code class="language-pint">union Asparagus = Green | White | Purple;
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="paths-for-referring-to-an-item-in-a-module-tree"><a class="header" href="#paths-for-referring-to-an-item-in-a-module-tree">Paths for Referring to an item in a Module Tree</a></h2>
