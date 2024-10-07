@@ -13,7 +13,7 @@ use crate::{
         StorageVar,
     },
     span::Spanned,
-    types::{EnumDecl, NewTypeDecl, Path, PrimitiveKind, Type, UnionDecl, UnionVariant},
+    types::{NewTypeDecl, Path, PrimitiveKind, Type, UnionDecl, UnionVariant},
 };
 
 grammar<'a>(
@@ -30,7 +30,6 @@ pub Pint: () = Decl*;
 // Decls allowed at the top level, outside predicates.
 Decl: () = {
     ConstDecl ";",
-    EnumDecl ";",
     Interface,
     MacroCallDecl ";",
     MacroDecl,
@@ -60,7 +59,6 @@ PredicateInnerDecl: () = {
 DeclInnerMacroBody: () = {
     ConstDecl ";",
     ConstraintDecl ";",
-    EnumDecl ";",
     IfDecl,
     Interface,
     InterfaceInstance ";",
@@ -381,17 +379,6 @@ MatchDecl: () = {
             .expect("adding a match-decl to the predicate")
             .match_decls
             .push(match_decl)
-    }
-}
-
-EnumDecl: () = {
-    <l:@L> "enum" <name:Ident> "=" <variants:Sep1ListNoTrail<Ident, "|">> <r:@R> => {
-        let enum_decl = EnumDecl {
-            name: context.add_top_level_symbol(handler, name, context.mod_prefix),
-            variants,
-            span: (context.span_from)(l, r),
-        };
-        context.contract.enums.push(enum_decl);
     }
 }
 
@@ -1341,7 +1328,6 @@ extern {
         "const" => lexer::Token::Const,
         "storage" => lexer::Token::Storage,
         "interface" => lexer::Token::Interface,
-        "enum" => lexer::Token::Enum,
         "type" => lexer::Token::Type,
         "union" => lexer::Token::Union,
         "constraint" => lexer::Token::Constraint,

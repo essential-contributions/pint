@@ -1,4 +1,4 @@
-enum x = a | b;
+union x = a | b;
 
 const y: { x, x } = { x::a, x::b };
 
@@ -7,15 +7,15 @@ predicate test {
 
 // parsed <<<
 // const ::y: {::x, ::x} = {::x::a, ::x::b};
-// enum ::x = a | b;
+// union ::x = a | b;
 //
 // predicate ::test {
 // }
 // >>>
 
 // flattened <<<
-// const ::y: {int, int} = {0, 1};
-// enum ::x = a | b;
+// const ::y: {::x, ::x} = {::x::<0>, ::x::<1>};
+// union ::x = a | b;
 //
 // predicate ::test {
 //     constraint __eq_set(__mut_keys(), {0});

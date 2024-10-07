@@ -3,16 +3,16 @@ macro @panicked_response($bird) {
     $bird != ::AttackingBird::Goose ? Duck : Kick
 }
 
-enum AttackingBird = Goose | Duck | Chicken;
-enum AppropriateDefence = Kick | Runaway | Duck | StareDown;
+union AttackingBird = Goose | Duck | Chicken;
+union AppropriateDefence = Kick | Runaway | Duck | StareDown;
 
 predicate test {
     var unfortunate_action = @panicked_response(AttackingBird::Goose);
 }
 
 // parsed <<<
-// enum ::AttackingBird = Goose | Duck | Chicken;
-// enum ::AppropriateDefence = Kick | Runaway | Duck | StareDown;
+// union ::AttackingBird = Goose | Duck | Chicken;
+// union ::AppropriateDefence = Kick | Runaway | Duck | StareDown;
 //
 // predicate ::test {
 //     var ::unfortunate_action;
@@ -23,8 +23,8 @@ predicate test {
 // typecheck_failure <<<
 // cannot find value `::Duck` in this scope
 // @157..161: not found in this scope
-// this symbol is a variant of enums `::AttackingBird` and `::AppropriateDefence` and may need a fully qualified path
+// this symbol is a variant of unions `::AttackingBird` and `::AppropriateDefence` and may need a fully qualified path
 // cannot find value `::Kick` in this scope
 // @164..168: not found in this scope
-// this symbol is a variant of enum `::AppropriateDefence` and may need a fully qualified path
+// this symbol is a variant of union `::AppropriateDefence` and may need a fully qualified path
 // >>>

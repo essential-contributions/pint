@@ -1,4 +1,4 @@
-enum Colour = Red | Green | Blue;
+union Colour = Red | Green | Blue;
 
 predicate test {
     var a: int[5];
@@ -14,7 +14,7 @@ predicate test {
 }
 
 // parsed <<<
-// enum ::Colour = Red | Green | Blue;
+// union ::Colour = Red | Green | Blue;
 //
 // predicate ::test {
 //     var ::a: int[5];
@@ -33,18 +33,18 @@ predicate test {
 // >>>
 
 // flattened <<<
-// enum ::Colour = Red | Green | Blue;
-//
+// union ::Colour = Red | Green | Blue;
+// 
 // predicate ::test {
 //     var ::a: int[5];
 //     var ::a1: int;
-//     var ::b: int[3][3];
+//     var ::b: int[3][::Colour];
 //     var ::b_r_2: int;
 //     var ::c: int[4];
 //     var ::c1: int[4];
 //     var ::cb: bool;
 //     constraint (::a1 == ::a[1]);
-//     constraint (::b_r_2 == ::b[0][2]);
+//     constraint (::b_r_2 == ::b[::Colour::Red][2]);
 //     constraint (::c == [0, 1, 2, 3]);
 //     constraint (::c1 == [0, 1, 2, 4]);
 //     constraint (::cb == (::c != ::c1));

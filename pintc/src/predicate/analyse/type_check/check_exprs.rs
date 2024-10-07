@@ -1099,12 +1099,15 @@ impl Contract {
         to_ty: &Type,
         span: &Span,
     ) -> Inference {
-        // FROM  TO    ACTION
-        // int   int   No-op
-        // int   real  Produce the closest possible real
-        // real  real  No-op
-        // enum  int   Enum cast (performed in lower_enums())
-        // bool  int   Boolean to integer cast (performed in lower_bools())
+        // FROM               TO    ACTION
+        //
+        // bool               int   Boolean to integer cast
+        // int                int   No-op
+        // enumeration union  int   Produce the tag
+        //
+        // int                real  Produce the closest possible real
+        // enumeration union  real  Produce the tag and then produce the closest possible real
+        // real               real  No-op
 
         let from_ty = value_key.get_ty(self);
         if !from_ty.is_unknown() {
@@ -1116,13 +1119,17 @@ impl Contract {
                         span: span.clone(),
                     },
                 });
-            } else if (to_ty.is_int()
+            } else if (to_ty.is_int() && !from_ty.is_bool())
                 && !from_ty.is_int()
-                && !from_ty.is_enum(&self.enums)
-                && !from_ty.is_bool())
-                || (to_ty.is_real() && !from_ty.is_int() && !from_ty.is_real())
+                && !from_ty.is_enumeration_union(&self.unions)
+                || (to_ty.is_real()
+                    && !from_ty.is_int()
+                    && !from_ty.is_enumeration_union(&self.unions)
+                    && !from_ty.is_real())
             {
-                // We can only cast to ints from ints, enums or bools and to reals from ints or reals.
+                // We can only cast
+                // - To ints from bools, ints, or enumeration unions.
+                // - To reals from ints, enumeration unions, or reals.
                 handler.emit_err(Error::Compile {
                     error: CompileError::BadCastFrom {
                         ty: self.with_ctrct(from_ty).to_string(),
@@ -1288,7 +1295,7 @@ impl Contract {
                 return Inference::Dependant(range_expr_key);
             }
 
-            if (!index_ty.is_int() && !index_ty.is_enum(&self.enums))
+            if (!index_ty.is_int() && !index_ty.is_enumeration_union(&self.unions))
                 || !index_ty.eq(&self.new_types, range_ty)
             {
                 handler.emit_err(Error::Compile {

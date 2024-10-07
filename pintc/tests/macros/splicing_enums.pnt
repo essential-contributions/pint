@@ -25,7 +25,7 @@ macro @find_max_feeling($feeling, $max_feeling, $counts_name, $last_idx) {
     $feeling == $last_idx && $counts_name[$last_idx] == $max_feeling
 }
 
-enum Feeling = Uneasy | Queasy | Awkward | Anxious;
+union Feeling = Uneasy | Queasy | Awkward | Anxious;
 
 predicate test {
     var counts: int[Feeling];
@@ -47,7 +47,7 @@ predicate test {
 }
 
 // parsed <<<
-// enum ::Feeling = Uneasy | Queasy | Awkward | Anxious;
+// union ::Feeling = Uneasy | Queasy | Awkward | Anxious;
 //
 // predicate ::test {
 //     var ::counts: int[::Feeling];
@@ -67,24 +67,22 @@ predicate test {
 // >>>
 
 // flattened <<<
-// enum ::Feeling = Uneasy | Queasy | Awkward | Anxious;
-//
+// union ::Feeling = Uneasy | Queasy | Awkward | Anxious;
+// 
 // predicate ::test {
-//     var ::counts: int[4];
+//     var ::counts: int[::Feeling];
 //     var ::max_feeling: int;
-//     var ::feeling: int;
-//     constraint (::counts[0] == 33);
-//     constraint (::counts[1] == 22);
-//     constraint (::counts[2] == 44);
-//     constraint (::counts[3] == 11);
-//     constraint ((::max_feeling == ::counts[0]) || ((::max_feeling == ::counts[1]) || ((::max_feeling == ::counts[2]) || (::max_feeling == ::counts[3]))));
-//     constraint (((::feeling == 0) && (::counts[0] == ::max_feeling)) || (((::feeling == 1) && (::counts[1] == ::max_feeling)) || (((::feeling == 2) && (::counts[2] == ::max_feeling)) || ((::feeling == 3) && (::counts[3] == ::max_feeling)))));
-//     constraint (::max_feeling >= ::counts[0]);
-//     constraint (::max_feeling >= ::counts[1]);
-//     constraint (::max_feeling >= ::counts[2]);
-//     constraint (::max_feeling >= ::counts[3]);
-//     constraint (::feeling >= 0);
-//     constraint (::feeling <= 3);
+//     var ::feeling: ::Feeling;
+//     constraint (::counts[::Feeling::Uneasy] == 33);
+//     constraint (::counts[::Feeling::Queasy] == 22);
+//     constraint (::counts[::Feeling::Awkward] == 44);
+//     constraint (::counts[::Feeling::Anxious] == 11);
+//     constraint ((::max_feeling == ::counts[::Feeling::Uneasy]) || ((::max_feeling == ::counts[::Feeling::Queasy]) || ((::max_feeling == ::counts[::Feeling::Awkward]) || (::max_feeling == ::counts[::Feeling::Anxious]))));
+//     constraint (((::feeling == ::Feeling::Uneasy) && (::counts[::Feeling::Uneasy] == ::max_feeling)) || (((::feeling == ::Feeling::Queasy) && (::counts[::Feeling::Queasy] == ::max_feeling)) || (((::feeling == ::Feeling::Awkward) && (::counts[::Feeling::Awkward] == ::max_feeling)) || ((::feeling == ::Feeling::Anxious) && (::counts[::Feeling::Anxious] == ::max_feeling)))));
+//     constraint (::max_feeling >= ::counts[::Feeling::Uneasy]);
+//     constraint (::max_feeling >= ::counts[::Feeling::Queasy]);
+//     constraint (::max_feeling >= ::counts[::Feeling::Awkward]);
+//     constraint (::max_feeling >= ::counts[::Feeling::Anxious]);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

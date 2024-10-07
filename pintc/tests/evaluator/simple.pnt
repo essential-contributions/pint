@@ -1,4 +1,4 @@
-enum Egg = Ovum | Oeuf | Uovo | HuaManu;
+union Egg = Ovum | Oeuf | Uovo | HuaManu;
 
 predicate test {
     // The generators tests are already testing most of the basics.  Here's some wacky stuff.
@@ -23,7 +23,7 @@ predicate test {
 }
 
 // parsed <<<
-// enum ::Egg = Ovum | Oeuf | Uovo | HuaManu;
+// union ::Egg = Ovum | Oeuf | Uovo | HuaManu;
 //
 // predicate ::test {
 //     var ::a: int[[1, 2, 3][1]];
@@ -42,8 +42,8 @@ predicate test {
 // d is expanded, e is not.
 //
 // flattened <<<
-// enum ::Egg = Ovum | Oeuf | Uovo | HuaManu;
-//
+// union ::Egg = Ovum | Oeuf | Uovo | HuaManu;
+// 
 // predicate ::test {
 //     var ::a: int[2];
 //     var ::b0: int[2];

@@ -1,4 +1,4 @@
-enum T = FortyTwo | FleventyFive;
+union T = FortyTwo | FleventyFive;
 
 predicate test {
     // Numerics are allowed, but they must match.
@@ -17,7 +17,7 @@ predicate test {
 }
 
 // parsed <<<
-// enum ::T = FortyTwo | FleventyFive;
+// union ::T = FortyTwo | FleventyFive;
 // 
 // predicate ::test {
 //     var ::f;
@@ -41,27 +41,27 @@ predicate test {
 
 // typecheck_failure <<<
 // binary operator type error
-// @119..123: operator `+` argument has unexpected type `real`
-// @114..116: expecting type `int`
+// @120..124: operator `+` argument has unexpected type `real`
+// @115..117: expecting type `int`
 // binary operator type error
-// @142..146: operator `-` argument has unexpected type `real`
-// @137..139: expecting type `int`
+// @143..147: operator `-` argument has unexpected type `real`
+// @138..140: expecting type `int`
 // binary operator type error
-// @168..170: operator `*` argument has unexpected type `int`
-// @160..165: expecting type `real`
+// @169..171: operator `*` argument has unexpected type `int`
+// @161..166: expecting type `real`
 // binary operator type error
-// @189..194: operator `/` argument has unexpected type `real`
-// @184..186: expecting type `int`
+// @190..195: operator `/` argument has unexpected type `real`
+// @185..187: expecting type `int`
 // binary operator type error
-// @216..218: operator `%` argument has unexpected type `int`
-// @208..213: expecting type `real`
+// @217..219: operator `%` argument has unexpected type `int`
+// @209..214: expecting type `real`
 // binary operator type error
-// @239..244: operator `>=` argument has unexpected type `real`
-// @233..235: expecting type `int`
+// @240..245: operator `>=` argument has unexpected type `real`
+// @234..236: expecting type `int`
 // binary operator type error
-// @259..264: operator `||` argument has unexpected type `real`
-// @259..273: expecting type `bool`
+// @260..265: operator `||` argument has unexpected type `real`
+// @260..274: expecting type `bool`
 // binary operator type error
-// @352..360: operator `!=` argument has unexpected type `{int, int}`
-// @337..348: expecting type `{real, int}`
+// @353..361: operator `!=` argument has unexpected type `{int, int}`
+// @338..349: expecting type `{real, int}`
 // >>>

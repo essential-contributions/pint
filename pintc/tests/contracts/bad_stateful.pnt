@@ -6,7 +6,7 @@ constraint x == 3;
 if true { }
 
 // These are okay
-enum Foo = A | B;
+union Foo = A | B;
 type Boo = Foo;
 
 interface Bam { storage { } }
@@ -20,6 +20,6 @@ predicate Baz {}
 // first `var`.
 //
 // parse_failure <<<
-// expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `var`
-// @22..25: expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
+// expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `var`
+// @22..25: expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
 // >>>

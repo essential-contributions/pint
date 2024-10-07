@@ -26,7 +26,7 @@ interface Foo {
 type A = Undefined;
 type B = Undefined;
 
-enum Baz = X | Y;
+union Baz = X | Y;
 type Xyzzy = int;
 
 predicate test {
@@ -50,7 +50,7 @@ predicate test {
 // parsed <<<
 // const ::b0: ::Undefined = 0;
 // const ::a0: ::Undefined = 0;
-// enum ::Baz = X | Y;
+// union ::Baz = X | Y;
 // type ::A = ::Undefined;
 // type ::B = ::Undefined;
 // type ::Xyzzy = int;
@@ -94,21 +94,21 @@ predicate test {
 
 // typecheck_failure <<<
 // undefined type
-// @462..471: type is undefined
+// @463..472: type is undefined
 // undefined type
-// @500..509: type is undefined
+// @501..510: type is undefined
 // undefined type
-// @537..546: type is undefined
+// @538..547: type is undefined
 // undefined type
-// @560..569: type is undefined
+// @561..570: type is undefined
 // undefined type
-// @660..663: type is undefined
+// @661..664: type is undefined
 // undefined type
-// @682..685: type is undefined
+// @683..686: type is undefined
 // undefined type
-// @621..630: type is undefined
+// @622..631: type is undefined
 // undefined type
-// @591..600: type is undefined
+// @592..601: type is undefined
 // undefined type
 // @84..93: type is undefined
 // undefined type
@@ -138,14 +138,14 @@ predicate test {
 // type not allowed in storage
 // @35..44: found type ::Undefined in storage
 // invalid cast
-// @585..600: illegal cast to a `::Undefined`
-// casts may only be made to an int or a real
+// @586..601: illegal cast to `::Undefined`
+// casts may only be made to `int`
 // invalid cast
-// @615..630: illegal cast to a `::Undefined`
-// casts may only be made to an int or a real
+// @616..631: illegal cast to `::Undefined`
+// casts may only be made to `int`
 // invalid cast
-// @677..685: illegal cast to a `::Bar`
-// casts may only be made to an int or a real
+// @678..686: illegal cast to `::Bar`
+// casts may only be made to `int`
 // const initialization type error
 // @96..97: const initializer has unexpected type `int`
 // @84..93: expecting type `::Undefined`

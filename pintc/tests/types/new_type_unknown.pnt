@@ -1,11 +1,11 @@
-type Ambiguous = NonExistentEnum;
+type Ambiguous = NonExistentUnion;
 
 predicate test {
     var a = Ambiguous::MissingVariant;
 }
 
 // parsed <<<
-// type ::Ambiguous = ::NonExistentEnum;
+// type ::Ambiguous = ::NonExistentUnion;
 //
 // predicate ::test {
 //     var ::a;
@@ -15,7 +15,7 @@ predicate test {
 
 // typecheck_failure <<<
 // undefined type
-// @17..32: type is undefined
+// @17..33: type is undefined
 // cannot find value `::Ambiguous::MissingVariant` in this scope
-// @64..89: not found in this scope
+// @65..90: not found in this scope
 // >>>

@@ -1,4 +1,4 @@
-enum MyEnum = A | B;
+union MyUnion = A | B;
 
 storage {
     x: int,

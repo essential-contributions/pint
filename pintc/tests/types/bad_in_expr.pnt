@@ -1,4 +1,4 @@
-enum SupperGuest = Bartholomew | JamesL | Andrew | Judas | Peter | John | Thomas | JamesG | Philip | Matthew | Jude | Simon;
+union SupperGuest = Bartholomew | JamesL | Andrew | Judas | Peter | John | Thomas | JamesG | Philip | Matthew | Jude | Simon;
 
 predicate test {
     var x: int;
@@ -14,7 +14,7 @@ predicate test {
 }
 
 // parsed <<<
-// enum ::SupperGuest = Bartholomew | JamesL | Andrew | Judas | Peter | John | Thomas | JamesG | Philip | Matthew | Jude | Simon;
+// union ::SupperGuest = Bartholomew | JamesL | Andrew | Judas | Peter | John | Thomas | JamesG | Philip | Matthew | Jude | Simon;
 //
 // predicate ::test {
 //     var ::x: int;
@@ -29,15 +29,15 @@ predicate test {
 
 // typecheck_failure <<<
 // value type and range type differ
-// @190..192: range type mismatch; expecting `bool` type, found `int` type
+// @191..193: range type mismatch; expecting `bool` type, found `int` type
 // left and right types in range differ
-// @304..309: expecting `b256` type , found `bool` type
+// @305..310: expecting `b256` type , found `bool` type
 // compiler internal error: range ty is not numeric or array?
-// @231..309: range ty is not numeric or array?
+// @232..310: range ty is not numeric or array?
 // value type and array element type in range differ
-// @357..358: array element type mismatch; expecting `::SupperGuest` type, found `int` type
+// @358..359: array element type mismatch; expecting `::SupperGuest` type, found `int` type
 // value type and array element type in range differ
-// @0..123: array element type mismatch; expecting `int` type, found `::SupperGuest` type
+// @0..124: array element type mismatch; expecting `int` type, found `::SupperGuest` type
 // constraint expression type error
-// @231..309: expecting type `bool`
+// @232..310: expecting type `bool`
 // >>>

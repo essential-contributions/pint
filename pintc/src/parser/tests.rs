@@ -1048,8 +1048,8 @@ fn storage_access() {
     check(
         &run_parser!(pint, r#"constraint storage::map[69] == 0;"#),
         expect_test::expect![[r#"
-            expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `constraint`
-            @0..10: expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
+            expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `constraint`
+            @0..10: expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
         "#]],
     );
 }
@@ -1104,8 +1104,8 @@ fn external_storage_access() {
     check(
         &run_parser!(pint, r#"constraint ::Foo::storage::map[69] == 0;"#),
         expect_test::expect![[r#"
-            expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `constraint`
-            @0..10: expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
+            expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `constraint`
+            @0..10: expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
         "#]],
     );
 }
@@ -1788,47 +1788,70 @@ fn parens_exprs() {
 }
 
 #[test]
-fn enums() {
+fn unions() {
     let pint = (yp::PintParser::new(), "");
     let expr = (yp::TestDelegateParser::new(), "expr");
 
     check(
-        &run_parser!(pint, "enum MyEnum = Variant1 | Variant2;"),
-        expect_test::expect!["enum ::MyEnum = Variant1 | Variant2;"],
+        &run_parser!(pint, "union MyUnion = Variant1 | Variant2;"),
+        expect_test::expect!["union ::MyUnion = Variant1 | Variant2;"],
     );
     check(
-        &run_parser!(pint, "enum MyEnum = Variant1;"),
-        expect_test::expect!["enum ::MyEnum = Variant1;"],
+        &run_parser!(pint, "union MyUnion = Variant1;"),
+        expect_test::expect!["union ::MyUnion = Variant1;"],
     );
     check(
-        &run_parser!(expr, "MyEnum::Variant1"),
-        expect_test::expect!["::MyEnum::Variant1"],
+        &run_parser!(pint, "union MyUnion = Variant1(int) | Variant2;"),
+        expect_test::expect!["union ::MyUnion = Variant1(int) | Variant2;"],
     );
     check(
         &run_parser!(
             pint,
+            "union MyUnion = Variant1({b256, bool}) | Variant2 | Variant3(int[3]);"
+        ),
+        expect_test::expect![
+            "union ::MyUnion = Variant1({b256, bool}) | Variant2 | Variant3(int[3]);"
+        ],
+    );
+
+    check(
+        &run_parser!(expr, "MyUnion::Variant1"),
+        expect_test::expect!["::MyUnion::Variant1"],
+    );
+    check(
+        &run_parser!(expr, "MyUnion::Variant1({x, y, true, [1, 2, z]})"),
+        expect_test::expect!["::MyUnion::Variant1({::x, ::y, true, [1, 2, ::z]})"],
+    );
+    check(
+        &run_parser!(expr, "MyUnion::Variant1(x)"),
+        expect_test::expect!["::MyUnion::Variant1(::x)"],
+    );
+
+    check(
+        &run_parser!(
+            pint,
             r#"predicate test {
-                var x = MyEnum::Variant3;
+                var x = MyUnion::Variant3;
             }"#
         ),
         expect_test::expect![[r#"
 
             predicate ::test {
                 var ::x;
-                constraint (::x == ::MyEnum::Variant3);
+                constraint (::x == ::MyUnion::Variant3);
             }"#]],
     );
     check(
         &run_parser!(
             pint,
             r#"predicate test {
-                var e: ::path::to::MyEnum;
+                var e: ::path::to::MyUnion;
             }"#
         ),
         expect_test::expect![[r#"
 
             predicate ::test {
-                var ::e: ::path::to::MyEnum;
+                var ::e: ::path::to::MyUnion;
             }"#]],
     );
 }
@@ -2179,8 +2202,8 @@ fn array_type() {
     );
 
     check(
-        &run_parser!(type_, r#"int[MyEnum]"#),
-        expect_test::expect!["int[::MyEnum]"],
+        &run_parser!(type_, r#"int[MyUnion]"#),
+        expect_test::expect!["int[::MyUnion]"],
     );
 
     check(
@@ -2287,8 +2310,8 @@ fn array_element_accesses() {
     );
 
     check(
-        &run_parser!(expr, r#"a[MyEnum::Variant1]"#),
-        expect_test::expect!["::a[::MyEnum::Variant1]"],
+        &run_parser!(expr, r#"a[MyUnion::Variant1]"#),
+        expect_test::expect!["::a[::MyUnion::Variant1]"],
     );
 }
 
@@ -2514,8 +2537,8 @@ fn tuple_field_accesses() {
             "var x = t.222222222222222222222.111111111111111111111111111;"
         ),
         expect_test::expect![[r#"
-            expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `var`
-            @0..3: expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
+            expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `var`
+            @0..3: expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
         "#]],
     );
 
@@ -2927,8 +2950,8 @@ predicate Bar {
     var x: int;
     constraint x == 1;
 }
-enum MyEnum = A | B;
-type MyType = MyEnum;
+union MyUnion = A | B;
+type MyType = MyUnion;
 predicate Baz {
 }
 "#;
@@ -2936,8 +2959,8 @@ predicate Baz {
     check(
         &run_parser!((yp::PintParser::new(), ""), src),
         expect_test::expect![[r#"
-            enum ::MyEnum = A | B;
-            type ::MyType = ::MyEnum;
+            union ::MyUnion = A | B;
+            type ::MyType = ::MyUnion;
 
             predicate ::Foo {
             }
@@ -3025,8 +3048,8 @@ fn big_ints() {
             "var blah = 0xfeedbadfd2adeadcafed00dbabefacefeedbadf00d2adeadcafed00dbabeface;"
         ),
         expect_test::expect![[r#"
-            expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `var`
-            @0..3: expected `::`, `an identifier`, `const`, `enum`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
+            expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `var`
+            @0..3: expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
         "#]],
     );
 

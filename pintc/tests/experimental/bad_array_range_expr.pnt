@@ -1,11 +1,11 @@
-enum MyEnum = A | B;
+union MyUnion = A | B;
 
 predicate test {
     var h: int[10.0];
 }
 
 // parsed <<<
-// enum ::MyEnum = A | B;
+// union ::MyUnion = A | B;
 // 
 // predicate ::test {
 //     var ::h: int[1e1];
@@ -14,6 +14,6 @@ predicate test {
 
 // typecheck_failure <<<
 // invalid array range type real
-// @54..58: array access must be of type `int` or `enum`
+// @56..60: array access must be of type `int` or enumeration `union`
 // found range type `real`
 // >>>

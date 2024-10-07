@@ -7,7 +7,7 @@ use crate::error::{ErrorEmitted, Handler};
 use legalize::legalize_vector_accesses;
 use lower::{
     coalesce_prime_ops, lower_aliases, lower_array_ranges, lower_casts, lower_compares_to_nil,
-    lower_enums, lower_ifs, lower_imm_accesses, lower_ins, lower_matches, lower_pub_var_accesses,
+    lower_ifs, lower_imm_accesses, lower_ins, lower_matches, lower_pub_var_accesses,
     lower_storage_accesses, lower_union_variant_paths, replace_const_refs,
 };
 use unroll::unroll_generators;
@@ -58,9 +58,6 @@ impl super::Contract {
                 Ok(())
             }
         });
-
-        // Transform each enum variant into its integer discriminant
-        let _ = lower_enums(handler, &mut self);
 
         // Lower array types to have simple integer ranges.
         if !array_check_failed {

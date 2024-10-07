@@ -8,7 +8,7 @@ const g = [88, 99];
 const h: { int, bool } = { 1010, false };
 const i: bool[3] = [false, true, true];
 
-enum JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
+union JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
 const j = JacketColour::Beige; // Yes.
 const k: JacketColour = JacketColour::Bone;
 
@@ -41,7 +41,7 @@ predicate test {
 // const ::j = ::JacketColour::Beige;
 // const ::f = {66, 77};
 // const ::c: int = 33;
-// enum ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
+// union ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
 //
 // predicate ::test {
 //     var ::q: int;
@@ -64,30 +64,28 @@ predicate test {
 // const ::b: b256 = 0x2222222222222222222222222222222222222222222222222222222222222222;
 // const ::h: {int, bool} = {1010, false};
 // const ::e: bool = true;
-// const ::k: int = 1;
+// const ::k: ::JacketColour = ::JacketColour::<1>;
 // const ::d: b256 = 0x4444444444444444444444444444444444444444444444444444444444444444;
 // const ::a: int = 11;
 // const ::g: int[_] = [88, 99];
-// const ::j: int = 5;
+// const ::j: ::JacketColour = ::JacketColour::<5>;
 // const ::f: {int, int} = {66, 77};
 // const ::c: int = 33;
-// enum ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
-//
+// union ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
+// 
 // predicate ::test {
 //     var ::q: int;
 //     var ::r: b256;
 //     var ::s: int;
 //     var ::t: int;
 //     var ::u: bool;
-//     var ::v: int;
+//     var ::v: ::JacketColour;
 //     constraint ((::q > 11) && (::q < 33));
 //     constraint ((::r != 0x2222222222222222222222222222222222222222222222222222222222222222) && (::r != 0x4444444444444444444444444444444444444444444444444444444444444444));
 //     constraint (::s == 77);
 //     constraint (::t == 99);
 //     constraint ((::u == false) && (::u != true));
-//     constraint ((::v != 5) && (::v != 1));
-//     constraint (::v >= 0);
-//     constraint (::v <= 5);
+//     constraint ((::v != ::JacketColour::<5>) && (::v != ::JacketColour::<1>));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

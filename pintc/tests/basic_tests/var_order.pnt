@@ -1,4 +1,4 @@
-enum MyEnum = A | B;
+union MyUnion = A | B;
 
 predicate test {
     var y: bool;
@@ -8,11 +8,11 @@ predicate test {
     var b: int[2][2][2];
     var x: int;
     var z: b256;
-    var e: { MyEnum, bool };
+    var e: { MyUnion, bool };
 }
 
 // parsed <<<
-// enum ::MyEnum = A | B;
+// union ::MyUnion = A | B;
 //
 // predicate ::test {
 //     var ::y: bool;
@@ -22,12 +22,12 @@ predicate test {
 //     var ::b: int[2][2][2];
 //     var ::x: int;
 //     var ::z: b256;
-//     var ::e: {::MyEnum, bool};
+//     var ::e: {::MyUnion, bool};
 // }
 // >>>
 
 // flattened <<<
-// enum ::MyEnum = A | B;
+// union ::MyUnion = A | B;
 //
 // predicate ::test {
 //     var ::y: bool;
@@ -37,7 +37,7 @@ predicate test {
 //     var ::b: int[2][2][2];
 //     var ::x: int;
 //     var ::z: b256;
-//     var ::e: {int, bool};
+//     var ::e: {::MyUnion, bool};
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -1,20 +1,20 @@
-use baz::MyEnum;
+use baz::MyUnion;
 use ::baz::MyType;
 
 predicate Bar {
     var y: int;
     constraint y == 4;
 
-    var e1 = MyEnum::A;
+    var e1 = MyUnion::A;
     var f1 = MyType::B;
 
-    var e2 = ::baz::MyEnum::B;
+    var e2 = ::baz::MyUnion::B;
     var f2 = baz::MyType::A;
 }
 
 // parsed <<<
-// enum ::baz::MyEnum = A | B;
-// type ::baz::MyType = ::baz::MyEnum;
+// union ::baz::MyUnion = A | B;
+// type ::baz::MyType = ::baz::MyUnion;
 //
 // predicate ::Bar {
 //     var ::y: int;
@@ -23,37 +23,29 @@ predicate Bar {
 //     var ::e2;
 //     var ::f2;
 //     constraint (::y == 4);
-//     constraint (::e1 == ::baz::MyEnum::A);
+//     constraint (::e1 == ::baz::MyUnion::A);
 //     constraint (::f1 == ::baz::MyType::B);
-//     constraint (::e2 == ::baz::MyEnum::B);
+//     constraint (::e2 == ::baz::MyUnion::B);
 //     constraint (::f2 == ::baz::MyType::A);
 // }
 // >>>
 
 
 // flattened <<<
-// enum ::baz::MyEnum = A | B;
-// type ::baz::MyType = ::baz::MyEnum;
-//
+// union ::baz::MyUnion = A | B;
+// type ::baz::MyType = ::baz::MyUnion;
+// 
 // predicate ::Bar {
 //     var ::y: int;
-//     var ::e1: int;
-//     var ::f1: int;
-//     var ::e2: int;
-//     var ::f2: int;
+//     var ::e1: ::baz::MyUnion;
+//     var ::f1: ::baz::MyUnion;
+//     var ::e2: ::baz::MyUnion;
+//     var ::f2: ::baz::MyUnion;
 //     constraint (::y == 4);
-//     constraint (::e1 == 0);
-//     constraint (::f1 == 1);
-//     constraint (::e2 == 1);
-//     constraint (::f2 == 0);
-//     constraint (::e1 >= 0);
-//     constraint (::e1 <= 1);
-//     constraint (::f1 >= 0);
-//     constraint (::f1 <= 1);
-//     constraint (::e2 >= 0);
-//     constraint (::e2 <= 1);
-//     constraint (::f2 >= 0);
-//     constraint (::f2 <= 1);
+//     constraint (::e1 == ::baz::MyUnion::A);
+//     constraint (::f1 == ::baz::MyType::B);
+//     constraint (::e2 == ::baz::MyUnion::B);
+//     constraint (::f2 == ::baz::MyType::A);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

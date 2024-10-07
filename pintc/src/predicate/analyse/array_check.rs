@@ -3,7 +3,7 @@ use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp, Expr, Immediate},
     predicate::PredKey,
-    span::Spanned,
+    span::{empty_span, Spanned},
     types::Type,
 };
 
@@ -64,9 +64,9 @@ impl Contract {
             })
             .collect();
 
-        let evaluator = Evaluator::new(&self.enums);
+        let evaluator = Evaluator::new(&self.unions);
         for (array_ty, index_key) in accesses {
-            // First, try evaluating the index value, since it must be an immediate int (or enum
+            // First, try evaluating the index value, since it must be an immediate int (or union
             // variant, which evaluates to int).
             let index_expr = index_key.get(self);
             let index_span = index_expr.span().clone();
@@ -80,16 +80,35 @@ impl Contract {
                 // Get the size of the accessed array.
                 if let Ok(array_size) = get_array_size_from_type(self, handler, &array_ty) {
                     // Check for OOB.
-                    if let Immediate::Int(imm_val) | Immediate::Enum(imm_val, _) = index_value {
-                        if imm_val < 0 || imm_val >= array_size {
+                    match index_value {
+                        Immediate::Int(imm_val) => {
+                            if imm_val < 0 || imm_val >= array_size {
+                                handler.emit_err(Error::Compile {
+                                    error: CompileError::ArrayIndexOutOfBounds { span: index_span },
+                                });
+                            }
+                        }
+
+                        Immediate::UnionVariant {
+                            tag_num, ty_path, ..
+                        } if Type::Union {
+                            path: ty_path.clone(),
+                            span: empty_span(),
+                        }
+                        .is_enumeration_union(&self.unions) =>
+                        {
+                            if tag_num < 0 || tag_num >= array_size {
+                                handler.emit_err(Error::Compile {
+                                    error: CompileError::ArrayIndexOutOfBounds { span: index_span },
+                                });
+                            }
+                        }
+
+                        _ => {
                             handler.emit_err(Error::Compile {
-                                error: CompileError::ArrayIndexOutOfBounds { span: index_span },
+                                error: CompileError::InvalidConstArrayIndex { span: index_span },
                             });
                         }
-                    } else {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::InvalidConstArrayIndex { span: index_span },
-                        });
                     }
                 }
             }

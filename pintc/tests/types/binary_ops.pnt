@@ -1,4 +1,4 @@
-enum T = FortyTwo | FleventyFive;
+union T = FortyTwo | FleventyFive;
 
 predicate test {
     var a = 11 + false;
@@ -23,7 +23,7 @@ predicate test {
 }
 
 // parsed <<<
-// enum ::T = FortyTwo | FleventyFive;
+// union ::T = FortyTwo | FleventyFive;
 //
 // predicate ::test {
 //     var ::a;
@@ -55,31 +55,31 @@ predicate test {
 
 // typecheck_failure <<<
 // operator invalid type error
-// @64..74: invalid non-numeric type `bool` for operator `+`
+// @65..75: invalid non-numeric type `bool` for operator `+`
 // operator invalid type error
-// @88..97: invalid non-numeric type `bool` for operator `-`
+// @89..98: invalid non-numeric type `bool` for operator `-`
 // operator invalid type error
-// @111..121: invalid non-numeric type `int[2]` for operator `*`
+// @112..122: invalid non-numeric type `int[2]` for operator `*`
 // operator invalid type error
-// @135..206: invalid non-numeric type `b256` for operator `/`
+// @136..207: invalid non-numeric type `b256` for operator `/`
 // operator invalid type error
-// @221..237: invalid non-numeric type `::T` for operator `%`
+// @222..238: invalid non-numeric type `::T` for operator `%`
 // binary operator type error
-// @322..337: operator `==` argument has unexpected type `::T`
-// @316..318: expecting type `int`
+// @323..338: operator `==` argument has unexpected type `::T`
+// @317..319: expecting type `int`
 // binary operator type error
-// @357..361: operator `!=` argument has unexpected type `bool`
-// @351..353: expecting type `int`
+// @358..362: operator `!=` argument has unexpected type `bool`
+// @352..354: expecting type `int`
 // operator invalid type error
-// @376..388: invalid non-numeric type `bool` for operator `>`
+// @377..389: invalid non-numeric type `bool` for operator `>`
 // operator invalid type error
-// @402..473: invalid non-numeric type `b256` for operator `<`
+// @403..474: invalid non-numeric type `b256` for operator `<`
 // operator invalid type error
-// @487..501: invalid non-numeric type `int[2]` for operator `<=`
+// @488..502: invalid non-numeric type `int[2]` for operator `<=`
 // binary operator type error
-// @524..526: operator `&&` argument has unexpected type `int`
-// @516..526: expecting type `bool`
+// @525..527: operator `&&` argument has unexpected type `int`
+// @517..527: expecting type `bool`
 // binary operator type error
-// @604..615: operator `==` argument has unexpected type `{int, bool}`
-// @590..600: expecting type `{bool, int}`
+// @605..616: operator `==` argument has unexpected type `{int, bool}`
+// @591..601: expecting type `{bool, int}`
 // >>>

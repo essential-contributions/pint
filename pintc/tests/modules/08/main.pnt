@@ -1,5 +1,5 @@
 use ::b::c;
-use ::d::MyEnum;
+use ::d::MyUnion;
 use b;
 
 predicate test {
@@ -8,13 +8,13 @@ predicate test {
     var c3 = c;
     var c4 = b::c;
 
-    var a_variant = MyEnum::A;
-    var b_variant = d::MyEnum::B;
+    var a_variant = MyUnion::A;
+    var b_variant = d::MyUnion::B;
 }
 
 // parsed <<<
 // const ::b::c = 5;
-// enum ::d::MyEnum = A | B;
+// union ::d::MyUnion = A | B;
 //
 // predicate ::test {
 //     var ::c1;
@@ -27,32 +27,28 @@ predicate test {
 //     constraint (::c2 == ::b::c);
 //     constraint (::c3 == ::b::c);
 //     constraint (::c4 == ::b::c);
-//     constraint (::a_variant == ::d::MyEnum::A);
-//     constraint (::b_variant == ::d::MyEnum::B);
+//     constraint (::a_variant == ::d::MyUnion::A);
+//     constraint (::b_variant == ::d::MyUnion::B);
 // }
 // >>>
 
 // flattened <<<
 // const ::b::c: int = 5;
-// enum ::d::MyEnum = A | B;
-//
+// union ::d::MyUnion = A | B;
+// 
 // predicate ::test {
 //     var ::c1: int;
 //     var ::c2: int;
 //     var ::c3: int;
 //     var ::c4: int;
-//     var ::a_variant: int;
-//     var ::b_variant: int;
+//     var ::a_variant: ::d::MyUnion;
+//     var ::b_variant: ::d::MyUnion;
 //     constraint (::c1 == 5);
 //     constraint (::c2 == 5);
 //     constraint (::c3 == 5);
 //     constraint (::c4 == 5);
-//     constraint (::a_variant == 0);
-//     constraint (::b_variant == 1);
-//     constraint (::a_variant >= 0);
-//     constraint (::a_variant <= 1);
-//     constraint (::b_variant >= 0);
-//     constraint (::b_variant <= 1);
+//     constraint (::a_variant == ::d::MyUnion::A);
+//     constraint (::b_variant == ::d::MyUnion::B);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

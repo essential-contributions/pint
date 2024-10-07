@@ -155,7 +155,6 @@ pub enum Immediate {
     Nil,
     Real(f64),
     Int(i64),
-    Enum(i64, Path),
     Bool(bool),
     String(String),
     B256([u64; 4]),
@@ -199,11 +198,6 @@ impl Immediate {
                 span,
             },
 
-            Immediate::Enum(_, path) => Type::Custom {
-                path: path.to_string(),
-                span,
-            },
-
             Immediate::UnionVariant { ty_path, .. } => Type::Union {
                 path: ty_path.to_string(),
                 span,
@@ -221,7 +215,6 @@ impl Immediate {
                     Immediate::Error
                     | Immediate::Array { .. }
                     | Immediate::Tuple(_)
-                    | Immediate::Enum(..)
                     | Immediate::UnionVariant { .. } => {
                         unreachable!()
                     }

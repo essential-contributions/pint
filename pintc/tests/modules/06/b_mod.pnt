@@ -1,4 +1,4 @@
 use c_mod::A::{C, D};
 use ::b_mod::c_mod::{A, A::B};
 
-enum X = Y | Z;
+union X = Y | Z;

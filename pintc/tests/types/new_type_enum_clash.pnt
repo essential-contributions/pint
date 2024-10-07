@@ -1,10 +1,10 @@
-enum Experience = Real | Unreal;
+union Experience = Real | Unreal;
 
 type Experience = bool;
 
 // parse_failure <<<
 // symbol `Experience` has already been declared
-// @5..15: previous declaration of the symbol `Experience` here
-// @39..49: `Experience` redeclared here
+// @6..16: previous declaration of the symbol `Experience` here
+// @40..50: `Experience` redeclared here
 // `Experience` must be declared or imported only once in this scope
 // >>>

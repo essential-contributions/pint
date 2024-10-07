@@ -78,7 +78,7 @@ impl Contract {
         // performing N-1 evaluation passes for N consts should resolve all dependencies and in
         // most cases will be done in only 1 or 2 passes.
 
-        let mut evaluator = Evaluator::new(&self.enums);
+        let mut evaluator = Evaluator::new(&self.unions);
         let mut new_immediates = Vec::default();
 
         // Use a temporary error handler to manage in-progress errors.
@@ -140,25 +140,6 @@ impl Contract {
                 .unwrap_or_else(empty_span);
 
             if let Some(imm_value) = all_const_immediates.get(&new_path) {
-                // Before we overwrite the unevaluated value with the immediate value we want to
-                // preserve enum variant types, since they'll become `int`s and lose this
-                // information below.
-                let mut preserved_enum_type = None;
-                if let Some(Const { expr, decl_ty }) = self.consts.get(&new_path) {
-                    if decl_ty.is_unknown() {
-                        if let Expr::Path(path, _) = expr.get(self) {
-                            // We have an unknown-typed const initialised with a path.  E.g.,
-                            // const a = MyEnum::MyVariant;
-                            if let Ok(Inference::Type(variant_ty)) =
-                                self.infer_enum_variant_by_name(path)
-                            {
-                                // It's definitely an enum.  Update the decl type below.
-                                preserved_enum_type = Some(variant_ty);
-                            }
-                        }
-                    }
-                }
-
                 let new_expr = Expr::Immediate {
                     value: imm_value.clone(),
                     span: init_span,
@@ -168,9 +149,6 @@ impl Contract {
 
                 if let Some(cnst) = self.consts.get_mut(&new_path) {
                     cnst.expr = new_expr_key;
-                    if let Some(variant_ty) = preserved_enum_type {
-                        cnst.decl_ty = variant_ty;
-                    }
                 } else {
                     emit_internal("missing const decl for immediate update");
                 }

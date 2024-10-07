@@ -1,1 +1,1 @@
-enum Asparagus = Green | White | Purple;
+union Asparagus = Green | White | Purple;

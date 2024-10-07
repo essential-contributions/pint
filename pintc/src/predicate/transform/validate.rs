@@ -126,6 +126,7 @@ fn check_expr(
             emit_illegal_type_error!(handler, span, "any type", "expr_types");
         }
         Type::Custom { span, .. } if !expr_type.is_union(&contract.unions) => {
+            // TODO: unclear how to test this. We will refactor custom types soon anyways.
             emit_illegal_type_error!(handler, span, "custom type", "expr_types");
         }
         Type::Alias { span, .. } => {
@@ -273,25 +274,6 @@ fn expr_types() {
     // tuple
     let src = "predicate test { var t = { x: 5, 3 }; }";
     check(&run_test(src), expect_test::expect![""]);
-
-    // custom / enum
-    let src = r#"
-enum MyEnum = Variant1 | Variant2;
-predicate test { var x = MyEnum::Variant2; }
-"#;
-
-    // Do this manually here because we have to copy the enum into the predicate.
-    let handler = Handler::default();
-    let mut contract = run_parser(src, &handler)
-        .type_check(&handler)
-        .expect("Failed to type check");
-    validate(&handler, &mut contract);
-    check(
-        &crate::error::Errors(handler.consume().0).to_string(),
-        expect_test::expect![[r#"
-        compiler internal error: custom type present in final predicate expr_types slotmap
-        compiler internal error: custom type present in final predicate expr_types slotmap"#]],
-    );
 
     // type alias
     let src = r#"

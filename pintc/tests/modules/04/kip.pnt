@@ -1,1 +1,1 @@
-enum Skill = ChattingOnlineWithBabes | CageFighting;
+union Skill = ChattingOnlineWithBabes | CageFighting;

@@ -1,13 +1,13 @@
-enum Foo = Bar | Baz;
-enum Bar = Baz | Xyzzy;
+union Foo = Bar | Baz;
+union Bar = Baz | Xyzzy;
 
 predicate test {
     var a = Baz;
 }
 
 // parsed <<<
-// enum ::Foo = Bar | Baz;
-// enum ::Bar = Baz | Xyzzy;
+// union ::Foo = Bar | Baz;
+// union ::Bar = Baz | Xyzzy;
 //
 // predicate ::test {
 //     var ::a;
@@ -17,6 +17,6 @@ predicate test {
 
 // typecheck_failure <<<
 // cannot find value `::Baz` in this scope
-// @76..79: not found in this scope
-// this symbol is a variant of enums `::Foo` and `::Bar` and may need a fully qualified path
+// @78..81: not found in this scope
+// this symbol is a variant of unions `::Foo` and `::Bar` and may need a fully qualified path
 // >>>

@@ -1,5 +1,5 @@
-enum Key = CMajor | DMinor;
-enum Chord = FFlatDiminished | EMinorOverG;
+union Key = CMajor | DMinor;
+union Chord = FFlatDiminished | EMinorOverG;
 
 predicate test {
     var saddest_sound: Chord;
@@ -9,8 +9,8 @@ predicate test {
 }
 
 // parsed <<<
-// enum ::Key = CMajor | DMinor;
-// enum ::Chord = FFlatDiminished | EMinorOverG;
+// union ::Key = CMajor | DMinor;
+// union ::Chord = FFlatDiminished | EMinorOverG;
 //
 // predicate ::test {
 //     var ::saddest_sound: ::Chord;
@@ -20,6 +20,6 @@ predicate test {
 
 // typecheck_failure <<<
 // binary operator type error
-// @247..258: operator `==` argument has unexpected type `::Key`
-// @230..243: expecting type `::Chord`
+// @249..260: operator `==` argument has unexpected type `::Key`
+// @232..245: expecting type `::Chord`
 // >>>

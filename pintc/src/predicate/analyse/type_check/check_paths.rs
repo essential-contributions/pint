@@ -3,7 +3,7 @@ use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     predicate::{Const, Contract, Ident, Predicate, VarKey},
     span::Span,
-    types::{EnumDecl, EphemeralDecl, NewTypeDecl, Path, Type, UnionDecl},
+    types::{EphemeralDecl, NewTypeDecl, Path, Type, UnionDecl},
 };
 
 impl Contract {
@@ -44,7 +44,7 @@ impl Contract {
         path: &Path,
         span: &Span,
     ) -> Inference {
-        // If we're searching for an enum variant and it appears to be unqualified then we can
+        // If we're searching for a union variant and it appears to be unqualified then we can
         // report some hints.
         let mut hints = Vec::new();
 
@@ -68,16 +68,16 @@ impl Contract {
             // It's a fully matched newtype.
             Inference::Type(ty.clone())
         } else {
-            // It might be an enum or union variant.  If it isn't we get a handy list of potential
+            // It might be a union variant. If it isn't we get a handy list of potential
             // variant names we can return in our error.
-            let enum_res = self.infer_variant_by_name(handler, path, span);
-            if let Ok(inference) = enum_res {
+            let union_res = self.infer_variant_by_name(handler, path, span);
+            if let Ok(inference) = union_res {
                 // Need to translate the type between Results.
                 inference
             } else {
-                // Save the enums variants list for the SymbolNotFound error if we need it.
-                if let Ok(enums_list) = enum_res.unwrap_err() {
-                    hints.extend(enums_list);
+                // Save the unions variants list for the SymbolNotFound error if we need it.
+                if let Ok(unions_list) = union_res.unwrap_err() {
+                    hints.extend(unions_list);
                 }
 
                 // For all other paths we need a predicate.
@@ -117,7 +117,7 @@ impl Contract {
                             error: CompileError::SymbolNotFound {
                                 name: path.clone(),
                                 span: span.clone(),
-                                enum_names: hints,
+                                union_names: hints,
                             },
                         });
                         Inference::Type(Type::Error(span.clone()))
@@ -148,20 +148,19 @@ impl Contract {
         // Check first if the path prefix matches a new type.
         for NewTypeDecl { name, ty, .. } in &self.new_types {
             if let Type::Custom {
-                path: enum_or_union_path,
-                ..
+                path: union_path, ..
             } = ty
             {
-                // This new type is to an enum or union.  Does the new type path match the passed
+                // This new type is to a union.  Does the new type path match the passed
                 // path?
                 if path.starts_with(&name.name) {
-                    // Yep, we might have an enum or union wrapped in a new type.
+                    // Yep, we might have an union wrapped in a new type.
                     let new_type_len = name.name.len();
                     if path.chars().nth(new_type_len) == Some(':') {
                         // Definitely worth trying.  Recurse.
-                        let new_path = enum_or_union_path.clone() + &path[new_type_len..];
+                        let new_path = union_path.clone() + &path[new_type_len..];
                         if let ty @ Ok(_) = self.infer_variant_by_name(handler, &new_path, span) {
-                            // We found an enum or union variant.
+                            // We found a union variant.
                             return ty;
                         }
                     }
@@ -169,43 +168,7 @@ impl Contract {
             }
         }
 
-        match self.infer_enum_variant_by_name(path) {
-            // No dice.  Try unions, passing the hints along.
-            Err(hints) => self.infer_union_variant_by_name(handler, path, span, hints),
-
-            // Wrap the hints in a Result.
-            inference => inference.map_err(Ok),
-        }
-    }
-
-    pub(in crate::predicate::analyse) fn infer_enum_variant_by_name(
-        &self,
-        path: &Path,
-    ) -> Result<Inference, Vec<String>> {
-        let mut hints = Vec::default();
-
-        // Find a match in the enums.
-        self.enums
-            .iter()
-            .find_map(
-                |EnumDecl {
-                     name: enum_name,
-                     variants,
-                     span,
-                 }| {
-                    (&enum_name.name == path
-                        || variants.iter().any(|variant| {
-                            Self::variant_name_matches(path, enum_name, &variant.name, &mut hints)
-                        }))
-                    .then(|| {
-                        Inference::Type(Type::Custom {
-                            path: enum_name.name.clone(),
-                            span: span.clone(),
-                        })
-                    })
-                },
-            )
-            .ok_or(hints)
+        self.infer_union_variant_by_name(handler, path, span, Vec::new())
     }
 
     // This has the same tricky Result<_, Result<_, _>> return type -- see infer_variant_by_name()

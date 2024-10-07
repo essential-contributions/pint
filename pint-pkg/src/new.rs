@@ -136,7 +136,7 @@ predicate Increment {
 }
 "#;
 
-const DEFAULT_LIBRARY_PNT: &str = r#"enum Animal = Cat | Dog;
+const DEFAULT_LIBRARY_PNT: &str = r#"union Animal = Cat | Dog;
 
 type Person = {
     address: b256,

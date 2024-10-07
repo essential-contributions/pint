@@ -29,14 +29,6 @@ macro_rules! write_many_iter {
     };
 }
 
-macro_rules! write_many {
-    ($f: expr, $vec: expr, $sep: literal) => {
-        let mut i = $vec.iter();
-        crate::util::write_many_iter!($f, i, $sep);
-    };
-}
-
-pub(crate) use write_many;
 pub(crate) use write_many_iter;
 pub(crate) use write_many_iter_with_ctrct;
 pub(crate) use write_many_with_ctrct;

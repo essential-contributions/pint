@@ -1,7 +1,7 @@
-enum TheLetterA = T | U | V;
+union TheLetterA = T | U | V;
 type Hooray = int[3];
 type Point = { x: int, y: int };
-enum Experience = Int | Unint;
+union Experience = Int | Unint;
 type A = TheLetterA;
 type I = int;
 type Int = int;
@@ -49,8 +49,8 @@ predicate test {
 
 // parsed <<<
 // const ::cc: ::I = 4;
-// enum ::TheLetterA = T | U | V;
-// enum ::Experience = Int | Unint;
+// union ::TheLetterA = T | U | V;
+// union ::Experience = Int | Unint;
 // type ::Hooray = int[3];
 // type ::Point = {x: int, y: int};
 // type ::A = ::TheLetterA;
@@ -99,8 +99,8 @@ predicate test {
 
 // flattened <<<
 // const ::cc: int = 4;
-// enum ::TheLetterA = T | U | V;
-// enum ::Experience = Int | Unint;
+// union ::TheLetterA = T | U | V;
+// union ::Experience = Int | Unint;
 // type ::Hooray = int[3];
 // type ::Point = {x: int, y: int};
 // type ::A = ::TheLetterA;
@@ -115,45 +115,36 @@ predicate test {
 //         c: int,
 //     }
 //     predicate Foo {
-//         pub var x: int;
+//         pub var x: ::TheLetterA;
 //     }
 // }
-//
+// 
 // predicate ::test {
-//     var ::t: int;
-//     pub var ::pt: int;
-//     var ::u: int;
-//     var ::v: int;
+//     var ::t: ::TheLetterA;
+//     pub var ::pt: ::TheLetterA;
+//     var ::u: ::TheLetterA;
+//     var ::v: ::TheLetterA;
 //     var ::i: int;
 //     var ::j: {int, int};
 //     var ::r: int;
-//     var ::e: int;
+//     var ::e: ::Experience;
 //     var ::h: int[3];
 //     var ::p: {x: int, y: int};
 //     var ::q: int;
 //     state ::x: int = __storage_get({0});
-//     constraint (::t == 0);
-//     constraint (__pub_var(__this_pathway(), {0}) == 0);
-//     constraint (::u == 1);
-//     constraint (::v == 2);
+//     constraint (::t == ::A::T);
+//     constraint (__pub_var(__this_pathway(), {0}) == ::A::T);
+//     constraint (::u == ::A::U);
+//     constraint (::v == ::TheLetterA::V);
 //     constraint (::i == 11);
 //     constraint (::j == {22, 33});
 //     constraint (::r == 44);
-//     constraint (::e == 0);
+//     constraint (::e == ::Experience::Int);
 //     constraint (::h[1] == 55);
 //     constraint (::p == {66, 77});
 //     constraint (::r < ::p.y);
 //     constraint (::q == ::i);
-//     constraint (::t >= 0);
-//     constraint (::t <= 2);
-//     constraint (__pub_var(__this_pathway(), {0}) >= 0);
-//     constraint (__pub_var(__this_pathway(), {0}) <= 2);
-//     constraint (::u >= 0);
-//     constraint (::u <= 2);
-//     constraint (::v >= 0);
-//     constraint (::v <= 2);
-//     constraint (::e >= 0);
-//     constraint (::e <= 1);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
+//
 // >>>

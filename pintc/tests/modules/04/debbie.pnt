@@ -1,1 +1,1 @@
-enum Skill = GlamourShots | Handicrafts;
+union Skill = GlamourShots | Handicrafts;

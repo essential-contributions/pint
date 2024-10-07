@@ -30,7 +30,7 @@ var user1: User = {
 }
 
 // ANCHOR: simple_enum
-enum Token = DAI | USDC | USDT;
+union Token = DAI | USDC | USDT;
 // ANCHOR_END: simple_enum
 
 predicate test2 {

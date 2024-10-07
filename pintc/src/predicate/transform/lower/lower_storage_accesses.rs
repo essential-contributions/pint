@@ -316,6 +316,7 @@ fn get_base_storage_key(
                 None, // local storage
                 *mutable,
                 if storage_var.ty.is_any_primitive()
+                    || storage_var.ty.is_union(&contract.unions)
                     || storage_var.ty.is_map()
                     || storage_var.ty.is_vector()
                 {
@@ -354,6 +355,7 @@ fn get_base_storage_key(
                 // constrained by their own contracts.
                 false,
                 if storage_var.ty.is_any_primitive()
+                    || storage_var.ty.is_union(&contract.unions)
                     || storage_var.ty.is_map()
                     || storage_var.ty.is_vector()
                 {
@@ -373,7 +375,11 @@ fn get_base_storage_key(
             if inner_expr_ty.is_map() || inner_expr_ty.is_vector() {
                 // next key element is the index itself
                 key.push(*index);
-                if !(expr_ty.is_any_primitive() || expr_ty.is_map() || expr_ty.is_vector()) {
+                if !(expr_ty.is_any_primitive()
+                    || expr_ty.is_union(&contract.unions)
+                    || expr_ty.is_map()
+                    || expr_ty.is_vector())
+                {
                     key.push(contract.exprs.insert_int(0)); // placeholder for offsets
                 }
             } else {
