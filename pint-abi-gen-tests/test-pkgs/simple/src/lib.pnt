@@ -1,0 +1,2 @@
+union QQ = M | N(int);
+union PP = T(QQ) | JJ(b256);

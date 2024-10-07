@@ -398,7 +398,7 @@ impl<'a> AsmBuilder<'a> {
                         asm.push(Stack::Push(0).into());
                         value_size += 1;
                     }
-                    value_size
+                    1 + value_size
                 }
                 Immediate::Error | Immediate::Nil | Immediate::Real(_) | Immediate::String(_) => {
                     unreachable!("Unexpected literal")

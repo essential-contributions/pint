@@ -1,11 +1,14 @@
 //! Struct and impls for the decision variables `PubVars` type.
 
-use crate::utils::{field_idents, fields};
+use crate::{
+    utils::{field_idents, fields},
+    ModLevel,
+};
 use pint_abi_types::VarABI;
 
 /// Generate a struct for an predicate's decision variables.
 fn struct_decl(pub_vars: &[VarABI]) -> syn::ItemStruct {
-    let fields = fields(pub_vars);
+    let fields = fields(pub_vars, &ModLevel::Predicate);
     syn::parse_quote! {
         /// The predicate's decision variables.
         #[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]

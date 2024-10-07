@@ -2,7 +2,7 @@
 
 use crate::{
     construct_key_expr, keys, map, mutations, nesting_expr, nesting_key_doc_str, nesting_ty_str,
-    tuple, SingleKeyTy, TypeABI,
+    tuple, ModLevel, SingleKeyTy, TypeABI,
 };
 use pint_abi_visit::{KeyedVarTree, Nesting, NodeIx};
 use proc_macro2::Span;
@@ -111,7 +111,12 @@ fn key_method_for_single_key(elem_nesting: &[Nesting]) -> syn::ImplItemFn {
 fn key_method(tree: &KeyedVarTree, elem: NodeIx, elem_ty: &TypeABI) -> syn::ImplItemFn {
     let elem_nesting = tree.nesting(elem);
     match elem_ty {
-        TypeABI::Bool | TypeABI::Int | TypeABI::Real | TypeABI::String | TypeABI::B256 => (),
+        TypeABI::Bool
+        | TypeABI::Int
+        | TypeABI::Real
+        | TypeABI::String
+        | TypeABI::B256
+        | TypeABI::Union { .. } => (),
         TypeABI::Array { .. } => return key_method_for_array(&elem_nesting),
         TypeABI::Tuple { .. } => {
             return key_method_for_tuple(&elem_nesting);
@@ -219,7 +224,7 @@ fn mutation_method_for_tuple(tup_nesting: &[Nesting]) -> syn::ImplItemFn {
 
 /// An array mutation builder method for an element with a single-key value.
 fn mutation_method_for_single_key(ty: &SingleKeyTy, elem_nesting: &[Nesting]) -> syn::ImplItemFn {
-    let ty = ty.syn_ty();
+    let ty = ty.syn_ty(&ModLevel::Mutations);
     let nesting_expr: syn::ExprArray = nesting_expr(elem_nesting);
     let construct_key_expr: syn::Expr = construct_key_expr();
     let nesting_key_doc_str = nesting_key_doc_str(elem_nesting);
@@ -259,12 +264,13 @@ fn mutation_method(tree: &KeyedVarTree, elem: NodeIx, elem_ty: &TypeABI) -> syn:
         TypeABI::Bool => SingleKeyTy::Bool,
         TypeABI::Int => SingleKeyTy::Int,
         TypeABI::Real => SingleKeyTy::Real,
-        TypeABI::Array { .. } => return mutation_method_for_array(&elem_nesting),
         TypeABI::String => SingleKeyTy::String,
         TypeABI::B256 => SingleKeyTy::B256,
+        TypeABI::Array { .. } => return mutation_method_for_array(&elem_nesting),
         TypeABI::Tuple { .. } => {
             return mutation_method_for_tuple(&elem_nesting);
         }
+        TypeABI::Union { name, .. } => SingleKeyTy::Union(name.clone()),
         TypeABI::Map { .. } => {
             return mutation_method_for_map(&elem_nesting);
         }

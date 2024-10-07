@@ -219,6 +219,15 @@ pub fn ty_size(ty: &TypeABI) -> usize {
         TypeABI::Array { ty, size } => {
             ty_size(ty) * usize::try_from(*size).expect("size out of range")
         }
+        TypeABI::Union { variants, .. } => {
+            // 1 word for the tag + max variant type size
+            1 + variants
+                .iter()
+                .filter_map(|variant| variant.ty.as_ref())
+                .map(ty_size)
+                .max()
+                .unwrap_or_default()
+        }
         TypeABI::Map { .. } => 1,
     }
 }
@@ -228,7 +237,12 @@ pub fn ty_size(ty: &TypeABI) -> usize {
 fn add_children<'a>(graph: &mut KeyedVarGraph<'a>, a: NodeIx, ty: &'a TypeABI) {
     match ty {
         // Leaf types have no further nesting.
-        TypeABI::Bool | TypeABI::Int | TypeABI::Real | TypeABI::String | TypeABI::B256 => {}
+        TypeABI::Bool
+        | TypeABI::Int
+        | TypeABI::Real
+        | TypeABI::String
+        | TypeABI::B256
+        | TypeABI::Union { .. } => {}
 
         // Recurse for nested tuple types.
         TypeABI::Tuple(fields) => {
@@ -313,6 +327,7 @@ fn flattened_key_count(ty: &TypeABI) -> usize {
         | TypeABI::Int
         | TypeABI::String
         | TypeABI::B256
+        | TypeABI::Union { .. }
         | TypeABI::Map { .. } => 1,
     }
 }
