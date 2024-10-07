@@ -17,11 +17,11 @@ predicate test {
 
 // flattening_failure <<<
 // cannot find value `::a` in this scope
-// @81..82: not found in this scope
+// @76..77: not found in this scope
 // attempt to use a non-constant value as an array index
-// @81..82: this must be a constant
+// @76..77: this must be a constant
 // cannot find value `::a` in this scope
-// @81..82: not found in this scope
+// @76..77: not found in this scope
 // attempt to use a non-constant value as an array length
-// @81..82: this must be a constant
+// @76..77: this must be a constant
 // >>>
