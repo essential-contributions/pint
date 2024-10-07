@@ -1,0 +1,86 @@
+const a = 1 in [1, 2];
+const b = 1 in [3, 2];
+const c = true in [3,2];
+const d = true in [true, false];
+
+predicate Test {
+    var e = 1 in [1, 2];
+    var f = 1 in [3, 2];
+    var g = true in [true, false];
+
+    var h = 0;
+    var i = false;
+    constraint h in [1, 2];
+    constraint i in [false, false];
+}
+
+// parsed <<<
+// const ::b = 1 in [3, 2];
+// const ::d = true in [true, false];
+// const ::a = 1 in [1, 2];
+// const ::c = true in [3, 2];
+//
+// predicate ::Test {
+//     var ::e;
+//     var ::f;
+//     var ::g;
+//     var ::h;
+//     var ::i;
+//     constraint (::e == 1 in [1, 2]);
+//     constraint (::f == 1 in [3, 2]);
+//     constraint (::g == true in [true, false]);
+//     constraint (::h == 0);
+//     constraint (::i == false);
+//     constraint ::h in [1, 2];
+//     constraint ::i in [false, false];
+// }
+// >>>
+
+// flattened <<<
+// const ::b: bool = false;
+// const ::d: bool = true;
+// const ::a: bool = true;
+// const ::c: bool = false;
+//
+// predicate ::Test {
+//     var ::e: bool;
+//     var ::f: bool;
+//     var ::g: bool;
+//     var ::h: int;
+//     var ::i: bool;
+//     constraint (::e == ((1 == 1) || (1 == 2)));
+//     constraint (::f == ((1 == 3) || (1 == 2)));
+//     constraint (::g == ((true == true) || (true == false)));
+//     constraint (::h == 0);
+//     constraint (::i == false);
+//     constraint ((::h == 1) || (::h == 2));
+//     constraint ((::i == false) || (::i == false));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
+
+// optimized <<<
+// const ::b: bool = false;
+// const ::d: bool = true;
+// const ::a: bool = true;
+// const ::c: bool = false;
+//
+// predicate ::Test {
+//     var ::e: bool;
+//     var ::f: bool;
+//     var ::g: bool;
+//     var ::h: int;
+//     var ::i: bool;
+//     constraint (::e == true);
+//     constraint (::f == false);
+//     constraint (::g == true);
+//     constraint (::h == 0);
+//     constraint (::i == false);
+//     constraint ((::h == 1) || (::h == 2));
+//     constraint ((::i == false) || (::i == false));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
+
+// warnings <<<
+// >>>

@@ -10,12 +10,12 @@ const c = 44 as bool;
 
 // typecheck_failure <<<
 // invalid cast
-// @33..48: illegal cast from `int[_]`
+// @34..49: illegal cast from `int[_]`
 // casts may only be made from `bool`s,`int`s, and enumeration unions to `int`
 // invalid cast
 // @10..21: illegal cast from `{int}`
 // casts may only be made from `bool`s,`int`s, and enumeration unions to `int`
 // invalid cast
-// @60..70: illegal cast from `int`
+// @62..72: illegal cast from `int`
 // casts may only be made from `bool`s,`int`s, and enumeration unions to `int`
 // >>>

@@ -503,12 +503,30 @@ impl Evaluator {
                     }
                 }),
 
+            Expr::In {
+                value, collection, ..
+            } => {
+                let value = self.evaluate_key(value, handler, contract)?;
+                let collection = self.evaluate_key(collection, handler, contract)?;
+
+                match collection {
+                    Imm::Array(collection) => Ok(Imm::Bool(collection.contains(&value))),
+
+                    _ => Err(handler.emit_err(Error::Compile {
+                        error: CompileError::Internal {
+                            msg: "unexpected expression during compile-time evaluation \
+                            evaluation of in expr",
+                            span: empty_span(),
+                        },
+                    })),
+                }
+            }
+
             Expr::Error(_)
             | Expr::StorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
             | Expr::IntrinsicCall { .. }
-            | Expr::In { .. }
             | Expr::Range { .. }
             | Expr::Generator { .. }
             | Expr::Match { .. } => Err(handler.emit_err(Error::Compile {
