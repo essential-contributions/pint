@@ -503,12 +503,54 @@ impl Evaluator {
                     }
                 }),
 
+            Expr::In {
+                value, collection, ..
+            } => {
+                let value = self.evaluate_key(value, handler, contract)?;
+
+                if let Expr::Range { lb, ub, .. } = collection.get(contract) {
+                    let lb = self.evaluate_key(lb, handler, contract)?;
+                    let ub = self.evaluate_key(ub, handler, contract)?;
+
+                    match (lb, ub, value) {
+                        (Imm::Int(lb), Imm::Int(ub), Imm::Int(value)) => {
+                            Ok(Imm::Bool(ub >= value && lb <= value))
+                        }
+
+                        (Imm::Real(lb), Imm::Real(ub), Imm::Real(value)) => {
+                            Ok(Imm::Bool(ub >= value && lb <= value))
+                        }
+
+                        _ => Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "unexpected expression during compile-time evaluation \
+                            evaluation of in expr with range",
+                                span: empty_span(),
+                            },
+                        })),
+                    }
+                } else {
+                    let collection = self.evaluate_key(collection, handler, contract)?;
+
+                    match collection {
+                        Imm::Array(collection) => Ok(Imm::Bool(collection.contains(&value))),
+
+                        _ => Err(handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "unexpected expression during compile-time evaluation \
+                            evaluation of in expr",
+                                span: empty_span(),
+                            },
+                        })),
+                    }
+                }
+            }
+
             Expr::Error(_)
             | Expr::StorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
             | Expr::IntrinsicCall { .. }
-            | Expr::In { .. }
             | Expr::Range { .. }
             | Expr::Generator { .. }
             | Expr::Match { .. } => Err(handler.emit_err(Error::Compile {
