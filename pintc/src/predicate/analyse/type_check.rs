@@ -9,7 +9,7 @@ use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     predicate::{Const, ConstraintDecl, Contract, Expr, ExprKey, Ident, VisitorKind},
     span::{Span, Spanned},
-    types::{Path, Type},
+    types::Type,
 };
 use fxhash::{FxHashMap, FxHashSet};
 
@@ -105,7 +105,7 @@ impl Contract {
                 if !state_ty.is_unknown() {
                     let expr_ty = state.expr.get_ty(self);
                     if !expr_ty.is_unknown() {
-                        if !state_ty.eq(&self.new_types, expr_ty) {
+                        if !state_ty.eq(self, expr_ty) {
                             handler.emit_err(Error::Compile {
                                 error: CompileError::StateVarInitTypeError {
                                     large_err: Box::new(LargeTypeError::StateVarInitTypeError {
@@ -172,7 +172,7 @@ impl Contract {
                     .type_check_single_expr(handler, Some(pred_key), *range_expr)
                     .is_ok()
                     && !(range_expr.get_ty(self).is_int()
-                        || range_expr.get_ty(self).is_enumeration_union(&self.unions)
+                        || range_expr.get_ty(self).is_enumeration_union(self)
                         || checked_range_exprs.contains(range_expr))
                 {
                     handler.emit_err(Error::Compile {
@@ -215,12 +215,12 @@ impl Contract {
         &self,
         handler: &Handler,
         union_ty: &Type,
-        variant_name: &Path,
+        variant_name: &String,
         name_span: &Span,
         binding: &Option<Ident>,
     ) -> Result<Option<Type>, ErrorEmitted> {
         // If the binding exists find the type in the union.
-        if let Ok(binding_ty) = union_ty.get_union_variant_ty(&self.unions, variant_name) {
+        if let Ok(binding_ty) = union_ty.get_union_variant_ty(self, variant_name) {
             if binding_ty.is_some() && binding.is_none() {
                 #[allow(clippy::unnecessary_unwrap)]
                 handler.emit_err(Error::Compile {
@@ -246,10 +246,10 @@ impl Contract {
                 error: CompileError::MatchVariantUnknown {
                     variant: variant_name.clone(),
                     union_name: union_ty
-                        .get_union_name(&self.unions)
+                        .get_union_name(self)
                         .cloned()
                         .unwrap_or("<unknown union>".to_string()),
-                    actual_variants: union_ty.get_union_variant_names(&self.unions),
+                    actual_variants: union_ty.get_union_variant_names(self),
                     span: name_span.clone(),
                 },
             });

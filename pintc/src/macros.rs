@@ -4,7 +4,7 @@ use crate::{
     lexer::Token,
     predicate::{Contract, ExprKey, Predicate, Var},
     span::Span,
-    types::{Path, UnionDecl},
+    types::UnionDecl,
 };
 
 use fxhash::FxHashMap;
@@ -47,7 +47,7 @@ impl fmt::Display for MacroDecl {
 
 #[derive(Debug)]
 pub(crate) struct MacroCall {
-    pub(crate) name: Path,
+    pub(crate) name: String,
     pub(crate) mod_path: Vec<String>,
     pub(crate) args: Vec<Vec<(usize, Token, usize)>>,
     pub(crate) span: Span,
@@ -291,8 +291,8 @@ fn splice_get_array_range_size(
             Expr::Path(path, _) => contract
                 .unions
                 .iter()
-                .filter(|union| union.is_enumeration_union())
-                .find_map(|UnionDecl { name, variants, .. }| {
+                .filter(|(_key, union)| union.is_enumeration_union())
+                .find_map(|(_, UnionDecl { name, variants, .. })| {
                     (&name.name == path).then(|| {
                         (
                             variants.len(),
@@ -313,7 +313,7 @@ fn splice_get_array_range_size(
 
 #[derive(Default)]
 pub(crate) struct MacroExpander {
-    call_history: Vec<(Path, usize)>, // Path to macro and number of args.
+    call_history: Vec<(String, usize)>, // Path to macro and number of args.
     call_parents: FxHashMap<usize, usize>, // Indices into self.call_history.
 }
 

@@ -2,7 +2,7 @@ use super::{Contract, DisplayWithPred, Ident, Predicate};
 use crate::{
     error::{ErrorEmitted, Handler},
     span::Span,
-    types::{Path, Type},
+    types::Type,
 };
 use pint_abi_types::VarABI;
 use std::fmt::{self, Formatter};
@@ -10,7 +10,7 @@ use std::fmt::{self, Formatter};
 /// A decision variable with an optional type.
 #[derive(Clone, Debug)]
 pub struct Var {
-    pub name: Path,
+    pub name: String,
     pub is_pub: bool,
     pub span: Span,
 }

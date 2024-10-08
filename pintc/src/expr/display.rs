@@ -264,11 +264,24 @@ impl DisplayWithContract for super::Immediate {
             }
             super::Immediate::UnionVariant {
                 tag_num,
-                ty_path,
                 value,
+                decl,
                 ..
             } => {
-                write!(f, "{ty_path}::<{tag_num}>")?;
+                if let Some(union) = contract.unions.get(*decl) {
+                    write!(
+                        f,
+                        "{}::{}",
+                        union.name.name,
+                        union
+                            .variants
+                            .get(*tag_num as usize)
+                            .map(|v| v.variant_name.name.as_str())
+                            .unwrap_or("UNKNOWN_VARIANT")
+                    )
+                } else {
+                    write!(f, "UNKNOWN_UNION::<{tag_num}>")
+                }?;
                 if let Some(value) = value {
                     write!(f, "({})", contract.with_ctrct(value.as_ref()))?;
                 }

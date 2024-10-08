@@ -10,7 +10,7 @@ use crate::{
         StorageVar, VisitorKind,
     },
     span::{empty_span, Span, Spanned},
-    types::{self, NewTypeDecl, Path, PrimitiveKind, Type, UnionDecl},
+    types::{self, NewTypeDecl, PrimitiveKind, Type, UnionDecl},
 };
 
 use fxhash::FxHashMap;
@@ -148,7 +148,7 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
         .for_each(|Const { decl_ty, .. }| replace_alias(&new_types_map, decl_ty));
 
     // Replace `Type::Alias` in every union declaration in the contract.
-    for UnionDecl { variants, .. } in &mut contract.unions {
+    for UnionDecl { variants, .. } in contract.unions.values_mut() {
         for variant in variants {
             if let Some(variant_ty) = &mut variant.ty {
                 replace_alias(&new_types_map, variant_ty);
@@ -259,7 +259,7 @@ pub(crate) fn lower_array_ranges(
     // and enums have been lowered, so the evaluator should be fairly simple.
     // TODO: It seems lower_enums() isn't lowering within array ranges, so we need to included them
     // here.
-    let evaluator = Evaluator::new(&contract.unions);
+    let evaluator = Evaluator::new(contract);
     let mut eval_memos: FxHashMap<ExprKey, ExprKey> = FxHashMap::default();
 
     let int_ty = Type::Primitive {
@@ -273,7 +273,7 @@ pub(crate) fn lower_array_ranges(
             None => {
                 // The type checker should already ensure that our immediate value returned is an int.
                 if let Expr::Path(name, _) = old_range_expr_key.get(contract) {
-                    if contract.unions.iter().any(|union| union.name.name == *name) {
+                    if contract.unions.values().any(|union| union.name.name == *name) {
                         let new_expr_key = old_range_expr_key;
                         eval_memos.insert(old_range_expr_key, new_expr_key);
                         new_expr_key
@@ -379,7 +379,7 @@ pub(crate) fn lower_imm_accesses(
             })
             .collect::<Vec<_>>();
 
-        let evaluator = Evaluator::new(&contract.unions);
+        let evaluator = Evaluator::new(contract);
         let mut replacements = Vec::new();
         for (old_expr_key, array_idx, field_idx) in candidates {
             assert!(
@@ -1274,7 +1274,7 @@ fn convert_match_to_if_decl(
                 // valid as it passed type checking.  It _could_ be None as not all variants have a
                 // binding.  In that case the `binding` above should also be None.
                 union_ty
-                    .get_union_variant_ty(&contract.unions, &name)
+                    .get_union_variant_ty(contract, &name)
                     .map_err(|_| {
                         handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
@@ -1560,7 +1560,7 @@ fn convert_match_expr(
 ) -> Result<(), ErrorEmitted> {
     struct BranchInfo {
         union_expr: ExprKey,
-        name: Path,
+        name: String,
         name_span: Span,
         binding: Option<(Ident, Type)>,
         constraints: Vec<ExprKey>,
@@ -1592,7 +1592,7 @@ fn convert_match_expr(
         {
             // Replace the bound values within the constraint exprs, if there is a binding.
             let bound_ty = union_ty
-                .get_union_variant_ty(&contract.unions, name)
+                .get_union_variant_ty(contract, name)
                 .map_err(|_| {
                     handler.emit_err(Error::Compile {
                         error: CompileError::Internal {
@@ -1818,12 +1818,12 @@ fn build_compare_tag_expr(
     handler: &Handler,
     contract: &mut Contract,
     union_expr: ExprKey,
-    tag: &Path,
+    tag: &String,
     span: &Span,
 ) -> Result<ExprKey, ErrorEmitted> {
     let tag_num = union_expr
         .get_ty(contract)
-        .get_union_variant_as_num(&contract.unions, tag)
+        .get_union_variant_as_num(contract, tag)
         .ok_or_else(|| {
             handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
@@ -1861,17 +1861,17 @@ fn build_compare_tag_expr(
 }
 
 pub(super) fn lower_union_variant_paths(contract: &mut Contract) {
-    let mut replacements: Vec<(PredKey, ExprKey, Type, Path, Span)> = Vec::default();
+    let mut replacements: Vec<(PredKey, ExprKey, Type, String, Span)> = Vec::default();
 
     for pred_key in contract.preds.keys() {
         for expr_key in contract.exprs(pred_key) {
             if let Expr::Path(path, span) = expr_key.get(contract) {
                 let expr_ty = expr_key.get_ty(contract);
-                if expr_ty.is_union(&contract.unions) {
+                if expr_ty.is_union() {
                     // We have *some* path expression whose type is a union.  Could be a variable
                     // or constant, could be a path to the union (maybe?) or to a non-value
                     // variant.
-                    if let Some(union_name) = expr_ty.get_union_name(&contract.unions) {
+                    if let Some(union_name) = expr_ty.get_union_name(contract) {
                         if path.starts_with(union_name) && path != union_name {
                             // The name of the union is at the start of the path, but it isn't the
                             // whole path.  So it must be a union variant path.

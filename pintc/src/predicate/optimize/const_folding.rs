@@ -16,7 +16,7 @@ pub(crate) fn const_folding(contract: &mut Contract) {
 pub(crate) fn fold_consts(contract: &mut Contract) {
     let mut replace_map: FxHashMap<ExprKey, (Expr, Type)> = FxHashMap::default();
 
-    let evaluator = Evaluator::new(&contract.unions);
+    let evaluator = Evaluator::new(contract);
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         for expr_key in contract.exprs(pred_key) {

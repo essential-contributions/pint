@@ -45,7 +45,7 @@ impl Contract {
         // The set of all available custom types. These are either unions or type aliases.
         let valid_custom_tys: FxHashSet<&String> = FxHashSet::from_iter(
             self.unions
-                .iter()
+                .values()
                 .map(|un| &un.name.name)
                 .chain(self.new_types.iter().map(|ntd| &ntd.name.name)),
         );
@@ -75,7 +75,7 @@ impl Contract {
         });
 
         // Check all unions.
-        for UnionDecl { variants, .. } in &self.unions {
+        for UnionDecl { variants, .. } in self.unions.values() {
             for variant in variants {
                 if let Some(ty) = &variant.ty {
                     check_custom_type(ty, handler, &valid_custom_tys);
@@ -288,7 +288,7 @@ impl Contract {
                 if !var_decl_ty.is_unknown() {
                     let init_ty = init_expr_key.get_ty(self);
 
-                    if !var_decl_ty.eq(&self.new_types, init_ty) {
+                    if !var_decl_ty.eq(self, init_ty) {
                         handler.emit_err(Error::Compile {
                             error: CompileError::InitTypeError {
                                 init_kind: "variable",
@@ -315,7 +315,7 @@ impl Contract {
         {
             let init_ty = init_expr_key.get_ty(self);
 
-            if !init_ty.eq(&self.new_types, decl_ty) {
+            if !init_ty.eq(self, decl_ty) {
                 handler.emit_err(Error::Compile {
                     error: CompileError::InitTypeError {
                         init_kind: "const",

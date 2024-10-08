@@ -3,7 +3,7 @@ use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     predicate::{Const, Contract, Ident, Predicate, VarKey},
     span::Span,
-    types::{EphemeralDecl, NewTypeDecl, Path, Type, UnionDecl},
+    types::{EphemeralDecl, NewTypeDecl, Type, UnionDecl},
 };
 
 impl Contract {
@@ -41,7 +41,7 @@ impl Contract {
         &self,
         handler: &Handler,
         pred: Option<&Predicate>,
-        path: &Path,
+        path: &String,
         span: &Span,
     ) -> Inference {
         // If we're searching for a union variant and it appears to be unqualified then we can
@@ -142,7 +142,7 @@ impl Contract {
     pub(super) fn infer_variant_by_name(
         &self,
         handler: &Handler,
-        path: &Path,
+        path: &String,
         span: &Span,
     ) -> Result<Inference, Result<Vec<String>, ErrorEmitted>> {
         // Check first if the path prefix matches a new type.
@@ -176,20 +176,23 @@ impl Contract {
     fn infer_union_variant_by_name(
         &self,
         handler: &Handler,
-        path: &Path,
+        path: &String,
         path_span: &Span,
         mut hints: Vec<String>,
     ) -> Result<Inference, Result<Vec<String>, ErrorEmitted>> {
         // Try to find a match in the unions.
         let variant_match: Option<Result<Inference, ErrorEmitted>> = self.unions.iter().find_map(
-            |UnionDecl {
-                 name: union_name,
-                 variants,
-                 span,
-             }| {
+            |(
+                decl,
+                UnionDecl {
+                    name: union_name,
+                    variants,
+                    span,
+                },
+            )| {
                 if &union_name.name == path {
                     Some(Ok(Inference::Type(Type::Union {
-                        path: union_name.name.clone(),
+                        decl,
                         span: span.clone(),
                     })))
                 } else {
@@ -203,7 +206,7 @@ impl Contract {
                         )
                         .then(|| {
                             // A variant was found.  Was it supposed to have a value?  (To get to
-                            // this point we have received only a Path with no value.)
+                            // this point we have received only a String with no value.)
                             if variant.ty.is_some() {
                                 // This variant *does* require a value.
                                 Err(handler.emit_err(Error::Compile {
@@ -217,7 +220,7 @@ impl Contract {
                                 }))
                             } else {
                                 Ok(Inference::Type(Type::Union {
-                                    path: union_name.name.clone(),
+                                    decl,
                                     span: span.clone(),
                                 }))
                             }
@@ -234,7 +237,7 @@ impl Contract {
     }
 
     fn variant_name_matches(
-        path: &Path,
+        path: &String,
         type_name: &Ident,
         variant_name: &str,
         hints: &mut Vec<String>,

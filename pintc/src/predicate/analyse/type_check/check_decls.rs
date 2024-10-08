@@ -219,7 +219,7 @@ impl Contract {
         {
             let union_ty = match_expr.get_ty(self).clone();
 
-            if !union_ty.is_union(&self.unions) {
+            if !union_ty.is_union() {
                 handler.emit_err(Error::Compile {
                     error: CompileError::MatchExprNotUnion {
                         found_ty: self.with_ctrct(union_ty).to_string(),
@@ -270,10 +270,10 @@ impl Contract {
                 }
 
                 let variant_count = variants_set.len();
-                if let Some(union_variant_count) = union_ty.get_union_variant_count(&self.unions) {
+                if let Some(union_variant_count) = union_ty.get_union_variant_count(self) {
                     if variant_count < union_variant_count && else_branch.is_none() {
                         // We don't have all variants covered.
-                        let mut missing_variants = union_ty.get_union_variant_names(&self.unions);
+                        let mut missing_variants = union_ty.get_union_variant_names(self);
                         missing_variants.retain(|var_name| !variants_set.contains(var_name));
                         handler.emit_err(Error::Compile {
                             error: CompileError::MatchBranchMissing {

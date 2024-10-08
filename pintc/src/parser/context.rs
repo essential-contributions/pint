@@ -8,7 +8,7 @@ use crate::{
         PredicateInstance, StorageVar, SymbolTable, Var,
     },
     span::{self, Span},
-    types::{Path, PrimitiveKind, Type},
+    types::{PrimitiveKind, Type},
 };
 use std::collections::BTreeMap;
 
@@ -422,7 +422,7 @@ impl<'a> ParserContext<'a> {
         last: Ident,
         maybe_enum: bool,
         span: Span,
-    ) -> Path {
+    ) -> String {
         if !els.is_empty() {
             let path: Vec<_> = els.iter().map(|el| el.to_string()).collect();
             self.next_paths.push(NextModPath {
@@ -457,7 +457,7 @@ impl<'a> ParserContext<'a> {
         last: Ident,
         maybe_enum: bool,
         span: Span,
-    ) -> Path {
+    ) -> String {
         // Check if any of the use statement matches the path. This requires
         // that the alias (if it exists) or the last ident in the use statement
         // matches the first ident in the path.

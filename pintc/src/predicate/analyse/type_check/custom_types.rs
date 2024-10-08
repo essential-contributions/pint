@@ -1,6 +1,6 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    predicate::{Const, Contract, Expr, Interface, InterfaceVar, StorageVar},
+    predicate::{Const, Contract, Expr, Interface, InterfaceVar, StorageVar, UnionKey},
     span::{empty_span, Span},
     types::{NewTypeDecl, Type, UnionDecl},
 };
@@ -35,11 +35,10 @@ impl Contract {
                     .iter()
                     .try_for_each(|(_, ty)| inspect_type_names(handler, contract, seen_names, ty)),
 
-                Type::Union { path, .. } => {
+                Type::Union { decl, .. } => {
                     // This was a custom type which has been confirmed to be a union.
-                    let Some(union_decl) = contract.unions.iter().find(|ud| &ud.name.name == path)
-                    else {
-                        unreachable!("union type with unknown path");
+                    let Some(union_decl) = contract.unions.get(*decl) else {
+                        unreachable!("union type with unknown key");
                     };
 
                     for variant in &union_decl.variants {
@@ -156,7 +155,7 @@ impl Contract {
                 for NewTypeDecl { ref mut ty, .. } in &mut self.new_types {
                     if let Some(custom_ty) = get_custom_type_mut_ref(&new_type.name.name, ty) {
                         *custom_ty = Type::Alias {
-                            path: new_type.name.name.clone(),
+                            name: new_type.name.name.clone(),
                             ty: Box::new(new_type.ty.clone()),
                             span: new_type.span.clone(),
                         };
@@ -192,7 +191,11 @@ impl Contract {
         // Given a mutable reference to a `Type` and a list of new type declarations `new_types`,
         // replace it or its subtypes with a `Type::Alias` when a `Type::Custom` is encountered
         // that matches the name of a declaration in `new_types`.
-        fn replace_custom_type(new_types: &[NewTypeDecl], union_names: &[String], ty: &mut Type) {
+        fn replace_custom_type(
+            new_types: &[NewTypeDecl],
+            union_names: &[(String, UnionKey)],
+            ty: &mut Type,
+        ) {
             match ty {
                 Type::Array { ty, .. } => {
                     replace_custom_type(new_types, union_names, ty.borrow_mut())
@@ -208,13 +211,16 @@ impl Contract {
                         })
                     {
                         *ty = Type::Alias {
-                            path,
+                            name: path,
                             ty: Box::new(new_ty.clone()),
                             span: new_span.clone(),
                         };
-                    } else if union_names.iter().any(|name| name == &path) {
+                    } else if let Some(decl) = union_names
+                        .iter()
+                        .find_map(|(name, decl)| (name == &path).then_some(*decl))
+                    {
                         *ty = Type::Union {
-                            path,
+                            decl,
                             span: span.clone(),
                         }
                     }
@@ -236,10 +242,10 @@ impl Contract {
         let union_names = self
             .unions
             .iter()
-            .map(|UnionDecl { name, .. }| name.name.clone())
+            .map(|(key, UnionDecl { name, .. })| (name.name.clone(), key))
             .collect::<Vec<_>>();
 
-        for UnionDecl { variants, .. } in &mut self.unions {
+        for UnionDecl { variants, .. } in &mut self.unions.values_mut() {
             for variant in variants {
                 if let Some(variant_ty) = &mut variant.ty {
                     replace_custom_type(&self.new_types, &union_names, variant_ty);

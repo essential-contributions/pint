@@ -14,7 +14,7 @@ predicate test {
 // >>>
 
 // flattened <<<
-// const ::y: {::x, ::x} = {::x::<0>, ::x::<1>};
+// const ::y: {::x, ::x} = {::x::a, ::x::b};
 // union ::x = a | b;
 //
 // predicate ::test {

@@ -2,7 +2,7 @@ use crate::{
     error::{Error, ErrorEmitted, Handler, ParseError},
     expr::{Expr, Ident, Immediate, MatchBranch, MatchElse},
     span::{empty_span, Span, Spanned},
-    types::{EphemeralDecl, NewTypeDecl, Path, Type, UnionDecl, UnionVariant},
+    types::{EphemeralDecl, NewTypeDecl, Type, UnionDecl, UnionVariant},
 };
 use exprs::ExprsIter;
 use pint_abi_types::{ContractABI, PredicateABI, VarABI};
@@ -25,6 +25,7 @@ pub use states::{State, StateKey, States};
 pub use vars::{Var, VarKey, Vars};
 
 slotmap::new_key_type! { pub struct PredKey; }
+slotmap::new_key_type! { pub struct UnionKey; }
 slotmap::new_key_type! { pub struct CallKey; }
 
 /// A Contract is a collection of predicates and some global consts.
@@ -37,7 +38,7 @@ pub struct Contract {
     pub storage: Option<(Vec<StorageVar>, Span)>,
     pub interfaces: Vec<Interface>,
 
-    pub unions: Vec<UnionDecl>,
+    pub unions: slotmap::SlotMap<UnionKey, UnionDecl>,
     pub new_types: Vec<NewTypeDecl>,
 
     removed_macro_calls: slotmap::SecondaryMap<ExprKey, Span>,
@@ -349,7 +350,7 @@ impl Contract {
 
     /// Returns an external `StorageVar` given an interface name and a var name. Panics if anything
     /// goes wrong.
-    pub fn external_storage_var(&self, interface: &Path, name: &String) -> (usize, &StorageVar) {
+    pub fn external_storage_var(&self, interface: &String, name: &String) -> (usize, &StorageVar) {
         // Get the `interface` declaration that the storage access refers to
         let interface = &self
             .interfaces
@@ -412,7 +413,7 @@ impl Contract {
             .chain(
                 self.unions
                     .iter()
-                    .flat_map(|UnionDecl { variants, .. }| {
+                    .flat_map(|(_key, UnionDecl { variants, .. })| {
                         variants.iter().flat_map(|UnionVariant { ty, .. }| ty)
                     })
                     .flat_map(|ty| ty.get_all_array_range_exprs()),
@@ -444,7 +445,7 @@ pub struct Predicate {
     pub var_inits: slotmap::SecondaryMap<VarKey, ExprKey>,
 
     // CallKey is used in a secondary map in the parser context to access the actual call data.
-    pub calls: slotmap::SlotMap<CallKey, Path>,
+    pub calls: slotmap::SlotMap<CallKey, String>,
 
     // A list of all availabe interface instances
     pub interface_instances: Vec<InterfaceInstance>,
@@ -731,7 +732,7 @@ pub struct MatchDecl {
 
 #[derive(Clone, Debug)]
 pub struct MatchDeclBranch {
-    pub name: Path,
+    pub name: String,
     pub name_span: Span,
     pub binding: Option<Ident>,
     pub block: Vec<BlockStatement>,
@@ -868,7 +869,7 @@ pub struct InterfaceVar {
 #[derive(Clone, Debug)]
 pub struct InterfaceInstance {
     pub name: Ident,
-    pub interface: Path,
+    pub interface: String,
     pub address: ExprKey,
     pub span: Span,
 }
@@ -877,7 +878,7 @@ pub struct InterfaceInstance {
 #[derive(Clone, Debug)]
 pub struct PredicateInstance {
     pub name: Ident,
-    pub interface_instance: Option<Path>,
+    pub interface_instance: Option<String>,
     pub predicate: Ident,
     pub address: Option<ExprKey>,
     pub span: Span,
