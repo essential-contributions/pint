@@ -56,7 +56,7 @@ pub(crate) fn dead_state_elimination(contract: &mut Contract) {
 /// If any constraint evaluates to false, all constraints are removed and replaced with a single
 /// instance of `constraint false`
 pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Contract) {
-    let evaluator = Evaluator::new(&contract.unions);
+    let evaluator = Evaluator::new(contract);
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         if let Some(pred) = contract.preds.get(pred_key) {
@@ -117,7 +117,7 @@ pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Cont
 ///
 /// If any select condition is a const the appropriate branch replaces the select expression
 pub(crate) fn dead_select_elimination(contract: &mut Contract) {
-    let evaluator = Evaluator::new(&contract.unions);
+    let evaluator = Evaluator::new(contract);
     let mut replace_map: FxHashMap<ExprKey /* select */, ExprKey /* branch */> =
         FxHashMap::default();
 

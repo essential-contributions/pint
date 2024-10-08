@@ -659,7 +659,7 @@ impl<'a> AsmBuilder<'a> {
         let expected_args = kind.args();
         for (expected, arg) in expected_args.iter().zip(args.iter()) {
             let found = arg.get_ty(contract);
-            if !expected.eq(&contract.new_types, found) {
+            if !expected.eq(contract, found) {
                 handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
                         msg: "unexpected intrinsic arg type",
@@ -1063,7 +1063,7 @@ impl<'a> AsmBuilder<'a> {
         handler: &Handler,
         asm: &mut Asm,
         union_expr_key: &ExprKey,
-        tag: &crate::types::Path,
+        tag: &str,
         value: &Option<ExprKey>,
         contract: &Contract,
         pred: &Predicate,
@@ -1071,7 +1071,7 @@ impl<'a> AsmBuilder<'a> {
         // Find the tag string in the union decl and convert to an index.
         let union_ty = union_expr_key.get_ty(contract);
         let tag_num = union_ty
-            .get_union_variant_names(&contract.unions)
+            .get_union_variant_names(contract)
             .into_iter()
             .enumerate()
             .find_map(|(idx, variant_name)| (variant_name == tag[2..]).then_some(idx))

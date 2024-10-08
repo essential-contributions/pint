@@ -13,7 +13,7 @@ use crate::{
         StorageVar,
     },
     span::Spanned,
-    types::{NewTypeDecl, Path, PrimitiveKind, Type, UnionDecl, UnionVariant},
+    types::{NewTypeDecl, PrimitiveKind, Type, UnionDecl, UnionVariant},
 };
 
 grammar<'a>(
@@ -400,7 +400,7 @@ UnionDecl: () = {
             variants,
             span: (context.span_from)(l, r),
         };
-        context.contract.unions.push(union_decl);
+        context.contract.unions.insert(union_decl);
     }
 }
 
@@ -525,8 +525,8 @@ TypeAtom: Type = {
         Type::Error(span)
     },
     <MapType>,
-    <l:@L> <path:Path> <r:@R> => Type::Custom {
-        path,
+    <l:@L> <name:Path> <r:@R> => Type::Custom {
+        name,
         span: (context.span_from)(l, r),
     },
 }
@@ -1142,11 +1142,11 @@ Range: ExprKey = {
     }
 }
 
-Path: Path = PathWithLast<Ident>;
+Path: String = PathWithLast<Ident>;
 
-MacroPath: Path = PathWithLast<IdentFromToken<"macro_name">>;
+MacroPath: String = PathWithLast<IdentFromToken<"macro_name">>;
 
-PathWithLast<Last>: Path = {
+PathWithLast<Last>: String = {
     <l:@L> "::" <els:(<Ident> "::")*> <last:Last> <r:@R> => {
         let span = (context.span_from)(l, r);
         context.parse_absolute_path(els, last, true, span)

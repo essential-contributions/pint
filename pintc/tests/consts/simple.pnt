@@ -64,15 +64,15 @@ predicate test {
 // const ::b: b256 = 0x2222222222222222222222222222222222222222222222222222222222222222;
 // const ::h: {int, bool} = {1010, false};
 // const ::e: bool = true;
-// const ::k: ::JacketColour = ::JacketColour::<1>;
+// const ::k: ::JacketColour = ::JacketColour::Bone;
 // const ::d: b256 = 0x4444444444444444444444444444444444444444444444444444444444444444;
 // const ::a: int = 11;
 // const ::g: int[_] = [88, 99];
-// const ::j: ::JacketColour = ::JacketColour::<5>;
+// const ::j: ::JacketColour = ::JacketColour::Beige;
 // const ::f: {int, int} = {66, 77};
 // const ::c: int = 33;
 // union ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
-// 
+//
 // predicate ::test {
 //     var ::q: int;
 //     var ::r: b256;
@@ -85,7 +85,7 @@ predicate test {
 //     constraint (::s == 77);
 //     constraint (::t == 99);
 //     constraint ((::u == false) && (::u != true));
-//     constraint ((::v != ::JacketColour::<5>) && (::v != ::JacketColour::<1>));
+//     constraint ((::v != ::JacketColour::Beige) && (::v != ::JacketColour::Bone));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

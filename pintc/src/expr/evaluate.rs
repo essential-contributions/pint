@@ -5,63 +5,64 @@ use crate::{
     },
     predicate::{Contract, ExprKey},
     span::{empty_span, Spanned},
-    types::{Path, Type, UnionDecl},
+    types::Type,
 };
 use fxhash::FxHashMap;
 
 #[derive(Default)]
 pub(crate) struct Evaluator {
-    enumeration_union_values: FxHashMap<Path, Imm>,
-    scope_values: FxHashMap<Path, Imm>,
+    enumeration_union_values: FxHashMap<String, Imm>,
+    scope_values: FxHashMap<String, Imm>,
 }
 
 impl Evaluator {
-    pub(crate) fn new(unions: &[UnionDecl]) -> Evaluator {
+    pub(crate) fn new(contract: &Contract) -> Evaluator {
         Evaluator {
-            enumeration_union_values: Self::create_enumeration_union_map(unions),
+            enumeration_union_values: Self::create_enumeration_union_map(contract),
             scope_values: FxHashMap::default(),
         }
     }
 
     pub(crate) fn from_values(
-        unions: &[UnionDecl],
-        scope_values: FxHashMap<Path, Imm>,
+        contract: &Contract,
+        scope_values: FxHashMap<String, Imm>,
     ) -> Evaluator {
         Evaluator {
-            enumeration_union_values: Self::create_enumeration_union_map(unions),
+            enumeration_union_values: Self::create_enumeration_union_map(contract),
             scope_values,
         }
     }
 
-    pub(crate) fn contains_path(&self, path: &Path) -> bool {
+    pub(crate) fn contains_path(&self, path: &String) -> bool {
         self.scope_values.contains_key(path)
     }
 
-    pub(crate) fn insert_value(&mut self, path: Path, imm: Imm) -> Option<Imm> {
+    pub(crate) fn insert_value(&mut self, path: String, imm: Imm) -> Option<Imm> {
         self.scope_values.insert(path, imm)
     }
 
-    pub(crate) fn into_values(self) -> FxHashMap<Path, Imm> {
+    pub(crate) fn into_values(self) -> FxHashMap<String, Imm> {
         self.scope_values
     }
 
     /// Given a list of `UnionDecl`s, create an `FxHashMap` from union variant paths to
     /// corresponding `Imm::UnionVariant`s. Only consider unions that are enumerations, i.e.,
     /// unions with only valueless variants.
-    fn create_enumeration_union_map(unions: &[UnionDecl]) -> FxHashMap<Path, Imm> {
+    fn create_enumeration_union_map(contract: &Contract) -> FxHashMap<String, Imm> {
         FxHashMap::from_iter(
-            unions
+            contract
+                .unions
                 .iter()
-                .filter(|union| union.is_enumeration_union())
-                .flat_map(|u| {
-                    u.variants.iter().enumerate().map(move |(idx, v)| {
+                .filter(|(_, union)| union.is_enumeration_union())
+                .flat_map(|(key, union)| {
+                    union.variants.iter().enumerate().map(move |(idx, v)| {
                         (
-                            format!("{}::{}", u.name.name, v.variant_name.name),
+                            format!("{}::{}", union.name.name, v.variant_name.name),
                             Imm::UnionVariant {
                                 tag_num: idx as i64,
                                 value_size: 0,
                                 value: None,
-                                ty_path: u.name.name.clone(),
+                                decl: key,
                             },
                         )
                     })
@@ -247,13 +248,8 @@ impl Evaluator {
                             })
                         }),
 
-                        Imm::UnionVariant {
-                            tag_num, ty_path, ..
-                        } if Type::Union {
-                            path: ty_path.clone(),
-                            span: empty_span(),
-                        }
-                        .is_enumeration_union(&contract.unions) =>
+                        Imm::UnionVariant { tag_num, decl, .. }
+                            if contract.unions[decl].is_enumeration_union() =>
                         {
                             elements.get(tag_num as usize).cloned().ok_or_else(|| {
                                 handler.emit_err(Error::Compile {
@@ -393,16 +389,8 @@ impl Evaluator {
 
                     // Union variants can be cast to `int` or `real` but only if the union is an
                     // enumeration
-                    Imm::UnionVariant {
-                        tag_num,
-                        ref ty_path,
-                        ..
-                    } => {
-                        let is_enumeration_union = Type::Union {
-                            path: ty_path.clone(),
-                            span: empty_span(),
-                        }
-                        .is_enumeration_union(&contract.unions);
+                    Imm::UnionVariant { tag_num, decl, .. } => {
+                        let is_enumeration_union = contract.unions[decl].is_enumeration_union();
 
                         if is_enumeration_union && ty.is_int() {
                             Ok(Imm::Int(tag_num))
@@ -423,8 +411,13 @@ impl Evaluator {
                 }
             }
 
-            Expr::UnionVariant { path, value, .. } => {
-                // Ugh, this isn't a great way to be getting the union type. :( Paths and all the
+            Expr::UnionVariant {
+                path,
+                path_span,
+                value,
+                ..
+            } => {
+                // Ugh, this isn't a great way to be getting the union type. :( Strings and all the
                 // values/types which use them need to be refactored.  Or we get the type passed in
                 // from evaluate_key().  This whole method is pretty sucky -- e.g, getting the tag
                 // num and union size.
@@ -432,13 +425,26 @@ impl Evaluator {
                 path_segs.pop();
                 let ty_path = path_segs.join("::");
 
+                let (decl, _) = contract
+                    .unions
+                    .iter()
+                    .find(|(_, union)| union.name.name == ty_path)
+                    .ok_or_else(|| {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::Internal {
+                                msg: "Union decl for variant not found",
+                                span: path_span.clone(),
+                            },
+                        })
+                    })?;
+
                 let union_ty = Type::Union {
-                    path: ty_path.clone(),
+                    decl,
                     span: empty_span(),
                 };
 
                 let tag_num = union_ty
-                    .get_union_variant_names(&contract.unions)
+                    .get_union_variant_names(contract)
                     .into_iter()
                     .enumerate()
                     .find_map(|(idx, variant_name)| (variant_name == path[2..]).then_some(idx))
@@ -461,7 +467,7 @@ impl Evaluator {
                     tag_num,
                     value_size: union_ty.size(handler, contract)? - 1,
                     value,
-                    ty_path,
+                    decl,
                 })
             }
 
@@ -589,7 +595,7 @@ impl ExprKey {
     pub(crate) fn plug_in(
         self,
         contract: &mut Contract,
-        values_map: &FxHashMap<Path, Imm>,
+        values_map: &FxHashMap<String, Imm>,
     ) -> ExprKey {
         let expr = self.get(contract).clone();
 

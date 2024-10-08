@@ -7,7 +7,7 @@ use crate::{
     },
     predicate::{Contract, Expr, ExprKey, Ident, PredKey, Predicate, PredicateInstance},
     span::{empty_span, Span, Spanned},
-    types::{Path, PrimitiveKind, Type, UnionVariant},
+    types::{PrimitiveKind, Type, UnionVariant},
     warning::Warning,
 };
 use fxhash::FxHashSet;
@@ -272,7 +272,7 @@ impl Contract {
 
             let _ = el_imms.iter().try_for_each(|el_imm| {
                 let el_ty = el_imm.get_ty(None);
-                if !el_ty.eq(&self.new_types, el0_ty.as_ref()) {
+                if !el_ty.eq(self, el0_ty.as_ref()) {
                     handler.emit_err(Error::Compile {
                         error: CompileError::NonHomogeneousArrayElement {
                             expected_ty: self.with_ctrct(el0_ty.as_ref()).to_string(),
@@ -322,7 +322,7 @@ impl Contract {
         &self,
         handler: &Handler,
         pred: Option<&Predicate>,
-        interface_instance: &Path,
+        interface_instance: &String,
         name: &String,
         span: &Span,
     ) -> Inference {
@@ -390,7 +390,7 @@ impl Contract {
         }
     }
 
-    pub(super) fn infer_extern_var(&self, pred: &Predicate, path: &Path) -> Option<Inference> {
+    pub(super) fn infer_extern_var(&self, pred: &Predicate, path: &String) -> Option<Inference> {
         // Look through all available predicate instances and their corresponding interfaces for a
         // var with the same path as `path`
         for PredicateInstance {
@@ -610,7 +610,7 @@ impl Contract {
                         },
                     });
                 }
-            } else if !lhs_ty.eq(&self.new_types, rhs_ty) {
+            } else if !lhs_ty.eq(self, rhs_ty) {
                 // Here we assume the LHS is the 'correct' type.
                 handler.emit_err(Error::Compile {
                     error: CompileError::OperatorTypeError {
@@ -648,7 +648,7 @@ impl Contract {
                         // which we check for type mismatches elsewhere, and emit a much better
                         // error then.
                         let mut is_init_constraint = false;
-                        if !lhs_ty.eq(&self.new_types, rhs_ty)
+                        if !lhs_ty.eq(self, rhs_ty)
                             && op == BinaryOp::Equal
                             && pred
                                 .map(|pred| {
@@ -663,7 +663,7 @@ impl Contract {
 
                         // Both args must be equatable, which at this stage is any type *except*
                         // unions; binary op type is bool.
-                        if !lhs_ty.eq(&self.new_types, rhs_ty) {
+                        if !lhs_ty.eq(self, rhs_ty) {
                             // Only emit an error if neither side is nil nor error, nor an
                             // initialiser constraint as per above.
                             if !lhs_ty.is_nil()
@@ -773,7 +773,7 @@ impl Contract {
             // `kind.args()` produces.
             for (expected, arg) in expected_args.iter().zip(args.iter()) {
                 let found = arg.get_ty(self);
-                if !expected.eq(&self.new_types, found) {
+                if !expected.eq(self, found) {
                     handler.emit_err(Error::Compile {
                         error: CompileError::MismatchedIntrinsicArgType {
                             expected: format!("{}", self.with_ctrct(expected)),
@@ -859,7 +859,7 @@ impl Contract {
                 Inference::Type(Type::Error(span.clone()))
             } else if !then_ty.is_unknown() {
                 if !else_ty.is_unknown() {
-                    if !then_ty.eq(&self.new_types, else_ty) {
+                    if !then_ty.eq(self, else_ty) {
                         handler.emit_err(Error::Compile {
                             error: CompileError::SelectBranchesTypeMismatch {
                                 large_err: Box::new(LargeTypeError::SelectBranchesTypeMismatch {
@@ -895,7 +895,7 @@ impl Contract {
         let union_ty = match_expr_key.get_ty(self);
         if union_ty.is_unknown() {
             Inference::Dependant(match_expr_key)
-        } else if !union_ty.is_union(&self.unions) {
+        } else if !union_ty.is_union() {
             handler.emit_err(Error::Compile {
                 error: CompileError::MatchExprNotUnion {
                     found_ty: self.with_ctrct(union_ty).to_string(),
@@ -996,10 +996,10 @@ impl Contract {
                 }
 
                 let variant_count = variants_set.len();
-                if let Some(union_variant_count) = union_ty.get_union_variant_count(&self.unions) {
+                if let Some(union_variant_count) = union_ty.get_union_variant_count(self) {
                     if variant_count < union_variant_count && else_branch.is_none() {
                         // We don't have all variants covered.
-                        let mut missing_variants = union_ty.get_union_variant_names(&self.unions);
+                        let mut missing_variants = union_ty.get_union_variant_names(self);
                         missing_variants.retain(|var_name| !variants_set.contains(var_name));
                         handler.emit_err(Error::Compile {
                             error: CompileError::MatchBranchMissing {
@@ -1034,7 +1034,7 @@ impl Contract {
                 let (_, match_ty) = &branch_tys[0];
 
                 for (branch_expr, branch_ty) in &branch_tys[1..] {
-                    if !branch_ty.eq(&self.new_types, match_ty) {
+                    if !branch_ty.eq(self, match_ty) {
                         handler.emit_err(Error::Compile {
                             error: CompileError::MatchBranchTypeMismatch {
                                 expected_ty: self.with_ctrct(match_ty).to_string(),
@@ -1067,7 +1067,7 @@ impl Contract {
         let ub_ty = upper_bound_key.get_ty(self);
         if !lb_ty.is_unknown() {
             if !ub_ty.is_unknown() {
-                if !lb_ty.eq(&self.new_types, ub_ty) {
+                if !lb_ty.eq(self, ub_ty) {
                     handler.emit_err(Error::Compile {
                         error: CompileError::RangeTypesMismatch {
                             lb_ty: self.with_ctrct(lb_ty).to_string(),
@@ -1121,10 +1121,10 @@ impl Contract {
                 });
             } else if (to_ty.is_int() && !from_ty.is_bool())
                 && !from_ty.is_int()
-                && !from_ty.is_enumeration_union(&self.unions)
+                && !from_ty.is_enumeration_union(self)
                 || (to_ty.is_real()
                     && !from_ty.is_int()
-                    && !from_ty.is_enumeration_union(&self.unions)
+                    && !from_ty.is_enumeration_union(self)
                     && !from_ty.is_real())
             {
                 // We can only cast
@@ -1159,7 +1159,7 @@ impl Contract {
             if !collection_ty.is_unknown() {
                 if collection_ty.is_num() {
                     // range - has to match range type too
-                    if !value_ty.eq(&self.new_types, collection_ty) {
+                    if !value_ty.eq(self, collection_ty) {
                         handler.emit_err(Error::Compile {
                             error: CompileError::InExprTypesMismatch {
                                 val_ty: self.with_ctrct(value_ty).to_string(),
@@ -1174,7 +1174,7 @@ impl Contract {
                         span: span.clone(),
                     })
                 } else if let Some(el_ty) = collection_ty.get_array_el_type() {
-                    if !value_ty.eq(&self.new_types, el_ty) {
+                    if !value_ty.eq(self, el_ty) {
                         handler.emit_err(Error::Compile {
                             error: CompileError::InExprTypesArrayMismatch {
                                 val_ty: self.with_ctrct(value_ty).to_string(),
@@ -1238,7 +1238,7 @@ impl Contract {
             for el_key in elements {
                 let el_ty = el_key.get_ty(self);
                 if !el_ty.is_unknown() {
-                    if !el_ty.eq(&self.new_types, el0_ty) {
+                    if !el_ty.eq(self, el0_ty) {
                         handler.emit_err(Error::Compile {
                             error: CompileError::NonHomogeneousArrayElement {
                                 expected_ty: self.with_ctrct(&el0_ty).to_string(),
@@ -1295,8 +1295,8 @@ impl Contract {
                 return Inference::Dependant(range_expr_key);
             }
 
-            if (!index_ty.is_int() && !index_ty.is_enumeration_union(&self.unions))
-                || !index_ty.eq(&self.new_types, range_ty)
+            if (!index_ty.is_int() && !index_ty.is_enumeration_union(self))
+                || !index_ty.eq(self, range_ty)
             {
                 handler.emit_err(Error::Compile {
                     error: CompileError::ArrayAccessWithWrongType {
@@ -1323,7 +1323,7 @@ impl Contract {
             Inference::Type(el_ty.clone())
         } else if let Some(from_ty) = ary_ty.get_map_ty_from() {
             // Is this a storage map?
-            if !from_ty.eq(&self.new_types, index_ty) {
+            if !from_ty.eq(self, index_ty) {
                 handler.emit_err(Error::Compile {
                     error: CompileError::StorageMapAccessWithWrongType {
                         found_ty: self.with_ctrct(index_ty).to_string(),
@@ -1476,7 +1476,11 @@ impl Contract {
             let variant_name = &name[(sep_idx + 2)..];
 
             // Find the union.
-            if let Some(union_decl) = self.unions.iter().find(|ud| ud.name.name == union_name) {
+            if let Some((decl, union_decl)) = self
+                .unions
+                .iter()
+                .find(|(_, ud)| ud.name.name == union_name)
+            {
                 // Find the variant.
                 if let Some(opt_var_ty) = union_decl.variants.iter().find_map(
                     |UnionVariant {
@@ -1489,7 +1493,7 @@ impl Contract {
                         (None, None) => {
                             // The union variant doesn't have a binding and no value was given.
                             Inference::Type(Type::Union {
-                                path: union_name.to_string(),
+                                decl,
                                 span: union_decl.span.clone(),
                             })
                         }
@@ -1499,7 +1503,7 @@ impl Contract {
                             let value_ty = value.get_ty(self);
                             if value_ty.is_unknown() {
                                 Inference::Dependant(value)
-                            } else if !value_ty.eq(&self.new_types, ud_var_ty) {
+                            } else if !value_ty.eq(self, ud_var_ty) {
                                 // Type mismatch for variant value.
                                 handler.emit_err(Error::Compile {
                                     error: CompileError::UnionVariantTypeMismatch {
@@ -1513,7 +1517,7 @@ impl Contract {
                             } else {
                                 // Provided value has the correct type for the variant.
                                 Inference::Type(Type::Union {
-                                    path: union_name.to_string(),
+                                    decl,
                                     span: union_decl.span.clone(),
                                 })
                             }

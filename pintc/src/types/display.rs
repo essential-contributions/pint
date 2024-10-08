@@ -1,12 +1,6 @@
 use crate::predicate::{Contract, DisplayWithContract};
 use std::fmt::{Display, Formatter, Result};
 
-impl DisplayWithContract for super::Path {
-    fn fmt(&self, f: &mut Formatter, _contract: &Contract) -> Result {
-        write!(f, "{self}")
-    }
-}
-
 impl Display for super::PrimitiveKind {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match self {
@@ -66,12 +60,16 @@ impl DisplayWithContract for super::Type {
                 write!(f, "}}")
             }
 
-            super::Type::Custom { path, .. } | super::Type::Union { path, .. } => {
-                write!(f, "{path}")
+            super::Type::Custom { name, .. } => {
+                write!(f, "{name}")
             }
 
-            super::Type::Alias { path, ty, .. } => {
-                write!(f, "{path} ({})", contract.with_ctrct(ty.as_ref()))
+            super::Type::Union { decl, .. } => {
+                write!(f, "{}", contract.unions[*decl].name.name.as_str())
+            }
+
+            super::Type::Alias { name, ty, .. } => {
+                write!(f, "{name} ({})", contract.with_ctrct(ty.as_ref()))
             }
 
             super::Type::Map { ty_from, ty_to, .. } => {

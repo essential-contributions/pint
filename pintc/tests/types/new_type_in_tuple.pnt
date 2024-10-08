@@ -36,8 +36,8 @@ predicate test {
 
 // flattened <<<
 // type ::A = int;
-// type ::B = {x: ::A (int), y: ::A (int)};
-// type ::C = ::A (int)[3];
+// type ::B = {x: int, y: int};
+// type ::C = int[3];
 //
 // predicate ::test {
 //     var ::a: int;

@@ -63,7 +63,7 @@ predicate Foo {
 // type ::myNestedSelect = int[5];
 // type ::myNestedTuple = int[2];
 // type ::myNestedArray = int[1];
-// type ::complexType = {::myNestedCast (int[4]), ::myNestedSelect (int[5])}[1];
+// type ::complexType = {int[4], int[5]}[1];
 //
 // predicate ::Foo {
 //     var ::a: int[4];

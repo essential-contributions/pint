@@ -5,6 +5,8 @@ type MyArray = bool[5];
 type MyMap = (b256 => int);
 type MyB256 = b256;
 type MyNestedAlias = MyInt;
+type MyExtraNestedAlias = MyNestedAlias;
+type MyIncredibleTuple = { MyExtraNestedAlias, MyNestedAlias };
 type MyAliasedMap = (MyB256 => MyTuple);
 type MyComplexMap = (MyBool => MyMap);
 
@@ -21,6 +23,8 @@ predicate test {
    var q: MyArray;
    var r: MyB256;
    var s: MyNestedAlias;
+   var t: MyExtraNestedAlias;
+   var u: MyIncredibleTuple;
 }
 
 // parsed <<<
@@ -31,6 +35,8 @@ predicate test {
 // type ::MyMap = ( b256 => int );
 // type ::MyB256 = b256;
 // type ::MyNestedAlias = ::MyInt;
+// type ::MyExtraNestedAlias = ::MyNestedAlias;
+// type ::MyIncredibleTuple = {::MyExtraNestedAlias, ::MyNestedAlias};
 // type ::MyAliasedMap = ( ::MyB256 => ::MyTuple );
 // type ::MyComplexMap = ( ::MyBool => ::MyMap );
 // storage {
@@ -46,6 +52,8 @@ predicate test {
 //     var ::q: ::MyArray;
 //     var ::r: ::MyB256;
 //     var ::s: ::MyNestedAlias;
+//     var ::t: ::MyExtraNestedAlias;
+//     var ::u: ::MyIncredibleTuple;
 // }
 // >>>
 
@@ -56,9 +64,11 @@ predicate test {
 // type ::MyArray = bool[5];
 // type ::MyMap = ( b256 => int );
 // type ::MyB256 = b256;
-// type ::MyNestedAlias = ::MyInt (int);
-// type ::MyAliasedMap = ( ::MyB256 (b256) => ::MyTuple ({int, int}) );
-// type ::MyComplexMap = ( ::MyBool (bool) => ::MyMap (( b256 => int )) );
+// type ::MyNestedAlias = int;
+// type ::MyExtraNestedAlias = int;
+// type ::MyIncredibleTuple = {int, int};
+// type ::MyAliasedMap = ( b256 => {int, int} );
+// type ::MyComplexMap = ( bool => ( b256 => int ) );
 // storage {
 //     x: ( b256 => int ),
 //     y: ( b256 => {int, int} ),
@@ -72,6 +82,8 @@ predicate test {
 //     var ::q: bool[5];
 //     var ::r: b256;
 //     var ::s: int;
+//     var ::t: int;
+//     var ::u: {int, int};
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

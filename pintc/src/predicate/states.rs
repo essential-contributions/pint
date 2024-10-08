@@ -2,14 +2,14 @@ use super::{Contract, DisplayWithPred, ExprKey, Ident, Predicate};
 use crate::{
     error::{ErrorEmitted, Handler},
     span::Span,
-    types::{Path, Type},
+    types::Type,
 };
 use std::fmt::{self, Formatter};
 
 /// A state specification with an optional type.
 #[derive(Clone, Debug)]
 pub struct State {
-    pub name: Path,
+    pub name: String,
     pub expr: ExprKey,
     pub span: Span,
 }
