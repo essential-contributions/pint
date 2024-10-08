@@ -84,38 +84,3 @@ predicate Test {
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
-
-// optimized <<<
-// const ::f: bool = false;
-// const ::b: bool = false;
-// const ::e: bool = true;
-// const ::d: bool = true;
-// const ::a: bool = true;
-// const ::c: bool = false;
-//
-// predicate ::Test {
-//     var ::g: bool;
-//     var ::h: bool;
-//     var ::i: bool;
-//     var ::j: int;
-//     var ::k: bool;
-//     var ::l: bool;
-//     var ::m: bool;
-//     var ::n: int;
-//     constraint (::g == true);
-//     constraint (::h == false);
-//     constraint (::i == true);
-//     constraint (::j == 0);
-//     constraint (::k == false);
-//     constraint ((::j == 1) || (::j == 2));
-//     constraint ((::k == false) || (::k == false));
-//     constraint (::l == true);
-//     constraint (::m == false);
-//     constraint (::n == 0);
-//     constraint ((::n >= 1) && (::n <= 2));
-//     constraint __eq_set(__mut_keys(), {0});
-// }
-// >>>
-
-// warnings <<<
-// >>>

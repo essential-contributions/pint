@@ -517,6 +517,10 @@ impl Evaluator {
                             Ok(Imm::Bool(ub >= value && lb <= value))
                         }
 
+                        (Imm::Real(lb), Imm::Real(ub), Imm::Real(value)) => {
+                            Ok(Imm::Bool(ub >= value && lb <= value))
+                        }
+
                         _ => Err(handler.emit_err(Error::Compile {
                             error: CompileError::Internal {
                                 msg: "unexpected expression during compile-time evaluation \
