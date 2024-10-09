@@ -1,0 +1,28 @@
+// is 5 words in asm
+// [ tag, value, padding]
+// [ 1 word, 1 word if int, or 4 words if b256, or 0 words if B, and padding is 4 words]
+// padding is 4 words because it is the size of the longest variant
+// tag is 1 word always b/c its just an int
+// so size of a union is the tag plus the padding -- 1 + 4 = 5 words
+
+// goal is to write a test that tests _all_ types thoroughly as pub vars
+// don't bother with real, or storage, or string
+// 3 scenarios
+// 1. pub var accessed in the same predicate its declared in
+// ex. tests\validation_tests\transient_local.pnt
+// 2. pub var accessed in a different predicate than its declared in
+// ex. tests\validation_tests\transient_external.pnt
+// 3. pub var accessed in a different predicate than its declared in that is in the same contract
+// ex. tests\validation_tests\transient_extern_same_contract.pnt
+
+predicate Simple {
+    pub var a: int;
+    pub var b: bool;
+    pub var c: b256;
+
+    constraint a == 1;
+    constraint a + a == 2;
+    constraint b == true;
+    constraint !b == false;
+    constraint c == 0x0000000000000009000000000000000900000000000000090000000000000009;
+}
