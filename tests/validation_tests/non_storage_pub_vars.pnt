@@ -1,28 +1,32 @@
-// is 5 words in asm
-// [ tag, value, padding]
-// [ 1 word, 1 word if int, or 4 words if b256, or 0 words if B, and padding is 4 words]
-// padding is 4 words because it is the size of the longest variant
-// tag is 1 word always b/c its just an int
-// so size of a union is the tag plus the padding -- 1 + 4 = 5 words
-
-// goal is to write a test that tests _all_ types thoroughly as pub vars
-// don't bother with real, or storage, or string
-// 3 scenarios
-// 1. pub var accessed in the same predicate its declared in
-// ex. tests\validation_tests\transient_local.pnt
-// 2. pub var accessed in a different predicate than its declared in
-// ex. tests\validation_tests\transient_external.pnt
-// 3. pub var accessed in a different predicate than its declared in that is in the same contract
-// ex. tests\validation_tests\transient_extern_same_contract.pnt
+union A = a(int) | b | c(bool) | d(b256) | e({int, int}) | f(int[2]);
+type NewType = int;
 
 predicate Simple {
     pub var a: int;
     pub var b: bool;
     pub var c: b256;
+    pub var d: int[3];
+    pub var e: { int, b256 };
+    pub var f: A;
+    pub var g: A;
+    pub var h: A;
+    pub var i: A;
+    pub var j: A;
+    pub var k: A;
+    pub var l: NewType;
 
     constraint a == 1;
     constraint a + a == 2;
     constraint b == true;
     constraint !b == false;
     constraint c == 0x0000000000000009000000000000000900000000000000090000000000000009;
+    constraint d == [1, 2, 3];
+    constraint e == { 30, 0x0000000000000001000000000000000100000000000000010000000000000001 };
+    constraint f == A::a(1);
+    constraint g == A::b;
+    constraint h == A::c(false);
+    constraint i == A::d(0x0000000000000004000000000000000400000000000000040000000000000004);
+    constraint j == A::e({ 23, 33 });
+    constraint k == A::f([48, 98]);
+    constraint l == 1;
 }

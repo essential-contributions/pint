@@ -1,0 +1,16 @@
+[[data]]
+predicate_to_solve = { predicate = "::Simple" }
+transient_data = [
+  { key = [0], value = [1] },                   # ::a
+  { key = [1], value = [1] },                   # ::b
+  { key = [2], value = [9, 9, 9, 9] },          # ::c
+  { key = [3], value = [1, 2, 3] },             # ::d
+  { key = [4], value = [30, 1, 1, 1, 1] },      # ::e
+  { key = [5], value = [0, 1, 0, 0, 0] },       # ::f
+  { key = [6], value = [1, 0, 0, 0, 0] },       # ::g
+  { key = [7], value = [2, 0, 0, 0, 0] },       # ::h
+  { key = [8], value = [3, 4, 4, 4, 4] },       # ::i
+  { key = [9], value = [4, 23, 33, 0, 0] },     # ::j
+  { key = [10], value = [5, 48, 98, 0, 0] },    # ::k
+  { key = [11], value = [1] },                  # ::l
+]
