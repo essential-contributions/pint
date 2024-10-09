@@ -13,4 +13,8 @@ transient_data = [
   { key = [9], value = [4, 23, 33, 0, 0] },  # ::j
   { key = [10], value = [5, 48, 98, 0, 0] }, # ::k
   { key = [11], value = [1] },               # ::l
+  { key = [12], value = [0] },               # ::m
+  { key = [13], value = [1, 2, 3, 4] },      # ::n
+  { key = [14], value = [1, 456] },          # ::o
+  { key = [15], value = [1, 0, 1, 0] },      # ::p
 ]

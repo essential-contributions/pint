@@ -1,5 +1,10 @@
 union A = a(int) | b | c(bool) | d(b256) | e({int, int}) | f(int[2]);
-type NewType = int;
+type NewInt = int;
+type NewBool = bool;
+type NewB256 = b256;
+type NewTuple = { bool, int };
+type NewArray = bool[4];
+
 
 predicate Simple {
     pub var a: int;
@@ -13,7 +18,11 @@ predicate Simple {
     pub var i: A;
     pub var j: A;
     pub var k: A;
-    pub var l: NewType;
+    pub var l: NewInt;
+    pub var m: NewBool;
+    pub var n: NewB256;
+    pub var o: NewTuple;
+    pub var p: NewArray;
 
     constraint a == 1;
     constraint a + a == 2;
@@ -29,4 +38,8 @@ predicate Simple {
     constraint j == A::e({ 23, 33 });
     constraint k == A::f([48, 98]);
     constraint l == 1;
+    constraint m != true;
+    constraint n == 0x0000000000000001000000000000000200000000000000030000000000000004;
+    constraint o == { true, 456 };
+    constraint p == [true, false, true, false ];
 }
