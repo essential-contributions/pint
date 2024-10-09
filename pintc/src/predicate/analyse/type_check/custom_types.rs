@@ -8,8 +8,8 @@ use crate::{
 use fxhash::FxHashMap;
 
 impl Contract {
-    /// Lower every `Type::Custom` type in a contract to a `Type::Alias` type if the custom type
-    /// actually matches one of the new type declarations in the contract.
+    /// Lower every `Type::Custom` type in a contract to either a `Type::Alias` or `Type::Union`.
+    /// No custom types should be left anywhere in the contract afterwards.
     pub(in crate::predicate::analyse) fn lower_custom_types(
         &mut self,
         handler: &Handler,
@@ -37,9 +37,7 @@ impl Contract {
 
                 Type::Union { decl, .. } => {
                     // This was a custom type which has been confirmed to be a union.
-                    let Some(union_decl) = contract.unions.get(*decl) else {
-                        unreachable!("union type with unknown key");
-                    };
+                    let union_decl = &contract.unions[*decl];
 
                     for variant in &union_decl.variants {
                         if let Some(ty) = &variant.ty {
