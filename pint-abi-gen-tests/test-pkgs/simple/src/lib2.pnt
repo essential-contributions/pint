@@ -1,0 +1,2 @@
+union A = B | C;
+union D = E | F;

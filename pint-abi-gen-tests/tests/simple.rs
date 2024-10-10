@@ -50,6 +50,7 @@ async fn test_solution_foo() {
             [70, 71, 72],
             [[0x3333333333333333; 4], [0x4444444444444444; 4]],
         ),
+        .v6(simple::lib3::foo::OO::A)
         anon_0_v5: 42,
         anon_0_v6: (43, 44),
     };
@@ -96,6 +97,11 @@ async fn test_solution_foo() {
                 .enumerate()
                 .fold(arr, |arr, (ix, val)| arr.entry(ix, val))
         })
+        .u1(simple::UU::A(69))
+        .u2(simple::UU::B)
+        .u3(simple::UU::C([0x6969696969696969; 4]))
+        .w1(simple::WW::E(simple::UU::A(69)))
+        .oo(simple::lib3::foo::OO::A)
         .into();
 
     // Build the same set of keys, so we can ensure they match the mutations.

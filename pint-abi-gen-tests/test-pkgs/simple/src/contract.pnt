@@ -1,3 +1,6 @@
+union UU = A(int) | B | C(b256);
+union WW = D | E(UU);
+
 storage {
     s0: bool,
     s1: int,
@@ -9,6 +12,15 @@ storage {
     my_nested_map0: (int => (int => int)),
     my_nested_map1: (int => (b256 => { int, { b256, int } })),
     my_array: int[5],
+    u1: UU,
+    u2: UU,
+    u3: UU,
+    w1: WW,
+    q1: lib::PP,
+    aa: lib2::A,
+    bb: lib2::D,
+    tt: lib3::foo::TT,
+    oo: lib3::foo::OO,
 }
 
 predicate Foo {
@@ -18,6 +30,7 @@ predicate Foo {
     var v3: { int, int };
     var v4: { int, int, { int, int } };
     var v5: { int, int[3], b256[2] };
+    var v6: lib3::foo::OO;
 
     @foo();
 
@@ -72,6 +85,20 @@ predicate Foo {
     state my_nested_map0_key1_2: int = mut storage::my_nested_map0[1][2];
     state my_nested_map1_key2_3: { int, { b256, int } } = mut storage::my_nested_map1[2][0x3333333333333333333333333333333333333333333333333333333333333333];
     state my_array: int[5] = mut storage::my_array;
+
+    state u1 = mut storage::u1;
+    state u2 = mut storage::u2;
+    state u3 = mut storage::u3;
+    state w1 = mut storage::w1;
+    state oo = mut storage::oo;
+ 
+    constraint u1' == UU::A(69);
+    constraint u2' == UU::B;
+    constraint u3' == UU::C(0x6969696969696969696969696969696969696969696969696969696969696969);
+    constraint w1' == WW::E(UU::A(69));
+    constraint oo' == lib3::foo::OO::A;
+
+    constraint v6 == lib3::foo::OO::A;
 
     // Check the state.
     constraint s0' == true;

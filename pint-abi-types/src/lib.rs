@@ -23,13 +23,19 @@ pub struct VarABI {
     pub ty: TypeABI,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TupleField {
     pub name: Option<String>,
     pub ty: TypeABI,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct UnionVariant {
+    pub name: String,
+    pub ty: Option<TypeABI>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum TypeABI {
     Bool,
     Int,
@@ -40,6 +46,10 @@ pub enum TypeABI {
     Array {
         ty: Box<Self>,
         size: i64,
+    },
+    Union {
+        name: String,
+        variants: Vec<UnionVariant>,
     },
     Map {
         ty_from: Box<Self>,
