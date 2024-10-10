@@ -290,6 +290,89 @@ impl Contract {
         }
     }
 
+    // Apply a mutating closure to every single type in the contract.
+    pub fn update_types(&mut self, f: impl Fn(&mut Type), skip_new_types: bool) {
+        // Update every expression type in the contract.
+        self.exprs.update_types(|_, expr_ty| f(expr_ty));
+
+        // Loop for each predicate and update their var types and state types.
+        self.preds
+            .keys()
+            .collect::<Vec<_>>()
+            .iter()
+            .for_each(|pred_key| {
+                if let Some(pred) = self.preds.get_mut(*pred_key) {
+                    pred.vars.update_types(|_, var_ty| f(var_ty));
+                    pred.states.update_types(|_, state_ty| f(state_ty));
+                }
+            });
+
+        // Update every declared const type.
+        self.consts
+            .values_mut()
+            .for_each(|Const { decl_ty, .. }| f(decl_ty));
+
+        // Update every union decl variant type.
+        for UnionDecl { variants, .. } in self.unions.values_mut() {
+            for variant in variants {
+                if let Some(variant_ty) = &mut variant.ty {
+                    f(variant_ty);
+                }
+            }
+        }
+
+        // Update every alias type.
+        if !skip_new_types {
+            for NewTypeDecl { ty, .. } in &mut self.new_types {
+                f(ty);
+            }
+        }
+
+        // Update every cast or union variant expression types.
+        self.exprs.update_exprs(|_, expr| {
+            if let Expr::Cast { ty, .. } = expr {
+                f(ty);
+            }
+
+            if let Expr::UnionValue { variant_ty, .. } = expr {
+                f(variant_ty);
+            }
+        });
+
+        // Update every storage variable type.
+        if let Some((storage_vars, _)) = self.storage.as_mut() {
+            storage_vars.iter_mut().for_each(|StorageVar { ty, .. }| {
+                f(ty);
+            })
+        }
+
+        // Update every type found in interface instance decls.
+        self.interfaces.iter_mut().for_each(
+            |Interface {
+                 storage,
+                 predicate_interfaces,
+                 ..
+             }| {
+                // Update every storage variable in the interface.
+                if let Some((storage_vars, _)) = storage.as_mut() {
+                    storage_vars
+                        .iter_mut()
+                        .for_each(|StorageVar { ty, .. }| f(ty));
+                }
+
+                // Update every decision variable in the interface.
+                predicate_interfaces
+                    .iter_mut()
+                    .for_each(|predicate_interface| {
+                        predicate_interface
+                            .vars
+                            .iter_mut()
+                            .for_each(|InterfaceVar { ty, .. }| f(ty));
+                    });
+            },
+        );
+    }
+
     /// Generates a `ContractABI` given a `Contract`
     pub fn abi(&self, handler: &Handler) -> Result<ContractABI, ErrorEmitted> {
         Ok(ContractABI {

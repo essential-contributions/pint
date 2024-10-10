@@ -125,12 +125,12 @@ fn check_expr(
         Type::Any(span) => {
             emit_illegal_type_error!(handler, span, "any type", "expr_types");
         }
-        Type::Custom { path, span, .. } => {
+        Type::Custom { name, span, .. } => {
             // TODO: unclear how to test this. We will refactor custom types soon anyways.
             if !contract
                 .unions
                 .values()
-                .any(|UnionDecl { name, .. }| &name.name == path)
+                .any(|UnionDecl { name: union_name, .. }| &union_name.name == name)
             {
                 emit_illegal_type_error!(handler, span, "custom type", "expr_types");
             }

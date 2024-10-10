@@ -42,7 +42,7 @@ pub enum Type {
         span: Span,
     },
     Custom {
-        path: String,
+        name: String,
         span: Span,
     },
     Alias {
@@ -159,8 +159,8 @@ impl Type {
 
     pub fn get_custom_name(&self) -> Option<&String> {
         check_alias!(self, get_custom_name, {
-            if let Type::Custom { path, .. } = self {
-                Some(path)
+            if let Type::Custom { name, .. } = self {
+                Some(name)
             } else {
                 None
             }
@@ -789,7 +789,7 @@ impl Type {
                 let mut lhs_alias_ty = None;
                 let mut lhs_custom_path = None;
 
-                if let Self::Custom { path: lhs_path, .. } = lhs_ty {
+                if let Self::Custom { name: lhs_path, .. } = lhs_ty {
                     lhs_alias_ty =
                         contract
                             .new_types
@@ -808,7 +808,7 @@ impl Type {
                 let mut rhs_alias_ty = None;
                 let mut rhs_custom_path = None;
 
-                if let Self::Custom { path: rhs_path, .. } = rhs_ty {
+                if let Self::Custom { name: rhs_path, .. } = rhs_ty {
                     rhs_alias_ty =
                         contract
                             .new_types

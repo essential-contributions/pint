@@ -5,6 +5,8 @@ type MyArray = bool[5];
 type MyMap = (b256 => int);
 type MyB256 = b256;
 type MyNestedAlias = MyInt;
+type MyExtraNestedAlias = MyNestedAlias;
+type MyIncredibleTuple = { MyExtraNestedAlias, MyNestedAlias };
 type MyAliasedMap = (MyB256 => MyTuple);
 type MyComplexMap = (MyBool => MyMap);
 
@@ -21,6 +23,8 @@ predicate test {
    var q: MyArray;
    var r: MyB256;
    var s: MyNestedAlias;
+   var t: MyExtraNestedAlias;
+   var u: MyIncredibleTuple;
 }
 
 // parsed <<<

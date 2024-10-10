@@ -148,7 +148,7 @@ impl Contract {
         // Check first if the path prefix matches a new type.
         for NewTypeDecl { name, ty, .. } in &self.new_types {
             if let Type::Custom {
-                path: union_path, ..
+                name: union_path, ..
             } = ty
             {
                 // This new type is to a union.  Does the new type path match the passed

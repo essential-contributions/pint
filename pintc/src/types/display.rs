@@ -60,8 +60,8 @@ impl DisplayWithContract for super::Type {
                 write!(f, "}}")
             }
 
-            super::Type::Custom { path, .. } => {
-                write!(f, "{path}")
+            super::Type::Custom { name, .. } => {
+                write!(f, "{name}")
             }
 
             super::Type::Union { decl, .. } => {

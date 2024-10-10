@@ -10,7 +10,7 @@ use crate::{
         StorageVar, VisitorKind,
     },
     span::{empty_span, Span, Spanned},
-    types::{self, NewTypeDecl, PrimitiveKind, Type, UnionDecl},
+    types::{self, NewTypeDecl, PrimitiveKind, Type},
 };
 
 use fxhash::FxHashMap;
@@ -60,8 +60,6 @@ pub(crate) fn lower_casts(handler: &Handler, contract: &mut Contract) -> Result<
 
 /// Lowers every `Type::Alias` to a concrete type
 pub(crate) fn lower_aliases(contract: &mut Contract) {
-    use std::borrow::BorrowMut;
-
     let new_types_map = FxHashMap::from_iter(
         contract
             .new_types
@@ -76,8 +74,8 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
                 replace_alias(new_types_map, old_ty);
             }
 
-            Type::Custom { path, .. } => {
-                if let Some(ty) = new_types_map.get(path) {
+            Type::Custom { name, .. } => {
+                if let Some(ty) = new_types_map.get(name) {
                     *old_ty = ty.clone();
                 }
             }
@@ -103,84 +101,7 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
         }
     }
 
-    // Replace `Type::Alias` in every var and state decl type in the contract
-    contract
-        .preds
-        .keys()
-        .collect::<Vec<_>>()
-        .iter()
-        .for_each(|pred_key| {
-            if let Some(pred) = contract.preds.get_mut(*pred_key) {
-                pred.vars
-                    .update_types(|_, var_ty| replace_alias(&new_types_map, var_ty));
-                pred.states
-                    .update_types(|_, state_ty| replace_alias(&new_types_map, state_ty));
-            }
-        });
-
-    // Replace `Type::Alias` in every expression type in the contract
-    contract
-        .exprs
-        .update_types(|_, expr_ty| replace_alias(&new_types_map, expr_ty));
-
-    // Replace `Type::Alias` in every cast expression in the contract
-    contract.exprs.update_exprs(|_, expr| {
-        if let Expr::Cast { ty, .. } = expr {
-            replace_alias(&new_types_map, ty.borrow_mut());
-        }
-
-        if let Expr::UnionValue { variant_ty, .. } = expr {
-            replace_alias(&new_types_map, variant_ty);
-        }
-    });
-
-    // Replace `Type::Alias` in every storage variable in the contract
-    if let Some((storage_vars, _)) = contract.storage.as_mut() {
-        storage_vars.iter_mut().for_each(|StorageVar { ty, .. }| {
-            replace_alias(&new_types_map, ty);
-        })
-    }
-
-    // Replace `Type::Alias` in every constant declaration in the contract
-    contract
-        .consts
-        .values_mut()
-        .for_each(|Const { decl_ty, .. }| replace_alias(&new_types_map, decl_ty));
-
-    // Replace `Type::Alias` in every union declaration in the contract.
-    for UnionDecl { variants, .. } in contract.unions.values_mut() {
-        for variant in variants {
-            if let Some(variant_ty) = &mut variant.ty {
-                replace_alias(&new_types_map, variant_ty);
-            }
-        }
-    }
-
-    // Replace `Type::Alias` in every interface in the contract
-    contract.interfaces.iter_mut().for_each(
-        |Interface {
-             storage,
-             predicate_interfaces,
-             ..
-         }| {
-            // Replace `Type::Alias` in every storage variable in the interface
-            if let Some((storage_vars, _)) = storage.as_mut() {
-                storage_vars
-                    .iter_mut()
-                    .for_each(|StorageVar { ty, .. }| replace_alias(&new_types_map, ty))
-            }
-
-            // Replace `Type::Alias` in every decision variable in the interface
-            predicate_interfaces
-                .iter_mut()
-                .for_each(|predicate_interface| {
-                    predicate_interface
-                        .vars
-                        .iter_mut()
-                        .for_each(|InterfaceVar { ty, .. }| replace_alias(&new_types_map, ty));
-                });
-        },
-    );
+    contract.update_types(|ty| replace_alias(&new_types_map, ty), true);
 }
 
 pub(crate) fn lower_array_ranges(
@@ -273,7 +194,11 @@ pub(crate) fn lower_array_ranges(
             None => {
                 // The type checker should already ensure that our immediate value returned is an int.
                 if let Expr::Path(name, _) = old_range_expr_key.get(contract) {
-                    if contract.unions.values().any(|union| union.name.name == *name) {
+                    if contract
+                        .unions
+                        .values()
+                        .any(|union| union.name.name == *name)
+                    {
                         let new_expr_key = old_range_expr_key;
                         eval_memos.insert(old_range_expr_key, new_expr_key);
                         new_expr_key
@@ -1591,17 +1516,15 @@ fn convert_match_expr(
         } in match_branches
         {
             // Replace the bound values within the constraint exprs, if there is a binding.
-            let bound_ty = union_ty
-                .get_union_variant_ty(contract, name)
-                .map_err(|_| {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "match can't be converted to if -- missing union type",
-                            span: name_span.clone(),
-                        },
-                    });
-                    handler.cancel()
-                })?;
+            let bound_ty = union_ty.get_union_variant_ty(contract, name).map_err(|_| {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::Internal {
+                        msg: "match can't be converted to if -- missing union type",
+                        span: name_span.clone(),
+                    },
+                });
+                handler.cancel()
+            })?;
 
             let full_binding = binding
                 .as_ref()
