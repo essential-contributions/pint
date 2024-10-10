@@ -1,5 +1,9 @@
 [[data]]
 predicate_to_solve = { predicate = "::Simple" }
+decision_variables = [
+  [0, 0, 0, 0], # foo_addr
+  [1],          #__::FooInstance_pathway
+]
 transient_data = [
   { key = [0], value = [1] },                # ::a
   { key = [1], value = [1] },                # ::b
@@ -17,4 +21,25 @@ transient_data = [
   { key = [13], value = [1, 2, 3, 4] },      # ::n
   { key = [14], value = [1, 456] },          # ::o
   { key = [15], value = [1, 0, 1, 0] },      # ::p
+]
+
+[[data]]
+predicate_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", predicate = "0x0000000000000000000000000000000000000000000000000000000000000000" }
+transient_data = [
+    { key = [0], value = [1] },                # ::a
+    { key = [1], value = [1] },                # ::b
+    { key = [2], value = [9, 9, 9, 9] },       # ::c
+    { key = [3], value = [1, 2, 3] },          # ::d
+    { key = [4], value = [30, 1, 1, 1, 1] },   # ::e
+    { key = [5], value = [0, 1, 0, 0, 0] },    # ::f
+    { key = [6], value = [1, 0, 0, 0, 0] },    # ::g
+    { key = [7], value = [2, 0, 0, 0, 0] },    # ::h
+    { key = [8], value = [3, 4, 4, 4, 4] },    # ::i
+    { key = [9], value = [4, 23, 33, 0, 0] },  # ::j
+    { key = [10], value = [5, 48, 98, 0, 0] }, # ::k
+    { key = [11], value = [1] },               # ::l
+    { key = [12], value = [0] },               # ::m
+    { key = [13], value = [1, 2, 3, 4] },      # ::n
+    { key = [14], value = [1, 456] },          # ::o
+    { key = [15], value = [1, 0, 1, 0] },      # ::p
 ]
