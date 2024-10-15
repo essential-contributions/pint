@@ -26,9 +26,9 @@ predicate test {
 
 // flattened <<<
 // type ::A = int;
-// type ::B = ::A (int)[2];
-// type ::C = {::A (int), ::A (int)};
-// type ::D = {::C ({::A (int), ::A (int)}), ::C ({::A (int), ::A (int)})};
+// type ::B = int[2];
+// type ::C = {int, int};
+// type ::D = {{int, int}, {int, int}};
 //
 // predicate ::test {
 //     var ::x: int[2];

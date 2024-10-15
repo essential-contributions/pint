@@ -1,7 +1,7 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted},
     expr::{Expr, GeneratorKind},
-    predicate::{Contract, ExprKey, Handler, PredKey, Predicate},
+    predicate::{Contract, ExprKey, Handler, PredKey, Predicate, UnionDecl},
     span::empty_span,
     types::Type,
 };
@@ -125,15 +125,20 @@ fn check_expr(
         Type::Any(span) => {
             emit_illegal_type_error!(handler, span, "any type", "expr_types");
         }
-        Type::Custom { span, .. } if !expr_type.is_union(&contract.unions) => {
+        Type::Custom { name, span, .. } => {
             // TODO: unclear how to test this. We will refactor custom types soon anyways.
-            emit_illegal_type_error!(handler, span, "custom type", "expr_types");
+            if !contract.unions.values().any(
+                |UnionDecl {
+                     name: union_name, ..
+                 }| &union_name.name == name,
+            ) {
+                emit_illegal_type_error!(handler, span, "custom type", "expr_types");
+            }
         }
         Type::Alias { span, .. } => {
             emit_illegal_type_error!(handler, span, "type alias", "expr_types");
         }
         Type::Array { .. }
-        | Type::Custom { .. }
         | Type::Tuple { .. }
         | Type::Primitive { .. }
         | Type::Map { .. }

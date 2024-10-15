@@ -19,5 +19,5 @@ predicate test {
 // typecheck_failure <<<
 // variable initialization type error
 // @66..70: variable initializer has unexpected type `bool`
-// @0..12: expecting type `::I (int)`
+// @62..63: expecting type `::I (int)`
 // >>>

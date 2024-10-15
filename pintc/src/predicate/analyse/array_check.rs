@@ -3,7 +3,7 @@ use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{BinaryOp, Expr, Immediate},
     predicate::PredKey,
-    span::{empty_span, Spanned},
+    span::Spanned,
     types::Type,
 };
 
@@ -64,7 +64,7 @@ impl Contract {
             })
             .collect();
 
-        let evaluator = Evaluator::new(&self.unions);
+        let evaluator = Evaluator::new(self);
         for (array_ty, index_key) in accesses {
             // First, try evaluating the index value, since it must be an immediate int (or union
             // variant, which evaluates to int).
@@ -89,13 +89,8 @@ impl Contract {
                             }
                         }
 
-                        Immediate::UnionVariant {
-                            tag_num, ty_path, ..
-                        } if Type::Union {
-                            path: ty_path.clone(),
-                            span: empty_span(),
-                        }
-                        .is_enumeration_union(&self.unions) =>
+                        Immediate::UnionVariant { tag_num, decl, .. }
+                            if self.unions[decl].is_enumeration_union() =>
                         {
                             if tag_num < 0 || tag_num >= array_size {
                                 handler.emit_err(Error::Compile {

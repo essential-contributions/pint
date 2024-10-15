@@ -69,7 +69,7 @@ predicate Foo {
 // >>>
 
 // flattened <<<
-// const ::papa: {child: {age: int, pet: ::Animal}, pet: ::Animal} = {child: {age: 33, pet: ::Animal::<0>}, pet: ::Animal::<1>};
+// const ::papa: {child: {age: int, pet: ::Animal}, pet: ::Animal} = {child: {age: 33, pet: ::Animal::Cat}, pet: ::Animal::Dog};
 // union ::Animal = Cat | Dog;
 // union ::Parent = Mum | Dad({child: {age: int, pet: ::Animal}, pet: ::Animal});
 // type ::Father = {child: {age: int, pet: ::Animal}, pet: ::Animal};
@@ -78,7 +78,7 @@ predicate Foo {
 //         pub var left: {child: {age: int, pet: ::Animal}, pet: ::Animal};
 //     }
 // }
-// 
+//
 // predicate ::Foo {
 //     var ::bob: {child: {age: int, pet: ::Animal}, pet: ::Animal};
 //     var ::friends_pets: ::Animal[3];

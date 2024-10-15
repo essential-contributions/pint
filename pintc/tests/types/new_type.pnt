@@ -118,7 +118,7 @@ predicate test {
 //         pub var x: ::TheLetterA;
 //     }
 // }
-// 
+//
 // predicate ::test {
 //     var ::t: ::TheLetterA;
 //     pub var ::pt: ::TheLetterA;
@@ -132,9 +132,9 @@ predicate test {
 //     var ::p: {x: int, y: int};
 //     var ::q: int;
 //     state ::x: int = __storage_get({0});
-//     constraint (::t == ::A::T);
-//     constraint (__pub_var(__this_pathway(), {0}) == ::A::T);
-//     constraint (::u == ::A::U);
+//     constraint (::t == ::TheLetterA::T);
+//     constraint (__pub_var(__this_pathway(), {0}) == ::TheLetterA::T);
+//     constraint (::u == ::TheLetterA::U);
 //     constraint (::v == ::TheLetterA::V);
 //     constraint (::i == 11);
 //     constraint (::j == {22, 33});

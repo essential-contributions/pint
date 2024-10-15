@@ -1,14 +1,12 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{evaluate::Evaluator, Expr, Ident, Immediate},
-    predicate::{Contract, ExprKey},
+    predicate::{Contract, ExprKey, UnionKey},
     span::{empty_span, Span, Spanned},
 };
 use pint_abi_types::{TupleField, TypeABI};
 
 mod display;
-
-pub type Path = String;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PrimitiveKind {
@@ -40,15 +38,15 @@ pub enum Type {
         span: Span,
     },
     Union {
-        path: Path,
+        decl: UnionKey,
         span: Span,
     },
     Custom {
-        path: Path,
+        name: String,
         span: Span,
     },
     Alias {
-        path: Path,
+        name: String,
         ty: Box<Self>,
         span: Span,
     },
@@ -159,42 +157,39 @@ impl Type {
         check_alias!(self, is_custom, matches!(self, Type::Custom { .. }))
     }
 
-    pub fn get_custom_name(&self) -> Option<&Path> {
+    pub fn get_custom_name(&self) -> Option<&String> {
         check_alias!(self, get_custom_name, {
-            if let Type::Custom { path, .. } = self {
-                Some(path)
+            if let Type::Custom { name, .. } = self {
+                Some(name)
             } else {
                 None
             }
         })
     }
 
-    pub fn is_union(&self, unions: &[UnionDecl]) -> bool {
-        self.get_union_name(unions).is_some()
-            || check_alias!(self, is_union, unions, matches!(self, Type::Union { .. }))
+    pub fn is_union(&self) -> bool {
+        check_alias!(self, is_union, matches!(self, Type::Union { .. }))
     }
 
     /// Check if `self` is an "enumeration" union, meaning none of its variants hold values.
-    pub fn is_enumeration_union(&self, unions: &[UnionDecl]) -> bool {
-        check_alias!(self, is_enumeration_union, unions, {
-            self.get_union_decl(unions)
+    pub fn is_enumeration_union(&self, contract: &Contract) -> bool {
+        check_alias!(self, is_enumeration_union, contract, {
+            self.get_union_decl(contract)
                 .map_or(false, |union| union.is_enumeration_union())
         })
     }
 
-    pub fn get_union_name<'a>(&self, unions: &'a [UnionDecl]) -> Option<&'a Path> {
-        check_alias!(self, get_union_name, unions, {
-            self.get_union_decl(unions).map(|ud| &ud.name.name)
+    pub fn get_union_name<'a>(&self, contract: &'a Contract) -> Option<&'a String> {
+        check_alias!(self, get_union_name, contract, {
+            self.get_union_decl(contract).map(|ud| &ud.name.name)
         })
     }
 
-    fn get_union_decl<'a>(&self, unions: &'a [UnionDecl]) -> Option<&'a UnionDecl> {
-        match self {
-            Type::Custom { path, .. } | Type::Union { path, .. } => unions
-                .iter()
-                .find(|UnionDecl { name, .. }| (&name.name == path)),
-
-            _ => None,
+    fn get_union_decl<'a>(&self, contract: &'a Contract) -> Option<&'a UnionDecl> {
+        if let Type::Union { decl, .. } = self {
+            contract.unions.get(*decl)
+        } else {
+            None
         }
     }
 
@@ -202,11 +197,11 @@ impl Type {
     // Ok(Some(ty)) if the union variant has a binding, else Ok(None).
     pub fn get_union_variant_ty<'a>(
         &self,
-        unions: &'a [UnionDecl],
-        variant_name: &Path,
+        contract: &'a Contract,
+        variant_name: &String,
     ) -> Result<Option<&'a Type>, ()> {
-        check_alias!(self, get_union_variant_ty, unions, variant_name, {
-            self.get_union_decl(unions).ok_or(()).and_then(
+        check_alias!(self, get_union_variant_ty, contract, variant_name, {
+            self.get_union_decl(contract).ok_or(()).and_then(
                 |UnionDecl {
                      name: union_name,
                      variants,
@@ -242,9 +237,9 @@ impl Type {
         })
     }
 
-    pub fn get_union_variant_names(&self, unions: &[UnionDecl]) -> Vec<String> {
-        check_alias!(self, get_union_variant_names, unions, {
-            self.get_union_decl(unions)
+    pub fn get_union_variant_names(&self, contract: &Contract) -> Vec<String> {
+        check_alias!(self, get_union_variant_names, contract, {
+            self.get_union_decl(contract)
                 .map(
                     |UnionDecl {
                          name: union_name,
@@ -263,9 +258,9 @@ impl Type {
         })
     }
 
-    pub fn get_union_variant_types(&self, unions: &[UnionDecl]) -> Vec<Option<Type>> {
-        check_alias!(self, get_union_variant_types, unions, {
-            self.get_union_decl(unions)
+    pub fn get_union_variant_types(&self, contract: &Contract) -> Vec<Option<Type>> {
+        check_alias!(self, get_union_variant_types, contract, {
+            self.get_union_decl(contract)
                 .map(|UnionDecl { variants, .. }| {
                     variants
                         .iter()
@@ -276,15 +271,15 @@ impl Type {
         })
     }
 
-    pub fn get_union_variant_count(&self, unions: &[UnionDecl]) -> Option<usize> {
-        check_alias!(self, get_union_variant_count, unions, {
-            self.get_union_decl(unions)
+    pub fn get_union_variant_count(&self, contract: &Contract) -> Option<usize> {
+        check_alias!(self, get_union_variant_count, contract, {
+            self.get_union_decl(contract)
                 .map(|UnionDecl { variants, .. }| variants.len())
         })
     }
 
-    pub fn get_union_variant_as_num(&self, unions: &[UnionDecl], tag: &Path) -> Option<usize> {
-        self.get_union_variant_names(unions)
+    pub fn get_union_variant_as_num(&self, contract: &Contract, tag: &str) -> Option<usize> {
+        self.get_union_variant_names(contract)
             .into_iter()
             .enumerate()
             .find_map(|(idx, variant_name)| (variant_name == tag[2..]).then_some(idx))
@@ -369,7 +364,7 @@ impl Type {
         // TODO: REMOVE THIS.  WE'RE LOWERING IN A PASS.
         if let Expr::Path(path, _) = range_expr {
             // It's hopefully an enumeration union for the range expression.
-            if let Some(size) = contract.unions.iter().find_map(|union_decl| {
+            if let Some(size) = contract.unions.iter().find_map(|(_key, union_decl)| {
                 (union_decl.is_enumeration_union() && &union_decl.name.name == path)
                     .then_some(union_decl.variants.len() as i64)
             }) {
@@ -382,7 +377,7 @@ impl Type {
                 }))
             }
         } else {
-            match Evaluator::new(&contract.unions).evaluate(range_expr, handler, contract) {
+            match Evaluator::new(contract).evaluate(range_expr, handler, contract) {
                 Ok(Immediate::Int(size)) if size > 0 => Ok(size),
                 Ok(_) => Err(handler.emit_err(Error::Compile {
                     error: CompileError::InvalidConstArrayLength {
@@ -537,14 +532,8 @@ impl Type {
                     contract,
                 )?) as usize),
 
-            Self::Union { path, .. } => {
-                let Some(UnionDecl { variants, .. }) = contract
-                    .unions
-                    .iter()
-                    .find(|union_decl| &union_decl.name.name == path)
-                else {
-                    unreachable!("unknown path in union type")
-                };
+            Self::Union { decl, .. } => {
+                let UnionDecl { variants, .. } = &contract.unions[*decl];
 
                 let mut max_variant_size = 0;
                 for variant in variants {
@@ -699,7 +688,7 @@ impl Type {
         }
     }
 
-    pub fn eq(&self, new_types: &[NewTypeDecl], other: &Self) -> bool {
+    pub fn eq(&self, contract: &Contract, other: &Self) -> bool {
         match (self, other) {
             (Self::Error(_), Self::Error(_)) => true,
             (Self::Unknown(_), Self::Unknown(_)) => true,
@@ -708,15 +697,15 @@ impl Type {
             (Self::Any(_), _) => true,
             (_, Self::Any(_)) => true,
 
-            (Self::Alias { ty: lhs_ty, .. }, rhs) => lhs_ty.eq(new_types, rhs),
-            (lhs, Self::Alias { ty: rhs_ty, .. }) => lhs.eq(new_types, rhs_ty.as_ref()),
+            (Self::Alias { ty: lhs_ty, .. }, rhs) => lhs_ty.eq(contract, rhs),
+            (lhs, Self::Alias { ty: rhs_ty, .. }) => lhs.eq(contract, rhs_ty.as_ref()),
 
             (Self::Primitive { kind: lhs, .. }, Self::Primitive { kind: rhs, .. }) => lhs == rhs,
 
             // This is sub-optimal; we're saying two arrays of the same element type are
             // equivalent, regardless of their size.
             (Self::Array { ty: lhs_ty, .. }, Self::Array { ty: rhs_ty, .. }) => {
-                lhs_ty.eq(new_types, rhs_ty)
+                lhs_ty.eq(contract, rhs_ty)
             }
 
             (
@@ -756,7 +745,7 @@ impl Type {
                                         .expect("have already checked is Some")
                                         .name,
                                 )
-                                .map(|lhs_ty| lhs_ty.eq(new_types, rhs_ty))
+                                .map(|lhs_ty| lhs_ty.eq(contract, rhs_ty))
                                 .unwrap_or(false)
                         })
                     } else {
@@ -764,7 +753,7 @@ impl Type {
                         lhs_fields
                             .iter()
                             .zip(rhs_fields.iter())
-                            .all(|((_, lhs_ty), (_, rhs_ty))| lhs_ty.eq(new_types, rhs_ty))
+                            .all(|((_, lhs_ty), (_, rhs_ty))| lhs_ty.eq(contract, rhs_ty))
                     }
                 }
             }
@@ -780,47 +769,57 @@ impl Type {
                     ty_to: rhs_ty_to,
                     ..
                 },
-            ) => lhs_ty_from.eq(new_types, rhs_ty_from) && lhs_ty_to.eq(new_types, rhs_ty_to),
+            ) => lhs_ty_from.eq(contract, rhs_ty_from) && lhs_ty_to.eq(contract, rhs_ty_to),
 
             (Self::Vector { ty: lhs_ty, .. }, Self::Vector { ty: rhs_ty, .. }) => {
-                lhs_ty.eq(new_types, rhs_ty)
+                lhs_ty.eq(contract, rhs_ty)
             }
 
-            (Self::Union { path: lhs_path, .. }, Self::Union { path: rhs_path, .. }) => {
-                lhs_path == rhs_path
+            (Self::Union { decl: lhs_decl, .. }, Self::Union { decl: rhs_decl, .. }) => {
+                lhs_decl == rhs_decl
             }
 
+            // TODO: remove Type::Custom as the very first thing we do so we never need to compare
+            // them.  We probably wouldn't need `contract` passed then.
             (lhs_ty, rhs_ty) => {
                 // Custom types are tricky as they may be either aliases or unions. Or, at this
                 // stage, we might just have two different types.
                 let mut lhs_alias_ty = None;
                 let mut lhs_custom_path = None;
 
-                if let Self::Custom { path: lhs_path, .. } = lhs_ty {
-                    lhs_alias_ty = new_types.iter().find_map(|NewTypeDecl { name, ty, .. }| {
-                        (lhs_path == &name.name).then_some(ty)
-                    });
+                if let Self::Custom { name: lhs_path, .. } = lhs_ty {
+                    lhs_alias_ty =
+                        contract
+                            .new_types
+                            .iter()
+                            .find_map(|NewTypeDecl { name, ty, .. }| {
+                                (lhs_path == &name.name).then_some(ty)
+                            });
                     lhs_custom_path = Some(lhs_path);
                 }
 
                 if let Some(lhs_alias_ty) = lhs_alias_ty {
                     // The LHS is an alias; recurse.
-                    return lhs_alias_ty.eq(new_types, rhs_ty);
+                    return lhs_alias_ty.eq(contract, rhs_ty);
                 }
 
                 let mut rhs_alias_ty = None;
                 let mut rhs_custom_path = None;
 
-                if let Self::Custom { path: rhs_path, .. } = rhs_ty {
-                    rhs_alias_ty = new_types.iter().find_map(|NewTypeDecl { name, ty, .. }| {
-                        (rhs_path == &name.name).then_some(ty)
-                    });
+                if let Self::Custom { name: rhs_path, .. } = rhs_ty {
+                    rhs_alias_ty =
+                        contract
+                            .new_types
+                            .iter()
+                            .find_map(|NewTypeDecl { name, ty, .. }| {
+                                (rhs_path == &name.name).then_some(ty)
+                            });
                     rhs_custom_path = Some(rhs_path);
                 }
 
                 if let Some(rhs_alias_ty) = rhs_alias_ty {
                     // The RHS is an alias; recurse.
-                    return rhs_alias_ty.eq(new_types, lhs_ty);
+                    return rhs_alias_ty.eq(contract, lhs_ty);
                 }
 
                 match (lhs_custom_path, rhs_custom_path) {
@@ -830,18 +829,18 @@ impl Type {
                     }
 
                     (Some(lhs_custom_path), None) => {
-                        if let Type::Union { path, .. } = rhs_ty {
+                        if let Type::Union { decl, .. } = rhs_ty {
                             // The LHS is a Custom and the RHS is a Union.  Same path?
-                            lhs_custom_path == path
+                            &contract.unions[*decl].name.name == lhs_custom_path
                         } else {
                             false
                         }
                     }
 
                     (None, Some(rhs_custom_path)) => {
-                        if let Type::Union { path, .. } = lhs_ty {
+                        if let Type::Union { decl, .. } = lhs_ty {
                             // The LHS is a Union and the RHS is a Custom.  Same path?
-                            rhs_custom_path == path
+                            &contract.unions[*decl].name.name == rhs_custom_path
                         } else {
                             false
                         }

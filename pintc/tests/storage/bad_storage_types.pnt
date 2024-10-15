@@ -36,6 +36,4 @@ storage {
 // @143..155: found type {int, int}[] in storage
 // type not allowed in storage
 // @164..178: found type ( int => int )[] in storage
-// type not allowed in storage
-// @23..45: found type ::MyAlias (::MyUnion) in storage
 // >>>
