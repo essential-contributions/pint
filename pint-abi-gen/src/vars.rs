@@ -5,7 +5,7 @@ use pint_abi_types::VarABI;
 
 /// Generate a struct for an predicate's decision variables.
 fn struct_decl(vars: &[VarABI]) -> syn::ItemStruct {
-    let fields = fields(vars);
+    let fields = fields(vars, 1);
     syn::parse_quote! {
         /// The predicate's decision variables.
         #[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]

@@ -1,0 +1,2 @@
+union TT = A | B;
+union OO = A | B({TT, TT});

@@ -36,7 +36,7 @@ fn keys_struct(struct_name: &str, nesting: &[Nesting]) -> syn::ItemStruct {
 
 /// A map key builder method for entries with nested array values.
 fn key_method_for_array(ty_from: &TypeABI, array_nesting: &[Nesting]) -> syn::ImplItemFn {
-    let key_ty = ty_from_pint_ty(ty_from);
+    let key_ty = ty_from_pint_ty(ty_from, 2);
     let struct_name = array::struct_name(array_nesting);
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
     syn::parse_quote! {
@@ -53,7 +53,7 @@ fn key_method_for_array(ty_from: &TypeABI, array_nesting: &[Nesting]) -> syn::Im
 
 /// A map key builder method for entries with nested map values.
 fn key_method_for_map(ty_from: &TypeABI, map_nesting: &[Nesting]) -> syn::ImplItemFn {
-    let key_ty = ty_from_pint_ty(ty_from);
+    let key_ty = ty_from_pint_ty(ty_from, 2);
     let struct_name = struct_name(map_nesting);
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
     syn::parse_quote! {
@@ -70,7 +70,7 @@ fn key_method_for_map(ty_from: &TypeABI, map_nesting: &[Nesting]) -> syn::ImplIt
 
 /// A map key builder method for entries with tuple values.
 fn key_method_for_tuple(ty_from: &TypeABI, tup_nesting: &[Nesting]) -> syn::ImplItemFn {
-    let key_ty = ty_from_pint_ty(ty_from);
+    let key_ty = ty_from_pint_ty(ty_from, 2);
     let struct_name = tuple::struct_name(tup_nesting);
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
     syn::parse_quote! {
@@ -87,7 +87,7 @@ fn key_method_for_tuple(ty_from: &TypeABI, tup_nesting: &[Nesting]) -> syn::Impl
 
 /// A map key builder method for an entry with a single-key value.
 fn key_method_for_single_key(ty_from: &TypeABI, val_nesting: &[Nesting]) -> syn::ImplItemFn {
-    let key_ty = ty_from_pint_ty(ty_from);
+    let key_ty = ty_from_pint_ty(ty_from, 2);
     let nesting_expr: syn::ExprArray = nesting_expr(val_nesting);
     let construct_key_expr: syn::Expr = construct_key_expr();
     let abi_key_doc_str = nesting_key_doc_str(val_nesting);
@@ -125,7 +125,12 @@ fn key_method(
 ) -> syn::ImplItemFn {
     let nesting = tree.nesting(entry);
     match ty_to {
-        TypeABI::Bool | TypeABI::Int | TypeABI::Real | TypeABI::String | TypeABI::B256 => (),
+        TypeABI::Bool
+        | TypeABI::Int
+        | TypeABI::Real
+        | TypeABI::String
+        | TypeABI::B256
+        | TypeABI::Union { .. } => (),
         TypeABI::Array { ty: _, size: _ } => {
             return key_method_for_array(ty_from, &nesting);
         }
@@ -201,7 +206,7 @@ fn mutations_struct(struct_name: &str, nesting: &[Nesting]) -> syn::ItemStruct {
 
 /// A map mutation builder method for entries with nested array values.
 fn mutation_method_for_array(ty_from: &TypeABI, array_nesting: &[Nesting]) -> syn::ImplItemFn {
-    let key_ty = ty_from_pint_ty(ty_from);
+    let key_ty = ty_from_pint_ty(ty_from, 2);
     let struct_name = array::struct_name(array_nesting);
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
     syn::parse_quote! {
@@ -218,7 +223,7 @@ fn mutation_method_for_array(ty_from: &TypeABI, array_nesting: &[Nesting]) -> sy
 
 /// A map mutation builder method for entries with nested map values.
 fn mutation_method_for_map(ty_from: &TypeABI, map_nesting: &[Nesting]) -> syn::ImplItemFn {
-    let key_ty = ty_from_pint_ty(ty_from);
+    let key_ty = ty_from_pint_ty(ty_from, 2);
     let struct_name = struct_name(map_nesting);
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
     syn::parse_quote! {
@@ -235,7 +240,7 @@ fn mutation_method_for_map(ty_from: &TypeABI, map_nesting: &[Nesting]) -> syn::I
 
 /// A map mutation builder method for entries with tuple values.
 fn mutation_method_for_tuple(ty_from: &TypeABI, tup_nesting: &[Nesting]) -> syn::ImplItemFn {
-    let key_ty = ty_from_pint_ty(ty_from);
+    let key_ty = ty_from_pint_ty(ty_from, 2);
     let struct_name = tuple::struct_name(tup_nesting);
     let struct_ident = syn::Ident::new(&struct_name, Span::call_site());
     syn::parse_quote! {
@@ -256,8 +261,8 @@ fn mutation_method_for_single_key(
     val_ty: &SingleKeyTy,
     val_nesting: &[Nesting],
 ) -> syn::ImplItemFn {
-    let key_ty = ty_from_pint_ty(ty_from);
-    let val_ty = val_ty.syn_ty();
+    let key_ty = ty_from_pint_ty(ty_from, 2);
+    let val_ty = val_ty.syn_ty(2);
     let nesting_expr: syn::ExprArray = nesting_expr(val_nesting);
     let construct_key_expr: syn::Expr = construct_key_expr();
     let abi_key_doc_str = nesting_key_doc_str(val_nesting);
@@ -303,14 +308,15 @@ fn mutation_method(
         TypeABI::Bool => SingleKeyTy::Bool,
         TypeABI::Int => SingleKeyTy::Int,
         TypeABI::Real => SingleKeyTy::Real,
+        TypeABI::String => SingleKeyTy::String,
+        TypeABI::B256 => SingleKeyTy::B256,
         TypeABI::Array { ty: _, size: _ } => {
             return mutation_method_for_array(ty_from, &nesting);
         }
-        TypeABI::String => SingleKeyTy::String,
-        TypeABI::B256 => SingleKeyTy::B256,
         TypeABI::Tuple(_) => {
             return mutation_method_for_tuple(ty_from, &nesting);
         }
+        TypeABI::Union { name, .. } => SingleKeyTy::Union(name.clone()),
         TypeABI::Map { .. } => {
             return mutation_method_for_map(ty_from, &nesting);
         }
