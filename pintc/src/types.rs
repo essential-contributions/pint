@@ -650,6 +650,7 @@ impl Type {
                 PrimitiveKind::B256 => TypeABI::B256,
                 _ => unimplemented!(),
             }),
+
             Type::Tuple { fields, .. } => Ok(TypeABI::Tuple(
                 fields
                     .iter()
@@ -661,6 +662,7 @@ impl Type {
                     })
                     .collect::<Result<Vec<_>, _>>()?,
             )),
+
             Type::Array {
                 ty, range, size, ..
             } => Ok(TypeABI::Array {
@@ -674,15 +676,33 @@ impl Type {
                     contract,
                 )?),
             }),
+
+            Type::Union { decl, .. } => Ok(TypeABI::Union {
+                name: contract.unions[*decl].name.name.clone(),
+                variants: self
+                    .get_union_variant_names(contract)
+                    .into_iter()
+                    .zip(self.get_union_variant_types(contract))
+                    .map(|(name, ty)| {
+                        Ok(pint_abi_types::UnionVariant {
+                            name: name.to_string(),
+                            ty: ty
+                                .as_ref()
+                                .map(|ty| ty.abi(handler, contract))
+                                .transpose()?,
+                        })
+                    })
+                    .collect::<Result<Vec<_>, _>>()?,
+            }),
+
             Type::Map { ty_from, ty_to, .. } => Ok(TypeABI::Map {
                 ty_from: Box::new((*ty_from).abi(handler, contract)?),
                 ty_to: Box::new((*ty_to).abi(handler, contract)?),
             }),
 
-            // These, of course, are incorrect. It's just a placeholder until we can support ABI gen
-            // for them, which is non-trivial.
+            // This, of course, is incorrect. It's just a placeholder until we can support ABI gen
+            // for vectors, which is non-trivial.
             Type::Vector { .. } => Ok(TypeABI::Int),
-            Type::Union { .. } => Ok(TypeABI::Int),
 
             _ => unimplemented!("other types are not yet supported"),
         }
