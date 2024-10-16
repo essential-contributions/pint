@@ -39,8 +39,8 @@ pint-abi-gen = { path = "pint-abi-gen", version = "0.3.0" }
 pint-abi-types = { path = "pint-abi-types", version = "0.3.0" }
 pint-abi-visit = { path = "pint-abi-visit", version = "0.3.0" }
 pint-manifest = { path = "pint-manifest", version = "0.1.0" }
-pint-pkg = { path = "pint-pkg", version = "0.3.0" }
-pintc = { path = "pintc", version = "0.3.0" }
+pint-pkg = { path = "pint-pkg", version = "0.4.0" }
+pintc = { path = "pintc", version = "0.4.0" }
 proc-macro2 = "1.0"
 quote = "1.0"
 serde = { version = "1.0", features = ["derive"] }
