@@ -1,0 +1,55 @@
+// ANCHOR: simple_union
+union Token = DAI | USDC | USDT;
+// ANCHOR_END: simple_union
+
+predicate test2 {
+// ANCHOR: simple_union_instances
+var dai: Token = Token::DAI;
+var usdc: Token = Token::USDC;
+var usdt: Token = Token::USDT;
+// ANCHOR_END: simple_union_instances
+
+// ANCHOR: union_selection
+var token_id: int;
+var token_type: Token = cond {
+    token_id == 0 => Token::DAI,
+    token_id == 1  => Token::USDC,
+    else => Token::USDT,
+};
+// ANCHOR_END: union_selection
+}
+
+// ANCHOR: union_in_struct
+type Balance = {
+    token: Token,
+    balance: int,
+};
+
+predicate balances_1 {
+    var alice_bal: Balance = {
+        token: Token::DAI,
+        balance: 42,
+    };
+
+    var bob_bal: Balance = {
+        token: Token::USDC,
+        balance: 96,
+    };
+}
+// ANCHOR_END: union_in_struct
+
+// ANCHOR: int_in_union
+union TokenBalance = DAI(int) | USDC(int) | USDT(int);
+
+predicate balances_2 {
+    var alice_bal: TokenBalance = TokenBalance::DAI(42);
+    var bob_bal: TokenBalance = TokenBalance::USDC(96);
+}
+// ANCHOR_END: int_in_union
+
+// ANCHOR: action_union
+union Action =   Quit                                // Quit the application
+               | Buy (TokenBalance)                  // Buy some amount of a token
+               | Sell({TokenBalance, price: int})    // sell some amount of a token at some price
+               | Swap({TokenBalance, TokenBalance}); // Swap some amount of a token for another amount of some other token
+// ANCHOR: action_union
