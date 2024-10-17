@@ -15,7 +15,7 @@ use crate::{
 
 use fxhash::FxHashMap;
 
-use std::collections::VecDeque;
+use std::{collections::VecDeque, rc::Rc};
 
 mod lower_pub_var_accesses;
 mod lower_storage_accesses;
@@ -1127,7 +1127,13 @@ pub(super) fn lower_matches(
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         // Remove each match decl one at a time and convert to equivalent if decls.
         while let Some(match_decl) = contract.preds[pred_key].match_decls.pop() {
-            let if_decl = convert_match_to_if_decl(handler, contract, pred_key, match_decl)?;
+            let if_decl = convert_match_to_if_decl(
+                handler,
+                contract,
+                pred_key,
+                match_decl,
+                Rc::new(BindingStack::default()),
+            )?;
             contract.preds[pred_key].if_decls.push(if_decl);
         }
 
@@ -1174,6 +1180,7 @@ fn convert_match_to_if_decl(
     contract: &mut Contract,
     pred_key: PredKey,
     match_decl: MatchDecl,
+    binding_stack: Rc<BindingStack>,
 ) -> Result<IfDecl, ErrorEmitted> {
     let MatchDecl {
         match_expr,
@@ -1211,7 +1218,7 @@ fn convert_match_to_if_decl(
                     })
                     .and_then(|binding_ty| match (binding, binding_ty) {
                         // Both are bound.
-                        (Some(id), Some(ty)) => Ok(Some((id, ty.clone()))),
+                        (Some(id), Some(ty)) => Ok(Some(Rc::new((match_expr, id, ty.clone())))),
 
                         // Both are unbound.
                         (None, None) => Ok(None),
@@ -1240,8 +1247,10 @@ fn convert_match_to_if_decl(
                                     handler,
                                     contract,
                                     pred_key,
-                                    match_expr,
-                                    &full_binding,
+                                    BindingStack::wrap(
+                                        full_binding.as_ref().map(Rc::clone),
+                                        &binding_stack,
+                                    ),
                                     block,
                                 )
                             })
@@ -1258,7 +1267,11 @@ fn convert_match_to_if_decl(
                 .into_iter()
                 .map(|block| {
                     convert_match_block_statement(
-                        handler, contract, pred_key, match_expr, &None, block,
+                        handler,
+                        contract,
+                        pred_key,
+                        Rc::clone(&binding_stack),
+                        block,
                     )
                 })
                 .collect::<Result<_, _>>()
@@ -1312,16 +1325,15 @@ fn convert_match_block_statement(
     handler: &Handler,
     contract: &mut Contract,
     pred_key: PredKey,
-    union_expr: ExprKey,
-    binding: &Option<(Ident, Type)>,
+    binding_stack: Rc<BindingStack>,
     block_stmt: BlockStatement,
 ) -> Result<BlockStatement, ErrorEmitted> {
     match block_stmt {
         BlockStatement::Constraint(ConstraintDecl { expr, ref span }) => {
-            if let Some((id, ty)) = binding {
+            if !binding_stack.is_empty() {
                 // Replace any bindings.
                 let mut constraint_expr = expr;
-                replace_binding(contract, pred_key, union_expr, id, ty, &mut constraint_expr);
+                binding_stack.replace_binding(contract, pred_key, &mut constraint_expr);
 
                 Ok(BlockStatement::Constraint(ConstraintDecl {
                     expr: constraint_expr,
@@ -1340,15 +1352,17 @@ fn convert_match_block_statement(
             span,
         }) => {
             // Replace any bindings, recurse for the sub-blocks and just return the same statement.
-            if let Some((id, ty)) = binding {
-                replace_binding(contract, pred_key, union_expr, id, ty, &mut condition);
-            }
+            binding_stack.replace_binding(contract, pred_key, &mut condition);
 
             let then_block = then_block
                 .into_iter()
                 .map(|stmt| {
                     convert_match_block_statement(
-                        handler, contract, pred_key, union_expr, binding, stmt,
+                        handler,
+                        contract,
+                        pred_key,
+                        Rc::clone(&binding_stack),
+                        stmt,
                     )
                 })
                 .collect::<Result<_, _>>()?;
@@ -1359,7 +1373,11 @@ fn convert_match_block_statement(
                         .into_iter()
                         .map(|stmt| {
                             convert_match_block_statement(
-                                handler, contract, pred_key, union_expr, binding, stmt,
+                                handler,
+                                contract,
+                                pred_key,
+                                Rc::clone(&binding_stack),
+                                stmt,
                             )
                         })
                         .collect::<Result<_, _>>()
@@ -1374,60 +1392,13 @@ fn convert_match_block_statement(
             }))
         }
 
-        BlockStatement::Match(match_decl) => {
-            // This is a nested match decl and has its own scope.
-            convert_match_to_if_decl(handler, contract, pred_key, match_decl)
+        BlockStatement::Match(mut match_decl) => {
+            // Replace the match expression first if need be.
+            binding_stack.replace_binding(contract, pred_key, &mut match_decl.match_expr);
+
+            // Recurse back to converting this nested match into if decls.
+            convert_match_to_if_decl(handler, contract, pred_key, match_decl, binding_stack)
                 .map(BlockStatement::If)
-        }
-    }
-}
-
-fn replace_binding(
-    contract: &mut Contract,
-    pred_key: PredKey,
-    union_expr: ExprKey,
-    binding: &Ident,
-    bound_ty: &Type,
-    expr_key: &mut ExprKey,
-) {
-    let mut path_exprs = Vec::default();
-
-    let expr_is_bound = |path_expr: &Expr| {
-        if let Expr::Path(path, _span) = path_expr {
-            path.len() > 2 && binding.name == path[2..]
-        } else {
-            false
-        }
-    };
-
-    let passed_expr_is_bound = expr_is_bound(expr_key.get(contract));
-
-    contract.visitor_from_key(
-        VisitorKind::DepthFirstParentsBeforeChildren,
-        *expr_key,
-        &mut |path_expr_key, path_expr| {
-            if expr_is_bound(path_expr) {
-                path_exprs.push(path_expr_key);
-            }
-        },
-    );
-
-    if passed_expr_is_bound || !path_exprs.is_empty() {
-        let union_val_expr_key = contract.exprs.insert(
-            Expr::UnionValue {
-                union_expr,
-                variant_ty: bound_ty.clone(),
-                span: empty_span(),
-            },
-            bound_ty.clone(),
-        );
-
-        if passed_expr_is_bound {
-            *expr_key = union_val_expr_key;
-        }
-
-        for path_expr in path_exprs {
-            contract.replace_exprs(Some(pred_key), path_expr, union_val_expr_key);
         }
     }
 }
@@ -1583,35 +1554,19 @@ fn convert_match_expr(
         )?;
 
         if let Some((binding, bound_ty)) = then_branch.binding {
-            for constraint_expr in &mut then_branch.constraints {
-                replace_binding(
-                    contract,
-                    pred_key,
-                    then_branch.union_expr,
-                    &binding,
-                    &bound_ty,
-                    constraint_expr,
-                );
-            }
-
-            replace_binding(
-                contract,
-                pred_key,
-                then_branch.union_expr,
-                &binding,
-                &bound_ty,
-                &mut then_branch.expr,
+            let binding_stack = BindingStack::wrap(
+                Some(Rc::new((then_branch.union_expr, binding, bound_ty))),
+                &Rc::new(BindingStack::default()),
             );
 
+            for constraint_expr in &mut then_branch.constraints {
+                binding_stack.replace_binding(contract, pred_key, constraint_expr);
+            }
+
+            binding_stack.replace_binding(contract, pred_key, &mut then_branch.expr);
+
             if let Some((_, mut else_expr)) = else_branch {
-                replace_binding(
-                    contract,
-                    pred_key,
-                    then_branch.union_expr,
-                    &binding,
-                    &bound_ty,
-                    &mut else_expr,
-                );
+                binding_stack.replace_binding(contract, pred_key, &mut else_expr);
             }
         }
 
@@ -1852,5 +1807,105 @@ pub(super) fn lower_union_variant_paths(contract: &mut Contract) {
         );
 
         contract.replace_exprs(Some(pred_key), old_expr_key, new_expr_key);
+    }
+}
+
+#[derive(Default)]
+struct BindingStack {
+    binding: Option<Rc<(ExprKey, Ident, Type)>>,
+    next: Option<Rc<Self>>,
+}
+
+impl BindingStack {
+    fn wrap(new_binding: Option<Rc<(ExprKey, Ident, Type)>>, other: &Rc<Self>) -> Rc<Self> {
+        if let Some(binding) = new_binding {
+            Rc::new(BindingStack {
+                binding: Some(Rc::clone(&binding)),
+                next: Some(Rc::clone(other)),
+            })
+        } else {
+            // No new binding to wrap; just return other.
+            Rc::clone(other)
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        // Assuming .next is None if .binding is None.
+        self.binding.is_none()
+    }
+
+    fn replace_binding(&self, contract: &mut Contract, pred_key: PredKey, expr_key: &mut ExprKey) {
+        if let Some((_, union_expr, variant_ty, span)) =
+            self.expr_bound_ty(*expr_key, expr_key.get(contract))
+        {
+            // The passed expression is a path which is bound.  Replace it in place.
+            let union_val_expr_key = contract.exprs.insert(
+                Expr::UnionValue {
+                    union_expr,
+                    variant_ty: variant_ty.clone(),
+                    span,
+                },
+                variant_ty,
+            );
+
+            *expr_key = union_val_expr_key;
+        } else {
+            // Collect any path sub-expressions which may be found.
+            let mut path_exprs = Vec::default();
+
+            contract.visitor_from_key(
+                VisitorKind::DepthFirstParentsBeforeChildren,
+                *expr_key,
+                &mut |path_expr_key, path_expr| {
+                    if let Some(bound_ty) = self.expr_bound_ty(path_expr_key, path_expr) {
+                        path_exprs.push(bound_ty);
+                    }
+                },
+            );
+
+            for (path_expr, union_expr, variant_ty, span) in path_exprs {
+                let union_val_expr_key = contract.exprs.insert(
+                    Expr::UnionValue {
+                        union_expr,
+                        variant_ty: variant_ty.clone(),
+                        span,
+                    },
+                    variant_ty,
+                );
+
+                contract.replace_exprs(Some(pred_key), path_expr, union_val_expr_key);
+            }
+        }
+    }
+
+    fn expr_bound_ty(
+        &self,
+        path_expr_key: ExprKey,
+        path_expr: &Expr,
+    ) -> Option<(ExprKey, ExprKey, Type, Span)> {
+        if let Some(binding) = &self.binding {
+            let (union_expr, binding, bound_ty) = binding.as_ref();
+
+            if let Expr::Path(path, span) = path_expr {
+                // It IS a path...
+                if path.len() > 2 && binding.name == path[2..] {
+                    // ...and it is bound by this binding.
+                    Some((path_expr_key, *union_expr, bound_ty.clone(), span.clone()))
+                } else {
+                    // Recurse to next binding in stack.
+                    if let Some(binding_stack) = &self.next {
+                        binding_stack.expr_bound_ty(path_expr_key, path_expr)
+                    } else {
+                        None
+                    }
+                }
+            } else {
+                // Not a path expr.
+                None
+            }
+        } else {
+            // No more bindings in stack.  (Assuming that if .binding is None then .next is too.)
+            None
+        }
     }
 }

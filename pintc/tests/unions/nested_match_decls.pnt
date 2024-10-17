@@ -81,8 +81,8 @@ predicate CoinGame {
 // predicate ::CoinGame {
 //     var ::coin: ::CoinFace;
 //     var ::prize: int;
-//     constraint (!(UnTag(::coin) == 0) || (!(UnTag(::f) == 0) || (::prize == 100)));
-//     constraint (!(UnTag(::coin) == 0) || ((UnTag(::f) == 0) || (!(UnTag(::f) == 1) || (::prize == 200))));
+//     constraint (!(UnTag(::coin) == 0) || (!(UnTag(UnVal(::coin, ::Face)) == 0) || (::prize == 100)));
+//     constraint (!(UnTag(::coin) == 0) || ((UnTag(UnVal(::coin, ::Face)) == 0) || (!(UnTag(UnVal(::coin, ::Face)) == 1) || (::prize == 200))));
 //     constraint ((UnTag(::coin) == 0) || (!(UnTag(::coin) == 1) || (!(UnVal(::coin, ::Face) == ::Face::Head) || (::prize == (5 * 10)))));
 //     constraint ((UnTag(::coin) == 0) || (!(UnTag(::coin) == 1) || ((UnVal(::coin, ::Face) == ::Face::Head) || (::prize == (5 * 20)))));
 //     constraint ((UnTag(::coin) == 0) || ((UnTag(::coin) == 1) || (!(UnTag(::coin) == 2) || ((UnVal(::coin, ::Face) == ::Face::Head) ? (10 * 5) : (10 * 10)))));

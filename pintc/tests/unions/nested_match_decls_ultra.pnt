@@ -1,0 +1,71 @@
+union inner = x | y(int) | z;
+union outer = a(inner) | b(int);
+
+predicate test {
+    var k: int;
+    var l: outer;
+    var m: outer;
+    match l {
+        outer::b(i) => {
+            match m {
+                outer::a(n) => {
+                    if k == 0 {
+                        match n {
+                            inner::y(j) => {
+                                constraint i == j;
+                            }
+                            else => {}
+                        }
+                    }
+                }
+                else => {}
+            }
+        }
+        else => {}
+    }
+}
+
+// parsed <<<
+// union ::inner = x | y(int) | z;
+// union ::outer = a(::inner) | b(int);
+//
+// predicate ::test {
+//     var ::k: int;
+//     var ::l: ::outer;
+//     var ::m: ::outer;
+//     match ::l {
+//         ::outer::b(i) => {
+//             match ::m {
+//                 ::outer::a(n) => {
+//                     if (::k == 0) {
+//                         match ::n {
+//                             ::inner::y(j) => {
+//                                 constraint (::i == ::j)
+//                             }
+//                             else => {
+//                             }
+//                         }
+//                     }
+//                 }
+//                 else => {
+//                 }
+//             }
+//         }
+//         else => {
+//         }
+//     }
+// }
+// >>>
+
+// flattened <<<
+// union ::inner = x | y(int) | z;
+// union ::outer = a(::inner) | b(int);
+//
+// predicate ::test {
+//     var ::k: int;
+//     var ::l: ::outer;
+//     var ::m: ::outer;
+//     constraint (!(UnTag(::l) == 1) || (!(UnTag(::m) == 0) || (!(::k == 0) || (!(UnTag(UnVal(::m, ::inner)) == 1) || (UnVal(::l, int) == UnVal(UnVal(::m, ::inner), int))))));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

@@ -1,0 +1,43 @@
+union inner = x | y(int) | z;
+union outer = a(inner) | b(int);
+
+predicate test {
+    var k: int;
+    var l: outer;
+    var m: outer;
+    constraint match l {
+        outer::b(i) => match m {
+            outer::a(n) => k == 0 ? match n {
+                inner::y(j) => i == j,
+                else => true,
+            } : true,
+            else => true,
+        },
+        else => true,
+    };
+}
+
+// parsed <<<
+// union ::inner = x | y(int) | z;
+// union ::outer = a(::inner) | b(int);
+//
+// predicate ::test {
+//     var ::k: int;
+//     var ::l: ::outer;
+//     var ::m: ::outer;
+//     constraint match ::l { ::outer::b(i) => match ::m { ::outer::a(n) => ((::k == 0) ? match ::n { ::inner::y(j) => (::i == ::j), else => true } : true), else => true }, else => true };
+// }
+// >>>
+
+// flattened <<<
+// union ::inner = x | y(int) | z;
+// union ::outer = a(::inner) | b(int);
+//
+// predicate ::test {
+//     var ::k: int;
+//     var ::l: ::outer;
+//     var ::m: ::outer;
+//     constraint ((UnTag(::l) == 1) ? ((UnTag(::m) == 0) ? ((::k == 0) ? ((UnTag(UnVal(::m, ::inner)) == 1) ? (UnVal(::l, int) == UnVal(UnVal(::m, ::inner), int)) : true) : true) : true) : true);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
