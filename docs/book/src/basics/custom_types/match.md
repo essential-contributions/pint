@@ -1,10 +1,12 @@
 ## The `match` Construct
 
-Pint has the extremely powerful construct `match` that allows you to compare a value that has a
-union type against a series of _patterns_ and then execute some code based on which pattern matches.
-Patterns are the different variants of the union. The power of `match` comes from the
-"de-structuring" of the patterns to extract their data and the fact that the compiler confirms that
-all possible variants are handled.
+Pint has the powerful construct `match` that allows you to inspect a value that has a union type and
+conditionally execute some code based on which union variant that union value matches. The power of
+`match` comes from the introduction of the union variant datum into a specific scope, and the fact
+that the compiler confirms that all possible variants are handled.
+
+Pint has both `match` expressions and `match` statements, the distinction between which is
+illustrated below.
 
 ### `match` as an Expression
 
