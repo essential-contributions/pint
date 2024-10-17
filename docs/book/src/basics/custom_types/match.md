@@ -32,9 +32,9 @@ In this particular example, the code associated with each arm is an expression, 
 value of the expression in the matching arm is the value that gets returned for the entire `match`
 expression.
 
-It is also possible to include `if` statements and `constraints` in the match arm code, but you must
-use curly brackets. For example, the following code requires the Boolean variable `is_lucky_penny`
-to be `true` if the value `coin` is a `Coin::Penny`.
+It is also possible to include `constraints` in the match arm code, but you must use curly brackets.
+For example, the following code requires the Boolean variable `is_lucky_penny` to be `true` if the
+value `coin` is a `Coin::Penny`.
 
 ```pint
 {{#include ../../../../../examples/ch_3_5_3.pnt:coins_2}}
