@@ -1374,8 +1374,13 @@ fn convert_match_block_statement(
             }))
         }
 
-        BlockStatement::Match(match_decl) => {
-            // This is a nested match decl and has its own scope.
+        BlockStatement::Match(mut match_decl) => {
+            // Replace the match expression first if need be.
+            if let Some((id, ty)) = binding {
+                replace_binding(contract, pred_key, union_expr, id, ty, &mut match_decl.match_expr);
+            }
+
+            // Recurse back to converting this nested match into if decls.
             convert_match_to_if_decl(handler, contract, pred_key, match_decl)
                 .map(BlockStatement::If)
         }
