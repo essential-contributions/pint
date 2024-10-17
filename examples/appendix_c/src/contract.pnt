@@ -1,7 +1,10 @@
+union U = A(int) | B | C(int[3]);
+
 storage {
     s0: b256,
     s1: { int, int },
     my_map: ( int => { int, int } ),
+    my_union: U
 }
 
 predicate Foo {

@@ -39,3 +39,4 @@
   - [A - Keywords](appendix/keywords.md)
   - [B - Compiler Intrinsics](appendix/intrinsics.md)
   - [C - Application Binary Interface (ABI) Spec](appendix/abi.md)
+  - [A - Known Issues and Missing Features](appendix/known_issues.md)

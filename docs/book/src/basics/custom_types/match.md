@@ -5,7 +5,7 @@ conditionally execute some code based on which union variant that union value ma
 `match` comes from the introduction of the union variant datum into a specific scope, and the fact
 that the compiler confirms that all possible variants are handled.
 
-Pint has both `match` expressions and `match` statements, the distinction between which is
+Pint has both `match` **expressions** and `match` **statements**, the distinction between which is
 illustrated below.
 
 ### `match` as an Expression
@@ -71,23 +71,23 @@ game.
 {{#include ../../../../../examples/ch_3_5_3.pnt:nested}}
 ```
 
-### `match` as a Declaration
+### `match` as a Statement
 
-In some cases, you may not need a `match` statement to return a value. Instead, you may simply want
+In some cases, you may not need a `match` to return a value. Instead, you may simply want
 to enforce conditional constraints based on which pattern matches the given value. Below is a
-rewrite of the previous example that uses `match` declarations. The code exhibits the exact same
-behavior as before but written different to showcase `match` declarations.
+rewrite of the previous example that uses `match` statements. The code exhibits the exact same
+behavior as before but written different to showcase `match` statements.
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_3.pnt:declaration}}
+{{#include ../../../../../examples/ch_3_5_3.pnt:statement}}
 ```
 
-Here, the top level `match` statement is a declaration; it does not return any value. Instead, it
-declares some constraints, each based on one or more conditions. .
+Here, the top level `match` is a statement, not an expression; it does not return any value.
+Instead, it declares some constraints, each based on one or more conditions. .
 
-- If `coin` matches `CoinFace::Penny(f)`, then we add another `match` declaration that includes
+- If `coin` matches `CoinFace::Penny(f)`, then we add another `match` statement that includes
   different constraints based on what pattern `f` matches.
-- If `coin` matches `CoinFace::Nickel(f)`, then we add an `if` declaration that also includes
+- If `coin` matches `CoinFace::Nickel(f)`, then we add an `if` statement that also includes
   different constraints based on whether `f` is equal to `Face::Head` or not.
 - If `coin` matches `CoinFace::Dime(f)`, then we add a single constraint that uses a select
   expression to compute the prize.
@@ -95,7 +95,7 @@ declares some constraints, each based on one or more conditions. .
   expression.
 
 As shown, nested `if` statements and `match` statements are allowed within `match` statement arms,
-as are `constraint` declarations.
+as are `constraint` statements.
 
 ### Matches are Exhaustive
 
@@ -132,16 +132,22 @@ Error: could not compile `ch_3_5_3.pnt` due to previous error
 
 The Pint compiler knows that we didn't cover every possible case, and even knows which pattern we
 forgot. Matches in Pint are _exhaustive_: we must exhaust every last possibility in order for the
-code to be valid. This is true for both `match` expressions and `match` declarations!
+code to be valid. This is true for both `match` expressions and `match` statements!
+
+### Catch-all Patterns
 
 In the case where not every variant is significant, `match` expressions and statements may employ an
 `else` arm. It must be declared last and will obviously have no value bound, and is useful to
 evaluate to a default value for `match` expressions, or to contain default declarations (or none)
 for `match` statements.
 
-To get the above to compile with a default value of zero, implying any other coins actually have no
-value, an `else` may be used as follows:
+To get the above example to compile with a default value of zero, implying any other coins actually
+have no value, an `else` may be used as follows:
 
 ```pint
 {{#include ../../../../../examples/ch_3_5_3.pnt:else_arm}}
 ```
+
+The code compiles, even though we haven't listed all the possible values a `Coins` can have, because
+the last pattern will match all values not specifically listed. This catch-all pattern meets the
+requirement that `match` must be exhaustive.

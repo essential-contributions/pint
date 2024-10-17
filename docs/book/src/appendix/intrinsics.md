@@ -8,27 +8,12 @@ available compiler intrinsics for the Essential VM:
 ---
 
 ```pint
-__this_address() -> b256
+__address_of(name: string) -> b256
 ```
 
-**Description:** Returns the content hash of this predicate.
-
----
-
-```pint
-__this_contract_address() -> b256
-```
-
-**Description:** Returns the content hash of the contract that this predicate belongs to.
-
----
-
-```pint
-__this_pathway() -> int
-```
-
-**Description:** Returns the "pathway" of this predicate. The pathway of a predicate is the index of
-the solution data currently being used to check the predicate.
+**Description:** Returns the content hash of predicate named `name` in the same contract. The name
+must be the full absolute path to the predicate, such as `::Foo`, and cannot be the name of the
+predicate it's used in.
 
 ---
 
@@ -44,12 +29,10 @@ content hash of the predicate itself
 ---
 
 ```pint
-__address_of(name: string) -> b256
+__recover_secp256k1(data_hash: b256, sig: { b256, b256, int }) -> { b256, int }
 ```
 
-**Description:** Returns the content hash of predicate named `name` in the same contract. The name
-must be the full absolute path to the predicate, such as `::Foo`, and cannot be the name of the
-predicate it's used in.
+**Description:** Recover the public key from a secp256k1 signature.
 
 ---
 
@@ -73,10 +56,37 @@ as storage accesses and paths to state variables.
 ---
 
 ```pint
+__this_address() -> b256
+```
+
+**Description:** Returns the content hash of this predicate.
+
+---
+
+```pint
+__this_contract_address() -> b256
+```
+
+**Description:** Returns the content hash of the contract that this predicate belongs to.
+
+---
+
+```pint
+__this_pathway() -> int
+```
+
+**Description:** Returns the "pathway" of this predicate. The pathway of a predicate is the index of
+the solution data currently being used to check the predicate.
+
+<!---
+Uncomment when we officially support storage vectors
+
+```pint
 __vec_len(vec: _[]) -> int
 ```
 
 **Description:** Returns the length of a storage vector.
+-->
 
 ---
 
@@ -87,9 +97,3 @@ __verify_ed25519(data: _, sig: { b256, b256 }, pub_key: b256) -> bool
 **Description:** Validate an Ed25519 signature against a public key.
 
 ---
-
-```pint
-__recover_secp256k1(data_hash: b256, sig: { b256, b256, int }) -> { b256, int }
-```
-
-**Description:** Recover the public key from a secp256k1 signature.
