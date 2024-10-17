@@ -1,4 +1,3 @@
-// <disabled>
 // ANCHOR: coins_1
 union Coin = Penny | Nickel | Dime | Quarter;
 
@@ -49,10 +48,10 @@ predicate CoinConversion3 {
 // ANCHOR_END: coins_3
 
 // ANCHOR: nested
-union Face = Head | Tail; 
-union CoinFace =  Penny(Face) 
-                | Nickel(Face) 
-                | Dime (Face) 
+union Face = Head | Tail;
+union CoinFace =  Penny(Face)
+                | Nickel(Face)
+                | Dime (Face)
                 | Quarter(Face);
 
 predicate CoinGame1 {
@@ -79,7 +78,7 @@ predicate CoinGame1 {
 }
 // ANCHOR_END: nested
 
-// ANCHOR: statement 
+// ANCHOR: statement
 predicate CoinGame2 {
     var coin: CoinFace;
 
@@ -114,7 +113,7 @@ predicate CoinGame2 {
         }
     }
 }
-// ANCHOR_END: statement 
+// ANCHOR_END: statement
 
 predicate Else {
 // ANCHOR: else_arm
