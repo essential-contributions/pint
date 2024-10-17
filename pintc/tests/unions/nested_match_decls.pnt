@@ -1,0 +1,92 @@
+union Face = Head | Tail;
+union CoinFace =  Penny(Face)
+                | Nickel(Face)
+                | Dime (Face)
+                | Quarter(Face);
+
+predicate CoinGame {
+    var coin: CoinFace;
+
+    var prize: int;
+
+    match coin {
+        CoinFace::Penny(f) => {
+            match f {
+                Face::Head => {
+                    constraint prize == 100;
+                }
+                Face::Tail => {
+                    constraint prize == 200;
+                }
+            }
+        }
+        CoinFace::Nickel(f) => {
+            if f == Face::Head {
+                constraint prize == 5 * 10;
+            } else {
+                constraint prize == 5 * 20;
+            }
+        }
+        CoinFace::Dime(f) => {
+            constraint f == Face::Head ? 10 * 5 : 10 * 10;
+        }
+        CoinFace::Quarter(f) => {
+            constraint prize == 25 * match f {
+                Face::Head => 1,
+                Face::Tail => 2,
+            };
+        }
+    }
+}
+
+// parsed <<<
+// union ::Face = Head | Tail;
+// union ::CoinFace = Penny(::Face) | Nickel(::Face) | Dime(::Face) | Quarter(::Face);
+//
+// predicate ::CoinGame {
+//     var ::coin: ::CoinFace;
+//     var ::prize: int;
+//     match ::coin {
+//         ::CoinFace::Penny(f) => {
+//             match ::f {
+//                 ::Face::Head => {
+//                     constraint (::prize == 100)
+//                 }
+//                 ::Face::Tail => {
+//                     constraint (::prize == 200)
+//                 }
+//             }
+//         }
+//         ::CoinFace::Nickel(f) => {
+//             if (::f == ::Face::Head) {
+//                 constraint (::prize == (5 * 10))
+//             } else {
+//                 constraint (::prize == (5 * 20))
+//             }
+//         }
+//         ::CoinFace::Dime(f) => {
+//             constraint ((::f == ::Face::Head) ? (10 * 5) : (10 * 10))
+//         }
+//         ::CoinFace::Quarter(f) => {
+//             constraint (::prize == (25 * match ::f { ::Face::Head => 1, ::Face::Tail => 2 }))
+//         }
+//     }
+// }
+// >>>
+
+// flattened <<<
+// union ::Face = Head | Tail;
+// union ::CoinFace = Penny(::Face) | Nickel(::Face) | Dime(::Face) | Quarter(::Face);
+//
+// predicate ::CoinGame {
+//     var ::coin: ::CoinFace;
+//     var ::prize: int;
+//     constraint (!(UnTag(::coin) == 0) || (!(UnTag(::f) == 0) || (::prize == 100)));
+//     constraint (!(UnTag(::coin) == 0) || ((UnTag(::f) == 0) || (!(UnTag(::f) == 1) || (::prize == 200))));
+//     constraint ((UnTag(::coin) == 0) || (!(UnTag(::coin) == 1) || (!(UnVal(::coin, ::Face) == ::Face::Head) || (::prize == (5 * 10)))));
+//     constraint ((UnTag(::coin) == 0) || (!(UnTag(::coin) == 1) || ((UnVal(::coin, ::Face) == ::Face::Head) || (::prize == (5 * 20)))));
+//     constraint ((UnTag(::coin) == 0) || ((UnTag(::coin) == 1) || (!(UnTag(::coin) == 2) || ((UnVal(::coin, ::Face) == ::Face::Head) ? (10 * 5) : (10 * 10)))));
+//     constraint ((UnTag(::coin) == 0) || ((UnTag(::coin) == 1) || ((UnTag(::coin) == 2) || (!(UnTag(::coin) == 3) || (::prize == (25 * ((UnTag(UnVal(::coin, ::Face)) == 0) ? 1 : 2)))))));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
