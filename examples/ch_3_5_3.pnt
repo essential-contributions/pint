@@ -115,3 +115,15 @@ predicate CoinGame2 {
     }
 }
 // ANCHOR_END: declaration 
+
+predicate Else {
+// ANCHOR: else_arm
+    var coins: Coins;
+    var coins_in_cents = match coins {
+        Coins::Penny(n) => n,
+        Coins::Nickel(n) => n * 5,
+        Coins::Quarter(n) => n * 25,
+        else => 0,
+    };
+// ANCHOR_END: else_arm
+}
