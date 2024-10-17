@@ -94,6 +94,8 @@ declares some constraints, each based on one or more conditions. .
 - If `coin` matches `CoinFace::Quarter(f)`, then we add a single constraint that relies on a `match`
   expression.
 
+As shown, nested `if` statements and `match` statements are allowed within `match` statement arms,
+as are `constraint` declarations.
 ### Matches are Exhaustive
 
 There’s one other aspect of `match` we need to discuss: the arms’ patterns must cover all
