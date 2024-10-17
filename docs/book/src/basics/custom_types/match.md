@@ -17,7 +17,7 @@ returns its value in cents:
 {{#include ../../../../../examples/ch_3_5_3.pnt:coins_1}}
 ```
 
-Let’s break down the `match` statement above. First we list the `match` keyword followed by an
+Let’s break down the `match` expression above. First we list the `match` keyword followed by an
 expression, which in this case is the value `coin`. This seems very similar to a conditional
 expression used with `cond`, but there’s a big difference: with `cond`, the condition needs to
 evaluate to a Boolean value, but here it has to be a union variant of `Coin` because this is the
