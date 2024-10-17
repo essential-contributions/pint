@@ -662,6 +662,12 @@ impl Predicate {
             .chain(self.states().map(|(_, state)| state.expr))
             .chain(self.interface_instances.iter().map(|ii| ii.address))
             .chain(self.predicate_instances.iter().filter_map(|pi| pi.address))
+            .chain(self.if_decls.iter().flat_map(|if_decl| if_decl.expr_iter()))
+            .chain(
+                self.match_decls
+                    .iter()
+                    .flat_map(|match_decl| match_decl.expr_iter()),
+            )
     }
 }
 
@@ -691,6 +697,20 @@ pub enum BlockStatement {
 }
 
 impl BlockStatement {
+    fn expr_iter(&self) -> BlockStatementExprs {
+        match self {
+            BlockStatement::Constraint(decl) => BlockStatementExprs {
+                iter: Box::new(std::iter::once(decl.expr)),
+            },
+            BlockStatement::If(decl) => BlockStatementExprs {
+                iter: Box::new(decl.expr_iter()),
+            },
+            BlockStatement::Match(decl) => BlockStatementExprs {
+                iter: Box::new(decl.expr_iter()),
+            },
+        }
+    }
+
     fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
         match self {
             BlockStatement::Constraint(ConstraintDecl { expr, .. }) => {
@@ -740,6 +760,18 @@ impl BlockStatement {
     }
 }
 
+struct BlockStatementExprs<'a> {
+    iter: Box<dyn Iterator<Item = ExprKey> + 'a>,
+}
+
+impl<'a> Iterator for BlockStatementExprs<'a> {
+    type Item = ExprKey;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct IfDecl {
     pub condition: ExprKey,
@@ -749,6 +781,16 @@ pub struct IfDecl {
 }
 
 impl IfDecl {
+    fn expr_iter(&self) -> impl Iterator<Item = ExprKey> + '_ {
+        std::iter::once(self.condition)
+            .chain(self.then_block.iter().flat_map(|block| block.expr_iter()))
+            .chain(
+                self.else_block
+                    .iter()
+                    .flat_map(|else_block| else_block.iter().flat_map(|block| block.expr_iter())),
+            )
+    }
+
     fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
         if self.condition == old_expr {
             self.condition = new_expr;
@@ -822,6 +864,20 @@ pub struct MatchDeclBranch {
 }
 
 impl MatchDecl {
+    fn expr_iter(&self) -> impl Iterator<Item = ExprKey> + '_ {
+        std::iter::once(self.match_expr)
+            .chain(
+                self.match_branches
+                    .iter()
+                    .flat_map(|branch| branch.block.iter().flat_map(|block| block.expr_iter())),
+            )
+            .chain(
+                self.else_branch
+                    .iter()
+                    .flat_map(|blocks| blocks.iter().flat_map(|block| block.expr_iter())),
+            )
+    }
+
     fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
         if self.match_expr == old_expr {
             self.match_expr = new_expr;
