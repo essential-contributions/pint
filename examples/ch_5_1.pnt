@@ -20,13 +20,13 @@ state arr_2_1 = storage::arr[2].1;
 // ANCHOR_END: storage_access_1
 
 // ANCHOR: state 
-state not_annotated = storage::x;
-state annotated: b256 = storage::a;
+state not_annotated = (storage::x * storage::w) + 1;
+state annotated: { b256, b256, int[3] } = { storage::a, storage::v.1.1, [ 1, 2, 3 ] };
 // ANCHOR_END: state 
 
 // ANCHOR: constraint
-state t_0 = storage::t.0;
-state y = storage::y;
+state t_0 = storage::t.0 + 1;
+state y = !storage::y;
 constraint y && t_0 >= 42;
 // ANCHOR_END: constraint
 

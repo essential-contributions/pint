@@ -677,12 +677,12 @@ impl<'a> ParserContext<'a> {
         Expr::IntrinsicCall {
             kind: (
                 match &name.name[..] {
+                    "__address_of" => IntrinsicKind::External(ExternalIntrinsic::AddressOf),
                     "__predicate_at" => IntrinsicKind::External(ExternalIntrinsic::PredicateAt),
                     "__recover_secp256k1" => {
                         IntrinsicKind::External(ExternalIntrinsic::RecoverSECP256k1)
                     }
                     "__sha256" => IntrinsicKind::External(ExternalIntrinsic::Sha256),
-                    "__address_of" => IntrinsicKind::External(ExternalIntrinsic::AddressOf),
                     "__size_of" => IntrinsicKind::External(ExternalIntrinsic::SizeOf),
                     "__this_address" => IntrinsicKind::External(ExternalIntrinsic::ThisAddress),
                     "__this_contract_address" => {

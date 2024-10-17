@@ -7,5 +7,5 @@ allow you to define a type by enumerating its possible _variants_.
 Both type aliases and union declarations must be made at the top level of a module, and are not
 allowed inside a `predicate` declaration.
 
-This chapter covers type aliases and unions. It also covers `match` statements which help reason
-about unions and their variants.
+This chapter covers type aliases and unions. It also covers `match` expressions and `match`
+statements which help reason about unions and their variants.

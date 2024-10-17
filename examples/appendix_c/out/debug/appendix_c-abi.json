@@ -89,6 +89,33 @@
           }
         }
       }
+    },
+    {
+      "name": "my_union",
+      "ty": {
+        "Union": {
+          "name": "::U",
+          "variants": [
+            {
+              "name": "U::A",
+              "ty": "Int"
+            },
+            {
+              "name": "U::B",
+              "ty": null
+            },
+            {
+              "name": "U::C",
+              "ty": {
+                "Array": {
+                  "ty": "Int",
+                  "size": 3
+                }
+              }
+            }
+          ]
+        }
+      }
     }
   ]
 }

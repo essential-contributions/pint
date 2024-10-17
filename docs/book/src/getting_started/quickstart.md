@@ -78,9 +78,9 @@ You should get something like this:
 
 ```console
    Compiling counter [contract] (/path/to/counter)
-    Finished build [debug] in 4.157208ms
-    contract counter            C276E4E5EAF789F82B671E53F0B202AE357C511F2B711E4921310946ACE63B7C
-         └── counter::Increment 3D7ABBA5C62DF177EFD61CA9D74ED055B29267404112583FA2E4C0D98B828149
+    Finished build [debug] in 5.470625ms
+    contract counter            1899743AA94972DDD137D039C2E670ADA63969ABF93191FA1A4506304D4033A2
+         └── counter::Increment 355A12DCB600C302FFD5D69C4B7B79E60BA3C72DDA553B7D43F4C36CB7CC0948
 ```
 
 Note the two 256-bit numbers in the output. These represent the _content hash_ (i.e. the `sha256` of

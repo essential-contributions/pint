@@ -67,9 +67,13 @@ We haven't really explained what a `state` variable is so this is probably a goo
 
 #### State Variables
 
-A state variable is a special type of variables that can only hold values read from storage. A
-`state` variable must **always** have an initializer and that initializer can only be a storage read
-expression. Type annotations for `state` declarations are optional:
+A state variable is a special type of variables that is allowed to hold values read from storage. A
+`state` variable must **always** have an initializer and that initializer can be an arbitrary
+expression that may or may not depend on one or more storage read expressions. **Storage read
+expressions are in fact not allowed anywhere else in Pint.**
+
+Type annotations for `state` declarations are optional. Here's a simple example that declares tow
+`state` variables:
 
 ```pint
 {{#include ../../../../examples/ch_5_1.pnt:state}}
@@ -88,8 +92,8 @@ actually _unknown_. By definition, decision variables are unknown at compile tim
 solve-time and they only become known _after_ the solving process is finished (if a solution is
 found). In contrast, `state` variables, while unknown at compile time, are actually known at
 solve-time: right before the solving process starts, every storage read expression is evaluated by
-directly inspecting the blockchain. The result is then assigned to the corresponding `state`
-variable which becomes known in preparation for solving.
+directly inspecting the blockchain. The result is then used in the corresponding `state` initializer
+expression which becomes known in preparation for solving.
 
 #### Next State
 

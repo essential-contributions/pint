@@ -79,7 +79,7 @@ predicate CoinGame1 {
 }
 // ANCHOR_END: nested
 
-// ANCHOR: declaration
+// ANCHOR: statement 
 predicate CoinGame2 {
     var coin: CoinFace;
 
@@ -114,7 +114,7 @@ predicate CoinGame2 {
         }
     }
 }
-// ANCHOR_END: declaration 
+// ANCHOR_END: statement 
 
 predicate Else {
 // ANCHOR: else_arm
