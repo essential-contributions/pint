@@ -1,0 +1,29 @@
+// ANCHOR: alias
+type Balance = int;
+// ANCHOR_END: alias
+
+predicate test0 {
+// ANCHOR: alias_same
+var x: int = 5;
+var y: Balance = 5;
+constraint x == y;
+// ANCHOR_END: alias_same
+}
+
+// ANCHOR: simple_struct
+type User = {
+    status: bool,
+    address: b256,
+    balance: int,
+};
+// ANCHOR_END: simple_struct
+
+predicate test1 {
+// ANCHOR: simple_struct_instance
+var user1: User = {
+    status: true,
+    address: 0x1111111111111111111111111111111111111111111111111111111111111111,
+    balance: 42,
+};
+// ANCHOR_END: simple_struct_instance
+}

@@ -1,0 +1,129 @@
+// <disabled>
+// ANCHOR: coins_1
+union Coin = Penny | Nickel | Dime | Quarter;
+
+predicate CoinConversion1 {
+    var coin: Coin;
+
+    var coin_in_cents = match coin {
+        Coin::Penny => 1,
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter => 25,
+    };
+}
+// ANCHOR_END: coins_1
+
+// ANCHOR: coins_2
+predicate CoinConversion2 {
+    var coin: Coin;
+    var is_lucky_penny: bool;
+
+    var coin_in_cents = match coin {
+        Coin::Penny => {
+            constraint is_lucky_penny;
+            1
+        },
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter => 25,
+    };
+}
+// ANCHOR_END: coins_2
+
+// ANCHOR: coins_union
+union Coins = Penny(int) | Nickel(int) | Dime(int) | Quarter(int);
+// ANCHOR_END: coins_union
+
+// ANCHOR: coins_3
+predicate CoinConversion3 {
+    var coins: Coins;
+
+    var coins_in_cents = match coins {
+        Coins::Penny(n) => n,
+        Coins::Nickel(n) => n * 5,
+        Coins::Dime(n) => n * 10,
+        Coins::Quarter(n) => n * 25,
+    };
+}
+// ANCHOR_END: coins_3
+
+// ANCHOR: nested
+union Face = Head | Tail; 
+union CoinFace =  Penny(Face) 
+                | Nickel(Face) 
+                | Dime (Face) 
+                | Quarter(Face);
+
+predicate CoinGame1 {
+    var coin: CoinFace;
+
+    var prize = match coin {
+        CoinFace::Penny(f) => match f {
+            Face::Head => 100,
+            Face::Tail => 200,
+        },
+        CoinFace::Nickel(f) => 5 * match f {
+            Face::Head => 10,
+            Face::Tail => 20,
+        },
+        CoinFace::Dime(f) => 10 * match f {
+            Face::Head => 5,
+            Face::Tail => 10,
+        },
+        CoinFace::Quarter(f) => 25 * match f {
+            Face::Head => 1,
+            Face::Tail => 2,
+        },
+    };
+}
+// ANCHOR_END: nested
+
+// ANCHOR: declaration
+predicate CoinGame2 {
+    var coin: CoinFace;
+
+    var prize: int;
+
+    match coin {
+        CoinFace::Penny(f) => {
+            match f {
+                Face::Head => {
+                    constraint prize == 100;
+                }
+                Face::Tail => {
+                    constraint prize == 200;
+                }
+            }
+        }
+        CoinFace::Nickel(f) => {
+            if f == Face::Head {
+                constraint prize == 5 * 10;
+            } else {
+                constraint prize == 5 * 20;
+            }
+        }
+        CoinFace::Dime(f) => {
+            constraint f == Face::Head ? 10 * 5 : 10 * 10;
+        }
+        CoinFace::Quarter(f) => {
+            constraint prize == 25 * match f {
+                Face::Head => 1,
+                Face::Tail => 2,
+            };
+        }
+    }
+}
+// ANCHOR_END: declaration 
+
+predicate Else {
+// ANCHOR: else_arm
+    var coins: Coins;
+    var coins_in_cents = match coins {
+        Coins::Penny(n) => n,
+        Coins::Nickel(n) => n * 5,
+        Coins::Quarter(n) => n * 25,
+        else => 0,
+    };
+// ANCHOR_END: else_arm
+}
