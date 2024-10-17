@@ -132,3 +132,14 @@ Error: could not compile `ch_3_5_3.pnt` due to previous error
 The Pint compiler knows that we didn't cover every possible case, and even knows which pattern we
 forgot. Matches in Pint are _exhaustive_: we must exhaust every last possibility in order for the
 code to be valid. This is true for both `match` expressions and `match` declarations!
+
+In the case where not every variant is significant, `match` expressions and statements may employ an
+`else` arm.  It must be declared last and will obviously have no value bound, and is useful to
+evaluate to a default value for `match` expressions, or to contain default declarations (or none)
+for `match` statements.
+
+To get the above to compile with a default value of zero, implying any other coins actually have no value, an 
+`else` may be used as follows:
+
+```pint
+{{#include ../../../../../examples/ch_3_5_3.pnt:else_arm}}
