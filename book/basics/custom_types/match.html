@@ -227,10 +227,10 @@ to <code>Coin::Nickel(42)</code>, then we expect <code>coins_in_cents</code> to 
 <p>Note that <code>match</code> expressions can be nested. Here's an example that has nested unions and nested
 <code>match</code> expressions to compute a <code>prize</code> given a coin and the face it landed on in a head-or-tails
 game.</p>
-<pre><code class="language-pint">union Face = Head | Tail; 
-union CoinFace =  Penny(Face) 
-                | Nickel(Face) 
-                | Dime (Face) 
+<pre><code class="language-pint">union Face = Head | Tail;
+union CoinFace =  Penny(Face)
+                | Nickel(Face)
+                | Dime (Face)
                 | Quarter(Face);
 
 predicate CoinGame1 {
