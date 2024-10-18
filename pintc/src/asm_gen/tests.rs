@@ -3588,3 +3588,113 @@ predicate Foo {
         "#]],
     );
 }
+
+#[test]
+fn nested_match() {
+    check(
+        &compile(
+            r#"
+union inner = x | y(int) | z;
+union outer = a(inner) | b(int);
+
+predicate test {
+    var k: int;
+    var l: outer;
+    var m: outer;
+    match l {
+        outer::b(i) => {
+            match m {
+                outer::a(n) => {
+                    if k == 0 {
+                        match n {
+                            inner::y(j) => {
+                                constraint i == j;
+                            }
+                            else => {}
+                        }
+                    }
+                }
+                else => {}
+            }
+        }
+        else => {}
+    }
+}
+            "#,
+        )
+        .to_string(),
+        expect_test::expect![[r#"
+            predicate ::test {
+                --- Constraints ---
+                constraint 0
+                  Stack(Push(1))
+                  Stack(Push(52))
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Pred(Eq)
+                  Pred(Not)
+                  TotalControlFlow(JumpForwardIf)
+                  Stack(Pop)
+                  Stack(Push(1))
+                  Stack(Push(41))
+                  Stack(Push(2))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Stack(Push(0))
+                  Pred(Eq)
+                  Pred(Not)
+                  TotalControlFlow(JumpForwardIf)
+                  Stack(Pop)
+                  Stack(Push(1))
+                  Stack(Push(30))
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Stack(Push(0))
+                  Pred(Eq)
+                  Pred(Not)
+                  TotalControlFlow(JumpForwardIf)
+                  Stack(Pop)
+                  Stack(Push(1))
+                  Stack(Push(17))
+                  Stack(Push(2))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Alu(Add)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Pred(Eq)
+                  Pred(Not)
+                  TotalControlFlow(JumpForwardIf)
+                  Stack(Pop)
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Alu(Add)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Stack(Push(2))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Alu(Add)
+                  Stack(Push(1))
+                  Alu(Add)
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Pred(Eq)
+                constraint 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                --- State Reads ---
+            }
+
+        "#]],
+    );
+}

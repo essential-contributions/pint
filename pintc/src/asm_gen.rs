@@ -26,7 +26,7 @@ pub fn compile_contract(
     handler: &Handler,
     contract: &Contract,
 ) -> Result<CompiledContract, ErrorEmitted> {
-    // This is a dependnecy graph between predicates. Predicates may depend on other predicates via
+    // This is a dependency graph between predicates. Predicates may depend on other predicates via
     // predicate instances that reference other predicates in the same contract
     let mut dep_graph = Graph::<String, ()>::new();
 
