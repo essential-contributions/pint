@@ -1,0 +1,9 @@
+[package]
+name = "unions"
+kind = "contract"
+
+[dependencies]
+# Library dependencies go here.
+
+[contract-dependencies]
+# Contract dependencies go here.

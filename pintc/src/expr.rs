@@ -1,7 +1,7 @@
 use crate::{
-    predicate::{CallKey, ExprKey},
+    predicate::{CallKey, ExprKey, UnionKey},
     span::{empty_span, Span, Spanned},
-    types::{Path, PrimitiveKind, Type},
+    types::{PrimitiveKind, Type},
 };
 pub(crate) use intrinsics::{ExternalIntrinsic, InternalIntrinsic, IntrinsicKind};
 
@@ -28,19 +28,19 @@ pub enum Expr {
         span: Span,
     },
     UnionVariant {
-        path: Path,
+        path: String,
         path_span: Span,
         value: Option<ExprKey>,
         span: Span,
     },
-    Path(Path, Span),
+    Path(String, Span),
     StorageAccess {
         name: String,
         mutable: bool,
         span: Span,
     },
     ExternalStorageAccess {
-        interface_instance: Path,
+        interface_instance: String,
         name: String,
         span: Span,
     },
@@ -57,7 +57,7 @@ pub enum Expr {
     },
     MacroCall {
         call: CallKey,
-        path: Path,
+        path: String,
         span: Span,
     },
     IntrinsicCall {
@@ -136,7 +136,7 @@ pub enum TupleAccess {
 
 #[derive(Clone, Debug)]
 pub struct MatchBranch {
-    pub(super) name: Path,
+    pub(super) name: String,
     pub(super) name_span: Span,
     pub(super) binding: Option<Ident>,
     pub(super) constraints: Vec<ExprKey>,
@@ -164,7 +164,7 @@ pub enum Immediate {
         tag_num: i64,
         value_size: usize,
         value: Option<Box<Immediate>>,
-        ty_path: Path,
+        decl: UnionKey,
     },
 }
 
@@ -198,10 +198,7 @@ impl Immediate {
                 span,
             },
 
-            Immediate::UnionVariant { ty_path, .. } => Type::Union {
-                path: ty_path.to_string(),
-                span,
-            },
+            Immediate::UnionVariant { decl, .. } => Type::Union { decl: *decl, span },
 
             _ => Type::Primitive {
                 kind: match self {

@@ -7,33 +7,30 @@ use crate::{
 use fxhash::FxHashSet;
 
 impl Contract {
-    // Ensure that every `Type::Custom` in the program is actually defined as an enum or as a type
-    // alias. Otherwise, collect an error for every violation.
+    // Ensure that every `Type::Custom` in the program has been removed.  They should already be
+    // lowered into aliases or unions.
     pub(in crate::predicate::analyse) fn check_undefined_types(
         &mut self,
         handler: &Handler,
     ) -> Result<(), ErrorEmitted> {
-        // Helper function that searches for nested undefined type in a given type. It relies on
-        // `valid_custom_tys`, which is a set of all custom types that are defined in the contract.
-        fn check_custom_type(ty: &Type, handler: &Handler, valid_custom_tys: &FxHashSet<&String>) {
+        // Helper function that searches for nested undefined type in a given type.
+        fn check_custom_type(ty: &Type, handler: &Handler) {
             match ty {
-                Type::Array { ty, .. } => check_custom_type(ty, handler, valid_custom_tys),
+                Type::Array { ty, .. } => check_custom_type(ty, handler),
                 Type::Tuple { fields, .. } => fields
                     .iter()
-                    .for_each(|(_, field)| check_custom_type(field, handler, valid_custom_tys)),
-                Type::Custom { path, span, .. } => {
-                    if !valid_custom_tys.contains(&path) {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::UndefinedType { span: span.clone() },
-                        });
-                    }
+                    .for_each(|(_, field)| check_custom_type(field, handler)),
+                Type::Custom { span, .. } => {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::UndefinedType { span: span.clone() },
+                    });
                 }
-                Type::Alias { ty, .. } => check_custom_type(ty, handler, valid_custom_tys),
+                Type::Alias { ty, .. } => check_custom_type(ty, handler),
                 Type::Map { ty_from, ty_to, .. } => {
-                    check_custom_type(ty_from, handler, valid_custom_tys);
-                    check_custom_type(ty_to, handler, valid_custom_tys);
+                    check_custom_type(ty_from, handler);
+                    check_custom_type(ty_to, handler);
                 }
-                Type::Vector { ty, .. } => check_custom_type(ty, handler, valid_custom_tys),
+                Type::Vector { ty, .. } => check_custom_type(ty, handler),
                 Type::Error(_)
                 | Type::Unknown(_)
                 | Type::Any(_)
@@ -42,43 +39,33 @@ impl Contract {
             }
         }
 
-        // The set of all available custom types. These are either unions or type aliases.
-        let valid_custom_tys: FxHashSet<&String> = FxHashSet::from_iter(
-            self.unions
-                .iter()
-                .map(|un| &un.name.name)
-                .chain(self.new_types.iter().map(|ntd| &ntd.name.name)),
-        );
-
         // Now, check decision variables, state variables, and cast expressions, in every predicate
         for (pred_key, pred) in self.preds.iter() {
-            pred.states().for_each(|(state_key, _)| {
-                check_custom_type(state_key.get_ty(pred), handler, &valid_custom_tys)
-            });
+            pred.states()
+                .for_each(|(state_key, _)| check_custom_type(state_key.get_ty(pred), handler));
 
-            pred.vars().for_each(|(var_key, _)| {
-                check_custom_type(var_key.get_ty(pred), handler, &valid_custom_tys)
-            });
+            pred.vars()
+                .for_each(|(var_key, _)| check_custom_type(var_key.get_ty(pred), handler));
 
             self.exprs(pred_key).for_each(|expr_key| {
-                check_custom_type(expr_key.get_ty(self), handler, &valid_custom_tys);
+                check_custom_type(expr_key.get_ty(self), handler);
 
                 if let Some(Expr::Cast { ty, .. }) = expr_key.try_get(self) {
-                    check_custom_type(ty, handler, &valid_custom_tys);
+                    check_custom_type(ty, handler);
                 }
             });
         }
 
         // Check all constants
-        self.consts.values().for_each(|Const { decl_ty, .. }| {
-            check_custom_type(decl_ty, handler, &valid_custom_tys)
-        });
+        self.consts
+            .values()
+            .for_each(|Const { decl_ty, .. }| check_custom_type(decl_ty, handler));
 
         // Check all unions.
-        for UnionDecl { variants, .. } in &self.unions {
+        for UnionDecl { variants, .. } in self.unions.values() {
             for variant in variants {
                 if let Some(ty) = &variant.ty {
-                    check_custom_type(ty, handler, &valid_custom_tys);
+                    check_custom_type(ty, handler);
                 }
             }
         }
@@ -87,7 +74,7 @@ impl Contract {
         if let Some((storage_vars, _)) = self.storage.as_ref() {
             storage_vars
                 .iter()
-                .for_each(|StorageVar { ty, .. }| check_custom_type(ty, handler, &valid_custom_tys))
+                .for_each(|StorageVar { ty, .. }| check_custom_type(ty, handler))
         }
 
         // Check storage variables and public decision variables in every interface
@@ -98,18 +85,16 @@ impl Contract {
                  ..
              }| {
                 if let Some((storage_vars, _)) = &storage {
-                    storage_vars.iter().for_each(|StorageVar { ty, .. }| {
-                        check_custom_type(ty, handler, &valid_custom_tys)
-                    });
+                    storage_vars
+                        .iter()
+                        .for_each(|StorageVar { ty, .. }| check_custom_type(ty, handler));
                 }
 
                 predicate_interfaces.iter().for_each(|predicate_interface| {
                     predicate_interface
                         .vars
                         .iter()
-                        .for_each(|InterfaceVar { ty, .. }| {
-                            check_custom_type(ty, handler, &valid_custom_tys)
-                        });
+                        .for_each(|InterfaceVar { ty, .. }| check_custom_type(ty, handler));
                 });
             },
         );
@@ -117,7 +102,7 @@ impl Contract {
         // Check every type alias declaration
         self.new_types
             .iter()
-            .for_each(|NewTypeDecl { ty, .. }| check_custom_type(ty, handler, &valid_custom_tys));
+            .for_each(|NewTypeDecl { ty, .. }| check_custom_type(ty, handler));
 
         handler.result(())
     }
@@ -288,7 +273,7 @@ impl Contract {
                 if !var_decl_ty.is_unknown() {
                     let init_ty = init_expr_key.get_ty(self);
 
-                    if !var_decl_ty.eq(&self.new_types, init_ty) {
+                    if !var_decl_ty.eq(self, init_ty) {
                         handler.emit_err(Error::Compile {
                             error: CompileError::InitTypeError {
                                 init_kind: "variable",
@@ -315,7 +300,7 @@ impl Contract {
         {
             let init_ty = init_expr_key.get_ty(self);
 
-            if !init_ty.eq(&self.new_types, decl_ty) {
+            if !init_ty.eq(self, decl_ty) {
                 handler.emit_err(Error::Compile {
                     error: CompileError::InitTypeError {
                         init_kind: "const",

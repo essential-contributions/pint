@@ -8,7 +8,7 @@ use crate::{
         PredicateInstance, StorageVar, SymbolTable, Var,
     },
     span::{self, Span},
-    types::{Path, PrimitiveKind, Type},
+    types::{PrimitiveKind, Type},
 };
 use std::collections::BTreeMap;
 
@@ -422,7 +422,7 @@ impl<'a> ParserContext<'a> {
         last: Ident,
         maybe_enum: bool,
         span: Span,
-    ) -> Path {
+    ) -> String {
         if !els.is_empty() {
             let path: Vec<_> = els.iter().map(|el| el.to_string()).collect();
             self.next_paths.push(NextModPath {
@@ -457,7 +457,7 @@ impl<'a> ParserContext<'a> {
         last: Ident,
         maybe_enum: bool,
         span: Span,
-    ) -> Path {
+    ) -> String {
         // Check if any of the use statement matches the path. This requires
         // that the alias (if it exists) or the last ident in the use statement
         // matches the first ident in the path.
@@ -677,12 +677,12 @@ impl<'a> ParserContext<'a> {
         Expr::IntrinsicCall {
             kind: (
                 match &name.name[..] {
+                    "__address_of" => IntrinsicKind::External(ExternalIntrinsic::AddressOf),
                     "__predicate_at" => IntrinsicKind::External(ExternalIntrinsic::PredicateAt),
                     "__recover_secp256k1" => {
                         IntrinsicKind::External(ExternalIntrinsic::RecoverSECP256k1)
                     }
                     "__sha256" => IntrinsicKind::External(ExternalIntrinsic::Sha256),
-                    "__address_of" => IntrinsicKind::External(ExternalIntrinsic::AddressOf),
                     "__size_of" => IntrinsicKind::External(ExternalIntrinsic::SizeOf),
                     "__this_address" => IntrinsicKind::External(ExternalIntrinsic::ThisAddress),
                     "__this_contract_address" => {

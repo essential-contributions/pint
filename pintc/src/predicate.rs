@@ -2,7 +2,7 @@ use crate::{
     error::{Error, ErrorEmitted, Handler, ParseError},
     expr::{Expr, Ident, Immediate, MatchBranch, MatchElse},
     span::{empty_span, Span, Spanned},
-    types::{EphemeralDecl, NewTypeDecl, Path, Type, UnionDecl, UnionVariant},
+    types::{EphemeralDecl, NewTypeDecl, Type, UnionDecl, UnionVariant},
 };
 use exprs::ExprsIter;
 use pint_abi_types::{ContractABI, PredicateABI, VarABI};
@@ -25,6 +25,7 @@ pub use states::{State, StateKey, States};
 pub use vars::{Var, VarKey, Vars};
 
 slotmap::new_key_type! { pub struct PredKey; }
+slotmap::new_key_type! { pub struct UnionKey; }
 slotmap::new_key_type! { pub struct CallKey; }
 
 /// A Contract is a collection of predicates and some global consts.
@@ -37,7 +38,7 @@ pub struct Contract {
     pub storage: Option<(Vec<StorageVar>, Span)>,
     pub interfaces: Vec<Interface>,
 
-    pub unions: Vec<UnionDecl>,
+    pub unions: slotmap::SlotMap<UnionKey, UnionDecl>,
     pub new_types: Vec<NewTypeDecl>,
 
     removed_macro_calls: slotmap::SecondaryMap<ExprKey, Span>,
@@ -289,6 +290,89 @@ impl Contract {
         }
     }
 
+    // Apply a mutating closure to every single type in the contract.
+    pub fn update_types(&mut self, f: impl Fn(&mut Type), skip_new_types: bool) {
+        // Update every expression type in the contract.
+        self.exprs.update_types(|_, expr_ty| f(expr_ty));
+
+        // Loop for each predicate and update their var types and state types.
+        self.preds
+            .keys()
+            .collect::<Vec<_>>()
+            .iter()
+            .for_each(|pred_key| {
+                if let Some(pred) = self.preds.get_mut(*pred_key) {
+                    pred.vars.update_types(|_, var_ty| f(var_ty));
+                    pred.states.update_types(|_, state_ty| f(state_ty));
+                }
+            });
+
+        // Update every declared const type.
+        self.consts
+            .values_mut()
+            .for_each(|Const { decl_ty, .. }| f(decl_ty));
+
+        // Update every union decl variant type.
+        for UnionDecl { variants, .. } in self.unions.values_mut() {
+            for variant in variants {
+                if let Some(variant_ty) = &mut variant.ty {
+                    f(variant_ty);
+                }
+            }
+        }
+
+        // Update every alias type.
+        if !skip_new_types {
+            for NewTypeDecl { ty, .. } in &mut self.new_types {
+                f(ty);
+            }
+        }
+
+        // Update every cast or union variant expression types.
+        self.exprs.update_exprs(|_, expr| {
+            if let Expr::Cast { ty, .. } = expr {
+                f(ty);
+            }
+
+            if let Expr::UnionValue { variant_ty, .. } = expr {
+                f(variant_ty);
+            }
+        });
+
+        // Update every storage variable type.
+        if let Some((storage_vars, _)) = self.storage.as_mut() {
+            storage_vars.iter_mut().for_each(|StorageVar { ty, .. }| {
+                f(ty);
+            })
+        }
+
+        // Update every type found in interface instance decls.
+        self.interfaces.iter_mut().for_each(
+            |Interface {
+                 storage,
+                 predicate_interfaces,
+                 ..
+             }| {
+                // Update every storage variable in the interface.
+                if let Some((storage_vars, _)) = storage.as_mut() {
+                    storage_vars
+                        .iter_mut()
+                        .for_each(|StorageVar { ty, .. }| f(ty));
+                }
+
+                // Update every decision variable in the interface.
+                predicate_interfaces
+                    .iter_mut()
+                    .for_each(|predicate_interface| {
+                        predicate_interface
+                            .vars
+                            .iter_mut()
+                            .for_each(|InterfaceVar { ty, .. }| f(ty));
+                    });
+            },
+        );
+    }
+
     /// Generates a `ContractABI` given a `Contract`
     pub fn abi(&self, handler: &Handler) -> Result<ContractABI, ErrorEmitted> {
         Ok(ContractABI {
@@ -349,7 +433,7 @@ impl Contract {
 
     /// Returns an external `StorageVar` given an interface name and a var name. Panics if anything
     /// goes wrong.
-    pub fn external_storage_var(&self, interface: &Path, name: &String) -> (usize, &StorageVar) {
+    pub fn external_storage_var(&self, interface: &String, name: &String) -> (usize, &StorageVar) {
         // Get the `interface` declaration that the storage access refers to
         let interface = &self
             .interfaces
@@ -412,7 +496,7 @@ impl Contract {
             .chain(
                 self.unions
                     .iter()
-                    .flat_map(|UnionDecl { variants, .. }| {
+                    .flat_map(|(_key, UnionDecl { variants, .. })| {
                         variants.iter().flat_map(|UnionVariant { ty, .. }| ty)
                     })
                     .flat_map(|ty| ty.get_all_array_range_exprs()),
@@ -444,7 +528,7 @@ pub struct Predicate {
     pub var_inits: slotmap::SecondaryMap<VarKey, ExprKey>,
 
     // CallKey is used in a secondary map in the parser context to access the actual call data.
-    pub calls: slotmap::SlotMap<CallKey, Path>,
+    pub calls: slotmap::SlotMap<CallKey, String>,
 
     // A list of all availabe interface instances
     pub interface_instances: Vec<InterfaceInstance>,
@@ -578,6 +662,12 @@ impl Predicate {
             .chain(self.states().map(|(_, state)| state.expr))
             .chain(self.interface_instances.iter().map(|ii| ii.address))
             .chain(self.predicate_instances.iter().filter_map(|pi| pi.address))
+            .chain(self.if_decls.iter().flat_map(|if_decl| if_decl.expr_iter()))
+            .chain(
+                self.match_decls
+                    .iter()
+                    .flat_map(|match_decl| match_decl.expr_iter()),
+            )
     }
 }
 
@@ -607,6 +697,20 @@ pub enum BlockStatement {
 }
 
 impl BlockStatement {
+    fn expr_iter(&self) -> BlockStatementExprs {
+        match self {
+            BlockStatement::Constraint(decl) => BlockStatementExprs {
+                iter: Box::new(std::iter::once(decl.expr)),
+            },
+            BlockStatement::If(decl) => BlockStatementExprs {
+                iter: Box::new(decl.expr_iter()),
+            },
+            BlockStatement::Match(decl) => BlockStatementExprs {
+                iter: Box::new(decl.expr_iter()),
+            },
+        }
+    }
+
     fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
         match self {
             BlockStatement::Constraint(ConstraintDecl { expr, .. }) => {
@@ -656,6 +760,18 @@ impl BlockStatement {
     }
 }
 
+struct BlockStatementExprs<'a> {
+    iter: Box<dyn Iterator<Item = ExprKey> + 'a>,
+}
+
+impl<'a> Iterator for BlockStatementExprs<'a> {
+    type Item = ExprKey;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct IfDecl {
     pub condition: ExprKey,
@@ -665,6 +781,16 @@ pub struct IfDecl {
 }
 
 impl IfDecl {
+    fn expr_iter(&self) -> impl Iterator<Item = ExprKey> + '_ {
+        std::iter::once(self.condition)
+            .chain(self.then_block.iter().flat_map(|block| block.expr_iter()))
+            .chain(
+                self.else_block
+                    .iter()
+                    .flat_map(|else_block| else_block.iter().flat_map(|block| block.expr_iter())),
+            )
+    }
+
     fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
         if self.condition == old_expr {
             self.condition = new_expr;
@@ -731,13 +857,27 @@ pub struct MatchDecl {
 
 #[derive(Clone, Debug)]
 pub struct MatchDeclBranch {
-    pub name: Path,
+    pub name: String,
     pub name_span: Span,
     pub binding: Option<Ident>,
     pub block: Vec<BlockStatement>,
 }
 
 impl MatchDecl {
+    fn expr_iter(&self) -> impl Iterator<Item = ExprKey> + '_ {
+        std::iter::once(self.match_expr)
+            .chain(
+                self.match_branches
+                    .iter()
+                    .flat_map(|branch| branch.block.iter().flat_map(|block| block.expr_iter())),
+            )
+            .chain(
+                self.else_branch
+                    .iter()
+                    .flat_map(|blocks| blocks.iter().flat_map(|block| block.expr_iter())),
+            )
+    }
+
     fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
         if self.match_expr == old_expr {
             self.match_expr = new_expr;
@@ -868,7 +1008,7 @@ pub struct InterfaceVar {
 #[derive(Clone, Debug)]
 pub struct InterfaceInstance {
     pub name: Ident,
-    pub interface: Path,
+    pub interface: String,
     pub address: ExprKey,
     pub span: Span,
 }
@@ -877,7 +1017,7 @@ pub struct InterfaceInstance {
 #[derive(Clone, Debug)]
 pub struct PredicateInstance {
     pub name: Ident,
-    pub interface_instance: Option<Path>,
+    pub interface_instance: Option<String>,
     pub predicate: Ident,
     pub address: Option<ExprKey>,
     pub span: Span,

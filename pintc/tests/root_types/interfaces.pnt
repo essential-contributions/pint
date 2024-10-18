@@ -37,7 +37,7 @@ predicate test {
 
 // flattened <<<
 // type ::num = int;
-// type ::ary = ::num (int)[3];
+// type ::ary = int[3];
 // interface ::i {
 //     storage {
 //         x: int[3],

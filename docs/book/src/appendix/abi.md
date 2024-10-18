@@ -67,6 +67,32 @@ the type. Below is a list of the JSON objects for each possible type:
 "B256"
 ```
 
+#### Union
+
+```json
+{
+  "Union": {
+    "name": <union_name>,
+    "variants": [
+      {
+        "name": <variant1_name>,
+        "ty": <variant1_ty>
+      },
+      {
+        "name": <variant2_name>,
+        "ty": <variant2_ty>
+      },
+      ...
+    ]
+  }
+}
+```
+
+In the above, `<variant1_name>`, `<variant2_name>`, ... are strings representing the names of the
+union variants. `<variant1_ty>`, `<variant2_ty>`, ... are JSON objects representing the types of the
+tuple fields, formatted according to the rules of this section. These are optional, that is, they
+can be set to `null` if the corresponding variants don't hold any values.
+
 #### Tuple
 
 ```json
@@ -86,9 +112,9 @@ the type. Below is a list of the JSON objects for each possible type:
 ```
 
 In the above, `<field1_name>`, `<field2_name>`, ... are strings representing the names of the tuple
-fields. These are optional, that is, they can be set to `null` if the tuple field has no name.
-`<field1_ty.`, `<field2_ty>`, ... are JSON objects representing the types of the tuple fields,
-formatted according to the rules of this section.
+fields. These are optional, that is, they can be set to `null` if the corresponding tuple fields
+have no names. `<field1_ty.`, `<field2_ty>`, ... are JSON objects representing the types of the
+tuple fields, formatted according to the rules of this section.
 
 #### Array
 
@@ -146,3 +172,4 @@ Here's how we would interpret this JSON ABI:
   - The first is called `s0` and is of type `b256`.
   - The second is called `s1` and is a tuple of two `int`s.
   - The third is called `my_map` and is a storage map from `int` to a tuple of two `int`s.
+  - The fourth is called `my_union` and is a union with three variants `U::A`, `U::B`, and `U::C`.

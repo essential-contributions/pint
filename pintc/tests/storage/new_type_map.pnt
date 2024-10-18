@@ -22,7 +22,7 @@ storage {
 // flattened <<<
 // type ::MyMap = ( int => int );
 // type ::MyInt = int;
-// type ::MyNestMap = ( ::MyInt (int) => int );
+// type ::MyNestMap = ( int => int );
 // storage {
 //     m: ( int => int ),
 //     n: int,

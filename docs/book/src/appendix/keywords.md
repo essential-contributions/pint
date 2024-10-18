@@ -22,6 +22,7 @@ modules, or types.
 - `int` - basic integer type
 - `interface` - declare an external interface
 - `macro` - define a macro
+- `match` - match a value to patterns
 - `mut` - allows a storage location to be mutable
 - `nil` - an _empty_ storage value
 - `predicate` - define a predicate

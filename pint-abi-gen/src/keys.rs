@@ -21,7 +21,12 @@ fn nested_items_from_node(tree: &KeyedVarTree, n: NodeIx) -> Vec<syn::Item> {
         TypeABI::Tuple(_fields) => {
             items.extend(tuple::keys_items(tree, n));
         }
-        TypeABI::Bool | TypeABI::Int | TypeABI::Real | TypeABI::String | TypeABI::B256 => (),
+        TypeABI::Bool
+        | TypeABI::Int
+        | TypeABI::Real
+        | TypeABI::String
+        | TypeABI::B256
+        | TypeABI::Union { .. } => (),
     }
     items
 }
@@ -128,7 +133,12 @@ fn method_for_single_key(name: &str, nesting: &[Nesting]) -> syn::ImplItemFn {
 pub(crate) fn method_from_node(tree: &KeyedVarTree, n: NodeIx, name: &str) -> syn::ImplItemFn {
     let nesting = tree.nesting(n);
     match &tree[n].ty {
-        TypeABI::Bool | TypeABI::Int | TypeABI::Real | TypeABI::String | TypeABI::B256 => (),
+        TypeABI::Bool
+        | TypeABI::Int
+        | TypeABI::Real
+        | TypeABI::String
+        | TypeABI::B256
+        | TypeABI::Union { .. } => (),
         TypeABI::Array { ty: _, size: _ } => {
             return method_for_array(name, &nesting);
         }
@@ -236,6 +246,7 @@ fn items(vars: &[VarABI]) -> Vec<syn::Item> {
 /// A `keys` module for all `Keys`-related items.
 pub(crate) fn module(vars: &[VarABI]) -> syn::ItemMod {
     let items = items(vars);
+
     syn::parse_quote! {
         pub mod keys {
             //! All items related to building a set of [`Keys`].

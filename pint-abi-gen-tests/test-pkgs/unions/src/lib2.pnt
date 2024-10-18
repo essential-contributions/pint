@@ -1,0 +1,4 @@
+use ::lib3::foo::TT;
+
+union A = B | C;
+union D = E(TT) | F;

@@ -24,7 +24,7 @@ predicate test {
 
 // flattened <<<
 // const ::b: bool[11] = [true, true, false, true, false, false, false, true, false, false, false];
-// const ::a: ::node = ::node::<1>({11, false});
+// const ::a: ::node = ::node::sure({11, false});
 // union ::node = nope | sure({int, bool});
 //
 // predicate ::test {

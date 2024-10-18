@@ -6,3 +6,4 @@ pub mod array;
 pub mod counter;
 pub mod pub_vars;
 pub mod simple;
+pub mod unions;

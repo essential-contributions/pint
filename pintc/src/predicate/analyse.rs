@@ -46,8 +46,10 @@ impl Contract {
             return Err(handler.cancel());
         }
 
+        handler.scope(|handler| self.lower_custom_types(handler))?;
+
+        // TODO: remove the following, merge into lower_custom_types()?
         let _ = handler.scope(|handler| self.check_undefined_types(handler));
-        let _ = handler.scope(|handler| self.lower_custom_types(handler));
         let _ = handler.scope(|handler| self.check_storage_types(handler));
         let _ = handler.scope(|handler| self.type_check_all(handler));
         let _ = handler.scope(|handler| self.check_types_of_variables(handler));
@@ -78,7 +80,7 @@ impl Contract {
         // performing N-1 evaluation passes for N consts should resolve all dependencies and in
         // most cases will be done in only 1 or 2 passes.
 
-        let mut evaluator = Evaluator::new(&self.unions);
+        let mut evaluator = Evaluator::new(self);
         let mut new_immediates = Vec::default();
 
         // Use a temporary error handler to manage in-progress errors.

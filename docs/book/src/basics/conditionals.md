@@ -6,6 +6,9 @@ word "branch" is between quotations because Pint is **not** an imperative langua
 "execute" code. Therefore, conditionals are simply a way of saying: "choose between some expressions
 or some constraints based on some condition(s)".
 
+Pint also has `match` statements that are useful to reason about _unions_. Both unions and `match`
+will be discussed separately in [Chapter 3.5](custom_types.md)
+
 ### Select Expressions
 
 A select expression allows you to select between two alternatives based on a condition. The two

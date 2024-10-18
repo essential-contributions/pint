@@ -37,7 +37,7 @@ predicate Bar {
 // flattened <<<
 // union ::MyUnion = A | B;
 // type ::MyType = ::MyUnion;
-// 
+//
 // predicate ::Foo {
 //     var ::x: int;
 //     var ::y: ::MyUnion;
@@ -45,11 +45,11 @@ predicate Bar {
 //     constraint (::x == 3);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-// 
+//
 // predicate ::Bar {
 //     var ::x: int;
 //     var ::y: ::MyUnion;
-//     constraint (::y == ::MyType::A);
+//     constraint (::y == ::MyUnion::A);
 //     constraint (::x < 2);
 //     constraint __eq_set(__mut_keys(), {0});
 // }

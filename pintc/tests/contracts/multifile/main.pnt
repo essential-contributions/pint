@@ -34,7 +34,7 @@ predicate Bar {
 // flattened <<<
 // union ::baz::MyUnion = A | B;
 // type ::baz::MyType = ::baz::MyUnion;
-// 
+//
 // predicate ::Bar {
 //     var ::y: int;
 //     var ::e1: ::baz::MyUnion;
@@ -43,9 +43,9 @@ predicate Bar {
 //     var ::f2: ::baz::MyUnion;
 //     constraint (::y == 4);
 //     constraint (::e1 == ::baz::MyUnion::A);
-//     constraint (::f1 == ::baz::MyType::B);
+//     constraint (::f1 == ::baz::MyUnion::B);
 //     constraint (::e2 == ::baz::MyUnion::B);
-//     constraint (::f2 == ::baz::MyType::A);
+//     constraint (::f2 == ::baz::MyUnion::A);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

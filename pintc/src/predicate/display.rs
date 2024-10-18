@@ -90,7 +90,7 @@ impl Display for Contract {
             writeln!(f, "const {path}{};", self.with_ctrct(cnst))?;
         }
 
-        for r#union in &self.unions {
+        for r#union in self.unions.values() {
             writeln!(f, "{};", self.with_ctrct(union))?;
         }
 

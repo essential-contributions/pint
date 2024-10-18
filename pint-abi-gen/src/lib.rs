@@ -17,11 +17,12 @@
 
 use addr::Addresses;
 use essential_types::{contract::Contract, PredicateAddress};
-use pint_abi_types::{ContractABI, PredicateABI, TupleField, TypeABI, VarABI};
+use pint_abi_types::{ContractABI, PredicateABI, TupleField, TypeABI, UnionVariant, VarABI};
 use pint_abi_visit::Nesting;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::ToTokens;
+use std::collections::BTreeSet;
 use syn::parse_macro_input;
 
 mod addr;
@@ -32,6 +33,7 @@ mod map;
 mod mutations;
 mod pub_vars;
 mod tuple;
+mod unions;
 mod utils;
 mod vars;
 
@@ -45,45 +47,47 @@ enum SingleKeyTy {
     Real,
     String,
     B256,
+    Union(String /* Pint path to the union*/),
 }
 
 impl SingleKeyTy {
     /// The type of the builder method value.
-    fn syn_ty(&self) -> syn::Type {
+    fn syn_ty(&self, mod_level: usize) -> syn::Type {
         match self {
             SingleKeyTy::Bool => syn::parse_quote!(bool),
             SingleKeyTy::Int => syn::parse_quote!(i64),
             SingleKeyTy::Real => syn::parse_quote!(f64),
             SingleKeyTy::String => syn::parse_quote!(String),
             SingleKeyTy::B256 => syn::parse_quote!([i64; 4]),
+            SingleKeyTy::Union(name) => unions::ty_from_union(name, mod_level),
         }
     }
 }
 
 /// Convert the given pint tuple fields to unnamed Rust fields.
-fn fields_from_tuple_fields(fields: &[TupleField]) -> Vec<syn::Field> {
+fn fields_from_tuple_fields(fields: &[TupleField], mod_level: usize) -> Vec<syn::Field> {
     fields
         .iter()
         .map(|TupleField { name, ty }| {
             // NOTE: Currently we ignore tuple field names.
             let _name = name;
-            let ty = ty_from_pint_ty(ty);
+            let ty = ty_from_pint_ty(ty, mod_level);
             syn::parse_quote!(#ty)
         })
         .collect()
 }
 
 /// Convert the given pint tuple to an equivalent Rust tuple type.
-fn ty_from_tuple(tuple: &[TupleField]) -> syn::Type {
-    let fields = fields_from_tuple_fields(tuple);
+fn ty_from_tuple(tuple: &[TupleField], mod_level: usize) -> syn::Type {
+    let fields = fields_from_tuple_fields(tuple, mod_level);
     syn::parse_quote! {
         ( #( #fields ),* )
     }
 }
 
 /// Convert the given pint array to an equivalent Rust array type.
-fn ty_from_array(ty: &TypeABI, size: i64) -> syn::Type {
-    let syn_ty = ty_from_pint_ty(ty);
+fn ty_from_array(ty: &TypeABI, size: i64, mod_level: usize) -> syn::Type {
+    let syn_ty = ty_from_pint_ty(ty, mod_level);
     let len = usize::try_from(size).expect("array size out of range of `usize`");
     syn::parse_quote! {
         [#syn_ty; #len]
@@ -91,15 +95,16 @@ fn ty_from_array(ty: &TypeABI, size: i64) -> syn::Type {
 }
 
 /// Convert the given pint ABI type to an equivalent Rust type.
-fn ty_from_pint_ty(ty: &TypeABI) -> syn::Type {
+fn ty_from_pint_ty(ty: &TypeABI, mod_level: usize) -> syn::Type {
     match ty {
         TypeABI::Bool => syn::parse_quote!(bool),
         TypeABI::Int => syn::parse_quote!(i64),
         TypeABI::Real => syn::parse_quote!(f64),
         TypeABI::String => syn::parse_quote!(String),
         TypeABI::B256 => syn::parse_quote!([i64; 4]),
-        TypeABI::Tuple(tuple) => ty_from_tuple(tuple),
-        TypeABI::Array { ty, size } => ty_from_array(ty, *size),
+        TypeABI::Union { name, .. } => unions::ty_from_union(name, mod_level),
+        TypeABI::Tuple(tuple) => ty_from_tuple(tuple, mod_level),
+        TypeABI::Array { ty, size } => ty_from_array(ty, *size, mod_level),
         TypeABI::Map { .. } => unreachable!("Maps are not allowed as non-storage types"),
     }
 }
@@ -366,6 +371,20 @@ fn mod_from_keyed_vars(mod_name: &str, vars: &[VarABI]) -> syn::ItemMod {
 /// Given an ABI, generate all items.
 fn items_from_abi_and_addrs(abi: &ContractABI, addrs: Option<&Addresses>) -> Vec<syn::Item> {
     let mut items = vec![];
+
+    // Collect all the union types encountered in the contract
+    let mut unions: BTreeSet<(Vec<String>, Vec<UnionVariant>)> = BTreeSet::new();
+    abi.storage
+        .iter()
+        .chain(
+            abi.predicates
+                .iter()
+                .flat_map(|predicate| predicate.vars.iter().chain(predicate.pub_vars.iter())),
+        )
+        .for_each(|var| unions::collect_unions(&var.ty, &mut unions));
+
+    items.extend(unions::items_from_unions(&unions));
+
     items.extend(items_from_predicates(&abi.predicates, addrs));
     if let Some(addrs) = addrs {
         items.push(addr::contract_const(&addrs.contract).into());
