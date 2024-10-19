@@ -118,7 +118,9 @@ pub fn compile_contract(
                     })
                 })
         })
-        .collect::<Result<_, _>>()?;
+	.collect::<Result<Vec<(_, _)>, ErrorEmitted>>()?
+        .into_iter()
+        .unzip();
 
     if handler.has_errors() {
         Err(handler.cancel())
