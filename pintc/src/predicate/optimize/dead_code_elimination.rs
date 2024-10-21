@@ -3,7 +3,7 @@ use fxhash::{FxHashMap, FxHashSet};
 use crate::{
     error::Handler,
     expr::{evaluate::Evaluator, BinaryOp, Expr, Immediate},
-    predicate::{ConstraintDecl, Contract, ExprKey, PredKey, StateKey},
+    predicate::{ConstraintDecl, Contract, ExprKey, StateKey},
     span::empty_span,
     warning::Warning,
 };
@@ -14,9 +14,8 @@ use crate::{
 /// functional.
 pub(crate) fn dead_code_elimination(handler: &Handler, contract: &mut Contract) {
     dead_state_elimination(contract);
-    // dead_constraint_elimination(handler, contract);
+    dead_constraint_elimination(handler, contract);
     dead_select_elimination(contract);
-    dead_thing_elimination(contract);
 }
 
 /// Remove all unused States in their respective predicates.
@@ -54,12 +53,94 @@ pub(crate) fn dead_state_elimination(contract: &mut Contract) {
 
 /// Remove all trivial Constraints in their respective predicates.
 ///
+/// Simplify any constraint conditions that consist of constant binary operations. Ex:
+/// true || <expr> is true
+/// true && <expr> is <expr>
+/// false || <expr> is <expr>
+/// false && <expr> is <false>
+///
 /// If any constraint evaluates to false, all constraints are removed and replaced with a single
 /// instance of `constraint false`
 pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Contract) {
     let evaluator = Evaluator::new(contract);
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
+        // Simplify constant binary operation conditions
+        if let Some(pred) = contract.preds.get(pred_key) {
+            let constraints_to_evaluate = pred
+                .constraints
+                .iter()
+                .enumerate()
+                .filter_map(|(i, constraint)| {
+                    let expr = constraint.expr.get(contract);
+
+                    if let Expr::BinaryOp { op, lhs, rhs, .. } = expr {
+                        let lhs_imm = evaluator.evaluate_key(&lhs, &Handler::default(), contract);
+                        let rhs_imm = evaluator.evaluate_key(&rhs, &Handler::default(), contract);
+
+                        match op {
+                            BinaryOp::LogicalAnd => match (lhs_imm, rhs_imm) {
+                                (Ok(Immediate::Bool(true)), Err(_)) => {
+                                    return Some((i, rhs.clone()));
+                                }
+
+                                (Err(_), Ok(Immediate::Bool(true))) => {
+                                    return Some((i, lhs.clone()));
+                                }
+
+                                (Ok(Immediate::Bool(false)), Err(_)) => {
+                                    return Some((i, lhs.clone()));
+                                }
+
+                                (Err(_), Ok(Immediate::Bool(false))) => {
+                                    return Some((i, rhs.clone()));
+                                }
+
+                                _ => None,
+                            },
+
+                            BinaryOp::LogicalOr => match (lhs_imm, rhs_imm) {
+                                (Ok(Immediate::Bool(true)), Err(_)) => {
+                                    return Some((i, lhs.clone()));
+                                }
+
+                                (Err(_), Ok(Immediate::Bool(true))) => {
+                                    return Some((i, rhs.clone()));
+                                }
+
+                                (Ok(Immediate::Bool(false)), Err(_)) => {
+                                    return Some((i, rhs.clone()));
+                                }
+
+                                (Err(_), Ok(Immediate::Bool(false))) => {
+                                    return Some((i, lhs.clone()));
+                                }
+
+                                _ => None,
+                            },
+
+                            _ => {
+                                return None;
+                            }
+                        }
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>();
+
+            if let Some(pred) = contract.preds.get_mut(pred_key) {
+                constraints_to_evaluate.iter().for_each(|(i, new_expr)| {
+                    let constraint = pred
+                        .constraints
+                        .get_mut(*i)
+                        .expect("test, guaranteed to exist");
+                    constraint.expr = *new_expr;
+                });
+            }
+        }
+
+        // Evaluate for and remove trivial constraints
         if let Some(pred) = contract.preds.get(pred_key) {
             let mut has_false_constraint = false;
 
@@ -145,98 +226,6 @@ pub(crate) fn dead_select_elimination(contract: &mut Contract) {
 
         for (select_expr, branch_expr) in &replace_map {
             contract.replace_exprs(Some(pred_key), *select_expr, *branch_expr);
-        }
-    }
-}
-
-// TODO: Documentation
-// TODO: Change name
-// TODO: Need to make this pass independent of the others, so likely have to handle dead constraints (ex. constraint true or constraint false)
-// Goal: Transform any constraint matching the following (regardless of const on rhs or lhs):
-// true || <expr> is true
-// true && <expr> is <expr>
-// false || <expr> is <expr>
-// false && <expr> is <false>
-// 1. check constraint expr_key is binary op
-// 2. check binary op is LogicalAnd or LogicalOr
-// 3. evaluate each side of the binary op to see if one is an immediate bool
-// 4. replace expr_key in constraint decl with the appropriate side of the binary op
-pub(crate) fn dead_thing_elimination(contract: &mut Contract) {
-    let evaluator = Evaluator::new(contract);
-
-    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
-        if let Some(pred) = contract.preds.get(pred_key) {
-            let constraints_to_evaluate = pred
-                .constraints
-                .iter()
-                .enumerate()
-                .filter_map(|(i, constraint)| {
-                    let expr = constraint.expr.get(contract);
-
-                    if let Expr::BinaryOp { op, lhs, rhs, .. } = expr {
-                        let lhs_imm = evaluator.evaluate_key(&lhs, &Handler::default(), contract);
-                        let rhs_imm = evaluator.evaluate_key(&rhs, &Handler::default(), contract);
-
-                        match op {
-                            BinaryOp::LogicalAnd => match (lhs_imm, rhs_imm) {
-                                (Ok(Immediate::Bool(true)), Err(_)) => {
-                                    return Some((i, rhs.clone()));
-                                }
-
-                                (Err(_), Ok(Immediate::Bool(true))) => {
-                                    return Some((i, lhs.clone()));
-                                }
-
-                                (Ok(Immediate::Bool(false)), Err(_)) => {
-                                    return Some((i, lhs.clone()));
-                                }
-
-                                (Err(_), Ok(Immediate::Bool(false))) => {
-                                    return Some((i, rhs.clone()));
-                                }
-
-                                _ => None,
-                            },
-
-                            BinaryOp::LogicalOr => match (lhs_imm, rhs_imm) {
-                                (Ok(Immediate::Bool(true)), Err(_)) => {
-                                    return Some((i, lhs.clone()));
-                                }
-
-                                (Err(_), Ok(Immediate::Bool(true))) => {
-                                    return Some((i, rhs.clone()));
-                                }
-
-                                (Ok(Immediate::Bool(false)), Err(_)) => {
-                                    return Some((i, rhs.clone()));
-                                }
-
-                                (Err(_), Ok(Immediate::Bool(false))) => {
-                                    return Some((i, lhs.clone()));
-                                }
-
-                                _ => None,
-                            },
-
-                            _ => {
-                                return None;
-                            }
-                        }
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>();
-
-            if let Some(pred) = contract.preds.get_mut(pred_key) {
-                constraints_to_evaluate.iter().for_each(|(i, new_expr)| {
-                    let constraint = pred
-                        .constraints
-                        .get_mut(*i)
-                        .expect("test, guaranteed to exist");
-                    constraint.expr = *new_expr;
-                });
-            }
         }
     }
 }

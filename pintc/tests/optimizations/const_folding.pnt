@@ -89,8 +89,7 @@ predicate Test {
 //     constraint (::d == true);
 //     constraint (::e == -23);
 //     constraint (::f == (::d ? false : true));
-//     constraint (true || (0 == ::y));
-//     constraint (false || (((::y == 1) || (::y == 4)) || (::y == 7)));
+//     constraint (((::y == 1) || (::y == 4)) || (::y == 7));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -7,6 +7,14 @@ predicate Test {
     var x = 1;
     var y: int;
 
+    // should be simplified to appropriate branch
+    constraint (true || (::x == ::y));
+    constraint ((::x == ::y) || true);
+    constraint (true && (::x == ::y));
+    constraint ((::x == ::y) && true);
+    constraint (false || (::x == ::y));
+    constraint ((::x == ::y) || false);
+
     // trivial and should be removed
     constraint true;
     constraint !false;
@@ -26,11 +34,17 @@ predicate Test {
 // const ::d: int[5] = [0, 1, 2, 3, 4];
 // const ::a = true;
 // const ::c = {1, 2};
-// 
+//
 // predicate ::Test {
 //     var ::x;
 //     var ::y: int;
 //     constraint (::x == 1);
+//     constraint (true || (::x == ::y));
+//     constraint ((::x == ::y) || true);
+//     constraint (true && (::x == ::y));
+//     constraint ((::x == ::y) && true);
+//     constraint (false || (::x == ::y));
+//     constraint ((::x == ::y) || false);
 //     constraint true;
 //     constraint !false;
 //     constraint ((1 + 2) == 3);
@@ -48,11 +62,17 @@ predicate Test {
 // const ::d: int[5] = [0, 1, 2, 3, 4];
 // const ::a: bool = true;
 // const ::c: {int, int} = {1, 2};
-// 
+//
 // predicate ::Test {
 //     var ::x: int;
 //     var ::y: int;
 //     constraint (::x == 1);
+//     constraint (true || (::x == ::y));
+//     constraint ((::x == ::y) || true);
+//     constraint (true && (::x == ::y));
+//     constraint ((::x == ::y) && true);
+//     constraint (false || (::x == ::y));
+//     constraint ((::x == ::y) || false);
 //     constraint true;
 //     constraint !false;
 //     constraint ((1 + 2) == 3);
@@ -71,11 +91,15 @@ predicate Test {
 // const ::d: int[5] = [0, 1, 2, 3, 4];
 // const ::a: bool = true;
 // const ::c: {int, int} = {1, 2};
-// 
+//
 // predicate ::Test {
 //     var ::x: int;
 //     var ::y: int;
 //     constraint (::x == 1);
+//     constraint (::x == ::y);
+//     constraint (::x == ::y);
+//     constraint (::x == ::y);
+//     constraint (::x == ::y);
 //     constraint (::x < ::y);
 //     constraint (::x == ::x);
 //     constraint __eq_set(__mut_keys(), {0});
