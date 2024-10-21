@@ -75,8 +75,8 @@ pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Cont
                     let expr = constraint.expr.get(contract);
 
                     if let Expr::BinaryOp { op, lhs, rhs, .. } = expr {
-                        let lhs_imm = evaluator.evaluate_key(&lhs, &Handler::default(), contract);
-                        let rhs_imm = evaluator.evaluate_key(&rhs, &Handler::default(), contract);
+                        let lhs_imm = evaluator.evaluate_key(lhs, &Handler::default(), contract);
+                        let rhs_imm = evaluator.evaluate_key(rhs, &Handler::default(), contract);
 
                         match op {
                             BinaryOp::LogicalAnd => match (lhs_imm, rhs_imm) {
