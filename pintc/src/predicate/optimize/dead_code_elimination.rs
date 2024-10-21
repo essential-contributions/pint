@@ -14,7 +14,7 @@ use crate::{
 /// functional.
 pub(crate) fn dead_code_elimination(handler: &Handler, contract: &mut Contract) {
     dead_state_elimination(contract);
-    dead_constraint_elimination(handler, contract);
+    // dead_constraint_elimination(handler, contract);
     dead_select_elimination(contract);
     dead_thing_elimination(contract);
 }
@@ -151,65 +151,74 @@ pub(crate) fn dead_select_elimination(contract: &mut Contract) {
 
 // TODO: Documentation
 // TODO: Change name
-// TODO: handle either lhs or rhs
+// TODO: Need to make this pass independent of the others, so likely have to handle dead constraints (ex. constraint true or constraint false)
 // Goal: Transform any constraint matching the following (regardless of const on rhs or lhs):
-// true || <expr> is true -- done
+// true || <expr> is true
 // true && <expr> is <expr>
-// false || <expr> is <expr> -- done
+// false || <expr> is <expr>
 // false && <expr> is <false>
 // 1. check constraint expr_key is binary op
 // 2. check binary op is LogicalAnd or LogicalOr
 // 3. evaluate each side of the binary op to see if one is an immediate bool
 // 4. replace expr_key in constraint decl with the appropriate side of the binary op
-// TODO: Need to make this pass independent of the others, so likely have to simplify true and false constraints
 pub(crate) fn dead_thing_elimination(contract: &mut Contract) {
     let evaluator = Evaluator::new(contract);
-    let mut constraints_to_evaluate: Vec<(usize, ExprKey, PredKey)> = vec![];
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         if let Some(pred) = contract.preds.get(pred_key) {
-            constraints_to_evaluate = pred
+            let constraints_to_evaluate = pred
                 .constraints
                 .iter()
                 .enumerate()
                 .filter_map(|(i, constraint)| {
                     let expr = constraint.expr.get(contract);
 
-                    println!("expr: {:#?}", expr);
-
-                    if let Expr::BinaryOp { op, lhs, rhs, span } = expr {
-                        println!("found that op");
-
+                    if let Expr::BinaryOp { op, lhs, rhs, .. } = expr {
                         let lhs_imm = evaluator.evaluate_key(&lhs, &Handler::default(), contract);
                         let rhs_imm = evaluator.evaluate_key(&rhs, &Handler::default(), contract);
 
                         match op {
-                            BinaryOp::LogicalAnd => {
-                                println!("and found");
-                                if let Ok(Immediate::Bool(true)) = lhs_imm {
-                                    println!("true found");
-                                    return Some((i, rhs.clone(), pred_key));
-                                } else if let Ok(Immediate::Bool(false)) = lhs_imm {
-                                    println!("false found");
-                                    return Some((i, lhs.clone(), pred_key));
-                                } else {
-                                    None
+                            BinaryOp::LogicalAnd => match (lhs_imm, rhs_imm) {
+                                (Ok(Immediate::Bool(true)), Err(_)) => {
+                                    return Some((i, rhs.clone()));
                                 }
-                            }
-                            BinaryOp::LogicalOr => {
-                                println!("or found");
-                                if let Ok(Immediate::Bool(true)) = lhs_imm {
-                                    println!("true found");
-                                    return Some((i, lhs.clone(), pred_key));
-                                } else if let Ok(Immediate::Bool(false)) = lhs_imm {
-                                    println!("false found");
-                                    return Some((i, rhs.clone(), pred_key));
-                                } else {
-                                    None
+
+                                (Err(_), Ok(Immediate::Bool(true))) => {
+                                    return Some((i, lhs.clone()));
                                 }
-                            }
+
+                                (Ok(Immediate::Bool(false)), Err(_)) => {
+                                    return Some((i, lhs.clone()));
+                                }
+
+                                (Err(_), Ok(Immediate::Bool(false))) => {
+                                    return Some((i, rhs.clone()));
+                                }
+
+                                _ => None,
+                            },
+
+                            BinaryOp::LogicalOr => match (lhs_imm, rhs_imm) {
+                                (Ok(Immediate::Bool(true)), Err(_)) => {
+                                    return Some((i, lhs.clone()));
+                                }
+
+                                (Err(_), Ok(Immediate::Bool(true))) => {
+                                    return Some((i, rhs.clone()));
+                                }
+
+                                (Ok(Immediate::Bool(false)), Err(_)) => {
+                                    return Some((i, rhs.clone()));
+                                }
+
+                                (Err(_), Ok(Immediate::Bool(false))) => {
+                                    return Some((i, lhs.clone()));
+                                }
+
+                                _ => None,
+                            },
+
                             _ => {
-                                println!("other op found");
                                 return None;
                             }
                         }
@@ -220,7 +229,7 @@ pub(crate) fn dead_thing_elimination(contract: &mut Contract) {
                 .collect::<Vec<_>>();
 
             if let Some(pred) = contract.preds.get_mut(pred_key) {
-                constraints_to_evaluate.iter().for_each(|(i, new_expr, _)| {
+                constraints_to_evaluate.iter().for_each(|(i, new_expr)| {
                     let constraint = pred
                         .constraints
                         .get_mut(*i)
