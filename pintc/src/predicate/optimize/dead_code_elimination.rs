@@ -2,8 +2,8 @@ use fxhash::{FxHashMap, FxHashSet};
 
 use crate::{
     error::Handler,
-    expr::{evaluate::Evaluator, Expr, Immediate},
-    predicate::{ConstraintDecl, Contract, ExprKey, StateKey},
+    expr::{evaluate::Evaluator, BinaryOp, Expr, Immediate},
+    predicate::{ConstraintDecl, Contract, ExprKey, PredKey, StateKey},
     span::empty_span,
     warning::Warning,
 };
@@ -16,6 +16,7 @@ pub(crate) fn dead_code_elimination(handler: &Handler, contract: &mut Contract) 
     dead_state_elimination(contract);
     dead_constraint_elimination(handler, contract);
     dead_select_elimination(contract);
+    dead_thing_elimination(contract);
 }
 
 /// Remove all unused States in their respective predicates.
@@ -144,6 +145,89 @@ pub(crate) fn dead_select_elimination(contract: &mut Contract) {
 
         for (select_expr, branch_expr) in &replace_map {
             contract.replace_exprs(Some(pred_key), *select_expr, *branch_expr);
+        }
+    }
+}
+
+// TODO: Documentation
+// TODO: Change name
+// TODO: handle either lhs or rhs
+// Goal: Transform any constraint matching the following (regardless of const on rhs or lhs):
+// true || <expr> is true -- done
+// true && <expr> is <expr>
+// false || <expr> is <expr> -- done
+// false && <expr> is <false>
+// 1. check constraint expr_key is binary op
+// 2. check binary op is LogicalAnd or LogicalOr
+// 3. evaluate each side of the binary op to see if one is an immediate bool
+// 4. replace expr_key in constraint decl with the appropriate side of the binary op
+// TODO: Need to make this pass independent of the others, so likely have to simplify true and false constraints
+pub(crate) fn dead_thing_elimination(contract: &mut Contract) {
+    let evaluator = Evaluator::new(contract);
+    let mut constraints_to_evaluate: Vec<(usize, ExprKey, PredKey)> = vec![];
+
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
+        if let Some(pred) = contract.preds.get(pred_key) {
+            constraints_to_evaluate = pred
+                .constraints
+                .iter()
+                .enumerate()
+                .filter_map(|(i, constraint)| {
+                    let expr = constraint.expr.get(contract);
+
+                    println!("expr: {:#?}", expr);
+
+                    if let Expr::BinaryOp { op, lhs, rhs, span } = expr {
+                        println!("found that op");
+
+                        let lhs_imm = evaluator.evaluate_key(&lhs, &Handler::default(), contract);
+                        let rhs_imm = evaluator.evaluate_key(&rhs, &Handler::default(), contract);
+
+                        match op {
+                            BinaryOp::LogicalAnd => {
+                                println!("and found");
+                                if let Ok(Immediate::Bool(true)) = lhs_imm {
+                                    println!("true found");
+                                    return Some((i, rhs.clone(), pred_key));
+                                } else if let Ok(Immediate::Bool(false)) = lhs_imm {
+                                    println!("false found");
+                                    return Some((i, lhs.clone(), pred_key));
+                                } else {
+                                    None
+                                }
+                            }
+                            BinaryOp::LogicalOr => {
+                                println!("or found");
+                                if let Ok(Immediate::Bool(true)) = lhs_imm {
+                                    println!("true found");
+                                    return Some((i, lhs.clone(), pred_key));
+                                } else if let Ok(Immediate::Bool(false)) = lhs_imm {
+                                    println!("false found");
+                                    return Some((i, rhs.clone(), pred_key));
+                                } else {
+                                    None
+                                }
+                            }
+                            _ => {
+                                println!("other op found");
+                                return None;
+                            }
+                        }
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>();
+
+            if let Some(pred) = contract.preds.get_mut(pred_key) {
+                constraints_to_evaluate.iter().for_each(|(i, new_expr, _)| {
+                    let constraint = pred
+                        .constraints
+                        .get_mut(*i)
+                        .expect("test, guaranteed to exist");
+                    constraint.expr = *new_expr;
+                });
+            }
         }
     }
 }
