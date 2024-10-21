@@ -43,8 +43,8 @@ fn bool_literals() {
             "{}",
             compile(
                 r#"
-            predicate test {
-              var a = [true, false];
+            predicate test(a: bool[2]) {
+              constraint a == [true, false];
             }
             "#,
             )
@@ -76,9 +76,9 @@ fn bool_literals() {
 fn int_literals() {
     let compiled_contract = &compile(
         r#"
-        predicate test {
-            var x: int = 4;
-            var y: int = 0x333;
+        predicate test(x: int, y: int) {
+            constraint x == 4;
+            constraint y == 0x333;
         }
         "#,
     );
@@ -123,8 +123,8 @@ fn unary_not() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var t: bool = !true;
+            predicate test(t: bool) {
+                constraint t == !true;
                 constraint !t;
             }
             "#,
@@ -164,9 +164,8 @@ fn select() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var y: bool;
-                var z = y ? 42 : 69;
+            predicate test(y: bool, z: int) {
+                constraint z == (y ? 42 : 69);
             }
             "#,
             )
@@ -202,9 +201,13 @@ fn select() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var c: bool; var x: int; var y: int;
-                var z = c ? x : y;
+            predicate test(
+                c: bool, 
+                x: int, 
+                y: int,
+                z: int,
+            ) {
+                constraint z == (c ? x : y);
             }
             "#,
             )
@@ -247,9 +250,9 @@ fn select() {
             compile(
                 r#"
             storage { x: int }
-            predicate test {
+            predicate test(y: int) {
                 state x = storage::x;
-                var y = x == nil ? 11 : x;
+                constraint y == (x == nil ? 11 : x);
             }
             "#,
             )
@@ -322,10 +325,9 @@ fn select_range() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var y: bool;
-                var z = y ? 0x0000000000000001000000000000000200000000000000030000000000000004
-                             : 0x0000000000000005000000000000000600000000000000070000000000000008;
+            predicate test(y: bool, z: b256) {
+                constraint z == (y ? 0x0000000000000001000000000000000200000000000000030000000000000004
+                             : 0x0000000000000005000000000000000600000000000000070000000000000008);
             }
             "#,
             )
@@ -369,9 +371,8 @@ fn select_range() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var y: bool;
-                var z = y ? { 0, 1 } : { 2, 3 };
+            predicate test(y: bool, z: {int, int}) {
+                constraint z == (y ? { 0, 1 } : { 2, 3 });
             }
             "#,
             )
@@ -411,9 +412,8 @@ fn select_range() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var c: bool; var x: int[3]; var y: int[3];
-                var z = c ? x : y;
+            predicate test(c: bool, x: int[3], y: int[3], z: int[3]) {
+                constraint z == (c ? x : y);
             }
             "#,
             )
@@ -460,9 +460,10 @@ fn binary_ops() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var x: int; var y: int; var z: int;
-                var b0: bool; var b1: bool;
+            predicate test(
+                x: int, y: int, z: int,
+                b0: bool, b1: bool,
+            ) {
                 constraint x + y == z;
                 constraint x - y == z;
                 constraint x * y == z;
@@ -646,9 +647,7 @@ fn short_circuit_and() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var a: bool;
-                var b: bool;
+            predicate test(a: bool, b: bool) {
                 constraint a && b;
             }
             "#,
@@ -689,9 +688,7 @@ fn short_circuit_or() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var a: bool;
-                var b: bool;
+            predicate test(a: bool, b: bool) {
                 constraint a || b;
             }
             "#,
@@ -729,8 +726,8 @@ fn next_state() {
     let compiled_contract = &compile(
         r#"
         storage { x: int }
-        predicate test {
-            var diff: int = 5;
+        predicate test(diff: int) {
+            constraint diff == 5;
             state x: int = storage::x;
             constraint x' - x == 5;
         }
@@ -804,9 +801,9 @@ fn next_state() {
 fn b256() {
     let compiled_contract = &compile(
         r#"
-        predicate test {
-            var b0 = 0x0000000000000005000000000000000600000000000000070000000000000008;
-            var b1 = 0xF000000000000000500000000000000060000000000000007000000000000000;
+        predicate test(b0: b256, b1: b256) {
+            constraint b0 == 0x0000000000000005000000000000000600000000000000070000000000000008;
+            constraint b1 == 0xF000000000000000500000000000000060000000000000007000000000000000;
         }
         "#,
     );
@@ -859,7 +856,7 @@ storage {
     map2: (b256 => int),
 }
 
-predicate Simple {
+predicate Simple() {
     state supply = storage::supply;
     state x = storage::map1[69];
     state y = storage::map2[0x2222222222222222222222222222222222222222222222222222222222222222];
@@ -996,7 +993,7 @@ storage {
     map2: (b256 => b256),
 }
 
-predicate Simple {
+predicate Simple() {
     state addr1 = storage::addr1;
     state addr2 = storage::addr2;
     state x = storage::map1[69];
@@ -1181,7 +1178,7 @@ storage {
     w: { addr: b256, inner: { x: int, int } },
 }
 
-predicate Foo {
+predicate Foo() {
     state u = storage::u;
     state u0 = storage::u.0;
     state u1 = storage::u.1;
@@ -1657,7 +1654,7 @@ storage {
     map_to_tuples: ( int => { b256, { int, int } } ),
 }
 
-predicate Foo {
+predicate Foo() {
     state map_to_tuples_69 = storage::map_to_tuples[69];
     state map_to_tuples_69_0 = storage::map_to_tuples[69].0;
     state map_to_tuples_69_1_0 = storage::map_to_tuples[69].1.0;
@@ -1857,7 +1854,7 @@ interface Foo {
     }
 }
 
-predicate Bar {
+predicate Bar() {
     interface FooInstance = Foo(0x1111111111111111111111111111111111111111111111111111111111111111);
 
     state foo_u = FooInstance::storage::u;
@@ -2379,7 +2376,7 @@ storage {
     v: int[2][3],
 }
 
-predicate Foo {
+predicate Foo() {
     state v = storage::v;
     state v1 = storage::v[1];
     state v12 = storage::v[1][2];
@@ -2577,7 +2574,7 @@ storage {
     map_to_arrays: ( int => int[3] ),
 }
 
-predicate Foo {
+predicate Foo() {
     state map_to_arrays_69 = storage::map_to_arrays[69];
     state map_to_arrays_69_2 = storage::map_to_arrays[69][2];
     constraint map_to_arrays_69 == [0, 0, 0];
@@ -2698,7 +2695,7 @@ interface Foo {
     }
 }
 
-predicate Bar {
+predicate Bar() {
     interface FooInstance = Foo(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE);
 
     state foo_v = FooInstance::storage::v;
@@ -3008,7 +3005,7 @@ storage {
     map_in_map_in_map: (int => (b256 => (int => b256))),
 }
 
-predicate Simple {
+predicate Simple() {
     state map_in_map_entry = storage::map_in_map[9][0x0000000000000001000000000000000200000000000000030000000000000004];
     state map_in_map_in_map_entry = storage::map_in_map_in_map[88][0x0000000000000008000000000000000700000000000000060000000000000005][999];
 
@@ -3129,7 +3126,7 @@ interface Extern2 {
     }
 }
 
-predicate Foo {
+predicate Foo() {
     interface Extern1Instance = Extern1(0x1233683A8F6B8AF1707FF76F40FC5EE714872F88FAEBB8F22851E93F56770128);
     interface Extern2Instance = Extern2(0x0C15A3534349FC710174299BA8F0347284955B35A28C01CF45A910495FA1EF2D);
 
@@ -3339,7 +3336,7 @@ storage {
     a: int[2][3],
 }
 
-predicate Foo {
+predicate Foo() {
     state x = storage::x;
     state w = storage::w;
     state t = storage::t;
@@ -3597,10 +3594,7 @@ fn nested_match() {
 union inner = x | y(int) | z;
 union outer = a(inner) | b(int);
 
-predicate test {
-    var k: int;
-    var l: outer;
-    var m: outer;
+predicate test(k: int, l: outer, m: outer) {
     match l {
         outer::b(i) => {
             match m {

@@ -1,4 +1,4 @@
-predicate Simple {
+predicate Simple() {
     var z: int;
     var q: int;
 
@@ -75,7 +75,7 @@ predicate Simple {
     constraint BarI::e[1] == [{ 16, 17 }, { 18, 19 }, { 110, 111 }];
 }
 
-predicate Foo {
+predicate Foo() {
     pub var x: int;
     pub var y: int;
     pub var w: b256;
@@ -86,7 +86,7 @@ predicate Foo {
     var nonce = 0;
 }
 
-predicate Bar {
+predicate Bar() {
     pub var x: int;
     pub var y: int;
     pub var w: b256;

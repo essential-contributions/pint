@@ -1,8 +1,6 @@
 union thing = a(bool) | b(int) | c({int, int});
 
-predicate test {
-    var x: thing;
-
+predicate test(x: thing, d: int) {
     // Boolean match expression.
     constraint match x {
         thing::a(b) => b,
@@ -30,8 +28,7 @@ predicate test {
         }
     };
 
-    // Non-expression match.  Also refers to other var `d`.
-    var d: int;
+    // Non-expression match.  Also refers to other `d`.
     match x {
         thing::a(b) => {},
         thing::c(t) => {

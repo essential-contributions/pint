@@ -18,15 +18,20 @@ interface Baz {
     }
 }
 
-predicate Simple {
-    var foo_addr = 0x0000000000000000000000000000000000000000000000000000000000000000;
+predicate Simple(
+    foo_addr: b256,
+    x: int,
+    y: int,
+    z: int,
+) {
+    constraint foo_addr == 0x0000000000000000000000000000000000000000000000000000000000000000;
 
     interface BazInstance = Baz(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE);
     predicate FooInstance1 = BazInstance::Foo(foo_addr);
 
-    var x = FooInstance1::x;
-    var y = FooInstance1::y;
-    var z = FooInstance1::x * FooInstance1::y;
+    constraint x == FooInstance1::x;
+    constraint y == FooInstance1::y;
+    constraint z == FooInstance1::x * FooInstance1::y;
     constraint FooInstance1::q == 0x0000000000000001000000000000000100000000000000010000000000000001;
 
     constraint FooInstance1::c == 

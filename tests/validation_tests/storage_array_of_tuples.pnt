@@ -13,7 +13,7 @@ interface Foo {
     }
 }
 
-predicate Bar {
+predicate Bar() {
     state a = mut storage::a;
 
     constraint (a')[0][0].0 == 1;

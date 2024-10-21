@@ -21,7 +21,7 @@ macro @unwrap_or_2($a, $b) {
     __size_of($a) == 0 ? $b : $a
 }
 
-predicate Simple {
+predicate Simple() {
     var p: int;
     constraint p == 69;
     var q: { int, b256[2] };

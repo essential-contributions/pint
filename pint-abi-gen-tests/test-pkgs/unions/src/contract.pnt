@@ -19,21 +19,21 @@ storage {
     map: ( b256 => WW ),
 }
 
-predicate Foo {
-    var v_u1: UU;
-    var v_u2: UU;
-    var v_u3: UU;
-    var v_w1: WW;
-    var v_pp1: lib::PP;
-    var v_pp2: lib::PP;
-    var v_aa: lib2::A;
-    var v_dd: lib2::D;
-    var v_tt: lib3::foo::TT;
-    var v_rr: RR;
-    var v_oo: lib3::foo::OO;
-    var v_array: RR[2];
-    var v_tuple: { lib2::A, lib3::foo::TT };
-
+predicate Foo(
+    v_u1: UU,
+    v_u2: UU,
+    v_u3: UU,
+    v_w1: WW,
+    v_pp1: lib::PP,
+    v_pp2: lib::PP,
+    v_aa: lib2::A,
+    v_dd: lib2::D,
+    v_tt: lib3::foo::TT,
+    v_rr: RR,
+    v_oo: lib3::foo::OO,
+    v_array: RR[2],
+    v_tuple: { lib2::A, lib3::foo::TT },
+) {
     constraint v_u1 == UU::A(69);
     constraint v_u2 == UU::B;
     constraint v_u3 == UU::C(0x6969696969696969696969696969696969696969696969696969696969696969);

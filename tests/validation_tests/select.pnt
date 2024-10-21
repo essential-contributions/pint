@@ -1,20 +1,35 @@
-predicate Test {
-    var x: int = 2;
-    var y: int = 3;
-    var z1: int = true ? x + y : x * y;
-    var z2: int = false ? x + y : x * y;
+predicate Test(
+    x: int,
+    y: int,
+    z1: int,
+    z2: int,
 
-    var p: b256 = 0x0000000000000001000000000000000200000000000000030000000000000004;
-    var q: b256 = 0x0000000000000004000000000000000300000000000000020000000000000001;
-    var w1: b256 = true ? p : q;
-    var w2: b256 = false ? p : q;
+    p: b256,
+    q: b256,
+    w1: b256,
+    w2: b256,
+
+    a: {int, int},
+    b: {int, int},
+    c1: {int, int},
+    c2: {int, int},
+){
+    constraint x == 2;
+    constraint y == 3;
+    constraint z1 == (true ? x + y : x * y);
+    constraint z2 == (false ? x + y : x * y);
+
+    constraint p == 0x0000000000000001000000000000000200000000000000030000000000000004;
+    constraint q == 0x0000000000000004000000000000000300000000000000020000000000000001;
+    constraint w1 == (true ? p : q);
+    constraint w2 == (false ? p : q);
     constraint w1 == p;
     constraint w2 == q;
 
-    var a = { 5, 6 };
-    var b = { 8, 9 };
-    var c1 = true ? a : b;
-    var c2 = false ? a : b;
+    constraint a == { 5, 6 };
+    constraint b == { 8, 9 };
+    constraint c1 == (true ? a : b);
+    constraint c2 == (false ? a : b);
     constraint c1.0 == 5;
     constraint c1.1 == 6;
     constraint c1 == a;

@@ -25,7 +25,7 @@ interface Foo {
     }
 }
 
-predicate Bar {
+predicate Bar() {
     // Test external storage vectors
 
     // v0 starts empty

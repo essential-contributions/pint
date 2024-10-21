@@ -74,11 +74,17 @@ DeclInnerMacroBody: () = {
 }
 
 PredicateDecl: () = {
-    PredicateOpen PredicateInnerDecl* PredicateClose,
+    PredicateOpen "(" SepList<PredicateArg, ","> ")" "{" PredicateInnerDecl* PredicateClose,
+}
+
+PredicateArg: () = {
+    <l:@L> <name:VarName> ":" <ty:Type> <r:@R> => {
+        context.parse_var_decl(handler, false, name, Some(ty), None, (l, r));
+    }
 }
 
 PredicateOpen: () = {
-    <l:@L> "predicate" <name:Ident> <r:@R> "{" => {
+    <l:@L> "predicate" <name:Ident> <r:@R> => {
         // To detect name clashes
         let name = context.add_top_level_symbol(
             handler,
