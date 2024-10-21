@@ -131,11 +131,9 @@ pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Cont
 
             if let Some(pred) = contract.preds.get_mut(pred_key) {
                 constraints_to_evaluate.iter().for_each(|(i, new_expr)| {
-                    let constraint = pred
-                        .constraints
-                        .get_mut(*i)
-                        .expect("test, guaranteed to exist");
-                    constraint.expr = *new_expr;
+                    if let Some(constraint) = pred.constraints.get_mut(*i) {
+                        constraint.expr = *new_expr;
+                    }
                 });
             }
         }
