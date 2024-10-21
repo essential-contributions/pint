@@ -80,48 +80,30 @@ pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Cont
 
                         match op {
                             BinaryOp::LogicalAnd => match (lhs_imm, rhs_imm) {
-                                (Ok(Immediate::Bool(true)), Err(_)) => {
-                                    return Some((i, *rhs));
-                                }
+                                (Ok(Immediate::Bool(true)), Err(_)) => Some((i, *rhs)),
 
-                                (Err(_), Ok(Immediate::Bool(true))) => {
-                                    return Some((i, *lhs));
-                                }
+                                (Err(_), Ok(Immediate::Bool(true))) => Some((i, *lhs)),
 
-                                (Ok(Immediate::Bool(false)), Err(_)) => {
-                                    return Some((i, *lhs));
-                                }
+                                (Ok(Immediate::Bool(false)), Err(_)) => Some((i, *lhs)),
 
-                                (Err(_), Ok(Immediate::Bool(false))) => {
-                                    return Some((i, *rhs));
-                                }
+                                (Err(_), Ok(Immediate::Bool(false))) => Some((i, *rhs)),
 
                                 _ => None,
                             },
 
                             BinaryOp::LogicalOr => match (lhs_imm, rhs_imm) {
-                                (Ok(Immediate::Bool(true)), Err(_)) => {
-                                    return Some((i, *lhs));
-                                }
+                                (Ok(Immediate::Bool(true)), Err(_)) => Some((i, *lhs)),
 
-                                (Err(_), Ok(Immediate::Bool(true))) => {
-                                    return Some((i, *rhs));
-                                }
+                                (Err(_), Ok(Immediate::Bool(true))) => Some((i, *rhs)),
 
-                                (Ok(Immediate::Bool(false)), Err(_)) => {
-                                    return Some((i, *rhs));
-                                }
+                                (Ok(Immediate::Bool(false)), Err(_)) => Some((i, *rhs)),
 
-                                (Err(_), Ok(Immediate::Bool(false))) => {
-                                    return Some((i, *lhs));
-                                }
+                                (Err(_), Ok(Immediate::Bool(false))) => Some((i, *lhs)),
 
                                 _ => None,
                             },
 
-                            _ => {
-                                return None;
-                            }
+                            _ => None,
                         }
                     } else {
                         None
