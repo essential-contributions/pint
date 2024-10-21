@@ -28,14 +28,6 @@ impl Contract {
                 );
                 Inference::Type(Type::Error(span.clone()))
             }
-        } else if let Some(ty) = self
-            .new_types
-            .iter()
-            .find_map(|NewTypeDecl { name, ty, .. }| (&name.name == path).then_some(ty))
-        {
-            // TODO: What is this matching?  When would an expression just be an alias?
-            // It's a fully matched newtype.
-            Inference::Type(ty.clone())
         } else {
             // It might be a union variant. If it isn't we get a handy list of potential
             // variant names we can return in our error.
