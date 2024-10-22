@@ -10,8 +10,8 @@ use crate::{
 
 /// In a given contract, simplify all sub-expressions that evaluate to constants.
 pub(crate) fn const_folding(contract: &mut Contract) {
-    fold_consts(contract);
     fold_boolean_identities(contract);
+    fold_consts(contract);
 }
 
 pub(crate) fn fold_consts(contract: &mut Contract) {
@@ -55,7 +55,8 @@ pub(crate) fn fold_consts(contract: &mut Contract) {
 /// true && <expr> is <expr>
 /// false || <expr> is <expr>
 /// false && <expr> is <false>
-// TODO: Make recursive. Simplifying only once isn't enough, need to keep going until it can't any more
+///
+/// Performs a depth-first search to find all folding opportunities.
 pub(crate) fn fold_boolean_identities(contract: &mut Contract) {
     fn fold_boolean_identity(
         contract: &Contract,
@@ -64,7 +65,11 @@ pub(crate) fn fold_boolean_identities(contract: &mut Contract) {
         expr_key: ExprKey,
     ) -> Option<ExprKey> {
         if let Expr::BinaryOp { op, lhs, rhs, .. } = expr_key.get(contract) {
-            let mut lhs = *lhs; // TODO: Document why if this works
+            // The lhs and rhs must be updated and evaluated with modifying the contract's exprs b/c we are in a loop
+            // The replacement map is updated with the keys that need to be replaced at the end of the pass
+            // while the appropriate lhs and rhs are bubbled up to the parent for evaluation
+            let mut lhs = *lhs;
+            let mut rhs = *rhs;
 
             if let Expr::BinaryOp { .. } = lhs.get(contract) {
                 if let Some(folded_key) =
@@ -73,8 +78,6 @@ pub(crate) fn fold_boolean_identities(contract: &mut Contract) {
                     lhs = folded_key;
                 }
             }
-
-            let mut rhs = *rhs; // TODO: Document why if this works
 
             if let Expr::BinaryOp { .. } = rhs.get(contract) {
                 if let Some(folded_key) =
@@ -144,7 +147,6 @@ pub(crate) fn fold_boolean_identities(contract: &mut Contract) {
     }
 
     let mut replace_map: FxHashMap<ExprKey, ExprKey> = FxHashMap::default();
-
     let evaluator = Evaluator::new(contract);
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {

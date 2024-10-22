@@ -16,6 +16,31 @@ predicate Test {
     } else {
         constraint y in [1, 4, 7];
     }
+
+    var x: int;
+    if true && y == 0 {
+        constraint x == 1;
+    } else {
+        constraint x == 0;
+    }
+
+    if false && y == 0 {
+        constraint x == 1;
+    } else {
+        constraint x == 0;
+    }
+
+    if true || y == 0 {
+        constraint x == 1;
+    } else {
+        constraint x == 0;
+    }
+
+    if false || y == 0 {
+        constraint x == 1;
+    } else {
+        constraint x == 0;
+    }
 }
 
 // parsed <<<
@@ -31,6 +56,7 @@ predicate Test {
 //     var ::e;
 //     var ::f;
 //     var ::y: int;
+//     var ::x: int;
 //     constraint (::a == (1 + 2));
 //     constraint (::b == (1 - ::test_array[0]));
 //     constraint (::c == ((((1 + 2) - 3) + 4) - (2 - ::test_tuple.1)));
@@ -41,6 +67,26 @@ predicate Test {
 //         constraint (((3 - 4) + 1) == ::y)
 //     } else {
 //         constraint ::y in [1, 4, 7]
+//     }
+//     if (true && (::y == 0)) {
+//         constraint (::x == 1)
+//     } else {
+//         constraint (::x == 0)
+//     }
+//     if (false && (::y == 0)) {
+//         constraint (::x == 1)
+//     } else {
+//         constraint (::x == 0)
+//     }
+//     if (true || (::y == 0)) {
+//         constraint (::x == 1)
+//     } else {
+//         constraint (::x == 0)
+//     }
+//     if (false || (::y == 0)) {
+//         constraint (::x == 1)
+//     } else {
+//         constraint (::x == 0)
 //     }
 // }
 // >>>
@@ -58,6 +104,7 @@ predicate Test {
 //     var ::e: int;
 //     var ::f: bool;
 //     var ::y: int;
+//     var ::x: int;
 //     constraint (::a == (1 + 2));
 //     constraint (::b == (1 - 1));
 //     constraint (::c == ((((1 + 2) - 3) + 4) - (2 - 5)));
@@ -66,6 +113,14 @@ predicate Test {
 //     constraint (::f == (::d ? false : !!true));
 //     constraint (!(((((1 + 2) - 3) + 4) - (2 - 5)) < 5) || (((3 - 4) + 1) == ::y));
 //     constraint ((((((1 + 2) - 3) + 4) - (2 - 5)) < 5) || (((::y == 1) || (::y == 4)) || (::y == 7)));
+//     constraint (!(true && (::y == 0)) || (::x == 1));
+//     constraint ((true && (::y == 0)) || (::x == 0));
+//     constraint (!(false && (::y == 0)) || (::x == 1));
+//     constraint ((false && (::y == 0)) || (::x == 0));
+//     constraint (!(true || (::y == 0)) || (::x == 1));
+//     constraint ((true || (::y == 0)) || (::x == 0));
+//     constraint (!(false || (::y == 0)) || (::x == 1));
+//     constraint ((false || (::y == 0)) || (::x == 0));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
@@ -83,6 +138,7 @@ predicate Test {
 //     var ::e: int;
 //     var ::f: bool;
 //     var ::y: int;
+//     var ::x: int;
 //     constraint (::a == 3);
 //     constraint (::b == 0);
 //     constraint (::c == 7);
@@ -90,6 +146,13 @@ predicate Test {
 //     constraint (::e == -23);
 //     constraint (::f == (::d ? false : true));
 //     constraint (((::y == 1) || (::y == 4)) || (::y == 7));
+//     constraint (!(::y == 0) || (::x == 1));
+//     constraint ((::y == 0) || (::x == 0));
+//     constraint (true || (::x == 1));
+//     constraint (::x == 0);
+//     constraint (false || (::x == 1));
+//     constraint (!(::y == 0) || (::x == 1));
+//     constraint ((::y == 0) || (::x == 0));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
