@@ -1,21 +1,26 @@
-predicate test {
-    var a = {11, [22, 33, 44], 55};
-    var b = {true, {false, [true, true], false}, [false, false]};
+predicate test(
+    a: {int, int[3], int},
+    b: {bool, {bool, bool[2], bool}, bool[2]},
+) {
+    constraint a == {11, [22, 33, 44], 55};
+    constraint b == {true, {false, [true, true], false}, [false, false]};
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::a;
-//     var ::b;
+// predicate ::test(
+//     ::a: {int, int[3], int},
+//     ::b: {bool, {bool, bool[2], bool}, bool[2]},
+// ) {
 //     constraint (::a == {11, [22, 33, 44], 55});
 //     constraint (::b == {true, {false, [true, true], false}, [false, false]});
 // }
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::a: {int, int[3], int};
-//     var ::b: {bool, {bool, bool[2], bool}, bool[2]};
+// predicate ::test(
+//     ::a: {int, int[3], int},
+//     ::b: {bool, {bool, bool[2], bool}, bool[2]},
+// ) {
 //     constraint (::a == {11, [22, 33, 44], 55});
 //     constraint (::b == {true, {false, [true, true], false}, [false, false]});
 //     constraint __eq_set(__mut_keys(), {0});

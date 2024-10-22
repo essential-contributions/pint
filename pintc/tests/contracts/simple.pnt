@@ -2,53 +2,54 @@ union MyUnion = A | B;
 
 type MyType = MyUnion;
 
-predicate Foo {
-    var x: int;
-    var y: MyUnion = MyUnion::A;
+predicate Foo(x: int, y: MyUnion) {
+    constraint y == MyUnion::A;
     constraint x == 3;
 }
 
-predicate Bar {
-    var x: int;
-    var y: MyType = MyType::A;
+predicate Bar(x: int, y: MyType) {
+    constraint y == MyType::A;
     constraint x < 2;
 }
 
 // parsed <<<
 // union ::MyUnion = A | B;
 // type ::MyType = ::MyUnion;
-//
-// predicate ::Foo {
-//     var ::x: int;
-//     var ::y: ::MyUnion;
+// 
+// predicate ::Foo(
+//     ::x: int,
+//     ::y: ::MyUnion,
+// ) {
 //     constraint (::y == ::MyUnion::A);
 //     constraint (::x == 3);
 // }
-//
-// predicate ::Bar {
-//     var ::x: int;
-//     var ::y: ::MyType;
+// 
+// predicate ::Bar(
+//     ::x: int,
+//     ::y: ::MyType,
+// ) {
 //     constraint (::y == ::MyType::A);
 //     constraint (::x < 2);
 // }
 // >>>
 
-
 // flattened <<<
 // union ::MyUnion = A | B;
 // type ::MyType = ::MyUnion;
-//
-// predicate ::Foo {
-//     var ::x: int;
-//     var ::y: ::MyUnion;
+// 
+// predicate ::Foo(
+//     ::x: int,
+//     ::y: ::MyUnion,
+// ) {
 //     constraint (::y == ::MyUnion::A);
 //     constraint (::x == 3);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-//
-// predicate ::Bar {
-//     var ::x: int;
-//     var ::y: ::MyUnion;
+// 
+// predicate ::Bar(
+//     ::x: int,
+//     ::y: ::MyUnion,
+// ) {
 //     constraint (::y == ::MyUnion::A);
 //     constraint (::x < 2);
 //     constraint __eq_set(__mut_keys(), {0});

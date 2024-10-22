@@ -6,14 +6,14 @@ storage {
     my_nested_map: (int => (b256 => int[3])),
 }
 
-predicate Foo {
+predicate Foo(
+    b1: b256[9],
+    b2: b256[2][2][3],
+    b3: { int, { b256, int } }[2][5],
+){
     pub var a1: int[5];
     pub var a2: b256[3][2];
     pub var a3: { int, b256 }[3][4];
-
-    var b1: b256[9];
-    var b2: b256[2][2][3];
-    var b3: { int, { b256, int } }[2][5];
 }
 
 // parsed <<<
@@ -24,14 +24,15 @@ predicate Foo {
 //     my_map: ( int => int[9][5] ),
 //     my_nested_map: ( int => ( b256 => int[3] ) ),
 // }
-//
-// predicate ::Foo {
+// 
+// predicate ::Foo(
+//     ::b1: b256[9],
+//     ::b2: b256[3][2][2],
+//     ::b3: {int, {b256, int}}[5][2],
+// ) {
 //     pub var ::a1: int[5];
 //     pub var ::a2: b256[2][3];
 //     pub var ::a3: {int, b256}[4][3];
-//     var ::b1: b256[9];
-//     var ::b2: b256[3][2][2];
-//     var ::b3: {int, {b256, int}}[5][2];
 // }
 // >>>
 
@@ -43,14 +44,15 @@ predicate Foo {
 //     my_map: ( int => int[9][5] ),
 //     my_nested_map: ( int => ( b256 => int[3] ) ),
 // }
-//
-// predicate ::Foo {
+// 
+// predicate ::Foo(
+//     ::b1: b256[9],
+//     ::b2: b256[3][2][2],
+//     ::b3: {int, {b256, int}}[5][2],
+// ) {
 //     pub var ::a1: int[5];
 //     pub var ::a2: b256[2][3];
 //     pub var ::a3: {int, b256}[4][3];
-//     var ::b1: b256[9];
-//     var ::b2: b256[3][2][2];
-//     var ::b3: {int, {b256, int}}[5][2];
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

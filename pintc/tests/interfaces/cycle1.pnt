@@ -1,73 +1,79 @@
 // A, B, C create a cycle
-predicate A {
+predicate A() {
     predicate BI = B();
 }
 
-predicate B {
+predicate B() {
     predicate CI = C();
 }
 
-predicate C {
+predicate C() {
     predicate AI = A();
 }
 
 // D, E, F create a cycle
-predicate D {
+predicate D() {
     predicate EI = E();
     predicate AI = A();
 }
 
-predicate E {
+predicate E() {
     predicate FI = F();
 }
 
-predicate F {
+predicate F() {
     predicate DI = D();
 }
 
 // parsed <<<
-// predicate ::A {
+// predicate ::A(
+//     __::BI_pathway: int,
+// ) {
 //     predicate ::BI = ::B()
-//     var __::BI_pathway: int;
 // }
 // 
-// predicate ::B {
+// predicate ::B(
+//     __::CI_pathway: int,
+// ) {
 //     predicate ::CI = ::C()
-//     var __::CI_pathway: int;
 // }
 // 
-// predicate ::C {
+// predicate ::C(
+//     __::AI_pathway: int,
+// ) {
 //     predicate ::AI = ::A()
-//     var __::AI_pathway: int;
 // }
 // 
-// predicate ::D {
+// predicate ::D(
+//     __::EI_pathway: int,
+//     __::AI_pathway: int,
+// ) {
 //     predicate ::EI = ::E()
 //     predicate ::AI = ::A()
-//     var __::EI_pathway: int;
-//     var __::AI_pathway: int;
 // }
 // 
-// predicate ::E {
+// predicate ::E(
+//     __::FI_pathway: int,
+// ) {
 //     predicate ::FI = ::F()
-//     var __::FI_pathway: int;
 // }
 // 
-// predicate ::F {
+// predicate ::F(
+//     __::DI_pathway: int,
+// ) {
 //     predicate ::DI = ::D()
-//     var __::DI_pathway: int;
 // }
 // >>>
 
 // flattening_failure <<<
 // dependency cycle detected between predicates
-// @175..186: this predicate is on the dependency cycle
-// @281..292: this predicate is on the dependency cycle
-// @240..251: this predicate is on the dependency cycle
+// @181..192: this predicate is on the dependency cycle
+// @291..302: this predicate is on the dependency cycle
+// @248..259: this predicate is on the dependency cycle
 // dependency between predicates is typically created via predicate instances
 // dependency cycle detected between predicates
 // @26..37: this predicate is on the dependency cycle
-// @108..119: this predicate is on the dependency cycle
-// @67..78: this predicate is on the dependency cycle
+// @112..123: this predicate is on the dependency cycle
+// @69..80: this predicate is on the dependency cycle
 // dependency between predicates is typically created via predicate instances
 // >>>

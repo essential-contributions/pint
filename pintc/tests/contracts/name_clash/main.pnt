@@ -2,27 +2,25 @@ use lib::Baz;
 
 union Foo = A | B;
 
-predicate Foo {
-    var x: int;
+predicate Foo(x: int) {
     constraint x == 3;
 }
 
 type Bar = Foo;
 
-predicate Bar {
-    var y: int;
+predicate Bar(y: int) {
     constraint y == 4;
 }
 
 type Foo = int;
 
-predicate Boo {
+predicate Boo() {
 }
 
 union Baz = P | Q;
 
-predicate Boo {
-    var Bar = 5;
+predicate Boo(Bar: int) {
+    constraint Bar == 5;
 }
 
 // parse_failure <<<
@@ -31,23 +29,23 @@ predicate Boo {
 // @35..48: `Foo` redeclared here
 // `Foo` must be declared or imported only once in this scope
 // symbol `Bar` has already been declared
-// @98..101: previous declaration of the symbol `Bar` here
-// @110..123: `Bar` redeclared here
+// @90..93: previous declaration of the symbol `Bar` here
+// @102..115: `Bar` redeclared here
 // `Bar` must be declared or imported only once in this scope
 // symbol `Foo` has already been declared
 // @21..24: previous declaration of the symbol `Foo` here
-// @173..176: `Foo` redeclared here
+// @157..160: `Foo` redeclared here
 // `Foo` must be declared or imported only once in this scope
 // symbol `Baz` has already been declared
 // @9..12: previous declaration of the symbol `Baz` here
-// @210..213: `Baz` redeclared here
+// @196..199: `Baz` redeclared here
 // `Baz` must be declared or imported only once in this scope
 // symbol `Boo` has already been declared
-// @185..198: previous declaration of the symbol `Boo` here
-// @224..237: `Boo` redeclared here
+// @169..182: previous declaration of the symbol `Boo` here
+// @210..223: `Boo` redeclared here
 // `Boo` must be declared or imported only once in this scope
 // symbol `::Bar` has already been declared
-// @98..101: previous declaration of the symbol `::Bar` here
-// @248..251: `::Bar` redeclared here
+// @90..93: previous declaration of the symbol `::Bar` here
+// @224..227: `::Bar` redeclared here
 // `::Bar` must be declared or imported only once in this scope
 // >>>

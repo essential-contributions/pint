@@ -1,22 +1,21 @@
 union Num = Zero | One | Two | Three;
 
-predicate test {
-    var ary: int[4];
-
+predicate test(ary: int[4]) {
     constraint ary[Num::One] == 1;
 }
 
 // parsed <<<
 // union ::Num = Zero | One | Two | Three;
-//
-// predicate ::test {
-//     var ::ary: int[4];
+// 
+// predicate ::test(
+//     ::ary: int[4],
+// ) {
 //     constraint (::ary[::Num::One] == 1);
 // }
 // >>>
 
 // typecheck_failure <<<
 // attempt to index an array with a mismatched value
-// @97..105: array access must be with an int value
+// @88..96: array access must be with an int value
 // found access using type `::Num`
 // >>>

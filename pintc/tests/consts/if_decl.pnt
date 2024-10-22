@@ -2,9 +2,7 @@ const x = true;
 const y = 33;
 const z = true;
 
-predicate test {
-    var a: int;
-
+predicate test(a: int) {
     if x {
         constraint a == 11;
     } else {
@@ -22,9 +20,10 @@ predicate test {
 // const ::x = true;
 // const ::z = true;
 // const ::y = 33;
-//
-// predicate ::test {
-//     var ::a: int;
+// 
+// predicate ::test(
+//     ::a: int,
+// ) {
 //     if ::x {
 //         constraint (::a == 11)
 //     } else {
@@ -42,9 +41,10 @@ predicate test {
 // const ::x: bool = true;
 // const ::z: bool = true;
 // const ::y: int = 33;
-//
-// predicate ::test {
-//     var ::a: int;
+// 
+// predicate ::test(
+//     ::a: int,
+// ) {
 //     constraint (!true || (::a == 11));
 //     constraint (true || (::a == 22));
 //     constraint (!true || (::a == 33));

@@ -1,16 +1,17 @@
-predicate test {
+predicate test() {
     constraint b[1] == 2;
 }
 
 // parsed <<<
-// predicate ::test {
+// predicate ::test(
+// ) {
 //     constraint (::b[1] == 2);
 // }
 // >>>
 
 // typecheck_failure <<<
 // cannot find value `::b` in this scope
-// @32..33: not found in this scope
+// @34..35: not found in this scope
 // indexed expression invalid
-// @32..36: value must be an array or a storage map; found `Error`
+// @34..38: value must be an array or a storage map; found `Error`
 // >>>

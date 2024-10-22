@@ -1,27 +1,33 @@
 use baz::MyUnion;
 use ::baz::MyType;
 
-predicate Bar {
-    var y: int;
+predicate Bar(
+    y: int,
+    e1: MyUnion,
+    f1: MyType,
+    e2: ::baz::MyUnion,
+    f2: baz::MyType,
+){
     constraint y == 4;
 
-    var e1 = MyUnion::A;
-    var f1 = MyType::B;
+    constraint e1 == MyUnion::A;
+    constraint f1 == MyType::B;
 
-    var e2 = ::baz::MyUnion::B;
-    var f2 = baz::MyType::A;
+    constraint e2 == ::baz::MyUnion::B;
+    constraint f2 == baz::MyType::A;
 }
 
 // parsed <<<
 // union ::baz::MyUnion = A | B;
 // type ::baz::MyType = ::baz::MyUnion;
-//
-// predicate ::Bar {
-//     var ::y: int;
-//     var ::e1;
-//     var ::f1;
-//     var ::e2;
-//     var ::f2;
+// 
+// predicate ::Bar(
+//     ::y: int,
+//     ::e1: ::baz::MyUnion,
+//     ::f1: ::baz::MyType,
+//     ::e2: ::baz::MyUnion,
+//     ::f2: ::baz::MyType,
+// ) {
 //     constraint (::y == 4);
 //     constraint (::e1 == ::baz::MyUnion::A);
 //     constraint (::f1 == ::baz::MyType::B);
@@ -30,17 +36,17 @@ predicate Bar {
 // }
 // >>>
 
-
 // flattened <<<
 // union ::baz::MyUnion = A | B;
 // type ::baz::MyType = ::baz::MyUnion;
-//
-// predicate ::Bar {
-//     var ::y: int;
-//     var ::e1: ::baz::MyUnion;
-//     var ::f1: ::baz::MyUnion;
-//     var ::e2: ::baz::MyUnion;
-//     var ::f2: ::baz::MyUnion;
+// 
+// predicate ::Bar(
+//     ::y: int,
+//     ::e1: ::baz::MyUnion,
+//     ::f1: ::baz::MyUnion,
+//     ::e2: ::baz::MyUnion,
+//     ::f2: ::baz::MyUnion,
+// ) {
 //     constraint (::y == 4);
 //     constraint (::e1 == ::baz::MyUnion::A);
 //     constraint (::f1 == ::baz::MyUnion::B);

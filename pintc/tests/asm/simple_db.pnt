@@ -10,19 +10,25 @@ interface Foo {
     }
 }
 
-predicate test {
+predicate test(
+    e_old: int,
+    e_new: int,
+    w: int,
+    u: int,
+    v: int,
+    a: int[5],
+) {
     state x: int = storage::x;
     state y: int = storage::y;
     state z: int = storage::z;
     interface FooI = Foo(0x44e1aa05940f0a9c02572fcffc641fa7b3a8f036f07c5b87f17d276e0957cf89);
     state external: int = FooI::storage::external;
-    var e_old = external;
-    var e_new = external';
+    constraint e_old == external;
+    constraint e_new == external';
 
-    var w: int = x + 99; // 141
-    var u: int = y * 3;  // 129
-    var v: int = z * z;  // 1936
-    var a: int[5];
+    constraint w == x + 99; // 141
+    constraint u == y * 3;  // 129
+    constraint v == z * z;  // 1936
 
     constraint forall i in 0..4 {
         a[i] == i*i
@@ -47,14 +53,15 @@ predicate test {
 //     }
 // }
 // 
-// predicate ::test {
+// predicate ::test(
+//     ::e_old: int,
+//     ::e_new: int,
+//     ::w: int,
+//     ::u: int,
+//     ::v: int,
+//     ::a: int[5],
+// ) {
 //     interface ::FooI = ::Foo(0x44E1AA05940F0A9C02572FCFFC641FA7B3A8F036F07C5B87F17D276E0957CF89)
-//     var ::e_old;
-//     var ::e_new;
-//     var ::w: int;
-//     var ::u: int;
-//     var ::v: int;
-//     var ::a: int[5];
 //     state ::x: int = storage::x;
 //     state ::y: int = storage::y;
 //     state ::z: int = storage::z;
@@ -86,14 +93,15 @@ predicate test {
 //     }
 // }
 // 
-// predicate ::test {
+// predicate ::test(
+//     ::e_old: int,
+//     ::e_new: int,
+//     ::w: int,
+//     ::u: int,
+//     ::v: int,
+//     ::a: int[5],
+// ) {
 //     interface ::FooI = ::Foo(0x44E1AA05940F0A9C02572FCFFC641FA7B3A8F036F07C5B87F17D276E0957CF89)
-//     var ::e_old: int;
-//     var ::e_new: int;
-//     var ::w: int;
-//     var ::u: int;
-//     var ::v: int;
-//     var ::a: int[5];
 //     state ::x: int = __storage_get({0});
 //     state ::y: int = __storage_get({1});
 //     state ::z: int = __storage_get({2});

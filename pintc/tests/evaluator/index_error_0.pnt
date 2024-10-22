@@ -1,21 +1,22 @@
 const b = [11, 22, 33];
 
-predicate test {
-    var c = b[4];
+predicate test(c: int) {
+    constraint c == b[4];
 }
 
 // parsed <<<
 // const ::b = [11, 22, 33];
-//
-// predicate ::test {
-//     var ::c;
+// 
+// predicate ::test(
+//     ::c: int,
+// ) {
 //     constraint (::c == ::b[4]);
 // }
 // >>>
 
 // flattening_failure <<<
 // attempt to access array with out of bounds index
-// @56..57: array index is out of bounds
+// @72..73: array index is out of bounds
 // attempt to access array with out of bounds index
-// @56..57: array index is out of bounds
+// @72..73: array index is out of bounds
 // >>>

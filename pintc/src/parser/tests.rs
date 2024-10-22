@@ -2230,12 +2230,13 @@ fn array_type() {
     check(
         &run_parser!(
             (yp::PintParser::new(), ""),
-            r#"predicate test { var a: int[]; }"#
+            r#"predicate test(a: int[]) {}"#
         ),
         expect_test::expect![[r#"
 
-            predicate ::test {
-                var ::a: int[];
+            predicate ::test(
+                ::a: int[],
+            ) {
             }"#]],
     );
 }
@@ -2301,11 +2302,11 @@ fn array_element_accesses() {
     check(
         &run_parser!(
             (yp::PintParser::new(), ""),
-            r#"predicate test { var x = a[]; }"#
+            r#"predicate test() { state x = a[]; }"#
         ),
         expect_test::expect![[r#"
             missing array or map index
-            @25..28: missing array or map element index
+            @29..32: missing array or map element index
         "#]],
     );
 

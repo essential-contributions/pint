@@ -1,57 +1,53 @@
 union Egg = Ovum | Oeuf | Uovo | HuaManu;
 
-predicate test {
-    // The generators tests are already testing most of the basics.  Here's some wacky stuff.
-
-    var a: int[[1, 2, 3][1]];
-    var b0: int[{1, 2, 3}.1];
-    var b1: int[{x: 1, y: 2, z: 3}.y];
-    var c: int[false ? 1 : 2];
-
+// The generators tests are already testing most of the basics.  Here's some wacky stuff.
+predicate test(
+    a: int[[1, 2, 3][1]],
+    b0: int[{1, 2, 3}.1],
+    b1: int[{x: 1, y: 2, z: 3}.y],
+    c: int[false ? 1 : 2],
+    f: int[true as int],
+    h: int[Egg::Uovo as int],   // Redundant but still valid.
+    i: int[3 as int],   // Also redundant.
+) {
     constraint forall d in 0..2 where 0x1111111111111111111111111111111111111111111111111111111111111111 != 0x2222222222222222222222222222222222222222222222222222222222222222 { d == d };
     constraint forall e in 0..2 where 0x1111111111111111111111111111111111111111111111111111111111111111 == 0x2222222222222222222222222222222222222222222222222222222222222222 { e == e };
-
-    var f: int[true as int];
-
-    // * In theory the `in` expression could be evaluated at compile time, but it involves performing
-    //   compile time equivalence checks between expressions for `in [...]` which can be a future task.
-    // constraint forall g in 0..2, g in 0..2 where f in 1..3, g in [1, 2, 3] { true };
-
-    var h: int[Egg::Uovo as int];   // Redundant but still valid.
-
-    var i: int[3 as int];   // Also redundant.
 }
+
+
+// a, b, c and h are all int[2]; f is int[1].
+// d is expanded, e is not.
+//
 
 // parsed <<<
 // union ::Egg = Ovum | Oeuf | Uovo | HuaManu;
-//
-// predicate ::test {
-//     var ::a: int[[1, 2, 3][1]];
-//     var ::b0: int[{1, 2, 3}.1];
-//     var ::b1: int[{x: 1, y: 2, z: 3}.y];
-//     var ::c: int[(false ? 1 : 2)];
-//     var ::f: int[true as int];
-//     var ::h: int[::Egg::Uovo as int];
-//     var ::i: int[3 as int];
+// 
+// predicate ::test(
+//     ::a: int[[1, 2, 3][1]],
+//     ::b0: int[{1, 2, 3}.1],
+//     ::b1: int[{x: 1, y: 2, z: 3}.y],
+//     ::c: int[(false ? 1 : 2)],
+//     ::f: int[true as int],
+//     ::h: int[::Egg::Uovo as int],
+//     ::i: int[3 as int],
+// ) {
 //     constraint forall d in 0..2, where (0x1111111111111111111111111111111111111111111111111111111111111111 != 0x2222222222222222222222222222222222222222222222222222222222222222) { (::d == ::d) };
 //     constraint forall e in 0..2, where (0x1111111111111111111111111111111111111111111111111111111111111111 == 0x2222222222222222222222222222222222222222222222222222222222222222) { (::e == ::e) };
 // }
 // >>>
 
-// a, b, c and h are all int[2]; f is int[1].
-// d is expanded, e is not.
-//
 // flattened <<<
 // union ::Egg = Ovum | Oeuf | Uovo | HuaManu;
 // 
-// predicate ::test {
-//     var ::a: int[2];
-//     var ::b0: int[2];
-//     var ::b1: int[2];
-//     var ::c: int[2];
-//     var ::f: int[1];
-//     var ::h: int[2];
-//     var ::i: int[3];
+// predicate ::test(
+//     ::a: int[2],
+//     ::b0: int[2],
+//     ::b1: int[2],
+//     ::c: int[2],
+//     ::f: int[1],
+//     ::h: int[2],
+//     ::i: int[3],
+// ) {
 //     constraint (((true && (0 == 0)) && (1 == 1)) && (2 == 2));
 //     constraint true;
 //     constraint __eq_set(__mut_keys(), {0});

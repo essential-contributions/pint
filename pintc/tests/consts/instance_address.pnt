@@ -7,7 +7,7 @@ interface I {
 const i_addr = 0x0000000000000000000000000000000000000000000000000000000000000000;
 const p_addr = 0x1111111111111111111111111111111111111111111111111111111111111111;
 
-predicate Q {
+predicate Q() {
     interface Iface = I(i_addr);
     predicate PInstance = Iface::P(p_addr);
 
@@ -22,11 +22,12 @@ predicate Q {
 //         pub var x: int;
 //     }
 // }
-//
-// predicate ::Q {
+// 
+// predicate ::Q(
+//     __::PInstance_pathway: int,
+// ) {
 //     interface ::Iface = ::I(::i_addr)
 //     predicate ::PInstance = ::Iface::P(::p_addr)
-//     var __::PInstance_pathway: int;
 //     constraint (::PInstance::x == 11);
 // }
 // >>>
@@ -39,11 +40,12 @@ predicate Q {
 //         pub var x: int;
 //     }
 // }
-//
-// predicate ::Q {
+// 
+// predicate ::Q(
+//     __::PInstance_pathway: int,
+// ) {
 //     interface ::Iface = ::I(0x0000000000000000000000000000000000000000000000000000000000000000)
 //     predicate ::PInstance = ::Iface::P(0x1111111111111111111111111111111111111111111111111111111111111111)
-//     var __::PInstance_pathway: int;
 //     constraint (__pub_var(__::PInstance_pathway, {0}) == 11);
 //     constraint __eq_set(__mut_keys(), {0});
 //     constraint (__predicate_at(__::PInstance_pathway) == {0x0000000000000000000000000000000000000000000000000000000000000000, 0x1111111111111111111111111111111111111111111111111111111111111111});

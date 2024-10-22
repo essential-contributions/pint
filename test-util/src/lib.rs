@@ -1,7 +1,7 @@
 use num_traits::Num;
 use std::{
-    fs::File,
-    io::{BufRead, BufReader},
+    fs::{File, OpenOptions},
+    io::{BufRead, BufReader, Write},
     path::Path,
 };
 
@@ -158,12 +158,15 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
     )?;
     let close_sect_re = regex::Regex::new(r"^\s*//\s*>>>")?;
 
+    let mut test_itself = vec![];
+
     let handle = File::open(path)?;
     for line in BufReader::new(handle).lines() {
         let line = line?;
 
         // Ignore any line which is not a comment.
         if !comment_re.is_match(&line) {
+            test_itself.push(line);
             continue;
         }
 
@@ -244,8 +247,38 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
             } else {
                 section_lines.push(line[3..].to_owned());
             }
+
+            continue;
+        }
+
+        // Actual code comments are left.. just push them to `test_itself`
+        test_itself.push(line);
+    }
+
+    if std::env::var("UPDATE_EXPECT").is_ok() {
+        let mut file = OpenOptions::new().write(true).truncate(true).open(path)?;
+
+        while let Some(last) = test_itself.last() {
+            if last.trim().is_empty() {
+                test_itself.pop(); // Remove the trailing empty line
+            } else {
+                break; // Stop when a non-empty line is found
+            }
+        }
+
+        for line in test_itself {
+            writeln!(file, "{}", line)?;
         }
     }
 
     Ok(test_data)
+}
+
+pub fn update_expected(test_path: &Path, section_name: &str, new_expected: &str) {
+    let mut file = OpenOptions::new().append(true).open(test_path).unwrap();
+    writeln!(file, "\n// {section_name} <<<").unwrap();
+    for line in new_expected.lines() {
+        writeln!(file, "// {}", line).unwrap();
+    }
+    writeln!(file, "// >>>").unwrap();
 }

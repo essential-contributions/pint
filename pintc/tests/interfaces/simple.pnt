@@ -40,11 +40,15 @@ interface Bar {
     predicate I3;
 }
 
-predicate Simple {
-    var addr1: b256;
-    var addr2: b256;
-    var addr3: b256;
-    var addr4: b256;
+predicate Simple(
+    addr1: b256,
+    addr2: b256,
+    addr3: b256,
+    addr4: b256,
+    x1: int,
+    x2: b256,
+    x3: bool,
+) {
 
     interface FooInstance = Foo(addr1);
     interface BarInstance = Bar(addr2);
@@ -60,9 +64,9 @@ predicate Simple {
     predicate BarI2Instance2 = BarInstance::I2(addr4);
     predicate BarI2Instance3 = BarInstance::I2(addr4);
 
-    var x1 = FooI1Instance1::x1;
-    var x2 = BarI2Instance2::x2;
-    var x3 = BarI2Instance3::x3;
+    constraint x1 == FooI1Instance1::x1;
+    constraint x2 == BarI2Instance2::x2;
+    constraint x3 == BarI2Instance3::x3;
 }
 
 // parsed <<<
@@ -100,8 +104,21 @@ predicate Simple {
 //     }
 //     predicate I3;
 // }
-//
-// predicate ::Simple {
+// 
+// predicate ::Simple(
+//     ::addr1: b256,
+//     ::addr2: b256,
+//     ::addr3: b256,
+//     ::addr4: b256,
+//     ::x1: int,
+//     ::x2: b256,
+//     ::x3: bool,
+//     __::FooI1Instance1_pathway: int,
+//     __::FooI1Instance2_pathway: int,
+//     __::BarI2Instance1_pathway: int,
+//     __::BarI2Instance2_pathway: int,
+//     __::BarI2Instance3_pathway: int,
+// ) {
 //     interface ::FooInstance = ::Foo(::addr1)
 //     interface ::BarInstance = ::Bar(::addr2)
 //     predicate ::FooI1Instance1 = ::FooInstance::I1(::addr3)
@@ -109,18 +126,6 @@ predicate Simple {
 //     predicate ::BarI2Instance1 = ::BarInstance::I2(::addr4)
 //     predicate ::BarI2Instance2 = ::BarInstance::I2(::addr4)
 //     predicate ::BarI2Instance3 = ::BarInstance::I2(::addr4)
-//     var ::addr1: b256;
-//     var ::addr2: b256;
-//     var ::addr3: b256;
-//     var ::addr4: b256;
-//     var __::FooI1Instance1_pathway: int;
-//     var __::FooI1Instance2_pathway: int;
-//     var __::BarI2Instance1_pathway: int;
-//     var __::BarI2Instance2_pathway: int;
-//     var __::BarI2Instance3_pathway: int;
-//     var ::x1;
-//     var ::x2;
-//     var ::x3;
 //     state ::x = ::FooInstance::storage::x;
 //     state ::y = ::FooInstance::storage::y;
 //     state ::z = ::BarInstance::storage::z;
@@ -165,8 +170,21 @@ predicate Simple {
 //     }
 //     predicate I3;
 // }
-//
-// predicate ::Simple {
+// 
+// predicate ::Simple(
+//     ::addr1: b256,
+//     ::addr2: b256,
+//     ::addr3: b256,
+//     ::addr4: b256,
+//     ::x1: int,
+//     ::x2: b256,
+//     ::x3: bool,
+//     __::FooI1Instance1_pathway: int,
+//     __::FooI1Instance2_pathway: int,
+//     __::BarI2Instance1_pathway: int,
+//     __::BarI2Instance2_pathway: int,
+//     __::BarI2Instance3_pathway: int,
+// ) {
 //     interface ::FooInstance = ::Foo(::addr1)
 //     interface ::BarInstance = ::Bar(::addr2)
 //     predicate ::FooI1Instance1 = ::FooInstance::I1(::addr3)
@@ -174,18 +192,6 @@ predicate Simple {
 //     predicate ::BarI2Instance1 = ::BarInstance::I2(::addr4)
 //     predicate ::BarI2Instance2 = ::BarInstance::I2(::addr4)
 //     predicate ::BarI2Instance3 = ::BarInstance::I2(::addr4)
-//     var ::addr1: b256;
-//     var ::addr2: b256;
-//     var ::addr3: b256;
-//     var ::addr4: b256;
-//     var __::FooI1Instance1_pathway: int;
-//     var __::FooI1Instance2_pathway: int;
-//     var __::BarI2Instance1_pathway: int;
-//     var __::BarI2Instance2_pathway: int;
-//     var __::BarI2Instance3_pathway: int;
-//     var ::x1: int;
-//     var ::x2: b256;
-//     var ::x3: bool;
 //     state ::x: int = __storage_get_extern(::addr1, {0});
 //     state ::y: int = __storage_get_extern(::addr1, {1});
 //     state ::z: b256 = __storage_get_extern(::addr2, {1});
