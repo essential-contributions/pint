@@ -2,7 +2,7 @@ storage {
     x: int,
 }
 
-predicate Foo {
+predicate Foo() {
     state y = storage::y;
 }
 
@@ -10,13 +10,14 @@ predicate Foo {
 // storage {
 //     x: int,
 // }
-//
-// predicate ::Foo {
+// 
+// predicate ::Foo(
+// ) {
 //     state ::y = storage::y;
 // }
 // >>>
 
 // typecheck_failure <<<
 // cannot find storage variable `y`
-// @55..65: not found in storage declaration
+// @57..67: not found in storage declaration
 // >>>

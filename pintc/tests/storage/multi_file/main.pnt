@@ -1,7 +1,7 @@
 use lib::MyUnion;
 
-predicate test {
-    var e: MyUnion = MyUnion::A;
+predicate test(e: MyUnion) {
+    constraint e == MyUnion::A;
 }
 
 // parse_failure <<<

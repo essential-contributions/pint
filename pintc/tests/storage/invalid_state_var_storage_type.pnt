@@ -5,7 +5,7 @@ storage {
     c: { a, int },
 }
 
-predicate test {
+predicate test() {
     state d = storage::b;
     state e = storage::c;
 }
@@ -16,8 +16,9 @@ predicate test {
 //     b: {( int => int ), int},
 //     c: {::a, int},
 // }
-//
-// predicate ::test {
+// 
+// predicate ::test(
+// ) {
 //     state ::d = storage::b;
 //     state ::e = storage::c;
 // }
@@ -25,9 +26,9 @@ predicate test {
 
 // typecheck_failure <<<
 // variables cannot have storage types
-// @122..142: found variable of storage type {( int => int ), int} here
+// @124..144: found variable of storage type {( int => int ), int} here
 // type of variable depends on the storage type `( int => int )`
 // variables cannot have storage types
-// @148..168: found variable of storage type {::a ({( bool => bool ), int}), int} here
+// @150..170: found variable of storage type {::a ({( bool => bool ), int}), int} here
 // type of variable depends on the storage type `( bool => bool )`
 // >>>

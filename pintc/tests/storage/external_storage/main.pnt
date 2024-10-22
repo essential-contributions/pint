@@ -15,7 +15,7 @@ interface ERC20_0 {
     }
 }
 
-predicate Foo {
+predicate Foo() {
     interface ERC20_0_instance =
         ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000);
     interface ERC20_1_instance =
@@ -40,7 +40,7 @@ predicate Foo {
     state external_map_2 = ERC20_2_instance::storage::map[3][4];
 }
 
-predicate Bar {
+predicate Bar() {
     interface ERC20_0_instance =
         ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000);
     interface ERC20_1_instance =
@@ -92,8 +92,9 @@ predicate Bar {
 //         map: ( int => ( int => b256 ) ),
 //     }
 // }
-//
-// predicate ::Foo {
+// 
+// predicate ::Foo(
+// ) {
 //     interface ::ERC20_0_instance = ::ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000)
 //     interface ::ERC20_1_instance = ::lib::ERC20_1(0x1111111111111111111111111111111111111111111111111111111111111111)
 //     interface ::ERC20_2_instance = ::lib::ERC20_2(0x2222222222222222222222222222222222222222222222222222222222222222)
@@ -110,8 +111,9 @@ predicate Bar {
 //     state ::external_y_2 = ::ERC20_2_instance::storage::y;
 //     state ::external_map_2 = ::ERC20_2_instance::storage::map[3][4];
 // }
-//
-// predicate ::Bar {
+// 
+// predicate ::Bar(
+// ) {
 //     interface ::ERC20_0_instance = ::ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000)
 //     interface ::ERC20_1_instance = ::lib::ERC20_1(0x1111111111111111111111111111111111111111111111111111111111111111)
 //     interface ::ERC20_2_instance = ::ERC20_0(0x2222222222222222222222222222222222222222222222222222222222222222)
@@ -157,8 +159,9 @@ predicate Bar {
 //         map: ( int => ( int => b256 ) ),
 //     }
 // }
-//
-// predicate ::Foo {
+// 
+// predicate ::Foo(
+// ) {
 //     interface ::ERC20_0_instance = ::ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000)
 //     interface ::ERC20_1_instance = ::lib::ERC20_1(0x1111111111111111111111111111111111111111111111111111111111111111)
 //     interface ::ERC20_2_instance = ::lib::ERC20_2(0x2222222222222222222222222222222222222222222222222222222222222222)
@@ -176,8 +179,9 @@ predicate Bar {
 //     state ::external_map_2: b256 = __storage_get_extern(0x2222222222222222222222222222222222222222222222222222222222222222, {2, 3, 4});
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-//
-// predicate ::Bar {
+// 
+// predicate ::Bar(
+// ) {
 //     interface ::ERC20_0_instance = ::ERC20_0(0x0000000000000000000000000000000000000000000000000000000000000000)
 //     interface ::ERC20_1_instance = ::lib::ERC20_1(0x1111111111111111111111111111111111111111111111111111111111111111)
 //     interface ::ERC20_2_instance = ::ERC20_0(0x2222222222222222222222222222222222222222222222222222222222222222)

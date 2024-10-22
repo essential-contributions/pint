@@ -6,7 +6,7 @@ storage {
     z: { int, int }[2],
 }
 
-predicate test {
+predicate test() {
     state a = storage::v;
     constraint a' > a;
     constraint a'' > a;
@@ -48,8 +48,9 @@ predicate test {
 //     y: {int[2], int[2]},
 //     z: {int, int}[2],
 // }
-//
-// predicate ::test {
+// 
+// predicate ::test(
+// ) {
 //     state ::a = storage::v;
 //     state ::b = storage::w;
 //     state ::c = storage::x;
@@ -88,8 +89,9 @@ predicate test {
 //     y: {int[2], int[2]},
 //     z: {int, int}[2],
 // }
-//
-// predicate ::test {
+// 
+// predicate ::test(
+// ) {
 //     state ::a: int = __storage_get({0});
 //     state ::b: int[2] = __storage_get({1, 0});
 //     state ::c: {int, int} = __storage_get({2, 0});
