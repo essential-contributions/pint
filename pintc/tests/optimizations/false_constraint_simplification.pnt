@@ -1,6 +1,5 @@
-predicate Test {
-    var x = 1;
-    var y: int;
+predicate Test(x: int, y: int) {
+    constraint x == 1;
 
     // non-trivial that should be simplified when a constraint resolves to false
     constraint x < y;
@@ -19,9 +18,10 @@ predicate Test {
 }
 
 // parsed <<<
-// predicate ::Test {
-//     var ::x;
-//     var ::y: int;
+// predicate ::Test(
+//     ::x: int,
+//     ::y: int,
+// ) {
 //     constraint (::x == 1);
 //     constraint (::x < ::y);
 //     constraint (::x == ::x);
@@ -34,9 +34,10 @@ predicate Test {
 // >>>
 
 // flattened <<<
-// predicate ::Test {
-//     var ::x: int;
-//     var ::y: int;
+// predicate ::Test(
+//     ::x: int,
+//     ::y: int,
+// ) {
 //     constraint (::x == 1);
 //     constraint (::x < ::y);
 //     constraint (::x == ::x);
@@ -48,18 +49,19 @@ predicate Test {
 // >>>
 
 // optimized <<<
-// predicate ::Test {
-//     var ::x: int;
-//     var ::y: int;
+// predicate ::Test(
+//     ::x: int,
+//     ::y: int,
+// ) {
 //     constraint false;
 // }
 // >>>
 
 // warnings <<<
 // constraint is always `false`
-// @205..225: this constraint always evaluates to `false` and can never be satisfied
+// @213..233: this constraint always evaluates to `false` and can never be satisfied
 // if this is intentional, consider removing the containing predicate because its constraints can never be satisfied
 // constraint is always `false`
-// @330..346: this constraint always evaluates to `false` and can never be satisfied
+// @338..354: this constraint always evaluates to `false` and can never be satisfied
 // if this is intentional, consider removing the containing predicate because its constraints can never be satisfied
 // >>>
