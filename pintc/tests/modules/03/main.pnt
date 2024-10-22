@@ -3,7 +3,7 @@ use a::a;
 // All these statements have a name clash with the `a::a` above.
 use a::a;
 
-predicate test {
+predicate test() {
     var a = 12;
     var a = 13;
 }
@@ -14,11 +14,11 @@ predicate test {
 // @83..84: `a` redeclared here
 // `a` must be declared or imported only once in this scope
 // symbol `a` has already been declared
-// @112..113: previous declaration of the symbol `a` here
-// @128..129: `a` redeclared here
+// @114..115: previous declaration of the symbol `a` here
+// @130..131: `a` redeclared here
 // `a` must be declared or imported only once in this scope
 // symbol `::a` has already been declared
 // @7..8: previous declaration of the symbol `::a` here
-// @112..113: `::a` redeclared here
+// @114..115: `::a` redeclared here
 // `::a` must be declared or imported only once in this scope
 // >>>

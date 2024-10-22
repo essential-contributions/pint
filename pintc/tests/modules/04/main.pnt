@@ -1,14 +1,11 @@
 union Skill = Nunchuck | BowHunting | ComputerHacking;
 
-predicate test {
+predicate test(debbie_skill: debbie::Skill, pedro_skill: Skill, kip_skill: kip::Skill) {
     // A bunch of unions *with the same name* all in different files should all have unique paths.
 
-    var debbie_skill = debbie::Skill::GlamourShots;
+    constraint debbie_skill == debbie::Skill::GlamourShots;
 
-    var pedro_skill: Skill;
     constraint pedro_skill == Skill::Nunchuck || pedro_skill == Skill::BowHunting;
-
-    var kip_skill: kip::Skill;
 
     constraint debbie_skill == debbie::Skill::Handicrafts && kip_skill == kip::Skill::CageFighting;
 }
@@ -17,11 +14,12 @@ predicate test {
 // union ::Skill = Nunchuck | BowHunting | ComputerHacking;
 // union ::kip::Skill = ChattingOnlineWithBabes | CageFighting;
 // union ::debbie::Skill = GlamourShots | Handicrafts;
-//
-// predicate ::test {
-//     var ::debbie_skill;
-//     var ::pedro_skill: ::Skill;
-//     var ::kip_skill: ::kip::Skill;
+// 
+// predicate ::test(
+//     ::debbie_skill: ::debbie::Skill,
+//     ::pedro_skill: ::Skill,
+//     ::kip_skill: ::kip::Skill,
+// ) {
 //     constraint (::debbie_skill == ::debbie::Skill::GlamourShots);
 //     constraint ((::pedro_skill == ::Skill::Nunchuck) || (::pedro_skill == ::Skill::BowHunting));
 //     constraint ((::debbie_skill == ::debbie::Skill::Handicrafts) && (::kip_skill == ::kip::Skill::CageFighting));
@@ -32,11 +30,12 @@ predicate test {
 // union ::Skill = Nunchuck | BowHunting | ComputerHacking;
 // union ::kip::Skill = ChattingOnlineWithBabes | CageFighting;
 // union ::debbie::Skill = GlamourShots | Handicrafts;
-//
-// predicate ::test {
-//     var ::debbie_skill: ::debbie::Skill;
-//     var ::pedro_skill: ::Skill;
-//     var ::kip_skill: ::kip::Skill;
+// 
+// predicate ::test(
+//     ::debbie_skill: ::debbie::Skill,
+//     ::pedro_skill: ::Skill,
+//     ::kip_skill: ::kip::Skill,
+// ) {
 //     constraint (::debbie_skill == ::debbie::Skill::GlamourShots);
 //     constraint ((::pedro_skill == ::Skill::Nunchuck) || (::pedro_skill == ::Skill::BowHunting));
 //     constraint ((::debbie_skill == ::debbie::Skill::Handicrafts) && (::kip_skill == ::kip::Skill::CageFighting));

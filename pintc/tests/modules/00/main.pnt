@@ -1,23 +1,23 @@
-predicate test {
-    var a: int;
-
+predicate test(a: int) {
     constraint a == b::b;
 }
 
 // parsed <<<
 // const ::b::b = 1;
-//
-// predicate ::test {
-//     var ::a: int;
+// 
+// predicate ::test(
+//     ::a: int,
+// ) {
 //     constraint (::a == ::b::b);
 // }
 // >>>
 
 // flattened <<<
 // const ::b::b: int = 1;
-//
-// predicate ::test {
-//     var ::a: int;
+// 
+// predicate ::test(
+//     ::a: int,
+// ) {
 //     constraint (::a == 1);
 //     constraint __eq_set(__mut_keys(), {0});
 // }

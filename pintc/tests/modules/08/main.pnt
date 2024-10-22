@@ -2,33 +2,28 @@ use ::b::c;
 use ::d::MyUnion;
 use b;
 
-predicate test {
-    var c1 = ::b::c;
-    var c2 = b::c;
-    var c3 = c;
-    var c4 = b::c;
+predicate test() {
+    state c1 = ::b::c;
+    state c2 = b::c;
+    state c3 = c;
+    state c4 = b::c;
 
-    var a_variant = MyUnion::A;
-    var b_variant = d::MyUnion::B;
+    state a_variant = MyUnion::A;
+    state b_variant = d::MyUnion::B;
 }
 
 // parsed <<<
 // const ::b::c = 5;
 // union ::d::MyUnion = A | B;
-//
-// predicate ::test {
-//     var ::c1;
-//     var ::c2;
-//     var ::c3;
-//     var ::c4;
-//     var ::a_variant;
-//     var ::b_variant;
-//     constraint (::c1 == ::b::c);
-//     constraint (::c2 == ::b::c);
-//     constraint (::c3 == ::b::c);
-//     constraint (::c4 == ::b::c);
-//     constraint (::a_variant == ::d::MyUnion::A);
-//     constraint (::b_variant == ::d::MyUnion::B);
+// 
+// predicate ::test(
+// ) {
+//     state ::c1 = ::b::c;
+//     state ::c2 = ::b::c;
+//     state ::c3 = ::b::c;
+//     state ::c4 = ::b::c;
+//     state ::a_variant = ::d::MyUnion::A;
+//     state ::b_variant = ::d::MyUnion::B;
 // }
 // >>>
 
@@ -36,19 +31,14 @@ predicate test {
 // const ::b::c: int = 5;
 // union ::d::MyUnion = A | B;
 // 
-// predicate ::test {
-//     var ::c1: int;
-//     var ::c2: int;
-//     var ::c3: int;
-//     var ::c4: int;
-//     var ::a_variant: ::d::MyUnion;
-//     var ::b_variant: ::d::MyUnion;
-//     constraint (::c1 == 5);
-//     constraint (::c2 == 5);
-//     constraint (::c3 == 5);
-//     constraint (::c4 == 5);
-//     constraint (::a_variant == ::d::MyUnion::A);
-//     constraint (::b_variant == ::d::MyUnion::B);
+// predicate ::test(
+// ) {
+//     state ::c1: int = 5;
+//     state ::c2: int = 5;
+//     state ::c3: int = 5;
+//     state ::c4: int = 5;
+//     state ::a_variant: ::d::MyUnion = ::d::MyUnion::A;
+//     state ::b_variant: ::d::MyUnion = ::d::MyUnion::B;
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
