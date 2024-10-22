@@ -4,8 +4,7 @@ type deuce = int[10 / five];
 
 const two_ints: deuce = [11, 22];
 
-predicate test {
-    var a: int;
+predicate test(a: int) {
     constraint a == two_ints[1];
 }
 
@@ -13,9 +12,10 @@ predicate test {
 // const ::two_ints: ::deuce = [11, 22];
 // const ::five = 5;
 // type ::deuce = int[(10 / ::five)];
-//
-// predicate ::test {
-//     var ::a: int;
+// 
+// predicate ::test(
+//     ::a: int,
+// ) {
 //     constraint (::a == ::two_ints[1]);
 // }
 // >>>
@@ -24,9 +24,10 @@ predicate test {
 // const ::two_ints: int[2] = [11, 22];
 // const ::five: int = 5;
 // type ::deuce = int[2];
-//
-// predicate ::test {
-//     var ::a: int;
+// 
+// predicate ::test(
+//     ::a: int,
+// ) {
 //     constraint (::a == 22);
 //     constraint __eq_set(__mut_keys(), {0});
 // }

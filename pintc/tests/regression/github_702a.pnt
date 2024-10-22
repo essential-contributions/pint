@@ -1,25 +1,25 @@
 const ContractID: b256 = 0x0003000300030003000300030003000300030003000300030003000300030003;
 
-predicate Foo {
-    var a: int;
-
+predicate Foo(a: int) {
     constraint a > 3;
 }
 
 // parsed <<<
 // const ::ContractID: b256 = 0x0003000300030003000300030003000300030003000300030003000300030003;
-//
-// predicate ::Foo {
-//     var ::a: int;
+// 
+// predicate ::Foo(
+//     ::a: int,
+// ) {
 //     constraint (::a > 3);
 // }
 // >>>
 
 // flattened <<<
 // const ::ContractID: b256 = 0x0003000300030003000300030003000300030003000300030003000300030003;
-//
-// predicate ::Foo {
-//     var ::a: int;
+// 
+// predicate ::Foo(
+//     ::a: int,
+// ) {
 //     constraint (::a > 3);
 //     constraint __eq_set(__mut_keys(), {0});
 // }

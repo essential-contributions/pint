@@ -1,16 +1,17 @@
 type myAlias = int;
 type myCustom = myAlias;
 
-predicate Foo {
-    var a: myCustom = 11;
+predicate Foo(a: myCustom) {
+    constraint a == 11;
 }
 
 // parsed <<<
 // type ::myAlias = int;
 // type ::myCustom = ::myAlias;
-//
-// predicate ::Foo {
-//     var ::a: ::myCustom;
+// 
+// predicate ::Foo(
+//     ::a: ::myCustom,
+// ) {
 //     constraint (::a == 11);
 // }
 // >>>
@@ -18,9 +19,10 @@ predicate Foo {
 // flattened <<<
 // type ::myAlias = int;
 // type ::myCustom = int;
-//
-// predicate ::Foo {
-//     var ::a: int;
+// 
+// predicate ::Foo(
+//     ::a: int,
+// ) {
 //     constraint (::a == 11);
 //     constraint __eq_set(__mut_keys(), {0});
 // }

@@ -5,11 +5,12 @@ type myTuple = { x: int };
 type myTupleArray = { x: int[5] };
 type myNestedArrayTuple = { y: { z: int[{4, 1}.0] } };
 
-predicate Foo {
-    var a: myArrayTuple;
+predicate Foo(
+    a: myArrayTuple,
+    b: myNestedArrayTuple,
+) {
     constraint a[2] == 11;
 
-    var b: myNestedArrayTuple;
     constraint b.y.z[2] == 22;
 }
 
@@ -20,10 +21,11 @@ predicate Foo {
 // type ::myTuple = {x: int};
 // type ::myTupleArray = {x: int[5]};
 // type ::myNestedArrayTuple = {y: {z: int[{4, 1}.0]}};
-//
-// predicate ::Foo {
-//     var ::a: ::myArrayTuple;
-//     var ::b: ::myNestedArrayTuple;
+// 
+// predicate ::Foo(
+//     ::a: ::myArrayTuple,
+//     ::b: ::myNestedArrayTuple,
+// ) {
 //     constraint (::a[2] == 11);
 //     constraint (::b.y.z[2] == 22);
 // }
@@ -36,10 +38,11 @@ predicate Foo {
 // type ::myTuple = {x: int};
 // type ::myTupleArray = {x: int[5]};
 // type ::myNestedArrayTuple = {y: {z: int[4]}};
-//
-// predicate ::Foo {
-//     var ::a: int[3];
-//     var ::b: {y: {z: int[4]}};
+// 
+// predicate ::Foo(
+//     ::a: int[3],
+//     ::b: {y: {z: int[4]}},
+// ) {
 //     constraint (::a[2] == 11);
 //     constraint (::b.y.z[2] == 22);
 //     constraint __eq_set(__mut_keys(), {0});
