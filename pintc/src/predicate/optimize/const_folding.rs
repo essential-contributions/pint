@@ -55,61 +55,101 @@ pub(crate) fn fold_consts(contract: &mut Contract) {
 /// true && <expr> is <expr>
 /// false || <expr> is <expr>
 /// false && <expr> is <false>
+// TODO: Make recursive. Simplifying only once isn't enough, need to keep going until it can't any more
 pub(crate) fn fold_boolean_identities(contract: &mut Contract) {
+    fn fold_boolean_identity(
+        contract: &Contract,
+        evaluator: &Evaluator,
+        replace_map: &mut FxHashMap<ExprKey, ExprKey>,
+        expr_key: ExprKey,
+    ) -> Option<ExprKey> {
+        if let Expr::BinaryOp { op, lhs, rhs, .. } = expr_key.get(contract) {
+            let mut lhs = *lhs; // TODO: Document why if this works
+
+            if let Expr::BinaryOp { .. } = lhs.get(contract) {
+                if let Some(folded_key) =
+                    fold_boolean_identity(contract, evaluator, replace_map, lhs)
+                {
+                    lhs = folded_key;
+                }
+            }
+
+            let mut rhs = *rhs; // TODO: Document why if this works
+
+            if let Expr::BinaryOp { .. } = rhs.get(contract) {
+                if let Some(folded_key) =
+                    fold_boolean_identity(contract, evaluator, replace_map, rhs)
+                {
+                    rhs = folded_key;
+                }
+            }
+
+            let lhs_imm = evaluator.evaluate_key(&lhs, &Handler::default(), contract);
+            let rhs_imm = evaluator.evaluate_key(&rhs, &Handler::default(), contract);
+
+            match op {
+                BinaryOp::LogicalAnd => match (lhs_imm, rhs_imm) {
+                    (Ok(Immediate::Bool(true)), Err(_)) => {
+                        replace_map.insert(expr_key, rhs);
+                        return Some(rhs);
+                    }
+
+                    (Err(_), Ok(Immediate::Bool(true))) => {
+                        replace_map.insert(expr_key, lhs);
+                        return Some(lhs);
+                    }
+
+                    (Ok(Immediate::Bool(false)), Err(_)) => {
+                        replace_map.insert(expr_key, lhs);
+                        return Some(lhs);
+                    }
+
+                    (Err(_), Ok(Immediate::Bool(false))) => {
+                        replace_map.insert(expr_key, rhs);
+                        return Some(rhs);
+                    }
+
+                    _ => return None,
+                },
+
+                BinaryOp::LogicalOr => match (lhs_imm, rhs_imm) {
+                    (Ok(Immediate::Bool(true)), Err(_)) => {
+                        replace_map.insert(expr_key, lhs);
+                        return Some(lhs);
+                    }
+
+                    (Err(_), Ok(Immediate::Bool(true))) => {
+                        replace_map.insert(expr_key, rhs);
+                        return Some(rhs);
+                    }
+
+                    (Ok(Immediate::Bool(false)), Err(_)) => {
+                        replace_map.insert(expr_key, rhs);
+                        return Some(rhs);
+                    }
+
+                    (Err(_), Ok(Immediate::Bool(false))) => {
+                        replace_map.insert(expr_key, lhs);
+                        return Some(lhs);
+                    }
+
+                    _ => return None,
+                },
+
+                _ => return None,
+            };
+        } else {
+            return None;
+        }
+    }
+
     let mut replace_map: FxHashMap<ExprKey, ExprKey> = FxHashMap::default();
 
     let evaluator = Evaluator::new(contract);
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         for expr_key in contract.exprs(pred_key) {
-            if let Expr::BinaryOp { op, lhs, rhs, .. } = expr_key.get(contract) {
-                let lhs_imm = evaluator.evaluate_key(lhs, &Handler::default(), contract);
-                let rhs_imm = evaluator.evaluate_key(rhs, &Handler::default(), contract);
-
-                match op {
-                    BinaryOp::LogicalAnd => match (lhs_imm, rhs_imm) {
-                        (Ok(Immediate::Bool(true)), Err(_)) => {
-                            replace_map.insert(expr_key, *rhs);
-                        }
-
-                        (Err(_), Ok(Immediate::Bool(true))) => {
-                            replace_map.insert(expr_key, *lhs);
-                        }
-
-                        (Ok(Immediate::Bool(false)), Err(_)) => {
-                            replace_map.insert(expr_key, *lhs);
-                        }
-
-                        (Err(_), Ok(Immediate::Bool(false))) => {
-                            replace_map.insert(expr_key, *rhs);
-                        }
-
-                        _ => {}
-                    },
-
-                    BinaryOp::LogicalOr => match (lhs_imm, rhs_imm) {
-                        (Ok(Immediate::Bool(true)), Err(_)) => {
-                            replace_map.insert(expr_key, *lhs);
-                        }
-
-                        (Err(_), Ok(Immediate::Bool(true))) => {
-                            replace_map.insert(expr_key, *rhs);
-                        }
-
-                        (Ok(Immediate::Bool(false)), Err(_)) => {
-                            replace_map.insert(expr_key, *rhs);
-                        }
-
-                        (Err(_), Ok(Immediate::Bool(false))) => {
-                            replace_map.insert(expr_key, *lhs);
-                        }
-
-                        _ => {}
-                    },
-
-                    _ => {}
-                };
-            }
+            fold_boolean_identity(contract, &evaluator, &mut replace_map, expr_key);
         }
 
         for (old_expr_key, new_expr_key) in &replace_map {
