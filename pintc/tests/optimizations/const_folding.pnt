@@ -17,6 +17,7 @@ predicate Test {
         constraint y in [1, 4, 7];
     }
 
+    // boolean identities
     var x: int;
     if true && y == 0 {
         constraint x == 1;
@@ -41,6 +42,16 @@ predicate Test {
     } else {
         constraint x == 0;
     }
+
+    // arithmetic identities
+    var g = 0 + x;
+    var h = x + 0;
+    var i = x - 0;
+    var j = 0 * x;
+    var k = x * 0;
+    var l = 0 / x;
+    var m = x / 1;
+    var n = x % 1;
 }
 
 // parsed <<<
@@ -57,12 +68,28 @@ predicate Test {
 //     var ::f;
 //     var ::y: int;
 //     var ::x: int;
+//     var ::g;
+//     var ::h;
+//     var ::i;
+//     var ::j;
+//     var ::k;
+//     var ::l;
+//     var ::m;
+//     var ::n;
 //     constraint (::a == (1 + 2));
 //     constraint (::b == (1 - ::test_array[0]));
 //     constraint (::c == ((((1 + 2) - 3) + 4) - (2 - ::test_tuple.1)));
 //     constraint (::d == !(1 > 2));
 //     constraint (::e == -(::test + 3));
 //     constraint (::f == (::d ? false : !!true));
+//     constraint (::g == (0 + ::x));
+//     constraint (::h == (::x + 0));
+//     constraint (::i == (::x - 0));
+//     constraint (::j == (0 * ::x));
+//     constraint (::k == (::x * 0));
+//     constraint (::l == (0 / ::x));
+//     constraint (::m == (::x / 1));
+//     constraint (::n == (::x % 1));
 //     if (((((1 + 2) - 3) + 4) - (2 - 5)) < 5) {
 //         constraint (((3 - 4) + 1) == ::y)
 //     } else {
@@ -105,12 +132,28 @@ predicate Test {
 //     var ::f: bool;
 //     var ::y: int;
 //     var ::x: int;
+//     var ::g: int;
+//     var ::h: int;
+//     var ::i: int;
+//     var ::j: int;
+//     var ::k: int;
+//     var ::l: int;
+//     var ::m: int;
+//     var ::n: int;
 //     constraint (::a == (1 + 2));
 //     constraint (::b == (1 - 1));
 //     constraint (::c == ((((1 + 2) - 3) + 4) - (2 - 5)));
 //     constraint (::d == !(1 > 2));
 //     constraint (::e == -(20 + 3));
 //     constraint (::f == (::d ? false : !!true));
+//     constraint (::g == (0 + ::x));
+//     constraint (::h == (::x + 0));
+//     constraint (::i == (::x - 0));
+//     constraint (::j == (0 * ::x));
+//     constraint (::k == (::x * 0));
+//     constraint (::l == (0 / ::x));
+//     constraint (::m == (::x / 1));
+//     constraint (::n == (::x % 1));
 //     constraint (!(((((1 + 2) - 3) + 4) - (2 - 5)) < 5) || (((3 - 4) + 1) == ::y));
 //     constraint ((((((1 + 2) - 3) + 4) - (2 - 5)) < 5) || (((::y == 1) || (::y == 4)) || (::y == 7)));
 //     constraint (!(true && (::y == 0)) || (::x == 1));
@@ -139,12 +182,28 @@ predicate Test {
 //     var ::f: bool;
 //     var ::y: int;
 //     var ::x: int;
+//     var ::g: int;
+//     var ::h: int;
+//     var ::i: int;
+//     var ::j: int;
+//     var ::k: int;
+//     var ::l: int;
+//     var ::m: int;
+//     var ::n: int;
 //     constraint (::a == 3);
 //     constraint (::b == 0);
 //     constraint (::c == 7);
 //     constraint (::d == true);
 //     constraint (::e == -23);
 //     constraint (::f == (::d ? false : true));
+//     constraint (::g == ::x);
+//     constraint (::h == ::x);
+//     constraint (::i == ::x);
+//     constraint (::j == 0);
+//     constraint (::k == 0);
+//     constraint (::l == 0);
+//     constraint (::m == ::x);
+//     constraint (::n == ::x);
 //     constraint (((::y == 1) || (::y == 4)) || (::y == 7));
 //     constraint (!(::y == 0) || (::x == 1));
 //     constraint ((::y == 0) || (::x == 0));
