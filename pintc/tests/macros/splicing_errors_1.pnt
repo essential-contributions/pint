@@ -6,11 +6,11 @@ macro @get123() {
     [1, 2, 3]
 }
 
-predicate F {
+predicate F() {
     constraint @add3(~@get123()) == 6;
 }
 
 // parse_failure <<<
 // bad argument splice
-// @116..117: the macro argument splice operator `~` must be applied to an identifier
+// @118..119: the macro argument splice operator `~` must be applied to an identifier
 // >>>

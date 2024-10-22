@@ -10,9 +10,7 @@ macro @c($z) {
     $z == 0
 }
 
-predicate test {
-    var v: int;
-
+predicate test(v: int) {
     constraint @a(v);
     constraint @b(v);
     constraint @a(v);
@@ -20,8 +18,9 @@ predicate test {
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::v: int;
+// predicate ::test(
+//     ::v: int,
+// ) {
 //     constraint (::v == 0);
 //     constraint (::v == 0);
 //     constraint (::v == 0);
@@ -30,8 +29,9 @@ predicate test {
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::v: int;
+// predicate ::test(
+//     ::v: int,
+// ) {
 //     constraint (::v == 0);
 //     constraint (::v == 0);
 //     constraint (::v == 0);

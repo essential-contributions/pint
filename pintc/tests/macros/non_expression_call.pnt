@@ -2,17 +2,18 @@ macro @decls_only($a) {
     constraint $a > 0;
 }
 
-predicate test {
+predicate test(x: bool) {
     // @decls_only() doesn't return an expression and can't be used here.
-    var x = @decls_only(11);
+    constraint x == @decls_only(11);
 
     // This is OK.
     @decls_only(22);
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::x;
+// predicate ::test(
+//     ::x: bool,
+// ) {
 //     constraint (::x == <REMOVED MACRO CALL>);
 //     constraint (11 > 0);
 //     constraint (22 > 0);
@@ -21,6 +22,6 @@ predicate test {
 
 // typecheck_failure <<<
 // macro call is not an expression
-// @153..168: macro call does not expand to an expression
+// @170..185: macro call does not expand to an expression
 // macros which contain only declarations may only be used at the top level of a predicate and not as an expression
 // >>>
